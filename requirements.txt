@@ -1,6 +1,6 @@
-# Dev environment
-pip
-autopep8
-
-# App
+gspread
+requests
+google-generativeai
 flask
+chromadb
+python-dotenv
