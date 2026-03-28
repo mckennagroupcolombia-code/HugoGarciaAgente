@@ -6,17 +6,18 @@ import time
 from app.sync import (
     sincronizar_inteligente,
     sincronizar_facturas_recientes,
-    ejecutar_sincronizacion_y_reporte,
+    ejecutar_sincronizacion_y_reporte_stock,
     sincronizar_manual_por_id,
     sincronizar_por_dia_especifico
 )
 from app.services.google_services import leer_datos_hoja
 from app.services.meli import aprender_de_interacciones_meli
+from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
 
 # --- Importación del Cerebro de la IA ---
 # El núcleo que procesa el lenguaje natural.
 # TODO: La función `obtener_respuesta_ia` debe ser refactorizada y movida a `app/core.py`.
-from agente_pro import obtener_respuesta_ia
+from app.core import obtener_respuesta_ia
 
 
 def mostrar_menu():
@@ -33,7 +34,8 @@ def mostrar_menu():
     print("7. 🛠️  [MANUAL] Sincronizar por Pack ID Específico")
     print("8. 🎓 [IA] Forzar Aprendizaje de Interacciones de MeLi")
     print("9. 📅 [FECHA] Sincronizar Facturas por Día Específico")
-    print("10. 🚪 [EXIT] Salir del Centro de Mando")
+    print("10. 🔄 [GMAIL] Sincronizar Facturas de Compra SIIGO (uno a uno)")
+    print("11. 🚪 [EXIT] Salir del Centro de Mando")
     print("═"*45)
 
 def iniciar_cli():
@@ -76,7 +78,7 @@ def iniciar_cli():
         elif opcion == "4":
             print(sincronizar_facturas_recientes(dias=10))
         elif opcion == "5":
-            print(ejecutar_sincronizacion_y_reporte())
+            print(ejecutar_sincronizacion_y_reporte_stock())
         elif opcion == "6":
             producto = input("🔍 Ingrese el nombre del producto a buscar: ")
             print(leer_datos_hoja(producto))
@@ -89,6 +91,9 @@ def iniciar_cli():
             fecha = input("📅 Ingrese la fecha (formato AAAA-MM-DD): ")
             print(sincronizar_por_dia_especifico(fecha))
         elif opcion == "10":
+            # Llamar a la nueva herramienta sincronizar_facturas_de_compra_siigo
+            print(sincronizar_facturas_de_compra_siigo())
+        elif opcion == "11":
             print("👋 Apagando el Centro de Mando...")
             break
         else:

@@ -4,9 +4,9 @@ from flask import request, jsonify
 # --- Dependencias de Lógica de Negocio ---
 # Estas son las funciones que nuestra ruta necesita para operar.
 # TODO: Eventualmente, estas dependencias se deben limpiar y organizar.
-from agente_pro import obtener_respuesta_ia
+from app.core import obtener_respuesta_ia
 from modulo_posventa import responder_mensaje_posventa
-from core_sync import enviar_whatsapp_reporte
+from app.utils import enviar_whatsapp_reporte
 
 # --- Estado Temporal ---
 # TODO: Este diccionario en memoria se pierde si el servidor se reinicia.
@@ -33,6 +33,52 @@ def register_routes(app):
         message_text = data.get('mensaje', '').strip()
         is_after_sale = data.get('es_postventa', False)
         order_id = data.get('order_id', sender_id)
+        has_media = data.get('has_media', False)
+        media_type = data.get('media_type', '')
+
+        # --- Flujo de Aprobación para Comprobantes de Pago ---
+        if message_text.lower().startswith("pago ok"):
+            target_sender = message_text.split()[-1]
+            if target_sender in borradores_aprobacion:
+                # Comprobante validado
+                borradores_aprobacion.pop(target_sender)
+                # Aquí se debería continuar con el proceso normal, e.g., avisar que se recibió el pago y se generará la factura.
+                # Para simplificar la prueba, enviamos un mensaje de vuelta indicando éxito.
+                return jsonify({"status": "success", "respuesta": f"¡Perfecto! Hemos validado tu pago. En breve te enviaremos la factura correspondiente."})
+            else:
+                return jsonify({"status": "error", "respuesta": f"No encontré un comprobante pendiente para el número '{target_sender}'."})
+                
+        elif message_text.lower().startswith("pago no"):
+            target_sender = message_text.split()[-1]
+            if target_sender in borradores_aprobacion:
+                borradores_aprobacion.pop(target_sender)
+                return jsonify({"status": "success", "respuesta": f"Hola, ha habido un problema con la validación de tu pago. Por favor rectifica y revisa por qué la transacción no ha sido recibida."})
+            else:
+                return jsonify({"status": "error", "respuesta": f"No encontré un comprobante pendiente para el número '{target_sender}'."})
+
+        # --- Detección de Comprobantes de Pago ---
+        if has_media and media_type == 'image':
+            keywords_pago = ["bancolombia", "tarjeta", "credito", "nequi", "mercadopago", "efectivo", "contado", "pago", "transferencia", "comprobante"]
+            is_payment = any(keyword in message_text.lower() for keyword in keywords_pago)
+            
+            # Si tiene imagen y menciona métodos de pago, asumimos que es comprobante
+            if is_payment or message_text == "":
+                borradores_aprobacion[sender_id] = "esperando_validacion_pago"
+                
+                # Notificar al canal de control para que un humano apruebe.
+                mensaje_aprobacion = (
+                    f"💰 *COMPROBANTE DE PAGO RECIBIDO*\n"
+                    f"👤 Cliente: `{sender_id}`\n"
+                    f"¿Es válido el comprobante de pago enviado por el cliente?\n\n"
+                    f"Para confirmar, responde: `pago ok {sender_id}`\n"
+                    f"Si el pago no es válido, responde: `pago no {sender_id}`"
+                )
+                enviar_whatsapp_reporte(mensaje_aprobacion)
+                
+                return jsonify({
+                    "status": "waiting_for_payment_approval",
+                    "respuesta": "Hemos recibido tu comprobante. Nuestro equipo lo está validando. Te avisaremos en cuanto esté confirmado."
+                })
 
         # --- Flujo de Aprobación para Mensajes de Posventa ---
         if message_text.lower().startswith("hugo dale ok"):

@@ -1,10 +1,58 @@
 # Archivos de entorno
 .env
+.env.local
+.env.*.local
 
-# Dependencias de Python
+# Dependencias de Python (todas las variantes)
 .venv/
+venv/
+ENV/
+env/
+.Python
+*.egg-info/
+dist/
+build/
+pip-log.txt
+pip-delete-this-directory.txt
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Bases de datos
+# IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Bases de datos y cache
 mckenna_business.db
+*.sqlite3
+memoria_vectorial/
+.wwebjs_auth/
+.wwebjs_cache/
+.cache/
+
+# Node e instalación de dependencias
+node_modules/
+package-lock.json
+
+# Logs y reportes temporales
+*.log
+log_*.txt
+reporte_*.txt
+
+# Backups y archivos temporales
+backups/
+temp/
+*.tmp
+*.bak
+
+# Archivos de prueba y debug
+test_*.py
+fichas_word/

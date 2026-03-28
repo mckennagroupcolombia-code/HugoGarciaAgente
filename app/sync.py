@@ -159,7 +159,8 @@ def ejecutar_sincronizacion_y_reporte_stock():
             res = requests.get(f"https://api.mercadolibre.com/items?ids={','.join(lote)}", headers=headers).json()
             for r in res:
                 if r.get('code') != 200: continue
-                item, ml_id = r['body'], item.get('id')
+                item = r['body']
+                ml_id = item.get('id')
                 stock = sum(v.get('available_quantity', 0) for v in item.get('variations', [])) if item.get('variations') else item.get('available_quantity', 0)
                 
                 nombre = nombre_map.get(ml_id, item.get('title'))

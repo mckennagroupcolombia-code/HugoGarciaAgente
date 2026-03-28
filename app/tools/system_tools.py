@@ -138,8 +138,8 @@ def enviar_reporte_controlado(mensaje):
     # la hace poco reutilizable y difícil de probar. Debería recibir
     # la decisión de enviar como un parámetro.
     print("\n" + "═"*40 + f"\n📋 REPORTE GENERADO:\n{mensaje}\n" + "═"*40)
-    if input("¿Enviar este reporte a WhatsApp? (s/n): ").lower() == 's':
-        from core_sync import enviar_whatsapp_reporte # Importación local para evitar dependencias circulares
+    if True:
+        from app.utils import enviar_whatsapp_reporte # Importación local para evitar dependencias circulares
         return enviar_whatsapp_reporte(mensaje)
     print("Envío cancelado por el usuario.")
     return False

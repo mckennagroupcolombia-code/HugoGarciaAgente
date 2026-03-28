@@ -3,8 +3,8 @@ import requests
 import threading
 import time
 from flask import Flask, request, jsonify
-from agente_pro import obtener_respuesta_ia
-from core_sync import enviar_whatsapp_reporte, refrescar_token_meli
+from app.core import obtener_respuesta_ia
+from app.utils import enviar_whatsapp_reporte, refrescar_token_meli
 
 app = Flask(__name__)
 

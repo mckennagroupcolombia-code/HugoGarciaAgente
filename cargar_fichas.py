@@ -4,7 +4,7 @@ import unicodedata
 import re
 import time
 from docx import Document
-from core_sync import GOOGLE_CREDS_PATH, SPREADSHEET_ID
+from app.sync import GOOGLE_CREDS_PATH, SPREADSHEET_ID
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 

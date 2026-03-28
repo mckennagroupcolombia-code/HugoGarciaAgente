@@ -1,7 +1,7 @@
 import datetime
 import requests
 import json
-from core_sync import refrescar_token_meli
+from app.utils import refrescar_token_meli
 
 def responder_mensaje_posventa(order_id, texto):
     """

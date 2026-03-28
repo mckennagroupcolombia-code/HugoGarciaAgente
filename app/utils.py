@@ -77,6 +77,7 @@ def refrescar_token_meli():
 # --- Comunicación con el Servidor de Notificaciones (WhatsApp) ---
 # Las constantes de URL y teléfono se cargan desde variables de entorno.
 URL_API_WHATSAPP = os.getenv("URL_API_WHATSAPP", "http://127.0.0.1:3000/enviar")
+URL_API_WHATSAPP_ARCHIVO = os.getenv("URL_API_WHATSAPP_ARCHIVO", "http://127.0.0.1:3000/enviar-archivo")
 TELEFONO_GRUPO_REPORTE = os.getenv("TELEFONO_GRUPO_REPORTE", "120363407538342427@g.us")
 
 def enviar_whatsapp_reporte(texto_mensaje: str):
@@ -94,11 +95,6 @@ def enviar_whatsapp_reporte(texto_mensaje: str):
             if res.status_code == 200:
                 print("✅ Reporte enviado a WhatsApp con éxito.")
                 return True
-            elif res.status_code == 503:
-                # El servidor de WhatsApp puede estar iniciándose.
-                espera = 15
-                print(f"⚠️ El servidor de WhatsApp no está listo (503). Reintentando en {espera} segundos...")
-                time.sleep(espera)
             else:
                 print(f"❌ Error al enviar reporte a WhatsApp. Código: {res.status_code}, Respuesta: {res.text}")
                 # No reintentar en errores no recuperables (ej. 4xx)
@@ -111,3 +107,26 @@ def enviar_whatsapp_reporte(texto_mensaje: str):
 
     print(f"❌ Fallo el envío a WhatsApp después de {max_intentos} intentos.")
     return False
+
+def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: str = None):
+    """
+    Envía un archivo (PDF, Imagen, etc.) al grupo de WhatsApp designado para reportes.
+    """
+    payload = {
+        "numero": TELEFONO_GRUPO_REPORTE,
+        "mensaje": texto_mensaje,
+        "filePath": file_path,
+        "fileName": file_name
+    }
+
+    try:
+        res = requests.post(URL_API_WHATSAPP_ARCHIVO, json=payload, timeout=60)
+        if res.status_code == 200:
+            print(f"✅ Archivo {file_path} enviado a WhatsApp con éxito.")
+            return True
+        else:
+            print(f"❌ Error al enviar archivo a WhatsApp. Código: {res.status_code}, Respuesta: {res.text}")
+            return False
+    except requests.RequestException as e:
+        print(f"❌ Error de conexión al enviar archivo por WhatsApp: {e}")
+        return False

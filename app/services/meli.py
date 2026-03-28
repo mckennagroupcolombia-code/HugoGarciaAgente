@@ -11,7 +11,7 @@ import chromadb
 
 # --- Dependencias del proyecto antiguo ---
 # TODO: Refactorizar para que `refrescar_token_meli` viva aquí.
-from core_sync import refrescar_token_meli
+from app.utils import refrescar_token_meli
 
 # --- Funciones de Interacción con Mercado Libre ---
 
@@ -131,10 +131,14 @@ def aprender_de_interacciones_meli():
                 texto_bruto += f"- Pregunta del cliente: {q.get('text')}\n  - Nuestra respuesta: {q.get('answer', {}).get('text')}\n\n"
 
             prompt = (
-                f"Actúa como un analista experto en atención al cliente. Tu tarea es analizar el siguiente historial "
-                f"de preguntas y respuestas. Identifica los patrones, las dudas más comunes y las soluciones aportadas. "
-                f"Resume esto en un párrafo conciso y denso, formulado como una 'lección aprendida' o una 'experiencia clave' "
-                f"para mejorar el servicio y la eficiencia en el futuro. El resumen debe ser útil para un agente humano o de IA."
+                f"Actúa como un técnico en farmacología experto en atención al cliente para materias primas y productos químicos. "
+                f"Tu tarea es analizar el siguiente historial de preguntas y respuestas de Mercado Libre. "
+                f"Identifica los patrones, las dudas más comunes, las soluciones aportadas y los problemas recurrentes (como envíos, dosificación, "
+                f"falta de documentación, fichas técnicas o certificados de calidad). "
+                f"Basándote en los parámetros del negocio, resuelve la problemática sugiriendo acciones concretas para que el agente virtual "
+                f"(Hugo Garcia) o el equipo humano implementen. Resume esto en un párrafo conciso y denso, formulado como una "
+                f"'lección aprendida' o una 'experiencia clave' para mejorar el servicio y la eficiencia, enfatizando la "
+                f"precisión técnica y de seguridad farmacológica/química."
                 f"\n--- HISTORIAL ---\n{texto_bruto}"
             )
             

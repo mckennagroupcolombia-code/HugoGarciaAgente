@@ -1,5 +1,6 @@
 import json
 import requests
+from app.services.meli_preventa import generar_respuesta_preventa_ia
 
 # Ruta de sus credenciales
 RUTA_CREDENCIALES = "/home/mckg/mi-agente/credenciales_meli.json"
@@ -22,21 +23,23 @@ def obtener_detalle_pregunta(question_id, token):
         print(f"Paila, error al obtener pregunta: {respuesta.text}")
         return None
 
-def analizar_y_crear_respuesta(texto_pregunta, item_id):
+def obtener_nombre_producto_meli(item_id, token):
+    url = f"https://api.mercadolibre.com/items/{item_id}"
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        res = requests.get(url, headers=headers)
+        if res.status_code == 200:
+            return res.json().get('title', 'Producto desconocido')
+    except Exception as e:
+        print(f"Error obteniendo nombre del producto: {e}")
+    return "Producto desconocido"
+
+def analizar_y_crear_respuesta(texto_pregunta, item_id, token):
     """
-    Aquí es donde ocurre la magia. 
-    Más adelante podemos conectar esto con Google Sheets para buscar el item_id (MCO)
-    en la Columna A de la 'Hoja 1' y ver el Stock en la Columna F, o conectar un agente de IA.
+    Genera la respuesta usando IA con el contexto de preventa.
     """
-    texto_lower = texto_pregunta.lower()
-    
-    # Lógica súper básica de ejemplo
-    if "invima" in texto_lower:
-        return "¡Hola! Sí, todos nuestros productos cuentan con su respectivo registro sanitario Invima. ¡Anímate a comprar!"
-    elif "disponible" in texto_lower or "stock" in texto_lower:
-        return "¡Hola! Sí tenemos disponibilidad inmediata de este producto. ¡Esperamos tu compra!"
-    else:
-        return "¡Hola! Gracias por comunicarte con McKenna Group. ¿En qué más te podemos ayudar?"
+    nombre_producto = obtener_nombre_producto_meli(item_id, token)
+    return generar_respuesta_preventa_ia(texto_pregunta, nombre_producto)
 
 def enviar_respuesta_meli(question_id, texto_respuesta, token):
     """Dispara la respuesta oficial a la publicación de Mercado Libre."""
@@ -76,9 +79,19 @@ def procesar_nueva_pregunta(question_id):
     
     print(f"El cliente preguntó: '{texto_pregunta}' en el producto {item_id}")
     
-    respuesta_generada = analizar_y_crear_respuesta(texto_pregunta, item_id)
+    respuesta_generada = analizar_y_crear_respuesta(texto_pregunta, item_id, token)
     
-    enviar_respuesta_meli(question_id, respuesta_generada, token)
+    status = enviar_respuesta_meli(question_id, respuesta_generada, token)
+    
+    from app.utils import enviar_whatsapp_reporte
+    emoji_status = "✅" if status else "❌"
+    nombre_producto = obtener_nombre_producto_meli(item_id, token)
+    mensaje_ws = (f"🔔 *REPORTE PREVENTA MELI*\n\n"
+                 f"📦 *Producto:* {nombre_producto}\n"
+                 f"🗣 *Cliente Preguntó:* {texto_pregunta}\n"
+                 f"🤖 *IA Respondió:* {respuesta_generada}\n\n"
+                 f"Status Respuesta: {emoji_status}")
+    enviar_whatsapp_reporte(mensaje_ws)
 
 # --- Para probar el script manualmente ---
 if __name__ == "__main__":
