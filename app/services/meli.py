@@ -142,7 +142,7 @@ def aprender_de_interacciones_meli():
             )
             
             response = client.models.generate_content(
-                model='gemini-2.0-flash-lite',
+                model='gemini-2.5-pro',
                 contents=prompt
             )
             aprendizaje_generado = response.text
