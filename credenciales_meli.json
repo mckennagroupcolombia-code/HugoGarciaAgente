@@ -1,7 +1,7 @@
 {
-  "app_id": "TU_APP_ID",
-  "client_secret": "TU_CLIENT_SECRET",
+  "app_id": "3832560982083401",
+  "client_secret": "M9G69eQeYIIr9GHob9dybE4SICygvNFH",
   "redirect_uri": "https://tu-redirect-uri.com/",
-  "access_token": "",
-  "refresh_token": ""
+  "access_token": "APP_USR-3832560982083401-032900-825ff3810ad0ac9a09a0a9b03ec534a2-432439187",
+  "refresh_token": "TG-69c8a637dfa44e0001c35650-432439187"
 }

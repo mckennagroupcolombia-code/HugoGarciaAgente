@@ -80,16 +80,19 @@ REGLAS DE CONTROL DE HERRAMIENTAS:
 4. No pidas confirmaciones de WhatsApp (s/n) en el modo chat a menos que te lo ordenen explícitamente.
 """
 
-# Variable global para el modelo de IA
+# Variables globales — client debe vivir junto a modelo_ia para evitar
+# que el garbage collector lo destruya y rompa la sesión de chat.
+cliente_ia = None
 modelo_ia = None
 
 def configurar_ia(app):
     """
     Configura e inicializa el modelo de IA con todas las herramientas disponibles.
     """
-    global modelo_ia
+    global cliente_ia, modelo_ia
     try:
-        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        cliente_ia = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        client = cliente_ia
         
         # Agrupamos todas las funciones importadas en una lista de herramientas para el modelo.
         # Asumiendo que crear_cotizacion_siigo se exportó en app.services.siigo
