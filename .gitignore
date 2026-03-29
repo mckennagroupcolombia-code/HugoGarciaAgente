@@ -57,3 +57,5 @@ temp/
 test_*.py
 fichas_word/
 app/tools/token_gmail.json
+mi-agente-ubuntu-a0a27e48d640.json
+client_secret_cloud.json
