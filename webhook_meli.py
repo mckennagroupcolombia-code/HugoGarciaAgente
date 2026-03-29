@@ -140,6 +140,112 @@ def chat():
 def panel():
     return render_template('chat.html')
 
+# ── HELPER: verificación de token ────────────────────────────────────────────
+def _token_valido():
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    return token == os.getenv('CHAT_API_TOKEN', '')
+
+def _lanzar_en_hilo(fn, *args):
+    """Ejecuta fn(*args) en segundo plano y devuelve respuesta inmediata."""
+    threading.Thread(target=fn, args=args, daemon=True).start()
+
+# ── ENDPOINTS DE SINCRONIZACIÓN ───────────────────────────────────────────────
+from datetime import datetime as _dt
+from app.sync import (
+    sincronizar_inteligente,
+    sincronizar_facturas_recientes,
+    ejecutar_sincronizacion_y_reporte_stock,
+    sincronizar_manual_por_id,
+    sincronizar_por_dia_especifico,
+)
+from app.services.google_services import leer_datos_hoja
+from app.services.meli import aprender_de_interacciones_meli
+from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
+
+@app.route('/sync/hoy', methods=['POST'])
+def sync_hoy():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    _lanzar_en_hilo(sincronizar_facturas_recientes, 1)
+    return jsonify({"status": "iniciado", "mensaje": "🔄 Sync último día iniciado en segundo plano.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/sync/10dias', methods=['POST'])
+def sync_10dias():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    _lanzar_en_hilo(sincronizar_facturas_recientes, 10)
+    return jsonify({"status": "iniciado", "mensaje": "🔄 Sync últimos 10 días iniciado en segundo plano.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/sync/completo', methods=['POST'])
+def sync_completo():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    _lanzar_en_hilo(ejecutar_sincronizacion_y_reporte_stock)
+    return jsonify({"status": "iniciado", "mensaje": "📊 Sync completo + reporte de stock iniciado.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/sync/inteligente', methods=['POST'])
+def sync_inteligente():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    _lanzar_en_hilo(sincronizar_inteligente)
+    return jsonify({"status": "iniciado", "mensaje": "🧠 Sync inteligente (MeLi vs Siigo) iniciado.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/consultar/producto', methods=['GET'])
+def consultar_producto():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    nombre = request.args.get('nombre', '').strip()
+    if not nombre:
+        return jsonify({"status": "error", "resultado": "Parámetro 'nombre' requerido"}), 400
+    try:
+        resultado = leer_datos_hoja(nombre)
+        return jsonify({"status": "ok", "resultado": resultado, "timestamp": _dt.now().isoformat()})
+    except Exception as e:
+        return jsonify({"status": "error", "resultado": str(e)}), 500
+
+@app.route('/sync/pack', methods=['POST'])
+def sync_pack():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    data = request.get_json() or {}
+    pack_id = str(data.get('pack_id', '')).strip()
+    if not pack_id:
+        return jsonify({"status": "error", "resultado": "Campo 'pack_id' requerido"}), 400
+    _lanzar_en_hilo(sincronizar_manual_por_id, pack_id)
+    return jsonify({"status": "iniciado", "mensaje": f"🛠 Sync por Pack ID {pack_id} iniciado.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/sync/fecha', methods=['POST'])
+def sync_fecha():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    data = request.get_json() or {}
+    fecha = str(data.get('fecha', '')).strip()
+    if not fecha:
+        return jsonify({"status": "error", "resultado": "Campo 'fecha' requerido (formato AAAA-MM-DD)"}), 400
+    _lanzar_en_hilo(sincronizar_por_dia_especifico, fecha)
+    return jsonify({"status": "iniciado", "mensaje": f"📅 Sync por fecha {fecha} iniciado.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/sync/aprendizaje', methods=['POST'])
+def sync_aprendizaje():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    _lanzar_en_hilo(aprender_de_interacciones_meli)
+    return jsonify({"status": "iniciado", "mensaje": "🎓 Aprendizaje IA iniciado. Se analizarán las últimas interacciones de MeLi.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/sync/gmail', methods=['POST'])
+def sync_gmail():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    _lanzar_en_hilo(sincronizar_facturas_de_compra_siigo)
+    return jsonify({"status": "iniciado", "mensaje": "🔄 Sync de facturas de compra SIIGO desde Gmail iniciado.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/sync/stock', methods=['POST'])
+def sync_stock():
+    if not _token_valido():
+        return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    _lanzar_en_hilo(ejecutar_sincronizacion_y_reporte_stock)
+    return jsonify({"status": "iniciado", "mensaje": "📊 Reporte de stock iniciado. El resultado llegará por WhatsApp.", "timestamp": _dt.now().isoformat()})
+
 if __name__ == '__main__':
     # Este corre en el 8080. El agente_pro corre en el 8081.
     print("🚀 Webhook MeLi escuchando en puerto 8080...")

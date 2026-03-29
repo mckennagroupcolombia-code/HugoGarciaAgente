@@ -225,6 +225,34 @@
       background: var(--border);
     }
 
+    /* ── QUICK ACTIONS ──────────────────────────── */
+    #quick-actions {
+      display: flex;
+      gap: 6px;
+      padding: 8px 12px 0;
+      background: var(--bg-panel);
+      overflow-x: auto;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    #quick-actions::-webkit-scrollbar { display: none; }
+
+    .qa-btn {
+      flex-shrink: 0;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: var(--text);
+      font-size: 12px;
+      padding: 5px 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, border-color .15s;
+    }
+    .qa-btn:hover  { background: var(--border); border-color: var(--bubble-user); }
+    .qa-btn:active { transform: scale(.95); }
+    .qa-btn:disabled { opacity: .4; cursor: default; transform: none; }
+
     /* ── INPUT AREA ─────────────────────────────── */
     #input-area {
       display: flex;
@@ -409,6 +437,19 @@
 
   <div id="messages">
     <!-- Messages injected here -->
+  </div>
+
+  <div id="quick-actions">
+    <button class="qa-btn" data-action="sync-hoy">🔄 Sync Hoy</button>
+    <button class="qa-btn" data-action="sync-10dias">📦 Sync 10 días</button>
+    <button class="qa-btn" data-action="sync-inteligente">🧠 Sync Inteligente</button>
+    <button class="qa-btn" data-action="sync-completo">📊 Sync Completo</button>
+    <button class="qa-btn" data-action="consultar-producto">🔍 Consultar Producto</button>
+    <button class="qa-btn" data-action="sync-pack">🛠️ Sync Pack ID</button>
+    <button class="qa-btn" data-action="aprendizaje">🎓 Aprendizaje IA</button>
+    <button class="qa-btn" data-action="sync-fecha">📅 Sync por Fecha</button>
+    <button class="qa-btn" data-action="sync-gmail">🔄 Sync Gmail</button>
+    <button class="qa-btn" data-action="sync-stock">📊 Ver Stock</button>
   </div>
 
   <div id="input-area">
@@ -657,6 +698,84 @@
   });
 
   sendBtn.addEventListener('click', sendMessage);
+
+  // ── QUICK ACTIONS ────────────────────────────────────────────
+  // Acciones simples: POST directo sin input del usuario
+  const QUICK_ENDPOINTS = {
+    'sync-hoy':         { url: '/sync/hoy',         label: '🔄 Sync Hoy' },
+    'sync-10dias':      { url: '/sync/10dias',       label: '📦 Sync 10 días' },
+    'sync-inteligente': { url: '/sync/inteligente',  label: '🧠 Sync Inteligente' },
+    'sync-completo':    { url: '/sync/completo',     label: '📊 Sync Completo' },
+    'aprendizaje':      { url: '/sync/aprendizaje',  label: '🎓 Aprendizaje IA' },
+    'sync-gmail':       { url: '/sync/gmail',        label: '🔄 Sync Gmail' },
+    'sync-stock':       { url: '/sync/stock',        label: '📊 Ver Stock' },
+  };
+
+  // Acciones que necesitan input del usuario antes de llamar
+  const QUICK_PROMPT = {
+    'consultar-producto': {
+      label:       '🔍 Consultar Producto',
+      promptMsg:   'Nombre del producto a buscar:',
+      buildFetch:  (val) => ({ url: '/consultar/producto?nombre=' + encodeURIComponent(val), method: 'GET', body: null }),
+    },
+    'sync-pack': {
+      label:       '🛠️ Sync Pack ID',
+      promptMsg:   'Ingresa el Pack ID:',
+      buildFetch:  (val) => ({ url: '/sync/pack', method: 'POST', body: JSON.stringify({ pack_id: val }) }),
+    },
+    'sync-fecha': {
+      label:       '📅 Sync por Fecha',
+      promptMsg:   'Ingresa la fecha (YYYY-MM-DD):',
+      buildFetch:  (val) => ({ url: '/sync/fecha', method: 'POST', body: JSON.stringify({ fecha: val }) }),
+    },
+  };
+
+  async function _ejecutarAccion(url, method, body, labelDisplay) {
+    const now = new Date();
+    appendUserBubble(labelDisplay, formatTime(now));
+    showTyping();
+    try {
+      const opts = { method, headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } };
+      if (body) opts.body = body;
+      const res = await fetch(url, opts);
+      removeTyping();
+      if (res.status === 401) { showModal('Token inválido.'); return; }
+      const data = await res.json();
+      const msg = data.mensaje || data.resultado || data.error || JSON.stringify(data);
+      appendAgentBubble(msg, formatTime(new Date()));
+      const hist = loadHistory();
+      hist.push({ role: 'user',  text: labelDisplay, time: now.toISOString() });
+      hist.push({ role: 'agent', text: msg,           time: new Date().toISOString() });
+      saveHistory(hist);
+    } catch {
+      removeTyping();
+      showToast('Error de conexión.');
+    }
+  }
+
+  document.querySelectorAll('.qa-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!token) { showModal(); return; }
+      const action = btn.dataset.action;
+      btn.disabled = true;
+
+      try {
+        if (QUICK_ENDPOINTS[action]) {
+          const cfg = QUICK_ENDPOINTS[action];
+          await _ejecutarAccion(cfg.url, 'POST', null, cfg.label);
+
+        } else if (QUICK_PROMPT[action]) {
+          const cfg = QUICK_PROMPT[action];
+          const val = window.prompt(cfg.promptMsg);
+          if (!val || !val.trim()) return;
+          const { url, method, body } = cfg.buildFetch(val.trim());
+          await _ejecutarAccion(url, method, body, cfg.label + ': ' + val.trim());
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
 
   // ── CLEAR HISTORY ─────────────────────────────────────────────
   document.getElementById('btn-clear').addEventListener('click', () => {

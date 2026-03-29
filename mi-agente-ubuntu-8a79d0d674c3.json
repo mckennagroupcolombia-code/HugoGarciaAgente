@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "mi-agente-ubuntu",
+  "private_key_id": "a0a27e48d64050b717b7f918447ad74efb45e203",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC67OgK1ayglIWr\ny9Gzxvji7IIqJN34NiaXYGbL0vMFt3WksmKiebE26V8KSxUXB2RtRCPJiLxGs8yl\nCaikzcI8d7A6/zQpjfxnj5JOvCuLg1il7Hj2rp2wn7sfqol/wGlbQeEpsxUTNDMb\nUGw9HRuIMrRlDwcW4oR27+4sSzbFLBK9hcL1wyu0b2W7vcUHCzxnuvcsA4dY7p3x\no2P0/7zwjf0vdTn3P6ICfbKgypZ6NZbOh1ZFeQCQ3JqZDEgp0RL6Wjn4LuOWfAXD\nemh7OZM+i+4btxxcv60ahR8/Z7tv9tM9HX8IoVhbrkgil7upec2dDOrtwWXvjumP\nlPiev4hXAgMBAAECggEAKVU0VBz+cH2W9y94/bs8EpWAjMgdKwLyUpu271AEe9me\n0l29kLa++GjvIowKrE5upvifvzMUir+8OywhFdwHnK5MkicXRi8GxnGJRQ63xEA1\nbG8XKljfNoyDaJOhltWZllvBaaKXQOlUebA1VugmS94GZKhHhYhuCQyxyiqRgFSG\nf5UWl1uog+FWavwW2yhgAW/OUyjrFLnSq/HcSKBkr94LIwX7SELqfSOtdFA4mDIb\n8hTFjY8zWbbiywVeNMhXP18/hPw2sf4K6SfC7FyXooI3PYWMuIXPkt6Y5aFtcu2l\nvusKkhufpwiAwdKLZnpX2w4sC7gx6rFnvZwaCtEkJQKBgQD4vWdNFnCu5yCnIqPe\nvXpV+IxboU9IN0xJX574Hc/DCcejgmENYuAvJqUTRMmCYifvTH9/+efvs37CSCQC\nmTRdmrsvRiBO4+IYFur4YSaiwM9j+oBkaXNlwUxNzjjz6Teh8b5YN7miL+Q532sf\nLhH8FcumNPU+O9rvm2VgDnpVPQKBgQDAYZ9RjY/OiincyqTeRY1Gm9gGMrLvYvsH\n4S0KAlUTu5HW5aIF3sADSokSrhxI9+YCqKA+ewnNchss1qHscIxikAZejvpZwwap\nVNtT3sL+f4X5peT3kAsrsuOfFR829Ee+d6Ls9XOgd1eNLLUMChp2zMt5ERXlvakj\nxtdfImV1IwKBgQCkUoPO4lc4xInGwFSfjm8mIlefJPa6T4W/J0NeyFr7jxdrBnPV\nIw/VNmNxUk0JLI0TQmcshUzbBqpj8MKRUOLOP60PMvWfCF7R6Tn7MjsS4+teMhvl\nueA5RbSB5g2r3NMa0hgcMVwaMCdGsDkVVRsefMuXln65SVN+XRtglM/uRQKBgEUd\njXhmLGkemCWbpBm60SOx761iX4jDfb559o1nAxvAwod7HnePbFqCV7afWMgaT8da\nv59S4tWtjffQ8IGaecUbSz6DjYvcFjOVqep62IFIXWCwag9K78h2T3KiywEaSAA0\nyRLqp+zZk1nD2xOFOba+osdPDRfpyK9yy4OBPwQTAoGBANQOtcyPPt9DCTTSECI6\np59Xmkaj9IJEN9LGr2X508GwbVbhdIGf83MIVyB/oofXaY5/9jD5LQbedy4qgSWm\n/VnWOKce0yYfVjNsugpHQywu8CHUrGb6C8JuTutZ4zvRJMavl0hWWPLSFl7R4ZKg\noc295LgWPy8X6pak2N3tnNkx\n-----END PRIVATE KEY-----\n",
+  "client_email": "agente-sheets@mi-agente-ubuntu.iam.gserviceaccount.com",
+  "client_id": "104090689160121159444",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/agente-sheets%40mi-agente-ubuntu.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
