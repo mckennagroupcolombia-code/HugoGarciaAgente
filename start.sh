@@ -7,7 +7,7 @@
 #  1. Carga las variables del .env
 #  2. Inicia cloudflared tunnel apuntando a http://localhost:8081 en background
 #  3. Captura y guarda la URL pública generada en tunnel_url.txt
-#  4. Inicia el agente principal con: python agente_pro.py
+#  4. Inicia el agente principal con: python3 agente_pro.py
 #  5. Al cerrar (Ctrl+C), detiene también el tunnel limpiamente
 #
 # =============================================================================
@@ -131,7 +131,7 @@ echo ""
 # Desactivar el trap EXIT temporalmente para que no se dispare al terminar python normalmente
 trap - EXIT
 
-python agente_pro.py
+python3 agente_pro.py
 
 # Restaurar el trap para la limpieza final
 trap cleanup SIGINT SIGTERM

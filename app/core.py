@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+from google import genai
 
 # --- Importación de Herramientas desde los Nuevos Módulos ---
 # Cada función es una herramienta que el agente puede decidir usar.
@@ -89,7 +89,7 @@ def configurar_ia(app):
     """
     global modelo_ia
     try:
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         
         # Agrupamos todas las funciones importadas en una lista de herramientas para el modelo.
         # Asumiendo que crear_cotizacion_siigo se exportó en app.services.siigo
@@ -104,11 +104,13 @@ def configurar_ia(app):
             crear_cotizacion_preliminar, crear_factura_completa_siigo
         ]
         
-        modelo_ia = genai.GenerativeModel(
+        modelo_ia = client.chats.create(
             # TODO: El nombre del modelo debería ser configurable.
-            "gemini-2.5-pro", 
-            tools=todas_las_herramientas,
-            system_instruction=INSTRUCCIONES_MCKENNA
+            model="gemini-2.5-pro",
+            config=genai.types.GenerateContentConfig(
+                tools=todas_las_herramientas,
+                system_instruction=INSTRUCCIONES_MCKENNA,
+            )
         )
         print("🤖 Cerebro del Agente (IA) configurado y listo.")
 
@@ -125,45 +127,8 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
         return "Error: El modelo de IA no está configurado. Revisa los logs de inicio.", []
 
     try:
-        # Usar el historial de chat proporcionado, limitado a los últimos 6 intercambios.
-        historial_reducido = historial[-6:] if historial else []
-        
-        # Validación del historial para prevenir error 400 (function call mismatch)
-        historial_seguro = []
-        for msg in historial_reducido:
-            # Si tiene un content, intentamos agregarlo, pero solo si es un dict válido para genai
-            if isinstance(msg, dict) and "parts" in msg:
-                historial_seguro.append(msg)
-            elif hasattr(msg, "parts"):
-                # Si es un objeto de tipo Content de Gemini, revisamos que sus partes no sean function calls
-                # sin su correspondiente response. Para no perder tiempo reconstruyendo, si es complejo
-                # simplemente lo pasamos tal cual, pero evitamos los que tienen `function_call`
-                # a menos que estemos seguros de tener todo el bloque.
-                
-                # Por simplicidad, reconstruimos el historial ignorando mensajes con llamadas a función 
-                # para la memoria corta y solo guardando texto.
-                # Esto previene los crasheos de function call turn.
-                partes_validas = []
-                for p in msg.parts:
-                    if hasattr(p, 'text') and p.text:
-                        partes_validas.append(p)
-                
-                if partes_validas:
-                    # Crear una copia limpia del mensaje solo con texto
-                    # En lugar de usar la clase, creamos un dict válido para Gemini
-                    historial_seguro.append({
-                        "role": msg.role,
-                        "parts": [{"text": p.text} for p in partes_validas]
-                    })
-        
-        # Iniciar chat con historial limpio y habilitar llamada automática a funciones.
-        chat = modelo_ia.start_chat(
-            history=historial_seguro,
-            enable_automatic_function_calling=True
-        )
-        
         print(f"🗣️  Usuario [{usuario_id}] pregunta: \'{pregunta}\'")
-        response = chat.send_message(f"Usuario_{usuario_id}: {pregunta}") # Prefijo al mensaje del usuario
+        response = modelo_ia.send_message(f"Usuario_{usuario_id}: {pregunta}") # Prefijo al mensaje del usuario
 
         # Imprimir el uso de tokens para monitoreo.
         if hasattr(response, 'usage_metadata'):
@@ -174,9 +139,9 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
         # Solo respondemos si el mensaje proviene de un usuario real (no de otro bot).
         if not pregunta.startswith("BOT_"):
             respuesta_texto = response.text if hasattr(response, 'text') and response.text else "✅ Tarea ejecutada en segundo plano."
-            return respuesta_texto, chat.history
+            return respuesta_texto, modelo_ia.get_history()
         else:
-            return "", chat.history # No responder si el mensaje es de un bot
+            return "", modelo_ia.get_history() # No responder si el mensaje es de un bot
 
     except Exception as e:
         error_str = str(e)

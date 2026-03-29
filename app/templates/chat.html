@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Hugo García · McKenna Group</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --bg-panel:  #161b22;
+      --bg-input:  #1c2128;
+      --bubble-user:  #1d6be5;
+      --bubble-agent: #2a2f3a;
+      --text:      #e6edf3;
+      --text-muted:#8b949e;
+      --green:     #3fb950;
+      --border:    #30363d;
+      --radius:    18px;
+      --font:      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      overflow: hidden;
+    }
+
+    /* ── LAYOUT ─────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;          /* dynamic viewport height — respects mobile keyboard */
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ─────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1d6be5, #0d4fa8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .avatar::after {
+      content: '';
+      position: absolute;
+      bottom: 1px;
+      right: 1px;
+      width: 11px;
+      height: 11px;
+      background: var(--green);
+      border-radius: 50%;
+      border: 2px solid var(--bg-panel);
+    }
+
+    .header-info { flex: 1; min-width: 0; }
+
+    .header-name {
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-status {
+      font-size: 12px;
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .header-status span.dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .btn-icon {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      font-size: 18px;
+      transition: color .15s, background .15s;
+    }
+    .btn-icon:hover { color: var(--text); background: var(--border); }
+
+    /* ── MESSAGES ───────────────────────────────── */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      scroll-behavior: smooth;
+    }
+
+    /* Custom scrollbar */
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .msg-row {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+    }
+
+    .msg-row.user  { align-self: flex-end; align-items: flex-end; }
+    .msg-row.agent { align-self: flex-start; align-items: flex-start; }
+
+    /* Group spacing: consecutive messages from same sender get less gap */
+    .msg-row + .msg-row.user  { margin-top: 2px; }
+    .msg-row + .msg-row.agent { margin-top: 2px; }
+    .msg-row.agent + .msg-row.user,
+    .msg-row.user  + .msg-row.agent { margin-top: 10px; }
+
+    .bubble {
+      padding: 9px 13px;
+      border-radius: var(--radius);
+      font-size: 14.5px;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,.3);
+    }
+
+    .msg-row.user  .bubble {
+      background: var(--bubble-user);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg-row.agent .bubble {
+      background: var(--bubble-agent);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+
+    .bubble-time {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      padding: 0 4px;
+    }
+
+    /* ── TYPING INDICATOR ───────────────────────── */
+    .typing-bubble {
+      background: var(--bubble-agent);
+      border-radius: var(--radius);
+      border-bottom-left-radius: 4px;
+      padding: 12px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .typing-bubble span {
+      width: 7px;
+      height: 7px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      display: inline-block;
+      animation: bounce 1.2s infinite;
+    }
+    .typing-bubble span:nth-child(2) { animation-delay: .2s; }
+    .typing-bubble span:nth-child(3) { animation-delay: .4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30%           { transform: translateY(-5px); }
+    }
+
+    /* ── DATE DIVIDER ───────────────────────────── */
+    .date-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .date-divider::before, .date-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── INPUT AREA ─────────────────────────────── */
+    #input-area {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 10px 12px 14px;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    #msg-input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 10px 16px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: var(--font);
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+      overflow-y: auto;
+      outline: none;
+      transition: border-color .2s;
+      line-height: 1.4;
+    }
+
+    #msg-input::placeholder { color: var(--text-muted); }
+    #msg-input:focus { border-color: var(--bubble-user); }
+
+    #send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--bubble-user);
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s, transform .1s;
+    }
+
+    #send-btn:hover  { background: #1a5ecf; }
+    #send-btn:active { transform: scale(.92); }
+    #send-btn:disabled { background: var(--border); cursor: default; transform: none; }
+
+    #send-btn svg { pointer-events: none; }
+
+    /* ── TOKEN MODAL ────────────────────────────── */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+    }
+
+    #modal {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    #modal h2 {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    #modal p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    #token-input {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: monospace;
+      width: 100%;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    #token-input:focus { border-color: var(--bubble-user); }
+
+    #modal-error {
+      font-size: 12px;
+      color: #f85149;
+      min-height: 16px;
+    }
+
+    #modal-submit {
+      background: var(--bubble-user);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    #modal-submit:hover { background: #1a5ecf; }
+
+    /* ── TOAST ──────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #f85149;
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity .25s, transform .25s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 50;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- TOKEN MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>🔐 Acceso al Panel</h2>
+    <p>Ingresa el token de acceso configurado en <code>CHAT_API_TOKEN</code>. Solo se pedirá una vez.</p>
+    <input id="token-input" type="password" placeholder="Token de acceso..." autocomplete="off" />
+    <div id="modal-error"></div>
+    <button id="modal-submit">Ingresar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- MAIN APP -->
+<div id="app">
+
+  <header>
+    <div class="avatar">H</div>
+    <div class="header-info">
+      <div class="header-name">Hugo García · McKenna Group</div>
+      <div class="header-status">
+        <span class="dot"></span> En línea
+      </div>
+    </div>
+    <button class="btn-icon" id="btn-clear" title="Limpiar conversación">
+      <!-- trash icon -->
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+      </svg>
+    </button>
+    <button class="btn-icon" id="btn-token" title="Cambiar token">
+      <!-- key icon -->
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="15" r="4"/><line x1="19" y1="5" x2="10.5" y2="13.5"/><line x1="19" y1="5" x2="21" y2="7"/><line x1="17" y1="5" x2="15" y2="7"/>
+      </svg>
+    </button>
+  </header>
+
+  <div id="messages">
+    <!-- Messages injected here -->
+  </div>
+
+  <div id="input-area">
+    <textarea id="msg-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
+    <button id="send-btn" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    </button>
+  </div>
+
+</div>
+
+<script>
+  // ── CONSTANTS ────────────────────────────────────────────────
+  const TOKEN_KEY   = 'mckg_chat_token';
+  const HISTORY_KEY = 'mckg_chat_history';
+  const API_URL     = '/chat';
+
+  // ── ELEMENTS ─────────────────────────────────────────────────
+  const modalOverlay = document.getElementById('modal-overlay');
+  const tokenInput   = document.getElementById('token-input');
+  const modalSubmit  = document.getElementById('modal-submit');
+  const modalError   = document.getElementById('modal-error');
+  const messages     = document.getElementById('messages');
+  const msgInput     = document.getElementById('msg-input');
+  const sendBtn      = document.getElementById('send-btn');
+  const toast        = document.getElementById('toast');
+
+  // ── STATE ─────────────────────────────────────────────────────
+  let token     = localStorage.getItem(TOKEN_KEY) || '';
+  let isWaiting = false;
+
+  // ── TOKEN MODAL ───────────────────────────────────────────────
+  function showModal(msg = '') {
+    modalOverlay.style.display = 'flex';
+    modalError.textContent = msg;
+    tokenInput.value = '';
+    setTimeout(() => tokenInput.focus(), 80);
+  }
+
+  function hideModal() {
+    modalOverlay.style.display = 'none';
+  }
+
+  modalSubmit.addEventListener('click', async () => {
+    const val = tokenInput.value.trim();
+    if (!val) { modalError.textContent = 'El token no puede estar vacío.'; return; }
+    // Quick validation: send a test message to /chat
+    try {
+      modalSubmit.textContent = 'Verificando...';
+      modalSubmit.disabled = true;
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${val}` },
+        body: JSON.stringify({ mensaje: 'ping' })
+      });
+      if (res.status === 401) {
+        modalError.textContent = 'Token incorrecto. Inténtalo de nuevo.';
+      } else {
+        token = val;
+        localStorage.setItem(TOKEN_KEY, token);
+        hideModal();
+        // Don't add ping response to UI — just silently validate
+      }
+    } catch {
+      modalError.textContent = 'Error de red. Asegúrate de que el servidor esté activo.';
+    } finally {
+      modalSubmit.textContent = 'Ingresar';
+      modalSubmit.disabled = false;
+    }
+  });
+
+  tokenInput.addEventListener('keydown', e => { if (e.key === 'Enter') modalSubmit.click(); });
+
+  document.getElementById('btn-token').addEventListener('click', () => {
+    showModal('Ingresa un nuevo token para reemplazar el actual.');
+  });
+
+  // ── HISTORY ───────────────────────────────────────────────────
+  function loadHistory() {
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    } catch { return []; }
+  }
+
+  function saveHistory(history) {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }
+
+  function renderHistory() {
+    const history = loadHistory();
+    messages.innerHTML = '';
+    if (history.length === 0) {
+      appendDateDivider('Hoy');
+      appendAgentBubble('Hola, soy Hugo García de McKenna Group. ¿En qué te puedo ayudar?', formatTime(new Date()));
+      return;
+    }
+    let lastDate = null;
+    history.forEach(({ role, text, time }) => {
+      const d = time ? new Date(time).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' }) : 'Hoy';
+      if (d !== lastDate) { appendDateDivider(d); lastDate = d; }
+      if (role === 'user')  appendUserBubble(text, formatTime(new Date(time)));
+      if (role === 'agent') appendAgentBubble(text, formatTime(new Date(time)));
+    });
+  }
+
+  // ── DOM HELPERS ───────────────────────────────────────────────
+  function formatTime(date) {
+    return date.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function appendDateDivider(label) {
+    const el = document.createElement('div');
+    el.className = 'date-divider';
+    el.textContent = label;
+    messages.appendChild(el);
+  }
+
+  function appendUserBubble(text, time) {
+    const row = document.createElement('div');
+    row.className = 'msg-row user';
+    row.innerHTML = `
+      <div class="bubble">${escapeHtml(text)}</div>
+      <div class="bubble-time">${time}</div>`;
+    messages.appendChild(row);
+    scrollBottom();
+    return row;
+  }
+
+  function appendAgentBubble(text, time) {
+    const row = document.createElement('div');
+    row.className = 'msg-row agent';
+    row.innerHTML = `
+      <div class="bubble">${escapeHtml(text)}</div>
+      <div class="bubble-time">${time}</div>`;
+    messages.appendChild(row);
+    scrollBottom();
+    return row;
+  }
+
+  function showTyping() {
+    const row = document.createElement('div');
+    row.className = 'msg-row agent';
+    row.id = 'typing-row';
+    row.innerHTML = `
+      <div class="typing-bubble">
+        <span></span><span></span><span></span>
+      </div>`;
+    messages.appendChild(row);
+    scrollBottom();
+  }
+
+  function removeTyping() {
+    document.getElementById('typing-row')?.remove();
+  }
+
+  function scrollBottom() {
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // ── SEND MESSAGE ─────────────────────────────────────────────
+  async function sendMessage() {
+    const text = msgInput.value.trim();
+    if (!text || isWaiting) return;
+    if (!token) { showModal(); return; }
+
+    isWaiting = true;
+    sendBtn.disabled = true;
+    msgInput.value = '';
+    msgInput.style.height = 'auto';
+
+    const now = new Date();
+    const timeStr = formatTime(now);
+
+    appendUserBubble(text, timeStr);
+
+    const history = loadHistory();
+    history.push({ role: 'user', text, time: now.toISOString() });
+    saveHistory(history);
+
+    showTyping();
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ mensaje: text })
+      });
+
+      removeTyping();
+
+      if (res.status === 401) {
+        showModal('Tu token expiró o es incorrecto. Ingresa uno nuevo.');
+        return;
+      }
+
+      const data = await res.json();
+      const reply = data.respuesta || data.error || 'Sin respuesta del servidor.';
+      const replyTime = formatTime(new Date());
+
+      appendAgentBubble(reply, replyTime);
+      history.push({ role: 'agent', text: reply, time: new Date().toISOString() });
+      saveHistory(history);
+
+    } catch (err) {
+      removeTyping();
+      showToast('Error de conexión con el servidor.');
+    } finally {
+      isWaiting = false;
+      sendBtn.disabled = false;
+      msgInput.focus();
+    }
+  }
+
+  // ── INPUT AUTO-RESIZE ─────────────────────────────────────────
+  msgInput.addEventListener('input', () => {
+    sendBtn.disabled = msgInput.value.trim() === '';
+    msgInput.style.height = 'auto';
+    msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
+  });
+
+  msgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  // ── CLEAR HISTORY ─────────────────────────────────────────────
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    if (!confirm('¿Borrar el historial de esta sesión?')) return;
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+  });
+
+  // ── INIT ──────────────────────────────────────────────────────
+  renderHistory();
+
+  if (!token) {
+    showModal();
+  } else {
+    hideModal();
+    msgInput.focus();
+  }
+</script>
+</body>
+</html>

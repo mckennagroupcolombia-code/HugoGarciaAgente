@@ -39,7 +39,7 @@ def create_app():
     """
     Fábrica de aplicaciones: Crea y configura la instancia de Flask.
     """
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder='app/templates')
 
     # Configurar el logging para que no muestre los requests HTTP en la consola
     # y así mantener limpia la interfaz del CLI.

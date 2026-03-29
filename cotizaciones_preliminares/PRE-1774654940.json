@@ -1,0 +1,21 @@
+{
+    "id_preliminar": "PRE-1774654940",
+    "nombre_cliente": "Prueba Cliente",
+    "identificacion": "123456789",
+    "email": "prueba@ejemplo.com",
+    "direccion_envio": "Calle 123 #45-67, Bogota",
+    "productos": [
+        {
+            "nombre": "Producto Prueba 1",
+            "cantidad": 2,
+            "precio_unitario": 10000
+        },
+        {
+            "nombre": "Producto Prueba 2",
+            "cantidad": 1,
+            "precio_unitario": 5000
+        }
+    ],
+    "total": 25000,
+    "fecha": "2026-03-27 18:42:20"
+}

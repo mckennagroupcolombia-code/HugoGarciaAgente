@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timedelta
 
 # Dependencias de IA y DB Vectorial para la función de aprendizaje
-import google.generativeai as genai
+from google import genai
 import chromadb
 
 # --- Dependencias del proyecto antiguo ---
@@ -103,10 +103,9 @@ def aprender_de_interacciones_meli():
     
     # --- Inicialización de servicios (a ser refactorizado a un config central) ---
     try:
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         chroma_client = chromadb.PersistentClient(path="./memoria_vectorial")
         coleccion_experiencia = chroma_client.get_or_create_collection(name="mckenna_brain")
-        model = genai.GenerativeModel('gemini-flash-lite-latest')
     except Exception as e:
         return f"❌ Error Crítico: No se pudieron inicializar los servicios de IA/DB. Revisa la configuración. Error: {e}"
 
@@ -142,7 +141,11 @@ def aprender_de_interacciones_meli():
                 f"\n--- HISTORIAL ---\n{texto_bruto}"
             )
             
-            aprendizaje_generado = model.generate_content(prompt).text
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-lite',
+                contents=prompt
+            )
+            aprendizaje_generado = response.text
 
             # Guardar el aprendizaje en la base de datos vectorial
             doc_id = f"exp_meli_{int(time.time())}"

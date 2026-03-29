@@ -2,11 +2,11 @@ import os
 import requests
 import threading
 import time
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from app.core import obtener_respuesta_ia
 from app.utils import enviar_whatsapp_reporte, refrescar_token_meli
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='app/templates')
 
 def obtener_nombre_producto(item_id):
     """Obtiene el título de la publicación de Mercado Libre."""
@@ -97,6 +97,45 @@ def notifications():
         
     # Respondemos 200 OK inmediatamente
     return jsonify({"status": "ok"}), 200
+
+@app.route('/status', methods=['GET'])
+def status():
+    import os
+    from datetime import datetime
+    return jsonify({
+        "estado": "activo",
+        "timestamp": datetime.now().isoformat(),
+        "servicios": {
+            "mercadolibre": os.path.exists("credenciales_meli.json"),
+            "google": os.path.exists("credenciales_google.json"),
+            "siigo": os.path.exists("credenciales_SIIGO.json")
+        },
+        "version": "1.0.0"
+    })
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    import os
+    from datetime import datetime
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    if token != os.getenv('CHAT_API_TOKEN', ''):
+        return jsonify({"error": "No autorizado"}), 401
+    data = request.get_json()
+    if not data or 'mensaje' not in data:
+        return jsonify({"error": "Campo 'mensaje' requerido"}), 400
+    try:
+        respuesta, _ = obtener_respuesta_ia(data['mensaje'], 'usuario_api')
+        return jsonify({
+            "respuesta": respuesta,
+            "timestamp": datetime.now().isoformat(),
+            "status": "ok"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e), "status": "error"}), 500
+
+@app.route('/panel')
+def panel():
+    return render_template('chat.html')
 
 if __name__ == '__main__':
     # Este corre en el 8080. El agente_pro corre en el 8081.

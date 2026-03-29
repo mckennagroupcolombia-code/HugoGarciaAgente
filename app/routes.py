@@ -1,5 +1,5 @@
 
-from flask import request, jsonify
+from flask import request, jsonify, render_template
 
 # --- Dependencias de Lógica de Negocio ---
 # Estas son las funciones que nuestra ruta necesita para operar.
@@ -125,3 +125,42 @@ def register_routes(app):
         else:
             # Si es un chat normal, respondemos directamente.
             return jsonify({"status": "success", "respuesta": respuesta_ia})
+
+    @app.route('/status', methods=['GET'])
+    def status():
+        import os
+        from datetime import datetime
+        return jsonify({
+            "estado": "activo",
+            "timestamp": datetime.now().isoformat(),
+            "servicios": {
+                "mercadolibre": os.path.exists("credenciales_meli.json"),
+                "google": os.path.exists("credenciales_google.json"),
+                "siigo": os.path.exists("credenciales_SIIGO.json")
+            },
+            "version": "1.0.0"
+        })
+
+    @app.route('/chat', methods=['POST'])
+    def chat():
+        import os
+        from datetime import datetime
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        if token != os.getenv('CHAT_API_TOKEN', ''):
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json()
+        if not data or 'mensaje' not in data:
+            return jsonify({"error": "Campo 'mensaje' requerido"}), 400
+        try:
+            respuesta, _ = obtener_respuesta_ia(data['mensaje'], 'usuario_api')
+            return jsonify({
+                "respuesta": respuesta,
+                "timestamp": datetime.now().isoformat(),
+                "status": "ok"
+            })
+        except Exception as e:
+            return jsonify({"error": str(e), "status": "error"}), 500
+
+    @app.route('/panel')
+    def panel():
+        return render_template('chat.html')
