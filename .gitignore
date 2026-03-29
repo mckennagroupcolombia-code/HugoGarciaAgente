@@ -56,3 +56,4 @@ temp/
 # Archivos de prueba y debug
 test_*.py
 fichas_word/
+app/tools/token_gmail.json
