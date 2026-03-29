@@ -3,10 +3,13 @@ import requests
 import threading
 import time
 from flask import Flask, request, jsonify, render_template
-from app.core import obtener_respuesta_ia
+from dotenv import load_dotenv
+from app.core import obtener_respuesta_ia, configurar_ia
 from app.utils import enviar_whatsapp_reporte, refrescar_token_meli
 
+load_dotenv()
 app = Flask(__name__, template_folder='app/templates')
+configurar_ia(app)
 
 def obtener_nombre_producto(item_id):
     """Obtiene el título de la publicación de Mercado Libre."""

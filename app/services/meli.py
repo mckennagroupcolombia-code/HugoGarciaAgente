@@ -162,10 +162,10 @@ def aprender_de_interacciones_meli():
     except Exception as e:
         return f"❌ Fallo crítico durante el proceso de aprendizaje: {e}"
 
-def responder_solicitud_rut(order_id):
-    """    
-    Simula o ejecuta el envío del mensaje de RUT a un cliente en Mercado Libre.
-    Limpia el ID de la orden para asegurar un formato correcto.
+def responder_solicitud_rut(order_id: str):
+    """
+    Envía el mensaje de solicitud de RUT a un cliente en Mercado Libre.
+    Recibe el ID de la orden como string (ej: '1234567890').
     """
     try:
         # Limpia el ID para eliminar prefijos como "Venta #" y espacios.
@@ -179,7 +179,7 @@ def responder_solicitud_rut(order_id):
     except Exception as e:
         return f"❌ Error técnico en la herramienta de envío de RUT: {str(e)}"
 
-def buscar_ventas_acordar_entrega(dias=3):
+def buscar_ventas_acordar_entrega(dias: int = 3):
     """
     Busca ventas con envío 'A acordar con el comprador' en los últimos días.
     Utiliza la API de Mercado Libre para encontrar órdenes que requieren acción manual.

@@ -174,13 +174,17 @@ def obtener_facturas_compra_siigo(fecha_inicio: str) -> list:
             break
     return purchase_invoices
 
-def crear_cotizacion_siigo(nombre_cliente: str, identificacion: str, email: str, direccion_envio: str, productos: list, total: float):
+def crear_cotizacion_siigo(nombre_cliente: str, identificacion: str, email: str, direccion_envio: str, productos: str, total: float):
     """
     Crea una cotización en Siigo y la envía al correo del cliente.
-    'productos' debe ser una lista de diccionarios con: 'codigo' (opcional, por defecto '001'), 'nombre', 'cantidad', 'precio_unitario'.
+    productos: JSON string con lista de productos, ej: '[{"nombre":"Acido Citrico","cantidad":1,"precio_unitario":15000}]'
     """
     from app.tools.system_tools import enviar_email_reporte
-    
+    try:
+        productos = json.loads(productos) if isinstance(productos, str) else productos
+    except Exception:
+        productos = []
+
     token = autenticar_siigo()
     if not token:
         return "Error: No se pudo obtener el token de Siigo para crear la cotización."
@@ -291,11 +295,15 @@ def crear_cotizacion_siigo(nombre_cliente: str, identificacion: str, email: str,
         
     return f"✅ Cotización generada con éxito en SIIGO para {nombre_cliente} y enviada al correo {email}."
 
-def crear_cotizacion_preliminar(nombre_cliente: str, identificacion: str, email: str, direccion_envio: str, productos: list, total: float):
+def crear_cotizacion_preliminar(nombre_cliente: str, identificacion: str, email: str, direccion_envio: str, productos: str, total: float):
     """
     Crea una cotización preliminar localmente sin usar la API de Siigo.
-    Retorna un diccionario con los datos de la cotización para su posterior uso.
+    productos: JSON string con lista de productos, ej: '[{"nombre":"Acido Citrico","cantidad":1,"precio_unitario":15000}]'
     """
+    try:
+        productos = json.loads(productos) if isinstance(productos, str) else productos
+    except Exception:
+        productos = []
     cotizacion = {
         "id_preliminar": f"PRE-{int(time.time())}",
         "nombre_cliente": nombre_cliente,
@@ -351,11 +359,18 @@ def editar_factura_siigo(factura_id: str, factura_data: dict):
         return {"status": "error", "message": str(e)}
 
 
-def crear_factura_completa_siigo(cotizacion_data: dict, comprobante_pago_path: str = None):
+def crear_factura_completa_siigo(nombre_cliente: str, identificacion: str, direccion_envio: str, productos: str, total: float, comprobante_pago_path: str = ""):
     """
     Genera una factura electrónica en Siigo basada en una cotización preliminar,
     adjunta el comprobante de pago y envía el reporte a WhatsApp.
+    nombre_cliente: nombre completo o razón social del cliente.
+    identificacion: cédula o NIT del cliente.
+    direccion_envio: dirección de entrega del pedido.
+    productos: JSON string con lista de productos, ej: '[{"nombre":"Acido Citrico","cantidad":1,"precio_unitario":15000}]'
+    total: valor total de la factura en pesos colombianos.
+    comprobante_pago_path: ruta local al archivo del comprobante (opcional, dejar vacío si no hay).
     """
+    import json as _json
     from app.utils import enviar_whatsapp_archivo, enviar_whatsapp_reporte
     import base64
 
@@ -363,15 +378,20 @@ def crear_factura_completa_siigo(cotizacion_data: dict, comprobante_pago_path: s
     if not token:
         return "Error: No se pudo autenticar con Siigo."
 
-    nombre_cliente = cotizacion_data["nombre_cliente"]
-    identificacion = cotizacion_data["identificacion"]
-    productos = cotizacion_data["productos"]
-    total = cotizacion_data["total"]
-    direccion_envio = cotizacion_data["direccion_envio"]
+    try:
+        cotizacion_data = _json.loads(productos) if isinstance(productos, str) else productos
+        if isinstance(cotizacion_data, list):
+            productos_lista = cotizacion_data
+        else:
+            productos_lista = [cotizacion_data]
+    except Exception:
+        productos_lista = []
+
+    comprobante_pago_path = comprobante_pago_path or None
 
     # 1. Crear la Factura Electrónica en Siigo
     items = []
-    for p in productos:
+    for p in productos_lista:
         items.append({
             "code": p.get("codigo", "GENERICO"),
             "description": p["nombre"],
@@ -480,7 +500,7 @@ def crear_factura_completa_siigo(cotizacion_data: dict, comprobante_pago_path: s
         mensaje_wa += f"📍 *Dirección de Envío:* {direccion_envio}\n"
         mensaje_wa += observaciones_adicionales + "\n\n"
         mensaje_wa += "📦 *Resumen del Pedido:*\n"
-        for p in productos:
+        for p in productos_lista:
             mensaje_wa += f"- {p['cantidad']}x {p['nombre']} (${p['precio_unitario']})\n"
         
         # Enviar mensaje de texto con resumen
