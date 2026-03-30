@@ -80,12 +80,13 @@ URL_API_WHATSAPP = os.getenv("URL_API_WHATSAPP", "http://127.0.0.1:3000/enviar")
 URL_API_WHATSAPP_ARCHIVO = os.getenv("URL_API_WHATSAPP_ARCHIVO", "http://127.0.0.1:3000/enviar-archivo")
 TELEFONO_GRUPO_REPORTE = os.getenv("TELEFONO_GRUPO_REPORTE", "120363407538342427@g.us")
 
-def enviar_whatsapp_reporte(texto_mensaje: str):
+def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
     """
     Envía un mensaje de texto al grupo de WhatsApp designado para reportes.
     Utiliza un servidor intermediario (Node.js) para la conexión con WhatsApp.
     """
-    payload = {"numero": TELEFONO_GRUPO_REPORTE, "mensaje": texto_mensaje}
+    destino = numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
+    payload = {"numero": destino, "mensaje": texto_mensaje}
     max_intentos = 3
 
     for i in range(max_intentos):

@@ -1,0 +1,16 @@
+{
+    "id_preliminar": "PRE-1774819114",
+    "nombre_cliente": "Jos\u00e9 Vanegas",
+    "identificacion": "21345975",
+    "email": "Josevaneg1306@gmail.com",
+    "direccion_envio": "calle 23 # 122- 12 Apto 202 terrazas del charco, Barranquilla, Atl\u00e1ntico",
+    "productos": [
+        {
+            "nombre": "Citrato Magnesio+potasio+calcio",
+            "cantidad": 1,
+            "precio_unitario": 24900
+        }
+    ],
+    "total": 24900,
+    "fecha": "2026-03-29 16:18:34"
+}

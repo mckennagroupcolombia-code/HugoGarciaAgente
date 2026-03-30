@@ -40,53 +40,18 @@ def responder_en_mercado_libre(question_id, texto):
         print(f"Error al responder en MeLi: {e}")
         return 500
 
-def tarea_procesar_pregunta(data):
-    """Hilo secundario para procesar la IA sin bloquear el webhook."""
-    try:
-        resource = data.get('resource') 
-        question_id = resource.split('/')[-1]
-        
-        # 1. Obtener detalles de la pregunta
-        token_actual = refrescar_token_meli() or os.environ.get("MELI_ACCESS_TOKEN")
-        url_q = f"https://api.mercadolibre.com/questions/{question_id}"
-        headers = {"Authorization": f"Bearer {token_actual}"}
-        
-        q_res = requests.get(url_q, headers=headers).json()
-        pregunta_cliente = q_res.get('text', '')
-        item_id = q_res.get('item_id', '')
-        user_id = q_res.get('from', {}).get('id', 'desconocido')
-        
-        if not pregunta_cliente:
-            return
+from preventa_meli import procesar_nueva_pregunta
 
-        # 2. Obtener contexto y nombre del producto
-        nombre_producto = obtener_nombre_producto(item_id)
-        print(f"📩 Procesando pregunta de '{nombre_producto}': {pregunta_cliente}")
+# Memoria para deduplicación de preguntas
+preguntas_procesadas = {}
 
-        # 3. EFECTO HUMANO: Esperar antes de responder (opcional aquí o en agente_pro)
-        # Como agente_pro ya tiene un sleep(10), aquí se sumaría. 
-        # Si prefieres que sea rápido en MeLi, puedes dejarlo así.
-        
-        # 4. INYECTAR CONTEXTO A LA IA
-        pregunta_con_contexto = f"El cliente pregunta sobre el producto '{nombre_producto}': {pregunta_cliente}"
-        respuesta_ia = obtener_respuesta_ia(pregunta_con_contexto, user_id)
-        
-        # 5. Responder en MeLi
-        status = responder_en_mercado_libre(question_id, respuesta_ia)
-        print(f"✅ Status MeLi para ID {question_id}: {status}")
-
-        # 6. REPORTE POR WHATSAPP
-        emoji_status = "✅" if status == 200 or status == 201 else "❌"
-        mensaje_ws = (f"🔔 *REPORTE BOT MCKENNA*\n\n"
-                     f"📦 *Producto:* {nombre_producto}\n"
-                     f"🗣 *Cliente:* {pregunta_cliente}\n"
-                     f"🤖 *IA:* {respuesta_ia}\n\n"
-                     f"Status MeLi: {emoji_status}")
-        
-        enviar_whatsapp_reporte(mensaje_ws)
-        
-    except Exception as e:
-        print(f"Error en la tarea de segundo plano: {e}")
+def limpiar_preguntas_antiguas():
+    """Elimina del registro las preguntas procesadas hace más de 5 minutos."""
+    ahora = time.time()
+    # 300 segundos = 5 minutos
+    para_borrar = [q_id for q_id, timestamp in preguntas_procesadas.items() if ahora - timestamp > 300]
+    for q_id in para_borrar:
+        del preguntas_procesadas[q_id]
 
 @app.route('/notifications', methods=['POST'])
 def notifications():
@@ -94,11 +59,35 @@ def notifications():
     data = request.get_json()
     
     if data and data.get('topic') == 'questions':
-        # Lanzamos el proceso en un hilo para no hacer esperar a MeLi
-        hilo = threading.Thread(target=tarea_procesar_pregunta, args=(data,))
-        hilo.start()
+        resource = data.get('resource')
+        if resource:
+            question_id = resource.split('/')[-1]
+            
+            # Limpiar memoria antigua
+            limpiar_preguntas_antiguas()
+            
+            # Verificar deduplicación
+            if question_id in preguntas_procesadas:
+                print(f"Pregunta {question_id} ya procesada. Omitiendo duplicado.")
+            else:
+                preguntas_procesadas[question_id] = time.time()
+                # Lanzamos el proceso en un hilo para no hacer esperar a MeLi
+                hilo = threading.Thread(target=procesar_nueva_pregunta, args=(question_id,))
+                hilo.start()
         
     # Respondemos 200 OK inmediatamente
+    return jsonify({"status": "ok"}), 200
+
+# Mantenemos el endpoint de whatsapp por si lo estaban usando para pruebas locales
+@app.route('/whatsapp', methods=['POST'])
+def whatsapp_mock():
+    data = request.get_json()
+    if data and data.get('topic') == 'questions':
+        resource = data.get('resource')
+        if resource:
+            question_id = resource.split('/')[-1]
+            hilo = threading.Thread(target=procesar_nueva_pregunta, args=(question_id,))
+            hilo.start()
     return jsonify({"status": "ok"}), 200
 
 @app.route('/status', methods=['GET'])
@@ -245,6 +234,60 @@ def sync_stock():
         return jsonify({"status": "error", "resultado": "No autorizado"}), 401
     _lanzar_en_hilo(ejecutar_sincronizacion_y_reporte_stock)
     return jsonify({"status": "iniciado", "mensaje": "📊 Reporte de stock iniciado. El resultado llegará por WhatsApp.", "timestamp": _dt.now().isoformat()})
+
+@app.route('/confirmar-pago', methods=['POST'])
+def confirmar_pago():
+    data = request.get_json() or {}
+    numero_cliente = data.get('numero_cliente')
+    confirmado = data.get('confirmado', False)
+    
+    if not numero_cliente:
+        return jsonify({"status": "error", "resultado": "Campo 'numero_cliente' requerido"}), 400
+        
+    if confirmado:
+        mensaje_cliente = "Veci, le confirmamos que su pago ha sido recibido ✅ Estamos alistando su pedido y le avisamos cuando despachemos."
+        enviar_whatsapp_reporte(mensaje_cliente, numero_destino=numero_cliente)
+        return jsonify({"status": "success", "mensaje": f"Pago confirmado para {numero_cliente}"})
+    else:
+        mensaje_cliente = "Hola, ha habido un problema con la validación de tu pago. Por favor rectifica y revisa por qué la transacción no ha sido recibida."
+        enviar_whatsapp_reporte(mensaje_cliente, numero_destino=numero_cliente)
+        return jsonify({"status": "success", "mensaje": f"Pago rechazado para {numero_cliente}"})
+
+@app.route('/training/agregar-caso', methods=['POST'])
+def agregar_caso():
+    import json
+    data = request.get_json() or {}
+    trigger = data.get('trigger', [])
+    contexto = data.get('contexto', '')
+    instruccion = data.get('instruccion', '')
+    
+    if not all([trigger, contexto, instruccion]):
+        return jsonify({"status": "error", "resultado": "Faltan campos (trigger, contexto, instruccion)"}), 400
+        
+    try:
+        archivo = 'app/training/casos_especiales.json'
+        with open(archivo, 'r', encoding='utf-8') as f:
+            contenido = json.load(f)
+            
+        nuevo_caso = {
+            "id": f"caso_{int(time.time())}",
+            "trigger": trigger if isinstance(trigger, list) else [trigger],
+            "contexto": contexto,
+            "instruccion": instruccion,
+            "ejemplo_respuesta": data.get('ejemplo_respuesta', '')
+        }
+        
+        contenido['casos'].append(nuevo_caso)
+        
+        with open(archivo, 'w', encoding='utf-8') as f:
+            json.dump(contenido, f, indent=2, ensure_ascii=False)
+            
+        # Reiniciar contexto del agente
+        configurar_ia(app)
+        
+        return jsonify({"status": "success", "mensaje": "Caso agregado y agente reentrenado"})
+    except Exception as e:
+        return jsonify({"status": "error", "resultado": str(e)}), 500
 
 if __name__ == '__main__':
     # Este corre en el 8080. El agente_pro corre en el 8081.

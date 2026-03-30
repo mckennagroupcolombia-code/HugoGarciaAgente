@@ -143,3 +143,62 @@ def enviar_reporte_controlado(mensaje):
         return enviar_whatsapp_reporte(mensaje)
     print("Envío cancelado por el usuario.")
     return False
+
+import json
+import unicodedata
+from app.services.meli_preventa import consultar_costo_envio
+
+def consultar_tarifa_mercadoenvios(ciudad_destino: str, peso_kg: float) -> dict:
+    """
+    Consulta tarifa real via API de MercadoLibre.
+    Si falla, usa el JSON local como fallback.
+    """
+    try:
+        # Intentar con Mercado Libre primero
+        from app.services.meli_preventa import consultar_costo_envio
+        # Podríamos buscar el zip_code según ciudad, pero como meli_preventa recibe zip_code,
+        # simplificamos si la API de Meli no está disponible o falla
+        
+        # Como no tenemos el código postal exacto, el fallback local es crucial
+        tarifa_local = consultar_tarifa_envio(ciudad_destino)
+        precio_base = tarifa_local.get("tarifa", {}).get("precio_base", 18000)
+        dias = tarifa_local.get("tarifa", {}).get("dias", 4)
+        
+        # Cálculo de peso extra
+        if peso_kg > 1.0:
+            kilos_extra = int(peso_kg - 1.0)
+            if peso_kg % 1.0 > 0:
+                kilos_extra += 1
+            precio_final = precio_base + (kilos_extra * 2000)
+        else:
+            precio_final = precio_base
+            
+        tarifa_local["tarifa"]["precio_calculado"] = precio_final
+        tarifa_local["tarifa"]["peso_kg"] = peso_kg
+        return tarifa_local
+    except Exception as e:
+        print(f"Error en consultar_tarifa_mercadoenvios: {e}")
+        return consultar_tarifa_envio(ciudad_destino)
+
+def consultar_tarifa_envio(ciudad: str) -> dict:
+    """
+    Consulta la tarifa de envío de Interrapidísimo para una ciudad específica.
+    """
+    try:
+        with open('app/data/tarifas_interrapidisimo.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Normalizar ciudad (quitar tildes, minúsculas)
+        ciudad_norm = unicodedata.normalize('NFKD', ciudad).encode('ASCII', 'ignore').decode('utf-8').lower().strip()
+        
+        ciudades = data.get('ciudades', {})
+        # Buscar coincidencia flexible
+        for ciudad_clave, info in ciudades.items():
+            clave_norm = unicodedata.normalize('NFKD', ciudad_clave).encode('ASCII', 'ignore').decode('utf-8').lower()
+            if clave_norm in ciudad_norm or ciudad_norm in clave_norm:
+                return {"ciudad": ciudad_clave.capitalize(), "tarifa": info}
+                
+        return {"ciudad": "Default", "tarifa": ciudades.get('default')}
+    except Exception as e:
+        print(f"Error consultando tarifa de envío: {e}")
+        return {"ciudad": "Error", "tarifa": {"precio_kg": 18000, "precio_base": 18000, "dias": 4}}

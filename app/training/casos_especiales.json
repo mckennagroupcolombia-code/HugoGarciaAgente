@@ -1,0 +1,11 @@
+{
+  "casos": [
+    {
+      "id": "envio_comprador",
+      "trigger": ["envío a cargo del comprador", "flete por cuenta"],
+      "contexto": "Publicación con envío a cargo del comprador",
+      "instruccion": "En este caso debes consultar la tarifa de Interrapidísimo con consultar_tarifa_envio() y dar el precio exacto. No digas que MercadoLibre maneja el envío.",
+      "ejemplo_respuesta": "Hola veci, para envíos a [ciudad] el costo es de $XX.000 con Interrapidísimo y demora aproximadamente X días hábiles."
+    }
+  ]
+}
