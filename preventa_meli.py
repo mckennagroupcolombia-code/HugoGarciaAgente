@@ -1,15 +1,14 @@
 import json
 import requests
 from app.services.meli_preventa import generar_respuesta_preventa_ia
+from app.utils import refrescar_token_meli
 
 # Ruta de sus credenciales
 RUTA_CREDENCIALES = "/home/mckg/mi-agente/credenciales_meli.json"
 
 def obtener_token_meli():
-    # Aquí lee su credenciales_meli.json y saca el access_token vigente
-    with open(RUTA_CREDENCIALES, 'r') as f:
-        datos = json.load(f)
-        return datos.get("access_token")
+    # Usamos la función oficial que refresca el token automáticamente
+    return refrescar_token_meli()
 
 def obtener_detalle_pregunta(question_id, token):
     """Consulta a MeLi qué fue exactamente lo que preguntó el cliente."""

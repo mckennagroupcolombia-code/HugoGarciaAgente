@@ -26,7 +26,9 @@ from app.tools.system_tools import (
     parchear_funcion,
     leer_funcion,
     crear_nuevo_script,
-    ejecutar_script_python
+    ejecutar_script_python,
+    consultar_tarifa_envio,
+    consultar_tarifa_mercadoenvios
 )
 
 # Herramientas de sincronización
@@ -85,6 +87,23 @@ REGLAS DE CONTROL DE HERRAMIENTAS:
 cliente_ia = None
 modelo_ia = None
 
+import json
+
+def cargar_casos_especiales():
+    try:
+        with open('app/training/casos_especiales.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            casos = data.get('casos', [])
+            if not casos: return ""
+            texto = "\n\n=== CASOS ESPECIALES DE ENTRENAMIENTO ===\n"
+            for caso in casos:
+                texto += f"- Contexto: {caso.get('contexto')}\n"
+                texto += f"  Instrucción: {caso.get('instruccion')}\n"
+            return texto
+    except Exception as e:
+        print(f"Error cargando casos especiales: {e}")
+        return ""
+
 def configurar_ia(app):
     """
     Configura e inicializa el modelo de IA con todas las herramientas disponibles.
@@ -104,15 +123,17 @@ def configurar_ia(app):
             sincronizar_manual_por_id, sincronizar_inteligente, sincronizar_por_dia_especifico,
             refrescar_token_meli, enviar_whatsapp_reporte,
             sincronizar_facturas_de_compra_siigo, crear_cotizacion_siigo,
-            crear_cotizacion_preliminar, crear_factura_completa_siigo
+            crear_cotizacion_preliminar, crear_factura_completa_siigo, consultar_tarifa_envio, consultar_tarifa_mercadoenvios
         ]
         
+        instrucciones_completas = INSTRUCCIONES_MCKENNA + cargar_casos_especiales()
+
         modelo_ia = client.chats.create(
             # TODO: El nombre del modelo debería ser configurable.
             model="gemini-2.5-pro",
             config=genai.types.GenerateContentConfig(
                 tools=todas_las_herramientas,
-                system_instruction=INSTRUCCIONES_MCKENNA,
+                system_instruction=instrucciones_completas,
             )
         )
         print("🤖 Cerebro del Agente (IA) configurado y listo.")

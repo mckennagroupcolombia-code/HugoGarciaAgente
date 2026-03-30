@@ -1,5 +1,7 @@
 
 from flask import request, jsonify, render_template
+import os
+import json
 
 # --- Dependencias de Lógica de Negocio ---
 # Estas son las funciones que nuestra ruta necesita para operar.
@@ -8,10 +10,38 @@ from app.core import obtener_respuesta_ia
 from modulo_posventa import responder_mensaje_posventa
 from app.utils import enviar_whatsapp_reporte
 
+def cargar_modos_atencion():
+    try:
+        with open('app/data/modos_atencion.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"numeros_en_humano": [], "timestamps": {}}
+
+def guardar_modos_atencion(data):
+    with open('app/data/modos_atencion.json', 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2)
+
+import time
+import threading
+
 # --- Estado Temporal ---
 # TODO: Este diccionario en memoria se pierde si el servidor se reinicia.
 # Se debe reemplazar por una solución persistente como Redis o una DB.
 borradores_aprobacion = {}
+
+pagos_pendientes_confirmacion = {}
+
+def procesar_confirmacion_pago_async(numero_cliente):
+    # Aquí podríamos añadir lógica extra asíncrona si se requiere
+    # por ahora solo enviamos el mensaje sin bloquear la respuesta de flask
+    try:
+        if numero_cliente in pagos_pendientes_confirmacion:
+            pagos_pendientes_confirmacion[numero_cliente]["confirmado"] = True
+            mensaje_cliente = "Veci, le confirmamos que su pago ha sido recibido ✅ Estamos alistando su pedido y le avisamos cuando despachemos."
+            enviar_whatsapp_reporte(mensaje_cliente, numero_destino=numero_cliente)
+            del pagos_pendientes_confirmacion[numero_cliente]
+    except Exception as e:
+        print(f"Error procesando confirmación de pago: {e}")
 
 def register_routes(app):
     """
@@ -33,22 +63,62 @@ def register_routes(app):
         message_text = data.get('mensaje', '').strip()
         is_after_sale = data.get('es_postventa', False)
         order_id = data.get('order_id', sender_id)
-        has_media = data.get('has_media', False)
-        media_type = data.get('media_type', '')
+        
+        # Adaptación para aceptar hasMedia o has_media según venga del node o de otro lado
+        has_media = data.get('hasMedia', data.get('has_media', False))
+        media_type = data.get('mediaType', data.get('media_type', ''))
+        media_path = data.get('mediaPath', '')
+        es_grupo_contabilidad = data.get('es_grupo_contabilidad', False)
 
-        # --- Flujo de Aprobación para Comprobantes de Pago ---
-        if message_text.lower().startswith("pago ok"):
-            target_sender = message_text.split()[-1]
-            if target_sender in borradores_aprobacion:
-                # Comprobante validado
-                borradores_aprobacion.pop(target_sender)
-                # Aquí se debería continuar con el proceso normal, e.g., avisar que se recibió el pago y se generará la factura.
-                # Para simplificar la prueba, enviamos un mensaje de vuelta indicando éxito.
-                return jsonify({"status": "success", "respuesta": f"¡Perfecto! Hemos validado tu pago. En breve te enviaremos la factura correspondiente."})
-            else:
-                return jsonify({"status": "error", "respuesta": f"No encontré un comprobante pendiente para el número '{target_sender}'."})
+        grupo_contabilidad = os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
+        
+        # --- COMANDOS DEL GRUPO DE CONTABILIDAD ---
+        if es_grupo_contabilidad:
+            modos = cargar_modos_atencion()
+            msg_lower = message_text.lower()
+            
+            if msg_lower.startswith("ok confirmado "):
+                target_num = message_text.split(" ", 2)[2].strip()
+                threading.Thread(target=procesar_confirmacion_pago_async, args=(target_num,)).start()
+                return jsonify({"status": "ok", "respuesta": None})
                 
-        elif message_text.lower().startswith("pago no"):
+            elif msg_lower.startswith("pausar "):
+                target_num = message_text.split(" ", 1)[1].strip()
+                if target_num not in modos["numeros_en_humano"]:
+                    modos["numeros_en_humano"].append(target_num)
+                    guardar_modos_atencion(modos)
+                threading.Thread(target=enviar_whatsapp_reporte, args=("En este momento te va a atender Jennifer García del área de ventas 🙏", target_num)).start()
+                return jsonify({"status": "ok", "respuesta": None})
+                
+            elif msg_lower.startswith("activar "):
+                target_num = message_text.split(" ", 1)[1].strip()
+                if target_num in modos["numeros_en_humano"]:
+                    modos["numeros_en_humano"].remove(target_num)
+                    guardar_modos_atencion(modos)
+                threading.Thread(target=enviar_whatsapp_reporte, args=("Hola veci, soy Hugo García nuevamente, ¿en qué le puedo ayudar?", target_num)).start()
+                return jsonify({"status": "ok", "respuesta": None})
+                
+            elif msg_lower.startswith("resp "):
+                partes = message_text.split(" ", 1)[1].split(":", 1)
+                if len(partes) == 2:
+                    target_num = partes[0].strip()
+                    resp_msg = partes[1].strip()
+                    threading.Thread(target=enviar_whatsapp_reporte, args=(resp_msg, target_num)).start()
+                    return jsonify({"status": "ok", "respuesta": None})
+            
+            return jsonify({"status": "ok", "respuesta": None})
+        
+        # --- SWITCH IA/HUMANO ---
+        if not es_grupo_contabilidad:
+            modos = cargar_modos_atencion()
+            if sender_id in modos["numeros_en_humano"]:
+                # Reenviar al grupo y no procesar IA
+                mensaje_reenvio = f"💬 CLIENTE {sender_id}: {message_text}"
+                threading.Thread(target=enviar_whatsapp_reporte, args=(mensaje_reenvio, grupo_contabilidad)).start()
+                return jsonify({"status": "human_mode", "respuesta": None})
+
+        # --- Flujo de Aprobación para Comprobantes de Pago (legacy) ---
+        if message_text.lower().startswith("pago no"):
             target_sender = message_text.split()[-1]
             if target_sender in borradores_aprobacion:
                 borradores_aprobacion.pop(target_sender)
@@ -57,28 +127,39 @@ def register_routes(app):
                 return jsonify({"status": "error", "respuesta": f"No encontré un comprobante pendiente para el número '{target_sender}'."})
 
         # --- Detección de Comprobantes de Pago ---
-        if has_media and media_type == 'image':
-            keywords_pago = ["bancolombia", "tarjeta", "credito", "nequi", "mercadopago", "efectivo", "contado", "pago", "transferencia", "comprobante"]
-            is_payment = any(keyword in message_text.lower() for keyword in keywords_pago)
+        keywords_pago_sin_img = ["soporte", "comprobante", "transferí", "consigné", "ya pagué", "ya transferí", "mira el soporte", "ahí te envié", "te mando el soporte"]
+        keywords_pago_ignorar = ["y al nequi?", "cómo pago", "forma de pago", "cuánto es", "datos de pago"]
+        
+        is_payment_keyword_sin_img = any(keyword in message_text.lower() for keyword in keywords_pago_sin_img)
+        is_ignored_keyword = any(keyword in message_text.lower() for keyword in keywords_pago_ignorar)
+        
+        if (has_media and media_type == 'image'):
+            borradores_aprobacion[sender_id] = {"estado": "esperando_validacion_pago", "ruta_imagen": media_path}
             
-            # Si tiene imagen y menciona métodos de pago, asumimos que es comprobante
-            if is_payment or message_text == "":
-                borradores_aprobacion[sender_id] = "esperando_validacion_pago"
-                
-                # Notificar al canal de control para que un humano apruebe.
-                mensaje_aprobacion = (
-                    f"💰 *COMPROBANTE DE PAGO RECIBIDO*\n"
-                    f"👤 Cliente: `{sender_id}`\n"
-                    f"¿Es válido el comprobante de pago enviado por el cliente?\n\n"
-                    f"Para confirmar, responde: `pago ok {sender_id}`\n"
-                    f"Si el pago no es válido, responde: `pago no {sender_id}`"
-                )
-                enviar_whatsapp_reporte(mensaje_aprobacion)
-                
-                return jsonify({
-                    "status": "waiting_for_payment_approval",
-                    "respuesta": "Hemos recibido tu comprobante. Nuestro equipo lo está validando. Te avisaremos en cuanto esté confirmado."
-                })
+            mensaje_aprobacion = (
+                f"🔔 ALERTA PAGO - Cliente: {sender_id} envió un comprobante.\n"
+                f"Ruta imagen: {media_path}\n"
+                f"Por favor confirmar con: 'ok confirmado {sender_id}'"
+            )
+            
+            pagos_pendientes_confirmacion[sender_id] = {
+                "timestamp": time.time(),
+                "mensaje": mensaje_aprobacion,
+                "confirmado": False
+            }
+            
+            threading.Thread(target=enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_contabilidad)).start()
+            
+            return jsonify({
+                "status": "waiting_for_payment_approval",
+                "respuesta": "Veci, recibí su comprobante. En un momento nuestro equipo de contabilidad lo verifica y le confirmamos. ¡Gracias por su compra!"
+            })
+            
+        elif is_payment_keyword_sin_img and not is_ignored_keyword and not has_media:
+            return jsonify({
+                "status": "missing_image",
+                "respuesta": "Veci, parece que el mensaje llegó sin la imagen adjunta. ¿Puede intentar enviarla de nuevo? 📎"
+            })
 
         # --- Flujo de Aprobación para Mensajes de Posventa ---
         if message_text.lower().startswith("hugo dale ok"):
@@ -101,8 +182,33 @@ def register_routes(app):
                 "respuesta": f"Ya existe una respuesta pendiente de aprobación para la orden {order_id}."
             })
 
+        # --- Escalación al Grupo ---
+        keywords_escalacion = ["devolución", "garantía", "reclamo", "quiero hablar con una persona", "asesor", "humano", "descuento"]
+        if any(keyword in message_text.lower() for keyword in keywords_escalacion):
+            mensaje_aprobacion = (
+                f"❓ CONSULTA IA - Cliente {sender_id} preguntó: {message_text}\n"
+                f"Responder con: 'resp {sender_id}: {{respuesta}}'"
+            )
+            enviar_whatsapp_reporte(mensaje_aprobacion, numero_destino=grupo_contabilidad)
+            return jsonify({
+                "status": "escalated",
+                "respuesta": "Veci, déjame consultar esa información con mi equipo y le confirmo en un momento 🙏"
+            })
+
         # --- Procesamiento del Mensaje por la IA ---
         respuesta_ia, _ = obtener_respuesta_ia(message_text, sender_id)
+        
+        incertidumbre_ia = ["no tengo información", "no puedo", "no estoy seguro"]
+        if any(frase in respuesta_ia.lower() for frase in incertidumbre_ia):
+            mensaje_aprobacion = (
+                f"❓ CONSULTA IA - Cliente {sender_id} preguntó: {message_text}\n"
+                f"Responder con: 'resp {sender_id}: {{respuesta}}'"
+            )
+            enviar_whatsapp_reporte(mensaje_aprobacion, numero_destino=grupo_contabilidad)
+            return jsonify({
+                "status": "escalated",
+                "respuesta": "Veci, déjame consultar esa información con mi equipo y le confirmo en un momento 🙏"
+            })
 
         # --- Gestión de la Respuesta ---
         if is_after_sale:

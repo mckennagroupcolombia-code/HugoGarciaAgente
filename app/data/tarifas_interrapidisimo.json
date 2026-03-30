@@ -1,0 +1,15 @@
+{
+  "ciudades": {
+    "bogota": {"precio_base": 8500, "dias": 1},
+    "municipios_cundinamarca": {"precio_base": 11000, "dias": 1},
+    "medellin": {"precio_base": 13000, "dias": 2},
+    "cali": {"precio_base": 13000, "dias": 2},
+    "barranquilla": {"precio_base": 15000, "dias": 3},
+    "bucaramanga": {"precio_base": 14000, "dias": 2},
+    "cartagena": {"precio_base": 15000, "dias": 3},
+    "pasto": {"precio_base": 16000, "dias": 3},
+    "leticia": {"precio_base": 18000, "dias": 4},
+    "default": {"precio_base": 18000, "dias": 4}
+  },
+  "nota": "Precios base hasta 1kg. Peso adicional +2000 por kg extra."
+}
