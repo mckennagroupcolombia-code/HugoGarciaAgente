@@ -146,7 +146,6 @@ def enviar_reporte_controlado(mensaje):
 
 import json
 import unicodedata
-from app.services.meli_preventa import consultar_costo_envio
 
 def consultar_tarifa_mercadoenvios(ciudad_destino: str, peso_kg: float) -> dict:
     """
@@ -154,8 +153,6 @@ def consultar_tarifa_mercadoenvios(ciudad_destino: str, peso_kg: float) -> dict:
     Si falla, usa el JSON local como fallback.
     """
     try:
-        # Intentar con Mercado Libre primero
-        from app.services.meli_preventa import consultar_costo_envio
         # Podríamos buscar el zip_code según ciudad, pero como meli_preventa recibe zip_code,
         # simplificamos si la API de Meli no está disponible o falla
         

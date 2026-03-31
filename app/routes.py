@@ -2,6 +2,27 @@
 from flask import request, jsonify, render_template
 import os
 import json
+import re
+
+
+def detectar_comando_preventa(texto: str):
+    """
+    Detecta 'resp preventa {id}: {respuesta}' en variantes:
+      - con o sin llaves en la respuesta
+      - mayúsculas/minúsculas
+    Retorna (question_id, respuesta) o (None, None).
+    """
+    patrones = [
+        r'resp\s+preventa\s+(\d+):\s*\{(.+?)\}\s*$',  # con llaves
+        r'resp\s+preventa\s+(\d+):\s*(.+)',             # sin llaves
+    ]
+    for patron in patrones:
+        m = re.search(patron, texto.strip(), re.IGNORECASE | re.DOTALL)
+        if m:
+            qid = m.group(1).strip()
+            resp = m.group(2).strip().strip('{}').strip()
+            return qid, resp
+    return None, None
 
 # --- Dependencias de Lógica de Negocio ---
 # Estas son las funciones que nuestra ruta necesita para operar.
@@ -9,6 +30,62 @@ import json
 from app.core import obtener_respuesta_ia
 from modulo_posventa import responder_mensaje_posventa
 from app.utils import enviar_whatsapp_reporte
+
+def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
+    """
+    Procesa "resp preventa {question_id}: {respuesta}":
+    1. Busca la pregunta pendiente
+    2. Responde en MeLi
+    3. Guarda el caso como few-shot
+    4. Confirma al grupo
+    """
+    try:
+        from app.services.meli_preventa import obtener_pregunta_pendiente, guardar_caso_preventa
+        from app.utils import refrescar_token_meli
+
+        pendiente = obtener_pregunta_pendiente(question_id)
+        if not pendiente:
+            enviar_whatsapp_reporte(
+                f"⚠️ No encontré pregunta pendiente con ID {question_id}",
+                numero_destino=os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
+            )
+            return
+
+        # Responder en MeLi
+        token = refrescar_token_meli()
+        if token:
+            import requests as req
+            res = req.post(
+                "https://api.mercadolibre.com/answers",
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={"question_id": int(question_id), "text": respuesta_humana},
+                timeout=15
+            )
+            exito = res.status_code == 200
+        else:
+            exito = False
+
+        # Guardar como caso de entrenamiento
+        guardar_caso_preventa(
+            producto=pendiente.get('producto', ''),
+            pregunta=pendiente.get('pregunta', ''),
+            respuesta=respuesta_humana
+        )
+
+        # Confirmar al grupo
+        grupo = os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
+        estado = "✅ enviada" if exito else "❌ error al enviar"
+        enviar_whatsapp_reporte(
+            f"{'✅' if exito else '❌'} Respuesta preventa {estado} al cliente\n"
+            f"Producto: {pendiente.get('producto', '')}\n"
+            f"Respuesta guardada como caso de entrenamiento.",
+            numero_destino=grupo
+        )
+        print(f"✅ Preventa: respuesta humana procesada para question_id {question_id}")
+
+    except Exception as e:
+        print(f"❌ Preventa: error procesando respuesta humana: {e}")
+
 
 def cargar_modos_atencion():
     try:
@@ -59,6 +136,12 @@ def register_routes(app):
         if not data:
             return jsonify({"status": "error", "respuesta": "Request inválido, no se recibió JSON."}), 400
 
+        try:
+            from app.monitor import incrementar_metrica
+            incrementar_metrica('mensajes_whatsapp')
+        except Exception:
+            pass
+
         sender_id = data.get('sender', 'desconocido')
         message_text = data.get('mensaje', '').strip()
         is_after_sale = data.get('es_postventa', False)
@@ -77,9 +160,23 @@ def register_routes(app):
             modos = cargar_modos_atencion()
             msg_lower = message_text.lower()
             
-            if msg_lower.startswith("ok confirmado "):
-                target_num = message_text.split(" ", 2)[2].strip()
+            if msg_lower.startswith("ok confirmado"):
+                partes = message_text.split(" ", 2)
+                if len(partes) >= 3 and partes[2].strip():
+                    # Formato completo: "ok confirmado {numero}"
+                    target_num = partes[2].strip()
+                else:
+                    # Sin número: buscar el único pago pendiente
+                    pendientes = [k for k, v in pagos_pendientes_confirmacion.items() if not v.get("confirmado")]
+                    if len(pendientes) == 1:
+                        target_num = pendientes[0]
+                    else:
+                        cantidad = len(pendientes)
+                        msg_error = f"⚠️ Hay {cantidad} pagos pendientes. Especifica el número: 'ok confirmado {{numero}}'" if cantidad > 1 else "⚠️ No hay pagos pendientes por confirmar."
+                        threading.Thread(target=enviar_whatsapp_reporte, args=(msg_error, grupo_contabilidad)).start()
+                        return jsonify({"status": "ok", "respuesta": None})
                 threading.Thread(target=procesar_confirmacion_pago_async, args=(target_num,)).start()
+                threading.Thread(target=enviar_whatsapp_reporte, args=(f"✅ Confirmación enviada al cliente {target_num}", grupo_contabilidad)).start()
                 return jsonify({"status": "ok", "respuesta": None})
                 
             elif msg_lower.startswith("pausar "):
@@ -98,13 +195,34 @@ def register_routes(app):
                 threading.Thread(target=enviar_whatsapp_reporte, args=("Hola veci, soy Hugo García nuevamente, ¿en qué le puedo ayudar?", target_num)).start()
                 return jsonify({"status": "ok", "respuesta": None})
                 
+            elif msg_lower.startswith("resp preventa "):
+                print(f"📨 Comando preventa recibido del grupo: {message_text[:120]}")
+                question_id, respuesta_humana = detectar_comando_preventa(message_text)
+                print(f"🔍 Detectado — ID: {question_id} | Respuesta: {str(respuesta_humana)[:60]}")
+                if question_id and respuesta_humana:
+                    threading.Thread(
+                        target=_procesar_respuesta_preventa,
+                        args=(question_id, respuesta_humana)
+                    ).start()
+                else:
+                    threading.Thread(
+                        target=enviar_whatsapp_reporte,
+                        args=(
+                            "⚠️ Formato inválido. Escribe así (sin llaves):\n"
+                            f"resp preventa {question_id or '<ID>'}: tu respuesta va aquí",
+                            grupo_contabilidad
+                        )
+                    ).start()
+                return jsonify({"status": "ok", "respuesta": None})
+
             elif msg_lower.startswith("resp "):
                 partes = message_text.split(" ", 1)[1].split(":", 1)
-                if len(partes) == 2:
+                if len(partes) == 2 and partes[1].strip():
                     target_num = partes[0].strip()
                     resp_msg = partes[1].strip()
                     threading.Thread(target=enviar_whatsapp_reporte, args=(resp_msg, target_num)).start()
                     return jsonify({"status": "ok", "respuesta": None})
+                # Sin mensaje o sin formato completo → ignorar silenciosamente
             
             return jsonify({"status": "ok", "respuesta": None})
         
@@ -183,7 +301,11 @@ def register_routes(app):
             })
 
         # --- Escalación al Grupo ---
-        keywords_escalacion = ["devolución", "garantía", "reclamo", "quiero hablar con una persona", "asesor", "humano", "descuento"]
+        keywords_escalacion = [
+            "quiero hablar con una persona", "hablar con alguien", "asesor", "agente humano",
+            "devolución", "reclamo", "garantía",
+            "descuento", "precio especial", "más barato", "mas barato"
+        ]
         if any(keyword in message_text.lower() for keyword in keywords_escalacion):
             mensaje_aprobacion = (
                 f"❓ CONSULTA IA - Cliente {sender_id} preguntó: {message_text}\n"

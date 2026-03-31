@@ -519,3 +519,49 @@ def crear_factura_completa_siigo(nombre_cliente: str, identificacion: str, direc
     except Exception as e:
         print(f"❌ Error en el proceso de facturación: {e}")
         return f"Error crítico: {str(e)}"
+
+
+def buscar_producto_siigo_por_sku(sku: str):
+    """
+    Busca un producto en SIIGO por SKU y retorna nombre oficial,
+    precio de venta y unidad de medida.
+    """
+    token = autenticar_siigo()
+    if not token:
+        return None
+
+    try:
+        res = requests.get(
+            f"https://api.siigo.com/v1/products?code={sku}",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Partner-Id": PARTNER_ID
+            },
+            timeout=10
+        )
+        if res.status_code == 200:
+            data = res.json()
+            productos = data.get('results', [])
+            if productos:
+                p = productos[0]
+                # prices[0].price_list[0].value
+                try:
+                    precio = p['prices'][0]['price_list'][0]['value']
+                except (IndexError, KeyError):
+                    precio = 0
+                # unit es un objeto {"code": ..., "name": ...}
+                unidad_raw = p.get('unit', {})
+                unidad = unidad_raw.get('name', '') if isinstance(unidad_raw, dict) else str(unidad_raw)
+                return {
+                    "sku": sku,
+                    "nombre": p.get('name', ''),
+                    "precio": precio,
+                    "unidad": unidad,
+                    "referencia": p.get('code', sku),
+                    "stock_siigo": p.get('available_quantity', None)
+                }
+        else:
+            print(f"⚠️ SIIGO products API: {res.status_code} para SKU {sku}")
+    except Exception as e:
+        print(f"❌ Error consultando SIIGO por SKU: {e}")
+    return None

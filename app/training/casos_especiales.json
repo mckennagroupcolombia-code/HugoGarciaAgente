@@ -1,6 +1,11 @@
 {
   "casos": [
     {
+      "id": "comprobante_whatsapp",
+      "trigger": ["comprobante", "soporte de pago", "foto del pago", "soporte", "comprobante de pago"],
+      "instruccion": "El comprobante de pago SIEMPRE se envía por WhatsApp directamente en este chat. NUNCA pedir que lo envíen por correo electrónico. El sistema lo detecta automáticamente cuando llega la imagen."
+    },
+    {
       "id": "envio_comprador",
       "trigger": ["envío a cargo del comprador", "flete por cuenta"],
       "contexto": "Publicación con envío a cargo del comprador",

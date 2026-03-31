@@ -46,6 +46,11 @@ def iniciar_cli():
     # Pequeña pausa para asegurar que el servidor Flask (si se ejecuta en paralelo) inicie primero.
     time.sleep(2)
     
+    import sys
+    if not sys.stdin.isatty():
+        print("[CLI] Sin terminal interactiva (systemd), menú deshabilitado.")
+        return
+
     while True:
         mostrar_menu()
         opcion = input("Seleccione una opción (1-10): ")

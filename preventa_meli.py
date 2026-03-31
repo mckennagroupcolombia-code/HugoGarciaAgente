@@ -1,6 +1,6 @@
 import json
 import requests
-from app.services.meli_preventa import generar_respuesta_preventa_ia
+from app.services.meli_preventa import manejar_pregunta_preventa
 from app.utils import refrescar_token_meli
 
 # Ruta de sus credenciales
@@ -33,12 +33,13 @@ def obtener_nombre_producto_meli(item_id, token):
         print(f"Error obteniendo nombre del producto: {e}")
     return "Producto desconocido"
 
-def analizar_y_crear_respuesta(texto_pregunta, item_id, token):
+def analizar_y_crear_respuesta(texto_pregunta, item_id, token, question_id=None):
     """
-    Genera la respuesta usando IA con el contexto de preventa.
+    Gestiona la pregunta de preventa: responde o delega al grupo.
+    Retorna (respuesta_texto, fue_respondida).
     """
     nombre_producto = obtener_nombre_producto_meli(item_id, token)
-    return generar_respuesta_preventa_ia(texto_pregunta, nombre_producto)
+    return manejar_pregunta_preventa(question_id, nombre_producto, texto_pregunta)
 
 def enviar_respuesta_meli(question_id, texto_respuesta, token):
     """Dispara la respuesta oficial a la publicación de Mercado Libre."""
@@ -78,18 +79,28 @@ def procesar_nueva_pregunta(question_id):
     
     print(f"El cliente preguntó: '{texto_pregunta}' en el producto {item_id}")
     
-    respuesta_generada = analizar_y_crear_respuesta(texto_pregunta, item_id, token)
-    
+    nombre_producto = obtener_nombre_producto_meli(item_id, token)
+    respuesta_generada, fue_respondida = analizar_y_crear_respuesta(
+        texto_pregunta, item_id, token, question_id=question_id
+    )
+
+    if not fue_respondida:
+        # Sin ficha → delegado al grupo, ya se envió la alerta
+        print(f"⏳ Preventa: pregunta {question_id} delegada al grupo humano")
+        return
+
+    # Con ficha → responder al cliente en MeLi
     status = enviar_respuesta_meli(question_id, respuesta_generada, token)
-    
+
     from app.utils import enviar_whatsapp_reporte
     emoji_status = "✅" if status else "❌"
-    nombre_producto = obtener_nombre_producto_meli(item_id, token)
-    mensaje_ws = (f"🔔 *REPORTE PREVENTA MELI*\n\n"
-                 f"📦 *Producto:* {nombre_producto}\n"
-                 f"🗣 *Cliente Preguntó:* {texto_pregunta}\n"
-                 f"🤖 *IA Respondió:* {respuesta_generada}\n\n"
-                 f"Status Respuesta: {emoji_status}")
+    mensaje_ws = (
+        f"🔔 *REPORTE PREVENTA MELI*\n\n"
+        f"📦 *Producto:* {nombre_producto}\n"
+        f"🗣 *Cliente Preguntó:* {texto_pregunta}\n"
+        f"🤖 *IA Respondió:* {respuesta_generada}\n\n"
+        f"Status Respuesta: {emoji_status}"
+    )
     enviar_whatsapp_reporte(mensaje_ws)
 
 # --- Para probar el script manualmente ---
