@@ -74,6 +74,10 @@ def notifications():
                 # Lanzamos el proceso en un hilo para no hacer esperar a MeLi
                 hilo = threading.Thread(target=procesar_nueva_pregunta, args=(question_id,))
                 hilo.start()
+                try:
+                    incrementar_metrica('preguntas_meli')
+                except Exception:
+                    pass
         
     # Respondemos 200 OK inmediatamente
     return jsonify({"status": "ok"}), 200
@@ -247,6 +251,10 @@ def confirmar_pago():
     if confirmado:
         mensaje_cliente = "Veci, le confirmamos que su pago ha sido recibido ✅ Estamos alistando su pedido y le avisamos cuando despachemos."
         enviar_whatsapp_reporte(mensaje_cliente, numero_destino=numero_cliente)
+        try:
+            incrementar_metrica('pagos_confirmados')
+        except Exception:
+            pass
         return jsonify({"status": "success", "mensaje": f"Pago confirmado para {numero_cliente}"})
     else:
         mensaje_cliente = "Hola, ha habido un problema con la validación de tu pago. Por favor rectifica y revisa por qué la transacción no ha sido recibida."
@@ -288,6 +296,9 @@ def agregar_caso():
         return jsonify({"status": "success", "mensaje": "Caso agregado y agente reentrenado"})
     except Exception as e:
         return jsonify({"status": "error", "resultado": str(e)}), 500
+
+from app.monitor import iniciar_monitor, incrementar_metrica
+iniciar_monitor()
 
 if __name__ == '__main__':
     # Este corre en el 8080. El agente_pro corre en el 8081.

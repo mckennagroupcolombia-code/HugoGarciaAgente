@@ -8,7 +8,7 @@ from google import genai
 from app.tools.memoria import query_sqlite, query_vector_db
 
 # Herramientas de servicios externos
-from app.services.google_services import leer_datos_hoja
+from app.services.google_services import leer_datos_hoja, buscar_producto_completo as _buscar_producto_completo
 from app.services.siigo import *
 from app.services.meli import (
     aprender_de_interacciones_meli, 
@@ -41,6 +41,30 @@ from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_
 
 # TODO: Estas dependencias de `core_sync` deben ser eliminadas y refactorizadas.
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
+
+def buscar_producto_completo(consulta: str) -> str:
+    """
+    Busca información completa de un producto del catálogo McKenna Group.
+    Retorna nombre oficial de SIIGO, precio, stock disponible y ficha técnica.
+    Usar cuando un cliente pregunte por disponibilidad, precio o características
+    de un producto en WhatsApp.
+    """
+    resultado = _buscar_producto_completo(consulta)
+    if resultado:
+        precio_fmt = f"${resultado['precio']:,.0f} COP" if resultado['precio'] else "Consultar"
+        unidad = resultado['unidad'] or ""
+        ficha = resultado['ficha_tecnica'] or "No disponible"
+        return (
+            f"✅ Producto encontrado en catálogo McKenna Group:\n"
+            f"- Nombre oficial: {resultado['nombre_siigo']}\n"
+            f"- SKU/Referencia: {resultado['referencia']}\n"
+            f"- Precio: {precio_fmt}\n"
+            f"- Unidad: {unidad}\n"
+            f"- Stock disponible: {resultado['stock_siigo']}\n"
+            f"- Ficha técnica: {ficha}"
+        )
+    return f"Producto '{consulta}' no encontrado en el catálogo."
+
 
 # ==========================================
 # 🧠 INSTRUCCIONES DEL SISTEMA (PROMPT MAESTRO)
@@ -80,6 +104,12 @@ REGLAS DE CONTROL DE HERRAMIENTAS:
 2. Para verificar la conexión, usa ÚNICAMENTE 'refrescar_token_meli'. Si funciona, responde: "✅ Conexión con MeLi activa."
 3. PROHIBIDO mostrar listas de IDs de facturas en el chat. Si hay pendientes, di: "Hay [X] facturas pendientes por sincronizar."
 4. No pidas confirmaciones de WhatsApp (s/n) en el modo chat a menos que te lo ordenen explícitamente.
+
+REGLAS SOBRE NOMBRES Y PRECIOS DE PRODUCTOS:
+- En conversaciones de WHATSAPP: SIEMPRE usa 'buscar_producto_completo' para consultar un producto. Usa el nombre oficial que retorna SIIGO, no el nombre de la publicación de MercadoLibre. Usa el precio de SIIGO.
+- En respuestas de PREVENTA en MercadoLibre: puedes mencionar el nombre de la publicación, pero consulta la ficha técnica real desde Google Sheets.
+- NUNCA uses nombres de publicaciones de MercadoLibre al hablar con clientes por WhatsApp.
+- El SKU es la referencia oficial del producto en todas las facturas y cotizaciones.
 """
 
 # Variables globales — client debe vivir junto a modelo_ia para evitar
@@ -123,7 +153,8 @@ def configurar_ia(app):
             sincronizar_manual_por_id, sincronizar_inteligente, sincronizar_por_dia_especifico,
             refrescar_token_meli, enviar_whatsapp_reporte,
             sincronizar_facturas_de_compra_siigo, crear_cotizacion_siigo,
-            crear_cotizacion_preliminar, crear_factura_completa_siigo, consultar_tarifa_envio, consultar_tarifa_mercadoenvios
+            crear_cotizacion_preliminar, crear_factura_completa_siigo, consultar_tarifa_envio, consultar_tarifa_mercadoenvios,
+            buscar_producto_completo
         ]
         
         instrucciones_completas = INSTRUCCIONES_MCKENNA + cargar_casos_especiales()
@@ -146,32 +177,59 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
     """
     Procesa una pregunta de usuario, la envía al modelo de IA y gestiona el historial de chat.
     Limpia el historial de interacciones de funciones rotas para evitar el error 400 de Gemini.
+    Reintenta automáticamente ante errores 503/429 de Gemini.
     """
+    import time as _time
+
     if not modelo_ia:
-        return "Error: El modelo de IA no está configurado. Revisa los logs de inicio.", []
+        return "Veci, estamos en mantenimiento. Intente en unos minutos 🙏", []
 
-    try:
-        print(f"🗣️  Usuario [{usuario_id}] pregunta: \'{pregunta}\'")
-        response = modelo_ia.send_message(f"Usuario_{usuario_id}: {pregunta}") # Prefijo al mensaje del usuario
+    MAX_REINTENTOS = 3
 
-        # Imprimir el uso de tokens para monitoreo.
-        if hasattr(response, 'usage_metadata'):
-            usage = response.usage_metadata
-            print(f"💰 Tokens Usados: Entrada={usage.prompt_token_count}, Salida={usage.candidates_token_count}, Total={usage.total_token_count}")
+    for intento in range(MAX_REINTENTOS):
+        try:
+            print(f"🗣️  Usuario [{usuario_id}] pregunta: \'{pregunta}\'")
+            response = modelo_ia.send_message(f"Usuario_{usuario_id}: {pregunta}")
 
-        # Si la IA ejecutó una herramienta, la respuesta de texto puede estar vacía.
-        # Solo respondemos si el mensaje proviene de un usuario real (no de otro bot).
-        if not pregunta.startswith("BOT_"):
-            respuesta_texto = response.text if hasattr(response, 'text') and response.text else "✅ Tarea ejecutada en segundo plano."
-            return respuesta_texto, modelo_ia.get_history()
-        else:
-            return "", modelo_ia.get_history() # No responder si el mensaje es de un bot
+            if hasattr(response, 'usage_metadata'):
+                usage = response.usage_metadata
+                print(f"💰 Tokens Usados: Entrada={usage.prompt_token_count}, Salida={usage.candidates_token_count}, Total={usage.total_token_count}")
 
-    except Exception as e:
-        error_str = str(e)
-        print(f"⚠️ Error durante la generación de respuesta de la IA: {error_str}")
-        # Manejo de error común de historial corrupto
-        if "function response turn" in error_str:
-            return "❌ Se produjo un error con el historial de la conversación. He reiniciado mi memoria a corto plazo. Por favor, repite tu última pregunta.", []
-        
-        return f"❌ Error técnico inesperado en el núcleo de la IA: {e}", historial
+            if not pregunta.startswith("BOT_"):
+                respuesta_texto = response.text if hasattr(response, 'text') and response.text else "✅ Tarea ejecutada en segundo plano."
+                return respuesta_texto, modelo_ia.get_history()
+            else:
+                return "", modelo_ia.get_history()
+
+        except Exception as e:
+            error_str = str(e)
+            print(f"⚠️ Error IA (intento {intento+1}/{MAX_REINTENTOS}): {error_str}")
+
+            if "function response turn" in error_str:
+                return "Veci, tuve un problema con la sesión. Por favor repita su mensaje 🙏", []
+
+            if '503' in error_str or 'UNAVAILABLE' in error_str:
+                if intento < MAX_REINTENTOS - 1:
+                    espera = (intento + 1) * 5
+                    print(f"⚠️ Gemini 503 — reintento {intento+1} en {espera}s")
+                    _time.sleep(espera)
+                    continue
+                print("❌ Gemini 503 agotó reintentos")
+                return (
+                    "Veci, tenemos alta demanda en este momento. "
+                    "Por favor escríbanos de nuevo en 2 minutos 🙏",
+                    []
+                )
+
+            if '429' in error_str or 'RATE_LIMIT' in error_str:
+                print("⚠️ Rate limit Gemini")
+                return (
+                    "Veci, estamos atendiendo muchos clientes. "
+                    "Por favor espere un momento y escriba de nuevo 🙏",
+                    []
+                )
+
+            print(f"❌ Error IA inesperado: {e}")
+            return "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏", []
+
+    return "Veci, intente de nuevo en un momento 🙏", []
