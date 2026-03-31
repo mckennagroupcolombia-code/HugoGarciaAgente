@@ -85,3 +85,14 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
 To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
    e3656c4..3cb7f2e  master -> main
 [2026-03-29 23:00:02] Push exitoso: 'Auto-commit: actualizacion diaria 2026-03-29 23:00'
+[master 97c9965] Auto-commit: actualizacion diaria 2026-03-30 23:00
+ 17 files changed, 1427 insertions(+), 150 deletions(-)
+ create mode 100644 admin_panel.py
+ create mode 100644 app/data/metricas_diarias.json
+ create mode 100644 app/data/preguntas_pendientes_preventa.json
+ create mode 100644 app/monitor.py
+ create mode 100644 app/training/casos_preventa.json
+ create mode 100644 cotizaciones_preliminares/PRE-1774845220.json
+To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
+   3cb7f2e..97c9965  master -> main
+[2026-03-30 23:00:03] Push exitoso: 'Auto-commit: actualizacion diaria 2026-03-30 23:00'
