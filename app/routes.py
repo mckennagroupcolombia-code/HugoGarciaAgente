@@ -3,25 +3,64 @@ from flask import request, jsonify, render_template
 import os
 import json
 import re
+import hmac
+import hashlib
+import base64
+
+
+PENDIENTES_PATH = 'app/data/preguntas_pendientes_preventa.json'
+
+
+def encontrar_question_id_por_sufijo(sufijo: str):
+    """Busca en pendientes el question_id que termina con `sufijo`."""
+    try:
+        with open(PENDIENTES_PATH) as f:
+            data = json.load(f)
+        for p in data.get('preguntas', []):
+            if not p.get('respondida'):
+                if str(p['question_id']).endswith(sufijo):
+                    return str(p['question_id'])
+    except Exception:
+        pass
+    return None
 
 
 def detectar_comando_preventa(texto: str):
     """
-    Detecta 'resp preventa {id}: {respuesta}' en variantes:
-      - con o sin llaves en la respuesta
-      - mayúsculas/minúsculas
-    Retorna (question_id, respuesta) o (None, None).
+    Detecta comandos de respuesta preventa en dos formatos:
+      - Completo:  resp preventa 13553975455: mensaje
+      - Abreviado: resp 455: mensaje  (últimos 3+ dígitos del question_id)
+    Acepta con o sin llaves, mayúsculas/minúsculas.
+    Retorna (question_id_completo, respuesta) o (None, None).
     """
-    patrones = [
-        r'resp\s+preventa\s+(\d+):\s*\{(.+?)\}\s*$',  # con llaves
-        r'resp\s+preventa\s+(\d+):\s*(.+)',             # sin llaves
+    # Formato completo: resp preventa <digits>: <respuesta>
+    patrones_completo = [
+        r'resp\s+preventa\s+(\d+):\s*\{(.+?)\}\s*$',
+        r'resp\s+preventa\s+(\d+):\s*(.+)',
     ]
-    for patron in patrones:
+    for patron in patrones_completo:
         m = re.search(patron, texto.strip(), re.IGNORECASE | re.DOTALL)
         if m:
             qid = m.group(1).strip()
             resp = m.group(2).strip().strip('{}').strip()
             return qid, resp
+
+    # Formato abreviado: resp <3+dígitos>: <respuesta>
+    patrones_corto = [
+        r'^resp\s+(\d{2,}?):\s*\{(.+?)\}\s*$',
+        r'^resp\s+(\d{2,}?):\s*(.+)',
+    ]
+    for patron in patrones_corto:
+        m = re.search(patron, texto.strip(), re.IGNORECASE | re.DOTALL)
+        if m:
+            sufijo = m.group(1).strip()
+            resp = m.group(2).strip().strip('{}').strip()
+            qid_completo = encontrar_question_id_por_sufijo(sufijo)
+            if qid_completo:
+                return qid_completo, resp
+            # Si no se encuentra en pendientes, no procesar
+            return None, None
+
     return None, None
 
 # --- Dependencias de Lógica de Negocio ---
@@ -30,6 +69,7 @@ def detectar_comando_preventa(texto: str):
 from app.core import obtener_respuesta_ia
 from modulo_posventa import responder_mensaje_posventa
 from app.utils import enviar_whatsapp_reporte
+from app.sync import sincronizar_stock_todas_las_plataformas, sincronizar_facturas_recientes
 
 def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
     """
@@ -216,6 +256,17 @@ def register_routes(app):
                 return jsonify({"status": "ok", "respuesta": None})
 
             elif msg_lower.startswith("resp "):
+                # Intentar primero como comando preventa (formato corto: resp 497: ...)
+                question_id, respuesta_humana = detectar_comando_preventa(message_text)
+                if question_id and respuesta_humana:
+                    print(f"📨 Preventa (formato corto) — ID: {question_id} | Resp: {respuesta_humana[:60]}")
+                    threading.Thread(
+                        target=_procesar_respuesta_preventa,
+                        args=(question_id, respuesta_humana)
+                    ).start()
+                    return jsonify({"status": "ok", "respuesta": None})
+
+                # Si no es preventa, tratar como respuesta directa: resp <numero>: <mensaje>
                 partes = message_text.split(" ", 1)[1].split(":", 1)
                 if len(partes) == 2 and partes[1].strip():
                     target_num = partes[0].strip()
@@ -392,3 +443,77 @@ def register_routes(app):
     @app.route('/panel')
     def panel():
         return render_template('chat.html')
+
+    def _procesar_webhook_woocommerce(payload: dict):
+        """
+        Procesa en hilo secundario un webhook de WooCommerce.
+        Para order.created: descuenta stock en todas las plataformas y dispara
+        la facturación en Siigo.
+        """
+        try:
+            line_items = payload.get('line_items', [])
+            if not line_items:
+                print("⚠️ [WC-WEBHOOK] Orden sin line_items — ignorada.")
+                return
+
+            order_id = payload.get('id', 'desconocido')
+            print(f"🛒 [WC-WEBHOOK] Procesando orden WooCommerce #{order_id} ({len(line_items)} ítem(s))...")
+
+            for item in line_items:
+                sku = item.get('sku', '').strip()
+                cantidad = int(item.get('quantity', 0))
+
+                if not sku or cantidad <= 0:
+                    print(f"⚠️ [WC-WEBHOOK] Ítem sin SKU o cantidad inválida: {item.get('name')}")
+                    continue
+
+                from app.services.woocommerce import obtener_stock_woocommerce
+                stock_actual = obtener_stock_woocommerce(sku)
+                nuevo_stock = max(0, stock_actual - cantidad)
+
+                resultado = sincronizar_stock_todas_las_plataformas(sku, nuevo_stock)
+                print(f"   └──> SKU {sku} | -{cantidad} uds | Stock WC: {nuevo_stock} | {resultado}")
+
+            # Disparar facturación en Siigo para el día de hoy
+            print(f"📄 [WC-WEBHOOK] Iniciando sync de facturas Siigo para orden #{order_id}...")
+            sincronizar_facturas_recientes(dias=1)
+
+        except Exception as e:
+            print(f"❌ [WC-WEBHOOK] Error procesando webhook de WooCommerce: {e}")
+
+    @app.route('/woocommerce', methods=['POST'])
+    def woocommerce_webhook():
+        """
+        Endpoint que recibe los webhooks enviados por WooCommerce.
+        Verifica la firma HMAC-SHA256, responde 200 OK de inmediato
+        y procesa la lógica en un hilo secundario.
+        """
+        # Verificación de firma (si hay secreto configurado)
+        wc_secret = os.getenv('WC_WEBHOOK_SECRET', '')
+        if wc_secret:
+            sig_header = request.headers.get('X-WC-Webhook-Signature', '')
+            payload_bytes = request.get_data()
+            firma_esperada = base64.b64encode(
+                hmac.new(wc_secret.encode('utf-8'), payload_bytes, hashlib.sha256).digest()
+            ).decode('utf-8')
+            if not hmac.compare_digest(sig_header, firma_esperada):
+                print(f"⚠️ [WC-WEBHOOK] Firma inválida — request rechazado.")
+                return jsonify({"status": "unauthorized"}), 401
+
+        payload = request.json or {}
+        evento = request.headers.get('X-WC-Webhook-Topic', payload.get('_topic', ''))
+
+        print(f"📨 [WC-WEBHOOK] Evento recibido: '{evento}' | Orden: {payload.get('id', 'N/A')}")
+
+        if evento in ('order.created', 'order.updated'):
+            status = payload.get('status', '')
+            if status in ('processing', 'completed'):
+                threading.Thread(
+                    target=_procesar_webhook_woocommerce,
+                    args=(payload,),
+                    daemon=True
+                ).start()
+            else:
+                print(f"⏭️ [WC-WEBHOOK] Orden con estado '{status}' — ignorada.")
+
+        return jsonify({"status": "ok"}), 200

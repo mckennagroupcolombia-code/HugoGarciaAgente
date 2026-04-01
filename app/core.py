@@ -11,11 +11,16 @@ from app.tools.memoria import query_sqlite, query_vector_db
 from app.services.google_services import leer_datos_hoja, buscar_producto_completo as _buscar_producto_completo
 from app.services.siigo import *
 from app.services.meli import (
-    aprender_de_interacciones_meli, 
-    consultar_devoluciones_meli, 
+    aprender_de_interacciones_meli,
+    consultar_devoluciones_meli,
     consultar_detalle_venta_meli,
     responder_solicitud_rut,
     buscar_ventas_acordar_entrega
+)
+from app.services.woocommerce import (
+    obtener_todos_los_productos_woocommerce,
+    actualizar_stock_woocommerce,
+    sincronizar_catalogo_woocommerce
 )
 
 # Herramientas de sistema y comunicación
@@ -154,7 +159,8 @@ def configurar_ia(app):
             refrescar_token_meli, enviar_whatsapp_reporte,
             sincronizar_facturas_de_compra_siigo, crear_cotizacion_siigo,
             crear_cotizacion_preliminar, crear_factura_completa_siigo, consultar_tarifa_envio, consultar_tarifa_mercadoenvios,
-            buscar_producto_completo
+            buscar_producto_completo,
+            obtener_todos_los_productos_woocommerce, actualizar_stock_woocommerce, sincronizar_catalogo_woocommerce
         ]
         
         instrucciones_completas = INSTRUCCIONES_MCKENNA + cargar_casos_especiales()
