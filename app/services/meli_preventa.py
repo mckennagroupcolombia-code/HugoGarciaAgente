@@ -141,14 +141,37 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
     # Con ficha → generar respuesta con IA
     respuesta = generar_respuesta_con_ficha(titulo_producto, pregunta_cliente, ficha)
 
+    if respuesta is None:
+        # IA falló (ej: Gemini 503) → delegar al grupo, NO responder al cliente
+        print(f"⚠️ Preventa: IA falló para '{titulo_producto}' — delegando al grupo")
+        guardar_pregunta_pendiente(question_id, titulo_producto, pregunta_cliente)
+        try:
+            from app.utils import enviar_whatsapp_reporte
+            sufijo = str(question_id)[-3:]
+            enviar_whatsapp_reporte(
+                f"❓ CONSULTA PREVENTA PENDIENTE\n"
+                f"📦 Producto: {titulo_producto}\n"
+                f"🗣 Cliente preguntó: {pregunta_cliente}\n"
+                f"⚠️ (IA no pudo generar respuesta automática)\n\n"
+                f"✍️ Para responder escribe:\n"
+                f"resp {sufijo}: tu respuesta",
+                numero_destino=GRUPO
+            )
+        except Exception as e:
+            print(f"❌ Preventa: error alertando al grupo por fallo IA: {e}")
+        return None, False
+
     # Guardar como aprendizaje
     guardar_caso_preventa(titulo_producto, pregunta_cliente, respuesta)
 
     return respuesta, True
 
 
-def generar_respuesta_con_ficha(titulo_producto: str, pregunta: str, ficha_tecnica: str) -> str:
-    """Genera respuesta usando Gemini con la ficha técnica real."""
+def generar_respuesta_con_ficha(titulo_producto: str, pregunta: str, ficha_tecnica: str):
+    """
+    Genera respuesta usando Gemini con la ficha técnica real.
+    Retorna el texto de respuesta, o None si la IA falla.
+    """
     try:
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         ejemplos = _ejemplos_fewshot(titulo_producto)
@@ -180,7 +203,4 @@ Genera únicamente la respuesta para el cliente, sin comillas ni texto introduct
 
     except Exception as e:
         print(f"❌ Preventa: error generando respuesta IA: {e}")
-        return (
-            "Hola veci, gracias por tu pregunta. "
-            "En breve uno de nuestros asesores te responderá con más detalles."
-        )
+        return None

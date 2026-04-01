@@ -85,28 +85,39 @@ def _procesar_orden_meli(order_id: str):
             item_id = item_info.get('id', '')
             cantidad_vendida = item.get('quantity', 0)
 
-            # Obtener SKU del ítem via API de items
+            # Obtener SKU y stock post-venta del ítem desde MeLi
+            # MeLi ya autodecrementó su available_quantity al procesar la orden.
             try:
                 res_item = requests.get(
                     f"https://api.mercadolibre.com/items/{item_id}",
                     headers={"Authorization": f"Bearer {token}"},
                     timeout=10
                 )
-                sku = res_item.json().get('seller_custom_field', '') if res_item.status_code == 200 else ''
+                if res_item.status_code == 200:
+                    item_data = res_item.json()
+                    sku = item_data.get('seller_custom_field', '')
+                    stock_post_venta = item_data.get('available_quantity')
+                else:
+                    sku = ''
+                    stock_post_venta = None
             except Exception:
                 sku = ''
+                stock_post_venta = None
 
             if not sku:
                 print(f"⚠️ [MELI-ORDER] Ítem {item_id} sin SKU — no se puede sincronizar stock.")
                 continue
 
-            # Calcular nuevo stock: stock WooCommerce actual menos lo vendido
-            from app.services.woocommerce import obtener_stock_woocommerce
-            stock_actual = obtener_stock_woocommerce(sku)
-            nuevo_stock = max(0, stock_actual - cantidad_vendida)
+            if stock_post_venta is None:
+                # Fallback: calcular desde WooCommerce si no se pudo leer MeLi
+                from app.services.woocommerce import obtener_stock_woocommerce
+                stock_post_venta = max(0, obtener_stock_woocommerce(sku) - cantidad_vendida)
+                print(f"⚠️ [MELI-ORDER] Usando fallback WC para SKU {sku}: {stock_post_venta} uds")
 
-            resultado = sincronizar_stock_todas_las_plataformas(sku, nuevo_stock)
-            print(f"   └──> SKU {sku} | -{cantidad_vendida} uds | Stock WC: {nuevo_stock} | {resultado}")
+            # Sincronizar WooCommerce al nivel actual de MeLi (MeLi ya está actualizado)
+            from app.services.woocommerce import actualizar_stock_woocommerce
+            resultado_wc = actualizar_stock_woocommerce(sku, stock_post_venta)
+            print(f"   └──> SKU {sku} | Stock MeLi post-venta: {stock_post_venta} | WC: {resultado_wc}")
 
     except Exception as e:
         print(f"❌ [MELI-ORDER] Error procesando orden {order_id}: {e}")

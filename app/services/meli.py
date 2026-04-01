@@ -179,6 +179,62 @@ def responder_solicitud_rut(order_id: str):
     except Exception as e:
         return f"❌ Error técnico en la herramienta de envío de RUT: {str(e)}"
 
+def actualizar_stock_meli(sku: str, nuevo_stock: int) -> str:
+    """
+    Busca publicaciones activas en MeLi por SKU (seller_custom_field) y actualiza
+    su available_quantity al valor indicado.
+    Retorna un mensaje con el resultado de la operación por cada ítem encontrado.
+    """
+    print(f"📡 [MELI-STOCK] Actualizando stock de SKU '{sku}' a {nuevo_stock} unidades...")
+    token = refrescar_token_meli()
+    if not token:
+        return "❌ Error: No se pudo obtener el token de Mercado Libre."
+
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    try:
+        # 1. Obtener el seller_id del vendedor autenticado
+        res_me = requests.get("https://api.mercadolibre.com/users/me", headers=headers, timeout=10)
+        if res_me.status_code != 200:
+            return f"❌ Error obteniendo seller_id de MeLi: {res_me.status_code}"
+        seller_id = res_me.json().get('id')
+
+        # 2. Buscar publicaciones activas con ese SKU
+        res_search = requests.get(
+            f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+            params={"seller_sku": sku, "status": "active"},
+            headers=headers,
+            timeout=10
+        )
+        if res_search.status_code != 200:
+            return f"❌ Error buscando ítems por SKU '{sku}' en MeLi: {res_search.status_code}"
+
+        item_ids = res_search.json().get("results", [])
+        if not item_ids:
+            return f"⚠️ SKU '{sku}' no encontrado en publicaciones activas de MeLi."
+
+        # 3. Actualizar available_quantity en cada publicación encontrada
+        resultados = []
+        for item_id in item_ids:
+            res_put = requests.put(
+                f"https://api.mercadolibre.com/items/{item_id}",
+                json={"available_quantity": int(nuevo_stock)},
+                headers=headers,
+                timeout=10
+            )
+            if res_put.status_code in [200, 201]:
+                resultados.append(f"✅ {item_id} → {nuevo_stock} uds")
+            else:
+                resultados.append(f"❌ {item_id}: {res_put.status_code} - {res_put.text[:80]}")
+
+        return " | ".join(resultados)
+
+    except requests.RequestException as e:
+        return f"⚠️ Error de red actualizando stock en MeLi (SKU: {sku}): {e}"
+    except Exception as e:
+        return f"❌ Error inesperado actualizando stock en MeLi (SKU: {sku}): {e}"
+
+
 def buscar_ventas_acordar_entrega(dias: int = 3):
     """
     Busca ventas con envío 'A acordar con el comprador' en los últimos días.

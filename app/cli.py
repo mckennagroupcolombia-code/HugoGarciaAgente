@@ -14,6 +14,7 @@ from app.services.google_services import leer_datos_hoja
 from app.services.meli import aprender_de_interacciones_meli
 from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
 from app.services.woocommerce import obtener_todos_los_productos_woocommerce, sincronizar_catalogo_woocommerce
+from app.tools.verificacion_sync_skus import verificar_sync_skus
 
 # --- Importación del Cerebro de la IA ---
 # El núcleo que procesa el lenguaje natural.
@@ -38,6 +39,7 @@ def mostrar_menu():
     print("10. 🔄 [GMAIL] Sincronizar Facturas de Compra SIIGO (uno a uno)")
     print("11. 🚪 [EXIT] Salir del Centro de Mando")
     print("12. 🛒 [WC] Sync manual WooCommerce")
+    print("13. 🔍 [SYNC] Verificar sincronización de SKUs (MeLi / SIIGO / WC)")
     print("═"*45)
 
 def iniciar_cli():
@@ -55,7 +57,7 @@ def iniciar_cli():
 
     while True:
         mostrar_menu()
-        opcion = input("Seleccione una opción (1-12): ")
+        opcion = input("Seleccione una opción (1-13): ")
 
         if opcion == "1":
             print("\n--- 💬 MODO CHAT ACTIVADO (Escribe 'salir' o 'menu' para volver) ---")
@@ -119,6 +121,9 @@ def iniciar_cli():
                     print(sincronizar_catalogo_woocommerce(payload))
                 else:
                     print("↩️ Sincronización cancelada.")
+        elif opcion == "13":
+            print("\n🔍 [SYNC] Verificando sincronización de SKUs entre plataformas...")
+            print(verificar_sync_skus(notificar_wa=True))
         else:
             print("❌ Opción no válida. Por favor, intente de nuevo.")
 
