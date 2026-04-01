@@ -11,6 +11,7 @@ from app.services.siigo import (
     descargar_factura_pdf_siigo
 )
 from app.services.meli import subir_factura_meli
+from app.services.woocommerce import actualizar_stock_woocommerce
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
 from app.tools.system_tools import enviar_reporte_controlado
 
@@ -24,6 +25,27 @@ SPREADSHEET_ID = os.getenv("SPREADSHEET_ID", '1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDj
 # ========================================================
 #  LÓGICAS DE SINCRONIZACIÓN ENTRE PLATAFORMAS
 # ========================================================
+
+def sincronizar_stock_todas_las_plataformas(sku: str, nuevo_stock: int):
+    """
+    Punto central de sincronización de stock. Recibe un SKU y el stock actualizado
+    y lo propaga a todas las plataformas integradas (actualmente WooCommerce).
+    Llamar cada vez que haya un movimiento de inventario desde MeLi o cualquier otra fuente.
+    """
+    print(f"\n🔄 [STOCK SYNC] Propagando stock SKU '{sku}' → {nuevo_stock} uds a todas las plataformas...")
+    resultados = []
+
+    try:
+        resultado_wc = actualizar_stock_woocommerce(sku, nuevo_stock)
+        resultados.append(f"WooCommerce: {resultado_wc}")
+        print(f"   └──> {resultado_wc}")
+    except Exception as e:
+        msg = f"⚠️ Error propagando stock a WooCommerce (SKU: {sku}): {e}"
+        resultados.append(msg)
+        print(msg)
+
+    return "\n".join(resultados)
+
 
 def sincronizar_facturas_recientes(dias: int = 1):
     """Busca facturas en Siigo de los últimos 'dias' y las sube a Mercado Libre."""

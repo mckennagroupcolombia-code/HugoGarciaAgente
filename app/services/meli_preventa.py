@@ -30,6 +30,10 @@ def _guardar_pendientes(lista):
 
 def guardar_pregunta_pendiente(question_id: str, titulo_producto: str, pregunta: str):
     pendientes = _leer_pendientes()
+    # Evitar duplicados: si ya existe (pendiente o respondida), no re-notificar
+    if any(str(p.get('question_id')) == str(question_id) for p in pendientes):
+        print(f"⚠️ Preventa: question_id {question_id} ya registrado, omitiendo duplicado")
+        return
     pendientes.append({
         'question_id': str(question_id),
         'titulo_producto': titulo_producto,
@@ -41,11 +45,11 @@ def guardar_pregunta_pendiente(question_id: str, titulo_producto: str, pregunta:
 
 
 def obtener_pregunta_pendiente(question_id: str):
-    """Busca y elimina una pregunta pendiente. Retorna el dict o None."""
+    """Busca una pregunta pendiente y la marca como respondida. Retorna el dict o None."""
     pendientes = _leer_pendientes()
-    for i, p in enumerate(pendientes):
+    for p in pendientes:
         if str(p.get('question_id')) == str(question_id):
-            pendientes.pop(i)
+            p['respondida'] = True
             _guardar_pendientes(pendientes)
             return p
     return None
@@ -118,14 +122,15 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
 
         try:
             from app.utils import enviar_whatsapp_reporte
+            sufijo = str(question_id)[-3:]
             enviar_whatsapp_reporte(
                 f"❓ CONSULTA PREVENTA PENDIENTE\n"
                 f"📦 Producto: {titulo_producto}\n"
                 f"🗣 Cliente preguntó: {pregunta_cliente}\n\n"
-                f"✍️ Para responder escribe EXACTAMENTE así (sin llaves):\n"
-                f"resp preventa {question_id}: tu respuesta va aquí\n\n"
+                f"✍️ Para responder escribe:\n"
+                f"resp {sufijo}: tu respuesta\n\n"
                 f"Ejemplo:\n"
-                f"resp preventa {question_id}: Se aplica 5ml por litro de agua",
+                f"resp {sufijo}: Se aplica 5ml por litro de agua",
                 numero_destino=GRUPO
             )
         except Exception as e:

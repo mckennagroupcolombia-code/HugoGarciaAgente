@@ -13,6 +13,7 @@ from app.sync import (
 from app.services.google_services import leer_datos_hoja
 from app.services.meli import aprender_de_interacciones_meli
 from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
+from app.services.woocommerce import obtener_todos_los_productos_woocommerce, sincronizar_catalogo_woocommerce
 
 # --- Importación del Cerebro de la IA ---
 # El núcleo que procesa el lenguaje natural.
@@ -36,6 +37,7 @@ def mostrar_menu():
     print("9. 📅 [FECHA] Sincronizar Facturas por Día Específico")
     print("10. 🔄 [GMAIL] Sincronizar Facturas de Compra SIIGO (uno a uno)")
     print("11. 🚪 [EXIT] Salir del Centro de Mando")
+    print("12. 🛒 [WC] Sync manual WooCommerce")
     print("═"*45)
 
 def iniciar_cli():
@@ -53,7 +55,7 @@ def iniciar_cli():
 
     while True:
         mostrar_menu()
-        opcion = input("Seleccione una opción (1-10): ")
+        opcion = input("Seleccione una opción (1-12): ")
 
         if opcion == "1":
             print("\n--- 💬 MODO CHAT ACTIVADO (Escribe 'salir' o 'menu' para volver) ---")
@@ -101,6 +103,22 @@ def iniciar_cli():
         elif opcion == "11":
             print("👋 Apagando el Centro de Mando...")
             break
+        elif opcion == "12":
+            print("\n🛒 [WC] Consultando catálogo de WooCommerce...")
+            productos_wc = obtener_todos_los_productos_woocommerce()
+            if not productos_wc:
+                print("⚠️ No se encontraron productos en WooCommerce o hubo un error de conexión.")
+            else:
+                print(f"\n📦 {len(productos_wc)} producto(s) encontrados en WooCommerce:\n")
+                for p in productos_wc:
+                    print(f"  [{p.get('sku', 'sin SKU')}] {p.get('nombre', '')} — Stock: {p.get('stock', 0)}")
+                confirmar = input(f"\n¿Desea sincronizar masivamente el stock de los {len(productos_wc)} productos? (s/n): ").strip().lower()
+                if confirmar == 's':
+                    # Preparar lista con el stock actual para re-confirmar en WooCommerce
+                    payload = [{"sku": p["sku"], "stock": p["stock"]} for p in productos_wc if p.get("sku")]
+                    print(sincronizar_catalogo_woocommerce(payload))
+                else:
+                    print("↩️ Sincronización cancelada.")
         else:
             print("❌ Opción no válida. Por favor, intente de nuevo.")
 

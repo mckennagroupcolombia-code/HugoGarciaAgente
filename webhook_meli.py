@@ -41,6 +41,7 @@ def responder_en_mercado_libre(question_id, texto):
         return 500
 
 from preventa_meli import procesar_nueva_pregunta
+from app.sync import sincronizar_stock_todas_las_plataformas
 
 # Memoria para deduplicación de preguntas
 preguntas_procesadas = {}
@@ -53,32 +54,103 @@ def limpiar_preguntas_antiguas():
     for q_id in para_borrar:
         del preguntas_procesadas[q_id]
 
+def _procesar_orden_meli(order_id: str):
+    """
+    Obtiene los detalles de una orden de MeLi y descuenta el stock en WooCommerce
+    por cada ítem vendido.
+    """
+    print(f"📦 [MELI-ORDER] Procesando orden {order_id} para sync de stock...")
+    try:
+        token = refrescar_token_meli()
+        if not token:
+            print(f"❌ [MELI-ORDER] No se pudo obtener token para orden {order_id}")
+            return
+
+        res = requests.get(
+            f"https://api.mercadolibre.com/orders/{order_id}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=15
+        )
+        if res.status_code != 200:
+            print(f"⚠️ [MELI-ORDER] Error obteniendo orden {order_id}: {res.status_code}")
+            return
+
+        orden = res.json()
+        if orden.get('status') not in ['paid', 'partially_paid']:
+            print(f"⏭️ [MELI-ORDER] Orden {order_id} con estado '{orden.get('status')}' — ignorada.")
+            return
+
+        for item in orden.get('order_items', []):
+            item_info = item.get('item', {})
+            item_id = item_info.get('id', '')
+            cantidad_vendida = item.get('quantity', 0)
+
+            # Obtener SKU del ítem via API de items
+            try:
+                res_item = requests.get(
+                    f"https://api.mercadolibre.com/items/{item_id}",
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10
+                )
+                sku = res_item.json().get('seller_custom_field', '') if res_item.status_code == 200 else ''
+            except Exception:
+                sku = ''
+
+            if not sku:
+                print(f"⚠️ [MELI-ORDER] Ítem {item_id} sin SKU — no se puede sincronizar stock.")
+                continue
+
+            # Calcular nuevo stock: stock WooCommerce actual menos lo vendido
+            from app.services.woocommerce import obtener_stock_woocommerce
+            stock_actual = obtener_stock_woocommerce(sku)
+            nuevo_stock = max(0, stock_actual - cantidad_vendida)
+
+            resultado = sincronizar_stock_todas_las_plataformas(sku, nuevo_stock)
+            print(f"   └──> SKU {sku} | -{cantidad_vendida} uds | Stock WC: {nuevo_stock} | {resultado}")
+
+    except Exception as e:
+        print(f"❌ [MELI-ORDER] Error procesando orden {order_id}: {e}")
+
+
 @app.route('/notifications', methods=['POST'])
 def notifications():
     """Recibe la notificación y responde 'OK' de inmediato a MeLi."""
     data = request.get_json()
-    
-    if data and data.get('topic') == 'questions':
+
+    topic = data.get('topic') if data else None
+
+    if topic == 'questions':
         resource = data.get('resource')
         if resource:
             question_id = resource.split('/')[-1]
-            
+
             # Limpiar memoria antigua
             limpiar_preguntas_antiguas()
-            
+
             # Verificar deduplicación
             if question_id in preguntas_procesadas:
                 print(f"Pregunta {question_id} ya procesada. Omitiendo duplicado.")
             else:
                 preguntas_procesadas[question_id] = time.time()
-                # Lanzamos el proceso en un hilo para no hacer esperar a MeLi
                 hilo = threading.Thread(target=procesar_nueva_pregunta, args=(question_id,))
                 hilo.start()
                 try:
                     incrementar_metrica('preguntas_meli')
                 except Exception:
                     pass
-        
+
+    elif topic == 'orders_v2':
+        resource = data.get('resource', '')
+        if resource:
+            order_id = resource.split('/')[-1]
+            print(f"🛒 [MELI] Nueva notificación de orden: {order_id}")
+            hilo = threading.Thread(target=_procesar_orden_meli, args=(order_id,))
+            hilo.start()
+            try:
+                incrementar_metrica('ordenes_meli')
+            except Exception:
+                pass
+
     # Respondemos 200 OK inmediatamente
     return jsonify({"status": "ok"}), 200
 
