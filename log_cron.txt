@@ -96,3 +96,17 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
 To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
    3cb7f2e..97c9965  master -> main
 [2026-03-30 23:00:03] Push exitoso: 'Auto-commit: actualizacion diaria 2026-03-30 23:00'
+[master ccd6360] Auto-commit: actualizacion diaria 2026-03-31 23:00
+ 19 files changed, 3453 insertions(+), 30 deletions(-)
+ create mode 100644 Catalogo_McKenna_Group_2026.pdf
+ create mode 100644 Lista_Precios_McKenna_2026-03-31.pdf
+ create mode 100644 actualizar_precios_woocommerce.py
+ create mode 100644 app/services/woocommerce.py
+ create mode 100644 asignar_skus_tildes.py
+ create mode 100644 asignar_skus_woocommerce.py
+ create mode 100644 cross_reference_full.py
+ create mode 100644 enviar_catalogo_productos.py
+ create mode 100644 enviar_reporte_skus.py
+To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
+   0df1599..ccd6360  master -> main
+[2026-03-31 23:00:03] Push exitoso: 'Auto-commit: actualizacion diaria 2026-03-31 23:00'

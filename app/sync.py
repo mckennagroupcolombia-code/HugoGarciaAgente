@@ -29,8 +29,8 @@ SPREADSHEET_ID = os.getenv("SPREADSHEET_ID", '1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDj
 def sincronizar_stock_todas_las_plataformas(sku: str, nuevo_stock: int):
     """
     Punto central de sincronización de stock. Recibe un SKU y el stock actualizado
-    y lo propaga a todas las plataformas integradas (actualmente WooCommerce).
-    Llamar cada vez que haya un movimiento de inventario desde MeLi o cualquier otra fuente.
+    y lo propaga a WooCommerce y MercadoLibre.
+    Llamar cada vez que haya un movimiento de inventario.
     """
     print(f"\n🔄 [STOCK SYNC] Propagando stock SKU '{sku}' → {nuevo_stock} uds a todas las plataformas...")
     resultados = []
@@ -38,9 +38,19 @@ def sincronizar_stock_todas_las_plataformas(sku: str, nuevo_stock: int):
     try:
         resultado_wc = actualizar_stock_woocommerce(sku, nuevo_stock)
         resultados.append(f"WooCommerce: {resultado_wc}")
-        print(f"   └──> {resultado_wc}")
+        print(f"   └──> WC: {resultado_wc}")
     except Exception as e:
         msg = f"⚠️ Error propagando stock a WooCommerce (SKU: {sku}): {e}"
+        resultados.append(msg)
+        print(msg)
+
+    try:
+        from app.services.meli import actualizar_stock_meli
+        resultado_meli = actualizar_stock_meli(sku, nuevo_stock)
+        resultados.append(f"MeLi: {resultado_meli}")
+        print(f"   └──> MeLi: {resultado_meli}")
+    except Exception as e:
+        msg = f"⚠️ Error propagando stock a MeLi (SKU: {sku}): {e}"
         resultados.append(msg)
         print(msg)
 

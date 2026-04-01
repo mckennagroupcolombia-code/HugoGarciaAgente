@@ -148,6 +148,18 @@ borradores_aprobacion = {}
 
 pagos_pendientes_confirmacion = {}
 
+def _sufijo_pago(numero: str) -> str:
+    """Últimos 3 dígitos del número, para comando corto 'ok 463'."""
+    digits = re.sub(r'\D', '', numero)
+    return digits[-3:] if len(digits) >= 3 else digits
+
+def _buscar_pago_por_sufijo(sufijo: str) -> str:
+    """Retorna el número completo cuyo sufijo coincida y esté sin confirmar."""
+    for num, datos in pagos_pendientes_confirmacion.items():
+        if _sufijo_pago(num) == sufijo and not datos.get("confirmado"):
+            return num
+    return None
+
 def procesar_confirmacion_pago_async(numero_cliente):
     # Aquí podríamos añadir lógica extra asíncrona si se requiere
     # por ahora solo enviamos el mensaje sin bloquear la respuesta de flask
@@ -200,6 +212,33 @@ def register_routes(app):
             modos = cargar_modos_atencion()
             msg_lower = message_text.lower()
             
+            # Rechazo corto: "no 463"
+            if re.match(r'^no\s+\d{3}$', msg_lower):
+                sufijo = msg_lower.split()[1]
+                target_num = _buscar_pago_por_sufijo(sufijo)
+                if target_num:
+                    pagos_pendientes_confirmacion.pop(target_num, None)
+                    borradores_aprobacion.pop(target_num, None)
+                    threading.Thread(target=enviar_whatsapp_reporte, args=(
+                        "Hola, ha habido un problema con la validación de tu pago. Por favor rectifica y revisa por qué la transacción no ha sido recibida.",
+                        target_num
+                    )).start()
+                    threading.Thread(target=enviar_whatsapp_reporte, args=(f"❌ Pago rechazado para ...{sufijo}", grupo_contabilidad)).start()
+                else:
+                    threading.Thread(target=enviar_whatsapp_reporte, args=(f"⚠️ No encontré pago pendiente con código {sufijo}.", grupo_contabilidad)).start()
+                return jsonify({"status": "ok", "respuesta": None})
+
+            # Formato corto: "ok 463" (últimos 3 dígitos del número)
+            if re.match(r'^ok\s+\d{3}$', msg_lower):
+                sufijo = msg_lower.split()[1]
+                target_num = _buscar_pago_por_sufijo(sufijo)
+                if target_num:
+                    threading.Thread(target=procesar_confirmacion_pago_async, args=(target_num,)).start()
+                    threading.Thread(target=enviar_whatsapp_reporte, args=(f"✅ Pago confirmado al cliente ...{sufijo}", grupo_contabilidad)).start()
+                else:
+                    threading.Thread(target=enviar_whatsapp_reporte, args=(f"⚠️ No encontré pago pendiente con código {sufijo}.", grupo_contabilidad)).start()
+                return jsonify({"status": "ok", "respuesta": None})
+
             if msg_lower.startswith("ok confirmado"):
                 partes = message_text.split(" ", 2)
                 if len(partes) >= 3 and partes[2].strip():
@@ -212,7 +251,7 @@ def register_routes(app):
                         target_num = pendientes[0]
                     else:
                         cantidad = len(pendientes)
-                        msg_error = f"⚠️ Hay {cantidad} pagos pendientes. Especifica el número: 'ok confirmado {{numero}}'" if cantidad > 1 else "⚠️ No hay pagos pendientes por confirmar."
+                        msg_error = f"⚠️ Hay {cantidad} pagos pendientes. Usa: ok <últimos 3 dígitos>" if cantidad > 1 else "⚠️ No hay pagos pendientes por confirmar."
                         threading.Thread(target=enviar_whatsapp_reporte, args=(msg_error, grupo_contabilidad)).start()
                         return jsonify({"status": "ok", "respuesta": None})
                 threading.Thread(target=procesar_confirmacion_pago_async, args=(target_num,)).start()
@@ -304,19 +343,26 @@ def register_routes(app):
         
         if (has_media and media_type == 'image'):
             borradores_aprobacion[sender_id] = {"estado": "esperando_validacion_pago", "ruta_imagen": media_path}
-            
+
+            codigo = _sufijo_pago(sender_id)
+            num_corto = sender_id.replace("@c.us", "")[-7:]  # últimos 7 dígitos para mostrar
             mensaje_aprobacion = (
-                f"🔔 ALERTA PAGO - Cliente: {sender_id} envió un comprobante.\n"
-                f"Ruta imagen: {media_path}\n"
-                f"Por favor confirmar con: 'ok confirmado {sender_id}'"
+                f"🔔 *ALERTA DE PAGO*\n"
+                f"Cliente *...{num_corto}* envió un comprobante de pago.\n\n"
+                f"✅ *Para CONFIRMAR:*\n"
+                f"   Escribe: *ok {codigo}*\n\n"
+                f"❌ *Para RECHAZAR:*\n"
+                f"   Escribe: *no {codigo}*\n\n"
+                f"📎 Comprobante: {media_path}"
             )
-            
+
             pagos_pendientes_confirmacion[sender_id] = {
                 "timestamp": time.time(),
                 "mensaje": mensaje_aprobacion,
-                "confirmado": False
+                "confirmado": False,
+                "codigo": codigo,
             }
-            
+
             threading.Thread(target=enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_contabilidad)).start()
             
             return jsonify({
@@ -447,8 +493,8 @@ def register_routes(app):
     def _procesar_webhook_woocommerce(payload: dict):
         """
         Procesa en hilo secundario un webhook de WooCommerce.
-        Para order.created: descuenta stock en todas las plataformas y dispara
-        la facturación en Siigo.
+        Para order.created/updated: WooCommerce ya decrementó su propio stock.
+        Leemos el stock post-venta de WC y lo propagamos a MeLi.
         """
         try:
             line_items = payload.get('line_items', [])
@@ -459,6 +505,9 @@ def register_routes(app):
             order_id = payload.get('id', 'desconocido')
             print(f"🛒 [WC-WEBHOOK] Procesando orden WooCommerce #{order_id} ({len(line_items)} ítem(s))...")
 
+            from app.services.woocommerce import obtener_stock_woocommerce
+            from app.services.meli import actualizar_stock_meli
+
             for item in line_items:
                 sku = item.get('sku', '').strip()
                 cantidad = int(item.get('quantity', 0))
@@ -467,16 +516,11 @@ def register_routes(app):
                     print(f"⚠️ [WC-WEBHOOK] Ítem sin SKU o cantidad inválida: {item.get('name')}")
                     continue
 
-                from app.services.woocommerce import obtener_stock_woocommerce
-                stock_actual = obtener_stock_woocommerce(sku)
-                nuevo_stock = max(0, stock_actual - cantidad)
-
-                resultado = sincronizar_stock_todas_las_plataformas(sku, nuevo_stock)
-                print(f"   └──> SKU {sku} | -{cantidad} uds | Stock WC: {nuevo_stock} | {resultado}")
-
-            # Disparar facturación en Siigo para el día de hoy
-            print(f"📄 [WC-WEBHOOK] Iniciando sync de facturas Siigo para orden #{order_id}...")
-            sincronizar_facturas_recientes(dias=1)
+                # WC ya decrementó su stock al procesar la orden.
+                # Usamos ese valor post-venta como fuente de verdad para sincronizar MeLi.
+                stock_post_venta = obtener_stock_woocommerce(sku)
+                resultado_meli = actualizar_stock_meli(sku, stock_post_venta)
+                print(f"   └──> SKU {sku} | -{cantidad} uds en WC | Stock post-venta: {stock_post_venta} | MeLi: {resultado_meli}")
 
         except Exception as e:
             print(f"❌ [WC-WEBHOOK] Error procesando webhook de WooCommerce: {e}")
