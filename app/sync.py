@@ -19,7 +19,7 @@ from app.tools.system_tools import enviar_reporte_controlado
 #  CONFIGURACIÓN TEMPORAL
 # ========================================================
 # TODO: Mover estas constantes a un archivo de configuración central (p.ej. .env)
-GOOGLE_CREDS_PATH = os.path.join("/home/mckg/mi-agente", "mi-agente-ubuntu-8a79d0d674c3.json")
+GOOGLE_CREDS_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH", "/home/mckg/mi-agente/mi-agente-ubuntu-9043f67d9755.json")
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID", '1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDjJApl3NbHMg')
 
 # ========================================================
