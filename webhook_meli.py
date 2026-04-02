@@ -123,6 +123,86 @@ def _procesar_orden_meli(order_id: str):
         print(f"❌ [MELI-ORDER] Error procesando orden {order_id}: {e}")
 
 
+def _procesar_mensaje_posventa(resource: str):
+    """
+    Recibe notificación de mensaje postventa de MeLi.
+    Si el mensaje es del comprador (no nuestro), alerta al grupo de WhatsApp.
+    """
+    GRUPO = os.getenv('GRUPO_CONTABILIDAD_WA', '120363407538342427@g.us')
+    SELLER_ID = 432439187
+    try:
+        token = refrescar_token_meli()
+        if not token:
+            return
+
+        # Extraer pack_id del resource: "/messages/packs/{pack_id}/sellers/{seller_id}"
+        partes = resource.strip('/').split('/')
+        pack_id = None
+        for i, p in enumerate(partes):
+            if p == 'packs' and i + 1 < len(partes):
+                pack_id = partes[i + 1]
+                break
+
+        if not pack_id:
+            print(f"⚠️ [POSVENTA] No se pudo extraer pack_id de: {resource}")
+            return
+
+        headers = {'Authorization': f'Bearer {token}'}
+        res = requests.get(
+            f'https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{SELLER_ID}?tag=post_sale',
+            headers=headers, timeout=10
+        )
+        if res.status_code != 200:
+            print(f"⚠️ [POSVENTA] Error obteniendo mensajes del pack {pack_id}: {res.status_code}")
+            return
+
+        mensajes = res.json().get('messages', [])
+        # Filtrar mensajes del comprador (no nuestros) que sean recientes (últimos 5 min)
+        ahora = time.time()
+        for msg in mensajes:
+            from_id = msg.get('from', {}).get('user_id')
+            if str(from_id) == str(SELLER_ID):
+                continue  # Es nuestro mensaje, ignorar
+
+            # Verificar que sea reciente
+            fecha_str = msg.get('message_date', {}).get('received', '')
+            if fecha_str:
+                try:
+                    from datetime import datetime, timezone
+                    fecha_msg = datetime.fromisoformat(fecha_str.replace('Z', '+00:00'))
+                    edad_seg = (datetime.now(timezone.utc) - fecha_msg).total_seconds()
+                    if edad_seg > 300:  # Más de 5 minutos → ya fue procesado antes
+                        continue
+                except Exception:
+                    pass
+
+            texto = msg.get('text', '').strip()
+            if not texto:
+                continue
+
+            # Obtener nombre del comprador
+            nombre_comprador = msg.get('from', {}).get('name', f'ID {from_id}')
+
+            print(f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}")
+            enviar_whatsapp_reporte(
+                f"💬 *MENSAJE POSTVENTA MELI*\n"
+                f"📦 Pack: `{pack_id}`\n"
+                f"👤 Comprador: {nombre_comprador}\n"
+                f"🗣 Mensaje: {texto}\n\n"
+                f"Para responder escribe:\n"
+                f"`hugo dale ok {pack_id}`\n"
+                f"O responde directo en MeLi.",
+                numero_destino=GRUPO
+            )
+            try:
+                incrementar_metrica('mensajes_posventa')
+            except Exception:
+                pass
+
+    except Exception as e:
+        print(f"❌ [POSVENTA] Error procesando mensaje: {e}")
+
+
 @app.route('/notifications', methods=['POST'])
 def notifications():
     """Recibe la notificación y responde 'OK' de inmediato a MeLi."""
@@ -161,6 +241,13 @@ def notifications():
                 incrementar_metrica('ordenes_meli')
             except Exception:
                 pass
+
+    elif topic == 'messages':
+        resource = data.get('resource', '')
+        if resource:
+            # resource puede ser "/messages/packs/{pack_id}" o similar
+            hilo = threading.Thread(target=_procesar_mensaje_posventa, args=(resource,), daemon=True)
+            hilo.start()
 
     # Respondemos 200 OK inmediatamente
     return jsonify({"status": "ok"}), 200
@@ -396,7 +483,7 @@ def _monitor_preguntas_sin_responder():
 
     PENDIENTES_PATH = 'app/data/preguntas_pendientes_preventa.json'
     GRUPO = os.getenv('GRUPO_CONTABILIDAD_WA', '120363407538342427@g.us')
-    INTERVALO = 600  # 10 minutos
+    INTERVALO = 1800  # 30 minutos
 
     while True:
         time.sleep(INTERVALO)
@@ -414,8 +501,6 @@ def _monitor_preguntas_sin_responder():
                 continue
 
             preguntas_meli = res.json().get('questions', [])
-            if not preguntas_meli:
-                continue
 
             # Leer cola local
             try:
@@ -425,14 +510,27 @@ def _monitor_preguntas_sin_responder():
             except Exception:
                 pendientes = []
 
+            ids_unanswered_meli = {str(q['id']) for q in preguntas_meli}
             ids_conocidos = {str(p['question_id']) for p in pendientes}
-            ids_pendientes_sin_resp = {
-                str(p['question_id']) for p in pendientes
-                if not p.get('respondida')
-            }
-
+            modificado = False
             ahora = datetime.now()
 
+            # Auto-marcar como respondidas las que ya no están en UNANSWERED de MeLi
+            for p in pendientes:
+                if not p.get('respondida') and str(p['question_id']) not in ids_unanswered_meli:
+                    p['respondida'] = True
+                    p['nota'] = f'Auto-marcada respondida por monitor {ahora.date()}'
+                    modificado = True
+                    print(f"✅ [MONITOR] Auto-marcada respondida: {p['question_id']}")
+
+            if modificado:
+                try:
+                    with open(PENDIENTES_PATH, 'w', encoding='utf-8') as f:
+                        json.dump({'preguntas': pendientes}, f, indent=2, ensure_ascii=False)
+                except Exception:
+                    pass
+
+            # Procesar nuevas y enviar recordatorios solo de las realmente pendientes en MeLi
             for q in preguntas_meli:
                 qid = str(q['id'])
 
@@ -441,14 +539,13 @@ def _monitor_preguntas_sin_responder():
                     print(f"🔍 [MONITOR] Nueva pregunta detectada: {qid}")
                     hilo = threading.Thread(target=procesar_nueva_pregunta, args=(qid,), daemon=True)
                     hilo.start()
-
-                elif qid in ids_pendientes_sin_resp:
-                    # Ya en cola pero sin responder — verificar antigüedad
-                    p = next((x for x in pendientes if str(x['question_id']) == qid), None)
+                else:
+                    # Ya en cola y confirmada UNANSWERED en MeLi → recordatorio si lleva > 30 min
+                    p = next((x for x in pendientes if str(x['question_id']) == qid and not x.get('respondida')), None)
                     if p:
                         ts = datetime.fromisoformat(p['timestamp'])
                         minutos = (ahora - ts).total_seconds() / 60
-                        if minutos >= 10:
+                        if minutos >= 30:
                             sufijo = qid[-3:]
                             enviar_whatsapp_reporte(
                                 f"⏰ *RECORDATORIO PREVENTA PENDIENTE*\n"
@@ -458,7 +555,7 @@ def _monitor_preguntas_sin_responder():
                                 f"✍️ Escribe: resp {sufijo}: tu respuesta",
                                 numero_destino=GRUPO
                             )
-                            # Actualizar timestamp para no re-notificar hasta 10 min después
+                            # Actualizar timestamp para no re-notificar hasta 30 min después
                             p['timestamp'] = ahora.isoformat()
                             try:
                                 with open(PENDIENTES_PATH, 'w', encoding='utf-8') as f:
