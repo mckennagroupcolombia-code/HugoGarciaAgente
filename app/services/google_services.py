@@ -5,10 +5,8 @@ import gspread
 
 # TODO: La ruta a las credenciales debería venir de una configuración central
 # en lugar de ser importada directamente desde otro módulo.
-from app.sync import GOOGLE_CREDS_PATH
-
 SPREADSHEET_ID = os.getenv("SPREADSHEET_ID") or "1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDjJApl3NbHMg"
-CREDS_PATH = "/home/mckg/mi-agente/mi-agente-ubuntu-8a79d0d674c3.json"
+CREDS_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH", "/home/mckg/mi-agente/mi-agente-ubuntu-9043f67d9755.json")
 
 
 def _normalizar(s: str) -> str:
@@ -40,7 +38,7 @@ def leer_datos_hoja(producto_buscar: str):
         SPREADSHEET_ID = os.getenv("SPREADSHEET_ID") or "1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDjJApl3NbHMg"
         
         # Ruta de credenciales fija
-        CREDS_PATH = "/home/mckg/mi-agente/mi-agente-ubuntu-8a79d0d674c3.json"
+        CREDS_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH", "/home/mckg/mi-agente/mi-agente-ubuntu-9043f67d9755.json")
         if not os.path.exists(CREDS_PATH):
             return f"❌ Error Crítico: El archivo de credenciales de Google no se encuentra en la ruta esperada: {CREDS_PATH}."
 
@@ -120,7 +118,7 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
     print(f"🔍 [G-SHEETS] Buscando ficha técnica para: '{nombre_producto}'...")
     try:
         SPREADSHEET_ID = os.getenv("SPREADSHEET_ID") or "1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDjJApl3NbHMg"
-        CREDS_PATH = "/home/mckg/mi-agente/mi-agente-ubuntu-8a79d0d674c3.json"
+        CREDS_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH", "/home/mckg/mi-agente/mi-agente-ubuntu-9043f67d9755.json")
         if not os.path.exists(CREDS_PATH):
             print(f"❌ [G-SHEETS] Credenciales no encontradas en {CREDS_PATH}")
             return None

@@ -26,7 +26,7 @@ FONT_DIR   = "/usr/share/fonts/truetype/montserrat/"
 LOGO_PATH  = "/home/mckg/mi-agente/DISENO CORPORATIVO /LOGO MCKENNA.jpg"
 ISO_PATH   = "/home/mckg/mi-agente/DISENO CORPORATIVO /ISOTIPO MCKENNA.png"
 OUT_PDF    = "/home/mckg/mi-agente/Catalogo_McKenna_Group_2026.pdf"
-CREDS_PATH = "/home/mckg/mi-agente/mi-agente-ubuntu-8a79d0d674c3.json"
+CREDS_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH", "/home/mckg/mi-agente/mi-agente-ubuntu-9043f67d9755.json")
 SHEET_ID   = "1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDjJApl3NbHMg"
 
 # ── Colores ────────────────────────────────────────────────────────────────────
