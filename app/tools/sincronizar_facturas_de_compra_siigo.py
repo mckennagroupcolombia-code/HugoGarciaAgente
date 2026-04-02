@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import threading
 import requests
 from datetime import datetime, timedelta
 from google.oauth2.credentials import Credentials
@@ -400,11 +401,35 @@ def sincronizar_facturas_de_compra_siigo():
             )
             
             enviar_mensaje_whatsapp_grupo(borrador)
-            
-            # Interacción interactiva uno a uno
-            respuesta = input(f"🤖 Esperando respuesta del grupo para la factura {datos_factura['prefix']}{datos_factura['number']} (Escribe 'OK' para aprobar, 'NO' para saltar): ").strip().upper()
-            
-            if respuesta == "OK":
+
+            # Esperar aprobación vía WhatsApp (del grupo) o consola (si se corre manual)
+            from app import shared_state
+            factura_key = f"{datos_factura['prefix']}{datos_factura['number']}"
+            evento = threading.Event()
+            shared_state.eventos_aprobacion_facturas[factura_key] = {
+                "event": evento,
+                "aprobado": False,
+            }
+            print(f"⏳ Esperando aprobación del grupo de WhatsApp para la factura {factura_key} (máx. 10 min)...")
+            print(f"   (También puedes escribir 'OK' aquí en consola para aprobar)")
+
+            # Hilo auxiliar que también escucha la consola (para compatibilidad manual)
+            def _escuchar_consola():
+                try:
+                    resp = input("").strip().upper()
+                    if resp == "OK":
+                        shared_state.eventos_aprobacion_facturas[factura_key]["aprobado"] = True
+                        evento.set()
+                except Exception:
+                    pass
+            t_consola = threading.Thread(target=_escuchar_consola, daemon=True)
+            t_consola.start()
+
+            evento.wait(timeout=600)  # 10 minutos máximo
+            entrada = shared_state.eventos_aprobacion_facturas.pop(factura_key, {})
+            aprobacion_final = entrada.get("aprobado", False)
+
+            if aprobacion_final:
                 print("⏳ Creando factura en SIIGO...")
                 
                 # Preparar payload para Siigo
@@ -445,7 +470,7 @@ def sincronizar_facturas_de_compra_siigo():
                 else:
                     print(f"❌ Error al crear factura en SIIGO: {resultado.get('message', str(resultado))}")
             else:
-                print("⏭️ Factura omitida.")
+                print(f"⏭️ Factura {factura_key} omitida (sin aprobación o tiempo expirado).")
                 
         # (Opcional) Mover la etiqueta en Gmail para no volver a leer este correo.
         # Esto previene que se vuelva a procesar en la próxima ejecución.

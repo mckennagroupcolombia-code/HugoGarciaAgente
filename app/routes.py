@@ -258,6 +258,26 @@ def register_routes(app):
                 threading.Thread(target=enviar_whatsapp_reporte, args=(f"✅ Confirmación enviada al cliente {target_num}", grupo_contabilidad)).start()
                 return jsonify({"status": "ok", "respuesta": None})
                 
+            # "OK" o "ok" a solas → aprueba factura de compra pendiente (si la hay)
+            elif msg_lower.strip() == 'ok':
+                from app import shared_state
+                if shared_state.eventos_aprobacion_facturas:
+                    factura_key = next(iter(shared_state.eventos_aprobacion_facturas))
+                    entrada = shared_state.eventos_aprobacion_facturas.get(factura_key)
+                    if entrada:
+                        entrada["aprobado"] = True
+                        entrada["event"].set()
+                        threading.Thread(target=enviar_whatsapp_reporte, args=(
+                            f"✅ Factura *{factura_key}* aprobada. Creando en SIIGO...",
+                            grupo_contabilidad
+                        )).start()
+                else:
+                    threading.Thread(target=enviar_whatsapp_reporte, args=(
+                        "⚠️ No hay facturas pendientes de aprobación en este momento.",
+                        grupo_contabilidad
+                    )).start()
+                return jsonify({"status": "ok", "respuesta": None})
+
             elif msg_lower.startswith("pausar "):
                 target_num = message_text.split(" ", 1)[1].strip()
                 if target_num not in modos["numeros_en_humano"]:
