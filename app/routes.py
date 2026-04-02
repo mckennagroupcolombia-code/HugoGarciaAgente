@@ -107,18 +107,19 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
 
         # Guardar como caso de entrenamiento
         guardar_caso_preventa(
-            producto=pendiente.get('producto', ''),
+            producto=pendiente.get('titulo_producto', ''),
             pregunta=pendiente.get('pregunta', ''),
             respuesta=respuesta_humana
         )
 
         # Confirmar al grupo
         grupo = os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
-        estado = "✅ enviada" if exito else "❌ error al enviar"
+        emoji = "✅" if exito else "❌"
         enviar_whatsapp_reporte(
-            f"{'✅' if exito else '❌'} Respuesta preventa {estado} al cliente\n"
-            f"Producto: {pendiente.get('producto', '')}\n"
-            f"Respuesta guardada como caso de entrenamiento.",
+            f"{emoji} *Respuesta preventa {'enviada' if exito else 'FALLÓ'} al cliente*\n"
+            f"📦 Producto: {pendiente.get('titulo_producto', '')}\n"
+            f"💬 Respuesta: {respuesta_humana[:120]}{'...' if len(respuesta_humana) > 120 else ''}\n"
+            f"📚 Guardada como caso de entrenamiento.",
             numero_destino=grupo
         )
         print(f"✅ Preventa: respuesta humana procesada para question_id {question_id}")

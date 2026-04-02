@@ -383,6 +383,97 @@ def agregar_caso():
 from app.monitor import iniciar_monitor, incrementar_metrica
 iniciar_monitor()
 
+
+# ── MONITOR DE PREGUNTAS SIN RESPONDER ────────────────────────────────────────
+def _monitor_preguntas_sin_responder():
+    """
+    Cada 10 minutos consulta MeLi por preguntas sin responder.
+    - Si encuentra una nueva → la procesa por el flujo de preventa.
+    - Si ya está en cola (pendiente) desde hace más de 10 min → re-notifica al grupo.
+    """
+    import json
+    from datetime import datetime, timedelta
+
+    PENDIENTES_PATH = 'app/data/preguntas_pendientes_preventa.json'
+    GRUPO = os.getenv('GRUPO_CONTABILIDAD_WA', '120363407538342427@g.us')
+    INTERVALO = 600  # 10 minutos
+
+    while True:
+        time.sleep(INTERVALO)
+        try:
+            token = refrescar_token_meli()
+            if not token:
+                continue
+
+            res = requests.get(
+                'https://api.mercadolibre.com/my/received_questions/search?status=UNANSWERED&limit=20',
+                headers={'Authorization': f'Bearer {token}'},
+                timeout=15
+            )
+            if res.status_code != 200:
+                continue
+
+            preguntas_meli = res.json().get('questions', [])
+            if not preguntas_meli:
+                continue
+
+            # Leer cola local
+            try:
+                with open(PENDIENTES_PATH, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                pendientes = data.get('preguntas', [])
+            except Exception:
+                pendientes = []
+
+            ids_conocidos = {str(p['question_id']) for p in pendientes}
+            ids_pendientes_sin_resp = {
+                str(p['question_id']) for p in pendientes
+                if not p.get('respondida')
+            }
+
+            ahora = datetime.now()
+
+            for q in preguntas_meli:
+                qid = str(q['id'])
+
+                if qid not in ids_conocidos:
+                    # Nueva — procesar por flujo preventa
+                    print(f"🔍 [MONITOR] Nueva pregunta detectada: {qid}")
+                    hilo = threading.Thread(target=procesar_nueva_pregunta, args=(qid,), daemon=True)
+                    hilo.start()
+
+                elif qid in ids_pendientes_sin_resp:
+                    # Ya en cola pero sin responder — verificar antigüedad
+                    p = next((x for x in pendientes if str(x['question_id']) == qid), None)
+                    if p:
+                        ts = datetime.fromisoformat(p['timestamp'])
+                        minutos = (ahora - ts).total_seconds() / 60
+                        if minutos >= 10:
+                            sufijo = qid[-3:]
+                            enviar_whatsapp_reporte(
+                                f"⏰ *RECORDATORIO PREVENTA PENDIENTE*\n"
+                                f"📦 Producto: {p.get('titulo_producto', '')}\n"
+                                f"🗣 Cliente: {p.get('pregunta', '')}\n"
+                                f"⌛ Sin responder hace {int(minutos)} min\n\n"
+                                f"✍️ Escribe: resp {sufijo}: tu respuesta",
+                                numero_destino=GRUPO
+                            )
+                            # Actualizar timestamp para no re-notificar hasta 10 min después
+                            p['timestamp'] = ahora.isoformat()
+                            try:
+                                with open(PENDIENTES_PATH, 'w', encoding='utf-8') as f:
+                                    json.dump({'preguntas': pendientes}, f, indent=2, ensure_ascii=False)
+                            except Exception:
+                                pass
+
+        except Exception as e:
+            print(f"⚠️ [MONITOR] Error en ciclo de revisión: {e}")
+
+
+threading.Thread(target=_monitor_preguntas_sin_responder, daemon=True).start()
+print("✅ Monitor de preguntas sin responder iniciado (cada 10 min)")
+
+
 if __name__ == '__main__':
     # Este corre en el 8080. El agente_pro corre en el 8081.
     print("🚀 Webhook MeLi escuchando en puerto 8080...")
