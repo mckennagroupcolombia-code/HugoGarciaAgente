@@ -23,12 +23,9 @@ from flask import Flask
 from dotenv import load_dotenv
 
 # --- 1. Carga de Configuración ---
-# Carga las variables definidas en el archivo .env (API Keys, etc.)
 load_dotenv()
 
 # --- 2. Importación de Componentes de la App ---
-# Importamos los módulos que acabamos de crear. Cada uno tiene una 
-# responsabilidad única.
 from app.routes import register_routes
 from app.cli import iniciar_cli
 from app.core import configurar_ia
@@ -36,23 +33,45 @@ from app.core import configurar_ia
 # --- 3. Inicialización de la Aplicación ---
 
 def create_app():
-    """
-    Fábrica de aplicaciones: Crea y configura la instancia de Flask.
-    """
-    app = Flask(__name__, template_folder='app/templates')
+    """Fábrica de aplicaciones: Crea y configura la instancia de Flask."""
+    app = Flask(__name__, template_folder='templates')
 
-    # Configurar el logging para que no muestre los requests HTTP en la consola
-    # y así mantener limpia la interfaz del CLI.
     log = logging.getLogger('werkzeug')
     log.setLevel(logging.ERROR)
-    
-    # Configura el motor de IA con las herramientas disponibles.
-    # Esta función ahora vive en el "core" de nuestra aplicación.
+
+    # REC-09: Rate limiting global
+    try:
+        from flask_limiter import Limiter
+        from flask_limiter.util import get_remote_address
+        limiter = Limiter(
+            get_remote_address,
+            app=app,
+            default_limits=["300 per minute", "5000 per hour"],
+            storage_uri="memory://",
+        )
+        # Límites estrictos en endpoints sensibles
+        limiter.limit("30 per minute")(app.view_functions.get("chat") or (lambda: None))
+        app.extensions["limiter"] = limiter
+        print("✅ Rate limiting activo (300 req/min global)")
+    except Exception as e:
+        print(f"⚠️ Rate limiting no disponible: {e}")
+
     configurar_ia(app)
-    
-    # Registra los endpoints (ej: /whatsapp) definidos en app/routes.py
     register_routes(app)
-    
+
+    # Iniciar daemons de las nuevas funcionalidades
+    try:
+        from app.tools.seguimiento_postventa import iniciar_monitor_postventa
+        iniciar_monitor_postventa()
+    except Exception as e:
+        print(f"⚠️ Monitor postventa: {e}")
+
+    try:
+        from app.tools.backup_drive import iniciar_backup_nocturno
+        iniciar_backup_nocturno()
+    except Exception as e:
+        print(f"⚠️ Backup nocturno: {e}")
+
     return app
 
 # --- 4. Ejecución Principal ---

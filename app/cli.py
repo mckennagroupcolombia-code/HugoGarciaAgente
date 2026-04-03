@@ -13,6 +13,7 @@ from app.sync import (
 from app.services.google_services import leer_datos_hoja
 from app.services.meli import aprender_de_interacciones_meli
 from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
+from app.tools.importar_productos_siigo import procesar_facturas_para_importar_productos
 from app.services.woocommerce import obtener_todos_los_productos_woocommerce, sincronizar_catalogo_woocommerce
 from app.tools.verificacion_sync_skus import verificar_sync_skus
 
@@ -40,6 +41,7 @@ def mostrar_menu():
     print("11. 🚪 [EXIT] Salir del Centro de Mando")
     print("12. 🛒 [WC] Sync manual WooCommerce")
     print("13. 🔍 [SYNC] Verificar sincronización de SKUs (MeLi / SIIGO / WC)")
+    print("14. 📥 [SIIGO] Importar productos desde factura de proveedor (Excel)")
     print("═"*45)
 
 def iniciar_cli():
@@ -57,7 +59,7 @@ def iniciar_cli():
 
     while True:
         mostrar_menu()
-        opcion = input("Seleccione una opción (1-13): ")
+        opcion = input("Seleccione una opción (1-14): ")
 
         if opcion == "1":
             print("\n--- 💬 MODO CHAT ACTIVADO (Escribe 'salir' o 'menu' para volver) ---")
@@ -124,6 +126,9 @@ def iniciar_cli():
         elif opcion == "13":
             print("\n🔍 [SYNC] Verificando sincronización de SKUs entre plataformas...")
             print(verificar_sync_skus(notificar_wa=True))
+        elif opcion == "14":
+            print("\n📥 [SIIGO] Procesando facturas de proveedor para importar productos...")
+            print(procesar_facturas_para_importar_productos())
         else:
             print("❌ Opción no válida. Por favor, intente de nuevo.")
 

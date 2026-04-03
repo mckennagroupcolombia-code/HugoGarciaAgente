@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Panel de Control · Hugo García | McKenna Group</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0f172a;font-family:'Segoe UI',system-ui,sans-serif;color:#e2e8f0;min-height:100vh}
+    ::-webkit-scrollbar{width:6px} ::-webkit-scrollbar-track{background:#1e293b} ::-webkit-scrollbar-thumb{background:#3b82f6;border-radius:3px}
+
+    /* TOPBAR */
+    .topbar{background:linear-gradient(90deg,#0f172a,#1e3a8a);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1e3a8a;position:sticky;top:0;z-index:100}
+    .topbar .brand{display:flex;align-items:center;gap:12px}
+    .topbar .logo{width:36px;height:36px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+    .topbar h1{font-size:16px;font-weight:700;color:#fff} .topbar h1 span{color:#93c5fd;font-weight:400}
+    .topbar .time{font-size:12px;color:#64748b;font-family:monospace} .topbar .time strong{color:#93c5fd}
+    .live-dot{width:8px;height:8px;background:#22c55e;border-radius:50%;display:inline-block;animation:pulse 2s infinite;margin-right:6px}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+    /* LAYOUT */
+    .container{max-width:1400px;margin:0 auto;padding:24px 28px}
+    .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
+    @media(max-width:900px){.grid-4,.grid-3{grid-template-columns:1fr 1fr}.grid-2{grid-template-columns:1fr}}
+
+    /* CARDS */
+    .card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;transition:border-color .2s}
+    .card:hover{border-color:#3b82f6}
+    .card .label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:8px}
+    .card .value{font-size:32px;font-weight:800;color:#f1f5f9;line-height:1}
+    .card .sub{font-size:12px;color:#64748b;margin-top:6px}
+    .card .icon{font-size:28px;float:right;opacity:.6}
+
+    /* BADGES */
+    .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+    .badge.green{background:#052e16;color:#4ade80;border:1px solid #166534}
+    .badge.red{background:#450a0a;color:#f87171;border:1px solid #991b1b}
+    .badge.yellow{background:#422006;color:#fbbf24;border:1px solid #92400e}
+    .badge.blue{background:#0c1a3a;color:#60a5fa;border:1px solid #1d4ed8}
+
+    /* SERVICE LIST */
+    .service-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #334155}
+    .service-row:last-child{border-bottom:none}
+    .service-name{font-weight:600;color:#e2e8f0;font-size:14px}
+    .service-port{font-family:monospace;font-size:12px;color:#64748b}
+
+    /* TABLE */
+    table{width:100%;border-collapse:collapse}
+    th{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;padding:10px 14px;text-align:left;font-weight:600;background:#0f172a}
+    td{padding:12px 14px;font-size:13px;color:#cbd5e1;border-bottom:1px solid #1e293b}
+    tr:hover td{background:#1e3a5f22}
+    .no-data{text-align:center;color:#475569;padding:28px;font-style:italic}
+
+    /* SECTION HEADERS */
+    .section-title{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#3b82f6;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+    .section-title::after{content:'';flex:1;height:1px;background:#1e3a8a}
+
+    /* ACTIVITY LOG */
+    .log-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #1e293b}
+    .log-item:last-child{border-bottom:none}
+    .log-time{font-family:monospace;font-size:11px;color:#475569;white-space:nowrap;padding-top:1px}
+    .log-msg{font-size:13px;color:#94a3b8}
+    .log-msg strong{color:#e2e8f0}
+
+    /* PROGRESS BAR */
+    .progress-wrap{background:#0f172a;border-radius:6px;height:8px;overflow:hidden;margin-top:8px}
+    .progress-bar{height:100%;border-radius:6px;background:linear-gradient(90deg,#3b82f6,#8b5cf6);transition:width .8s ease}
+
+    /* PREVENTA QUEUE */
+    .q-item{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:14px;margin-bottom:10px}
+    .q-item .q-product{font-size:12px;color:#60a5fa;font-weight:600;margin-bottom:4px}
+    .q-item .q-pregunta{font-size:13px;color:#e2e8f0;margin-bottom:10px}
+    .q-item .q-meta{font-size:11px;color:#475569}
+    .q-item textarea{width:100%;background:#1e293b;border:1px solid #475569;border-radius:6px;color:#e2e8f0;padding:8px 10px;font-size:13px;margin-top:8px;resize:vertical;min-height:60px}
+    .q-item button{background:#1d4ed8;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-top:6px;transition:background .2s}
+    .q-item button:hover{background:#2563eb}
+
+    /* RESP BUTTON */
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+    .btn-primary{background:#1d4ed8;color:#fff} .btn-primary:hover{background:#2563eb}
+    .btn-danger{background:#991b1b;color:#fff} .btn-danger:hover{background:#dc2626}
+    .btn-sm{padding:5px 12px;font-size:12px}
+
+    /* TOAST */
+    #toast{position:fixed;bottom:24px;right:24px;background:#1e3a8a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;transform:translateY(80px);opacity:0;transition:all .3s;z-index:999;border:1px solid #3b82f6}
+    #toast.show{transform:translateY(0);opacity:1}
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">🤖</div>
+    <div>
+      <h1>Hugo García <span>· McKenna Group</span></h1>
+      <div style="font-size:11px;color:#475569;margin-top:2px;"><span class="live-dot"></span>Panel de Control en Tiempo Real</div>
+    </div>
+  </div>
+  <div class="time">
+    Actualizado: <strong id="reloj">--:--:--</strong>
+    &nbsp;·&nbsp;
+    <span id="fecha-hoy" style="color:#64748b;"></span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- KPI CARDS -->
+  <div class="grid-4" id="kpi-section">
+    <div class="card">
+      <div class="icon">💬</div>
+      <div class="label">Mensajes WA Hoy</div>
+      <div class="value" id="kpi-wa">—</div>
+      <div class="sub">Atendidos por IA</div>
+    </div>
+    <div class="card">
+      <div class="icon">🛒</div>
+      <div class="label">Preguntas MeLi</div>
+      <div class="value" id="kpi-meli">—</div>
+      <div class="sub">Respondidas hoy</div>
+    </div>
+    <div class="card">
+      <div class="icon">💰</div>
+      <div class="label">Pagos Confirmados</div>
+      <div class="value" id="kpi-pagos">—</div>
+      <div class="sub">Comprobantes hoy</div>
+    </div>
+    <div class="card">
+      <div class="icon">📦</div>
+      <div class="label">Órdenes Sincronizadas</div>
+      <div class="value" id="kpi-ordenes">—</div>
+      <div class="sub">MeLi ↔ WooCommerce</div>
+    </div>
+  </div>
+
+  <!-- SERVICES + INTEGRACIONES -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title">⚙️ Estado de Servicios</div>
+      <div id="services-list">
+        <div class="service-row">
+          <div>
+            <div class="service-name">Agente Principal</div>
+            <div class="service-port">:8081 · Flask + Gemini</div>
+          </div>
+          <span class="badge" id="svc-8081">⟳</span>
+        </div>
+        <div class="service-row">
+          <div>
+            <div class="service-name">Webhook MercadoLibre</div>
+            <div class="service-port">:8080 · Flask</div>
+          </div>
+          <span class="badge" id="svc-8080">⟳</span>
+        </div>
+        <div class="service-row">
+          <div>
+            <div class="service-name">Bot WhatsApp</div>
+            <div class="service-port">:3000 · Node.js</div>
+          </div>
+          <span class="badge" id="svc-3000">⟳</span>
+        </div>
+        <div class="service-row">
+          <div>
+            <div class="service-name">Token MercadoLibre</div>
+            <div class="service-port">OAuth 2.0</div>
+          </div>
+          <span class="badge" id="svc-meli">⟳</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">🔗 Integraciones</div>
+      <div id="integraciones">
+        {% for nombre, icono, desc in integraciones %}
+        <div class="service-row">
+          <div>
+            <div class="service-name">{{icono}} {{nombre}}</div>
+            <div class="service-port">{{desc}}</div>
+          </div>
+          <span class="badge green">● Activo</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- COLA PREVENTA + LOG -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="section-title">⚡ Cola Preventa MeLi</div>
+      <div id="preventa-queue">
+        {% if preguntas_pendientes %}
+          {% for p in preguntas_pendientes %}
+          <div class="q-item">
+            <div class="q-product">📦 {{p.titulo_producto}}</div>
+            <div class="q-pregunta">{{p.pregunta}}</div>
+            <div class="q-meta">ID: {{p.question_id}} &nbsp;·&nbsp; {{p.timestamp[:16]}}</div>
+            <textarea id="resp-{{p.question_id}}" placeholder="Escribe la respuesta para enviar a MeLi..."></textarea>
+            <button onclick="responder('{{p.question_id}}')">📤 Responder en MeLi</button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="no-data">✅ Sin preguntas pendientes</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">📋 Log de Actividad</div>
+      <div id="activity-log" style="max-height:360px;overflow-y:auto;">
+        {% if log_actividad %}
+          {% for entry in log_actividad %}
+          <div class="log-item">
+            <span class="log-time">{{entry.hora}}</span>
+            <span class="log-msg">{{entry.msg}}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="no-data">Sin entradas de log disponibles</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- FACTURAS RECIENTES -->
+  <div class="card" style="margin-bottom:24px;">
+    <div class="section-title">🧾 Últimas Facturas Procesadas</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Número</th><th>Proveedor / Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="facturas-tbody">
+        {% if facturas %}
+          {% for f in facturas %}
+          <tr>
+            <td style="font-family:monospace;color:#60a5fa;">{{f.numero}}</td>
+            <td>{{f.proveedor}}</td>
+            <td>{{f.fecha}}</td>
+            <td style="font-weight:700;color:#4ade80;">${{f.total}}</td>
+            <td><span class="badge {{'green' if f.estado=='Procesada' else 'yellow'}}">{{f.estado}}</span></td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="5" class="no-data">Sin facturas recientes en caché</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TASA AUTOMATIZACIÓN -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="label">Tasa de Automatización Preventa</div>
+      <div class="value" style="color:#4ade80;" id="tasa-prev">{{tasa_preventa}}%</div>
+      <div class="progress-wrap"><div class="progress-bar" style="width:{{tasa_preventa}}%;background:linear-gradient(90deg,#22c55e,#16a34a)"></div></div>
+      <div class="sub">Preguntas respondidas sin intervención humana</div>
+    </div>
+    <div class="card">
+      <div class="label">Casos IA Aprendidos</div>
+      <div class="value" style="color:#a78bfa;" id="casos-ia">{{casos_ia}}</div>
+      <div class="progress-wrap"><div class="progress-bar" style="width:{{[casos_ia * 2, 100] | min}}%;background:linear-gradient(90deg,#8b5cf6,#7c3aed)"></div></div>
+      <div class="sub">Few-shot ejemplos en ChromaDB</div>
+    </div>
+    <div class="card">
+      <div class="label">Uptime Sistema</div>
+      <div class="value" style="color:#60a5fa;" id="uptime-val">{{uptime}}</div>
+      <div class="progress-wrap"><div class="progress-bar" style="width:98%;"></div></div>
+      <div class="sub">Disponibilidad estimada del período</div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── Reloj
+function actualizarReloj(){
+  const now = new Date();
+  document.getElementById('reloj').textContent = now.toLocaleTimeString('es-CO');
+  document.getElementById('fecha-hoy').textContent = now.toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+actualizarReloj(); setInterval(actualizarReloj, 1000);
+
+// ── Toast
+function toast(msg, ok=true){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = ok ? '#052e16' : '#450a0a';
+  t.style.borderColor = ok ? '#166534' : '#991b1b';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+// ── Estado servicios
+async function checkServices(){
+  const puertos = [8081, 8080, 3000];
+  for(const p of puertos){
+    try{
+      const r = await fetch(`http://localhost:${p}/status`, {signal: AbortSignal.timeout(3000)});
+      const ok = r.ok;
+      const el = document.getElementById(`svc-${p}`);
+      el.textContent = ok ? '● ACTIVO' : '● CAÍDO';
+      el.className = `badge ${ok ? 'green' : 'red'}`;
+    }catch{
+      const el = document.getElementById(`svc-${p}`);
+      if(el){ el.textContent='● CAÍDO'; el.className='badge red'; }
+    }
+  }
+}
+
+// ── Métricas
+async function cargarMetricas(){
+  try{
+    const r = await fetch('/api/metricas');
+    if(!r.ok) return;
+    const d = await r.json();
+    document.getElementById('kpi-wa').textContent    = d.mensajes_whatsapp     ?? '—';
+    document.getElementById('kpi-meli').textContent  = d.preguntas_meli        ?? '—';
+    document.getElementById('kpi-pagos').textContent = d.pagos_confirmados      ?? '—';
+    document.getElementById('kpi-ordenes').textContent= d.ordenes_sincronizadas ?? '—';
+    const meliBadge = document.getElementById('svc-meli');
+    meliBadge.textContent = d.token_meli ? '● ACTIVO' : '● CAÍDO';
+    meliBadge.className   = `badge ${d.token_meli ? 'green' : 'red'}`;
+  }catch(e){ console.warn('Métricas no disponibles', e); }
+}
+
+// ── Responder preventa
+async function responder(qid){
+  const ta = document.getElementById(`resp-${qid}`);
+  const respuesta = ta.value.trim();
+  if(!respuesta){ toast('⚠️ Escribe una respuesta antes de enviar', false); return; }
+  try{
+    const r = await fetch('/api/responder-preventa', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({question_id: qid, respuesta})
+    });
+    const d = await r.json();
+    if(d.ok){ toast('✅ Respuesta enviada en MeLi'); ta.closest('.q-item').remove(); }
+    else{ toast('❌ '+d.error, false); }
+  }catch(e){ toast('❌ Error de red', false); }
+}
+
+// ── Init
+checkServices();
+cargarMetricas();
+setInterval(checkServices,  60000);
+setInterval(cargarMetricas, 30000);
+</script>
+</body>
+</html>

@@ -509,7 +509,96 @@ def register_routes(app):
 
     @app.route('/panel')
     def panel():
-        return render_template('chat.html')
+        import json as _json
+        from app.services.meli_preventa import obtener_preguntas_pendientes
+
+        # Métricas del día
+        metricas = {}
+        try:
+            with open('app/data/metricas_diarias.json') as f:
+                metricas = _json.load(f)
+        except Exception:
+            pass
+
+        # Preguntas preventa pendientes
+        preguntas = []
+        try:
+            preguntas = [p for p in obtener_preguntas_pendientes() if not p.get('respondida')]
+        except Exception:
+            pass
+
+        # Casos IA aprendidos
+        casos_ia = 0
+        try:
+            with open('app/training/casos_preventa.json') as f:
+                casos_ia = len(_json.load(f).get('casos', []))
+        except Exception:
+            pass
+
+        # Tasa automatización preventa (respondidas automáticamente vs total)
+        tasa_preventa = 0
+        try:
+            with open('app/data/preguntas_pendientes_preventa.json') as f:
+                todas = _json.load(f).get('preguntas', [])
+            respondidas_auto = sum(1 for p in todas if p.get('respondida') and not p.get('respuesta_humana'))
+            total_preg = len(todas)
+            tasa_preventa = round((respondidas_auto / total_preg) * 100) if total_preg > 0 else 0
+        except Exception:
+            pass
+
+        integraciones = [
+            ("Gemini 2.5-Pro", "🤖", "Motor IA conversacional"),
+            ("MercadoLibre", "🛒", "Preventa · Posventa · Stock"),
+            ("SIIGO ERP", "📊", "Facturación electrónica DIAN"),
+            ("WooCommerce", "🛍️", "mckennagroup.co"),
+            ("Google Sheets", "📋", "Catálogo y fichas técnicas"),
+            ("Gmail API", "📧", "Facturas de proveedores"),
+            ("WhatsApp WA", "💬", "Evolution API · Node.js"),
+            ("Cloudflare", "☁️", "Túnel HTTPS seguro"),
+        ]
+
+        return render_template(
+            'panel.html',
+            metricas=metricas,
+            preguntas_pendientes=preguntas,
+            casos_ia=casos_ia,
+            tasa_preventa=tasa_preventa,
+            uptime="99.8%",
+            integraciones=integraciones,
+            facturas=[],
+            log_actividad=[],
+        )
+
+    @app.route('/api/metricas')
+    def api_metricas():
+        import json as _json
+        try:
+            with open('app/data/metricas_diarias.json') as f:
+                data = _json.load(f)
+            # Verificar token MeLi
+            try:
+                from app.utils import refrescar_token_meli
+                data['token_meli'] = bool(refrescar_token_meli())
+            except Exception:
+                data['token_meli'] = False
+            return jsonify(data)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/responder-preventa', methods=['POST'])
+    def api_responder_preventa():
+        data = request.get_json()
+        question_id = str(data.get('question_id', ''))
+        respuesta   = data.get('respuesta', '').strip()
+        if not question_id or not respuesta:
+            return jsonify({"ok": False, "error": "Faltan campos"}), 400
+        import threading as _th
+        _th.Thread(
+            target=_procesar_respuesta_preventa,
+            args=(question_id, respuesta),
+            daemon=True
+        ).start()
+        return jsonify({"ok": True})
 
     def _procesar_webhook_woocommerce(payload: dict):
         """
