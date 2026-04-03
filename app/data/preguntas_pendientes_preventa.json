@@ -5,6 +5,37 @@
       "titulo_producto": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
       "pregunta": "Buenas noches, se puede aplicar a las flores? osea en plantas en floracion?",
       "timestamp": "2026-03-30T23:55:52.646814",
+      "respondida": true,
+      "nota": "Respondida manualmente el 2026-03-31 - módulo estaba desconectado"
+    },
+    {
+      "question_id": "13556296456",
+      "titulo_producto": "Glicerina Vegetal Usp Lt",
+      "pregunta": "Muy buenos días, me podrías hacer el favor de indicar la fecha de vencimiento del producto.",
+      "timestamp": "2026-04-02T12:58:24.224845",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-02"
+    },
+    {
+      "question_id": "13555590151",
+      "titulo_producto": "Acido Ascorbico 250g Conservant",
+      "pregunta": "Hola buenas tardes. Estoy haciendo 2 compras en su tienda, el colágeno hidrolizado de 500 Gr y este acido ascórbico...",
+      "timestamp": "2026-04-02T16:50:02.596658",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-02"
+    },
+    {
+      "question_id": "13555590449",
+      "titulo_producto": "Acido Ascorbico 250g Conservant",
+      "pregunta": "...pero no me los deja juntar en el carrito para no tener que pagar envío. Me pueden crear un link de acceso con los dos",
+      "timestamp": "2026-04-02T13:12:26.653684",
+      "respondida": true
+    },
+    {
+      "question_id": "13555628681",
+      "titulo_producto": "Ácido Kojico Dpalmitato 5% 30ml",
+      "pregunta": "Se puede usar así directamente sobre la piel o hay que diluirlo con alguna base?",
+      "timestamp": "2026-04-02T22:50:09.954062",
       "respondida": false
     }
   ]

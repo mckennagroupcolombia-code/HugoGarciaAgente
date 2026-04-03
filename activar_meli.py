@@ -18,7 +18,7 @@ def activar_conexion_meli():
         'grant_type': 'authorization_code',
         'client_id': config.get("client_id") or config.get("app_id"),
         'client_secret': config.get("client_secret"),
-        'code': 'TG-69c4c9ee8ce2de00010bfe3e-432439187',  # <--- TU CÓDIGO NUEVO
+        'code': 'TG-69ceab9fc60b8800013118ca-432439187',  # <--- TU CÓDIGO NUEVO
         'redirect_uri': config.get("redirect_uri")
     }
     

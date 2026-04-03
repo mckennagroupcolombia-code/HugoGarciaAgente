@@ -232,6 +232,48 @@ def verificar_token_meli():
 # LOOP PRINCIPAL
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# ALERTA 7 — Fichas técnicas faltantes (REC-06, cada lunes 9 AM)
+# ---------------------------------------------------------------------------
+
+def verificar_fichas_tecnicas_faltantes():
+    """Busca productos sin ficha técnica (columna I vacía) en Google Sheets."""
+    try:
+        import gspread
+        CREDS_PATH = os.getenv("GOOGLE_SERVICE_ACCOUNT_PATH",
+                               "/home/mckg/mi-agente/mi-agente-ubuntu-9043f67d9755.json")
+        SPREADSHEET_ID = os.getenv("SPREADSHEET_ID", "1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDjJApl3NbHMg")
+        gc   = gspread.service_account(filename=CREDS_PATH)
+        wb   = gc.open_by_key(SPREADSHEET_ID)
+        try:
+            sheet = wb.worksheet("BASE DE DATOS MCKENNA GROUP S.A.S")
+        except Exception:
+            sheet = wb.sheet1
+
+        rows        = sheet.get_all_values()[1:]
+        sin_ficha   = []
+        for row in rows:
+            nombre = row[3].strip() if len(row) > 3 else ""
+            ficha  = row[8].strip() if len(row) > 8 else ""
+            if nombre and not ficha:
+                sin_ficha.append(nombre)
+
+        if sin_ficha:
+            lista = "\n".join(f"  • {n}" for n in sin_ficha[:15])
+            extra = f"\n  ...y {len(sin_ficha)-15} más" if len(sin_ficha) > 15 else ""
+            _get_enviar()(
+                f"📋 *FICHAS TÉCNICAS FALTANTES* ({len(sin_ficha)} productos)\n\n"
+                f"Los siguientes productos no tienen ficha técnica en Google Sheets "
+                f"(columna I). Sin ficha, el agente no puede responder preguntas de "
+                f"preventa automáticamente:\n\n{lista}{extra}\n\n"
+                f"Por favor diligenciar en el catálogo para mejorar la automatización.",
+                numero_destino=GRUPO
+            )
+            print(f"📋 Monitor: {len(sin_ficha)} producto(s) sin ficha técnica notificados")
+    except Exception as e:
+        print(f"❌ Monitor: error verificando fichas técnicas: {e}")
+
+
 def monitor_loop():
     contadores = {
         'servicios':    0,
@@ -240,6 +282,10 @@ def monitor_loop():
         'token_meli':   0,
         'stock_dia':    -1,
         'resumen_dia':  -1,
+        'fichas_sem':   -1,
+        'backup_dia':   -1,
+        'reporte_sem':  -1,
+        'informe_mes':  -1,
     }
 
     # Esperar 60s al arrancar para que los servicios terminen de iniciar
@@ -283,6 +329,35 @@ def monitor_loop():
             if ahora.hour == 19 and contadores['resumen_dia'] != ahora.day:
                 threading.Thread(target=enviar_resumen_diario, daemon=True).start()
                 contadores['resumen_dia'] = ahora.day
+
+            # REC-06: Lunes 9 AM — Fichas técnicas faltantes
+            if ahora.weekday() == 0 and ahora.hour == 9 and contadores['fichas_sem'] != ahora.isocalendar()[1]:
+                threading.Thread(target=verificar_fichas_tecnicas_faltantes, daemon=True).start()
+                contadores['fichas_sem'] = ahora.isocalendar()[1]
+
+            # REC-07: 2 AM — Backup nocturno en Drive
+            if ahora.hour == 2 and contadores['backup_dia'] != ahora.day:
+                def _backup():
+                    from app.tools.backup_drive import ejecutar_backup
+                    ejecutar_backup()
+                threading.Thread(target=_backup, daemon=True).start()
+                contadores['backup_dia'] = ahora.day
+
+            # REC-08: Lunes 7 AM — Reporte financiero semanal
+            if ahora.weekday() == 0 and ahora.hour == 7 and contadores['reporte_sem'] != ahora.isocalendar()[1]:
+                def _reporte():
+                    from app.tools.reporte_financiero import enviar_reporte_semanal
+                    enviar_reporte_semanal()
+                threading.Thread(target=_reporte, daemon=True).start()
+                contadores['reporte_sem'] = ahora.isocalendar()[1]
+
+            # Informe mensual: día 1 de cada mes, 8 AM
+            if ahora.day == 1 and ahora.hour == 8 and contadores['informe_mes'] != ahora.month:
+                def _informe():
+                    from app.tools.informe_mensual import enviar_informe_mensual
+                    enviar_informe_mensual()
+                threading.Thread(target=_informe, daemon=True).start()
+                contadores['informe_mes'] = ahora.month
 
         except Exception as e:
             print(f"❌ Monitor: error en loop principal: {e}")

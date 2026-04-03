@@ -1,0 +1,16 @@
+{
+    "id_preliminar": "PRE-1775185740",
+    "nombre_cliente": "Cynthia Ruiz",
+    "identificacion": "1019044839",
+    "email": "cynthua0418@gmail.com",
+    "direccion_envio": "Cl. 13 #17-26, Duitama, Boyac\u00e1",
+    "productos": [
+        {
+            "nombre": "Alulosa Kg",
+            "cantidad": 1,
+            "precio_unitario": 72000
+        }
+    ],
+    "total": 90000,
+    "fecha": "2026-04-02 22:09:00"
+}
