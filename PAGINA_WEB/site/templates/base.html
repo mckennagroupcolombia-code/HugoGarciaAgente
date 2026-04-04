@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}McKenna Group — Materias Primas{% endblock %}</title>
+<meta name="description" content="{% block description %}Materias primas farmacéuticas y cosméticas de calidad certificada. Despachos a todo Colombia.{% endblock %}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+{% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- Barra anuncio -->
+<div class="announcement-bar">
+  🌿 Materias primas farmacéuticas y cosméticas certificadas &nbsp;|&nbsp;
+  <strong>Bogotá, Colombia</strong> &nbsp;·&nbsp; Lun–Vie 8:00–17:30
+</div>
+
+<!-- Header -->
+<header class="site-header" id="site-header">
+  <div class="header-inner">
+
+    <!-- Logo -->
+    <a href="{{ url_for('index') }}" class="site-logo">
+      <div class="brand-text">
+        McKenna Group
+        <span>Materias Primas</span>
+      </div>
+    </a>
+
+    <!-- Nav principal -->
+    <nav class="main-nav">
+      <ul>
+        <li class="{% if request.endpoint == 'index' %}active{% endif %}">
+          <a href="{{ url_for('index') }}">Inicio</a>
+        </li>
+        <li class="{% if request.endpoint in ['catalogo'] %}active{% endif %}">
+          <a href="{{ url_for('catalogo') }}">Catálogo</a>
+        </li>
+        <li class="{% if request.endpoint == 'nosotros' %}active{% endif %}">
+          <a href="{{ url_for('nosotros') }}">Nosotros</a>
+        </li>
+        <li class="{% if request.endpoint == 'contacto' %}active{% endif %}">
+          <a href="{{ url_for('contacto') }}">Contacto</a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Búsqueda -->
+    <div class="header-search">
+      <i class="ph ph-magnifying-glass search-icon"></i>
+      <input type="search" id="header-search-input" placeholder="Buscar producto..." autocomplete="off">
+    </div>
+
+    <!-- CTA WhatsApp + Carrito -->
+    <div class="header-actions">
+      <!-- Carrito -->
+      <div class="cart-icon-wrap">
+        <a href="{{ url_for('carrito') }}" class="cart-icon-link" title="Carrito">
+          <i class="ph ph-shopping-cart"></i>
+        </a>
+        {% set cart_count = session.get('cart', {})|length %}
+        {% if cart_count > 0 %}
+        <span class="cart-count">{{ cart_count }}</span>
+        {% endif %}
+      </div>
+      <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20información%20sobre%20sus%20productos"
+         target="_blank" rel="noopener" class="btn-wa-header">
+        <i class="ph ph-whatsapp-logo"></i>
+        WhatsApp
+      </a>
+    </div>
+
+    <!-- Hamburger -->
+    <button class="menu-toggle" aria-label="Abrir menú" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+
+  </div>
+
+  <!-- Menú móvil -->
+  <nav class="mobile-menu" id="mobile-menu" hidden>
+    <ul class="mobile-nav-list">
+      <li><a href="{{ url_for('index') }}">Inicio</a></li>
+      <li><a href="{{ url_for('catalogo') }}">Catálogo</a></li>
+      <li><a href="{{ url_for('nosotros') }}">Nosotros</a></li>
+      <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
+      <li><a href="https://wa.me/{{ WA_NUMBER }}" target="_blank">WhatsApp</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- Contenido principal -->
+{% block content %}{% endblock %}
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-main">
+
+    <!-- Marca -->
+    <div class="footer-brand">
+      <div style="color:#fff;font-size:1.1rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:20px;">
+        McKenna Group
+        <span style="display:block;font-weight:400;font-size:0.6rem;letter-spacing:2.5px;color:var(--green-light);text-transform:uppercase;">S.A.S.</span>
+      </div>
+      <p>Materias primas farmacéuticas y cosméticas de alta calidad. Más de 15 años al servicio de la industria colombiana.</p>
+      <div class="footer-social">
+        <a href="https://www.instagram.com/mckennagroup.co/" target="_blank" rel="noopener" aria-label="Instagram">
+          <i class="ph ph-instagram-logo"></i>
+        </a>
+        <a href="https://wa.me/{{ WA_NUMBER }}" target="_blank" rel="noopener" aria-label="WhatsApp">
+          <i class="ph ph-whatsapp-logo"></i>
+        </a>
+        <a href="https://www.facebook.com/mckennagroup.co" target="_blank" rel="noopener" aria-label="Facebook">
+          <i class="ph ph-facebook-logo"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Catálogo -->
+    <div class="footer-col">
+      <h4>Catálogo</h4>
+      <ul>
+        <li><a href="{{ url_for('catalogo', cat='Ácidos') }}">Ácidos</a></li>
+        <li><a href="{{ url_for('catalogo', cat='Aceites Esenciales') }}">Aceites Esenciales</a></li>
+        <li><a href="{{ url_for('catalogo', cat='Humectantes') }}">Humectantes</a></li>
+        <li><a href="{{ url_for('catalogo', cat='Conservantes') }}">Conservantes</a></li>
+        <li><a href="{{ url_for('catalogo', cat='Emulsionantes y Surfactantes') }}">Emulsionantes</a></li>
+        <li><a href="{{ url_for('catalogo') }}">Ver todo →</a></li>
+      </ul>
+    </div>
+
+    <!-- Información -->
+    <div class="footer-col">
+      <h4>Información</h4>
+      <ul>
+        <li><a href="{{ url_for('nosotros') }}">Sobre Nosotros</a></li>
+        <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
+        <li><a href="{{ url_for('guia_kit_acidos') }}">Guía Kit de Ácidos</a></li>
+        <li><a href="#">Términos y Condiciones</a></li>
+        <li><a href="#">Política de Privacidad</a></li>
+      </ul>
+    </div>
+
+    <!-- Contacto -->
+    <div class="footer-col footer-contact">
+      <h4>Contacto</h4>
+      <p>
+        <i class="ph ph-map-pin icon"></i>
+        Bogotá, Colombia — Despachos a nivel nacional
+      </p>
+      <p>
+        <i class="ph ph-clock icon"></i>
+        Lun – Vie 8:00 – 17:30
+      </p>
+      <p>
+        <i class="ph ph-envelope icon"></i>
+        <a href="mailto:ventas@mckennagroup.co" style="color:rgba(255,255,255,0.6)">ventas@mckennagroup.co</a>
+      </p>
+      <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20información%20sobre%20sus%20productos"
+         target="_blank" rel="noopener"
+         class="btn btn-wa btn-sm"
+         style="margin-top:16px;display:inline-flex;">
+        <i class="ph ph-whatsapp-logo"></i>
+        Escribir por WhatsApp
+      </a>
+    </div>
+
+  </div>
+
+  <div class="footer-bottom">
+    <span>© {{ 2026 }} <a href="{{ url_for('index') }}">McKenna Group S.A.S.</a> — Todos los derechos reservados.</span>
+    <span>Bogotá, Colombia</span>
+  </div>
+</footer>
+
+<!-- Back to top -->
+<a href="#" class="back-to-top" id="btt" aria-label="Volver arriba">
+  <i class="ph ph-arrow-up"></i>
+</a>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

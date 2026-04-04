@@ -1,4 +1,6 @@
 import os
+import re
+import json
 import requests
 import threading
 import time
@@ -123,13 +125,41 @@ def _procesar_orden_meli(order_id: str):
         print(f"❌ [MELI-ORDER] Error procesando orden {order_id}: {e}")
 
 
+_POSVENTA_STATE_PATH = os.path.join('/home/mckg/mi-agente', 'app', 'data', 'mensajes_posventa_pendientes.json')
+_SELLER_ID = 432439187
+
+
+def _cargar_state_posventa() -> dict:
+    try:
+        if os.path.exists(_POSVENTA_STATE_PATH):
+            with open(_POSVENTA_STATE_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {"pendientes": {}, "procesados": []}
+
+
+def _guardar_state_posventa(data: dict):
+    os.makedirs(os.path.dirname(_POSVENTA_STATE_PATH), exist_ok=True)
+    with open(_POSVENTA_STATE_PATH, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def _sufijo_pack(pack_id: str) -> str:
+    """Últimos 4 dígitos del pack_id para comando corto."""
+    digits = re.sub(r'\D', '', str(pack_id))
+    return digits[-4:] if len(digits) >= 4 else digits
+
+
 def _procesar_mensaje_posventa(resource: str):
     """
     Recibe notificación de mensaje postventa de MeLi.
-    Si el mensaje es del comprador (no nuestro), alerta al grupo de WhatsApp.
+    Si el mensaje es del comprador (no nuestro), alerta al grupo de WhatsApp
+    con el comando de respuesta correcto: posventa <código>: <respuesta>
+
+    Deduplicación por message_id (persistente en JSON), sin filtro por tiempo.
     """
-    GRUPO = os.getenv('GRUPO_CONTABILIDAD_WA', '120363407538342427@g.us')
-    SELLER_ID = 432439187
+    GRUPO = os.getenv('GRUPO_POSTVENTA_WA', '120363406693905719@g.us')
     try:
         token = refrescar_token_meli()
         if not token:
@@ -149,55 +179,91 @@ def _procesar_mensaje_posventa(resource: str):
 
         headers = {'Authorization': f'Bearer {token}'}
         res = requests.get(
-            f'https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{SELLER_ID}?tag=post_sale',
+            f'https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{_SELLER_ID}?tag=post_sale',
             headers=headers, timeout=10
         )
         if res.status_code != 200:
             print(f"⚠️ [POSVENTA] Error obteniendo mensajes del pack {pack_id}: {res.status_code}")
             return
 
-        mensajes = res.json().get('messages', [])
-        # Filtrar mensajes del comprador (no nuestros) que sean recientes (últimos 5 min)
-        ahora = time.time()
-        for msg in mensajes:
-            from_id = msg.get('from', {}).get('user_id')
-            if str(from_id) == str(SELLER_ID):
-                continue  # Es nuestro mensaje, ignorar
+        state = _cargar_state_posventa()
+        procesados = set(state.get('procesados', []))
 
-            # Verificar que sea reciente
-            fecha_str = msg.get('message_date', {}).get('received', '')
-            if fecha_str:
-                try:
-                    from datetime import datetime, timezone
-                    fecha_msg = datetime.fromisoformat(fecha_str.replace('Z', '+00:00'))
-                    edad_seg = (datetime.now(timezone.utc) - fecha_msg).total_seconds()
-                    if edad_seg > 300:  # Más de 5 minutos → ya fue procesado antes
-                        continue
-                except Exception:
-                    pass
+        mensajes = res.json().get('messages', [])
+        nuevos = 0
+        for msg in mensajes:
+            from_id = str(msg.get('from', {}).get('user_id', ''))
+            if from_id == str(_SELLER_ID):
+                continue  # Mensaje nuestro, ignorar
+
+            msg_id = str(msg.get('id', ''))
+            if not msg_id or msg_id in procesados:
+                continue  # Ya notificado
 
             texto = msg.get('text', '').strip()
             if not texto:
                 continue
 
-            # Obtener nombre del comprador
-            nombre_comprador = msg.get('from', {}).get('name', f'ID {from_id}')
+            nombre_comprador = msg.get('from', {}).get('name', f'Comprador {from_id}')
+            sufijo = _sufijo_pack(pack_id)
 
             print(f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}")
-            enviar_whatsapp_reporte(
-                f"💬 *MENSAJE POSTVENTA MELI*\n"
-                f"📦 Pack: `{pack_id}`\n"
-                f"👤 Comprador: {nombre_comprador}\n"
-                f"🗣 Mensaje: {texto}\n\n"
-                f"Para responder escribe:\n"
-                f"`hugo dale ok {pack_id}`\n"
-                f"O responde directo en MeLi.",
-                numero_destino=GRUPO
+
+            # Obtener productos de la orden para contexto
+            productos_str = ''
+            try:
+                r_ord = requests.get(
+                    f'https://api.mercadolibre.com/orders/{pack_id}',
+                    headers=headers, timeout=8
+                )
+                if r_ord.status_code == 200:
+                    prods = [
+                        i.get('item', {}).get('title', '')
+                        for i in r_ord.json().get('order_items', [])
+                        if i.get('item', {}).get('title')
+                    ]
+                    if prods:
+                        productos_str = '\n'.join(f'  • {p}' for p in prods)
+            except Exception:
+                pass
+
+            # Guardar en cola de pendientes
+            state['pendientes'][sufijo] = {
+                'pack_id':    pack_id,
+                'comprador':  nombre_comprador,
+                'from_id':    from_id,
+                'texto':      texto,
+                'msg_id':     msg_id,
+                'productos':  productos_str,
+                'timestamp':  time.strftime('%Y-%m-%dT%H:%M:%S'),
+            }
+            procesados.add(msg_id)
+
+            notif = (
+                f"💬 *MENSAJE POSTVENTA MELI*\n\n"
+                f"📦 *Pack:* `{pack_id}`  _(código: *{sufijo}*)_\n"
+                f"👤 *Comprador:* {nombre_comprador}\n"
             )
+            if productos_str:
+                notif += f"🛍 *Productos:*\n{productos_str}\n"
+            notif += (
+                f"🗣 *Mensaje:* {texto}\n\n"
+                f"Para responder escribe en el grupo:\n"
+                f"*posventa {sufijo}: tu respuesta aquí*"
+            )
+            enviar_whatsapp_reporte(notif, numero_destino=GRUPO)
             try:
                 incrementar_metrica('mensajes_posventa')
             except Exception:
                 pass
+            nuevos += 1
+
+        # Limpiar procesados: guardar solo los últimos 500 para no crecer indefinidamente
+        state['procesados'] = list(procesados)[-500:]
+        _guardar_state_posventa(state)
+
+        if nuevos:
+            print(f"✅ [POSVENTA] {nuevos} mensaje(s) nuevos notificados al grupo.")
 
     except Exception as e:
         print(f"❌ [POSVENTA] Error procesando mensaje: {e}")
@@ -482,7 +548,7 @@ def _monitor_preguntas_sin_responder():
     from datetime import datetime, timedelta
 
     PENDIENTES_PATH = 'app/data/preguntas_pendientes_preventa.json'
-    GRUPO = os.getenv('GRUPO_CONTABILIDAD_WA', '120363407538342427@g.us')
+    GRUPO = os.getenv('GRUPO_PREVENTA_WA', '120363393955474672@g.us')
     INTERVALO = 1800  # 30 minutos
 
     while True:

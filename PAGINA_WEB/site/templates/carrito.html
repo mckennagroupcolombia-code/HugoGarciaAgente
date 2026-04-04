@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Carrito — McKenna Group{% endblock %}
+
+{% block content %}
+
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Tu Carrito</span>
+    <h1>Resumen <em>del pedido</em></h1>
+    <p>Revisa tus productos antes de proceder al pago.</p>
+  </div>
+</div>
+
+<div class="section" style="max-width:900px;margin:0 auto;padding:64px 32px;">
+
+  {% if cart %}
+
+  <!-- Tabla de ítems -->
+  <div class="cart-table">
+    {% for slug, item in cart.items() %}
+    <div class="cart-row reveal">
+
+      <!-- Foto -->
+      <div class="cart-img">
+        {% if item.photo %}
+        <img src="{{ item.photo }}" alt="{{ item.name }}" loading="lazy">
+        {% else %}
+        <div class="cart-img-placeholder"><i class="ph ph-flask"></i></div>
+        {% endif %}
+      </div>
+
+      <!-- Info -->
+      <div class="cart-info">
+        <div class="cart-name">{{ item.name }}</div>
+        <div class="cart-ref">Ref: {{ item.ref }}</div>
+        <div class="cart-unit-price">${{ "{:,.0f}".format(item.price).replace(",", ".") }} COP / unidad</div>
+      </div>
+
+      <!-- Cantidad -->
+      <form method="POST" action="{{ url_for('carrito_actualizar') }}" class="cart-qty-form">
+        <input type="hidden" name="slug" value="{{ slug }}">
+        <div class="cart-qty-control">
+          <button type="submit" name="qty" value="{{ item.qty - 1 }}" class="cart-qty-btn">−</button>
+          <span class="cart-qty-val">{{ item.qty }}</span>
+          <button type="submit" name="qty" value="{{ item.qty + 1 }}" class="cart-qty-btn">+</button>
+        </div>
+      </form>
+
+      <!-- Subtotal -->
+      <div class="cart-subtotal">
+        ${{ "{:,.0f}".format(item.price * item.qty).replace(",", ".") }}
+        <span>COP</span>
+      </div>
+
+      <!-- Eliminar -->
+      <form method="POST" action="{{ url_for('carrito_eliminar') }}">
+        <input type="hidden" name="slug" value="{{ slug }}">
+        <button type="submit" class="cart-remove" title="Eliminar">
+          <i class="ph ph-trash"></i>
+        </button>
+      </form>
+
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Resumen y CTA -->
+  <div class="cart-summary">
+    <div class="cart-summary-box">
+      <div class="cart-summary-row">
+        <span>Subtotal</span>
+        <span>${{ "{:,.0f}".format(total).replace(",", ".") }} COP</span>
+      </div>
+      <div class="cart-summary-row">
+        <span>IVA</span>
+        <span style="color:var(--green-light)">Incluido / Exento</span>
+      </div>
+      <div class="cart-summary-row cart-summary-total">
+        <span>Total a pagar</span>
+        <span>${{ "{:,.0f}".format(total).replace(",", ".") }} COP</span>
+      </div>
+      <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-lg" style="width:100%;justify-content:center;margin-top:24px;">
+        <i class="ph ph-lock"></i>
+        Proceder al pago
+      </a>
+      <a href="{{ url_for('catalogo') }}" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-top:12px;">
+        ← Seguir comprando
+      </a>
+    </div>
+
+    <div class="cart-info-box">
+      <div class="cart-info-item">
+        <i class="ph ph-shield-check"></i>
+        <div>
+          <strong>Pago seguro</strong>
+          <p>Encriptación SSL · Procesado por PayU</p>
+        </div>
+      </div>
+      <div class="cart-info-item">
+        <i class="ph ph-bank"></i>
+        <div>
+          <strong>Métodos de pago</strong>
+          <p>PSE · Tarjetas · Nequi · Daviplata · Efecty</p>
+        </div>
+      </div>
+      <div class="cart-info-item">
+        <i class="ph ph-truck"></i>
+        <div>
+          <strong>Despacho</strong>
+          <p>A todo Colombia · 24–48 h hábiles</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  {% else %}
+  <!-- Carrito vacío -->
+  <div style="text-align:center;padding:80px 0;">
+    <div style="font-size:4rem;color:var(--green-pale);margin-bottom:24px;">
+      <i class="ph ph-shopping-cart"></i>
+    </div>
+    <h2 style="font-size:1.75rem;font-weight:800;margin-bottom:12px;letter-spacing:-0.5px;">
+      Tu carrito está vacío
+    </h2>
+    <p style="color:var(--text-muted);margin-bottom:32px;">
+      Explora nuestro catálogo y agrega los productos que necesitas.
+    </p>
+    <a href="{{ url_for('catalogo') }}" class="btn btn-primary btn-lg">
+      <i class="ph ph-flask"></i>
+      Ver catálogo
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}

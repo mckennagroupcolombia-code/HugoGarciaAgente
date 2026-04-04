@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Contacto — McKenna Group{% endblock %}
+
+{% block content %}
+
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Estamos aquí para ayudarte</span>
+    <h1>Contacto</h1>
+    <p>Escríbenos por WhatsApp o completa el formulario. Respondemos en menos de 2 horas.</p>
+  </div>
+</div>
+
+<div class="section">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start;">
+
+    <!-- Info contacto -->
+    <div>
+      <div class="section-header reveal" style="margin-bottom:40px;grid-template-columns:80px 1fr;gap:24px;">
+        <div class="section-number" style="font-size:56px;">📍</div>
+        <div>
+          <span class="section-eyebrow">Información</span>
+          <h2 class="section-title">Cómo <em>contactarnos</em></h2>
+        </div>
+      </div>
+
+      <div class="kit-items">
+        <div class="kit-item reveal">
+          <div class="kit-dot dot-1"><i class="ph ph-whatsapp-logo"></i></div>
+          <div class="kit-info">
+            <h3>WhatsApp</h3>
+            <p>Respuesta en menos de 2 horas</p>
+          </div>
+          <a href="https://wa.me/{{ WA_NUMBER }}" target="_blank" rel="noopener"
+             class="btn btn-wa btn-sm">Escribir</a>
+        </div>
+        <div class="kit-item reveal reveal-delay-1">
+          <div class="kit-dot dot-2"><i class="ph ph-envelope"></i></div>
+          <div class="kit-info">
+            <h3>Email</h3>
+            <p>ventas@mckennagroup.co</p>
+          </div>
+        </div>
+        <div class="kit-item reveal reveal-delay-2">
+          <div class="kit-dot dot-3"><i class="ph ph-map-pin"></i></div>
+          <div class="kit-info">
+            <h3>Ubicación</h3>
+            <p>Bogotá, Colombia</p>
+          </div>
+        </div>
+        <div class="kit-item reveal reveal-delay-3">
+          <div class="kit-dot dot-4"><i class="ph ph-clock"></i></div>
+          <div class="kit-info">
+            <h3>Horario</h3>
+            <p>Lunes a Viernes 8:00 – 17:30</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="warning-box" style="margin-top:32px;">
+        <strong>Ventas B2B:</strong> Para empresas con volumen. Contáctenos para
+        precios especiales por mayor y condiciones de pago a crédito.
+      </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="reveal reveal-delay-2">
+      <form id="contact-form"
+            style="border:1.5px solid var(--green-pale);padding:40px;background:var(--white);">
+        <h3 style="font-size:1.2rem;font-weight:700;margin-bottom:28px;color:var(--text-dark);">
+          Formulario de Contacto
+        </h3>
+
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">
+            Nombre *
+          </label>
+          <input type="text" name="nombre" required
+                 style="width:100%;border:1.5px solid var(--border);padding:12px 16px;font-family:'Montserrat',sans-serif;font-size:0.9375rem;color:var(--text-dark);outline:none;transition:border-color .25s;"
+                 onfocus="this.style.borderColor='var(--green)'"
+                 onblur="this.style.borderColor='var(--border)'">
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">
+            Empresa
+          </label>
+          <input type="text" name="empresa"
+                 style="width:100%;border:1.5px solid var(--border);padding:12px 16px;font-family:'Montserrat',sans-serif;font-size:0.9375rem;color:var(--text-dark);outline:none;transition:border-color .25s;"
+                 onfocus="this.style.borderColor='var(--green)'"
+                 onblur="this.style.borderColor='var(--border)'">
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">
+            Email *
+          </label>
+          <input type="email" name="email" required
+                 style="width:100%;border:1.5px solid var(--border);padding:12px 16px;font-family:'Montserrat',sans-serif;font-size:0.9375rem;color:var(--text-dark);outline:none;transition:border-color .25s;"
+                 onfocus="this.style.borderColor='var(--green)'"
+                 onblur="this.style.borderColor='var(--border)'">
+        </div>
+
+        <div style="margin-bottom:28px;">
+          <label style="display:block;font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;">
+            Mensaje *
+          </label>
+          <textarea name="mensaje" required rows="4"
+                    style="width:100%;border:1.5px solid var(--border);padding:12px 16px;font-family:'Montserrat',sans-serif;font-size:0.9375rem;color:var(--text-dark);outline:none;resize:vertical;transition:border-color .25s;"
+                    onfocus="this.style.borderColor='var(--green)'"
+                    onblur="this.style.borderColor='var(--border)'"
+                    placeholder="Cuéntenos qué producto o información necesita..."></textarea>
+        </div>
+
+        <!-- Botón que envía a WhatsApp con el mensaje -->
+        <button type="submit" class="btn btn-wa btn-lg" style="width:100%;justify-content:center;">
+          <i class="ph ph-whatsapp-logo"></i>
+          Enviar por WhatsApp
+        </button>
+
+        <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:12px;margin-bottom:0;">
+          Al enviar serás redirigido a WhatsApp con tu mensaje.
+        </p>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('contact-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const nombre  = this.nombre.value.trim();
+  const empresa = this.empresa.value.trim();
+  const email   = this.email.value.trim();
+  const mensaje = this.mensaje.value.trim();
+
+  const txt = `Hola, me contacto desde el sitio web.\n\n` +
+    `*Nombre:* ${nombre}\n` +
+    (empresa ? `*Empresa:* ${empresa}\n` : '') +
+    `*Email:* ${email}\n\n` +
+    `*Mensaje:*\n${mensaje}`;
+
+  window.open(`https://wa.me/{{ WA_NUMBER }}?text=${encodeURIComponent(txt)}`, '_blank');
+});
+</script>
+{% endblock %}

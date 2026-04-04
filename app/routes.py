@@ -87,7 +87,7 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
         if not pendiente:
             enviar_whatsapp_reporte(
                 f"⚠️ No encontré pregunta pendiente con ID {question_id}",
-                numero_destino=os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
+                numero_destino=os.getenv("GRUPO_PREVENTA_WA", "120363393955474672@g.us")
             )
             return
 
@@ -112,15 +112,15 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
             respuesta=respuesta_humana
         )
 
-        # Confirmar al grupo
-        grupo = os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
+        # Confirmar al grupo preventa
+        grupo_prev = os.getenv("GRUPO_PREVENTA_WA", "120363393955474672@g.us")
         emoji = "✅" if exito else "❌"
         enviar_whatsapp_reporte(
             f"{emoji} *Respuesta preventa {'enviada' if exito else 'FALLÓ'} al cliente*\n"
             f"📦 Producto: {pendiente.get('titulo_producto', '')}\n"
             f"💬 Respuesta: {respuesta_humana[:120]}{'...' if len(respuesta_humana) > 120 else ''}\n"
             f"📚 Guardada como caso de entrenamiento.",
-            numero_destino=grupo
+            numero_destino=grupo_prev
         )
         print(f"✅ Preventa: respuesta humana procesada para question_id {question_id}")
 
@@ -199,17 +199,34 @@ def register_routes(app):
         message_text = data.get('mensaje', '').strip()
         is_after_sale = data.get('es_postventa', False)
         order_id = data.get('order_id', sender_id)
-        
+
         # Adaptación para aceptar hasMedia o has_media según venga del node o de otro lado
         has_media = data.get('hasMedia', data.get('has_media', False))
         media_type = data.get('mediaType', data.get('media_type', ''))
         media_path = data.get('mediaPath', '')
         es_grupo_contabilidad = data.get('es_grupo_contabilidad', False)
 
-        grupo_contabilidad = os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
+        # IDs de los grupos por área
+        grupo_compras   = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")
+        grupo_preventa  = os.getenv("GRUPO_PREVENTA_WA",            "120363393955474672@g.us")
+        grupo_posventa  = os.getenv("GRUPO_POSTVENTA_WA",           "120363406693905719@g.us")
+        grupo_inventario = os.getenv("GRUPO_INVENTARIO_WA",         "120363407538342427@g.us")
+
+        # Detectar de qué grupo proviene el mensaje (por flag explícito o por remoteJid/sender)
+        remote_jid = data.get('remoteJid') or data.get('grupo_id', '')
+        if not remote_jid and '@g.us' in sender_id:
+            remote_jid = sender_id
+
+        es_grupo_compras  = es_grupo_contabilidad or remote_jid == grupo_compras
+        es_grupo_preventa_cmd = remote_jid == grupo_preventa
+        es_grupo_posventa_cmd = remote_jid == grupo_posventa
+        es_any_grupo_admin = es_grupo_compras or es_grupo_preventa_cmd or es_grupo_posventa_cmd
+
+        # Alias para compatibilidad con código existente
+        grupo_contabilidad = grupo_compras
         
-        # --- COMANDOS DEL GRUPO DE CONTABILIDAD ---
-        if es_grupo_contabilidad:
+        # --- COMANDOS DE GRUPOS ADMIN ---
+        if es_any_grupo_admin:
             modos = cargar_modos_atencion()
             msg_lower = message_text.lower()
             
@@ -295,6 +312,115 @@ def register_routes(app):
                 threading.Thread(target=enviar_whatsapp_reporte, args=("Hola veci, soy Hugo García nuevamente, ¿en qué le puedo ayudar?", target_num)).start()
                 return jsonify({"status": "ok", "respuesta": None})
                 
+            # ── Comandos de facturas de compra: inv ok/skip/inventario/gasto/lista ──
+            elif msg_lower.startswith("inv "):
+                def _manejar_inv(texto):
+                    from app.tools.importar_productos_siigo import (
+                        procesar_respuesta_factura_compra,
+                        listar_facturas_pendientes,
+                    )
+                    partes = texto.split()
+                    if len(partes) >= 2 and partes[1].lower() == 'lista':
+                        resultado = listar_facturas_pendientes()
+                    elif len(partes) >= 3:
+                        cmd    = partes[1].lower()   # ok | skip | inventario | gasto
+                        sufijo = partes[2].upper()
+                        resultado = procesar_respuesta_factura_compra(cmd, sufijo)
+                    else:
+                        resultado = (
+                            "⚠️ Formato inválido. Comandos disponibles:\n"
+                            "  *inv ok <código>*          → procesar (proveedor conocido)\n"
+                            "  *inv skip <código>*        → omitir factura\n"
+                            "  *inv inventario <código>*  → clasificar como materia prima\n"
+                            "  *inv gasto <código>*       → clasificar como gasto/consumible\n"
+                            "  *inv lista*                → ver facturas pendientes"
+                        )
+                    enviar_whatsapp_reporte(resultado, numero_destino=grupo_contabilidad)
+
+                threading.Thread(target=_manejar_inv, args=(message_text,)).start()
+                return jsonify({"status": "ok", "respuesta": None})
+
+            # ── Respuesta a mensajes postventa MeLi: posventa <código>: <texto> ──
+            elif msg_lower.startswith("posventa "):
+                def _manejar_posventa(texto_cmd):
+                    m = re.match(r'^posventa\s+(\S+):\s*(.+)', texto_cmd.strip(), re.IGNORECASE | re.DOTALL)
+                    if not m:
+                        enviar_whatsapp_reporte(
+                            "⚠️ Formato: *posventa <código>: tu respuesta*\n"
+                            "Ejemplo: posventa 3240: Hola, su pedido ya fue despachado.",
+                            numero_destino=grupo_contabilidad
+                        )
+                        return
+
+                    sufijo    = m.group(1).strip()
+                    respuesta = m.group(2).strip()
+
+                    # Buscar pack_id en la cola de pendientes
+                    import time as _time
+                    state_path = '/home/mckg/mi-agente/app/data/mensajes_posventa_pendientes.json'
+                    pack_id = None
+                    comprador = ''
+                    try:
+                        with open(state_path, 'r', encoding='utf-8') as _f:
+                            _state = json.load(_f)
+                        pendientes = _state.get('pendientes', {})
+                        # Buscar por sufijo exacto o parcial
+                        sufijo_up = sufijo.upper()
+                        entrada = pendientes.get(sufijo_up)
+                        if not entrada:
+                            for k, v in pendientes.items():
+                                if k.endswith(sufijo_up) or sufijo_up.endswith(k):
+                                    entrada = v
+                                    sufijo_up = k
+                                    break
+                        if entrada:
+                            pack_id   = entrada['pack_id']
+                            comprador = entrada.get('comprador', '')
+                    except Exception as _e:
+                        print(f"⚠️ [POSVENTA-CMD] Error leyendo state: {_e}")
+
+                    if not pack_id:
+                        # Intentar usar el sufijo directamente como pack_id completo
+                        if sufijo.isdigit() and len(sufijo) > 8:
+                            pack_id = sufijo
+                        else:
+                            enviar_whatsapp_reporte(
+                                f"⚠️ No encontré mensaje postventa pendiente con código *{sufijo}*.\n"
+                                f"Verifica el código en la alerta original o responde directo en MeLi.",
+                                numero_destino=grupo_contabilidad
+                            )
+                            return
+
+                    from modulo_posventa import responder_mensaje_posventa
+                    exito = responder_mensaje_posventa(pack_id, respuesta)
+
+                    if exito:
+                        # Quitar de pendientes
+                        try:
+                            with open(state_path, 'r', encoding='utf-8') as _f:
+                                _state = json.load(_f)
+                            _state.get('pendientes', {}).pop(sufijo_up if 'sufijo_up' in dir() else sufijo, None)
+                            with open(state_path, 'w', encoding='utf-8') as _f:
+                                json.dump(_state, _f, indent=2, ensure_ascii=False)
+                        except Exception:
+                            pass
+                        enviar_whatsapp_reporte(
+                            f"✅ *Respuesta postventa enviada*\n"
+                            f"👤 Comprador: {comprador or pack_id}\n"
+                            f"📦 Pack: {pack_id}\n"
+                            f"💬 Respuesta: {respuesta[:120]}{'…' if len(respuesta) > 120 else ''}",
+                            numero_destino=grupo_posventa
+                        )
+                    else:
+                        enviar_whatsapp_reporte(
+                            f"❌ *Error enviando respuesta postventa* al pack {pack_id}.\n"
+                            f"Intenta responder directamente en MeLi.",
+                            numero_destino=grupo_posventa
+                        )
+
+                threading.Thread(target=_manejar_posventa, args=(message_text,)).start()
+                return jsonify({"status": "ok", "respuesta": None})
+
             elif msg_lower.startswith("resp preventa "):
                 print(f"📨 Comando preventa recibido del grupo: {message_text[:120]}")
                 question_id, respuesta_humana = detectar_comando_preventa(message_text)
@@ -310,7 +436,7 @@ def register_routes(app):
                         args=(
                             "⚠️ Formato inválido. Escribe así (sin llaves):\n"
                             f"resp preventa {question_id or '<ID>'}: tu respuesta va aquí",
-                            grupo_contabilidad
+                            grupo_preventa
                         )
                     ).start()
                 return jsonify({"status": "ok", "respuesta": None})
@@ -338,12 +464,12 @@ def register_routes(app):
             return jsonify({"status": "ok", "respuesta": None})
         
         # --- SWITCH IA/HUMANO ---
-        if not es_grupo_contabilidad:
+        if not es_any_grupo_admin:
             modos = cargar_modos_atencion()
             if sender_id in modos["numeros_en_humano"]:
-                # Reenviar al grupo y no procesar IA
+                # Reenviar al grupo de compras (atención general) y no procesar IA
                 mensaje_reenvio = f"💬 CLIENTE {sender_id}: {message_text}"
-                threading.Thread(target=enviar_whatsapp_reporte, args=(mensaje_reenvio, grupo_contabilidad)).start()
+                threading.Thread(target=enviar_whatsapp_reporte, args=(mensaje_reenvio, grupo_compras)).start()
                 return jsonify({"status": "human_mode", "respuesta": None})
 
         # --- Flujo de Aprobación para Comprobantes de Pago (legacy) ---
@@ -384,8 +510,8 @@ def register_routes(app):
                 "codigo": codigo,
             }
 
-            threading.Thread(target=enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_contabilidad)).start()
-            
+            threading.Thread(target=enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_compras)).start()
+
             return jsonify({
                 "status": "waiting_for_payment_approval",
                 "respuesta": "Veci, recibí su comprobante. En un momento nuestro equipo de contabilidad lo verifica y le confirmamos. ¡Gracias por su compra!"
@@ -462,7 +588,7 @@ def register_routes(app):
                 f"🤖 Mensaje propuesto: _{respuesta_ia}_\n\n"
                 f"Para enviar, responde al bot: `hugo dale ok {order_id}`"
             )
-            enviar_whatsapp_reporte(mensaje_aprobacion)
+            enviar_whatsapp_reporte(mensaje_aprobacion, numero_destino=grupo_posventa)
             
             return jsonify({
                 "status": "waiting_for_approval",
@@ -671,3 +797,24 @@ def register_routes(app):
                 print(f"⏭️ [WC-WEBHOOK] Orden con estado '{status}' — ignorada.")
 
         return jsonify({"status": "ok"}), 200
+
+    # ── Guías de productos (HTML standalone, sin wrapper del tema) ────────────
+    _GUIAS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'PAGINA_WEB')
+
+    @app.route('/guia/<nombre_guia>')
+    def servir_guia(nombre_guia):
+        """
+        Sirve archivos HTML de guías de productos desde PAGINA_WEB/.
+        URL: /guia/kit-acidos  → PAGINA_WEB/guia-kit-acidos.html
+        """
+        from flask import send_from_directory, abort
+        # Sanitizar: solo letras, números, guiones
+        import re as _re
+        if not _re.match(r'^[a-zA-Z0-9\-]+$', nombre_guia):
+            abort(404)
+        nombre_archivo = f'guia-{nombre_guia}.html'
+        ruta_completa  = os.path.join(_GUIAS_DIR, nombre_archivo)
+        if not os.path.isfile(ruta_completa):
+            abort(404)
+        return send_from_directory(_GUIAS_DIR, nombre_archivo)
+

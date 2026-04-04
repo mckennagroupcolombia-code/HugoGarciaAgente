@@ -121,3 +121,25 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
 To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
    ccd6360..418cf14  master -> main
 [2026-04-01 23:00:02] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-01 23:00'
+[master 336113d] Auto-commit: actualizacion diaria 2026-04-02 23:00
+ 27 files changed, 4614 insertions(+), 94 deletions(-)
+ create mode 100644 Manual_Hugo_Garcia_McKenna.pdf
+ create mode 100644 app/data/clientes.db
+ create mode 100644 app/data/despachos.db
+ create mode 100644 app/data/seguimiento_postventa.db
+ create mode 100644 app/tools/backup_drive.py
+ create mode 100644 app/tools/clientes_db.py
+ create mode 100644 app/tools/cotizacion_pdf.py
+ create mode 100644 app/tools/despacho.py
+ create mode 100644 app/tools/importar_productos_siigo.py
+ create mode 100644 app/tools/informe_mensual.py
+ create mode 100644 app/tools/reporte_financiero.py
+ create mode 100644 app/tools/seguimiento_postventa.py
+ create mode 100644 cotizaciones_pdf/COT-TEST-001.pdf
+ create mode 100644 cotizaciones_preliminares/PRE-1775185740.json
+ create mode 100644 generar_manual.py
+ create mode 100644 importaciones_productos/SETP1234 registro productos.xlsx
+ create mode 100644 templates/panel.html
+To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
+   418cf14..336113d  master -> main
+[2026-04-02 23:00:03] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-02 23:00'

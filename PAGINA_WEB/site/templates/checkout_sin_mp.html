@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Pedido registrado — McKenna Group{% endblock %}
+
+{% block content %}
+<div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:64px 32px;">
+  <div style="max-width:560px;width:100%;text-align:center;">
+
+    <div style="width:80px;height:80px;background:var(--green-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 32px;font-size:2rem;color:#fff;">
+      <i class="ph ph-clock"></i>
+    </div>
+
+    <span class="hero-badge" style="margin:0 auto 20px;display:table;">Pedido registrado</span>
+    <h1 style="font-size:2rem;font-weight:800;letter-spacing:-1px;margin-bottom:16px;">
+      ¡Tu pedido está listo, {{ buyer_name }}!
+    </h1>
+    <p style="color:var(--text-soft);font-size:1rem;line-height:1.8;margin-bottom:8px;">
+      Pedido <strong>{{ ref }}</strong> registrado correctamente.<br>
+      Para completar el pago, comunícate con nosotros por WhatsApp y te enviamos el link de pago.
+    </p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:32px;">
+      Total: <strong>${{ "{:,.0f}".format(total).replace(",", ".") }} COP</strong>
+    </p>
+
+    <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20pagar%20mi%20pedido%20{{ ref }}%20por%20${{ "{:,.0f}".format(total).replace(",", ".") }}%20COP"
+       target="_blank" rel="noopener" class="btn btn-wa btn-lg" style="margin-bottom:16px;">
+      <i class="ph ph-whatsapp-logo"></i>
+      Pagar por WhatsApp
+    </a>
+    <br>
+    <a href="{{ url_for('catalogo') }}" class="btn btn-outline btn-sm">← Seguir comprando</a>
+
+  </div>
+</div>
+{% endblock %}

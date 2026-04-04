@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}McKenna Group — Materias Primas Farmacéuticas y Cosméticas{% endblock %}
+
+{% block content %}
+
+<!-- ════════════════════════════════════════════════════════
+     HERO — split layout
+════════════════════════════════════════════════════════ -->
+<section class="hero">
+
+  <!-- Panel izquierdo oscuro -->
+  <div class="hero-left">
+    <span class="hero-badge">🌿 Materias Primas Certificadas · Colombia</span>
+
+    <h1 class="hero-title">
+      Ingredientes que<br>
+      <em>transforman</em><br>
+      tu industria
+    </h1>
+
+    <p class="hero-subtitle">
+      Más de 15 años proveyendo materias primas farmacéuticas y cosméticas
+      a la industria colombiana con los más altos estándares de calidad.
+    </p>
+
+    <div class="hero-cta">
+      <a href="{{ url_for('catalogo') }}" class="btn btn-primary btn-lg">
+        <i class="ph ph-storefront"></i>
+        Ver Catálogo
+      </a>
+      <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización"
+         target="_blank" rel="noopener" class="btn btn-ghost btn-lg">
+        <i class="ph ph-whatsapp-logo"></i>
+        Cotizar Ahora
+      </a>
+    </div>
+  </div>
+
+  <!-- Panel derecho blanco -->
+  <div class="hero-right">
+    <div class="hero-right-label">Por qué elegirnos</div>
+    <div class="kit-items">
+      <div class="kit-item">
+        <div class="kit-dot dot-1"><i class="ph ph-certificate"></i></div>
+        <div class="kit-info">
+          <h3>Calidad Certificada</h3>
+          <p>Cumplimiento de normas INVIMA y BPM</p>
+        </div>
+        <span class="kit-val">ISO</span>
+      </div>
+      <div class="kit-item">
+        <div class="kit-dot dot-2"><i class="ph ph-package"></i></div>
+        <div class="kit-info">
+          <h3>Despacho Nacional</h3>
+          <p>Envíos a todo Colombia con trazabilidad</p>
+        </div>
+        <span class="kit-val">48h</span>
+      </div>
+      <div class="kit-item">
+        <div class="kit-dot dot-3"><i class="ph ph-flask"></i></div>
+        <div class="kit-info">
+          <h3>Portafolio Completo</h3>
+          <p>+{{ featured|length * 10 }} referencias disponibles en stock</p>
+        </div>
+        <span class="kit-val">+200</span>
+      </div>
+      <div class="kit-item">
+        <div class="kit-dot dot-4"><i class="ph ph-headset"></i></div>
+        <div class="kit-info">
+          <h3>Asesoría Técnica</h3>
+          <p>Equipo especializado en formulación</p>
+        </div>
+        <span class="kit-val">B2B</span>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     FEATURES STRIP
+════════════════════════════════════════════════════════ -->
+<div class="features-strip" style="padding: 0;">
+  <div class="features-grid">
+    <div class="feature-item reveal">
+      <div class="feature-icon"><i class="ph ph-certificate"></i></div>
+      <div class="feature-text">
+        <strong>Calidad Certificada</strong>
+        <span>Normas INVIMA y BPM</span>
+      </div>
+    </div>
+    <div class="feature-item reveal reveal-delay-1">
+      <div class="feature-icon"><i class="ph ph-package"></i></div>
+      <div class="feature-text">
+        <strong>Despacho Nacional</strong>
+        <span>A todo Colombia</span>
+      </div>
+    </div>
+    <div class="feature-item reveal reveal-delay-2">
+      <div class="feature-icon"><i class="ph ph-headset"></i></div>
+      <div class="feature-text">
+        <strong>Asesoría Técnica</strong>
+        <span>Equipo especializado</span>
+      </div>
+    </div>
+    <div class="feature-item reveal reveal-delay-3">
+      <div class="feature-icon"><i class="ph ph-clock"></i></div>
+      <div class="feature-text">
+        <strong>Stock Permanente</strong>
+        <span>Disponibilidad inmediata</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     CATEGORÍAS (fondo oscuro, combo-card style)
+════════════════════════════════════════════════════════ -->
+<div class="cats-section">
+  <div class="cats-inner">
+    <div class="section reveal" style="padding: 0; max-width: none;">
+      <div class="section-header reveal">
+        <div class="section-number">01</div>
+        <div>
+          <span class="section-eyebrow">Nuestro Portafolio</span>
+          <h2 class="section-title" style="color:#fff;">
+            Explora por <em>Categoría</em>
+          </h2>
+          <p class="section-lead" style="color:rgba(255,255,255,0.65);">
+            Materias primas para la industria farmacéutica, cosmética y alimentaria.
+            Todo con calidad certificada y stock permanente.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cats-grid">
+      {% for section in catalog %}
+      <a href="{{ url_for('tienda', cat=section.name) }}"
+         class="cat-card reveal reveal-delay-{{ loop.index0 % 4 }}">
+        <div class="cat-card-dot"></div>
+        <h3>{{ section.name }}</h3>
+        <p>{{ section.products|length }} producto{% if section.products|length != 1 %}s{% endif %}</p>
+      </a>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:40px;text-align:center;position:relative;z-index:1;">
+      <a href="{{ url_for('catalogo') }}" class="btn btn-ghost btn-lg">
+        Ver catálogo completo <i class="ph ph-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PRODUCTOS DESTACADOS
+════════════════════════════════════════════════════════ -->
+<div style="background: var(--green-ultra);">
+  <div class="section">
+    <div class="section-header reveal">
+      <div class="section-number">02</div>
+      <div>
+        <span class="section-eyebrow">Productos</span>
+        <h2 class="section-title">
+          Selección <em>Destacada</em>
+        </h2>
+        <p class="section-lead">
+          Una muestra de nuestro portafolio. Precios con descuento de catálogo incluido.
+        </p>
+      </div>
+    </div>
+
+    <div class="products-grid">
+      {% for p in featured %}
+      <div class="product-card reveal reveal-delay-{{ loop.index0 % 3 }}">
+
+        <!-- Sidebar coloreada -->
+        <div class="product-card-sidebar" style="background:{{ p.cat_color }};">
+          <div class="product-img-wrap">
+            {% if p.photo %}
+            <img src="{{ p.photo }}" alt="{{ p.name }}" loading="lazy">
+            {% else %}
+            <div class="product-img-placeholder"><i class="ph ph-flask"></i></div>
+            {% endif %}
+          </div>
+          <div class="product-sidebar-inner">
+            <span class="product-cat-label">{{ p.cat }}</span>
+            <div class="product-price-big">{{ p.precio }}</div>
+            <div class="product-price-before">Antes {{ p.precio_meli }}</div>
+            <span class="product-saving-badge">Ahorras {{ p.ahorro }}</span>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="product-card-body">
+          <div class="product-card-top">
+            <div class="product-name">{{ p.name }}</div>
+            <div class="product-ref">Ref: {{ p.ref }}</div>
+          </div>
+          <div class="product-actions">
+            <a href="{{ url_for('producto', slug=p.slug) }}" class="btn btn-outline btn-sm">
+              Ver detalle
+            </a>
+            <a href="{{ wa_link(p) }}" target="_blank" rel="noopener" class="btn btn-wa btn-sm">
+              <i class="ph ph-whatsapp-logo"></i>
+              Ordenar
+            </a>
+          </div>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="text-align:center;margin-top:48px;">
+      <a href="{{ url_for('catalogo') }}" class="btn btn-dark btn-lg">
+        Ver todos los productos <i class="ph ph-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     BANNER CTA
+════════════════════════════════════════════════════════ -->
+<div class="banner-dark">
+  <div class="banner-dark-inner">
+    <div class="section-header reveal" style="margin-bottom:48px;">
+      <div class="section-number" style="color:rgba(255,255,255,0.08);">03</div>
+      <div>
+        <span class="section-eyebrow" style="color:var(--green-light);">Atención Personalizada</span>
+        <h2 class="section-title" style="color:#fff;">
+          ¿Necesitas una <em>cotización</em>?
+        </h2>
+        <p class="section-lead" style="color:rgba(255,255,255,0.65);">
+          Nuestro equipo técnico está listo para asesorarte en la selección
+          de materias primas para tu formulación específica.
+        </p>
+      </div>
+    </div>
+    <div class="hero-cta">
+      <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20quiero%20una%20cotización%20personalizada"
+         target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+        <i class="ph ph-whatsapp-logo"></i>
+        Cotizar por WhatsApp
+      </a>
+      <a href="{{ url_for('contacto') }}" class="btn btn-ghost btn-lg">
+        Formulario de Contacto
+      </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

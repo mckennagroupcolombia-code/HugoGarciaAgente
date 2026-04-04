@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Nosotros — McKenna Group{% endblock %}
+
+{% block content %}
+
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Sobre Nosotros</span>
+    <h1>McKenna Group <em>S.A.S.</em></h1>
+    <p>Más de 15 años proveyendo materias primas de alta calidad a la industria colombiana.</p>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header reveal">
+    <div class="section-number">01</div>
+    <div>
+      <span class="section-eyebrow">Quiénes somos</span>
+      <h2 class="section-title">Nuestra <em>Historia</em></h2>
+      <p class="section-lead">
+        McKenna Group S.A.S. es una empresa colombiana dedicada a la distribución
+        de materias primas farmacéuticas y cosméticas de alta calidad,
+        con sede en Bogotá y cobertura nacional.
+      </p>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-bottom:64px;">
+    <div class="protocol-box reveal">
+      <h4 style="font-size:2.5rem;font-weight:800;color:var(--green);letter-spacing:-2px;margin-bottom:4px;">15+</h4>
+      <p>Años de experiencia en la industria</p>
+    </div>
+    <div class="protocol-box reveal reveal-delay-1">
+      <h4 style="font-size:2.5rem;font-weight:800;color:var(--green);letter-spacing:-2px;margin-bottom:4px;">200+</h4>
+      <p>Referencias disponibles en stock</p>
+    </div>
+    <div class="protocol-box reveal reveal-delay-2">
+      <h4 style="font-size:2.5rem;font-weight:800;color:var(--green);letter-spacing:-2px;margin-bottom:4px;">Nacional</h4>
+      <p>Cobertura de despachos a todo Colombia</p>
+    </div>
+  </div>
+
+  <div class="section-header reveal" style="margin-top:40px;">
+    <div class="section-number">02</div>
+    <div>
+      <span class="section-eyebrow">Nuestro Compromiso</span>
+      <h2 class="section-title">Calidad y <em>Confianza</em></h2>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">
+    <div class="protocol-box reveal">
+      <h4>🌿 Calidad Certificada</h4>
+      <p>Todos nuestros productos cuentan con certificados de calidad y cumplen con las normativas INVIMA y BPM vigentes en Colombia.</p>
+    </div>
+    <div class="protocol-box reveal reveal-delay-1">
+      <h4>🔬 Asesoría Técnica</h4>
+      <p>Nuestro equipo de químicos y tecnólogos está disponible para asesorarte en la formulación y aplicación de materias primas.</p>
+    </div>
+    <div class="protocol-box reveal reveal-delay-2">
+      <h4>📦 Logística Confiable</h4>
+      <p>Trabajamos con las principales transportadoras del país para garantizar entregas seguras y oportunas a todo Colombia.</p>
+    </div>
+    <div class="protocol-box reveal reveal-delay-3">
+      <h4>💬 Atención Personalizada</h4>
+      <p>Atendemos por WhatsApp, email y teléfono. Respondemos cotizaciones en menos de 2 horas en días hábiles.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="banner-dark">
+  <div class="banner-dark-inner" style="text-align:center;">
+    <h2 style="color:#fff;font-size:clamp(1.5rem,3vw,2.5rem);margin-bottom:14px;">
+      ¿Quieres trabajar con nosotros?
+    </h2>
+    <p style="color:rgba(255,255,255,0.65);font-size:1rem;margin-bottom:36px;max-width:480px;margin-left:auto;margin-right:auto;">
+      Escríbenos y con gusto te explicamos cómo funciona nuestro proceso de ventas B2B.
+    </p>
+    <a href="https://wa.me/{{ WA_NUMBER }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+      <i class="ph ph-whatsapp-logo"></i>
+      Contáctanos
+    </a>
+  </div>
+</div>
+
+{% endblock %}

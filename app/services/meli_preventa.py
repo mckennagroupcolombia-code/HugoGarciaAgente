@@ -5,7 +5,7 @@ from google import genai
 
 PENDIENTES_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'preguntas_pendientes_preventa.json')
 CASOS_PATH = os.path.join(os.path.dirname(__file__), '..', 'training', 'casos_preventa.json')
-GRUPO = os.getenv('GRUPO_CONTABILIDAD_WA', '120363407538342427@g.us')
+GRUPO = os.getenv('GRUPO_PREVENTA_WA', '120363393955474672@g.us')
 
 
 # ---------------------------------------------------------------------------

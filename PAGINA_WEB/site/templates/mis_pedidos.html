@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Mis Pedidos — McKenna Group{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Historial</span>
+    <h1>Mis <em>pedidos</em></h1>
+  </div>
+</div>
+
+<div class="section" style="max-width:760px;margin:0 auto;padding:64px 32px;">
+
+  <form method="GET" style="display:flex;gap:12px;margin-bottom:40px;">
+    <input type="email" name="email" value="{{ email }}"
+           class="form-input" placeholder="Tu correo electrónico" required
+           style="flex:1;">
+    <button type="submit" class="btn btn-primary">Buscar</button>
+  </form>
+
+  {% if email %}
+    {% if orders %}
+      {% for o in orders %}
+      <div class="cart-row" style="padding:24px 0;align-items:center;">
+        <div style="flex:1;">
+          <div class="cart-name">{{ o['reference'] }}</div>
+          <div class="cart-ref">{{ o['created_at'][:10] }}</div>
+        </div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--green);margin:0 20px;">
+          ${{ "{:,.0f}".format(o['total']).replace(",", ".") }} COP
+        </div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+                    color:{% if o['status']=='approved' %}var(--green){% elif o['status']=='declined' %}#e53e3e{% else %}var(--text-muted){% endif %};">
+          {% if o['status'] == 'approved' %}✓ Aprobado
+          {% elif o['status'] == 'declined' %}✗ Rechazado
+          {% elif o['status'] == 'pending' %}⏳ Pendiente
+          {% else %}{{ o['status'] }}{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="color:var(--text-muted);text-align:center;padding:40px 0;">
+        No encontramos pedidos para <strong>{{ email }}</strong>.
+      </p>
+    {% endif %}
+  {% endif %}
+
+</div>
+{% endblock %}

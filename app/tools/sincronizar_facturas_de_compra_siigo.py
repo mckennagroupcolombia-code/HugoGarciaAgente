@@ -333,15 +333,17 @@ def descargar_y_extraer_zip(gmail_service, msg_id, att_id, zip_filename):
 
 from app.utils import enviar_whatsapp_reporte
 
+GRUPO_COMPRAS = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")
+
 def enviar_mensaje_whatsapp_grupo(mensaje):
     """
-    Envía mensaje al grupo de WhatsApp usando la utilidad centralizada.
+    Envía mensaje al grupo de WhatsApp de facturas de compra.
     """
     print("="*50)
-    print("📱 [WHATSAPP - GRUPO MCKG] ENVIANDO MENSAJE:")
+    print("📱 [WHATSAPP - GRUPO COMPRAS] ENVIANDO MENSAJE:")
     print(mensaje)
     print("="*50)
-    enviar_whatsapp_reporte(mensaje)
+    enviar_whatsapp_reporte(mensaje, numero_destino=GRUPO_COMPRAS)
 
 def sincronizar_facturas_de_compra_siigo():
     """
