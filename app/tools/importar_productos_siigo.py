@@ -941,19 +941,60 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
         return f"⏭️ Factura *{numero_factura}* omitida. No se registró nada en SIIGO."
 
     if cmd == 'gasto':
-        _quitar_pendiente(key)
+        datos = json.loads(entrada['datos_json'])
         total = entrada.get('total', 0)
         n_items = entrada.get('items_count', 0)
-        threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
-        return (
-            f"✅ *Factura {numero_factura} marcada como GASTO*\n"
-            f"🏢 Proveedor: {proveedor}\n"
-            f"📦 {n_items} ítem(s)  |  💰 Total: ${total:,.0f} COP\n\n"
-            f"⚠️ *Esta factura NO se registró automáticamente en SIIGO.*\n"
-            f"Los gastos/consumibles deben ingresarse manualmente:\n\n"
-            f"   SIIGO → Compras → *Nueva compra o gasto*\n"
-            f"   Busca el PDF en la carpeta *facturas_descargadas/*"
+
+        enviar_whatsapp_reporte(
+            f"⚙️ Registrando factura *{numero_factura}* ({proveedor}) en SIIGO…",
+            numero_destino=GRUPO_COMPRAS,
         )
+
+        from app.services.siigo import crear_factura_compra_siigo
+        payload_siigo = {
+            "document": {"id": 24446},
+            "date": datos.get("fecha", datetime.now().strftime("%Y-%m-%d")),
+            "supplier": {"identification": datos.get("nit", "999999999"), "branch_office": 0},
+            "provider_invoice": {
+                "prefix": datos.get("prefix", ""),
+                "number": datos.get("number", "0")
+            },
+            "items": [
+                {
+                    "type": "Service",
+                    "code": "GASTO-GEN",
+                    "description": it.get("description", "Gasto")[:100],
+                    "quantity": it.get("quantity", 1),
+                    "price": it.get("price", 0),
+                    "taxes": []
+                }
+                for it in datos.get("items", [])
+            ],
+            "payments": [{"id": 5636, "value": datos.get("total_neto", total)}],
+            "observations": f"Gasto/consumible — {numero_factura} — {proveedor}"
+        }
+
+        resultado = crear_factura_compra_siigo(payload_siigo)
+
+        _quitar_pendiente(key)
+        threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
+
+        if resultado.get("status") == "success":
+            siigo_id = resultado.get("data", {}).get("id", "—")
+            return (
+                f"✅ *Factura {numero_factura} registrada en SIIGO*\n"
+                f"🏢 Proveedor: {proveedor}\n"
+                f"📦 {n_items} ítem(s)  |  💰 Total: ${total:,.0f} COP\n"
+                f"🆔 ID SIIGO: {siigo_id}"
+            )
+        else:
+            error = resultado.get("message", str(resultado))
+            return (
+                f"❌ *Error al registrar {numero_factura} en SIIGO*\n"
+                f"🏢 Proveedor: {proveedor}\n"
+                f"⚠️ Error: {error[:200]}\n\n"
+                f"Registra manualmente: SIIGO → Compras → Nueva compra o gasto"
+            )
 
     # ── Inventario (proveedor nuevo) ─────────────────────────────
     if cmd == 'inventario':
