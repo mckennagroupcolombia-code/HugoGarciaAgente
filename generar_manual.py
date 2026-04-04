@@ -344,7 +344,7 @@ def portada(s: dict) -> list:
     # Descripción
     elems.append(Paragraph(
         'Guía completa de operación, comandos, arquitectura técnica y flujos de trabajo<br/>'
-        f'del sistema de automatización empresarial de McKenna Group · v2.1 · {fecha_gen}',
+        f'del sistema de automatización empresarial de McKenna Group · v2.2 · {fecha_gen}',
         s['portada_desc']
     ))
     elems.append(sp(1.2))
@@ -405,7 +405,9 @@ def tabla_contenidos(s: dict) -> list:
         ('07', 'Sincronización de Inventario', [
             'Principio de stock', 'MeLi ↔ WooCommerce', 'Comandos de sync']),
         ('08', 'Facturación SIIGO y Documentos Fiscales', [
-            'Ciclo completo de facturación', 'Facturas de compra desde Gmail']),
+            'Flujo A: Compra materias primas (Gmail → XML → SIIGO)',
+            'Flujo B: Facturación de venta a clientes',
+            'Protocolo de carga en SIIGO', 'Tabla de conversión de unidades']),
         ('09', 'Panel Web y Menú CLI', [
             'Panel en navegador', 'Menú interactivo CLI']),
         ('10', 'Monitor de Alertas Automáticas', [
@@ -620,11 +622,14 @@ def sec03_modulos(s: dict) -> list:
          'Cada venta en MeLi actualiza automáticamente el stock en WooCommerce y viceversa. '
          'Principio: cada plataforma es fuente de verdad de su propio stock cuando vende. '
          'Las sincronizaciones masivas se lanzan desde el CLI o los endpoints autenticados.'),
-        ('🧾', 'MOD-05', 'Sincronización Inteligente MeLi ↔ SIIGO', C_RED,
-         'Cruza órdenes MeLi con facturas SIIGO usando el Pack ID como llave. '
-         'Descarga el PDF de la factura SIIGO y lo adjunta automáticamente a la orden en MeLi '
-         'como documento fiscal (cumplimiento DIAN). También importa facturas de compra '
-         'de proveedores desde Gmail (XML UBL 2.1 DIAN).'),
+        ('🧾', 'MOD-05', 'SIIGO: Dos Flujos Independientes', C_RED,
+         'FLUJO A — Registro de compra (proveedores especiales): procesa facturas electrónicas de '
+         'proveedores de materias primas desde Gmail (XML UBL 2.1 DIAN), genera código McKenna, '
+         'convierte unidades (LTR→mL, KGM→g), genera Excel de importación masiva y XML de compra '
+         'con códigos internos para cargar en SIIGO con "Crear compra o gasto desde un XML o ZIP". '
+         'Solo aplica a proveedores de materias primas inventariables configurados en la lista. | '
+         'FLUJO B — Facturación de venta (clientes): crea factura electrónica SIIGO cuando se '
+         'confirma un pago, cruza órdenes MeLi con el Pack ID, descarga PDF y lo adjunta en MeLi.'),
         ('📄', 'MOD-06', 'Catálogo PDF Corporativo', C_GREEN,
          'Genera el catálogo de productos en PDF con diseño McKenna Group: lee el inventario '
          'de Google Sheets, descarga fotos reales de MeLi por item_id, genera tarjetas de producto '
@@ -964,24 +969,81 @@ def sec08_siigo(s: dict) -> list:
         col_widths=[4.2*cm, PAGE_W - 2*MARGEN - 4.4*cm]))
 
     elems.append(sp(0.3))
-    elems.append(subsection('8.2 Facturas de Compra de Proveedores (Gmail + XML DIAN)', s))
+    elems.append(subsection('8.2 Flujo A — Registro de Compra de Materias Primas (Gmail + XML DIAN)', s))
     elems.append(body(
-        'El módulo importar_productos_siigo.py automatiza la importación de facturas electrónicas '
-        'de proveedores que llegan por correo a Gmail. El proceso es:', s))
+        '<b>¡ATENCIÓN!</b> Este flujo es completamente independiente de la facturación de venta. '
+        'Solo aplica a proveedores de <b>materias primas inventariables</b> (jabones, aceites, químicos, etc.). '
+        'Las facturas de consumibles, gastos de envío o servicios se registran directamente en SIIGO '
+        'como gasto/costo, sin pasar por este módulo.', s))
+
+    elems.append(sp(0.2))
+    elems.append(nota('📋',
+        '<b>Lista de proveedores especiales:</b> Configurar en '
+        '<b>app/data/proveedores_especiales.json</b> los NITs de los proveedores de materias primas. '
+        'Si la lista está vacía, el sistema procesa todos los proveedores (modo permisivo). '
+        'Solo los proveedores listados como activos pasan por el proceso de codificación de inventario.',
+        s, bg=colors.HexColor('#fffbeb'), border=colors.HexColor('#fde68a')))
+
+    elems.append(sp(0.2))
 
     gmail_flow = [
         ['Paso', 'Descripción'],
-        ['1. Gmail OAuth', 'El agente se autentifica en Gmail y busca correos con archivos .zip adjuntos de proveedores.'],
-        ['2. Extracción ZIP', 'Descomprime el archivo y extrae el XML DIAN (formato UBL 2.1 estándar colombiano).'],
-        ['3. Parseo XML', 'Lee los campos: código de producto, descripción, cantidad, unidad (LTR, KGM, GLL, etc.), precio.'],
-        ['4. Conversión de unidades', 'Convierte automáticamente: LTR→mL (×1000), KGM→g (×1000), GLL→mL (×3785), etc.'],
-        ['5. Generación de código SKU', 'Genera código McKenna automáticamente: 3 iniciales del proveedor + 3 palabras clave del nombre + unidad. Ej: ACERICmL.'],
-        ['6. Verificación SIIGO', 'Consulta la API de SIIGO para evitar duplicados por código de producto.'],
-        ['7. Excel de importación', 'Genera el archivo Excel con la plantilla de importación masiva de SIIGO.'],
-        ['8. Aprobación humana', 'Envía el Excel al grupo de WhatsApp para revisión. El operador escribe "ok" para proceder.'],
+        ['1. Gmail OAuth', 'El agente se autentica en Gmail y busca correos con label "FACTURAS MCKG" que tengan archivos .zip adjuntos.'],
+        ['2. Filtro proveedor', 'Verifica si el NIT o nombre del proveedor está en app/data/proveedores_especiales.json. Si no está, la factura se omite con mensaje claro.'],
+        ['3. Extracción ZIP', 'Descomprime el archivo y extrae el XML DIAN (formato UBL 2.1 estándar colombiano).'],
+        ['4. Parseo XML', 'Lee: descripción del producto, cantidad, unidad DIAN (LTR, KGM, GLL, NAR, etc.), subtotal e IVA por línea.'],
+        ['5. Conversión unidades', 'Convierte a unidad mínima de inventario: LTR→mL (×1.000), KGM→g (×1.000), GLL→mL (×3.785), GRM→g (×1), etc.'],
+        ['6. Código McKenna', 'Genera código interno SIIGO: 3 letras × hasta 3 palabras clave (sin stopwords) + sufijo de unidad. Ejemplo: RICINOLTR → ACERICmL.'],
+        ['7. Verificación SIIGO', 'Consulta API SIIGO para marcar productos ya existentes como DUPLICADO (se incluyen en el Excel para revisión pero no se sobreescriben).'],
+        ['8. Excel de importación', 'Genera archivo: "[Factura] registro productos.xlsx" con columnas: Tipo, Categoría, Código, Nombre, Inventariable, Unidad DIAN, Precio/unidad.'],
+        ['9. XML de compra', 'Genera archivo: "[Factura] codigos siigo.xml" con los códigos internos McKenna, cantidades convertidas, precios con IVA y protocolo de carga.'],
+        ['10. Notificación WA', 'Envía al grupo de contabilidad el resumen + Excel + XML adjuntos con el protocolo de pasos a seguir en SIIGO.'],
     ]
     elems.append(tabla_comandos(gmail_flow, s,
         col_widths=[3.5*cm, PAGE_W - 2*MARGEN - 3.7*cm]))
+
+    elems.append(sp(0.3))
+    elems.append(subsection('8.3 Protocolo de Carga en SIIGO', s))
+    elems.append(body(
+        'Una vez recibidos los archivos por WhatsApp, seguir estos pasos en SIIGO Nube:', s))
+
+    protocolo = [
+        ['Paso', 'Acción en SIIGO', 'Archivo'],
+        ['Paso A1', 'SIIGO → Inventario → Productos → ▶ Importación', 'Excel adjunto'],
+        ['Paso A2', 'Seleccionar el archivo Excel en el Paso 2 del asistente', 'Excel adjunto'],
+        ['Paso A3', 'Verificar la vista previa: revisar los productos marcados como DUPLICADO antes de confirmar', '—'],
+        ['Paso B1', 'SIIGO → Compras → Crear compra o gasto desde un XML o ZIP', 'XML adjunto'],
+        ['Paso B2', 'Cargar el archivo XML codigos siigo.xml', 'XML adjunto'],
+        ['Paso B3', 'Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor', '—'],
+        ['Paso B4', 'Asentar el documento para registrar la compra en contabilidad', '—'],
+    ]
+    elems.append(tabla_comandos(protocolo, s,
+        col_widths=[2.2*cm, 8.5*cm, PAGE_W - 2*MARGEN - 10.9*cm]))
+
+    elems.append(sp(0.2))
+    elems.append(nota('⚠️',
+        '<b>Pasos A y B son independientes:</b> El Paso A registra los productos en el catálogo de inventario. '
+        'El Paso B registra la compra en la contabilidad. Ambos deben hacerse para que el inventario '
+        'y la contabilidad queden correctamente actualizados en SIIGO. Si todos los productos son duplicados, '
+        'el Paso A puede omitirse.',
+        s, bg=colors.HexColor('#fff1f2'), border=colors.HexColor('#fecaca')))
+
+    elems.append(sp(0.3))
+    elems.append(subsection('8.4 Tabla de Conversión de Unidades', s))
+
+    unidades = [
+        ['Código DIAN', 'Nombre', 'Unidad mínima', 'Factor'],
+        ['LTR', 'Litro', 'mL', '× 1.000'],
+        ['KGM', 'Kilogramo', 'g', '× 1.000'],
+        ['GLL', 'Galón US', 'mL', '× 3.785'],
+        ['GRM', 'Gramo', 'g', '× 1'],
+        ['MLT', 'Mililitro', 'mL', '× 1'],
+        ['LBR', 'Libra', 'g', '× 453,59'],
+        ['NAR', 'Unidad (artículo)', 'Un', '× 1'],
+        ['DZN', 'Docena', 'Un', '× 12'],
+    ]
+    elems.append(tabla_comandos(unidades, s,
+        col_widths=[3.0*cm, 3.5*cm, 3.5*cm, PAGE_W - 2*MARGEN - 10.2*cm]))
 
     elems.append(PageBreak())
     return elems
@@ -1110,6 +1172,11 @@ def sec11_glosario_faq(s: dict) -> list:
         ['Daemon', 'Proceso que corre en segundo plano continuamente sin interfaz de usuario (ej: el monitor de alertas)'],
         ['SKU', 'Stock Keeping Unit — código único que identifica un producto en todas las plataformas'],
         ['Cloudflare Tunnel', 'Servicio que expone el servidor local al internet de forma segura sin abrir puertos ni exponer la IP'],
+        ['Proveedor especial', 'Proveedor de materias primas inventariables registrado en app/data/proveedores_especiales.json. Solo estos pasan por el flujo de codificación McKenna.'],
+        ['Código McKenna', 'Código interno de producto SIIGO generado automáticamente: 3 letras iniciales × 3 palabras clave del nombre + sufijo de unidad (mL, g, Un). Ej: ACERICmL.'],
+        ['Flujo A (compra)', 'Proceso de registro de compra de materias primas en SIIGO: Gmail → ZIP → XML DIAN → codificar → importar inventario + registrar compra.'],
+        ['Flujo B (venta)', 'Proceso de facturación de venta a clientes en SIIGO: pago confirmado → crear factura → PDF → subir a MeLi. Completamente independiente del Flujo A.'],
+        ['Unidad mínima', 'Unidad de medida base para el inventario en SIIGO: mL para líquidos, g para sólidos, Un para artículos. Las cantidades del proveedor se convierten a esta unidad.'],
     ]
     elems.append(tabla_comandos(glosario, s,
         col_widths=[3.8*cm, PAGE_W - 2*MARGEN - 4.0*cm]))
@@ -1148,6 +1215,29 @@ def sec11_glosario_faq(s: dict) -> list:
          'En la carpeta comprobantes/ del proyecto, con nombre {número}_{timestamp}.jpeg. '
          'Se guardan indefinidamente como registro. Limpiar periódicamente los más antiguos '
          'para no acumular espacio en disco.'),
+        ('¿Cuál es la diferencia entre el Flujo A y el Flujo B de SIIGO?',
+         'Son dos procesos completamente independientes y no deben confundirse:\n'
+         '• Flujo A (compra): cuando McKenna COMPRA materias primas a un proveedor. '
+         'El agente procesa la factura electrónica del proveedor (XML DIAN) desde Gmail, '
+         'genera códigos internos y produce el Excel + XML para registrar en SIIGO la entrada de inventario.\n'
+         '• Flujo B (venta): cuando McKenna VENDE a un cliente. El agente crea la factura electrónica '
+         'de venta en SIIGO y la adjunta a la orden en MercadoLibre.\n'
+         'Un proveedor que vende consumibles o servicios (empaque, envíos, etc.) se registra '
+         'directamente en SIIGO como gasto, sin pasar por el Flujo A.'),
+        ('¿Cómo agrego un proveedor de materias primas para que el agente lo procese automáticamente?',
+         'Editar el archivo app/data/proveedores_especiales.json y agregar una entrada con el NIT '
+         'del proveedor, su nombre, activo: true y una nota descriptiva. Ejemplo:\n'
+         '{ "nit": "900123456", "nombre": "PROVEEDOR S.A.S.", "activo": true, "nota": "Aceites y alcoholes" }\n'
+         'Si la lista está vacía, el agente procesa todos los proveedores (modo permisivo). '
+         'Esto es útil durante la configuración inicial.'),
+        ('¿Cómo se genera el código McKenna de un producto?',
+         'El código se construye automáticamente a partir del nombre del producto en la factura del proveedor:\n'
+         '1. Se normalizan las palabras (sin tildes, mayúsculas)\n'
+         '2. Se eliminan stopwords (de, del, la, el, para, con, etc.)\n'
+         '3. Se toman las 3 primeras letras de hasta 3 palabras clave\n'
+         '4. Se agrega el sufijo de unidad mínima (mL, g, Un)\n'
+         'Ejemplo: "ACEITE DE RICINO" en litros → ACE + RIC = ACERICmL\n'
+         'El mismo código se usa en el Excel de importación y en el XML de compra.'),
     ]
 
     for preg, resp in faqs:
@@ -1188,7 +1278,7 @@ def sec11_glosario_faq(s: dict) -> list:
     cierre_t = Table(
         [[Paragraph(
             'McKenna Group S.A.S. · Bogotá, Colombia · mckennagroup.co\n'
-            f'Manual de Usuario Hugo García v2.1 · Generado el {fecha_gen}\n'
+            f'Manual de Usuario Hugo García v2.2 · Generado el {fecha_gen}\n'
             'Este documento es confidencial y de uso interno.',
             ParagraphStyle('__c', fontName='Helvetica', fontSize=8.5,
                            textColor=C_GRAY, alignment=TA_CENTER, leading=14)
@@ -1223,7 +1313,7 @@ def generar_pdf() -> str:
     )
 
     s   = estilos()
-    dec = PaginaDecoracion('v2.1')
+    dec = PaginaDecoracion('v2.2')
 
     elems = []
     elems += portada(s)
@@ -1263,7 +1353,7 @@ def enviar_por_correo(pdf_path: str):
     msg = MIMEMultipart()
     msg['From']    = remitente
     msg['To']      = dest
-    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v2.1 · McKenna Group · {hoy}'
+    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v2.2 · McKenna Group · {hoy}'
 
     cuerpo = f"""Hola,
 
@@ -1279,7 +1369,7 @@ El manual incluye:
   • Monitor de alertas y tareas programadas
   • Glosario técnico y preguntas frecuentes
 
-Versión: v2.1 · Generado el {hoy}
+Versión: v2.2 · Generado el {hoy}
 
 ---
 McKenna Group S.A.S. · Bogotá, Colombia

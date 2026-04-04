@@ -277,8 +277,10 @@ def crear_cotizacion_siigo(nombre_cliente: str, identificacion: str, email: str,
     # Enviar correo usando la herramienta existente
     resultado_email = enviar_email_reporte("Cotización McKenna Group", mensaje_email, email)
     
-    # Enviar reporte al grupo de WhatsApp
+    # Enviar reporte al grupo de facturación de ventas
+    import os as _os
     from app.utils import enviar_whatsapp_reporte
+    grupo_ventas = _os.getenv("GRUPO_FACTURACION_VENTAS_WA", "120363425465848868@g.us")
     mensaje_wa = f"📝 *Nueva Cotización Generada en SIIGO*\n"
     mensaje_wa += f"👤 *Cliente:* {nombre_cliente} ({identificacion})\n"
     mensaje_wa += f"💰 *Total:* ${total}\n"
@@ -287,8 +289,8 @@ def crear_cotizacion_siigo(nombre_cliente: str, identificacion: str, email: str,
     mensaje_wa += "📦 *Productos:*\n"
     for p in productos:
         mensaje_wa += f"- {p['cantidad']}x {p['nombre']}\n"
-        
-    enviar_whatsapp_reporte(mensaje_wa)
+
+    enviar_whatsapp_reporte(mensaje_wa, numero_destino=grupo_ventas)
     
     if "Error" in resultado_email:
         return f"✅ Cotización generada en SIIGO, pero falló el envío por correo: {resultado_email}"
@@ -503,16 +505,18 @@ def crear_factura_completa_siigo(nombre_cliente: str, identificacion: str, direc
         for p in productos_lista:
             mensaje_wa += f"- {p['cantidad']}x {p['nombre']} (${p['precio_unitario']})\n"
         
-        # Enviar mensaje de texto con resumen
-        enviar_whatsapp_reporte(mensaje_wa)
-        
+        # Enviar mensaje de texto con resumen al grupo de facturación de ventas
+        import os as _os
+        grupo_ventas = _os.getenv("GRUPO_FACTURACION_VENTAS_WA", "120363425465848868@g.us")
+        enviar_whatsapp_reporte(mensaje_wa, numero_destino=grupo_ventas)
+
         # Enviar PDF de la factura
         if pdf_path:
-            enviar_whatsapp_archivo(pdf_path, f"Factura Electrónica {factura_numero}", f"Factura_{factura_numero}.pdf")
-            
+            enviar_whatsapp_archivo(pdf_path, f"Factura Electrónica {factura_numero}", f"Factura_{factura_numero}.pdf", numero_destino=grupo_ventas)
+
         # Enviar Comprobante de Pago si existe
         if comprobante_pago_path:
-            enviar_whatsapp_archivo(comprobante_pago_path, "Comprobante de Pago del Cliente")
+            enviar_whatsapp_archivo(comprobante_pago_path, "Comprobante de Pago del Cliente", numero_destino=grupo_ventas)
 
         return f"✅ Factura {factura_numero} generada y reportada exitosamente.{observaciones_adicionales}"
 

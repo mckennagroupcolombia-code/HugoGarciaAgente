@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Checkout — McKenna Group{% endblock %}
+
+{% block content %}
+
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Paso final</span>
+    <h1>Completa <em>tu pedido</em></h1>
+    <p>Revisa tu orden y paga de forma segura con MercadoPago.</p>
+  </div>
+</div>
+
+<div class="section" style="max-width:1000px;margin:0 auto;padding:64px 32px;">
+  <div class="checkout-grid">
+
+    <!-- Resumen del pedido -->
+    <div>
+      <div class="card-section-title">Tu pedido</div>
+
+      <div class="checkout-items">
+        {% for slug, item in cart.items() %}
+        <div class="checkout-item">
+          <div class="checkout-item-img">
+            {% if item.photo %}
+            <img src="{{ item.photo }}" alt="{{ item.name }}" loading="lazy">
+            {% else %}
+            <div class="checkout-item-placeholder"><i class="ph ph-flask"></i></div>
+            {% endif %}
+          </div>
+          <div class="checkout-item-info">
+            <div class="checkout-item-name">{{ item.name }}</div>
+            <div class="checkout-item-ref">Ref: {{ item.ref }} · x{{ item.qty }}</div>
+          </div>
+          <div class="checkout-item-price">
+            ${{ "{:,.0f}".format(item.price * item.qty).replace(",", ".") }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="checkout-totals">
+        <div class="checkout-total-row">
+          <span>Subtotal</span>
+          <span>${{ "{:,.0f}".format(total).replace(",", ".") }} COP</span>
+        </div>
+        <div class="checkout-total-row">
+          <span>IVA</span>
+          <span style="color:var(--green);">Exento / Incluido</span>
+        </div>
+        <div class="checkout-total-row checkout-total-final">
+          <span>Total</span>
+          <span>${{ "{:,.0f}".format(total).replace(",", ".") }} COP</span>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;padding:16px 20px;background:var(--green-ultra);border:1.5px solid var(--green-pale);">
+        <p style="font-size:12px;color:var(--text-soft);margin:0;line-height:1.7;">
+          <strong style="color:var(--green-dark);">Referencia:</strong> {{ ref }}<br>
+          Serás redirigido al portal seguro de MercadoPago para completar el pago
+          con PSE, tarjeta, Nequi, Daviplata o efectivo.
+        </p>
+      </div>
+    </div>
+
+    <!-- Formulario datos del comprador -->
+    <div>
+      <div class="card-section-title">Datos del comprador</div>
+
+      <form method="POST" action="{{ url_for('checkout_pagar') }}"
+            style="display:flex;flex-direction:column;gap:16px;">
+
+        <input type="hidden" name="ref" value="{{ ref }}">
+
+        <div class="form-group">
+          <label class="form-label">Nombre completo *</label>
+          <input type="text" name="buyer_name" class="form-input" required
+                 placeholder="Tu nombre completo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo electrónico *</label>
+          <input type="email" name="buyer_email" class="form-input" required
+                 placeholder="tu@correo.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Celular / Teléfono *</label>
+          <input type="tel" name="buyer_phone" class="form-input" required
+                 placeholder="3001234567">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ciudad de entrega</label>
+          <input type="text" name="buyer_city" class="form-input" placeholder="Bogotá">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dirección de entrega</label>
+          <input type="text" name="buyer_address" class="form-input"
+                 placeholder="Calle 123 # 45-67">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg"
+                style="justify-content:center;margin-top:8px;">
+          <i class="ph ph-lock"></i>
+          Pagar ${{ "{:,.0f}".format(total).replace(",", ".") }} COP con MercadoPago
+        </button>
+
+        <p style="font-size:11px;color:var(--text-muted);text-align:center;">
+          Pago procesado de forma segura por MercadoPago Colombia
+        </p>
+
+        <div class="checkout-payment-methods">
+          <span>PSE</span>
+          <span>Visa / MC</span>
+          <span>Nequi</span>
+          <span>Daviplata</span>
+          <span>Efecty</span>
+          <span>Bancolombia</span>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

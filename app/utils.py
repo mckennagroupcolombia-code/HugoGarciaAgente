@@ -109,12 +109,13 @@ def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
     print(f"❌ Fallo el envío a WhatsApp después de {max_intentos} intentos.")
     return False
 
-def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: str = None):
+def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: str = None, numero_destino: str = None):
     """
     Envía un archivo (PDF, Imagen, etc.) al grupo de WhatsApp designado para reportes.
     """
+    destino = numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
     payload = {
-        "numero": TELEFONO_GRUPO_REPORTE,
+        "numero": destino,
         "mensaje": texto_mensaje,
         "filePath": file_path,
         "fileName": file_name

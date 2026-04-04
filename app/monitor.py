@@ -19,7 +19,13 @@ def _get_enviar():
         _enviar_whatsapp = enviar_whatsapp_reporte
     return _enviar_whatsapp
 
-GRUPO = os.getenv('GRUPO_CONTABILIDAD_WA', '120363407538342427@g.us')
+# Grupos por tipo de alerta
+GRUPO_SISTEMAS    = os.getenv('GRUPO_FACTURACION_COMPRAS_WA', '120363408323873426@g.us')
+GRUPO_PREVENTA    = os.getenv('GRUPO_PREVENTA_WA',            '120363393955474672@g.us')
+GRUPO_COMPROBANTES = os.getenv('GRUPO_FACTURACION_COMPRAS_WA','120363408323873426@g.us')
+GRUPO_STOCK       = os.getenv('GRUPO_INVENTARIO_WA',          '120363407538342427@g.us')
+GRUPO_RESUMEN     = os.getenv('GRUPO_FACTURACION_COMPRAS_WA', '120363408323873426@g.us')
+
 METRICAS_PATH = os.path.join(os.path.dirname(__file__), 'data', 'metricas_diarias.json')
 
 
@@ -82,7 +88,7 @@ def verificar_servicios():
                 f"🔴 ALERTA SISTEMA\n"
                 f"❌ {nombre} (puerto {puerto}) no responde\n"
                 f"🔄 Intentando reinicio automático...",
-                numero_destino=GRUPO
+                numero_destino=GRUPO_SISTEMAS
             )
             try:
                 subprocess.run(['sudo', 'systemctl', 'restart', nombre],
@@ -119,7 +125,7 @@ def verificar_preguntas_meli():
             _get_enviar()(
                 f"⚠️ PREGUNTAS MELI SIN RESPONDER: {n} preguntas pendientes\n"
                 f"Última: '{ultima[:50]}...'",
-                numero_destino=GRUPO
+                numero_destino=GRUPO_PREVENTA
             )
     except Exception as e:
         print(f"❌ Monitor: error verificando preguntas MeLi: {e}")
@@ -144,7 +150,7 @@ def verificar_comprobantes_pendientes():
                     f"💰 PAGO PENDIENTE\n"
                     f"Cliente {numero} envió comprobante hace {minutos} minutos sin confirmar.\n"
                     f"Responde: 'ok confirmado {numero}'",
-                    numero_destino=GRUPO
+                    numero_destino=GRUPO_COMPROBANTES
                 )
     except Exception as e:
         print(f"❌ Monitor: error verificando comprobantes: {e}")
@@ -162,7 +168,7 @@ def sync_stock_diario():
         if resultado:
             _get_enviar()(
                 f"📦 REPORTE STOCK DIARIO\n{str(resultado)[:500]}",
-                numero_destino=GRUPO
+                numero_destino=GRUPO_STOCK
             )
     except Exception as e:
         print(f"❌ Monitor: error en sync stock diario: {e}")
@@ -195,7 +201,7 @@ def enviar_resumen_diario():
             f"📦 Órdenes sincronizadas: {metricas.get('ordenes_sincronizadas', 0)}"
         )
         print(f"🔍 Monitor: enviando resumen diario")
-        _get_enviar()(msg, numero_destino=GRUPO)
+        _get_enviar()(msg, numero_destino=GRUPO_RESUMEN)
     except Exception as e:
         print(f"❌ Monitor: error en resumen diario: {e}")
 
@@ -267,7 +273,7 @@ def verificar_fichas_tecnicas_faltantes():
                 f"(columna I). Sin ficha, el agente no puede responder preguntas de "
                 f"preventa automáticamente:\n\n{lista}{extra}\n\n"
                 f"Por favor diligenciar en el catálogo para mejorar la automatización.",
-                numero_destino=GRUPO
+                numero_destino=GRUPO_PREVENTA
             )
             print(f"📋 Monitor: {len(sin_ficha)} producto(s) sin ficha técnica notificados")
     except Exception as e:

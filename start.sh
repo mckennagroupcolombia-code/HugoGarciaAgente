@@ -121,7 +121,19 @@ else
     echo "⚠️  Continuando sin Cloudflare Tunnel."
 fi
 
-# --- 4. Iniciar el agente principal ---
+# --- 4. Iniciar el website nativo (puerto 8083) ---
+echo "🌐 Iniciando website nativo McKenna Group (puerto 8083)..."
+python3 "$SCRIPT_DIR/PAGINA_WEB/site/website.py" > "$SCRIPT_DIR/.website.log" 2>&1 &
+WEBSITE_PID=$!
+echo "   Website PID: $WEBSITE_PID"
+sleep 2
+if kill -0 "$WEBSITE_PID" 2>/dev/null; then
+    echo "   ✅ Website iniciado correctamente"
+else
+    echo "   ⚠️  Website no pudo iniciar — revisa .website.log"
+fi
+
+# --- 5. Iniciar el agente principal ---
 echo ""
 echo "🚀 Iniciando el Agente McKenna Group (agente_pro.py)..."
 echo "   Puerto: 8081"

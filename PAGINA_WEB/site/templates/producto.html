@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}{{ p.name }} — McKenna Group{% endblock %}
+{% block description %}Compra {{ p.name }} (Ref: {{ p.ref }}) al precio de {{ p.precio }}. Stock disponible, despacho a todo Colombia.{% endblock %}
+
+{% block content %}
+
+<!-- Hero producto -->
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">{{ p.cat }}</span>
+    <h1>{{ p.name }}</h1>
+    <p>Ref: {{ p.ref }} &nbsp;·&nbsp; Precio: <strong style="color:var(--green-light)">{{ p.precio }}</strong></p>
+  </div>
+</div>
+
+<!-- Detalle -->
+<div class="section">
+  <div style="display:grid;grid-template-columns:340px 1fr;gap:48px;align-items:start;">
+
+    <!-- Columna imagen -->
+    <div>
+      <div style="background:var(--green-pale);display:flex;align-items:center;justify-content:center;padding:48px;border:1.5px solid var(--green-pale);">
+        {% if p.photo %}
+        <img src="{{ p.photo }}" alt="{{ p.name }}"
+             style="max-width:240px;max-height:240px;object-fit:contain;mix-blend-mode:multiply;">
+        {% else %}
+        <div style="display:flex;align-items:center;justify-content:center;width:180px;height:180px;color:var(--green-light);font-size:5rem;opacity:0.4;">
+          <i class="ph ph-flask"></i>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if p.meli_id %}
+      <a href="https://articulo.mercadolibre.com.co/MCO-{{ p.meli_id[3:] }}"
+         target="_blank" rel="noopener"
+         class="btn btn-outline btn-sm"
+         style="margin-top:16px;width:100%;justify-content:center;display:flex;">
+        <i class="ph ph-shopping-bag"></i>
+        Ver en MercadoLibre
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Columna info -->
+    <div>
+
+      <!-- Ficha técnica rápida -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-bottom:40px;">
+        <div style="background:var(--green-deep);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">
+            Referencia
+          </div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">
+            {{ p.ref }}
+          </div>
+        </div>
+        <div style="background:var(--green-dark);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">
+            Precio
+          </div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">
+            {{ p.precio }}
+          </div>
+        </div>
+        <div style="background:var(--green);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">
+            Ahorro
+          </div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">
+            {{ p.ahorro }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Precio full -->
+      <div style="margin-bottom:36px;padding:28px 32px;border:1.5px solid var(--green-pale);background:var(--green-ultra);">
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:8px;">
+          Precio de catálogo (10% descuento)
+        </div>
+        <div style="font-size:3rem;font-weight:800;color:var(--text-dark);letter-spacing:-2px;line-height:1;">
+          {{ p.precio }}
+          <span style="font-size:1rem;font-weight:400;color:var(--text-muted);text-decoration:line-through;letter-spacing:0;margin-left:8px;">
+            {{ p.precio_meli }}
+          </span>
+        </div>
+        <div style="margin-top:8px;font-size:0.8rem;color:var(--text-muted);">
+          Precio en MeLi: {{ p.precio_meli }} &nbsp;|&nbsp; Ahorras: {{ p.ahorro }}
+        </div>
+      </div>
+
+      <!-- CTAs -->
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px;">
+        <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline;">
+          <input type="hidden" name="slug" value="{{ p.slug }}">
+          <input type="hidden" name="qty" value="1">
+          <button type="submit" class="btn btn-primary btn-lg">
+            <i class="ph ph-shopping-cart"></i>
+            Agregar al carrito
+          </button>
+        </form>
+        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+          <i class="ph ph-whatsapp-logo"></i>
+          WhatsApp
+        </a>
+        <a href="{{ url_for('checkout') }}" class="btn btn-dark btn-lg">
+          <i class="ph ph-lock"></i>
+          Comprar ahora
+        </a>
+      </div>
+
+      <!-- Info adicional -->
+      <div class="protocol-grid">
+        <div class="protocol-box">
+          <h4><i class="ph ph-package"></i> &nbsp;Envío</h4>
+          <p>Despachos a todo Colombia. Interrapidísimo y transportadoras aliadas.</p>
+        </div>
+        <div class="protocol-box">
+          <h4><i class="ph ph-certificate"></i> &nbsp;Calidad</h4>
+          <p>Productos con certificado de calidad. Cumplimiento normas INVIMA.</p>
+        </div>
+        <div class="protocol-box">
+          <h4><i class="ph ph-headset"></i> &nbsp;Asesoría</h4>
+          <p>Equipo técnico disponible para resolver dudas de formulación.</p>
+        </div>
+        <div class="protocol-box">
+          <h4><i class="ph ph-clock"></i> &nbsp;Disponibilidad</h4>
+          <p>Stock permanente. Confirmamos disponibilidad antes de despachar.</p>
+        </div>
+      </div>
+
+      <div class="warning-box" style="margin-top:24px;">
+        <strong>¿Necesitas ficha técnica o certificado de análisis?</strong><br>
+        Escríbenos por WhatsApp indicando la referencia del producto y te lo enviamos de inmediato.
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Productos relacionados -->
+{% if relacionados %}
+<div style="border-top:2px solid var(--green-pale);background:var(--green-ultra);">
+  <div class="section">
+    <div style="margin-bottom:40px;">
+      <span class="section-eyebrow">También puede interesarte</span>
+      <h2 class="section-title">Productos <em>Relacionados</em></h2>
+    </div>
+    <div class="products-grid-mini">
+      {% for r in relacionados %}
+      <a href="{{ url_for('producto', slug=r.slug) }}" class="product-card-mini reveal reveal-delay-{{ loop.index0 }}">
+        <div class="product-card-mini-img" style="background:{{ r.cat_color }};">
+          {% if r.photo %}
+          <img src="{{ r.photo }}" alt="{{ r.name }}" loading="lazy">
+          {% else %}
+          <div style="color:rgba(255,255,255,0.25);font-size:3rem;display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
+            <i class="ph ph-flask"></i>
+          </div>
+          {% endif %}
+        </div>
+        <div class="product-card-mini-body">
+          <div class="product-name">{{ r.name }}</div>
+          <div class="product-ref">Ref: {{ r.ref }}</div>
+          <div class="product-price">{{ r.precio }}</div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Página no encontrada — McKenna Group{% endblock %}
+{% block content %}
+<div style="min-height:70vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:40px 20px;">
+  <div>
+    <div style="font-size:9rem;font-weight:800;color:var(--green-pale);line-height:1;letter-spacing:-8px;">404</div>
+    <h1 style="font-size:2rem;margin-bottom:14px;">Página no encontrada</h1>
+    <p style="color:var(--text-muted);max-width:400px;margin:0 auto 36px;">
+      La página que buscas no existe o fue movida.
+    </p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <a href="{{ url_for('index') }}" class="btn btn-dark btn-lg">
+        <i class="ph ph-house"></i> Ir al inicio
+      </a>
+      <a href="{{ url_for('catalogo') }}" class="btn btn-outline btn-lg">
+        Ver catálogo
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

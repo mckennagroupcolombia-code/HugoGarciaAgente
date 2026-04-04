@@ -208,7 +208,8 @@ def ejecutar_sincronizacion_y_reporte_stock():
         if criticos: reporte += f"\n\n*⚠️ ÚLTIMA UNIDAD ({len(criticos)}):*\n" + "\n".join(criticos[:20])
         if not agotados and not criticos: reporte += "\n\n✅ Todo el stock está por encima de 1 unidad."
         
-        enviar_whatsapp_reporte(reporte + f"\n\n🤖 _Total procesados: {len(ml_ids)}_")
+        grupo_inventario = os.getenv("GRUPO_INVENTARIO_WA", "120363407538342427@g.us")
+        enviar_whatsapp_reporte(reporte + f"\n\n🤖 _Total procesados: {len(ml_ids)}_", numero_destino=grupo_inventario)
         return f"✅ Reporte de stock enviado. Agotados: {len(agotados)}, Críticos: {len(criticos)}."
 
     except Exception as e: return f"❌ Error crítico en reporte de stock: {e}"

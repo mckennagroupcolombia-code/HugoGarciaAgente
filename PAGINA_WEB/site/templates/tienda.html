@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Catálogo Abril 2026 — McKenna Group{% endblock %}
+{% block description %}Catálogo de materias primas farmacéuticas y cosméticas. Stock permanente, despachos a todo Colombia.{% endblock %}
+
+{% block content %}
+{% set total_n = namespace(n=0) %}
+{% for s in sections %}{% set total_n.n = total_n.n + s.products|length %}{% endfor %}
+
+<!-- ════════════════════════════════════════════════════════
+     HERO — SPLIT (idéntico al de guia-kit-acidos.html)
+════════════════════════════════════════════════════════ -->
+<section class="cat-hero">
+  <div class="cat-hero-left">
+    <div class="cat-hero-pulse"></div>
+    <span class="hero-badge">Catálogo Oficial · Abril 2026</span>
+    <h1 class="hero-title">
+      Materias<br><em>Primas</em><br>Colombia
+    </h1>
+    <p class="hero-subtitle">
+      {{ total_n.n }} referencias de grado farmacéutico y cosmético.
+      Stock permanente · Despachos a todo Colombia.
+    </p>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;position:relative;z-index:1;">
+      <a href="#cat-nav" class="hero-scroll">
+        Explorar catálogo
+      </a>
+    </div>
+  </div>
+
+  <div class="cat-hero-right">
+    <p class="hero-right-label">Resumen del catálogo</p>
+    <div class="cat-hero-stats">
+      {% for s in sections[:6] %}
+      <a href="#cat-{{ s.name|lower|replace(' ','-')|replace('/','-') }}"
+         class="cat-hero-stat">
+        <span class="cat-hero-stat-n">{{ s.products|length }}</span>
+        <span class="cat-hero-stat-l">{{ s.name }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    <div class="cat-hero-badges">
+      <span><i class="ph ph-certificate"></i> Grado farmacéutico</span>
+      <span><i class="ph ph-truck"></i> Envío 24–48 h</span>
+      <span><i class="ph ph-tag"></i> 10% descuento web</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     STICKY NAV
+════════════════════════════════════════════════════════ -->
+<nav class="cat-sticky-nav" id="cat-nav">
+  <a href="{{ url_for('catalogo') }}"
+     class="nav-item {% if not cat_filter %}active{% endif %}">Todos</a>
+  {% for cat in cats %}
+  <a href="{{ url_for('catalogo', cat=cat) }}"
+     class="nav-item {% if cat_filter == cat %}active{% endif %}"
+     data-cat="{{ cat }}">{{ cat }}</a>
+  {% endfor %}
+</nav>
+
+<!-- ════════════════════════════════════════════════════════
+     INTRO
+════════════════════════════════════════════════════════ -->
+{% if not cat_filter %}
+<div class="cat-intro-section">
+  <div class="section-header" style="margin-bottom:0;">
+    <div class="section-number">00</div>
+    <div>
+      <span class="section-eyebrow">McKenna Group S.A.S.</span>
+      <h2 class="section-title">
+        Catálogo de <em>productos</em>
+      </h2>
+      <p class="section-lead">
+        Selección completa de materias primas de alta pureza para laboratorios farmacéuticos,
+        cosméticos y nutracéuticos. Todos los productos cuentan con certificado de calidad
+        y cumplen normas INVIMA.
+      </p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════════════
+     SECCIONES POR CATEGORÍA
+════════════════════════════════════════════════════════ -->
+{% for section in sections %}
+<div id="cat-{{ section.name|lower|replace(' ','-')|replace('/','-') }}"
+     class="cat-section">
+  <div class="cat-section-inner">
+
+    <!-- Header de categoría -->
+    <div class="section-header">
+      <div class="section-number">{{ '%02d'|format(loop.index) }}</div>
+      <div>
+        <span class="section-eyebrow">Categoría</span>
+        <h2 class="section-title">{{ section.name }}</h2>
+        <p class="section-lead">
+          {{ section.products|length }}
+          referencia{% if section.products|length != 1 %}s{% endif %}
+          con stock permanente
+        </p>
+      </div>
+    </div>
+
+    <!-- Lista de productos — estilo acid-card de la guía -->
+    {% for p in section.products %}
+    <div class="acid-card" style="margin-bottom:{% if not loop.last %}48px{% else %}0{% endif %};">
+
+      <!-- Sidebar oscura -->
+      <div class="acid-card-sidebar" style="background:{{ p.cat_color }};">
+        <div class="acid-img-wrap">
+          {% if p.photo %}
+          <img src="{{ p.photo }}" alt="{{ p.name }}" loading="lazy">
+          {% else %}
+          <div class="acid-img-ph"><i class="ph ph-flask"></i></div>
+          {% endif %}
+        </div>
+        <div class="acid-sidebar-body">
+          <div class="acid-product-name">{{ p.name }}</div>
+          <div class="acid-product-ref">Ref. {{ p.ref }}</div>
+          <table class="acid-ft-table">
+            <tr>
+              <td>Precio web</td>
+              <td>{{ p.precio }}</td>
+            </tr>
+            <tr>
+              <td>MeLi</td>
+              <td class="acid-ft-strike">{{ p.precio_meli }}</td>
+            </tr>
+            <tr>
+              <td>Ahorras</td>
+              <td class="acid-ft-saving">{{ p.ahorro }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Cuerpo blanco -->
+      <div class="acid-card-body">
+
+        {% if p.desc %}
+        <div class="acid-section-label">Descripción</div>
+        <p class="acid-body-text">{{ p.desc }}</p>
+        {% else %}
+        <div class="acid-section-label">Materia prima</div>
+        <p class="acid-body-text">
+          Producto de alta pureza disponible en stock permanente para uso farmacéutico,
+          cosmético y nutracéutico. Cumple normas de calidad INVIMA y cuenta con
+          certificado de análisis por lote.
+        </p>
+        {% endif %}
+
+        <div class="acid-protocol-grid">
+          <div class="acid-protocol-box">
+            <h4><i class="ph ph-package"></i> Disponibilidad</h4>
+            <p>Stock permanente · Despacho en 24–48 h hábiles a todo Colombia</p>
+          </div>
+          <div class="acid-protocol-box">
+            <h4><i class="ph ph-certificate"></i> Calidad</h4>
+            <p>Grado farmacéutico y cosmético certificado · Normas INVIMA</p>
+          </div>
+        </div>
+
+        <div class="acid-warning-box">
+          <strong>Uso profesional.</strong>
+          Destinado a uso en formulación y laboratorio. Consulta la ficha técnica
+          completa antes de usar. Nuestro equipo técnico está disponible para asesoría.
+        </div>
+
+        <div class="acid-actions">
+          <form method="POST" action="{{ url_for('carrito_agregar') }}"
+                style="display:inline-flex;">
+            <input type="hidden" name="slug" value="{{ p.slug }}">
+            <input type="hidden" name="qty" value="1">
+            <input type="hidden" name="next" value="{{ request.url }}">
+            <button type="submit" class="btn btn-primary btn-sm">
+              <i class="ph ph-shopping-cart"></i> Agregar
+            </button>
+          </form>
+          <a href="{{ url_for('producto', slug=p.slug) }}"
+             class="btn btn-outline btn-sm">
+            <i class="ph ph-flask"></i> Ficha técnica
+          </a>
+          <a href="{{ wa_link(p) }}" target="_blank" rel="noopener"
+             class="btn btn-wa btn-sm">
+            <i class="ph ph-whatsapp-logo"></i> WhatsApp
+          </a>
+          {% if p.meli_id %}
+          <a href="https://articulo.mercadolibre.com.co/{{ p.meli_id }}"
+             target="_blank" rel="noopener"
+             class="btn btn-ghost-dark btn-sm">
+            <i class="ph ph-storefront"></i> MeLi
+          </a>
+          {% endif %}
+        </div>
+
+      </div>
+    </div><!-- /.acid-card -->
+    {% endfor %}
+
+  </div><!-- /.cat-section-inner -->
+</div><!-- /.cat-section -->
+{% endfor %}
+
+<!-- ════════════════════════════════════════════════════════
+     CTA FINAL — fondo oscuro (igual que combo-section)
+════════════════════════════════════════════════════════ -->
+<section class="cat-cta-section">
+  <div class="cat-cta-inner">
+    <div class="section-number" style="color:rgba(255,255,255,0.06);">
+      {{ (sections|length + 1)|string.zfill(2) if false else '★' }}
+    </div>
+    <div>
+      <span class="hero-badge" style="margin-bottom:28px;">Atención Personalizada</span>
+      <h2 class="cat-cta-title">
+        ¿No encuentras<br><em>lo que buscas?</em>
+      </h2>
+      <p class="cat-cta-lead">
+        Tenemos más de 300 referencias. Cuéntanos qué necesitas y
+        nuestro equipo técnico te asesora sin costo.
+      </p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:40px;">
+        <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20busco%20una%20materia%20prima%20específica"
+           target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+          <i class="ph ph-whatsapp-logo"></i>
+          Consultar por WhatsApp
+        </a>
+        <a href="{{ url_for('contacto') }}" class="btn btn-ghost btn-lg">
+          Enviar consulta
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  const sections = document.querySelectorAll('[id^="cat-"]');
+  const links    = document.querySelectorAll('.cat-sticky-nav a[data-cat]');
+  if (!sections.length || !links.length) return;
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id.replace('cat-','');
+        links.forEach(l => {
+          const lc = l.dataset.cat.toLowerCase().replace(/[ \/]/g,'-');
+          l.classList.toggle('active', lc === id);
+        });
+      }
+    });
+  }, { rootMargin: '-15% 0px -70% 0px' });
+  sections.forEach(s => obs.observe(s));
+})();
+</script>
+{% endblock %}

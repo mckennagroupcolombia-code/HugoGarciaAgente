@@ -92,7 +92,9 @@ def procesar_nueva_pregunta(question_id):
     # Con ficha → responder al cliente en MeLi
     status = enviar_respuesta_meli(question_id, respuesta_generada, token)
 
+    import os as _os
     from app.utils import enviar_whatsapp_reporte
+    grupo_preventa = _os.getenv("GRUPO_PREVENTA_WA", "120363393955474672@g.us")
     emoji_status = "✅" if status else "❌"
     mensaje_ws = (
         f"🔔 *REPORTE PREVENTA MELI*\n\n"
@@ -101,7 +103,7 @@ def procesar_nueva_pregunta(question_id):
         f"🤖 *IA Respondió:* {respuesta_generada}\n\n"
         f"Status Respuesta: {emoji_status}"
     )
-    enviar_whatsapp_reporte(mensaje_ws)
+    enviar_whatsapp_reporte(mensaje_ws, numero_destino=grupo_preventa)
 
 # --- Para probar el script manualmente ---
 if __name__ == "__main__":
