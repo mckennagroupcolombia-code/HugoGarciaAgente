@@ -15,7 +15,7 @@
 
 <!-- Detalle -->
 <div class="section">
-  <div style="display:grid;grid-template-columns:340px 1fr;gap:48px;align-items:start;">
+  <div class="producto-detail-grid">
 
     <!-- Columna imagen -->
     <div>
@@ -45,7 +45,7 @@
     <div>
 
       <!-- Ficha técnica rápida -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin-bottom:40px;">
+      <div class="producto-specs-grid">
         <div style="background:var(--green-deep);padding:24px 20px;text-align:center;">
           <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">
             Referencia
@@ -128,14 +128,120 @@
         </div>
       </div>
 
+      {% if not p.ficha %}
       <div class="warning-box" style="margin-top:24px;">
         <strong>¿Necesitas ficha técnica o certificado de análisis?</strong><br>
         Escríbenos por WhatsApp indicando la referencia del producto y te lo enviamos de inmediato.
       </div>
+      {% endif %}
 
     </div>
   </div>
 </div>
+
+<!-- ════════════════════════════════════════════════════════
+     FICHA TÉCNICA
+════════════════════════════════════════════════════════ -->
+{% if p.ficha %}
+<div style="border-top:2px solid var(--green-pale);background:#fff;">
+  <div class="section">
+    <div style="margin-bottom:40px;">
+      <span class="section-eyebrow">Documentación técnica</span>
+      <h2 class="section-title">Ficha <em>Técnica</em></h2>
+    </div>
+
+    <div class="producto-ficha-grid">
+
+      <!-- Columna izquierda: Identidad + Propiedades -->
+      <div>
+
+        {% if p.ficha.identidad %}
+        <div style="margin-bottom:32px;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:12px;">
+            Identificación del producto
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+            {% for fila in p.ficha.identidad %}
+            <tr style="border-bottom:1px solid var(--green-pale);">
+              <td style="padding:8px 12px;font-weight:600;color:var(--text-dark);width:40%;background:var(--green-ultra);">{{ fila[0] }}</td>
+              <td style="padding:8px 12px;color:var(--text-muted);">{{ fila[1] }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+        {% endif %}
+
+        {% if p.ficha.propiedades %}
+        <div style="margin-bottom:32px;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:12px;">
+            Propiedades físico-químicas
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+            {% for fila in p.ficha.propiedades %}
+            <tr style="border-bottom:1px solid var(--green-pale);">
+              <td style="padding:8px 12px;font-weight:600;color:var(--text-dark);width:40%;background:var(--green-ultra);">{{ fila[0] }}</td>
+              <td style="padding:8px 12px;color:var(--text-muted);">{{ fila[1] }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+        {% endif %}
+
+        {% if p.ficha.microbiologia %}
+        <div>
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:12px;">
+            Especificaciones microbiológicas
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+            {% for fila in p.ficha.microbiologia %}
+            <tr style="border-bottom:1px solid var(--green-pale);">
+              <td style="padding:8px 12px;font-weight:600;color:var(--text-dark);width:40%;background:var(--green-ultra);">{{ fila[0] }}</td>
+              <td style="padding:8px 12px;color:var(--text-muted);">{{ fila[1] }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Columna derecha: Secciones de texto -->
+      <div>
+        {% for sec in p.ficha.secciones %}
+        {% set sec_norm = sec.titulo|lower %}
+        {% if "físico" not in sec_norm and "quimic" not in sec_norm and "microbi" not in sec_norm %}
+        <div style="margin-bottom:28px;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:10px;">
+            {{ sec.titulo }}
+          </div>
+          {% if sec['items']|length == 1 %}
+          <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.7;margin:0;">{{ sec['items'][0] }}</p>
+          {% else %}
+          <ul style="margin:0;padding-left:16px;">
+            {% for item in sec['items'] %}
+            <li style="font-size:0.875rem;color:var(--text-muted);line-height:1.7;margin-bottom:4px;">{{ item }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        {% if p.ficha.descripcion and not p.ficha.secciones %}
+        <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.7;">{{ p.ficha.descripcion }}</p>
+        {% endif %}
+      </div>
+
+    </div><!-- /grid -->
+
+    <div class="warning-box" style="margin-top:32px;">
+      <strong>¿Necesitas el certificado de análisis (CoA) o la ficha de seguridad (MSDS)?</strong><br>
+      Escríbenos por WhatsApp indicando la referencia del producto y te lo enviamos de inmediato.
+    </div>
+
+  </div>
+</div>
+{% endif %}
 
 <!-- Productos relacionados -->
 {% if relacionados %}

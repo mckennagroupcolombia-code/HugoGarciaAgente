@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Recetario — McKenna Group{% endblock %}
+{% block description %}Formulaciones profesionales de cosmética, nutrición, perfumería y hogar usando materias primas McKenna Group. Ingredientes escalables al gramaje que necesitas.{% endblock %}
+
+{% block content %}
+
+<!-- Hero -->
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Principios activos · Grado farmacológico</span>
+    <h1>Recetas con <em>principios activos</em> reales.</h1>
+    <p style="color:rgba(255,255,255,0.65);font-size:1rem;max-width:480px;line-height:1.8;margin-top:12px;">
+      Formulaciones para cosmética, nutrición, perfumería y cuidado del hogar usando
+      las materias primas de McKenna Group. Escala cualquier receta al gramaje que necesitas.
+    </p>
+  </div>
+</div>
+
+<!-- Pills de categoría -->
+<div class="rec-nav" id="rec-nav">
+  <span class="rec-pill active" data-cat="all">Todas</span>
+  <span class="rec-pill" data-cat="cosmetica">Cosmética</span>
+  <span class="rec-pill" data-cat="nutricion">Nutrición</span>
+  <span class="rec-pill" data-cat="perfumeria">Perfumería</span>
+  <span class="rec-pill" data-cat="hogar">Hogar</span>
+</div>
+
+<!-- Grid de recetas -->
+<div class="rec-grid" id="rec-grid"></div>
+
+<!-- Overlay + Modal -->
+<div class="rec-overlay" id="rec-overlay">
+  <div class="rec-modal" id="rec-modal"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var RECETAS = {{ recetas | tojson }};
+var CAT_LABELS = {cosmetica:'Cosmética',nutricion:'Nutrición',perfumeria:'Perfumería',hogar:'Hogar'};
+
+function initials(s){
+  return s.split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+}
+function fmtQ(n){
+  return n >= 10 ? Math.round(n) : parseFloat(n.toFixed(2));
+}
+
+/* ── Cards ─────────────────────────────────────────────── */
+function renderCards(list){
+  var g = document.getElementById('rec-grid');
+  if(!list.length){
+    g.innerHTML = '<div class="rec-empty">No hay recetas en esta categoría.</div>';
+    return;
+  }
+  g.innerHTML = list.map(function(r){
+    return '<div class="rec-card reveal" data-id="'+r.id+'">'
+      +'<div class="rec-card-top">'
+        +'<div class="rec-avatar">'+initials(r.title)+'</div>'
+        +'<div class="rec-card-cat">'+CAT_LABELS[r.cat]+'</div>'
+        +'<div class="rec-card-title">'+r.title+'<br><em>'+r.title2+'</em></div>'
+        +'<div class="rec-card-desc">'+r.desc+'</div>'
+      +'</div>'
+      +'<div class="rec-card-bottom">'
+        +'<div class="rec-tags">'+r.tags.map(function(t){return '<span class="rec-tag">'+t+'</span>';}).join('')+'</div>'
+        +'<span class="rec-arrow"><i class="ph ph-arrow-right"></i></span>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+
+  /* Scroll reveal */
+  document.querySelectorAll('.rec-card.reveal').forEach(function(el,i){
+    setTimeout(function(){ el.classList.add('visible'); }, i * 60);
+  });
+
+  /* Clicks en cards */
+  document.querySelectorAll('.rec-card').forEach(function(el){
+    el.addEventListener('click', function(){
+      openModal(parseInt(el.dataset.id));
+    });
+  });
+}
+
+/* ── Filtro ─────────────────────────────────────────────── */
+document.querySelectorAll('.rec-pill').forEach(function(pill){
+  pill.addEventListener('click', function(){
+    document.querySelectorAll('.rec-pill').forEach(function(p){ p.classList.remove('active'); });
+    pill.classList.add('active');
+    var cat = pill.dataset.cat;
+    renderCards(cat === 'all' ? RECETAS : RECETAS.filter(function(r){ return r.cat === cat; }));
+  });
+});
+
+/* ── Modal ──────────────────────────────────────────────── */
+var curReceta = null, curScale = 1;
+
+function openModal(id){
+  curReceta = RECETAS.find(function(r){ return r.id === id; });
+  curScale = 1;
+  buildModal();
+  document.getElementById('rec-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(){
+  document.getElementById('rec-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function rescale(val){
+  curScale = (parseFloat(val) / curReceta.base) || 1;
+  buildModal();
+}
+
+function buildModal(){
+  var r = curReceta, s = curScale;
+  var ings = r.ings.map(function(i){
+    return '<div class="rec-ing-row">'
+      +'<div class="rec-ing-avatar">'+initials(i.n)+'</div>'
+      +'<div class="rec-ing-info">'
+        +'<div class="rec-ing-name">'+i.n+'</div>'
+        +'<div class="rec-ing-src">'+i.src+'</div>'
+      +'</div>'
+      +'<div class="rec-ing-qty-wrap">'
+        +'<div class="rec-ing-qty">'+fmtQ(i.q * s)+'</div>'
+        +'<span class="rec-ing-u">'+i.u+'</span>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+
+  var pasos = r.pasos.map(function(p, i){
+    return '<div class="rec-step">'
+      +'<div class="rec-step-num">'+ String(i+1).padStart(2,'0') +'</div>'
+      +'<div class="rec-step-text">'+p+'</div>'
+    +'</div>';
+  }).join('');
+
+  document.getElementById('rec-modal').innerHTML =
+    '<div class="rec-modal-hero">'
+      +'<button class="rec-modal-close" id="rec-close-btn"><i class="ph ph-x"></i></button>'
+      +'<div class="rec-modal-eyebrow">'+CAT_LABELS[r.cat]+' · McKenna Group</div>'
+      +'<div class="rec-modal-title">'+r.title+'<br><em>'+r.title2+'</em></div>'
+    +'</div>'
+    +'<div class="rec-modal-body">'
+      +'<div class="rec-scale-box">'
+        +'<label class="rec-scale-label">Cantidad a preparar</label>'
+        +'<input class="rec-scale-input" type="number" min="1" value="'+Math.round(r.base * s)+'" id="rec-scale-input">'
+        +'<span class="rec-scale-unit">'+r.unidad+'</span>'
+      +'</div>'
+      +'<div class="rec-section-label">Ingredientes</div>'
+      + ings
+      +'<div class="rec-section-label">Preparación</div>'
+      + pasos
+      +'<div class="rec-section-label">Consejo profesional</div>'
+      +'<div class="rec-tip-box">'
+        +'<span class="rec-tip-icon">TIP</span>'
+        +'<div class="rec-tip-text">'+r.tip+'</div>'
+      +'</div>'
+    +'</div>';
+
+  document.getElementById('rec-close-btn').addEventListener('click', closeModal);
+  document.getElementById('rec-scale-input').addEventListener('change', function(){ rescale(this.value); });
+}
+
+/* Cerrar al click fuera del modal */
+document.getElementById('rec-overlay').addEventListener('click', function(e){
+  if(e.target === this) closeModal();
+});
+
+/* Cerrar con ESC */
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') closeModal();
+});
+
+/* Init */
+renderCards(RECETAS);
+</script>
+{% endblock %}

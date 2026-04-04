@@ -1,0 +1,190 @@
+[
+  {
+    "id": 1,
+    "cat": "cosmetica",
+    "title": "Sérum Vitamina C",
+    "title2": "Iluminador",
+    "desc": "Sérum antioxidante para unificar el tono y darle luminosidad a la piel.",
+    "tags": ["manchas", "antioxidante", "luminosidad"],
+    "base": 100,
+    "unidad": "ml",
+    "ings": [
+      {"n": "Vitamina C (ác. ascórbico)", "q": 10, "u": "g", "src": "McKenna Group"},
+      {"n": "Aloe vera 90%", "q": 70, "u": "ml", "src": "McKenna Group"},
+      {"n": "Aceite de rosa", "q": 5, "u": "ml", "src": "McKenna Group"},
+      {"n": "Agua destilada", "q": 15, "u": "ml", "src": "uso propio"}
+    ],
+    "pasos": [
+      "Mezcla el aloe vera con el agua destilada en recipiente de vidrio.",
+      "Agrega la vitamina C en polvo poco a poco mientras mezclas hasta disolver completamente.",
+      "Incorpora el aceite de rosa suavemente.",
+      "Transfiere a frasco oscuro con gotero. Refrigera y usa en 30 días."
+    ],
+    "tip": "Aplica en la mañana sobre piel limpia. Siempre usa protector solar después."
+  },
+  {
+    "id": 2,
+    "cat": "nutricion",
+    "title": "Batido Colagénico",
+    "title2": "Energizante",
+    "desc": "Bebida nutritiva con vitamina C y minerales para apoyar la síntesis de colágeno.",
+    "tags": ["colágeno", "energía", "minerales"],
+    "base": 250,
+    "unidad": "ml",
+    "ings": [
+      {"n": "Vitamina C en polvo", "q": 1, "u": "g", "src": "McKenna Group"},
+      {"n": "Citrato de magnesio y potasio", "q": 2, "u": "g", "src": "McKenna Group"},
+      {"n": "Agua o jugo de naranja", "q": 200, "u": "ml", "src": "uso propio"},
+      {"n": "Miel o stevia", "q": 5, "u": "g", "src": "uso propio"}
+    ],
+    "pasos": [
+      "Vierte el agua o jugo en un vaso.",
+      "Disuelve el citrato de magnesio y potasio agitando bien.",
+      "Agrega la vitamina C y mezcla hasta integrar.",
+      "Endulza al gusto y toma inmediatamente."
+    ],
+    "tip": "Ideal en ayunas o después de ejercicio. Evita calentarlo — la vitamina C es sensible al calor."
+  },
+  {
+    "id": 3,
+    "cat": "perfumeria",
+    "title": "Perfume Floral",
+    "title2": "Verde Artesanal",
+    "desc": "Fragancia artesanal fresca con notas de rosa y lavanda sobre base de aldehídos.",
+    "tags": ["floral", "artesanal", "unisex"],
+    "base": 30,
+    "unidad": "ml",
+    "ings": [
+      {"n": "Aceite esencial de rosa", "q": 3, "u": "ml", "src": "McKenna Group"},
+      {"n": "Aceite esencial de lavanda", "q": 2, "u": "ml", "src": "McKenna Group"},
+      {"n": "Aldehído C-12 (MNA)", "q": 0.5, "u": "ml", "src": "McKenna Group"},
+      {"n": "Alcohol etílico 96%", "q": 24.5, "u": "ml", "src": "McKenna Group"}
+    ],
+    "pasos": [
+      "En frasco de vidrio oscuro, mezcla los aceites esenciales y el aldehído.",
+      "Agrega el alcohol y tapa el frasco.",
+      "Agita suavemente y deja reposar en lugar oscuro 48 horas.",
+      "Filtra con papel de café si hay sedimento. Envasa en atomizador."
+    ],
+    "tip": "La maceración mejora el aroma con el tiempo. A los 7 días alcanza su punto óptimo."
+  },
+  {
+    "id": 4,
+    "cat": "hogar",
+    "title": "Limpiador Multiusos",
+    "title2": "Cítrico Natural",
+    "desc": "Limpiador natural concentrado con poder desengrasante para cocina y superficies.",
+    "tags": ["desengrasante", "natural", "cocina"],
+    "base": 500,
+    "unidad": "ml",
+    "ings": [
+      {"n": "Aceite esencial de limón", "q": 5, "u": "ml", "src": "McKenna Group"},
+      {"n": "Ácido cítrico en polvo", "q": 10, "u": "g", "src": "McKenna Group"},
+      {"n": "Alcohol etílico 70%", "q": 50, "u": "ml", "src": "McKenna Group"},
+      {"n": "Agua", "q": 435, "u": "ml", "src": "uso propio"}
+    ],
+    "pasos": [
+      "Disuelve el ácido cítrico en el agua tibia.",
+      "Agrega el alcohol y mezcla bien.",
+      "Incorpora el aceite esencial de limón y agita.",
+      "Envasa en botella con spray. Agitar antes de cada uso."
+    ],
+    "tip": "No usar en mármol ni piedra caliza — el ácido cítrico puede dañar estas superficies."
+  },
+  {
+    "id": 5,
+    "cat": "cosmetica",
+    "title": "Mascarilla Capilar",
+    "title2": "Reparadora",
+    "desc": "Tratamiento intensivo para cabello seco y dañado con aceite de ricino y aloe vera.",
+    "tags": ["cabello", "hidratación", "reparación"],
+    "base": 150,
+    "unidad": "g",
+    "ings": [
+      {"n": "Aceite de ricino puro", "q": 30, "u": "ml", "src": "McKenna Group"},
+      {"n": "Aloe vera 90%", "q": 80, "u": "ml", "src": "McKenna Group"},
+      {"n": "Aceite de rosa", "q": 10, "u": "ml", "src": "McKenna Group"},
+      {"n": "Vitamina C en polvo", "q": 1, "u": "g", "src": "McKenna Group"},
+      {"n": "Agua destilada", "q": 29, "u": "ml", "src": "uso propio"}
+    ],
+    "pasos": [
+      "Mezcla el aceite de ricino con el aceite de rosa hasta integrar.",
+      "Combina el aloe vera con el agua destilada y la vitamina C.",
+      "Une ambas mezclas lentamente mientras mezclas.",
+      "Aplica de raíz a puntas sobre cabello húmedo. Deja actuar 30 min con gorro.",
+      "Enjuaga con agua tibia y champú suave."
+    ],
+    "tip": "Úsala una vez por semana. El aceite de ricino puede ser difícil de enjuagar — dilúyelo bien antes de aplicar."
+  },
+  {
+    "id": 6,
+    "cat": "cosmetica",
+    "title": "Crema Urea 10%",
+    "title2": "Hidratante Intensa",
+    "desc": "Crema hidratante de alto rendimiento para piel seca y áspera con urea cosmética.",
+    "tags": ["hidratación", "urea", "piel seca"],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {"n": "Urea cosmética", "q": 10, "u": "g", "src": "McKenna Group"},
+      {"n": "Glicerina vegetal", "q": 5, "u": "g", "src": "McKenna Group"},
+      {"n": "Emulsionante O/W (BTMS o Olivem)", "q": 5, "u": "g", "src": "McKenna Group"},
+      {"n": "Aceite de jojoba", "q": 8, "u": "ml", "src": "McKenna Group"},
+      {"n": "Agua destilada", "q": 72, "u": "ml", "src": "uso propio"}
+    ],
+    "pasos": [
+      "Calienta el aceite de jojoba y el emulsionante a 70°C en baño maría (fase oleosa).",
+      "Calienta el agua destilada con la glicerina a 70°C por separado (fase acuosa).",
+      "Vierte la fase acuosa sobre la oleosa mientras mezclas constantemente.",
+      "Mezcla hasta que enfríe a 40°C.",
+      "Incorpora la urea cosmética a baja temperatura. Mezcla bien y envasa."
+    ],
+    "tip": "La urea se agrega siempre fuera del calor. Temperaturas altas la degradan y reducen su efectividad."
+  },
+  {
+    "id": 7,
+    "cat": "hogar",
+    "title": "Jabón Líquido",
+    "title2": "Antibacterial Natural",
+    "desc": "Jabón líquido para manos con aceites esenciales de lavanda y árbol de té.",
+    "tags": ["antibacterial", "manos", "lavanda"],
+    "base": 300,
+    "unidad": "ml",
+    "ings": [
+      {"n": "Base jabón líquida (SCI o SLS suave)", "q": 60, "u": "ml", "src": "McKenna Group"},
+      {"n": "Aceite esencial de lavanda", "q": 3, "u": "ml", "src": "McKenna Group"},
+      {"n": "Aceite esencial de árbol de té", "q": 2, "u": "ml", "src": "McKenna Group"},
+      {"n": "Glicerina vegetal", "q": 5, "u": "ml", "src": "McKenna Group"},
+      {"n": "Agua destilada", "q": 230, "u": "ml", "src": "uso propio"}
+    ],
+    "pasos": [
+      "Mezcla la base jabonosa con el agua destilada a temperatura ambiente.",
+      "Agrega la glicerina y mezcla suavemente — evita generar espuma.",
+      "Incorpora los aceites esenciales y mezcla bien.",
+      "Ajusta la consistencia: más agua si queda muy espeso. Envasa en dispensador."
+    ],
+    "tip": "Mezcla siempre con movimientos lentos para no incorporar aire. El árbol de té potencia la acción antibacterial."
+  },
+  {
+    "id": 8,
+    "cat": "nutricion",
+    "title": "Cápsulas Vitamina C",
+    "title2": "Formulación Básica",
+    "desc": "Guía para encapsular vitamina C en polvo en cápsulas de gelatina o vegetales.",
+    "tags": ["vitamina C", "cápsulas", "inmunidad"],
+    "base": 30,
+    "unidad": "cápsulas",
+    "ings": [
+      {"n": "Vitamina C (ác. ascórbico) en polvo", "q": 27, "u": "g", "src": "McKenna Group"},
+      {"n": "Cápsulas vacías #00 (veg. o gelatina)", "q": 30, "u": "und", "src": "uso propio"},
+      {"n": "Celulosa microcristalina (MCC)", "q": 3, "u": "g", "src": "uso propio"}
+    ],
+    "pasos": [
+      "Mezcla el ácido ascórbico con la celulosa microcristalina hasta homogeneizar.",
+      "Llena cada cápsula #00 con aprox. 1 g de la mezcla (∼900 mg vitamina C).",
+      "Cierra cada cápsula presionando las dos mitades hasta escuchar el clic.",
+      "Almacena en frasco ámbar con desecante en lugar seco y fresco."
+    ],
+    "tip": "La celulosa mejora la fluidez del polvo al llenar. Usa guantes y mascarilla durante el proceso."
+  }
+]
