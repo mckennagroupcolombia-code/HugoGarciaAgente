@@ -34,6 +34,55 @@ CACHE_TTL   = 6 * 3600          # 6 horas
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
+# Comisión real de MercadoLibre Colombia (~16.5%)
+# El precio web = precio_meli × (1 - MELI_COMMISSION)
+# El cliente ahorra la comisión; el envío se cobra por separado (≤ ahorro)
+MELI_COMMISSION = 0.165
+
+# Tarifas Interrapidísimo (fuente: app/data/tarifas_interrapidisimo.json)
+_tarifas_path = ROOT / "app/data/tarifas_interrapidisimo.json"
+try:
+    TARIFAS_IR = json.loads(_tarifas_path.read_text())["ciudades"]
+except Exception:
+    TARIFAS_IR = {"default": {"precio_base": 18000, "dias": 4}}
+
+# Datos geográficos Colombia
+COLOMBIA_DATA = {
+  "Amazonas":["Leticia","Puerto Nariño","El Encanto","La Chorrera","La Pedrera","La Victoria","Mirití-Paraná","Puerto Alegría","Puerto Arica","Puerto Santander","Tarapacá"],
+  "Antioquia":["Medellín","Bello","Itagüí","Envigado","Sabaneta","Rionegro","Apartadó","Turbo","Caucasia","Chigorodó","Copacabana","La Ceja","La Estrella","Marinilla","Caldas","Barbosa","Girardota","El Bagre","Andes","Fredonia","Jericó","Santa Bárbara","Abejorral","Abriaquí","Alejandría","Amagá","Amalfi","Angelópolis","Angostura","Anorí","Anzá","Arboletes","Argelia","Armenia","Betulia","Briceño","Buriticá","Cáceres","Caicedo","Campamento","Cañasgordas","Caracolí","Caramanta","Carepa","Carolina del Príncipe","Cisneros","Cocorná","Concepción","Concordia","Dabeiba","Don Matías","Ebéjico","El Carmen de Viboral","El Peñol","El Retiro","El Santuario","Entrerríos","Frontino","Giraldo","Gómez Plata","Granada","Guadalupe","Guarne","Guatapé","Heliconia","Hispania","Ituango","Jardín","La Pintada","La Unión","Liborina","Maceo","Montebello","Murindó","Mutatá","Nariño","Necoclí","Nechí","Olaya","Peque","Pueblorrico","Puerto Berrío","Puerto Nare","Puerto Triunfo","Remedios","Sabanalarga","Salgar","San Andrés de Cuerquia","San Carlos","San Francisco","San Jerónimo","San José de la Montaña","San Juan de Urabá","San Luis","San Pedro de los Milagros","San Pedro de Urabá","San Rafael","San Roque","San Vicente Ferrer","Santa Rosa de Osos","Santo Domingo","Segovia","Sonsón","Sopetrán","Tamesis","Tarazá","Tarso","Titiribí","Toledo","Uramita","Urrao","Valdivia","Valparaíso","Vegachí","Venecia","Vigía del Fuerte","Yalí","Yarumal","Yolombó","Yondó","Zaragoza"],
+  "Arauca":["Arauca","Arauquita","Cravo Norte","Fortul","Puerto Rondón","Saravena","Tame"],
+  "Atlántico":["Barranquilla","Soledad","Malambo","Galapa","Sabanalarga","Baranoa","Campo de la Cruz","Candelaria","Juan de Acosta","Luruaco","Manatí","Palmar de Varela","Piojó","Polonuevo","Ponedera","Puerto Colombia","Repelón","Sabanagrande","Santa Lucía","Santo Tomás","Suan","Tubará","Usiacurí"],
+  "Bogotá D.C.":["Bogotá D.C."],
+  "Bolívar":["Cartagena","Magangué","El Carmen de Bolívar","Turbaco","Mompós","Arjona","Achí","Altos del Rosario","Arenal","Arroyohondo","Barranco de Loba","Calamar","Cantagallo","Cicuco","Clemencia","Córdoba","El Guamo","El Peñón","Hatillo de Loba","Mahates","Margarita","María La Baja","Montecristo","Morales","Norosí","Pinillos","Regidor","Río Viejo","San Cristóbal","San Estanislao","San Fernando","San Jacinto","San Jacinto del Cauca","San Juan Nepomuceno","San Martín de Loba","San Pablo","Santa Catalina","Santa Rosa","Santa Rosa del Sur","Simití","Soplaviento","Talaigua Nuevo","Tiquisio","Turbaná","Villanueva","Zambrano"],
+  "Boyacá":["Tunja","Duitama","Sogamoso","Chiquinquirá","Villa de Leyva","Puerto Boyacá","Paipa","Moniquirá","Nobsa","Tibasosa","Aquitania","Arcabuco","Belén","Berbeo","Betéitiva","Boavita","Boyacá","Briceño","Buena Vista","Busbanzá","Caldas","Campohermoso","Cerinza","Chinavita","Chíquiza","Chiscas","Chita","Chitaraque","Chivatá","Chivor","Ciénega","Cómbita","Coper","Corrales","Covarachía","Cubará","Cucaita","Cuítiva","El Cocuy","El Espino","Firavitoba","Floresta","Gachantivá","Gámeza","Garagoa","Guacamayas","Guateque","Guayatá","Güicán","Iza","Jenesano","Jericó","La Capilla","La Uvita","La Victoria","Labranzagrande","Macanal","Maripí","Miraflores","Mongua","Monguí","Motavita","Muzo","Nuevo Colón","Oicatá","Otanche","Pachavita","Páez","Pajarito","Panqueba","Pauna","Paya","Paz de Río","Pesca","Pisba","Quípama","Ramiriquí","Ráquira","Rondón","Saboyá","Sáchica","Samacá","San Eduardo","San José de Pare","San Luis de Gaceno","San Mateo","San Miguel de Sema","San Pablo de Borbur","Santa María","Santa Rosa de Viterbo","Santa Sofía","Santana","Sativasur","Sativanorte","Siachoque","Soatá","Socotá","Socha","Somondoco","Sora","Soracá","Sotaquirá","Susacón","Sutamarchán","Sutatenza","Tasco","Tenza","Tibaná","Tinjacá","Tipacoque","Toca","Togüí","Tópaga","Tota","Turmequé","Tuta","Tutazá","Úmbita","Ventaquemada","Viracachá","Zetaquira"],
+  "Caldas":["Manizales","La Dorada","Chinchiná","Riosucio","Salamina","Villamaría","Aguadas","Anserma","Aranzazu","Belalcázar","Filadelfia","La Merced","Manzanares","Marmato","Marquetalia","Marulanda","Neira","Norcasia","Pácora","Palestina","Pensilvania","Risaralda","Samaná","San José","Supía","Victoria","Viterbo"],
+  "Caquetá":["Florencia","San Vicente del Caguán","Albania","Belén de los Andaquíes","Cartagena del Chairá","Curillo","El Doncello","El Paujil","La Montañita","Milán","Morelia","Puerto Rico","San José del Fragua","Solano","Solita","Valparaíso"],
+  "Casanare":["Yopal","Aguazul","Tauramena","Villanueva","Hato Corozal","Orocué","Paz de Ariporo","Chámeza","La Salina","Maní","Monterrey","Nunchía","Pore","Recetor","Sabanalarga","Sácama","San Luis de Palenque","Támara","Trinidad"],
+  "Cauca":["Popayán","Santander de Quilichao","Puerto Tejada","El Tambo","Patía","Corinto","Almaguer","Argelia","Balboa","Bolívar","Buenos Aires","Cajibío","Caldono","Caloto","Florencia","Guachené","Guapi","Inzá","Jambaló","La Sierra","La Vega","López de Micay","Mercaderes","Miranda","Morales","Padilla","Páez","Piamonte","Piendamó","Puracé","Rosas","San Sebastián","Santa Rosa","Silvia","Sotara","Suárez","Sucre","Timbío","Timbiquí","Toribío","Totoró","Villa Rica"],
+  "Cesar":["Valledupar","Aguachica","Agustín Codazzi","Bosconia","Astrea","Becerril","Chimichagua","Chiriguaná","Curumaní","El Copey","El Paso","Gamarra","González","La Gloria","La Jagua de Ibirico","La Paz","Manaure Balcón del Cesar","Pailitas","Pelaya","Pueblo Bello","Río de Oro","San Alberto","San Diego","San Martín","Tamalameque"],
+  "Chocó":["Quibdó","Istmina","Riosucio","Acandí","Alto Baudó","Atrato","Bagadó","Bahía Solano","Bajo Baudó","Bojayá","Carmen del Darién","Cértegui","Condoto","El Carmen de Atrato","El Litoral del San Juan","Juradó","Lloró","Medio Atrato","Medio Baudó","Medio San Juan","Nóvita","Nuquí","Río Iro","Río Quito","San José del Palmar","Sipí","Tadó","Unguía","Unión Panamericana"],
+  "Córdoba":["Montería","Cereté","Lorica","Sahagún","Montelíbano","Ayapel","Buenavista","Canalete","Chimá","Chinú","Ciénaga de Oro","Cotorra","La Apartada","Los Córdobas","Momil","Moñitos","Planeta Rica","Pueblo Nuevo","Puerto Escondido","Puerto Libertador","Purísima de la Concepción","San Andrés de Sotavento","San Antero","San Bernardo del Viento","San Carlos","San José de Uré","San Pelayo","Tierralta","Tuchín","Valencia"],
+  "Cundinamarca":["Soacha","Facatativá","Zipaquirá","Chía","Fusagasugá","Mosquera","Madrid","Funza","Cajicá","Girardot","La Mesa","Tocancipá","Sopó","Villeta","Gachancipá","Tabio","Tenjo","El Rosal","Subachoque","Cogua","Nemocón","Ubaté","Simijaca","Agua de Dios","Albán","Anapoima","Anolaima","Apulo","Arbeláez","Beltrán","Bituima","Bojacá","Cabrera","Cachipay","Caparrapí","Cáqueza","Carmen de Carupa","Chaguaní","Chipaque","Choachí","Chocontá","Cota","Cucunubá","El Colegio","El Peñón","Fomeque","Fosca","Fúquene","Gachalá","Gachetá","Gama","Granada","Guachetá","Guaduas","Guasca","Guataquí","Guatavita","Guayabal de Síquima","Guayabetal","Gutiérrez","Jerusalén","Junín","La Calera","La Palma","La Peña","La Vega","Lenguazaque","Macheta","Manta","Medina","Nariño","Nilo","Nimaima","Nocaima","Venecia","Pacho","Paime","Pandi","Paratebueno","Pasca","Puerto Salgar","Pulí","Quebradanegra","Quetame","Quipile","Ricaurte","San Antonio del Tequendama","San Bernardo","San Cayetano","San Francisco","San Juan de Rioseco","Sasaima","Sesquilé","Sibaté","Silvania","Suesca","Supatá","Susa","Sutatausa","Tausa","Tena","Tibacuy","Tibiritá","Tocaima","Topaipí","Ubalá","Ubaque","Une","Útica","Vergara","Vianí","Villa de San Diego de Ubaté","Viotá","Yacopí","Zipacón"],
+  "Guainía":["Inírida","Barranco Minas","Cacahual","La Guadalupe","Mapiripana","Morichal","Pana Pana","Puerto Colombia","San Felipe"],
+  "Guaviare":["San José del Guaviare","Calamar","El Retorno","Miraflores"],
+  "Huila":["Neiva","Pitalito","Garzón","La Plata","Campoalegre","Acevedo","Agrado","Aipe","Algeciras","Altamira","Baraya","Colombia","Elías","Gigante","Guadalupe","Hobo","Iquira","Isnos","La Argentina","Nátaga","Oporapa","Paicol","Palermo","Palestina","Pital","Rivera","Saladoblanco","San Agustín","Santa María","Suaza","Tarqui","Tello","Teruel","Tesalia","Timaná","Villavieja","Yaguará"],
+  "La Guajira":["Riohacha","Maicao","Uribia","Fonseca","San Juan del Cesar","Albania","Barrancas","Dibula","Distracción","El Molino","Hatonuevo","La Jagua del Pilar","Manaure","Urumita","Villanueva"],
+  "Magdalena":["Santa Marta","Ciénaga","Fundación","El Banco","Aracataca","Plato","Algarrobo","Ariguaní","Cerro de San Antonio","Chivolo","Concordia","El Piñón","El Retén","Guamal","Nueva Granada","Pedraza","Pijiño del Carmen","Pivijay","Puebloviejo","Remolino","Sabanas de San Ángel","Salamina","San Sebastián de Buenavista","San Zenón","Santa Ana","Santa Bárbara de Pinto","Sitionuevo","Tenerife","Zapayán","Zona Bananera"],
+  "Meta":["Villavicencio","Acacías","Granada","Cumaral","Restrepo","San Martín","Puerto López","Barranca de Upía","Cabuyaro","Castilla la Nueva","Cubarral","El Calvario","El Castillo","El Dorado","Fuente de Oro","Guamal","La Macarena","La Uribe","Lejanías","Mapiripán","Mesetas","Puerto Concordia","Puerto Gaitán","Puerto Lleras","Puerto Rico","San Carlos de Guaroa","San Juan de Arama","San Juanito","Vista Hermosa"],
+  "Nariño":["Pasto","Tumaco","Ipiales","Túquerres","Samaniego","La Unión","El Charco","Barbacoas","Olaya Herrera","Albán","Aldana","Ancuyá","Arboleda","Belén","Buesaco","Chachagüí","Colón","Consacá","Contadero","Córdoba","Cuaspud","Cumbal","Cumbitara","El Peñol","El Rosario","El Tablón de Gómez","El Tambo","Francisco Pizarro","Funes","Guachucal","Guaitarilla","Gualmatán","Iles","Imués","La Cruz","La Florida","La Llanada","La Tola","Leiva","Linares","Los Andes","Magüí","Mallama","Mosquera","Nariño","Ospina","Policarpa","Potosí","Providencia","Puerres","Pupiales","Ricaurte","Roberto Payán","San Bernardo","San Lorenzo","San Pablo","San Pedro de Cartago","Sandoná","Santa Bárbara","Santacruz","Sapuyes","Taminango","Tangua","Yacuanquer"],
+  "Norte de Santander":["Cúcuta","Ocaña","Pamplona","Los Patios","Villa del Rosario","Tibú","Ábrego","Arboledas","Bochalema","Bucarasica","Cácota","Cachirá","Chitagá","Convención","Cucutilla","Durania","El Carmen","El Tarra","El Zulia","Gramalote","Hacarí","Herrán","La Esperanza","La Playa","Labateca","Lourdes","Mutiscua","Pamplonita","Puerto Santander","Ragonvalia","Salazar","San Calixto","San Cayetano","Santiago","Sardinata","Silos","Teorama","Toledo","Villa Caro"],
+  "Putumayo":["Mocoa","Puerto Asís","Orito","Valle del Guamuez","Villagarzón","Colón","Leguízamo","Puerto Caicedo","Puerto Guzmán","Puerto Leguízamo","San Francisco","San Miguel","Santiago","Sibundoy"],
+  "Quindío":["Armenia","Calarcá","Montenegro","Quimbaya","La Tebaida","Buenavista","Circasia","Córdoba","Filandia","Génova","Pijao","Salento"],
+  "Risaralda":["Pereira","Dosquebradas","Santa Rosa de Cabal","La Virginia","Apía","Balboa","Belén de Umbría","Guática","La Celia","Marsella","Mistrató","Pueblo Rico","Quinchía","Santuario"],
+  "San Andrés y Providencia":["San Andrés","Providencia"],
+  "Santander":["Bucaramanga","Floridablanca","Girón","Piedecuesta","Barrancabermeja","San Gil","Socorro","Vélez","Barbosa","Lebrija","Sabana de Torres","Puerto Wilches","Rionegro","San Vicente de Chucurí","Aguada","Albania","Aratoca","Barichara","Betulia","Bolívar","Cabrera","California","Capitanejo","Carcasí","Cepitá","Cerrito","Charalá","Charta","Chima","Chipatá","Cimitarra","Confines","Contratación","Coromoro","Curití","El Carmen de Chucurí","El Guacamayo","El Peñón","El Playón","Encino","Enciso","Galán","Gambita","Guaca","Guadalupe","Guapotá","Guavatá","Güepsa","Hato","Jesús María","Jordán","La Belleza","La Paz","Landázuri","Los Santos","Macaravita","Málaga","Matanza","Mogotes","Molagavita","Ocamonte","Oiba","Onzaga","Palmar","Palmas del Socorro","Páramo","Pinchote","Puente Nacional","Puerto Parra","San Andrés","San Benito","San Joaquín","San José de Miranda","San Miguel","Santa Bárbara","Santa Helena del Opón","Simacota","Suaita","Sucre","Suratá","Tona","Valle de San José","Vetas","Villanueva","Zapatoca"],
+  "Sucre":["Sincelejo","Corozal","Sahagún","Sampués","San Marcos","Buenavista","Caimito","Colosó","Coveñas","Chalán","El Roble","Galeras","Guaranda","La Unión","Los Palmitos","Majagual","Morroa","Ovejas","Palmito","San Benito Abad","San Juan de Betulia","San Onofre","San Pedro","Santiago de Tolú","Since","Sucre","Tolú Viejo"],
+  "Tolima":["Ibagué","Espinal","Melgar","Honda","Líbano","Mariquita","El Guamo","Chaparral","Alpujarra","Alvarado","Ambalema","Anzoátegui","Armero-Guayabal","Ataco","Cajamarca","Carmen de Apicalá","Casabianca","Coello","Coyaima","Cunday","Dolores","Falan","Flandes","Fresno","Herveo","Icononzo","Lérida","Murillo","Natagaima","Ortega","Palocabildo","Piedras","Planadas","Prado","Purificación","Rioblanco","Roncesvalles","Rovira","Saldaña","San Antonio","San Luis","Santa Isabel","Suárez","Valle de San Juan","Venadillo","Villahermosa","Villarrica"],
+  "Valle del Cauca":["Cali","Palmira","Buenaventura","Tuluá","Buga","Cartago","Yumbo","Jamundí","Candelaria","Florida","Pradera","El Cerrito","Ginebra","Guacarí","Alcalá","Andalucía","Ansermanuevo","Argelia","Bolívar","Bugalagrande","Caicedonia","Calima","Dagua","El Águila","El Cairo","El Dovio","La Cumbre","La Unión","La Victoria","Obando","Restrepo","Riofrío","Roldanillo","San Pedro","Sevilla","Toro","Trujillo","Ulloa","Versalles","Vijes","Yotoco","Zarzal"],
+  "Vaupés":["Mitú","Carurú","Pacoa","Papunaua","Taraira","Yavaraté"],
+  "Vichada":["Puerto Carreño","Cumaribo","La Primavera","Santa Rosalía"],
+}
+
 # ── MercadoPago Colombia ─────────────────────────────────
 MP_ACCESS_TOKEN   = os.getenv("MP_ACCESS_TOKEN", "")       # APP_USR-...
 MP_API            = "https://api.mercadopago.com"
@@ -220,15 +269,14 @@ def leer_catalogo() -> list:
             id_to_sku[meli_id] = sku
 
         try:
-            precio_meli = float(precio_raw.replace(",", "").replace(".", "")
-                                .replace("$", "").replace(" ", ""))
+            precio_meli = float(precio_raw.replace(",", "").replace("$", "").replace(" ", ""))
             if precio_meli <= 0:
                 continue
         except ValueError:
             continue
 
-        precio_desc = precio_meli * 0.90
-        ahorro      = precio_meli * 0.10
+        precio_desc = precio_meli * (1 - MELI_COMMISSION)
+        ahorro      = precio_meli * MELI_COMMISSION
 
         def fmt(n): return f"${n:,.0f}".replace(",", ".")
 
@@ -358,7 +406,7 @@ def init_db():
     con.commit()
     con.close()
 
-def mp_crear_preferencia(ref: str, cart: dict, total: float) -> dict:
+def mp_crear_preferencia(ref: str, cart: dict, total: float, shipping: float = 0.0) -> dict:
     """Crea una preferencia de pago en MercadoPago y retorna {init_point, id}."""
     items = []
     for item in cart.values():
@@ -366,6 +414,13 @@ def mp_crear_preferencia(ref: str, cart: dict, total: float) -> dict:
             "title":      item["name"][:256],
             "quantity":   item["qty"],
             "unit_price": round(item["price"]),
+            "currency_id": "COP",
+        })
+    if shipping > 0:
+        items.append({
+            "title":      "Envío Interrapidísimo",
+            "quantity":   1,
+            "unit_price": round(shipping),
             "currency_id": "COP",
         })
     payload = {
@@ -405,9 +460,35 @@ def cart_total(cart: dict) -> float:
     return sum(item["price"] * item["qty"] for item in cart.values())
 
 
+GUIDES = [
+    {
+        "title":        "Guía de Ácidos Profesionales",
+        "desc":         "Protocolos de uso, concentraciones, mecanismos de acción y peelings para ácido salicílico, hialurónico y glicólico.",
+        "url":          "/guias/kit-acidos",
+        "category":     "Ácidos y Principios Activos",
+        "icon":         "flask",
+        "color":        "#143D36",
+        "tags":         ["BHA", "AHA", "Peeling", "Skincare"],
+        "products":     12,
+        "external":     False,
+        "sku_prefixes": ["acd", "ktacd", "as-96", "kojic", "alfarb", "dha"],
+    },
+]
+
+
+def guide_for_product(sku: str) -> dict | None:
+    sl = sku.strip().lower()
+    for g in GUIDES:
+        for pfx in g.get("sku_prefixes", []):
+            if sl.startswith(pfx.lower()):
+                return g
+    return None
+
+
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "mckg-s3cr3t-2026-!xK9")
-app.jinja_env.globals.update(wa_link=wa_link, WA_NUMBER=WA_NUMBER)
+app.jinja_env.globals.update(wa_link=wa_link, WA_NUMBER=WA_NUMBER,
+                              guide_for_product=guide_for_product)
 
 
 @app.route("/")
@@ -472,6 +553,11 @@ def nosotros():
 @app.route("/contacto")
 def contacto():
     return render_template("contacto.html")
+
+
+@app.route("/guias")
+def guias():
+    return render_template("guias.html", guides=GUIDES)
 
 
 @app.route("/guias/kit-acidos")
@@ -584,13 +670,28 @@ def checkout_pagar():
     if not cart:
         return redirect(url_for("catalogo"))
 
-    ref          = session.get("pending_ref") or ("MCKG-" + uuid.uuid4().hex[:10].upper())
-    total        = cart_total(cart)
-    buyer_name   = request.form.get("buyer_name", "").strip()
-    buyer_email  = request.form.get("buyer_email", "").strip()
-    buyer_phone  = request.form.get("buyer_phone", "").strip()
-    buyer_city   = request.form.get("buyer_city", "").strip()
-    buyer_addr   = request.form.get("buyer_address", "").strip()
+    ref           = session.get("pending_ref") or ("MCKG-" + uuid.uuid4().hex[:10].upper())
+    subtotal      = cart_total(cart)
+    buyer_name    = request.form.get("buyer_name", "").strip()
+    buyer_cedula  = request.form.get("buyer_cedula", "").strip()
+    buyer_email   = request.form.get("buyer_email", "").strip()
+    buyer_phone   = request.form.get("buyer_phone", "").strip()
+    buyer_city    = request.form.get("buyer_city", "").strip()
+    buyer_dept    = request.form.get("buyer_dept", "").strip()
+    buyer_addr    = request.form.get("buyer_address", "").strip()
+    buyer_notes   = request.form.get("buyer_notes", "").strip()
+    # Facturación
+    bill_name     = request.form.get("bill_name", buyer_name).strip() or buyer_name
+    bill_nit      = request.form.get("bill_nit", buyer_cedula).strip() or buyer_cedula
+    bill_city     = request.form.get("bill_city", buyer_city).strip() or buyer_city
+    bill_addr     = request.form.get("bill_address", buyer_addr).strip() or buyer_addr
+    bill_email    = request.form.get("bill_email", buyer_email).strip() or buyer_email
+    # Envío
+    try:
+        shipping_cost = float(request.form.get("shipping_cost", 0))
+    except ValueError:
+        shipping_cost = 0.0
+    total = subtotal + shipping_cost
 
     # Guardar orden en DB como "pending"
     try:
@@ -601,7 +702,16 @@ def checkout_pagar():
                 items_json, total, status, created_at)
                VALUES (?,?,?,?,?,?,?,?,?)""",
             (ref, buyer_name, buyer_email, buyer_phone, buyer_city,
-             json.dumps(list(cart.values()), ensure_ascii=False),
+             json.dumps({
+                 "items": list(cart.values()),
+                 "cedula": buyer_cedula,
+                 "dept": buyer_dept,
+                 "address": buyer_addr,
+                 "notes": buyer_notes,
+                 "shipping": shipping_cost,
+                 "billing": {"name": bill_name, "nit": bill_nit, "city": bill_city,
+                              "address": bill_addr, "email": bill_email},
+             }, ensure_ascii=False),
              total, "pending", datetime.now().isoformat())
         )
         con.commit()
@@ -615,7 +725,7 @@ def checkout_pagar():
             ref=ref, total=total,
             buyer_name=buyer_name, buyer_email=buyer_email)
 
-    pref = mp_crear_preferencia(ref, cart, total)
+    pref = mp_crear_preferencia(ref, cart, total, shipping_cost)
     if pref["ok"]:
         return redirect(pref["init_point"])
 
@@ -711,6 +821,48 @@ def mis_pedidos():
         except Exception as e:
             log.warning(f"mis_pedidos: {e}")
     return render_template("mis_pedidos.html", orders=orders, email=email)
+
+
+@app.route("/api/chat", methods=["POST"])
+def api_chat():
+    """Proxy público hacia el agente Hugo García (puerto 8081)."""
+    data = request.get_json(silent=True) or {}
+    message = data.get("message", "").strip()
+    if not message:
+        return jsonify({"error": "Campo 'message' requerido"}), 400
+    try:
+        agent_token = os.getenv("CHAT_API_TOKEN", "")
+        res = requests.post(
+            "http://localhost:8081/chat",
+            json={"mensaje": message},
+            headers={"Authorization": f"Bearer {agent_token}",
+                     "Content-Type": "application/json"},
+            timeout=30,
+        )
+        if res.status_code == 200:
+            return jsonify({"reply": res.json().get("respuesta", ""), "ok": True})
+        log.warning(f"api_chat upstream {res.status_code}")
+    except Exception as e:
+        log.warning(f"api_chat: {e}")
+    # Fallback: respuesta básica si el agente no está disponible
+    return jsonify({
+        "reply": ("Hola, soy el asistente de McKenna Group. "
+                  "Para asesoría personalizada escríbenos por WhatsApp "
+                  f"al +{WA_NUMBER} o llámanos. ¿En qué te podemos ayudar?"),
+        "ok": True,
+    })
+
+
+@app.route("/checkout/tarifas")
+def checkout_tarifas():
+    """Retorna las tarifas de envío para el estimador del checkout."""
+    return jsonify(TARIFAS_IR)
+
+
+@app.route("/checkout/colombia")
+def checkout_colombia():
+    """Retorna departamentos y municipios de Colombia."""
+    return jsonify(COLOMBIA_DATA)
 
 
 @app.errorhandler(404)

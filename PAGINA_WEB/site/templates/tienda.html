@@ -12,6 +12,7 @@
 <section class="cat-hero">
   <div class="cat-hero-left">
     <div class="cat-hero-pulse"></div>
+    <img src="{{ url_for('static', filename='img/isotipo.png') }}" alt="" class="cat-hero-watermark" aria-hidden="true">
     <span class="hero-badge">Catálogo Oficial · Abril 2026</span>
     <h1 class="hero-title">
       Materias<br><em>Primas</em><br>Colombia
@@ -28,6 +29,9 @@
   </div>
 
   <div class="cat-hero-right">
+    <div class="cat-hero-brand-stamp">
+      <img src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group">
+    </div>
     <p class="hero-right-label">Resumen del catálogo</p>
     <div class="cat-hero-stats">
       {% for s in sections[:6] %}
@@ -186,6 +190,13 @@
              class="btn btn-wa btn-sm">
             <i class="ph ph-whatsapp-logo"></i> WhatsApp
           </a>
+          {% set guia = guide_for_product(p.ref) %}
+          {% if guia %}
+          <a href="{{ guia.url }}" target="_blank" rel="noopener"
+             class="btn btn-guide btn-sm">
+            <i class="ph ph-book-open"></i> Guía de uso
+          </a>
+          {% endif %}
           {% if p.meli_id %}
           <a href="https://articulo.mercadolibre.com.co/{{ p.meli_id }}"
              target="_blank" rel="noopener"
