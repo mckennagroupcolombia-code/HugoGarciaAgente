@@ -55,7 +55,7 @@ from app.sync import (
     sincronizar_inteligente,
     sincronizar_por_dia_especifico
 )
-from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
+from app.tools.importar_productos_siigo import procesar_facturas_para_importar_productos
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
 
 
@@ -290,7 +290,7 @@ def configurar_ia(app):
             sincronizar_manual_por_id, sincronizar_inteligente,
             sincronizar_por_dia_especifico,
             refrescar_token_meli, enviar_whatsapp_reporte,
-            sincronizar_facturas_de_compra_siigo,
+            procesar_facturas_para_importar_productos,
             crear_cotizacion_siigo, crear_cotizacion_preliminar,
             crear_factura_completa_siigo,
             consultar_tarifa_envio, consultar_tarifa_mercadoenvios,

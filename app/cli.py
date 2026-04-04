@@ -12,7 +12,6 @@ from app.sync import (
 )
 from app.services.google_services import leer_datos_hoja
 from app.services.meli import aprender_de_interacciones_meli
-from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
 from app.tools.importar_productos_siigo import procesar_facturas_para_importar_productos
 from app.services.woocommerce import obtener_todos_los_productos_woocommerce, sincronizar_catalogo_woocommerce
 from app.tools.verificacion_sync_skus import verificar_sync_skus
@@ -102,8 +101,7 @@ def iniciar_cli():
             fecha = input("📅 Ingrese la fecha (formato AAAA-MM-DD): ")
             print(sincronizar_por_dia_especifico(fecha))
         elif opcion == "10":
-            # Llamar a la nueva herramienta sincronizar_facturas_de_compra_siigo
-            print(sincronizar_facturas_de_compra_siigo())
+            print(procesar_facturas_para_importar_productos())
         elif opcion == "11":
             print("👋 Apagando el Centro de Mando...")
             break
