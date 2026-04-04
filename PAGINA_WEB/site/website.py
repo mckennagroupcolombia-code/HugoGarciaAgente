@@ -30,6 +30,7 @@ CREDS_PATH = os.getenv(
 SHEET_ID    = "1v8_8Ibnq0yPkFlS1t-NGM2UMaNd5dxIDjJApl3NbHMg"
 MELI_CREDS  = Path(os.getenv("MELI_CREDS_PATH", str(ROOT / "credenciales_meli.json")))
 CACHE_FILE  = Path(__file__).parent / "data/cache.json"
+FICHAS_FILE = Path(__file__).parent / "data/fichas_tecnicas.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
@@ -230,6 +231,69 @@ def fetch_meli_photo_urls(token: str, meli_id_to_sku: dict) -> dict:
 
 
 # ══════════════════════════════════════════════════════════
+#  FICHAS TÉCNICAS (Word → JSON)
+# ══════════════════════════════════════════════════════════
+_fichas_cache: dict = {}
+
+def _norm_ficha(texto: str) -> str:
+    t = texto.lower().strip()
+    for a, b in [("á","a"),("é","e"),("í","i"),("ó","o"),("ú","u"),("ñ","n")]:
+        t = t.replace(a, b)
+    return re.sub(r"[^a-z0-9 ]", " ", t).strip()
+
+
+def load_fichas() -> dict:
+    global _fichas_cache
+    if _fichas_cache:
+        return _fichas_cache
+    try:
+        _fichas_cache = json.loads(FICHAS_FILE.read_text(encoding="utf-8"))
+        log.info(f"Fichas técnicas cargadas: {len(_fichas_cache)}")
+    except Exception as e:
+        log.warning(f"No se pudieron cargar fichas técnicas: {e}")
+        _fichas_cache = {}
+    return _fichas_cache
+
+
+def buscar_ficha(nombre_producto: str) -> dict | None:
+    """Busca la ficha técnica más específica para un nombre de producto.
+
+    Estrategias (de mayor a menor prioridad):
+    1. Todas las palabras de la clave están presentes en el nombre (exacto)
+    2. Las primeras 2 palabras de la clave están en el nombre (fallback para claves con números)
+    """
+    fichas = load_fichas()
+    if not fichas:
+        return None
+    nombre_norm    = _norm_ficha(nombre_producto)
+    nombre_palabras = set(nombre_norm.split())
+
+    # Estrategia 1: todas las palabras de la clave presentes
+    mejor_clave, mejor_score = None, 0
+    for clave in fichas:
+        clave_palabras = set(clave.split())
+        if clave_palabras and clave_palabras.issubset(nombre_palabras):
+            score = len(clave)  # preferir la clave más específica (más larga)
+            if score > mejor_score:
+                mejor_clave, mejor_score = clave, score
+
+    if mejor_clave:
+        return fichas[mejor_clave]
+
+    # Estrategia 2: primeras 2 palabras de la clave (ignora número de versión)
+    for clave in fichas:
+        clave_palabras = clave.split()
+        if len(clave_palabras) >= 2:
+            prefijo = set(clave_palabras[:2])
+            if prefijo.issubset(nombre_palabras):
+                score = len(" ".join(clave_palabras[:2]))
+                if score > mejor_score:
+                    mejor_clave, mejor_score = clave, score
+
+    return fichas.get(mejor_clave) if mejor_clave else None
+
+
+# ══════════════════════════════════════════════════════════
 #  LEER CATÁLOGO DESDE SHEETS
 # ══════════════════════════════════════════════════════════
 def leer_catalogo() -> list:
@@ -280,7 +344,8 @@ def leer_catalogo() -> list:
 
         def fmt(n): return f"${n:,.0f}".replace(",", ".")
 
-        cat = categorize(sku)
+        cat   = categorize(sku)
+        ficha = buscar_ficha(nombre)
         sections[cat].append({
             "name":       nombre,
             "ref":        sku,
@@ -293,6 +358,7 @@ def leer_catalogo() -> list:
             "cat_color":  CAT_COLORS.get(cat, "#2E8B7A"),
             "slug":       re.sub(r"[^a-z0-9\-]", "-", sku.lower()),
             "desc":       desc_raw[:450] if desc_raw else "",
+            "ficha":      ficha,
         })
 
     # Fotos desde MeLi
@@ -553,6 +619,16 @@ def nosotros():
 @app.route("/contacto")
 def contacto():
     return render_template("contacto.html")
+
+
+@app.route("/recetario")
+def recetario():
+    recetas_file = Path(__file__).parent / "data/recetas.json"
+    try:
+        recetas = json.loads(recetas_file.read_text(encoding="utf-8"))
+    except Exception:
+        recetas = []
+    return render_template("recetario.html", recetas=recetas)
 
 
 @app.route("/guias")

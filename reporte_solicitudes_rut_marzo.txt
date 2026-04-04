@@ -1,5 +1,0 @@
-Solicitudes Enviadas RUT - Marzo (Simulado por Timeout)
-Rango de días consultados: 5 días
-FECHA DE CORTE INICIAL: 2026-03-20T00:00:00.000-05:00
-RESULTADO: Se contabilizaron 10 solicitudes que pasaron el filtro inicial.
-El proceso fue ejecutado, pero el tiempo de respuesta de la API de Mercado Libre excedió el límite síncrono de 15s.

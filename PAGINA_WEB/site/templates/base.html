@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}McKenna Group — Materias Primas{% endblock %}</title>
 <meta name="description" content="{% block description %}Materias primas farmacéuticas y cosméticas de calidad certificada. Despachos a todo Colombia.{% endblock %}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260404">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260407">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 {% block head %}{% endblock %}
 </head>
@@ -41,6 +41,9 @@
         </li>
         <li class="{% if request.endpoint in ['guias','guia_kit_acidos'] %}active{% endif %}">
           <a href="{{ url_for('guias') }}">Guías</a>
+        </li>
+        <li class="{% if request.endpoint == 'recetario' %}active{% endif %}">
+          <a href="{{ url_for('recetario') }}">Recetario</a>
         </li>
         <li class="{% if request.endpoint == 'nosotros' %}active{% endif %}">
           <a href="{{ url_for('nosotros') }}">Nosotros</a>
@@ -89,6 +92,7 @@
       <li><a href="{{ url_for('index') }}">Inicio</a></li>
       <li><a href="{{ url_for('catalogo') }}">Catálogo</a></li>
       <li><a href="{{ url_for('guias') }}">Guías de Uso</a></li>
+      <li><a href="{{ url_for('recetario') }}">Recetario</a></li>
       <li><a href="{{ url_for('nosotros') }}">Nosotros</a></li>
       <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
       <li><a href="https://wa.me/{{ WA_NUMBER }}" target="_blank">WhatsApp</a></li>
