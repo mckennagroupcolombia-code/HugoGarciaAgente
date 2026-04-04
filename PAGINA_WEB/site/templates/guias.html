@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Guías de Uso — McKenna Group{% endblock %}
+{% block description %}Guías técnicas y protocolos de uso para materias primas farmacéuticas y cosméticas McKenna Group.{% endblock %}
+
+{% block content %}
+
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Recursos Técnicos</span>
+    <h1>Guías de <em>Uso</em></h1>
+    <p>Protocolos, evidencia científica y métodos de formulación para nuestras materias primas.</p>
+  </div>
+</div>
+
+<div class="section" style="max-width:1100px;margin:0 auto;padding:64px 32px;">
+
+  <div class="section-header" style="margin-bottom:48px;">
+    <div class="section-number">01</div>
+    <div>
+      <span class="section-eyebrow">Documentación técnica</span>
+      <h2 class="section-title">Guías disponibles</h2>
+      <p class="section-lead">Material de referencia elaborado por nuestro equipo técnico para ayudarte a formular con seguridad y eficacia.</p>
+    </div>
+  </div>
+
+  <div class="guides-grid">
+
+    {% for g in guides %}
+    <a href="{{ g.url }}" class="guide-card" target="{{ '_blank' if g.external else '_self' }}">
+      <div class="guide-card-top" style="background:{{ g.color }};">
+        <div class="guide-card-icon"><i class="ph ph-{{ g.icon }}"></i></div>
+        <div class="guide-card-badges">
+          {% for tag in g.tags %}
+          <span class="guide-tag">{{ tag }}</span>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="guide-card-body">
+        <div class="guide-card-cat">{{ g.category }}</div>
+        <h3 class="guide-card-title">{{ g.title }}</h3>
+        <p class="guide-card-desc">{{ g.desc }}</p>
+        <div class="guide-card-footer">
+          <span class="guide-card-products"><i class="ph ph-flask"></i> {{ g.products }} productos</span>
+          <span class="guide-card-cta">Ver guía <i class="ph ph-arrow-right"></i></span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+
+    <!-- Próximamente -->
+    <div class="guide-card guide-card-soon">
+      <div class="guide-card-top" style="background:#1E5C51;">
+        <div class="guide-card-icon"><i class="ph ph-drop"></i></div>
+      </div>
+      <div class="guide-card-body">
+        <div class="guide-card-cat">Emulsionantes</div>
+        <h3 class="guide-card-title">Guía de Emulsiones y Surfactantes</h3>
+        <p class="guide-card-desc">Protocolos HLB, técnicas de emulsificación y formulación de cremas y lociones.</p>
+        <div class="guide-card-footer">
+          <span class="guide-card-products" style="color:var(--text-muted);"><i class="ph ph-clock"></i> Próximamente</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-card guide-card-soon">
+      <div class="guide-card-top" style="background:#2E8B7A;">
+        <div class="guide-card-icon"><i class="ph ph-sun"></i></div>
+      </div>
+      <div class="guide-card-body">
+        <div class="guide-card-cat">Principios Activos</div>
+        <h3 class="guide-card-title">Guía de Vitaminas y Antioxidantes</h3>
+        <p class="guide-card-desc">Concentraciones, estabilidad, pH óptimo y sinergias para activos vitamínicos.</p>
+        <div class="guide-card-footer">
+          <span class="guide-card-products" style="color:var(--text-muted);"><i class="ph ph-clock"></i> Próximamente</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CTA -->
+  <div class="cat-cta-section" style="margin-top:80px;">
+    <div class="cat-cta-inner">
+      <div class="section-number" style="color:rgba(255,255,255,0.06);">★</div>
+      <div>
+        <span class="hero-badge" style="margin-bottom:20px;">Soporte Técnico</span>
+        <h2 class="cat-cta-title">¿Necesitas una guía<br><em>específica?</em></h2>
+        <p class="cat-cta-lead">Nuestro equipo técnico elabora protocolos personalizados para tu línea de productos.</p>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:32px;">
+          <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20necesito%20asesoría%20técnica%20para%20formulación"
+             target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+            <i class="ph ph-whatsapp-logo"></i> Consultar al equipo técnico
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

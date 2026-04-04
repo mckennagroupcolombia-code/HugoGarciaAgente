@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}McKenna Group — Materias Primas{% endblock %}</title>
 <meta name="description" content="{% block description %}Materias primas farmacéuticas y cosméticas de calidad certificada. Despachos a todo Colombia.{% endblock %}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}?v=20260404">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 {% block head %}{% endblock %}
 </head>
@@ -23,6 +23,7 @@
 
     <!-- Logo -->
     <a href="{{ url_for('index') }}" class="site-logo">
+      <img src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group" class="site-logo-img">
       <div class="brand-text">
         McKenna Group
         <span>Materias Primas</span>
@@ -37,6 +38,9 @@
         </li>
         <li class="{% if request.endpoint in ['catalogo'] %}active{% endif %}">
           <a href="{{ url_for('catalogo') }}">Catálogo</a>
+        </li>
+        <li class="{% if request.endpoint in ['guias','guia_kit_acidos'] %}active{% endif %}">
+          <a href="{{ url_for('guias') }}">Guías</a>
         </li>
         <li class="{% if request.endpoint == 'nosotros' %}active{% endif %}">
           <a href="{{ url_for('nosotros') }}">Nosotros</a>
@@ -84,6 +88,7 @@
     <ul class="mobile-nav-list">
       <li><a href="{{ url_for('index') }}">Inicio</a></li>
       <li><a href="{{ url_for('catalogo') }}">Catálogo</a></li>
+      <li><a href="{{ url_for('guias') }}">Guías de Uso</a></li>
       <li><a href="{{ url_for('nosotros') }}">Nosotros</a></li>
       <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
       <li><a href="https://wa.me/{{ WA_NUMBER }}" target="_blank">WhatsApp</a></li>
@@ -180,7 +185,134 @@
   <i class="ph ph-arrow-up"></i>
 </a>
 
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}?v=20260403"></script>
 {% block scripts %}{% endblock %}
+
+<!-- ══════════════════════════════════════════════════════
+     CHAT WIDGET — Hugo García / McKenna Group
+══════════════════════════════════════════════════════ -->
+<div id="chat-widget">
+  <!-- Burbuja flotante -->
+  <button id="chat-fab" onclick="chatToggle()" aria-label="Chat con Hugo">
+    <i class="ph ph-chat-circle-dots" id="chat-fab-icon"></i>
+    <span class="chat-fab-badge" id="chat-unread" style="display:none;">1</span>
+  </button>
+
+  <!-- Panel -->
+  <div id="chat-panel" aria-hidden="true">
+    <div id="chat-header">
+      <div class="chat-header-avatar">H</div>
+      <div>
+        <div class="chat-header-name">Hugo García</div>
+        <div class="chat-header-status"><span class="chat-dot"></span> Asesor McKenna Group</div>
+      </div>
+      <button class="chat-close-btn" onclick="chatToggle()" aria-label="Cerrar">
+        <i class="ph ph-x"></i>
+      </button>
+    </div>
+
+    <div id="chat-messages">
+      <div class="chat-msg chat-msg-bot">
+        <div class="chat-bubble">
+          ¡Hola! Soy Hugo, asesor de McKenna Group 👋<br>
+          ¿En qué te puedo ayudar hoy? Puedo orientarte sobre productos, precios, disponibilidad o formulación.
+        </div>
+        <div class="chat-time">Ahora</div>
+      </div>
+    </div>
+
+    <div id="chat-input-wrap">
+      <input type="text" id="chat-input" placeholder="Escribe tu pregunta..."
+             onkeydown="if(event.key==='Enter')chatSend()">
+      <button id="chat-send-btn" onclick="chatSend()" aria-label="Enviar">
+        <i class="ph ph-paper-plane-tilt"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  let open = false;
+  const panel     = document.getElementById('chat-panel');
+  const fab       = document.getElementById('chat-fab');
+  const fabIcon   = document.getElementById('chat-fab-icon');
+  const unread    = document.getElementById('chat-unread');
+  const messages  = document.getElementById('chat-messages');
+  const input     = document.getElementById('chat-input');
+  const sendBtn   = document.getElementById('chat-send-btn');
+
+  window.chatToggle = function(){
+    open = !open;
+    panel.style.display  = open ? 'flex' : 'none';
+    panel.setAttribute('aria-hidden', String(!open));
+    fabIcon.className    = open ? 'ph ph-x' : 'ph ph-chat-circle-dots';
+    fab.classList.toggle('chat-fab-open', open);
+    if(open){ unread.style.display='none'; input.focus(); scrollBot(); }
+  };
+
+  function scrollBot(){ messages.scrollTop = messages.scrollHeight; }
+
+  function addMsg(text, role){
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-msg ' + (role==='user' ? 'chat-msg-user' : 'chat-msg-bot');
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.innerHTML = text.replace(/\n/g,'<br>');
+    const time = document.createElement('div');
+    time.className = 'chat-time';
+    time.textContent = new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+    wrap.appendChild(bubble);
+    wrap.appendChild(time);
+    messages.appendChild(wrap);
+    scrollBot();
+    return bubble;
+  }
+
+  function setTyping(show){
+    const id = 'chat-typing';
+    let el = document.getElementById(id);
+    if(show && !el){
+      const w = document.createElement('div');
+      w.id = id; w.className = 'chat-msg chat-msg-bot';
+      w.innerHTML = '<div class="chat-bubble chat-typing-anim"><span></span><span></span><span></span></div>';
+      messages.appendChild(w); scrollBot();
+    } else if(!show && el){ el.remove(); }
+  }
+
+  window.chatSend = async function(){
+    const msg = input.value.trim();
+    if(!msg) return;
+    input.value = '';
+    sendBtn.disabled = true;
+    input.disabled = true;
+
+    addMsg(msg, 'user');
+    setTyping(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({message: msg})
+      });
+      const data = await res.json();
+      setTyping(false);
+      addMsg(data.reply || 'Ups, no pude procesar tu mensaje. Intenta de nuevo.', 'bot');
+    } catch(e){
+      setTyping(false);
+      addMsg('Hubo un error de conexión. Escríbenos directamente por WhatsApp.', 'bot');
+    }
+    sendBtn.disabled = false;
+    input.disabled = false;
+    input.focus();
+  };
+
+  // Mostrar badge después de 4 segundos si no han abierto el chat
+  setTimeout(function(){
+    if(!open) unread.style.display='flex';
+  }, 4000);
+})();
+</script>
 </body>
 </html>

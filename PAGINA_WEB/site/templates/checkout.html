@@ -11,10 +11,10 @@
   </div>
 </div>
 
-<div class="section" style="max-width:1000px;margin:0 auto;padding:64px 32px;">
+<div class="section" style="max-width:1100px;margin:0 auto;padding:64px 32px;">
   <div class="checkout-grid">
 
-    <!-- Resumen del pedido -->
+    <!-- ── Resumen del pedido ────────────────────────────── -->
     <div>
       <div class="card-section-title">Tu pedido</div>
 
@@ -48,72 +48,198 @@
           <span>IVA</span>
           <span style="color:var(--green);">Exento / Incluido</span>
         </div>
+        <div class="checkout-total-row" id="row-envio" style="display:none;">
+          <span>Envío Interrapidísimo</span>
+          <span id="label-envio" style="color:var(--green-dark);font-weight:700;"></span>
+        </div>
         <div class="checkout-total-row checkout-total-final">
           <span>Total</span>
-          <span>${{ "{:,.0f}".format(total).replace(",", ".") }} COP</span>
+          <span id="label-total">${{ "{:,.0f}".format(total).replace(",", ".") }} COP</span>
         </div>
       </div>
 
-      <div style="margin-top:20px;padding:16px 20px;background:var(--green-ultra);border:1.5px solid var(--green-pale);">
+      <div style="margin-top:16px;padding:16px 20px;background:var(--green-ultra);border:1.5px solid var(--green-pale);">
+        <p style="font-size:11px;color:var(--green-dark);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin:0 0 6px;">
+          <i class="ph ph-truck"></i> Envío estimado
+        </p>
+        <p style="font-size:12px;color:var(--text-soft);margin:0;line-height:1.7;" id="envio-info">
+          Selecciona tu ciudad para estimar el costo de envío.
+        </p>
+      </div>
+
+      <div style="margin-top:12px;padding:14px 20px;background:var(--green-ultra);border:1.5px solid var(--green-pale);">
         <p style="font-size:12px;color:var(--text-soft);margin:0;line-height:1.7;">
-          <strong style="color:var(--green-dark);">Referencia:</strong> {{ ref }}<br>
-          Serás redirigido al portal seguro de MercadoPago para completar el pago
-          con PSE, tarjeta, Nequi, Daviplata o efectivo.
+          <strong style="color:var(--green-dark);">Ref:</strong> {{ ref }}<br>
+          Serás redirigido al portal seguro de MercadoPago.
         </p>
       </div>
     </div>
 
-    <!-- Formulario datos del comprador -->
+    <!-- ── Formulario ────────────────────────────────────── -->
     <div>
-      <div class="card-section-title">Datos del comprador</div>
-
       <form method="POST" action="{{ url_for('checkout_pagar') }}"
-            style="display:flex;flex-direction:column;gap:16px;">
+            id="checkout-form"
+            style="display:flex;flex-direction:column;gap:0;">
 
         <input type="hidden" name="ref" value="{{ ref }}">
+        <input type="hidden" name="shipping_cost" id="input-shipping" value="0">
+        <!-- ciudad y depto se duplican como hidden para que lleguen al backend desde los selects -->
+        <input type="hidden" name="buyer_city" id="h-buyer-city">
+        <input type="hidden" name="buyer_dept" id="h-buyer-dept">
 
-        <div class="form-group">
-          <label class="form-label">Nombre completo *</label>
-          <input type="text" name="buyer_name" class="form-input" required
-                 placeholder="Tu nombre completo">
+        <!-- ── 01 Datos del comprador ── -->
+        <div class="ck-section-label">
+          <span class="ck-section-num">01</span> Datos del comprador
         </div>
-        <div class="form-group">
-          <label class="form-label">Correo electrónico *</label>
-          <input type="email" name="buyer_email" class="form-input" required
-                 placeholder="tu@correo.com">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Celular / Teléfono *</label>
-          <input type="tel" name="buyer_phone" class="form-input" required
-                 placeholder="3001234567">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Ciudad de entrega</label>
-          <input type="text" name="buyer_city" class="form-input" placeholder="Bogotá">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Dirección de entrega</label>
-          <input type="text" name="buyer_address" class="form-input"
-                 placeholder="Calle 123 # 45-67">
+        <div class="ck-fields">
+
+          <div class="form-group">
+            <label class="form-label">Nombre completo *</label>
+            <input type="text" name="buyer_name" id="buyer_name" class="form-input" required
+                   placeholder="Tu nombre completo">
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Tipo de documento *</label>
+              <select name="buyer_doc_type" id="buyer_doc_type" class="form-input form-select" required>
+                <option value="">— Selecciona —</option>
+                <option value="CC">Cédula de Ciudadanía</option>
+                <option value="NIT">NIT</option>
+                <option value="CE">Cédula de Extranjería</option>
+                <option value="PP">Pasaporte</option>
+                <option value="TI">Tarjeta de Identidad</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Número de documento *</label>
+              <input type="text" name="buyer_cedula" id="buyer_cedula" class="form-input" required
+                     placeholder="1234567890">
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Correo electrónico *</label>
+              <input type="email" name="buyer_email" id="buyer_email" class="form-input" required
+                     placeholder="tu@correo.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Celular *</label>
+              <input type="tel" name="buyer_phone" id="buyer_phone" class="form-input" required
+                     placeholder="3001234567">
+            </div>
+          </div>
+
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg"
-                style="justify-content:center;margin-top:8px;">
-          <i class="ph ph-lock"></i>
-          Pagar ${{ "{:,.0f}".format(total).replace(",", ".") }} COP con MercadoPago
-        </button>
+        <!-- ── 02 Dirección de entrega ── -->
+        <div class="ck-section-label">
+          <span class="ck-section-num">02</span> Dirección de entrega
+        </div>
+        <div class="ck-fields">
 
-        <p style="font-size:11px;color:var(--text-muted);text-align:center;">
-          Pago procesado de forma segura por MercadoPago Colombia
-        </p>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Departamento *</label>
+              <select id="sel-depto" class="form-input form-select" required
+                      onchange="onDeptoChange(this.value)">
+                <option value="">— Selecciona —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ciudad / Municipio *</label>
+              <select id="sel-ciudad" class="form-input form-select" required
+                      onchange="onCiudadChange(this.value, this.options[this.selectedIndex].text)">
+                <option value="">— Primero el depto —</option>
+              </select>
+            </div>
+          </div>
 
-        <div class="checkout-payment-methods">
-          <span>PSE</span>
-          <span>Visa / MC</span>
-          <span>Nequi</span>
-          <span>Daviplata</span>
-          <span>Efecty</span>
-          <span>Bancolombia</span>
+          <div class="form-group">
+            <label class="form-label">Dirección completa *</label>
+            <input type="text" name="buyer_address" class="form-input" required
+                   placeholder="Calle 123 # 45-67, Apto 201">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Indicaciones adicionales</label>
+            <input type="text" name="buyer_notes" class="form-input"
+                   placeholder="Torre, piso, punto de referencia...">
+          </div>
+
+        </div>
+
+        <!-- ── 03 Datos de facturación ── -->
+        <div class="ck-section-label">
+          <span class="ck-section-num">03</span> Datos de facturación
+          <label class="ck-toggle" style="margin-left:auto;">
+            <input type="checkbox" id="same-billing" checked onchange="toggleBilling(this)">
+            <span>Mismos datos</span>
+          </label>
+        </div>
+        <div class="ck-fields" id="billing-fields" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">Razón social / Nombre *</label>
+            <input type="text" name="bill_name" id="bill_name" class="form-input"
+                   placeholder="Empresa o nombre para factura">
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Tipo de documento *</label>
+              <select name="bill_doc_type" class="form-input form-select">
+                <option value="NIT">NIT</option>
+                <option value="CC">Cédula de Ciudadanía</option>
+                <option value="CE">Cédula de Extranjería</option>
+                <option value="PP">Pasaporte</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">NIT / Cédula *</label>
+              <input type="text" name="bill_nit" id="bill_nit" class="form-input"
+                     placeholder="900123456-1">
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">Departamento</label>
+              <select id="sel-bill-depto" class="form-input form-select"
+                      onchange="onBillDeptoChange(this.value)">
+                <option value="">— Selecciona —</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ciudad</label>
+              <select name="bill_city" id="sel-bill-ciudad" class="form-input form-select">
+                <option value="">— Ciudad —</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Dirección de facturación</label>
+            <input type="text" name="bill_address" class="form-input"
+                   placeholder="Calle 123 # 45-67">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Correo para factura</label>
+            <input type="email" name="bill_email" class="form-input"
+                   placeholder="facturacion@empresa.com">
+          </div>
+        </div>
+
+        <!-- ── Botón pagar ── -->
+        <div style="margin-top:32px;">
+          <button type="submit" class="btn btn-primary btn-lg"
+                  style="justify-content:center;width:100%;" id="btn-pagar">
+            <i class="ph ph-lock"></i>
+            Pagar <span id="btn-total">${{ "{:,.0f}".format(total).replace(",", ".") }}</span> COP con MercadoPago
+          </button>
+          <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px;">
+            Pago procesado de forma segura por MercadoPago Colombia
+          </p>
+          <div class="checkout-payment-methods">
+            <span>PSE</span><span>Visa / MC</span><span>Nequi</span>
+            <span>Daviplata</span><span>Efecty</span><span>Bancolombia</span>
+          </div>
         </div>
 
       </form>
@@ -122,4 +248,228 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+
+// ══════════════════════════════════════════════════════════
+//  TARIFAS INTERRAPIDÍSIMO
+// ══════════════════════════════════════════════════════════
+const ALIAS_CIUDAD = {
+  "bogota d.c.": "bogota", "bogotá": "bogota", "bogotá d.c.": "bogota",
+  "santafe de bogota": "bogota",
+};
+// Ciudades principales con tarifa conocida (clave normalizada → tarifa)
+const TARIFAS_CIUDADES = {
+  bogota: 8500, soacha: 8500, funza: 11000, mosquera: 11000, chia: 11000,
+  zipaquira: 11000, facatativa: 11000, cajica: 11000, tocancipa: 11000,
+  fusagasuga: 11000, girardot: 11000,
+  medellin: 13000, bello: 13000, itagui: 13000, envigado: 13000,
+  sabaneta: 13000, caldas: 13000, copacabana: 13000, rionegro: 13000,
+  cali: 13000, palmira: 13000, yumbo: 13000, jamundi: 13000,
+  barranquilla: 15000, soledad: 15000, malambo: 15000,
+  cartagena: 15000, turbaco: 15000,
+  "santa marta": 15000,
+  bucaramanga: 14000, floridablanca: 14000, giron: 14000, piedecuesta: 14000,
+  cucuta: 15000, "los patios": 15000, "villa del rosario": 15000,
+  pereira: 13000, dosquebradas: 13000, "santa rosa de cabal": 14000,
+  armenia: 14000, calarca: 14000,
+  manizales: 14000, villamaria: 14000, chinchina: 14000,
+  ibague: 14000, espinal: 15000, melgar: 15000,
+  neiva: 15000, pitalito: 16000,
+  villavicencio: 14000, acacias: 15000,
+  monteria: 16000, cerete: 16000,
+  valledupar: 16000, aguachica: 16000,
+  sincelejo: 16000, corozal: 16000,
+  pasto: 16000, ipiales: 17000, tumaco: 18000,
+  popayan: 15000, santander_de_quilichao: 16000,
+  tunja: 14000, duitama: 14000, sogamoso: 15000, chiquinquira: 15000,
+  yopal: 16000, aguazul: 17000,
+  arauca: 18000, saravena: 18000,
+  florencia: 17000,
+  mocoa: 18000, "puerto asis": 18000,
+  riohacha: 16000, maicao: 17000, uribia: 18000,
+  quibdo: 17000,
+  leticia: 18000,
+  "san jose del guaviare": 18000,
+  mitu: 18000, inirida: 18000, "puerto carreno": 18000,
+};
+// Tarifa por departamento (fallback si ciudad no tiene tarifa específica)
+const TARIFAS_DEPTO = {
+  "Bogotá D.C.":      8500,
+  "Cundinamarca":     11000,
+  "Antioquia":        13000,
+  "Valle del Cauca":  13000,
+  "Atlántico":        15000,
+  "Bolívar":          15000,
+  "Santander":        14000,
+  "Norte de Santander":15000,
+  "Risaralda":        13000,
+  "Quindío":          14000,
+  "Caldas":           14000,
+  "Tolima":           14000,
+  "Huila":            15000,
+  "Meta":             14000,
+  "Boyacá":           14000,
+  "Nariño":           16000,
+  "Cauca":            15000,
+  "Córdoba":          16000,
+  "Cesar":            16000,
+  "Sucre":            16000,
+  "Magdalena":        15000,
+  "La Guajira":       16000,
+  "Casanare":         16000,
+  "Arauca":           18000,
+  "Caquetá":          17000,
+  "Putumayo":         18000,
+  "Chocó":            17000,
+  "Amazonas":         18000,
+  "Vaupés":           18000,
+  "Vichada":          18000,
+  "Guainía":          18000,
+  "Guaviare":         18000,
+  "San Andrés y Providencia": 18000,
+};
+const DIAS_DEPTO = {
+  "Bogotá D.C.":1,"Cundinamarca":1,"Antioquia":2,"Valle del Cauca":2,
+  "Atlántico":3,"Bolívar":3,"Santander":2,"Norte de Santander":3,
+  "Risaralda":2,"Quindío":2,"Caldas":2,"Tolima":2,"Huila":3,"Meta":2,
+  "Boyacá":2,"Nariño":3,"Cauca":3,"Córdoba":3,"Cesar":3,"Sucre":3,
+  "Magdalena":3,"La Guajira":3,"Casanare":3,"Arauca":4,"Caquetá":3,
+  "Putumayo":4,"Chocó":3,"Amazonas":4,"Vaupés":4,"Vichada":4,
+  "Guainía":4,"Guaviare":4,"San Andrés y Providencia":4,
+};
+
+const subtotal = {{ total }};
+let shippingCost = 0;
+let selectedDepto = "";
+
+function normalize(s){
+  return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim()
+    .replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ");
+}
+
+function getRate(ciudad, depto){
+  const nc = normalize(ciudad);
+  if(ALIAS_CIUDAD[nc]) return {base: TARIFAS_CIUDADES[ALIAS_CIUDAD[nc]] || TARIFAS_DEPTO[depto] || 18000, dias: DIAS_DEPTO[depto] || 4};
+  if(TARIFAS_CIUDADES[nc]) return {base: TARIFAS_CIUDADES[nc], dias: DIAS_DEPTO[depto] || 4};
+  for(const k in TARIFAS_CIUDADES){
+    if(nc.includes(k) || k.includes(nc)) return {base: TARIFAS_CIUDADES[k], dias: DIAS_DEPTO[depto] || 4};
+  }
+  return {base: TARIFAS_DEPTO[depto] || 18000, dias: DIAS_DEPTO[depto] || 4};
+}
+
+function fmtCOP(n){ return '$' + Math.round(n).toLocaleString('es-CO').replace(/\./g,'.').replace(/,/g,'.'); }
+
+// ── Poblar selects ────────────────────────────────────────
+function poblarDeptos(selId){
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  const deptos = Object.keys(COLOMBIA).sort((a,b)=>{
+    // Bogotá primero
+    if(a==="Bogotá D.C.") return -1;
+    if(b==="Bogotá D.C.") return 1;
+    return a.localeCompare(b,'es');
+  });
+  deptos.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d;
+    sel.appendChild(o);
+  });
+}
+
+function poblarCiudades(selId, depto, placeholder){
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  sel.innerHTML = `<option value="">— ${placeholder||'Selecciona ciudad'} —</option>`;
+  if(!depto || !COLOMBIA[depto]) return;
+  COLOMBIA[depto].forEach(c => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+}
+
+// ── Entrega ───────────────────────────────────────────────
+window.onDeptoChange = function(depto){
+  selectedDepto = depto;
+  poblarCiudades('sel-ciudad', depto, 'Selecciona ciudad');
+  document.getElementById('h-buyer-dept').value = depto;
+  document.getElementById('h-buyer-city').value = '';
+  // Actualizar envío con tarifa del depto como referencia
+  updateShipping('', depto);
+};
+
+window.onCiudadChange = function(val, label){
+  document.getElementById('h-buyer-city').value = label || val;
+  updateShipping(label || val, selectedDepto);
+};
+
+function updateShipping(ciudad, depto){
+  const info       = document.getElementById('envio-info');
+  const rowEnvio   = document.getElementById('row-envio');
+  const labelEnvio = document.getElementById('label-envio');
+  const labelTotal = document.getElementById('label-total');
+  const btnTotal   = document.getElementById('btn-total');
+  const inputShip  = document.getElementById('input-shipping');
+
+  if(!depto){
+    info.textContent = 'Selecciona tu departamento y ciudad para estimar el envío.';
+    rowEnvio.style.display = 'none';
+    shippingCost = 0; inputShip.value = 0;
+    labelTotal.textContent = fmtCOP(subtotal) + ' COP';
+    btnTotal.textContent   = fmtCOP(subtotal);
+    return;
+  }
+  const rate = getRate(ciudad || '', depto);
+  shippingCost = rate.base;
+  inputShip.value = shippingCost;
+  const total = subtotal + shippingCost;
+  rowEnvio.style.display = '';
+  labelEnvio.textContent = fmtCOP(shippingCost);
+  labelTotal.textContent = fmtCOP(total) + ' COP';
+  btnTotal.textContent   = fmtCOP(total);
+  const diaTxt = rate.dias === 1 ? '1 día hábil' : rate.dias + ' días hábiles';
+  const dest = ciudad ? `<strong>${ciudad}</strong>` : `<strong>${depto}</strong>`;
+  info.innerHTML = `Envío a ${dest}: <strong style="color:var(--green-dark)">${fmtCOP(shippingCost)}</strong> — entrega estimada en <strong>${diaTxt}</strong> vía Interrapidísimo. Precio base hasta 1 kg; +$2.000/kg extra.`;
+}
+
+// ── Facturación ───────────────────────────────────────────
+window.onBillDeptoChange = function(depto){
+  poblarCiudades('sel-bill-ciudad', depto, 'Ciudad');
+};
+
+window.toggleBilling = function(cb){
+  document.getElementById('billing-fields').style.display = cb.checked ? 'none' : '';
+  ['bill_name','bill_nit'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.required = !cb.checked;
+  });
+};
+
+// ── Init: cargar Colombia desde servidor ─────────────────
+let COLOMBIA = {};
+fetch('/checkout/colombia')
+  .then(r => r.json())
+  .then(data => {
+    COLOMBIA = data;
+    poblarDeptos('sel-depto');
+    poblarDeptos('sel-bill-depto');
+  })
+  .catch(() => console.warn('No se pudo cargar datos Colombia'));
+
+// Al enviar: copiar datos de facturación si es el mismo
+document.getElementById('checkout-form').addEventListener('submit', function(){
+  if(document.getElementById('same-billing').checked){
+    const n = document.getElementById('bill_name');
+    const t = document.getElementById('bill_nit');
+    if(n) n.value = document.getElementById('buyer_name').value;
+    if(t) t.value = document.getElementById('buyer_cedula').value;
+  }
+});
+
+})();
+</script>
 {% endblock %}
