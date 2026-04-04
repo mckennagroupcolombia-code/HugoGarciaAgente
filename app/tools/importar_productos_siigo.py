@@ -38,6 +38,7 @@ Pipeline de este módulo (solo proveedores especiales):
 import os
 import re
 import json
+import threading
 import unicodedata
 import requests
 import xml.etree.ElementTree as ET
@@ -800,6 +801,12 @@ def _notificar_siguiente_factura_pendiente():
             f"   *inv skip {sufijo}* → No, omitir"
         )
 
+    # Separador visual antes de la siguiente factura
+    pendientes_restantes = len(pendientes)
+    if pendientes_restantes > 1:
+        cabecera = f"─────────────────────────\n⏭️ *Siguiente factura en cola ({pendientes_restantes - 1} más después):*\n\n"
+        msg = cabecera + msg
+
     enviar_whatsapp_reporte(msg, numero_destino=GRUPO_COMPRAS)
     print(f"  ✉️  Notificación enviada al grupo — código: {sufijo}")
 
@@ -930,18 +937,22 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
     # ── Omitir / Gasto ───────────────────────────────────────────
     if cmd == 'skip':
         _quitar_pendiente(key)
-        _notificar_siguiente_factura_pendiente()
-        return f"⏭️ Factura *{numero_factura}* omitida."
+        threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
+        return f"⏭️ Factura *{numero_factura}* omitida. No se registró nada en SIIGO."
 
     if cmd == 'gasto':
         _quitar_pendiente(key)
-        _notificar_siguiente_factura_pendiente()
+        total = entrada.get('total', 0)
+        n_items = entrada.get('items_count', 0)
+        threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
         return (
-            f"🗂️ *Factura {numero_factura} → GASTO/CONSUMIBLE*\n"
-            f"🏢 Proveedor: {proveedor}\n\n"
-            f"📋 *Próximo paso:*\n"
-            f"Registrar directamente en SIIGO:\n"
-            f"Compras → Nueva compra o gasto"
+            f"✅ *Factura {numero_factura} marcada como GASTO*\n"
+            f"🏢 Proveedor: {proveedor}\n"
+            f"📦 {n_items} ítem(s)  |  💰 Total: ${total:,.0f} COP\n\n"
+            f"⚠️ *Esta factura NO se registró automáticamente en SIIGO.*\n"
+            f"Los gastos/consumibles deben ingresarse manualmente:\n\n"
+            f"   SIIGO → Compras → *Nueva compra o gasto*\n"
+            f"   Busca el PDF en la carpeta *facturas_descargadas/*"
         )
 
     # ── Inventario (proveedor nuevo) ─────────────────────────────
@@ -986,11 +997,11 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
 
         arch = _ejecutar_procesamiento(numero_factura, datos, xml_content)
         if not arch:
-            _notificar_siguiente_factura_pendiente()
+            threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
             return f"⚠️ Factura *{numero_factura}*: no se encontraron ítems procesables."
 
-        # Notificar la siguiente factura en cola (si existe)
-        _notificar_siguiente_factura_pendiente()
+        # Notificar la siguiente factura en cola (si existe) con pausa
+        threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
 
         return (
             f"✅ *Factura {numero_factura} procesada*\n"
