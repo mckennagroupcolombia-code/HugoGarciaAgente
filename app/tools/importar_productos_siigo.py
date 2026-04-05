@@ -289,6 +289,40 @@ def convertir_a_unidad_minima(cantidad: float, unit_code: str) -> tuple[float, s
 
 
 # ─────────────────────────────────────────────
+#  Multiplicador de contenido en descripción
+# ─────────────────────────────────────────────
+
+def _extraer_multiplicador_descripcion(descripcion: str) -> int:
+    """
+    Detecta si la descripción de un ítem indica que cada unidad facturada
+    contiene N unidades mínimas. Ejemplos:
+      "bolsa 100 unidades"         → 100
+      "caja x 50 und"              → 50
+      "portaguia 12x20 - 100 uds"  → 100   (ignora la dimensión 12x20)
+      "set 12 piezas"              → 12
+    Retorna 1 si no se detecta ningún multiplicador.
+
+    Orden de búsqueda (de más a menos específico):
+      1. «X NNN unidades» / «x NNN und» / «* NNN pcs» (con operador × delante)
+      2. «NNN unidades» / «NNN und» / «NNN uds» (número seguido de palabras de unidad)
+    Se ignoran dimensiones tipo "12x20" porque no van seguidas de palabra de unidad.
+    """
+    patrones = [
+        # Con operador multiplicador explícito antes del número
+        r'[xX\*\/]\s*(\d{2,})\s*(?:unidades?|und\.?|uds?\.?|pcs?|piezas?|units?)\b',
+        # Número seguido directo de palabra de unidad (sin dimensión previa)
+        r'(?<![0-9xX])\b(\d{2,})\s*(?:unidades?|und\.?|uds?\.?|pcs?|piezas?|units?)\b',
+    ]
+    for patron in patrones:
+        m = re.search(patron, descripcion, re.IGNORECASE)
+        if m:
+            n = int(m.group(1))
+            if n > 1:
+                return n
+    return 1
+
+
+# ─────────────────────────────────────────────
 #  Cálculo de precio por unidad mínima
 # ─────────────────────────────────────────────
 
@@ -670,9 +704,10 @@ def _quitar_pendiente(sufijo: str):
 #  Motor de procesamiento (interno)
 # ─────────────────────────────────────────────
 
-def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str) -> dict:
+def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, silent: bool = False) -> dict:
     """
-    Extrae productos, genera Excel + XML y envía por WhatsApp.
+    Extrae productos, genera Excel + XML.
+    silent=True: omite envíos por WhatsApp (modo terminal).
     Retorna un dict con los archivos generados y el resumen.
     """
     proveedor = datos.get('proveedor', '')
@@ -692,22 +727,33 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str) 
         cantidad_min, unidad_min, codigo_dian_min = convertir_a_unidad_minima(
             cantidad_original, unit_code
         )
+
+        # Multiplicador de contenido: "caja x 100 unidades" → factor 100
+        multiplicador = _extraer_multiplicador_descripcion(nombre)
+        if multiplicador > 1:
+            cantidad_min = round(cantidad_min * multiplicador, 6)
+            # La unidad mínima siempre pasa a ser 'Un' cuando hay multiplicador en descripción
+            unidad_min      = 'Un'
+            codigo_dian_min = 'NAR'
+            print(f"  📦 Contenido detectado: {int(cantidad_original)} × {multiplicador} = {int(cantidad_min)} {unidad_min}")
+
         precio_unitario = calcular_precio_unitario_min(subtotal, iva_linea, cantidad_min)
         codigo      = generar_codigo_producto(nombre, unidad_min)
         es_duplicado = verificar_producto_en_siigo(codigo)
 
         producto = {
-            'nombre':           nombre,
-            'codigo':           codigo,
+            'nombre':            nombre,
+            'codigo':            codigo,
             'cantidad_original': cantidad_original,
-            'unidad_original':  unit_code,
-            'cantidad_min':     cantidad_min,
-            'unidad_min':       unidad_min,
-            'codigo_dian_min':  codigo_dian_min,
-            'subtotal':         subtotal,
-            'iva':              iva_linea,
-            'precio_unitario':  precio_unitario,
-            'duplicado':        es_duplicado,
+            'unidad_original':   unit_code,
+            'multiplicador':     multiplicador,
+            'cantidad_min':      cantidad_min,
+            'unidad_min':        unidad_min,
+            'codigo_dian_min':   codigo_dian_min,
+            'subtotal':          subtotal,
+            'iva':               iva_linea,
+            'precio_unitario':   precio_unitario,
+            'duplicado':         es_duplicado,
         }
         if es_duplicado:
             productos_duplicados.append(producto)
@@ -733,21 +779,22 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str) 
         'duplicados':     len(productos_duplicados),
     }
 
-    enviar_whatsapp_reporte(_construir_resumen_whatsapp(arch), numero_destino=GRUPO_COMPRAS)
-    enviar_whatsapp_archivo(
-        arch['ruta'],
-        f"📊 *Excel productos SIIGO* — Factura {numero_factura}",
-        numero_destino=GRUPO_COMPRAS,
-    )
-    if ruta_xml and os.path.exists(ruta_xml):
+    if not silent:
+        enviar_whatsapp_reporte(_construir_resumen_whatsapp(arch), numero_destino=GRUPO_COMPRAS)
         enviar_whatsapp_archivo(
-            ruta_xml,
-            (
-                f"📄 *XML de compra SIIGO* — Factura {numero_factura}\n"
-                f"Usa: Compras → *Crear compra o gasto desde un XML o ZIP*"
-            ),
+            arch['ruta'],
+            f"📊 *Excel productos SIIGO* — Factura {numero_factura}",
             numero_destino=GRUPO_COMPRAS,
         )
+        if ruta_xml and os.path.exists(ruta_xml):
+            enviar_whatsapp_archivo(
+                ruta_xml,
+                (
+                    f"📄 *XML de compra SIIGO* — Factura {numero_factura}\n"
+                    f"Usa: Compras → *Crear compra o gasto desde un XML o ZIP*"
+                ),
+                numero_destino=GRUPO_COMPRAS,
+            )
     return arch
 
 
@@ -945,32 +992,26 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
         total = entrada.get('total', 0)
         n_items = entrada.get('items_count', 0)
 
-        enviar_whatsapp_reporte(
-            f"⚙️ Registrando factura *{numero_factura}* ({proveedor}) en SIIGO…",
-            numero_destino=GRUPO_COMPRAS,
-        )
-
         from app.services.siigo import crear_factura_compra_siigo
+        # Modelo basado en FC-1-42: document 5809 (FC), cost_center 263 (VENTAS), payment 1338
         payload_siigo = {
-            "document": {"id": 24446},
+            "document": {"id": 5809},
             "date": datos.get("fecha", datetime.now().strftime("%Y-%m-%d")),
+            "cost_center": 263,
             "supplier": {"identification": datos.get("nit", "999999999"), "branch_office": 0},
             "provider_invoice": {
                 "prefix": datos.get("prefix", ""),
                 "number": datos.get("number", "0")
             },
-            "items": [
-                {
-                    "type": "Service",
-                    "code": "GASTO-GEN",
-                    "description": it.get("description", "Gasto")[:100],
-                    "quantity": it.get("quantity", 1),
-                    "price": it.get("price", 0),
-                    "taxes": []
-                }
-                for it in datos.get("items", [])
-            ],
-            "payments": [{"id": 5636, "value": datos.get("total_neto", total)}],
+            "items": [{
+                "type": "Account",
+                "code": "11051001",
+                "description": f"{proveedor} — {numero_factura}"[:100],
+                "quantity": 1,
+                "price": datos.get("total_neto", total),
+                "taxes": []
+            }],
+            "payments": [{"id": 1338, "value": datos.get("total_neto", total)}],
             "observations": f"Gasto/consumible — {numero_factura} — {proveedor}"
         }
 

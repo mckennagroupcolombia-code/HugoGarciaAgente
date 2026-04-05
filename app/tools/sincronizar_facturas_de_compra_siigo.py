@@ -140,7 +140,25 @@ def extraer_datos_xml_dian(xml_content):
             if name_elem is not None:
                 proveedor_nombre = name_elem.text
 
-        # 4. Fecha de emisión
+        # 4. Datos del Comprador (AccountingCustomerParty o ReceiverParty en AttachedDocument)
+        comprador_nit    = ""
+        comprador_nombre = ""
+        for buyer_tag in ("AccountingCustomerParty", "ReceiverParty", "BuyerCustomerParty"):
+            buyer_party = find_element(invoice_node, buyer_tag)
+            if buyer_party is None:
+                buyer_party = find_element(root, buyer_tag)
+            if buyer_party is not None:
+                cid = find_element(buyer_party, "CompanyID")
+                if cid is not None and cid.text:
+                    comprador_nit = re.sub(r"[^0-9]", "", cid.text)
+                cname = find_element(buyer_party, "RegistrationName")
+                if cname is None:
+                    cname = find_element(buyer_party, "Name")
+                if cname is not None and cname.text:
+                    comprador_nombre = cname.text.strip()
+                break
+
+        # 5. Fecha de emisión
         fecha = datetime.now().strftime("%Y-%m-%d")
         date_element = find_element(invoice_node, "IssueDate")
         if date_element is not None:
@@ -245,6 +263,8 @@ def extraer_datos_xml_dian(xml_content):
             "number": number,
             "nit": nit,
             "proveedor": proveedor_nombre,
+            "comprador_nit":    comprador_nit,
+            "comprador_nombre": comprador_nombre,
             "fecha": fecha,
             "total_bruto": total_bruto,
             "total_descuentos": total_descuentos,
@@ -335,6 +355,23 @@ from app.utils import enviar_whatsapp_reporte
 
 GRUPO_COMPRAS = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")
 
+# Proveedores de transporte/mensajería: siempre se registran como un único ítem
+# de gasto con cuenta contable 11051001, valor = total neto de la factura.
+PROVEEDORES_TRANSPORTE = {
+    "800251569": {  # INTERRAPIDISIMO S.A.
+        "nombre": "INTERRAPIDISIMO S.A.",
+        "cuenta_contable": "11051001",
+        "centro_costo": "1-1",
+        "descripcion": "Servicio de mensajería/transporte",
+    },
+}
+
+def _es_proveedor_transporte(nit: str) -> dict | None:
+    """Devuelve la config del proveedor si es de transporte, None si no."""
+    # Omite guión y dígito de verificación: "800251569-7" → "800251569"
+    nit_limpio = re.sub(r"[^0-9]", "", (nit or "").split("-")[0])
+    return PROVEEDORES_TRANSPORTE.get(nit_limpio)
+
 def enviar_mensaje_whatsapp_grupo(mensaje):
     """
     Envía mensaje al grupo de WhatsApp de facturas de compra.
@@ -345,25 +382,30 @@ def enviar_mensaje_whatsapp_grupo(mensaje):
     print("="*50)
     enviar_whatsapp_reporte(mensaje, numero_destino=GRUPO_COMPRAS)
 
-def sincronizar_facturas_de_compra_siigo():
+def sincronizar_facturas_de_compra_siigo(solo_nit: str = None, modo_terminal: bool = False):
     """
     1. Busca facturas en correos (FACTURAS MCKG).
     2. Descarga a carpeta local y extrae ZIP.
     3. Lee XML.
-    4. Envía borrador por WhatsApp al grupo.
-    5. Pide confirmación OK.
-    6. Sube a Siigo con PDF adjunto.
+    4. Muestra borrador y pide aprobación (terminal o WhatsApp según modo_terminal).
+    5. Sube a Siigo con PDF adjunto.
+
+    solo_nit: si se especifica, solo procesa facturas de ese NIT (sin dígito verificación).
+              Ej: "800251569" para Interrapidísimo.
+    modo_terminal: si True, toda la interacción es por consola (sin WhatsApp).
     """
-    print("\n🚀 Iniciando sincronización de Facturas de Compra (Uno a Uno)...")
-    
+    filtro = re.sub(r"[^0-9]", "", solo_nit) if solo_nit else None
+    label = f"solo NIT {filtro}" if filtro else "todos los proveedores"
+    print(f"\n🚀 Iniciando sincronización de Facturas de Compra ({label})...")
+
     correos = leer_correos_no_descargados()
     if not correos:
         print("✅ No se encontraron facturas pendientes de descargar.")
         return "No hay facturas nuevas para sincronizar."
-        
+
     service = get_gmail_service()
     facturas_procesadas = 0
-    
+
     for correo in correos:
         print(f"\n📩 Analizando correo: '{correo['asunto']}'")
         for adjunto in correo["adjuntos_zip"]:
@@ -371,15 +413,22 @@ def sincronizar_facturas_de_compra_siigo():
             xml_content, pdf_content, pdf_filename = descargar_y_extraer_zip(
                 service, correo["id"], adjunto["id"], adjunto["filename"]
             )
-            
+
             if not xml_content:
                 print("⚠️ No se encontró archivo XML válido dentro del ZIP.")
                 continue
-                
+
             datos_factura = extraer_datos_xml_dian(xml_content)
             if not datos_factura:
                 continue
-                
+
+            # Filtrar por NIT si se especificó uno (ignora guión y dígito verificador)
+            if filtro:
+                nit_factura = re.sub(r"[^0-9]", "", datos_factura.get("nit", "").split("-")[0])
+                if not nit_factura.startswith(filtro):
+                    print(f"⏭️ Factura de NIT {nit_factura} omitida (filtro: {filtro}).")
+                    continue
+
             # Generar borrador detallado
             items_str = ""
             for i, it in enumerate(datos_factura['items'], 1):
@@ -390,94 +439,151 @@ def sincronizar_facturas_de_compra_siigo():
                         items_str += f"      + {imp['nombre']}: ${imp['valor']:,.2f}\n"
 
             borrador = (
-                f"🧾 *BORRADOR DE FACTURA DE COMPRA (Detallado)*\n\n"
-                f"🏢 *Proveedor:* {datos_factura['proveedor']} (NIT: {datos_factura['nit']})\n"
-                f"📅 *Fecha Emisión:* {datos_factura['fecha']}\n"
-                f"🔢 *Número Factura:* {datos_factura['prefix']}{datos_factura['number']}\n\n"
-                f"📊 *RESUMEN DE TOTALES*\n"
-                f"   Subtotal Bruto:  ${datos_factura['total_bruto']:,.2f}\n"
-                f"   Descuentos:      -${datos_factura['total_descuentos']:,.2f}\n"
-                f"   *VALOR TOTAL NETO: ${datos_factura['total_neto']:,.2f}*\n\n"
-                f"📦 *ÍTEMS A CARGAR:*\n{items_str}\n"
-                f"❓ *¿Aprueban la creación de esta factura en SIIGO?* Responde 'OK' para confirmar o cualquier otra cosa para omitir."
+                f"\n{'='*55}\n"
+                f"🧾  BORRADOR FACTURA DE COMPRA\n"
+                f"{'='*55}\n"
+                f"Proveedor : {datos_factura['proveedor']} (NIT: {datos_factura['nit']})\n"
+                f"Fecha     : {datos_factura['fecha']}\n"
+                f"Factura   : {datos_factura['prefix']}{datos_factura['number']}\n"
+                f"{'─'*55}\n"
+                f"Subtotal bruto : ${datos_factura['total_bruto']:>12,.2f}\n"
+                f"Descuentos     : ${datos_factura['total_descuentos']:>12,.2f}\n"
+                f"TOTAL NETO     : ${datos_factura['total_neto']:>12,.2f}\n"
+                f"{'─'*55}\n"
+                f"ÍTEMS:\n{items_str}"
+                f"{'='*55}"
             )
-            
-            enviar_mensaje_whatsapp_grupo(borrador)
+            print(borrador)
 
-            # Esperar aprobación vía WhatsApp (del grupo) o consola (si se corre manual)
-            from app import shared_state
             factura_key = f"{datos_factura['prefix']}{datos_factura['number']}"
-            evento = threading.Event()
-            shared_state.eventos_aprobacion_facturas[factura_key] = {
-                "event": evento,
-                "aprobado": False,
-            }
-            print(f"⏳ Esperando aprobación del grupo de WhatsApp para la factura {factura_key} (máx. 10 min)...")
-            print(f"   (También puedes escribir 'OK' aquí en consola para aprobar)")
 
-            # Hilo auxiliar que también escucha la consola (para compatibilidad manual)
-            def _escuchar_consola():
-                try:
-                    resp = input("").strip().upper()
-                    if resp == "OK":
-                        shared_state.eventos_aprobacion_facturas[factura_key]["aprobado"] = True
-                        evento.set()
-                except Exception:
-                    pass
-            t_consola = threading.Thread(target=_escuchar_consola, daemon=True)
-            t_consola.start()
+            if modo_terminal:
+                resp = input(f"\n¿Registrar esta factura en SIIGO? [OK/no]: ").strip().upper()
+                aprobacion_final = (resp == "OK")
+            else:
+                # Modo WhatsApp: envía borrador al grupo y espera evento
+                from app import shared_state
+                evento = threading.Event()
+                shared_state.eventos_aprobacion_facturas[factura_key] = {
+                    "event": evento,
+                    "aprobado": False,
+                }
+                enviar_mensaje_whatsapp_grupo(
+                    borrador.replace("=", "*").replace("─", "-") +
+                    "\n\n❓ ¿Aprueban? Responde *OK* para confirmar."
+                )
+                print(f"⏳ Esperando OK en WhatsApp para {factura_key} (máx. 10 min)...")
 
-            evento.wait(timeout=600)  # 10 minutos máximo
-            entrada = shared_state.eventos_aprobacion_facturas.pop(factura_key, {})
-            aprobacion_final = entrada.get("aprobado", False)
+                def _escuchar_consola():
+                    try:
+                        if input("").strip().upper() == "OK":
+                            shared_state.eventos_aprobacion_facturas[factura_key]["aprobado"] = True
+                            evento.set()
+                    except Exception:
+                        pass
+                threading.Thread(target=_escuchar_consola, daemon=True).start()
+                evento.wait(timeout=600)
+                entrada = shared_state.eventos_aprobacion_facturas.pop(factura_key, {})
+                aprobacion_final = entrada.get("aprobado", False)
 
             if aprobacion_final:
                 print("⏳ Creando factura en SIIGO...")
-                
-                # Preparar payload para Siigo
-                payload_siigo = {
-                    "document": {"id": 24446}, # ID Factura Compra Siigo
-                    "date": datos_factura["fecha"],
-                    "supplier": {"identification": datos_factura["nit"], "branch_office": 0},
-                    "provider_invoice": {"prefix": datos_factura["prefix"], "number": datos_factura["number"]},
-                    "items": [
+
+                config_transporte = _es_proveedor_transporte(datos_factura["nit"])
+
+                if config_transporte:
+                    items_siigo = [{
+                        "type": "Product",
+                        "code": config_transporte["cuenta_contable"],
+                        "description": f"{config_transporte['descripcion']} - {datos_factura['prefix']}{datos_factura['number']}",
+                        "quantity": 1,
+                        "price": datos_factura["total_neto"],
+                        "taxes": []
+                    }]
+                else:
+                    items_siigo = [
                         {
                             "type": "Product",
-                            "code": "GENERICO", # Ajustar si tienen códigos reales
+                            "code": "GENERICO",
                             "description": it["description"][:100],
                             "quantity": it["quantity"],
                             "price": it["price"],
-                            "taxes": [
-                                # Mapeo de impuestos para Siigo (simplificado, depende de la conf de Siigo)
-                                # { "id": X, "value": imp["valor"] } 
-                            ]
+                            "taxes": []
                         } for it in datos_factura["items"]
-                    ],
-                    "payments": [{"id": 5636, "value": datos_factura["total_neto"]}],
+                    ]
+
+                payload_siigo = {
+                    "document": {"id": 5809},
+                    "date": datos_factura["fecha"],
+                    "supplier": {"identification": datos_factura["nit"], "branch_office": 0},
+                    "provider_invoice": {"prefix": datos_factura["prefix"], "number": datos_factura["number"]},
+                    "cost_center": 263,   # VENTAS — ID numérico requerido por SIIGO API
+                    "items": items_siigo,
+                    "payments": [{"id": 1338, "value": datos_factura["total_neto"]}],
                     "observations": f"Sincronizado automáticamente desde correo: {correo['asunto']}"
                 }
-                
+
                 if pdf_content and pdf_filename:
                     payload_siigo["attachments"] = [{
                         "file_name": pdf_filename,
                         "content": base64.b64encode(pdf_content).decode('utf-8')
                     }]
-                
-                # Llamar al servicio Siigo
+
                 resultado = crear_factura_compra_siigo(payload_siigo)
-                
+
                 if resultado.get("status") == "success":
-                    print(f"✅ Factura creada exitosamente en SIIGO. ID: {resultado.get('id', 'N/A')}")
+                    siigo_id = resultado.get("data", {}).get("id", "N/A")
+                    tipo_registro = "Gasto / Cuenta contable" if config_transporte else "Producto"
+                    cuenta_info = config_transporte['cuenta_contable'] if config_transporte else "GENERICO"
+                    print(f"\n✅ FACTURA REGISTRADA EN SIIGO")
+                    print(f"   ID Siigo  : {siigo_id}")
+                    print(f"   Factura   : {datos_factura['prefix']}{datos_factura['number']}")
+                    print(f"   Total     : ${datos_factura['total_neto']:,.2f} COP")
+                    print(f"   Cuenta    : {cuenta_info}")
+                    print(f"   PDF adj.  : {'Sí' if pdf_content else 'No'}")
                     facturas_procesadas += 1
+
+                    if not modo_terminal:
+                        enviar_mensaje_whatsapp_grupo(
+                            f"✅ *FACTURA REGISTRADA EN SIIGO*\n"
+                            f"Factura: {datos_factura['prefix']}{datos_factura['number']}\n"
+                            f"Total: ${datos_factura['total_neto']:,.2f} COP\n"
+                            f"ID Siigo: {siigo_id}"
+                        )
+
+                    if modo_terminal:
+                        input("\nVerifica en SIIGO y presiona Enter para continuar con la siguiente...")
+                    else:
+                        from app import shared_state
+                        clave_ver = f"VER_{factura_key}"
+                        evento_ver = threading.Event()
+                        shared_state.eventos_aprobacion_facturas[clave_ver] = {"event": evento_ver, "aprobado": False}
+                        print("⏳ Esperando OK de verificación en WhatsApp...")
+                        def _escuchar_ver():
+                            try:
+                                if input("").strip().upper() == "OK":
+                                    shared_state.eventos_aprobacion_facturas[clave_ver]["aprobado"] = True
+                                    evento_ver.set()
+                            except Exception:
+                                pass
+                        threading.Thread(target=_escuchar_ver, daemon=True).start()
+                        evento_ver.wait(timeout=600)
+                        shared_state.eventos_aprobacion_facturas.pop(clave_ver, None)
+                    print("▶️ Continuando con la siguiente factura...")
+
                 else:
-                    print(f"❌ Error al crear factura en SIIGO: {resultado.get('message', str(resultado))}")
+                    error_msg = resultado.get('message', str(resultado))
+                    print(f"\n❌ Error al crear factura en SIIGO: {error_msg}")
+                    if not modo_terminal:
+                        enviar_mensaje_whatsapp_grupo(
+                            f"❌ *ERROR al registrar factura en SIIGO*\n"
+                            f"Factura: {factura_key}\n"
+                            f"Error: {error_msg[:300]}"
+                        )
+                    return f"Error en factura {factura_key}. Proceso detenido."
             else:
-                print(f"⏭️ Factura {factura_key} omitida (sin aprobación o tiempo expirado).")
-                
-        # (Opcional) Mover la etiqueta en Gmail para no volver a leer este correo.
-        # Esto previene que se vuelva a procesar en la próxima ejecución.
-        # ...
-        
+                print(f"⏭️ Factura {factura_key} omitida.")
+
     return f"Proceso finalizado. Se procesaron {facturas_procesadas} facturas."
 
 if __name__ == "__main__":

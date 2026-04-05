@@ -143,3 +143,48 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
 To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
    418cf14..336113d  master -> main
 [2026-04-02 23:00:03] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-02 23:00'
+[master 5beff87] Auto-commit: actualizacion diaria 2026-04-03 23:00
+ 58 files changed, 13586 insertions(+), 292 deletions(-)
+ create mode 100644 PAGINA_WEB/guia-kit-acidos.html
+ create mode 100644 PAGINA_WEB/instalar_tema_wp.py
+ create mode 100644 PAGINA_WEB/mckennagroup-theme.zip
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/404.php
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/assets/css/main.css
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/assets/js/main.js
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/footer.php
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/functions.php
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/header.php
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/index.php
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/page.php
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/sidebar.php
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/single.php
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/style.css
+ create mode 100644 PAGINA_WEB/mckennagroup-theme/woocommerce.php
+ create mode 100644 PAGINA_WEB/site/data/cache.json
+ create mode 100644 PAGINA_WEB/site/data/orders.db
+ create mode 100644 PAGINA_WEB/site/start_website.sh
+ create mode 100644 PAGINA_WEB/site/static/css/main.css
+ create mode 100644 PAGINA_WEB/site/static/js/main.js
+ create mode 100644 PAGINA_WEB/site/templates/404.html
+ create mode 100644 PAGINA_WEB/site/templates/base.html
+ create mode 100644 PAGINA_WEB/site/templates/carrito.html
+ create mode 100644 PAGINA_WEB/site/templates/checkout.html
+ create mode 100644 PAGINA_WEB/site/templates/checkout_sin_mp.html
+ create mode 100644 PAGINA_WEB/site/templates/contacto.html
+ create mode 100644 PAGINA_WEB/site/templates/index.html
+ create mode 100644 PAGINA_WEB/site/templates/mis_pedidos.html
+ create mode 100644 PAGINA_WEB/site/templates/nosotros.html
+ create mode 100644 PAGINA_WEB/site/templates/pago_respuesta.html
+ create mode 100644 PAGINA_WEB/site/templates/producto.html
+ create mode 100644 PAGINA_WEB/site/templates/tienda.html
+ create mode 100644 PAGINA_WEB/site/website.py
+ create mode 100644 app/data/facturas_compra_pendientes.json
+ create mode 100644 app/data/mensajes_posventa_pendientes.json
+ create mode 100644 app/data/proveedores_especiales.json
+ create mode 100644 backups_drive/backup_hugo_20260403_020010.tar.gz
+ create mode 100644 reporte_sync_wc.json
+ create mode 100644 sincronizar_wc_desde_meli.py
+ create mode 100644 subir_guia_wp.py
+To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
+   336113d..5beff87  master -> main
+[2026-04-03 23:00:03] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-03 23:00'

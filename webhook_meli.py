@@ -390,6 +390,7 @@ from app.sync import (
 from app.services.google_services import leer_datos_hoja
 from app.services.meli import aprender_de_interacciones_meli
 from app.tools.importar_productos_siigo import procesar_facturas_para_importar_productos
+from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
 
 @app.route('/sync/hoy', methods=['POST'])
 def sync_hoy():
@@ -465,6 +466,11 @@ def sync_aprendizaje():
 def sync_gmail():
     if not _token_valido():
         return jsonify({"status": "error", "resultado": "No autorizado"}), 401
+    body = request.get_json(silent=True) or {}
+    solo_nit = body.get("nit")
+    if solo_nit:
+        _lanzar_en_hilo(lambda: sincronizar_facturas_de_compra_siigo(solo_nit=solo_nit))
+        return jsonify({"status": "iniciado", "mensaje": f"🔄 Sync facturas de compra (NIT: {solo_nit}) iniciado.", "timestamp": _dt.now().isoformat()})
     _lanzar_en_hilo(procesar_facturas_para_importar_productos)
     return jsonify({"status": "iniciado", "mensaje": "🔄 Escaneo de facturas de compra desde Gmail iniciado.", "timestamp": _dt.now().isoformat()})
 

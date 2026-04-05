@@ -1,4 +1,11 @@
 {
   "_instrucciones": "Agrega aquí los NITs de los proveedores que venden MATERIAS PRIMAS que se deben inventariar en SIIGO con el proceso de codificación McKenna. Los proveedores NO listados aquí se ignoran en el flujo de importación de productos. Sus facturas (consumibles, gastos de envío, servicios) se deben registrar directamente en SIIGO como compra/gasto normal, sin pasar por este módulo.",
-  "proveedores": []
+  "proveedores": [
+    {
+      "nit": "901775946",
+      "nombre": "HAPLAZ.COM S.A.S",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-04"
+    }
+  ]
 }

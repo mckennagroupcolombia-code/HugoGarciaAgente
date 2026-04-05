@@ -1,15 +1,5 @@
 {
-  "pendientes": {
-    "1393": {
-      "pack_id": "2000012330571393",
-      "comprador": "Andrés Gómez Arenas",
-      "from_id": "",
-      "texto": "Hola, buen día. Me gustaría saber el método de uso de cada producto que adquirí, por favor",
-      "msg_id": "019d52f0c31d7eb3b8f6437ac713c247",
-      "productos": "",
-      "timestamp": "2026-04-03T09:00:00"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019d52f0c31d7eb3b8f6437ac713c247"
   ]
