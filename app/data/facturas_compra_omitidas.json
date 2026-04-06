@@ -1,0 +1,36 @@
+{
+  "omitidas": [
+    {
+      "prefix": "UR",
+      "number": "6832023",
+      "proveedor": "ALMACENES ÉXITO S.A",
+      "comprador_nombre": "MARLY BERNARDA ALVAREZ CHAMORRO",
+      "comprador_nit": "45453263",
+      "fecha_omision": "2026-04-04"
+    },
+    {
+      "prefix": "PVM",
+      "number": "1131",
+      "proveedor": "MCKENNA GROUP S.A.S",
+      "comprador_nombre": "MARIBEL VELEZ FLOREZ",
+      "comprador_nit": "31436500",
+      "fecha_omision": "2026-04-05"
+    },
+    {
+      "prefix": "A",
+      "number": "63258",
+      "proveedor": "MCKENNA GROUP S.A.S 01 00",
+      "comprador_nombre": "YAKELINE VELEZ\t\tAGUDELO",
+      "comprador_nit": "1152453893",
+      "fecha_omision": "2026-04-05"
+    },
+    {
+      "prefix": "A",
+      "number": "63048",
+      "proveedor": "MCKENNA GROUP S.A.S 01 00",
+      "comprador_nombre": "SHIRLEY HERRERA",
+      "comprador_nit": "2222222222",
+      "fecha_omision": "2026-04-05"
+    }
+  ]
+}

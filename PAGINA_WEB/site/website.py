@@ -526,6 +526,31 @@ def cart_total(cart: dict) -> float:
     return sum(item["price"] * item["qty"] for item in cart.values())
 
 
+_GUIAS_JSON = Path(__file__).parent / "data/guias.json"
+
+def _load_guias_dinamicas() -> list:
+    try:
+        if _GUIAS_JSON.exists():
+            data = json.loads(_GUIAS_JSON.read_text(encoding="utf-8"))
+            return [
+                {
+                    "title":    g["title_short"],
+                    "desc":     g["desc"],
+                    "url":      f"/guias/{g['slug']}",
+                    "category": g["category"],
+                    "icon":     g.get("icon", "flask"),
+                    "color":    g.get("color", "#143D36"),
+                    "tags":     g.get("tags", []),
+                    "products": g.get("products", 1),
+                    "external": False,
+                    "sku_prefixes": [],
+                }
+                for g in data if g.get("publicada", True)
+            ]
+    except Exception:
+        pass
+    return []
+
 GUIDES = [
     {
         "title":        "Guía de Ácidos Profesionales",
@@ -539,7 +564,7 @@ GUIDES = [
         "external":     False,
         "sku_prefixes": ["acd", "ktacd", "as-96", "kojic", "alfarb", "dha"],
     },
-]
+] + _load_guias_dinamicas()
 
 
 def guide_for_product(sku: str) -> dict | None:
@@ -553,8 +578,14 @@ def guide_for_product(sku: str) -> dict | None:
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "mckg-s3cr3t-2026-!xK9")
-app.jinja_env.globals.update(wa_link=wa_link, WA_NUMBER=WA_NUMBER,
-                              guide_for_product=guide_for_product)
+META_PIXEL_ID = os.getenv("META_PIXEL_ID", "")
+app.jinja_env.globals.update(
+    wa_link=wa_link,
+    WA_NUMBER=WA_NUMBER,
+    guide_for_product=guide_for_product,
+    META_PIXEL_ID=META_PIXEL_ID,
+    SITE_URL=SITE_URL,
+)
 
 
 @app.route("/")
@@ -621,6 +652,118 @@ def contacto():
     return render_template("contacto.html")
 
 
+@app.route("/sitemap.xml")
+def sitemap():
+    from flask import Response
+    from datetime import date
+    today = date.today().isoformat()
+    data_dir = Path(__file__).parent / "data"
+    try:
+        guias = json.loads((data_dir / "guias.json").read_text(encoding="utf-8"))
+    except Exception:
+        guias = []
+    try:
+        posts = [p for p in json.loads((data_dir / "posts.json").read_text(encoding="utf-8")) if p.get("publicado")]
+    except Exception:
+        posts = []
+    try:
+        cache = json.loads((data_dir / "cache.json").read_text(encoding="utf-8"))
+        cats = [c["name"] for c in cache]
+    except Exception:
+        cats = []
+
+    urls = []
+    static_pages = [
+        ("", "1.0", "daily"),
+        ("/catalogo", "0.9", "daily"),
+        ("/guias", "0.9", "weekly"),
+        ("/recetario", "0.8", "weekly"),
+        ("/blog", "0.9", "daily"),
+        ("/nosotros", "0.6", "monthly"),
+        ("/contacto", "0.6", "monthly"),
+    ]
+    for path, pri, freq in static_pages:
+        urls.append(f'<url><loc>{SITE_URL}{path}</loc><lastmod>{today}</lastmod><changefreq>{freq}</changefreq><priority>{pri}</priority></url>')
+    for cat in cats:
+        urls.append(f'<url><loc>{SITE_URL}/catalogo?cat={requests.utils.quote(cat)}</loc><lastmod>{today}</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>')
+    for g in guias:
+        if g.get("publicada", True):
+            fecha = g.get("fecha", today)
+            urls.append(f'<url><loc>{SITE_URL}/guias/{g["slug"]}</loc><lastmod>{fecha}</lastmod><changefreq>monthly</changefreq><priority>0.75</priority></url>')
+    for p in posts:
+        fecha = p.get("fecha", today)
+        urls.append(f'<url><loc>{SITE_URL}/blog/{p["slug"]}</loc><lastmod>{fecha}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>')
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    xml += "\n".join(urls)
+    xml += "\n</urlset>"
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/robots.txt")
+def robots():
+    from flask import Response
+    txt = f"User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {SITE_URL}/sitemap.xml\n"
+    return Response(txt, mimetype="text/plain")
+
+
+@app.route("/facebook-catalog.xml")
+def facebook_catalog():
+    from flask import Response
+    data_dir = Path(__file__).parent / "data"
+    try:
+        cache = json.loads((data_dir / "cache.json").read_text(encoding="utf-8"))
+    except Exception:
+        cache = []
+
+    items = []
+    for cat in cache:
+        for p in cat.get("products", []):
+            sku      = p.get("ref", p.get("sku", ""))
+            name     = p.get("name", "")
+            price    = p.get("precio", p.get("price", 0))
+            foto     = p.get("photo", p.get("foto", ""))
+            meli_id  = p.get("meli_id", "")
+            meli_url = f"https://articulo.mercadolibre.com.co/{meli_id}" if meli_id else ""
+            desc     = p.get("desc", p.get("description", name))
+            if not sku or not name:
+                continue
+            # Precio puede venir como "$15.865" — limpiar
+            if isinstance(price, str):
+                price = re.sub(r"[^\d]", "", price)
+            price_str = f"{int(price)}.00 COP" if price else "0.00 COP"
+            items.append(f"""  <item>
+    <id>{sku}</id>
+    <title><![CDATA[{name}]]></title>
+    <description><![CDATA[{desc[:200]}]]></description>
+    <availability>in stock</availability>
+    <condition>new</condition>
+    <price>{price_str}</price>
+    <link>{meli_url or SITE_URL + "/catalogo"}</link>
+    <image_link>{foto}</image_link>
+    <brand>McKenna Group S.A.S.</brand>
+    <google_product_category>Health &amp; Beauty</google_product_category>
+  </item>""")
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">\n<channel>\n'
+    xml += f'<title>McKenna Group — Catálogo</title>\n<link>{SITE_URL}</link>\n'
+    xml += "\n".join(items)
+    xml += "\n</channel>\n</rss>"
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route("/descargo-de-responsabilidad")
+def descargo():
+    return render_template("descargo.html")
+
+
+@app.route("/politica-de-datos")
+def politica_datos():
+    return render_template("tratamiento_datos.html")
+
+
 @app.route("/recetario")
 def recetario():
     recetas_file = Path(__file__).parent / "data/recetas.json"
@@ -643,6 +786,44 @@ def guia_kit_acidos():
     if guide.exists():
         return send_file(str(guide))
     abort(404)
+
+
+@app.route("/guias/<slug>")
+def guia_detalle(slug):
+    try:
+        data = json.loads(_GUIAS_JSON.read_text(encoding="utf-8"))
+        guia = next((g for g in data if g["slug"] == slug and g.get("publicada", True)), None)
+    except Exception:
+        guia = None
+    if not guia:
+        abort(404)
+    return render_template("guia_detalle.html", g=guia, WA_NUMBER=WA_NUMBER)
+
+
+@app.route("/blog")
+@app.route("/blog/")
+def blog():
+    posts_file = Path(__file__).parent / "data/posts.json"
+    try:
+        posts = json.loads(posts_file.read_text(encoding="utf-8"))
+        posts = [p for p in posts if p.get("publicado", True)]
+        posts.sort(key=lambda p: p.get("fecha", ""), reverse=True)
+    except Exception:
+        posts = []
+    return render_template("blog.html", posts=posts)
+
+
+@app.route("/blog/<slug>")
+def blog_post(slug):
+    posts_file = Path(__file__).parent / "data/posts.json"
+    try:
+        posts = json.loads(posts_file.read_text(encoding="utf-8"))
+        post = next((p for p in posts if p.get("slug") == slug and p.get("publicado", True)), None)
+    except Exception:
+        post = None
+    if not post:
+        abort(404)
+    return render_template("blog_post.html", post=post)
 
 
 @app.route("/api/refresh", methods=["POST"])

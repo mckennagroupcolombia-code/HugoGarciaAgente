@@ -196,28 +196,48 @@ def _normalizar(texto: str) -> str:
     )
 
 
-def generar_codigo_producto(nombre: str, unidad_minima: str) -> str:
+def generar_codigo_producto(nombre: str, unidad_minima: str,
+                            codigos_usados: set = None) -> str:
     """
     Genera código de producto SIIGO:
-      → 3 primeras letras de cada una de las 3 palabras clave (sin stopwords)
+      → 3 primeras letras de cada una de las N palabras clave (sin stopwords)
       → + sufijo de unidad: mL | g | Un
+      → Si el código ya está en `codigos_usados`, agrega más palabras hasta
+        encontrar uno único (evita colisiones dentro de la misma factura).
 
     Ejemplo:
       "ACEITE DE RICINO"  + mL  →  ACERICmL
       "GLICERINA VEGETAL REFINADA" + g → GLIVEGREFg
+      "GOTERO PIPETA 77MM NEGRO" + Un, con "GOTPIP77MUn" ya usado
+        →  GOTPIP77MNEGUn
     """
     nombre_norm = _normalizar(nombre)
-    # Limpiar caracteres no alfanuméricos (guiones, paréntesis, etc.)
     palabras_raw = re.split(r'[\s\-_/,.()+]+', nombre_norm)
     palabras_clave = [
         p for p in palabras_raw
         if p and p.lower() not in STOPWORDS and len(p) >= 2
     ]
 
-    # Tomar hasta 3 palabras clave y sus 3 primeras letras
-    fragmentos = [p[:3] for p in palabras_clave[:3]]
-    # Si hay menos de 3 palabras útiles, completar con las disponibles
-    codigo = ''.join(fragmentos) + unidad_minima
+    # Fallback si el nombre no tiene palabras útiles
+    if not palabras_clave:
+        palabras_clave = [nombre_norm[:9]] if nombre_norm else ['PROD']
+
+    # Probar con min(3, disponibles) palabras y aumentar hasta agotar las disponibles
+    # Esto evita el UnboundLocalError cuando el nombre tiene < 3 palabras clave
+    n_inicio = min(3, len(palabras_clave))
+    for n in range(n_inicio, len(palabras_clave) + 1):
+        fragmentos = [p[:3] for p in palabras_clave[:n]]
+        codigo = ''.join(fragmentos) + unidad_minima
+        if codigos_usados is None or codigo not in codigos_usados:
+            return codigo
+
+    # Si aún hay colisión (nombres prácticamente idénticos), añadir sufijo numérico
+    base = ''.join(p[:3] for p in palabras_clave) + unidad_minima
+    codigo = base
+    i = 2
+    while codigos_usados and codigo in codigos_usados:
+        codigo = base + str(i)
+        i += 1
     return codigo
 
 
@@ -227,53 +247,68 @@ def generar_codigo_producto(nombre: str, unidad_minima: str) -> str:
 
 def _extraer_unit_code_de_xml(xml_content: str, descripcion_item: str) -> str:
     """
-    Extrae el unitCode de la línea InvoiceLine que corresponde a la descripción dada.
-    Fallback: intenta inferirlo por palabras clave en la descripción.
+    Extrae el unitCode DIAN de la InvoiceLine que corresponde a la descripción dada.
+    Soporta dos formatos DIAN:
+      - Invoice directa: root tag es Invoice con InvoiceLines hijos
+      - AttachedDocument: la Invoice está embebida como texto en un nodo <Description>
+    Retorna NAR (unidad) si no se puede determinar.
     """
     import xml.etree.ElementTree as ET
 
-    def tag(elem):
-        return elem.tag.split('}')[-1]
+    def _tag(e): return e.tag.split('}')[-1]
 
-    unidades_encontradas = {}
+    def _buscar_invoice_node(root):
+        """Retorna el nodo Invoice ya sea directo o embebido como texto."""
+        # Caso 1: Invoice es el root o hijo directo
+        for elem in root.iter():
+            if _tag(elem) == 'Invoice':
+                return elem
+        # Caso 2: AttachedDocument — Invoice embebida como texto en Description
+        for elem in root.iter():
+            if _tag(elem) == 'Description':
+                txt = (elem.text or '').strip()
+                if '<Invoice' in txt or '<inv:Invoice' in txt:
+                    try:
+                        return ET.fromstring(txt)
+                    except ET.ParseError:
+                        # Limpiar prefijos no declarados (misma técnica que extraer_datos_xml_dian)
+                        clean = re.sub(r'(</?)[a-zA-Z0-9]+:', r'\1', txt)
+                        clean = re.sub(r' [a-zA-Z0-9]+:([a-zA-Z0-9]+)=', r' \1=', clean)
+                        try:
+                            return ET.fromstring(clean)
+                        except Exception:
+                            pass
+        return None
+
+    unidades = {}
     try:
         root = ET.fromstring(xml_content)
-        for elem in root.iter():
-            if tag(elem) == 'InvoiceLine':
-                # buscar descripción y cantidad
-                desc = ''
-                unit_code = ''
+        invoice = _buscar_invoice_node(root)
+        nodo = invoice if invoice is not None else root
+        for elem in nodo.iter():
+            if _tag(elem) == 'InvoiceLine':
+                desc = unit_code = ''
                 for sub in elem.iter():
-                    if tag(sub) == 'Description' and sub.text:
+                    if _tag(sub) == 'Description' and sub.text and not desc:
                         desc = sub.text.strip()
-                    if tag(sub) == 'InvoicedQuantity':
+                    if _tag(sub) == 'InvoicedQuantity':
                         unit_code = sub.get('unitCode', '')
                 if desc and unit_code:
-                    unidades_encontradas[desc.upper()] = unit_code.upper()
+                    unidades[_normalizar(desc)] = unit_code.upper()
     except Exception:
         pass
 
-    # Buscar coincidencia exacta o parcial con la descripción del ítem
-    desc_up = descripcion_item.upper()
-    if desc_up in unidades_encontradas:
-        return unidades_encontradas[desc_up]
-    for k, v in unidades_encontradas.items():
-        if desc_up[:20] in k or k[:20] in desc_up:
+    # Búsqueda normalizada (insensible a acentos, mayúsculas)
+    desc_norm = _normalizar(descripcion_item)
+    if desc_norm in unidades:
+        return unidades[desc_norm]
+    for k, v in unidades.items():
+        if desc_norm[:25] in k or k[:25] in desc_norm:
             return v
 
-    # Inferencia por palabras clave si no se encontró en XML
-    d = descripcion_item.lower()
-    if any(w in d for w in ['litro', 'liter', 'l ', ' l']):
-        return 'LTR'
-    if any(w in d for w in ['galon', 'galón', 'gal']):
-        return 'GLL'
-    if any(w in d for w in ['gramo', 'gram', 'gr ']):
-        return 'GRM'
-    if any(w in d for w in ['kilo', 'kg']):
-        return 'KGM'
-    if any(w in d for w in ['ml', 'mililitro']):
-        return 'MLT'
-    return 'NAR'  # Default: unidad
+    # Default: NAR (unidad). No inferir por nombre — "5ML" en un frasco es el volumen,
+    # no la unidad de venta.
+    return 'NAR'
 
 
 def convertir_a_unidad_minima(cantidad: float, unit_code: str) -> tuple[float, str, str]:
@@ -344,26 +379,40 @@ def calcular_precio_unitario_min(subtotal_linea: float, iva_linea: float, cantid
 def verificar_producto_en_siigo(codigo: str) -> bool:
     """
     Consulta SIIGO API para saber si ya existe un producto con ese código.
-    Retorna True si YA existe (duplicado), False si es nuevo.
+    Retorna True si YA existe (duplicado), False si es nuevo o si no se pudo consultar.
+    Intenta hasta 2 veces con timeout de 15 s antes de rendirse.
     """
-    try:
-        token = autenticar_siigo()
-        if not token:
-            return False
-        res = requests.get(
-            f"https://api.siigo.com/v1/products?code={codigo}&page_size=1",
-            headers={"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID},
-            timeout=10
-        )
-        if res.status_code == 200:
-            data = res.json()
-            results = data.get('results', [])
-            return len(results) > 0 and any(
-                p.get('code', '').upper() == codigo.upper()
-                for p in results
+    token = autenticar_siigo()
+    if not token:
+        print(f"  ⚠️ [SIIGO] Sin token — {codigo} se tratará como producto nuevo")
+        return False
+
+    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+
+    for intento in range(1, 3):
+        try:
+            res = requests.get(
+                f"https://api.siigo.com/v1/products?code={codigo}&page_size=1",
+                headers=headers,
+                timeout=15,
             )
-    except Exception as e:
-        print(f"⚠️ [SIIGO] Error verificando producto {codigo}: {e}")
+            if res.status_code == 200:
+                results = res.json().get('results', [])
+                return len(results) > 0 and any(
+                    p.get('code', '').upper() == codigo.upper()
+                    for p in results
+                )
+            # Cualquier otro status HTTP: no es duplicado
+            return False
+        except requests.exceptions.Timeout:
+            if intento < 2:
+                print(f"  ⏳ [SIIGO] Timeout verificando {codigo}, reintentando...")
+            else:
+                print(f"  ⚠️ [SIIGO] Timeout al verificar {codigo} — se asume nuevo (revisa duplicados en Excel)")
+        except Exception as e:
+            print(f"  ⚠️ [SIIGO] Error verificando {codigo}: {e} — se asume nuevo")
+            break
+
     return False
 
 
@@ -473,7 +522,7 @@ def generar_xml_compra_siigo(datos: dict, productos: list, numero_factura: str) 
     """
     fecha_hoy = datetime.now().strftime('%Y-%m-%d')
     fecha_factura = datos.get('fecha', fecha_hoy)
-    nit_proveedor  = datos.get('nit_proveedor', '')
+    nit_proveedor  = datos.get('nit', '') or datos.get('nit_proveedor', '')
     nombre_prov    = datos.get('proveedor', '')
     moneda         = datos.get('moneda', 'COP')
 
@@ -528,13 +577,19 @@ def generar_xml_compra_siigo(datos: dict, productos: list, numero_factura: str) 
         unidad_conv.set('simbolo',    p['unidad_min'])
 
         conv_info = ET.SubElement(unidad, 'ReglaConversion')
-        factor_str = str(
-            CONVERSION_UNIDADES.get(p['unidad_original'].upper(), ('?', '?'))[1]
-        )
-        conv_info.text = (
-            f"1 {p['unidad_original']} = {factor_str} {p['unidad_min']} "
-            f"| {p['cantidad_original']} × {factor_str} = {round(p['cantidad_min'], 6)} {p['unidad_min']}"
-        )
+        multiplicador = p.get('multiplicador', 1)
+        factor_base   = CONVERSION_UNIDADES.get(p['unidad_original'].upper(), ('?', 1))[1]
+        if multiplicador > 1:
+            # Producto con contenido múltiple: ej. "caja de 100 unidades"
+            conv_info.text = (
+                f"1 {p['unidad_original']} contiene {multiplicador} {p['unidad_min']} "
+                f"| {p['cantidad_original']} × {multiplicador} = {round(p['cantidad_min'], 6)} {p['unidad_min']}"
+            )
+        else:
+            conv_info.text = (
+                f"1 {p['unidad_original']} = {factor_base} {p['unidad_min']} "
+                f"| {p['cantidad_original']} × {factor_base} = {round(p['cantidad_min'], 6)} {p['unidad_min']}"
+            )
 
         precios = ET.SubElement(item, 'Precios')
         precios.set('moneda', moneda)
@@ -713,6 +768,7 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
     proveedor = datos.get('proveedor', '')
     productos_nuevos = []
     productos_duplicados = []
+    codigos_en_factura = set()   # evita colisiones dentro de la misma factura
 
     for item in datos.get('items', []):
         nombre = item.get('description', '').strip()
@@ -738,7 +794,12 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
             print(f"  📦 Contenido detectado: {int(cantidad_original)} × {multiplicador} = {int(cantidad_min)} {unidad_min}")
 
         precio_unitario = calcular_precio_unitario_min(subtotal, iva_linea, cantidad_min)
-        codigo      = generar_codigo_producto(nombre, unidad_min)
+        # Precio neto (sin IVA) — usado en ítems de compra SIIGO para que el IVA se aplique correctamente
+        precio_neto = round(subtotal / cantidad_min, 2) if cantidad_min > 0 else 0.0
+
+        # Genera código único dentro de esta factura (evita GOTPIP77MUn × 2 en misma factura)
+        codigo      = generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
+        codigos_en_factura.add(codigo)
         es_duplicado = verificar_producto_en_siigo(codigo)
 
         producto = {
@@ -752,7 +813,8 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
             'codigo_dian_min':   codigo_dian_min,
             'subtotal':          subtotal,
             'iva':               iva_linea,
-            'precio_unitario':   precio_unitario,
+            'precio_unitario':   precio_unitario,  # con IVA — para Excel/precio venta
+            'precio_neto':       precio_neto,       # sin IVA — para ítems de compra SIIGO
             'duplicado':         es_duplicado,
         }
         if es_duplicado:
@@ -777,6 +839,7 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
         'proveedor':      proveedor,
         'nuevos':         len(productos_nuevos),
         'duplicados':     len(productos_duplicados),
+        'productos':      todos,   # lista completa para flujo API
     }
 
     if not silent:

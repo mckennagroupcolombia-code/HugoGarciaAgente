@@ -276,42 +276,63 @@ def extraer_datos_xml_dian(xml_content):
         print(f"❌ Error extrayendo datos detallados del XML: {e}")
         return None
 
-def leer_correos_no_descargados():
+def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
+    """
+    Devuelve todos los correos de la etiqueta FACTURAS-MCKG que tengan adjunto ZIP,
+    desde `fecha_desde` (formato YYYY/MM/DD) hasta hoy.
+    Maneja paginación para no perder correos cuando hay más de 100.
+    """
     service = get_gmail_service()
-    # Buscar correos con etiqueta FACTURAS MCKG, que tengan adjuntos zip y NO tengan la etiqueta PROCESADO
-    # Asumimos que podemos identificarlos o filtrarlos. Para este script procesaremos todos los de la etiqueta y preguntaremos.
-    query = "label:FACTURAS-MCKG has:attachment filename:zip"
-    
+    query = f"label:FACTURAS-MCKG has:attachment filename:zip after:{fecha_desde}"
+
     try:
-        response = service.users().messages().list(userId="me", q=query, maxResults=20).execute()
-        messages = response.get("messages", [])
-        
+        messages = []
+        page_token = None
+        while True:
+            kwargs = {"userId": "me", "q": query, "maxResults": 100}
+            if page_token:
+                kwargs["pageToken"] = page_token
+            response = service.users().messages().list(**kwargs).execute()
+            batch = response.get("messages", [])
+            messages.extend(batch)
+            page_token = response.get("nextPageToken")
+            if not page_token:
+                break
+
         if not messages:
-            print("No hay correos pendientes con facturas .zip")
+            print("No hay correos con facturas .zip en el período indicado")
             return []
 
+        print(f"  📧 {len(messages)} correo(s) encontrado(s) desde {fecha_desde}")
         correos_con_facturas = []
-        
+
         for msg in messages:
             msg_data = service.users().messages().get(userId="me", id=msg["id"], format="full").execute()
             headers = msg_data["payload"]["headers"]
             asunto = next((h["value"] for h in headers if h["name"] == "Subject"), "Sin Asunto")
-            
+
+            # Buscar ZIPs en partes directas y en partes anidadas (multipart)
             adjuntos = []
-            if "parts" in msg_data["payload"]:
-                for part in msg_data["payload"]["parts"]:
-                    if part.get("filename") and part["filename"].lower().endswith(".zip"):
+            def _buscar_zips(partes):
+                for part in partes:
+                    if part.get("filename", "").lower().endswith(".zip"):
                         att_id = part["body"].get("attachmentId")
                         if att_id:
                             adjuntos.append({"filename": part["filename"], "id": att_id, "msg_id": msg["id"]})
-            
+                    if "parts" in part:
+                        _buscar_zips(part["parts"])
+
+            payload = msg_data["payload"]
+            if "parts" in payload:
+                _buscar_zips(payload["parts"])
+
             if adjuntos:
                 correos_con_facturas.append({
                     "id": msg["id"],
                     "asunto": asunto,
-                    "adjuntos_zip": adjuntos
+                    "adjuntos_zip": adjuntos,
                 })
-                
+
         return correos_con_facturas
     except Exception as e:
         print(f"Error consultando Gmail: {e}")

@@ -1,0 +1,216 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-05">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FE32480</NumeroFacturaProveedor>
+    <FechaFactura>2026-03-20</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>1026262496</NIT>
+      <Nombre>ALEXANDRA KATHERINE BENAVIDES SALAMANCA</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="11">
+    <Item numero="1">
+      <CodigoSiigo>FAR5MLAMBUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 5ML AMBAR</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">510.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">510.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 510.0 × 1 = 510.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>167142.86</Subtotal>
+        <IVA>31757.14</IVA>
+        <Total>198900.00</Total>
+        <PrecioUnitarioMin>390.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 198900.00 COP / 510.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>TAP18MSEGUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPA 18MM SEGURIDAD ECO BLANCA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">510.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">510.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 510.0 × 1 = 510.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>42000.00</Subtotal>
+        <IVA>7980.00</IVA>
+        <Total>49980.00</Total>
+        <PrecioUnitarioMin>98.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 49980.00 COP / 510.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>TAP18MAIRUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPON 18MM AIREADOR BLANCO ECO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">510.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">510.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 510.0 × 1 = 510.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>42000.00</Subtotal>
+        <IVA>7980.00</IVA>
+        <Total>49980.00</Total>
+        <PrecioUnitarioMin>98.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 49980.00 COP / 510.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>FAR30MAZUUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 30ML AZUL</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">990.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">990.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 990.0 × 1 = 990.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>819453.78</Subtotal>
+        <IVA>155696.22</IVA>
+        <Total>975150.00</Total>
+        <PrecioUnitarioMin>985.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 975150.00 COP / 990.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>GOTPIP77MUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 77MM NEGRO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">990.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">990.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 990.0 × 1 = 990.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>415966.39</Subtotal>
+        <IVA>79033.61</IVA>
+        <Total>495000.00</Total>
+        <PrecioUnitarioMin>500.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 495000.00 COP / 990.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>FAR30MAMBUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 30ML AMBAR</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">220.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">220.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 220.0 × 1 = 220.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>101495.80</Subtotal>
+        <IVA>19284.20</IVA>
+        <Total>120780.00</Total>
+        <PrecioUnitarioMin>549.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 120780.00 COP / 220.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="7">
+      <CodigoSiigo>GOTPIP77MBLAUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 77MM BLANCO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">220.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">220.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 220.0 × 1 = 220.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>92436.97</Subtotal>
+        <IVA>17563.03</IVA>
+        <Total>110000.00</Total>
+        <PrecioUnitarioMin>500.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 110000.00 COP / 220.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="8">
+      <CodigoSiigo>FAR50MAMBUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 50ML AMBAR</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">144.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">144.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 144.0 × 1 = 144.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>100436.97</Subtotal>
+        <IVA>19083.03</IVA>
+        <Total>119520.00</Total>
+        <PrecioUnitarioMin>830.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 119520.00 COP / 144.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="9">
+      <CodigoSiigo>GOTPIP90MUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 90MM NEGRO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">144.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">144.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 144.0 × 1 = 144.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>60504.20</Subtotal>
+        <IVA>11495.80</IVA>
+        <Total>72000.00</Total>
+        <PrecioUnitarioMin>500.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 72000.00 COP / 144.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="10">
+      <CodigoSiigo>TAP18MPERUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPA 18MM PERFORADA SEGURIDAD NEGRA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">400.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">400.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 400.0 × 1 = 400.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>45378.15</Subtotal>
+        <IVA>8621.85</IVA>
+        <Total>54000.00</Total>
+        <PrecioUnitarioMin>135.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 54000.00 COP / 400.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="11">
+      <CodigoSiigo>TAP18MPERSEGUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPA 18MM PERFORADA SEGURIDAD BLANCA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">100.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">100.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 100.0 × 1 = 100.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>11344.54</Subtotal>
+        <IVA>2155.46</IVA>
+        <Total>13500.00</Total>
+        <PrecioUnitarioMin>135.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 13500.00 COP / 100.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>1898159.66</Subtotal>
+    <TotalIVA>360650.34</TotalIVA>
+    <TotalGeneral>2258810.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FE32480 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

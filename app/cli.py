@@ -1,10 +1,50 @@
 
+import os
 import re
+import json
 import time
 
 # Datos de McKenna Group S.A.S. para validación de facturas de compra
 _NIT_MCKG    = "901316016"   # Sin dígito verificador
 _NOMBRE_MCKG = "MCKENNA GROUP S.A.S"
+
+# Archivo de facturas omitidas por destinatario incorrecto
+_RUTA_OMITIDAS = os.path.join(os.path.dirname(__file__), 'data', 'facturas_compra_omitidas.json')
+
+
+def _cargar_omitidas() -> set:
+    """Retorna set de tuplas (prefix, number) que ya fueron descartadas."""
+    try:
+        if os.path.exists(_RUTA_OMITIDAS):
+            with open(_RUTA_OMITIDAS, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return {(item['prefix'], item['number']) for item in data.get('omitidas', [])}
+    except Exception:
+        pass
+    return set()
+
+
+def _guardar_omitida(datos: dict):
+    """Persiste una factura en la lista de omitidas para no volver a mostrarla."""
+    try:
+        existing = []
+        if os.path.exists(_RUTA_OMITIDAS):
+            with open(_RUTA_OMITIDAS, 'r', encoding='utf-8') as f:
+                existing = json.load(f).get('omitidas', [])
+        key = (datos.get('prefix', ''), datos.get('number', ''))
+        if not any((e['prefix'], e['number']) == key for e in existing):
+            existing.append({
+                'prefix':            datos.get('prefix', ''),
+                'number':            datos.get('number', ''),
+                'proveedor':         datos.get('proveedor', ''),
+                'comprador_nombre':  datos.get('comprador_nombre', ''),
+                'comprador_nit':     datos.get('comprador_nit', ''),
+                'fecha_omision':     time.strftime('%Y-%m-%d'),
+            })
+            with open(_RUTA_OMITIDAS, 'w', encoding='utf-8') as f:
+                json.dump({'omitidas': existing}, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"  ⚠️  No se pudo guardar factura omitida: {e}")
 
 # --- Importaciones de Lógica de Negocio ---
 from app.sync import (
@@ -41,7 +81,7 @@ def _diagnostico_facturas_compra():
     print(SEP)
 
     # 1. SIIGO — autenticación
-    token = autenticar_siigo()
+    token = autenticar_siigo(forzar=True)   # siempre token fresco al iniciar sesión
     if not token:
         print("   [❌] SIIGO: fallo de autenticación")
         print("        → Revisa ~/mi-agente/credenciales_SIIGO.json")
@@ -103,7 +143,6 @@ def _cargar_facturas_gmail(gmail_svc, token):
     Retorna lista de dicts con los datos de cada factura.
     """
     import requests
-    from datetime import datetime, timedelta
     from app.services.siigo import PARTNER_ID
     from app.tools.sincronizar_facturas_de_compra_siigo import (
         leer_correos_no_descargados,
@@ -111,24 +150,44 @@ def _cargar_facturas_gmail(gmail_svc, token):
         extraer_datos_xml_dian,
     )
 
-    print("\n📬 Escaneando correos (label: FACTURAS MCKG)...")
-    correos = leer_correos_no_descargados()
+    FECHA_INICIO_2026 = "2026/01/01"
+    FECHA_INICIO_SIIGO = "2026-01-01"
+
+    print(f"\n📬 Escaneando correos (label: FACTURAS MCKG, desde {FECHA_INICIO_2026})...")
+    correos = leer_correos_no_descargados(fecha_desde=FECHA_INICIO_2026)
     if not correos:
         return []
 
-    # Cargar compras SIIGO de los últimos 90 días para detectar duplicados
-    registradas_siigo = set()
+    # Facturas ya omitidas (destinatario incorrecto) — se filtran silenciosamente
+    omitidas = _cargar_omitidas()
+
+    # Cargar TODAS las compras SIIGO desde ene-2026 (con paginación) para detectar duplicados
+    registradas_siigo = {}   # (prefix, number) → nombre doc SIIGO (ej. "FC-1-46")
     try:
-        fecha_desde = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
-        r = requests.get(
-            f"https://api.siigo.com/v1/purchases?date_start={fecha_desde}&page_size=100",
-            headers={"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID},
-            timeout=10,
-        )
-        if r.status_code == 200:
-            for p in r.json().get("results", []):
+        pagina = 1
+        while True:
+            r = requests.get(
+                f"https://api.siigo.com/v1/purchases?date_start={FECHA_INICIO_SIIGO}&page={pagina}&page_size=100",
+                headers={"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID},
+                timeout=15,
+            )
+            if r.status_code != 200:
+                print(f"  ⚠️ No se pudo consultar SIIGO para detectar duplicados: HTTP {r.status_code}")
+                break
+            data = r.json()
+            resultados = data.get("results", [])
+            for p in resultados:
                 pi = p.get("provider_invoice", {})
-                registradas_siigo.add((pi.get("prefix", ""), pi.get("number", "")))
+                key = (pi.get("prefix", ""), pi.get("number", ""))
+                registradas_siigo[key] = p.get("name", "?")
+            # Verificar si hay más páginas
+            pagination = data.get("pagination", {})
+            total_results = pagination.get("total_results", len(resultados))
+            fetched = pagina * 100
+            if fetched >= total_results or not resultados:
+                break
+            pagina += 1
+        print(f"  🗂️  {len(registradas_siigo)} compra(s) ya registradas en SIIGO desde {FECHA_INICIO_SIIGO}")
     except Exception as e:
         print(f"  ⚠️ No se pudo consultar SIIGO para detectar duplicados: {e}")
 
@@ -147,7 +206,15 @@ def _cargar_facturas_gmail(gmail_svc, token):
                 print(f"     ⚠️  No se pudo parsear XML de {adj['filename']}")
                 continue
             numero = f"{datos['prefix']}{datos['number']}"
-            ya_registrada = (datos["prefix"], datos["number"]) in registradas_siigo
+
+            # Silenciosamente omitir facturas ya descartadas por destinatario incorrecto
+            if (datos["prefix"], datos["number"]) in omitidas:
+                print(f"     • {numero} — omitida (destinatario incorrecto, registrada anteriormente)")
+                continue
+
+            clave            = (datos["prefix"], datos["number"])
+            doc_siigo        = registradas_siigo.get(clave)   # "FC-1-46" o None
+            ya_registrada    = doc_siigo is not None
 
             # Validar que el destinatario sea McKenna Group
             comprador_nit = re.sub(r"\D", "", datos.get("comprador_nit", ""))
@@ -160,6 +227,7 @@ def _cargar_facturas_gmail(gmail_svc, token):
                 "pdf":           pdf,
                 "pdf_name":      pdf_name,
                 "ya_registrada": ya_registrada,
+                "doc_siigo":     doc_siigo,   # nombre del doc en SIIGO si ya existe
                 "es_para_mckg":  es_para_mckg,
             })
             estado = "✓ ya en SIIGO" if ya_registrada else "pendiente"
@@ -294,10 +362,182 @@ def _cli_registrar_gasto(token, factura):
         print(f"\n  → Registra manualmente: SIIGO → Compras → Nueva compra o gasto")
 
 
-def _cli_flujo_inventario(factura):
+def _siigo_crear_producto(token: str, producto: dict) -> tuple:
     """
-    Flujo A (inventario): genera Excel + XML con codificación McKenna para importar en SIIGO.
-    Si el proveedor no está en la lista especial, ofrece agregarlo.
+    Crea un producto en SIIGO via POST /v1/products.
+    Retorna (ok: bool, mensaje: str).
+    """
+    import requests
+    from app.services.siigo import PARTNER_ID
+
+    headers = {
+        "Authorization":  f"Bearer {token}",
+        "Partner-Id":     PARTNER_ID,
+        "Content-Type":   "application/json",
+    }
+    has_iva    = producto.get('iva', 0) > 0
+    taxes      = [{"id": 3118}] if has_iva else []
+    precio_vu  = producto.get('precio_unitario', 0)   # con IVA — precio de venta
+    precio_neto = producto.get('precio_neto', precio_vu)  # sin IVA — costo de compra
+
+    payload = {
+        "code":          producto['codigo'],
+        "name":          producto['nombre'][:120],
+        "account_group": 297,                  # Productos (integer ID, no objeto)
+        "type":          "Product",
+        "stock_control": True,
+        "unit":          {"code": "94"},        # unidad (SIIGO)
+        "warehouses":    [{"id": 41, "quantity": 0, "unit_cost": precio_neto}],
+        "prices": [{
+            "currency_code": "COP",
+            "price_list":    [{"position": 1, "value": round(precio_vu * 1.3, 0)}],
+        }],
+        "taxes": taxes,
+    }
+    try:
+        r = requests.post(
+            "https://api.siigo.com/v1/products",
+            json=payload, headers=headers, timeout=15,
+        )
+        if r.status_code in (200, 201):
+            data = r.json()
+            return True, f"ID {data.get('id', '?')} — código {data.get('code', '?')}"
+        else:
+            return False, f"HTTP {r.status_code}: {r.text[:250]}"
+    except Exception as e:
+        return False, str(e)
+
+
+def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -> tuple:
+    """
+    Registra la factura de compra en SIIGO con ítems tipo Product.
+    Precio por ítem = precio_unitario (sin IVA).
+    Retorna (ok: bool, mensaje: str).
+    """
+    from app.services.siigo import crear_factura_compra_siigo
+
+    d        = factura['datos']
+    nit      = d.get('nit', '') or ''
+    nit_base = nit.split('-')[0].strip() if '-' in nit else nit.strip()
+    total    = d.get('total_neto', 0)
+
+    items_payload = []
+    for p in productos:
+        has_iva = p.get('iva', 0) > 0
+        # precio_neto = subtotal/qty sin IVA; SIIGO aplica el impuesto y calcula el total real
+        precio = p.get('precio_neto', p.get('precio_unitario', 0))
+        items_payload.append({
+            "type":        "Product",
+            "code":        p['codigo'],
+            "description": p['nombre'][:100],
+            "quantity":    p['cantidad_min'],
+            "price":       precio,
+            "taxes":       [{"id": 3118}] if has_iva else [],
+            "warehouse":   {"id": 41},
+        })
+
+    payload = {
+        "document":         {"id": 5809},
+        "date":             d.get('fecha', time.strftime('%Y-%m-%d')),
+        "cost_center":      263,
+        "supplier":         {"identification": nit_base, "branch_office": 0},
+        "provider_invoice": {"prefix": d.get('prefix', ''), "number": d.get('number', '0')},
+        "items":            items_payload,
+        "payments":         [{"id": 1338, "value": total}],
+        "observations":     f"Compra inventario — {factura['numero']} — {d.get('proveedor', '')}",
+    }
+
+    # Calcular total con ROUND_HALF_UP por ítem (espeja la lógica interna de SIIGO)
+    from decimal import Decimal, ROUND_HALF_UP
+    def _rhup(x):
+        return float(Decimal(str(x)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+    total_calculado = sum(
+        _rhup(_rhup(it["quantity"] * it["price"]) * (1.19 if it["taxes"] else 1.0))
+        for it in items_payload
+    )
+    total_calculado = _rhup(total_calculado)
+
+    # Validar discrepancia entre total calculado y el XML del proveedor
+    diff = abs(total_calculado - total)
+    LIMITE_CENTAVOS = 2.00   # diferencia admisible por redondeo DIAN
+    if diff == 0:
+        print(f"  [✓] Total coincide exactamente con XML: ${total_calculado:,.2f}")
+    elif diff <= LIMITE_CENTAVOS:
+        print(f"  [ℹ] Diferencia de redondeo DIAN: calculado=${total_calculado:,.2f} vs XML=${total:,.2f} "
+              f"(Δ ${diff:.2f}) — se usa el valor calculado")
+    else:
+        print(f"\n  ⚠️  ALERTA: Discrepancia mayor entre el total calculado y el XML del proveedor:")
+        print(f"     Total calculado (SIIGO) : ${total_calculado:,.2f}")
+        print(f"     Total XML del proveedor : ${total:,.2f}")
+        print(f"     Diferencia              : ${diff:,.2f}")
+        print(f"     Revisa precios y cantidades antes de continuar.")
+        confirmar = input("  ¿Registrar de todas formas? [s/n]: ").strip().lower()
+        if confirmar != "s":
+            return False, f"Abortado por discrepancia de ${diff:,.2f} entre total calculado y XML."
+
+    # Intento 1: usar el total calculado con ROUND_HALF_UP
+    payload["payments"] = [{"id": 1338, "value": total_calculado}]
+
+    print(f"\n  📤 Payload compra SIIGO:")
+    print(f"     document.id   : {payload['document']['id']}")
+    print(f"     cost_center   : {payload['cost_center']}")
+    print(f"     supplier      : {nit_base}")
+    print(f"     provider_inv  : {payload['provider_invoice']}")
+    print(f"     items count   : {len(items_payload)}")
+    print(f"     payment        : ${total_calculado:,.2f}  (XML: ${total:,.2f})")
+
+    res = crear_factura_compra_siigo(payload)
+
+    # Intento 2: SIIGO reporta su total exacto en el error → reintentar con ese valor
+    # Regla: SIIGO redondea cada ítem individualmente antes de sumar, lo que puede
+    # diferir en centavos de nuestro cálculo. Usamos su valor reportado para converger.
+    if res.get('status') != 'success':
+        msg_err = res.get('message', '')
+        m = re.search(r'total purchase calculated is ([\d.]+)', msg_err)
+        if m:
+            total_siigo_real = float(m.group(1))
+            diff = abs(total_siigo_real - total)
+            if diff <= 1.0:   # solo reintentar si la diferencia es ≤ $1 (centavos de redondeo)
+                print(f"     ↳ Ajuste de redondeo: XML=${total:,.2f} → SIIGO=${total_siigo_real:,.2f} "
+                      f"(Δ ${diff:.2f}) — reintentando...")
+                payload["payments"] = [{"id": 1338, "value": total_siigo_real}]
+                res = crear_factura_compra_siigo(payload)
+            else:
+                print(f"     ↳ Diferencia de ${diff:,.2f} es demasiado grande para ajuste automático.")
+
+    if res.get('status') == 'success':
+        data     = res.get('data', {})
+        siigo_id = data.get('id', '')
+        nombre   = data.get('name', '?')
+        total_ok = data.get('total', 0)
+
+        # Verificación post-creación: GET para confirmar que existe en SIIGO
+        import requests as _req
+        from app.services.siigo import PARTNER_ID as _PID
+        try:
+            rv = _req.get(
+                f"https://api.siigo.com/v1/purchases/{siigo_id}",
+                headers={"Authorization": f"Bearer {token}", "Partner-Id": _PID},
+                timeout=8,
+            )
+            if rv.status_code == 200 and rv.json().get('id') == siigo_id:
+                print(f"     ↳ Verificación GET: ✓ existe en SIIGO  total=${rv.json().get('total',0):,.2f}")
+            else:
+                print(f"     ↳ Verificación GET: ⚠️  respuesta inesperada ({rv.status_code})")
+        except Exception as ve:
+            print(f"     ↳ Verificación GET: no disponible ({ve})")
+
+        return True, f"Factura SIIGO {nombre} — total ${total_ok:,.2f} (ID {siigo_id})"
+    else:
+        msg = res.get('message', str(res))
+        return False, msg[:400]
+
+
+def _cli_flujo_inventario(token: str, factura: dict):
+    """
+    Flujo A (inventario): crea productos en SIIGO via API y registra la compra.
+    Genera Excel como documentación de respaldo.
     """
     import json as _json
     from datetime import datetime as _dt
@@ -322,7 +562,6 @@ def _cli_flujo_inventario(factura):
         )
         if nit_limpio else False
     )
-
     if not ya_existe and nit_limpio:
         resp = input(f"\n  ¿Agregar '{prov}' a proveedores especiales de inventario? [s/n]: ").strip().lower()
         if resp == "s":
@@ -336,24 +575,82 @@ def _cli_flujo_inventario(factura):
                 _json.dump(data_prov, ff, indent=2, ensure_ascii=False)
             print(f"  ✓ '{prov}' guardado en proveedores_especiales.json")
 
-    print(f"\n  ⏳ Procesando productos de {numero}...")
+    print(f"\n  ⏳ Procesando ítems de {numero}...")
     arch = _ejecutar_procesamiento(numero, d, factura["xml"], silent=True)
 
     if not arch:
         print(f"  ⚠️  No se encontraron ítems procesables en {numero}.")
         return
 
-    print(f"\n  ✅ Archivos generados:")
-    print(f"     📊 Excel : {arch['ruta']}")
-    print(f"     📄 XML   : {arch['ruta_xml']}")
-    print(f"     Productos nuevos: {arch['nuevos']}   Duplicados: {arch['duplicados']}")
-    print(f"\n  📋 PROTOCOLO SIIGO (carga manual):")
-    print(f"     Paso A — Productos:")
-    print(f"        SIIGO → Inventario → Productos → ▶ Importación → cargar Excel")
-    print(f"        (Omitir si todos son duplicados)")
-    print(f"     Paso B — Compra:")
-    print(f"        SIIGO → Compras → 'Crear compra o gasto desde un XML o ZIP' → cargar XML")
-    print(f"     ⚠️  Verifica que el total en SIIGO coincide con la factura del proveedor.")
+    productos  = arch.get("productos", [])
+    nuevos     = [p for p in productos if not p.get("duplicado")]
+    duplicados = [p for p in productos if p.get("duplicado")]
+    SEP        = "─" * 54
+
+    print(f"\n  {SEP}")
+    print(f"  📦 Productos: {len(nuevos)} nuevos   {len(duplicados)} ya en SIIGO")
+    for p in productos:
+        marca = "⚠️  DUPLICADO" if p.get("duplicado") else "✅ Nuevo"
+        print(f"    [{marca}] {p['codigo']} — {p['nombre'][:45]}  ${p['precio_unitario']:.2f}/{p['unidad_min']}")
+    print(f"  {SEP}")
+
+    # ── Paso 1: Asegurar proveedor ──────────────────────────────
+    nit_base = nit.split("-")[0].strip() if "-" in (nit or "") else (nit or "").strip()
+    print(f"\n  [1/3] Verificando proveedor en SIIGO...")
+    if nit_base:
+        if _asegurar_proveedor_siigo(token, nit_base, prov):
+            print(f"  [✓] Proveedor listo: {prov} (NIT {nit_base})")
+        else:
+            print(f"  [❌] No se pudo asegurar el proveedor en SIIGO.")
+            print(f"       Revisa Contactos en SIIGO y vuelve a intentar.")
+            return
+    else:
+        print(f"  [⚠] NIT de proveedor no disponible — continuando sin verificación")
+
+    # ── Paso 2: Crear productos nuevos ─────────────────────────
+    if nuevos:
+        print(f"\n  [2/3] Creando {len(nuevos)} producto(s) en SIIGO...")
+        todos_ok = True
+        for p in nuevos:
+            label = f"{p['codigo']}: {p['nombre'][:45]}"
+            print(f"    → {label:<55}", end=" ", flush=True)
+            ok, msg = _siigo_crear_producto(token, p)
+            if ok:
+                print(f"[✓] {msg}")
+            else:
+                print(f"[❌] {msg}")
+                todos_ok = False
+        if not todos_ok:
+            print(f"\n  ⚠️  Algunos productos no se crearon. La compra puede fallar si SIIGO no los encuentra.")
+            cont = input("  ¿Continuar igualmente con el registro de la compra? [s/n]: ").strip().lower()
+            if cont != "s":
+                print(f"  ↩️  Abortado. Crea los productos manualmente en SIIGO y vuelve a intentar.")
+                return
+    else:
+        print(f"\n  [2/3] Sin productos nuevos — todos ya existen en SIIGO")
+
+    # ── Paso 3: Registrar compra ────────────────────────────────
+    print(f"\n  [3/3] Registrando compra en SIIGO...")
+    import time as _time
+    t0 = _time.time()
+    ok, msg = _siigo_crear_compra_inventario(token, factura, productos)
+    elapsed = _time.time() - t0
+
+    if ok:
+        print(f"\n  ✅ Compra registrada exitosamente ({elapsed:.1f}s):")
+        print(f"     {msg}")
+        if arch.get("ruta"):
+            print(f"  📊 Excel de respaldo: {arch['ruta']}")
+    else:
+        print(f"\n  ❌ Error al registrar la compra en SIIGO ({elapsed:.1f}s):")
+        for linea in msg.split(","):
+            print(f"     {linea.strip()}")
+        print(f"\n  → Fallback — carga manual:")
+        if arch.get("ruta"):
+            print(f"     Excel  : {arch['ruta']}")
+        if arch.get("ruta_xml"):
+            print(f"     XML    : {arch['ruta_xml']}")
+            print(f"     SIIGO → Compras → 'Crear compra o gasto desde un XML o ZIP'")
 
 
 def _ejecutar_opcion_10():
@@ -366,6 +663,7 @@ def _ejecutar_opcion_10():
        - Gasto inventario → Flujo A (Excel + XML para carga manual)
     """
     from app.tools.importar_productos_siigo import es_proveedor_especial
+    from app.tools.sincronizar_facturas_de_compra_siigo import _es_proveedor_transporte
 
     SEP  = "─" * 58
     SEPP = "═" * 58
@@ -430,68 +728,76 @@ def _ejecutar_opcion_10():
 
         # ── Validación: ¿la factura es para McKenna Group? ────────
         if not factura["es_para_mckg"]:
-            comprador_nit  = re.sub(r"\D", "", d.get("comprador_nit", ""))
-            comprador_nom  = d.get("comprador_nombre", "desconocido")
-            print(f"\n  {'─'*54}")
-            print(f"  🚨 ALERTA — DESTINATARIO INCORRECTO")
-            print(f"  {'─'*54}")
-            print(f"  Esta factura NO está dirigida a McKenna Group S.A.S.")
-            print(f"  Destinatario en XML : {comprador_nom}")
-            print(f"  NIT destinatario    : {comprador_nit or '—'}")
-            print(f"  NIT McKenna Group   : {_NIT_MCKG}")
-            print(f"  {'─'*54}")
-            print(f"  Posiblemente es una factura de venta enviada al correo")
-            print(f"  por error, o fue emitida a otra persona/empresa.")
-            sel_alerta = input("  ¿Registrar de todas formas? [s/n]: ").strip().lower()
-            if sel_alerta != "s":
-                print(f"  ⏭️  Factura {numero} descartada (destinatario incorrecto).")
-                total_skip += 1
-                continue
+            comprador_nit = re.sub(r"\D", "", d.get("comprador_nit", ""))
+            comprador_nom = d.get("comprador_nombre", "desconocido")
+            print(f"  🚨 Destinatario incorrecto: {comprador_nom} (NIT {comprador_nit or '—'})")
+            print(f"     Se descarta y no volverá a aparecer.")
+            _guardar_omitida({**d, "comprador_nombre": comprador_nom, "comprador_nit": comprador_nit})
+            total_skip += 1
+            continue
 
         if factura["ya_registrada"]:
-            print("  ⚠️  Esta factura YA ESTÁ registrada en SIIGO.")
-            sel = input("  ¿Registrar de todas formas? [s/n]: ").strip().lower()
-            if sel != "s":
-                print(f"  ⏭️  Omitida.")
+            doc = factura.get("doc_siigo", "?")
+            print(f"  ✓ Ya registrada en SIIGO como {doc} — omitiendo.")
+            total_skip += 1
+            continue
+
+        cfg_transporte = _es_proveedor_transporte(nit)
+        es_especial    = es_proveedor_especial(nit, prov)
+
+        if cfg_transporte:
+            # Proveedor de transporte/mensajería → gasto consumible automático
+            print(f"  🚚 Proveedor de transporte detectado — registrando como gasto consumible...\n")
+            _cli_registrar_gasto(token, factura)
+            total_ok += 1
+
+        elif es_especial:
+            print(f"  ✅ Proveedor en lista de materias primas.\n")
+            print("  ¿Qué deseas hacer?")
+            print("    [1] Flujo A — Inventario (crea productos + compra en SIIGO via API)")
+            print("    [s] Omitir")
+            print("    [q] Salir")
+            sel = input("\n  Selección: ").strip().lower()
+            if sel == "q":
+                print("\n  👋 Saliendo del registro de facturas.")
+                break
+            if sel == "s":
+                print(f"  ⏭️  Factura {numero} omitida.")
+                total_skip += 1
+                continue
+            if sel == "1":
+                _cli_flujo_inventario(token, factura)
+                total_ok += 1
+            else:
+                print(f"  ❌ Opción '{sel}' no válida. Factura omitida.")
                 total_skip += 1
                 continue
 
-        es_especial = es_proveedor_especial(nit, prov)
-
-        if es_especial:
-            print(f"  ✅ Proveedor en lista de materias primas.\n")
-            print("  ¿Qué deseas hacer?")
-            print("    [1] Flujo A — Inventario (Excel + XML para cargar en SIIGO)")
-            print("    [s] Omitir")
         else:
-            print(f"  ⚠️  Proveedor no registrado como materia prima.\n")
+            print(f"  ⚠️  Proveedor no registrado como materia prima ni transporte.\n")
             print("  ¿Cómo registrar esta factura?")
             print("    [1] Gasto consumible  → registrar en SIIGO ahora (API)")
-            print("    [2] Gasto inventario  → Flujo A (Excel + XML)")
+            print("    [2] Gasto inventario  → Flujo A (crea productos + compra via API)")
             print("    [s] Omitir")
-        print("    [q] Salir")
-
-        sel = input("\n  Selección: ").strip().lower()
-
-        if sel == "q":
-            print("\n  👋 Saliendo del registro de facturas.")
-            break
-
-        if sel == "s":
-            print(f"  ⏭️  Factura {numero} omitida.")
-            total_skip += 1
-            continue
-
-        if sel == "1" and not es_especial:
-            _cli_registrar_gasto(token, factura)
-            total_ok += 1
-        elif (sel == "2" and not es_especial) or (sel == "1" and es_especial):
-            _cli_flujo_inventario(factura)
-            total_ok += 1
-        else:
-            print(f"  ❌ Opción '{sel}' no válida. Factura omitida.")
-            total_skip += 1
-            continue
+            print("    [q] Salir")
+            sel = input("\n  Selección: ").strip().lower()
+            if sel == "q":
+                print("\n  👋 Saliendo del registro de facturas.")
+                break
+            if sel == "s":
+                print(f"  ⏭️  Factura {numero} omitida.")
+                total_skip += 1
+                continue
+            if sel == "1":
+                _cli_registrar_gasto(token, factura)
+                total_ok += 1
+            elif sel == "2":
+                _cli_flujo_inventario(token, factura)
+                total_ok += 1
+            else:
+                print(f"  ❌ Opción '{sel}' no válida. Factura omitida.")
+                total_skip += 1
+                continue
 
         if idx < len(facturas):
             input(f"\n  [Enter] para continuar con la factura {idx + 1}/{len(facturas)}...")
@@ -499,6 +805,84 @@ def _ejecutar_opcion_10():
     print(f"\n{SEPP}")
     print(f"  ✅ Proceso finalizado — Registradas: {total_ok}  Omitidas: {total_skip}")
     print(f"{SEPP}\n")
+
+
+# ─────────────────────────────────────────────────────────────────
+#  Opción 14 — Agente de Conocimiento Científico
+# ─────────────────────────────────────────────────────────────────
+
+def _ejecutar_opcion_14():
+    """
+    Flujo interactivo para generar contenido científico sobre un ingrediente
+    y publicarlo (o guardarlo como borrador) en WordPress mckennagroup.co.
+    """
+    from app.tools.knowledge_agent import generar_y_publicar_contenido
+
+    SEP = "─" * 58
+    print(f"\n{'═'*58}")
+    print("  🔬 AGENTE DE CONOCIMIENTO CIENTÍFICO")
+    print(f"{'═'*58}")
+    print("  Fuentes: PubMed · ArXiv · Scrapling")
+    print("  Destino: ChromaDB (preventa) + WordPress (mckennagroup.co)")
+    print(SEP)
+
+    tema = input("\n  Ingrediente o tema a investigar\n  (ej: 'Ácido kójico', 'Niacinamida'): ").strip()
+    if not tema:
+        print("  ❌ Tema vacío. Cancelando.")
+        return
+
+    print("\n  Tipo de contenido:")
+    print("    [1] Post de Blog        (aplicaciones, beneficios, SEO)")
+    print("    [2] Receta de formulación")
+    print("    [3] Manual de uso técnico")
+    print("    [4] Enriquecer ficha técnica  (actualiza Google Sheets)")
+    sel_tipo = input("\n  Selección [1-4, default=1]: ").strip() or "1"
+
+    tipos = {"1": "post_blog", "2": "receta", "3": "manual_uso", "4": "ficha"}
+    tipo  = tipos.get(sel_tipo, "post_blog")
+
+    print("\n  ¿Publicar en WordPress?")
+    print("    [1] Guardar como borrador  (puedes revisar antes de publicar)")
+    print("    [2] Publicar directamente")
+    print("    [3] Solo generar  (no subir a WP)")
+    sel_wp = input("\n  Selección [1-3, default=1]: ").strip() or "1"
+
+    publicar   = sel_wp in ("1", "2")
+    estado_wp  = "publish" if sel_wp == "2" else "draft"
+
+    enriquecer_sheets = False
+    nombre_sheets     = ""
+    if tipo == "ficha":
+        act = input(f"\n  ¿Actualizar ficha en Google Sheets para '{tema}'? [s/n]: ").strip().lower()
+        if act == "s":
+            enriquecer_sheets = True
+            nombre_sheets_raw = input(f"  Nombre exacto en Sheets (Enter = '{tema}'): ").strip()
+            nombre_sheets = nombre_sheets_raw or tema
+
+    print(f"\n{SEP}")
+    resultado = generar_y_publicar_contenido(
+        tema=tema,
+        tipo=tipo,
+        publicar=publicar,
+        estado_wp=estado_wp,
+        enriquecer_sheets=enriquecer_sheets,
+        nombre_producto_sheets=nombre_sheets,
+        verbose=True,
+    )
+
+    print(f"\n{SEP}")
+    if resultado.get("ok"):
+        print(f"  ✅ Contenido generado ({len(resultado.get('contenido',''))} chars)")
+        if resultado.get("wp_url"):
+            print(f"  🌐 WordPress {resultado['wp_estado']}: {resultado['wp_url']}")
+        if resultado.get("fuentes"):
+            print(f"  📚 Fuentes científicas usadas:")
+            for url in resultado["fuentes"][:5]:
+                print(f"     • {url}")
+        print(f"\n  💡 Guardado en ChromaDB — el agente lo usará en preventa MeLi")
+    else:
+        print(f"  ❌ Error: {resultado.get('mensaje', 'desconocido')}")
+    print(f"{'═'*58}\n")
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -523,6 +907,7 @@ def mostrar_menu():
     print("11. 🚪 [EXIT]  Salir del Centro de Mando")
     print("12. 🛒 [WC]    Sync manual WooCommerce")
     print("13. 🔍 [SYNC]  Verificar sincronización SKUs (MeLi/SIIGO/WC)")
+    print("14. 🔬 [CIENCIA] Generar contenido científico y publicar en WP")
     print("═"*55)
 
 
@@ -540,7 +925,7 @@ def iniciar_cli():
 
     while True:
         mostrar_menu()
-        opcion = input("Seleccione una opción (1-13): ")
+        opcion = input("Seleccione una opción (1-14): ")
 
         if opcion == "1":
             print("\n--- 💬 MODO CHAT ACTIVADO (Escribe 'salir' o 'menu' para volver) ---")
@@ -601,5 +986,7 @@ def iniciar_cli():
         elif opcion == "13":
             print("\n🔍 [SYNC] Verificando sincronización de SKUs entre plataformas...")
             print(verificar_sync_skus(notificar_wa=True))
+        elif opcion == "14":
+            _ejecutar_opcion_14()
         else:
             print("❌ Opción no válida. Por favor, intente de nuevo.")

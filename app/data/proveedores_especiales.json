@@ -6,6 +6,30 @@
       "nombre": "HAPLAZ.COM S.A.S",
       "activo": true,
       "nota": "Agregado terminal 2026-04-04"
+    },
+    {
+      "nit": "1026262496",
+      "nombre": "ALEXANDRA KATHERINE BENAVIDES SALAMANCA",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-04"
+    },
+    {
+      "nit": "800137224",
+      "nombre": "QUIMICA INTERKROL LIMITADA",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-05"
+    },
+    {
+      "nit": "901069098",
+      "nombre": "DDPACK SAS",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-05"
+    },
+    {
+      "nit": "902024439",
+      "nombre": "FERRETERIA Y CACHARRERIA VALHU SAS",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-05"
     }
   ]
 }

@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-05">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FA265489</NumeroFacturaProveedor>
+    <FechaFactura>2026-01-23</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>800137224</NIT>
+      <Nombre>QUIMICA INTERKROL LIMITADA</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="13">
+    <Item numero="1">
+      <CodigoSiigo>ALCCETg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ALCOHOL CETILICO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>384000.00</Subtotal>
+        <IVA>72960.00</IVA>
+        <Total>456960.00</Total>
+        <PrecioUnitarioMin>18.2800</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 456960.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>LAUETESULg</CodigoSiigo>
+      <DescripcionOriginalProveedor>LAURIL ETER SULFATO NA28% GX20</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>112000.00</Subtotal>
+        <IVA>21280.00</IVA>
+        <Total>133280.00</Total>
+        <PrecioUnitarioMin>6.6600</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 133280.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>PROGLIGRg</CodigoSiigo>
+      <DescripcionOriginalProveedor>PROPILEN GLICOL GR X20 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>156000.00</Subtotal>
+        <IVA>29640.00</IVA>
+        <Total>185640.00</Total>
+        <PrecioUnitarioMin>9.2800</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 185640.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>CAOUSPg</CodigoSiigo>
+      <DescripcionOriginalProveedor>CAOLIN USP</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">60.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">60000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 60.0 × 1000 = 60000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>294000.00</Subtotal>
+        <IVA>55860.00</IVA>
+        <Total>349860.00</Total>
+        <PrecioUnitarioMin>5.8300</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 349860.00 COP / 60000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>ACISALCHIg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ACIDO SALICILICO CHINO USP</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>544500.00</Subtotal>
+        <IVA>103455.00</IVA>
+        <Total>647955.00</Total>
+        <PrecioUnitarioMin>25.9200</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 647955.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>ALCCETESTg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ALCOHOL CETO ESTEARILICO=LANET</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>456050.00</Subtotal>
+        <IVA>86649.50</IVA>
+        <Total>542699.50</Total>
+        <PrecioUnitarioMin>21.7100</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 542699.50 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="7">
+      <CodigoSiigo>CERABEBLAg</CodigoSiigo>
+      <DescripcionOriginalProveedor>CERA DE ABEJAS BLANCA NACION</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">39.7</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">39700.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 39.7 × 1000 = 39700.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>722540.00</Subtotal>
+        <IVA>137282.60</IVA>
+        <Total>859822.60</Total>
+        <PrecioUnitarioMin>21.6600</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 859822.60 COP / 39700.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="8">
+      <CodigoSiigo>CERABEAMAg</CodigoSiigo>
+      <DescripcionOriginalProveedor>CERA DE ABEJAS AMARILLA NACION</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">40.5</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">40500.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 40.5 × 1000 = 40500.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>737100.00</Subtotal>
+        <IVA>140049.00</IVA>
+        <Total>877149.00</Total>
+        <PrecioUnitarioMin>21.6600</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 877149.00 COP / 40500.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="9">
+      <CodigoSiigo>INULINg</CodigoSiigo>
+      <DescripcionOriginalProveedor>INULINA/LINULINA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>692500.00</Subtotal>
+        <IVA>131575.00</IVA>
+        <Total>824075.00</Total>
+        <PrecioUnitarioMin>32.9600</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 824075.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="10">
+      <CodigoSiigo>COCDEAGRg</CodigoSiigo>
+      <DescripcionOriginalProveedor>COCOAMIDA DEA GR X 20 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>276000.00</Subtotal>
+        <IVA>52440.00</IVA>
+        <Total>328440.00</Total>
+        <PrecioUnitarioMin>16.4200</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 328440.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="11">
+      <CodigoSiigo>GLIUSPGRg</CodigoSiigo>
+      <DescripcionOriginalProveedor>GLICERINA USP GR X 25KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>202500.00</Subtotal>
+        <IVA>38475.00</IVA>
+        <Total>240975.00</Total>
+        <PrecioUnitarioMin>9.6400</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 240975.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="12">
+      <CodigoSiigo>DEXMONg</CodigoSiigo>
+      <DescripcionOriginalProveedor>DEXTROSA MONOHIDRATADA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>115000.00</Subtotal>
+        <IVA>21850.00</IVA>
+        <Total>136850.00</Total>
+        <PrecioUnitarioMin>5.4700</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 136850.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="13">
+      <CodigoSiigo>ACERICGRFg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ACEITE DE RICINO GRF X 20 KG</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">60.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">60000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 60.0 × 1000 = 60000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>1020000.00</Subtotal>
+        <IVA>193800.00</IVA>
+        <Total>1213800.00</Total>
+        <PrecioUnitarioMin>20.2300</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 1213800.00 COP / 60000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>5712190.00</Subtotal>
+    <TotalIVA>1085316.10</TotalIVA>
+    <TotalGeneral>6797506.10</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FA265489 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

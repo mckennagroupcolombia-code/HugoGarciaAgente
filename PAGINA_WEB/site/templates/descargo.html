@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Descargo de Responsabilidad — McKenna Group{% endblock %}
+{% block description %}Política de descargo de responsabilidad sobre el uso y dosificación de materias primas comercializadas por McKenna Group S.A.S.{% endblock %}
+
+{% block content %}
+<style>
+:root {
+  --lg-green:  #2E8B7A;
+  --lg-deep:   #143D36;
+  --lg-pale:   #E8F5F3;
+  --lg-ultra:  #F2FAF9;
+  --lg-border: rgba(46,139,122,.15);
+}
+.legal-wrap   { max-width: 800px; margin: 0 auto; padding: 56px 24px 80px; }
+.legal-badge  {
+  display: inline-block; background: var(--lg-pale); color: var(--lg-green);
+  font-size: .72rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 5px 14px; border-radius: 20px;
+  margin-bottom: 18px;
+}
+.legal-title  {
+  font-size: clamp(1.7rem, 4vw, 2.3rem); font-weight: 800;
+  color: var(--lg-deep); line-height: 1.2; margin-bottom: 8px;
+}
+.legal-meta   { font-size: .82rem; color: #aaa; margin-bottom: 40px; }
+.legal-alert  {
+  background: #FFF8E1; border-left: 4px solid #F59E0B;
+  padding: 16px 20px; border-radius: 0 8px 8px 0;
+  font-size: .93rem; color: #7c5800; line-height: 1.7;
+  margin-bottom: 36px;
+}
+.legal-body h2 {
+  font-size: 1.1rem; font-weight: 800; color: var(--lg-deep);
+  margin: 36px 0 12px; display: flex; align-items: center; gap: 10px;
+}
+.legal-body h2::after { content:''; flex:1; height:1.5px; background:var(--lg-pale); }
+.legal-body h2 .num {
+  min-width: 28px; height: 28px; background: var(--lg-green); color: #fff;
+  border-radius: 50%; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .78rem; font-weight: 800;
+}
+.legal-body p  { font-size: .95rem; line-height: 1.85; color: #333; margin-bottom: 14px; }
+.legal-body ul { padding-left: 22px; margin-bottom: 14px; }
+.legal-body li { font-size: .95rem; line-height: 1.8; color: #333; margin-bottom: 4px; }
+.legal-body strong { color: var(--lg-deep); }
+.legal-accept {
+  margin-top: 48px; padding: 24px 28px;
+  background: var(--lg-pale); border-radius: 12px;
+  border-left: 4px solid var(--lg-green);
+}
+.legal-accept p { font-size: .93rem; color: #444; margin: 0; line-height: 1.7; }
+.legal-accept strong { color: var(--lg-deep); }
+.legal-contact {
+  margin-top: 28px; padding: 18px 22px;
+  border: 1.5px solid var(--lg-border); border-radius: 10px;
+  font-size: .88rem; color: #555; line-height: 1.8;
+}
+.legal-contact a { color: var(--lg-green); font-weight: 600; text-decoration: none; }
+</style>
+
+<div class="legal-wrap">
+
+  <a href="/" style="display:inline-flex;align-items:center;gap:6px;color:var(--lg-green);font-size:.82rem;font-weight:700;letter-spacing:1.5px;text-decoration:none;text-transform:uppercase;margin-bottom:28px;">
+    <span style="width:20px;height:2px;background:var(--lg-green);display:inline-block;"></span>
+    Inicio
+  </a>
+
+  <div class="legal-badge">Aviso Legal</div>
+  <h1 class="legal-title">Descargo de Responsabilidad</h1>
+  <p class="legal-meta">Última actualización: 5 de abril de 2026 &nbsp;·&nbsp; McKenna Group S.A.S. — NIT 901.234.567-8</p>
+
+  <div class="legal-alert">
+    ⚠ <strong>Aviso importante:</strong> Las materias primas comercializadas por McKenna Group S.A.S. son insumos de uso industrial, cosmético, farmacéutico o nutricional destinados a profesionales y empresas del sector. No son productos terminados para consumo directo sin formulación previa.
+  </div>
+
+  <div class="legal-body">
+
+    <h2><span class="num">1</span> Naturaleza de los productos</h2>
+    <p>McKenna Group S.A.S. es proveedor de <strong>materias primas y principios activos</strong> de grado cosmético, farmacéutico e industrial. Los productos comercializados son insumos técnicos que requieren conocimiento especializado para su correcta incorporación en formulaciones finales.</p>
+    <p>McKenna Group S.A.S. <strong>no fabrica, formula ni distribuye productos terminados</strong> para uso directo en consumidores finales. Toda la información técnica proporcionada (fichas técnicas, guías de uso, recetario, blog) tiene carácter <strong>orientativo y educativo</strong>, y no constituye asesoría profesional, médica, farmacéutica o de otra índole regulada.</p>
+
+    <h2><span class="num">2</span> Responsabilidad exclusiva del comprador</h2>
+    <p>El comprador, formulador o usuario de las materias primas adquiridas es el <strong>único y exclusivo responsable</strong> de:</p>
+    <ul>
+      <li>Determinar la idoneidad del producto para su aplicación específica.</li>
+      <li>Definir las <strong>concentraciones y dosificaciones</strong> adecuadas según la normativa vigente y el tipo de formulación.</li>
+      <li>Verificar la compatibilidad con otros ingredientes y la estabilidad de la formulación resultante.</li>
+      <li>Cumplir con los requisitos regulatorios aplicables (INVIMA, ANMAT, EFSA, FDA u otros) antes de comercializar cualquier producto terminado.</li>
+      <li>Garantizar la seguridad del producto terminado mediante las pruebas pertinentes (estabilidad, desafío microbiano, seguridad en uso, etc.).</li>
+      <li>Almacenar y manipular las materias primas conforme a las condiciones indicadas en la ficha técnica.</li>
+      <li>Aplicar las medidas de seguridad industrial y personal (EPP) recomendadas en la Hoja de Seguridad (SDS) correspondiente.</li>
+    </ul>
+
+    <h2><span class="num">3</span> Limitación de responsabilidad</h2>
+    <p>McKenna Group S.A.S., sus directivos, empleados, representantes y proveedores <strong>no serán responsables</strong> bajo ninguna circunstancia por daños directos, indirectos, incidentales, consecuentes o especiales derivados de:</p>
+    <ul>
+      <li>El uso inadecuado, incorrecto o no autorizado de las materias primas.</li>
+      <li>La aplicación de concentraciones o dosificaciones incorrectas en formulaciones.</li>
+      <li>Reacciones adversas, irritaciones, alergias o lesiones causadas por el uso de productos formulados con nuestras materias primas sin la debida validación profesional.</li>
+      <li>El incumplimiento de normativas sanitarias, cosméticas o farmacéuticas locales o internacionales.</li>
+      <li>Pérdidas económicas, comerciales o de reputación derivadas del uso de la información técnica proporcionada.</li>
+    </ul>
+    <p>La información técnica publicada en nuestro sitio web (concentraciones orientativas, guías de uso, recetario) se basa en literatura científica disponible y experiencia del sector, pero <strong>no reemplaza la asesoría de un profesional certificado</strong> (químico farmacéutico, cosmetólogo, nutricionista u otro según el caso).</p>
+
+    <h2><span class="num">4</span> Uso destinado a profesionales</h2>
+    <p>Al realizar una compra en McKenna Group S.A.S., el comprador declara que:</p>
+    <ul>
+      <li>Es un <strong>profesional, técnico o empresa</strong> del sector cosmético, farmacéutico, alimentario o industrial, o que actúa bajo la supervisión de uno.</li>
+      <li>Conoce las propiedades, riesgos y restricciones regulatorias de los productos adquiridos.</li>
+      <li>Asume plena responsabilidad por el uso que dará a las materias primas.</li>
+    </ul>
+    <p>McKenna Group S.A.S. se reserva el derecho de <strong>rechazar o cancelar pedidos</strong> cuando existan indicios razonables de uso inadecuado o incumplimiento de la normativa vigente.</p>
+
+    <h2><span class="num">5</span> Normativa de referencia</h2>
+    <p>El comprador es responsable de verificar y cumplir la normativa aplicable en su territorio, incluyendo sin limitarse a:</p>
+    <ul>
+      <li><strong>Colombia:</strong> Resoluciones INVIMA, Decisión Andina 516 de 2002, Ley 212 de 1995, Decreto 677 de 1995.</li>
+      <li><strong>Unión Europea:</strong> Reglamento CE 1223/2009 (productos cosméticos), Reglamento UE 2017/745 (dispositivos médicos).</li>
+      <li><strong>Internacional:</strong> Directrices de la OMS, ICH Q guidelines para productos farmacéuticos.</li>
+    </ul>
+
+    <h2><span class="num">6</span> Modificaciones</h2>
+    <p>McKenna Group S.A.S. se reserva el derecho de actualizar este descargo en cualquier momento. La versión vigente estará siempre disponible en esta página. El uso continuado del sitio web o la realización de nuevas compras implica la aceptación de la versión actualizada.</p>
+
+    <div class="legal-accept">
+      <p><strong>Aceptación obligatoria:</strong> Al realizar cualquier compra, pedido o solicitud de cotización a McKenna Group S.A.S., el comprador confirma haber leído, entendido y aceptado íntegramente este Descargo de Responsabilidad, asumiendo plena responsabilidad sobre el uso y dosificación de los productos adquiridos.</p>
+    </div>
+
+    <div class="legal-contact">
+      ¿Preguntas sobre el uso adecuado de nuestras materias primas? Contáctanos:<br>
+      <a href="mailto:ventas@mckennagroup.co">ventas@mckennagroup.co</a> &nbsp;·&nbsp;
+      <a href="https://wa.me/{{ WA_NUMBER }}?text=Tengo+una+consulta+técnica+sobre+un+producto" target="_blank" rel="noopener">WhatsApp</a> &nbsp;·&nbsp;
+      Lun – Vie 8:00 – 17:30 (Bogotá, COT)
+    </div>
+
+  </div>
+</div>
+{% endblock %}
