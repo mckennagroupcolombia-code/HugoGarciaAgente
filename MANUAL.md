@@ -15,6 +15,7 @@
 6. [app/services/meli.py](#6-appservicesmelipy)
 7. [app/services/siigo.py](#7-appservicessiigopy)
 8. [app/tools/system_tools.py](#8-apptoolssystem_toolspy)
+9. [APIs de Generación Multimedia (consola)](#9-apis-de-generación-de-contenido-multimedia-consola)
 
 ---
 
@@ -1497,4 +1498,48 @@ Esta función tiene un **bug evidente**: la condición `if True:` siempre es ver
 
 ---
 
-*Este manual fue generado el 2026-03-28 para el proyecto McKenna Group Agente v1.*
+*Este manual fue generado el 2026-03-28 para el proyecto McKenna Group Agente v1. Última actualización: 2026-04-06.*
+
+---
+
+## 9. APIs de Generación de Contenido Multimedia (consola)
+
+> **Nota:** Estas integraciones **no forman parte del menú del Centro de Mando**. Se usan directamente desde la terminal con scripts independientes. Se documentan aquí como recordatorio de que ya están implementadas y listas para usar cuando se necesite crear contenido.
+
+### APIs integradas
+
+| API | Proveedor | Para qué se usa |
+|-----|-----------|-----------------|
+| **Ideogram** | Ideogram AI | Generación de imágenes con texto — fondos visuales para infografías |
+| **ElevenLabs** | ElevenLabs | Síntesis de voz (TTS) — narración en español colombiano para videos |
+| **fal.ai / Kling** | fal.ai | Generación de video desde imagen o texto (Kling text-to-video v1.6) |
+| **PIL / Pillow** | Python | Composición de infografías — superpone texto y logo sobre las imágenes |
+| **ffmpeg** | ffmpeg | Fallback de video local — efecto Ken Burns y concatenación de clips |
+| **Facebook Graph API** | Meta | Publicación de fotos, posts y videos en la página de McKenna Group |
+
+### Scripts disponibles
+
+| Script | Comando | ¿Qué hace? |
+|--------|---------|------------|
+| `pipeline_contenido_facebook.py` | `python3 pipeline_contenido_facebook.py --tipo ficha --slug acido-ascorbico` | Pipeline completo: copy (Gemini) → imagen (Ideogram) → voz (ElevenLabs) → video (Kling) → publica en Facebook |
+| `generar_infografias_facebook.py` | `python3 generar_infografias_facebook.py --tipo ficha --n 3` | Genera infografías estáticas con PIL y las publica en Facebook (sin video ni audio) |
+| `sincronizar_facebook.py` | `python3 sincronizar_facebook.py` | Limpia la página de Facebook y la republica con productos, guías y blog posts actuales |
+
+### Tipos de contenido del pipeline
+
+- **`ficha`** — Infografía de un ingrediente (beneficios, concentración, compatibilidad)
+- **`receta`** — Fórmula paso a paso con ingredientes visuales
+- **`comparativa`** — Dos ingredientes frente a frente
+- **`tip`** — Consejo profesional de formulación
+- **`--auto`** — El sistema elige automáticamente qué contenido publicar a continuación
+
+### Credenciales requeridas (en `.env`)
+
+```
+GOOGLE_API_KEY        # Gemini — generación de copy
+IDEOGRAM_API_KEY      # Ideogram — generación de imágenes
+ELEVENLABS_API_KEY    # ElevenLabs — síntesis de voz
+FAL_KEY               # fal.ai — generación de video con Kling
+FB_PAGE_TOKEN         # Facebook Graph API — publicación en página
+FB_PAGE_ID            # ID de la página de Facebook de McKenna Group
+```
