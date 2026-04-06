@@ -6,9 +6,9 @@ Instrucciones y arquitectura completa para cualquier IA que trabaje en este repo
 
 ## Visión General
 
-**Hugo García** es el agente de IA de McKenna Group S.A.S. (materias primas farmacéuticas y cosméticas, Bogotá, Colombia). Automatiza ventas por WhatsApp, preguntas de MercadoLibre, sincronización de stock, facturación Siigo y generación de catálogos.
+**Hugo García** es el agente de IA de McKenna Group S.A.S. (materias primas farmacéuticas y cosméticas, Bogotá, Colombia). Automatiza ventas por WhatsApp, preguntas de MercadoLibre, sincronización de stock, facturación Siigo, generación de catálogos y producción de contenido multimedia para redes sociales.
 
-**Stack**: Python 3.12 · Flask · Google GenAI (Gemini 2.5-Pro) · Evolution API (WhatsApp) · MercadoLibre API · WooCommerce REST · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite
+**Stack**: Python 3.12 · Flask · Google GenAI (Gemini 2.5-Pro) · Evolution API (WhatsApp) · MercadoLibre API · WooCommerce REST · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
 
 ---
 
@@ -47,7 +47,7 @@ source venv/bin/activate && python3 generar_catalogo.py
 │   ├── core.py                    Gemini AI config, prompt sistema, registro herramientas
 │   ├── routes.py                  Endpoints Flask: /whatsapp, /woocommerce, /sync/*, etc.
 │   ├── sync.py                    Lógica central sincronización stock + facturas
-│   ├── cli.py                     Menú CLI interactivo (13 opciones)
+│   ├── cli.py                     Menú CLI interactivo (8 opciones con submenús)
 │   ├── monitor.py                 Alertas automáticas y métricas diarias
 │   ├── utils.py                   refrescar_token_meli(), enviar_whatsapp_*()
 │   │
@@ -79,6 +79,10 @@ source venv/bin/activate && python3 generar_catalogo.py
 ├── facturas_descargadas/          PDFs de facturas Siigo
 ├── cotizaciones_preliminares/     JSON de cotizaciones en progreso
 ├── DISENO CORPORATIVO/            Logo e isotipo McKenna
+│
+├── pipeline_contenido_facebook.py Copy→Imagen→Voz→Video→Facebook (consola)
+├── generar_infografias_facebook.py Infografías PIL publicadas en Facebook (consola)
+├── sincronizar_facebook.py        Limpia y republica la página de Facebook (consola)
 │
 ├── .env                           Credenciales (NO commitear)
 ├── credenciales_meli.json         OAuth tokens MeLi (NO commitear)
@@ -126,6 +130,13 @@ ADMIN_TOKEN                 # Token admin
 
 # Infraestructura
 CLOUDFLARE_TUNNEL_TOKEN     # Token túnel Cloudflare
+
+# Multimedia / Redes Sociales (scripts de consola)
+IDEOGRAM_API_KEY            # Generación de imágenes con IA (Ideogram)
+ELEVENLABS_API_KEY          # Síntesis de voz TTS en español (ElevenLabs)
+FAL_KEY                     # Generación de video (fal.ai / Kling v1.6)
+FB_PAGE_TOKEN               # Facebook Graph API — publicación en página
+FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
 ```
 
 ---
@@ -383,22 +394,17 @@ Comando del grupo:
 
 ## CLI Menu (app/cli.py)
 
-El servidor lanza un hilo con menú interactivo:
+El servidor lanza un hilo con menú interactivo de **8 opciones** con submenús:
 
 ```
 1  → Chat directo con Hugo García
-2  → Sync inteligente (MeLi pendientes → Siigo)
-3  → Sync facturas último día
-4  → Sync facturas últimos 10 días
-5  → Sync completo + reporte stock WhatsApp
-6  → Verificar SKUs (MeLi / SIIGO / WC)
-7  → Sync manual por Pack ID
-8  → Forzar aprendizaje IA desde Q&A MeLi
-9  → Sync por fecha específica
-10 → Sync facturas de compra desde Gmail
-11 → Generar catálogo PDF
-12 → Actualizar precios WooCommerce
-13 → Salir
+2  → Facturas MeLi ↔ Siigo  [submenú: inteligente / 24h / N días / fecha / pack ID]
+3  → Stock e inventario      [submenú: reporte completo / WooCommerce / verificar SKUs]
+4  → Consultar producto en Google Sheets
+5  → Forzar aprendizaje IA desde Q&A MeLi
+6  → Registrar facturas de compra en SIIGO (desde Gmail)
+7  → Generar contenido científico y publicar en WordPress
+8  → Salir
 ```
 
 ---
@@ -445,6 +451,42 @@ venv/
 memoria_vectorial/    # puede ser grande
 *.log
 ```
+
+---
+
+## Pipeline de Contenido Multimedia (scripts de consola)
+
+Capacidades de generación de contenido ya integradas. **No forman parte del CLI del agente** — se ejecutan directamente desde la terminal con `source venv/bin/activate` y el script correspondiente.
+
+### Flujo del pipeline completo
+
+```
+Gemini (copy + prompts)
+  └─ Ideogram (imagen de fondo con IA)
+       └─ PIL (composición: texto, logo, paleta de marca)
+            └─ ElevenLabs (narración TTS en español colombiano)
+                 └─ fal.ai / Kling v1.6 (video desde imagen o texto)
+                      └─ Facebook Graph API (publicación en página)
+```
+
+### Scripts
+
+| Script | Uso | Descripción |
+|--------|-----|-------------|
+| `pipeline_contenido_facebook.py` | `python3 pipeline_contenido_facebook.py --tipo ficha --slug acido-ascorbico` | Pipeline completo Copy→Imagen→Voz→Video→Facebook. `--auto` elige el contenido automáticamente |
+| `generar_infografias_facebook.py` | `python3 generar_infografias_facebook.py --tipo receta --n 3` | Infografías estáticas con PIL sin video ni audio |
+| `sincronizar_facebook.py` | `python3 sincronizar_facebook.py` | Borra y republica la página con productos, guías y blog posts actuales |
+
+### Tipos de contenido
+
+- `ficha` — Ingrediente: beneficios, concentración, compatibilidad
+- `receta` — Fórmula paso a paso con ingredientes
+- `comparativa` — Dos ingredientes frente a frente
+- `tip` — Consejo profesional de formulación
+
+### Fallback de video
+
+Si fal.ai no tiene saldo, `generar_video_ken_burns()` genera el video localmente con **ffmpeg** (efecto zoom cinematográfico sobre la imagen).
 
 ---
 
