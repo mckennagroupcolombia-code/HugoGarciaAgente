@@ -659,6 +659,27 @@ Es la **interfaz de consola** (menú de texto) que el operador usa desde la term
 
 ---
 
+### Menú principal (8 opciones)
+
+```
+══════════════════════════════════════════════════════════════
+  🛠️  CENTRO DE MANDO — McKenna Group S.A.S.
+══════════════════════════════════════════════════════════════
+  1. 💬 CHAT         Conversa directo con el Agente (Hugo IA)
+  2. 🔄 FACTURAS     Sync facturas MeLi ↔ Siigo — elige período
+  3. 📊 STOCK        Reporte y sync de inventario entre plataformas
+  4. 🔍 CONSULTA     Busca un producto en el catálogo de Google Sheets
+  5. 🎓 APRENDIZAJE  Fuerza aprendizaje de Q&A recientes en MeLi
+  6. 🧾 COMPRAS      Registra facturas de compra en SIIGO desde Gmail
+  7. 🔬 CIENCIA      Genera contenido científico y publica en WordPress
+  8. 🚪 SALIR        Apagar el Centro de Mando
+══════════════════════════════════════════════════════════════
+```
+
+Las opciones con múltiples variantes (2 y 3) tienen **submenús** propios que se despliegan al seleccionarlas. Siempre se puede volver al menú principal con `[0]`.
+
+---
+
 ### Explicación línea por línea
 
 ```python
@@ -672,7 +693,8 @@ from app.sync import (
 )
 from app.services.google_services import leer_datos_hoja
 from app.services.meli import aprender_de_interacciones_meli
-from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
+from app.services.woocommerce import obtener_todos_los_productos_woocommerce, sincronizar_catalogo_woocommerce
+from app.tools.verificacion_sync_skus import verificar_sync_skus
 from app.core import obtener_respuesta_ia
 ```
 
@@ -684,14 +706,53 @@ Importa todas las funciones de negocio que el operador puede ejecutar. Al estar 
 
 ```python
 def mostrar_menu():
-    print("\n" + "═"*45)
-    print("🛠️  CENTRO DE MANDO MCKENNA GROUP S.A.S.")
-    print("═"*45)
-    print("1. 💬 [CHAT] Modo conversación...")
+    W = 62
+    print("\n" + "═"*W)
+    print("  🛠️  CENTRO DE MANDO — McKenna Group S.A.S.")
+    print("═"*W)
+    print("  1. 💬 CHAT         Conversa directo con el Agente (Hugo IA)")
     ...
 ```
 
-Solo imprime texto formateado en pantalla. No tiene lógica. Los `"═"*45` repiten el carácter `═` 45 veces para crear una línea decorativa.
+Solo imprime texto formateado en pantalla. No tiene lógica. `W = 62` define el ancho de las líneas decorativas en un solo lugar — si se quiere cambiar el ancho, basta con cambiar ese número.
+
+---
+
+#### Función `_submenu_facturas()`
+
+Agrupa todas las variantes de sincronización de facturas MeLi ↔ Siigo en un solo lugar. Al seleccionar la opción 2 desde el menú principal, se despliega este submenú:
+
+```
+  [1] Inteligente    Cruza pendientes MeLi vs Siigo (recomendado)
+  [2] Últimas 24 h   Facturas emitidas en el último día
+  [3] Últimos N días Tú ingresas cuántos días atrás buscar
+  [4] Fecha exacta   Tú ingresas la fecha (AAAA-MM-DD)
+  [5] Por Pack ID    Sincroniza una venta/pack específico
+  [0] Volver al menú principal
+```
+
+- **Inteligente** → `sincronizar_inteligente()`: cruza las órdenes MeLi sin factura contra Siigo y sube los PDFs.
+- **Últimas 24h** → `sincronizar_facturas_recientes(dias=1)`: caso más común para el cierre diario.
+- **Últimos N días** → `sincronizar_facturas_recientes(dias=N)`: el operador ingresa cuántos días.
+- **Fecha exacta** → `sincronizar_por_dia_especifico("AAAA-MM-DD")`: útil para re-procesar un día específico.
+- **Por Pack ID** → `sincronizar_manual_por_id(pack_id)`: para casos puntuales de una sola venta.
+
+---
+
+#### Función `_submenu_stock()`
+
+Agrupa las operaciones de inventario. Al seleccionar la opción 3:
+
+```
+  [1] Reporte completo   Sync total MeLi+WC y reporte de stock por WhatsApp
+  [2] WooCommerce        Ver catálogo WC y sincronizar masivamente
+  [3] Verificar SKUs     Auditoría de sincronización SKUs MeLi / SIIGO / WC
+  [0] Volver al menú principal
+```
+
+- **Reporte completo** → `ejecutar_sincronizacion_y_reporte_stock()`: corre la sincronización full y envía un resumen al grupo de WhatsApp.
+- **WooCommerce** → consulta todos los productos de WC con `obtener_todos_los_productos_woocommerce()`, los muestra en pantalla y pregunta si se quiere sincronizar masivamente.
+- **Verificar SKUs** → `verificar_sync_skus(notificar_wa=True)`: audita que todos los SKUs estén sincronizados entre MeLi, SIIGO y WooCommerce, y notifica las discrepancias por WhatsApp.
 
 ---
 
@@ -705,12 +766,21 @@ def iniciar_cli():
 Pausa 2 segundos antes de mostrar el menú. Esto asegura que Flask haya terminado de iniciar y que el mensaje `"🤖 Cerebro del Agente (IA) configurado y listo."` aparezca antes que el menú, para que la consola se vea ordenada.
 
 ```python
-    while True:
-        mostrar_menu()
-        opcion = input("Seleccione una opción (1-10): ")
+    import sys
+    if not sys.stdin.isatty():
+        print("[CLI] Sin terminal interactiva (systemd), menú deshabilitado.")
+        return
 ```
 
-Bucle infinito que muestra el menú y espera que el operador escriba un número. El `input()` bloquea el hilo hasta que se presiona Enter.
+Cuando el proceso corre como servicio de systemd (sin terminal real), `sys.stdin.isatty()` retorna `False`. En ese caso, el menú se desactiva automáticamente porque no hay nadie escribiendo en el teclado — el `input()` fallaría.
+
+```python
+    while True:
+        mostrar_menu()
+        opcion = input("  Seleccione una opción (1-8): ").strip()
+```
+
+Bucle infinito que muestra el menú y espera que el operador escriba un número. El `input()` bloquea el hilo hasta que se presiona Enter. `.strip()` elimina espacios o saltos de línea accidentales antes de comparar.
 
 **Opción 1 — Modo chat:**
 ```python
@@ -732,26 +802,19 @@ Bucle infinito que muestra el menú y espera que el operador escriba un número.
 
 Entra en un sub-bucle de chat. `sesion_historial` se reinicia cada vez que se entra al modo chat (no es persistente entre sesiones). El `usuario_id` fijo `"usuario_terminal_cli"` le dice a la IA que el origen es la terminal, no un cliente de WhatsApp.
 
-**Opciones 2 a 11 — Operaciones directas:**
+**Opciones 2 y 3 — Submenús:**
 ```python
         elif opcion == "2":
-            print(sincronizar_inteligente())
+            _submenu_facturas()
         elif opcion == "3":
-            print(sincronizar_facturas_recientes(dias=1))
+            _submenu_stock()
 ```
 
-Cada opción llama directamente a una función de negocio e imprime el resultado. Son llamadas simples: no hay lógica adicional, solo despacho hacia las funciones especializadas.
+Delegan a las funciones de submenú. Cuando esas funciones retornan, el bucle principal muestra el menú principal de nuevo.
 
+**Opción 8 — Salir:**
 ```python
-        elif opcion == "9":
-            fecha = input("📅 Ingrese la fecha (formato AAAA-MM-DD): ")
-            print(sincronizar_por_dia_especifico(fecha))
-```
-
-Las opciones que necesitan un parámetro hacen un `input()` adicional para pedirlo antes de ejecutar la función.
-
-```python
-        elif opcion == "11":
+        elif opcion == "8":
             print("👋 Apagando el Centro de Mando...")
             break
 ```
@@ -765,16 +828,21 @@ Las opciones que necesitan un parámetro hacen un `input()` adicional para pedir
 | Este archivo llama a... | ¿Para qué? |
 |---|---|
 | `app/core.py` → `obtener_respuesta_ia()` | Modo chat (opción 1) |
-| `app/sync.py` → varias funciones | Opciones de sincronización (2-5, 7, 9) |
-| `app/services/google_services.py` → `leer_datos_hoja()` | Consultar producto (opción 6) |
-| `app/services/meli.py` → `aprender_de_interacciones_meli()` | Aprendizaje (opción 8) |
-| `app/tools/sincronizar_facturas_de_compra_siigo.py` | Sync compras (opción 10) |
+| `app/sync.py` → varias funciones | Submenú de facturas (opción 2) |
+| `app/services/woocommerce.py` → varias funciones | Submenú de stock (opción 3) |
+| `app/tools/verificacion_sync_skus.py` → `verificar_sync_skus()` | Auditoría SKUs (opción 3) |
+| `app/services/google_services.py` → `leer_datos_hoja()` | Consultar producto (opción 4) |
+| `app/services/meli.py` → `aprender_de_interacciones_meli()` | Aprendizaje (opción 5) |
+| `_ejecutar_opcion_10()` (interno) | Facturas de compra SIIGO (opción 6) |
+| `_ejecutar_opcion_14()` (interno) | Contenido científico WP (opción 7) |
 
 ---
 
 ### ¿Por qué se hizo así?
 
-**Menú numérico en lugar de comandos de texto:** Es más fácil para un operador no técnico. Solo necesita saber qué número corresponde a cada tarea, sin memorizar comandos.
+**Menú numérico con submenús:** Agrupa funciones relacionadas (todas las variantes de sync de facturas juntas, todas las de stock juntas) en lugar de listarlas todas al mismo nivel. Reduce el menú principal de 14 a 8 opciones sin perder funcionalidad.
+
+**Submenús como funciones separadas (`_submenu_facturas`, `_submenu_stock`):** Mantiene `iniciar_cli()` limpio y fácil de leer. Cada submenú puede crecer o modificarse sin tocar el bucle principal.
 
 **Hilo separado:** Si el CLI corriera en el hilo principal, el servidor web se bloquearía mientras el operador espera en el menú. Al correr en un hilo separado, ambos coexisten sin interferirse.
 
