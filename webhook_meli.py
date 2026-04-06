@@ -165,7 +165,11 @@ def _procesar_mensaje_posventa(resource: str):
         if not token:
             return
 
-        # Extraer pack_id del resource: "/messages/packs/{pack_id}/sellers/{seller_id}"
+        headers = {'Authorization': f'Bearer {token}'}
+
+        # MeLi puede enviar el resource de dos formas:
+        # 1. Como path: "/messages/packs/{pack_id}/sellers/{seller_id}"
+        # 2. Como message_id directo: "019d52f0c31d7eb3b8f6437ac713c247"
         partes = resource.strip('/').split('/')
         pack_id = None
         for i, p in enumerate(partes):
@@ -174,10 +178,27 @@ def _procesar_mensaje_posventa(resource: str):
                 break
 
         if not pack_id:
-            print(f"⚠️ [POSVENTA] No se pudo extraer pack_id de: {resource}")
-            return
+            # Es un message_id directo — consultar la API para obtener el pack
+            msg_id_directo = resource.strip('/')
+            print(f"🔍 [POSVENTA] Resource es message_id directo: {msg_id_directo}. Consultando API...")
+            res_msg = requests.get(
+                f'https://api.mercadolibre.com/messages/{msg_id_directo}',
+                headers=headers, timeout=10
+            )
+            if res_msg.status_code != 200:
+                print(f"⚠️ [POSVENTA] No se pudo obtener el mensaje {msg_id_directo}: {res_msg.status_code}")
+                return
+            msg_data = res_msg.json()
+            # Buscar el pack_id en message_resources (puede llamarse "orders" o "packs")
+            for mr in msg_data.get('message_resources', []):
+                if mr.get('name') in ('orders', 'packs'):
+                    pack_id = str(mr.get('id', ''))
+                    break
+            if not pack_id:
+                print(f"⚠️ [POSVENTA] No se encontró pack_id en message_resources de {msg_id_directo}: {msg_data}")
+                return
+            print(f"✅ [POSVENTA] pack_id resuelto desde message_id: {pack_id}")
 
-        headers = {'Authorization': f'Bearer {token}'}
         res = requests.get(
             f'https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{_SELLER_ID}?tag=post_sale',
             headers=headers, timeout=10

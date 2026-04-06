@@ -891,24 +891,94 @@ def _ejecutar_opcion_14():
 
 def mostrar_menu():
     """Imprime el menú principal de opciones en la consola."""
-    print("\n" + "═"*55)
-    print("🛠️  CENTRO DE MANDO MCKENNA GROUP S.A.S.")
-    print("═"*55)
-    print("1.  💬 [CHAT]  Modo conversación con el Agente (IA)")
-    print("2.  🧠 [SYNC]  Inteligente (Pendientes MeLi vs Siigo)")
-    print("3.  📦 [SYNC]  Facturas Recientes (Último día)")
-    print("4.  📦 [SYNC]  Facturas Recientes (Últimos 10 días)")
-    print("5.  📊 [TOTAL] Sincronización Completa y Reporte de Stock")
-    print("6.  🔍 [DATA]  Consultar Producto en Google Sheets")
-    print("7.  🛠️  [MANUAL] Sincronizar por Pack ID Específico")
-    print("8.  🎓 [IA]    Forzar Aprendizaje de Interacciones MeLi")
-    print("9.  📅 [FECHA] Sincronizar Facturas por Día Específico")
-    print("10. 🧾 [COMPRAS] Registrar Facturas de Compra en SIIGO")
-    print("11. 🚪 [EXIT]  Salir del Centro de Mando")
-    print("12. 🛒 [WC]    Sync manual WooCommerce")
-    print("13. 🔍 [SYNC]  Verificar sincronización SKUs (MeLi/SIIGO/WC)")
-    print("14. 🔬 [CIENCIA] Generar contenido científico y publicar en WP")
-    print("═"*55)
+    W = 62
+    print("\n" + "═"*W)
+    print("  🛠️  CENTRO DE MANDO — McKenna Group S.A.S.")
+    print("═"*W)
+    print("  1. 💬 CHAT         Conversa directo con el Agente (Hugo IA)")
+    print("  2. 🔄 FACTURAS     Sync facturas MeLi ↔ Siigo — elige período")
+    print("  3. 📊 STOCK        Reporte y sync de inventario entre plataformas")
+    print("  4. 🔍 CONSULTA     Busca un producto en el catálogo de Google Sheets")
+    print("  5. 🎓 APRENDIZAJE  Fuerza aprendizaje de Q&A recientes en MeLi")
+    print("  6. 🧾 COMPRAS      Registra facturas de compra en SIIGO desde Gmail")
+    print("  7. 🔬 CIENCIA      Genera contenido científico y publica en WordPress")
+    print("  8. 🚪 SALIR        Apagar el Centro de Mando")
+    print("═"*W)
+
+
+def _submenu_facturas():
+    """Submenú de sincronización de facturas MeLi ↔ Siigo."""
+    W = 62
+    print(f"\n{'─'*W}")
+    print("  🔄 SYNC FACTURAS — ¿qué período quieres sincronizar?")
+    print(f"{'─'*W}")
+    print("  [1] Inteligente    Cruza pendientes MeLi vs Siigo (recomendado)")
+    print("  [2] Últimas 24 h   Facturas emitidas en el último día")
+    print("  [3] Últimos N días Tú ingresas cuántos días atrás buscar")
+    print("  [4] Fecha exacta   Tú ingresas la fecha (AAAA-MM-DD)")
+    print("  [5] Por Pack ID    Sincroniza una venta/pack específico")
+    print("  [0] Volver al menú principal")
+    print(f"{'─'*W}")
+    sel = input("  Selección [0-5]: ").strip()
+    if sel == "0":
+        return
+    elif sel == "1":
+        print(sincronizar_inteligente())
+    elif sel == "2":
+        print(sincronizar_facturas_recientes(dias=1))
+    elif sel == "3":
+        try:
+            dias = int(input("  ¿Cuántos días atrás? [ej: 7]: ").strip())
+        except ValueError:
+            print("  ❌ Número inválido.")
+            return
+        print(sincronizar_facturas_recientes(dias=dias))
+    elif sel == "4":
+        fecha = input("  Fecha (AAAA-MM-DD): ").strip()
+        print(sincronizar_por_dia_especifico(fecha))
+    elif sel == "5":
+        pack_id = input("  Pack ID: ").strip()
+        print(sincronizar_manual_por_id(pack_id))
+    else:
+        print("  ❌ Opción no válida.")
+
+
+def _submenu_stock():
+    """Submenú de stock e inventario entre plataformas."""
+    W = 62
+    print(f"\n{'─'*W}")
+    print("  📊 STOCK — ¿qué operación de inventario quieres ejecutar?")
+    print(f"{'─'*W}")
+    print("  [1] Reporte completo   Sync total MeLi+WC y reporte de stock por WhatsApp")
+    print("  [2] WooCommerce        Ver catálogo WC y sincronizar masivamente")
+    print("  [3] Verificar SKUs     Auditoría de sincronización SKUs MeLi / SIIGO / WC")
+    print("  [0] Volver al menú principal")
+    print(f"{'─'*W}")
+    sel = input("  Selección [0-3]: ").strip()
+    if sel == "0":
+        return
+    elif sel == "1":
+        print(ejecutar_sincronizacion_y_reporte_stock())
+    elif sel == "2":
+        print("\n🛒 Consultando catálogo de WooCommerce...")
+        productos_wc = obtener_todos_los_productos_woocommerce()
+        if not productos_wc:
+            print("⚠️ No se encontraron productos en WooCommerce o hubo un error.")
+        else:
+            print(f"\n📦 {len(productos_wc)} producto(s) en WooCommerce:\n")
+            for p in productos_wc:
+                print(f"  [{p.get('sku', 'sin SKU')}] {p.get('nombre', '')} — Stock: {p.get('stock', 0)}")
+            confirmar = input(f"\n¿Sincronizar masivamente los {len(productos_wc)} productos? (s/n): ").strip().lower()
+            if confirmar == "s":
+                payload = [{"sku": p["sku"], "stock": p["stock"]} for p in productos_wc if p.get("sku")]
+                print(sincronizar_catalogo_woocommerce(payload))
+            else:
+                print("↩️ Sincronización cancelada.")
+    elif sel == "3":
+        print("\n🔍 Verificando sincronización de SKUs entre plataformas...")
+        print(verificar_sync_skus(notificar_wa=True))
+    else:
+        print("  ❌ Opción no válida.")
 
 
 def iniciar_cli():
@@ -925,7 +995,7 @@ def iniciar_cli():
 
     while True:
         mostrar_menu()
-        opcion = input("Seleccione una opción (1-14): ")
+        opcion = input("  Seleccione una opción (1-8): ").strip()
 
         if opcion == "1":
             print("\n--- 💬 MODO CHAT ACTIVADO (Escribe 'salir' o 'menu' para volver) ---")
@@ -945,48 +1015,20 @@ def iniciar_cli():
                 print(f"\n🤖 Agente: {respuesta}\n")
 
         elif opcion == "2":
-            print(sincronizar_inteligente())
+            _submenu_facturas()
         elif opcion == "3":
-            print(sincronizar_facturas_recientes(dias=1))
+            _submenu_stock()
         elif opcion == "4":
-            print(sincronizar_facturas_recientes(dias=10))
-        elif opcion == "5":
-            print(ejecutar_sincronizacion_y_reporte_stock())
-        elif opcion == "6":
-            producto = input("🔍 Ingrese el nombre del producto a buscar: ")
+            producto = input("🔍 Nombre del producto a buscar: ").strip()
             print(leer_datos_hoja(producto))
-        elif opcion == "7":
-            pack_id = input("📝 Ingrese el Pack ID que desea sincronizar: ")
-            print(sincronizar_manual_por_id(pack_id))
-        elif opcion == "8":
+        elif opcion == "5":
             print(aprender_de_interacciones_meli())
-        elif opcion == "9":
-            fecha = input("📅 Ingrese la fecha (formato AAAA-MM-DD): ")
-            print(sincronizar_por_dia_especifico(fecha))
-        elif opcion == "10":
+        elif opcion == "6":
             _ejecutar_opcion_10()
-        elif opcion == "11":
+        elif opcion == "7":
+            _ejecutar_opcion_14()
+        elif opcion == "8":
             print("👋 Apagando el Centro de Mando...")
             break
-        elif opcion == "12":
-            print("\n🛒 [WC] Consultando catálogo de WooCommerce...")
-            productos_wc = obtener_todos_los_productos_woocommerce()
-            if not productos_wc:
-                print("⚠️ No se encontraron productos en WooCommerce o hubo un error.")
-            else:
-                print(f"\n📦 {len(productos_wc)} producto(s) encontrados en WooCommerce:\n")
-                for p in productos_wc:
-                    print(f"  [{p.get('sku', 'sin SKU')}] {p.get('nombre', '')} — Stock: {p.get('stock', 0)}")
-                confirmar = input(f"\n¿Sincronizar masivamente los {len(productos_wc)} productos? (s/n): ").strip().lower()
-                if confirmar == "s":
-                    payload = [{"sku": p["sku"], "stock": p["stock"]} for p in productos_wc if p.get("sku")]
-                    print(sincronizar_catalogo_woocommerce(payload))
-                else:
-                    print("↩️ Sincronización cancelada.")
-        elif opcion == "13":
-            print("\n🔍 [SYNC] Verificando sincronización de SKUs entre plataformas...")
-            print(verificar_sync_skus(notificar_wa=True))
-        elif opcion == "14":
-            _ejecutar_opcion_14()
         else:
-            print("❌ Opción no válida. Por favor, intente de nuevo.")
+            print("  ❌ Opción no válida. Ingresa un número del 1 al 8.")
