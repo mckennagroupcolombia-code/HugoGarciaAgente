@@ -5,14 +5,38 @@
     "title": "Sérum Vitamina C",
     "title2": "Iluminador",
     "desc": "Sérum antioxidante para unificar el tono y darle luminosidad a la piel.",
-    "tags": ["manchas", "antioxidante", "luminosidad"],
+    "tags": [
+      "manchas",
+      "antioxidante",
+      "luminosidad"
+    ],
     "base": 100,
     "unidad": "ml",
     "ings": [
-      {"n": "Vitamina C (ác. ascórbico)", "q": 10, "u": "g", "src": "McKenna Group"},
-      {"n": "Aloe vera 90%", "q": 70, "u": "ml", "src": "McKenna Group"},
-      {"n": "Aceite de rosa", "q": 5, "u": "ml", "src": "McKenna Group"},
-      {"n": "Agua destilada", "q": 15, "u": "ml", "src": "uso propio"}
+      {
+        "n": "Vitamina C (ác. ascórbico)",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aloe vera 90%",
+        "q": 70,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de rosa",
+        "q": 5,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua destilada",
+        "q": 15,
+        "u": "ml",
+        "src": "uso propio"
+      }
     ],
     "pasos": [
       "Mezcla el aloe vera con el agua destilada en recipiente de vidrio.",
@@ -28,14 +52,38 @@
     "title": "Batido Colagénico",
     "title2": "Energizante",
     "desc": "Bebida nutritiva con vitamina C y minerales para apoyar la síntesis de colágeno.",
-    "tags": ["colágeno", "energía", "minerales"],
+    "tags": [
+      "colágeno",
+      "energía",
+      "minerales"
+    ],
     "base": 250,
     "unidad": "ml",
     "ings": [
-      {"n": "Vitamina C en polvo", "q": 1, "u": "g", "src": "McKenna Group"},
-      {"n": "Citrato de magnesio y potasio", "q": 2, "u": "g", "src": "McKenna Group"},
-      {"n": "Agua o jugo de naranja", "q": 200, "u": "ml", "src": "uso propio"},
-      {"n": "Miel o stevia", "q": 5, "u": "g", "src": "uso propio"}
+      {
+        "n": "Vitamina C en polvo",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Citrato de magnesio y potasio",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua o jugo de naranja",
+        "q": 200,
+        "u": "ml",
+        "src": "uso propio"
+      },
+      {
+        "n": "Miel o stevia",
+        "q": 5,
+        "u": "g",
+        "src": "uso propio"
+      }
     ],
     "pasos": [
       "Vierte el agua o jugo en un vaso.",
@@ -51,14 +99,38 @@
     "title": "Perfume Floral",
     "title2": "Verde Artesanal",
     "desc": "Fragancia artesanal fresca con notas de rosa y lavanda sobre base de aldehídos.",
-    "tags": ["floral", "artesanal", "unisex"],
+    "tags": [
+      "floral",
+      "artesanal",
+      "unisex"
+    ],
     "base": 30,
     "unidad": "ml",
     "ings": [
-      {"n": "Aceite esencial de rosa", "q": 3, "u": "ml", "src": "McKenna Group"},
-      {"n": "Aceite esencial de lavanda", "q": 2, "u": "ml", "src": "McKenna Group"},
-      {"n": "Aldehído C-12 (MNA)", "q": 0.5, "u": "ml", "src": "McKenna Group"},
-      {"n": "Alcohol etílico 96%", "q": 24.5, "u": "ml", "src": "McKenna Group"}
+      {
+        "n": "Aceite esencial de rosa",
+        "q": 3,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite esencial de lavanda",
+        "q": 2,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aldehído C-12 (MNA)",
+        "q": 0.5,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alcohol etílico 96%",
+        "q": 24.5,
+        "u": "ml",
+        "src": "McKenna Group"
+      }
     ],
     "pasos": [
       "En frasco de vidrio oscuro, mezcla los aceites esenciales y el aldehído.",
@@ -74,14 +146,38 @@
     "title": "Limpiador Multiusos",
     "title2": "Cítrico Natural",
     "desc": "Limpiador natural concentrado con poder desengrasante para cocina y superficies.",
-    "tags": ["desengrasante", "natural", "cocina"],
+    "tags": [
+      "desengrasante",
+      "natural",
+      "cocina"
+    ],
     "base": 500,
     "unidad": "ml",
     "ings": [
-      {"n": "Aceite esencial de limón", "q": 5, "u": "ml", "src": "McKenna Group"},
-      {"n": "Ácido cítrico en polvo", "q": 10, "u": "g", "src": "McKenna Group"},
-      {"n": "Alcohol etílico 70%", "q": 50, "u": "ml", "src": "McKenna Group"},
-      {"n": "Agua", "q": 435, "u": "ml", "src": "uso propio"}
+      {
+        "n": "Aceite esencial de limón",
+        "q": 5,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido cítrico en polvo",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alcohol etílico 70%",
+        "q": 50,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua",
+        "q": 435,
+        "u": "ml",
+        "src": "uso propio"
+      }
     ],
     "pasos": [
       "Disuelve el ácido cítrico en el agua tibia.",
@@ -97,15 +193,44 @@
     "title": "Mascarilla Capilar",
     "title2": "Reparadora",
     "desc": "Tratamiento intensivo para cabello seco y dañado con aceite de ricino y aloe vera.",
-    "tags": ["cabello", "hidratación", "reparación"],
+    "tags": [
+      "cabello",
+      "hidratación",
+      "reparación"
+    ],
     "base": 150,
     "unidad": "g",
     "ings": [
-      {"n": "Aceite de ricino puro", "q": 30, "u": "ml", "src": "McKenna Group"},
-      {"n": "Aloe vera 90%", "q": 80, "u": "ml", "src": "McKenna Group"},
-      {"n": "Aceite de rosa", "q": 10, "u": "ml", "src": "McKenna Group"},
-      {"n": "Vitamina C en polvo", "q": 1, "u": "g", "src": "McKenna Group"},
-      {"n": "Agua destilada", "q": 29, "u": "ml", "src": "uso propio"}
+      {
+        "n": "Aceite de ricino puro",
+        "q": 30,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aloe vera 90%",
+        "q": 80,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de rosa",
+        "q": 10,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Vitamina C en polvo",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua destilada",
+        "q": 29,
+        "u": "ml",
+        "src": "uso propio"
+      }
     ],
     "pasos": [
       "Mezcla el aceite de ricino con el aceite de rosa hasta integrar.",
@@ -122,15 +247,44 @@
     "title": "Crema Urea 10%",
     "title2": "Hidratante Intensa",
     "desc": "Crema hidratante de alto rendimiento para piel seca y áspera con urea cosmética.",
-    "tags": ["hidratación", "urea", "piel seca"],
+    "tags": [
+      "hidratación",
+      "urea",
+      "piel seca"
+    ],
     "base": 100,
     "unidad": "g",
     "ings": [
-      {"n": "Urea cosmética", "q": 10, "u": "g", "src": "McKenna Group"},
-      {"n": "Glicerina vegetal", "q": 5, "u": "g", "src": "McKenna Group"},
-      {"n": "Emulsionante O/W (BTMS o Olivem)", "q": 5, "u": "g", "src": "McKenna Group"},
-      {"n": "Aceite de jojoba", "q": 8, "u": "ml", "src": "McKenna Group"},
-      {"n": "Agua destilada", "q": 72, "u": "ml", "src": "uso propio"}
+      {
+        "n": "Urea cosmética",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina vegetal",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Emulsionante O/W (BTMS o Olivem)",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de jojoba",
+        "q": 8,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua destilada",
+        "q": 72,
+        "u": "ml",
+        "src": "uso propio"
+      }
     ],
     "pasos": [
       "Calienta el aceite de jojoba y el emulsionante a 70°C en baño maría (fase oleosa).",
@@ -147,15 +301,44 @@
     "title": "Jabón Líquido",
     "title2": "Antibacterial Natural",
     "desc": "Jabón líquido para manos con aceites esenciales de lavanda y árbol de té.",
-    "tags": ["antibacterial", "manos", "lavanda"],
+    "tags": [
+      "antibacterial",
+      "manos",
+      "lavanda"
+    ],
     "base": 300,
     "unidad": "ml",
     "ings": [
-      {"n": "Base jabón líquida (SCI o SLS suave)", "q": 60, "u": "ml", "src": "McKenna Group"},
-      {"n": "Aceite esencial de lavanda", "q": 3, "u": "ml", "src": "McKenna Group"},
-      {"n": "Aceite esencial de árbol de té", "q": 2, "u": "ml", "src": "McKenna Group"},
-      {"n": "Glicerina vegetal", "q": 5, "u": "ml", "src": "McKenna Group"},
-      {"n": "Agua destilada", "q": 230, "u": "ml", "src": "uso propio"}
+      {
+        "n": "Base jabón líquida (SCI o SLS suave)",
+        "q": 60,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite esencial de lavanda",
+        "q": 3,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite esencial de árbol de té",
+        "q": 2,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina vegetal",
+        "q": 5,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua destilada",
+        "q": 230,
+        "u": "ml",
+        "src": "uso propio"
+      }
     ],
     "pasos": [
       "Mezcla la base jabonosa con el agua destilada a temperatura ambiente.",
@@ -171,13 +354,32 @@
     "title": "Cápsulas Vitamina C",
     "title2": "Formulación Básica",
     "desc": "Guía para encapsular vitamina C en polvo en cápsulas de gelatina o vegetales.",
-    "tags": ["vitamina C", "cápsulas", "inmunidad"],
+    "tags": [
+      "vitamina C",
+      "cápsulas",
+      "inmunidad"
+    ],
     "base": 30,
     "unidad": "cápsulas",
     "ings": [
-      {"n": "Vitamina C (ác. ascórbico) en polvo", "q": 27, "u": "g", "src": "McKenna Group"},
-      {"n": "Cápsulas vacías #00 (veg. o gelatina)", "q": 30, "u": "und", "src": "uso propio"},
-      {"n": "Celulosa microcristalina (MCC)", "q": 3, "u": "g", "src": "uso propio"}
+      {
+        "n": "Vitamina C (ác. ascórbico) en polvo",
+        "q": 27,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Cápsulas vacías #00 (veg. o gelatina)",
+        "q": 30,
+        "u": "und",
+        "src": "uso propio"
+      },
+      {
+        "n": "Celulosa microcristalina (MCC)",
+        "q": 3,
+        "u": "g",
+        "src": "uso propio"
+      }
     ],
     "pasos": [
       "Mezcla el ácido ascórbico con la celulosa microcristalina hasta homogeneizar.",
@@ -186,5 +388,2343 @@
       "Almacena en frasco ámbar con desecante en lugar seco y fresco."
     ],
     "tip": "La celulosa mejora la fluidez del polvo al llenar. Usa guantes y mascarilla durante el proceso."
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Sérum Hialurónico",
+    "title2": "Ultra Hidratante",
+    "desc": "Sérum de hidratación profunda con ácido hialurónico de alto y bajo peso molecular.",
+    "tags": [
+      "hidratación",
+      "ácido hialurónico",
+      "cuidado facial"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 91.3,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Niacinamida",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Hialurónico (APM y BPM)",
+        "q": 1.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Fase 1 (Gelificación): En un recipiente, pre-mezclar la Glicerina Vegetal con la Goma Xanthan hasta formar una pasta homogénea y sin grumos.",
+      "Fase 2 (Hidratación): Pesar el Agua Destilada en el vaso de precipitados principal. Añadir la pasta de Goma Xanthan/Glicerina al agua bajo agitación constante hasta que la mezcla espese y se forme un gel transparente.",
+      "Fase 3 (Activos): Una vez el gel esté homogéneo, incorporar la Niacinamida y el Ácido Hialurónico en polvo, agitando suavemente hasta su completa disolución.",
+      "Fase 4 (Conservación): Añadir el conservante Sharomix 705 a la mezcla y agitar para asegurar una distribución uniforme.",
+      "Fase 5 (Ajuste de pH): Medir el pH de la preparación. De ser necesario, ajustar a un rango de 5.5 - 6.0 con unas gotas de Ácido Láctico (no incluido en la fórmula base, añadir q.s.).",
+      "Fase 6 (Envasado): Dejar reposar la mezcla durante unos minutos para que las burbujas de aire se disipen y proceder a envasar en un frasco gotero esterilizado."
+    ],
+    "tip": "Para una disolución óptima y sin grumos del Ácido Hialurónico, espolvoréalo lentamente sobre el vórtice del gel mientras agitas. Déjalo hidratar por al menos 1 hora antes de continuar con el siguiente paso.",
+    "id": 9
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Tónico Niacinamida 5%",
+    "title2": "Poros y Luminosidad",
+    "desc": "Tónico acuoso con niacinamida para reducir poros dilatados y unificar el tono.",
+    "tags": [
+      "tónico",
+      "niacinamida",
+      "cuidado facial"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 88.8,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Niacinamida",
+        "q": 5.0,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 3.0,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aloe Vera",
+        "q": 2.0,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1.0,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Láctico",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "En un recipiente limpio, pesar el Agua Destilada. Añadir la Niacinamida y la Glicerina Vegetal. Agitar suavemente hasta la disolución completa de los sólidos.",
+      "Incorporar el Aloe Vera a la mezcla y homogeneizar.",
+      "Añadir el conservante Sharomix 705 y volver a mezclar bien para asegurar su correcta distribución.",
+      "Medir el pH de la solución. El rango objetivo es de 5.5 a 6.5 para maximizar la eficacia de la niacinamida y minimizar la irritación.",
+      "Si el pH es superior a 6.5, ajustar añadiendo el Ácido Láctico gota a gota, midiendo después de cada adición hasta alcanzar el rango deseado.",
+      "Una vez alcanzado el pH correcto y la mezcla esté homogénea y cristalina, envasar en una botella con atomizador o disco dosificador."
+    ],
+    "tip": "La Niacinamida puede hidrolizarse a ácido nicotínico a pH muy bajos (menores a 4.0), lo que puede causar enrojecimiento. Mantener el pH final del tónico entre 5.5 y 6.5 es crucial para garantizar su eficacia y tolerancia en la piel.",
+    "id": 10
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Crema de Noche Retinol",
+    "title2": "Renovación Celular",
+    "desc": "Crema nocturna con retinol y vitamina E para estimular la renovación celular.",
+    "tags": [
+      "retinol",
+      "anti-edad",
+      "cuidado nocturno"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 69.2,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Aceite de Semilla de Uva",
+        "q": 12,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Cera Lanette",
+        "q": 6,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Manteca de Karité",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alcohol Cetílico",
+        "q": 2.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Retinol",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Vitamina E",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 0.3,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Fase Oleosa: En un recipiente resistente al calor, pesar y calentar a 75°C la Cera Lanette, Alcohol Cetílico, Aceite de Semilla de Uva, Manteca de Karité y Vitamina E hasta que todo esté completamente fundido.",
+      "Fase Acuosa: En otro recipiente, mezclar la Glicerina Vegetal con la Goma Xanthan. Añadir el Agua Destilada y calentar a 75°C, agitando hasta disolver por completo.",
+      "Emulsión: Verter la fase acuosa sobre la fase oleosa mientras se bate con un homogeneizador o batidora de inmersión durante 3-5 minutos hasta obtener una emulsión blanca y estable.",
+      "Enfriamiento: Continuar agitando suavemente con una espátula mientras la mezcla se enfría para facilitar la formación de la estructura de la crema.",
+      "Adición de Activos: Cuando la temperatura de la emulsión baje de 40°C, incorporar el Retinol y el conservante Sharomix 705, mezclando suavemente hasta su completa integración.",
+      "Ajuste y Envasado: Medir el pH (rango ideal 5.5-6.5). Si es necesario, ajustar con una solución de Ácido Cítrico. Envasar en un recipiente tipo 'airless' para proteger los activos de la oxidación."
+    ],
+    "tip": "El Retinol es altamente sensible a la luz y al aire. Para maximizar la estabilidad y eficacia del producto final, incorpóralo siempre en la fase de enfriamiento (<40°C) y utiliza un envase 'airless' opaco. Esto minimizará la degradación del activo.",
+    "id": 11
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Gel Limpiador Facial",
+    "title2": "Piel Grasa y Mixta",
+    "desc": "Limpiador en gel con betaína de coco y ácido cítrico para piel grasa y mixta.",
+    "tags": [
+      "limpieza facial",
+      "seborregulador",
+      "cosmética"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 65,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Betaína de Coco",
+        "q": 25,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Niacinamida",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Árbol de Té",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Cítrico",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Preparación del Gel Base: En un recipiente, crear una pre-mezcla con la Glicerina Vegetal y la Goma Xanthan. Añadir el Agua Destilada bajo agitación constante hasta obtener un gel homogéneo y sin grumos.",
+      "Incorporación de Tensioactivos: Añadir la Betaína de Coco a la fase anterior, mezclando de forma suave y envolvente para minimizar la formación de espuma.",
+      "Adición de Activos: Incorporar la Niacinamida y el Aceite Esencial de Árbol de Té a la mezcla, agitando hasta su completa dispersión.",
+      "Conservación: Agregar el conservante Sharomix 705 y mezclar bien para asegurar su correcta distribución en toda la fórmula.",
+      "Ajuste de pH: Medir el pH del producto. Si es superior a 5.5, añadir una solución de Ácido Cítrico al 50% gota a gota, midiendo después de cada adición, hasta alcanzar un pH final entre 5.0 y 5.5.",
+      "Reposo y Envasado: Dejar reposar el gel durante al menos 2 horas para que las burbujas de aire se disipen y la viscosidad se estabilice. Proceder a envasar."
+    ],
+    "tip": "Para una medición precisa del pH, asegúrese de que la fórmula esté completamente homogénea y a temperatura ambiente. El pH final es crucial para la eficacia del conservante y para no irritar la piel.",
+    "id": 12
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Sérum Despigmentante",
+    "title2": "Alfa-Arbutina + Niacinamida",
+    "desc": "Sérum combinado de alfa-arbutina y niacinamida para manchas y tono desigual.",
+    "tags": [
+      "despigmentante",
+      "manchas",
+      "tono desigual"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 83.2,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Niacinamida",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Dipropilenglicol",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alfa-Arbutina",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Láctico",
+        "q": 0.3,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "FASE A (Acuosa): En un recipiente principal, pesar el Agua Destilada. Incorporar la Niacinamida y la Alfa-Arbutina agitando hasta su completa disolución.",
+      "FASE B (Espesante): En un recipiente pequeño, mezclar la Glicerina Vegetal con la Goma Xanthan hasta formar un slurry (pasta homogénea sin grumos).",
+      "COMBINACIÓN: Añadir la FASE B a la FASE A bajo agitación constante y vigorosa para evitar la formación de grumos. Continuar agitando hasta que la mezcla se hidrate y espese.",
+      "FASE C (Activos y Ajuste): Añadir el Dipropilenglicol a la mezcla y homogeneizar.",
+      "FASE D (Final): Incorporar el conservante Sharomix 705 y el Ácido Láctico. Mezclar suavemente hasta su completa integración.",
+      "VERIFICACIÓN Y ENVASADO: Medir el pH de la fórmula; debe estar en el rango de 5.5 - 6.0. Dejar reposar la mezcla para que se asiente y luego envasar en un frasco gotero de vidrio ámbar o protegido de la luz."
+    ],
+    "tip": "Para asegurar la máxima eficacia y estabilidad, es crucial que el pH final del sérum se encuentre entre 5.5 y 6.0. La Niacinamida puede hidrolizarse a Ácido Nicotínico a pH muy bajos, lo cual puede causar enrojecimiento e irritación en la piel.",
+    "id": 13
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Crema Solar FPS 30",
+    "title2": "Óxido de Zinc",
+    "desc": "Protector solar mineral con óxido de zinc, seguro para piel sensible.",
+    "tags": [
+      "protector solar",
+      "piel sensible",
+      "óxido de zinc"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 47.2,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Óxido de Zinc",
+        "q": 20,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Semilla de Uva",
+        "q": 15,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Manteca de Karité",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Cera Lanette",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alcohol Cetílico",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aloe Vera",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Vitamina E",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 0.3,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Fase Acuosa: En un vaso de precipitado, dispersar la Goma Xanthan en la Glicerina Vegetal. Agregar el Agua Destilada y calentar a 75°C en un baño de agua, agitando hasta hidratar completamente la goma.",
+      "Fase Oleosa: En otro vaso resistente al calor, combinar el Aceite de Semilla de Uva, Manteca de Karité, Cera Lanette y Alcohol Cetílico. Calentar en el mismo baño de agua a 75°C hasta que todos los sólidos se hayan derretido.",
+      "Emulsión: Verter lentamente la Fase Oleosa sobre la Fase Acuosa mientras se bate con un homogeneizador de alta velocidad durante 2-3 minutos hasta que se forme una emulsión blanca y estable.",
+      "Dispersión del Activo: Sin dejar de agitar, añadir el Óxido de Zinc a la emulsión caliente. Continuar mezclando a alta velocidad para asegurar una dispersión completa y evitar la formación de grumos.",
+      "Fase de Enfriamiento: Retirar del calor y continuar agitando suavemente con una espátula. Una vez que la temperatura baje de 40°C, incorporar el Aloe Vera, la Vitamina E y el conservante Sharomix 705. Mezclar hasta que esté homogéneo.",
+      "Finalización: Verificar que el pH de la crema esté en el rango de 5.5-6.5. Ajustar si es necesario con una solución de Ácido Cítrico o Bicarbonato de Sodio. Envasar en un recipiente adecuado."
+    ],
+    "tip": "Para minimizar el efecto blanquecino (white cast), pre-dispersa el Óxido de Zinc en la totalidad del Aceite de Semilla de Uva usando un mortero o un molino pequeño antes de calentar la fase oleosa. Esto asegura una molienda fina y una distribución más uniforme de las partículas en la emulsión final.",
+    "id": 14
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Exfoliante AHA 5%",
+    "title2": "Renovación Suave",
+    "desc": "Exfoliante químico suave con ácido glicólico al 5% para renovar la piel sin irritar.",
+    "tags": [
+      "exfoliante",
+      "aha",
+      "renovacion"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 84.2,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Ácido Glicólico",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aloe Vera",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 0.8,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "En un recipiente, mezclar la Glicerina Vegetal con la Goma Xanthan hasta formar una pasta homogénea sin grumos. Esto previene la formación de grumos en el gel final.",
+      "Añadir el Agua Destilada a la mezcla anterior poco a poco, batiendo constantemente con un mini batidor o agitador magnético hasta que la Goma Xanthan se hidrate por completo y se forme un gel uniforme.",
+      "En otro recipiente, disolver el Ácido Glicólico en el Aloe Vera. Agitar suavemente hasta que el ácido esté completamente disuelto.",
+      "Incorporar la solución de ácido y aloe vera (paso 3) a la base de gel (paso 2), mezclando suavemente hasta que la mezcla sea homogénea.",
+      "Añadir el conservante Sharomix 705 y mezclar bien para asegurar su correcta distribución en todo el producto.",
+      "Verificar el pH del producto final. Dejar reposar la mezcla durante unas horas para que se asiente y desaparezcan las burbujas de aire antes de envasar en un recipiente adecuado."
+    ],
+    "tip": "El pH final es crucial para la eficacia y seguridad del exfoliante. Mida con tiras de pH o un pH-metro y asegúrese de que esté en el rango de 3.5 a 4.0. Un pH superior a 4.0 reducirá drásticamente la efectividad del ácido glicólico.",
+    "id": 15
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Contorno de Ojos Cafeína",
+    "title2": "Antibolsas y Ojeras",
+    "desc": "Gel suave para el contorno de ojos con cafeína anhidra para reducir bolsas y ojeras.",
+    "tags": [
+      "contorno de ojos",
+      "cafeína",
+      "cuidado facial"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 91.2,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 3.0,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Cafeína Anhidra",
+        "q": 2.0,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Niacinamida",
+        "q": 2.0,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1.0,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Hialurónico",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Cítrico",
+        "q": 0.1,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "FASE A: En un recipiente, mezclar la Glicerina Vegetal con la Goma Xanthan hasta formar una pasta homogénea. Añadir el Agua Destilada y agitar vigorosamente con un batidor de mano o mini batidora hasta que el gel se forme y no haya grumos.",
+      "FASE B: En otro recipiente resistente al calor, calentar una pequeña porción del agua de la fórmula (aprox. 20g) a 60-70°C. Disolver completamente la Cafeína Anhidra y la Niacinamida en el agua caliente, agitando hasta que la solución sea transparente.",
+      "UNIÓN: Verter la FASE B sobre la FASE A (el gel) y mezclar bien hasta que la preparación sea uniforme.",
+      "ENFRIAMIENTO Y ACTIVOS: Dejar enfriar la mezcla por debajo de 40°C. Añadir el Ácido Hialurónico en forma de lluvia mientras se agita para asegurar su correcta dispersión y evitar grumos. Continuar agitando hasta que se hidrate por completo.",
+      "FASE FINAL: Incorporar el conservante Sharomix 705 y el Ácido Cítrico. Mezclar suavemente. Medir el pH de la preparación, que debe estar en el rango de 5.5 - 6.5. Si es necesario, ajustar.",
+      "ENVASADO: Una vez que el gel tenga una textura suave y homogénea, envasar en un recipiente tipo airless o con gotero para proteger el producto y facilitar su aplicación."
+    ],
+    "tip": "La Cafeína Anhidra puede recristalizar si no se disuelve correctamente. Asegúrate de disolverla por completo en agua caliente (60-70°C) antes de incorporarla al gel frío para garantizar la estabilidad y eficacia del producto final.",
+    "id": 16
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Bálsamo Labial",
+    "title2": "Manteca de Cacao",
+    "desc": "Bálsamo nutritivo para labios con manteca de cacao, cera de abejas y vitamina E.",
+    "tags": [
+      "labial",
+      "hidratante",
+      "cacao"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Manteca de Cacao",
+        "q": 30,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Cera de Abejas",
+        "q": 25,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Manteca de Karité",
+        "q": 15,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Ricino",
+        "q": 29,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Vitamina E (Tocoferol)",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Envases para bálsamo (5g)",
+        "q": 20,
+        "u": "unidades",
+        "src": "uso propio"
+      }
+    ],
+    "pasos": [
+      "Pesar todos los ingredientes de la fase oleosa (Manteca de Cacao, Cera de Abejas, Manteca de Karité y Aceite de Ricino) en un recipiente de vidrio resistente al calor.",
+      "Calentar la mezcla a baño maría a fuego bajo, removiendo suavemente con una espátula de silicona hasta que todos los componentes estén completamente derretidos y la mezcla sea homogénea.",
+      "Retirar el recipiente del calor y dejar que la temperatura descienda ligeramente por 1-2 minutos, sin que empiece a solidificar.",
+      "Agregar la Vitamina E a la mezcla tibia y remover bien para asegurar una distribución uniforme.",
+      "Verter la mezcla líquida con cuidado y precisión en los envases para bálsamo labial previamente desinfectados.",
+      "Dejar enfriar a temperatura ambiente durante al menos 3 horas, o hasta que los bálsamos estén completamente sólidos, antes de colocar las tapas."
+    ],
+    "tip": "Para evitar la recristalización de las mantecas (efecto granuloso), realiza un choque térmico enfriando los bálsamos en la nevera durante 15-20 minutos justo después de verterlos. Esto asegura una textura final suave y uniforme.",
+    "id": 17
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Champú Sólido",
+    "title2": "SCI Suave",
+    "desc": "Barra de champú sólido con SCI (Sodium Cocoyl Isethionate) para todo tipo de cabello.",
+    "tags": [
+      "champú sólido",
+      "cuidado capilar",
+      "sin sulfatos"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "SCI (Sodium Cocoyl Isethionate)",
+        "q": 55,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Betaína de Coco",
+        "q": 12,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Manteca de Karité",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alcohol Cetílico",
+        "q": 8,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Almidón de Yuca",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Argán",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Cítrico",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Vitamina E",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua Destilada",
+        "q": 0.5,
+        "u": "g",
+        "src": "uso propio"
+      }
+    ],
+    "pasos": [
+      "Pesar todos los ingredientes. En un recipiente resistente al calor, combinar la fase oleosa: SCI, Manteca de Karité, Alcohol Cetílico y Aceite de Argán.",
+      "Llevar la mezcla a baño maría a fuego bajo. Revolver ocasionalmente hasta que el Alcohol Cetílico y la Manteca de Karité se hayan derretido por completo y el SCI se ablande.",
+      "Retirar del fuego. Añadir la Betaína de Coco y la Glicerina Vegetal a la mezcla tibia y revolver enérgicamente hasta integrar.",
+      "Incorporar los ingredientes en polvo: Almidón de Yuca y Ácido Cítrico. Mezclar bien hasta obtener una pasta densa y homogénea. Finalmente, agregar la Vitamina E.",
+      "Con la pasta aún tibia y manejable, transferirla a un molde para champú sólido. Presionar firmemente para compactar la mezcla y evitar burbujas de aire.",
+      "Dejar secar y endurecer la barra a temperatura ambiente durante 24 a 48 horas antes de desmoldar. Dejar curar por unos días más para que pierda el resto de la humedad y sea más duradera."
+    ],
+    "tip": "Para evitar que el SCI en polvo irrite las vías respiratorias durante la manipulación, es indispensable el uso de mascarilla. La mezcla se endurece rápido; trabaje con agilidad al momento de moldear.",
+    "id": 18
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Acondicionador Capilar",
+    "title2": "BTMS-50 Reparador",
+    "desc": "Acondicionador de enjuague con BTMS-50 y aceite de argán para cabello seco y dañado.",
+    "tags": [
+      "reparador",
+      "cabello seco",
+      "BTMS-50"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 79.5,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "BTMS-50",
+        "q": 7,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alcohol Cetílico",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Argán",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Manteca de Karité",
+        "q": 1.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Vitamina E",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Láctico",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Fase Oleosa: Pesar y calentar en un recipiente el BTMS-50, Alcohol Cetílico, Aceite de Argán y Manteca de Karité a baño maría hasta alcanzar 75°C.",
+      "Fase Acuosa: En otro recipiente, pesar y calentar el Agua Destilada y la Glicerina Vegetal hasta alcanzar 75°C.",
+      "Emulsificación: Verter la fase acuosa sobre la fase oleosa mientras se bate enérgicamente con una batidora de inmersión durante 2-3 minutos hasta lograr una emulsión homogénea.",
+      "Enfriamiento: Continuar agitando la mezcla suavemente con una espátula mientras la temperatura desciende para mantener la consistencia.",
+      "Aditivos: Por debajo de 40°C, incorporar la Vitamina E, el conservante Sharomix 705 y el Ácido Láctico, mezclando bien después de cada adición.",
+      "Finalización: Verificar que el pH del producto final se encuentre entre 4.5 y 5.5. Ajustar si es necesario y envasar en un recipiente limpio y desinfectado."
+    ],
+    "tip": "Para evitar la recristalización de la Manteca de Karité y obtener una textura suave, asegúrate de que la fase de enfriamiento sea gradual y con agitación constante. Un enfriamiento brusco puede generar grumos.",
+    "id": 19
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Crema Corporal",
+    "title2": "Karité y Glicerina",
+    "desc": "Crema hidratante corporal ligera con manteca de karité y glicerina vegetal.",
+    "tags": [
+      "hidratante",
+      "karité",
+      "corporal"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 69.2,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Aceite de Semilla de Uva",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Manteca de Karité",
+        "q": 6,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Cera Lanette",
+        "q": 6,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina Vegetal",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Esteárico",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Vitamina E",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 0.3,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Fase Oleosa: En un recipiente resistente al calor, pesar y calentar la Manteca de Karité, Aceite de Semilla de Uva, Cera Lanette y Ácido Esteárico hasta 75°C, hasta que todos los sólidos se hayan derretido por completo.",
+      "Fase Acuosa: En otro recipiente, mezclar la Glicerina Vegetal con la Goma Xanthan para formar una pasta. Añadir el Agua Destilada y calentar a 75°C, agitando hasta que la goma se hidrate completamente.",
+      "Emulsión: Verter lentamente la fase acuosa sobre la fase oleosa mientras se bate con una batidora de inmersión durante 2-3 minutos. La mezcla se volverá blanca y homogénea.",
+      "Enfriamiento: Continuar agitando la emulsión con una espátula o batidor de mano de forma intermitente mientras se enfría para asegurar una textura suave y estable.",
+      "Aditivos: Cuando la temperatura de la crema baje de 40°C, añadir la Vitamina E y el conservante Sharomix 705. Mezclar bien hasta su completa incorporación.",
+      "Finalización: Verificar que el pH de la crema esté en el rango de 5.5 - 6.5. Ajustar si es necesario con una solución de Ácido Cítrico o Bicarbonato de Sodio. Envasar en un recipiente limpio y desinfectado."
+    ],
+    "tip": "Para evitar la formación de grumos, asegúrate de pre-dispersar la Goma Xanthan en la Glicerina Vegetal antes de añadir el agua. Esta técnica facilita una hidratación uniforme y una textura final más suave.",
+    "id": 20
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Desodorante Natural",
+    "title2": "Bicarbonato y Karité",
+    "desc": "Desodorante en crema sin aluminio con bicarbonato de sodio y manteca de karité.",
+    "tags": [
+      "desodorante",
+      "natural",
+      "sin aluminio",
+      "bicarbonato",
+      "karité"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Manteca de Karité",
+        "q": 50,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Bicarbonato de Sodio",
+        "q": 30,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Ricino",
+        "q": 15,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Árbol de Té",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Calentar a baño maría Manteca de Karité y Aceite de Ricino.",
+      "Retirar del calor y añadir Bicarbonato de Sodio.",
+      "Mezclar hasta obtener una pasta homogénea.",
+      "Incorporar Aceite Esencial de Árbol de Té.",
+      "Verter en envase y dejar enfriar."
+    ],
+    "tip": "Asegura una buena mezcla para una textura uniforme y durabilidad. ¡Disfruta de frescura natural!",
+    "id": 21
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Gel Antiacné",
+    "title2": "Ácido Salicílico 2%",
+    "desc": "Gel de tratamiento localizado con ácido salicílico al 2% para acné activo.",
+    "tags": [
+      "antiacné",
+      "ácido salicílico",
+      "tratamiento localizado"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Desmineralizada",
+        "q": 75,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Salicílico",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sharomix 705",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aloe Vera Gel",
+        "q": 16,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Disolver Goma Xanthan en Glicerina.",
+      "Incorporar Agua Desmineralizada lentamente, mezclando hasta gelificar.",
+      "Añadir Ácido Salicílico y Aloe Vera Gel, mezclar bien.",
+      "Agregar Sharomix 705, mezclar uniformemente.",
+      "Envasar en recipiente limpio y oscuro."
+    ],
+    "tip": "Aplicar una pequeña cantidad directamente sobre el grano, una vez al día.",
+    "id": 22
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Aceite Facial Seco",
+    "title2": "Rosa Mosqueta y Argán",
+    "desc": "Aceite facial seco de rápida absorción con aceite de rosa mosqueta y argán.",
+    "tags": [
+      "aceite facial",
+      "rosa mosqueta",
+      "argán"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Aceite de Rosa Mosqueta",
+        "q": 70,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Argán",
+        "q": 25,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Vitamina E (Alfa-Tocoferol)",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezcla los aceites de rosa mosqueta y argán en un recipiente limpio.",
+      "Agrega la vitamina E a la mezcla de aceites.",
+      "Remueve suavemente hasta obtener una mezcla homogénea.",
+      "Vierte el aceite facial seco en el envase final.",
+      "Cierra bien el envase para su correcta conservación."
+    ],
+    "tip": "Aplica unas gotas sobre la piel limpia y seca, masajeando suavemente hasta su total absorción.",
+    "id": 23
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Mascarilla Iluminadora",
+    "title2": "Vitamina C y Aloe",
+    "desc": "Mascarilla gel iluminadora con ácido ascórbico estabilizado y aloe vera.",
+    "tags": [
+      "iluminadora",
+      "vitamina c",
+      "aloe vera",
+      "gel"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Ácido Ascórbico",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aloe Vera",
+        "q": 85,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Goma Xanthan",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sorbato K",
+        "q": 0.1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Benzoato Na",
+        "q": 0.3,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Disolver Goma Xanthan en Glicerina.",
+      "Incorporar Ácido Ascórbico al Aloe Vera.",
+      "Mezclar fase acuosa con gel de Xanthan.",
+      "Agregar conservantes y mezclar bien.",
+      "Verter en envase limpio y reposar."
+    ],
+    "tip": "Usar con agua destilada para mejor estabilidad. Refrigerar para mayor frescura.",
+    "id": 24
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Tónico Ácido Cítrico",
+    "title2": "Piel Opaca y Poros",
+    "desc": "Tónico exfoliante suave con ácido cítrico para piel opaca, poros y exceso de grasa.",
+    "tags": [
+      "exfoliante",
+      "citrico",
+      "poros",
+      "grasa"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Purificada",
+        "q": 88,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Ácido Cítrico",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Betaína Coco",
+        "q": 1.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sorbato de Potasio",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezclar agua y Ácido Cítrico hasta disolver.",
+      "Incorporar Glicerina y Betaína Coco. Agitar bien.",
+      "Añadir Sorbato de Potasio para conservar.",
+      "Verter en envase limpio y esterilizado.",
+      "Agitar suavemente antes de cada uso."
+    ],
+    "tip": "Aplicar con algodón sobre piel limpia, evitando contorno de ojos. Usar 2-3 veces por semana.",
+    "id": 25
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Loción Corporal DMSO",
+    "title2": "Penetración Intensiva",
+    "desc": "Loción con DMSO para maximizar la penetración de activos cosméticos en piel gruesa.",
+    "tags": [
+      "DMSO",
+      "penetración",
+      "piel gruesa"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua purificada",
+        "q": 60,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "DMSO",
+        "q": 20,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "BTMS-50",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Semilla de Uva",
+        "q": 4,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Niacinamida",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Calentar agua a 70°C.",
+      "Disolver BTMS-50 y aceite en fase oleosa.",
+      "Incorporar DMSO, glicerina y niacinamida al agua.",
+      "Emulsionar ambas fases hasta integrar.",
+      "Enfriar y envasar la loción."
+    ],
+    "tip": "Asegúrate de que el DMSO esté bien disuelto antes de mezclar las fases.",
+    "id": 26
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Emulsión Colágeno",
+    "title2": "Antienvejecimiento",
+    "desc": "Emulsión O/W con colágeno hidrolizado y aceite de semilla de uva para piel madura.",
+    "tags": [
+      "colageno",
+      "antiedad",
+      "piel madura"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Colágeno",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Semilla Uva",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alcohol Cetílico",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sorbato K",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Benzoato Na",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua",
+        "q": 74.6,
+        "u": "g",
+        "src": "uso propio"
+      }
+    ],
+    "pasos": [
+      "Calentar fase acuosa y oleosa por separado.",
+      "Unir fases lentamente agitando constantemente.",
+      "Incorporar colágeno y glicerina en fase acuosa.",
+      "Añadir conservantes y aceite semilla uva al enfriar.",
+      "Verter en envases limpios y dejar enfriar."
+    ],
+    "tip": "Agitar vigorosamente para asegurar una emulsión estable y homogénea.",
+    "id": 27
+  },
+  {
+    "cat": "cosmetica",
+    "title": "Mascarilla Facial Arcilla",
+    "title2": "Árbol de Té Purificante",
+    "desc": "Mascarilla detox con aceite esencial de árbol de té para piel grasa y propensa al acné.",
+    "tags": [
+      "arcilla",
+      "arbol de te",
+      "piel grasa"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Arcilla Verde",
+        "q": 40,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Arcilla Blanca",
+        "q": 30,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 15,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua destilada",
+        "q": 10,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Aceite Esencial Árbol de Té",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sorbato de Potasio",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Benzoato de Sodio",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezclar ambas arcillas en un recipiente.",
+      "Añadir glicerina y agua, integrar bien.",
+      "Incorporar el aceite esencial de árbol de té.",
+      "Agregar conservantes y mezclar hasta uniformidad.",
+      "Aplicar en rostro limpio, dejar actuar 15 min y enjuagar."
+    ],
+    "tip": "Usa agua tibia para una mejor disolución de los conservantes.",
+    "id": 28
+  },
+  {
+    "cat": "nutricion",
+    "title": "Pre-Entreno Casero",
+    "title2": "Creatina y Arginina",
+    "desc": "Mezcla en polvo pre-entreno con creatina monohidratada y L-arginina para rendimiento.",
+    "tags": [
+      "pre-entreno",
+      "creatina",
+      "arginina",
+      "rendimiento",
+      "deporte"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Creatina Monohidratada",
+        "q": 50,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "L-Arginina",
+        "q": 50,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Pesar creatina y arginina por separado.",
+      "Combinar ambos ingredientes en un recipiente limpio.",
+      "Mezclar homogéneamente hasta obtener polvo uniforme.",
+      "Almacenar en envase hermético.",
+      "Tomar 5-10g antes del entrenamiento."
+    ],
+    "tip": "Disolver la porción en agua o jugo para mejor consumo.",
+    "id": 29
+  },
+  {
+    "cat": "nutricion",
+    "title": "Polvo Recovery",
+    "title2": "Glutamina y Vitamina C",
+    "desc": "Bebida de recuperación post-entrenamiento con L-glutamina y vitamina C.",
+    "tags": [
+      "recuperacion",
+      "post-entreno",
+      "nutricion"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "L-Glutamina",
+        "q": 70,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Ascórbico",
+        "q": 20,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Citrato K",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Citrato Mg",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Pesar todos los ingredientes sólidos cuidadosamente.",
+      "Mezclar en seco todos los componentes.",
+      "Asegurar una distribución homogénea del polvo.",
+      "Envasar en un recipiente hermético y seco.",
+      "Disolver 1 cucharada en agua antes de consumir."
+    ],
+    "tip": "Consume inmediatamente después de tu rutina para máxima efectividad.",
+    "id": 30
+  },
+  {
+    "cat": "nutricion",
+    "title": "Electrolitos Caseros",
+    "title2": "Citrato de Potasio",
+    "desc": "Bebida isotónica natural con citrato de potasio y magnesio para reposición de sales.",
+    "tags": [
+      "hidratacion",
+      "recuperacion",
+      "natural"
+    ],
+    "base": 500,
+    "unidad": "ml",
+    "ings": [
+      {
+        "n": "Citrato de Potasio",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Citrato de Magnesio",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Ascórbico",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 5,
+        "u": "ml",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sorbato de Potasio",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Disolver Citrato de Potasio y Magnesio en agua tibia.",
+      "Añadir Ácido Ascórbico y Glicerina. Mezclar bien.",
+      "Incorporar Sorbato de Potasio para conservar.",
+      "Verter en envase de uso propio.",
+      "Refrigerar antes de consumir."
+    ],
+    "tip": "Ajusta la cantidad de citratos según tu necesidad de electrolitos.",
+    "id": 31
+  },
+  {
+    "cat": "nutricion",
+    "title": "Cápsulas Vitamina B12",
+    "title2": "Energía y Sistema Nervioso",
+    "desc": "Encapsulado básico de vitamina B12 en polvo para suplementación diaria.",
+    "tags": [
+      "vitamina b12",
+      "energia",
+      "sistema nervioso",
+      "suplemento"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Vit-B12",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Almidón Yuca",
+        "q": 99.5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Pesar Vitamina B12 y Almidón Yuca.",
+      "Mezclar ambos ingredientes a fondo.",
+      "Verter la mezcla en cápsulas vacías.",
+      "Cerrar las cápsulas herméticamente.",
+      "Almacenar en lugar fresco y seco."
+    ],
+    "tip": "Usar cápsulas de gelatina o vegetales para la encapsulación.",
+    "id": 32
+  },
+  {
+    "cat": "nutricion",
+    "title": "Bebida L-Arginina",
+    "title2": "Flujo Sanguíneo",
+    "desc": "Bebida funcional con L-arginina para apoyar la circulación y el óxido nítrico.",
+    "tags": [
+      "l-arginina",
+      "circulacion",
+      "nutricion"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "L-Arginina",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Ascórbico",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Citrato K",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Menta (Esencial)",
+        "q": 0.1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sorbitol",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua purificada",
+        "q": 89.2,
+        "u": "g",
+        "src": "uso propio"
+      }
+    ],
+    "pasos": [
+      "Disolver L-Arginina en agua purificada.",
+      "Añadir Ácido Ascórbico y Citrato K.",
+      "Incorporar Glicerina y Sorbitol.",
+      "Agregar Menta esencial para sabor.",
+      "Mezclar bien hasta homogeneizar."
+    ],
+    "tip": "Consumir preferentemente en ayunas o antes del ejercicio.",
+    "id": 33
+  },
+  {
+    "cat": "nutricion",
+    "title": "Polvo de Magnesio",
+    "title2": "Relajación Muscular",
+    "desc": "Suplemento de citrato de magnesio en polvo para calambres y relajación muscular.",
+    "tags": [
+      "magnesio",
+      "relajacion",
+      "muscular"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Citrato de Magnesio",
+        "q": 50,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Almidón de Yuca",
+        "q": 40,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Mentol",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Cítrico",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Pesar todos los ingredientes secos cuidadosamente.",
+      "Mezclar bien el Citrato de Magnesio y el Almidón de Yuca.",
+      "Incorporar el Mentol y el Ácido Cítrico finamente molidos.",
+      "Asegurar una distribución homogénea de todos los componentes.",
+      "Envasar en un recipiente hermético para su conservación."
+    ],
+    "tip": "Disolver una cucharadita en agua y tomar antes de dormir.",
+    "id": 34
+  },
+  {
+    "cat": "nutricion",
+    "title": "Cápsulas Aloe Vera",
+    "title2": "Digestión y Tránsito",
+    "desc": "Encapsulado de aloe vera en polvo para apoyar la salud digestiva y el tránsito intestinal.",
+    "tags": [
+      "digestivo",
+      "tránsito",
+      "aloe vera"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Aloe Vera",
+        "q": 95,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Almidón Yuca",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezclar Aloe Vera en polvo y Almidón Yuca.",
+      "Verter mezcla en máquina encapsuladora.",
+      "Operar máquina para formar cápsulas.",
+      "Secar cápsulas si es necesario.",
+      "Envasar cápsulas para su uso."
+    ],
+    "tip": "Usar Almidón Yuca como excipiente para mejorar compresión y fluidez.",
+    "id": 35
+  },
+  {
+    "cat": "nutricion",
+    "title": "Gel Energético",
+    "title2": "Creatina + Glucosa",
+    "desc": "Gel de carbohidratos y creatina para consumir durante el ejercicio de alta intensidad.",
+    "tags": [
+      "energía",
+      "rendimiento",
+      "deportiva"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Glucosa (Dextrosa)",
+        "q": 40,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Creatina Monohidrato",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 20,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Ácido Ascórbico",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sorbato de Potasio",
+        "q": 0.1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua Purificada",
+        "q": 34.4,
+        "u": "g",
+        "src": "uso propio"
+      }
+    ],
+    "pasos": [
+      "Mezclar glucosa, creatina y glicerina en un recipiente.",
+      "Calentar suavemente agua purificada y disolver ácido ascórbico.",
+      "Incorporar gradualmente el agua a la mezcla seca.",
+      "Continuar mezclando hasta obtener consistencia de gel homogénea.",
+      "Agregar sorbato de potasio y envasar."
+    ],
+    "tip": "Consumir 30 minutos antes o durante la actividad física intensa.",
+    "id": 36
+  },
+  {
+    "cat": "perfumeria",
+    "title": "Eau de Toilette Cítrica",
+    "title2": "Bergamota y Menta",
+    "desc": "Fragancia fresca unisex con notas de bergamota y menta sobre base amaderada.",
+    "tags": [
+      "cítrica",
+      "fresca",
+      "unisex",
+      "verano"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Aceite Esencial de Bergamota",
+        "q": 20,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Menta",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Sándalo",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Alcohol Etílico (96%)",
+        "q": 60,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Agua Destilada",
+        "q": 5,
+        "u": "g",
+        "src": "uso propio"
+      }
+    ],
+    "pasos": [
+      "Mezclar aceites esenciales en envase ámbar.",
+      "Añadir alcohol etílico y agitar bien.",
+      "Incorporar agua destilada suavemente.",
+      "Cerrar y agitar para homogeneizar.",
+      "Dejar macerar en lugar fresco por 7 días."
+    ],
+    "tip": "Usar envase de vidrio ámbar para proteger la fragancia.",
+    "id": 37
+  },
+  {
+    "cat": "perfumeria",
+    "title": "Agua de Colonia",
+    "title2": "Eucalipto y Árbol de Té",
+    "desc": "Colonia terapéutica refrescante con eucalipto y árbol de té para el cuerpo y el hogar.",
+    "tags": [
+      "refrescante",
+      "terapeutica",
+      "aromatica"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Alcohol Etílico USP",
+        "q": 70,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Agua Destilada",
+        "q": 25,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Aceite Esencial de Eucalipto",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Árbol de Té",
+        "q": 2,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezclar alcohol y agua destilada en envase.",
+      "Añadir aceites esenciales de eucalipto y árbol de té.",
+      "Agitar suavemente hasta integrar los componentes.",
+      "Dejar reposar la mezcla por 24 horas.",
+      "Filtrar si es necesario y envasar."
+    ],
+    "tip": "Agitar antes de usar. Conservar en lugar fresco y oscuro.",
+    "id": 38
+  },
+  {
+    "cat": "perfumeria",
+    "title": "Perfume Amaderado",
+    "title2": "Unisex Contemporáneo",
+    "desc": "Fragancia unisex con aceites esenciales sobre base de aceite de jojoba y alcohol.",
+    "tags": [
+      "amaderado",
+      "unisex",
+      "contemporáneo",
+      "perfumería"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Alcohol Etílico",
+        "q": 70,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Aceite de Jojoba",
+        "q": 25,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial Cedro",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial Sándalo",
+        "q": 1.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial Vetiver",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezclar alcohol y aceite de jojoba en recipiente.",
+      "Añadir aceites esenciales de cedro y sándalo.",
+      "Incorporar aceite esencial de vetiver.",
+      "Agitar suavemente hasta integrar.",
+      "Dejar macerar en lugar fresco y oscuro."
+    ],
+    "tip": "La maceración potencia la evolución y fijación de las notas amaderadas.",
+    "id": 39
+  },
+  {
+    "cat": "perfumeria",
+    "title": "Roll-on Aromático",
+    "title2": "Menta y Bergamota",
+    "desc": "Perfume roll-on concentrado para muñecas y cuello con aceites esenciales puros.",
+    "tags": [
+      "aromatica",
+      "rollon",
+      "esenciales"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Aceite de Semilla de Uva",
+        "q": 70,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Bergamota",
+        "q": 20,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Menta",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezclar aceite de semilla de uva en envase.",
+      "Añadir aceite esencial de bergamota.",
+      "Incorporar aceite esencial de menta.",
+      "Agitar suavemente para homogeneizar.",
+      "Verter en envase roll-on."
+    ],
+    "tip": "Agita antes de usar para una fragancia más intensa.",
+    "id": 40
+  },
+  {
+    "cat": "perfumeria",
+    "title": "Splash Corporal",
+    "title2": "Floral Ligero",
+    "desc": "Splash corporal suave con aceite esencial de rosa mosqueta y bergamota.",
+    "tags": [
+      "splash corporal",
+      "floral",
+      "rosa mosqueta",
+      "bergamota"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Purificada",
+        "q": 85,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Glicerina",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Bergamota",
+        "q": 1,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Rosa Mosqueta",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Polisorbato-20",
+        "q": 9.5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezclar agua y glicerina en un envase.",
+      "Agregar polisorbato-20 y mezclar bien.",
+      "Incorporar aceites esenciales uno a uno.",
+      "Agitar suavemente hasta homogeneizar.",
+      "Verter en envase final y usar."
+    ],
+    "tip": "Agitar antes de cada uso para asegurar la dispersión de los aceites.",
+    "id": 41
+  },
+  {
+    "cat": "perfumeria",
+    "title": "Velas Aromáticas",
+    "title2": "Cera de Abejas y Eucalipto",
+    "desc": "Velas naturales de cera de abejas con aceite esencial de eucalipto para aromaterapia.",
+    "tags": [
+      "velas",
+      "aromaterapia",
+      "eucalipto",
+      "cera de abejas"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Cera de Abejas",
+        "q": 85,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Eucalipto",
+        "q": 15,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Derrite la cera de abejas a baño maría suavemente.",
+      "Retira del fuego y añade el aceite esencial de eucalipto.",
+      "Mezcla bien los ingredientes hasta integrar.",
+      "Vierte la mezcla en tu envase preparado.",
+      "Deja enfriar completamente hasta solidificar."
+    ],
+    "tip": "Asegúrate de usar un recipiente resistente al calor y con buena ventilación.",
+    "id": 42
+  },
+  {
+    "cat": "hogar",
+    "title": "Suavizante Natural",
+    "title2": "Glicerina y Lavanda",
+    "desc": "Suavizante de ropa natural con glicerina vegetal y aceite esencial de lavanda.",
+    "tags": [
+      "suavizante",
+      "natural",
+      "hogar",
+      "glicerina",
+      "lavanda"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Glicerina",
+        "q": 15,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua destilada",
+        "q": 80,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Aceite esencial de Lavanda",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Mezclar glicerina y aceite esencial de lavanda.",
+      "Calentar agua destilada suavemente.",
+      "Incorporar mezcla de glicerina al agua tibia.",
+      "Agitar hasta obtener una solución homogénea.",
+      "Verter en envase para usar en lavadora."
+    ],
+    "tip": "Añadir al compartimento del suavizante en cada lavado.",
+    "id": 43
+  },
+  {
+    "cat": "hogar",
+    "title": "Desinfectante de Superficies",
+    "title2": "Árbol de Té y Ácido Cítrico",
+    "desc": "Desinfectante natural para superficies con árbol de té y ácido cítrico, sin cloro.",
+    "tags": [
+      "natural",
+      "desinfectante",
+      "hogar"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Destilada",
+        "q": 85,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Ácido Cítrico",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial Árbol de Té",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Glicerina",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Sorbato de Potasio",
+        "q": 0.2,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Benzoato de Sodio",
+        "q": 0.8,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Calienta agua destilada a 40°C.",
+      "Disuelve el Ácido Cítrico en el agua tibia.",
+      "Agrega Glicerina, Sorbato de Potasio y Benzoato de Sodio.",
+      "Incorpora el Aceite Esencial de Árbol de Té.",
+      "Envasa en frasco limpio y agita antes de usar."
+    ],
+    "tip": "Agita bien antes de cada uso para asegurar la mezcla homogénea de los ingredientes.",
+    "id": 44
+  },
+  {
+    "cat": "hogar",
+    "title": "Vela de Cera de Carnauba",
+    "title2": "Premium Larga Duración",
+    "desc": "Vela de acabado premium con cera de carnauba y aceite esencial de menta.",
+    "tags": [
+      "larga duracion",
+      "aromatica",
+      "carnauba"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Cera de Carnauba",
+        "q": 70,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Cera de Abejas",
+        "q": 25,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Esencial de Menta",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Derretir ceras a baño maría suavemente.",
+      "Retirar del calor, añadir aceite esencial de menta.",
+      "Mezclar bien hasta integrar todo.",
+      "Verter en molde con pabilo preparado.",
+      "Dejar enfriar y endurecer completamente."
+    ],
+    "tip": "Usar pabilo de madera para un quemado más limpio y estético.",
+    "id": 45
+  },
+  {
+    "cat": "hogar",
+    "title": "Jabón Artesanal en Barra",
+    "title2": "Neem y Árbol de Té",
+    "desc": "Jabón de barra para acné corporal y piel con problemas con aceite de neem.",
+    "tags": [
+      "acné corporal",
+      "piel grasa",
+      "aceite neem",
+      "árbol de té"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Aceite Neem",
+        "q": 20,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Ricino",
+        "q": 10,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite Semilla Uva",
+        "q": 50,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Hidróxido de Sodio (Sosa Cáustica)",
+        "q": 12,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Aceite Esencial Árbol Té",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Agua",
+        "q": 25,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Glicerina",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Pesar y mezclar aceites. Disolver sosa en agua fría.",
+      "Verter sosa en aceites, mezclar hasta traza ligera.",
+      "Añadir aceite esencial de árbol de té y glicerina.",
+      "Verter mezcla en molde. Dejar secar 24-48 horas.",
+      "Desmoldar, cortar y curar por 4-6 semanas."
+    ],
+    "tip": "Usar guantes y gafas de seguridad al manipular sosa cáustica.",
+    "id": 46
+  },
+  {
+    "cat": "hogar",
+    "title": "Ambientador en Spray",
+    "title2": "Eucalipto y Mentol",
+    "desc": "Spray refrescante para el hogar con mentol cristal y eucalipto.",
+    "tags": [
+      "refrescante",
+      "aroma",
+      "hogar"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Agua Desionizada",
+        "q": 85,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Alcohol Isopropílico",
+        "q": 10,
+        "u": "g",
+        "src": "uso propio"
+      },
+      {
+        "n": "Aceite Esencial de Eucalipto",
+        "q": 3,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Mentol Cristal",
+        "q": 1.5,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Polisorbato-20",
+        "q": 0.5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Disolver Mentol Cristal en Alcohol Isopropílico.",
+      "Añadir Polisorbato-20 a la mezcla anterior.",
+      "Incorporar Aceite Esencial de Eucalipto.",
+      "Verter Agua Desionizada lentamente.",
+      "Agitar bien y envasar en spray."
+    ],
+    "tip": "Asegúrate que el Mentol Cristal se disuelva completamente antes de añadir otros ingredientes.",
+    "id": 47
+  },
+  {
+    "cat": "hogar",
+    "title": "Cera para Muebles",
+    "title2": "Carnauba Natural",
+    "desc": "Cera protectora y brillante para muebles de madera con cera de carnauba.",
+    "tags": [
+      "muebles",
+      "madera",
+      "carnauba",
+      "protectora",
+      "brillo"
+    ],
+    "base": 100,
+    "unidad": "g",
+    "ings": [
+      {
+        "n": "Cera Carnauba",
+        "q": 20,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Ricino",
+        "q": 50,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Aceite de Semilla de Uva",
+        "q": 25,
+        "u": "g",
+        "src": "McKenna Group"
+      },
+      {
+        "n": "Cera de Abejas",
+        "q": 5,
+        "u": "g",
+        "src": "McKenna Group"
+      }
+    ],
+    "pasos": [
+      "Derrite ambas ceras a baño maría suave.",
+      "Retira del fuego y agrega aceites lentamente.",
+      "Mezcla hasta obtener una emulsión homogénea.",
+      "Vierte en envase limpio y deja enfriar.",
+      "Aplica con paño suave sobre muebles limpios."
+    ],
+    "tip": "Deja reposar la cera unos días antes de usarla para mejor rendimiento.",
+    "id": 48
   }
 ]

@@ -6,6 +6,8 @@ import re
 import hmac
 import hashlib
 import base64
+import tempfile
+import requests as _requests_lib
 
 
 PENDIENTES_PATH = 'app/data/preguntas_pendientes_preventa.json'
@@ -160,6 +162,65 @@ def _buscar_pago_por_sufijo(sufijo: str) -> str:
         if _sufijo_pago(num) == sufijo and not datos.get("confirmado"):
             return num
     return None
+
+def transcribir_audio_whatsapp(media_path: str, message_id: str = "") -> str | None:
+    """Descarga y transcribe un audio de WhatsApp usando OpenAI Whisper."""
+    try:
+        import openai
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+        if not openai_key:
+            print("⚠ Whisper: OPENAI_API_KEY no configurada")
+            return None
+
+        ev_url  = os.getenv("EVOLUTION_API_URL", "http://localhost:5000")
+        ev_key  = os.getenv("EVOLUTION_API_KEY", "")
+        inst    = os.getenv("INSTANCE_NAME", "Mckenna Group")
+
+        audio_bytes = None
+
+        # Intento 1: descargar via Evolution API getBase64FromMediaMessage
+        if message_id:
+            try:
+                r = _requests_lib.post(
+                    f"{ev_url}/chat/getBase64FromMediaMessage/{inst}",
+                    headers={"apikey": ev_key, "Content-Type": "application/json"},
+                    json={"message": {"key": {"id": message_id}}, "convertToMp4": False},
+                    timeout=15
+                )
+                if r.ok:
+                    b64 = r.json().get("base64", "")
+                    if b64:
+                        audio_bytes = base64.b64decode(b64)
+            except Exception as e:
+                print(f"⚠ Whisper getBase64: {e}")
+
+        # Intento 2: leer del path local si existe
+        if not audio_bytes and media_path and os.path.exists(media_path):
+            with open(media_path, "rb") as f:
+                audio_bytes = f.read()
+
+        if not audio_bytes:
+            return None
+
+        # Guardar en temp y transcribir
+        suffix = ".ogg"
+        if media_path and "." in media_path:
+            suffix = "." + media_path.rsplit(".", 1)[-1]
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(audio_bytes)
+            tmp_path = tmp.name
+
+        client = openai.OpenAI(api_key=openai_key)
+        with open(tmp_path, "rb") as af:
+            result = client.audio.transcriptions.create(
+                model="whisper-1", file=af, language="es"
+            )
+        os.unlink(tmp_path)
+        return result.text.strip()
+    except Exception as e:
+        print(f"❌ Whisper error: {e}")
+        return None
+
 
 def procesar_confirmacion_pago_async(numero_cliente):
     # Aquí podríamos añadir lógica extra asíncrona si se requiere
@@ -480,6 +541,19 @@ def register_routes(app):
                 return jsonify({"status": "success", "respuesta": f"Hola, ha habido un problema con la validación de tu pago. Por favor rectifica y revisa por qué la transacción no ha sido recibida."})
             else:
                 return jsonify({"status": "error", "respuesta": f"No encontré un comprobante pendiente para el número '{target_sender}'."})
+
+        # --- Notas de Voz: transcripción con Whisper ----------------------
+        message_id = data.get('messageId', data.get('message_id', ''))
+        if has_media and media_type in ('audio', 'ptt', 'voice'):
+            transcripcion = transcribir_audio_whatsapp(media_path, message_id)
+            if transcripcion:
+                print(f"🎙 Whisper transcribió: {transcripcion[:80]}...")
+                message_text = transcripcion
+            else:
+                return jsonify({
+                    "status": "ok",
+                    "respuesta": "Veci, recibí tu nota de voz pero no pude escucharla bien. ¿Puedes escribirme tu consulta? 🙏"
+                })
 
         # --- Detección de Comprobantes de Pago ---
         keywords_pago_sin_img = ["soporte", "comprobante", "transferí", "consigné", "ya pagué", "ya transferí", "mira el soporte", "ahí te envié", "te mando el soporte"]

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-05">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>A1295</NumeroFacturaProveedor>
+    <FechaFactura>2026-03-09</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>901069098</NIT>
+      <Nombre>DDPACK SAS</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="1">
+    <Item numero="1">
+      <CodigoSiigo>DOYZIP19*Un</CodigoSiigo>
+      <DescripcionOriginalProveedor>DOYPACK ZIPPER 19*25 METALIZADA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">350.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">350.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 350.0 × 1 = 350.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>336700.00</Subtotal>
+        <IVA>63973.00</IVA>
+        <Total>400673.00</Total>
+        <PrecioUnitarioMin>1144.7800</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 400673.00 COP / 350.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>336700.00</Subtotal>
+    <TotalIVA>63973.00</TotalIVA>
+    <TotalGeneral>400673.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: A1295 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

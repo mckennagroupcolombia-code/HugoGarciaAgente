@@ -1,0 +1,301 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-05">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FE30232</NumeroFacturaProveedor>
+    <FechaFactura>2026-01-27</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>1026262496</NIT>
+      <Nombre>ALEXANDRA KATHERINE BENAVIDES SALAMANCA</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="16">
+    <Item numero="1">
+      <CodigoSiigo>FAR10MAZUUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 10ML AZUL</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">384.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">384.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 384.0 × 1 = 384.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>220073.95</Subtotal>
+        <IVA>41814.05</IVA>
+        <Total>261888.00</Total>
+        <PrecioUnitarioMin>682.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 261888.00 COP / 384.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>GOTPIP55MUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 55MM NEGRA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">384.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">384.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 384.0 × 1 = 384.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>193613.45</Subtotal>
+        <IVA>36786.55</IVA>
+        <Total>230400.00</Total>
+        <PrecioUnitarioMin>600.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 230400.00 COP / 384.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>PAS180BLAUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>PASTILLERO 180ML BLANCO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">200.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">200.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 200.0 × 1 = 200.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>63865.55</Subtotal>
+        <IVA>12134.45</IVA>
+        <Total>76000.00</Total>
+        <PrecioUnitarioMin>380.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 76000.00 COP / 200.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>TAP38MSENUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPA 38MM SENCILLA BLANCA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">200.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">200.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 200.0 × 1 = 200.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>15126.05</Subtotal>
+        <IVA>2873.95</IVA>
+        <Total>18000.00</Total>
+        <PrecioUnitarioMin>90.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 18000.00 COP / 200.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>FAR30MCRIUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 30ML CRISTAL</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">220.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">220.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 220.0 × 1 = 220.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>122016.81</Subtotal>
+        <IVA>23183.19</IVA>
+        <Total>145200.00</Total>
+        <PrecioUnitarioMin>660.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 145200.00 COP / 220.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>GOTPIP77MNEGUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 77MM NEGRO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">220.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">220.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 220.0 × 1 = 220.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>110924.37</Subtotal>
+        <IVA>21075.63</IVA>
+        <Total>132000.00</Total>
+        <PrecioUnitarioMin>600.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 132000.00 COP / 220.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="7">
+      <CodigoSiigo>GOTPIP77MNEGUn2</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 77MM NEGRO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">880.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">880.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 880.0 × 1 = 880.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>443697.48</Subtotal>
+        <IVA>84302.52</IVA>
+        <Total>528000.00</Total>
+        <PrecioUnitarioMin>600.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 528000.00 COP / 880.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="8">
+      <CodigoSiigo>FAR5MLAMBUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 5ML AMBAR</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">765.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">765.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 765.0 × 1 = 765.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>270000.00</Subtotal>
+        <IVA>51300.00</IVA>
+        <Total>321300.00</Total>
+        <PrecioUnitarioMin>420.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 321300.00 COP / 765.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="9">
+      <CodigoSiigo>TAP18MSEGUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPA 18MM SEGURIDAD ECO BLANCA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">765.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">765.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 765.0 × 1 = 765.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>57857.14</Subtotal>
+        <IVA>10992.86</IVA>
+        <Total>68850.00</Total>
+        <PrecioUnitarioMin>90.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 68850.00 COP / 765.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="10">
+      <CodigoSiigo>TAP18MAIRUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPON 18MM AIREADOR BLANCO ECO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">765.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">765.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 765.0 × 1 = 765.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>57857.14</Subtotal>
+        <IVA>10992.86</IVA>
+        <Total>68850.00</Total>
+        <PrecioUnitarioMin>90.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 68850.00 COP / 765.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="11">
+      <CodigoSiigo>FAR30MAMBUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 30ML AMBAR</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">220.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">220.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 220.0 × 1 = 220.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>92067.23</Subtotal>
+        <IVA>17492.77</IVA>
+        <Total>109560.00</Total>
+        <PrecioUnitarioMin>498.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 109560.00 COP / 220.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="12">
+      <CodigoSiigo>GOTPIP77MUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 77MM NEGRO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">220.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">220.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 220.0 × 1 = 220.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>110924.37</Subtotal>
+        <IVA>21075.63</IVA>
+        <Total>132000.00</Total>
+        <PrecioUnitarioMin>600.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 132000.00 COP / 220.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="13">
+      <CodigoSiigo>FAR50MAMBUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 50ML AMBAR</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">117.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">117.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 117.0 × 1 = 117.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>71773.11</Subtotal>
+        <IVA>13636.89</IVA>
+        <Total>85410.00</Total>
+        <PrecioUnitarioMin>730.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 85410.00 COP / 117.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="14">
+      <CodigoSiigo>GOTPIP90MUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 90MM NEGRO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">117.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">117.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 117.0 × 1 = 117.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>58991.60</Subtotal>
+        <IVA>11208.40</IVA>
+        <Total>70200.00</Total>
+        <PrecioUnitarioMin>600.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 70200.00 COP / 117.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="15">
+      <CodigoSiigo>FAR30MAZUUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>FARMA 30ML AZUL</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">880.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">880.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 880.0 × 1 = 880.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>554621.85</Subtotal>
+        <IVA>105378.15</IVA>
+        <Total>660000.00</Total>
+        <PrecioUnitarioMin>750.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 660000.00 COP / 880.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="16">
+      <CodigoSiigo>GOTPIP77MBLAUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>GOTERO PIPETA 77MM BLANCO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">220.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">220.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 220.0 × 1 = 220.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>110924.37</Subtotal>
+        <IVA>21075.63</IVA>
+        <Total>132000.00</Total>
+        <PrecioUnitarioMin>600.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 132000.00 COP / 220.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>2554334.47</Subtotal>
+    <TotalIVA>485323.55</TotalIVA>
+    <TotalGeneral>3039658.02</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FE30232 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

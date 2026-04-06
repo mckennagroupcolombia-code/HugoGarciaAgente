@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Blog Científico — McKenna Group{% endblock %}
+{% block description %}Investigación científica aplicada a materias primas cosméticas y farmacéuticas. Recetas, manuales de uso, formulaciones y novedades de McKenna Group.{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Ciencia aplicada · Ingredientes activos</span>
+    <h1>Blog <em>científico</em> McKenna Group.</h1>
+    <p style="color:rgba(255,255,255,0.65);font-size:1rem;max-width:480px;line-height:1.8;margin-top:12px;">
+      Investigación, formulaciones, manuales de uso y novedades sobre las materias primas
+      que proveemos. Respaldado por literatura científica.
+    </p>
+  </div>
+</div>
+
+<div class="container" style="max-width:900px;margin:48px auto;padding:0 16px;">
+
+  {% set categorias = posts | map(attribute='categoria') | unique | list %}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:32px;">
+    <a href="/blog" class="pill-cat pill-active">Todos</a>
+    {% for cat in categorias %}
+      <a href="/blog?cat={{ cat }}" class="pill-cat">{{ cat | title }}</a>
+    {% endfor %}
+  </div>
+
+  {% if not posts %}
+    <p style="color:#888;text-align:center;padding:60px 0;">Aún no hay publicaciones. Usa la opción 14 del CLI para generar contenido.</p>
+  {% else %}
+    <div style="display:grid;gap:24px;">
+      {% for post in posts %}
+      <article style="background:#fff;border:1px solid #eee;border-radius:12px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,.04);">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+          <span style="background:#f0f7f0;color:#2a6b2a;font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:20px;">
+            {{ post.categoria | title }}
+          </span>
+          <span style="color:#aaa;font-size:.8rem;">{{ post.fecha }}</span>
+        </div>
+        <h2 style="font-size:1.25rem;margin:0 0 8px;"><a href="/blog/{{ post.slug }}" style="color:#1a1a1a;text-decoration:none;">{{ post.titulo }}</a></h2>
+        <p style="color:#555;font-size:.95rem;line-height:1.7;margin:0 0 16px;">{{ post.extracto }}…</p>
+        <a href="/blog/{{ post.slug }}" style="color:#2a6b2a;font-weight:600;font-size:.9rem;text-decoration:none;">Leer más →</a>
+      </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+
+<style>
+.pill-cat{display:inline-block;padding:6px 16px;border-radius:20px;border:1px solid #ddd;color:#555;font-size:.85rem;text-decoration:none;transition:.2s;}
+.pill-cat:hover,.pill-active{background:#2a6b2a;color:#fff;border-color:#2a6b2a;}
+</style>
+{% endblock %}

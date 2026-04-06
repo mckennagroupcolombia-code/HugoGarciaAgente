@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Política de Tratamiento de Datos — McKenna Group{% endblock %}
+{% block description %}Política de tratamiento y protección de datos personales de McKenna Group S.A.S., conforme a la Ley 1581 de 2012 y el Decreto 1377 de 2013.{% endblock %}
+
+{% block content %}
+<style>
+:root {
+  --lg-green:  #2E8B7A;
+  --lg-deep:   #143D36;
+  --lg-pale:   #E8F5F3;
+  --lg-ultra:  #F2FAF9;
+  --lg-border: rgba(46,139,122,.15);
+}
+.legal-wrap   { max-width: 800px; margin: 0 auto; padding: 56px 24px 80px; }
+.legal-badge  {
+  display: inline-block; background: var(--lg-pale); color: var(--lg-green);
+  font-size: .72rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 5px 14px; border-radius: 20px;
+  margin-bottom: 18px;
+}
+.legal-title  {
+  font-size: clamp(1.7rem, 4vw, 2.3rem); font-weight: 800;
+  color: var(--lg-deep); line-height: 1.2; margin-bottom: 8px;
+}
+.legal-meta   { font-size: .82rem; color: #aaa; margin-bottom: 40px; }
+.legal-law-box {
+  background: var(--lg-ultra); border: 1.5px solid var(--lg-border);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 36px;
+  font-size: .88rem; color: #555; line-height: 1.8;
+}
+.legal-law-box strong { color: var(--lg-deep); }
+.legal-body h2 {
+  font-size: 1.1rem; font-weight: 800; color: var(--lg-deep);
+  margin: 36px 0 12px; display: flex; align-items: center; gap: 10px;
+}
+.legal-body h2::after { content:''; flex:1; height:1.5px; background:var(--lg-pale); }
+.legal-body h2 .num {
+  min-width: 28px; height: 28px; background: var(--lg-green); color: #fff;
+  border-radius: 50%; display: inline-flex; align-items: center;
+  justify-content: center; font-size: .78rem; font-weight: 800;
+}
+.legal-body p  { font-size: .95rem; line-height: 1.85; color: #333; margin-bottom: 14px; }
+.legal-body ul, .legal-body ol { padding-left: 22px; margin-bottom: 14px; }
+.legal-body li { font-size: .95rem; line-height: 1.8; color: #333; margin-bottom: 4px; }
+.legal-body strong { color: var(--lg-deep); }
+.rights-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 24px;
+}
+@media(max-width:560px){ .rights-grid { grid-template-columns: 1fr; } }
+.right-card {
+  padding: 14px 16px; background: var(--lg-ultra);
+  border: 1.5px solid var(--lg-border); border-radius: 8px;
+}
+.right-card .right-label {
+  font-size: .78rem; font-weight: 800; color: var(--lg-green);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+}
+.right-card p { font-size: .88rem; color: #555; margin: 0; line-height: 1.6; }
+.legal-contact-box {
+  margin-top: 40px; padding: 22px 26px;
+  background: var(--lg-pale); border-radius: 12px;
+  border-left: 4px solid var(--lg-green);
+}
+.legal-contact-box p { font-size: .93rem; color: #444; margin: 0; line-height: 1.8; }
+.legal-contact-box a { color: var(--lg-green); font-weight: 600; text-decoration: none; }
+.legal-contact-box a:hover { text-decoration: underline; }
+</style>
+
+<div class="legal-wrap">
+
+  <a href="/" style="display:inline-flex;align-items:center;gap:6px;color:var(--lg-green);font-size:.82rem;font-weight:700;letter-spacing:1.5px;text-decoration:none;text-transform:uppercase;margin-bottom:28px;">
+    <span style="width:20px;height:2px;background:var(--lg-green);display:inline-block;"></span>
+    Inicio
+  </a>
+
+  <div class="legal-badge">Protección de Datos</div>
+  <h1 class="legal-title">Política de Tratamiento de Datos Personales</h1>
+  <p class="legal-meta">Última actualización: 5 de abril de 2026 &nbsp;·&nbsp; McKenna Group S.A.S. — NIT 901.234.567-8</p>
+
+  <div class="legal-law-box">
+    <strong>Base legal:</strong> Esta política se rige por la <strong>Ley 1581 de 2012</strong> (Ley de Protección de Datos Personales de Colombia), el <strong>Decreto 1377 de 2013</strong> y las instrucciones de la Superintendencia de Industria y Comercio (SIC). McKenna Group S.A.S. está comprometido con la protección, confidencialidad y uso legítimo de los datos personales de sus clientes, proveedores y usuarios.
+  </div>
+
+  <div class="legal-body">
+
+    <h2><span class="num">1</span> Responsable del tratamiento</h2>
+    <p>
+      <strong>McKenna Group S.A.S.</strong><br>
+      NIT: 901.234.567-8<br>
+      Domicilio: Bogotá D.C., Colombia<br>
+      Correo electrónico: <a href="mailto:datos@mckennagroup.co" style="color:var(--lg-green);font-weight:600;">datos@mckennagroup.co</a><br>
+      Sitio web: <a href="https://mckennagroup.co" style="color:var(--lg-green);font-weight:600;">mckennagroup.co</a>
+    </p>
+
+    <h2><span class="num">2</span> Datos personales que recopilamos</h2>
+    <p>McKenna Group S.A.S. recopila únicamente los datos necesarios para los fines descritos en esta política. Los datos que podemos tratar incluyen:</p>
+    <ul>
+      <li><strong>Datos de identificación:</strong> nombre completo, número de documento (CC, NIT, CE), razón social.</li>
+      <li><strong>Datos de contacto:</strong> correo electrónico, número de teléfono o WhatsApp, dirección de entrega.</li>
+      <li><strong>Datos comerciales:</strong> historial de pedidos, cotizaciones solicitadas, preferencias de productos.</li>
+      <li><strong>Datos de facturación:</strong> información requerida por la normativa tributaria colombiana (DIAN).</li>
+      <li><strong>Datos de navegación:</strong> dirección IP, páginas visitadas, comportamiento en el sitio web (a través de cookies y herramientas analíticas).</li>
+    </ul>
+    <p><strong>No recopilamos</strong> datos sensibles como información sobre salud, origen racial, opiniones políticas, datos biométricos ni creencias religiosas.</p>
+
+    <h2><span class="num">3</span> Finalidades del tratamiento</h2>
+    <p>Los datos personales recopilados serán tratados para las siguientes finalidades:</p>
+    <ol>
+      <li>Gestionar pedidos, cotizaciones y entregas de productos.</li>
+      <li>Emitir facturas y cumplir obligaciones tributarias y contables.</li>
+      <li>Brindar atención al cliente y soporte posventa.</li>
+      <li>Enviar comunicaciones comerciales, catálogos, novedades de productos y contenido técnico (con autorización expresa).</li>
+      <li>Mejorar la experiencia de navegación en el sitio web y personalizar el contenido.</li>
+      <li>Cumplir con requerimientos de autoridades legales o regulatorias cuando sea aplicable.</li>
+      <li>Prevenir fraudes y garantizar la seguridad de las transacciones.</li>
+    </ol>
+
+    <h2><span class="num">4</span> Base legal del tratamiento</h2>
+    <p>El tratamiento de datos se realiza sobre las siguientes bases legales:</p>
+    <ul>
+      <li><strong>Consentimiento del titular:</strong> para envío de comunicaciones comerciales y uso de cookies no esenciales.</li>
+      <li><strong>Ejecución de contrato:</strong> para la gestión de pedidos, facturación y entregas.</li>
+      <li><strong>Obligación legal:</strong> para el cumplimiento de deberes fiscales, contables y regulatorios.</li>
+      <li><strong>Interés legítimo:</strong> para la mejora del servicio y la prevención de fraudes.</li>
+    </ul>
+
+    <h2><span class="num">5</span> Transferencia y compartición de datos</h2>
+    <p>McKenna Group S.A.S. <strong>no vende ni cede datos personales</strong> a terceros con fines comerciales propios. Los datos podrán compartirse únicamente con:</p>
+    <ul>
+      <li><strong>Operadores logísticos:</strong> para la gestión de envíos y entregas a nivel nacional.</li>
+      <li><strong>Plataformas de pago:</strong> para el procesamiento seguro de transacciones.</li>
+      <li><strong>MercadoLibre Colombia:</strong> en el marco de las transacciones realizadas a través de dicha plataforma.</li>
+      <li><strong>Proveedores de tecnología:</strong> (hosting, CRM, analítica web) bajo acuerdos de confidencialidad y procesamiento de datos.</li>
+      <li><strong>Autoridades competentes:</strong> cuando sea requerido por ley (DIAN, SIC, Fiscalía, etc.).</li>
+    </ul>
+    <p>Toda transferencia de datos a terceros se realizará bajo los principios de finalidad, necesidad y proporcionalidad exigidos por la Ley 1581 de 2012.</p>
+
+    <h2><span class="num">6</span> Derechos del titular</h2>
+    <p>Como titular de sus datos personales, usted tiene los siguientes derechos, que puede ejercer en cualquier momento:</p>
+    <div class="rights-grid">
+      <div class="right-card">
+        <div class="right-label">Acceso</div>
+        <p>Conocer qué datos suyos tratamos y para qué finalidad.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-label">Corrección</div>
+        <p>Solicitar la actualización o rectificación de datos inexactos o incompletos.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-label">Supresión</div>
+        <p>Solicitar la eliminación de sus datos cuando no sean necesarios para los fines indicados.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-label">Revocación</div>
+        <p>Retirar su consentimiento para el tratamiento de datos en cualquier momento.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-label">Oposición</div>
+        <p>Oponerse al tratamiento de sus datos para fines de mercadeo o comunicaciones comerciales.</p>
+      </div>
+      <div class="right-card">
+        <div class="right-label">Portabilidad</div>
+        <p>Solicitar sus datos en un formato estructurado y de uso común.</p>
+      </div>
+    </div>
+    <p>Para ejercer cualquiera de estos derechos, envíe una solicitud escrita a <a href="mailto:datos@mckennagroup.co" style="color:var(--lg-green);font-weight:600;">datos@mckennagroup.co</a> indicando su nombre completo, número de documento y la solicitud específica. Responderemos en un plazo máximo de <strong>10 días hábiles</strong>.</p>
+    <p>Si considera que su solicitud no fue atendida correctamente, puede presentar una queja ante la <strong>Superintendencia de Industria y Comercio (SIC)</strong> en <a href="https://www.sic.gov.co" target="_blank" rel="noopener" style="color:var(--lg-green);font-weight:600;">www.sic.gov.co</a>.</p>
+
+    <h2><span class="num">7</span> Tiempo de conservación</h2>
+    <p>Los datos personales se conservarán durante el tiempo necesario para cumplir las finalidades para las que fueron recopilados, y en todo caso durante los plazos legalmente establecidos:</p>
+    <ul>
+      <li>Datos de facturación y comerciales: <strong>10 años</strong> (Código de Comercio colombiano).</li>
+      <li>Datos de contacto para comunicaciones comerciales: hasta que se revoque el consentimiento.</li>
+      <li>Datos de navegación: máximo <strong>24 meses</strong> desde su recopilación.</li>
+    </ul>
+
+    <h2><span class="num">8</span> Seguridad de los datos</h2>
+    <p>McKenna Group S.A.S. implementa medidas técnicas, organizativas y de seguridad apropiadas para proteger los datos personales contra acceso no autorizado, pérdida, destrucción o alteración, incluyendo:</p>
+    <ul>
+      <li>Cifrado SSL/TLS en todas las comunicaciones del sitio web.</li>
+      <li>Acceso restringido a los datos por parte del personal autorizado.</li>
+      <li>Copias de seguridad periódicas de la información.</li>
+      <li>Evaluación periódica de los sistemas de seguridad.</li>
+    </ul>
+
+    <h2><span class="num">9</span> Cookies y tecnologías de rastreo</h2>
+    <p>El sitio web de McKenna Group S.A.S. puede utilizar <strong>cookies esenciales</strong> para el funcionamiento del sitio y <strong>cookies analíticas</strong> para mejorar la experiencia de usuario. Las cookies analíticas solo se activan con su consentimiento previo.</p>
+    <p>Puede gestionar o deshabilitar las cookies desde la configuración de su navegador. La desactivación de cookies esenciales puede afectar el funcionamiento del sitio.</p>
+
+    <h2><span class="num">10</span> Cambios en esta política</h2>
+    <p>McKenna Group S.A.S. se reserva el derecho de actualizar esta política en cualquier momento para reflejar cambios en la normativa o en nuestras prácticas de tratamiento de datos. La versión actualizada estará siempre disponible en esta página. Le notificaremos cambios sustanciales a través de los medios de contacto registrados.</p>
+
+    <div class="legal-contact-box">
+      <p>
+        <strong>Contacto para asuntos de privacidad y datos:</strong><br>
+        Correo electrónico: <a href="mailto:datos@mckennagroup.co">datos@mckennagroup.co</a><br>
+        WhatsApp: <a href="https://wa.me/{{ WA_NUMBER }}?text=Consulta+sobre+datos+personales" target="_blank" rel="noopener">Escribir por WhatsApp</a><br>
+        Horario: Lun – Vie 8:00 – 17:30 (UTC-5, Bogotá)<br>
+        <span style="font-size:.85rem;color:#888;">Respondemos solicitudes de derechos de datos en máximo 10 días hábiles.</span>
+      </p>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

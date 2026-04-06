@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+{% block title %}{{ g.title }} — McKenna Group{% endblock %}
+{% block description %}{{ g.desc }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_image %}{% if g.producto_foto %}{{ g.producto_foto }}{% else %}{{ SITE_URL }}/static/img/og-default.jpg{% endif %}{% endblock %}
+{% block jsonld %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Article","headline":"{{ g.title }}","description":"{{ g.desc }}","datePublished":"{{ g.fecha }}","author":{"@type":"Organization","name":"McKenna Group S.A.S."},"publisher":{"@type":"Organization","name":"McKenna Group S.A.S.","logo":{"@type":"ImageObject","url":"{{ SITE_URL }}/static/img/isotipo.png"}},"mainEntityOfPage":"{{ SITE_URL }}/guias/{{ g.slug }}"}
+</script>
+{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --gd-green:      #2E8B7A;
+    --gd-dark:       #1E5C51;
+    --gd-deep:       #143D36;
+    --gd-light:      #4DB3A0;
+    --gd-pale:       #E8F5F3;
+    --gd-ultra:      #F2FAF9;
+    --gd-border:     rgba(46,139,122,0.18);
+    --gd-text:       #111111;
+    --gd-mid:        #333333;
+    --gd-soft:       #555555;
+    --gd-muted:      #888888;
+  }
+
+  /* ══════════════════════════════
+     HERO
+  ══════════════════════════════ */
+  .gd-hero {
+    padding: 80px 0 64px;
+    position: relative;
+    overflow: hidden;
+  }
+  .gd-hero::before {
+    content: '';
+    position: absolute; top: -140px; left: -140px;
+    width: 560px; height: 560px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(46,139,122,.25) 0%, transparent 65%);
+    animation: gd-pulse 7s ease-in-out infinite;
+  }
+  @keyframes gd-pulse {
+    0%,100% { transform: scale(1); opacity:.8; }
+    50%      { transform: scale(1.1); opacity:.4; }
+  }
+  .gd-hero-inner {
+    max-width: 1200px; margin: 0 auto; padding: 0 64px;
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: 40px; position: relative; z-index: 1;
+  }
+  .gd-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: rgba(255,255,255,.55); font-size: .78rem; font-weight: 600;
+    letter-spacing: 2px; text-decoration: none; text-transform: uppercase;
+    transition: color .2s; margin-bottom: 36px;
+  }
+  .gd-back::before { content: ''; width: 28px; height: 2px; background: var(--gd-light); transition: width .3s; }
+  .gd-back:hover { color: #fff; }
+  .gd-back:hover::before { width: 44px; }
+  .gd-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .gd-tag {
+    display: inline-block; padding: 4px 14px; border-radius: 20px;
+    border: 1.5px solid rgba(255,255,255,.3); color: rgba(255,255,255,.8);
+    font-size: .7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  }
+  .gd-hero-title {
+    font-size: clamp(2.2rem, 4.5vw, 3.4rem); font-weight: 800; color: #fff;
+    line-height: 1.05; margin-bottom: 18px; letter-spacing: -1px;
+  }
+  .gd-hero-title em { font-style: italic; font-weight: 300; color: var(--gd-light); }
+  .gd-hero-desc { color: rgba(255,255,255,.65); font-size: 1rem; max-width: 520px; line-height: 1.85; }
+  .gd-hero-meta { display: flex; gap: 24px; margin-top: 26px; flex-wrap: wrap; }
+  .gd-hero-meta span {
+    display: flex; align-items: center; gap: 7px;
+    color: rgba(255,255,255,.45); font-size: .78rem; font-weight: 600; letter-spacing: .5px;
+  }
+  .gd-hero-icon-wrap {
+    font-size: 9rem; color: rgba(255,255,255,.05); flex-shrink: 0; display: none;
+  }
+  @media(min-width:900px) { .gd-hero-icon-wrap { display: block; } }
+
+  /* ══════════════════════════════
+     STICKY NAV
+  ══════════════════════════════ */
+  .gd-sticky-nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(255,255,255,.97); backdrop-filter: blur(12px);
+    border-bottom: 2px solid var(--gd-pale);
+    padding: 0 64px; display: flex; overflow-x: auto; align-items: center; gap: 0;
+  }
+  .gd-nav-item {
+    font-size: .7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gd-muted); padding: 16px 20px; text-decoration: none;
+    border-bottom: 3px solid transparent; white-space: nowrap; transition: all .2s;
+  }
+  .gd-nav-item:hover { color: var(--gd-green); border-bottom-color: var(--gd-green); }
+  .gd-nav-wa {
+    margin-left: auto; padding: 8px 18px;
+    background: #25D366; color: #fff; border-radius: 6px;
+    font-size: .75rem; font-weight: 700; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: .5px; white-space: nowrap;
+  }
+  .gd-nav-wa:hover { background: #1ebe5c; }
+
+  /* ══════════════════════════════
+     WRAPPER
+  ══════════════════════════════ */
+  .gd-content-wrap { max-width: 1200px; margin: 0 auto; padding: 0 64px; }
+
+  /* ══════════════════════════════
+     SECCIÓN INTRO (00)
+  ══════════════════════════════ */
+  .gd-intro {
+    padding: 80px 0 56px;
+    max-width: 1200px; margin: 0 auto; padding-left: 64px; padding-right: 64px;
+  }
+  .gd-intro-grid {
+    display: grid; grid-template-columns: 180px 1fr; gap: 48px; align-items: start;
+  }
+  .gd-intro-num {
+    font-size: 96px; font-weight: 800; line-height: 1;
+    color: var(--gd-pale); letter-spacing: -4px; position: relative; top: -8px;
+  }
+  .gd-intro-title {
+    font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 800;
+    color: var(--gd-text); line-height: 1.1; margin-bottom: 14px; letter-spacing: -1px;
+  }
+  .gd-intro-title em { font-style: italic; font-weight: 400; color: var(--gd-green); }
+  .gd-intro-lead {
+    font-size: 1rem; color: var(--gd-soft); line-height: 1.85; max-width: 600px;
+  }
+
+  /* ══════════════════════════════
+     ACID-CARD — SECCIONES
+  ══════════════════════════════ */
+  .gd-sections-wrap { padding-bottom: 0; }
+
+  .gd-acid-section {
+    padding: 0 0 0;
+    border-top: 2px solid var(--gd-pale);
+  }
+  .gd-acid-section:first-child { border-top: none; }
+
+  .gd-section-inner { max-width: 1200px; margin: 0 auto; padding: 0 64px; }
+
+  .gd-acid-card {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    border: none;
+    overflow: visible;
+    margin-bottom: 0;
+  }
+
+  /* Sidebar de cada sección */
+  .gd-acid-sidebar {
+    background: var(--gd-deep);
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+  .gd-acid-sidebar.color-mid  { background: var(--gd-dark); }
+  .gd-acid-sidebar.color-med  { background: var(--gd-green); }
+
+  /* Foto del producto (sección 01 únicamente) */
+  .gd-product-img-wrap {
+    background: #fff;
+    display: flex; justify-content: center; align-items: center;
+    padding: 36px 24px 28px;
+    border-bottom: 1.5px solid var(--gd-pale);
+  }
+  .gd-product-img-wrap img {
+    width: 200px; height: auto;
+    object-fit: contain;
+    transition: transform .35s ease;
+  }
+  .gd-product-img-wrap img:hover { transform: scale(1.05); }
+
+  /* Contenido del sidebar */
+  .gd-sidebar-inner {
+    padding: 32px 28px 40px;
+    flex: 1; display: flex; flex-direction: column; gap: 0;
+  }
+  .gd-acid-name-big {
+    font-size: 28px; font-weight: 800; line-height: 1.1; color: #fff;
+    margin-bottom: 6px; letter-spacing: -.5px;
+  }
+  .gd-acid-short {
+    font-size: .68rem; font-weight: 600; letter-spacing: 2.5px;
+    text-transform: uppercase; color: rgba(255,255,255,.5); margin-bottom: 28px;
+  }
+  .gd-ft-table { width: 100%; border-collapse: collapse; }
+  .gd-ft-table td {
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.07);
+    font-size: 12px; line-height: 1.5; vertical-align: top;
+  }
+  .gd-ft-table tr:last-child td { border-bottom: none; }
+  .gd-ft-table td:first-child {
+    font-weight: 700; color: rgba(255,255,255,.45);
+    font-size: .65rem; letter-spacing: 1px; text-transform: uppercase;
+    width: 40%; padding-right: 8px; padding-top: 9px;
+  }
+  .gd-ft-table td:last-child { color: #fff; font-weight: 500; }
+
+  /* Sidebar de secciones 02-N: número grande */
+  .gd-sec-num-sidebar {
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding: 40px 28px; height: 100%;
+  }
+  .gd-sec-num-big {
+    font-size: 96px; font-weight: 800; line-height: 1;
+    color: rgba(255,255,255,.08); letter-spacing: -4px; margin-bottom: 16px;
+  }
+  .gd-sec-label {
+    font-size: .65rem; font-weight: 700; letter-spacing: 3px;
+    text-transform: uppercase; color: rgba(255,255,255,.4); margin-bottom: 10px;
+  }
+  .gd-sec-title-side {
+    font-size: 1.05rem; font-weight: 700; color: rgba(255,255,255,.85);
+    line-height: 1.35;
+  }
+
+  /* CTA comprar / MeLi en sidebar */
+  .gd-sidebar-cta {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-top: 20px; padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,.1);
+  }
+  .gd-sbtn {
+    padding: 10px 14px; font-size: .8rem; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    text-decoration: none; border-radius: 6px; transition: .2s; border: none;
+  }
+  .gd-sbtn-buy { background: #fff; color: var(--gd-deep); }
+  .gd-sbtn-buy:hover { background: var(--gd-pale); }
+  .gd-sbtn-meli { background: transparent; color: rgba(255,255,255,.7); border: 1.5px solid rgba(255,255,255,.25); }
+  .gd-sbtn-meli:hover { border-color: rgba(255,255,255,.6); color: #fff; }
+  .gd-sbtn-wa { background: #25D366; color: #fff; }
+  .gd-sbtn-wa:hover { background: #1ebe5c; }
+
+  /* Cuerpo de cada sección */
+  .gd-acid-body {
+    padding: 52px 56px;
+    background: #fff;
+  }
+
+  /* Títulos de subsección (card-section-title style) */
+  .gd-acid-body .card-section-title {
+    font-size: .68rem; font-weight: 700; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--gd-green);
+    margin-bottom: 16px; margin-top: 36px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .gd-acid-body .card-section-title::after {
+    content: ''; flex: 1; height: 1.5px; background: var(--gd-pale);
+  }
+  .gd-acid-body .card-section-title:first-child { margin-top: 0; }
+
+  /* Texto cuerpo */
+  .gd-acid-body p, .gd-acid-body .body-text {
+    font-size: .95rem; font-weight: 400; color: var(--gd-mid); line-height: 1.85; margin-bottom: 14px;
+  }
+  .gd-acid-body ul, .gd-acid-body ol { padding-left: 22px; margin-bottom: 14px; }
+  .gd-acid-body li { font-size: .95rem; color: var(--gd-mid); line-height: 1.85; margin-bottom: 6px; }
+
+  /* Tabla */
+  .gd-acid-body table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: .88rem; }
+  .gd-acid-body th, .gd-acid-body td {
+    border: 1.5px solid var(--gd-border); padding: 10px 15px; text-align: left;
+  }
+  .gd-acid-body th {
+    background: var(--gd-pale); color: var(--gd-deep);
+    font-weight: 700; font-size: .75rem; letter-spacing: .5px; text-transform: uppercase;
+  }
+
+  /* Protocol grid */
+  .gd-acid-body .protocol-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0;
+  }
+  .gd-acid-body .protocol-box {
+    border: 1.5px solid var(--gd-pale); padding: 22px 24px; background: var(--gd-ultra);
+  }
+  .gd-acid-body .protocol-box h4 {
+    font-size: .85rem; font-weight: 700; color: var(--gd-dark); margin-bottom: 8px;
+  }
+  .gd-acid-body .protocol-box p { font-size: .85rem; color: var(--gd-soft); line-height: 1.7; margin: 0; }
+
+  /* Steps list */
+  .gd-acid-body .steps-list {
+    list-style: none; counter-reset: steps; margin: 16px 0; padding: 0;
+  }
+  .gd-acid-body .steps-list li {
+    counter-increment: steps;
+    display: flex; gap: 18px; margin-bottom: 18px;
+    font-size: .93rem; color: var(--gd-mid); line-height: 1.75;
+    padding-left: 0;
+  }
+  .gd-acid-body .steps-list li::before {
+    content: counter(steps, decimal-leading-zero);
+    font-size: 22px; font-weight: 800; color: var(--gd-green);
+    flex-shrink: 0; line-height: 1.35; min-width: 32px;
+  }
+  .gd-acid-body .steps-list li strong { font-weight: 700; color: var(--gd-text); }
+
+  /* Warning box */
+  .gd-acid-body .warning-box {
+    background: var(--gd-ultra); border-left: 4px solid var(--gd-green);
+    padding: 20px 24px; margin: 20px 0;
+    font-size: .9rem; color: var(--gd-mid); line-height: 1.8;
+  }
+  .gd-acid-body .warning-box strong { font-weight: 700; color: var(--gd-dark); }
+
+  /* FAQ items */
+  .gd-acid-body .faq-item {
+    background: var(--gd-ultra); border-left: 3px solid var(--gd-green);
+    padding: 16px 18px; border-radius: 0 8px 8px 0; margin-bottom: 14px;
+  }
+  .gd-acid-body .faq-item strong {
+    color: var(--gd-deep); display: block; margin-bottom: 6px; font-size: .93rem;
+  }
+  .gd-acid-body .faq-item p { margin: 0; color: var(--gd-soft); font-size: .88rem; }
+
+  /* Ref tag inline */
+  .ref-tag {
+    display: inline-block; font-size: .65rem; font-weight: 600;
+    color: var(--gd-dark); border: 1.5px solid var(--gd-pale);
+    background: var(--gd-ultra); padding: 2px 8px; margin-left: 4px;
+    vertical-align: super; border-radius: 3px;
+  }
+
+  /* ══════════════════════════════
+     MÁS GUÍAS (dark panel)
+  ══════════════════════════════ */
+  .gd-more-section {
+    background: var(--gd-deep); padding: 72px 64px;
+  }
+  .gd-more-inner { max-width: 1200px; margin: 0 auto; }
+  .gd-more-title {
+    font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 800; color: #fff;
+    margin-bottom: 10px; letter-spacing: -0.5px; line-height: 1.1;
+  }
+  .gd-more-title em { font-style: italic; font-weight: 300; color: var(--gd-light); }
+  .gd-more-lead { color: rgba(255,255,255,.55); font-size: .95rem; max-width: 480px; margin-bottom: 40px; line-height: 1.8; }
+  .gd-more-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; }
+  .gd-more-card {
+    background: rgba(255,255,255,.05); padding: 32px 28px;
+    border: 1px solid rgba(78,179,160,.18); transition: background .3s;
+    text-decoration: none; display: block;
+  }
+  .gd-more-card:hover { background: rgba(255,255,255,.1); }
+  .gd-more-card h3 { font-size: 1.05rem; font-weight: 700; color: #fff; margin-bottom: 8px; line-height: 1.3; }
+  .gd-more-card p { font-size: .85rem; color: rgba(255,255,255,.55); line-height: 1.7; margin: 0; }
+
+  /* ══════════════════════════════
+     REFERENCIAS
+  ══════════════════════════════ */
+  .gd-refs-section {
+    background: var(--gd-ultra); border-top: 2px solid var(--gd-pale); padding: 72px 64px;
+  }
+  .gd-refs-inner { max-width: 1200px; margin: 0 auto; }
+  .gd-refs-title {
+    font-size: 2rem; font-weight: 800; color: var(--gd-text); margin-bottom: 6px; letter-spacing: -.5px;
+  }
+  .gd-refs-subtitle { font-size: .82rem; color: var(--gd-muted); margin-bottom: 36px; }
+  .gd-refs-list {
+    list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  }
+  .gd-refs-list li {
+    font-size: .84rem; color: var(--gd-soft); line-height: 1.75;
+    padding-left: 20px; position: relative;
+  }
+  .gd-refs-list li::before { content: '—'; position: absolute; left: 0; color: var(--gd-green); font-weight: 700; }
+  .gd-refs-list a { color: var(--gd-green); font-weight: 600; text-decoration: none; }
+  .gd-refs-list a:hover { text-decoration: underline; }
+  .gd-refs-badge {
+    display: inline-block; font-size: .67rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--gd-deep); border: 1.5px solid var(--gd-border);
+    background: #fff; padding: 2px 8px; margin-right: 6px; border-radius: 4px; vertical-align: middle;
+  }
+
+  /* ══════════════════════════════
+     RESPONSIVE
+  ══════════════════════════════ */
+  @media(max-width: 960px) {
+    .gd-hero-inner { padding: 0 32px; }
+    .gd-intro { padding-left: 32px; padding-right: 32px; }
+    .gd-sticky-nav { padding: 0 24px; }
+    .gd-section-inner { padding: 0 32px; }
+    .gd-acid-card { grid-template-columns: 1fr; }
+    .gd-acid-sidebar { flex-direction: row; flex-wrap: wrap; }
+    .gd-product-img-wrap { width: 180px; border-bottom: none; border-right: 1.5px solid var(--gd-pale); }
+    .gd-acid-body { padding: 36px 32px; }
+    .gd-acid-body .protocol-grid { grid-template-columns: 1fr; }
+    .gd-intro-grid { grid-template-columns: 1fr; gap: 0; }
+    .gd-intro-num { font-size: 64px; margin-bottom: 8px; }
+    .gd-more-section { padding: 56px 32px; }
+    .gd-more-grid { grid-template-columns: 1fr; }
+    .gd-refs-section { padding: 56px 32px; }
+    .gd-refs-list { grid-template-columns: 1fr; }
+  }
+  @media(max-width: 640px) {
+    .gd-hero-inner { padding: 0 24px; }
+    .gd-intro { padding: 48px 24px; }
+    .gd-sticky-nav { padding: 0 16px; }
+    .gd-nav-item { padding: 13px 10px; font-size: .65rem; letter-spacing: 1px; }
+    .gd-section-inner { padding: 0 16px; }
+    .gd-acid-body { padding: 28px 20px; }
+    .gd-acid-sidebar { flex-direction: column; }
+    .gd-product-img-wrap { width: 100%; border-right: none; border-bottom: 1.5px solid var(--gd-pale); }
+    .gd-more-section { padding: 44px 24px; }
+    .gd-refs-section { padding: 44px 24px; }
+  }
+</style>
+
+<!-- ═══════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════ -->
+<section class="gd-hero" style="background:{{ g.color }};">
+  <div class="gd-hero-inner">
+    <div>
+      <a href="/guias" class="gd-back"><i class="ph ph-arrow-left"></i> Todas las guías</a>
+      <div class="gd-tags">
+        {% for tag in g.tags %}
+        <span class="gd-tag">{{ tag }}</span>
+        {% endfor %}
+      </div>
+      <h1 class="gd-hero-title">{{ g.title }}</h1>
+      <p class="gd-hero-desc">{{ g.desc }}</p>
+      <div class="gd-hero-meta">
+        <span><i class="ph ph-calendar"></i> {{ g.fecha }}</span>
+        <span><i class="ph ph-flask"></i> {{ g.category }}</span>
+        {% if g.referencias %}<span><i class="ph ph-books"></i> {{ g.referencias|length }} fuentes científicas</span>{% endif %}
+      </div>
+    </div>
+    <div class="gd-hero-icon-wrap"><i class="ph ph-{{ g.icon }}"></i></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════
+     STICKY NAV
+════════════════════════════════════════════════════ -->
+<nav class="gd-sticky-nav">
+  {% for sec in g.secciones %}
+  <a href="#sec-{{ loop.index }}" class="gd-nav-item">{{ sec.titulo }}</a>
+  {% endfor %}
+  {% if g.referencias %}<a href="#referencias" class="gd-nav-item">Referencias</a>{% endif %}
+  <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C+tengo+una+pregunta+sobre+{{ g.title_short | urlencode }}"
+     target="_blank" rel="noopener" class="gd-nav-wa">
+    <i class="ph ph-whatsapp-logo"></i> Consultar
+  </a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════
+     INTRO (00)
+════════════════════════════════════════════════════ -->
+<div class="gd-intro">
+  <div class="gd-intro-grid">
+    <div class="gd-intro-num">00</div>
+    <div>
+      <h2 class="gd-intro-title">Guía técnica de <em>uso</em></h2>
+      <p class="gd-intro-lead">{{ g.desc }}</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SECCIONES — ACID-CARD LAYOUT
+════════════════════════════════════════════════════ -->
+<div class="gd-sections-wrap">
+{% for sec in g.secciones %}
+<div id="sec-{{ loop.index }}" class="gd-acid-section">
+<div class="gd-section-inner">
+<div class="gd-acid-card">
+
+  <!-- ── Sidebar ─────────────────── -->
+  {% if loop.first and g.producto_foto %}
+  {# Sección 01: foto del producto #}
+  <div class="gd-acid-sidebar">
+    <div class="gd-product-img-wrap">
+      <img src="{{ g.producto_foto }}" alt="{{ g.producto_nombre }}">
+    </div>
+    <div class="gd-sidebar-inner">
+      <div class="gd-acid-name-big">{{ g.title_short }}</div>
+      <div class="gd-acid-short">{{ g.category }}</div>
+      <table class="gd-ft-table">
+        <tr><td>Categoría</td><td>{{ g.category }}</td></tr>
+        <tr><td>Tags</td><td>{{ g.tags | join(', ') }}</td></tr>
+        <tr><td>Publicado</td><td>{{ g.fecha }}</td></tr>
+        {% if g.producto_precio %}<tr><td>Precio</td><td>{{ g.producto_precio }}</td></tr>{% endif %}
+      </table>
+      {% if g.producto_slug %}
+      <div class="gd-sidebar-cta">
+        <a href="/producto/{{ g.producto_slug }}" class="gd-sbtn gd-sbtn-buy">
+          <i class="ph ph-shopping-cart"></i> Comprar en mckennagroup.co
+        </a>
+        {% if g.meli_url %}
+        <a href="{{ g.meli_url }}" target="_blank" rel="noopener" class="gd-sbtn gd-sbtn-meli">
+          <i class="ph ph-storefront"></i> Ver en MercadoLibre
+        </a>
+        {% endif %}
+        <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C+quiero+información+sobre+{{ g.title_short | urlencode }}"
+           target="_blank" rel="noopener" class="gd-sbtn gd-sbtn-wa">
+          <i class="ph ph-whatsapp-logo"></i> Consultar al equipo
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {% else %}
+  {# Secciones 02+: número grande + título #}
+  {% set colors = ['color-mid', '', 'color-med', 'color-mid', '', 'color-med'] %}
+  <div class="gd-acid-sidebar {{ colors[loop.index0 % 6] }}">
+    <div class="gd-sec-num-sidebar">
+      <div class="gd-sec-num-big">{{ sec.num }}</div>
+      <div class="gd-sec-label">Sección</div>
+      <div class="gd-sec-title-side">{{ sec.titulo }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Cuerpo ─────────────────── -->
+  <div class="gd-acid-body">
+    {{ sec.contenido | safe }}
+  </div>
+
+</div>
+</div>
+</div>
+{% endfor %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     MÁS GUÍAS
+════════════════════════════════════════════════════ -->
+<div class="gd-more-section">
+  <div class="gd-more-inner">
+    <h2 class="gd-more-title">Más <em>guías técnicas</em></h2>
+    <p class="gd-more-lead">Continúa aprendiendo con nuestros protocolos especializados en materias primas.</p>
+    <div class="gd-more-grid">
+      <a href="/guias/kit-acidos" class="gd-more-card">
+        <h3><i class="ph ph-flask" style="color:var(--gd-light);margin-right:8px;"></i> Guía de Ácidos Profesionales</h3>
+        <p>Protocolos completos para Ácido Salicílico 20%, Ácido Hialurónico 85% y Ácido Glicólico 50%.</p>
+      </a>
+      <a href="/guias" class="gd-more-card">
+        <h3><i class="ph ph-books" style="color:var(--gd-light);margin-right:8px;"></i> Ver todas las guías →</h3>
+        <p>Explora el catálogo completo de guías técnicas de McKenna Group.</p>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     BIBLIOGRAFÍA
+════════════════════════════════════════════════════ -->
+{% if g.referencias %}
+<div id="referencias" class="gd-refs-section">
+  <div class="gd-refs-inner">
+    <h2 class="gd-refs-title">Bibliografía</h2>
+    <p class="gd-refs-subtitle">Fuentes científicas consultadas para la elaboración de esta guía técnica.</p>
+    <ul class="gd-refs-list">
+      {% for ref in g.referencias %}
+      <li>
+        <span class="gd-refs-badge">{{ ref.fuente }} {{ ref.año }}</span>
+        {% if ref.url %}<a href="{{ ref.url }}" target="_blank" rel="noopener">{{ ref.titulo }}</a>
+        {% else %}{{ ref.titulo }}{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

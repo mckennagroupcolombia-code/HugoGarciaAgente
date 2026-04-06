@@ -1,12 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
-<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-04">
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-05">
   <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
   <Cabecera>
     <NumeroFacturaProveedor>HAP11350</NumeroFacturaProveedor>
     <FechaFactura>2026-03-24</FechaFactura>
     <Moneda>COP</Moneda>
     <Proveedor>
-      <NIT />
+      <NIT>901775946</NIT>
       <Nombre>HAPLAZ.COM S.A.S</Nombre>
     </Proveedor>
   </Cabecera>
@@ -16,17 +16,17 @@
       <DescripcionOriginalProveedor>Bolsa de Seguridad Blanca con Portaguia 12x20cm - 100 Unidades</DescripcionOriginalProveedor>
       <Unidad>
         <CantidadOriginal codigoDIAN="NAR">2.0</CantidadOriginal>
-        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">2.0</CantidadConvertida>
-        <ReglaConversion>1 NAR = 1 Un | 2.0 × 1 = 2.0 Un</ReglaConversion>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">200.0</CantidadConvertida>
+        <ReglaConversion>1 NAR contiene 100 Un | 2.0 × 100 = 200.0 Un</ReglaConversion>
       </Unidad>
       <Precios moneda="COP">
         <Subtotal>37144.54</Subtotal>
         <IVA>7057.46</IVA>
         <Total>44202.00</Total>
-        <PrecioUnitarioMin>22101.0000</PrecioUnitarioMin>
-        <PrecioUnitarioMinDesc>Precio por 1 Un (total 44202.00 COP / 2.0 Un)</PrecioUnitarioMinDesc>
+        <PrecioUnitarioMin>221.0100</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 44202.00 COP / 200.0 Un)</PrecioUnitarioMinDesc>
       </Precios>
-      <EstadoSiigo>NUEVO</EstadoSiigo>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
     </Item>
   </Detalle>
   <Totales moneda="COP">
