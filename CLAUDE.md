@@ -490,6 +490,82 @@ Si fal.ai no tiene saldo, `generar_video_ken_burns()` genera el video localmente
 
 ---
 
+## Generación de Contenido Científico y Web
+
+Scripts de investigación científica automatizada y publicación en WordPress. **No forman parte del CLI del agente** — se ejecutan directamente desde la terminal o desde la opción 7 del CLI.
+
+### Módulo principal: knowledge_agent.py
+
+```python
+# app/tools/knowledge_agent.py — flujo:
+1. buscar_pubmed(termino, max_results=5)
+     → NCBI E-utilities API (gratuita, sin key)
+     → Endpoints: esearch.fcgi + efetch.fcgi
+     → Extrae: PMID, título, abstract, autores, año, URL
+     → Query con filtros MeSH: cosmetic[MeSH] OR pharmaceutical[MeSH]
+     → Fallback sin filtros si no retorna resultados
+
+2. buscar_arxiv(termino, max_results=3)
+     → ArXiv API Atom (gratuita, sin key)
+     → URL: https://export.arxiv.org/api/query
+     → Parsea XML: <entry>, <title>, <summary>, <published>
+     → Útil para nanomateriales y tendencias emergentes
+
+3. scrape_url(url)
+     → scrapling (librería especializada de web scraping)
+     → Fallback: requests + regex sobre <p> y <div>
+     → Límite: 4000 caracteres por URL
+
+4. generar_y_publicar_contenido(tema, tipo, publicar=True)
+     → Tipos: "post_blog", "receta", "manual_uso", "ficha"
+     → Enriquece con referencias PubMed + ArXiv via Gemini
+     → Almacena embeddings en ChromaDB (para respuestas preventa)
+     → Publica en WordPress vía REST API si publicar=True
+
+5. publicar_en_wordpress(titulo, contenido, categoria_id)
+     → Endpoint: https://mckennagroup.co/wp-json/wp/v2/posts
+     → Auth: Base64(WP_USER:WP_APP_PASSWORD)
+     → Variables: WP_USER, WP_APP_PASSWORD
+```
+
+### Scripts de generación masiva
+
+| Script | Descripción | Output |
+|--------|-------------|--------|
+| `generar_guias_masivas.py` | 62 ingredientes farmacéuticos/cosméticos. Cada guía tiene 7 secciones HTML: descripción, concentraciones (tabla), compatibilidad, incorporación, almacenamiento, normativa INVIMA, FAQ. Integra PubMed. | `/PAGINA_WEB/site/data/guias.json` |
+| `generar_posts_masivos.py` | 20+ posts comparativos (ej: Niacinamida vs Clindamicina). Cada post incluye hallazgos contrastados, gráficas SVG/CSS inline, bibliografía. Usa PubMed con filtros MeSH. | `/PAGINA_WEB/site/data/posts.json` |
+| `generar_recetas_masivas.py` | 40+ recetas de formulación en 4 categorías: cosmética, nutrición, perfumería, hogar. Genera ingredientes, cantidades, modo de preparación, precauciones con Gemini. | `/PAGINA_WEB/site/data/recetas.json` |
+
+### Uso desde consola
+
+```bash
+# Knowledge agent (artículo específico)
+source venv/bin/activate
+python3 -c "
+from app.tools.knowledge_agent import generar_y_publicar_contenido
+generar_y_publicar_contenido('Niacinamida cosmética', 'post_blog', publicar=True)
+"
+
+# Guías masivas (62 ingredientes)
+python3 generar_guias_masivas.py
+
+# Posts comparativos
+python3 generar_posts_masivos.py
+
+# Recetas de formulación
+python3 generar_recetas_masivas.py
+```
+
+### Variables de entorno requeridas
+
+```env
+WP_USER            # Usuario WordPress con permisos de editor
+WP_APP_PASSWORD    # Application Password (WP → Usuarios → Contraseñas de aplicación)
+WC_URL             # https://mckennagroup.co (también usado como WP_URL base)
+```
+
+---
+
 ## Decisiones de Diseño Importantes
 
 1. **Fuente de verdad de stock**: cada plataforma es fuente de verdad de su propio stock cuando vende. No hay un "master" externo.
