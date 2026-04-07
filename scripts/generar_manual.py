@@ -344,7 +344,7 @@ def portada(s: dict) -> list:
     # Descripción
     elems.append(Paragraph(
         'Guía completa de operación, comandos, arquitectura técnica y flujos de trabajo<br/>'
-        f'del sistema de automatización empresarial de McKenna Group · v2.2 · {fecha_gen}',
+        f'del sistema de automatización empresarial de McKenna Group · v3.0 · {fecha_gen}',
         s['portada_desc']
     ))
     elems.append(sp(1.2))
@@ -354,7 +354,7 @@ def portada(s: dict) -> list:
         [Paragraph('97%', s['kpi_num']),
          Paragraph('24/7', s['kpi_num']),
          Paragraph('30', s['kpi_num']),
-         Paragraph('10+', s['kpi_num'])],
+         Paragraph('12+', s['kpi_num'])],
         [Paragraph('Automatización', s['kpi_lbl']),
          Paragraph('Disponibilidad', s['kpi_lbl']),
          Paragraph('Herramientas IA', s['kpi_lbl']),
@@ -414,6 +414,11 @@ def tabla_contenidos(s: dict) -> list:
             'Alertas programadas', 'Reportes automáticos', 'Backup nocturno']),
         ('11', 'Glosario Técnico y Preguntas Frecuentes', [
             'Términos clave', 'FAQ operadores', 'Solución de problemas']),
+        ('12', 'Generación de Contenido Científico y Web', [
+            'Knowledge Agent: PubMed + ArXiv + Scrapling',
+            'Pipeline multimedia Facebook',
+            'Publicación automática en WordPress',
+            'Scripts de generación masiva']),
     ]
 
     for num, titulo, subs in toc:
@@ -1278,7 +1283,7 @@ def sec11_glosario_faq(s: dict) -> list:
     cierre_t = Table(
         [[Paragraph(
             'McKenna Group S.A.S. · Bogotá, Colombia · mckennagroup.co\n'
-            f'Manual de Usuario Hugo García v2.2 · Generado el {fecha_gen}\n'
+            f'Manual de Usuario Hugo García v3.0 · Generado el {fecha_gen}\n'
             'Este documento es confidencial y de uso interno.',
             ParagraphStyle('__c', fontName='Helvetica', fontSize=8.5,
                            textColor=C_GRAY, alignment=TA_CENTER, leading=14)
@@ -1292,6 +1297,146 @@ def sec11_glosario_faq(s: dict) -> list:
     ]))
     elems.append(cierre_t)
 
+    return elems
+
+
+# ══════════════════════════════════════════════
+# SEC 12 — CONTENIDO CIENTÍFICO Y WEB
+# ══════════════════════════════════════════════
+
+def sec12_contenido_cientifico(s: dict) -> list:
+    elems = []
+    elems += section_header('Sección 12', 'Generación de Contenido Científico y Web', s, C_TEAL)
+
+    elems.append(body(
+        'El agente cuenta con un sistema completo de investigación científica automatizada y producción '
+        'de contenido multimedia. Este sistema opera en dos capas: (1) búsqueda y síntesis de '
+        'literatura científica usando bases de datos públicas, y (2) producción audiovisual para '
+        'redes sociales. Todo el contenido generado está enriquecido con referencias reales '
+        'de PubMed y ArXiv, lo que otorga credibilidad técnica a la marca McKenna Group.',
+        s))
+    elems.append(sp(0.3))
+
+    # ── 12.1 Knowledge Agent
+    elems.append(subsection('12.1 Knowledge Agent — Investigación Científica Automática', s, C_TEAL))
+    elems.append(body(
+        'El módulo <b>app/tools/knowledge_agent.py</b> es el motor central de investigación. '
+        'Consulta bases de datos científicas internacionales, extrae los hallazgos más relevantes '
+        'para el sector farmacéutico/cosmético y genera contenido estructurado listo para publicar.',
+        s))
+    elems.append(sp(0.2))
+
+    fuentes = [
+        ['Fuente', 'URL / API', 'Credenciales', 'Tipo de contenido'],
+        ['PubMed (NCBI)', 'eutils.ncbi.nlm.nih.gov', 'Sin clave (gratuita)', 'Artículos clínicos, abstracts, estudios farmacéuticos'],
+        ['ArXiv', 'export.arxiv.org/api/query', 'Sin clave (gratuita)', 'Preprints de nanomateriales y tendencias emergentes'],
+        ['Scrapling / Web', 'Cualquier URL pública', 'Sin clave', 'Texto de artículos, fichas técnicas externas'],
+    ]
+    elems.append(tabla_comandos(fuentes, s,
+        col_widths=[2.8*cm, 4.5*cm, 3.2*cm, PAGE_W - 2*MARGEN - 10.7*cm]))
+    elems.append(sp(0.3))
+
+    elems.append(body('<b>Flujo completo del Knowledge Agent:</b>', s))
+    pasos_ka = [
+        ('1. buscar_pubmed(termino)', 'Consulta NCBI E-utilities. Usa filtros MeSH: cosmetic[MeSH] OR pharmaceutical[MeSH]. Si no retorna resultados, reintenta sin filtros. Extrae: PMID, título, abstract, autores, año, URL.'),
+        ('2. buscar_arxiv(termino)', 'Consulta ArXiv API Atom. Parsea XML buscando <entry>, <title>, <summary>. Retorna hasta 3 preprints relevantes.'),
+        ('3. scrape_url(url)', 'Si se provee una URL externa, usa la librería scrapling para extraer texto. Fallback: requests + regex sobre etiquetas <p> y <div>. Límite: 4 000 caracteres.'),
+        ('4. Gemini enriquece', 'Los abstracts y textos extraídos se pasan a Gemini como contexto. El modelo genera contenido estructurado (post, ficha, receta, manual de uso) integrando las referencias.'),
+        ('5. Almacena en ChromaDB', 'El contenido generado se vectoriza y almacena en memoria_vectorial/ para que el agente pueda usarlo en respuestas de preventa MeLi.'),
+        ('6. Publica en WordPress', 'Llama a la REST API de WordPress con autenticación Basic (Base64 de WP_USER:WP_APP_PASSWORD). El post queda publicado en mckennagroup.co.'),
+    ]
+    for cmd, desc in pasos_ka:
+        elems.append(nota('→', f'<b>{cmd}</b>  {desc}', s, bg=colors.HexColor('#f0fdfa'), border=C_TEAL))
+        elems.append(sp(0.05))
+
+    elems.append(sp(0.4))
+
+    # ── 12.2 Pipeline multimedia Facebook
+    elems.append(subsection('12.2 Pipeline Multimedia para Facebook', s, C_TEAL))
+    elems.append(body(
+        'El script <b>pipeline_contenido_facebook.py</b> conecta seis APIs en secuencia para producir '
+        'un video de 20-25 segundos con voz, imagen generada por IA y paleta de marca McKenna, '
+        'listo para publicar en la página de Facebook.',
+        s))
+    elems.append(sp(0.2))
+
+    pipeline_fb = [
+        ['Paso', 'Herramienta', 'Qué hace', 'Variable .env'],
+        ['1. Copy', 'Gemini 2.5-Flash', 'Genera título, narración (25-40 palabras), prompts de imagen y video, caption y hashtags', 'GOOGLE_API_KEY'],
+        ['2. Imagen', 'Ideogram AI', 'Genera fondo fotorrealista SIN texto (1200×630 px). Retorna bytes + URL pública', 'IDEOGRAM_API_KEY'],
+        ['3. Composición', 'PIL (Pillow)', 'Superpone título, datos técnicos, logo McKenna y paleta de marca (#143D36, #2E8B7A, #FFC83C) sobre el fondo', '—'],
+        ['4. Voz', 'ElevenLabs TTS', 'Narración en español colombiano. Voz Liam, model eleven_multilingual_v2', 'ELEVENLABS_API_KEY'],
+        ['5. Video IA', 'fal.ai / Kling v1.6', 'Video cinematográfico 10s×2 escenas desde imagen + prompts de movimiento. Fallback: Ken Burns con ffmpeg', 'FAL_KEY'],
+        ['6. Mezcla', 'ffmpeg', 'Une video + MP3. Codec H.264, bitrate 5 000k, resampling de audio', '—'],
+        ['7. Publicación', 'Facebook Graph API v19', 'Sube el video con caption + hashtags a la página McKenna', 'FB_PAGE_TOKEN, FB_PAGE_ID'],
+    ]
+    elems.append(tabla_comandos(pipeline_fb, s,
+        col_widths=[1.2*cm, 2.6*cm, 7.2*cm, PAGE_W - 2*MARGEN - 11.2*cm]))
+    elems.append(sp(0.3))
+
+    elems.append(nota('💡', 'Si fal.ai no tiene saldo, generar_video_ken_burns() genera el video '
+        'localmente con ffmpeg aplicando un efecto de zoom cinematográfico (Ken Burns) '
+        'sobre la imagen estática. No requiere conexión externa.', s,
+        bg=colors.HexColor('#fffbeb'), border=C_AMBER))
+    elems.append(sp(0.3))
+
+    elems.append(body('<b>Comandos de uso desde terminal:</b>', s))
+    cmds_fb = [
+        ['Comando', 'Descripción'],
+        ['python3 pipeline_contenido_facebook.py --tipo ficha --slug acido-ascorbico', 'Pipeline completo para un ingrediente específico'],
+        ['python3 pipeline_contenido_facebook.py --tipo receta --slug serum-vitamina-c', 'Pipeline completo para una receta'],
+        ['python3 pipeline_contenido_facebook.py --tipo comparativa', 'Comparativa de dos activos'],
+        ['python3 pipeline_contenido_facebook.py --tipo tip', 'Consejo de formulación'],
+        ['python3 pipeline_contenido_facebook.py --auto', 'Elige automáticamente el mejor contenido disponible'],
+        ['python3 generar_infografias_facebook.py --tipo receta --n 3', 'Genera 3 infografías estáticas (sin video)'],
+        ['python3 sincronizar_facebook.py', 'Borra todos los posts y republica la página completa'],
+    ]
+    elems.append(tabla_comandos(cmds_fb, s,
+        col_widths=[PAGE_W - 2*MARGEN - 4.0*cm, 4.0*cm]))
+    elems.append(sp(0.4))
+
+    # ── 12.3 Scripts de generación masiva
+    elems.append(subsection('12.3 Scripts de Generación Masiva de Contenido Web', s, C_TEAL))
+    elems.append(body(
+        'Estos scripts generan en lote el contenido técnico y científico que alimenta el sitio web '
+        'mckennagroup.co. Cada script escribe un archivo JSON que el frontend consume directamente.',
+        s))
+    elems.append(sp(0.2))
+
+    scripts_masivos = [
+        ['Script', 'Qué genera', 'Volumen', 'Output'],
+        ['generar_guias_masivas.py', '62 guías de ingredientes farmacéuticos y cosméticos. Cada guía tiene 7 secciones HTML: descripción, concentraciones (tabla), compatibilidad, incorporación, almacenamiento, normativa INVIMA y FAQ. Integra referencias de PubMed.', '62 ingredientes', 'PAGINA_WEB/site/data/guias.json (606 KB)'],
+        ['generar_posts_masivos.py', '20+ posts comparativos de blog. Estructura: intro, hallazgos contrastados de estudios, gráficas SVG/CSS inline, bibliografía numerada. Usa PubMed con filtros MeSH.', '20+ posts', 'PAGINA_WEB/site/data/posts.json (218 KB)'],
+        ['generar_recetas_masivas.py', '40+ recetas de formulación en 4 categorías: cosmética (sérums, cremas), nutrición, perfumería y hogar. Cada receta incluye ingredientes con cantidades, modo de preparación y precauciones.', '40+ recetas', 'PAGINA_WEB/site/data/recetas.json (77 KB)'],
+    ]
+    elems.append(tabla_comandos(scripts_masivos, s,
+        col_widths=[3.8*cm, 7.5*cm, 1.8*cm, PAGE_W - 2*MARGEN - 13.3*cm]))
+    elems.append(sp(0.3))
+
+    # ── 12.4 Variables y dependencias
+    elems.append(subsection('12.4 Variables de Entorno Requeridas', s, C_TEAL))
+    vars_env = [
+        ['Variable', 'Módulo que la usa', 'Descripción'],
+        ['GOOGLE_API_KEY', 'knowledge_agent, pipeline_facebook, guías, posts, recetas', 'Clave de Google GenAI para Gemini 2.5'],
+        ['IDEOGRAM_API_KEY', 'pipeline_contenido_facebook.py', 'Clave de Ideogram para generación de imágenes'],
+        ['ELEVENLABS_API_KEY', 'pipeline_contenido_facebook.py', 'Clave de ElevenLabs para síntesis de voz TTS'],
+        ['FAL_KEY', 'pipeline_contenido_facebook.py', 'Clave de fal.ai para generación de video con Kling v1.6'],
+        ['FB_PAGE_TOKEN', 'pipeline_facebook, sincronizar_facebook, infografías', 'Token de acceso a la página de Facebook (Graph API)'],
+        ['FB_PAGE_ID', 'pipeline_facebook, sincronizar_facebook, infografías', 'ID numérico de la página de Facebook de McKenna Group'],
+        ['WP_USER', 'knowledge_agent.py', 'Usuario de WordPress con permisos de editor'],
+        ['WP_APP_PASSWORD', 'knowledge_agent.py', 'Application Password de WordPress (Usuarios → Seguridad)'],
+        ['WC_URL', 'knowledge_agent.py (como WP_URL)', 'URL base del sitio: https://mckennagroup.co'],
+    ]
+    elems.append(tabla_comandos(vars_env, s,
+        col_widths=[3.5*cm, 5.5*cm, PAGE_W - 2*MARGEN - 9.2*cm]))
+    elems.append(sp(0.4))
+
+    elems.append(nota('⚠️', 'El pipeline de Facebook requiere que ffmpeg esté instalado en el sistema '
+        '(sudo apt install ffmpeg). fal.ai cobra por segundo de video generado; si el saldo es cero, '
+        'el sistema usa automáticamente el fallback local de Ken Burns.', s,
+        bg=colors.HexColor('#fff7ed'), border=C_AMBER))
+
+    elems.append(PageBreak())
     return elems
 
 
@@ -1313,7 +1458,7 @@ def generar_pdf() -> str:
     )
 
     s   = estilos()
-    dec = PaginaDecoracion('v2.2')
+    dec = PaginaDecoracion('v3.0')
 
     elems = []
     elems += portada(s)
@@ -1329,6 +1474,7 @@ def generar_pdf() -> str:
     elems += sec09_panel_cli(s)
     elems += sec10_monitor(s)
     elems += sec11_glosario_faq(s)
+    elems += sec12_contenido_cientifico(s)
 
     doc.build(elems, onFirstPage=dec, onLaterPages=dec)
     print(f'✅ PDF generado: {OUT_PDF}  ({os.path.getsize(OUT_PDF)//1024} KB)')
@@ -1340,9 +1486,10 @@ def generar_pdf() -> str:
 # ══════════════════════════════════════════════
 
 def enviar_por_correo(pdf_path: str):
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
     env = {
         line.split('=', 1)[0].strip(): line.split('=', 1)[1].strip()
-        for line in open(os.path.join(os.path.dirname(__file__), '.env')).read().splitlines()
+        for line in open(env_path).read().splitlines()
         if '=' in line and not line.startswith('#')
     }
     remitente = env.get('EMAIL_SENDER', 'mckenna.group.colombia@gmail.com')
@@ -1353,7 +1500,7 @@ def enviar_por_correo(pdf_path: str):
     msg = MIMEMultipart()
     msg['From']    = remitente
     msg['To']      = dest
-    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v2.2 · McKenna Group · {hoy}'
+    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.0 · McKenna Group · {hoy}'
 
     cuerpo = f"""Hola,
 
@@ -1368,8 +1515,11 @@ El manual incluye:
   • Panel web de control y menú CLI
   • Monitor de alertas y tareas programadas
   • Glosario técnico y preguntas frecuentes
+  • Generación de contenido científico (PubMed + ArXiv + Scrapling)
+  • Pipeline multimedia Facebook (Gemini → Ideogram → ElevenLabs → Kling)
+  • Publicación automática en WordPress
 
-Versión: v2.2 · Generado el {hoy}
+Versión: v3.0 · Generado el {hoy}
 
 ---
 McKenna Group S.A.S. · Bogotá, Colombia

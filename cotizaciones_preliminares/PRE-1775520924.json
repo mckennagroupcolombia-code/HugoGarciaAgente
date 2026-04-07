@@ -1,0 +1,16 @@
+{
+    "id_preliminar": "PRE-1775520924",
+    "nombre_cliente": "Victor Garcia",
+    "identificacion": "3241821",
+    "email": "tobygar3241@gmail.com",
+    "direccion_envio": "Calle 23 # 40 - 12 Piso 2, Gir\u00f3n, Santander",
+    "productos": [
+        {
+            "nombre": "Combo Citrato Magnesio + \u00c1cido Asc\u00f3rbico 250g",
+            "cantidad": 1,
+            "precio_unitario": 49900
+        }
+    ],
+    "total": 67900,
+    "fecha": "2026-04-06 19:15:24"
+}

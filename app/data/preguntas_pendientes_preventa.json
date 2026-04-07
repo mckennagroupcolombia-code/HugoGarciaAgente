@@ -52,6 +52,22 @@
       "pregunta": "Pero es 100% pura la Arginina? Que fecha de vencimiento tiene ? Gracias",
       "timestamp": "2026-04-05T13:15:40.311788",
       "respondida": true
+    },
+    {
+      "question_id": "13558309700",
+      "titulo_producto": "Aceite Ricino Castor Puro 250ml",
+      "pregunta": "Hola,cancelaron mi compra. fue de un aceite de ricino de 500ml. es posible que me envíen el de 250ml?ayuda!!",
+      "timestamp": "2026-04-06T13:07:06.125915",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-06"
+    },
+    {
+      "question_id": "13558325862",
+      "titulo_producto": "Aceite Ricino Castor Puro 250ml",
+      "pregunta": "buenas,pueden atenderme? no quiero quedarme sin el producto que compre y devolvieron mi pago",
+      "timestamp": "2026-04-06T12:47:10.777213",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-06"
     }
   ]
 }
