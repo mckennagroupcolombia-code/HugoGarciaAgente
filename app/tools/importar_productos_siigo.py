@@ -72,6 +72,27 @@ STOPWORDS = {
     'por', 'a', 'en', 'al', 'y', 'e', 'o', 'u', 'al', 'se',
 }
 
+# Palabras de cantidad/unidad que NO forman parte del código del producto.
+# Estas palabras ya determinan el sufijo (g / mL / Un) mediante las funciones
+# _extraer_masa_g_descripcion y _extraer_volumen_ml_descripcion.
+# Colores (NEGRO, AZUL, ROJO…) y medidas dimensionales (77MM, 30CM…) SÍ se incluyen.
+PALABRAS_MEDIDA = {
+    # Masa
+    'KILO', 'KILOS', 'KILOGRAMO', 'KILOGRAMOS', 'KG', 'KGS',
+    'GRAMO', 'GRAMOS', 'GR', 'GRS',
+    'MILIGRAMO', 'MILIGRAMOS', 'MG',
+    'LIBRA', 'LIBRAS', 'LB', 'LBS',
+    'ONZA', 'ONZAS', 'OZ',
+    # Volumen
+    'LITRO', 'LITROS', 'LT', 'LTS', 'LTR',
+    'MILILITRO', 'MILILITROS', 'ML',
+    'CENTILITRO', 'CENTILITROS', 'CL', 'CC',
+    'GALON', 'GALONES', 'GALO',
+    # Unidades genéricas
+    'UNIDAD', 'UNIDADES', 'UND', 'UDS', 'PCS', 'PZA', 'PIEZA', 'PIEZAS',
+    'BULTO', 'BOLSA', 'CAJA', 'PAQUETE', 'ROLLO',
+}
+
 # Conversión desde código DIAN de la factura → (unidad_mínima, factor_multiplicador)
 # La unidad mínima es la que se registra en SIIGO
 CONVERSION_UNIDADES = {
@@ -215,7 +236,11 @@ def generar_codigo_producto(nombre: str, unidad_minima: str,
     palabras_raw = re.split(r'[\s\-_/,.()+]+', nombre_norm)
     palabras_clave = [
         p for p in palabras_raw
-        if p and p.lower() not in STOPWORDS and len(p) >= 2
+        if p
+        and p.lower() not in STOPWORDS        # artículos/preposiciones
+        and p.upper() not in PALABRAS_MEDIDA  # palabras de cantidad/unidad (KILO, LITRO…)
+        and not p.isdigit()                   # números puros (500, 1000…) — la cantidad va en el sufijo
+        and len(p) >= 2
     ]
 
     # Fallback si el nombre no tiene palabras útiles
@@ -321,6 +346,81 @@ def convertir_a_unidad_minima(cantidad: float, unit_code: str) -> tuple[float, s
     cantidad_min = round(cantidad * factor, 6)
     codigo_dian_min = DIAN_MIN_CODE.get(unidad_min, 'NAR')
     return cantidad_min, unidad_min, codigo_dian_min
+
+
+# ─────────────────────────────────────────────
+#  Volumen líquido en descripción
+# ─────────────────────────────────────────────
+
+def _extraer_volumen_ml_descripcion(descripcion: str) -> float:
+    """
+    Detecta si la descripción de un producto líquido incluye su volumen por unidad.
+    Retorna el volumen en mL por unidad facturada, o 0.0 si no se detecta.
+
+    Ejemplos:
+      "FRAGANCIA OCEANFRESH X 500 ML"  → 500.0
+      "FRAGANCIA LIMON X 500ML"        → 500.0
+      "ESENCIA COCO X 1 LT"            → 1000.0
+      "ACEITE ESENCIAL 250CC"          → 250.0
+      "FRAGANCIA SANDALO GALON"        → 3785.41
+      "SHAMPOO X 1000 ML"              → 1000.0
+    """
+    d = descripcion.upper()
+
+    # Galón → 3785.41 mL
+    if re.search(r'\bGALO[NÑ]\b', d):
+        return 3785.41
+
+    # NNN mL / NNN CC (centímetros cúbicos = mL)
+    m = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:ML|CC)\b', d)
+    if m:
+        return float(m.group(1).replace(',', '.'))
+
+    # NNN LT / NNN LITRO(S) / NNN L (como palabra sola)
+    m = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:LITROS?|LTS?)\b', d)
+    if m:
+        return round(float(m.group(1).replace(',', '.')) * 1000, 6)
+
+    return 0.0
+
+
+def _extraer_masa_g_descripcion(descripcion: str) -> float:
+    """
+    Detecta si la descripción de un producto sólido/polvo indica su masa por unidad facturada.
+    Retorna la masa en gramos por unidad, o 0.0 si no se detecta.
+
+    Ejemplos:
+      "POTASA CAUSTICA * KILO"       → 1000.0
+      "ACIDO CITRICO X 1 KG"         → 1000.0
+      "BICARBONATO X 500 G"          → 500.0
+      "SULFATO DE ZINC 50 GR"        → 50.0
+      "BORAX 25 KG BULTO"            → 25000.0
+      "UREA COSMETICA X 1 LIBRA"     → 453.592
+    """
+    d = descripcion.upper()
+
+    # NNN KG / NNN KILO(S) / NNN KILOGRAMO(S)
+    m = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:KILOGRAMOS?|KILOS?|KGS?|KG)\b', d)
+    if m:
+        return round(float(m.group(1).replace(',', '.')) * 1000, 6)
+
+    # Palabra "KILO" sola (sin número previo) → se asume 1 kg = 1000 g
+    if re.search(r'(?<!\d)\bKILO\b', d):
+        return 1000.0
+
+    # NNN G / NNN GR / NNN GRS / NNN GRAMO(S)
+    m = re.search(r'(\d+(?:[.,]\d+)?)\s*(?:GRAMOS?|GRS?|GR|G)\b', d)
+    if m:
+        return float(m.group(1).replace(',', '.'))
+
+    # LIBRA(S) con o sin número → 453.592 g por libra
+    m = re.search(r'(\d+(?:[.,]\d+)?)\s*LIBRAS?', d)
+    if m:
+        return round(float(m.group(1).replace(',', '.')) * 453.592, 6)
+    if re.search(r'\bLIBRA\b', d):
+        return 453.592
+
+    return 0.0
 
 
 # ─────────────────────────────────────────────
@@ -785,6 +885,7 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
         )
 
         # Multiplicador de contenido: "caja x 100 unidades" → factor 100
+        # Solo se aplica si no hay volumen líquido en la descripción
         multiplicador = _extraer_multiplicador_descripcion(nombre)
         if multiplicador > 1:
             cantidad_min = round(cantidad_min * multiplicador, 6)
@@ -792,6 +893,22 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
             unidad_min      = 'Un'
             codigo_dian_min = 'NAR'
             print(f"  📦 Contenido detectado: {int(cantidad_original)} × {multiplicador} = {int(cantidad_min)} {unidad_min}")
+        elif unidad_min == 'Un':
+            # Si la unidad del proveedor es UN pero el producto tiene volumen o masa
+            # indicados en la descripción, convertir a la unidad mínima real
+            vol_ml = _extraer_volumen_ml_descripcion(nombre)
+            if vol_ml > 0:
+                cantidad_min    = round(cantidad_min * vol_ml, 6)
+                unidad_min      = 'mL'
+                codigo_dian_min = 'MLT'
+                print(f"  💧 Líquido detectado: {int(cantidad_original)} × {vol_ml} mL = {cantidad_min:.0f} mL")
+            else:
+                masa_g = _extraer_masa_g_descripcion(nombre)
+                if masa_g > 0:
+                    cantidad_min    = round(cantidad_min * masa_g, 6)
+                    unidad_min      = 'g'
+                    codigo_dian_min = 'GRM'
+                    print(f"  ⚖️  Sólido detectado: {int(cantidad_original)} × {masa_g} g = {cantidad_min:.0f} g")
 
         precio_unitario = calcular_precio_unitario_min(subtotal, iva_linea, cantidad_min)
         # Precio neto (sin IVA) — usado en ítems de compra SIIGO para que el IVA se aplique correctamente
