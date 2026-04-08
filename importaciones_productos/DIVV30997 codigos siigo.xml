@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-07">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>DIVV30997</NumeroFacturaProveedor>
+    <FechaFactura>2026-03-06</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>901018160</NIT>
+      <Nombre>DISOLVENTES Y SOLUCIONES QUIMICAS S.A.S</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="2">
+    <Item numero="1">
+      <CodigoSiigo>METSODFOOUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>METABISULFITO DE SODIO FOOD GRADE * KILOGRAMO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">5.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">5.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 5.0 × 1 = 5.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>50420.17</Subtotal>
+        <IVA>9579.83</IVA>
+        <Total>60000.00</Total>
+        <PrecioUnitarioMin>12000.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 60000.00 COP / 5.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>CLOCALKILUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>CLORURO DE CALCIO * KILOGRAMO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">5.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">5.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 5.0 × 1 = 5.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>50420.17</Subtotal>
+        <IVA>9579.83</IVA>
+        <Total>60000.00</Total>
+        <PrecioUnitarioMin>12000.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 60000.00 COP / 5.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>100840.34</Subtotal>
+    <TotalIVA>19159.66</TotalIVA>
+    <TotalGeneral>120000.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: DIVV30997 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

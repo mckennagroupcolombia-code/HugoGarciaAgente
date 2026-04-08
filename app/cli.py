@@ -328,7 +328,7 @@ def _cli_registrar_gasto(token, factura):
         "date":             d.get("fecha", time.strftime("%Y-%m-%d")),
         "cost_center":      263,   # VENTAS — modelo FC-1-42
         "supplier":         {"identification": nit_base, "branch_office": 0},
-        "provider_invoice": {"prefix": d.get("prefix", ""), "number": d.get("number", "0")},
+        "provider_invoice": {"prefix": d.get("prefix") or "FV", "number": d.get("number") or "0"},
         "items": [{
             "type":        "Account",
             "code":        "11051001",
@@ -380,13 +380,18 @@ def _siigo_crear_producto(token: str, producto: dict) -> tuple:
     precio_vu  = producto.get('precio_unitario', 0)   # con IVA — precio de venta
     precio_neto = producto.get('precio_neto', precio_vu)  # sin IVA — costo de compra
 
+    # Mapa de unidad mínima → código interno SIIGO API
+    # 94 = Unidades | 79 = Mililitro | 62 = Gramo
+    _SIIGO_UNIT = {'Un': '94', 'mL': '79', 'g': '62'}
+    siigo_unit_code = _SIIGO_UNIT.get(producto.get('unidad_min', 'Un'), '94')
+
     payload = {
         "code":          producto['codigo'],
         "name":          producto['nombre'][:120],
         "account_group": 297,                  # Productos (integer ID, no objeto)
         "type":          "Product",
         "stock_control": True,
-        "unit":          {"code": "94"},        # unidad (SIIGO)
+        "unit":          {"code": siigo_unit_code},
         "warehouses":    [{"id": 41, "quantity": 0, "unit_cost": precio_neto}],
         "prices": [{
             "currency_code": "COP",
@@ -441,7 +446,7 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
         "date":             d.get('fecha', time.strftime('%Y-%m-%d')),
         "cost_center":      263,
         "supplier":         {"identification": nit_base, "branch_office": 0},
-        "provider_invoice": {"prefix": d.get('prefix', ''), "number": d.get('number', '0')},
+        "provider_invoice": {"prefix": d.get('prefix') or 'FV', "number": d.get('number', '0')},
         "items":            items_payload,
         "payments":         [{"id": 1338, "value": total}],
         "observations":     f"Compra inventario — {factura['numero']} — {d.get('proveedor', '')}",
@@ -456,6 +461,12 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
         _rhup(_rhup(it["quantity"] * it["price"]) * (1.19 if it["taxes"] else 1.0))
         for it in items_payload
     )
+    
+    # Restar retenciones si el XML las incluye, ya que el pago final será menor
+    retenciones = d.get('total_retenciones', 0)
+    if retenciones > 0:
+        total_calculado -= retenciones
+        
     total_calculado = _rhup(total_calculado)
 
     # Validar discrepancia entre total calculado y el XML del proveedor
@@ -498,8 +509,8 @@ def _siigo_crear_compra_inventario(token: str, factura: dict, productos: list) -
         if m:
             total_siigo_real = float(m.group(1))
             diff = abs(total_siigo_real - total)
-            if diff <= 1.0:   # solo reintentar si la diferencia es ≤ $1 (centavos de redondeo)
-                print(f"     ↳ Ajuste de redondeo: XML=${total:,.2f} → SIIGO=${total_siigo_real:,.2f} "
+            if diff <= 1000.0:   # permitir reintento si la diferencia es de hasta $1000 (discrepancias menores/redondeo)
+                print(f"     ↳ Ajuste de redondeo/discrepancia: XML=${total:,.2f} → SIIGO=${total_siigo_real:,.2f} "
                       f"(Δ ${diff:.2f}) — reintentando...")
                 payload["payments"] = [{"id": 1338, "value": total_siigo_real}]
                 res = crear_factura_compra_siigo(payload)
@@ -755,6 +766,8 @@ def _ejecutar_opcion_10():
             print(f"  ✅ Proveedor en lista de materias primas.\n")
             print("  ¿Qué deseas hacer?")
             print("    [1] Flujo A — Inventario (crea productos + compra en SIIGO via API)")
+            print("    [2] Gasto consumible  → registrar en SIIGO ahora (API)")
+            print("    [3] Reclasificar      → Eliminar de materias primas y registrar como gasto consumible")
             print("    [s] Omitir")
             print("    [q] Salir")
             sel = input("\n  Selección: ").strip().lower()
@@ -767,6 +780,28 @@ def _ejecutar_opcion_10():
                 continue
             if sel == "1":
                 _cli_flujo_inventario(token, factura)
+                total_ok += 1
+            elif sel == "2":
+                _cli_registrar_gasto(token, factura)
+                total_ok += 1
+            elif sel == "3":
+                from app.tools.importar_productos_siigo import cargar_proveedores_especiales, _RUTA_PROVEEDORES
+                import json as _json
+                data_prov = cargar_proveedores_especiales()
+                nit_limpio = re.sub(r"\D", "", nit or "")
+                nuevos_prov = []
+                eliminado = False
+                for p in data_prov.get("proveedores", []):
+                    if re.sub(r"\D", "", p.get("nit", "")) == nit_limpio:
+                        eliminado = True
+                    else:
+                        nuevos_prov.append(p)
+                if eliminado:
+                    data_prov["proveedores"] = nuevos_prov
+                    with open(_RUTA_PROVEEDORES, "w", encoding="utf-8") as ff:
+                        _json.dump(data_prov, ff, indent=2, ensure_ascii=False)
+                    print(f"  ✓ Proveedor eliminado de la lista de materias primas.")
+                _cli_registrar_gasto(token, factura)
                 total_ok += 1
             else:
                 print(f"  ❌ Opción '{sel}' no válida. Factura omitida.")

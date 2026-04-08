@@ -30,6 +30,60 @@
       "nombre": "FERRETERIA Y CACHARRERIA VALHU SAS",
       "activo": true,
       "nota": "Agregado terminal 2026-04-05"
+    },
+    {
+      "nit": "901018160",
+      "nombre": "DISOLVENTES Y SOLUCIONES QUIMICAS S.A.S",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
+    },
+    {
+      "nit": "800077828",
+      "nombre": "FACTORES Y MERCADEO S.A.",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
+    },
+    {
+      "nit": "900729391",
+      "nombre": "QUIMIESENCIAS S.A.S",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
+    },
+    {
+      "nit": "901315981",
+      "nombre": "QUIMICOS EL ALQUIMISTA S.A.S.",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
+    },
+    {
+      "nit": "900251971",
+      "nombre": "DISTRIBUCIONES LADAM S A S",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
+    },
+    {
+      "nit": "900804963",
+      "nombre": "MOTORES Y REDUCTORES GM COLOMBIA SAS",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
+    },
+    {
+      "nit": "800041075",
+      "nombre": "CHEMIANDES",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
+    },
+    {
+      "nit": "811000608",
+      "nombre": "COMERCIALIZADORA INTERNACIONAL C.I. S.A.S.",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
+    },
+    {
+      "nit": "811025446",
+      "nombre": "TRONEX S.A.S",
+      "activo": true,
+      "nota": "Agregado terminal 2026-04-07"
     }
   ]
 }

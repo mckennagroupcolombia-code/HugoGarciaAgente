@@ -513,3 +513,23 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
 To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
    79cdef0..0b6e80a  master -> main
 [2026-04-05 23:00:05] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-05 23:00'
+[master 2595602] Auto-commit: actualizacion diaria 2026-04-06 23:00
+ 25 files changed, 1802 insertions(+), 223 deletions(-)
+ create mode 100644 backups_drive/backup_hugo_20260406_020044.tar.gz
+ create mode 100644 backups_drive/backup_hugo_20260406_020051.tar.gz
+ create mode 100644 cotizaciones_preliminares/PRE-1775520924.json
+ create mode 100644 gen_jabon_potasico.py
+ delete mode 100644 pipeline_temp/ficha_niacinamida.jpg
+ delete mode 100644 pipeline_temp/ficha_niacinamida.mp3
+ delete mode 100644 pipeline_temp/ficha_niacinamida_final.mp4
+ create mode 100644 pipeline_temp/jabon_potasico.mp3
+ create mode 100644 pipeline_temp/jabon_potasico_final.mp4
+ create mode 100644 pipeline_temp/jabon_potasico_infografia.jpg
+ create mode 100644 pipeline_temp/jabon_potasico_raw.mp4
+ create mode 100644 pipeline_temp/jabon_potasico_v2.mp3
+ create mode 100644 pipeline_temp/linaza_final.mp4
+ create mode 100644 pipeline_temp/linaza_test.mp4
+ create mode 100644 scripts/Manual_Hugo_Garcia_McKenna.pdf
+To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
+   0b6e80a..2595602  master -> main
+[2026-04-06 23:00:06] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-06 23:00'

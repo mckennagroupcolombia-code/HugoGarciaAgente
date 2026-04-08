@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-07">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>DL9457</NumeroFacturaProveedor>
+    <FechaFactura>2026-02-18</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>900251971</NIT>
+      <Nombre>DISTRIBUCIONES LADAM S A S</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="2">
+    <Item numero="1">
+      <CodigoSiigo>VERUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>VERMICULITA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NIU">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">1.0</CantidadConvertida>
+        <ReglaConversion>1 NIU = 1 Un | 1.0 × 1 = 1.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>149579.00</Subtotal>
+        <IVA>28420.01</IVA>
+        <Total>177999.01</Total>
+        <PrecioUnitarioMin>177999.0100</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 177999.01 COP / 1.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>DOMUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>DOMICILIO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NIU">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">1.0</CantidadConvertida>
+        <ReglaConversion>1 NIU = 1 Un | 1.0 × 1 = 1.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>16000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>16000.00</Total>
+        <PrecioUnitarioMin>16000.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 16000.00 COP / 1.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>165579.00</Subtotal>
+    <TotalIVA>28420.01</TotalIVA>
+    <TotalGeneral>193999.01</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: DL9457 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

@@ -240,6 +240,7 @@ def generar_codigo_producto(nombre: str, unidad_minima: str,
         and p.lower() not in STOPWORDS        # artículos/preposiciones
         and p.upper() not in PALABRAS_MEDIDA  # palabras de cantidad/unidad (KILO, LITRO…)
         and not p.isdigit()                   # números puros (500, 1000…) — la cantidad va en el sufijo
+        and not re.match(r'^x?\d+(?:ml|g|gr|grs|kg|kgs|l|lt|lts|cc|oz|lb|lbs)$', p, re.IGNORECASE)
         and len(p) >= 2
     ]
 
@@ -912,7 +913,8 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
 
         precio_unitario = calcular_precio_unitario_min(subtotal, iva_linea, cantidad_min)
         # Precio neto (sin IVA) — usado en ítems de compra SIIGO para que el IVA se aplique correctamente
-        precio_neto = round(subtotal / cantidad_min, 2) if cantidad_min > 0 else 0.0
+        # Usamos 6 decimales para evitar discrepancias de redondeo al multiplicar por la cantidad
+        precio_neto = round(subtotal / cantidad_min, 6) if cantidad_min > 0 else 0.0
 
         # Genera código único dentro de esta factura (evita GOTPIP77MUn × 2 en misma factura)
         codigo      = generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
@@ -1179,10 +1181,10 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
             "date": datos.get("fecha", datetime.now().strftime("%Y-%m-%d")),
             "cost_center": 263,
             "supplier": {"identification": datos.get("nit", "999999999"), "branch_office": 0},
-            "provider_invoice": {
-                "prefix": datos.get("prefix", ""),
-                "number": datos.get("number", "0")
-            },
+        "provider_invoice": {
+            "prefix": datos.get("prefix") or "FV",
+            "number": datos.get("number", "0")
+        },
             "items": [{
                 "type": "Account",
                 "code": "11051001",
