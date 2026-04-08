@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-07">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>1009100274879</NumeroFacturaProveedor>
+    <FechaFactura>2026-03-01</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>800242106</NIT>
+      <Nombre>SODIMAC COLOMBIA S.A.</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="3">
+    <Item numero="1">
+      <CodigoSiigo>TAPPOLUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPON 1/2 M.POLIMEX</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">1.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 1.0 × 1 = 1.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>2016.81</Subtotal>
+        <IVA>383.19</IVA>
+        <Total>2400.00</Total>
+        <PrecioUnitarioMin>2400.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 2400.00 COP / 1.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>TAPSOLHOTUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>TAPON SOLDAR 1/2 HOT</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">1.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 1.0 × 1 = 1.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>1848.74</Subtotal>
+        <IVA>351.26</IVA>
+        <Total>2200.00</Total>
+        <PrecioUnitarioMin>2200.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 2200.00 COP / 1.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>UNIHOTPAVUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>UNION 1/2 HOTPRO PAV</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="NAR">3.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">3.0</CantidadConvertida>
+        <ReglaConversion>1 NAR = 1 Un | 3.0 × 1 = 3.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>2268.91</Subtotal>
+        <IVA>431.09</IVA>
+        <Total>2700.00</Total>
+        <PrecioUnitarioMin>900.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 2700.00 COP / 3.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>6134.46</Subtotal>
+    <TotalIVA>1165.54</TotalIVA>
+    <TotalGeneral>7300.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: 1009100274879 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

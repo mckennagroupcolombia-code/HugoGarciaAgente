@@ -26,7 +26,7 @@ def generar_token():
         flow = InstalledAppFlow.from_client_secrets_file(ARCHIVO_CREDENCIALES, SCOPES)
         
         # Esto abrirá tu navegador automáticamente
-        creds = flow.run_local_server(port=0)
+        creds = flow.run_local_server(port=8080)
         
         # Guardamos el resultado con el nombre que elegiste
         with open(ARCHIVO_TOKEN_SALIDA, 'w') as token:

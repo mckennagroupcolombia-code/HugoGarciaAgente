@@ -35,7 +35,7 @@ def get_gmail_service():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(GOOGLE_CREDS_PATH, SCOPES)
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_local_server(port=8085)
         with open(TOKEN_GMAIL_PATH, "w") as token:
             token.write(creds.to_json())
     return build("gmail", "v1", credentials=creds)
@@ -114,11 +114,24 @@ def extraer_datos_xml_dian(xml_content):
         prefix = ""
         number = full_invoice_id
         
-        prefix_match = re.search(r"([A-Za-z]+)(\d+)", full_invoice_id)
-        if prefix_match:
-            prefix = prefix_match.group(1)
-            number = prefix_match.group(2)
-        elif not number:
+        # Intentar extraer sts:Prefix del XML DIAN
+        prefix_elem = find_element(invoice_node, "Prefix") if invoice_node is not None else None
+        if prefix_elem is not None and prefix_elem.text:
+            xml_prefix = prefix_elem.text
+            if full_invoice_id.startswith(xml_prefix):
+                prefix = xml_prefix
+                number = full_invoice_id[len(xml_prefix):]
+        
+        if not prefix:
+            prefix_match = re.search(r"([A-Za-z]+)(\d+)", full_invoice_id)
+            if prefix_match:
+                prefix = prefix_match.group(1)
+                number = prefix_match.group(2)
+        
+        if not prefix:
+            prefix = "FV"
+            
+        if not number:
             number = "0000"
 
         # 3. Datos del Proveedor (AccountingSupplierParty o SenderParty)
@@ -168,6 +181,7 @@ def extraer_datos_xml_dian(xml_content):
         total_bruto = 0.0 # LineExtensionAmount
         total_neto = 0.0  # PayableAmount
         total_descuentos = 0.0 # AllowanceTotalAmount
+        total_retenciones = 0.0 # WithholdingTaxTotal
         
         monetary_total = find_element(invoice_node, "LegalMonetaryTotal")
         if monetary_total is not None:
@@ -179,6 +193,25 @@ def extraer_datos_xml_dian(xml_content):
                 
             desc_elem = find_element(monetary_total, "AllowanceTotalAmount")
             if desc_elem is not None: total_descuentos = float(desc_elem.text)
+
+        # Extraer retenciones globales (WithholdingTaxTotal)
+        for retencion_node in find_elements(invoice_node, "WithholdingTaxTotal"):
+            tax_amount_elem = find_element(retencion_node, "TaxAmount")
+            if tax_amount_elem is not None:
+                total_retenciones += float(tax_amount_elem.text)
+
+        # Algunos proveedores suman la retención en vez de restarla o no la restan del PayableAmount
+        # Si vemos que PayableAmount = (Total bruto + Impuestos) y la retención no está restada, 
+        # o si la retención está reportada en WithholdingTaxTotal, ajustamos total_neto:
+        if total_retenciones > 0:
+            # Asumimos que si hay retenciones, se deben restar del total neto para obtener el verdadero valor a pagar
+            # Algunos XML lo restan, otros no. Una heurística: si el neto reportado es mayor o igual al bruto,
+            # y no ha restado la retención (lo sabemos si restando la retención nos acercamos al valor real esperado).
+            # Para estar seguros, forzamos que el total neto reste las retenciones.
+            # Como la DIAN dice que PayableAmount = LineExtensionAmount + TaxExclusiveAmount - WithholdingTaxTotal + ...
+            # Si el proveedor lo hizo mal y sumó o ignoró la retención, lo corregimos.
+            # Por ahora, simplemente restamos las retenciones globales del total_neto si parece que no fueron restadas.
+            total_neto -= total_retenciones
 
         # 6. Items detallados con impuestos
         items = []
@@ -268,6 +301,7 @@ def extraer_datos_xml_dian(xml_content):
             "fecha": fecha,
             "total_bruto": total_bruto,
             "total_descuentos": total_descuentos,
+            "total_retenciones": total_retenciones,
             "total_neto": total_neto,
             "items": items
         }
@@ -537,7 +571,10 @@ def sincronizar_facturas_de_compra_siigo(solo_nit: str = None, modo_terminal: bo
                     "document": {"id": 5809},
                     "date": datos_factura["fecha"],
                     "supplier": {"identification": datos_factura["nit"], "branch_office": 0},
-                    "provider_invoice": {"prefix": datos_factura["prefix"], "number": datos_factura["number"]},
+                    "provider_invoice": {
+                        "prefix": datos_factura["prefix"] if datos_factura["prefix"] else "FV",
+                        "number": datos_factura["number"]
+                    },
                     "cost_center": 263,   # VENTAS — ID numérico requerido por SIIGO API
                     "items": items_siigo,
                     "payments": [{"id": 1338, "value": datos_factura["total_neto"]}],

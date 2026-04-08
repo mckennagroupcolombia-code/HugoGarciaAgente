@@ -1,0 +1,216 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-07">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FEE90326</NumeroFacturaProveedor>
+    <FechaFactura>2026-03-04</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>800077828</NIT>
+      <Nombre>FACTORES Y MERCADEO S.A.</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="11">
+    <Item numero="1">
+      <CodigoSiigo>AMITEAg</CodigoSiigo>
+      <DescripcionOriginalProveedor>AMINOACIDO L - TEANINA</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">3.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">3000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 3.0 × 1000 = 3000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>426000.00</Subtotal>
+        <IVA>80940.00</IVA>
+        <Total>506940.00</Total>
+        <PrecioUnitarioMin>168.9800</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 506940.00 COP / 3000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>COLPOLHIDg</CodigoSiigo>
+      <DescripcionOriginalProveedor>COLAGENO EN POLVO HIDROLIZADO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>760000.00</Subtotal>
+        <IVA>144400.00</IVA>
+        <Total>904400.00</Total>
+        <PrecioUnitarioMin>45.2200</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 904400.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>AMITRIg</CodigoSiigo>
+      <DescripcionOriginalProveedor>AMINOACIDO L - TRIPTOFANO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">2.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">2000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 2.0 × 1000 = 2000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>196000.00</Subtotal>
+        <IVA>37240.00</IVA>
+        <Total>233240.00</Total>
+        <PrecioUnitarioMin>116.6200</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 233240.00 COP / 2000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>AMICARFUMg</CodigoSiigo>
+      <DescripcionOriginalProveedor>AMINOACIDO L - CARNITINA FUMARATO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">1000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 1.0 × 1000 = 1000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>142000.00</Subtotal>
+        <IVA>26980.00</IVA>
+        <Total>168980.00</Total>
+        <PrecioUnitarioMin>168.9800</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 168980.00 COP / 1000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>ALUALLg</CodigoSiigo>
+      <DescripcionOriginalProveedor>ALULOSA/ALLULOSE</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>600000.00</Subtotal>
+        <IVA>114000.00</IVA>
+        <Total>714000.00</Total>
+        <PrecioUnitarioMin>28.5600</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 714000.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>CITMAGFCCg</CodigoSiigo>
+      <DescripcionOriginalProveedor>CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">100.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">100000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 100.0 × 1000 = 100000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>950000.00</Subtotal>
+        <IVA>180500.00</IVA>
+        <Total>1130500.00</Total>
+        <PrecioUnitarioMin>11.3000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 1130500.00 COP / 100000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="7">
+      <CodigoSiigo>CITPOTPOTg</CodigoSiigo>
+      <DescripcionOriginalProveedor>CITRATO DE POTASIO/POTASSIUM CITRATE</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>250000.00</Subtotal>
+        <IVA>47500.00</IVA>
+        <Total>297500.00</Total>
+        <PrecioUnitarioMin>11.9000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 297500.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="8">
+      <CodigoSiigo>VITATF99%g</CodigoSiigo>
+      <DescripcionOriginalProveedor>VITAMINA E ATFA 99% USP</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">1000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 1.0 × 1000 = 1000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>192000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>192000.00</Total>
+        <PrecioUnitarioMin>192.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 192000.00 COP / 1000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="9">
+      <CodigoSiigo>VITACE500g</CodigoSiigo>
+      <DescripcionOriginalProveedor>VITAMINA A ACETATO 500.000 WS USP</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">1000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 1.0 × 1000 = 1000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>149000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>149000.00</Total>
+        <PrecioUnitarioMin>149.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 149000.00 COP / 1000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="10">
+      <CodigoSiigo>INU90%g</CodigoSiigo>
+      <DescripcionOriginalProveedor>INULINA 90%</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>520000.00</Subtotal>
+        <IVA>98800.00</IVA>
+        <Total>618800.00</Total>
+        <PrecioUnitarioMin>30.9400</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 618800.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="11">
+      <CodigoSiigo>PROCONSUEg</CodigoSiigo>
+      <DescripcionOriginalProveedor>PROTEINA CONCENTRADA DE SUERO 80% WPC (LW)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>1060000.00</Subtotal>
+        <IVA>201400.00</IVA>
+        <Total>1261400.00</Total>
+        <PrecioUnitarioMin>63.0700</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 1261400.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>5245000.00</Subtotal>
+    <TotalIVA>931760.00</TotalIVA>
+    <TotalGeneral>6176760.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FEE90326 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

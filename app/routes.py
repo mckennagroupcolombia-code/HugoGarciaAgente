@@ -409,7 +409,7 @@ def register_routes(app):
                         enviar_whatsapp_reporte(
                             "⚠️ Formato: *posventa <código>: tu respuesta*\n"
                             "Ejemplo: posventa 3240: Hola, su pedido ya fue despachado.",
-                            numero_destino=grupo_contabilidad
+                            numero_destino=grupo_posventa
                         )
                         return
 
@@ -448,7 +448,7 @@ def register_routes(app):
                             enviar_whatsapp_reporte(
                                 f"⚠️ No encontré mensaje postventa pendiente con código *{sufijo}*.\n"
                                 f"Verifica el código en la alerta original o responde directo en MeLi.",
-                                numero_destino=grupo_contabilidad
+                                numero_destino=grupo_posventa
                             )
                             return
 

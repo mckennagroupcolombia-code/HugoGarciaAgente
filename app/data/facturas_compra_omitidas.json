@@ -31,6 +31,14 @@
       "comprador_nombre": "SHIRLEY HERRERA",
       "comprador_nit": "2222222222",
       "fecha_omision": "2026-04-05"
+    },
+    {
+      "prefix": "UR68",
+      "number": "32023",
+      "proveedor": "ALMACENES ÉXITO S.A",
+      "comprador_nombre": "MARLY BERNARDA ALVAREZ CHAMORRO",
+      "comprador_nit": "45453263",
+      "fecha_omision": "2026-04-07"
     }
   ]
 }

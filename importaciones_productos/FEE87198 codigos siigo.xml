@@ -1,0 +1,131 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-07">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FEE87198</NumeroFacturaProveedor>
+    <FechaFactura>2026-01-21</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>800077828</NIT>
+      <Nombre>FACTORES Y MERCADEO S.A.</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="6">
+    <Item numero="1">
+      <CodigoSiigo>AMIBCAINSg</CodigoSiigo>
+      <DescripcionOriginalProveedor>AMINOACIDO BCAA INSTANT POWDER</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">2.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">2000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 2.0 × 1000 = 2000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>136000.00</Subtotal>
+        <IVA>25840.00</IVA>
+        <Total>161840.00</Total>
+        <PrecioUnitarioMin>80.9200</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 161840.00 COP / 2000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>MALM15MALg</CodigoSiigo>
+      <DescripcionOriginalProveedor>MALTODEXTRINA M150 / MALTRIN M150</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">25.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">25000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 25.0 × 1000 = 25000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>137500.00</Subtotal>
+        <IVA>26125.00</IVA>
+        <Total>163625.00</Total>
+        <PrecioUnitarioMin>6.5400</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 163625.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>VITNICUSPg</CodigoSiigo>
+      <DescripcionOriginalProveedor>VITAMINA B-3 (NICOTINAMIDA USP)</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">2.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">2000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 2.0 × 1000 = 2000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>112000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>112000.00</Total>
+        <PrecioUnitarioMin>56.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 112000.00 COP / 2000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="4">
+      <CodigoSiigo>SOYEMUg</CodigoSiigo>
+      <DescripcionOriginalProveedor>SOYPRO 900 EMULSION</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>304000.00</Subtotal>
+        <IVA>57760.00</IVA>
+        <Total>361760.00</Total>
+        <PrecioUnitarioMin>18.0900</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 361760.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="5">
+      <CodigoSiigo>CITMAGFCCg</CodigoSiigo>
+      <DescripcionOriginalProveedor>CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">50.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">50000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 50.0 × 1000 = 50000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>475000.00</Subtotal>
+        <IVA>90250.00</IVA>
+        <Total>565250.00</Total>
+        <PrecioUnitarioMin>11.3000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 565250.00 COP / 50000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+    <Item numero="6">
+      <CodigoSiigo>COLPOLHIDg</CodigoSiigo>
+      <DescripcionOriginalProveedor>COLAGENO EN POLVO HIDROLIZADO</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>760000.00</Subtotal>
+        <IVA>144400.00</IVA>
+        <Total>904400.00</Total>
+        <PrecioUnitarioMin>45.2200</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 904400.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>1924500.00</Subtotal>
+    <TotalIVA>344375.00</TotalIVA>
+    <TotalGeneral>2268875.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FEE87198 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>
