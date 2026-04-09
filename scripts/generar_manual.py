@@ -419,6 +419,11 @@ def tabla_contenidos(s: dict) -> list:
             'Pipeline multimedia Facebook',
             'Publicación automática en WordPress',
             'Scripts de generación masiva']),
+        ('13', 'Nuevas Skills (Herramientas Autónomas)', [
+            'Conversión de scripts a Skills',
+            'Interacción e Invocación',
+            'Ejemplos de Skills',
+            'Registro y Arquitectura en core.py']),
     ]
 
     for num, titulo, subs in toc:
@@ -1088,20 +1093,14 @@ def sec09_panel_cli(s: dict) -> list:
 
     cli_menu = [
         ['Opción', 'Función'],
-        ['1 — Chat directo', 'Conversación directa con Hugo García desde la terminal (útil para pruebas y depuración)'],
-        ['2 — Sync inteligente', 'Ejecuta sincronización inteligente MeLi→SIIGO (órdenes pendientes vs. facturas)'],
-        ['3 — Sync facturas hoy', 'Sincroniza y sube a MeLi las facturas SIIGO del día actual'],
-        ['4 — Sync facturas 10 días', 'Sincroniza facturas de los últimos 10 días'],
-        ['5 — Sync completo + stock', 'Sync total y envía reporte de stock al grupo de WhatsApp'],
-        ['6 — Verificar SKUs', 'Auditoría de discrepancias de SKUs entre MeLi, SIIGO y WooCommerce'],
-        ['7 — Sync por Pack ID', 'Sincroniza un Pack ID específico de MeLi'],
-        ['8 — Forzar aprendizaje IA', 'Forza la extracción de Q&A de MeLi para entrenamiento'],
-        ['9 — Sync por fecha', 'Ingresa una fecha YYYY-MM-DD y sincroniza esas facturas'],
-        ['10 — Facturas compra Gmail', 'Importa facturas de proveedores desde Gmail (XML DIAN)'],
-        ['11 — Generar catálogo PDF', 'Genera el catálogo de productos con fotos y lo envía por WhatsApp'],
-        ['12 — Actualizar precios WC', 'Actualiza precios en WooCommerce desde Google Sheets'],
-        ['13 — Salir', 'Cierra el menú CLI (el servidor Flask sigue corriendo)'],
-        ['14 — Importar productos SIIGO', 'Procesa facturas de compra y genera Excel de importación masiva para SIIGO'],
+        ['1 — 💬 CHAT', 'Conversación directa con Hugo García desde la terminal (útil para pruebas y depuración)'],
+        ['2 — 🔄 FACTURAS', 'Menú con opciones de sincronización MeLi ↔ SIIGO (Inteligente, Hoy, Días, Pack, Fecha)'],
+        ['3 — 📊 STOCK', 'Menú de inventario: Reporte completo de stock, Sincronización WC y Auditoría SKUs'],
+        ['4 — 🔍 CONSULTA', 'Busca información detallada de un producto en el catálogo de Google Sheets'],
+        ['5 — 🎓 APRENDIZAJE', 'Fuerza la extracción de Q&A recientes en MeLi para entrenamiento en ChromaDB'],
+        ['6 — 🧾 COMPRAS', 'Importa facturas electrónicas de proveedores desde Gmail (XML DIAN) y procesa SIIGO'],
+        ['7 — 🔬 CIENCIA', 'Genera contenido científico automatizado y lo publica en WordPress (Knowledge Agent)'],
+        ['8 — 🚪 SALIR', 'Cierra el menú CLI (el servidor Flask web sigue corriendo en segundo plano)'],
     ]
     elems.append(tabla_comandos(cli_menu, s,
         col_widths=[4.8*cm, PAGE_W - 2*MARGEN - 5.0*cm]))
@@ -1441,6 +1440,55 @@ def sec12_contenido_cientifico(s: dict) -> list:
 
 
 # ══════════════════════════════════════════════
+# SEC 13 — SKILLS AUTÓNOMAS
+# ══════════════════════════════════════════════
+
+def sec13_skills(s: dict) -> list:
+    elems = []
+    elems += section_header('Sección 13', 'Nuevas Skills (Herramientas Autónomas)', s, C_AMBER)
+
+    elems.append(body(
+        'El agente "Hugo García" ha evolucionado de ejecutar scripts manualmente a poseer <b>Skills nativas</b>. '
+        'Múltiples scripts aislados han sido refactorizados y encapsulados en funciones estructuradas '
+        'dentro de la carpeta <b>app/tools/</b>. El modelo de IA (Claude/Gemini) ahora conoce estas herramientas '
+        'y decide cuándo ejecutarlas autónomamente basándose en la conversación con el usuario.', s))
+    elems.append(sp(0.3))
+
+    elems.append(subsection('13.1 Arquitectura e Interacción', s))
+    elems.append(body(
+        'Cada Skill está documentada con Type Hints y Docstrings. En <b>app/core.py</b>, la función '
+        '<b>_fn_to_tool_schema()</b> traduce automáticamente la función de Python a un esquema JSON '
+        'compatible con el formato de herramientas de la IA (Tool Calling). '
+        'Cuando le pides al agente realizar una tarea, este analiza sus "herramientas registradas", '
+        'pide permiso para ejecutarlas con los argumentos deducidos, y el sistema ejecuta la función en Python, '
+        'devolviendo el resultado (éxito o error) al agente para que te responda de forma natural.', s))
+    elems.append(sp(0.2))
+
+    elems.append(subsection('13.2 Ejemplos de Skills', s))
+    
+    skills_ejemplos = [
+        ['Nombre de Skill', 'Archivo', 'Descripción', 'Ejemplo de uso en el chat'],
+        ['sincronizar_precios_meli_sheets', 'sincronizar_precios.py', 'Sincroniza precios desde MercadoLibre hacia Google Sheets e invalida el caché web.', '"Hugo, actualiza los precios en el Sheets usando los de MeLi"'],
+        ['generar_catalogo_pdf', 'generar_catalogo.py', 'Genera PDF corporativo leyendo de Sheets y bajando fotos de MeLi. Opcional envío WA.', '"Genera el catálogo PDF corporativo de este mes"'],
+        ['generar_reporte_skus_woocommerce', 'generar_reporte_skus.py', 'Genera y envía un correo HTML con el reporte de discrepancias de SKUs (MeLi-SIIGO-WC).', '"Revisa los SKUs de WooCommerce y mándame el reporte"'],
+        ['sincronizar_catalogo_wc_desde_meli', 'sincronizar_wc_desde_meli.py', 'Elimina el catálogo de WC y lo reconstruye basado en publicaciones activas de MeLi (con SKU en SIIGO).', '"Hugo, reconstruye el catálogo de WooCommerce desde MeLi"'],
+        ['publicar_contenido_redes_sociales_ia', 'pipeline_contenido_facebook.py', 'Corre el pipeline multimedia (Gemini→Ideogram→ElevenLabs→Kling) y publica en Facebook.', '"Haz un nuevo post para Facebook"'],
+        ['generar_guias_masivas_web', 'generar_guias_masivas.py', 'Consume PubMed y Gemini para crear guías técnicas en JSON para el frontend web.', '"Hugo, genera las guías masivas que faltan en la web"'],
+    ]
+    elems.append(tabla_comandos(skills_ejemplos, s,
+        col_widths=[4.5*cm, 4.0*cm, 4.5*cm, PAGE_W - 2*MARGEN - 13.0*cm]))
+    elems.append(sp(0.3))
+
+    elems.append(nota('💡',
+        '<b>Registro de Skills:</b> Para agregar una nueva, simplemente se debe crear la función en <b>app/tools/</b> '
+        'y agregarla a la lista <b>todas_las_herramientas</b> dentro de la función <b>configurar_ia()</b> en <b>app/core.py</b>.',
+        s, bg=colors.HexColor('#f0fdf4'), border=C_GREEN))
+
+    elems.append(PageBreak())
+    return elems
+
+
+# ══════════════════════════════════════════════
 # GENERADOR PRINCIPAL
 # ══════════════════════════════════════════════
 
@@ -1475,6 +1523,7 @@ def generar_pdf() -> str:
     elems += sec10_monitor(s)
     elems += sec11_glosario_faq(s)
     elems += sec12_contenido_cientifico(s)
+    elems += sec13_skills(s)
 
     doc.build(elems, onFirstPage=dec, onLaterPages=dec)
     print(f'✅ PDF generado: {OUT_PDF}  ({os.path.getsize(OUT_PDF)//1024} KB)')

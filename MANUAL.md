@@ -16,6 +16,7 @@
 7. [app/services/siigo.py](#7-appservicessiigopy)
 8. [app/tools/system_tools.py](#8-apptoolssystem_toolspy)
 9. [APIs de Generación Multimedia (consola)](#9-apis-de-generación-de-contenido-multimedia-consola)
+10. [Nuevas Skills (Herramientas Autónomas)](#10-nuevas-skills-herramientas-autónomas)
 
 ---
 
@@ -996,8 +997,42 @@ seller_id = res_me.json().get('id')
 Primero obtiene el ID del vendedor consultando el endpoint `/users/me` de MeLi. `raise_for_status()` lanza una excepción automáticamente si el status HTTP es 4xx o 5xx, evitando tener que verificar manualmente.
 
 ```python
-for orden in res.get('results', []):
-    shipping_type = shipping_info.get('substatus') or shipping_info.get('shipping_mode')
+         for orden in res.get('results', []):
+             shipping_type = shipping_info.get('substatus') or shipping_info.get('shipping_mode')
+
+---
+
+## 10. Nuevas Skills (Herramientas Autónomas)
+
+### ¿Para qué sirve?
+
+El agente "Hugo García" ha evolucionado. Originalmente dependía de scripts que se ejecutaban manualmente desde la consola. Ahora posee **Skills nativas**, es decir, scripts refactorizados en funciones estructurales (`app/tools/`) que la IA (Claude/Gemini) puede invocar autónomamente cuando entiende que las necesitas, usando *Tool Calling*.
+
+### Arquitectura e Interacción
+
+En `app/core.py`, la función `_fn_to_tool_schema()` traduce automáticamente cada función de Python con Type Hints y Docstrings a un esquema JSON compatible con el modelo de IA. 
+Cuando conversas con el agente y le pides una tarea:
+1. La IA evalúa su lista de herramientas.
+2. Emite un *tool_call* con los argumentos necesarios (por ejemplo, el slug del producto, o el email destino).
+3. El sistema ejecuta la función en `app/tools/`.
+4. El resultado (texto de éxito o error) se envía de vuelta a la IA, quien genera la respuesta conversacional final.
+
+### Ejemplos de Skills
+
+| Nombre de Skill | Archivo | Descripción | Ejemplo de uso en el chat |
+|---|---|---|---|
+| `sincronizar_precios_meli_sheets` | `sincronizar_precios.py` | Sincroniza precios desde MercadoLibre hacia Google Sheets e invalida el caché web. | *"Hugo, actualiza los precios en el Sheets usando los de MeLi"* |
+| `generar_catalogo_pdf` | `generar_catalogo.py` | Genera PDF corporativo leyendo de Sheets y bajando fotos de MeLi. Opcional envío WA. | *"Genera el catálogo PDF corporativo de este mes"* |
+| `generar_reporte_skus_woocommerce` | `generar_reporte_skus.py` | Genera y envía un correo HTML con el reporte de discrepancias de SKUs (MeLi-SIIGO-WC). | *"Revisa los SKUs de WooCommerce y mándame el reporte"* |
+| `sincronizar_catalogo_wc_desde_meli` | `sincronizar_wc_desde_meli.py` | Elimina el catálogo de WC y lo reconstruye basado en publicaciones activas de MeLi. | *"Hugo, reconstruye el catálogo de WooCommerce desde MeLi"* |
+| `publicar_contenido_redes_sociales_ia` | `pipeline_contenido_facebook.py` | Corre el pipeline multimedia (Gemini→Ideogram→ElevenLabs→Kling) y publica en Facebook. | *"Haz un nuevo post para Facebook"* |
+| `generar_guias_masivas_web` | `generar_guias_masivas.py` | Consume PubMed y Gemini para crear guías técnicas en JSON para el frontend web. | *"Hugo, genera las guías masivas que faltan en la web"* |
+
+### ¿Cómo agregar una nueva Skill?
+1. Escribe tu función en un nuevo archivo dentro de `app/tools/`.
+2. Añade docstrings claros (`"""..."""`) y Type Hints (ej: `def mi_skill(param: str) -> str:`).
+3. Importa la función en `app/core.py` y agrégala a la lista `todas_las_herramientas` dentro de `configurar_ia()`.
+4. ¡El agente inmediatamente sabrá que existe y cómo usarla!
     if orden.get('status') == 'paid' and shipping_type in ['to_agree', 'custom', 'not_specified']:
         ordenes_encontradas.append(str(orden.get('id')))
 ```
