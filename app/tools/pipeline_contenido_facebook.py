@@ -17,7 +17,7 @@ import os, sys, json, re, time, tempfile, subprocess, argparse, random
 from pathlib import Path
 import requests
 
-BASE = Path(__file__).parent
+BASE = Path(__file__).parent.parent.parent
 
 # ── Cargar .env ───────────────────────────────────────────────────────────────
 for line in (BASE / ".env").read_text().splitlines():
@@ -769,19 +769,12 @@ def correr_pipeline(tipo: str, datos: dict, url_ref: str, dry_run=False, guardar
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--tipo",    choices=["ficha","receta","comparativa","tip"], default="ficha")
-    parser.add_argument("--slug",    default="", help="Slug de la guía")
-    parser.add_argument("--id",      default="", help="ID de la receta")
-    parser.add_argument("--slugs",   nargs=2, default=[], help="Dos slugs para comparativa")
-    parser.add_argument("--auto",    action="store_true", help="Elige contenido nuevo automáticamente")
-    parser.add_argument("--n",       type=int, default=1, help="Cantidad (solo con --auto)")
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--guardar-dir", default="pipeline_temp", help="Dir para guardar archivos")
-    args = parser.parse_args()
-
-    # Verificar keys necesarias
+def publicar_contenido_redes_sociales_ia() -> str:
+    """
+    Skill para publicar contenido automático en Facebook usando el pipeline completo
+    (Gemini -> Ideogram -> ElevenLabs -> Kling/FFmpeg -> Facebook).
+    Selecciona automáticamente una pieza de contenido nueva.
+    """
     faltantes = []
     if not GOOGLE_KEY:     faltantes.append("GOOGLE_API_KEY")
     if not IDEOGRAM_KEY:   faltantes.append("IDEOGRAM_API_KEY")
@@ -789,37 +782,45 @@ def main():
     if not FAL_KEY:        faltantes.append("FAL_KEY")
 
     if faltantes:
-        print(f"❌ Faltan estas keys en .env: {', '.join(faltantes)}")
-        sys.exit(1)
-
-    print("═"*60)
-    print("  PIPELINE DE CONTENIDO — McKenna Group")
-    print("  Copy → Imagen → Voz → Video → Facebook")
-    print("═"*60)
+        return f"❌ Error: Faltan estas keys en .env: {', '.join(faltantes)}"
 
     guias   = cargar_guias()
     recetas = cargar_recetas()
     reg     = cargar_registro()
     slugs_map = {g["slug"]: g for g in guias}
     ok_total  = 0
+    salida = []
+    salida.append("🎥 Iniciando PIPELINE DE CONTENIDO IA (Copy → Imagen → Voz → Video → Facebook)")
 
     def _run(tipo, datos, url_ref, clave_reg, id_reg):
         nonlocal ok_total
-        ok = correr_pipeline(tipo, datos, url_ref, dry_run=args.dry_run, guardar_dir=args.guardar_dir)
-        if ok and not args.dry_run:
-            reg.setdefault(clave_reg, []).append(id_reg)
-            guardar_registro(reg)
-            ok_total += 1
-        elif ok:
-            ok_total += 1
+        try:
+            ok = correr_pipeline(tipo, datos, url_ref, dry_run=False, guardar_dir=None)
+            if ok:
+                reg.setdefault(clave_reg, []).append(id_reg)
+                guardar_registro(reg)
+                ok_total += 1
+                salida.append(f"✅ Publicado exitosamente tipo: {tipo} ({id_reg})")
+            else:
+                salida.append(f"⚠️ Falló la publicación de {tipo} ({id_reg})")
+        except Exception as e:
+            salida.append(f"❌ Error en pipeline {tipo}: {str(e)}")
 
-    # ── Modo manual ───────────────────────────────────────────────────────────
-    if not args.auto:
-        if args.tipo == "ficha":
-            guia = slugs_map.get(args.slug)
-            if not guia:
-                print(f"❌ Slug '{args.slug}' no encontrado.")
-                sys.exit(1)
+    tipos_rotativos = ["ficha", "receta", "comparativa", "tip"]
+    pares_comparativa = [
+        ("alfa-arbutina","acido-kojico"),
+        ("acido-glicolico","acido-lactico"),
+        ("niacinamida","retinol"),
+        ("acido-hialuronico","colageno-hidrolizado"),
+    ]
+    
+    # Elegir un tipo de contenido aleatorio pero intentar rotar basándose en lo último
+    tipo = random.choice(tipos_rotativos)
+    
+    if tipo == "ficha":
+        candidatos = [g for g in guias if g["slug"] not in reg.get("fichas",[])]
+        if candidatos:
+            guia = random.choice(candidatos)
             secs = " ".join(strip_html(s.get("contenido","")) for s in guia.get("secciones",[])[:3])
             datos = {
                 "nombre": guia.get("title_short", guia["title"]),
@@ -831,109 +832,31 @@ def main():
                 "producto_foto": guia.get("producto_foto",""),
             }
             _run("ficha", datos, f"{SITE}/guias/{guia['slug']}", "fichas", guia["slug"])
+        else:
+            salida.append("⚠️ No hay fichas nuevas para publicar.")
 
-        elif args.tipo == "receta":
-            receta = next((r for r in recetas if str(r.get("id","")) == args.id), None)
-            if not receta:
-                print(f"❌ Receta id '{args.id}' no encontrada.")
-                sys.exit(1)
-            ings_str = " ".join(f"{i['n']} {i['q']}{i['u']}" for i in receta.get("ings",[])[:4])
+    elif tipo == "receta":
+        candidatos = [r for r in recetas if str(r.get("id","")) not in reg.get("recetas",[])]
+        if candidatos:
+            receta = random.choice(candidatos)
             datos = {
                 "nombre": f"{receta.get('title','')} {receta.get('title2','')}".strip(),
                 "cat": receta.get("cat",""),
                 "desc": receta.get("desc",""),
                 "ings": receta.get("ings",[]),
                 "tip": receta.get("tip",""),
-                "info_extra": ings_str
-            }
-            _run("receta", datos, f"{SITE}/recetario", "recetas", str(receta["id"]))
-
-        elif args.tipo == "comparativa":
-            if len(args.slugs) < 2:
-                print("❌ Usa --slugs slug-a slug-b")
-                sys.exit(1)
-            ga = slugs_map.get(args.slugs[0])
-            gb = slugs_map.get(args.slugs[1])
-            if not ga or not gb:
-                print(f"❌ Slugs no encontrados: {args.slugs}")
-                sys.exit(1)
-            datos = {
-                "nombre": f"{ga.get('title_short','')} vs {gb.get('title_short','')}",
-                "nombre_a": ga.get("title_short",""),
-                "nombre_b": gb.get("title_short",""),
-                "desc": f"{ga.get('desc','')} | {gb.get('desc','')}",
                 "info_extra": ""
             }
-            clave = f"{args.slugs[0]}_{args.slugs[1]}"
-            _run("comparativa", datos, f"{SITE}/guias", "comparativas", clave)
+            _run("receta", datos, f"{SITE}/recetario", "recetas", str(receta["id"]))
+        else:
+            salida.append("⚠️ No hay recetas nuevas para publicar.")
 
-        elif args.tipo == "tip":
-            guia = slugs_map.get(args.slug)
-            if not guia:
-                print(f"❌ Slug '{args.slug}' no encontrado.")
-                sys.exit(1)
-            secs = " ".join(strip_html(s.get("contenido","")) for s in guia.get("secciones",[])[:4])
-            datos = {
-                "nombre": guia.get("title_short", guia["title"]),
-                "slug": guia["slug"],
-                "desc": guia.get("desc",""),
-                "info_extra": secs[:700]
-            }
-            _run("tip", datos, f"{SITE}/guias/{guia['slug']}", "tips", guia["slug"])
-
-    # ── Modo auto ─────────────────────────────────────────────────────────────
-    else:
-        tipos_rotativos = ["ficha", "receta", "comparativa", "tip"]
-        pares_comparativa = [
-            ("alfa-arbutina","acido-kojico"),
-            ("acido-glicolico","acido-lactico"),
-            ("niacinamida","retinol"),
-            ("acido-hialuronico","colageno-hidrolizado"),
-        ]
-        count = 0
-        tipo_idx = 0
-
-        while count < args.n:
-            tipo = tipos_rotativos[tipo_idx % len(tipos_rotativos)]
-            tipo_idx += 1
-
-            if tipo == "ficha":
-                candidatos = [g for g in guias if g["slug"] not in reg.get("fichas",[])]
-                if not candidatos: continue
-                guia = random.choice(candidatos)
-                secs = " ".join(strip_html(s.get("contenido","")) for s in guia.get("secciones",[])[:3])
-                datos = {
-                    "nombre": guia.get("title_short", guia["title"]),
-                    "slug": guia["slug"],
-                    "categoria": guia.get("category",""),
-                    "tags": guia.get("tags",[]),
-                    "desc": guia.get("desc",""),
-                    "info_extra": secs[:600],
-                    "producto_foto": guia.get("producto_foto",""),
-                }
-                _run("ficha", datos, f"{SITE}/guias/{guia['slug']}", "fichas", guia["slug"])
-
-            elif tipo == "receta":
-                candidatos = [r for r in recetas if str(r.get("id","")) not in reg.get("recetas",[])]
-                if not candidatos: continue
-                receta = random.choice(candidatos)
-                datos = {
-                    "nombre": f"{receta.get('title','')} {receta.get('title2','')}".strip(),
-                    "cat": receta.get("cat",""),
-                    "desc": receta.get("desc",""),
-                    "ings": receta.get("ings",[]),
-                    "tip": receta.get("tip",""),
-                    "info_extra": ""
-                }
-                _run("receta", datos, f"{SITE}/recetario", "recetas", str(receta["id"]))
-
-            elif tipo == "comparativa":
-                candidatos = [(a,b) for a,b in pares_comparativa
-                              if f"{a}_{b}" not in reg.get("comparativas",[])]
-                if not candidatos: continue
-                sa, sb = random.choice(candidatos)
-                ga, gb = slugs_map.get(sa), slugs_map.get(sb)
-                if not ga or not gb: continue
+    elif tipo == "comparativa":
+        candidatos = [(a,b) for a,b in pares_comparativa if f"{a}_{b}" not in reg.get("comparativas",[])]
+        if candidatos:
+            sa, sb = random.choice(candidatos)
+            ga, gb = slugs_map.get(sa), slugs_map.get(sb)
+            if ga and gb:
                 datos = {
                     "nombre": f"{ga.get('title_short','')} vs {gb.get('title_short','')}",
                     "nombre_a": ga.get("title_short",""),
@@ -942,28 +865,23 @@ def main():
                     "info_extra": ""
                 }
                 _run("comparativa", datos, f"{SITE}/guias", "comparativas", f"{sa}_{sb}")
+        else:
+            salida.append("⚠️ No hay comparativas nuevas para publicar.")
 
-            elif tipo == "tip":
-                candidatos = [g for g in guias if g["slug"] not in reg.get("tips",[])]
-                if not candidatos: continue
-                guia = random.choice(candidatos)
-                secs = " ".join(strip_html(s.get("contenido","")) for s in guia.get("secciones",[])[:4])
-                datos = {
-                    "nombre": guia.get("title_short", guia["title"]),
-                    "slug": guia["slug"],
-                    "desc": guia.get("desc",""),
-                    "info_extra": secs[:700]
-                }
-                _run("tip", datos, f"{SITE}/guias/{guia['slug']}", "tips", guia["slug"])
+    elif tipo == "tip":
+        candidatos = [g for g in guias if g["slug"] not in reg.get("tips",[])]
+        if candidatos:
+            guia = random.choice(candidatos)
+            secs = " ".join(strip_html(s.get("contenido","")) for s in guia.get("secciones",[])[:4])
+            datos = {
+                "nombre": guia.get("title_short", guia["title"]),
+                "slug": guia["slug"],
+                "desc": guia.get("desc",""),
+                "info_extra": secs[:700]
+            }
+            _run("tip", datos, f"{SITE}/guias/{guia['slug']}", "tips", guia["slug"])
+        else:
+            salida.append("⚠️ No hay tips nuevos para publicar.")
 
-            count += 1
-            if count < args.n:
-                time.sleep(8)
-
-    print("\n" + "═"*60)
-    print(f"  ✅ PIPELINE COMPLETADO — {ok_total} pieza(s) {'generadas' if args.dry_run else 'publicadas'}")
-    print("═"*60)
-
-
-if __name__ == "__main__":
-    main()
+    salida.append(f"\n🎉 PIPELINE COMPLETADO — {ok_total} pieza(s) publicada(s).")
+    return "\n".join(salida)

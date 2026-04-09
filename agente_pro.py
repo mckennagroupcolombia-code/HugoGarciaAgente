@@ -61,6 +61,12 @@ def create_app():
 
     # Iniciar daemons de las nuevas funcionalidades
     try:
+        from app.monitor import iniciar_monitor
+        iniciar_monitor()
+    except Exception as e:
+        print(f"⚠️ Monitor global: {e}")
+
+    try:
         from app.tools.seguimiento_postventa import iniciar_monitor_postventa
         iniciar_monitor_postventa()
     except Exception as e:

@@ -1,6 +1,17 @@
 {
-  "pendientes": {},
+  "pendientes": {
+    "4264": {
+      "pack_id": "2000015897164264",
+      "comprador": "Comprador 791457189",
+      "from_id": "791457189",
+      "texto": "Que tal Estimad@ saludos. Le agradezco si envía el producto hoy mismo a más tardar el día de mañana para tenerlo en pronto. Gracias",
+      "msg_id": "019d6efc83d3721981a55e46885bca77",
+      "productos": "  • Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+      "timestamp": "2026-04-08T16:30:23"
+    }
+  },
   "procesados": [
+    "019d6efc83d3721981a55e46885bca77",
     "019d52f0c31d7eb3b8f6437ac713c247"
   ]
 }

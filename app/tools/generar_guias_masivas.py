@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 
 # ─── Rutas ────────────────────────────────────────────────────────────────────
-BASE        = Path(__file__).parent
+BASE        = Path(__file__).parent.parent.parent
 GUIAS_JSON  = BASE / "PAGINA_WEB/site/data/guias.json"
 DOTENV      = BASE / ".env"
 
@@ -1134,31 +1134,32 @@ def slugs_existentes(guias: list) -> set:
 
 
 # ─── PIPELINE PRINCIPAL ───────────────────────────────────────────────────────
-def main():
-    print("\n" + "═"*62)
-    print("  GENERACIÓN MASIVA DE GUÍAS — McKenna Group")
-    print(f"  {len(INGREDIENTES)} ingredientes en cola")
-    print("═"*62)
+def generar_guias_masivas_web() -> str:
+    """
+    Skill para generar guías técnicas estructuradas de los ingredientes del catálogo 
+    (usando PubMed y Gemini).
+    Retorna un resumen de la operación.
+    """
+    salida = []
+    salida.append("📚 GENERACIÓN MASIVA DE GUÍAS — McKenna Group")
+    salida.append(f"📦 {len(INGREDIENTES)} ingredientes en el catálogo")
 
     guias    = cargar_guias()
     existentes = slugs_existentes(guias)
 
     pendientes = [ing for ing in INGREDIENTES if ing["slug"] not in existentes]
-    print(f"\n  Ya generadas: {len(existentes)}")
-    print(f"  Pendientes:   {len(pendientes)}\n")
+    salida.append(f"✅ Ya generadas: {len(existentes)}")
+    salida.append(f"⏳ Pendientes:   {len(pendientes)}")
 
     if not pendientes:
-        print("  ✅ Todas las guías ya están generadas.")
-        return
+        salida.append("🎉 Todas las guías ya están generadas.")
+        return "\n".join(salida)
 
     for idx, ing in enumerate(pendientes, 1):
-        print(f"\n[{idx}/{len(pendientes)}] {ing['titulo']}")
-        print(f"  slug: {ing['slug']}")
+        salida.append(f"\n[{idx}/{len(pendientes)}] Generando: {ing['titulo']}")
 
         # 1. PubMed
-        print("  📚 PubMed...", end=" ", flush=True)
         papers = buscar_pubmed(ing["tema"], max_results=4)
-        print(f"{len(papers)} artículo(s)")
         time.sleep(1)  # respetar rate limit NCBI
 
         # 2. Compilar conocimiento
@@ -1166,13 +1167,11 @@ def main():
         conocimiento = "\n\n---\n\n".join(bloques) or f"Conocimiento general sobre {ing['tema']}"
 
         # 3. Gemini → 7 secciones JSON
-        print("  🤖 Gemini...", end=" ", flush=True)
         resultado = generar_guia_estructurada(ing["tema"], conocimiento)
         if not resultado:
-            print("  ⚠️  Saltando (Gemini falló)")
+            salida.append("  ⚠️  Gemini falló, saltando...")
             time.sleep(5)
             continue
-        print(f"  ✅ {len(resultado.get('secciones',[]))} secciones generadas")
 
         # 4. Merge con referencias de PubMed + las que generó Gemini
         refs_pubmed = [{"titulo": p["titulo"], "fuente": p["fuente"], "año": p["año"], "url": p["url"]} for p in papers]
@@ -1210,19 +1209,11 @@ def main():
 
         guias.append(entrada)
         guardar_guias(guias)
-        print(f"  💾 Guardado en guias.json (id={nuevo_id})")
 
         # 6. Pausa entre requests (rate limit Gemini)
         if idx < len(pendientes):
-            espera = 12
-            print(f"  ⏳ Esperando {espera}s...")
-            time.sleep(espera)
+            time.sleep(12)
 
-    print("\n" + "═"*62)
-    print(f"  ✅ COMPLETADO — {len(pendientes)} guías nuevas generadas")
-    print(f"  Total en guias.json: {len(guias)}")
-    print("═"*62 + "\n")
-
-
-if __name__ == "__main__":
-    main()
+    salida.append(f"\n✅ COMPLETADO — {len(pendientes)} guías nuevas generadas.")
+    salida.append(f"📄 Total en guias.json: {len(guias)}")
+    return "\n".join(salida)

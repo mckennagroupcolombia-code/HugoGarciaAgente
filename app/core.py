@@ -56,6 +56,12 @@ from app.sync import (
     sincronizar_por_dia_especifico
 )
 from app.tools.importar_productos_siigo import procesar_facturas_para_importar_productos
+from app.tools.sincronizar_precios import sincronizar_precios_meli_sheets
+from app.tools.generar_catalogo import generar_catalogo_pdf
+from app.tools.generar_reporte_skus import generar_reporte_skus_woocommerce
+from app.tools.sincronizar_wc_desde_meli import sincronizar_catalogo_wc_desde_meli
+from app.tools.generar_guias_masivas import generar_guias_masivas_web
+from app.tools.pipeline_contenido_facebook import publicar_contenido_redes_sociales_ia
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
 
 
@@ -291,6 +297,12 @@ def configurar_ia(app):
             sincronizar_por_dia_especifico,
             refrescar_token_meli, enviar_whatsapp_reporte,
             procesar_facturas_para_importar_productos,
+            sincronizar_precios_meli_sheets,
+            generar_catalogo_pdf,
+            generar_reporte_skus_woocommerce,
+            sincronizar_catalogo_wc_desde_meli,
+            generar_guias_masivas_web,
+            publicar_contenido_redes_sociales_ia,
             crear_cotizacion_siigo, crear_cotizacion_preliminar,
             crear_factura_completa_siigo,
             consultar_tarifa_envio, consultar_tarifa_mercadoenvios,
