@@ -1,0 +1,82 @@
+{
+  "_nota": "Inventario de grupos WhatsApp McKenna. Los JIDs son los oficiales; las variables .env pueden apuntar a estos según funcionalidad. NO mezclar el flujo de pedidos web con otros grupos.",
+  "pedidos_web_exclusivo": {
+    "nombre": "Guias_Envios pagina web",
+    "jid": "120363391665421264@g.us",
+    "env": "GRUPO_PEDIDOS_WEB_WA",
+    "uso": "Único grupo: notificaciones de compras en mckennagroup.co, comandos facturar y envio (guía)."
+  },
+  "grupos": [
+    {
+      "nombre": "Compras, Pedidos USA y China",
+      "jid": "120363199083417559@g.us",
+      "miembros_aprox": 5
+    },
+    {
+      "nombre": "Cuentas USD COP Cindy",
+      "jid": "120363427149881627@g.us",
+      "miembros_aprox": 2
+    },
+    {
+      "nombre": "Facturacion_Compras_SIIGO",
+      "jid": "120363408323873426@g.us",
+      "miembros_aprox": 2,
+      "env_sugerido": "GRUPO_FACTURACION_COMPRAS_WA / GRUPO_CONTABILIDAD_WA"
+    },
+    {
+      "nombre": "Facturacion_Ventas_SIIGO",
+      "jid": "120363425465848868@g.us",
+      "miembros_aprox": 2,
+      "env_sugerido": "GRUPO_FACTURACION_VENTAS_WA"
+    },
+    {
+      "nombre": "Guias_Envios pagina web",
+      "jid": "120363391665421264@g.us",
+      "miembros_aprox": 4,
+      "env_sugerido": "GRUPO_PEDIDOS_WEB_WA (exclusivo pedidos web)"
+    },
+    {
+      "nombre": "MCKG SEDE SUR",
+      "jid": "120363023555909043@g.us",
+      "miembros_aprox": 5
+    },
+    {
+      "nombre": "MCKG PEDIDOS / COMPRAS",
+      "jid": "120363045181721155@g.us",
+      "miembros_aprox": 4
+    },
+    {
+      "nombre": "Pago de pedidos",
+      "jid": "120363291230325649@g.us",
+      "miembros_aprox": 3
+    },
+    {
+      "nombre": "Postventa_Meli",
+      "jid": "120363406693905719@g.us",
+      "miembros_aprox": 3,
+      "env_sugerido": "GRUPO_POSTVENTA_WA"
+    },
+    {
+      "nombre": "Preventa_Meli",
+      "jid": "120363393955474672@g.us",
+      "miembros_aprox": 3,
+      "env_sugerido": "GRUPO_PREVENTA_WA"
+    },
+    {
+      "nombre": "Registro_Facturas_Compras",
+      "jid": "120363425078570875@g.us",
+      "miembros_aprox": 3
+    },
+    {
+      "nombre": "Sincronizacion_Inventario",
+      "jid": "120363407538342427@g.us",
+      "miembros_aprox": 4,
+      "env_sugerido": "GRUPO_INVENTARIO_WA"
+    },
+    {
+      "nombre": "Solo guías y cuentas USA",
+      "jid": "120363197905312482@g.us",
+      "miembros_aprox": null
+    }
+  ]
+}

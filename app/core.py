@@ -7,14 +7,16 @@ from typing import get_type_hints, get_origin, get_args, Union
 
 import anthropic
 
-_LOG_ERRORES = os.path.join(os.path.dirname(__file__), '..', 'log_errores_ia.txt')
+_LOG_ERRORES = os.path.join(os.path.dirname(__file__), "..", "log_errores_ia.txt")
+
 
 def _log_error(contexto: str, exc: Exception):
     """Registra el error completo en archivo para diagnóstico."""
     from datetime import datetime
+
     try:
-        with open(_LOG_ERRORES, 'a', encoding='utf-8') as f:
-            f.write(f"\n{'='*60}\n")
+        with open(_LOG_ERRORES, "a", encoding="utf-8") as f:
+            f.write(f"\n{'=' * 60}\n")
             f.write(f"[{datetime.now().isoformat()}] {contexto}\n")
             f.write(f"Tipo: {type(exc).__name__}\n")
             f.write(f"Error: {exc}\n")
@@ -22,23 +24,23 @@ def _log_error(contexto: str, exc: Exception):
     except Exception:
         pass
 
+
 # --- Importación de Herramientas desde los Nuevos Módulos ---
 
 from app.tools.memoria import query_sqlite, query_vector_db
-from app.services.google_services import leer_datos_hoja, buscar_producto_completo as _buscar_producto_completo
+from app.services.google_services import (
+    leer_datos_hoja,
+    buscar_producto_completo as _buscar_producto_completo,
+)
 from app.services.siigo import *
 from app.services.meli import (
     aprender_de_interacciones_meli,
     consultar_devoluciones_meli,
     consultar_detalle_venta_meli,
     responder_solicitud_rut,
-    buscar_ventas_acordar_entrega
+    buscar_ventas_acordar_entrega,
 )
-from app.services.woocommerce import (
-    obtener_todos_los_productos_woocommerce,
-    actualizar_stock_woocommerce,
-    sincronizar_catalogo_woocommerce
-)
+
 from app.tools.system_tools import (
     enviar_email_reporte,
     listar_archivos_proyecto,
@@ -48,42 +50,72 @@ from app.tools.system_tools import (
     crear_nuevo_script,
     ejecutar_script_python,
     consultar_tarifa_envio,
-    consultar_tarifa_mercadoenvios
+    consultar_tarifa_mercadoenvios,
 )
 from app.sync import (
     sincronizar_manual_por_id,
     sincronizar_inteligente,
-    sincronizar_por_dia_especifico
+    sincronizar_por_dia_especifico,
 )
 from app.tools.importar_productos_siigo import procesar_facturas_para_importar_productos
 from app.tools.sincronizar_precios import sincronizar_precios_meli_sheets
 from app.tools.generar_catalogo import generar_catalogo_pdf
-from app.tools.generar_reporte_skus import generar_reporte_skus_woocommerce
-from app.tools.sincronizar_wc_desde_meli import sincronizar_catalogo_wc_desde_meli
 from app.tools.generar_guias_masivas import generar_guias_masivas_web
 from app.tools.pipeline_contenido_facebook import publicar_contenido_redes_sociales_ia
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
 
 
+def _resumen_disponibilidad_para_agente(stock_raw) -> str:
+    """
+    Convierte el valor de stock del Sheet a texto para el LLM sin exponer cifra exacta al cliente.
+    """
+    if stock_raw is None:
+        return "- Disponibilidad: dato no claro en catálogo; ofrece confirmar con el equipo."
+    s = str(stock_raw).strip()
+    if not s:
+        return "- Disponibilidad: dato no claro en catálogo; ofrece confirmar con el equipo."
+    low = s.lower()
+    try:
+        n = float(s.replace(",", ".").replace(" ", ""))
+        if n > 0:
+            return (
+                "- Disponibilidad: Sí, hay existencias en catálogo. "
+                "IMPORTANTE: no menciones cantidad numérica al cliente; solo disponible o no. "
+                "Si el cliente pide una cantidad específica y según este dato alcanza, confírmala."
+            )
+        return "- Disponibilidad: No / sin existencias según catálogo."
+    except ValueError:
+        if any(x in low for x in ("agot", "sin stock", "no dispon", "no hay")):
+            return "- Disponibilidad: No según catálogo."
+        if any(x in low for x in ("dispon", "en stock", "hay ", "activo")):
+            return "- Disponibilidad: Sí (según texto en hoja); no des cifras exactas al cliente."
+        return (
+            "- Disponibilidad: interpreta el valor de hoja con cuidado; no inventes cifras. "
+            f'Referencia interna (no citar tal cual al cliente si es numérico ambiguo): "{s[:80]}"'
+        )
+
+
 def buscar_producto_completo(consulta: str) -> str:
     """
-    Busca información completa de un producto del catálogo McKenna Group.
-    Retorna nombre oficial de SIIGO, precio, stock disponible y ficha técnica.
-    Usar cuando un cliente pregunte por disponibilidad, precio o características
-    de un producto en WhatsApp.
+    Busca información completa de un producto del catálogo McKenna Group (Google Sheets).
+    Incluye disponibilidad en forma resumida (sin cantidad exacta) para cumplir política WhatsApp.
+    Usar cuando un cliente pregunte por disponibilidad, precio o características en WhatsApp.
     """
     resultado = _buscar_producto_completo(consulta)
     if resultado:
-        precio_fmt = f"${resultado['precio']:,.0f} COP" if resultado['precio'] else "Consultar"
-        unidad = resultado['unidad'] or ""
-        ficha = resultado['ficha_tecnica'] or "No disponible"
+        precio_fmt = (
+            f"${resultado['precio']:,.0f} COP" if resultado["precio"] else "Consultar"
+        )
+        unidad = resultado["unidad"] or ""
+        ficha = resultado["ficha_tecnica"] or "No disponible"
+        disp = _resumen_disponibilidad_para_agente(resultado.get("stock_siigo"))
         return (
             f"✅ Producto encontrado en catálogo McKenna Group:\n"
             f"- Nombre oficial: {resultado['nombre_siigo']}\n"
             f"- SKU/Referencia: {resultado['referencia']}\n"
             f"- Precio: {precio_fmt}\n"
             f"- Unidad: {unidad}\n"
-            f"- Stock disponible: {resultado['stock_siigo']}\n"
+            f"{disp}\n"
             f"- Ficha técnica: {ficha}"
         )
     return f"Producto '{consulta}' no encontrado en el catálogo."
@@ -106,7 +138,7 @@ Tono: Directo, sin rodeos, ejecutivo rolo.
 REGLAS DE INTERACCIÓN WHATSAPP Y VENTAS:
 1. NO SUFIERAS ni ofrezcas opciones extra que el cliente no ha pedido (ej: no digas "¿Desea que le envíe el catálogo?", "¿Desea que le diga el precio del envío?", etc.). Limítate a responder puntualmente lo que el cliente pregunta.
 2. SALUDO INICIAL: Si es la primera interacción y el cliente solo saluda (ej. "Buenas tardes"), responde EXACTAMENTE así: "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci!". Si el cliente pregunta algo de inmediato, omite los títulos largos y responde directamente a la pregunta.
-3. CONSULTA DE INVENTARIO: Si el cliente pregunta por un producto, debes usar las herramientas para consultar la hoja de Google Sheets (leer_datos_hoja) y verificar la disponibilidad. MUY IMPORTANTE: NO DIGAS al cliente la cantidad exacta que hay en stock. Solo dile si está disponible o no. Si el cliente luego solicita una cantidad específica que sí está disponible, entonces le confirmas que sí la hay.
+3. CONSULTA DE INVENTARIO: Si el cliente pregunta por un producto en WhatsApp, usa SIEMPRE 'buscar_producto_completo' (lee el catálogo en Sheets). NO uses 'leer_datos_hoja' para ese fin salvo que 'buscar_producto_completo' no baste. La herramienta ya resume disponibilidad sin cifra exacta: NO DIGAS cantidad numérica de stock al cliente; solo disponible o no. Si pide una cantidad específica y el contexto indica que hay existencias suficientes, confírmala.
 4. JERGA COLOMBIANA PARA CANTIDADES: Cuando el cliente diga algo como "deme 500 y 500" o "deme 250", si estabas hablando de productos en gramos, asume que se refiere a 1 UNIDAD de la presentación de 500g o 250g, NO a 500 unidades del producto. No te enredes con esto.
 5. COTIZACIONES: Si el cliente desea realizar una cotización, pregúntale paso a paso:
    a. Nombre completo o razón social y número de identificación (NIT/Cédula).
@@ -129,7 +161,7 @@ REGLAS DE CONTROL DE HERRAMIENTAS:
 4. No pidas confirmaciones de WhatsApp (s/n) en el modo chat a menos que te lo ordenen explícitamente.
 
 REGLAS SOBRE NOMBRES Y PRECIOS DE PRODUCTOS:
-- En conversaciones de WHATSAPP: SIEMPRE usa 'buscar_producto_completo' para consultar un producto. Usa el nombre oficial que retorna SIIGO, no el nombre de la publicación de MercadoLibre. Usa el precio de SIIGO.
+- En conversaciones de WHATSAPP: SIEMPRE usa 'buscar_producto_completo' para consultar un producto (no repitas cantidades de inventario al cliente). Usa el nombre oficial que retorna el catálogo (columna SIIGO), no el nombre de la publicación de MercadoLibre. Usa el precio del catálogo.
 - En respuestas de PREVENTA en MercadoLibre: puedes mencionar el nombre de la publicación, pero consulta la ficha técnica real desde Google Sheets.
 - NUNCA uses nombres de publicaciones de MercadoLibre al hablar con clientes por WhatsApp.
 - El SKU es la referencia oficial del producto en todas las facturas y cotizaciones.
@@ -138,9 +170,9 @@ REGLAS SOBRE NOMBRES Y PRECIOS DE PRODUCTOS:
 # ==========================================
 # Globals
 # ==========================================
-cliente_ia = None          # anthropic.Anthropic instance
-_tools_schema: list = []   # Claude tool definitions (JSON schema)
-_tools_map: dict   = {}    # name → callable
+cliente_ia = None  # anthropic.Anthropic instance
+_tools_schema: list = []  # Claude tool definitions (JSON schema)
+_tools_map: dict = {}  # name → callable
 _system_prompt: str = ""
 # Per-user conversation history: user_id → list of message dicts
 _historiales: dict = {}
@@ -152,6 +184,7 @@ modelo_ia = None
 # ==========================================
 # Utilidades de schema
 # ==========================================
+
 
 def _py_type_to_json(annotation) -> str:
     """Convierte una anotación de tipo Python a un tipo JSON Schema."""
@@ -188,13 +221,13 @@ def _fn_to_tool_schema(fn) -> dict:
     required = []
 
     for name, param in sig.parameters.items():
-        if name == 'self':
+        if name == "self":
             continue
 
         ann = hints.get(name, param.annotation)
 
         # Si el tipo es Optional[X] o tiene default → no es required
-        is_optional = (param.default is not inspect.Parameter.empty)
+        is_optional = param.default is not inspect.Parameter.empty
         origin = get_origin(ann)
         if origin is Union and type(None) in get_args(ann):
             is_optional = True
@@ -211,7 +244,7 @@ def _fn_to_tool_schema(fn) -> dict:
         "input_schema": {
             "type": "object",
             "properties": properties,
-        }
+        },
     }
     if required:
         schema["input_schema"]["required"] = required
@@ -233,15 +266,17 @@ def _serializar_content(content) -> list:
         elif block.type == "text":
             result.append({"type": "text", "text": block.text})
         elif block.type == "tool_use":
-            result.append({
-                "type": "tool_use",
-                "id": block.id,
-                "name": block.name,
-                "input": block.input,
-            })
+            result.append(
+                {
+                    "type": "tool_use",
+                    "id": block.id,
+                    "name": block.name,
+                    "input": block.input,
+                }
+            )
         else:
             # fallback
-            if hasattr(block, 'model_dump'):
+            if hasattr(block, "model_dump"):
                 result.append(block.model_dump())
     return result
 
@@ -250,11 +285,12 @@ def _serializar_content(content) -> list:
 # Carga de casos de entrenamiento
 # ==========================================
 
+
 def cargar_casos_especiales():
     try:
-        with open('app/training/casos_especiales.json', 'r', encoding='utf-8') as f:
+        with open("app/training/casos_especiales.json", "r", encoding="utf-8") as f:
             data = json.load(f)
-            casos = data.get('casos', [])
+            casos = data.get("casos", [])
             if not casos:
                 return ""
             texto = "\n\n=== CASOS ESPECIALES DE ENTRENAMIENTO ===\n"
@@ -271,6 +307,7 @@ def cargar_casos_especiales():
 # Inicialización
 # ==========================================
 
+
 def configurar_ia(app):
     """
     Configura el cliente Anthropic y registra todas las herramientas disponibles
@@ -286,37 +323,47 @@ def configurar_ia(app):
         cliente_ia = anthropic.Anthropic(api_key=api_key)
 
         todas_las_herramientas = [
-            query_sqlite, query_vector_db, leer_datos_hoja,
-            aprender_de_interacciones_meli, consultar_devoluciones_meli,
-            consultar_detalle_venta_meli, responder_solicitud_rut,
+            query_sqlite,
+            query_vector_db,
+            leer_datos_hoja,
+            aprender_de_interacciones_meli,
+            consultar_devoluciones_meli,
+            consultar_detalle_venta_meli,
+            responder_solicitud_rut,
             buscar_ventas_acordar_entrega,
-            enviar_email_reporte, listar_archivos_proyecto,
-            crear_backup, parchear_funcion, leer_funcion,
-            crear_nuevo_script, ejecutar_script_python,
-            sincronizar_manual_por_id, sincronizar_inteligente,
+            enviar_email_reporte,
+            listar_archivos_proyecto,
+            crear_backup,
+            parchear_funcion,
+            leer_funcion,
+            crear_nuevo_script,
+            ejecutar_script_python,
+            sincronizar_manual_por_id,
+            sincronizar_inteligente,
             sincronizar_por_dia_especifico,
-            refrescar_token_meli, enviar_whatsapp_reporte,
+            refrescar_token_meli,
+            enviar_whatsapp_reporte,
             procesar_facturas_para_importar_productos,
             sincronizar_precios_meli_sheets,
             generar_catalogo_pdf,
-            generar_reporte_skus_woocommerce,
-            sincronizar_catalogo_wc_desde_meli,
             generar_guias_masivas_web,
             publicar_contenido_redes_sociales_ia,
-            crear_cotizacion_siigo, crear_cotizacion_preliminar,
+            crear_cotizacion_siigo,
+            crear_cotizacion_preliminar,
             crear_factura_completa_siigo,
-            consultar_tarifa_envio, consultar_tarifa_mercadoenvios,
+            consultar_tarifa_envio,
+            consultar_tarifa_mercadoenvios,
             buscar_producto_completo,
-            obtener_todos_los_productos_woocommerce,
-            actualizar_stock_woocommerce, sincronizar_catalogo_woocommerce,
         ]
 
-        _tools_map    = {fn.__name__: fn for fn in todas_las_herramientas}
+        _tools_map = {fn.__name__: fn for fn in todas_las_herramientas}
         _tools_schema = [_fn_to_tool_schema(fn) for fn in todas_las_herramientas]
 
         _system_prompt = INSTRUCCIONES_MCKENNA + cargar_casos_especiales()
 
-        print(f"🤖 Cerebro del Agente (Claude claude-sonnet-4-6) configurado — {len(_tools_schema)} herramientas registradas.")
+        print(
+            f"🤖 Cerebro del Agente (Claude claude-sonnet-4-6) configurado — {len(_tools_schema)} herramientas registradas."
+        )
 
     except Exception as e:
         print(f"❌ Error crítico al configurar la IA: {e}")
@@ -326,6 +373,7 @@ def configurar_ia(app):
 # ==========================================
 # Respuesta de IA — loop de tool dispatch
 # ==========================================
+
 
 def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None):
     """
@@ -371,7 +419,9 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                 if response.stop_reason == "tool_use":
                     # 1. Guardar el turno del asistente (incluye texto + tool_use)
                     asst_content = _serializar_content(response.content)
-                    current_messages.append({"role": "assistant", "content": asst_content})
+                    current_messages.append(
+                        {"role": "assistant", "content": asst_content}
+                    )
 
                     # 2. Ejecutar cada herramienta y recoger resultados
                     tool_results = []
@@ -387,17 +437,27 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                                 result = fn(**block.input)
                                 result_str = str(result)[:8192]
                             except Exception as tool_exc:
-                                result_str = f"Error ejecutando {block.name}: {tool_exc}"
-                                _log_error(f"Tool {block.name} args={block.input}", tool_exc)
+                                result_str = (
+                                    f"[TOOL_ERROR] La herramienta '{block.name}' falló: {tool_exc}. "
+                                    "No asumas que se ejecutó bien; corrige argumentos o informa al usuario."
+                                )
+                                _log_error(
+                                    f"Tool {block.name} args={block.input}", tool_exc
+                                )
                         else:
-                            result_str = f"Herramienta '{block.name}' no encontrada."
+                            result_str = (
+                                f"[TOOL_ERROR] Herramienta '{block.name}' no existe en el mapa. "
+                                "Elige otra acción."
+                            )
 
                         print(f"   ↳ {result_str[:120]}")
-                        tool_results.append({
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": result_str,
-                        })
+                        tool_results.append(
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": result_str,
+                            }
+                        )
 
                     # 3. Devolver resultados a Claude y continuar
                     current_messages.append({"role": "user", "content": tool_results})
@@ -405,38 +465,71 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                 elif response.stop_reason == "end_turn":
                     # Extraer texto final
                     texto = "".join(
-                        block.text for block in response.content
+                        block.text
+                        for block in response.content
                         if hasattr(block, "text")
                     )
 
                     # Actualizar historial persistente del usuario
                     final_messages = current_messages + [
-                        {"role": "assistant", "content": _serializar_content(response.content)}
+                        {
+                            "role": "assistant",
+                            "content": _serializar_content(response.content),
+                        }
                     ]
                     # Mantener últimos 40 mensajes para controlar costo de contexto
                     _historiales[usuario_id] = final_messages[-40:]
 
                     if not pregunta.startswith("BOT_"):
-                        return texto or "✅ Tarea ejecutada en segundo plano.", final_messages
+                        return (
+                            texto or "✅ Tarea ejecutada en segundo plano.",
+                            final_messages,
+                        )
                     else:
                         return "", final_messages
 
                 elif response.stop_reason == "max_tokens":
                     # Respuesta cortada por límite de tokens — devolver lo que haya
                     texto = "".join(
-                        block.text for block in response.content
+                        block.text
+                        for block in response.content
                         if hasattr(block, "text")
                     )
                     print(f"⚠️ Respuesta cortada por max_tokens")
-                    return texto or "Veci, la respuesta fue muy larga. ¿Puede ser más específico?", current_messages
+                    final_messages = current_messages + [
+                        {
+                            "role": "assistant",
+                            "content": _serializar_content(response.content),
+                        }
+                    ]
+                    _historiales[usuario_id] = final_messages[-40:]
+                    user_text = texto.strip() or (
+                        "Veci, la respuesta se cortó por tamaño. ¿Puede ser más específico? 🙏"
+                    )
+                    if texto.strip():
+                        user_text = (
+                            f"{user_text}\n\n(Ajuste: si falta detalle, pregunte una cosa puntual.)"
+                        )
+                    return user_text, final_messages
 
                 else:
                     print(f"⚠️ stop_reason inesperado: {response.stop_reason}")
-                    break
+                    _historiales[usuario_id] = current_messages[-40:]
+                    return (
+                        "Veci, tuve un problema al completar la respuesta. "
+                        "¿Intenta de nuevo en un momentico? 🙏",
+                        current_messages,
+                    )
             else:
-                print(f"⚠️ Límite de {MAX_TOOL_ITERS} iteraciones de herramientas alcanzado")
-
-            return "✅ Proceso completado.", current_messages
+                print(
+                    f"⚠️ Límite de {MAX_TOOL_ITERS} iteraciones de herramientas alcanzado"
+                )
+                _historiales[usuario_id] = current_messages[-40:]
+                return (
+                    "Veci, me quedé a medias usando las herramientas internas. "
+                    "¿Me escribe de nuevo una sola pregunta concreta? 🙏",
+                    current_messages,
+                )
 
         except anthropic.BadRequestError as e:
             # Esquemas de herramientas inválidos o mensaje malformado
@@ -444,7 +537,10 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
             print(f"❌ Error de request Claude (BadRequest): {e}")
             # Limpiar historial de este usuario para evitar reenviar mensajes corruptos
             _historiales.pop(usuario_id, None)
-            return "Veci, hubo un error en el formato del mensaje. Por favor inténtelo de nuevo 🙏", []
+            return (
+                "Veci, hubo un error en el formato del mensaje. Por favor inténtelo de nuevo 🙏",
+                [],
+            )
 
         except anthropic.AuthenticationError as e:
             _log_error("AuthenticationError — verificar ANTHROPIC_API_KEY", e)
@@ -453,10 +549,16 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
 
         except Exception as e:
             error_str = str(e)
-            _log_error(f"Error IA intento={intento+1} usuario={usuario_id}", e)
-            print(f"⚠️ Error IA (intento {intento+1}/{MAX_REINTENTOS}): {type(e).__name__}: {error_str}")
+            _log_error(f"Error IA intento={intento + 1} usuario={usuario_id}", e)
+            print(
+                f"⚠️ Error IA (intento {intento + 1}/{MAX_REINTENTOS}): {type(e).__name__}: {error_str}"
+            )
 
-            if "overloaded" in error_str.lower() or "529" in error_str or "503" in error_str:
+            if (
+                "overloaded" in error_str.lower()
+                or "529" in error_str
+                or "503" in error_str
+            ):
                 if intento < MAX_REINTENTOS - 1:
                     espera = (intento + 1) * 5
                     print(f"⚠️ Claude sobrecargado — reintento en {espera}s")
@@ -465,17 +567,20 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                 return (
                     "Veci, tenemos alta demanda en este momento. "
                     "Por favor escríbanos de nuevo en 2 minutos 🙏",
-                    []
+                    [],
                 )
 
             if "429" in error_str or "rate_limit" in error_str.lower():
                 return (
                     "Veci, estamos atendiendo muchos clientes. "
                     "Por favor espere un momento y escriba de nuevo 🙏",
-                    []
+                    [],
                 )
 
             print(f"❌ Error IA inesperado ({type(e).__name__}): {e}")
-            return "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏", []
+            return (
+                "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+                [],
+            )
 
     return "Veci, intente de nuevo en un momento 🙏", []

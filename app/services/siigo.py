@@ -569,3 +569,86 @@ def buscar_producto_siigo_por_sku(sku: str):
     except Exception as e:
         print(f"❌ Error consultando SIIGO por SKU: {e}")
     return None
+
+
+def _precio_lista_siigo_producto(p: dict) -> float:
+    try:
+        return float(p["prices"][0]["price_list"][0]["value"])
+    except (KeyError, IndexError, TypeError, ValueError):
+        return 0.0
+
+
+def listar_productos_combo_siigo() -> list:
+    """
+    Devuelve los items crudos de la API SIIGO con type Combo (activos).
+    Si el filtro type=Combo no devuelve datos, pagina todos los productos y filtra.
+    """
+    token = autenticar_siigo()
+    if not token:
+        return []
+
+    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+    out = []
+    seen = set()
+
+    def consume_results(results, strict_combo: bool) -> None:
+        for p in results:
+            code = (p.get("code") or "").strip()
+            if not code or code.upper() in seen:
+                continue
+            t = (p.get("type") or "").strip().lower()
+            if strict_combo and t != "combo":
+                continue
+            if not p.get("active", True):
+                continue
+            seen.add(code.upper())
+            out.append(p)
+
+    for page in range(1, 500):
+        try:
+            res = requests.get(
+                "https://api.siigo.com/v1/products",
+                params={"page": page, "page_size": 100, "type": "Combo", "active": "true"},
+                headers=headers,
+                timeout=25,
+            )
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            break
+        data = res.json()
+        results = data.get("results") or []
+        if not results:
+            break
+        consume_results(results, strict_combo=True)
+        pag = data.get("pagination") or {}
+        total = int(pag.get("total_results") or 0)
+        if total and page * 100 >= total:
+            break
+        if len(results) < 100:
+            break
+
+    if out:
+        return out
+
+    for page in range(1, 2000):
+        try:
+            res = requests.get(
+                "https://api.siigo.com/v1/products",
+                params={"page": page, "page_size": 100},
+                headers=headers,
+                timeout=25,
+            )
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            break
+        data = res.json()
+        results = data.get("results") or []
+        if not results:
+            break
+        consume_results(results, strict_combo=True)
+        if len(results) < 100:
+            break
+
+    return out

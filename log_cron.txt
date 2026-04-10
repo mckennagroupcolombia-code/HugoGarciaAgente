@@ -572,3 +572,30 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
 To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
    2595602..e8b94c6  master -> main
 [2026-04-07 23:00:03] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-07 23:00'
+[master cf0e443] Auto-commit: actualizacion diaria 2026-04-08 23:00
+ 38 files changed, 5093 insertions(+), 2142 deletions(-)
+ create mode 100644 .website.pid
+ create mode 100644 app/tools/generar_catalogo.py
+ rename generar_guias_masivas.py => app/tools/generar_guias_masivas.py (98%)
+ create mode 100644 app/tools/generar_reporte_skus.py
+ rename pipeline_contenido_facebook.py => app/tools/pipeline_contenido_facebook.py (85%)
+ create mode 100644 app/tools/sincronizar_precios.py
+ create mode 100644 app/tools/sincronizar_wc_desde_meli.py
+ create mode 100644 backups_drive/backup_hugo_20260408_020007.tar.gz
+ create mode 100644 backups_drive/backup_hugo_20260408_020030.tar.gz
+ create mode 100644 backups_drive/backup_hugo_20260408_021032.tar.gz
+ create mode 100644 backups_drive/backup_hugo_20260408_022904.tar.gz
+ create mode 100644 backups_drive/backup_hugo_20260408_023221.tar.gz
+ create mode 100755 mantener_servicios.sh
+ create mode 100644 meli_logic_temp.py
+ create mode 100644 meli_route_temp.py
+ create mode 100644 meli_webhook_full.py
+ create mode 100644 monitor_meli_temp.py
+ create mode 100644 patch_monitor.py
+ create mode 100644 patch_routes.py
+ create mode 100644 patch_routes2.py
+ delete mode 100644 scripts/Manual_Hugo_Garcia_McKenna.pdf
+ create mode 100755 start_services.sh
+To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
+   e8b94c6..cf0e443  master -> main
+[2026-04-08 23:00:06] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-08 23:00'

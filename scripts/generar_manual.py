@@ -344,7 +344,7 @@ def portada(s: dict) -> list:
     # Descripción
     elems.append(Paragraph(
         'Guía completa de operación, comandos, arquitectura técnica y flujos de trabajo<br/>'
-        f'del sistema de automatización empresarial de McKenna Group · v3.0 · {fecha_gen}',
+        f'del sistema de automatización empresarial de McKenna Group · v3.1 · {fecha_gen}',
         s['portada_desc']
     ))
     elems.append(sp(1.2))
@@ -403,7 +403,7 @@ def tabla_contenidos(s: dict) -> list:
             'Cómo funciona la IA', 'Fichas técnicas en Google Sheets',
             'Respuesta manual del operador', 'Aprendizaje continuo']),
         ('07', 'Sincronización de Inventario', [
-            'Principio de stock', 'MeLi ↔ WooCommerce', 'Comandos de sync']),
+            'Principio de stock', 'MeLi ↔ página web (API)', 'Comandos de sync']),
         ('08', 'Facturación SIIGO y Documentos Fiscales', [
             'Flujo A: Compra materias primas (Gmail → XML → SIIGO)',
             'Flujo B: Facturación de venta a clientes',
@@ -420,10 +420,10 @@ def tabla_contenidos(s: dict) -> list:
             'Publicación automática en WordPress',
             'Scripts de generación masiva']),
         ('13', 'Nuevas Skills (Herramientas Autónomas)', [
-            'Conversión de scripts a Skills',
-            'Interacción e Invocación',
-            'Ejemplos de Skills',
-            'Registro y Arquitectura en core.py']),
+            'Tool calling con Claude en core.py',
+            'Ejemplos: precios, catálogo PDF, Facebook, guías web',
+            'Stock hacia tienda: sincronizar_productos_pagina_web',
+            'Registro en todas_las_herramientas']),
     ]
 
     for num, titulo, subs in toc:
@@ -490,12 +490,12 @@ def sec01_introduccion(s: dict) -> list:
 
     canales = [
         ['Canal', 'Puerto / Servicio', 'Responsabilidad'],
-        ['WhatsApp Business', 'Evolution API · Node.js :3000', 'Atención clientes, confirmación de pagos, comandos operadores'],
-        ['MercadoLibre', 'Webhook API · Flask :8080', 'Preventa (preguntas de compradores) y gestión de órdenes pagadas'],
-        ['WooCommerce', 'Webhook HMAC · Flask :8081', 'Sincronización de stock cuando un cliente compra en la tienda web'],
-        ['SIIGO ERP', 'API REST HTTPS', 'Facturación electrónica, creación de facturas de venta y de compra'],
-        ['Google Sheets', 'gspread API', 'Consulta de catálogo, fichas técnicas, precios y stock'],
-        ['Gmail', 'OAuth 2.0 · IMAP', 'Recepción de facturas electrónicas de proveedores (XML DIAN)'],
+        ['WhatsApp Business', 'bot-mckenna (Node) :3000 → Flask :8081 /whatsapp', 'Atención clientes, pagos, comandos por grupo (contabilidad, pedidos web, etc.)'],
+        ['MercadoLibre', 'Webhook API · Flask :8080', 'Preventa (Gemini + ficha), órdenes pagadas (sync stock), posventa'],
+        ['Página web / tienda', 'Flask PAGINA_WEB/site + API propia', 'Ventas web; stock se alinea con MeLi vía WEB_API_URL / sincronizar_productos_pagina_web'],
+        ['SIIGO ERP', 'API REST HTTPS', 'Facturación electrónica, facturas de venta y de compra'],
+        ['Google Sheets', 'gspread API', 'Catálogo, fichas técnicas (col I), precios'],
+        ['Gmail', 'OAuth 2.0 · IMAP', 'Facturas electrónicas de proveedores (XML DIAN)'],
         ['Google Drive', 'Drive API v3', 'Backups nocturnos automáticos de datos críticos'],
     ]
     elems.append(tabla_comandos(canales, s,
@@ -544,7 +544,7 @@ def sec02_arquitectura(s: dict) -> list:
         ['Proceso', 'Puerto', 'Tecnología', 'Función principal'],
         ['agente_pro.py', ':8081', 'Python Flask', 'Núcleo central: WhatsApp, IA Claude, panel web, endpoints de sync'],
         ['webhook_meli.py', ':8080', 'Python Flask', 'Receptor exclusivo de notificaciones MercadoLibre (preguntas + órdenes)'],
-        ['server.js', ':3000', 'Node.js', 'Bridge WhatsApp: recibe mensajes de Evolution API y los enruta al proceso correcto'],
+        ['bot-mckenna/server.js', ':3000', 'Node.js', 'Bridge WhatsApp (whatsapp-web.js): enruta al agente :8081'],
     ]
     elems.append(tabla_comandos(proc, s,
         col_widths=[3.5*cm, 1.8*cm, 3.0*cm, PAGE_W - 2*MARGEN - 8.5*cm]))
@@ -557,12 +557,12 @@ def sec02_arquitectura(s: dict) -> list:
     flujo_wa = [
         ['Paso', 'Componente', 'Acción'],
         ['1', 'WhatsApp Business', 'Cliente envía mensaje al número de McKenna Group'],
-        ['2', 'Evolution API', 'Recibe el mensaje y lo convierte a formato JSON'],
-        ['3', 'server.js :3000', 'Filtra mensajes del grupo de contabilidad vs. clientes individuales'],
-        ['4', 'agente_pro.py :8081 → /whatsapp', 'Recibe el JSON, detecta tipo de mensaje (texto, imagen, comando)'],
-        ['5', 'IA Claude claude-sonnet-4-6', 'Procesa el mensaje con contexto + herramientas disponibles'],
-        ['6', 'Herramientas (Google Sheets, SIIGO, etc.)', 'El agente consulta o actualiza datos en tiempo real'],
-        ['7', 'Evolution API', 'El agente envía la respuesta de vuelta al cliente por WhatsApp'],
+        ['2', 'bot-mckenna :3000', 'whatsapp-web.js recibe el mensaje y arma el JSON para el backend'],
+        ['3', 'POST /whatsapp :8081', 'Enruta según JID: grupos (contabilidad, pedidos web, …) vs. chat directo'],
+        ['4', 'routes.py', 'Comandos de grupo o flujo de comprobante / modo humano / IA'],
+        ['5', 'Claude claude-sonnet-4-6', 'Procesa con tool use (Sheets, MeLi, Siigo, sync, etc.)'],
+        ['6', 'Herramientas', 'Consultas y acciones según la conversación'],
+        ['7', 'bot-mckenna', 'Devuelve la respuesta al cliente por WhatsApp'],
     ]
     elems.append(tabla_comandos(flujo_wa, s,
         col_widths=[1.2*cm, 5.0*cm, PAGE_W - 2*MARGEN - 6.4*cm]))
@@ -571,9 +571,9 @@ def sec02_arquitectura(s: dict) -> list:
     elems.append(subsection('2.2 Modelo de IA', s))
     elems.append(body(
         'El cerebro del agente es <b>Claude claude-sonnet-4-6</b> de Anthropic, el modelo de IA más avanzado '
-        'disponible con razonamiento extendido. Dispone de <b>30 herramientas registradas</b> que puede '
-        'invocar autónomamente para responder consultas: consultar el catálogo en Google Sheets, '
-        'buscar productos en SIIGO, actualizar stock en MeLi y WooCommerce, crear facturas, '
+        'disponible con razonamiento extendido. Dispone de unas <b>32 herramientas registradas</b> que puede '
+        'invocar autónomamente para responder consultas: catálogo en Google Sheets, '
+        'MeLi y SIIGO, sync de facturas, precios, catálogo PDF, pipeline Facebook, crear facturas, '
         'consultar tarifas de envío, acceder a la memoria vectorial de casos aprendidos, entre otras.', s))
 
     elems.append(sp(0.2))
@@ -591,7 +591,7 @@ def sec02_arquitectura(s: dict) -> list:
         ['Capa de seguridad', 'Implementación', 'Protege contra'],
         ['HTTPS público', 'Cloudflare Tunnel (sin puertos abiertos)', 'Exposición de IP, ataques de red'],
         ['Autenticación API', 'Bearer Token en /sync/* y /chat', 'Acceso no autorizado a endpoints admin'],
-        ['Webhooks WooCommerce', 'HMAC-SHA256 firmado', 'Webhooks falsos / inyección de datos'],
+        ['API tienda web', 'Bearer WEB_API_KEY (donde aplique)', 'Actualizaciones de stock no autorizadas'],
         ['OAuth MercadoLibre', 'Refresh token automático cada 6h', 'Token vencido = sin procesar órdenes'],
         ['Rate Limiting', 'flask-limiter: 300 req/min global', 'Abuso, DDoS, scraping'],
         ['Credenciales', 'Variables .env excluidas de git', 'Filtración de API keys en código'],
@@ -629,9 +629,10 @@ def sec03_modulos(s: dict) -> list:
          'Comandos: ok 463 (confirma) / no 463 (rechaza). Monitor alerta si hay pagos sin '
          'confirmar más de 30 minutos.'),
         ('📦', 'MOD-04', 'Sincronización Bidireccional de Stock', C_BLUE2,
-         'Cada venta en MeLi actualiza automáticamente el stock en WooCommerce y viceversa. '
-         'Principio: cada plataforma es fuente de verdad de su propio stock cuando vende. '
-         'Las sincronizaciones masivas se lanzan desde el CLI o los endpoints autenticados.'),
+         'Cada venta en MeLi actualiza el stock en la página web (API) y viceversa. '
+         'Principio: cada canal es fuente de verdad de su propio stock cuando vende. '
+         'Función central: sincronizar_stock_todas_las_plataformas + sincronizar_productos_pagina_web. '
+         'Sincronizaciones masivas: CLI o endpoints /sync/* con Bearer.'),
         ('🧾', 'MOD-05', 'SIIGO: Dos Flujos Independientes', C_RED,
          'FLUJO A — Registro de compra (proveedores especiales): procesa facturas electrónicas de '
          'proveedores de materias primas desde Gmail (XML UBL 2.1 DIAN), genera código McKenna, '
@@ -855,7 +856,7 @@ def sec06_preventa(s: dict) -> list:
 
     arbol = [
         ['Condición', 'Acción del agente', 'Tiempo'],
-        ['Producto tiene ficha técnica en Google Sheets (col I) Y Gemini/Claude responde OK',
+        ['Producto tiene ficha técnica en Google Sheets (col I) y Gemini responde OK',
          'Genera y publica respuesta automática en MeLi', '< 30 segundos'],
         ['Producto tiene ficha técnica PERO la IA falla (timeout, error 503)',
          'Envía alerta al grupo de contabilidad con la pregunta para respuesta manual', 'Inmediato'],
@@ -905,17 +906,17 @@ def sec07_sync(s: dict) -> list:
     elems += section_header('Sección 07', 'Sincronización de Inventario', s, C_BLUE2)
 
     elems.append(body(
-        'El inventario se mantiene sincronizado automáticamente entre MercadoLibre y WooCommerce. '
-        'El principio fundamental es: <b>cada plataforma es fuente de verdad de su propio stock cuando vende</b>. '
+        'El inventario se mantiene sincronizado entre MercadoLibre y la <b>página web</b> (API REST). '
+        'El principio fundamental es: <b>cada canal es fuente de verdad de su propio stock cuando vende</b>. '
         'No existe un "master de stock" externo que pueda generar conflictos.', s))
 
     elems.append(sp(0.3))
 
     principio = [
         ['Evento', 'Proceso automático', 'Resultado'],
-        ['Venta en MercadoLibre', 'MeLi autodecrementar su stock → agente lee stock post-venta MeLi → actualiza WooCommerce al mismo valor', 'WC queda igual a MeLi'],
-        ['Venta en WooCommerce', 'WC autodecrementar su stock → webhook HMAC llega al agente → agente actualiza MeLi al mismo valor', 'MeLi queda igual a WC'],
-        ['Sincronización manual', 'Operador ejecuta sync desde CLI o endpoint /sync/completo', 'Ambas plataformas se igualan usando Google Sheets como referencia'],
+        ['Venta en MercadoLibre', 'MeLi autodecrementa → se lee SKU y available_quantity → sincronizar_stock_todas_las_plataformas hacia API web + MeLi', 'Web y MeLi alineados'],
+        ['Venta en la tienda web', 'La web decrementa su stock → el backend lee stock post-venta → actualizar_stock_meli en publicaciones por SKU', 'MeLi alineado con la web'],
+        ['Sincronización manual', 'CLI opción 3 (web), /sync/* o herramientas internas', 'Según el flujo ejecutado (reporte, auditoría SKUs, push a API)'],
     ]
     elems.append(tabla_comandos(principio, s,
         col_widths=[3.5*cm, 7.0*cm, PAGE_W - 2*MARGEN - 10.7*cm]))
@@ -942,8 +943,8 @@ def sec07_sync(s: dict) -> list:
     elems.append(sp(0.2))
     elems.append(nota('⚠️',
         '<b>Nota sobre SIIGO:</b> SIIGO ERP se usa exclusivamente para facturación. '
-        'El stock de SIIGO NO se sincroniza con MeLi ni WooCommerce. '
-        'La fuente de stock son las dos plataformas de venta (MeLi y WC) entre sí.',
+        'El stock de SIIGO NO se sincroniza con MeLi ni con la web. '
+        'La fuente de stock al vender son MeLi y la tienda web, cruzadas entre sí.',
         s, bg=colors.HexColor('#fff1f2'), border=colors.HexColor('#fecaca')))
 
     elems.append(PageBreak())
@@ -1077,7 +1078,7 @@ def sec09_panel_cli(s: dict) -> list:
         ['KPIs del día', 'Mensajes WA atendidos, preguntas MeLi respondidas, pagos confirmados, órdenes sincronizadas'],
         ['Estado de servicios', 'Badges ACTIVO/CAÍDO para agente-pro :8081, webhook-meli :8080, whatsapp :3000'],
         ['Cola de preventa MeLi', 'Lista de preguntas pendientes con botón "Responder" que ejecuta resp directamente'],
-        ['Integraciones', 'Estado de cada integración (MeLi, SIIGO, WC, Google Sheets, Gmail, Drive, WA, Cloudflare)'],
+        ['Integraciones', 'Estado de integraciones (MeLi, SIIGO, web, Google Sheets, Gmail, Drive, WA, Cloudflare)'],
         ['Tasa de automatización', 'Porcentaje de preguntas MeLi respondidas automáticamente vs. total'],
         ['Log de actividad', 'Últimas acciones ejecutadas por el agente en tiempo real'],
     ]
@@ -1095,7 +1096,7 @@ def sec09_panel_cli(s: dict) -> list:
         ['Opción', 'Función'],
         ['1 — 💬 CHAT', 'Conversación directa con Hugo García desde la terminal (útil para pruebas y depuración)'],
         ['2 — 🔄 FACTURAS', 'Menú con opciones de sincronización MeLi ↔ SIIGO (Inteligente, Hoy, Días, Pack, Fecha)'],
-        ['3 — 📊 STOCK', 'Menú de inventario: Reporte completo de stock, Sincronización WC y Auditoría SKUs'],
+        ['3 — 📊 STOCK', 'Menú de inventario: Reporte completo, Verificar SKUs, Sincronizar Web (API tienda)'],
         ['4 — 🔍 CONSULTA', 'Busca información detallada de un producto en el catálogo de Google Sheets'],
         ['5 — 🎓 APRENDIZAJE', 'Fuerza la extracción de Q&A recientes en MeLi para entrenamiento en ChromaDB'],
         ['6 — 🧾 COMPRAS', 'Importa facturas electrónicas de proveedores desde Gmail (XML DIAN) y procesa SIIGO'],
@@ -1164,12 +1165,12 @@ def sec11_glosario_faq(s: dict) -> list:
 
     glosario = [
         ['Término', 'Definición'],
-        ['Evolution API', 'Servidor Node.js que conecta WhatsApp Business a sistemas externos mediante una API REST'],
+        ['bot-mckenna', 'Servicio Node.js (whatsapp-web.js) en :3000 que enlaza WhatsApp con POST /whatsapp :8081'],
         ['Pack ID', 'Identificador único de un paquete de órdenes en MercadoLibre. Sirve para adjuntar facturas fiscales'],
         ['Ficha técnica', 'Texto en la columna I de Google Sheets con descripción técnica detallada del producto para respuestas de preventa'],
         ['ChromaDB', 'Base de datos vectorial que almacena embeddings de preguntas y respuestas para búsqueda semántica'],
         ['Few-shot learning', 'Técnica de IA donde se le muestran al modelo ejemplos de respuestas correctas para que aprenda el patrón'],
-        ['HMAC-SHA256', 'Algoritmo de firma criptográfica para verificar que un webhook viene de la fuente legítima (WooCommerce)'],
+        ['WEB_API_KEY', 'Bearer para la API de stock/precios de la tienda web cuando el backend empuja catálogo'],
         ['Bearer Token', 'Cadena de texto secreto que se incluye en el header de peticiones HTTP para autenticar acceso a la API'],
         ['OAuth 2.0', 'Protocolo estándar de autorización usado por MercadoLibre y Gmail para tokens de acceso'],
         ['UBL 2.1', 'Formato XML estándar colombiano (DIAN) para facturas electrónicas de proveedores'],
@@ -1282,7 +1283,7 @@ def sec11_glosario_faq(s: dict) -> list:
     cierre_t = Table(
         [[Paragraph(
             'McKenna Group S.A.S. · Bogotá, Colombia · mckennagroup.co\n'
-            f'Manual de Usuario Hugo García v3.0 · Generado el {fecha_gen}\n'
+            f'Manual de Usuario Hugo García v3.1 · Generado el {fecha_gen}\n'
             'Este documento es confidencial y de uso interno.',
             ParagraphStyle('__c', fontName='Helvetica', fontSize=8.5,
                            textColor=C_GRAY, alignment=TA_CENTER, leading=14)
@@ -1468,12 +1469,12 @@ def sec13_skills(s: dict) -> list:
     
     skills_ejemplos = [
         ['Nombre de Skill', 'Archivo', 'Descripción', 'Ejemplo de uso en el chat'],
-        ['sincronizar_precios_meli_sheets', 'sincronizar_precios.py', 'Sincroniza precios desde MercadoLibre hacia Google Sheets e invalida el caché web.', '"Hugo, actualiza los precios en el Sheets usando los de MeLi"'],
-        ['generar_catalogo_pdf', 'generar_catalogo.py', 'Genera PDF corporativo leyendo de Sheets y bajando fotos de MeLi. Opcional envío WA.', '"Genera el catálogo PDF corporativo de este mes"'],
-        ['generar_reporte_skus_woocommerce', 'generar_reporte_skus.py', 'Genera y envía un correo HTML con el reporte de discrepancias de SKUs (MeLi-SIIGO-WC).', '"Revisa los SKUs de WooCommerce y mándame el reporte"'],
-        ['sincronizar_catalogo_wc_desde_meli', 'sincronizar_wc_desde_meli.py', 'Elimina el catálogo de WC y lo reconstruye basado en publicaciones activas de MeLi (con SKU en SIIGO).', '"Hugo, reconstruye el catálogo de WooCommerce desde MeLi"'],
-        ['publicar_contenido_redes_sociales_ia', 'pipeline_contenido_facebook.py', 'Corre el pipeline multimedia (Gemini→Ideogram→ElevenLabs→Kling) y publica en Facebook.', '"Haz un nuevo post para Facebook"'],
-        ['generar_guias_masivas_web', 'generar_guias_masivas.py', 'Consume PubMed y Gemini para crear guías técnicas en JSON para el frontend web.', '"Hugo, genera las guías masivas que faltan en la web"'],
+        ['sincronizar_precios_meli_sheets', 'sincronizar_precios.py', 'Precios MeLi → Google Sheets (y caché web si aplica).', '"Hugo, actualiza los precios en el Sheets usando los de MeLi"'],
+        ['generar_catalogo_pdf', 'generar_catalogo.py', 'PDF corporativo con fotos MeLi; opcional envío WA.', '"Genera el catálogo PDF corporativo de este mes"'],
+        ['sincronizar_inteligente / sincronizar_manual_por_id', 'app/sync.py', 'Facturas Siigo ↔ documentos fiscales MeLi.', '"Sincroniza facturas con MeLi"'],
+        ['publicar_contenido_redes_sociales_ia', 'pipeline_contenido_facebook.py', 'Pipeline multimedia y publicación en Facebook.', '"Haz un nuevo post para Facebook"'],
+        ['generar_guias_masivas_web', 'generar_guias_masivas.py', 'Guías técnicas en JSON para el sitio.', '"Genera las guías masivas que faltan en la web"'],
+        ['sincronizar_productos_pagina_web', 'sincronizar_productos_pagina_web.py', 'Empuja stock/precios a la API de la tienda (CLI/sync; ver registro en core.py).', '"Sincroniza el catálogo con la página web"'],
     ]
     elems.append(tabla_comandos(skills_ejemplos, s,
         col_widths=[4.5*cm, 4.0*cm, 4.5*cm, PAGE_W - 2*MARGEN - 13.0*cm]))
@@ -1506,7 +1507,7 @@ def generar_pdf() -> str:
     )
 
     s   = estilos()
-    dec = PaginaDecoracion('v3.0')
+    dec = PaginaDecoracion('v3.1')
 
     elems = []
     elems += portada(s)
@@ -1549,7 +1550,7 @@ def enviar_por_correo(pdf_path: str):
     msg = MIMEMultipart()
     msg['From']    = remitente
     msg['To']      = dest
-    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.0 · McKenna Group · {hoy}'
+    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.1 · McKenna Group · {hoy}'
 
     cuerpo = f"""Hola,
 
@@ -1559,7 +1560,7 @@ El manual incluye:
   • Guía de comandos del grupo de contabilidad
   • Flujos de atención al cliente por WhatsApp
   • Preventa MercadoLibre y aprendizaje automático
-  • Sincronización de inventario MeLi ↔ WooCommerce
+  • Sincronización de inventario MeLi ↔ página web (API)
   • Facturación electrónica SIIGO y documentos DIAN
   • Panel web de control y menú CLI
   • Monitor de alertas y tareas programadas
@@ -1568,7 +1569,7 @@ El manual incluye:
   • Pipeline multimedia Facebook (Gemini → Ideogram → ElevenLabs → Kling)
   • Publicación automática en WordPress
 
-Versión: v3.0 · Generado el {hoy}
+Versión: v3.1 · Generado el {hoy}
 
 ---
 McKenna Group S.A.S. · Bogotá, Colombia
@@ -1598,5 +1599,5 @@ Sistema de Automatización Hugo García
 
 if __name__ == '__main__':
     pdf = generar_pdf()
-    if '--enviar' in sys.argv or True:   # siempre enviar en esta ejecución
+    if '--enviar' in sys.argv:
         enviar_por_correo(pdf)

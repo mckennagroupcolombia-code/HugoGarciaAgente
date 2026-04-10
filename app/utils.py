@@ -80,6 +80,29 @@ URL_API_WHATSAPP = os.getenv("URL_API_WHATSAPP", "http://127.0.0.1:3000/enviar")
 URL_API_WHATSAPP_ARCHIVO = os.getenv("URL_API_WHATSAPP_ARCHIVO", "http://127.0.0.1:3000/enviar-archivo")
 TELEFONO_GRUPO_REPORTE = os.getenv("TELEFONO_GRUPO_REPORTE", "120363407538342427@g.us")
 
+
+_JID_PREVENTA_DEFAULT = "120363393955474672@g.us"
+_JID_POSTVENTA_DEFAULT = "120363406693905719@g.us"
+
+
+def _wa_jid_env(name: str, default_jid: str) -> str:
+    """Lee JID de entorno; quita comentario inline (#) como en systemd EnvironmentFile."""
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default_jid
+    return raw.split("#")[0].strip() or default_jid
+
+
+def jid_grupo_preventa_wa() -> str:
+    """Solo preventa MeLi — GRUPO_PREVENTA_WA o default oficial Preventa_Meli."""
+    return _wa_jid_env("GRUPO_PREVENTA_WA", _JID_PREVENTA_DEFAULT)
+
+
+def jid_grupo_postventa_wa() -> str:
+    """Solo mensajes postventa MeLi — GRUPO_POSTVENTA_WA o default oficial Postventa_Meli."""
+    return _wa_jid_env("GRUPO_POSTVENTA_WA", _JID_POSTVENTA_DEFAULT)
+
+
 def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
     """
     Envía un mensaje de texto al grupo de WhatsApp designado para reportes.

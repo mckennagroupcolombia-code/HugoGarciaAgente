@@ -3,6 +3,8 @@
 > Nivel: desarrollador junior que ve el código por primera vez.
 > Objetivo: entender qué hace cada archivo, cada función, y por qué está escrito así.
 
+**Manual de usuario (PDF operativo):** se genera con `source venv/bin/activate && python3 scripts/generar_manual.py` (opcional `--enviar` para adjuntar por correo). Ese PDF cubre comandos del grupo, flujos de negocio y glosario; este `MANUAL.md` es la referencia técnica del código.
+
 ---
 
 ## ÍNDICE
@@ -68,7 +70,7 @@ from app.core import configurar_ia
 Importa tres funciones de otros módulos:
 - `register_routes` — registra las URLs que el servidor web va a escuchar (ej: `/whatsapp`)
 - `iniciar_cli` — arranca el menú interactivo de la consola
-- `configurar_ia` — inicializa el modelo de Gemini con todas sus herramientas
+- `configurar_ia` — inicializa el cliente **Anthropic Claude** y registra todas las herramientas del agente (WhatsApp, `/chat`, CLI)
 
 ```python
 def create_app():
@@ -93,7 +95,7 @@ Crea la instancia de Flask. `__name__` le dice a Flask el nombre del módulo act
     configurar_ia(app)
 ```
 
-Llama a la función de `app/core.py` que conecta el modelo Gemini y registra todas las herramientas disponibles. Se pasa `app` como parámetro porque en el futuro podría necesitarse la instancia de Flask para guardar el modelo en `app.config`.
+Llama a la función de `app/core.py` que conecta **Claude** (`ANTHROPIC_API_KEY`) y registra todas las herramientas disponibles. **Gemini** se usa en otro flujo (preventa MeLi con ficha, `app/services/meli_preventa.py`), no aquí. Se pasa `app` como parámetro porque en el futuro podría necesitarse la instancia de Flask para guardar el modelo en `app.config`.
 
 ```python
     register_routes(app)
@@ -136,7 +138,7 @@ Arranca el servidor web Flask:
 
 | Este archivo llama a... | ¿Para qué? |
 |---|---|
-| `app/core.py` → `configurar_ia()` | Inicializar el modelo Gemini |
+| `app/core.py` → `configurar_ia()` | Inicializar Claude y herramientas del agente |
 | `app/routes.py` → `register_routes()` | Registrar URLs del servidor |
 | `app/cli.py` → `iniciar_cli()` | Lanzar el menú de consola |
 | `.env` (vía `load_dotenv`) | Leer claves API y configuración |
@@ -171,14 +173,19 @@ import requests
 import threading
 import time
 from flask import Flask, request, jsonify
-from app.core import obtener_respuesta_ia
-from app.utils import enviar_whatsapp_reporte, refrescar_token_meli
+from dotenv import load_dotenv
+from app.core import obtener_respuesta_ia, configurar_ia
+from app.utils import enviar_whatsapp_reporte, refrescar_token_meli, ...
+from preventa_meli import procesar_nueva_pregunta
+from app.sync import sincronizar_stock_todas_las_plataformas
 ```
 
 Importaciones clave:
-- `obtener_respuesta_ia` — la función del cerebro central que procesa texto con Gemini
-- `refrescar_token_meli` — renueva el token de autenticación con la API de MeLi antes de usarlo
-- `enviar_whatsapp_reporte` — envía un resumen de lo que hizo la IA al grupo de WhatsApp del equipo
+- `configurar_ia` — inicializa **Claude** en este proceso (necesario para `/chat` en :8080).
+- `procesar_nueva_pregunta` — **preventa MeLi**: ficha en Sheets + **Gemini** en `meli_preventa.py`; no usa el bucle de herramientas de WhatsApp.
+- `sincronizar_stock_todas_las_plataformas` — tras ventas MeLi, alinea stock hacia la **página web** (API) y MeLi.
+- `refrescar_token_meli` — token válido para la API de MeLi.
+- `enviar_whatsapp_reporte` — alertas al equipo (grupos configurados en `.env`).
 
 ```python
 app = Flask(__name__)
@@ -238,81 +245,32 @@ Publica la respuesta generada por la IA en la publicación de MeLi. El endpoint 
 
 ---
 
-#### Función `tarea_procesar_pregunta(data)`
+#### Preventa, órdenes y mensajes (`POST /notifications`)
 
-Esta es la función más importante del archivo. Se ejecuta en un hilo secundario para no bloquear el servidor.
+El cuerpo JSON trae `topic` y `resource`:
 
-```python
-def tarea_procesar_pregunta(data):
-    """Hilo secundario para procesar la IA sin bloquear el webhook."""
-    try:
-        resource = data.get('resource')
-        question_id = resource.split('/')[-1]
-```
+| `topic` | Acción en hilo aparte |
+|--------|------------------------|
+| `questions` | `procesar_nueva_pregunta(question_id)` — flujo preventa (Sheets + Gemini + cola JSON). Deduplicación ~5 min. |
+| `orders_v2` | `_procesar_orden_meli(order_id)` — lee ítems, SKU y `available_quantity` en MeLi y llama `sincronizar_stock_todas_las_plataformas` hacia web + MeLi. |
+| `messages` | Posventa MeLi: notificación al grupo según mensajes del comprador. |
 
-MeLi envía una notificación con una clave `resource` que tiene el formato `/questions/12345678`. Se separa por `/` y se toma el último elemento (`[-1]`) para obtener solo el ID numérico de la pregunta.
+**Regla crítica:** responder `200 OK` al instante; todo lo pesado va en `threading.Thread`.
 
 ```python
-        token_actual = refrescar_token_meli() or os.environ.get("MELI_ACCESS_TOKEN")
-        url_q = f"https://api.mercadolibre.com/questions/{question_id}"
-        headers = {"Authorization": f"Bearer {token_actual}"}
-        q_res = requests.get(url_q, headers=headers).json()
-        pregunta_cliente = q_res.get('text', '')
-        item_id = q_res.get('item_id', '')
-        user_id = q_res.get('from', {}).get('id', 'desconocido')
-```
-
-Con el ID de la pregunta, hace una segunda llamada a la API de MeLi para obtener el texto completo de la pregunta, el ID del producto y el ID del usuario que preguntó.
-
-```python
-        if not pregunta_cliente:
-            return
-```
-
-Si la pregunta está vacía (notificación sin texto), abandona silenciosamente.
-
-```python
-        nombre_producto = obtener_nombre_producto(item_id)
-        pregunta_con_contexto = f"El cliente pregunta sobre el producto '{nombre_producto}': {pregunta_cliente}"
-        respuesta_ia = obtener_respuesta_ia(pregunta_con_contexto, user_id)
-```
-
-Enriquece la pregunta añadiendo el nombre del producto como contexto antes de enviársela a la IA. Así la IA sabe exactamente sobre qué producto está hablando sin tener que adivinarlo.
-
-```python
-        status = responder_en_mercado_libre(question_id, respuesta_ia)
-```
-
-Publica la respuesta de la IA directamente en la publicación de MeLi.
-
-```python
-        emoji_status = "✅" if status == 200 or status == 201 else "❌"
-        mensaje_ws = (f"🔔 *REPORTE BOT MCKENNA*\n\n"
-                     f"📦 *Producto:* {nombre_producto}\n"
-                     f"🗣 *Cliente:* {pregunta_cliente}\n"
-                     f"🤖 *IA:* {respuesta_ia}\n\n"
-                     f"Status MeLi: {emoji_status}")
-        enviar_whatsapp_reporte(mensaje_ws)
-```
-
-Construye un resumen de todo lo que pasó y lo envía al grupo de WhatsApp del equipo como notificación.
-
----
-
-#### Endpoint `POST /notifications`
-
-```python
-@app.route('/notifications', methods=['POST'])
+@app.route("/notifications", methods=["POST"])
 def notifications():
-    """Recibe la notificación y responde 'OK' de inmediato a MeLi."""
     data = request.get_json()
-    if data and data.get('topic') == 'questions':
-        hilo = threading.Thread(target=tarea_procesar_pregunta, args=(data,))
-        hilo.start()
+    topic = data.get("topic") if data else None
+    if topic == "questions":
+        question_id = data.get("resource", "").split("/")[-1]
+        # dedup + Thread(target=procesar_nueva_pregunta, args=(question_id,))
+    elif topic == "orders_v2":
+        order_id = data.get("resource", "").split("/")[-1]
+        # Thread(target=_procesar_orden_meli, args=(order_id,))
+    # ...
     return jsonify({"status": "ok"}), 200
 ```
-
-Este es el endpoint que MeLi llama cuando llega una pregunta. **Regla crítica de webhooks:** MeLi exige recibir una respuesta `200 OK` en menos de 5 segundos, o reintenta la notificación. Por eso el procesamiento real (que puede demorar varios segundos con la IA) se lanza en un hilo separado, y se responde `200 OK` de inmediato.
 
 ---
 
@@ -320,10 +278,12 @@ Este es el endpoint que MeLi llama cuando llega una pregunta. **Regla crítica d
 
 | Este archivo llama a... | ¿Para qué? |
 |---|---|
-| `app/core.py` → `obtener_respuesta_ia()` | Generar respuesta con Gemini |
-| `app/utils.py` → `refrescar_token_meli()` | Obtener token válido de MeLi |
-| `app/utils.py` → `enviar_whatsapp_reporte()` | Notificar al equipo por WhatsApp |
-| API de MeLi (externa) | Leer preguntas y publicar respuestas |
+| `preventa_meli.py` → `procesar_nueva_pregunta()` | Preventa con ficha + Gemini |
+| `app/sync.py` → `sincronizar_stock_todas_las_plataformas()` | Stock tras venta MeLi |
+| `app/core.py` → `configurar_ia()` / `obtener_respuesta_ia()` | IA para endpoint `/chat` en :8080 |
+| `app/utils.py` → `refrescar_token_meli()` | Token MeLi |
+| `app/utils.py` → `enviar_whatsapp_reporte()` | Alertas WhatsApp |
+| API de MeLi (externa) | Preguntas, respuestas, órdenes, ítems |
 
 ---
 
@@ -339,7 +299,7 @@ Este es el endpoint que MeLi llama cuando llega una pregunta. **Regla crítica d
 
 ### ¿Para qué sirve?
 
-Este es el **cerebro de la aplicación**. Es donde se configura la inteligencia artificial (Gemini), se definen las reglas de comportamiento del agente "Hugo García" y se procesa cada mensaje que llega.
+Este es el **cerebro del agente conversacional** (WhatsApp, API `/chat`, menú CLI): **Anthropic Claude** con tool-calling, reglas de "Hugo García" e historial por usuario. La **preventa MeLi** con ficha técnica usa **Gemini** en `meli_preventa.py`, aparte de este módulo.
 
 **Analogía:** Si el proyecto fuera una persona, `core.py` sería el cerebro: contiene la personalidad, los conocimientos, la memoria de la conversación y la capacidad de decidir qué hacer ante cada mensaje.
 
@@ -370,7 +330,7 @@ from app.sync import (
 )
 ```
 
-Cada función importada aquí es una **herramienta que la IA puede usar**. Gemini no las usa automáticamente — las invoca cuando considera que son necesarias para responder al usuario. Es como darle a un empleado una caja de herramientas: el empleado decide cuál usar según el problema.
+Cada función importada aquí es una **herramienta que el agente puede usar**. **Claude** no las ejecuta por arte de magia: el bucle en `obtener_respuesta_ia` manda cada `tool_use` al `_tools_map` y reinyecta el resultado al modelo. Es la misma metáfora de la caja de herramientas, con implementación Anthropic en lugar de Gemini.
 
 `from app.services.siigo import *` importa **todo** lo que está en `siigo.py`. El asterisco (`*`) es conveniente pero peligroso porque puede traer funciones con el mismo nombre que las de otros módulos y sobreescribirlas sin avisar.
 
@@ -384,7 +344,7 @@ Rol: Hugo García (McKenna Group). Operador Ejecutivo de ventas...
 """
 ```
 
-Este texto largo es el **system prompt** o "instrucciones del sistema". Es el primer mensaje que recibe Gemini antes de cualquier conversación. Define:
+Este texto largo es el **system prompt** o "instrucciones del sistema". Se envía en cada llamada a Claude junto con el historial. Define:
 
 - **Quién es el agente:** Hugo García, vendedor ejecutivo de McKenna Group
 - **Reglas antibucle:** Le prohíbe ejecutar sincronizaciones cuando no se le piden, para no desperdiciar tokens
@@ -392,96 +352,30 @@ Este texto largo es el **system prompt** o "instrucciones del sistema". Es el pr
 - **Reglas de ventas:** Cómo saludar, cómo consultar inventario (sin revelar stock exacto), cómo cotizar paso a paso
 - **Reglas de herramientas:** Qué herramientas usar en cada situación
 
-**¿Por qué es importante?** Sin este prompt, Gemini respondería como un asistente genérico de Google. Con él, adopta el rol específico de un vendedor farmacéutico colombiano con acceso a herramientas de negocio.
+**¿Por qué es importante?** Sin este prompt, el modelo sería genérico. Con él, Claude adopta el rol de Hugo García con las reglas de negocio McKenna.
 
 ---
 
-#### Variable global `modelo_ia`
+#### Cliente e historial (implementación actual)
 
-```python
-modelo_ia = None
-```
+- **`cliente_ia`**: instancia de `anthropic.Anthropic` (`ANTHROPIC_API_KEY`). Si falla la configuración, queda en `None` y `obtener_respuesta_ia` devuelve mensaje de mantenimiento.
+- **`_historiales`**: diccionario `usuario_id → mensajes` en memoria (se recortan a los últimos 40 intercambios). Reiniciar el proceso borra el contexto.
+- **`modelo_ia`**: nombre legacy; el flujo activo no depende de él.
 
-Esta variable almacena la instancia del modelo de Gemini. Es global para que todas las funciones del módulo puedan acceder a ella. Se inicializa como `None` y se asigna en `configurar_ia()`. Si algo falla durante la configuración, queda como `None` y las funciones que la usan retornan un mensaje de error.
+#### `configurar_ia(app)`
 
----
+Carga la clave Anthropic, arma `todas_las_herramientas`, genera `_tools_schema` (JSON schema por docstring) y `_tools_map` (`nombre_función → callable`), y concatena `INSTRUCCIONES_MCKENNA` con casos especiales. Incluye entre otras: memoria (SQLite/Chroma), Sheets, MeLi (consultas/aprendizaje), Siigo (cotización/factura), `app/sync.py` (facturas), `sincronizar_precios_meli_sheets`, `generar_catalogo_pdf`, `generar_guias_masivas_web`, `publicar_contenido_redes_sociales_ia`, `procesar_facturas_para_importar_productos`, tarifas envío, `buscar_producto_completo`, y herramientas de `system_tools`. La skill de stock hacia la web (`sincronizar_productos_pagina_web`) vive en `app/tools/` y la usa `sync.py`/CLI; no está en la lista de Claude en la versión actual del código (ver `app/core.py`).
 
-#### Función `configurar_ia(app)`
+#### `obtener_respuesta_ia(pregunta, usuario_id, historial=None)`
 
-```python
-def configurar_ia(app):
-    global modelo_ia
-    try:
-        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-```
+1. Arma la lista `messages` (historial previo + usuario con prefijo `Usuario_{id}:`).
+2. Bucle `messages.create` con `claude-sonnet-4-6` y `stop_reason`:
+   - **`tool_use`**: ejecuta cada herramienta, recorta salida a 8192 caracteres, antepone `[TOOL_ERROR]` si falla, y continúa el bucle.
+   - **`end_turn`**: texto final + persistencia en `_historiales`.
+   - **`max_tokens`**: guarda también el turno parcial en `_historiales`.
+3. Reintentos ante sobrecarga / 503; `BadRequestError` limpia historial del usuario.
 
-Crea el cliente de la API de Google Gemini usando la clave del archivo `.env`. `global modelo_ia` le dice a Python que la variable `modelo_ia` que vamos a asignar es la del módulo, no una nueva variable local.
-
-```python
-        todas_las_herramientas = [
-            query_sqlite, query_vector_db, leer_datos_hoja,
-            aprender_de_interacciones_meli, ...
-        ]
-```
-
-Una lista de referencias a funciones (no se ejecutan aquí, solo se pasan). Gemini analiza la firma y el docstring de cada función para saber cuándo usarla.
-
-```python
-        modelo_ia = client.chats.create(
-            model="gemini-2.5-pro",
-            config=genai.types.GenerateContentConfig(
-                tools=todas_las_herramientas,
-                system_instruction=INSTRUCCIONES_MCKENNA,
-            )
-        )
-```
-
-Crea una **sesión de chat** con Gemini (no solo una llamada puntual). Una sesión de chat mantiene el historial de la conversación automáticamente, por lo que en la siguiente llamada Gemini recuerda lo que se dijo antes. Se configura con las herramientas disponibles y el prompt maestro.
-
----
-
-#### Función `obtener_respuesta_ia(pregunta, usuario_id, historial)`
-
-```python
-def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None):
-    if not modelo_ia:
-        return "Error: El modelo de IA no está configurado...", []
-```
-
-Verificación de guardia: si la IA no se inicializó (porque falló `configurar_ia`), retorna inmediatamente con un error claro en lugar de lanzar una excepción críptica.
-
-```python
-    response = modelo_ia.send_message(f"Usuario_{usuario_id}: {pregunta}")
-```
-
-Envía el mensaje a Gemini. Se prefija con `Usuario_{usuario_id}:` para que Gemini distinga quién está hablando cuando hay múltiples usuarios (útil en el contexto de WhatsApp donde muchas personas pueden escribir al mismo número).
-
-```python
-    if hasattr(response, 'usage_metadata'):
-        usage = response.usage_metadata
-        print(f"💰 Tokens Usados: Entrada={usage.prompt_token_count}...")
-```
-
-Imprime cuántos tokens consumió la llamada. Esto es crucial para monitorear costos: la API de Gemini cobra por tokens usados.
-
-```python
-    if not pregunta.startswith("BOT_"):
-        respuesta_texto = response.text if hasattr(response, 'text') and response.text else "✅ Tarea ejecutada en segundo plano."
-        return respuesta_texto, modelo_ia.get_history()
-    else:
-        return "", modelo_ia.get_history()
-```
-
-Si el mensaje que generó la llamada comienza con `"BOT_"`, significa que fue un mensaje interno del sistema (no de un humano real) y no debe responderse. Este es un mecanismo para ejecutar herramientas silenciosamente en segundo plano.
-
-```python
-    except Exception as e:
-        error_str = str(e)
-        if "function response turn" in error_str:
-            return "❌ Se produjo un error con el historial...", []
-```
-
-Este manejo específico del error `"function response turn"` es importante: ocurre cuando el historial de chat queda en un estado inconsistente (por ejemplo, la IA pidió ejecutar una herramienta pero el resultado nunca llegó). La solución es retornar un historial vacío `[]`, lo que reinicia efectivamente la memoria de la conversación.
+El endpoint HTTP **`POST /chat`** (8081 y duplicado en 8080) exige en el JSON el campo **`session_id`** o **`usuario_id`** para no mezclar hilos entre clientes.
 
 ---
 
@@ -492,21 +386,22 @@ Este manejo específico del error `"function response turn"` es importante: ocur
 | `agente_pro.py` | Inicializar la IA al arrancar |
 | `app/routes.py` | Procesar mensajes de WhatsApp |
 | `app/cli.py` | Procesar mensajes del menú de consola |
-| `webhook_meli.py` | Procesar preguntas de MeLi |
+| `webhook_meli.py` | `configurar_ia()` + `POST /chat` en el proceso :8080 |
 
 | Este archivo llama a... | ¿Para qué? |
 |---|---|
-| Todos los `app/services/` | Registrar herramientas de negocio |
-| Todos los `app/tools/` | Registrar herramientas de sistema |
-| `app/sync.py` | Registrar herramientas de sincronización |
+| `app/services/*`, `app/tools/memoria.py`, `app/tools/system_tools.py`, `app/tools/sincronizar_precios.py`, scripts expuestos como tools | Herramientas registradas explícitamente en `todas_las_herramientas` |
+| `app/sync.py` | Sync de facturas MeLi ↔ Siigo |
 
 ---
 
 ### ¿Por qué se hizo así?
 
-**Sesión de chat en lugar de llamadas individuales:** `client.chats.create()` crea una sesión con memoria. Esto es más natural para conversaciones largas que `generate_content()` (que no recuerda nada). El trade-off es que si el servidor se reinicia, el historial se pierde.
+**Tool loop explícito:** Anthropic devuelve `tool_use` o texto; el código ejecuta herramientas y vuelve a llamar al modelo hasta `end_turn` o límites de seguridad (`MAX_TOOL_ITERS`). El trade-off es complejidad en `core.py`, pero control fino de errores y costo.
 
-**Todas las herramientas en un solo lugar:** Centralizar las herramientas en `core.py` facilita agregar o quitar capacidades. Para que la IA pueda hacer algo nuevo, solo hay que importar la función y agregarla a `todas_las_herramientas`.
+**Historial en RAM:** Si el proceso reinicia, se pierde el contexto salvo que otro sistema lo persista. Por eso `/chat` requiere un `session_id` estable por cliente.
+
+**Todas las herramientas en un solo lugar:** Centralizar en `core.py` facilita registrar o quitar capacidades: importar la función y añadirla a `todas_las_herramientas`.
 
 ---
 
@@ -514,10 +409,11 @@ Este manejo específico del error `"function response turn"` es importante: ocur
 
 ### ¿Para qué sirve?
 
-Define las **puertas de entrada** del servidor web. Cada "ruta" (URL) es una puerta diferente:
-- `/whatsapp` — por donde entran los mensajes de WhatsApp
-- `/status` — por donde se puede verificar si el sistema está vivo
-- `/chat` — por donde se puede hablar con la IA via HTTP con autenticación
+Define las **puertas de entrada** del servidor web. Incluye:
+- `/whatsapp` — webhook principal (**bot-mckenna** en :3000 reenvía aquí en :8081)
+- `/status`, `/panel`, `/chat` (Bearer), `/sync/*`, `/consultar/producto`, etc.
+
+Comandos según **JID** del grupo: contabilidad (`ok`/`no` + 3 dígitos, preventa `resp …`, modo humano, posventa); grupo **pedidos web** (`GRUPO_PEDIDOS_WEB_WA`) para facturar/despacho vía `app/tools/web_pedidos.py`. Referencia de JIDs: `app/data/grupos_whatsapp_oficiales.json`.
 
 **Analogía:** Es la recepción del edificio. Cada ventanilla atiende un tipo diferente de visitante y los dirige al lugar correcto.
 
@@ -691,16 +587,16 @@ from app.sync import (
     sincronizar_facturas_recientes,
     ejecutar_sincronizacion_y_reporte_stock,
     sincronizar_manual_por_id,
-    sincronizar_por_dia_especifico
+    sincronizar_por_dia_especifico,
 )
 from app.services.google_services import leer_datos_hoja
 from app.services.meli import aprender_de_interacciones_meli
-from app.services.woocommerce import obtener_todos_los_productos_woocommerce, sincronizar_catalogo_woocommerce
 from app.tools.verificacion_sync_skus import verificar_sync_skus
+from app.tools.sincronizar_productos_pagina_web import sincronizar_productos_pagina_web
 from app.core import obtener_respuesta_ia
 ```
 
-Importa todas las funciones de negocio que el operador puede ejecutar. Al estar en `cli.py`, estas funciones no se ejecutan al importarse, solo se registran para usarse cuando el operador elija una opción.
+Importa las funciones de negocio que el operador ejecuta desde el menú. **WooCommerce fue retirado**; el stock de tienda se alinea con la **página web** vía API (`WEB_API_URL` / `WEB_API_KEY`) y `sincronizar_productos_pagina_web`.
 
 ---
 
@@ -746,15 +642,15 @@ Agrupa todas las variantes de sincronización de facturas MeLi ↔ Siigo en un s
 Agrupa las operaciones de inventario. Al seleccionar la opción 3:
 
 ```
-  [1] Reporte completo   Sync total MeLi+WC y reporte de stock por WhatsApp
-  [2] WooCommerce        Ver catálogo WC y sincronizar masivamente
-  [3] Verificar SKUs     Auditoría de sincronización SKUs MeLi / SIIGO / WC
+  [1] Reporte completo   Sync total MeLi y reporte de stock por WhatsApp
+  [2] Verificar SKUs     Auditoría SKUs MeLi / SIIGO (y web cuando aplica)
+  [3] Sincronizar Web    Catálogo/stock MeLi → API página web (ver `sincronizar_productos_pagina_web`)
   [0] Volver al menú principal
 ```
 
-- **Reporte completo** → `ejecutar_sincronizacion_y_reporte_stock()`: corre la sincronización full y envía un resumen al grupo de WhatsApp.
-- **WooCommerce** → consulta todos los productos de WC con `obtener_todos_los_productos_woocommerce()`, los muestra en pantalla y pregunta si se quiere sincronizar masivamente.
-- **Verificar SKUs** → `verificar_sync_skus(notificar_wa=True)`: audita que todos los SKUs estén sincronizados entre MeLi, SIIGO y WooCommerce, y notifica las discrepancias por WhatsApp.
+- **Reporte completo** → `ejecutar_sincronizacion_y_reporte_stock()`.
+- **Verificar SKUs** → `verificar_sync_skus(notificar_wa=True)`.
+- **Sincronizar Web** → `sincronizar_productos_pagina_web(...)` (en el código actual la opción 3 puede usar datos de prueba hasta conectar el listado real desde MeLi).
 
 ---
 
@@ -831,8 +727,8 @@ Delegan a las funciones de submenú. Cuando esas funciones retornan, el bucle pr
 |---|---|
 | `app/core.py` → `obtener_respuesta_ia()` | Modo chat (opción 1) |
 | `app/sync.py` → varias funciones | Submenú de facturas (opción 2) |
-| `app/services/woocommerce.py` → varias funciones | Submenú de stock (opción 3) |
-| `app/tools/verificacion_sync_skus.py` → `verificar_sync_skus()` | Auditoría SKUs (opción 3) |
+| `app/tools/sincronizar_productos_pagina_web.py` | Submenú stock opción 3 |
+| `app/tools/verificacion_sync_skus.py` → `verificar_sync_skus()` | Submenú stock opción 2 |
 | `app/services/google_services.py` → `leer_datos_hoja()` | Consultar producto (opción 4) |
 | `app/services/meli.py` → `aprender_de_interacciones_meli()` | Aprendizaje (opción 5) |
 | `_ejecutar_opcion_10()` (interno) | Facturas de compra SIIGO (opción 6) |
@@ -997,42 +893,9 @@ seller_id = res_me.json().get('id')
 Primero obtiene el ID del vendedor consultando el endpoint `/users/me` de MeLi. `raise_for_status()` lanza una excepción automáticamente si el status HTTP es 4xx o 5xx, evitando tener que verificar manualmente.
 
 ```python
-         for orden in res.get('results', []):
-             shipping_type = shipping_info.get('substatus') or shipping_info.get('shipping_mode')
-
----
-
-## 10. Nuevas Skills (Herramientas Autónomas)
-
-### ¿Para qué sirve?
-
-El agente "Hugo García" ha evolucionado. Originalmente dependía de scripts que se ejecutaban manualmente desde la consola. Ahora posee **Skills nativas**, es decir, scripts refactorizados en funciones estructurales (`app/tools/`) que la IA (Claude/Gemini) puede invocar autónomamente cuando entiende que las necesitas, usando *Tool Calling*.
-
-### Arquitectura e Interacción
-
-En `app/core.py`, la función `_fn_to_tool_schema()` traduce automáticamente cada función de Python con Type Hints y Docstrings a un esquema JSON compatible con el modelo de IA. 
-Cuando conversas con el agente y le pides una tarea:
-1. La IA evalúa su lista de herramientas.
-2. Emite un *tool_call* con los argumentos necesarios (por ejemplo, el slug del producto, o el email destino).
-3. El sistema ejecuta la función en `app/tools/`.
-4. El resultado (texto de éxito o error) se envía de vuelta a la IA, quien genera la respuesta conversacional final.
-
-### Ejemplos de Skills
-
-| Nombre de Skill | Archivo | Descripción | Ejemplo de uso en el chat |
-|---|---|---|---|
-| `sincronizar_precios_meli_sheets` | `sincronizar_precios.py` | Sincroniza precios desde MercadoLibre hacia Google Sheets e invalida el caché web. | *"Hugo, actualiza los precios en el Sheets usando los de MeLi"* |
-| `generar_catalogo_pdf` | `generar_catalogo.py` | Genera PDF corporativo leyendo de Sheets y bajando fotos de MeLi. Opcional envío WA. | *"Genera el catálogo PDF corporativo de este mes"* |
-| `generar_reporte_skus_woocommerce` | `generar_reporte_skus.py` | Genera y envía un correo HTML con el reporte de discrepancias de SKUs (MeLi-SIIGO-WC). | *"Revisa los SKUs de WooCommerce y mándame el reporte"* |
-| `sincronizar_catalogo_wc_desde_meli` | `sincronizar_wc_desde_meli.py` | Elimina el catálogo de WC y lo reconstruye basado en publicaciones activas de MeLi. | *"Hugo, reconstruye el catálogo de WooCommerce desde MeLi"* |
-| `publicar_contenido_redes_sociales_ia` | `pipeline_contenido_facebook.py` | Corre el pipeline multimedia (Gemini→Ideogram→ElevenLabs→Kling) y publica en Facebook. | *"Haz un nuevo post para Facebook"* |
-| `generar_guias_masivas_web` | `generar_guias_masivas.py` | Consume PubMed y Gemini para crear guías técnicas en JSON para el frontend web. | *"Hugo, genera las guías masivas que faltan en la web"* |
-
-### ¿Cómo agregar una nueva Skill?
-1. Escribe tu función en un nuevo archivo dentro de `app/tools/`.
-2. Añade docstrings claros (`"""..."""`) y Type Hints (ej: `def mi_skill(param: str) -> str:`).
-3. Importa la función en `app/core.py` y agrégala a la lista `todas_las_herramientas` dentro de `configurar_ia()`.
-4. ¡El agente inmediatamente sabrá que existe y cómo usarla!
+for orden in res.get('results', []):
+    shipping_info = orden.get('shipping', {}) or {}
+    shipping_type = shipping_info.get('substatus') or shipping_info.get('shipping_mode')
     if orden.get('status') == 'paid' and shipping_type in ['to_agree', 'custom', 'not_specified']:
         ordenes_encontradas.append(str(orden.get('id')))
 ```
@@ -1053,7 +916,7 @@ Filtra órdenes que están pagadas pero cuyo envío es "a acordar con el comprad
 | Es llamado desde... | ¿Para qué? |
 |---|---|
 | `app/core.py` | Registrar funciones como herramientas de la IA |
-| `app/cli.py` | Opción 8 del menú (aprendizaje) |
+| `app/cli.py` | Opción 5 del menú (aprendizaje) |
 | `app/sync.py` | Subir facturas a órdenes de MeLi |
 
 ---
@@ -1062,7 +925,7 @@ Filtra órdenes que están pagadas pero cuyo envío es "a acordar con el comprad
 
 **Refrescar token antes de cada llamada:** Los tokens de OAuth expiran. En lugar de verificar si expiró y luego refrescar, se refresca siempre antes de usarlo. Esto garantiza que nunca se haga una llamada con un token vencido, a costa de una pequeña llamada extra ocasional.
 
-**Retornar strings en lugar de lanzar excepciones:** Las funciones retornan mensajes de error como `"❌ Error: ..."` en lugar de lanzar excepciones. Esto facilita el uso desde la IA: Gemini puede leer el mensaje de error y decidir qué hacer, mientras que una excepción no capturada rompería la conversación.
+**Retornar strings en lugar de lanzar excepciones:** Las funciones retornan mensajes de error como `"❌ Error: ..."` en lugar de lanzar excepciones. Esto facilita el uso desde la IA: el modelo puede leer el mensaje de error y decidir qué hacer, mientras que una excepción no capturada rompería la conversación.
 
 ---
 
@@ -1501,6 +1364,35 @@ Esta función tiene un **bug evidente**: la condición `if True:` siempre es ver
 
 ---
 
+## 10. Nuevas Skills (Herramientas autónomas — Claude)
+
+### ¿Para qué sirven?
+
+Varias funciones en `app/tools/` y servicios se registran en `app/core.py` como herramientas de **Claude** (tool use). La **preventa MeLi** con ficha no usa este mecanismo: va por `preventa_meli.py` + **Gemini** en `meli_preventa.py`.
+
+### Arquitectura
+
+`_fn_to_tool_schema()` convierte docstrings + type hints en esquema JSON. El bucle en `obtener_respuesta_ia` ejecuta cada `tool_use` y devuelve el resultado al modelo.
+
+### Ejemplos (no exhaustivo)
+
+| Skill (nombre función) | Archivo / módulo | Descripción |
+|---|---|---|
+| `sincronizar_precios_meli_sheets` | `app/tools/sincronizar_precios.py` | Precios MeLi → Google Sheets |
+| `generar_catalogo_pdf` | `generar_catalogo.py` | PDF catálogo con fotos MeLi |
+| `publicar_contenido_redes_sociales_ia` | `pipeline_contenido_facebook.py` | Pipeline multimedia → Facebook |
+| `generar_guias_masivas_web` | `generar_guias_masivas.py` | Guías JSON para el sitio |
+| `sincronizar_productos_pagina_web` | `app/tools/sincronizar_productos_pagina_web.py` | Stock/precios hacia la API de la tienda web (usada desde `sync.py`/CLI; comprobar si está enlazada en `todas_las_herramientas`) |
+
+**Nota:** Los scripts `sincronizar_wc_desde_meli.py` y `woocommerce` fueron retirados; la tienda es la **página web** propia (`PAGINA_WEB/site/`) con API (`WEB_API_URL`, `WEB_API_KEY`).
+
+### Cómo agregar una skill a Claude
+
+1. Función con docstring y tipos en `app/tools/` (o reutilizar módulo existente).
+2. Importar en `app/core.py` y añadir a `todas_las_herramientas` dentro de `configurar_ia()`.
+
+---
+
 ## RESUMEN DE FLUJO COMPLETO
 
 ```
@@ -1513,27 +1405,26 @@ Esta función tiene un **bug evidente**: la condición `if True:` siempre es ver
          ↓                 ↓                  ↓
   Puerto 8081          Puerto 8080        Terminal
   routes.py          webhook_meli.py      cli.py
-  /whatsapp             /notifications    Menú 1-11
-  /chat                 /status
-  /status
+  /whatsapp          /notifications       Menú 1-8
+  /chat              /chat (opcional)
+  /status            /status
          │                 │                  │
          └─────────────────┼──────────────────┘
                            ↓
                       core.py
-                   Gemini AI + Tools
+              Claude (WhatsApp /chat CLI) + tools
+                           │
+        preventa_meli + meli_preventa.py (Gemini) — solo preguntas MeLi
                            │
            ┌───────────────┼───────────────────┐
            ↓               ↓                   ↓
        meli.py          siigo.py         system_tools.py
     API MeLi           API SIIGO         Email/Files/Code
-    (ventas,           (facturas,
-    preguntas,         cotizaciones,
-    aprendizaje)       PDF)
 ```
 
 ---
 
-*Este manual fue generado el 2026-03-28 para el proyecto McKenna Group Agente v1. Última actualización: 2026-04-06.*
+*Documento técnico del repositorio McKenna Group Agente. Última actualización: 2026-04-09.*
 
 ---
 

@@ -7,7 +7,11 @@ import time
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from app.core import obtener_respuesta_ia, configurar_ia
-from app.utils import enviar_whatsapp_reporte, refrescar_token_meli
+from app.utils import (
+    enviar_whatsapp_reporte,
+    refrescar_token_meli,
+    jid_grupo_postventa_wa,
+)
 
 load_dotenv()
 app = Flask(__name__, template_folder="app/templates")
@@ -98,8 +102,6 @@ def _procesar_orden_meli(order_id: str):
         for item in orden.get("order_items", []):
             item_info = item.get("item", {})
             item_id = item_info.get("id", "")
-            cantidad_vendida = item.get("quantity", 0)
-
             # Obtener SKU y stock post-venta del ítem desde MeLi
             # MeLi ya autodecrementó su available_quantity al procesar la orden.
             try:
@@ -126,22 +128,23 @@ def _procesar_orden_meli(order_id: str):
                 continue
 
             if stock_post_venta is None:
-                # Fallback: calcular desde WooCommerce si no se pudo leer MeLi
-                from app.services.woocommerce import obtener_stock_woocommerce
-
-                stock_post_venta = max(
-                    0, obtener_stock_woocommerce(sku) - cantidad_vendida
-                )
                 print(
-                    f"⚠️ [MELI-ORDER] Usando fallback WC para SKU {sku}: {stock_post_venta} uds"
+                    f"⚠️ [MELI-ORDER] No se pudo leer available_quantity en MeLi para ítem {item_id} (SKU {sku}) — omitiendo sync hacia la web."
                 )
+                continue
 
-            # Sincronizar WooCommerce al nivel actual de MeLi (MeLi ya está actualizado)
-            from app.services.woocommerce import actualizar_stock_woocommerce
+            try:
+                stock_int = int(stock_post_venta)
+            except (TypeError, ValueError):
+                print(
+                    f"⚠️ [MELI-ORDER] Stock post-venta no numérico para SKU {sku!r}: {stock_post_venta!r}"
+                )
+                continue
 
-            resultado_wc = actualizar_stock_woocommerce(sku, stock_post_venta)
+            # MeLi ya reflejó la venta; propagamos el mismo stock a la página web (y re-afirmamos en MeLi vía sync central).
+            resultado_sync = sincronizar_stock_todas_las_plataformas(sku, stock_int)
             print(
-                f"   └──> SKU {sku} | Stock MeLi post-venta: {stock_post_venta} | WC: {resultado_wc}"
+                f"   └──> SKU {sku} | Stock post-venta MeLi: {stock_int} | sync: {resultado_sync[:200]}..."
             )
 
     except Exception as e:
@@ -184,7 +187,7 @@ def _procesar_mensaje_posventa(resource: str):
 
     Deduplicación por message_id (persistente en JSON), sin filtro por tiempo.
     """
-    GRUPO = os.getenv("GRUPO_POSTVENTA_WA", "120363406693905719@g.us")
+    GRUPO = jid_grupo_postventa_wa()
     try:
         token = refrescar_token_meli()
         if not token:
@@ -471,8 +474,19 @@ def chat():
     data = request.get_json()
     if not data or "mensaje" not in data:
         return jsonify({"error": "Campo 'mensaje' requerido"}), 400
+    session_id = (data.get("session_id") or data.get("usuario_id") or "").strip()
+    if not session_id:
+        return (
+            jsonify(
+                {
+                    "error": "Campo 'session_id' (o 'usuario_id') requerido para aislar el historial del chat.",
+                    "status": "error",
+                }
+            ),
+            400,
+        )
     try:
-        respuesta, _ = obtener_respuesta_ia(data["mensaje"], "usuario_api")
+        respuesta, _ = obtener_respuesta_ia(data["mensaje"], session_id)
         return jsonify(
             {
                 "respuesta": respuesta,
@@ -761,219 +775,7 @@ def agregar_caso():
         return jsonify({"status": "error", "resultado": str(e)}), 500
 
 
-from app.monitor import iniciar_monitor, incrementar_metrica
-
-iniciar_monitor()
-
-
-# ── MONITOR DE PREGUNTAS SIN RESPONDER ────────────────────────────────────────
-def _monitor_preguntas_sin_responder():
-    """
-    Cada 10 minutos consulta MeLi por preguntas sin responder.
-    - Si encuentra una nueva → la procesa por el flujo de preventa.
-    - Si ya está en cola (pendiente) desde hace más de 10 min → re-notifica al grupo.
-    """
-    import json
-    from datetime import datetime, timedelta
-
-    PENDIENTES_PATH = "app/data/preguntas_pendientes_preventa.json"
-    GRUPO = os.getenv("GRUPO_PREVENTA_WA", "120363393955474672@g.us")
-    INTERVALO = 1800  # 30 minutos
-
-    while True:
-        time.sleep(INTERVALO)
-        try:
-            token = refrescar_token_meli()
-            if not token:
-                continue
-
-            res = requests.get(
-                "https://api.mercadolibre.com/my/received_questions/search?status=UNANSWERED&limit=20",
-                headers={"Authorization": f"Bearer {token}"},
-                timeout=15,
-            )
-            if res.status_code != 200:
-                continue
-
-            preguntas_meli = res.json().get("questions", [])
-
-            # Leer cola local
-            try:
-                with open(PENDIENTES_PATH, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                pendientes = data.get("preguntas", [])
-            except Exception:
-                pendientes = []
-
-            ids_unanswered_meli = {str(q["id"]) for q in preguntas_meli}
-            ids_conocidos = {str(p["question_id"]) for p in pendientes}
-            modificado = False
-            ahora = datetime.now()
-
-            # Auto-marcar como respondidas las que ya no están en UNANSWERED de MeLi
-            for p in pendientes:
-                if (
-                    not p.get("respondida")
-                    and str(p["question_id"]) not in ids_unanswered_meli
-                ):
-                    p["respondida"] = True
-                    p["nota"] = f"Auto-marcada respondida por monitor {ahora.date()}"
-                    modificado = True
-                    print(f"✅ [MONITOR] Auto-marcada respondida: {p['question_id']}")
-
-            # Procesar nuevas y enviar recordatorios solo de las realmente pendientes en MeLi
-            for q in preguntas_meli:
-                qid = str(q["id"])
-
-                if qid not in ids_conocidos:
-                    # Nueva — procesar por flujo preventa
-                    print(f"🔍 [MONITOR] Nueva pregunta detectada: {qid}")
-                    hilo = threading.Thread(
-                        target=procesar_nueva_pregunta, args=(qid,), daemon=True
-                    )
-                    hilo.start()
-                else:
-                    # Ya en cola y confirmada UNANSWERED en MeLi → reintentar IA, o recordatorio
-                    p = next(
-                        (
-                            x
-                            for x in pendientes
-                            if str(x["question_id"]) == qid and not x.get("respondida")
-                        ),
-                        None,
-                    )
-                    if p:
-                        ts = datetime.fromisoformat(p["timestamp"])
-                        minutos = (ahora - ts).total_seconds() / 60
-                        if minutos >= 30:
-                            # Intentar responder automáticamente antes de escalar al humano
-                            titulo = p.get("titulo_producto", "")
-                            pregunta_txt = p.get("pregunta", "")
-                            respondida_ahora = False
-                            try:
-                                from app.services.google_services import (
-                                    buscar_ficha_tecnica_producto,
-                                )
-                                from app.services.meli_preventa import (
-                                    generar_respuesta_con_ficha,
-                                    guardar_caso_preventa,
-                                )
-
-                                ficha = buscar_ficha_tecnica_producto(titulo)
-                                if ficha:
-                                    respuesta_ia = generar_respuesta_con_ficha(
-                                        titulo, pregunta_txt, ficha
-                                    )
-                                    if respuesta_ia:
-                                        token_r = refrescar_token_meli()
-                                        r_ans = requests.post(
-                                            "https://api.mercadolibre.com/answers",
-                                            headers={
-                                                "Authorization": f"Bearer {token_r}",
-                                                "Content-Type": "application/json",
-                                            },
-                                            json={
-                                                "question_id": int(qid),
-                                                "text": respuesta_ia,
-                                            },
-                                            timeout=10,
-                                        )
-                                        if r_ans.status_code == 200:
-                                            p["respondida"] = True
-                                            p["nota"] = (
-                                                f"Respondida automáticamente por monitor (reintento) {ahora.date()}"
-                                            )
-                                            guardar_caso_preventa(
-                                                titulo, pregunta_txt, respuesta_ia
-                                            )
-                                            respondida_ahora = True
-                                            print(
-                                                f"✅ [MONITOR] Pregunta {qid} respondida automáticamente en reintento."
-                                            )
-                                            enviar_whatsapp_reporte(
-                                                f"✅ *PREVENTA RESPONDIDA (reintento)*\n"
-                                                f"📦 Producto: {titulo}\n"
-                                                f"🗣 Cliente: {pregunta_txt}\n"
-                                                f"🤖 IA Respondió: {respuesta_ia[:300]}",
-                                                numero_destino=GRUPO,
-                                            )
-                            except Exception as e_retry:
-                                print(
-                                    f"⚠️ [MONITOR] Reintento IA falló para {qid}: {e_retry}"
-                                )
-
-                            if not respondida_ahora:
-                                # IA no pudo → recordatorio al humano
-                                sufijo = qid[-3:]
-                                enviar_whatsapp_reporte(
-                                    f"⏰ *RECORDATORIO PREVENTA PENDIENTE*\n"
-                                    f"📦 Producto: {titulo}\n"
-                                    f"🗣 Cliente: {pregunta_txt}\n"
-                                    f"⌛ Sin responder hace {int(minutos)} min\n\n"
-                                    f"✍️ Escribe: resp {sufijo}: tu respuesta",
-                                    numero_destino=GRUPO,
-                                )
-
-                            # Actualizar timestamp para no re-ejecutar hasta 30 min después
-                            p["timestamp"] = ahora.isoformat()
-                            modificado = True
-
-            # Persistir cambios — RE-LEER archivo para no sobreescribir cambios
-            # hechos por obtener_pregunta_pendiente() durante el procesamiento
-            if modificado:
-                try:
-                    # Re-leer el archivo actual para ver si algo cambió
-                    try:
-                        with open(PENDIENTES_PATH, "r", encoding="utf-8") as f:
-                            data_actual = json.load(f)
-                        pendientes_actual = data_actual.get("preguntas", [])
-                    except Exception:
-                        pendientes_actual = []
-
-                    # Crear lookup de estado actual en disco
-                    estado_disco = {str(p["question_id"]): p for p in pendientes_actual}
-
-                    # Merge: solo aplicar nuestros cambios si el disco no marcó respondida
-                    for p in pendientes:
-                        qid = str(p["question_id"])
-                        p_disco = estado_disco.get(qid)
-                        if (
-                            p_disco
-                            and p_disco.get("respondida")
-                            and not p.get("respondida")
-                        ):
-                            # El disco ya lo marcó respondida (operador respondió) — respetar
-                            continue
-                        if p_disco:
-                            # Actualizar solo campos que el monitor cambió
-                            if p.get("respondida") and not p_disco.get("respondida"):
-                                p_disco["respondida"] = True
-                                p_disco["nota"] = p.get("nota", "")
-                            if p.get("timestamp") != p_disco.get("timestamp"):
-                                p_disco["timestamp"] = p["timestamp"]
-
-                    # Agregar preguntas nuevas que no estaban en disco
-                    ids_disco = set(estado_disco.keys())
-                    for p in pendientes:
-                        if str(p["question_id"]) not in ids_disco:
-                            pendientes_actual.append(p)
-
-                    with open(PENDIENTES_PATH, "w", encoding="utf-8") as f:
-                        json.dump(
-                            {"preguntas": pendientes_actual},
-                            f,
-                            indent=2,
-                            ensure_ascii=False,
-                        )
-                except Exception as e_write:
-                    print(f"⚠️ [MONITOR] Error escribiendo pendientes: {e_write}")
-
-        except Exception as e:
-            print(f"⚠️ [MONITOR] Error en ciclo de revisión: {e}")
-
-
-threading.Thread(target=_monitor_preguntas_sin_responder, daemon=True).start()
-print("✅ Monitor de preguntas sin responder iniciado (cada 10 min)")
+from app.monitor import incrementar_metrica
 
 
 if __name__ == "__main__":

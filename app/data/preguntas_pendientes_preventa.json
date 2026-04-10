@@ -153,7 +153,47 @@
       "question_id": "13558977155",
       "titulo_producto": "Azul De Metileno 30 Ml Mckenna Group Antiséptico Farmacéutico",
       "pregunta": "Hola, cómo se usa?? es para consumo???",
-      "timestamp": "2026-04-08T22:52:22.693726",
+      "timestamp": "2026-04-09T11:55:45.863144",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-09"
+    },
+    {
+      "question_id": "13560462260",
+      "titulo_producto": "Aceite Ricino Castor Puro 250ml",
+      "pregunta": "Este aceite de risono se puede tonar",
+      "timestamp": "2026-04-09T10:25:14.429401",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-09"
+    },
+    {
+      "question_id": "13559708203",
+      "titulo_producto": "Aceite Ricino Castor Puro 250ml",
+      "pregunta": "Se puede consumir?",
+      "timestamp": "2026-04-09T10:25:14.429401",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-09"
+    },
+    {
+      "question_id": "13559731885",
+      "titulo_producto": "Betaina De Coco 500ml",
+      "pregunta": "Este producto lo puedo usar para combinarlo con la pasta dental?",
+      "timestamp": "2026-04-09T12:25:57.256231",
+      "respondida": true,
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-04-09"
+    },
+    {
+      "question_id": "13559742403",
+      "titulo_producto": "Sal De Potasio Citrato 250g",
+      "pregunta": "No he recibido el producto y me enviaron notificaciones como si lo hubiera recibido",
+      "timestamp": "2026-04-09T12:25:57.256231",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-09"
+    },
+    {
+      "question_id": "13560732976",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "Como suplemento cuantos mg tiene por dosis y cuantos servicios vienen en el empaque",
+      "timestamp": "2026-04-09T22:48:31.107779",
       "respondida": false
     }
   ]
