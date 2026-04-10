@@ -122,20 +122,31 @@
         </div>
         <div class="acid-sidebar-body">
           <div class="acid-product-name">{{ p.name }}</div>
-          <div class="acid-product-ref">Ref. {{ p.ref }}</div>
+          <div class="acid-product-ref">{% if p.solo_vitrina %}Catálogo{% else %}Ref.{% endif %} {{ p.ref }}</div>
           <table class="acid-ft-table">
+            {% if p.solo_vitrina %}
+            <tr>
+              <td>Precio</td>
+              <td>{{ p.precio }}</td>
+            </tr>
+            <tr>
+              <td>Compra</td>
+              <td class="acid-ft-saving">Solo combos SIIGO</td>
+            </tr>
+            {% else %}
             <tr>
               <td>Precio web</td>
               <td>{{ p.precio }}</td>
             </tr>
             <tr>
-              <td>MeLi</td>
+              <td>{{ p.get('precio_canal_label', 'MeLi') }}</td>
               <td class="acid-ft-strike">{{ p.precio_meli }}</td>
             </tr>
             <tr>
               <td>Ahorras</td>
               <td class="acid-ft-saving">{{ p.ahorro }}</td>
             </tr>
+            {% endif %}
           </table>
         </div>
       </div>
@@ -173,6 +184,12 @@
         </div>
 
         <div class="acid-actions">
+          {% if p.solo_vitrina %}
+          <a href="{{ url_for('producto', slug=p.slug) }}#referencias-combo"
+             class="btn btn-primary btn-sm">
+            <i class="ph ph-list"></i> Referencias y compra
+          </a>
+          {% else %}
           <form method="POST" action="{{ url_for('carrito_agregar') }}"
                 style="display:inline-flex;">
             <input type="hidden" name="slug" value="{{ p.slug }}">
@@ -182,6 +199,7 @@
               <i class="ph ph-shopping-cart"></i> Agregar
             </button>
           </form>
+          {% endif %}
           <a href="{{ url_for('producto', slug=p.slug) }}"
              class="btn btn-outline btn-sm">
             <i class="ph ph-flask"></i> Ficha técnica
@@ -190,7 +208,7 @@
              class="btn btn-wa btn-sm">
             <i class="ph ph-whatsapp-logo"></i> WhatsApp
           </a>
-          {% set guia = guide_for_product(p.ref) %}
+          {% set guia = guide_for_product(p.rep_sku or p.ref) %}
           {% if guia %}
           <a href="{{ guia.url }}" target="_blank" rel="noopener"
              class="btn btn-guide btn-sm">

@@ -3,9 +3,10 @@ import json
 from datetime import datetime
 from google import genai
 
+from app.utils import jid_grupo_preventa_wa
+
 PENDIENTES_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'preguntas_pendientes_preventa.json')
 CASOS_PATH = os.path.join(os.path.dirname(__file__), '..', 'training', 'casos_preventa.json')
-GRUPO = os.getenv('GRUPO_PREVENTA_WA', '120363393955474672@g.us')
 
 
 # ---------------------------------------------------------------------------
@@ -42,6 +43,11 @@ def guardar_pregunta_pendiente(question_id: str, titulo_producto: str, pregunta:
         'respondida': False,
     })
     _guardar_pendientes(pendientes)
+
+
+def obtener_preguntas_pendientes():
+    """Lista todas las entradas del JSON de cola (panel / diagnóstico)."""
+    return _leer_pendientes()
 
 
 def obtener_pregunta_pendiente(question_id: str):
@@ -131,7 +137,7 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
                 f"resp {sufijo}: tu respuesta\n\n"
                 f"Ejemplo:\n"
                 f"resp {sufijo}: Se aplica 5ml por litro de agua",
-                numero_destino=GRUPO
+                numero_destino=jid_grupo_preventa_wa(),
             )
         except Exception as e:
             print(f"❌ Preventa: error alertando al grupo: {e}")
@@ -155,7 +161,7 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
                 f"⚠️ (IA no pudo generar respuesta automática)\n\n"
                 f"✍️ Para responder escribe:\n"
                 f"resp {sufijo}: tu respuesta",
-                numero_destino=GRUPO
+                numero_destino=jid_grupo_preventa_wa(),
             )
         except Exception as e:
             print(f"❌ Preventa: error alertando al grupo por fallo IA: {e}")

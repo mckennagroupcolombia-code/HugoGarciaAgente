@@ -1,0 +1,28 @@
+# Ejemplo estático. Mejor: sudo ./instalar_systemd.sh
+#
+# Unidad real en disco: mckenna-whatsapp-bridge.service
+# (NO reutilices el nombre bot-mckenna.service si en tu equipo ya es un servicio Python / otro.)
+#
+# Después de instalar, desactiva los Node viejos que apuntan a ~/bot-mckenna:
+#   sudo systemctl disable --now whatsapp-bridge whatsapp-server
+#
+#   sudo systemctl enable --now mckenna-whatsapp-bridge
+#   sudo systemctl status mckenna-whatsapp-bridge --no-pager -l
+
+[Unit]
+Description=McKenna puente WhatsApp (whatsapp-web.js) puerto 3000
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mckg
+Group=mckg
+WorkingDirectory=/home/mckg/mi-agente/bot-mckenna
+EnvironmentFile=-/home/mckg/mi-agente/.env
+ExecStart=/usr/bin/node /home/mckg/mi-agente/bot-mckenna/server.js
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

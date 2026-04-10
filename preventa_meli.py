@@ -1,7 +1,7 @@
 import json
 import requests
 from app.services.meli_preventa import manejar_pregunta_preventa
-from app.utils import refrescar_token_meli
+from app.utils import refrescar_token_meli, jid_grupo_preventa_wa
 
 # Ruta de sus credenciales
 RUTA_CREDENCIALES = "/home/mckg/mi-agente/credenciales_meli.json"
@@ -92,9 +92,8 @@ def procesar_nueva_pregunta(question_id):
     # Con ficha → responder al cliente en MeLi
     status = enviar_respuesta_meli(question_id, respuesta_generada, token)
 
-    import os as _os
     from app.utils import enviar_whatsapp_reporte
-    grupo_preventa = _os.getenv("GRUPO_PREVENTA_WA", "120363393955474672@g.us")
+
     emoji_status = "✅" if status else "❌"
     mensaje_ws = (
         f"🔔 *REPORTE PREVENTA MELI*\n\n"
@@ -103,7 +102,7 @@ def procesar_nueva_pregunta(question_id):
         f"🤖 *IA Respondió:* {respuesta_generada}\n\n"
         f"Status Respuesta: {emoji_status}"
     )
-    enviar_whatsapp_reporte(mensaje_ws, numero_destino=grupo_preventa)
+    enviar_whatsapp_reporte(mensaje_ws, numero_destino=jid_grupo_preventa_wa())
 
 # --- Para probar el script manualmente ---
 if __name__ == "__main__":

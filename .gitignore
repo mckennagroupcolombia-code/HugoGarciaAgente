@@ -41,6 +41,12 @@ memoria_vectorial/
 # Node e instalación de dependencias
 node_modules/
 package-lock.json
+!bot-mckenna/package-lock.json
+
+# Puente WhatsApp (sesión y caché local; no commitear)
+bot-mckenna/.wwebjs_auth_nueva/
+bot-mckenna/.wwebjs_cache/
+bot-mckenna/.env
 
 # Logs y reportes temporales
 *.log

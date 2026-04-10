@@ -465,9 +465,21 @@
 
 <script>
   // ── CONSTANTS ────────────────────────────────────────────────
-  const TOKEN_KEY   = 'mckg_chat_token';
-  const HISTORY_KEY = 'mckg_chat_history';
-  const API_URL     = '/chat';
+  const TOKEN_KEY    = 'mckg_chat_token';
+  const HISTORY_KEY  = 'mckg_chat_history';
+  const SESSION_KEY  = 'mckg_chat_session_id';
+  const API_URL      = '/chat';
+
+  function getChatSessionId() {
+    let sid = localStorage.getItem(SESSION_KEY);
+    if (!sid) {
+      sid = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : ('ses-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10));
+      localStorage.setItem(SESSION_KEY, sid);
+    }
+    return sid;
+  }
 
   // ── ELEMENTS ─────────────────────────────────────────────────
   const modalOverlay = document.getElementById('modal-overlay');
@@ -505,7 +517,7 @@
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${val}` },
-        body: JSON.stringify({ mensaje: 'ping' })
+        body: JSON.stringify({ mensaje: 'ping', session_id: getChatSessionId() })
       });
       if (res.status === 401) {
         modalError.textContent = 'Token incorrecto. Inténtalo de nuevo.';
@@ -655,7 +667,7 @@
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ mensaje: text })
+        body: JSON.stringify({ mensaje: text, session_id: getChatSessionId() })
       });
 
       removeTyping();

@@ -8,8 +8,8 @@ import base64
 import tempfile
 import requests as _requests_lib
 
-
-PENDIENTES_PATH = "app/data/preguntas_pendientes_preventa.json"
+_ROUTES_DIR = os.path.dirname(os.path.abspath(__file__))
+PENDIENTES_PATH = os.path.join(_ROUTES_DIR, "data", "preguntas_pendientes_preventa.json")
 
 
 def encontrar_question_id_por_sufijo(sufijo: str):
@@ -81,7 +81,51 @@ def detectar_comando_preventa(texto: str):
 # TODO: Eventualmente, estas dependencias se deben limpiar y organizar.
 from app.core import obtener_respuesta_ia
 from modulo_posventa import responder_mensaje_posventa
-from app.utils import enviar_whatsapp_reporte
+from app.utils import (
+    enviar_whatsapp_reporte,
+    jid_grupo_preventa_wa,
+    jid_grupo_postventa_wa,
+)
+
+
+def _jid_limpio(s: str) -> str:
+    if not s:
+        return ""
+    return s.split("#")[0].strip()
+
+
+def _grupos_web_pedido_cmd() -> set[str]:
+    """Solo el grupo de pedidos web (Guias_Envios pagina web). Ver app/data/grupos_whatsapp_oficiales.json.
+
+    Opcional: GRUPOS_WEB_PEDIDO_CMD_WA=coma,separada (solo si en el futuro se requiere más de un JID).
+    """
+    raw = os.getenv("GRUPOS_WEB_PEDIDO_CMD_WA", "").strip()
+    if raw:
+        return {j for p in raw.split(",") if (j := _jid_limpio(p))}
+    solo = _jid_limpio(
+        os.getenv("GRUPO_PEDIDOS_WEB_WA", "120363391665421264@g.us")
+    )
+    return {solo} if solo else set()
+
+
+def _remote_es_grupo_web_pedido(remote_jid: str) -> bool:
+    return _jid_limpio(remote_jid) in _grupos_web_pedido_cmd()
+
+
+def _normalizar_texto_comando_wa(texto: str) -> str:
+    """Quita negritas/cursivas típicas de WhatsApp y colapsa espacios."""
+    t = (texto or "").strip()
+    t = re.sub(r"[*_~`]+", "", t)
+    t = " ".join(t.split())
+    return t.strip()
+
+
+def _token_tras_facturar(texto: str) -> str | None:
+    t = _normalizar_texto_comando_wa(texto)
+    m = re.search(r"\bfacturar\s+(\S+)", t, re.IGNORECASE)
+    return m.group(1).strip() if m else None
+
+
 from app.sync import (
     sincronizar_stock_todas_las_plataformas,
     sincronizar_facturas_recientes,
@@ -107,9 +151,7 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
         if not pendiente:
             enviar_whatsapp_reporte(
                 f"⚠️ No encontré pregunta pendiente con ID {question_id}",
-                numero_destino=os.getenv(
-                    "GRUPO_PREVENTA_WA", "120363393955474672@g.us"
-                ),
+                numero_destino=jid_grupo_preventa_wa(),
             )
             return
 
@@ -141,7 +183,7 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
         )
 
         # Confirmar al grupo preventa
-        grupo_prev = os.getenv("GRUPO_PREVENTA_WA", "120363393955474672@g.us")
+        grupo_prev = jid_grupo_preventa_wa()
         emoji = "✅" if exito else "❌"
         enviar_whatsapp_reporte(
             f"{emoji} *Respuesta preventa {'enviada' if exito else 'FALLÓ'} al cliente*\n"
@@ -353,23 +395,13 @@ def _procesar_orden_meli(order_id: str):
                 continue
 
             if stock_post_venta is None:
-                # Fallback: calcular desde WooCommerce si no se pudo leer MeLi
-                from app.services.woocommerce import obtener_stock_woocommerce
-
-                stock_post_venta = max(
-                    0, obtener_stock_woocommerce(sku) - cantidad_vendida
-                )
                 print(
-                    f"⚠️ [MELI-ORDER] Usando fallback WC para SKU {sku}: {stock_post_venta} uds"
+                    f"⚠️ [MELI-ORDER] No se pudo obtener el stock post-venta para el SKU {sku}"
                 )
+                continue
 
-            # Sincronizar WooCommerce al nivel actual de MeLi (MeLi ya está actualizado)
-            from app.services.woocommerce import actualizar_stock_woocommerce
-
-            resultado_wc = actualizar_stock_woocommerce(sku, stock_post_venta)
-            print(
-                f"   └──> SKU {sku} | Stock MeLi post-venta: {stock_post_venta} | WC: {resultado_wc}"
-            )
+            # Aquí iría la nueva lógica para sincronizar con la página web
+            print(f"   └──> SKU {sku} | Stock MeLi post-venta: {stock_post_venta}")
 
     except Exception as e:
         print(f"❌ [MELI-ORDER] Error procesando orden {order_id}: {e}")
@@ -411,8 +443,10 @@ def _procesar_mensaje_posventa(resource: str):
 
     Deduplicación por message_id (persistente en JSON), sin filtro por tiempo.
     """
-    GRUPO = os.getenv("GRUPO_POSTVENTA_WA", "120363406693905719@g.us")
+    GRUPO = jid_grupo_postventa_wa()
     try:
+        from app.monitor import incrementar_metrica
+
         token = refrescar_token_meli()
         if not token:
             return
@@ -500,7 +534,7 @@ def _procesar_mensaje_posventa(resource: str):
                 )
                 return
 
-        res = requests.get(
+        res = _requests_lib.get(
             f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{_SELLER_ID}?tag=post_sale",
             headers=headers,
             timeout=10,
@@ -539,7 +573,7 @@ def _procesar_mensaje_posventa(resource: str):
             # Obtener productos de la orden para contexto
             productos_str = ""
             try:
-                r_ord = requests.get(
+                r_ord = _requests_lib.get(
                     f"https://api.mercadolibre.com/orders/{pack_id}",
                     headers=headers,
                     timeout=8,
@@ -695,8 +729,8 @@ def register_routes(app):
         grupo_compras = os.getenv(
             "GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us"
         )
-        grupo_preventa = os.getenv("GRUPO_PREVENTA_WA", "120363393955474672@g.us")
-        grupo_posventa = os.getenv("GRUPO_POSTVENTA_WA", "120363406693905719@g.us")
+        grupo_preventa = jid_grupo_preventa_wa()
+        grupo_posventa = jid_grupo_postventa_wa()
         grupo_inventario = os.getenv("GRUPO_INVENTARIO_WA", "120363407538342427@g.us")
 
         # Detectar de qué grupo proviene el mensaje (por flag explícito o por remoteJid/sender)
@@ -713,6 +747,73 @@ def register_routes(app):
 
         # Alias para compatibilidad con código existente
         grupo_contabilidad = grupo_compras
+
+        # --- Comandos pedidos web: facturar / envio (varios grupos operativos) ---
+        if _remote_es_grupo_web_pedido(remote_jid) and message_text:
+            tn = _normalizar_texto_comando_wa(message_text)
+            destino_grupo = _jid_limpio(remote_jid)
+
+            if re.search(r"\bfacturar\b", tn, re.IGNORECASE):
+
+                def _wa_pedido_facturar(texto_norm: str, destino: str):
+                    from app.tools import web_pedidos as wp
+
+                    tok = _token_tras_facturar(texto_norm)
+                    if not tok:
+                        enviar_whatsapp_reporte(
+                            "⚠️ Usa: *facturar 250* (últimos 3) o *facturar MCKG-…*",
+                            numero_destino=destino,
+                        )
+                        return
+                    ref_cmd, err = wp.resolver_referencia_desde_token(tok)
+                    if err:
+                        enviar_whatsapp_reporte(err, numero_destino=destino)
+                        return
+                    _ok, out = wp.marcar_solicitud_facturacion(ref_cmd)
+                    enviar_whatsapp_reporte(out, numero_destino=destino)
+
+                threading.Thread(
+                    target=_wa_pedido_facturar,
+                    args=(tn, destino_grupo),
+                    daemon=True,
+                ).start()
+                return jsonify({"status": "ok", "respuesta": None})
+
+            if tn.lower().startswith("envio "):
+
+                def _wa_pedido_envio(texto_norm: str, destino: str):
+                    from app.tools import web_pedidos as wp
+
+                    partes = texto_norm.split()
+                    if len(partes) < 3:
+                        enviar_whatsapp_reporte(
+                            "⚠️ *envio 250 NUM_GUIA* [transportadora]\n"
+                            "Ej: *envio 250 7005753156 Interrapidísimo*\n"
+                            "Mismo día sin guía: *envio 250 flex*",
+                            numero_destino=destino,
+                        )
+                        return
+                    ref, err = wp.resolver_referencia_desde_token(partes[1].strip())
+                    if err:
+                        enviar_whatsapp_reporte(err, numero_destino=destino)
+                        return
+                    guia = partes[2].strip()
+                    carrier = (
+                        " ".join(partes[3:]).strip()
+                        if len(partes) > 3
+                        else ""
+                    )
+                    ok, out = wp.registrar_envio_y_notificar(ref, guia, carrier)
+                    enviar_whatsapp_reporte(
+                        f"{'✅' if ok else '❌'} {out}", numero_destino=destino
+                    )
+
+                threading.Thread(
+                    target=_wa_pedido_envio,
+                    args=(tn, destino_grupo),
+                    daemon=True,
+                ).start()
+                return jsonify({"status": "ok", "respuesta": None})
 
         # --- COMANDOS DE GRUPOS ADMIN ---
         if es_any_grupo_admin:
@@ -1293,8 +1394,19 @@ def register_routes(app):
         data = request.get_json()
         if not data or "mensaje" not in data:
             return jsonify({"error": "Campo 'mensaje' requerido"}), 400
+        session_id = (data.get("session_id") or data.get("usuario_id") or "").strip()
+        if not session_id:
+            return (
+                jsonify(
+                    {
+                        "error": "Campo 'session_id' (o 'usuario_id') requerido para aislar el historial del chat.",
+                        "status": "error",
+                    }
+                ),
+                400,
+            )
         try:
-            respuesta, _ = obtener_respuesta_ia(data["mensaje"], "usuario_api")
+            respuesta, _ = obtener_respuesta_ia(data["mensaje"], session_id)
             return jsonify(
                 {
                     "respuesta": respuesta,
@@ -1338,7 +1450,7 @@ def register_routes(app):
         # Tasa automatización preventa (respondidas automáticamente vs total)
         tasa_preventa = 0
         try:
-            with open("app/data/preguntas_pendientes_preventa.json") as f:
+            with open(PENDIENTES_PATH) as f:
                 todas = _json.load(f).get("preguntas", [])
             respondidas_auto = sum(
                 1
@@ -1356,7 +1468,6 @@ def register_routes(app):
             ("Gemini 2.5-Pro", "🤖", "Motor IA conversacional"),
             ("MercadoLibre", "🛒", "Preventa · Posventa · Stock"),
             ("SIIGO ERP", "📊", "Facturación electrónica DIAN"),
-            ("WooCommerce", "🛍️", "mckennagroup.co"),
             ("Google Sheets", "📋", "Catálogo y fichas técnicas"),
             ("Gmail API", "📧", "Facturas de proveedores"),
             ("WhatsApp WA", "💬", "Evolution API · Node.js"),
@@ -1408,86 +1519,6 @@ def register_routes(app):
             daemon=True,
         ).start()
         return jsonify({"ok": True})
-
-    def _procesar_webhook_woocommerce(payload: dict):
-        """
-        Procesa en hilo secundario un webhook de WooCommerce.
-        Para order.created/updated: WooCommerce ya decrementó su propio stock.
-        Leemos el stock post-venta de WC y lo propagamos a MeLi.
-        """
-        try:
-            line_items = payload.get("line_items", [])
-            if not line_items:
-                print("⚠️ [WC-WEBHOOK] Orden sin line_items — ignorada.")
-                return
-
-            order_id = payload.get("id", "desconocido")
-            print(
-                f"🛒 [WC-WEBHOOK] Procesando orden WooCommerce #{order_id} ({len(line_items)} ítem(s))..."
-            )
-
-            from app.services.woocommerce import obtener_stock_woocommerce
-            from app.services.meli import actualizar_stock_meli
-
-            for item in line_items:
-                sku = item.get("sku", "").strip()
-                cantidad = int(item.get("quantity", 0))
-
-                if not sku or cantidad <= 0:
-                    print(
-                        f"⚠️ [WC-WEBHOOK] Ítem sin SKU o cantidad inválida: {item.get('name')}"
-                    )
-                    continue
-
-                # WC ya decrementó su stock al procesar la orden.
-                # Usamos ese valor post-venta como fuente de verdad para sincronizar MeLi.
-                stock_post_venta = obtener_stock_woocommerce(sku)
-                resultado_meli = actualizar_stock_meli(sku, stock_post_venta)
-                print(
-                    f"   └──> SKU {sku} | -{cantidad} uds en WC | Stock post-venta: {stock_post_venta} | MeLi: {resultado_meli}"
-                )
-
-        except Exception as e:
-            print(f"❌ [WC-WEBHOOK] Error procesando webhook de WooCommerce: {e}")
-
-    @app.route("/woocommerce", methods=["POST"])
-    def woocommerce_webhook():
-        """
-        Endpoint que recibe los webhooks enviados por WooCommerce.
-        Verifica la firma HMAC-SHA256, responde 200 OK de inmediato
-        y procesa la lógica en un hilo secundario.
-        """
-        # Verificación de firma (si hay secreto configurado)
-        wc_secret = os.getenv("WC_WEBHOOK_SECRET", "")
-        if wc_secret:
-            sig_header = request.headers.get("X-WC-Webhook-Signature", "")
-            payload_bytes = request.get_data()
-            firma_esperada = base64.b64encode(
-                hmac.new(
-                    wc_secret.encode("utf-8"), payload_bytes, hashlib.sha256
-                ).digest()
-            ).decode("utf-8")
-            if not hmac.compare_digest(sig_header, firma_esperada):
-                print(f"⚠️ [WC-WEBHOOK] Firma inválida — request rechazado.")
-                return jsonify({"status": "unauthorized"}), 401
-
-        payload = request.json or {}
-        evento = request.headers.get("X-WC-Webhook-Topic", payload.get("_topic", ""))
-
-        print(
-            f"📨 [WC-WEBHOOK] Evento recibido: '{evento}' | Orden: {payload.get('id', 'N/A')}"
-        )
-
-        if evento in ("order.created", "order.updated"):
-            status = payload.get("status", "")
-            if status in ("processing", "completed"):
-                threading.Thread(
-                    target=_procesar_webhook_woocommerce, args=(payload,), daemon=True
-                ).start()
-            else:
-                print(f"⏭️ [WC-WEBHOOK] Orden con estado '{status}' — ignorada.")
-
-        return jsonify({"status": "ok"}), 200
 
     # ── Guías de productos (HTML standalone, sin wrapper del tema) ────────────
     _GUIAS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "PAGINA_WEB")

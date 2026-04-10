@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Seguimiento {{ order.reference }} — McKenna Group{% endblock %}
+{% block description %}Estado de tu pedido y guía de envío.{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Tu pedido</span>
+    <h1>Seguimiento <em>{{ order.reference }}</em></h1>
+  </div>
+</div>
+
+<div class="section" style="max-width:640px;margin:0 auto;padding:48px 32px 80px;">
+
+  <p style="color:var(--text-soft);margin-bottom:28px;">
+    Hola <strong>{{ order.buyer_name or 'cliente' }}</strong>, aquí ves el estado actualizado de tu compra en la web.
+  </p>
+
+  <div class="cart-row" style="padding:24px;flex-direction:column;align-items:stretch;gap:16px;border-radius:12px;border:1px solid rgba(20,61,54,0.12);">
+    <div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Pago</div>
+      <div style="font-size:1.15rem;font-weight:700;margin-top:6px;color:{% if order.status == 'approved' %}var(--green){% else %}var(--text-muted){% endif %};">
+        {% if order.status == 'approved' %}✓ Confirmado
+        {% elif order.status == 'declined' %}Rechazado
+        {% elif order.status == 'pending' %}Pendiente
+        {% else %}{{ order.status }}{% endif %}
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Envío</div>
+      <div style="font-size:1.15rem;font-weight:700;margin-top:6px;">
+        {% set ss = order.shipping_status or 'preparing' %}
+        {% if ss == 'shipped' %}
+          <span style="color:var(--green);">En camino</span>
+        {% elif ss == 'delivered' %}
+          <span style="color:var(--green);">Entregado</span>
+        {% else %}
+          <span style="color:var(--text-soft);">Preparando tu pedido</span>
+        {% endif %}
+      </div>
+      {% if order.tracking_number and (order.tracking_number | upper) == 'FLEX' %}
+      <p style="margin-top:12px;color:var(--text-soft);line-height:1.6;">
+        <strong>Modalidad:</strong> {{ order.tracking_carrier or 'Mensajero motorizado (mismo día)' }}<br>
+        <span style="font-size:14px;">Tu pedido va en camino el mismo día; no aplica número de guía de transportadora.</span>
+      </p>
+      {% elif order.tracking_number %}
+      <p style="margin-top:12px;color:var(--text-soft);line-height:1.6;">
+        <strong>Transportadora:</strong> {{ order.tracking_carrier or '—' }}<br>
+        <strong>Número de guía:</strong> {{ order.tracking_number }}
+      </p>
+      {% elif ss != 'shipped' %}
+      <p style="margin-top:12px;color:var(--text-muted);font-size:14px;">
+        Cuando despachemos tu pedido, aquí aparecerá el número de guía.
+      </p>
+      {% endif %}
+    </div>
+
+    <div style="padding-top:12px;border-top:1px solid rgba(0,0,0,0.06);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);">Total</div>
+      <div style="font-size:1.25rem;font-weight:800;color:var(--green);margin-top:6px;">
+        ${{ "{:,.0f}".format(order.total).replace(",", ".") }} COP
+      </div>
+    </div>
+  </div>
+
+  <p style="margin-top:32px;text-align:center;">
+    <a href="{{ url_for('mis_pedidos') }}?email={{ (order.buyer_email or '')|urlencode }}" class="btn btn-outline btn-sm">← Otros pedidos con mi correo</a>
+  </p>
+  <p style="margin-top:16px;text-align:center;">
+    <a href="https://wa.me/{{ WA_NUMBER }}?text={{ ('Hola, consulto el estado de mi pedido ' ~ order.reference)|urlencode }}"
+       target="_blank" rel="noopener" class="btn btn-wa btn-sm">
+      <i class="ph ph-whatsapp-logo"></i> WhatsApp
+    </a>
+  </p>
+</div>
+{% endblock %}

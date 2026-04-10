@@ -21,12 +21,25 @@
   {% if email %}
     {% if orders %}
       {% for o in orders %}
-      <div class="cart-row" style="padding:24px 0;align-items:center;">
-        <div style="flex:1;">
+      <div class="cart-row" style="padding:24px 0;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+        <div style="flex:1;min-width:200px;">
           <div class="cart-name">{{ o['reference'] }}</div>
           <div class="cart-ref">{{ o['created_at'][:10] }}</div>
+          {% set ss = o['shipping_status'] or 'preparing' %}
+          <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">
+            {% if ss == 'shipped' %}🚚 En camino
+            {% elif ss == 'delivered' %}📦 Entregado
+            {% else %}📋 Preparando envío{% endif %}
+            {% if o['tracking_number'] %}
+              · Guía {{ o['tracking_number'] }}
+            {% endif %}
+          </div>
+          {% if o['status'] == 'approved' and o['tracking_token'] %}
+          <a href="{{ url_for('pedido_seguimiento', ref=o['reference'], t=o['tracking_token']) }}"
+             class="btn btn-outline btn-sm" style="margin-top:12px;display:inline-block;">Ver seguimiento</a>
+          {% endif %}
         </div>
-        <div style="font-size:1.1rem;font-weight:800;color:var(--green);margin:0 20px;">
+        <div style="font-size:1.1rem;font-weight:800;color:var(--green);margin:0 12px;">
           ${{ "{:,.0f}".format(o['total']).replace(",", ".") }} COP
         </div>
         <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;

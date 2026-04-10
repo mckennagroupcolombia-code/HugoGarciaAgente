@@ -8,7 +8,7 @@ Instrucciones y arquitectura completa para cualquier IA que trabaje en este repo
 
 **Hugo García** es el agente de IA de McKenna Group S.A.S. (materias primas farmacéuticas y cosméticas, Bogotá, Colombia). Automatiza ventas por WhatsApp, preguntas de MercadoLibre, sincronización de stock, facturación Siigo, generación de catálogos y producción de contenido multimedia para redes sociales.
 
-**Stack**: Python 3.12 · Flask · Google GenAI (Gemini 2.5-Pro) · Evolution API (WhatsApp) · MercadoLibre API · WooCommerce REST · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
+**Stack**: Python 3.12 · Flask · **Anthropic Claude** (agente WhatsApp + `/chat`, tool-calling) · **Google GenAI Gemini 2.5-Pro** (solo preventa MeLi con ficha y scripts de contenido) · **bot-mckenna** (Node, `whatsapp-web.js`, puerto **3000** → proxy a `8081/whatsapp`; monitor `/monitor`) · Evolution API (opcional, p. ej. transcripción en `routes.py`) · MercadoLibre API · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
 
 ---
 
@@ -29,6 +29,11 @@ curl http://localhost:8081/status
 
 # Catálogo PDF
 source venv/bin/activate && python3 generar_catalogo.py
+
+# Puente WhatsApp (Node, puerto 3000)
+cd bot-mckenna && npm ci && npm start
+# Primera vez si venías de ~/bot-mckenna: ./bot-mckenna/migrar_desde_legacy.sh
+# systemd (WhatsApp Node): sudo bot-mckenna/instalar_systemd.sh && systemctl enable --now mckenna-whatsapp-bridge
 ```
 
 ---
@@ -43,9 +48,17 @@ source venv/bin/activate && python3 generar_catalogo.py
 ├── modulo_posventa.py             Gestión post-venta (RUT, devoluciones)
 ├── generar_catalogo.py            Genera PDF catálogo con fotos de MeLi
 │
+├── PAGINA_WEB/site/               Tienda y contenido (Flask `website.py`): pedidos, catálogo, datos JSON
+│
+├── bot-mckenna/                   Puente WhatsApp (Node): server.js :3000, monitor /monitor
+│   ├── server.js                 whatsapp-web.js → POST /whatsapp :8081; /enviar para reportes
+│   ├── instalar_systemd.sh       Crea mckenna-whatsapp-bridge.service (no usar nombre bot-mckenna si choca con Python)
+│   ├── package.json
+│   └── README.md                 Migración desde carpeta legacy fuera del repo
+│
 ├── app/
-│   ├── core.py                    Gemini AI config, prompt sistema, registro herramientas
-│   ├── routes.py                  Endpoints Flask: /whatsapp, /woocommerce, /sync/*, etc.
+│   ├── core.py                    Claude (Anthropic): prompt sistema, registro herramientas, `obtener_respuesta_ia`
+│   ├── routes.py                  Endpoints Flask: /whatsapp, /sync/*, etc.
 │   ├── sync.py                    Lógica central sincronización stock + facturas
 │   ├── cli.py                     Menú CLI interactivo (8 opciones con submenús)
 │   ├── monitor.py                 Alertas automáticas y métricas diarias
@@ -54,20 +67,22 @@ source venv/bin/activate && python3 generar_catalogo.py
 │   ├── services/
 │   │   ├── meli.py                MeLi API: órdenes, stock, facturas, aprendizaje
 │   │   ├── meli_preventa.py       Persistencia preguntas pendientes + casos aprendidos
-│   │   ├── woocommerce.py         WooCommerce REST: stock, productos, webhooks
 │   │   ├── siigo.py               Siigo ERP: facturas paginadas, descarga PDF
 │   │   └── google_services.py     Google Sheets: catálogo, fichas técnicas
 │   │
 │   ├── tools/
 │   │   ├── memoria.py             SQLite + ChromaDB vectorial
 │   │   ├── system_tools.py        Archivos, backups, scripts, email
-│   │   ├── verificacion_sync_skus.py  Auditoría SKUs entre MeLi/SIIGO/WC
+│   │   ├── sincronizar_productos_pagina_web.py  Stock/precios hacia API tienda web (WEB_API_*)
+│   │   ├── web_pedidos.py         Comandos WhatsApp grupo pedidos web (facturar / envío)
+│   │   ├── verificacion_sync_skus.py  Auditoría SKUs MeLi / SIIGO / web
 │   │   └── sincronizar_facturas_de_compra_siigo.py  Facturas de compra desde Gmail
 │   │
 │   ├── data/
 │   │   ├── preguntas_pendientes_preventa.json  Queue de preguntas sin responder
 │   │   ├── modos_atencion.json                 Números en modo humano vs IA
 │   │   ├── metricas_diarias.json               Estadísticas del día
+│   │   ├── grupos_whatsapp_oficiales.json      Nombres y JIDs de grupos operativos
 │   │   └── tarifas_interrapidisimo.json        Tarifas de envío
 │   │
 │   └── training/
@@ -97,8 +112,10 @@ source venv/bin/activate && python3 generar_catalogo.py
 
 ```env
 # IA
-GOOGLE_API_KEY              # Google GenAI (Gemini)
-ANTHROPIC_API_KEY           # Claude API (uso secundario)
+GOOGLE_API_KEY              # Google GenAI (Gemini) — preventa MeLi, pipelines de contenido
+ANTHROPIC_API_KEY           # Claude API — obligatorio para WhatsApp, `/chat` y herramientas del agente
+WEB_API_URL                 # Base URL API stock/precios sitio web (opcional; ver sincronizar_productos_pagina_web)
+WEB_API_KEY                 # Bearer para API web (opcional)
 
 # MercadoLibre
 MELI_CREDS_PATH             # Ruta a credenciales_meli.json
@@ -112,17 +129,12 @@ INSTANCE_NAME               # Nombre instancia WA
 SPREADSHEET_ID              # ID Google Sheet (catálogo/inventario)
 TDS_FOLDER_ID               # Google Drive folder fichas técnicas
 
-# WooCommerce
-WC_URL                      # https://mckennagroup.co
-WC_KEY                      # Consumer key
-WC_SECRET                   # Consumer secret
-WC_WEBHOOK_URL              # URL pública para recibir webhooks WC
-WC_WEBHOOK_SECRET           # Secreto validación HMAC-SHA256
-
 # Grupos WhatsApp
 GRUPO_CONTABILIDAD_WA       # ID grupo contabilidad (default: 120363407538342427@g.us)
 GRUPO_INVENTARIO_WA         # ID grupo inventario
 TELEFONO_GRUPO_REPORTE      # Número/grupo para reportes
+GRUPO_PEDIDOS_WEB_WA        # Único JID para pedidos web: 120363391665421264@g.us (Guias_Envios pagina web) — alertas + facturar + envio
+# Inventario completo de grupos oficiales (nombres y JIDs): app/data/grupos_whatsapp_oficiales.json
 
 # API
 CHAT_API_TOKEN              # Token para endpoints /chat y /sync/*
@@ -148,7 +160,7 @@ FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
 ```
 MeLi → POST /notifications (puerto 8080)
   └─ topic: "questions"
-  └─ hilo: procesar_nueva_pregunta(question_id)
+  └─ hilo: procesar_nueva_pregunta(question_id)   # preventa_meli + Gemini si hay ficha
        ├─ GET /questions/{id} → texto pregunta + item_id
        ├─ GET /items/{item_id} → nombre del producto
        ├─ manejar_pregunta_preventa()
@@ -158,6 +170,8 @@ MeLi → POST /notifications (puerto 8080)
        │    │    └─ Gemini falla → delega al grupo ❓
        │    └─ SIN ficha → guardar_pregunta_pendiente() → alerta grupo ❓
        └─ Reporte al grupo WhatsApp con resultado
+
+  └─ topic: "messages" → posventa MeLi (alertas al grupo, ver webhook_meli.py)
 ```
 
 ### B. Orden pagada en MeLi (Stock sync)
@@ -169,27 +183,10 @@ MeLi → POST /notifications (puerto 8080)
        ├─ GET /orders/{id} → lista de items
        └─ Por cada item:
             ├─ GET /items/{item_id} → seller_custom_field (SKU) + available_quantity
-            └─ actualizar_stock_woocommerce(sku, stock_post_venta_meli)
-                 # MeLi ya autodecrementó su propio stock
-                 # WC se actualiza para quedar igual a MeLi
+            └─ sincronizar_stock_todas_las_plataformas(sku, stock_post_venta) → web (API) + MeLi
 ```
 
-### C. Orden en WooCommerce (Stock sync)
-
-```
-WC → POST /woocommerce (puerto 8081)
-  └─ X-WC-Webhook-Topic: order.created / order.updated
-  └─ Valida HMAC-SHA256 con WC_WEBHOOK_SECRET
-  └─ status: "processing" | "completed"
-  └─ hilo: _procesar_webhook_woocommerce(payload)
-       └─ Por cada line_item con SKU:
-            ├─ obtener_stock_woocommerce(sku) → stock ya decrementado por WC
-            └─ actualizar_stock_meli(sku, stock_post_venta_wc)
-                 # WC ya autodecrementó su propio stock
-                 # MeLi se actualiza para quedar igual a WC
-```
-
-### D. Mensaje WhatsApp → IA
+### C. Mensaje WhatsApp → IA
 
 ```
 WhatsApp → POST /whatsapp (puerto 8081)
@@ -203,7 +200,7 @@ WhatsApp → POST /whatsapp (puerto 8081)
   │    └─ "hugo dale ok <id>" → aprueba y envía respuesta posventa
   ├─ Si número en modo humano → reenvía al grupo
   ├─ Si imagen recibida → guarda comprobante → alerta pago al grupo
-  └─ Si mensaje normal → obtener_respuesta_ia() → Gemini → responde
+  └─ Si mensaje normal → obtener_respuesta_ia() → **Claude** (tool loop) → responde
 ```
 
 ### E. Confirmación de Pago
@@ -247,22 +244,23 @@ sincronizar_facturas_recientes(dias=1):
 
 ## Endpoints Flask
 
+**Webhooks MeLi:** configurar la aplicación de Mercado Libre para que **`/notifications` apunte solo al proceso del puerto 8080** (`webhook_meli.py`). `routes.py` en 8081 también define `/notifications` por legado; no duplicar el mismo URL en producción (evita doble procesamiento).
+
 ### webhook_meli.py (Puerto 8080)
 
 | Endpoint | Método | Propósito |
 |----------|--------|-----------|
 | `/notifications` | POST | Webhook MeLi: preguntas + órdenes |
 | `/status` | GET | Estado de servicios |
-| `/chat` | POST | Chat IA con Bearer token |
+| `/chat` | POST | Chat IA con Bearer token; body JSON: `mensaje`, `session_id` (o `usuario_id`) |
 
 ### agente_pro.py / routes.py (Puerto 8081)
 
 | Endpoint | Método | Auth | Propósito |
 |----------|--------|------|-----------|
 | `/whatsapp` | POST | — | Webhook principal WhatsApp |
-| `/woocommerce` | POST | HMAC | Webhook WooCommerce |
 | `/status` | GET | — | Health check |
-| `/chat` | POST | Bearer | Chat IA |
+| `/chat` | POST | Bearer | Chat IA (`mensaje` + `session_id` o `usuario_id` para historial) |
 | `/panel` | GET | — | Panel HTML |
 | `/sync/hoy` | POST | Bearer | Sync facturas último día |
 | `/sync/10dias` | POST | Bearer | Sync facturas 10 días |
@@ -277,6 +275,8 @@ sincronizar_facturas_recientes(dias=1):
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
 
+**Pedidos tienda web:** lógica en `PAGINA_WEB/site/website.py` y alertas/comandos en grupo `GRUPO_PEDIDOS_WEB_WA` vía `app/tools/web_pedidos.py` (facturación y envío desde WhatsApp).
+
 ---
 
 ## Sincronización de Stock (Diseño Actual)
@@ -284,23 +284,22 @@ sincronizar_facturas_recientes(dias=1):
 **Principio:** cada plataforma maneja su propio stock al vender. La otra se actualiza para quedar igual.
 
 ```
-MeLi vende → MeLi autodecremente → leemos MeLi post-venta → actualizamos WC
-WC vende   → WC autodecremente  → leemos WC post-venta   → actualizamos MeLi
+MeLi vende → MeLi autodecremente → leemos MeLi post-venta → actualizamos Web
+Web vende  → Web autodecremente  → leemos Web post-venta   → actualizamos MeLi
 ```
 
 **Función central:**
 ```python
 # app/sync.py
 sincronizar_stock_todas_las_plataformas(sku: str, nuevo_stock: int)
-  # Actualiza WooCommerce Y MeLi al mismo valor
-  # Usar para sincronizaciones manuales o masivas
+  # Página web vía `sincronizar_productos_pagina_web` (WEB_API_URL / WEB_API_KEY) y MeLi vía `actualizar_stock_meli`
+  # Usar para sincronizaciones manuales, masivas u órdenes MeLi
 ```
 
 **Funciones atómicas:**
 ```python
-# app/services/woocommerce.py
-obtener_stock_woocommerce(sku: str) → int
-actualizar_stock_woocommerce(sku: str, nuevo_stock: int) → str
+# app/tools/sincronizar_productos_pagina_web.py
+sincronizar_productos_pagina_web(productos_meli: list)
 
 # app/services/meli.py
 actualizar_stock_meli(sku: str, nuevo_stock: int) → str
@@ -399,7 +398,7 @@ El servidor lanza un hilo con menú interactivo de **8 opciones** con submenús:
 ```
 1  → Chat directo con Hugo García
 2  → Facturas MeLi ↔ Siigo  [submenú: inteligente / 24h / N días / fecha / pack ID]
-3  → Stock e inventario      [submenú: reporte completo / WooCommerce / verificar SKUs]
+3  → Stock e inventario      [submenú: reporte completo / verificar SKUs / Sincronizar Web]
 4  → Consultar producto en Google Sheets
 5  → Forzar aprendizaje IA desde Q&A MeLi
 6  → Registrar facturas de compra en SIIGO (desde Gmail)
@@ -411,10 +410,11 @@ El servidor lanza un hilo con menú interactivo de **8 opciones** con submenús:
 
 ## IA Principal (app/core.py)
 
-- **Modelo**: `gemini-2.5-pro`
+- **Modelo (WhatsApp, `/chat`, CLI chat)**: Claude `claude-sonnet-4-6` vía `ANTHROPIC_API_KEY`, con bucle de tool-use (`obtener_respuesta_ia`).
+- **Modelo (preventa MeLi con ficha)**: Gemini `gemini-2.5-pro` en `app/services/meli_preventa.py` — sin herramientas; solo texto con ficha.
 - **Persona**: Hugo García, asesor ejecutivo McKenna Group
 - **Tono**: Directo, colombiano ("veci"), sin rodeos
-- **Herramientas registradas**: ~40 funciones (Sheets, MeLi, Siigo, WC, memoria, sistema)
+- **Herramientas registradas**: ~32 funciones en `todas_las_herramientas` (Sheets, MeLi, Siigo, sync facturas, precios, catálogo PDF, pipeline FB, guías web, memoria, sistema). Stock hacia la web: `sincronizar_productos_pagina_web` (CLI/`sync.py`; no siempre expuesta como tool de Claude — ver `app/core.py`)
 
 **Reglas anti-loop del prompt:**
 - No ejecutar sync sin la palabra explícita "Sincronizar"/"Sync"
@@ -576,7 +576,7 @@ WC_URL             # https://mckennagroup.co (también usado como WP_URL base)
 
 4. **Confirmación de pagos corta**: comando `ok <3dígitos>` en lugar de `ok confirmado {número_completo}@c.us`.
 
-5. **Sin sincronización SIIGO-stock**: SIIGO solo para facturación. El stock se maneja entre MeLi y WooCommerce únicamente.
+5. **Sin sincronización SIIGO-stock**: SIIGO solo para facturación. El stock se alinea entre MeLi y la página web (API REST configurada), no desde SIIGO.
 
 6. **Webhooks asíncronos**: todos los webhooks responden 200 inmediatamente y procesan en hilos daemon.
 

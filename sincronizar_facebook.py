@@ -297,7 +297,8 @@ def fb_publicar_post(mensaje: str, link: str = "") -> dict:
 
 def cargar_productos(n=10) -> list:
     try:
-        cache = json.loads((BASE / "PAGINA_WEB/site/data/cache.json").read_text(encoding="utf-8"))
+        raw = json.loads((BASE / "PAGINA_WEB/site/data/cache.json").read_text(encoding="utf-8"))
+        cache = raw["sections"] if isinstance(raw, dict) and "sections" in raw else raw
         prods = []
         for cat in cache:
             for p in cat.get("products", []):

@@ -1,0 +1,7 @@
+{
+  "slug_to_combo_skus": {},
+  "preferred_photo_by_stem": {
+    "CERACARNAUBA": "CRCRN250G"
+  },
+  "_comment": "slug_to_combo_skus: slug de la ficha → [SKUs combo SIIGO]. preferred_photo_by_stem: stem interno → SKU de la fila cuya foto MeLi quieres (opcional; por defecto ya va CRCRN250G para cera carnaúba)."
+}

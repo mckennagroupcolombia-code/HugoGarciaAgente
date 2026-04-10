@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ p.name }} — McKenna Group{% endblock %}
-{% block description %}Compra {{ p.name }} (Ref: {{ p.ref }}) al precio de {{ p.precio }}. Stock disponible, despacho a todo Colombia.{% endblock %}
+{% block description %}{% if p.get('is_combo') %}Compra {{ p.name }} (Ref: {{ p.ref }}) al precio de {{ p.precio }}.{% else %}Ficha y referencias de {{ p.name }}. Stock y compra por presentación (combo SIIGO).{% endif %} Despacho a todo Colombia.{% endblock %}
 
 {% block content %}
 
@@ -9,15 +9,21 @@
   <div class="inner">
     <span class="hero-badge">{{ p.cat }}</span>
     <h1>{{ p.name }}</h1>
+    {% if p.get('is_combo') %}
     <p>Ref: {{ p.ref }} &nbsp;·&nbsp; Precio: <strong style="color:var(--green-light)">{{ p.precio }}</strong></p>
+    {% elif p.solo_vitrina %}
+    <p>Catálogo informativo · <strong style="color:var(--green-light)">{{ p.precio }}</strong> · Compra en presentaciones combo abajo</p>
+    {% else %}
+    <p>Ref: {{ p.ref }} &nbsp;·&nbsp; Precio: <strong style="color:var(--green-light)">{{ p.precio }}</strong></p>
+    {% endif %}
   </div>
 </div>
 
-<!-- Detalle -->
+{% if p.get('is_combo') %}
+<!-- ═══ Página de producto COMBO (comprable directo) ═══ -->
 <div class="section">
   <div class="producto-detail-grid">
 
-    <!-- Columna imagen -->
     <div>
       <div style="background:var(--green-pale);display:flex;align-items:center;justify-content:center;padding:48px;border:1.5px solid var(--green-pale);">
         {% if p.photo %}
@@ -25,70 +31,36 @@
              style="max-width:240px;max-height:240px;object-fit:contain;mix-blend-mode:multiply;">
         {% else %}
         <div style="display:flex;align-items:center;justify-content:center;width:180px;height:180px;color:var(--green-light);font-size:5rem;opacity:0.4;">
-          <i class="ph ph-flask"></i>
+          <i class="ph ph-package"></i>
         </div>
         {% endif %}
       </div>
-
-      {% if p.meli_id %}
-      <a href="https://articulo.mercadolibre.com.co/MCO-{{ p.meli_id[3:] }}"
-         target="_blank" rel="noopener"
-         class="btn btn-outline btn-sm"
-         style="margin-top:16px;width:100%;justify-content:center;display:flex;">
-        <i class="ph ph-shopping-bag"></i>
-        Ver en MercadoLibre
-      </a>
-      {% endif %}
     </div>
 
-    <!-- Columna info -->
     <div>
-
-      <!-- Ficha técnica rápida -->
       <div class="producto-specs-grid">
         <div style="background:var(--green-deep);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">
-            Referencia
-          </div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">
-            {{ p.ref }}
-          </div>
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Referencia</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.ref }}</div>
         </div>
         <div style="background:var(--green-dark);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">
-            Precio
-          </div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">
-            {{ p.precio }}
-          </div>
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Precio web</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.precio }}</div>
         </div>
         <div style="background:var(--green);padding:24px 20px;text-align:center;">
-          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">
-            Ahorro
-          </div>
-          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">
-            {{ p.ahorro }}
-          </div>
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Lista</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.precio_meli }}</div>
         </div>
       </div>
 
-      <!-- Precio full -->
       <div style="margin-bottom:36px;padding:28px 32px;border:1.5px solid var(--green-pale);background:var(--green-ultra);">
-        <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:8px;">
-          Precio de catálogo (10% descuento)
-        </div>
+        <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:8px;">Combo SIIGO · precio catálogo web</div>
         <div style="font-size:3rem;font-weight:800;color:var(--text-dark);letter-spacing:-2px;line-height:1;">
           {{ p.precio }}
-          <span style="font-size:1rem;font-weight:400;color:var(--text-muted);text-decoration:line-through;letter-spacing:0;margin-left:8px;">
-            {{ p.precio_meli }}
-          </span>
-        </div>
-        <div style="margin-top:8px;font-size:0.8rem;color:var(--text-muted);">
-          Precio en MeLi: {{ p.precio_meli }} &nbsp;|&nbsp; Ahorras: {{ p.ahorro }}
+          <span style="font-size:1rem;font-weight:400;color:var(--text-muted);text-decoration:line-through;letter-spacing:0;margin-left:8px;">{{ p.precio_meli }}</span>
         </div>
       </div>
 
-      <!-- CTAs -->
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:40px;">
         <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline;">
           <input type="hidden" name="slug" value="{{ p.slug }}">
@@ -108,7 +80,10 @@
         </a>
       </div>
 
-      <!-- Info adicional -->
+      {% if p.desc %}
+      <p class="acid-body-text" style="margin-bottom:24px;">{{ p.desc }}</p>
+      {% endif %}
+
       <div class="protocol-grid">
         <div class="protocol-box">
           <h4><i class="ph ph-package"></i> &nbsp;Envío</h4>
@@ -118,30 +93,154 @@
           <h4><i class="ph ph-certificate"></i> &nbsp;Calidad</h4>
           <p>Productos con certificado de calidad. Cumplimiento normas INVIMA.</p>
         </div>
-        <div class="protocol-box">
-          <h4><i class="ph ph-headset"></i> &nbsp;Asesoría</h4>
-          <p>Equipo técnico disponible para resolver dudas de formulación.</p>
-        </div>
-        <div class="protocol-box">
-          <h4><i class="ph ph-clock"></i> &nbsp;Disponibilidad</h4>
-          <p>Stock permanente. Confirmamos disponibilidad antes de despachar.</p>
-        </div>
       </div>
-
-      {% if not p.ficha %}
-      <div class="warning-box" style="margin-top:24px;">
-        <strong>¿Necesitas ficha técnica o certificado de análisis?</strong><br>
-        Escríbenos por WhatsApp indicando la referencia del producto y te lo enviamos de inmediato.
-      </div>
-      {% endif %}
-
     </div>
   </div>
 </div>
 
-<!-- ════════════════════════════════════════════════════════
-     FICHA TÉCNICA
-════════════════════════════════════════════════════════ -->
+{% else %}
+<!-- ═══ VITRINA (familia): foto, descripción, ficha; compra solo combos ═══ -->
+<div class="section">
+  <div class="producto-detail-grid">
+
+    <div>
+      <div style="background:var(--green-pale);display:flex;align-items:center;justify-content:center;padding:48px;border:1.5px solid var(--green-pale);">
+        {% if p.photo %}
+        <img src="{{ p.photo }}" alt="{{ p.name }}"
+             style="max-width:240px;max-height:240px;object-fit:contain;mix-blend-mode:multiply;">
+        {% else %}
+        <div style="display:flex;align-items:center;justify-content:center;width:180px;height:180px;color:var(--green-light);font-size:5rem;opacity:0.4;">
+          <i class="ph ph-flask"></i>
+        </div>
+        {% endif %}
+      </div>
+      {% if p.meli_id %}
+      <a href="https://articulo.mercadolibre.com.co/{{ p.meli_id }}"
+         target="_blank" rel="noopener"
+         class="btn btn-outline btn-sm"
+         style="margin-top:16px;width:100%;justify-content:center;display:flex;">
+        <i class="ph ph-shopping-bag"></i>
+        Ver en MercadoLibre
+      </a>
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="producto-specs-grid">
+        <div style="background:var(--green-deep);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Referencia guía</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.rep_sku or p.ref }}</div>
+        </div>
+        <div style="background:var(--green-dark);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Precio orientativo</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">{{ p.precio }}</div>
+        </div>
+        <div style="background:var(--green);padding:24px 20px;text-align:center;">
+          <div style="font-size:0.65rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">Compra</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">Combo</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:28px;padding:24px;border:1.5px solid var(--green-pale);background:var(--green-ultra);">
+        <p style="margin:0;font-size:0.9rem;color:var(--text-muted);line-height:1.6;">
+          Esta ficha agrupa varias presentaciones históricas del catálogo. El precio final y la facturación corresponden a la
+          <strong>presentación tipo combo</strong> registrada en SIIGO (mismo SKU en MeLi cuando aplique).
+        </p>
+      </div>
+
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:32px;">
+        <a href="{{ wa }}" target="_blank" rel="noopener" class="btn btn-wa btn-lg">
+          <i class="ph ph-whatsapp-logo"></i>
+          Consultar por WhatsApp
+        </a>
+        <a href="#referencias-combo" class="btn btn-primary btn-lg">
+          <i class="ph ph-list"></i>
+          Ver referencias y compra
+        </a>
+      </div>
+
+      {% if p.desc %}
+      <div class="acid-section-label">Descripción</div>
+      <p class="acid-body-text">{{ p.desc }}</p>
+      {% endif %}
+
+      <div class="protocol-grid" style="margin-top:28px;">
+        <div class="protocol-box">
+          <h4><i class="ph ph-certificate"></i> &nbsp;Calidad</h4>
+          <p>Grado farmacéutico y cosmético · INVIMA</p>
+        </div>
+        <div class="protocol-box">
+          <h4><i class="ph ph-headset"></i> &nbsp;Asesoría</h4>
+          <p>Equipo técnico para formulación</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Referencias históricas (sin carrito) -->
+{% if p.referencias and p.referencias|length > 0 %}
+<div id="referencias-sheet" style="border-top:2px solid var(--green-pale);background:var(--green-ultra);">
+  <div class="section">
+    <span class="section-eyebrow">Catálogo informativo</span>
+    <h2 class="section-title">Referencias <em>en hoja de datos</em></h2>
+    <p class="section-lead" style="margin-bottom:32px;">Presentaciones vinculadas por SKU (stock multiplataforma). No se agregan al carrito desde aquí.</p>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      {% for r in p.referencias %}
+      <div style="background:#fff;border:1.5px solid var(--green-pale);padding:20px 24px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-weight:700;">{{ r.name }}</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);">Ref. {{ r.ref }}{% if r.precio != '—' %} · {{ r.precio }} web ref.{% endif %}</div>
+        </div>
+        {% if r.meli_id %}
+        <a href="https://articulo.mercadolibre.com.co/{{ r.meli_id }}" target="_blank" rel="noopener" class="btn btn-ghost-dark btn-sm">
+          <i class="ph ph-storefront"></i> MeLi
+        </a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Combos SIIGO (comprables) -->
+<div id="referencias-combo" style="border-top:2px solid var(--green-pale);background:#fff;">
+  <div class="section">
+    <span class="section-eyebrow">Compra en línea</span>
+    <h2 class="section-title">Presentaciones <em>disponibles (combo)</em></h2>
+    {% if p.combos and p.combos|length > 0 %}
+    <p class="section-lead" style="margin-bottom:32px;">Productos tipo combo en SIIGO. Mismo SKU para facturación y canales.</p>
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      {% for c in p.combos %}
+      <div style="border:1.5px solid var(--green-pale);padding:24px;background:var(--green-ultra);display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-weight:800;font-size:1.1rem;">{{ c.name }}</div>
+          <div style="font-size:0.9rem;color:var(--text-muted);margin-top:6px;">SKU: {{ c.ref }} · {{ c.precio }}</div>
+        </div>
+        <form method="POST" action="{{ url_for('carrito_agregar') }}" style="display:inline-flex;">
+          <input type="hidden" name="slug" value="{{ c.slug }}">
+          <input type="hidden" name="qty" value="1">
+          <input type="hidden" name="next" value="{{ request.url }}">
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="ph ph-shopping-cart"></i> Agregar al carrito
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="warning-box">
+      <strong>Aún no hay combo publicado para esta familia.</strong><br>
+      Cuando el combo esté creado en SIIGO, vincúlalo en <code>catalogo_familias.json</code> (slug de esta ficha → código SKU del combo) o define <code>WEB_SIIGO_COMBO_CODES</code> para códigos sueltos.
+      Mientras tanto podés cotizar por WhatsApp.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ═══ FICHA TÉCNICA (vitrina y legacy) ═══ -->
 {% if p.ficha %}
 <div style="border-top:2px solid var(--green-pale);background:#fff;">
   <div class="section">
@@ -152,9 +251,7 @@
 
     <div class="producto-ficha-grid">
 
-      <!-- Columna izquierda: Identidad + Propiedades -->
       <div>
-
         {% if p.ficha.identidad %}
         <div style="margin-bottom:32px;">
           <div style="font-size:0.65rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--green);margin-bottom:12px;">
@@ -205,7 +302,6 @@
 
       </div>
 
-      <!-- Columna derecha: Secciones de texto -->
       <div>
         {% for sec in p.ficha.secciones %}
         {% set sec_norm = sec.titulo|lower %}
@@ -232,13 +328,20 @@
         {% endif %}
       </div>
 
-    </div><!-- /grid -->
+    </div>
 
     <div class="warning-box" style="margin-top:32px;">
       <strong>¿Necesitas el certificado de análisis (CoA) o la ficha de seguridad (MSDS)?</strong><br>
       Escríbenos por WhatsApp indicando la referencia del producto y te lo enviamos de inmediato.
     </div>
 
+  </div>
+</div>
+{% elif not p.get('is_combo') %}
+<div class="section">
+  <div class="warning-box">
+    <strong>¿Necesitas ficha técnica o certificado de análisis?</strong><br>
+    Escríbenos por WhatsApp indicando la referencia del producto y te lo enviamos de inmediato.
   </div>
 </div>
 {% endif %}
@@ -265,7 +368,7 @@
         </div>
         <div class="product-card-mini-body">
           <div class="product-name">{{ r.name }}</div>
-          <div class="product-ref">Ref: {{ r.ref }}</div>
+          <div class="product-ref">{% if r.solo_vitrina %}Catálogo{% else %}Ref:{% endif %} {{ r.ref }}</div>
           <div class="product-price">{{ r.precio }}</div>
         </div>
       </a>
