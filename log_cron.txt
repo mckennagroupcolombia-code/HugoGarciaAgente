@@ -599,3 +599,33 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
 To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
    e8b94c6..cf0e443  master -> main
 [2026-04-08 23:00:06] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-08 23:00'
+[master 24f2501] Auto-commit: actualizacion diaria 2026-04-09 23:00
+ 55 files changed, 8294 insertions(+), 23796 deletions(-)
+ delete mode 100644 PAGINA_WEB/site/data/cache.json
+ create mode 100644 PAGINA_WEB/site/data/catalogo_familias.json
+ create mode 100644 PAGINA_WEB/site/templates/pedido_seguimiento.html
+ create mode 100644 app/data/grupos_whatsapp_oficiales.json
+ delete mode 100644 app/services/woocommerce.py
+ create mode 100644 app/tools/sincronizar_productos_pagina_web.py
+ delete mode 100644 app/tools/sincronizar_wc_desde_meli.py
+ create mode 100644 app/tools/web_pedidos.py
+ create mode 100644 backups_drive/backup_hugo_20260409_020031.tar.gz
+ create mode 100644 backups_drive/backup_hugo_20260409_020051.tar.gz
+ create mode 100644 bot-mckenna/README.md
+ create mode 100755 bot-mckenna/instalar_systemd.sh
+ create mode 100644 bot-mckenna/mckenna-whatsapp-bridge.service.example
+ create mode 100755 bot-mckenna/migrar_desde_legacy.sh
+ create mode 100644 bot-mckenna/package-lock.json
+ create mode 100644 bot-mckenna/package.json
+ create mode 100644 bot-mckenna/prueba_envio_wa.py
+ create mode 100644 bot-mckenna/server.js
+ delete mode 100644 package.json
+ create mode 100644 reporte_inventario_temporal.py
+ create mode 100644 scripts/Manual_Hugo_Garcia_McKenna.pdf
+ delete mode 100644 scripts/actualizar_precios_woocommerce.py
+ delete mode 100644 scripts/asignar_skus_woocommerce.py
+ delete mode 100644 server.js
+ create mode 100644 tests/__init__.py
+To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
+   cf0e443..24f2501  master -> main
+[2026-04-09 23:00:04] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-09 23:00'

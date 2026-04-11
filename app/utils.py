@@ -83,6 +83,7 @@ TELEFONO_GRUPO_REPORTE = os.getenv("TELEFONO_GRUPO_REPORTE", "120363407538342427
 
 _JID_PREVENTA_DEFAULT = "120363393955474672@g.us"
 _JID_POSTVENTA_DEFAULT = "120363406693905719@g.us"
+_JID_ALERTAS_SISTEMAS_DEFAULT = "120363425113254825@g.us"
 
 
 def _wa_jid_env(name: str, default_jid: str) -> str:
@@ -93,6 +94,11 @@ def _wa_jid_env(name: str, default_jid: str) -> str:
     return raw.split("#")[0].strip() or default_jid
 
 
+def jid_grupo_alertas_sistemas_wa() -> str:
+    """Backup nocturno, auditoría de scripts (cron) y alertas operativas del agente."""
+    return _wa_jid_env("GRUPO_ALERTAS_SISTEMAS_WA", _JID_ALERTAS_SISTEMAS_DEFAULT)
+
+
 def jid_grupo_preventa_wa() -> str:
     """Solo preventa MeLi — GRUPO_PREVENTA_WA o default oficial Preventa_Meli."""
     return _wa_jid_env("GRUPO_PREVENTA_WA", _JID_PREVENTA_DEFAULT)
@@ -101,6 +107,57 @@ def jid_grupo_preventa_wa() -> str:
 def jid_grupo_postventa_wa() -> str:
     """Solo mensajes postventa MeLi — GRUPO_POSTVENTA_WA o default oficial Postventa_Meli."""
     return _wa_jid_env("GRUPO_POSTVENTA_WA", _JID_POSTVENTA_DEFAULT)
+
+
+def meli_postventa_id_mensaje(msg: dict) -> str:
+    """ID estable para deduplicar (MeLi usa `id` o `message_id` según versión de API)."""
+    return str(msg.get("id") or msg.get("message_id") or "").strip()
+
+
+def meli_postventa_texto_para_notif(msg: dict) -> str:
+    """
+    Texto legible para alerta WhatsApp.
+    MeLi a veces devuelve `text` como string, a veces como {"plain": "..."}.
+    Si el comprador solo adjunta PDF/imagen (RUT, factura), `text` viene vacío pero hay `attachments`.
+    Sin esto, el mensaje se ignoraba silenciosamente (`continue` con texto vacío).
+    """
+    raw = msg.get("text")
+    if isinstance(raw, str):
+        t = raw.strip()
+    elif isinstance(raw, dict):
+        inner = raw.get("plain") or raw.get("text") or ""
+        t = inner.strip() if isinstance(inner, str) else (str(inner).strip() if inner else "")
+    elif raw is None:
+        t = ""
+    else:
+        t = str(raw).strip()
+
+    attachments = msg.get("attachments") or []
+    if isinstance(attachments, dict):
+        attachments = [attachments]
+    if not isinstance(attachments, list):
+        attachments = []
+
+    if t:
+        return t
+
+    if not attachments:
+        return ""
+
+    nombres = []
+    for a in attachments[:8]:
+        if isinstance(a, dict):
+            fn = (a.get("original_filename") or a.get("filename") or "").strip()
+            if fn:
+                nombres.append(fn)
+    if nombres:
+        arch = ", ".join(nombres)
+    else:
+        arch = f"{len(attachments)} archivo(s)"
+    return (
+        f"[Solo adjunto(s) en MeLi: {arch}] "
+        f"— revisar conversación en Mercado Libre (p. ej. RUT / factura en PDF)."
+    )
 
 
 def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
@@ -119,17 +176,31 @@ def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
             if res.status_code == 200:
                 print("✅ Reporte enviado a WhatsApp con éxito.")
                 return True
-            else:
-                print(f"❌ Error al enviar reporte a WhatsApp. Código: {res.status_code}, Respuesta: {res.text}")
-                # No reintentar en errores no recuperables (ej. 4xx)
-                return False
-
-        except requests.RequestException as e:
-            print(f"❌ Error de conexión con el servidor de notificaciones: {e}")
-            # No reintentar si la conexión es rechazada, puede que el server esté caído.
+            # Puente Node suele responder 503 mientras WhatsApp aún no está listo ("Sincronizando...")
+            if res.status_code == 503 and i < max_intentos - 1:
+                print(
+                    f"⚠️ WhatsApp bridge 503 (intento {i + 1}/{max_intentos}), "
+                    f"reintentando en 5s…"
+                )
+                time.sleep(5)
+                continue
+            print(
+                f"❌ Error al enviar reporte a WhatsApp. Código: {res.status_code}, "
+                f"Respuesta: {res.text}"
+            )
             return False
 
-    print(f"❌ Fallo el envío a WhatsApp después de {max_intentos} intentos.")
+        except requests.RequestException as e:
+            if i < max_intentos - 1:
+                print(
+                    f"⚠️ Conexión al bridge WhatsApp falló ({e}), "
+                    f"reintento {i + 1}/{max_intentos} en 3s…"
+                )
+                time.sleep(3)
+                continue
+            print(f"❌ Error de conexión con el servidor de notificaciones: {e}")
+            return False
+
     return False
 
 def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: str = None, numero_destino: str = None):

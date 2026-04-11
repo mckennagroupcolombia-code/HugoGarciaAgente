@@ -4,6 +4,27 @@ Registro cronológico de cambios significativos al proyecto. Cada entrada incluy
 
 ---
 
+## Sesión 2026-04-10 — Operabilidad, auditoría, backup y documentación
+
+**Motivación:** Mejorar trazabilidad, acotar riesgo de herramientas que modifican código, detectar errores de sintaxis en scripts sin intervención manual constante, centralizar avisos de backup y auditoría en un grupo WhatsApp, y mantener el repo al día tras el backup nocturno.
+
+**Implementado:**
+
+1. **`app/observability.py`** — `request_id` (contextvar + `g`), `bind_flask_request`, `spawn_thread` para hilos Flask, `log_json` con `AGENTE_LOG_JSON=1`.
+2. **`app/routes.py` / `webhook_meli.py`** — `before_request`, eventos de log en notificaciones, chat y WhatsApp; `/status` con `request_id`.
+3. **`app/core.py`** — Logs de turno IA y resultado de tools (`tool_ok`, `tool_error`, `tool_missing`).
+4. **`app/tools/system_tools.py`** — Restricción opcional (`AGENTE_RESTRICT_FILE_TOOLS` o `FLASK_ENV=production`) + `AGENTE_FILE_TOOL_PREFIXES`.
+5. **`app/tools/script_audit.py`**, **`app/data/scripts_manifest.json`**, herramienta **`auditar_scripts`**; **`scripts/auditar_scripts_cron.py`** y **`scripts/instalar_cron_mcKenna.sh`**.
+6. **`app/tools/backup_drive.py`** — Rutas relativas al repo; avisos a **`jid_grupo_alertas_sistemas_wa()`**; tras backup, **`git add/commit/push`** si hay cambios (`AGENTE_NIGHTLY_GIT_PUSH=0` para desactivar).
+7. **`app/utils.py`** — **`GRUPO_ALERTAS_SISTEMAS_WA`** / default `120363425113254825@g.us`.
+8. **`.gitignore`** — `backups_drive/`; dejó de versionarse el histórico de `.tar.gz` en git.
+9. **`tests/test_smoke.py`** + **`pytest`** en `requirements.txt`.
+10. **Documentación** — `CLAUDE.md`, `MANUAL.md` (§11), `README.md`, manual PDF **v3.2** (`scripts/generar_manual.py` sección 14).
+
+**Lección:** Los backups locales no deben estar en el índice git; el push automático exige credenciales válidas en el usuario que ejecuta `agente_pro`.
+
+---
+
 ## Sesión 2026-04-01
 
 ### 1. Sincronización bidireccional de stock MeLi ↔ WooCommerce
@@ -159,6 +180,22 @@ Compatibilidad mantenida: el comando antiguo `ok confirmado <número_completo>` 
 - Removidas credenciales de MeLi y SIIGO del repositorio (commit `e3656c4`)
 - Preventa: manejo de errores Gemini 503
 - Respuestas preventa: sin respuesta automática si no hay información técnica
+
+---
+
+## Sesión 2026-04-10
+
+### Posventa MeLi, reportes WhatsApp y documentación
+
+**Motivación:** La API de mensajes de MeLi cambió de forma (`text` como objeto, `message_id` vs `id`); los mensajes solo con adjuntos (RUT en PDF) no generaban alerta; el webhook a veces enviaba `resource` como `/orders/{id}`; el puente Node respondía 503 mientras WhatsApp sincronizaba y se perdían reportes.
+
+**Cambios técnicos:**
+- Cabecera **`x-version: 2`** en GET de mensajes postventa (`webhook_meli.py`, `app/routes.py`).
+- **`meli_postventa_id_mensaje`** y **`meli_postventa_texto_para_notif`** en `app/utils.py` (texto plano, adjuntos, deduplicación).
+- Inferencia de **`pack_id`** desde path `orders/...` cuando no viene ruta de pack.
+- **`enviar_whatsapp_reporte`**: reintentos ante 503 y fallos de conexión; **`preventa_meli.py`**: log explícito si el reporte a WhatsApp falla tras procesar la pregunta.
+
+**Documentación:** Actualizados `CLAUDE.md`, `MANUAL.md`, `README.md`, `scripts/generar_manual.py` (PDF operativo) y esta entrada.
 
 ---
 

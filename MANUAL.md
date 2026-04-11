@@ -19,6 +19,7 @@
 8. [app/tools/system_tools.py](#8-apptoolssystem_toolspy)
 9. [APIs de Generación Multimedia (consola)](#9-apis-de-generación-de-contenido-multimedia-consola)
 10. [Nuevas Skills (Herramientas Autónomas)](#10-nuevas-skills-herramientas-autónomas)
+11. [Observabilidad, auditoría de scripts, backup y Git](#11-observabilidad-auditoría-de-scripts-backup-y-git)
 
 ---
 
@@ -255,6 +256,8 @@ El cuerpo JSON trae `topic` y `resource`:
 | `orders_v2` | `_procesar_orden_meli(order_id)` — lee ítems, SKU y `available_quantity` en MeLi y llama `sincronizar_stock_todas_las_plataformas` hacia web + MeLi. |
 | `messages` | Posventa MeLi: notificación al grupo según mensajes del comprador. |
 
+**Posventa (`_procesar_mensaje_posventa` en `webhook_meli.py` y duplicado legado en `app/routes.py`):** las llamadas GET a la API de mensajes de MeLi llevan cabecera **`x-version: 2`**. El `resource` suele ser ruta `/messages/packs/{pack_id}/…`; en **`app/routes.py`**, si viene como **`orders/{id}`**, ese id se usa como pack para listar mensajes. En **`webhook_meli.py`**, si no hay `packs/` en la ruta, se aplican estrategias de resolución (mensaje directo, metadatos, búsqueda de órdenes recientes). El ID del mensaje para deduplicar sale de **`id` o `message_id`** (`meli_postventa_id_mensaje` en `app/utils.py`). El texto mostrado en WhatsApp usa **`meli_postventa_texto_para_notif`**: normaliza `text` (string u objeto con `plain`) y, si solo hay **adjuntos** (p. ej. PDF de RUT), arma un resumen para que el equipo abra MeLi. **`enviar_whatsapp_reporte`** reintenta ante **503** del puente Node (WhatsApp aún sincronizando) y ante errores de conexión transitorios. Tras preventa automática, si el reporte a WhatsApp falla, **`preventa_meli.py`** registra en consola el fallo (la respuesta en MeLi puede haberse publicado igual).
+
 **Regla crítica:** responder `200 OK` al instante; todo lo pesado va en `threading.Thread`.
 
 ```python
@@ -282,7 +285,9 @@ def notifications():
 | `app/sync.py` → `sincronizar_stock_todas_las_plataformas()` | Stock tras venta MeLi |
 | `app/core.py` → `configurar_ia()` / `obtener_respuesta_ia()` | IA para endpoint `/chat` en :8080 |
 | `app/utils.py` → `refrescar_token_meli()` | Token MeLi |
-| `app/utils.py` → `enviar_whatsapp_reporte()` | Alertas WhatsApp |
+| `app/utils.py` → `enviar_whatsapp_reporte()` | Alertas WhatsApp (reintentos 503 / red) |
+| `app/utils.py` → `jid_grupo_preventa_wa` / `jid_grupo_postventa_wa` | JIDs desde `.env` (`GRUPO_PREVENTA_WA`, `GRUPO_POSTVENTA_WA`) |
+| `app/utils.py` → `meli_postventa_*` | ID y texto para alertas posventa MeLi |
 | API de MeLi (externa) | Preguntas, respuestas, órdenes, ítems |
 
 ---
@@ -413,7 +418,7 @@ Define las **puertas de entrada** del servidor web. Incluye:
 - `/whatsapp` — webhook principal (**bot-mckenna** en :3000 reenvía aquí en :8081)
 - `/status`, `/panel`, `/chat` (Bearer), `/sync/*`, `/consultar/producto`, etc.
 
-Comandos según **JID** del grupo: contabilidad (`ok`/`no` + 3 dígitos, preventa `resp …`, modo humano, posventa); grupo **pedidos web** (`GRUPO_PEDIDOS_WEB_WA`) para facturar/despacho vía `app/tools/web_pedidos.py`. Referencia de JIDs: `app/data/grupos_whatsapp_oficiales.json`.
+Comandos según **JID** del grupo: contabilidad (`ok`/`no` + 3 dígitos, modo humano, etc.); **preventa** (`GRUPO_PREVENTA_WA`): `resp …` / `resp preventa …`; **postventa** (`GRUPO_POSTVENTA_WA`): `posventa <código>: <texto>` para responder en el hilo MeLi (estado en `app/data/mensajes_posventa_pendientes.json`); aprobación de borrador IA posventa con `hugo dale ok <order_id>` (alerta típica al grupo postventa). Grupo **pedidos web** (`GRUPO_PEDIDOS_WEB_WA`) para facturar/despacho vía `app/tools/web_pedidos.py`. Referencia de JIDs: `app/data/grupos_whatsapp_oficiales.json`.
 
 **Analogía:** Es la recepción del edificio. Cada ventanilla atiende un tipo diferente de visitante y los dirige al lugar correcto.
 
@@ -1386,6 +1391,45 @@ Varias funciones en `app/tools/` y servicios se registran en `app/core.py` como 
 
 **Nota:** Los scripts `sincronizar_wc_desde_meli.py` y `woocommerce` fueron retirados; la tienda es la **página web** propia (`PAGINA_WEB/site/`) con API (`WEB_API_URL`, `WEB_API_KEY`).
 
+---
+
+## 11. Observabilidad, auditoría de scripts, backup y Git
+
+### 11.1 Trazabilidad (`app/observability.py`)
+
+- Cada request en Flask (8081 y 8080) obtiene un **`request_id`** (cabecera opcional `X-Request-ID` o UUID).
+- Los hilos en segundo plano (MeLi, WhatsApp) usan **`spawn_thread()`** para conservar el mismo id en logs.
+- Con **`AGENTE_LOG_JSON=1`** se imprimen líneas JSON (eventos http, herramientas Claude, inicio de turno IA).
+- **`GET /status`** devuelve también `request_id` para depuración rápida.
+
+### 11.2 Herramientas que tocan archivos (`app/tools/system_tools.py`)
+
+Si **`AGENTE_RESTRICT_FILE_TOOLS=1`** o **`FLASK_ENV=production`**, las funciones **`parchear_funcion`**, **`crear_nuevo_script`** y **`ejecutar_script_python`** solo actúan sobre rutas bajo los prefijos de **`AGENTE_FILE_TOOL_PREFIXES`** (por defecto `scripts/`, `app/tools/`, `tests/`). Así se reduce el riesgo en producción.
+
+### 11.3 Auditoría de scripts
+
+- **`app/data/scripts_manifest.json`**: lista de rutas `.py` a comprobar.
+- **`app/tools/script_audit.py`**: `ejecutar_auditoria_dict()` / herramienta del agente **`auditar_scripts`** — compila con `py_compile` sin ejecutar el programa.
+- **`scripts/auditar_scripts_cron.py`**: pensado para cron; si hay errores, envía WhatsApp (salvo **`AGENTE_AUDITORIA_SKIP_WA=1`**).
+- **`scripts/instalar_cron_mcKenna.sh`**: instala de forma idempotente el bloque cron (p. ej. 7:15 diario, log en `log_cron.txt`).
+
+### 11.4 Backup nocturno y GitHub (`app/tools/backup_drive.py`)
+
+- A las **2:00** (hilo daemon arrancado desde `agente_pro`): genera `backup_hugo_*.tar.gz` en **`backups_drive/`** (carpeta **ignorada por git**), opcionalmente sube a Google Drive si hay `DRIVE_BACKUP_FOLDER_ID` y service account.
+- Después intenta **`git add -A`**, **`commit`** y **`git push origin <rama_actual>`** si hay cambios. Desactivar con **`AGENTE_NIGHTLY_GIT_PUSH=0`**.
+- El mensaje de WhatsApp incluye resultado del backup y resumen del intento de Git.
+
+### 11.5 Grupo WhatsApp de alertas
+
+- **`GRUPO_ALERTAS_SISTEMAS_WA`** (y **`jid_grupo_alertas_sistemas_wa()`** en `app/utils.py`): mismo destino para **avisos de backup nocturno** y **fallos de la auditoría por cron**. Puedes anular solo el cron con **`GRUPO_AUDITORIA_SCRIPTS_WA`**.
+
+### 11.6 Manual PDF y correo
+
+- Generar: `source venv/bin/activate && python3 scripts/generar_manual.py`
+- Generar y enviar a **cynthua0418@gmail.com**: añadir **`--enviar`** (requiere `EMAIL_SENDER` / `EMAIL_PASSWORD` en `.env`).
+
+---
+
 ### Cómo agregar una skill a Claude
 
 1. Función con docstring y tipos en `app/tools/` (o reutilizar módulo existente).
@@ -1424,7 +1468,7 @@ Varias funciones en `app/tools/` y servicios se registran en `app/core.py` como 
 
 ---
 
-*Documento técnico del repositorio McKenna Group Agente. Última actualización: 2026-04-09.*
+*Documento técnico del repositorio McKenna Group Agente. Última actualización: 2026-04-10 (sección 11: operabilidad v3.2).*
 
 ---
 

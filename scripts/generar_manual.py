@@ -395,7 +395,7 @@ def tabla_contenidos(s: dict) -> list:
             'MOD-01 a MOD-10 descritos']),
         ('04', 'Guía de Comandos — Grupo de Contabilidad', [
             'Confirmación de pagos', 'Preventa MercadoLibre', 'Control IA/Humano',
-            'Respuestas directas', 'Aprobación de facturas']),
+            'Respuestas directas', 'Postventa MeLi (grupo dedicado)', 'Aprobación de facturas']),
         ('05', 'Flujo de Atención al Cliente WhatsApp', [
             'Primer contacto', 'Consulta de productos', 'Cotización paso a paso',
             'Envío de comprobante', 'Facturación y despacho']),
@@ -424,6 +424,11 @@ def tabla_contenidos(s: dict) -> list:
             'Ejemplos: precios, catálogo PDF, Facebook, guías web',
             'Stock hacia tienda: sincronizar_productos_pagina_web',
             'Registro en todas_las_herramientas']),
+        ('14', 'Observabilidad, auditoría de scripts y backup', [
+            'request_id y AGENTE_LOG_JSON',
+            'Restricción de parchear_funcion / ejecutar_script',
+            'Manifiesto, cron, auditar_scripts',
+            'Backup nocturno, GitHub, GRUPO_ALERTAS_SISTEMAS_WA']),
     ]
 
     for num, titulo, subs in toc:
@@ -491,7 +496,7 @@ def sec01_introduccion(s: dict) -> list:
     canales = [
         ['Canal', 'Puerto / Servicio', 'Responsabilidad'],
         ['WhatsApp Business', 'bot-mckenna (Node) :3000 → Flask :8081 /whatsapp', 'Atención clientes, pagos, comandos por grupo (contabilidad, pedidos web, etc.)'],
-        ['MercadoLibre', 'Webhook API · Flask :8080', 'Preventa (Gemini + ficha), órdenes pagadas (sync stock), posventa'],
+        ['MercadoLibre', 'Webhook API · Flask :8080', 'Preventa (Gemini + ficha), órdenes pagadas (sync stock), posventa (API mensajes v2, adjuntos PDF/imagen)'],
         ['Página web / tienda', 'Flask PAGINA_WEB/site + API propia', 'Ventas web; stock se alinea con MeLi vía WEB_API_URL / sincronizar_productos_pagina_web'],
         ['SIIGO ERP', 'API REST HTTPS', 'Facturación electrónica, facturas de venta y de compra'],
         ['Google Sheets', 'gspread API', 'Catálogo, fichas técnicas (col I), precios'],
@@ -506,7 +511,9 @@ def sec01_introduccion(s: dict) -> list:
     roles = [
         ['Rol', 'Canal de acceso', 'Capacidades'],
         ['Cliente final', 'WhatsApp', 'Consultar productos, solicitar cotización, enviar comprobante de pago'],
-        ['Operador (grupo contabilidad)', 'WhatsApp – grupo contabilidad', 'Confirmar/rechazar pagos, responder preventa MeLi, pausar IA, aprobar facturas'],
+        ['Operador (grupo contabilidad)', 'WhatsApp – grupo contabilidad', 'Confirmar/rechazar pagos, pausar IA, facturas compra, comandos inventario'],
+        ['Operador (grupo preventa MeLi)', 'WhatsApp – GRUPO_PREVENTA_WA', 'Responder preguntas pendientes de publicaciones (comandos resp …)'],
+        ['Operador (grupo postventa MeLi)', 'WhatsApp – GRUPO_POSTVENTA_WA', 'Alertas de mensajes post-compra; comando posventa &lt;código&gt;: …; aprobar borradores IA con hugo dale ok'],
         ['Administrador', 'CLI / endpoints /sync/*', 'Sincronizaciones manuales, ajustes de stock, reportes, backups'],
         ['Sistema (IA)', 'Interno · automático', 'Todo lo anterior de forma autónoma según reglas configuradas'],
     ]
@@ -566,6 +573,13 @@ def sec02_arquitectura(s: dict) -> list:
     ]
     elems.append(tabla_comandos(flujo_wa, s,
         col_widths=[1.2*cm, 5.0*cm, PAGE_W - 2*MARGEN - 6.4*cm]))
+
+    elems.append(sp(0.2))
+    elems.append(nota('🔁',
+        'Cuando el backend envía reportes al puente WhatsApp (Node :3000), si el servicio responde <b>503</b> '
+        '(p. ej. "Sincronizando…") o hay un fallo de conexión breve, el sistema <b>reintenta</b> automáticamente '
+        'antes de dar el envío por fallido. Así se reducen alertas perdidas tras un reinicio del bridge.',
+        s, bg=colors.HexColor('#f0f9ff'), border=colors.HexColor('#bae6fd')))
 
     elems.append(sp(0.3))
     elems.append(subsection('2.2 Modelo de IA', s))
@@ -754,6 +768,29 @@ def sec04_comandos(s: dict) -> list:
     elems.append(tabla_comandos(cmds_extra, s,
         col_widths=[4.5*cm, 5.0*cm, PAGE_W - 2*MARGEN - 9.7*cm]))
 
+    elems.append(sp(0.3))
+    elems.append(subsection('4.5 Postventa MercadoLibre (grupo dedicado)', s))
+    elems.append(body(
+        'Los mensajes de compradores <b>después de la compra</b> en MeLi generan alertas en el grupo '
+        '<b>GRUPO_POSTVENTA_WA</b>. La integración usa la API de mensajes en versión actual; si el comprador '
+        'adjunta solo un PDF o imagen (p. ej. RUT) sin texto, la alerta indica los adjuntos y conviene abrir '
+        'el hilo en MercadoLibre. Para responder desde WhatsApp usando el código que viene en la alerta:', s))
+
+    cmds_postventa = [
+        ['Comando', 'Ejemplo', 'Acción'],
+        ['posventa <código>: <respuesta>', 'posventa 3240: Hola, su pedido ya salió.',
+         'Envía la respuesta al pack de MeLi vinculado a ese código (estado en mensajes_posventa_pendientes.json).'],
+    ]
+    elems.append(tabla_comandos(cmds_postventa, s,
+        col_widths=[4.2*cm, 5.2*cm, PAGE_W - 2*MARGEN - 9.6*cm]))
+
+    elems.append(sp(0.2))
+    elems.append(nota('💡',
+        'Si la IA generó un borrador de respuesta para un caso postventa, el mensaje de alerta pide aprobar con '
+        '<b>hugo dale ok</b> y el ID de orden indicado. Si el reporte a WhatsApp falla tras una respuesta automática '
+        'de preventa, revise el log del proceso :8080: queda registro para no perder trazabilidad.',
+        s, bg=colors.HexColor('#eff6ff'), border=colors.HexColor('#bfdbfe')))
+
     elems.append(PageBreak())
     return elems
 
@@ -859,14 +896,21 @@ def sec06_preventa(s: dict) -> list:
         ['Producto tiene ficha técnica en Google Sheets (col I) y Gemini responde OK',
          'Genera y publica respuesta automática en MeLi', '< 30 segundos'],
         ['Producto tiene ficha técnica PERO la IA falla (timeout, error 503)',
-         'Envía alerta al grupo de contabilidad con la pregunta para respuesta manual', 'Inmediato'],
+         'Envía alerta al grupo <b>preventa MeLi</b> (GRUPO_PREVENTA_WA) para respuesta manual', 'Inmediato'],
         ['Producto NO tiene ficha técnica en Google Sheets',
-         'Envía alerta al grupo con la pregunta y nombre del producto sin ficha', 'Inmediato'],
+         'Envía alerta al mismo grupo preventa con la pregunta y nombre del producto sin ficha', 'Inmediato'],
         ['Respuesta manual del operador (resp 497: ...)',
          'Publica la respuesta en MeLi, guarda como caso de entrenamiento en ChromaDB', 'Al recibir el comando'],
     ]
     elems.append(tabla_comandos(arbol, s,
         col_widths=[5.5*cm, 5.5*cm, PAGE_W - 2*MARGEN - 11.2*cm]))
+
+    elems.append(sp(0.2))
+    elems.append(nota('⚠️',
+        'Si la respuesta ya quedó publicada en MeLi pero el aviso a WhatsApp falló tras varios reintentos, '
+        'el servidor escribe un error en <b>consola / log</b> del proceso :8080. Revise el puente Node (:3000) '
+        'y el JID del grupo preventa en <b>.env</b>.',
+        s, bg=colors.HexColor('#fffbeb'), border=colors.HexColor('#fde68a')))
 
     elems.append(sp(0.3))
     elems.append(subsection('6.2 Fichas Técnicas en Google Sheets', s))
@@ -1475,6 +1519,7 @@ def sec13_skills(s: dict) -> list:
         ['publicar_contenido_redes_sociales_ia', 'pipeline_contenido_facebook.py', 'Pipeline multimedia y publicación en Facebook.', '"Haz un nuevo post para Facebook"'],
         ['generar_guias_masivas_web', 'generar_guias_masivas.py', 'Guías técnicas en JSON para el sitio.', '"Genera las guías masivas que faltan en la web"'],
         ['sincronizar_productos_pagina_web', 'sincronizar_productos_pagina_web.py', 'Empuja stock/precios a la API de la tienda (CLI/sync; ver registro en core.py).', '"Sincroniza el catálogo con la página web"'],
+        ['auditar_scripts', 'script_audit.py', 'py_compile de scripts del manifiesto; sin ejecutar main.', '"Audita los scripts del manifiesto"'],
     ]
     elems.append(tabla_comandos(skills_ejemplos, s,
         col_widths=[4.5*cm, 4.0*cm, 4.5*cm, PAGE_W - 2*MARGEN - 13.0*cm]))
@@ -1485,6 +1530,107 @@ def sec13_skills(s: dict) -> list:
         'y agregarla a la lista <b>todas_las_herramientas</b> dentro de la función <b>configurar_ia()</b> en <b>app/core.py</b>.',
         s, bg=colors.HexColor('#f0fdf4'), border=C_GREEN))
 
+    elems.append(PageBreak())
+    return elems
+
+
+# ══════════════════════════════════════════════
+# SEC 14 — OPERABILIDAD Y MANTENIMIENTO
+# ══════════════════════════════════════════════
+
+def sec14_operabilidad(s: dict) -> list:
+    elems = []
+    elems += section_header(
+        "Sección 14",
+        "Observabilidad, seguridad de herramientas, auditoría y backup",
+        s,
+        C_TEAL,
+    )
+
+    elems.append(
+        body(
+            "Esta sección resume mejoras operativas del agente: trazabilidad de peticiones, "
+            "límites a herramientas que modifican código, verificación diaria de scripts, "
+            "backup nocturno con aviso por WhatsApp y sincronización opcional con GitHub.",
+            s,
+        )
+    )
+    elems.append(sp(0.3))
+
+    elems.append(subsection("14.1 Observabilidad (request_id y logs JSON)", s, C_TEAL))
+    elems.append(
+        body(
+            "Cada petición HTTP en <b>agente_pro</b> (8081) y <b>webhook_meli</b> (8080) recibe un "
+            "<b>request_id</b> (UUID o cabecera <b>X-Request-ID</b>). Se propaga a los hilos en "
+            "segundo plano (MeLi, WhatsApp) para correlacionar logs. "
+            "Con <b>AGENTE_LOG_JSON=1</b> se imprimen eventos en una línea JSON (stderr). "
+            "El bucle de herramientas de Claude registra <b>tool_ok</b>, <b>tool_error</b> e "
+            "<b>ia_turn_start</b>. <b>GET /status</b> devuelve el <b>request_id</b> actual.",
+            s,
+        )
+    )
+    elems.append(sp(0.25))
+
+    elems.append(subsection("14.2 Herramientas de archivos (parche / ejecutar script)", s, C_TEAL))
+    tabla_seg = [
+        ["Variable", "Efecto"],
+        [
+            "AGENTE_RESTRICT_FILE_TOOLS=1",
+            "Restringe parchear_funcion, crear_nuevo_script y ejecutar_script_python a rutas bajo prefijos del repo.",
+        ],
+        [
+            "FLASK_ENV=production",
+            "Activa la misma restricción sin variable adicional.",
+        ],
+        [
+            "AGENTE_FILE_TOOL_PREFIXES",
+            "Lista separada por comas (por defecto: scripts/,app/tools/,tests/).",
+        ],
+    ]
+    elems.append(
+        tabla_comandos(
+            tabla_seg,
+            s,
+            col_widths=[4.2 * cm, PAGE_W - 2 * MARGEN - 4.4 * cm],
+        )
+    )
+    elems.append(sp(0.25))
+
+    elems.append(subsection("14.3 Auditoría de scripts y cron", s, C_TEAL))
+    elems.append(
+        body(
+            "El manifiesto <b>app/data/scripts_manifest.json</b> lista .py críticos. La herramienta del agente "
+            "<b>auditar_scripts</b> (y <b>ejecutar_auditoria_dict</b> en código) ejecuta <b>py_compile</b> "
+            "sin correr el main. El script <b>scripts/auditar_scripts_cron.py</b> se puede programar con "
+            "<b>scripts/instalar_cron_mcKenna.sh</b> (7:15 diario; log en <b>log_cron.txt</b>). "
+            "Si hay fallos, envía WhatsApp al grupo de alertas (salvo <b>AGENTE_AUDITORIA_SKIP_WA=1</b>).",
+            s,
+        )
+    )
+    elems.append(sp(0.2))
+
+    elems.append(subsection("14.4 Backup nocturno, GitHub y grupo de alertas", s, C_TEAL))
+    elems.append(
+        body(
+            "A las <b>2:00</b> el daemon en <b>app/tools/backup_drive.py</b> genera un .tar.gz en "
+            "<b>backups_drive/</b> (datos JSON, training, ChromaDB, SQLite) y opcionalmente sube a Google Drive. "
+            "Tras el backup intenta <b>git add -A</b>, <b>commit</b> y <b>git push origin &lt;rama&gt;</b> si hay cambios "
+            "(desactivar con <b>AGENTE_NIGHTLY_GIT_PUSH=0</b>). La carpeta <b>backups_drive/</b> no se versiona en git. "
+            "Los avisos de backup y el resultado del push van a <b>GRUPO_ALERTAS_SISTEMAS_WA</b> "
+            "(función <b>jid_grupo_alertas_sistemas_wa()</b> en app/utils.py).",
+            s,
+        )
+    )
+    elems.append(
+        nota(
+            "📧",
+            "Manual actualizado (v3.2). Regenerar PDF: "
+            "<b>python3 scripts/generar_manual.py</b> · enviar por correo: <b>--enviar</b>.",
+            s,
+            bg=colors.HexColor("#f0fdf4"),
+            border=C_GREEN,
+        )
+    )
     elems.append(PageBreak())
     return elems
 
@@ -1507,7 +1653,7 @@ def generar_pdf() -> str:
     )
 
     s   = estilos()
-    dec = PaginaDecoracion('v3.1')
+    dec = PaginaDecoracion('v3.2')
 
     elems = []
     elems += portada(s)
@@ -1525,6 +1671,7 @@ def generar_pdf() -> str:
     elems += sec11_glosario_faq(s)
     elems += sec12_contenido_cientifico(s)
     elems += sec13_skills(s)
+    elems += sec14_operabilidad(s)
 
     doc.build(elems, onFirstPage=dec, onLaterPages=dec)
     print(f'✅ PDF generado: {OUT_PDF}  ({os.path.getsize(OUT_PDF)//1024} KB)')
@@ -1536,21 +1683,23 @@ def generar_pdf() -> str:
 # ══════════════════════════════════════════════
 
 def enviar_por_correo(pdf_path: str):
-    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
-    env = {
-        line.split('=', 1)[0].strip(): line.split('=', 1)[1].strip()
-        for line in open(env_path).read().splitlines()
-        if '=' in line and not line.startswith('#')
-    }
-    remitente = env.get('EMAIL_SENDER', 'mckenna.group.colombia@gmail.com')
-    password  = env.get('EMAIL_PASSWORD', '')
-    dest      = 'cynthua0418@gmail.com'
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    env_path = os.path.join(repo_root, ".env")
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv(env_path)
+    except Exception:
+        pass
+    remitente = os.getenv("EMAIL_SENDER", "mckenna.group.colombia@gmail.com")
+    password = (os.getenv("EMAIL_PASSWORD") or os.getenv("SMTP_PASSWORD") or "").strip()
+    dest = "cynthua0418@gmail.com"
     hoy       = datetime.now().strftime('%d/%m/%Y')
 
     msg = MIMEMultipart()
     msg['From']    = remitente
     msg['To']      = dest
-    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.1 · McKenna Group · {hoy}'
+    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.2 · McKenna Group · {hoy}'
 
     cuerpo = f"""Hola,
 
@@ -1568,8 +1717,11 @@ El manual incluye:
   • Generación de contenido científico (PubMed + ArXiv + Scrapling)
   • Pipeline multimedia Facebook (Gemini → Ideogram → ElevenLabs → Kling)
   • Publicación automática en WordPress
+  • Observabilidad (request_id, logs JSON) y límites a herramientas de archivos
+  • Auditoría de scripts (manifiesto, cron, avisos WhatsApp)
+  • Backup nocturno, push a GitHub opcional y grupo GRUPO_ALERTAS_SISTEMAS_WA
 
-Versión: v3.1 · Generado el {hoy}
+Versión: v3.2 · Generado el {hoy}
 
 ---
 McKenna Group S.A.S. · Bogotá, Colombia
@@ -1585,12 +1737,25 @@ Sistema de Automatización Hugo García
     part.add_header('Content-Disposition', f'attachment; filename="{nombre_archivo}"')
     msg.attach(part)
 
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login(remitente, password)
-    server.send_message(msg)
-    server.quit()
-    print(f'✅ Manual enviado por correo a {dest}')
+    if not password:
+        print(
+            "❌ No hay EMAIL_PASSWORD ni SMTP_PASSWORD en .env. "
+            "Configura contraseña de aplicación de Gmail y vuelve a ejecutar con --enviar."
+        )
+        raise SystemExit(1)
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(remitente, password)
+        server.send_message(msg)
+        server.quit()
+    except smtplib.SMTPAuthenticationError as e:
+        print(
+            "❌ Gmail rechazó el inicio de sesión (535). "
+            "Usa una contraseña de aplicación en la cuenta del remitente y verifica EMAIL_SENDER."
+        )
+        raise SystemExit(1) from e
+    print(f"✅ Manual enviado por correo a {dest}")
 
 
 # ══════════════════════════════════════════════

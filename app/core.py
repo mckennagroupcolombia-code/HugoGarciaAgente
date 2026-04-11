@@ -63,6 +63,8 @@ from app.tools.generar_catalogo import generar_catalogo_pdf
 from app.tools.generar_guias_masivas import generar_guias_masivas_web
 from app.tools.pipeline_contenido_facebook import publicar_contenido_redes_sociales_ia
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
+from app.observability import log_json
+from app.tools.script_audit import auditar_scripts
 
 
 def _resumen_disponibilidad_para_agente(stock_raw) -> str:
@@ -354,6 +356,7 @@ def configurar_ia(app):
             consultar_tarifa_envio,
             consultar_tarifa_mercadoenvios,
             buscar_producto_completo,
+            auditar_scripts,
         ]
 
         _tools_map = {fn.__name__: fn for fn in todas_las_herramientas}
@@ -391,6 +394,12 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
         messages = list(_historiales.get(usuario_id, []))
 
     messages.append({"role": "user", "content": f"Usuario_{usuario_id}: {pregunta}"})
+
+    log_json(
+        "ia_turn_start",
+        usuario_id=str(usuario_id)[:80],
+        pregunta_chars=len(pregunta or ""),
+    )
 
     MAX_REINTENTOS = 3
 
@@ -436,6 +445,12 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                             try:
                                 result = fn(**block.input)
                                 result_str = str(result)[:8192]
+                                log_json(
+                                    "tool_ok",
+                                    tool=block.name,
+                                    result_chars=len(result_str),
+                                    truncated=len(str(result)) > 8192,
+                                )
                             except Exception as tool_exc:
                                 result_str = (
                                     f"[TOOL_ERROR] La herramienta '{block.name}' falló: {tool_exc}. "
@@ -444,11 +459,18 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                                 _log_error(
                                     f"Tool {block.name} args={block.input}", tool_exc
                                 )
+                                log_json(
+                                    "tool_error",
+                                    tool=block.name,
+                                    error_type=type(tool_exc).__name__,
+                                    error=str(tool_exc)[:500],
+                                )
                         else:
                             result_str = (
                                 f"[TOOL_ERROR] Herramienta '{block.name}' no existe en el mapa. "
                                 "Elige otra acción."
                             )
+                            log_json("tool_missing", tool=block.name)
 
                         print(f"   ↳ {result_str[:120]}")
                         tool_results.append(

@@ -1,0 +1,14 @@
+{
+  "scripts": [
+    {"path": "preventa_meli.py", "nota": "Orquestador preventa MeLi"},
+    {"path": "webhook_meli.py", "nota": "Webhook MeLi puerto 8080"},
+    {"path": "agente_pro.py", "nota": "Flask principal 8081"},
+    {"path": "modulo_posventa.py", "nota": "Postventa MeLi"},
+    {"path": "app/tools/generar_catalogo.py", "nota": "Módulo catálogo PDF"},
+    {"path": "scripts/generar_catalogo.py", "nota": "CLI catálogo scripts/"},
+    {"path": "sincronizar_facebook.py", "nota": "Sync Facebook"},
+    {"path": "generar_infografias_facebook.py", "nota": "Infografías"},
+    {"path": "generar_posts_masivos.py", "nota": "Posts masivos"},
+    {"path": "generar_recetas_masivas.py", "nota": "Recetas masivas"}
+  ]
+}
