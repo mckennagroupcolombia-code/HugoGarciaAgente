@@ -1,13 +1,85 @@
-
 import os
 import shutil
 import ast
 import subprocess
 import sys
 from datetime import datetime
+from pathlib import Path
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+
+def _repo_root() -> Path:
+    """Raíz del repo (directorio que contiene app/)."""
+    return Path(__file__).resolve().parents[2]
+
+
+def _file_tools_restricted() -> bool:
+    if os.getenv("AGENTE_RESTRICT_FILE_TOOLS", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    ):
+        return True
+    return os.getenv("FLASK_ENV", "").strip().lower() == "production"
+
+
+def _allowed_path_prefixes() -> list[str]:
+    raw = os.getenv(
+        "AGENTE_FILE_TOOL_PREFIXES",
+        "scripts/,app/tools/,tests/",
+    )
+    out = []
+    for p in raw.split(","):
+        p = p.strip().replace("\\", "/")
+        if not p:
+            continue
+        if not p.endswith("/"):
+            p += "/"
+        out.append(p)
+    return out
+
+
+def _resolved_relative_posix(path_str: str) -> tuple[bool, str]:
+    root = _repo_root()
+    p = Path(path_str)
+    if not p.is_absolute():
+        p = (root / p).resolve()
+    else:
+        p = p.resolve()
+    try:
+        rel = p.relative_to(root)
+    except ValueError:
+        return False, ""
+    return True, rel.as_posix()
+
+
+def _path_allowed_for_mutating_tools(rel_posix: str) -> bool:
+    if not _file_tools_restricted():
+        return True
+    prefixes = _allowed_path_prefixes()
+    if not prefixes:
+        return False
+    for pref in prefixes:
+        base = pref.rstrip("/")
+        if rel_posix == base or rel_posix.startswith(pref):
+            return True
+    return False
+
+
+def _guard_mutable_path(path_str: str) -> str | None:
+    ok, rel = _resolved_relative_posix(path_str)
+    if not ok:
+        return "❌ Error: la ruta queda fuera del directorio del repositorio."
+    if not _path_allowed_for_mutating_tools(rel):
+        return (
+            "❌ Herramienta de archivos restringida (AGENTE_RESTRICT_FILE_TOOLS=1 o FLASK_ENV=production). "
+            f"Ruta relativa '{rel}' no está bajo AGENTE_FILE_TOOL_PREFIXES. "
+            "Ajusta prefijos solo si es deliberado."
+        )
+    return None
+
 
 # --- UTILIDADES DE SISTEMA Y ARCHIVOS ---
 
@@ -63,6 +135,9 @@ def leer_funcion(ruta_archivo: str, nombre_funcion: str) -> str:
 def parchear_funcion(ruta_archivo: str, nombre_funcion: str, nuevo_codigo_funcion: str) -> str:
     """Reemplaza el código de una función existente en un archivo por uno nuevo."""
     try:
+        blocked = _guard_mutable_path(ruta_archivo)
+        if blocked:
+            return blocked
         ast.parse(nuevo_codigo_funcion)
         backup_msg = crear_backup(ruta_archivo)
         if "❌" in backup_msg:
@@ -87,6 +162,9 @@ def crear_nuevo_script(nombre_archivo: str, codigo_completo: str) -> str:
     """Crea un nuevo archivo .py con el contenido proporcionado."""
     try:
         if not nombre_archivo.endswith('.py'): return "❌ Error: El nombre debe terminar en '.py'."
+        blocked = _guard_mutable_path(nombre_archivo)
+        if blocked:
+            return blocked
         ast.parse(codigo_completo)
         with open(nombre_archivo, 'w', encoding='utf-8') as f: f.write(codigo_completo)
         return f"✅ Script '{nombre_archivo}' creado."
@@ -96,6 +174,9 @@ def crear_nuevo_script(nombre_archivo: str, codigo_completo: str) -> str:
 def ejecutar_script_python(nombre_archivo: str) -> str:
     """Ejecuta un script de Python y devuelve su salida."""
     if not os.path.exists(nombre_archivo): return f"❌ Error: El script '{nombre_archivo}' no existe."
+    blocked = _guard_mutable_path(nombre_archivo)
+    if blocked:
+        return blocked
     try:
         resultado = subprocess.run([sys.executable, nombre_archivo], capture_output=True, text=True, timeout=45, check=False)
         salida = f"--- Salida de {nombre_archivo} ---\n{resultado.stdout}\n"

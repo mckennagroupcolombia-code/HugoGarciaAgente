@@ -63,6 +63,13 @@ def enviar_respuesta_meli(question_id, texto_respuesta, token):
 
 def procesar_nueva_pregunta(question_id):
     """Función principal que orquesta todo el camello."""
+    try:
+        from app.observability import log_json
+
+        log_json("preventa_procesar_pregunta_start", question_id=str(question_id))
+    except Exception:
+        pass
+
     token = obtener_token_meli()
     if not token:
         print("No hay token, revise las credenciales.")
@@ -102,7 +109,15 @@ def procesar_nueva_pregunta(question_id):
         f"🤖 *IA Respondió:* {respuesta_generada}\n\n"
         f"Status Respuesta: {emoji_status}"
     )
-    enviar_whatsapp_reporte(mensaje_ws, numero_destino=jid_grupo_preventa_wa())
+    ok_wa = enviar_whatsapp_reporte(
+        mensaje_ws, numero_destino=jid_grupo_preventa_wa()
+    )
+    if not ok_wa:
+        print(
+            f"❌ Preventa: el reporte a WhatsApp NO se envió (revisar bridge :3000 / "
+            f"logs). Pregunta MeLi {question_id} respondida={'sí' if status else 'no'}. "
+            f"Grupo configurado: {jid_grupo_preventa_wa()}"
+        )
 
 # --- Para probar el script manualmente ---
 if __name__ == "__main__":

@@ -62,7 +62,8 @@ cd bot-mckenna && npm ci && npm start
 │   ├── sync.py                    Lógica central sincronización stock + facturas
 │   ├── cli.py                     Menú CLI interactivo (8 opciones con submenús)
 │   ├── monitor.py                 Alertas automáticas y métricas diarias
-│   ├── utils.py                   refrescar_token_meli(), enviar_whatsapp_*()
+│   ├── observability.py           request_id, spawn_thread, log_json
+│   ├── utils.py                   refrescar_token_meli(), enviar_whatsapp_*(), JIDs preventa/postventa/alertas sistemas, helpers posventa MeLi
 │   │
 │   ├── services/
 │   │   ├── meli.py                MeLi API: órdenes, stock, facturas, aprendizaje
@@ -72,7 +73,9 @@ cd bot-mckenna && npm ci && npm start
 │   │
 │   ├── tools/
 │   │   ├── memoria.py             SQLite + ChromaDB vectorial
-│   │   ├── system_tools.py        Archivos, backups, scripts, email
+│   │   ├── system_tools.py        Archivos, backups, scripts, email (restricción opcional de rutas)
+│   │   ├── script_audit.py        Auditoría py_compile + manifiesto; usado por herramienta auditar_scripts
+│   │   ├── backup_drive.py        Backup nocturno Drive/local + git push opcional + WA a GRUPO_ALERTAS_SISTEMAS_WA
 │   │   ├── sincronizar_productos_pagina_web.py  Stock/precios hacia API tienda web (WEB_API_*)
 │   │   ├── web_pedidos.py         Comandos WhatsApp grupo pedidos web (facturar / envío)
 │   │   ├── verificacion_sync_skus.py  Auditoría SKUs MeLi / SIIGO / web
@@ -83,7 +86,8 @@ cd bot-mckenna && npm ci && npm start
 │   │   ├── modos_atencion.json                 Números en modo humano vs IA
 │   │   ├── metricas_diarias.json               Estadísticas del día
 │   │   ├── grupos_whatsapp_oficiales.json      Nombres y JIDs de grupos operativos
-│   │   └── tarifas_interrapidisimo.json        Tarifas de envío
+│   │   ├── tarifas_interrapidisimo.json        Tarifas de envío
+│   │   └── scripts_manifest.json               Lista de .py para auditoría / cron
 │   │
 │   └── training/
 │       ├── casos_preventa.json    Historial Q&A para few-shot learning
@@ -133,6 +137,8 @@ TDS_FOLDER_ID               # Google Drive folder fichas técnicas
 GRUPO_CONTABILIDAD_WA       # ID grupo contabilidad (default: 120363407538342427@g.us)
 GRUPO_INVENTARIO_WA         # ID grupo inventario
 TELEFONO_GRUPO_REPORTE      # Número/grupo para reportes
+GRUPO_PREVENTA_WA           # Alertas y comandos `resp …` de preguntas MeLi (preventa)
+GRUPO_POSTVENTA_WA         # Alertas mensajes post-compra MeLi + comando `posventa <código>: …`
 GRUPO_PEDIDOS_WEB_WA        # Único JID para pedidos web: 120363391665421264@g.us (Guias_Envios pagina web) — alertas + facturar + envio
 # Inventario completo de grupos oficiales (nombres y JIDs): app/data/grupos_whatsapp_oficiales.json
 
@@ -149,7 +155,33 @@ ELEVENLABS_API_KEY          # Síntesis de voz TTS en español (ElevenLabs)
 FAL_KEY                     # Generación de video (fal.ai / Kling v1.6)
 FB_PAGE_TOKEN               # Facebook Graph API — publicación en página
 FB_PAGE_ID                  # ID de la página de Facebook de McKenna Group
+
+# Operaciones, observabilidad y cron
+GRUPO_ALERTAS_SISTEMAS_WA   # WhatsApp: backup nocturno + fallos auditoría scripts (default en app/utils.py)
+AGENTE_LOG_JSON             # 1 = eventos JSON una línea en stderr (http, tools, IA)
+AGENTE_RESTRICT_FILE_TOOLS  # 1 o FLASK_ENV=production → limita parchear_funcion / crear_nuevo_script / ejecutar_script_python
+AGENTE_FILE_TOOL_PREFIXES   # Prefijos relativos al repo permitidos (coma); ej. scripts/,app/tools/,tests/
+AGENTE_NIGHTLY_GIT_PUSH     # 0 = no ejecutar git commit/push tras el backup de las 2:00
+AGENTE_AUDITORIA_SKIP_WA    # 1 = scripts/auditar_scripts_cron.py no envía WhatsApp aunque falle
+AGENTE_AUDITORIA_CRON_QUIET # 1 = cron auditoría no imprime línea si todo OK
 ```
+
+---
+
+## Observabilidad, backup nocturno y cron
+
+| Pieza | Archivo / script | Qué hace |
+|-------|------------------|----------|
+| `request_id` por petición | `app/observability.py` | UUID o cabecera `X-Request-ID`; se propaga a hilos con `spawn_thread()`. |
+| Logs JSON | `AGENTE_LOG_JSON=1` | Eventos `meli_notification_received`, `whatsapp_webhook`, `tool_ok` / `tool_error`, etc. |
+| Rutas Flask | `app/routes.py`, `webhook_meli.py` | `before_request` + `bind_flask_request`. `/status` incluye `request_id`. |
+| Límite tools de código | `app/tools/system_tools.py` | Con restricción activa, solo rutas bajo `AGENTE_FILE_TOOL_PREFIXES`. |
+| Auditoría estática | `app/tools/script_audit.py`, `app/data/scripts_manifest.json` | `py_compile` sin ejecutar `main`; herramienta `auditar_scripts` en Claude. |
+| Cron auditoría | `scripts/auditar_scripts_cron.py`, `scripts/instalar_cron_mcKenna.sh` | Diario (ej. 7:15); log en `log_cron.txt`; WhatsApp si hay fallos. |
+| Backup 2:00 + Git | `app/tools/backup_drive.py` | Tar en `backups_drive/` (no git), Drive opcional; luego `git add/commit/push` si hay cambios. |
+| Grupo WhatsApp | `jid_grupo_alertas_sistemas_wa()` | Mismo JID para mensaje de backup y alertas de auditoría cron. |
+
+**Tests de humo:** `pytest tests/test_smoke.py` (`/status`, auditoría, guard de archivos).
 
 ---
 
@@ -174,6 +206,8 @@ MeLi → POST /notifications (puerto 8080)
   └─ topic: "messages" → posventa MeLi (alertas al grupo, ver webhook_meli.py)
 ```
 
+**Posventa MeLi (mensajes post-compra):** Las peticiones a la API de mensajes de MeLi usan cabecera **`x-version: 2`** (formato actual de la API). El `resource` del webhook suele ser ruta de pack (`/messages/packs/{pack_id}/…`). En **`app/routes.py`**, si el path es **`/orders/{order_id}`**, se usa ese id como `pack_id` para listar mensajes; **`webhook_meli.py`** resuelve `pack_id` con lógica adicional cuando no viene en la ruta (mensaje por id, metadatos, búsqueda). Para deduplicar alertas se usa `id` o `message_id` según devuelva MeLi (`meli_postventa_id_mensaje` en `app/utils.py`). El texto para WhatsApp se arma con `meli_postventa_texto_para_notif`: admite `text` como string o como objeto (`plain`), y si el comprador solo envía **adjuntos** (PDF RUT, imagen) sin texto, la alerta indica nombres de archivo y pide revisar la conversación en MeLi. Los reportes a WhatsApp vía `enviar_whatsapp_reporte` **reintentan** ante **503** del puente Node (WhatsApp sincronizando) y ante fallos de conexión breves. Si falla el envío al grupo tras una respuesta automática de preventa, `preventa_meli.py` deja traza en consola (la pregunta puede haberse respondido en MeLi igualmente).
+
 ### B. Orden pagada en MeLi (Stock sync)
 
 ```
@@ -190,17 +224,14 @@ MeLi → POST /notifications (puerto 8080)
 
 ```
 WhatsApp → POST /whatsapp (puerto 8081)
-  ├─ Si es_grupo_contabilidad:
-  │    ├─ "ok <3dig>"         → confirma pago (nuevo formato corto)
-  │    ├─ "no <3dig>"         → rechaza pago
-  │    ├─ "ok confirmado"     → confirma si hay 1 pago pendiente
-  │    ├─ "pausar <num>"      → pone número en modo humano
-  │    ├─ "activar <num>"     → reactiva IA para ese número
-  │    ├─ "resp <id>: <txt>"  → responde pregunta MeLi pendiente
-  │    └─ "hugo dale ok <id>" → aprueba y envía respuesta posventa
+  ├─ Grupo contabilidad / compras / inventario (según JID y flags): pagos `ok`/`no`, `resp …`, facturas compra `inv …`, etc.
+  ├─ Grupo preventa (`GRUPO_PREVENTA_WA`): `resp …` / `resp preventa …` para preguntas MeLi pendientes
+  ├─ Grupo postventa (`GRUPO_POSTVENTA_WA`): `posventa <código>: <txt>` → envía respuesta al pack MeLi (cola `app/data/mensajes_posventa_pendientes.json`)
+  ├─ Grupos pedidos web: comandos `facturar` / envío (ver `web_pedidos.py`)
+  ├─ "hugo dale ok <order_id>" → si hay borrador de respuesta IA posventa, envía a MeLi vía `modulo_posventa` (la alerta de aprobación se envía al grupo postventa)
   ├─ Si número en modo humano → reenvía al grupo
   ├─ Si imagen recibida → guarda comprobante → alerta pago al grupo
-  └─ Si mensaje normal → obtener_respuesta_ia() → **Claude** (tool loop) → responde
+  └─ Si mensaje normal → obtener_respuesta_ia() → **Claude** (tool loop) → responde (si `es_postventa`, borrador + aprobación en lugar de envío directo)
 ```
 
 ### E. Confirmación de Pago
@@ -449,6 +480,7 @@ client_secret_cloud.json
 token_gmail.json
 venv/
 memoria_vectorial/    # puede ser grande
+backups_drive/        # .tar.gz del backup nocturno (local)
 *.log
 ```
 

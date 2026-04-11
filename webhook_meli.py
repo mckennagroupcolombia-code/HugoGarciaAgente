@@ -2,7 +2,6 @@ import os
 import re
 import json
 import requests
-import threading
 import time
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
@@ -11,11 +10,20 @@ from app.utils import (
     enviar_whatsapp_reporte,
     refrescar_token_meli,
     jid_grupo_postventa_wa,
+    meli_postventa_id_mensaje,
+    meli_postventa_texto_para_notif,
 )
 
 load_dotenv()
 app = Flask(__name__, template_folder="app/templates")
 configurar_ia(app)
+
+from app.observability import bind_flask_request, log_json, spawn_thread
+
+
+@app.before_request
+def _webhook_bind_request_id():
+    bind_flask_request(request)
 
 
 def obtener_nombre_producto(item_id):
@@ -193,7 +201,7 @@ def _procesar_mensaje_posventa(resource: str):
         if not token:
             return
 
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {"Authorization": f"Bearer {token}", "x-version": "2"}
 
         # MeLi puede enviar el resource de dos formas:
         # 1. Como path: "/messages/packs/{pack_id}/sellers/{seller_id}"
@@ -299,12 +307,15 @@ def _procesar_mensaje_posventa(resource: str):
             if from_id == str(_SELLER_ID):
                 continue  # Mensaje nuestro, ignorar
 
-            msg_id = str(msg.get("id", ""))
+            msg_id = meli_postventa_id_mensaje(msg)
             if not msg_id or msg_id in procesados:
                 continue  # Ya notificado
 
-            texto = msg.get("text", "").strip()
+            texto = meli_postventa_texto_para_notif(msg)
             if not texto:
+                print(
+                    f"⏭️ [POSVENTA] Mensaje {msg_id} sin texto ni adjuntos reconocibles, omitiendo"
+                )
                 continue
 
             nombre_comprador = msg.get("from", {}).get("name", f"Comprador {from_id}")
@@ -381,6 +392,12 @@ def notifications():
     data = request.get_json()
 
     topic = data.get("topic") if data else None
+    log_json(
+        "meli_notification_received",
+        topic=topic,
+        resource=(data or {}).get("resource"),
+        source="webhook_meli",
+    )
 
     if topic == "questions":
         resource = data.get("resource")
@@ -395,10 +412,7 @@ def notifications():
                 print(f"Pregunta {question_id} ya procesada. Omitiendo duplicado.")
             else:
                 preguntas_procesadas[question_id] = time.time()
-                hilo = threading.Thread(
-                    target=procesar_nueva_pregunta, args=(question_id,)
-                )
-                hilo.start()
+                spawn_thread(procesar_nueva_pregunta, args=(question_id,))
                 try:
                     incrementar_metrica("preguntas_meli")
                 except Exception:
@@ -409,8 +423,7 @@ def notifications():
         if resource:
             order_id = resource.split("/")[-1]
             print(f"🛒 [MELI] Nueva notificación de orden: {order_id}")
-            hilo = threading.Thread(target=_procesar_orden_meli, args=(order_id,))
-            hilo.start()
+            spawn_thread(_procesar_orden_meli, args=(order_id,))
             try:
                 incrementar_metrica("ordenes_meli")
             except Exception:
@@ -422,10 +435,9 @@ def notifications():
             f"📩 [MELI-MSG] Notificación messages recibida. Resource: '{resource}' | Payload completo: {json.dumps(data, default=str)[:500]}"
         )
         if resource:
-            hilo = threading.Thread(
-                target=_procesar_mensaje_posventa, args=(resource,), daemon=True
+            spawn_thread(
+                _procesar_mensaje_posventa, args=(resource,), daemon=True
             )
-            hilo.start()
 
     # Respondemos 200 OK inmediatamente
     return jsonify({"status": "ok"}), 200
@@ -439,8 +451,7 @@ def whatsapp_mock():
         resource = data.get("resource")
         if resource:
             question_id = resource.split("/")[-1]
-            hilo = threading.Thread(target=procesar_nueva_pregunta, args=(question_id,))
-            hilo.start()
+            spawn_thread(procesar_nueva_pregunta, args=(question_id,))
     return jsonify({"status": "ok"}), 200
 
 
@@ -449,10 +460,13 @@ def status():
     import os
     from datetime import datetime
 
+    from app.observability import get_request_id
+
     return jsonify(
         {
             "estado": "activo",
             "timestamp": datetime.now().isoformat(),
+            "request_id": get_request_id(),
             "servicios": {
                 "mercadolibre": os.path.exists("credenciales_meli.json"),
                 "google": os.path.exists("credenciales_google.json"),
@@ -511,7 +525,7 @@ def _token_valido():
 
 def _lanzar_en_hilo(fn, *args):
     """Ejecuta fn(*args) en segundo plano y devuelve respuesta inmediata."""
-    threading.Thread(target=fn, args=args, daemon=True).start()
+    spawn_thread(fn, args=args, daemon=True)
 
 
 # ── ENDPOINTS DE SINCRONIZACIÓN ───────────────────────────────────────────────

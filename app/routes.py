@@ -85,6 +85,8 @@ from app.utils import (
     enviar_whatsapp_reporte,
     jid_grupo_preventa_wa,
     jid_grupo_postventa_wa,
+    meli_postventa_id_mensaje,
+    meli_postventa_texto_para_notif,
 )
 
 
@@ -212,7 +214,8 @@ def guardar_modos_atencion(data):
 
 
 import time
-import threading
+
+from app.observability import bind_flask_request, log_json, spawn_thread
 
 # --- Estado Temporal ---
 # TODO: Este diccionario en memoria se pierde si el servidor se reinicia.
@@ -451,7 +454,7 @@ def _procesar_mensaje_posventa(resource: str):
         if not token:
             return
 
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {"Authorization": f"Bearer {token}", "x-version": "2"}
 
         # MeLi puede enviar el resource de dos formas:
         # 1. Como path: "/messages/packs/{pack_id}/sellers/{seller_id}"
@@ -462,6 +465,9 @@ def _procesar_mensaje_posventa(resource: str):
             if p == "packs" and i + 1 < len(partes):
                 pack_id = partes[i + 1]
                 break
+
+        if not pack_id and partes and partes[0] == "orders" and len(partes) >= 2:
+            pack_id = partes[1]
 
         if not pack_id:
             msg_id_directo = resource.strip("/")
@@ -555,12 +561,15 @@ def _procesar_mensaje_posventa(resource: str):
             if from_id == str(_SELLER_ID):
                 continue  # Mensaje nuestro, ignorar
 
-            msg_id = str(msg.get("id", ""))
+            msg_id = meli_postventa_id_mensaje(msg)
             if not msg_id or msg_id in procesados:
                 continue  # Ya notificado
 
-            texto = msg.get("text", "").strip()
+            texto = meli_postventa_texto_para_notif(msg)
             if not texto:
+                print(
+                    f"⏭️ [POSVENTA] Mensaje {msg_id} sin texto ni adjuntos reconocibles, omitiendo"
+                )
                 continue
 
             nombre_comprador = msg.get("from", {}).get("name", f"Comprador {from_id}")
@@ -632,12 +641,21 @@ def _procesar_mensaje_posventa(resource: str):
 
 
 def register_routes(app):
+    @app.before_request
+    def _mckenna_bind_request_id():
+        bind_flask_request(request)
+
     @app.route("/notifications", methods=["POST"])
     def notifications():
         """Recibe la notificación y responde 'OK' de inmediato a MeLi."""
         data = request.get_json()
 
         topic = data.get("topic") if data else None
+        log_json(
+            "meli_notification_received",
+            topic=topic,
+            resource=(data or {}).get("resource"),
+        )
 
         if topic == "questions":
             resource = data.get("resource")
@@ -652,10 +670,7 @@ def register_routes(app):
                     print(f"Pregunta {question_id} ya procesada. Omitiendo duplicado.")
                 else:
                     preguntas_procesadas[question_id] = time.time()
-                    hilo = threading.Thread(
-                        target=procesar_nueva_pregunta, args=(question_id,)
-                    )
-                    hilo.start()
+                    spawn_thread(procesar_nueva_pregunta, args=(question_id,))
                     try:
                         incrementar_metrica("preguntas_meli")
                     except Exception:
@@ -666,8 +681,7 @@ def register_routes(app):
             if resource:
                 order_id = resource.split("/")[-1]
                 print(f"🛒 [MELI] Nueva notificación de orden: {order_id}")
-                hilo = threading.Thread(target=_procesar_orden_meli, args=(order_id,))
-                hilo.start()
+                spawn_thread(_procesar_orden_meli, args=(order_id,))
                 try:
                     incrementar_metrica("ordenes_meli")
                 except Exception:
@@ -679,10 +693,9 @@ def register_routes(app):
                 f"📩 [MELI-MSG] Notificación messages recibida. Resource: '{resource}' | Payload: {json.dumps(data, default=str)[:500]}"
             )
             if resource:
-                hilo = threading.Thread(
-                    target=_procesar_mensaje_posventa, args=(resource,), daemon=True
+                spawn_thread(
+                    _procesar_mensaje_posventa, args=(resource,), daemon=True
                 )
-                hilo.start()
 
         # Respondemos 200 OK inmediatamente
         return jsonify({"status": "ok"}), 200
@@ -706,6 +719,12 @@ def register_routes(app):
                     "respuesta": "Request inválido, no se recibió JSON.",
                 }
             ), 400
+
+        log_json(
+            "whatsapp_webhook",
+            sender_preview=str(data.get("sender", ""))[-24:],
+            has_message=bool((data.get("mensaje") or "").strip()),
+        )
 
         try:
             from app.monitor import incrementar_metrica
@@ -772,11 +791,11 @@ def register_routes(app):
                     _ok, out = wp.marcar_solicitud_facturacion(ref_cmd)
                     enviar_whatsapp_reporte(out, numero_destino=destino)
 
-                threading.Thread(
-                    target=_wa_pedido_facturar,
+                spawn_thread(
+                    _wa_pedido_facturar,
                     args=(tn, destino_grupo),
                     daemon=True,
-                ).start()
+                )
                 return jsonify({"status": "ok", "respuesta": None})
 
             if tn.lower().startswith("envio "):
@@ -808,11 +827,11 @@ def register_routes(app):
                         f"{'✅' if ok else '❌'} {out}", numero_destino=destino
                     )
 
-                threading.Thread(
-                    target=_wa_pedido_envio,
+                spawn_thread(
+                    _wa_pedido_envio,
                     args=(tn, destino_grupo),
                     daemon=True,
-                ).start()
+                )
                 return jsonify({"status": "ok", "respuesta": None})
 
         # --- COMANDOS DE GRUPOS ADMIN ---
@@ -827,28 +846,28 @@ def register_routes(app):
                 if target_num:
                     pagos_pendientes_confirmacion.pop(target_num, None)
                     borradores_aprobacion.pop(target_num, None)
-                    threading.Thread(
-                        target=enviar_whatsapp_reporte,
+                    spawn_thread(
+                        enviar_whatsapp_reporte,
                         args=(
                             "Hola, ha habido un problema con la validación de tu pago. Por favor rectifica y revisa por qué la transacción no ha sido recibida.",
                             target_num,
                         ),
-                    ).start()
-                    threading.Thread(
-                        target=enviar_whatsapp_reporte,
+                    )
+                    spawn_thread(
+                        enviar_whatsapp_reporte,
                         args=(
                             f"❌ Pago rechazado para ...{sufijo}",
                             grupo_contabilidad,
                         ),
-                    ).start()
+                    )
                 else:
-                    threading.Thread(
-                        target=enviar_whatsapp_reporte,
+                    spawn_thread(
+                        enviar_whatsapp_reporte,
                         args=(
                             f"⚠️ No encontré pago pendiente con código {sufijo}.",
                             grupo_contabilidad,
                         ),
-                    ).start()
+                    )
                 return jsonify({"status": "ok", "respuesta": None})
 
             # Formato corto: "ok 463" (últimos 3 dígitos del número)
@@ -856,24 +875,24 @@ def register_routes(app):
                 sufijo = msg_lower.split()[1]
                 target_num = _buscar_pago_por_sufijo(sufijo)
                 if target_num:
-                    threading.Thread(
-                        target=procesar_confirmacion_pago_async, args=(target_num,)
-                    ).start()
-                    threading.Thread(
-                        target=enviar_whatsapp_reporte,
+                    spawn_thread(
+                        procesar_confirmacion_pago_async, args=(target_num,)
+                    )
+                    spawn_thread(
+                        enviar_whatsapp_reporte,
                         args=(
                             f"✅ Pago confirmado al cliente ...{sufijo}",
                             grupo_contabilidad,
                         ),
-                    ).start()
+                    )
                 else:
-                    threading.Thread(
-                        target=enviar_whatsapp_reporte,
+                    spawn_thread(
+                        enviar_whatsapp_reporte,
                         args=(
                             f"⚠️ No encontré pago pendiente con código {sufijo}.",
                             grupo_contabilidad,
                         ),
-                    ).start()
+                    )
                 return jsonify({"status": "ok", "respuesta": None})
 
             if msg_lower.startswith("ok confirmado"):
@@ -897,21 +916,21 @@ def register_routes(app):
                             if cantidad > 1
                             else "⚠️ No hay pagos pendientes por confirmar."
                         )
-                        threading.Thread(
-                            target=enviar_whatsapp_reporte,
+                        spawn_thread(
+                            enviar_whatsapp_reporte,
                             args=(msg_error, grupo_contabilidad),
-                        ).start()
+                        )
                         return jsonify({"status": "ok", "respuesta": None})
-                threading.Thread(
-                    target=procesar_confirmacion_pago_async, args=(target_num,)
-                ).start()
-                threading.Thread(
-                    target=enviar_whatsapp_reporte,
+                spawn_thread(
+                    procesar_confirmacion_pago_async, args=(target_num,)
+                )
+                spawn_thread(
+                    enviar_whatsapp_reporte,
                     args=(
                         f"✅ Confirmación enviada al cliente {target_num}",
                         grupo_contabilidad,
                     ),
-                ).start()
+                )
                 return jsonify({"status": "ok", "respuesta": None})
 
             # "OK" o "ok" a solas → aprueba factura de compra pendiente (si la hay)
@@ -924,21 +943,21 @@ def register_routes(app):
                     if entrada:
                         entrada["aprobado"] = True
                         entrada["event"].set()
-                        threading.Thread(
-                            target=enviar_whatsapp_reporte,
+                        spawn_thread(
+                            enviar_whatsapp_reporte,
                             args=(
                                 f"✅ Factura *{factura_key}* aprobada. Creando en SIIGO...",
                                 grupo_contabilidad,
                             ),
-                        ).start()
+                        )
                 else:
-                    threading.Thread(
-                        target=enviar_whatsapp_reporte,
+                    spawn_thread(
+                        enviar_whatsapp_reporte,
                         args=(
                             "⚠️ No hay facturas pendientes de aprobación en este momento.",
                             grupo_contabilidad,
                         ),
-                    ).start()
+                    )
                 return jsonify({"status": "ok", "respuesta": None})
 
             elif msg_lower.startswith("pausar "):
@@ -946,13 +965,13 @@ def register_routes(app):
                 if target_num not in modos["numeros_en_humano"]:
                     modos["numeros_en_humano"].append(target_num)
                     guardar_modos_atencion(modos)
-                threading.Thread(
-                    target=enviar_whatsapp_reporte,
+                spawn_thread(
+                    enviar_whatsapp_reporte,
                     args=(
                         "En este momento te va a atender Jennifer García del área de ventas 🙏",
                         target_num,
                     ),
-                ).start()
+                )
                 return jsonify({"status": "ok", "respuesta": None})
 
             elif msg_lower.startswith("activar "):
@@ -960,13 +979,13 @@ def register_routes(app):
                 if target_num in modos["numeros_en_humano"]:
                     modos["numeros_en_humano"].remove(target_num)
                     guardar_modos_atencion(modos)
-                threading.Thread(
-                    target=enviar_whatsapp_reporte,
+                spawn_thread(
+                    enviar_whatsapp_reporte,
                     args=(
                         "Hola veci, soy Hugo García nuevamente, ¿en qué le puedo ayudar?",
                         target_num,
                     ),
-                ).start()
+                )
                 return jsonify({"status": "ok", "respuesta": None})
 
             # ── Comandos de facturas de compra: inv ok/skip/inventario/gasto/lista ──
@@ -998,7 +1017,7 @@ def register_routes(app):
                         resultado, numero_destino=grupo_contabilidad
                     )
 
-                threading.Thread(target=_manejar_inv, args=(message_text,)).start()
+                spawn_thread(_manejar_inv, args=(message_text,))
                 return jsonify({"status": "ok", "respuesta": None})
 
             # ── Respuesta a mensajes postventa MeLi: posventa <código>: <texto> ──
@@ -1088,7 +1107,7 @@ def register_routes(app):
                             numero_destino=grupo_posventa,
                         )
 
-                threading.Thread(target=_manejar_posventa, args=(message_text,)).start()
+                spawn_thread(_manejar_posventa, args=(message_text,))
                 return jsonify({"status": "ok", "respuesta": None})
 
             elif msg_lower.startswith("resp preventa "):
@@ -1098,19 +1117,19 @@ def register_routes(app):
                     f"🔍 Detectado — ID: {question_id} | Respuesta: {str(respuesta_humana)[:60]}"
                 )
                 if question_id and respuesta_humana:
-                    threading.Thread(
-                        target=_procesar_respuesta_preventa,
+                    spawn_thread(
+                        _procesar_respuesta_preventa,
                         args=(question_id, respuesta_humana),
-                    ).start()
+                    )
                 else:
-                    threading.Thread(
-                        target=enviar_whatsapp_reporte,
+                    spawn_thread(
+                        enviar_whatsapp_reporte,
                         args=(
                             "⚠️ Formato inválido. Escribe así (sin llaves):\n"
                             f"resp preventa {question_id or '<ID>'}: tu respuesta va aquí",
                             grupo_preventa,
                         ),
-                    ).start()
+                    )
                 return jsonify({"status": "ok", "respuesta": None})
 
             elif msg_lower.startswith("resp "):
@@ -1120,10 +1139,10 @@ def register_routes(app):
                     print(
                         f"📨 Preventa (formato corto) — ID: {question_id} | Resp: {respuesta_humana[:60]}"
                     )
-                    threading.Thread(
-                        target=_procesar_respuesta_preventa,
+                    spawn_thread(
+                        _procesar_respuesta_preventa,
                         args=(question_id, respuesta_humana),
-                    ).start()
+                    )
                     return jsonify({"status": "ok", "respuesta": None})
 
                 # Si no es preventa, tratar como respuesta directa: resp <numero>: <mensaje>
@@ -1131,9 +1150,9 @@ def register_routes(app):
                 if len(partes) == 2 and partes[1].strip():
                     target_num = partes[0].strip()
                     resp_msg = partes[1].strip()
-                    threading.Thread(
-                        target=enviar_whatsapp_reporte, args=(resp_msg, target_num)
-                    ).start()
+                    spawn_thread(
+                        enviar_whatsapp_reporte, args=(resp_msg, target_num)
+                    )
                     return jsonify({"status": "ok", "respuesta": None})
                 # Sin mensaje o sin formato completo → ignorar silenciosamente
 
@@ -1145,10 +1164,10 @@ def register_routes(app):
             if sender_id in modos["numeros_en_humano"]:
                 # Reenviar al grupo de compras (atención general) y no procesar IA
                 mensaje_reenvio = f"💬 CLIENTE {sender_id}: {message_text}"
-                threading.Thread(
-                    target=enviar_whatsapp_reporte,
+                spawn_thread(
+                    enviar_whatsapp_reporte,
                     args=(mensaje_reenvio, grupo_compras),
-                ).start()
+                )
                 return jsonify({"status": "human_mode", "respuesta": None})
 
         # --- Flujo de Aprobación para Comprobantes de Pago (legacy) ---
@@ -1239,9 +1258,9 @@ def register_routes(app):
                 "codigo": codigo,
             }
 
-            threading.Thread(
-                target=enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_compras)
-            ).start()
+            spawn_thread(
+                enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_compras)
+            )
 
             return jsonify(
                 {
@@ -1370,10 +1389,13 @@ def register_routes(app):
         import os
         from datetime import datetime
 
+        from app.observability import get_request_id
+
         return jsonify(
             {
                 "estado": "activo",
                 "timestamp": datetime.now().isoformat(),
+                "request_id": get_request_id(),
                 "servicios": {
                     "mercadolibre": os.path.exists("credenciales_meli.json"),
                     "google": os.path.exists("credenciales_google.json"),
@@ -1394,6 +1416,12 @@ def register_routes(app):
         data = request.get_json()
         if not data or "mensaje" not in data:
             return jsonify({"error": "Campo 'mensaje' requerido"}), 400
+        log_json(
+            "http_chat",
+            session_preview=str(
+                (data.get("session_id") or data.get("usuario_id") or "")[:40]
+            ),
+        )
         session_id = (data.get("session_id") or data.get("usuario_id") or "").strip()
         if not session_id:
             return (
@@ -1511,13 +1539,11 @@ def register_routes(app):
         respuesta = data.get("respuesta", "").strip()
         if not question_id or not respuesta:
             return jsonify({"ok": False, "error": "Faltan campos"}), 400
-        import threading as _th
-
-        _th.Thread(
-            target=_procesar_respuesta_preventa,
+        spawn_thread(
+            _procesar_respuesta_preventa,
             args=(question_id, respuesta),
             daemon=True,
-        ).start()
+        )
         return jsonify({"ok": True})
 
     # ── Guías de productos (HTML standalone, sin wrapper del tema) ────────────

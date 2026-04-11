@@ -55,6 +55,7 @@ reporte_*.txt
 
 # Backups y archivos temporales
 backups/
+backups_drive/
 temp/
 *.tmp
 *.bak

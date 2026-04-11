@@ -423,6 +423,45 @@ def send_order_confirmation_email(order: dict) -> bool:
     return _send_smtp(email, subj, text, html)
 
 
+def reenviar_correo_confirmacion_pedido(
+    reference: str, *, force: bool = False
+) -> tuple[bool, str]:
+    """
+    Correo estándar de «pedido confirmado» (misma plantilla que tras pago aprobado).
+
+    - Si ya hay ``confirmation_email_sent_at`` y ``force`` es False, no reenvía.
+    - Si ``force`` es True, reenvía igual y refresca el timestamp (útil tras fallos de SMTP).
+    """
+    migrate_orders_table()
+    ref = (reference or "").strip().upper()
+    if not ref:
+        return False, "Falta la referencia del pedido."
+    if not _smtp_ready():
+        return False, "SMTP no configurado (SMTP_HOST / SMTP_USER / SMTP_PASSWORD / EMAIL_FROM)."
+    order = get_order_by_reference(ref)
+    if not order:
+        return False, f"No encontré el pedido {ref}."
+    if not (order.get("buyer_email") or "").strip():
+        return False, "El pedido no tiene correo del comprador."
+    prev = order.get("confirmation_email_sent_at")
+    if prev and not force:
+        return (
+            False,
+            f"Ya consta confirmación enviada ({prev}). Usa force=True o el flag --force del script.",
+        )
+    if not send_order_confirmation_email(order):
+        return False, "Falló el envío SMTP (revisa credenciales y red)."
+    now = datetime.now().isoformat()
+    con = sqlite3.connect(ORDERS_DB)
+    con.execute(
+        "UPDATE orders SET confirmation_email_sent_at = ? WHERE upper(reference) = ?",
+        (now, ref),
+    )
+    con.commit()
+    con.close()
+    return True, f"Correo de confirmación enviado a {order.get('buyer_email', '').strip()}."
+
+
 def send_order_confirmation_preview_test(to_email: str) -> bool:
     """Envía un correo de muestra con datos ficticios (misma plantilla que pedido real)."""
     if not _smtp_ready():
