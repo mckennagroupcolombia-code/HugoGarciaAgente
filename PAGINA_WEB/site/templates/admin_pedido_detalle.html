@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Pedido {{ order.reference }} — Admin{% endblock %}
+
+{% block head %}
+<meta name="robots" content="noindex,nofollow">
+{% endblock %}
+
+{% block content %}
+{# pay_ok solo desde DB: no depender de variable Python (evita servidores viejos sin deploy completo) #}
+{% set pay_ok = (order.status|default('', true))|string|trim|lower == 'approved' %}
+<!-- mckg-admin-pedido-detail envio-ui=1 pay_ok={{ pay_ok }} -->
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Admin</span>
+    <h1>Pedido <em>{{ order.reference }}</em></h1>
+    <p>{{ order.created_at or '—' }} · {{ order.buyer_name or 'Sin nombre' }}</p>
+  </div>
+</div>
+
+<div class="section" style="max-width:900px;margin:0 auto;padding:32px 24px 80px;">
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:28px;">
+    <a href="{{ url_for('admin_pedidos_lista') }}" class="btn btn-outline btn-sm">← Lista de pedidos</a>
+    <form method="post" action="{{ url_for('admin_pedidos_salir') }}" style="margin:0;">
+      <input type="hidden" name="csrf_token" value="{{ admin_csrf }}">
+      <button type="submit" class="btn btn-outline btn-sm">Cerrar sesión admin</button>
+    </form>
+    {% if pay_ok and order.tracking_token %}
+    <a href="{{ url_for('pedido_seguimiento', ref=order.reference, t=order.tracking_token) }}"
+       class="btn btn-primary btn-sm" target="_blank" rel="noopener">Vista cliente (seguimiento)</a>
+    {% endif %}
+  </div>
+
+  <div style="display:grid;gap:20px;">
+
+    {% if pay_ok %}
+    <div id="registrar-envio" style="padding:22px;background:linear-gradient(180deg, rgba(30,92,81,0.1) 0%, #fff 48%);border:2px solid var(--green);border-radius:14px;scroll-margin-top:96px;box-shadow:0 6px 24px rgba(20,61,54,0.1);">
+      <h2 style="font-size:16px;font-weight:800;color:var(--green-dark);margin:0 0 6px;letter-spacing:-0.02em;">Registrar envío (guía)</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 18px;line-height:1.65;">
+        El cliente deja de ver «Preparando tu pedido» y pasa a <strong>«En camino»</strong> en seguimiento y en «Mis pedidos». Si hay SMTP configurado, también recibe el correo de despacho.
+        {% if (order.shipping_status or 'preparing') == 'shipped' %}
+        <span style="display:block;margin-top:8px;">Ya consta envío; puedes corregir guía o transportadora volviendo a guardar.</span>
+        {% endif %}
+      </p>
+      <form method="post" action="{{ url_for('admin_pedidos_registrar_envio') }}" style="display:grid;gap:14px;max-width:440px;">
+        <input type="hidden" name="csrf_token" value="{{ admin_csrf }}">
+        <input type="hidden" name="reference" value="{{ order.reference }}">
+        <div>
+          <label class="form-label" for="adm-tracking">Número de guía</label>
+          <input type="text" name="tracking_number" id="adm-tracking" class="form-input" required
+                 value="{{ order.tracking_number or '' }}"
+                 placeholder="Ej. 1234567890"
+                 autocomplete="off">
+          <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">Mismo día sin guía de transportadora: escribe <code style="font-size:11px;">flex</code>.</p>
+        </div>
+        <div>
+          <label class="form-label" for="adm-carrier">Transportadora</label>
+          <input type="text" name="carrier" id="adm-carrier" class="form-input"
+                 value="{{ order.tracking_carrier or 'Interrapidísimo' }}"
+                 placeholder="Interrapidísimo">
+        </div>
+        <button type="submit" class="btn btn-primary" style="justify-self:start;font-weight:700;">Guardar guía y marcar enviado</button>
+      </form>
+    </div>
+    {% else %}
+    <div style="padding:18px 20px;background:#fffbf0;border:2px solid #e2b13c;border-radius:12px;font-size:14px;line-height:1.55;color:var(--text);">
+      <strong style="display:block;margin-bottom:8px;color:var(--green-dark);">Aún no puedes registrar la guía</strong>
+      El pago de este pedido está en estado <code style="font-size:13px;background:rgba(0,0,0,0.06);padding:2px 8px;border-radius:6px;">{{ order.status or '—' }}</code>.
+      El formulario de envío solo aparece cuando el estado es <strong>approved</strong> (pago aprobado en Mercado Pago). Usa la lista admin y filtra por «approved» si solo quieres pedidos listos para despacho.
+    </div>
+    {% endif %}
+
+    <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
+      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Resumen</h2>
+      <dl style="display:grid;grid-template-columns:auto 1fr;gap:8px 20px;font-size:14px;margin:0;">
+        <dt style="color:var(--text-muted);">Estado pago</dt><dd style="margin:0;font-weight:600;">{{ order.status or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Total</dt><dd style="margin:0;">${{ "{:,.0f}".format(order.total or 0).replace(",", ".") }} COP</dd>
+        <dt style="color:var(--text-muted);">MercadoPago</dt><dd style="margin:0;word-break:break-all;">{{ order.payu_ref or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Envío</dt><dd style="margin:0;">{{ order.shipping_status or 'preparing' }}{% if order.tracking_number %} · Guía {{ order.tracking_number }}{% endif %}{% if order.tracking_carrier %} ({{ order.tracking_carrier }}){% endif %}</dd>
+        <dt style="color:var(--text-muted);">Correo confirmación</dt><dd style="margin:0;">{{ order.confirmation_email_sent_at or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Correo enviado</dt><dd style="margin:0;">{{ order.shipped_email_sent_at or '—' }}</dd>
+        <dt style="color:var(--text-muted);">WhatsApp pedido</dt><dd style="margin:0;">{{ order.whatsapp_notified_at or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Factura solicitada</dt><dd style="margin:0;">{{ order.invoice_requested_at or '—' }}</dd>
+      </dl>
+    </div>
+
+    <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
+      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Contacto</h2>
+      <dl style="display:grid;grid-template-columns:auto 1fr;gap:8px 20px;font-size:14px;margin:0;">
+        <dt style="color:var(--text-muted);">Nombre</dt><dd style="margin:0;">{{ order.buyer_name or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Correo</dt><dd style="margin:0;word-break:break-all;">{{ order.buyer_email or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Teléfono</dt><dd style="margin:0;">{{ order.buyer_phone or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Ciudad envío</dt><dd style="margin:0;">{{ order.buyer_city or '—' }}</dd>
+      </dl>
+    </div>
+
+    {% if order_payload.get('cedula') or order_payload.get('dept') or order_payload.get('address') %}
+    <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
+      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Dirección de envío</h2>
+      <p style="margin:0;font-size:14px;line-height:1.6;color:var(--text);">
+        {% if order_payload.get('cedula') %}<strong>CC/NIT:</strong> {{ order_payload.cedula }}<br>{% endif %}
+        {% if order_payload.get('dept') %}<strong>Depto:</strong> {{ order_payload.dept }}<br>{% endif %}
+        {% if order_payload.get('address') %}<strong>Dirección:</strong> {{ order_payload.address }}{% endif %}
+      </p>
+      {% if order_payload.get('notes') %}
+      <p style="margin:12px 0 0;font-size:13px;color:var(--text-muted);"><strong>Notas:</strong> {{ order_payload.notes }}</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% set bill = order_payload.get('billing') %}
+    {% if bill %}
+    <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
+      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Facturación</h2>
+      <dl style="display:grid;grid-template-columns:auto 1fr;gap:8px 20px;font-size:14px;margin:0;">
+        <dt style="color:var(--text-muted);">Razón social</dt><dd style="margin:0;">{{ bill.get('name') or '—' }}</dd>
+        <dt style="color:var(--text-muted);">NIT/CC</dt><dd style="margin:0;">{{ bill.get('nit') or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Ciudad</dt><dd style="margin:0;">{{ bill.get('city') or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Dirección</dt><dd style="margin:0;">{{ bill.get('address') or '—' }}</dd>
+        <dt style="color:var(--text-muted);">Correo factura</dt><dd style="margin:0;word-break:break-all;">{{ bill.get('email') or '—' }}</dd>
+      </dl>
+    </div>
+    {% endif %}
+
+    <div style="padding:20px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
+      <h2 style="font-size:14px;font-weight:800;color:var(--green-dark);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.06em;">Líneas</h2>
+      {% if order_items %}
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:var(--green-ultra);text-align:left;">
+              <th style="padding:10px 8px;">Producto</th>
+              <th style="padding:10px 8px;">Ref</th>
+              <th style="padding:10px 8px;">Cant</th>
+              <th style="padding:10px 8px;">Precio u.</th>
+              <th style="padding:10px 8px;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for it in order_items %}
+            <tr style="border-top:1px solid var(--green-pale);">
+              <td style="padding:10px 8px;">{{ it.get('name') or '—' }}</td>
+              <td style="padding:10px 8px;">{{ it.get('ref') or it.get('slug') or '—' }}</td>
+              <td style="padding:10px 8px;">{{ it.get('qty') or 0 }}</td>
+              <td style="padding:10px 8px;">${{ "{:,.0f}".format(it.get('price') or 0).replace(",", ".") }}</td>
+              <td style="padding:10px 8px;">${{ "{:,.0f}".format((it.get('price') or 0) * (it.get('qty') or 0)).replace(",", ".") }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if order_payload.get('shipping') is not none %}
+      <p style="margin:12px 0 0;font-size:13px;color:var(--text-muted);">Costo envío en pedido: ${{ "{:,.0f}".format((order_payload.get('shipping') or 0)|float).replace(",", ".") }} COP</p>
+      {% endif %}
+      {% else %}
+      <p style="color:var(--text-muted);margin:0;">Sin líneas en JSON guardado.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

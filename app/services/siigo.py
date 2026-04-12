@@ -7,6 +7,27 @@ from datetime import datetime
 # Variable de configuración para la API de Siigo
 PARTNER_ID = "SiigoAPI"
 
+
+def _ruta_credenciales_siigo():
+    return os.path.expanduser("~/mi-agente/credenciales_SIIGO.json")
+
+
+def _invalidar_cache_token_siigo():
+    """Si el Bearer está revocado o caducó antes del cache, forzar nuevo POST /auth."""
+    ruta_json = _ruta_credenciales_siigo()
+    try:
+        if not os.path.exists(ruta_json):
+            return
+        with open(ruta_json, "r") as f:
+            creds = json.load(f)
+        creds["token_vencimiento"] = 0
+        creds.pop("access_token", None)
+        with open(ruta_json, "w") as f:
+            json.dump(creds, f)
+    except Exception:
+        pass
+
+
 def autenticar_siigo(forzar=False):
     """
     Autentica con la API de Siigo para obtener un token de acceso.
@@ -14,7 +35,7 @@ def autenticar_siigo(forzar=False):
     """
     try:
         # TODO: Centralizar la gestión de credenciales en lugar de un path hard-coded.
-        ruta_json = os.path.expanduser("~/mi-agente/credenciales_SIIGO.json")
+        ruta_json = _ruta_credenciales_siigo()
         if not os.path.exists(ruta_json):
             print(f"⚠️ Error Crítico: El archivo de credenciales de SIIGO no se encuentra en {ruta_json}")
             return None
@@ -57,6 +78,7 @@ def obtener_facturas_siigo_paginadas(fecha_inicio):
 
     todas_las_facturas = []
     page = 1
+    puede_reintentar_auth = True
     while True:
         try:
             res = requests.get(
@@ -74,8 +96,29 @@ def obtener_facturas_siigo_paginadas(fecha_inicio):
                     page += 1
                 else:
                     break
+            elif res.status_code == 401 and puede_reintentar_auth:
+                _invalidar_cache_token_siigo()
+                token = autenticar_siigo(forzar=True)
+                puede_reintentar_auth = False
+                if not token:
+                    raise RuntimeError(
+                        "Siigo /v1/invoices devolvió 401 y POST /auth no devolvió token. "
+                        "Revise username y api_key en credenciales_SIIGO.json."
+                    )
+                continue
+            elif res.status_code == 401:
+                cuerpo = (res.text or "")[:500]
+                raise RuntimeError(
+                    "Siigo /v1/invoices respondió 401 tras renovar el token. "
+                    "Revise `username` y `access_key` (API key) en credenciales_SIIGO.json; "
+                    "si la clave se regeneró en Siigo Nube, actualice el JSON. "
+                    f"Detalle: {cuerpo}"
+                )
             else:
-                print(f"⚠️ Error obteniendo facturas de Siigo (Página {page}): {res.status_code}")
+                print(
+                    f"⚠️ Error obteniendo facturas de Siigo (Página {page}): {res.status_code} "
+                    f"{(res.text or '')[:200]}"
+                )
                 break
         except requests.RequestException as e:
             print(f"⚠️ Error de red obteniendo facturas de Siigo: {e}")
@@ -90,15 +133,22 @@ def descargar_factura_pdf_siigo(id_factura):
     if not token:
         return "❌ Error: No se pudo autenticar con Siigo."
 
+    puede_reintentar_auth = True
     try:
-        res = requests.get(
-            f"https://api.siigo.com/v1/invoices/{id_factura}/pdf",
-            headers={"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID},
-            timeout=15
-        )
-        if res.status_code == 200:
-            return res.json().get("base64", "")
-        else:
+        while True:
+            res = requests.get(
+                f"https://api.siigo.com/v1/invoices/{id_factura}/pdf",
+                headers={"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID},
+                timeout=15
+            )
+            if res.status_code == 200:
+                return res.json().get("base64", "")
+            if res.status_code == 401 and puede_reintentar_auth:
+                _invalidar_cache_token_siigo()
+                token = autenticar_siigo(forzar=True)
+                puede_reintentar_auth = False
+                if token:
+                    continue
             print(f"⚠️ Error descargando PDF de Siigo (ID: {id_factura}): {res.status_code}")
             return "❌ Error"
     except requests.RequestException as e:
@@ -147,6 +197,7 @@ def obtener_facturas_compra_siigo(fecha_inicio: str) -> list:
 
     purchase_invoices = []
     page = 1
+    puede_reintentar_auth = True
     while True:
         try:
             # Usando el endpoint correcto para facturas de compra: /v1/purchases
@@ -166,6 +217,23 @@ def obtener_facturas_compra_siigo(fecha_inicio: str) -> list:
                     page += 1
                 else:
                     break
+            elif res.status_code == 401 and puede_reintentar_auth:
+                _invalidar_cache_token_siigo()
+                token = autenticar_siigo(forzar=True)
+                puede_reintentar_auth = False
+                if not token:
+                    raise RuntimeError(
+                        "Siigo /v1/purchases devolvió 401 y POST /auth no devolvió token. "
+                        "Revise credenciales_SIIGO.json."
+                    )
+                continue
+            elif res.status_code == 401:
+                cuerpo = (res.text or "")[:500]
+                raise RuntimeError(
+                    "Siigo /v1/purchases respondió 401 tras renovar el token. "
+                    "Revise credenciales_SIIGO.json. "
+                    f"Detalle: {cuerpo}"
+                )
             else:
                 print(f"⚠️ Error obteniendo facturas de compra de Siigo (Página {page}): {res.status_code} - {res.text}")
                 break

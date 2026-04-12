@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Pedidos — Admin{% endblock %}
+
+{% block head %}
+<meta name="robots" content="noindex,nofollow">
+{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Admin</span>
+    <h1>Pedidos <em>web</em></h1>
+    <p>Todos los clientes · datos sensibles: no copiar a canales inseguros</p>
+  </div>
+</div>
+
+<div class="section" style="max-width:1200px;margin:0 auto;padding:32px 24px 80px;">
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:20px;">
+    <form method="post" action="{{ url_for('admin_pedidos_salir') }}" style="margin:0;">
+      <input type="hidden" name="csrf_token" value="{{ admin_csrf }}">
+      <button type="submit" class="btn btn-outline btn-sm">Cerrar sesión admin</button>
+    </form>
+    <span style="font-size:12px;color:var(--text-muted);">API envío: <code style="font-size:11px;">POST /api/pedido/envio</code> · Bearer <code style="font-size:11px;">WEB_ADMIN_TOKEN</code> o <code style="font-size:11px;">ADMIN_TOKEN</code></span>
+  </div>
+
+  {% if status_counts %}
+  <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;font-size:12px;">
+    {% for sc in status_counts %}
+    <span style="padding:8px 12px;background:var(--green-ultra);border:1px solid var(--green-pale);border-radius:8px;">
+      <strong>{{ sc.status }}</strong>: {{ sc.count }}
+    </span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="get" action="{{ url_for('admin_pedidos_lista') }}"
+        style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:20px;padding:16px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
+    <div style="flex:1;min-width:200px;">
+      <label class="form-label" for="adm-q">Buscar</label>
+      <input type="search" name="q" id="adm-q" class="form-input" value="{{ filter_q }}"
+             placeholder="Referencia, correo, nombre o teléfono">
+    </div>
+    <div style="min-width:160px;">
+      <label class="form-label" for="adm-st">Estado pago</label>
+      <select name="status" id="adm-st" class="form-input">
+        <option value="" {% if not filter_status %}selected{% endif %}>Todos</option>
+        <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>pending</option>
+        <option value="approved" {% if filter_status == 'approved' %}selected{% endif %}>approved</option>
+        <option value="declined" {% if filter_status == 'declined' %}selected{% endif %}>declined</option>
+        <option value="unknown" {% if filter_status == 'unknown' %}selected{% endif %}>unknown</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm" style="height:42px;">Filtrar</button>
+    {% if filter_q or filter_status %}
+    <a href="{{ url_for('admin_pedidos_lista') }}" class="btn btn-outline btn-sm" style="height:42px;display:inline-flex;align-items:center;">Limpiar</a>
+    {% endif %}
+  </form>
+
+  <p style="font-size:12px;color:var(--text-muted);margin:-8px 0 16px;">Mostrando hasta <strong>{{ orders_limit }}</strong> pedidos (orden reciente primero).</p>
+
+  <div style="padding:14px 18px;margin-bottom:18px;background:linear-gradient(90deg, rgba(30,92,81,0.12), rgba(30,92,81,0.04));border:1.5px solid var(--green);border-radius:12px;font-size:14px;line-height:1.55;color:var(--text);">
+    <strong style="color:var(--green-dark);">Registrar guía de envío:</strong> no está en esta tabla. Pulsa <strong>Ver</strong> en un pedido con pago <strong>approved</strong>; arriba del todo verás el formulario «Registrar envío (guía)». Pedidos en <em>pending</em> aún no muestran ese formulario.
+  </div>
+
+  <div style="overflow-x:auto;border:1.5px solid var(--green-pale);border-radius:12px;background:#fff;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:var(--green-ultra);text-align:left;">
+          <th style="padding:12px 10px;font-weight:800;color:var(--green-dark);">Ref</th>
+          <th style="padding:12px 10px;font-weight:800;color:var(--green-dark);">Fecha</th>
+          <th style="padding:12px 10px;font-weight:800;color:var(--green-dark);">Cliente</th>
+          <th style="padding:12px 10px;font-weight:800;color:var(--green-dark);">Correo</th>
+          <th style="padding:12px 10px;font-weight:800;color:var(--green-dark);">Total</th>
+          <th style="padding:12px 10px;font-weight:800;color:var(--green-dark);">Estado</th>
+          <th style="padding:12px 10px;font-weight:800;color:var(--green-dark);">Envío</th>
+          <th style="padding:12px 10px;font-weight:800;color:var(--green-dark);">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        {% set pay_ok = ((o['status'] or '')|string|trim|lower) == 'approved' %}
+        <tr style="border-top:1px solid var(--green-pale);">
+          <td style="padding:10px;vertical-align:top;font-weight:700;">{{ o['reference'] }}</td>
+          <td style="padding:10px;vertical-align:top;color:var(--text-muted);white-space:nowrap;">{{ (o['created_at'] or '')[:16] }}</td>
+          <td style="padding:10px;vertical-align:top;">{{ o['buyer_name'] or '—' }}</td>
+          <td style="padding:10px;vertical-align:top;word-break:break-all;">{{ o['buyer_email'] or '—' }}</td>
+          <td style="padding:10px;vertical-align:top;white-space:nowrap;">${{ "{:,.0f}".format(o['total'] or 0).replace(",", ".") }}</td>
+          <td style="padding:10px;vertical-align:top;">{{ o['status'] or '—' }}</td>
+          <td style="padding:10px;vertical-align:top;font-size:12px;">
+            {% set ss = o['shipping_status'] or 'preparing' %}
+            {{ ss }}{% if o['tracking_number'] %} · {{ o['tracking_number'] }}{% endif %}
+          </td>
+          <td style="padding:10px;vertical-align:top;">
+            <a href="{{ url_for('admin_pedido_detalle', ref=o['reference']) }}"
+               class="btn btn-outline btn-sm" style="font-size:11px;padding:6px 10px;display:inline-block;margin-bottom:6px;">Ver</a>
+            {% if pay_ok %}
+            <a href="{{ url_for('admin_pedido_detalle', ref=o['reference']) }}#registrar-envio"
+               class="btn btn-primary btn-sm" style="font-size:11px;padding:6px 10px;display:block;width:fit-content;">Guía envío</a>
+            {% endif %}
+            {% if pay_ok and o['tracking_token'] %}
+            <a href="{{ url_for('pedido_seguimiento', ref=o['reference'], t=o['tracking_token']) }}"
+               class="btn btn-outline btn-sm" style="font-size:11px;padding:6px 10px;margin-top:6px;display:inline-block;">Cliente</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="padding:40px;text-align:center;color:var(--text-muted);">Sin pedidos en la base (o ninguno coincide con el filtro).</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -36,6 +36,34 @@ cd bot-mckenna && npm ci && npm start
 # systemd (WhatsApp Node): sudo bot-mckenna/instalar_systemd.sh && systemctl enable --now mckenna-whatsapp-bridge
 ```
 
+### Git: `git pull` sin rama de seguimiento
+
+Si aparece *No hay información de rastreo para la rama actual*, usa explícitamente el remoto y la rama (suele ser `main` o `master`):
+
+```bash
+git remote -v
+git branch -vv
+git pull origin main    # o: git pull origin master
+# Opcional, una sola vez:
+# git branch --set-upstream-to=origin/main master
+```
+
+### Producción: un solo dueño por puerto (systemd vs nohup)
+
+| Puerto | Proceso | Unidad systemd (plantilla en `scripts/systemd/`) |
+|--------|---------|---------------------------------------------------|
+| 8080 | `webhook_meli.py` | `webhook-meli.service` |
+| 8081 | `agente_pro.py` | `mckenna-agente.service` (o alias `agente-pro.service`) |
+| 8083 | `PAGINA_WEB/site/website.py` | `mckenna-website.service` |
+| túnel | `cloudflared` | `cloudflared.service` u otra unidad que gestione el túnel |
+
+- **`mantener_servicios.sh`** y **`start_services.sh`** cargan `scripts/lib/mckenna_nohup_guard.sh`: si la unidad está **active** o **enabled** (aunque unos segundos esté `inactive` tras `systemctl stop`), **no** lanzan ese servicio con `nohup` — evita que el watcher meta un segundo `webhook_meli.py` mientras reinicias con `normalizar_webhook_meli.sh`.
+- Instalar plantillas: **`./scripts/instalar_servicios_systemd.sh`**, luego `systemctl enable --now` solo lo necesario.
+- Diagnóstico: **`./scripts/diagnostico_servicios_mcKenna.sh`** (antes `diagnostico_webhook_8080.sh`).
+- Si el diagnóstico muestra **2 procesos** `webhook_meli.py` o el PID del **8080 ≠ MainPID** de systemd: **`./scripts/normalizar_webhook_meli.sh`**.
+- `webhook_meli.py` usa **flock** (`.webhook_meli.lock`) para una sola instancia; **no** hace bind de prueba al 8080 antes de cargar Flask (evita `EADDRINUSE` por **TIME_WAIT** tras `restart` y bucle de fallos en systemd).
+- Tras muchos fallos en webhook: `sudo systemctl reset-failed webhook-meli` y copiar `StartLimitBurst` actualizado del repo en la unidad instalada.
+
 ---
 
 ## Estructura de Directorios
@@ -276,6 +304,8 @@ sincronizar_facturas_recientes(dias=1):
 ## Endpoints Flask
 
 **Webhooks MeLi:** configurar la aplicación de Mercado Libre para que **`/notifications` apunte solo al proceso del puerto 8080** (`webhook_meli.py`). `routes.py` en 8081 también define `/notifications` por legado; no duplicar el mismo URL en producción (evita doble procesamiento).
+
+**URL pública de callbacks (producción):** `https://bot.mckennagroup.co/notifications` — en el administrador de aplicaciones MeLi, *Notificaciones / Callback URL* debe ser exactamente esa (HTTPS, sin barra final). El hostname **`bot.mckennagroup.co`** (túnel Cloudflare o proxy) debe enrutar el tráfico al servicio que ejecuta **`webhook_meli.py` en el puerto 8080**, no al agente en 8081.
 
 ### webhook_meli.py (Puerto 8080)
 

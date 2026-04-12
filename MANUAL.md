@@ -248,6 +248,8 @@ Publica la respuesta generada por la IA en la publicación de MeLi. El endpoint 
 
 #### Preventa, órdenes y mensajes (`POST /notifications`)
 
+**Producción:** en Mercado Libre, la *Callback URL* de notificaciones debe ser **`https://bot.mckennagroup.co/notifications`** (mismo path que expone `webhook_meli.py` en el puerto **8080**; el túnel `bot.mckennagroup.co` debe apuntar a ese proceso).
+
 El cuerpo JSON trae `topic` y `resource`:
 
 | `topic` | Acción en hilo aparte |

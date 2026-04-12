@@ -11,15 +11,29 @@
 
 <div class="section" style="max-width:760px;margin:0 auto;padding:64px 32px;">
 
-  <form method="GET" style="display:flex;gap:12px;margin-bottom:40px;">
-    <input type="email" name="email" value="{{ email }}"
-           class="form-input" placeholder="Tu correo electrónico" required
-           style="flex:1;">
-    <button type="submit" class="btn btn-primary">Buscar</button>
-  </form>
+  <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px;padding:16px 20px;background:var(--green-ultra);border:1.5px solid var(--green-pale);border-radius:12px;">
+    <div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--green-dark);">Sesión</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-top:4px;">{{ email }}</div>
+    </div>
+    <form method="post" action="{{ url_for('cuenta_salir') }}" style="margin:0;">
+      <input type="hidden" name="csrf_token" value="{{ logout_csrf }}">
+      <button type="submit" class="btn btn-outline btn-sm">Cerrar sesión</button>
+    </form>
+  </div>
 
-  {% if email %}
-    {% if orders %}
+  {% if admin_panel_enabled and admin_orders_session_ok %}
+  <div style="margin-bottom:24px;padding:14px 18px;background:#fff;border:1.5px solid var(--green-pale);border-radius:12px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green-dark);">Administración</div>
+    <a href="{{ url_for('admin_pedidos_lista') }}" class="btn btn-primary btn-sm" style="margin-top:10px;display:inline-block;">Panel de pedidos (todos los clientes)</a>
+  </div>
+  {% endif %}
+
+  <p style="font-size:13px;color:var(--text-muted);margin:-16px 0 28px;line-height:1.6;">
+    Solo ves pedidos asociados a este correo (el mismo de tu cuenta Google al pagar).
+  </p>
+
+  {% if orders %}
       {% for o in orders %}
       <div class="cart-row" style="padding:24px 0;align-items:flex-start;flex-wrap:wrap;gap:12px;">
         <div style="flex:1;min-width:200px;">
@@ -51,11 +65,10 @@
         </div>
       </div>
       {% endfor %}
-    {% else %}
+  {% else %}
       <p style="color:var(--text-muted);text-align:center;padding:40px 0;">
-        No encontramos pedidos para <strong>{{ email }}</strong>.
+        Aún no hay pedidos con este correo. Cuando compres, aparecerán aquí.
       </p>
-    {% endif %}
   {% endif %}
 
 </div>

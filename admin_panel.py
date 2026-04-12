@@ -321,7 +321,7 @@ El servidor es Ubuntu 24, Python/Flask en /home/mckg/mi-agente.
 - Agente: Hugo García, español colombiano
 - Comandos grupo: ok confirmado {numero}, pausar {numero}, activar {numero}, resp {numero}: {mensaje}
 Servicios activos: webhook-meli (8080), agente-pro (8081), whatsapp-bridge (3000), admin-panel (8082).
-Cloudflare tunnel apunta a bot.mckennagroup.co.
+Cloudflare: bot.mckennagroup.co → callbacks MeLi en https://bot.mckennagroup.co/notifications (webhook_meli :8080).
 
 Cuando el usuario pida algo en lenguaje natural:
 1. Explica brevemente qué vas a hacer

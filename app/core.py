@@ -1,9 +1,18 @@
+import base64
+import copy
 import os
 import inspect
 import json
 import time as _time
 import traceback
 from typing import get_type_hints, get_origin, get_args, Union
+
+# Adjuntos en /chat (imágenes comprobante, PDF)
+_MAX_ADJUNTOS_CHAT = 5
+_MAX_BYTES_ADJUNTO_CHAT = 4_500_000
+_CHAT_MEDIA_OK = frozenset(
+    {"image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"}
+)
 
 import anthropic
 
@@ -254,6 +263,78 @@ def _fn_to_tool_schema(fn) -> dict:
     return schema
 
 
+def _parse_adjuntos_chat(raw) -> list[tuple[str, bytes]]:
+    """Lista de (media_type, bytes) desde JSON `adjuntos` / `attachments`. Errores → ValueError."""
+    if not raw:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError("adjuntos debe ser una lista")
+    if len(raw) > _MAX_ADJUNTOS_CHAT:
+        raise ValueError(f"Máximo {_MAX_ADJUNTOS_CHAT} archivos por mensaje")
+    out: list[tuple[str, bytes]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            raise ValueError("cada adjunto debe ser un objeto")
+        mt = (item.get("media_type") or item.get("mime") or "").strip().lower()
+        if mt == "image/jpg":
+            mt = "image/jpeg"
+        b64 = item.get("data_base64") or item.get("data") or ""
+        if not isinstance(b64, str) or not b64.strip():
+            raise ValueError("cada adjunto necesita data_base64")
+        if "," in b64 and b64.lstrip().startswith("data:"):
+            b64 = b64.split(",", 1)[1]
+        try:
+            raw_bytes = base64.b64decode(b64, validate=True)
+        except Exception as e:
+            raise ValueError(f"Base64 inválido: {e}") from e
+        if len(raw_bytes) > _MAX_BYTES_ADJUNTO_CHAT:
+            raise ValueError(
+                f"Archivo demasiado grande (máx. {_MAX_BYTES_ADJUNTO_CHAT // 1_000_000} MB por archivo)"
+            )
+        if mt not in _CHAT_MEDIA_OK:
+            raise ValueError(f"Tipo no soportado: {mt}")
+        out.append((mt, raw_bytes))
+    return out
+
+
+def _bloques_claude_adjuntos(media_type: str, data: bytes) -> dict:
+    b64 = base64.b64encode(data).decode("ascii")
+    if media_type == "application/pdf":
+        return {
+            "type": "document",
+            "source": {
+                "type": "base64",
+                "media_type": "application/pdf",
+                "data": b64,
+            },
+        }
+    return {
+        "type": "image",
+        "source": {"type": "base64", "media_type": media_type, "data": b64},
+    }
+
+
+def _sanitizar_turno_usuario_binario(
+    messages: list,
+    user_msg_index: int,
+    usuario_id: str,
+    pregunta: str,
+    n_adjuntos: int,
+) -> list:
+    """Quita base64 del turno usuario en `user_msg_index` antes de guardar historial en RAM."""
+    if n_adjuntos <= 0 or user_msg_index < 0 or user_msg_index >= len(messages):
+        return messages
+    snap = copy.deepcopy(messages)
+    c = snap[user_msg_index].get("content")
+    if not isinstance(c, list):
+        return messages
+    snap[user_msg_index]["content"] = (
+        f"Usuario_{usuario_id}: {pregunta or '[adjunto]'} "
+        f"[{n_adjuntos} archivo(s) enviado(s); ya procesados en este turno]"
+    )
+    return snap
+
+
 def _serializar_content(content) -> list:
     """
     Convierte los bloques de respuesta de Anthropic a dicts serializables
@@ -378,14 +459,31 @@ def configurar_ia(app):
 # ==========================================
 
 
-def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None):
+def obtener_respuesta_ia(
+    pregunta: str,
+    usuario_id: str,
+    historial: list = None,
+    adjuntos_payload: list = None,
+):
     """
     Envía la pregunta a Claude, ejecuta las herramientas que Claude solicite
     en un loop, y retorna la respuesta final de texto junto con el historial
     actualizado de la conversación.
+
+    adjuntos_payload: lista de dicts {media_type, data_base64} (imagen/PDF) vía /chat.
     """
     if not cliente_ia:
         return "Veci, estamos en mantenimiento. Intente en unos minutos 🙏", []
+
+    try:
+        adjuntos = _parse_adjuntos_chat(adjuntos_payload)
+    except ValueError as ve:
+        return f"Veci, no pude leer el adjunto: {ve} 🙏", []
+
+    n_adj = len(adjuntos)
+    texto_usuario = f"Usuario_{usuario_id}: {pregunta or ''}".strip()
+    if not (pregunta or "").strip() and not adjuntos:
+        return "Veci, escribe un mensaje o adjunta un archivo 🙏", []
 
     # Recuperar historial previo del usuario (o usar el pasado como parámetro)
     if historial:
@@ -393,13 +491,28 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
     else:
         messages = list(_historiales.get(usuario_id, []))
 
-    messages.append({"role": "user", "content": f"Usuario_{usuario_id}: {pregunta}"})
+    user_msg_index = len(messages)
+    if adjuntos:
+        bloques: list = [{"type": "text", "text": texto_usuario or f"Usuario_{usuario_id}: [adjunto]"}]
+        for mt, raw in adjuntos:
+            bloques.append(_bloques_claude_adjuntos(mt, raw))
+        messages.append({"role": "user", "content": bloques})
+    else:
+        messages.append({"role": "user", "content": texto_usuario})
 
     log_json(
         "ia_turn_start",
         usuario_id=str(usuario_id)[:80],
         pregunta_chars=len(pregunta or ""),
+        adjuntos_n=n_adj,
     )
+
+    def _persistir_historial(msgs: list) -> list:
+        limpio = _sanitizar_turno_usuario_binario(
+            msgs, user_msg_index, usuario_id, (pregunta or "").strip(), n_adj
+        )
+        _historiales[usuario_id] = limpio[-40:]
+        return limpio
 
     MAX_REINTENTOS = 3
 
@@ -499,16 +612,15 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                             "content": _serializar_content(response.content),
                         }
                     ]
-                    # Mantener últimos 40 mensajes para controlar costo de contexto
-                    _historiales[usuario_id] = final_messages[-40:]
+                    limpio = _persistir_historial(final_messages)
 
-                    if not pregunta.startswith("BOT_"):
+                    if not (pregunta or "").startswith("BOT_"):
                         return (
                             texto or "✅ Tarea ejecutada en segundo plano.",
-                            final_messages,
+                            limpio,
                         )
                     else:
-                        return "", final_messages
+                        return "", limpio
 
                 elif response.stop_reason == "max_tokens":
                     # Respuesta cortada por límite de tokens — devolver lo que haya
@@ -524,7 +636,7 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                             "content": _serializar_content(response.content),
                         }
                     ]
-                    _historiales[usuario_id] = final_messages[-40:]
+                    limpio = _persistir_historial(final_messages)
                     user_text = texto.strip() or (
                         "Veci, la respuesta se cortó por tamaño. ¿Puede ser más específico? 🙏"
                     )
@@ -532,30 +644,32 @@ def obtener_respuesta_ia(pregunta: str, usuario_id: str, historial: list = None)
                         user_text = (
                             f"{user_text}\n\n(Ajuste: si falta detalle, pregunte una cosa puntual.)"
                         )
-                    return user_text, final_messages
+                    return user_text, limpio
 
                 else:
                     print(f"⚠️ stop_reason inesperado: {response.stop_reason}")
-                    _historiales[usuario_id] = current_messages[-40:]
+                    limpio = _persistir_historial(current_messages)
                     return (
                         "Veci, tuve un problema al completar la respuesta. "
                         "¿Intenta de nuevo en un momentico? 🙏",
-                        current_messages,
+                        limpio,
                     )
             else:
                 print(
                     f"⚠️ Límite de {MAX_TOOL_ITERS} iteraciones de herramientas alcanzado"
                 )
-                _historiales[usuario_id] = current_messages[-40:]
+                limpio = _persistir_historial(current_messages)
                 return (
                     "Veci, me quedé a medias usando las herramientas internas. "
                     "¿Me escribe de nuevo una sola pregunta concreta? 🙏",
-                    current_messages,
+                    limpio,
                 )
 
         except anthropic.BadRequestError as e:
             # Esquemas de herramientas inválidos o mensaje malformado
-            _log_error(f"BadRequestError usuario={usuario_id} msg='{pregunta[:80]}'", e)
+            _log_error(
+                f"BadRequestError usuario={usuario_id} msg='{(pregunta or '')[:80]}'", e
+            )
             print(f"❌ Error de request Claude (BadRequest): {e}")
             # Limpiar historial de este usuario para evitar reenviar mensajes corruptos
             _historiales.pop(usuario_id, None)

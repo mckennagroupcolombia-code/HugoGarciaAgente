@@ -5,16 +5,21 @@ Fuente de datos: Google Sheets + MeLi API (fotos vía CDN)
 Puerto: 8082
 """
 
-import sys, os, json, time, re, logging, sqlite3, uuid, threading
+import sys, os, json, time, re, logging, sqlite3, uuid, threading, secrets
+from typing import Any
 from pathlib import Path
 from collections import defaultdict, Counter
 from datetime import datetime
 
 ROOT = Path(__file__).resolve().parent.parent.parent   # /home/mckg/mi-agente
+_SITE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(_SITE_DIR))  # primero: import site_auth junto a website.py
 
 from dotenv import load_dotenv
 load_dotenv(ROOT / '.env')
+
+import site_auth
 
 from app.tools.web_pedidos import (
     migrate_orders_table,
@@ -24,7 +29,18 @@ from app.tools.web_pedidos import (
 )
 from app.services.siigo import listar_productos_combo_siigo, buscar_producto_siigo_por_sku
 
-from flask import Flask, render_template, request, jsonify, abort, redirect, url_for, session
+from flask import (
+    Flask,
+    render_template,
+    request,
+    jsonify,
+    abort,
+    redirect,
+    url_for,
+    session,
+    flash,
+    Response,
+)
 import requests
 import gspread
 
@@ -102,6 +118,52 @@ DB_PATH = Path(__file__).parent / "data/orders.db"
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger("website")
+
+_ORDER_REF_RE = re.compile(r"^MCKG-[A-F0-9]+$", re.IGNORECASE)
+_SESSION_ADMIN_NEXT = "mckg_admin_post_login"
+
+
+def _admin_orders_limit() -> int:
+    try:
+        n = int((os.getenv("WEB_ADMIN_ORDERS_LIMIT") or "500").strip())
+    except ValueError:
+        n = 500
+    return max(50, min(n, 2000))
+
+
+def _admin_bearer_authorized(token: str) -> bool:
+    t = (token or "").strip().encode("utf-8")
+    if not t:
+        return False
+    for env_key in ("WEB_ADMIN_TOKEN", "ADMIN_TOKEN"):
+        exp = (os.getenv(env_key) or "").strip().encode("utf-8")
+        if len(exp) != len(t):
+            continue
+        if exp and secrets.compare_digest(t, exp):
+            return True
+    return False
+
+
+def _parse_order_items_blob(items_json: str | None) -> dict[str, Any]:
+    if not items_json:
+        return {}
+    try:
+        data = json.loads(items_json)
+        return data if isinstance(data, dict) else {}
+    except json.JSONDecodeError:
+        return {}
+
+
+def _safe_admin_next(candidate: str | None) -> str | None:
+    if not isinstance(candidate, str):
+        return None
+    c = candidate.strip()
+    if len(c) > 512 or not c.startswith("/admin/") or c.startswith("//"):
+        return None
+    path_only = c.split("?", 1)[0]
+    if ".." in path_only or path_only.count("/") > 24:
+        return None
+    return c
 
 # ══════════════════════════════════════════════════════════
 #  CATEGORÍAS (mismo orden que catálogo PDF)
@@ -1540,7 +1602,19 @@ def guide_for_product(sku: str) -> dict | None:
 
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "mckg-s3cr3t-2026-!xK9")
+_flask_secret = (os.getenv("FLASK_SECRET_KEY") or "").strip()
+if not _flask_secret:
+    _flask_secret = "mckg-dev-only-unsafe-set-FLASK_SECRET_KEY"
+    log.warning(
+        "FLASK_SECRET_KEY no definida: sesiones firmadas débiles. "
+        "Define FLASK_SECRET_KEY en producción (valor largo aleatorio)."
+    )
+app.secret_key = _flask_secret
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=site_auth.session_cookie_secure(),
+)
 META_PIXEL_ID = os.getenv("META_PIXEL_ID", "")
 app.jinja_env.globals.update(
     wa_link=wa_link,
@@ -1549,6 +1623,17 @@ app.jinja_env.globals.update(
     META_PIXEL_ID=META_PIXEL_ID,
     SITE_URL=SITE_URL,
 )
+
+
+@app.context_processor
+def _inject_site_auth():
+    return {
+        "customer_logged_in": bool(session.get(site_auth.SESSION_CUSTOMER_EMAIL)),
+        "customer_email": session.get(site_auth.SESSION_CUSTOMER_EMAIL) or "",
+        "google_oauth_ready": site_auth.google_oauth_configured(),
+        "admin_panel_enabled": site_auth.admin_panel_enabled(),
+        "admin_orders_session_ok": site_auth.session_admin_orders_authorized(session),
+    }
 
 
 @app.route("/")
@@ -1686,7 +1771,9 @@ def sitemap():
 def robots():
     from flask import Response
     txt = (
-        f"User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /pedido/\n"
+        f"User-agent: *\nAllow: /\n"
+        f"Disallow: /api/\nDisallow: /pedido/\nDisallow: /admin/\n"
+        f"Disallow: /auth/\nDisallow: /cuenta/\n"
         f"Sitemap: {SITE_URL}/sitemap.xml\n"
     )
     return Response(txt, mimetype="text/plain")
@@ -1913,7 +2000,16 @@ def checkout():
     ref   = "MCKG-" + uuid.uuid4().hex[:10].upper()
     session["pending_ref"] = ref
     session.modified = True
-    return render_template("checkout.html", cart=cart, total=total, ref=ref)
+    locked_email = ""
+    if site_auth.google_oauth_configured():
+        locked_email = (session.get(site_auth.SESSION_CUSTOMER_EMAIL) or "").strip()
+    return render_template(
+        "checkout.html",
+        cart=cart,
+        total=total,
+        ref=ref,
+        checkout_locked_email=locked_email,
+    )
 
 
 @app.route("/checkout/pagar", methods=["POST"])
@@ -1929,6 +2025,16 @@ def checkout_pagar():
     buyer_name    = request.form.get("buyer_name", "").strip()
     buyer_cedula  = request.form.get("buyer_cedula", "").strip()
     buyer_email   = request.form.get("buyer_email", "").strip()
+    logged_email = (session.get(site_auth.SESSION_CUSTOMER_EMAIL) or "").strip()
+    if logged_email and site_auth.google_oauth_configured():
+        if buyer_email.lower() != logged_email.lower():
+            flash(
+                "El correo del pedido debe ser el mismo que tu cuenta Google. "
+                "Cierra sesión si necesitas usar otro correo.",
+                "error",
+            )
+            return redirect(url_for("checkout"))
+        buyer_email = logged_email
     buyer_phone   = request.form.get("buyer_phone", "").strip()
     buyer_city    = request.form.get("buyer_city", "").strip()
     buyer_dept    = request.form.get("buyer_dept", "").strip()
@@ -2101,23 +2207,283 @@ def pago_confirmacion():
     return "OK", 200
 
 
+@app.route("/cuenta/entrar")
+def cuenta_entrar():
+    if session.get(site_auth.SESSION_CUSTOMER_EMAIL):
+        return redirect(url_for("mis_pedidos"))
+    next_url = (request.args.get("next") or "").strip()
+    if next_url.startswith("/") and not next_url.startswith("//"):
+        session[site_auth.SESSION_POST_LOGIN_NEXT] = next_url
+        session.modified = True
+    return render_template(
+        "cuenta_login.html",
+        oauth_available=site_auth.google_oauth_configured(),
+    )
+
+
+@app.route("/auth/google/start")
+def auth_google_start():
+    if not site_auth.google_oauth_configured():
+        abort(503)
+    st = site_auth.new_oauth_state()
+    session[site_auth.SESSION_OAUTH_STATE] = st
+    session.modified = True
+    return redirect(site_auth.build_google_authorize_url(st))
+
+
+@app.route("/auth/google/callback")
+def auth_google_callback():
+    if not site_auth.google_oauth_configured():
+        abort(503)
+    if request.args.get("error"):
+        log.warning("Google OAuth callback error=%s", request.args.get("error"))
+        flash("No se completó el acceso con Google. Intenta de nuevo.", "error")
+        return redirect(url_for("cuenta_entrar"))
+    state = (request.args.get("state") or "").strip()
+    code = (request.args.get("code") or "").strip()
+    expected = session.pop(site_auth.SESSION_OAUTH_STATE, None)
+    session.modified = True
+    if (
+        not expected
+        or not state
+        or not secrets.compare_digest(str(expected), str(state))
+    ):
+        flash("La sesión de acceso expiró. Intenta de nuevo.", "error")
+        return redirect(url_for("cuenta_entrar"))
+    profile = site_auth.exchange_code_for_profile(code)
+    if not profile:
+        flash("No pudimos verificar tu correo con Google.", "error")
+        return redirect(url_for("cuenta_entrar"))
+    session[site_auth.SESSION_CUSTOMER_EMAIL] = profile["email"]
+    session[site_auth.SESSION_CUSTOMER_SUB] = profile["sub"]
+    session.modified = True
+    nxt = session.pop(site_auth.SESSION_POST_LOGIN_NEXT, None)
+    if isinstance(nxt, str) and nxt.startswith("/") and not nxt.startswith("//"):
+        return redirect(nxt)
+    return redirect(url_for("mis_pedidos"))
+
+
+@app.route("/cuenta/salir", methods=["POST"])
+def cuenta_salir():
+    tok = (request.form.get("csrf_token") or "").strip()
+    exp = (session.get("mckg_cust_logout_csrf") or "").strip()
+    if not exp or not tok or not secrets.compare_digest(
+        exp.encode("utf-8"), tok.encode("utf-8")
+    ):
+        abort(400)
+    session.pop("mckg_cust_logout_csrf", None)
+    session.pop(site_auth.SESSION_CUSTOMER_EMAIL, None)
+    session.pop(site_auth.SESSION_CUSTOMER_SUB, None)
+    session.pop(site_auth.SESSION_OAUTH_STATE, None)
+    session.pop(site_auth.SESSION_POST_LOGIN_NEXT, None)
+    session.modified = True
+    flash("Sesión cerrada.", "info")
+    return redirect(url_for("index"))
+
+
 @app.route("/mis-pedidos")
 def mis_pedidos():
     init_db()
-    email = request.args.get("email", "").strip().lower()
+    if not site_auth.google_oauth_configured():
+        return render_template("mis_pedidos_disabled.html")
+    email = (session.get(site_auth.SESSION_CUSTOMER_EMAIL) or "").strip().lower()
+    if not email:
+        return redirect(url_for("cuenta_entrar", next="/mis-pedidos"))
     orders = []
-    if email:
-        try:
-            con = sqlite3.connect(DB_PATH)
-            con.row_factory = sqlite3.Row
-            orders = con.execute(
-                "SELECT * FROM orders WHERE lower(buyer_email)=? ORDER BY id DESC LIMIT 20",
-                (email,)
-            ).fetchall()
-            con.close()
-        except Exception as e:
-            log.warning(f"mis_pedidos: {e}")
-    return render_template("mis_pedidos.html", orders=orders, email=email)
+    try:
+        con = sqlite3.connect(DB_PATH)
+        con.row_factory = sqlite3.Row
+        orders = con.execute(
+            "SELECT * FROM orders WHERE lower(buyer_email)=? ORDER BY id DESC LIMIT 50",
+            (email,),
+        ).fetchall()
+        con.close()
+    except Exception as e:
+        log.warning("mis_pedidos: %s", e)
+    logout_csrf = secrets.token_urlsafe(32)
+    session["mckg_cust_logout_csrf"] = logout_csrf
+    session.modified = True
+    return render_template(
+        "mis_pedidos.html",
+        orders=orders,
+        email=email,
+        logout_csrf=logout_csrf,
+    )
+
+
+@app.route("/admin/pedidos/entrar", methods=["GET", "POST"])
+def admin_pedidos_entrar():
+    if not site_auth.admin_panel_enabled():
+        abort(404)
+    if site_auth.session_admin_orders_authorized(session):
+        return redirect(url_for("admin_pedidos_lista"))
+    next_url = _safe_admin_next(request.args.get("next"))
+    if request.method == "GET" and next_url:
+        session[_SESSION_ADMIN_NEXT] = next_url
+        session.modified = True
+    if request.method == "POST":
+        ip = request.remote_addr or ""
+        if not site_auth.admin_login_allowed(ip):
+            flash("Demasiados intentos fallidos. Espera unos minutos.", "error")
+        elif not site_auth.admin_csrf_ok(session, request.form.get("csrf_token")):
+            flash("Formulario inválido o expirado. Recarga la página.", "error")
+        elif site_auth.session_is_google_order_admin(session):
+            session.modified = True
+            nxt = _safe_admin_next(session.pop(_SESSION_ADMIN_NEXT, None))
+            if nxt:
+                return redirect(nxt)
+            return redirect(url_for("admin_pedidos_lista"))
+        elif site_auth.verify_admin_token(request.form.get("token", "")):
+            session[site_auth.SESSION_ADMIN_OK] = True
+            session.modified = True
+            nxt = _safe_admin_next(session.pop(_SESSION_ADMIN_NEXT, None))
+            if nxt:
+                return redirect(nxt)
+            return redirect(url_for("admin_pedidos_lista"))
+        else:
+            site_auth.record_admin_login_fail(ip)
+            flash("Token incorrecto.", "error")
+    csrf = site_auth.new_admin_csrf()
+    session[site_auth.SESSION_ADMIN_CSRF] = csrf
+    session.modified = True
+    return render_template(
+        "admin_pedidos_entrar.html",
+        csrf_token=csrf,
+        order_admin_google_hint=bool(site_auth.order_admin_google_emails()),
+    )
+
+
+@app.route("/admin/pedidos")
+def admin_pedidos_lista():
+    if not site_auth.admin_panel_enabled():
+        abort(404)
+    if not site_auth.session_admin_orders_authorized(session):
+        dest = request.full_path
+        if dest.endswith("?"):
+            dest = dest[:-1]
+        safe = _safe_admin_next(dest) or "/admin/pedidos"
+        return redirect(url_for("admin_pedidos_entrar", next=safe))
+    init_db()
+    q = (request.args.get("q") or "").strip()
+    status_f = (request.args.get("status") or "").strip().lower()
+    if status_f not in ("", "pending", "approved", "declined", "unknown"):
+        status_f = ""
+    limit = _admin_orders_limit()
+    rows = []
+    status_counts: list[dict[str, Any]] = []
+    try:
+        con = sqlite3.connect(DB_PATH)
+        con.row_factory = sqlite3.Row
+        for r in con.execute(
+            "SELECT COALESCE(status, '') AS st, COUNT(*) AS c "
+            "FROM orders GROUP BY st ORDER BY c DESC"
+        ):
+            status_counts.append({"status": r["st"] or "—", "count": r["c"]})
+        sql = "SELECT * FROM orders WHERE 1=1"
+        args: list[Any] = []
+        if q:
+            qu = f"%{q.upper()}%"
+            ql = f"%{q}%"
+            sql += (
+                " AND (upper(reference) LIKE ? OR lower(COALESCE(buyer_email,'')) "
+                "LIKE lower(?) OR COALESCE(buyer_name,'') LIKE ? "
+                "OR COALESCE(buyer_phone,'') LIKE ?)"
+            )
+            args.extend([qu, ql, ql, ql])
+        if status_f:
+            sql += " AND lower(COALESCE(status,'')) = ?"
+            args.append(status_f)
+        sql += " ORDER BY id DESC LIMIT ?"
+        args.append(limit)
+        rows = con.execute(sql, args).fetchall()
+        con.close()
+    except Exception as e:
+        log.warning("admin_pedidos_lista: %s", e)
+    csrf = session.get(site_auth.SESSION_ADMIN_CSRF) or site_auth.new_admin_csrf()
+    session[site_auth.SESSION_ADMIN_CSRF] = csrf
+    session.modified = True
+    return render_template(
+        "admin_pedidos_lista.html",
+        orders=rows,
+        admin_csrf=csrf,
+        filter_q=q,
+        filter_status=status_f,
+        status_counts=status_counts,
+        orders_limit=limit,
+    )
+
+
+@app.route("/admin/pedidos/ver/<ref>")
+def admin_pedido_detalle(ref: str):
+    if not site_auth.admin_panel_enabled():
+        abort(404)
+    if not site_auth.session_admin_orders_authorized(session):
+        dest = request.full_path
+        if dest.endswith("?"):
+            dest = dest[:-1]
+        safe = _safe_admin_next(dest) or "/admin/pedidos"
+        return redirect(url_for("admin_pedidos_entrar", next=safe))
+    ref_u = (ref or "").strip().upper()
+    if not _ORDER_REF_RE.match(ref_u):
+        abort(404)
+    init_db()
+    order = get_order_by_reference(ref_u)
+    if not order:
+        abort(404)
+    payload = _parse_order_items_blob(order.get("items_json"))
+    items = payload.get("items") if isinstance(payload.get("items"), list) else []
+    csrf = session.get(site_auth.SESSION_ADMIN_CSRF) or site_auth.new_admin_csrf()
+    session[site_auth.SESSION_ADMIN_CSRF] = csrf
+    session.modified = True
+    return render_template(
+        "admin_pedido_detalle.html",
+        order=order,
+        order_payload=payload,
+        order_items=items,
+        admin_csrf=csrf,
+    )
+
+
+@app.route("/admin/pedidos/registrar-envio", methods=["POST"])
+def admin_pedidos_registrar_envio():
+    if not site_auth.admin_panel_enabled():
+        abort(404)
+    if not site_auth.session_admin_orders_authorized(session):
+        flash("Sesión de administración expirada.", "error")
+        return redirect(url_for("admin_pedidos_entrar"))
+    if not site_auth.admin_csrf_ok(session, request.form.get("csrf_token")):
+        flash("Formulario inválido o expirado. Recarga la página.", "error")
+        return redirect(url_for("admin_pedidos_lista"))
+    ref = (request.form.get("reference") or "").strip().upper()
+    guia = (request.form.get("tracking_number") or "").strip()
+    carrier = (request.form.get("carrier") or "").strip()
+    if not _ORDER_REF_RE.match(ref):
+        flash("Referencia de pedido inválida.", "error")
+        return redirect(url_for("admin_pedidos_lista"))
+    ok, msg = registrar_envio_y_notificar(ref, guia, carrier)
+    flash(msg, "info" if ok else "error")
+    return redirect(url_for("admin_pedido_detalle", ref=ref))
+
+
+@app.route("/admin/pedidos/salir", methods=["POST"])
+def admin_pedidos_salir():
+    if not site_auth.admin_panel_enabled():
+        abort(404)
+    if not site_auth.admin_csrf_ok(session, request.form.get("csrf_token")):
+        flash("Acción inválida.", "error")
+        return redirect(url_for("admin_pedidos_lista"))
+    if session.get(site_auth.SESSION_ADMIN_OK):
+        session.pop(site_auth.SESSION_ADMIN_OK, None)
+        session.pop(site_auth.SESSION_ADMIN_CSRF, None)
+        session.pop(_SESSION_ADMIN_NEXT, None)
+        session.modified = True
+        flash("Sesión de administración cerrada.", "info")
+        return redirect(url_for("admin_pedidos_entrar"))
+    if site_auth.session_is_google_order_admin(session):
+        flash("Saliste del panel de pedidos. Sigues con sesión Google en la tienda.", "info")
+        return redirect(url_for("mis_pedidos"))
+    flash("No había sesión de administración activa.", "info")
+    return redirect(url_for("admin_pedidos_lista"))
 
 
 @app.route("/pedido/seguimiento/<ref>")
@@ -2133,9 +2499,9 @@ def pedido_seguimiento(ref: str):
 
 @app.route("/api/pedido/envio", methods=["POST"])
 def api_pedido_envio():
-    """Registra guía y envía correo «en camino» al cliente. Bearer ADMIN_TOKEN."""
+    """Registra guía y envía correo «en camino» al cliente. Bearer WEB_ADMIN_TOKEN o ADMIN_TOKEN."""
     auth = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    if not auth or auth != os.getenv("ADMIN_TOKEN", ""):
+    if not _admin_bearer_authorized(auth):
         abort(403)
     body = request.get_json(silent=True) or {}
     reference = (body.get("reference") or body.get("ref") or "").strip()
@@ -2149,9 +2515,10 @@ def api_pedido_envio():
 def api_chat():
     """Proxy público hacia el agente Hugo García (puerto 8081)."""
     data = request.get_json(silent=True) or {}
-    message = data.get("message", "").strip()
-    if not message:
-        return jsonify({"error": "Campo 'message' requerido"}), 400
+    message = (data.get("message") or "").strip()
+    attachments = data.get("attachments") or data.get("adjuntos") or []
+    if not message and not attachments:
+        return jsonify({"error": "Campo 'message' o attachments requerido"}), 400
     session_id = (data.get("session_id") or data.get("sessionId") or "").strip()
     if not session_id:
         session_id = session.get("hugo_chat_session")
@@ -2161,12 +2528,15 @@ def api_chat():
             session.modified = True
     try:
         agent_token = os.getenv("CHAT_API_TOKEN", "")
+        payload = {"mensaje": message, "session_id": session_id}
+        if attachments:
+            payload["adjuntos"] = attachments
         res = requests.post(
             "http://localhost:8081/chat",
-            json={"mensaje": message, "session_id": session_id},
+            json=payload,
             headers={"Authorization": f"Bearer {agent_token}",
                      "Content-Type": "application/json"},
-            timeout=30,
+            timeout=120,
         )
         if res.status_code == 200:
             return jsonify({"reply": res.json().get("respuesta", ""), "ok": True})
