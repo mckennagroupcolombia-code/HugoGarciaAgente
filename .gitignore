@@ -30,6 +30,9 @@ htmlcov/
 *~
 .DS_Store
 
+# Lock singleton webhook MeLi (runtime)
+.webhook_meli.lock
+
 # Bases de datos y cache
 mckenna_business.db
 *.sqlite3

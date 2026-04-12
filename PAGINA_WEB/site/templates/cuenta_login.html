@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Entrar — McKenna Group{% endblock %}
+{% block description %}Accede con Google para ver tus pedidos en mckennagroup.co.{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Tu cuenta</span>
+    <h1>Entrar con <em>Google</em></h1>
+    <p>Usamos solo tu correo verificado para mostrarte tus pedidos. No publicamos tu sesión en redes.</p>
+  </div>
+</div>
+
+<div class="section" style="max-width:560px;margin:0 auto;padding:48px 32px 80px;">
+
+  {% if oauth_available %}
+  <div style="padding:28px 24px;background:#fff;border:1.5px solid var(--green-pale);border-radius:16px;box-shadow:0 4px 24px rgba(2,45,51,0.06);">
+    <p style="font-size:14px;color:var(--text-soft);line-height:1.7;margin:0 0 20px;">
+      Al continuar, Google nos confirma tu correo. <strong>No guardamos</strong> tu contraseña de Google ni tokens de acceso en el servidor después del inicio de sesión.
+    </p>
+    <a href="{{ url_for('auth_google_start') }}" class="btn btn-primary" style="width:100%;justify-content:center;display:inline-flex;align-items:center;gap:10px;">
+      <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303C33.42 32.655 29.481 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.047 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.047 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c5.385 0 9.9-3.637 11.447-8.602l6.702 5.16C43.325 39.299 34.297 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.972 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+      Continuar con Google
+    </a>
+  </div>
+  {% else %}
+  <div style="padding:24px;background:var(--green-ultra);border:1.5px solid var(--green-pale);border-radius:16px;">
+    <p style="margin:0 0 12px;font-weight:700;color:var(--green-dark);">Acceso con Google no está configurado</p>
+    <p style="margin:0;font-size:14px;color:var(--text-soft);line-height:1.7;">
+      El historial de pedidos en línea requiere OAuth en el servidor. Mientras tanto, revisa el enlace de seguimiento que enviamos por correo al confirmar tu compra.
+    </p>
+    <p style="margin:16px 0 0;font-size:13px;color:var(--text-muted);">
+      ¿Ayuda? Escríbenos por <a href="https://wa.me/{{ WA_NUMBER }}" style="color:var(--green);font-weight:600;">WhatsApp</a>.
+    </p>
+  </div>
+  {% endif %}
+
+  <p style="margin-top:28px;font-size:12px;color:var(--text-muted);line-height:1.6;text-align:center;">
+    Tratamos datos según nuestra <a href="{{ url_for('politica_datos') }}">política de datos</a>.
+  </p>
+</div>
+{% endblock %}

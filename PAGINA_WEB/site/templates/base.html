@@ -49,6 +49,9 @@ fbq('track','PageView');
 {% endblock %}
 </head>
 <body>
+{% set account_nav_href = url_for('cuenta_entrar') if (google_oauth_ready and not customer_logged_in) else url_for('mis_pedidos') %}
+{% set account_nav_label = 'Iniciar sesión' if (google_oauth_ready and not customer_logged_in) else 'Mis pedidos' %}
+{% set show_admin_pedidos_link = admin_panel_enabled and admin_orders_session_ok %}
 
 <!-- Barra anuncio -->
 <div class="announcement-bar">
@@ -93,6 +96,14 @@ fbq('track','PageView');
         <li class="{% if request.endpoint == 'contacto' %}active{% endif %}">
           <a href="{{ url_for('contacto') }}">Contacto</a>
         </li>
+        <li class="{% if request.endpoint in ['mis_pedidos','cuenta_entrar','auth_google_start','auth_google_callback'] %}active{% endif %}">
+          <a href="{{ account_nav_href }}">{{ account_nav_label }}</a>
+        </li>
+        {% if show_admin_pedidos_link %}
+        <li class="{% if request.endpoint and 'admin_pedido' in request.endpoint %}active{% endif %}">
+          <a href="{{ url_for('admin_pedidos_lista') }}">Admin pedidos</a>
+        </li>
+        {% endif %}
       </ul>
     </nav>
 
@@ -138,10 +149,29 @@ fbq('track','PageView');
       <li><a href="{{ url_for('blog') }}">Blog</a></li>
       <li><a href="{{ url_for('nosotros') }}">Nosotros</a></li>
       <li><a href="{{ url_for('contacto') }}">Contacto</a></li>
+      <li><a href="{{ account_nav_href }}">{{ account_nav_label }}</a></li>
+      {% if show_admin_pedidos_link %}
+      <li><a href="{{ url_for('admin_pedidos_lista') }}">Admin pedidos</a></li>
+      {% endif %}
       <li><a href="https://wa.me/{{ WA_NUMBER }}" target="_blank">WhatsApp</a></li>
     </ul>
   </nav>
 </header>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-messages" style="max-width:1100px;margin:0 auto;padding:12px 24px 0;">
+    {% for category, message in messages %}
+    <div role="alert" style="margin-bottom:8px;padding:12px 16px;border-radius:10px;font-size:14px;line-height:1.5;
+      {% if category == 'error' %}background:#fff5f5;border:1px solid #feb2b2;color:#c53030;
+      {% elif category == 'info' %}background:var(--green-ultra);border:1.5px solid var(--green-pale);color:var(--green-dark);
+      {% else %}background:#f7fafc;border:1px solid #e2e8f0;color:var(--text-soft);{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
 
 <!-- Contenido principal -->
 {% block content %}{% endblock %}
@@ -193,6 +223,10 @@ fbq('track','PageView');
         <li><a href="{{ url_for('guia_kit_acidos') }}">Guía Kit de Ácidos</a></li>
         <li><a href="{{ url_for('descargo') }}">Descargo de Responsabilidad</a></li>
         <li><a href="{{ url_for('politica_datos') }}">Política de Datos</a></li>
+        <li><a href="{{ account_nav_href }}">{{ account_nav_label }}</a></li>
+        {% if show_admin_pedidos_link %}
+        <li><a href="{{ url_for('admin_pedidos_lista') }}">Admin pedidos</a></li>
+        {% endif %}
       </ul>
     </div>
 
@@ -305,13 +339,19 @@ fbq('track','PageView');
       <div class="chat-msg chat-msg-bot">
         <div class="chat-bubble">
           ¡Hola! Soy Hugo, asesor de McKenna Group 👋<br>
-          ¿En qué te puedo ayudar hoy? Puedo orientarte sobre productos, precios, disponibilidad o formulación.
+          ¿En qué te puedo ayudar hoy? Puedo orientarte sobre productos, precios, disponibilidad o formulación.<br>
+          <span class="chat-hint">Si vas a enviar comprobante de pago, usa el clip 📎 (foto o PDF).</span>
         </div>
         <div class="chat-time">Ahora</div>
       </div>
     </div>
 
+    <div id="chat-attach-preview" class="chat-attach-preview" style="display:none;"></div>
     <div id="chat-input-wrap">
+      <input type="file" id="chat-file-input" style="display:none" accept="image/jpeg,image/png,image/webp,image/gif,application/pdf,.pdf" multiple>
+      <button type="button" id="chat-attach-btn" class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" aria-label="Adjuntar archivo">
+        <i class="ph ph-paperclip"></i>
+      </button>
       <input type="text" id="chat-input" placeholder="Escribe tu pregunta..."
              onkeydown="if(event.key==='Enter')chatSend()">
       <button id="chat-send-btn" onclick="chatSend()" aria-label="Enviar">
@@ -324,6 +364,9 @@ fbq('track','PageView');
 <script>
 (function(){
   let open = false;
+  const CHAT_MAX_FILES = 3;
+  const CHAT_MAX_BYTES = 4 * 1024 * 1024;
+  let pendingAttachments = [];
   const panel     = document.getElementById('chat-panel');
   const fab       = document.getElementById('chat-fab');
   const fabIcon   = document.getElementById('chat-fab-icon');
@@ -331,6 +374,8 @@ fbq('track','PageView');
   const messages  = document.getElementById('chat-messages');
   const input     = document.getElementById('chat-input');
   const sendBtn   = document.getElementById('chat-send-btn');
+  const fileInput = document.getElementById('chat-file-input');
+  const attPreview = document.getElementById('chat-attach-preview');
 
   window.chatToggle = function(){
     open = !open;
@@ -343,12 +388,64 @@ fbq('track','PageView');
 
   function scrollBot(){ messages.scrollTop = messages.scrollHeight; }
 
-  function addMsg(text, role){
+  function esc(s){
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function renderAttachChips(){
+    if(!pendingAttachments.length){
+      attPreview.style.display = 'none';
+      attPreview.innerHTML = '';
+      return;
+    }
+    attPreview.style.display = 'block';
+    attPreview.innerHTML = pendingAttachments.map(function(a, i){
+      return '<span class="chat-attach-chip">' + esc(a.name) +
+        '<button type="button" class="chat-attach-chip-x" data-i="'+i+'" aria-label="Quitar">×</button></span>';
+    }).join('');
+    attPreview.querySelectorAll('.chat-attach-chip-x').forEach(function(btn){
+      btn.onclick = function(){
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        pendingAttachments.splice(i, 1);
+        renderAttachChips();
+      };
+    });
+  }
+
+  fileInput.addEventListener('change', function(){
+    var files = Array.prototype.slice.call(fileInput.files || [], 0);
+    fileInput.value = '';
+    files.forEach(function(f){
+      if(pendingAttachments.length >= CHAT_MAX_FILES) return;
+      if(f.size > CHAT_MAX_BYTES){
+        alert('Archivo demasiado grande (máx. 4 MB): ' + f.name);
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function(){
+        var r = reader.result;
+        if(typeof r !== 'string' || r.indexOf(',') < 0) return;
+        var mime = r.slice(r.indexOf(':')+1, r.indexOf(';'));
+        var b64 = r.split(',')[1];
+        if(mime !== 'application/pdf' && mime.indexOf('image/') !== 0){
+          alert('Tipo no permitido: ' + f.name);
+          return;
+        }
+        pendingAttachments.push({ name: f.name, media_type: mime, data_base64: b64 });
+        renderAttachChips();
+      };
+      reader.readAsDataURL(f);
+    });
+  });
+
+  function addMsg(text, role, asHtml){
     const wrap = document.createElement('div');
     wrap.className = 'chat-msg ' + (role==='user' ? 'chat-msg-user' : 'chat-msg-bot');
     const bubble = document.createElement('div');
     bubble.className = 'chat-bubble';
-    bubble.innerHTML = text.replace(/\n/g,'<br>');
+    bubble.innerHTML = asHtml ? text : text.replace(/\n/g,'<br>');
     const time = document.createElement('div');
     time.className = 'chat-time';
     time.textContent = new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
@@ -372,19 +469,33 @@ fbq('track','PageView');
 
   window.chatSend = async function(){
     const msg = input.value.trim();
-    if(!msg) return;
+    if(!msg && !pendingAttachments.length) return;
+    var attPayload = pendingAttachments.map(function(a){
+      return { media_type: a.media_type, data_base64: a.data_base64 };
+    });
+    var thumbs = pendingAttachments.map(function(a){
+      if(a.media_type === 'application/pdf'){
+        return '<span class="chat-user-file-pdf"><i class="ph ph-file-pdf"></i> '+esc(a.name)+'</span>';
+      }
+      return '<img class="chat-user-thumb" src="data:'+a.media_type+';base64,'+a.data_base64+'" alt="">';
+    }).join('');
+    var userHtml = (msg ? esc(msg).replace(/\n/g,'<br>') : '<em class="chat-file-only">Archivo adjunto</em>');
+    if(thumbs) userHtml += '<div class="chat-user-files">'+thumbs+'</div>';
+
     input.value = '';
+    pendingAttachments = [];
+    renderAttachChips();
     sendBtn.disabled = true;
     input.disabled = true;
 
-    addMsg(msg, 'user');
+    addMsg(userHtml, 'user', true);
     setTyping(true);
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({message: msg})
+        body: JSON.stringify({ message: msg, attachments: attPayload })
       });
       const data = await res.json();
       setTyping(false);

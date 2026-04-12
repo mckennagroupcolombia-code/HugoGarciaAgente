@@ -1,4 +1,68 @@
 import os
+import sys
+
+
+def _webhook_meli_singleton_lock():
+    """
+    Una sola instancia del proceso webhook (evita doble carga de app.core / Claude).
+    Segunda ejecución sale antes de importar Flask y el agente.
+    Desactivar solo para depuración: WEBHOOK_MELI_SKIP_SINGLETON_LOCK=1
+    """
+    if os.environ.get("WEBHOOK_MELI_SKIP_SINGLETON_LOCK", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    ):
+        return None
+    import fcntl
+    import time
+    from pathlib import Path
+
+    lock_path = Path(__file__).resolve().parent / ".webhook_meli.lock"
+    # "a+" evita truncar el archivo antes de flock (truncar con "w" rompe locks ajenos).
+    last_err: BlockingIOError | None = None
+    for attempt in range(25):  # ~5 s: carrera tras systemctl stop / SIGTERM lento
+        fp = open(lock_path, "a+", encoding="utf-8")
+        try:
+            fcntl.flock(fp.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            last_err = None
+            break
+        except BlockingIOError as e:
+            last_err = e
+            fp.close()
+            time.sleep(0.2)
+
+    if last_err is not None:
+        hint = ""
+        try:
+            txt = lock_path.read_text(encoding="utf-8").strip().splitlines()
+            if txt and txt[0].isdigit():
+                pid = int(txt[0])
+                hint = f" PID registrado en .webhook_meli.lock: {pid} (comprueba: ps -p {pid} -o args=)"
+        except OSError:
+            pass
+        print(
+            "webhook_meli: otra instancia ya está en ejecución (archivo bloqueado)."
+            + hint
+            + "  Revisa: pgrep -af webhook_meli.py  |  Si no debe haber ninguno: "
+            "pkill -f webhook_meli.py; rm -f .webhook_meli.lock; sudo systemctl start webhook-meli",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    fp.seek(0)
+    fp.truncate()
+    fp.write(str(os.getpid()))
+    fp.flush()
+    return fp
+
+
+# Mantener FD abierto durante toda la vida del proceso (libera flock al salir).
+# No hacemos bind "probe" al 8080 antes de importar: en reinicios de systemd suele
+# quedar TIME_WAIT y bind() sin SO_REUSEADDR devuelve EADDRINUSE → exit 1 en bucle.
+_WEBHOOK_SINGLETON_LOCK_FP = _webhook_meli_singleton_lock()
+
 import re
 import json
 import requests
@@ -212,6 +276,11 @@ def _procesar_mensaje_posventa(resource: str):
             if p == "packs" and i + 1 < len(partes):
                 pack_id = partes[i + 1]
                 break
+
+        # MeLi a veces envía topic messages con resource /orders/{id} (mismo id que pack en postventa).
+        # Sin esto, msg_id_directo queda "orders/..." y falla la resolución — mismo criterio que app/routes.py.
+        if not pack_id and partes and partes[0] == "orders" and len(partes) >= 2:
+            pack_id = partes[1]
 
         if not pack_id:
             # El resource no contenía /packs/{id} — intentar múltiples estrategias
@@ -486,8 +555,12 @@ def chat():
     if token != os.getenv("CHAT_API_TOKEN", ""):
         return jsonify({"error": "No autorizado"}), 401
     data = request.get_json()
-    if not data or "mensaje" not in data:
-        return jsonify({"error": "Campo 'mensaje' requerido"}), 400
+    if not data:
+        return jsonify({"error": "JSON requerido"}), 400
+    mensaje = (data.get("mensaje") or "").strip()
+    adjuntos = data.get("adjuntos") or data.get("attachments")
+    if not mensaje and not adjuntos:
+        return jsonify({"error": "Campo 'mensaje' o adjuntos requerido"}), 400
     session_id = (data.get("session_id") or data.get("usuario_id") or "").strip()
     if not session_id:
         return (
@@ -500,7 +573,9 @@ def chat():
             400,
         )
     try:
-        respuesta, _ = obtener_respuesta_ia(data["mensaje"], session_id)
+        respuesta, _ = obtener_respuesta_ia(
+            mensaje, session_id, adjuntos_payload=adjuntos
+        )
         return jsonify(
             {
                 "respuesta": respuesta,

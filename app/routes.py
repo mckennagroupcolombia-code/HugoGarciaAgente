@@ -1041,27 +1041,27 @@ def register_routes(app):
                     respuesta = m.group(2).strip()
 
                     # Buscar pack_id en la cola de pendientes
-                    import time as _time
-
                     state_path = "/home/mckg/mi-agente/app/data/mensajes_posventa_pendientes.json"
                     pack_id = None
                     comprador = ""
+                    clave_pendiente = None
                     try:
                         with open(state_path, "r", encoding="utf-8") as _f:
                             _state = json.load(_f)
                         pendientes = _state.get("pendientes", {})
-                        # Buscar por sufijo exacto o parcial
-                        sufijo_up = sufijo.upper()
-                        entrada = pendientes.get(sufijo_up)
+                        sufijo_busqueda = sufijo.upper()
+                        entrada = pendientes.get(sufijo_busqueda)
+                        clave_candidata = sufijo_busqueda
                         if not entrada:
                             for k, v in pendientes.items():
-                                if k.endswith(sufijo_up) or sufijo_up.endswith(k):
+                                if k.endswith(sufijo_busqueda) or sufijo_busqueda.endswith(k):
                                     entrada = v
-                                    sufijo_up = k
+                                    clave_candidata = k
                                     break
                         if entrada:
                             pack_id = entrada["pack_id"]
                             comprador = entrada.get("comprador", "")
+                            clave_pendiente = clave_candidata
                     except Exception as _e:
                         print(f"⚠️ [POSVENTA-CMD] Error leyendo state: {_e}")
 
@@ -1082,13 +1082,18 @@ def register_routes(app):
                     exito = responder_mensaje_posventa(pack_id, respuesta)
 
                     if exito:
-                        # Quitar de pendientes
+                        # Quitar de pendientes (clave real del dict o mismo pack_id)
                         try:
                             with open(state_path, "r", encoding="utf-8") as _f:
                                 _state = json.load(_f)
-                            _state.get("pendientes", {}).pop(
-                                sufijo_up if "sufijo_up" in dir() else sufijo, None
-                            )
+                            pd = _state.get("pendientes", {})
+                            if clave_pendiente and clave_pendiente in pd:
+                                pd.pop(clave_pendiente, None)
+                            else:
+                                for k, v in list(pd.items()):
+                                    if str(v.get("pack_id")) == str(pack_id):
+                                        pd.pop(k, None)
+                                        break
                             with open(state_path, "w", encoding="utf-8") as _f:
                                 json.dump(_state, _f, indent=2, ensure_ascii=False)
                         except Exception:
@@ -1414,8 +1419,12 @@ def register_routes(app):
         if token != os.getenv("CHAT_API_TOKEN", ""):
             return jsonify({"error": "No autorizado"}), 401
         data = request.get_json()
-        if not data or "mensaje" not in data:
-            return jsonify({"error": "Campo 'mensaje' requerido"}), 400
+        if not data:
+            return jsonify({"error": "JSON requerido"}), 400
+        mensaje = (data.get("mensaje") or "").strip()
+        adjuntos = data.get("adjuntos") or data.get("attachments")
+        if not mensaje and not adjuntos:
+            return jsonify({"error": "Campo 'mensaje' o adjuntos requerido"}), 400
         log_json(
             "http_chat",
             session_preview=str(
@@ -1434,7 +1443,9 @@ def register_routes(app):
                 400,
             )
         try:
-            respuesta, _ = obtener_respuesta_ia(data["mensaje"], session_id)
+            respuesta, _ = obtener_respuesta_ia(
+                mensaje, session_id, adjuntos_payload=adjuntos
+            )
             return jsonify(
                 {
                     "respuesta": respuesta,

@@ -15,7 +15,7 @@ Automatización para McKenna Group S.A.S.: WhatsApp (Claude), preventa MercadoLi
 ```bash
 source venv/bin/activate
 python3 agente_pro.py          # Flask :8081 + menú CLI
-python3 webhook_meli.py        # Webhook MeLi :8080
+python3 webhook_meli.py        # Webhook MeLi :8080 — en MeLi: https://bot.mckennagroup.co/notifications
 cd bot-mckenna && npm ci && npm start   # Puente WA :3000
 ```
 

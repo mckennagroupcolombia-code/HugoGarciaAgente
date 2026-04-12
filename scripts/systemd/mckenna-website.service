@@ -1,0 +1,24 @@
+# Tienda / sitio nativo Flask :8083 (PAGINA_WEB/site/website.py).
+#
+#   sudo cp scripts/systemd/mckenna-website.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now mckenna-website
+
+[Unit]
+Description=McKenna sitio web nativo (Flask :8083)
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mckg
+Group=mckg
+WorkingDirectory=/home/mckg/mi-agente
+EnvironmentFile=-/home/mckg/mi-agente/.env
+ExecStart=/home/mckg/mi-agente/venv/bin/python3 -u /home/mckg/mi-agente/PAGINA_WEB/site/website.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

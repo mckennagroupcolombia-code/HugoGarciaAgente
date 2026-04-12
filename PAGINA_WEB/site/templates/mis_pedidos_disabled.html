@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Mis pedidos — McKenna Group{% endblock %}
+
+{% block content %}
+<div class="page-hero">
+  <div class="inner">
+    <span class="hero-badge">Historial</span>
+    <h1>Mis <em>pedidos</em></h1>
+  </div>
+</div>
+
+<div class="section" style="max-width:640px;margin:0 auto;padding:64px 32px;">
+  <div style="padding:28px 24px;background:var(--green-ultra);border:1.5px solid var(--green-pale);border-radius:16px;">
+    <p style="margin:0 0 12px;font-weight:700;color:var(--green-dark);">Vista de pedidos no disponible aún</p>
+    <p style="margin:0;font-size:15px;color:var(--text-soft);line-height:1.75;">
+      Para proteger tu privacidad, el listado de pedidos solo se muestra tras iniciar sesión con Google.
+      Esta función debe ser activada en el servidor (credenciales OAuth).
+    </p>
+    <p style="margin:20px 0 0;font-size:14px;color:var(--text-soft);line-height:1.7;">
+      Si ya compraste, usa el <strong>enlace de seguimiento</strong> del correo de confirmación (solo tú tienes ese enlace).
+    </p>
+    <a href="{{ url_for('contacto') }}" class="btn btn-outline" style="margin-top:24px;display:inline-block;">Contacto</a>
+  </div>
+</div>
+{% endblock %}

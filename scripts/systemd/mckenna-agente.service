@@ -1,0 +1,27 @@
+# Agente principal Flask :8081 + CLI (mismo proceso que agente_pro.py).
+#
+#   sudo cp scripts/systemd/mckenna-agente.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now mckenna-agente
+#
+# Si usas esta unidad, desactiva el nohup de agente_pro en mantener_servicios / start_services
+# (el guard lo omite automáticamente cuando la unidad está activa).
+
+[Unit]
+Description=McKenna Agente Hugo García (Flask :8081 + CLI)
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=mckg
+Group=mckg
+WorkingDirectory=/home/mckg/mi-agente
+EnvironmentFile=-/home/mckg/mi-agente/.env
+ExecStart=/home/mckg/mi-agente/venv/bin/python3 -u /home/mckg/mi-agente/agente_pro.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
