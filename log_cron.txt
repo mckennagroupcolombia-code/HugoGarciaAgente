@@ -640,3 +640,40 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
 To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
    24f2501..b79dd59  master -> main
 [2026-04-10 23:00:03] Push exitoso: 'Auto-commit: actualizacion diaria 2026-04-10 23:00'
+[master d4a2b19] Auto-commit: actualizacion diaria 2026-04-11 23:00
+ 56 files changed, 8613 insertions(+), 3841 deletions(-)
+ create mode 100644 .agents/skills/caveman-commit/SKILL.md
+ create mode 100644 .agents/skills/caveman-compress/README.md
+ create mode 100644 .agents/skills/caveman-compress/SECURITY.md
+ create mode 100644 .agents/skills/caveman-compress/SKILL.md
+ create mode 100644 .agents/skills/caveman-compress/scripts/__init__.py
+ create mode 100644 .agents/skills/caveman-compress/scripts/__main__.py
+ create mode 100644 .agents/skills/caveman-compress/scripts/benchmark.py
+ create mode 100644 .agents/skills/caveman-compress/scripts/cli.py
+ create mode 100644 .agents/skills/caveman-compress/scripts/compress.py
+ create mode 100644 .agents/skills/caveman-compress/scripts/detect.py
+ create mode 100644 .agents/skills/caveman-compress/scripts/validate.py
+ create mode 100644 .agents/skills/caveman-help/SKILL.md
+ create mode 100644 .agents/skills/caveman-review/SKILL.md
+ create mode 100644 .agents/skills/caveman/SKILL.md
+ create mode 100644 .cursor/skills/caveman-commit/SKILL.md
+ create mode 100644 .cursor/skills/caveman-help/SKILL.md
+ create mode 100644 .cursor/skills/caveman-review/SKILL.md
+ create mode 100644 .cursor/skills/caveman/SKILL.md
+ create mode 100644 PAGINA_WEB/site/site_auth.py
+ create mode 100644 PAGINA_WEB/site/templates/admin_pedido_detalle.html
+ create mode 100644 PAGINA_WEB/site/templates/admin_pedidos_entrar.html
+ create mode 100644 PAGINA_WEB/site/templates/admin_pedidos_lista.html
+ create mode 100644 PAGINA_WEB/site/templates/cuenta_login.html
+ create mode 100644 PAGINA_WEB/site/templates/mis_pedidos_disabled.html
+ create mode 100755 scripts/diagnostico_servicios_mcKenna.sh
+ create mode 100755 scripts/diagnostico_webhook_8080.sh
+ create mode 100755 scripts/instalar_servicios_systemd.sh
+ create mode 100644 scripts/lib/mckenna_nohup_guard.sh
+ create mode 100755 scripts/normalizar_webhook_meli.sh
+ create mode 100644 scripts/systemd/mckenna-agente.service
+ create mode 100644 scripts/systemd/mckenna-website.service
+ create mode 100644 scripts/systemd/webhook-meli.service
+ create mode 100644 skills-lock.json
+fatal: could not read Username for 'https://github.com': No existe el dispositivo o la dirección
+[2026-04-11 23:00:01] ERROR en el push. Revisar credenciales o conflictos.
