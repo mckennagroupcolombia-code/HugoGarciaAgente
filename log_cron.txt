@@ -677,3 +677,19 @@ To https://github.com/mckennagroupcolombia-code/HugoGarciaAgente.git
  create mode 100644 skills-lock.json
 fatal: could not read Username for 'https://github.com': No existe el dispositivo o la dirección
 [2026-04-11 23:00:01] ERROR en el push. Revisar credenciales o conflictos.
+[master b566f00] Auto-commit: actualizacion diaria 2026-04-12 23:00
+ 26 files changed, 2623 insertions(+), 2482 deletions(-)
+ delete mode 100644 Manual_Hugo_Garcia_McKenna.pdf
+ delete mode 100644 admin_panel.py
+ delete mode 100644 gen_jabon_potasico.py
+ delete mode 100644 meli_logic_temp.py
+ delete mode 100644 meli_route_temp.py
+ delete mode 100644 meli_webhook_full.py
+ delete mode 100644 monitor_meli_temp.py
+ delete mode 100644 patch_monitor.py
+ delete mode 100644 patch_routes.py
+ delete mode 100644 patch_routes2.py
+ delete mode 100644 reporte_inventario_temporal.py
+ create mode 100644 scripts/postventa_cola_meli.py
+fatal: could not read Username for 'https://github.com': No existe el dispositivo o la dirección
+[2026-04-12 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
