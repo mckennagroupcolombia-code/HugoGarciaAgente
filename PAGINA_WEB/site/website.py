@@ -1615,6 +1615,16 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=site_auth.session_cookie_secure(),
 )
+
+
+@app.template_filter("limpiar_ia")
+def _jinja_limpiar_ia(html: str) -> str:
+    """Quita preámbulos tipo 'Claro, aquí…' y fences ```html del HTML generado."""
+    from app.tools.knowledge_agent import limpiar_salida_llm_html
+
+    return limpiar_salida_llm_html(html or "")
+
+
 META_PIXEL_ID = os.getenv("META_PIXEL_ID", "")
 app.jinja_env.globals.update(
     wa_link=wa_link,

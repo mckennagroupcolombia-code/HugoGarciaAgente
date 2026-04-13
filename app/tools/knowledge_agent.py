@@ -5,18 +5,22 @@ Agente de Conocimiento Científico — McKenna Group
 Flujo:
   1. Buscar papers en PubMed + ArXiv sobre un ingrediente/tema
   2. Extraer texto completo con Scrapling (sitios externos)
-  3. Generar contenido con Gemini:
+  3. Generar contenido (por defecto Ollama gemma4:latest, respaldo Gemini 2.5-Pro):
        - Ficha técnica enriquecida
        - Post de blog / receta / manual de uso
   4. Guardar en ChromaDB para respuestas de preventa
   5. Publicar en WordPress (mckennagroup.co) via REST API
 
-Uso desde CLI (opción 14) o desde el agente IA:
+Uso desde CLI (opción 7) o desde el agente IA:
   resultado = generar_y_publicar_contenido(
       tema       = "Ácido hialurónico cosmético",
       tipo       = "post_blog",   # o: "receta", "manual_uso", "ficha"
       publicar   = True
   )
+
+Síntesis: AGENTE_OLLAMA_URL (default http://127.0.0.1:11434), AGENTE_OLLAMA_MODEL
+override (si no, modelo por defecto gemma4:latest). Orden: AGENTE_SYNTHESIS_PRIMARY=ollama|gemini
+(default ollama primero).
 """
 
 import os
@@ -46,6 +50,9 @@ WP_CATEGORIAS = {
     "ficha":        None,
     "novedad":      None,
 }
+
+# Ollama /api/generate — primero en el pipeline de síntesis salvo AGENTE_SYNTHESIS_PRIMARY=gemini
+DEFAULT_OLLAMA_SYNTHESIS_MODEL = "gemma4:latest"
 
 CHROMADB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'memoria_vectorial')
 
@@ -207,7 +214,9 @@ NO uses frases genéricas como "en el mundo de la cosmética". Sé específico.
 INFORMACIÓN CIENTÍFICA RECOPILADA:
 {conocimiento}
 
-Genera SOLO el contenido del post (en HTML básico: <h2>, <p>, <ul>), sin markdown.""",
+Genera SOLO el contenido del post (en HTML básico: <h2>, <p>, <ul>), sin markdown.
+PROHIBIDO: saludos, preámbulos ("Claro, aquí tienes…"), fences ```html, mencionar IA o el formato pedido.
+La primera línea de tu respuesta debe ser la etiqueta HTML de apertura (p. ej. <h2>).""",
 
     "receta": """Eres formulador senior en McKenna Group S.A.S.
 
@@ -224,6 +233,8 @@ Estructura:
 7. Nota de aplicación (cómo usarlo el consumidor final)
 
 Formato HTML básico (<h2>, <p>, <table>, <ol>). Máximo 500 palabras.
+PROHIBIDO: preámbulos, ```html, explicar que cumples instrucciones, mencionar IA.
+Empieza directo con <h2> (sin documento HTML completo ni <!DOCTYPE>).
 
 SOPORTE CIENTÍFICO:
 {conocimiento}""",
@@ -243,6 +254,9 @@ Secciones:
 7. Preguntas frecuentes (3-5 Q&A)
 
 Formato HTML (<h2>, <p>, <ul>). Máximo 500 palabras. Solo información técnica verificable.
+Fragmento listo para incrustar en la web: sin <!DOCTYPE>, sin <html>/<body>, sin fences markdown.
+PROHIBIDO: "Claro, aquí tienes…", "---", ```html, mencionar que eres IA o el formato solicitado.
+Primera línea: <h2>…</h2>.
 
 FUENTES CIENTÍFICAS:
 {conocimiento}""",
@@ -254,26 +268,244 @@ DESCRIPCIÓN | PROPIEDADES FISICOQUÍMICAS | APLICACIONES | CONCENTRACIONES RECO
 PRECAUCIONES | ALMACENAMIENTO | REFERENCIAS
 
 Máximo 400 palabras. Solo datos verificados en la literatura científica.
+Sin preámbulos ni menciones a IA; empieza con la sección DESCRIPCIÓN.
 
 LITERATURA:
 {conocimiento}""",
 }
 
 
-def sintetizar_con_gemini(tema: str, conocimiento: str, tipo: str = "post_blog") -> Optional[str]:
+def limpiar_salida_llm_html(texto: str) -> str:
     """
-    Usa Gemini 2.5-Pro para generar contenido basado en los resultados científicos.
+    Quita preámbulos tipo 'Claro, aquí tienes…', fences ```html, documentos HTML envolventes
+    y deja fragmento útil para posts.json / guías (preferencia: interior de <body>).
     """
+    if not texto:
+        return ""
+    t = texto.strip()
+    for _ in range(4):
+        t2 = re.sub(r"(?is)^\s*```(?:html|htm|xml)?\s*\n?", "", t)
+        t2 = re.sub(r"(?is)\n?\s*```\s*$", "", t2.strip())
+        if t2 == t:
+            break
+        t = t2
+    t = re.sub(r"(?is)^\s*---+?\s*\n?", "", t)
+    # Párrafos meta del modelo (es/en) antes del HTML real
+    meta_open = re.compile(
+        r"(?is)^\s*("
+        r"Claro,?\s+aquí[^<\n]{0,400}?(\n|$)|"
+        r"Aquí\s+tienes[^<\n]{0,400}?(\n|$)|"
+        r"Por\s+supuesto[^<\n]{0,400}?(\n|$)|"
+        r"Entendido[^<\n]{0,200}?(\n|$)|"
+        r"Certainly[^<\n]{0,400}?(\n|$)|"
+        r"Here\s+(is|are)[^<\n]{0,400}?(\n|$)|"
+        r"As\s+an?\s+AI[^<\n]{0,400}?(\n|$)"
+        r")+"
+    )
+    for _ in range(6):
+        t2 = meta_open.sub("", t, count=1).strip()
+        t2 = re.sub(r"(?is)^\s*---+?\s*\n?", "", t2)
+        if t2 == t:
+            break
+        t = t2
+    m = re.search(
+        r"(?is)(<!DOCTYPE\s+html|<html[\s>]|<h[1-6]\b|<p\b|<ul\b|<ol\b|<div\b|<section\b|<article\b|<dl\b)",
+        t,
+    )
+    if m:
+        t = t[m.start() :]
+    bm = re.search(r"(?is)<body[^>]*>(.*)</body>", t, re.DOTALL)
+    if bm:
+        t = bm.group(1).strip()
+    t = re.sub(r"(?is)</html>\s*```?\s*$", "", t)
+    t = re.sub(r"(?is)\s*```\s*$", "", t)
+    return t.strip()
+
+
+def _ollama_solo_linea(prompt: str) -> Optional[str]:
+    model = (os.getenv("AGENTE_OLLAMA_MODEL") or DEFAULT_OLLAMA_SYNTHESIS_MODEL).strip()
+    base = (os.getenv("AGENTE_OLLAMA_URL") or "http://127.0.0.1:11434").strip()
+    url = f"{base.rstrip('/')}/api/generate"
+    try:
+        r = requests.post(
+            url,
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_predict": 160, "temperature": 0.35},
+            },
+            timeout=120,
+        )
+        r.raise_for_status()
+        out = (r.json().get("response") or "").strip()
+        if not out:
+            return None
+        line = out.split("\n")[0].strip()
+        line = re.sub(r'^["«»\']+|["«»\']+$', "", line)
+        line = re.sub(r"^(Título|Title)\s*:\s*", "", line, flags=re.I)
+        return line.strip() or None
+    except Exception:
+        return None
+
+
+def _gemini_solo_linea(prompt: str) -> Optional[str]:
+    try:
+        from google import genai
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        resp = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
+        out = (resp.text or "").strip()
+        if not out:
+            return None
+        line = out.split("\n")[0].strip()
+        line = re.sub(r'^["«»\']+|["«»\']+$', "", line)
+        line = re.sub(r"^(Título|Title)\s*:\s*", "", line, flags=re.I)
+        return line.strip() or None
+    except Exception:
+        return None
+
+
+def proponer_titulo_editorial_es(tema: str, contenido: str, tipo: str) -> str:
+    """
+    Título en español para el sitio; el tema de búsqueda puede haber estado en inglés.
+    """
+    if tipo == "ficha":
+        return _generar_titulo_wp(tema, tipo)
+    plain = re.sub(r"<[^>]+>", " ", contenido or "")
+    plain = re.sub(r"\s+", " ", plain).strip()[:950]
+    rol = {
+        "post_blog": "post de blog divulgativo (titular atractivo, estilo revista especializada)",
+        "manual_uso": "manual técnico para formuladores (debe sonar profesional; puede empezar por 'Manual técnico:' o 'Manual de uso:')",
+        "receta": "receta de formulación (puede empezar por 'Receta:' si encaja)",
+        "novedad": "nota corta",
+    }.get(tipo, "artículo")
+    prompt = (
+        f"Devuelve UNA sola línea, sin comillas.\n"
+        f"Título en español para {rol} del sitio McKenna Group (Colombia, cosmética/farmacia).\n"
+        f"Tema de investigación (a veces en inglés): {tema}\n"
+        f"El título final debe estar en español correcto; no dejes frases en inglés sueltas "
+        f'(mal: "Population Deficiency Zinc"; bien: tema nombrado en español natural).\n'
+        f"No menciones IA, ChatGPT, formato, markdown ni que cumples una instrucción.\n"
+        f"Máximo 95 caracteres.\n"
+        f"Extracto del cuerpo: {plain}"
+    )
+    line = _ollama_solo_linea(prompt) or _gemini_solo_linea(prompt)
+    line = (line or "").strip()
+    if len(line) >= 10:
+        return line[:120]
+    m = re.search(r"(?is)<h2[^>]*>([^<]+)</h2>", contenido or "")
+    if m:
+        return m.group(1).strip()[:120]
+    return _generar_titulo_wp(tema, tipo)
+
+
+def titulo_publicacion(
+    tema_busqueda: str,
+    contenido_html: str,
+    tipo: str,
+    titulo_override: str = "",
+) -> str:
+    """Título mostrado en el sitio; `titulo_override` si el operador lo escribe en español."""
+    o = (titulo_override or "").strip()
+    if o:
+        return o[:200]
+    return proponer_titulo_editorial_es(tema_busqueda, contenido_html, tipo)
+
+
+def _sintetizar_con_gemini(tema: str, conocimiento: str, tipo: str = "post_blog") -> Optional[str]:
     try:
         from google import genai
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         prompt_template = _PROMPTS.get(tipo, _PROMPTS["post_blog"])
         prompt = prompt_template.format(tema=tema, conocimiento=conocimiento[:8000])
         resp = client.models.generate_content(model='gemini-2.5-pro', contents=prompt)
-        return resp.text.strip()
+        t = (resp.text or "").strip()
+        return t or None
     except Exception as e:
         print(f"❌ Gemini error: {e}")
         return None
+
+
+def _sintetizar_con_ollama(
+    tema: str,
+    conocimiento: str,
+    tipo: str,
+    model: str,
+    base_url: str,
+) -> Optional[str]:
+    prompt_template = _PROMPTS.get(tipo, _PROMPTS["post_blog"])
+    prompt = prompt_template.format(tema=tema, conocimiento=conocimiento[:8000])
+    url = f"{base_url.rstrip('/')}/api/generate"
+    try:
+        r = requests.post(
+            url,
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_predict": 8192, "temperature": 0.5},
+            },
+            timeout=600,
+        )
+        r.raise_for_status()
+        data = r.json()
+        out = (data.get("response") or "").strip()
+        if not out:
+            print("  ⚠️ Ollama devolvió respuesta vacía")
+            return None
+        return out
+    except Exception as e:
+        print(f"  ❌ Ollama error: {e}")
+        return None
+
+
+def sintetizar_contenido(tema: str, conocimiento: str, tipo: str = "post_blog") -> Optional[str]:
+    """
+    Por defecto: Ollama (gemma4:latest o AGENTE_OLLAMA_MODEL) en AGENTE_OLLAMA_URL;
+    si falla o vacío → Gemini 2.5-Pro.
+
+    AGENTE_SYNTHESIS_PRIMARY=gemini invierte el orden (Gemini primero, Ollama respaldo).
+    """
+    primary = (os.getenv("AGENTE_SYNTHESIS_PRIMARY") or "ollama").strip().lower()
+    model = (os.getenv("AGENTE_OLLAMA_MODEL") or DEFAULT_OLLAMA_SYNTHESIS_MODEL).strip()
+    base = (os.getenv("AGENTE_OLLAMA_URL") or "http://127.0.0.1:11434").strip()
+
+    if primary == "gemini":
+        texto = _sintetizar_con_gemini(tema, conocimiento, tipo)
+        if texto:
+            return texto
+        print(f"  🦙 Fallback Ollama: {model} @ {base}")
+        return _sintetizar_con_ollama(tema, conocimiento, tipo, model, base)
+
+    print(f"  🦙 Sintetizando con Ollama ({model}) @ {base}...")
+    texto = _sintetizar_con_ollama(tema, conocimiento, tipo, model, base)
+    if texto:
+        return texto
+    print("  🤖 Fallback: Gemini 2.5-Pro...")
+    return _sintetizar_con_gemini(tema, conocimiento, tipo)
+
+
+def sintetizar_con_gemini(tema: str, conocimiento: str, tipo: str = "post_blog") -> Optional[str]:
+    """Solo Gemini (sin Ollama). Para pipeline completo usar sintetizar_contenido."""
+    return _sintetizar_con_gemini(tema, conocimiento, tipo)
+
+
+def _gemini_rechazo_o_meta_respuesta(contenido: str) -> bool:
+    """True si el modelo declara no poder basarse en las fuentes (no publicar)."""
+    c = (contenido or "").strip()
+    if not c:
+        return True
+    if re.match(r"(?is)^\s*no puedo\b", c):
+        return True
+    head = c[:800].lower()
+    if "no puedo generar" in head and (
+        "información científica" in head or "informacion cientifica" in head
+    ):
+        return True
+    return False
 
 
 # ─────────────────────────────────────────────
@@ -381,6 +613,77 @@ _RECETAS_JSON = os.path.join(_SITIO_DATA, 'recetas.json')
 _POSTS_JSON   = os.path.join(_SITIO_DATA, 'posts.json')
 _GUIAS_JSON   = os.path.join(_SITIO_DATA, 'guias.json')
 _FICHAS_JSON  = os.path.join(_SITIO_DATA, 'fichas_tecnicas.json')
+
+# Borradores generados desde CLI (opción CIENCIA) para revisión antes de publicar
+_CIENCIA_BORRADORES_DIR = os.path.join(
+    os.path.dirname(__file__), "..", "data", "ciencia_borradores"
+)
+
+
+def ruta_archivo_sitio_por_tipo(tipo: str) -> str:
+    """JSON del sitio Flask donde se añade el ítem al publicar (ruta absoluta)."""
+    if tipo == "receta":
+        return os.path.abspath(_RECETAS_JSON)
+    if tipo == "manual_uso":
+        return os.path.abspath(_GUIAS_JSON)
+    return os.path.abspath(_POSTS_JSON)
+
+
+def guardar_borrador_local_ciencia(
+    tema: str,
+    tipo: str,
+    contenido: str,
+    fuentes: list | None = None,
+) -> str:
+    """
+    Guarda HTML (con metadatos en comentario inicial) en app/data/ciencia_borradores/.
+    Retorna ruta absoluta del archivo.
+    """
+    os.makedirs(_CIENCIA_BORRADORES_DIR, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    slug = _slug(tema)[:50] or "tema"
+    fname = f"{ts}_{slug}_{tipo}.html"
+    path = os.path.join(_CIENCIA_BORRADORES_DIR, fname)
+    tema_s = (tema or "").replace("--", "- -").replace("\n", " ")
+    lines_src = "\n".join(f"  - {u}" for u in (fuentes or [])[:25])
+    meta = f"""<!--
+  tema: {tema_s}
+  tipo: {tipo}
+  iso: {datetime.now().isoformat()}
+  fuentes:
+{lines_src or "  (ninguna URL)"}
+-->
+"""
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(meta + "\n" + contenido)
+    return os.path.abspath(path)
+
+
+def publicar_contenido_en_sitio(
+    tema: str,
+    tipo: str,
+    contenido: str,
+    estado_wp: str,
+    referencias: list | None = None,
+    titulo_sitio: str | None = None,
+) -> dict:
+    """
+    Misma lógica que al final de generar_y_publicar_contenido(publicar=True).
+    estado_wp: 'draft' | 'publish'
+    """
+    titulo_wp = (titulo_sitio or "").strip() or titulo_publicacion(tema, contenido, tipo, "")
+    extracto = contenido[:300].replace("<", "").replace(">", "")
+    publicado = estado_wp == "publish"
+    return publicar_en_sitio_web(
+        titulo=titulo_wp,
+        contenido_html=contenido,
+        tipo=tipo,
+        tema=tema,
+        publicado=publicado,
+        extracto=extracto,
+        estado=estado_wp,
+        referencias=referencias or [],
+    )
 
 
 def _slug(texto: str) -> str:
@@ -660,11 +963,12 @@ def generar_y_publicar_contenido(
     enriquecer_sheets: bool = False,
     nombre_producto_sheets: str = "",
     verbose: bool = True,
+    tema_titulo: str = "",
 ) -> dict:
     """
     Pipeline completo:
       1. Busca en PubMed + ArXiv
-      2. Sintetiza con Gemini
+      2. Sintetiza (Ollama gemma4:latest por defecto, respaldo Gemini)
       3. Guarda en ChromaDB
       4. (Opcional) Actualiza ficha en Sheets
       5. (Opcional) Publica en WordPress
@@ -677,8 +981,10 @@ def generar_y_publicar_contenido(
         enriquecer_sheets:       True → actualiza col I del Sheet
         nombre_producto_sheets:  Nombre exacto en Sheets (si difiere de `tema`)
         verbose:                 Imprimir progreso
+        tema_titulo:             Título en español manual (vacío → propone desde el contenido)
 
-    Retorna dict con {contenido, wp_url, wp_id, fuentes, ok}
+    Retorna dict con {contenido, wp_url, wp_id, fuentes, ok}.
+    Post tipo post_blog: exige ≥1 resultado PubMed; sin fuentes o rechazo del modelo → ok=False, no Chroma ni WP.
     """
     if verbose:
         print(f"\n🔬 AGENTE DE CONOCIMIENTO — {tipo.upper()}: {tema}")
@@ -710,17 +1016,51 @@ def generar_y_publicar_contenido(
 
     if not conocimiento_raw.strip():
         if verbose:
-            print("  ⚠️  Sin resultados científicos — generando desde conocimiento general de Gemini")
-        conocimiento_raw = f"Información general sobre {tema} (sin papers recuperados)"
+            print("  ❌ Sin resultados en PubMed ni ArXiv. No se genera contenido.")
+        return {
+            "ok": False,
+            "mensaje": "Sin artículos recuperados para el tema; no se genera contenido.",
+            "fuentes": [],
+        }
 
-    # ── 2. Síntesis con Gemini ─────────────────────────────────
+    if tipo == "post_blog" and not papers_pubmed:
+        if verbose:
+            print(
+                "  ❌ Post blog requiere al menos un resultado en PubMed "
+                "(fuentes solo ArXiv no bastan)."
+            )
+        return {
+            "ok": False,
+            "mensaje": "Post de blog requiere al menos un artículo en PubMed.",
+            "fuentes": fuentes,
+        }
+
+    # ── 2. Síntesis (Ollama → Gemini según AGENTE_SYNTHESIS_PRIMARY) ──
     if verbose:
-        print(f"  🤖 Sintetizando contenido ({tipo}) con Gemini...")
-    contenido = sintetizar_con_gemini(tema, conocimiento_raw, tipo)
-    if not contenido:
-        return {"ok": False, "mensaje": "Gemini no pudo generar contenido", "fuentes": fuentes}
+        print(f"  📝 Sintetizando contenido ({tipo})...")
+    contenido_bruto = sintetizar_contenido(tema, conocimiento_raw, tipo)
+    if not contenido_bruto:
+        return {"ok": False, "mensaje": "Ningún modelo pudo generar contenido (Ollama/Gemini).", "fuentes": fuentes}
+    if _gemini_rechazo_o_meta_respuesta(contenido_bruto):
+        if verbose:
+            print("  ❌ El modelo indicó que no puede basar el texto en las fuentes; no se guarda ni publica.")
+        return {
+            "ok": False,
+            "mensaje": "Modelo rechazó generar desde las fuentes proporcionadas.",
+            "fuentes": fuentes,
+        }
+    contenido = limpiar_salida_llm_html(contenido_bruto)
+    texto_plano = re.sub(r"<[^>]+>", " ", contenido).strip()
+    if len(texto_plano) < 50:
+        return {
+            "ok": False,
+            "mensaje": "Contenido insuficiente tras limpiar preámbulos/markdown del modelo.",
+            "fuentes": fuentes,
+        }
+    titulo_sitio = titulo_publicacion(tema, contenido, tipo, tema_titulo)
     if verbose:
-        print(f"     → {len(contenido)} chars generados")
+        print(f"     → {len(contenido)} chars (salida limpia)")
+        print(f"  📰 Título para el sitio: {titulo_sitio}")
 
     # ── 3. Guardar en ChromaDB ─────────────────────────────────
     guardar_en_chromadb(tema, contenido, tipo, {"fuentes": json.dumps(fuentes)})
@@ -737,10 +1077,9 @@ def generar_y_publicar_contenido(
     if publicar:
         if verbose:
             print(f"  🌐 Publicando en WordPress ({estado_wp})...")
-        titulo_wp = _generar_titulo_wp(tema, tipo)
         extracto  = contenido[:300].replace("<", "").replace(">", "")
         wp_result = publicar_en_wordpress(
-            titulo=titulo_wp,
+            titulo=titulo_sitio,
             contenido_html=contenido,
             tipo=tipo,
             extracto=extracto,
@@ -760,6 +1099,7 @@ def generar_y_publicar_contenido(
         "contenido": contenido,
         "fuentes":   fuentes,
         "papers":    todos_los_papers,
+        "titulo_sitio": titulo_sitio,
         "wp_url":    wp_result.get("url", ""),
         "wp_id":     wp_result.get("id", ""),
         "wp_estado": wp_result.get("estado", ""),

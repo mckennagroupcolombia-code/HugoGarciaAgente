@@ -962,17 +962,26 @@ def _ejecutar_opcion_10():
 
 def _ejecutar_opcion_14():
     """
-    Flujo interactivo para generar contenido científico sobre un ingrediente
-    y publicarlo (o guardarlo como borrador) en WordPress mckennagroup.co.
+    Flujo interactivo: genera contenido (PubMed/ArXiv + LLM), guarda borrador local,
+    muestra texto para revisión y recién después ofrece subir al sitio (borrador o público).
     """
-    from app.tools.knowledge_agent import generar_y_publicar_contenido
+    import os as _os
+
+    from app.tools.knowledge_agent import (
+        CHROMADB_PATH,
+        generar_y_publicar_contenido,
+        guardar_borrador_local_ciencia,
+        publicar_contenido_en_sitio,
+        ruta_archivo_sitio_por_tipo,
+    )
 
     SEP = "─" * 58
+    MAX_VER_EN_CONSOLA = 14_000
     print(f"\n{'═' * 58}")
     print("  🔬 AGENTE DE CONOCIMIENTO CIENTÍFICO")
     print(f"{'═' * 58}")
     print("  Fuentes: PubMed · ArXiv · Scrapling")
-    print("  Destino: ChromaDB (preventa) + WordPress (mckennagroup.co)")
+    print("  Flujo: generar → archivo local + vista previa → opcional: sitio web (JSON)")
     print(SEP)
 
     tema = input(
@@ -981,6 +990,11 @@ def _ejecutar_opcion_14():
     if not tema:
         print("  ❌ Tema vacío. Cancelando.")
         return
+
+    titulo_es = input(
+        "\n  Título en español para el sitio (opcional; Enter = proponer desde el contenido;\n"
+        "  podés buscar en inglés arriba y poner acá el titular final): "
+    ).strip()
 
     print("\n  Tipo de contenido:")
     print("    [1] Post de Blog        (aplicaciones, beneficios, SEO)")
@@ -991,15 +1005,6 @@ def _ejecutar_opcion_14():
 
     tipos = {"1": "post_blog", "2": "receta", "3": "manual_uso", "4": "ficha"}
     tipo = tipos.get(sel_tipo, "post_blog")
-
-    print("\n  ¿Publicar en WordPress?")
-    print("    [1] Guardar como borrador  (puedes revisar antes de publicar)")
-    print("    [2] Publicar directamente")
-    print("    [3] Solo generar  (no subir a WP)")
-    sel_wp = input("\n  Selección [1-3, default=1]: ").strip() or "1"
-
-    publicar = sel_wp in ("1", "2")
-    estado_wp = "publish" if sel_wp == "2" else "draft"
 
     enriquecer_sheets = False
     nombre_sheets = ""
@@ -1020,25 +1025,83 @@ def _ejecutar_opcion_14():
     resultado = generar_y_publicar_contenido(
         tema=tema,
         tipo=tipo,
-        publicar=publicar,
-        estado_wp=estado_wp,
+        publicar=False,
+        estado_wp="draft",
         enriquecer_sheets=enriquecer_sheets,
         nombre_producto_sheets=nombre_sheets,
         verbose=True,
+        tema_titulo=titulo_es,
     )
 
     print(f"\n{SEP}")
-    if resultado.get("ok"):
-        print(f"  ✅ Contenido generado ({len(resultado.get('contenido', ''))} chars)")
-        if resultado.get("wp_url"):
-            print(f"  🌐 WordPress {resultado['wp_estado']}: {resultado['wp_url']}")
-        if resultado.get("fuentes"):
-            print(f"  📚 Fuentes científicas usadas:")
-            for url in resultado["fuentes"][:5]:
-                print(f"     • {url}")
-        print(f"\n  💡 Guardado en ChromaDB — el agente lo usará en preventa MeLi")
-    else:
+    if not resultado.get("ok"):
         print(f"  ❌ Error: {resultado.get('mensaje', 'desconocido')}")
+        print(f"{'═' * 58}\n")
+        return
+
+    contenido = resultado.get("contenido") or ""
+    fuentes = resultado.get("fuentes") or []
+    papers = resultado.get("papers") or []
+
+    path_local = guardar_borrador_local_ciencia(tema, tipo, contenido, fuentes)
+    chroma_abs = _os.path.abspath(CHROMADB_PATH)
+    json_sitio = ruta_archivo_sitio_por_tipo(tipo)
+
+    print("  📁 Archivos y rutas (revisión)")
+    print(f"     Borrador HTML (este run): {path_local}")
+    print(f"     ChromaDB (preventa MeLi): {chroma_abs}")
+    print(f"     Si publicas en el sitio, se añade a: {json_sitio}")
+
+    if resultado.get("fuentes"):
+        print(f"\n  📚 Fuentes científicas ({len(fuentes)}):")
+        for url in fuentes[:8]:
+            print(f"     • {url}")
+        if len(fuentes) > 8:
+            print(f"     • … y {len(fuentes) - 8} más (listadas en el HTML comentario)")
+
+    titulo = resultado.get("titulo_sitio") or tema
+    print(f"\n  📄 Título en el sitio: {titulo}")
+    print(f"\n{SEP}")
+    print("  CONTENIDO GENERADO (revisar antes de publicar)")
+    print(SEP)
+    if len(contenido) <= MAX_VER_EN_CONSOLA:
+        print(contenido)
+    else:
+        print(contenido[:MAX_VER_EN_CONSOLA])
+        print(
+            f"\n  … [recorte: {len(contenido) - MAX_VER_EN_CONSOLA} chars más "
+            f"en el archivo]\n"
+        )
+    print(SEP)
+
+    print("\n  ¿Subir ahora al sitio web (Flask / datos JSON)?")
+    print("    [1] Añadir como borrador  (publicado=false en JSON; revisas en staging/sitio)")
+    print("    [2] Publicar  (visible según tu despliegue)")
+    print("    [3] No subir  (queda el .html local + ChromaDB ya guardado)")
+    sel_wp = input("\n  Selección [1-3, default=3]: ").strip() or "3"
+
+    if sel_wp == "3":
+        print(f"\n  ✅ Listo. Abrí el borrador con: xdg-open '{path_local}'  (o editor)")
+        print(f"{'═' * 58}\n")
+        return
+
+    estado_wp = "publish" if sel_wp == "2" else "draft"
+    print(f"\n{SEP}")
+    pub = publicar_contenido_en_sitio(
+        tema=tema,
+        tipo=tipo,
+        contenido=contenido,
+        estado_wp=estado_wp,
+        referencias=papers,
+        titulo_sitio=resultado.get("titulo_sitio"),
+    )
+    if pub.get("ok"):
+        print(f"  ✅ Sitio web: {pub.get('estado', '')} — {pub.get('url', '')}")
+        print(f"  📎 Registro en: {json_sitio}")
+    else:
+        print(f"  ❌ No se pudo publicar: {pub.get('mensaje', 'error')}")
+
+    print(f"\n  💡 ChromaDB ya tenía el fragmento; borrador local: {path_local}")
     print(f"{'═' * 58}\n")
 
 

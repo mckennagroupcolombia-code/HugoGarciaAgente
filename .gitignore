@@ -37,6 +37,9 @@ htmlcov/
 mckenna_business.db
 *.sqlite3
 memoria_vectorial/
+
+# Borradores HTML del agente de conocimiento (CLI opción CIENCIA)
+app/data/ciencia_borradores/
 .wwebjs_auth/
 .wwebjs_cache/
 .cache/
