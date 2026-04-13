@@ -114,9 +114,12 @@ const GRUPO_CONTABILIDAD = envLimpio('GRUPO_CONTABILIDAD_WA', '12036340753834242
 const GRUPO_COMPRAS      = envLimpio('GRUPO_FACTURACION_COMPRAS_WA', '120363408323873426@g.us');
 /** Pedidos web: notificaciones + facturar/envio — solo este JID (Guias_Envios pagina web). */
 const GRUPO_PEDIDOS_WEB  = envLimpio('GRUPO_PEDIDOS_WEB_WA', '120363391665421264@g.us');
+/** MeLi — mismos defaults que app/utils.py (jid_grupo_*_wa). Sin esto, posventa/resp nunca llegan a Flask. */
+const GRUPO_PREVENTA_MELI = envLimpio('GRUPO_PREVENTA_WA', '120363393955474672@g.us');
+const GRUPO_POSTVENTA_MELI = envLimpio('GRUPO_POSTVENTA_WA', '120363406693905719@g.us');
 const GRUPOS_ADMIN       = [GRUPO_CONTABILIDAD, GRUPO_COMPRAS];
-/** Contabilidad/compras + grupo exclusivo pedidos web. No mezclar otros grupos aquí. */
-const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB];
+/** Contabilidad/compras + pedidos web + preventa/postventa MeLi (comandos resp / posventa). */
+const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB, GRUPO_PREVENTA_MELI, GRUPO_POSTVENTA_MELI];
 
 // Función compartida: procesar comandos de grupos admin
 async function procesarComandoGrupo(msg) {

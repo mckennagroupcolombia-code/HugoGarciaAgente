@@ -142,18 +142,32 @@ def verificar_comprobantes_pendientes():
 
 
 def sync_stock_diario():
+    """
+    8:00 AM local (servidor): cruza MeLi ↔ columna F del Sheet y envía reporte
+    a GRUPO_INVENTARIO_WA vía ejecutar_sincronizacion_y_reporte_stock().
+    Nota: antes importaba sincronizar_todo (no existe en app.sync) → fallo silencioso diario.
+    """
     try:
-        from app.sync import sincronizar_todo
+        from app.sync import ejecutar_sincronizacion_y_reporte_stock
 
         print("🔍 Monitor: ejecutando sync de stock diario...")
-        resultado = sincronizar_todo()
-        if resultado:
+        resultado = ejecutar_sincronizacion_y_reporte_stock()
+        res = str(resultado or "")
+        # Éxito: ya envió el detalle al grupo inventario dentro de sync.py
+        if "Reporte de stock enviado" not in res:
             _get_enviar()(
-                f"📦 REPORTE STOCK DIARIO\n{str(resultado)[:500]}",
+                f"📦 *REPORTE STOCK DIARIO* (sin envío automático completo)\n{res[:900]}",
                 numero_destino=GRUPO_STOCK,
             )
     except Exception as e:
         print(f"❌ Monitor: error en sync stock diario: {e}")
+        try:
+            _get_enviar()(
+                f"❌ *SYNC STOCK DIARIO FALLÓ*\n{e!s}"[:900],
+                numero_destino=GRUPO_STOCK,
+            )
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
