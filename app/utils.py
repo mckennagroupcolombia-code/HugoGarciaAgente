@@ -62,8 +62,38 @@ def refrescar_token_meli():
         return None
 
     try:
-        with open(MELI_CREDS_PATH, 'r') as f:
-            config = json.load(f)
+        with open(MELI_CREDS_PATH, "r", encoding="utf-8") as f:
+            raw = f.read()
+        if not raw.strip():
+            print(
+                f"Credenciales MeLi vacías (0 bytes o solo espacios): {MELI_CREDS_PATH}\n"
+                f"   └──> Restaurar credenciales_meli.json desde backup u OAuth."
+            )
+            notificar_sistemas_meli_cred(
+                "*MeLi: archivo de credenciales vacío*\n\n"
+                f"Ruta: `{MELI_CREDS_PATH}`\n"
+                "Sin esto no hay preventa, postventa ni sync. Restaurar JSON con "
+                "`app_id`, `client_secret`, `refresh_token` (y tokens) o repetir OAuth."
+            )
+            return None
+
+        config = json.loads(raw)
+        if not all(
+            [
+                config.get("app_id"),
+                config.get("client_secret"),
+                config.get("refresh_token"),
+            ]
+        ):
+            print(
+                "credenciales_meli.json incompleto: faltan app_id, client_secret o refresh_token."
+            )
+            notificar_sistemas_meli_cred(
+                "*MeLi: credenciales incompletas*\n\n"
+                f"Archivo: `{MELI_CREDS_PATH}`\n"
+                "Faltan `app_id`, `client_secret` o `refresh_token`."
+            )
+            return None
 
         payload = {
             'grant_type': 'refresh_token',
@@ -75,7 +105,19 @@ def refrescar_token_meli():
         res = requests.post("https://api.mercadolibre.com/oauth/token", data=payload, timeout=10)
         res.raise_for_status()  # Lanza una excepción para errores HTTP (4xx o 5xx)
 
-        new_data = res.json()
+        try:
+            new_data = res.json()
+        except json.JSONDecodeError:
+            snippet = (res.text or "")[:500]
+            print(
+                f"OAuth MeLi no devolvió JSON (HTTP {res.status_code}). Cuerpo: {snippet!r}"
+            )
+            notificar_sistemas_meli_cred(
+                "*MeLi: respuesta OAuth no JSON*\n\n"
+                f"HTTP {res.status_code}. Revisar red o api.mercadolibre.com.\n"
+                f"Inicio respuesta: `{snippet[:120]}`"
+            )
+            return None
         if 'access_token' in new_data:
             # Actualizar solo los tokens, preservando el resto del archivo.
             config['access_token'] = new_data['access_token']
@@ -85,7 +127,7 @@ def refrescar_token_meli():
 
             _persistir_seller_id_meli_en_config(config, config["access_token"])
 
-            with open(MELI_CREDS_PATH, 'w') as f:
+            with open(MELI_CREDS_PATH, "w", encoding="utf-8") as f:
                 json.dump(config, f, indent=4)
 
             print("✅ Token de Mercado Libre refrescado exitosamente.")
@@ -95,10 +137,30 @@ def refrescar_token_meli():
             return None
 
     except requests.exceptions.HTTPError as http_err:
-        print(f"❌ Error HTTP al refrescar token de Meli: {http_err}")
+        print(f"Error HTTP al refrescar token de Meli: {http_err}")
         print(f"   └──> Respuesta del servidor: {res.text}")
+        desc = (res.text or "")[:300]
+        try:
+            err_j = res.json()
+            desc = str(err_j.get("message") or err_j.get("error") or err_j)[:300]
+        except (json.JSONDecodeError, ValueError, TypeError):
+            pass
+        notificar_sistemas_meli_cred(
+            "*MeLi: falló refresco de token (HTTP)*\n\n"
+            f"Detalle: `{desc}`\n"
+            "Si el refresh expiró, generar nuevo token en la app de MeLi (OAuth)."
+        )
+    except json.JSONDecodeError as e:
+        print(
+            f"credenciales_meli.json no es JSON válido: {e}\n"
+            f"   └──> Archivo: {MELI_CREDS_PATH}"
+        )
+        notificar_sistemas_meli_cred(
+            "*MeLi: JSON de credenciales inválido*\n\n"
+            f"`{MELI_CREDS_PATH}` — corregir o restaurar desde backup."
+        )
     except Exception as e:
-        print(f"❌ Error crítico al refrescar el token de Meli: {e}")
+        print(f"Error crítico al refrescar el token de Meli: {e}")
 
     return None
 
@@ -118,7 +180,9 @@ def obtener_seller_id_meli() -> int:
                 c = json.load(f)
             sid = c.get("seller_id") or c.get("user_id")
             if sid is not None and str(sid).strip() != "":
-                return int(sid)
+                sid_int = int(sid)
+                if sid_int > 0:
+                    return sid_int
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
         pass
     return _MELI_SELLER_ID_DEFAULT
@@ -276,3 +340,22 @@ def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: 
     except requests.RequestException as e:
         print(f"❌ Error de conexión al enviar archivo por WhatsApp: {e}")
         return False
+
+
+_meli_cred_whatsapp_ultimo_ts = 0.0
+MELI_CRED_WHATSAPP_COOLDOWN_SEC = 1800
+
+
+def notificar_sistemas_meli_cred(mensaje: str) -> None:
+    """Aviso al grupo GRUPO_ALERTAS_SISTEMAS_WA (con cooldown) cuando MeLi no es operable."""
+    global _meli_cred_whatsapp_ultimo_ts
+    now = time.time()
+    if now - _meli_cred_whatsapp_ultimo_ts < MELI_CRED_WHATSAPP_COOLDOWN_SEC:
+        return
+    _meli_cred_whatsapp_ultimo_ts = now
+    try:
+        enviar_whatsapp_reporte(
+            mensaje, numero_destino=jid_grupo_alertas_sistemas_wa()
+        )
+    except Exception:
+        pass

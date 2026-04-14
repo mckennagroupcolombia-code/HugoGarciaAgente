@@ -179,7 +179,11 @@ def generar_respuesta_con_ficha(titulo_producto: str, pregunta: str, ficha_tecni
     Retorna el texto de respuesta, o None si la IA falla.
     """
     try:
-        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+        if not api_key:
+            print("Preventa: GOOGLE_API_KEY vacío — no se puede llamar a Gemini")
+            return None
+        client = genai.Client(api_key=api_key)
         ejemplos = _ejemplos_fewshot(titulo_producto)
 
         prompt = f"""Eres Hugo Garcia, asistente virtual de McKenna Group en Mercado Libre.
@@ -204,7 +208,10 @@ REGLAS:
 Genera únicamente la respuesta para el cliente, sin comillas ni texto introductorio."""
 
         resp = client.models.generate_content(model='gemini-2.5-pro', contents=prompt)
-        texto = resp.text.strip()
+        texto = (resp.text or "").strip()
+        if not texto:
+            print("Preventa: Gemini devolvió respuesta vacía (revisar bloqueos / modelo)")
+            return None
         return texto[:1997] + "..." if len(texto) > 2000 else texto
 
     except Exception as e:

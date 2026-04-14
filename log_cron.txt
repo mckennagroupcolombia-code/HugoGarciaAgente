@@ -693,3 +693,8 @@ fatal: could not read Username for 'https://github.com': No existe el dispositiv
  create mode 100644 scripts/postventa_cola_meli.py
 fatal: could not read Username for 'https://github.com': No existe el dispositivo o la dirección
 [2026-04-12 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
+[master d836535] Auto-commit: actualizacion diaria 2026-04-13 23:00
+ 6 files changed, 193 insertions(+), 23 deletions(-)
+ create mode 100644 scripts/diagnostico_preventa_postventa_wa.py
+fatal: could not read Username for 'https://github.com': No existe el dispositivo o la dirección
+[2026-04-13 23:00:01] ERROR en el push. Revisar credenciales o conflictos.

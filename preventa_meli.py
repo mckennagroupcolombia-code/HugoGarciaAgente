@@ -48,8 +48,12 @@ def enviar_respuesta_meli(question_id, texto_respuesta, token):
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
     }
+    try:
+        qid = int(str(question_id).strip())
+    except (TypeError, ValueError):
+        qid = question_id
     payload = {
-        "question_id": question_id,
+        "question_id": qid,
         "text": texto_respuesta
     }
     

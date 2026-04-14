@@ -60,6 +60,30 @@ def main() -> int:
         print("  Sin bot-mckenna activo, preventa/postventa NO pueden avisar por WhatsApp.")
     print()
 
+    print("--- Archivo credenciales MeLi ---")
+    cred_path = os.getenv("MELI_CREDS_PATH") or str(REPO / "credenciales_meli.json")
+    cp = Path(cred_path)
+    if not cp.is_file():
+        print(f"  (no existe) {cp}")
+    else:
+        sz = cp.stat().st_size
+        print(f"  ruta: {cp}  ({sz} bytes)")
+        if sz == 0:
+            print(
+                "  Archivo vacío — preventa, postventa y sync MeLi NO funcionan.\n"
+                "     Restaurar desde backup o volver a generar OAuth (app_id, client_secret, refresh_token)."
+            )
+        else:
+            try:
+                c = json.loads(cp.read_text(encoding="utf-8"))
+                for k in ("app_id", "client_secret", "refresh_token"):
+                    ok = bool(c.get(k))
+                    mark = "OK" if ok else "FALTA"
+                    print(f"  [{mark}] {k}")
+            except json.JSONDecodeError as e:
+                print(f"  JSON inválido: {e}")
+    print()
+
     print("--- Seller ID (postventa API) ---")
     sid_arch = obtener_seller_id_meli()
     print(f"  desde credenciales (obtener_seller_id_meli): {sid_arch}")
