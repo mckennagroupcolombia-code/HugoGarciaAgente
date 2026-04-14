@@ -9,6 +9,7 @@
 
 ## ÍNDICE
 
+0. [Actualizar repositorio (Git)](#0-actualizar-repositorio-git)
 1. [agente_pro.py](#1-agente_propy)
 2. [webhook_meli.py](#2-webhook_melipy)
 3. [app/core.py](#3-appcorepy)
@@ -20,6 +21,23 @@
 9. [APIs de Generación Multimedia (consola)](#9-apis-de-generación-de-contenido-multimedia-consola)
 10. [Nuevas Skills (Herramientas Autónomas)](#10-nuevas-skills-herramientas-autónomas)
 11. [Observabilidad, auditoría de scripts, backup y Git](#11-observabilidad-auditoría-de-scripts-backup-y-git)
+
+---
+
+## 0. Actualizar repositorio (Git)
+
+Flujo recomendado para actualizar sin perder trabajo local:
+
+```bash
+git status --short --branch
+git branch -vv
+git fetch origin
+git pull --rebase origin main
+```
+
+Si hay archivos modificados en local, primero hacer commit o `git stash` para evitar conflictos.
+
+Si `main` no es rama remota por defecto, usar la rama que salga en `git branch -vv` (por ejemplo `master`).
 
 ---
 
@@ -1430,6 +1448,35 @@ Si **`AGENTE_RESTRICT_FILE_TOOLS=1`** o **`FLASK_ENV=production`**, las funcione
 - Generar: `source venv/bin/activate && python3 scripts/generar_manual.py`
 - Generar y enviar a **cynthua0418@gmail.com**: añadir **`--enviar`** (requiere `EMAIL_SENDER` / `EMAIL_PASSWORD` en `.env`).
 
+### 11.7 Memoria vectorial de bugs resueltos (debugging agentico)
+
+- Dataset histórico: `app/data/debugging_resuelto.jsonl` (JSONL append-only).
+- Script de guardado: `scripts/guardar_memoria_debug.py`.
+- Script de consulta: `scripts/consultar_memoria_debug.py`.
+- Colección Chroma: `mckenna_debug_memory` (en `memoria_vectorial/`).
+- Skill interna: `.agents/skills/debug-memory/SKILL.md`.
+
+**Guardar un bug resuelto**
+
+```bash
+source venv/bin/activate
+python3 scripts/guardar_memoria_debug.py \
+  --titulo "OAuth MeLi no JSON" \
+  --problema "Refresco token falla intermitente" \
+  --causa-raiz "Respuesta upstream invalida y sin validacion" \
+  --solucion "Agregar parse defensivo + alerta WA con cooldown" \
+  --archivos "app/utils.py,scripts/diagnostico_preventa_postventa_wa.py" \
+  --tags "meli,oauth,alertas,debug" \
+  --fuente "chat-actual"
+```
+
+**Consultar memoria**
+
+```bash
+source venv/bin/activate
+python3 scripts/consultar_memoria_debug.py --q "preventa sin ficha por matching titulo" --n 5
+```
+
 ---
 
 ### Cómo agregar una skill a Claude
@@ -1470,7 +1517,7 @@ Si **`AGENTE_RESTRICT_FILE_TOOLS=1`** o **`FLASK_ENV=production`**, las funcione
 
 ---
 
-*Documento técnico del repositorio McKenna Group Agente. Última actualización: 2026-04-10 (sección 11: operabilidad v3.2).*
+*Documento técnico del repositorio McKenna Group Agente. Última actualización: 2026-04-14 (sección 0: actualización de repositorio + ajustes de manual).*
 
 ---
 

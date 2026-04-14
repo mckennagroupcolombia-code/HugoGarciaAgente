@@ -8,6 +8,7 @@ Automatización para McKenna Group S.A.S.: WhatsApp (Claude), preventa MercadoLi
 - **[MANUAL.md](MANUAL.md)** — Recorrido técnico por módulos clave (`agente_pro.py`, `webhook_meli.py`, `core`, `routes`, CLI, servicios, posventa MeLi y utilidades de reporte WA).
 - **Manual de usuario (PDF)** — `source venv/bin/activate && python3 scripts/generar_manual.py` (opcional `--enviar` envía a cynthua0418@gmail.com). Incluye postventa MeLi, observabilidad (`request_id`, logs JSON), auditoría de scripts (cron), backup nocturno + push Git opcional y grupo `GRUPO_ALERTAS_SISTEMAS_WA`.
 - **Cron auditoría** — `./scripts/instalar_cron_mcKenna.sh` (idempotente). **Tests** — `pytest tests/test_smoke.py`.
+- **Memoria vectorial de debugging** — `python3 scripts/guardar_memoria_debug.py ...` para guardar bugs resueltos y `python3 scripts/consultar_memoria_debug.py --q "..."` para recuperar fixes históricos (colección `mckenna_debug_memory`).
 - **WhatsApp bridge** — [bot-mckenna/README.md](bot-mckenna/README.md)
 
 ## Arranque rápido
@@ -20,3 +21,16 @@ cd bot-mckenna && npm ci && npm start   # Puente WA :3000
 ```
 
 Detalle, `.env` y producción: ver **CLAUDE.md** → secciones «Cómo correr el proyecto» y «Variables de Entorno».
+
+## Actualizar repositorio (git)
+
+Usar flujo seguro para no romper cambios locales:
+
+```bash
+git status --short --branch
+git branch -vv
+git fetch origin
+git pull --rebase origin main
+```
+
+Si hay cambios sin commit (working tree sucio), hacer commit o `git stash` antes de `pull`.
