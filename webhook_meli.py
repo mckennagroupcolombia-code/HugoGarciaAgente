@@ -76,6 +76,7 @@ from app.utils import (
     jid_grupo_postventa_wa,
     meli_postventa_id_mensaje,
     meli_postventa_texto_para_notif,
+    obtener_seller_id_meli,
 )
 
 load_dotenv()
@@ -226,7 +227,6 @@ def _procesar_orden_meli(order_id: str):
 _POSVENTA_STATE_PATH = os.path.join(
     "/home/mckg/mi-agente", "app", "data", "mensajes_posventa_pendientes.json"
 )
-_SELLER_ID = 432439187
 
 
 def _cargar_state_posventa() -> dict:
@@ -265,6 +265,7 @@ def _procesar_mensaje_posventa(resource: str):
         if not token:
             return
 
+        seller_id = obtener_seller_id_meli()
         headers = {"Authorization": f"Bearer {token}", "x-version": "2"}
 
         # MeLi puede enviar el resource de dos formas:
@@ -322,7 +323,7 @@ def _procesar_mensaje_posventa(resource: str):
                         f"🔍 [POSVENTA] Buscando en órdenes recientes del vendedor..."
                     )
                     res_orders = requests.get(
-                        f"https://api.mercadolibre.com/orders/search?seller={_SELLER_ID}&sort=date_desc&limit=10",
+                        f"https://api.mercadolibre.com/orders/search?seller={seller_id}&sort=date_desc&limit=10",
                         headers=headers,
                         timeout=10,
                     )
@@ -330,7 +331,7 @@ def _procesar_mensaje_posventa(resource: str):
                         for orden in res_orders.json().get("results", []):
                             oid = str(orden.get("id", ""))
                             res_msgs = requests.get(
-                                f"https://api.mercadolibre.com/messages/packs/{oid}/sellers/{_SELLER_ID}?tag=post_sale",
+                                f"https://api.mercadolibre.com/messages/packs/{oid}/sellers/{seller_id}?tag=post_sale",
                                 headers=headers,
                                 timeout=8,
                             )
@@ -356,7 +357,7 @@ def _procesar_mensaje_posventa(resource: str):
                 return
 
         res = requests.get(
-            f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{_SELLER_ID}?tag=post_sale",
+            f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{seller_id}?tag=post_sale",
             headers=headers,
             timeout=10,
         )
@@ -373,7 +374,7 @@ def _procesar_mensaje_posventa(resource: str):
         nuevos = 0
         for msg in mensajes:
             from_id = str(msg.get("from", {}).get("user_id", ""))
-            if from_id == str(_SELLER_ID):
+            if from_id == str(seller_id):
                 continue  # Mensaje nuestro, ignorar
 
             msg_id = meli_postventa_id_mensaje(msg)
@@ -437,7 +438,12 @@ def _procesar_mensaje_posventa(resource: str):
                 f"Para responder escribe en el grupo:\n"
                 f"*posventa {sufijo}: tu respuesta aquí*"
             )
-            enviar_whatsapp_reporte(notif, numero_destino=GRUPO)
+            ok_wa = enviar_whatsapp_reporte(notif, numero_destino=GRUPO)
+            if not ok_wa:
+                print(
+                    f"❌ [POSVENTA] WhatsApp NO entregó alerta (bridge :3000 / GRUPO). "
+                    f"pack={pack_id} msg_id={msg_id} grupo={GRUPO}"
+                )
             try:
                 incrementar_metrica("mensajes_posventa")
             except Exception:

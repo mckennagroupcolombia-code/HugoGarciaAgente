@@ -36,16 +36,9 @@ load_dotenv(REPO / ".env")
 
 
 def _seller_id() -> int:
-    try:
-        creds_path = os.getenv("MELI_CREDS_PATH", str(REPO / "credenciales_meli.json"))
-        with open(creds_path, "r", encoding="utf-8") as f:
-            c = json.load(f)
-        sid = c.get("seller_id") or c.get("user_id")
-        if sid:
-            return int(sid)
-    except Exception:
-        pass
-    return 432439187
+    from app.utils import obtener_seller_id_meli
+
+    return obtener_seller_id_meli()
 
 
 def _cargar_state() -> dict:
