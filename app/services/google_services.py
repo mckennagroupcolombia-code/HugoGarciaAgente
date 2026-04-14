@@ -144,15 +144,16 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
         if not palabras:
             palabras = nombre_norm.split()
 
-        # Exigir que TODAS las palabras distintivas coincidan (evita falsos positivos)
-        def coincide(fila_norm: str) -> bool:
+        # Exigir que TODAS las palabras distintivas del título MeLi estén en el nombre del Sheet
+        # (evita falsos positivos cuando el catálogo es más corto que la publicación).
+        def coincide_meli_en_fila(fila_norm: str) -> bool:
             return all(p in fila_norm for p in palabras)
 
         for row in rows:
             if len(row) <= IDX_NOMBRE:
                 continue
             nombre_fila_norm = normalizar(str(row[IDX_NOMBRE]))
-            if coincide(nombre_fila_norm):
+            if coincide_meli_en_fila(nombre_fila_norm):
                 ficha = row[IDX_TDS].strip() if len(row) > IDX_TDS else ""
                 if ficha:
                     print(f"✅ [G-SHEETS] Ficha técnica encontrada para '{nombre_producto}'")
@@ -160,6 +161,33 @@ def buscar_ficha_tecnica_producto(nombre_producto: str):
                 else:
                     print(f"⚠️ [G-SHEETS] Producto encontrado pero columna I vacía: '{row[IDX_NOMBRE]}'")
                     return None
+
+        # Fallback: títulos MeLi suelen traer sufijos (marca, envío, pack). Si todas las
+        # palabras distintivas del nombre en Sheets aparecen en el título MeLi, es el mismo SKU.
+        def palabras_distintivas_de_fila(fila_norm: str) -> list[str]:
+            w = [p for p in fila_norm.split() if len(p) > 4 and p not in excluir]
+            return w if w else fila_norm.split()
+
+        candidatos: list[tuple[int, str]] = []
+        for row in rows:
+            if len(row) <= IDX_NOMBRE:
+                continue
+            nombre_fila_norm = normalizar(str(row[IDX_NOMBRE]))
+            p_fila = palabras_distintivas_de_fila(nombre_fila_norm)
+            if not p_fila:
+                continue
+            if all(p in nombre_norm for p in p_fila):
+                ficha = row[IDX_TDS].strip() if len(row) > IDX_TDS else ""
+                if ficha:
+                    candidatos.append((len(nombre_fila_norm), ficha))
+
+        if candidatos:
+            candidatos.sort(key=lambda t: t[0], reverse=True)
+            print(
+                f"✅ [G-SHEETS] Ficha (coincidencia por título MeLi extendido) "
+                f"para '{nombre_producto}'"
+            )
+            return candidatos[0][1]
 
         print(f"⚠️ [G-SHEETS] Producto '{nombre_producto}' no encontrado en la hoja")
         return None
