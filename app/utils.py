@@ -84,6 +84,22 @@ def _persistir_seller_id_meli_en_config(config: dict, access_token: str) -> None
         pass
 
 
+def _token_meli_es_valido(access_token: str) -> bool:
+    """Valida token MeLi con GET /users/me."""
+    token = str(access_token or "").strip()
+    if not token:
+        return False
+    try:
+        r = requests.get(
+            "https://api.mercadolibre.com/users/me",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        return r.status_code == 200
+    except requests.RequestException:
+        return False
+
+
 def refrescar_token_meli():
     """
     Refresca el token de acceso de Mercado Libre usando el refresh_token.
@@ -139,7 +155,6 @@ def refrescar_token_meli():
             'refresh_token': config.get('refresh_token')
         }
         attempted_refresh_token = str(config.get("refresh_token") or "").strip()
-        attempted_refresh_token = str(config.get("refresh_token") or "")
 
         res = requests.post("https://api.mercadolibre.com/oauth/token", data=payload, timeout=10)
         res.raise_for_status()  # Lanza una excepción para errores HTTP (4xx o 5xx)
@@ -219,11 +234,16 @@ def refrescar_token_meli():
                 },
             )
             if fallback_token:
+                if _token_meli_es_valido(fallback_token):
+                    print(
+                        "⚠️ OAuth devolvió invalid_grant, pero access_token en disco sigue válido. "
+                        "Posible rotación concurrente de refresh_token; usando token actual."
+                    )
+                    return fallback_token
                 print(
-                    "⚠️ OAuth devolvió invalid_grant, pero existe access_token en disco. "
-                    "Posible rotación concurrente de refresh_token; usando token actual."
+                    "❌ OAuth devolvió invalid_grant y access_token en disco NO es válido. "
+                    "Se requiere renovar OAuth de Mercado Libre."
                 )
-                return fallback_token
         notificar_sistemas_meli_cred(
             "*MeLi: falló refresco de token (HTTP)*\n\n"
             f"Detalle: `{desc}`\n"
