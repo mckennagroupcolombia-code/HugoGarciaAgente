@@ -2,6 +2,7 @@ import os
 import json
 import requests
 import time
+import hashlib
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde el archivo .env
@@ -21,6 +22,41 @@ load_dotenv()
 # --- Configuración de Mercado Libre ---
 # La ruta a las credenciales de Meli se carga desde las variables de entorno.
 MELI_CREDS_PATH = os.getenv("MELI_CREDS_PATH")
+DEBUG_LOG_PATH = "/home/mckg/mi-agente/.cursor/debug-3731ff.log"
+DEBUG_SESSION_ID = "3731ff"
+
+
+def _debug_log(run_id: str, hypothesis_id: str, location: str, message: str, data: dict) -> None:
+    # #region agent log
+    try:
+        payload = {
+            "sessionId": DEBUG_SESSION_ID,
+            "runId": run_id,
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(time.time() * 1000),
+        }
+        with open(DEBUG_LOG_PATH, "a", encoding="utf-8") as fp:
+            fp.write(json.dumps(payload, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+    # #endregion
+
+
+def _cargar_config_meli_desde_archivo() -> dict | None:
+    """Lee credenciales MeLi desde disco; retorna None si no hay JSON utilizable."""
+    if not MELI_CREDS_PATH or not os.path.exists(MELI_CREDS_PATH):
+        return None
+    try:
+        with open(MELI_CREDS_PATH, "r", encoding="utf-8") as f:
+            raw = f.read()
+        if not raw.strip():
+            return None
+        return json.loads(raw)
+    except (OSError, json.JSONDecodeError):
+        return None
 
 
 def _persistir_seller_id_meli_en_config(config: dict, access_token: str) -> None:
@@ -55,6 +91,7 @@ def refrescar_token_meli():
     Esta función es crucial para mantener la comunicación con la API de Meli.
     Ha sido mejorada con un manejo de errores más detallado.
     """
+    run_id = f"meli-refresh-{int(time.time())}"
     if not MELI_CREDS_PATH or not os.path.exists(MELI_CREDS_PATH):
         print(f"❌ Error Crítico: No se encuentra el archivo de credenciales de Meli. Asegúrate de que la variable de entorno MELI_CREDS_PATH esté bien configurada.")
         if MELI_CREDS_PATH:
@@ -101,6 +138,8 @@ def refrescar_token_meli():
             'client_secret': config.get('client_secret'),
             'refresh_token': config.get('refresh_token')
         }
+        attempted_refresh_token = str(config.get("refresh_token") or "").strip()
+        attempted_refresh_token = str(config.get("refresh_token") or "")
 
         res = requests.post("https://api.mercadolibre.com/oauth/token", data=payload, timeout=10)
         res.raise_for_status()  # Lanza una excepción para errores HTTP (4xx o 5xx)
@@ -131,6 +170,13 @@ def refrescar_token_meli():
                 json.dump(config, f, indent=4)
 
             print("✅ Token de Mercado Libre refrescado exitosamente.")
+            _debug_log(
+                run_id,
+                "H2",
+                "app/utils.py:refrescar_token_meli:success",
+                "Refresh success",
+                {"rotated_refresh_token": bool("refresh_token" in new_data)},
+            )
             return config['access_token']
         else:
             print(f"❌ Error: La respuesta de la API de Meli no contenía un 'access_token'. Respuesta: {new_data}")
@@ -140,11 +186,44 @@ def refrescar_token_meli():
         print(f"Error HTTP al refrescar token de Meli: {http_err}")
         print(f"   └──> Respuesta del servidor: {res.text}")
         desc = (res.text or "")[:300]
+        err_code = ""
         try:
             err_j = res.json()
             desc = str(err_j.get("message") or err_j.get("error") or err_j)[:300]
+            err_code = str(err_j.get("error") or "").strip().lower()
         except (json.JSONDecodeError, ValueError, TypeError):
             pass
+        if err_code == "invalid_grant":
+            cfg = _cargar_config_meli_desde_archivo() or {}
+            fallback_token = str(cfg.get("access_token") or "").strip()
+            current_refresh_token = str(cfg.get("refresh_token") or "").strip()
+            creds_mtime_age_sec = None
+            if MELI_CREDS_PATH and os.path.exists(MELI_CREDS_PATH):
+                try:
+                    creds_mtime_age_sec = int(time.time() - os.path.getmtime(MELI_CREDS_PATH))
+                except OSError:
+                    creds_mtime_age_sec = -1
+            _debug_log(
+                run_id,
+                "H8",
+                "app/utils.py:refrescar_token_meli:invalid_grant_snapshot",
+                "Invalid grant runtime snapshot",
+                {
+                    "attempted_refresh_token_len": len(attempted_refresh_token),
+                    "current_refresh_token_len": len(current_refresh_token),
+                    "refresh_token_same": attempted_refresh_token == current_refresh_token,
+                    "attempted_refresh_token_hash8": hashlib.sha256(attempted_refresh_token.encode("utf-8")).hexdigest()[:8] if attempted_refresh_token else "",
+                    "current_refresh_token_hash8": hashlib.sha256(current_refresh_token.encode("utf-8")).hexdigest()[:8] if current_refresh_token else "",
+                    "creds_mtime_age_sec": creds_mtime_age_sec,
+                    "fallback_token_available": bool(fallback_token),
+                },
+            )
+            if fallback_token:
+                print(
+                    "⚠️ OAuth devolvió invalid_grant, pero existe access_token en disco. "
+                    "Posible rotación concurrente de refresh_token; usando token actual."
+                )
+                return fallback_token
         notificar_sistemas_meli_cred(
             "*MeLi: falló refresco de token (HTTP)*\n\n"
             f"Detalle: `{desc}`\n"
