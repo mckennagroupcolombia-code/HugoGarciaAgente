@@ -22,6 +22,32 @@ load_dotenv()
 # La ruta a las credenciales de Meli se carga desde las variables de entorno.
 MELI_CREDS_PATH = os.getenv("MELI_CREDS_PATH")
 
+
+def _persistir_seller_id_meli_en_config(config: dict, access_token: str) -> None:
+    """
+    Tras un token válido, alinea seller_id y user_id en el dict de credenciales
+    con GET /users/me (mismo id para cuenta vendedor).
+    Falla en silencio si la API no responde; no bloquea el refresh.
+    """
+    try:
+        r = requests.get(
+            "https://api.mercadolibre.com/users/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=10,
+        )
+        if r.status_code != 200:
+            return
+        me = r.json()
+        uid = me.get("id")
+        if uid is None:
+            return
+        uid_int = int(uid)
+        config["user_id"] = uid_int
+        config["seller_id"] = uid_int
+    except (ValueError, TypeError, requests.RequestException):
+        pass
+
+
 def refrescar_token_meli():
     """
     Refresca el token de acceso de Mercado Libre usando el refresh_token.
@@ -57,6 +83,8 @@ def refrescar_token_meli():
             if 'refresh_token' in new_data:
                 config['refresh_token'] = new_data['refresh_token']
 
+            _persistir_seller_id_meli_en_config(config, config["access_token"])
+
             with open(MELI_CREDS_PATH, 'w') as f:
                 json.dump(config, f, indent=4)
 
@@ -73,6 +101,28 @@ def refrescar_token_meli():
         print(f"❌ Error crítico al refrescar el token de Meli: {e}")
 
     return None
+
+
+_MELI_SELLER_ID_DEFAULT = 432439187
+
+
+def obtener_seller_id_meli() -> int:
+    """
+    User ID del vendedor autenticado (URLs post_sale, orders/search, filtro from).
+    Prioriza seller_id / user_id en credenciales JSON; fallback al ID histórico del repo.
+    """
+    path = MELI_CREDS_PATH or ""
+    try:
+        if path and os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as f:
+                c = json.load(f)
+            sid = c.get("seller_id") or c.get("user_id")
+            if sid is not None and str(sid).strip() != "":
+                return int(sid)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        pass
+    return _MELI_SELLER_ID_DEFAULT
+
 
 # --- Comunicación con el Servidor de Notificaciones (WhatsApp) ---
 # Las constantes de URL y teléfono se cargan desde variables de entorno.
