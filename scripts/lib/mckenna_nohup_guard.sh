@@ -12,12 +12,15 @@ _mckenna_systemd_active() {
     systemctl is-active --quiet "$1" 2>/dev/null
 }
 
-# Activa O habilitada (aunque esté inactive unos segundos tras stop): no lanzar nohup,
-# para que mantener_servicios no meta un webhook_meli.py mientras normalizar/systemctl reinicia.
+# Solo **activa** (o brevemente *activating*): no lanzar nohup.
+# Importante: NO usar solo `is-enabled`: si la unidad quedó en **failed** (p. ej. lock/puerto)
+# pero sigue enabled, bloqueaba nohup y dejaba un webhook_meli.py huérfano sin recuperación.
 _mckenna_unit_controls_service() {
     local u="$1"
     _mckenna_systemd_active "$u" && return 0
-    systemctl is-enabled --quiet "$u" 2>/dev/null && return 0
+    local st
+    st=$(systemctl show -p ActiveState --value "$u" 2>/dev/null || echo "")
+    [ "$st" = "activating" ] && return 0
     return 1
 }
 

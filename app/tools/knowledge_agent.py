@@ -5,7 +5,7 @@ Agente de Conocimiento Científico — McKenna Group
 Flujo:
   1. Buscar papers en PubMed + ArXiv sobre un ingrediente/tema
   2. Extraer texto completo con Scrapling (sitios externos)
-  3. Generar contenido (por defecto Ollama gemma4:latest, respaldo Gemini 2.5-Pro):
+  3. Generar contenido (por defecto Gemini 2.5-Pro vía GOOGLE_API_KEY; sin GPU local):
        - Ficha técnica enriquecida
        - Post de blog / receta / manual de uso
   4. Guardar en ChromaDB para respuestas de preventa
@@ -18,9 +18,10 @@ Uso desde CLI (opción 7) o desde el agente IA:
       publicar   = True
   )
 
-Síntesis: AGENTE_OLLAMA_URL (default http://127.0.0.1:11434), AGENTE_OLLAMA_MODEL
-override (si no, modelo por defecto gemma4:latest). Orden: AGENTE_SYNTHESIS_PRIMARY=ollama|gemini
-(default ollama primero).
+Síntesis: por defecto `AGENTE_SYNTHESIS_PRIMARY=gemini` (solo API). Ollama es opt-in:
+  `AGENTE_SYNTHESIS_PRIMARY=ollama` (primero local) o, con primario gemini,
+  `AGENTE_SYNTHESIS_FALLBACK_OLLAMA=1` para intentar Ollama si Gemini falla.
+  Variables Ollama: AGENTE_OLLAMA_URL (default http://127.0.0.1:11434), AGENTE_OLLAMA_MODEL.
 """
 
 import os
@@ -51,10 +52,25 @@ WP_CATEGORIAS = {
     "novedad":      None,
 }
 
-# Ollama /api/generate — primero en el pipeline de síntesis salvo AGENTE_SYNTHESIS_PRIMARY=gemini
 DEFAULT_OLLAMA_SYNTHESIS_MODEL = "gemma4:latest"
+DEFAULT_SYNTHESIS_PRIMARY = "gemini"
 
 CHROMADB_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'memoria_vectorial')
+
+
+def _synthesis_primary() -> str:
+    """gemini (default, solo API) | ollama (local, opt-in)."""
+    v = (os.getenv("AGENTE_SYNTHESIS_PRIMARY") or DEFAULT_SYNTHESIS_PRIMARY).strip().lower()
+    return v if v in ("gemini", "ollama") else DEFAULT_SYNTHESIS_PRIMARY
+
+
+def _ollama_fallback_allowed() -> bool:
+    return os.getenv("AGENTE_SYNTHESIS_FALLBACK_OLLAMA", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
 
 # ─────────────────────────────────────────────
@@ -392,7 +408,12 @@ def proponer_titulo_editorial_es(tema: str, contenido: str, tipo: str) -> str:
         f"Máximo 95 caracteres.\n"
         f"Extracto del cuerpo: {plain}"
     )
-    line = _ollama_solo_linea(prompt) or _gemini_solo_linea(prompt)
+    if _synthesis_primary() == "ollama":
+        line = _ollama_solo_linea(prompt) or _gemini_solo_linea(prompt)
+    else:
+        line = _gemini_solo_linea(prompt)
+        if not line and _ollama_fallback_allowed():
+            line = _ollama_solo_linea(prompt)
     line = (line or "").strip()
     if len(line) >= 10:
         return line[:120]
@@ -464,28 +485,33 @@ def _sintetizar_con_ollama(
 
 def sintetizar_contenido(tema: str, conocimiento: str, tipo: str = "post_blog") -> Optional[str]:
     """
-    Por defecto: Ollama (gemma4:latest o AGENTE_OLLAMA_MODEL) en AGENTE_OLLAMA_URL;
-    si falla o vacío → Gemini 2.5-Pro.
+    Por defecto: Gemini 2.5-Pro (GOOGLE_API_KEY); no contacta Ollama salvo opt-in.
 
-    AGENTE_SYNTHESIS_PRIMARY=gemini invierte el orden (Gemini primero, Ollama respaldo).
+    - AGENTE_SYNTHESIS_PRIMARY=gemini (default): solo API; si Gemini falla y
+      AGENTE_SYNTHESIS_FALLBACK_OLLAMA=1, intenta Ollama local.
+    - AGENTE_SYNTHESIS_PRIMARY=ollama: primero Ollama (AGENTE_OLLAMA_URL / AGENTE_OLLAMA_MODEL),
+      respaldo Gemini.
     """
-    primary = (os.getenv("AGENTE_SYNTHESIS_PRIMARY") or "ollama").strip().lower()
+    primary = _synthesis_primary()
     model = (os.getenv("AGENTE_OLLAMA_MODEL") or DEFAULT_OLLAMA_SYNTHESIS_MODEL).strip()
     base = (os.getenv("AGENTE_OLLAMA_URL") or "http://127.0.0.1:11434").strip()
 
-    if primary == "gemini":
-        texto = _sintetizar_con_gemini(tema, conocimiento, tipo)
+    if primary == "ollama":
+        print(f"  🦙 Sintetizando con Ollama ({model}) @ {base}...")
+        texto = _sintetizar_con_ollama(tema, conocimiento, tipo, model, base)
         if texto:
             return texto
-        print(f"  🦙 Fallback Ollama: {model} @ {base}")
-        return _sintetizar_con_ollama(tema, conocimiento, tipo, model, base)
+        print("  🤖 Fallback: Gemini 2.5-Pro...")
+        return _sintetizar_con_gemini(tema, conocimiento, tipo)
 
-    print(f"  🦙 Sintetizando con Ollama ({model}) @ {base}...")
-    texto = _sintetizar_con_ollama(tema, conocimiento, tipo, model, base)
+    print("  🤖 Sintetizando con Gemini 2.5-Pro...")
+    texto = _sintetizar_con_gemini(tema, conocimiento, tipo)
     if texto:
         return texto
-    print("  🤖 Fallback: Gemini 2.5-Pro...")
-    return _sintetizar_con_gemini(tema, conocimiento, tipo)
+    if _ollama_fallback_allowed():
+        print(f"  🦙 Fallback Ollama: {model} @ {base}")
+        return _sintetizar_con_ollama(tema, conocimiento, tipo, model, base)
+    return None
 
 
 def sintetizar_con_gemini(tema: str, conocimiento: str, tipo: str = "post_blog") -> Optional[str]:
@@ -968,7 +994,7 @@ def generar_y_publicar_contenido(
     """
     Pipeline completo:
       1. Busca en PubMed + ArXiv
-      2. Sintetiza (Ollama gemma4:latest por defecto, respaldo Gemini)
+      2. Sintetiza (Gemini 2.5-Pro por defecto; Ollama solo si AGENTE_SYNTHESIS_PRIMARY=ollama)
       3. Guarda en ChromaDB
       4. (Opcional) Actualiza ficha en Sheets
       5. (Opcional) Publica en WordPress
@@ -1035,12 +1061,12 @@ def generar_y_publicar_contenido(
             "fuentes": fuentes,
         }
 
-    # ── 2. Síntesis (Ollama → Gemini según AGENTE_SYNTHESIS_PRIMARY) ──
+    # ── 2. Síntesis (Gemini por defecto; ver sintetizar_contenido / AGENTE_SYNTHESIS_*) ──
     if verbose:
         print(f"  📝 Sintetizando contenido ({tipo})...")
     contenido_bruto = sintetizar_contenido(tema, conocimiento_raw, tipo)
     if not contenido_bruto:
-        return {"ok": False, "mensaje": "Ningún modelo pudo generar contenido (Ollama/Gemini).", "fuentes": fuentes}
+        return {"ok": False, "mensaje": "Ningún modelo pudo generar contenido (Gemini u Ollama si aplica).", "fuentes": fuentes}
     if _gemini_rechazo_o_meta_respuesta(contenido_bruto):
         if verbose:
             print("  ❌ El modelo indicó que no puede basar el texto en las fuentes; no se guarda ni publica.")

@@ -39,9 +39,9 @@ while true; do
 
     # Webhook MeLi (8080)
     if mckenna_webhook_managed_by_systemd; then
-        # Un solo dueño: si hay otro webhook_meli.py (p. ej. sin -u, manual), matarlo.
-        main_pid=$(systemctl show -p MainPID --value webhook-meli.service 2>/dev/null || echo "")
-        if [ -n "$main_pid" ] && [ "$main_pid" != "0" ]; then
+        # Un solo dueño: si systemd está **active**, matar PIDs que no sean MainPID.
+        main_pid=$(systemctl show -p MainPID --value webhook-meli.service 2>/dev/null || echo "0")
+        if systemctl is-active --quiet webhook-meli.service 2>/dev/null && [ -n "$main_pid" ] && [ "$main_pid" != "0" ]; then
             for pid in $(pgrep -f "webhook_meli\\.py" 2>/dev/null || true); do
                 [ "$pid" = "$main_pid" ] && continue
                 case "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)" in
@@ -50,6 +50,13 @@ while true; do
                 echo "$(date): webhook_meli duplicado PID $pid (MainPID systemd=$main_pid) → terminando" >> "$LOG"
                 kill "$pid" 2>/dev/null || true
             done
+        elif systemctl is-enabled --quiet webhook-meli.service 2>/dev/null && systemctl is-failed --quiet webhook-meli.service 2>/dev/null; then
+            # Unidad habilitada pero en **failed** (p. ej. lock/puerto): huérfano en :8080 deja systemd muerto y sin logs en journal.
+            echo "$(date): webhook-meli.service failed → pkill webhook_meli, limpiar lock, reset-failed, start" >> "$LOG"
+            pkill -f "webhook_meli\\.py" 2>/dev/null || true
+            rm -f "$DIR/.webhook_meli.lock" 2>/dev/null || true
+            systemctl reset-failed webhook-meli.service 2>/dev/null || true
+            systemctl start webhook-meli.service 2>/dev/null || true
         fi
     elif [ -z "$(_pgrep_py 'webhook_meli\.py')" ]; then
         echo "$(date): Reiniciando webhook_meli..." >> $LOG

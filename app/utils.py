@@ -327,6 +327,37 @@ def meli_postventa_id_mensaje(msg: dict) -> str:
     return str(msg.get("id") or msg.get("message_id") or "").strip()
 
 
+def meli_postventa_remitente_user_id(msg: dict) -> str:
+    """
+    user_id del remitente en mensajes postventa (API /messages/packs/... puede variar forma de `from`).
+    Si `from` no es dict (p. ej. int), evita AttributeError que antes podía tumbar todo el lote.
+    """
+    f = msg.get("from")
+    if isinstance(f, dict):
+        uid = f.get("user_id")
+        if uid is not None and str(uid).strip() != "":
+            return str(uid).strip()
+        return ""
+    if isinstance(f, (int, float)):
+        return str(int(f))
+    if isinstance(f, str) and f.strip():
+        return f.strip()
+    for k in ("from_user_id", "sender_id"):
+        v = msg.get(k)
+        if v is not None and str(v).strip() != "":
+            return str(v).strip()
+    return ""
+
+
+def meli_postventa_nombre_remitente(msg: dict, remitente_uid: str) -> str:
+    f = msg.get("from")
+    if isinstance(f, dict):
+        n = (f.get("name") or "").strip()
+        if n:
+            return n
+    return f"Comprador {remitente_uid}" if remitente_uid else "Comprador"
+
+
 def meli_postventa_texto_para_notif(msg: dict) -> str:
     """
     Texto legible para alerta WhatsApp.
@@ -345,7 +376,16 @@ def meli_postventa_texto_para_notif(msg: dict) -> str:
     else:
         t = str(raw).strip()
 
-    attachments = msg.get("attachments") or []
+    if not t:
+        alt = msg.get("text_translated")
+        if isinstance(alt, str) and alt.strip():
+            t = alt.strip()
+
+    attachments = (
+        msg.get("attachments")
+        or msg.get("message_attachments")
+        or []
+    )
     if isinstance(attachments, dict):
         attachments = [attachments]
     if not isinstance(attachments, list):
@@ -360,7 +400,14 @@ def meli_postventa_texto_para_notif(msg: dict) -> str:
     nombres = []
     for a in attachments[:8]:
         if isinstance(a, dict):
-            fn = (a.get("original_filename") or a.get("filename") or "").strip()
+            fn = (
+                a.get("original_filename")
+                or a.get("filename")
+                or a.get("name")
+                or ""
+            ).strip()
+            if not fn and a.get("id") is not None:
+                fn = str(a.get("id")).strip()
             if fn:
                 nombres.append(fn)
     if nombres:
