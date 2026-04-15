@@ -11,14 +11,9 @@ Servicio **Node.js** (`whatsapp-web.js`) en el **puerto 3000**: recibe mensajes,
    npm ci
    ```
 
-2. **Si la sesión de WhatsApp estaba en la carpeta vieja** `~/bot-mckenna`:
-
-   ```bash
-   chmod +x migrar_desde_legacy.sh
-   ./migrar_desde_legacy.sh
-   ```
-
-   Si ya tienes `.wwebjs_auth_nueva` dentro de **esta** carpeta, puedes saltarte el paso.
+2. **Ruta oficial única del bridge**: `/home/mckg/mi-agente/bot-mckenna`.
+   - No usar ni recrear `/home/mckg/bot-mckenna`.
+   - La carpeta legacy ya fue retirada para evitar procesos duplicados en el puerto 3000.
 
 3. **Arrancar** (manual):
 
@@ -26,16 +21,13 @@ Servicio **Node.js** (`whatsapp-web.js`) en el **puerto 3000**: recibe mensajes,
    npm start
    ```
 
-   O instalar **systemd** (unidad **`mckenna-whatsapp-bridge.service`** — no uses `bot-mckenna.service` si en tu PC ese nombre ya es **otro** servicio, p. ej. Python).
+  O instalar **systemd** (unidad **`mckenna-whatsapp-bridge.service`** — no uses `bot-mckenna.service` si en tu PC ese nombre ya es **otro** servicio, p. ej. Python).
 
    ```bash
-   # 1) Parar el Node legacy que escucha ~/bot-mckenna (evita dos Chrome / puerto 3000)
-   sudo kill "$(pgrep -f '/home/mckg/bot-mckenna/server.js' || true)" 2>/dev/null || true
+  # 1) Desactivar units viejas que no sean mckenna-whatsapp-bridge (si aplica)
+  sudo systemctl disable --now whatsapp-bridge whatsapp-server 2>/dev/null || true
 
-   # 2) Desactivar units systemd viejos que apunten al path legacy (ajusta nombres si aplica)
-   sudo systemctl disable --now whatsapp-bridge whatsapp-server 2>/dev/null || true
-
-   # 3) Instalar el puente Node desde ESTE repo
+  # 2) Instalar el puente Node desde ESTE repo
    chmod +x instalar_systemd.sh
    sudo ./instalar_systemd.sh
    sudo systemctl enable --now mckenna-whatsapp-bridge
@@ -48,7 +40,7 @@ Servicio **Node.js** (`whatsapp-web.js`) en el **puerto 3000**: recibe mensajes,
    systemctl cat bot-mckenna.service | head -5
    ```
 
-4. **Apaga** cualquier otro proceso en el puerto 3000 (por ejemplo el Node que aún arrancara desde `~/bot-mckenna`) para no duplicar el bridge.
+4. **Apaga** cualquier otro proceso en el puerto 3000 que no sea `mckenna-whatsapp-bridge` para no duplicar el bridge.
 
 Monitor: `http://localhost:3000/monitor` · Grupos (JSON): `http://localhost:3000/grupos`
 
@@ -72,7 +64,7 @@ Después de `npm ci` no necesitas hacer nada más con esos *warnings* de paquete
 
 ## Error: `The browser is already running for ... userDataDir`
 
-Significa que **Chrome de whatsapp-web.js cree que el perfil está en uso**: casi siempre hay **otro `node server.js`** (p. ej. el que seguía en `~/bot-mckenna` o un **systemd** duplicado), o quedaron candados tras un corte.
+Significa que **Chrome de whatsapp-web.js cree que el perfil está en uso**: casi siempre hay **otro `node server.js`** o un **systemd** duplicado, o quedaron candados tras un corte.
 
 1. Busca y para procesos duplicados:
 
@@ -81,7 +73,7 @@ Significa que **Chrome de whatsapp-web.js cree que el perfil está en uso**: cas
    systemctl status mckenna-whatsapp-bridge --no-pager 2>/dev/null
    ```
 
-   Detén el servicio antiguo o el Node de la carpeta legacy **antes** de arrancar el del repo.
+  Detén cualquier servicio/proceso duplicado **antes** de arrancar el del repo.
 
 2. Vuelve a ejecutar `npm start`: el `server.js` actual elimina al arrancar `SingletonLock`, `SingletonSocket`, `SingletonCookie` y `DevToolsActivePort` bajo `.wwebjs_auth_nueva/session/`.
 

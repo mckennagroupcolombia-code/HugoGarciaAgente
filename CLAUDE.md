@@ -32,7 +32,7 @@ source venv/bin/activate && python3 generar_catalogo.py
 
 # Puente WhatsApp (Node, puerto 3000)
 cd bot-mckenna && npm ci && npm start
-# Primera vez si venías de ~/bot-mckenna: ./bot-mckenna/migrar_desde_legacy.sh
+# Ruta única soportada del bridge: /home/mckg/mi-agente/bot-mckenna
 # systemd (WhatsApp Node): sudo bot-mckenna/instalar_systemd.sh && systemctl enable --now mckenna-whatsapp-bridge
 ```
 
@@ -57,7 +57,7 @@ git pull origin main    # o: git pull origin master
 | 8083 | `PAGINA_WEB/site/website.py` | `mckenna-website.service` |
 | túnel | `cloudflared` | `cloudflared.service` u otra unidad que gestione el túnel |
 
-- **`mantener_servicios.sh`** y **`start_services.sh`** cargan `scripts/lib/mckenna_nohup_guard.sh`: si la unidad está **active** o **enabled** (aunque unos segundos esté `inactive` tras `systemctl stop`), **no** lanzan ese servicio con `nohup` — evita que el watcher meta un segundo `webhook_meli.py` mientras reinicias con `normalizar_webhook_meli.sh`.
+- **`mantener_servicios.sh`** y **`start_services.sh`** cargan `scripts/lib/mckenna_nohup_guard.sh`: si la unidad está **active** o brevemente **activating** (`_mckenna_unit_controls_service`), **no** lanzan ese servicio con `nohup`. **No** basta con `is-enabled`: una unidad **failed** pero enabled dejaba bloqueado el nohup y un `webhook_meli.py` huérfano. Evita un segundo `webhook_meli.py` mientras reinicias con `normalizar_webhook_meli.sh`. **No** mezclar **system** `agente-pro` / `webhook-meli` con **user** `mckenna-agente` / `mckenna-webhook-meli` (doble proceso y reinicios en bucle en el mismo puerto).
 - Instalar plantillas: **`./scripts/instalar_servicios_systemd.sh`**, luego `systemctl enable --now` solo lo necesario.
 - Diagnóstico: **`./scripts/diagnostico_servicios_mcKenna.sh`** (antes `diagnostico_webhook_8080.sh`).
 - Si el diagnóstico muestra **2 procesos** `webhook_meli.py` o el PID del **8080 ≠ MainPID** de systemd: **`./scripts/normalizar_webhook_meli.sh`**.
@@ -82,7 +82,7 @@ git pull origin main    # o: git pull origin master
 │   ├── server.js                 whatsapp-web.js → POST /whatsapp :8081; /enviar para reportes
 │   ├── instalar_systemd.sh       Crea mckenna-whatsapp-bridge.service (no usar nombre bot-mckenna si choca con Python)
 │   ├── package.json
-│   └── README.md                 Migración desde carpeta legacy fuera del repo
+│   └── README.md                 Operación y troubleshooting del bridge unificado
 │
 ├── app/
 │   ├── core.py                    Claude (Anthropic): prompt sistema, registro herramientas, `obtener_respuesta_ia`
@@ -580,7 +580,8 @@ Scripts de investigación científica automatizada y publicación en WordPress. 
 
 4. generar_y_publicar_contenido(tema, tipo, publicar=True)
      → Tipos: "post_blog", "receta", "manual_uso", "ficha"
-     → Enriquece con referencias PubMed + ArXiv via Gemini
+     → Síntesis por defecto **Gemini 2.5-Pro** (API); Ollama local solo con `AGENTE_SYNTHESIS_PRIMARY=ollama` o fallback explícito (ver `.env.example`)
+     → Enriquece con referencias PubMed + ArXiv
      → Almacena embeddings en ChromaDB (para respuestas preventa)
      → Publica en WordPress vía REST API si publicar=True
 

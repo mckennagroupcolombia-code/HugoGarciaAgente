@@ -20,6 +20,8 @@ python3 webhook_meli.py        # Webhook MeLi :8080 — en MeLi: https://bot.mck
 cd bot-mckenna && npm ci && npm start   # Puente WA :3000
 ```
 
+Nota operativa: el bridge WhatsApp se ejecuta solo desde `mi-agente/bot-mckenna` (ruta legacy fuera del repo eliminada para evitar duplicados de puerto 3000).
+
 Detalle, `.env` y producción: ver **CLAUDE.md** → secciones «Cómo correr el proyecto» y «Variables de Entorno».
 
 ## Actualizar repositorio (git)
