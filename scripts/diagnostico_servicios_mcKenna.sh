@@ -102,6 +102,51 @@ if [ "$n_node" -gt 1 ]; then
 fi
 
 echo ""
+echo "=== MeLi: topics de notificaciones suscritos ==="
+if command -v python3 &>/dev/null && [ -f "${REPO_ROOT}/venv/bin/python3" ]; then
+    "${REPO_ROOT}/venv/bin/python3" -c "
+import os, json, sys
+sys.path.insert(0, '${REPO_ROOT}')
+os.chdir('${REPO_ROOT}')
+try:
+    from dotenv import load_dotenv; load_dotenv()
+    from app.utils import refrescar_token_meli
+    import requests
+    token = refrescar_token_meli()
+    if not token:
+        print('  ⚠️  Sin token MeLi — no se puede verificar topics.')
+        sys.exit(0)
+    with open('credenciales_meli.json') as f:
+        app_id = str(json.load(f).get('app_id', json.load(open('credenciales_meli.json')).get('client_id', '')))
+    r = requests.get(f'https://api.mercadolibre.com/applications/{app_id}',
+                     headers={'Authorization': f'Bearer {token}'}, timeout=10)
+    if r.status_code != 200:
+        print(f'  ⚠️  GET /applications/{app_id}: {r.status_code}')
+        sys.exit(0)
+    d = r.json()
+    url = d.get('notifications_callback_url', '?')
+    topics = d.get('notifications_topics') or []
+    print(f'  callback: {url}')
+    print(f'  topics:   {topics}')
+    needed = {'questions', 'orders_v2', 'messages'}
+    present = set(topics)
+    # MeLi subtopics: messages.created counts as messages
+    if any(t.startswith('messages') for t in present):
+        present.add('messages')
+    missing = needed - present
+    if missing:
+        print(f'  ⚠️  ALERTA: faltan topics críticos: {sorted(missing)}')
+        print('     Ir a https://developers.mercadolibre.com.co → Mis Aplicaciones → Editar → agregar topics.')
+    else:
+        print('  ✅ topics questions, orders_v2, messages presentes.')
+except Exception as e:
+    print(f'  ⚠️  Error verificando MeLi: {e}')
+" 2>/dev/null
+else
+    echo "  (python3 no disponible — omitido)"
+fi
+
+echo ""
 echo "Si systemd está 'activating' con muchos reinicios: liberar puerto y copiar"
 echo "  StartLimitBurst desde scripts/systemd/webhook-meli.service, luego:"
 echo "  sudo systemctl daemon-reload && sudo systemctl reset-failed webhook-meli && sudo systemctl start webhook-meli"
