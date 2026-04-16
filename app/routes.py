@@ -665,28 +665,34 @@ def register_routes(app):
     @app.route("/notifications", methods=["POST"])
     def notifications():
         """Recibe la notificación y responde 'OK' de inmediato a MeLi."""
-        data = request.get_json()
+        data = request.get_json(force=True, silent=True)
 
         topic = data.get("topic") if data else None
+        resource = (data or {}).get("resource", "")
+
+        print(
+            f"📬 [NOTIF] topic={topic!r} resource={resource!r}"
+            f" payload={json.dumps(data, default=str)[:400] if data else '(vacío)'}"
+        )
         log_json(
             "meli_notification_received",
             topic=topic,
-            resource=(data or {}).get("resource"),
+            resource=resource,
         )
 
+        if not data:
+            print("⚠️ [NOTIF] Body vacío o JSON inválido — ignorado.")
+            return jsonify({"status": "ok"}), 200
+
         if topic == "questions":
-            resource = data.get("resource")
             if resource:
                 question_id = resource.split("/")[-1]
-
-                # Limpiar memoria antigua
                 limpiar_preguntas_antiguas()
-
-                # Verificar deduplicación
                 if question_id in preguntas_procesadas:
-                    print(f"Pregunta {question_id} ya procesada. Omitiendo duplicado.")
+                    print(f"⏭️ [PREVENTA] Pregunta {question_id} ya procesada (dedup).")
                 else:
                     preguntas_procesadas[question_id] = time.time()
+                    print(f"❓ [PREVENTA] Despachando pregunta {question_id}")
                     spawn_thread(procesar_nueva_pregunta, args=(question_id,))
                     try:
                         incrementar_metrica("preguntas_meli")
@@ -694,27 +700,25 @@ def register_routes(app):
                         pass
 
         elif topic == "orders_v2":
-            resource = data.get("resource", "")
             if resource:
                 order_id = resource.split("/")[-1]
-                print(f"🛒 [MELI] Nueva notificación de orden: {order_id}")
+                print(f"🛒 [MELI-ORDER] Nueva orden: {order_id}")
                 spawn_thread(_procesar_orden_meli, args=(order_id,))
                 try:
                     incrementar_metrica("ordenes_meli")
                 except Exception:
                     pass
 
-        elif topic == "messages":
-            resource = data.get("resource", "")
-            print(
-                f"📩 [MELI-MSG] Notificación messages recibida. Resource: '{resource}' | Payload: {json.dumps(data, default=str)[:500]}"
-            )
+        elif topic and topic.startswith("messages"):
+            print(f"📩 [MELI-MSG] Posventa topic={topic!r} resource={resource!r}")
             if resource:
                 spawn_thread(
                     _procesar_mensaje_posventa, args=(resource,), daemon=True
                 )
 
-        # Respondemos 200 OK inmediatamente
+        else:
+            print(f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).")
+
         return jsonify({"status": "ok"}), 200
 
     """
