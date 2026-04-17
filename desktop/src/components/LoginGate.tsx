@@ -4,11 +4,36 @@ import { useAuthStore } from "../stores/auth";
 export default function LoginGate() {
   const setToken = useAuthStore((s) => s.setToken);
   const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     const t = value.trim();
-    if (t) setToken(t);
+    if (!t) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/preventa/pendientes", {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (res.status === 401) {
+        setError(
+          "Token rechazado por el servidor. Comprueba que en .env sea exactamente CHAT_API_TOKEN=... sin espacios alrededor del =, sin comillas salvo que el valor vaya entre comillas, y que no haya dos líneas CHAT_API_TOKEN (systemd usa la primera). Luego: sudo systemctl restart agente-pro",
+        );
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError((body as { error?: string }).error || `Error HTTP ${res.status}`);
+        return;
+      }
+      setToken(t);
+    } catch {
+      setError("No se pudo conectar. ¿Flask en :8081 y URL http://localhost:8081/app ?");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,12 +66,18 @@ export default function LoginGate() {
           />
         </div>
 
+        {error && (
+          <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
+            {error}
+          </p>
+        )}
+
         <button
           type="submit"
-          disabled={!value.trim()}
+          disabled={!value.trim() || loading}
           className="w-full rounded-lg bg-accent py-2.5 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-40"
         >
-          Ingresar
+          {loading ? "Comprobando…" : "Ingresar"}
         </button>
       </form>
     </div>

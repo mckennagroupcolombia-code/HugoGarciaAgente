@@ -81,7 +81,8 @@ from app.utils import (
     obtener_seller_id_meli,
 )
 
-load_dotenv()
+_REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_REPO_ROOT, ".env"))
 app = Flask(__name__, template_folder="app/templates")
 configurar_ia(app)
 
@@ -556,8 +557,9 @@ def chat():
     import os
     from datetime import datetime
 
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    if token != os.getenv("CHAT_API_TOKEN", ""):
+    from app.api_auth import chat_api_token_matches_request
+
+    if not chat_api_token_matches_request():
         return jsonify({"error": "No autorizado"}), 401
     data = request.get_json()
     if not data:
@@ -599,8 +601,9 @@ def panel():
 
 # ── HELPER: verificación de token ────────────────────────────────────────────
 def _token_valido():
-    token = request.headers.get("Authorization", "").replace("Bearer ", "")
-    return token == os.getenv("CHAT_API_TOKEN", "")
+    from app.api_auth import chat_api_token_matches_request
+
+    return chat_api_token_matches_request()
 
 
 def _lanzar_en_hilo(fn, *args):
