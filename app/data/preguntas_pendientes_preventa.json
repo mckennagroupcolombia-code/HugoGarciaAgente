@@ -212,6 +212,36 @@
       "timestamp": "2026-04-15T12:19:03.327697",
       "respondida": true,
       "nota": "Respondida automáticamente por monitor (reintento) 2026-04-15"
+    },
+    {
+      "question_id": "13565174760",
+      "titulo_producto": "Citrato De Calcio 500gr Ningún",
+      "pregunta": "Hola. Tienes carbonato es que ya no lo encuentro",
+      "timestamp": "2026-04-16T22:37:56.114378",
+      "respondida": false
+    },
+    {
+      "question_id": "13565278848",
+      "titulo_producto": "Proteína 80% Suero De Leche",
+      "pregunta": "El empaque del kilo de proteína trae la tabla nutricional que aparece en la imagen?Es que se ve borrosa",
+      "timestamp": "2026-04-16T16:32:36.673803",
+      "respondida": true,
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-04-16"
+    },
+    {
+      "question_id": "13564536051",
+      "titulo_producto": "Azul De Metileno 30 Ml Mckenna Group Antiséptico Farmacéutico",
+      "pregunta": "Este es solo para uso tópico o puede ser para uso oral también",
+      "timestamp": "2026-04-16T22:37:56.114378",
+      "respondida": false
+    },
+    {
+      "question_id": "13564574877",
+      "titulo_producto": "Proteína 80% Suero De Leche",
+      "pregunta": "Muchas gracias Pero trae esa misma tabla nutricional que aparece en la imagen",
+      "timestamp": "2026-04-16T16:43:13.691103",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-16"
     }
   ]
 }
