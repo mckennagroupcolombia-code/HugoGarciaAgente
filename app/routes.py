@@ -1617,7 +1617,7 @@ def register_routes(app):
         if origin in _CORS_ORIGINS:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
-            response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+            response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,DELETE"
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
@@ -1632,8 +1632,16 @@ def register_routes(app):
     def _api_token_valido():
         return chat_api_token_matches_request()
 
-    def _api_lanzar_en_hilo(fn, *args):
-        spawn_thread(fn, args=args, daemon=True)
+    def _api_lanzar_en_hilo(fn, *args, job: str | None = None):
+        """Ejecuta fn(*args) en hilo daemon y registra resultado en panel_activity."""
+        from app.panel_activity import run_logged_job
+
+        label = job or getattr(fn, "__name__", "job")
+
+        def _wrapped():
+            run_logged_job(label, fn, args)
+
+        spawn_thread(_wrapped, daemon=True)
 
     # -- Sync imports (same as webhook_meli.py) --
     from app.sync import (
@@ -1695,7 +1703,7 @@ def register_routes(app):
     def api_sync_hoy():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        _api_lanzar_en_hilo(_sync_facturas_recientes, 1)
+        _api_lanzar_en_hilo(_sync_facturas_recientes, 1, job="sync_facturas_1d")
         return jsonify({
             "status": "iniciado",
             "mensaje": "Sync ultimo dia iniciado en segundo plano.",
@@ -1706,7 +1714,7 @@ def register_routes(app):
     def api_sync_10dias():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        _api_lanzar_en_hilo(_sync_facturas_recientes, 10)
+        _api_lanzar_en_hilo(_sync_facturas_recientes, 10, job="sync_facturas_10d")
         return jsonify({
             "status": "iniciado",
             "mensaje": "Sync ultimos 10 dias iniciado en segundo plano.",
@@ -1717,7 +1725,7 @@ def register_routes(app):
     def api_sync_completo():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        _api_lanzar_en_hilo(_sync_stock_reporte)
+        _api_lanzar_en_hilo(_sync_stock_reporte, job="sync_completo_reporte_stock")
         return jsonify({
             "status": "iniciado",
             "mensaje": "Sync completo + reporte de stock iniciado.",
@@ -1728,7 +1736,7 @@ def register_routes(app):
     def api_sync_inteligente():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        _api_lanzar_en_hilo(_sync_inteligente)
+        _api_lanzar_en_hilo(_sync_inteligente, job="sync_inteligente")
         return jsonify({
             "status": "iniciado",
             "mensaje": "Sync inteligente (MeLi vs Siigo) iniciado.",
@@ -1743,7 +1751,7 @@ def register_routes(app):
         pack_id = str(data.get("pack_id", "")).strip()
         if not pack_id:
             return jsonify({"error": "Campo 'pack_id' requerido"}), 400
-        _api_lanzar_en_hilo(_sync_manual_id, pack_id)
+        _api_lanzar_en_hilo(_sync_manual_id, pack_id, job=f"sync_pack_{pack_id}")
         return jsonify({
             "status": "iniciado",
             "mensaje": f"Sync por Pack ID {pack_id} iniciado.",
@@ -1758,7 +1766,7 @@ def register_routes(app):
         fecha = str(data.get("fecha", "")).strip()
         if not fecha:
             return jsonify({"error": "Campo 'fecha' requerido (AAAA-MM-DD)"}), 400
-        _api_lanzar_en_hilo(_sync_por_dia, fecha)
+        _api_lanzar_en_hilo(_sync_por_dia, fecha, job=f"sync_fecha_{fecha}")
         return jsonify({
             "status": "iniciado",
             "mensaje": f"Sync por fecha {fecha} iniciado.",
@@ -1769,10 +1777,10 @@ def register_routes(app):
     def api_sync_stock():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        _api_lanzar_en_hilo(_sync_stock_reporte)
+        _api_lanzar_en_hilo(_sync_stock_reporte, job="reporte_stock_whatsapp")
         return jsonify({
             "status": "iniciado",
-            "mensaje": "Reporte de stock iniciado. Resultado por WhatsApp.",
+            "mensaje": "Reporte de stock iniciado. Revisa Actividad del servidor y WhatsApp grupo inventario.",
             "timestamp": _dt.now().isoformat(),
         })
 
@@ -1780,7 +1788,7 @@ def register_routes(app):
     def api_sync_aprendizaje():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        _api_lanzar_en_hilo(_aprender_meli)
+        _api_lanzar_en_hilo(_aprender_meli, job="aprendizaje_meli")
         return jsonify({
             "status": "iniciado",
             "mensaje": "Aprendizaje IA iniciado.",
@@ -1797,9 +1805,17 @@ def register_routes(app):
             body = request.get_json(silent=True) or {}
             solo_nit = body.get("nit")
             if solo_nit:
-                _api_lanzar_en_hilo(sincronizar_facturas_de_compra_siigo, solo_nit)
+                sn = str(solo_nit).strip()
+                _api_lanzar_en_hilo(
+                    sincronizar_facturas_de_compra_siigo,
+                    sn,
+                    job=f"gmail_compra_nit_{sn}",
+                )
             else:
-                _api_lanzar_en_hilo(procesar_facturas_para_importar_productos)
+                _api_lanzar_en_hilo(
+                    procesar_facturas_para_importar_productos,
+                    job="gmail_importar_xml",
+                )
             return jsonify({
                 "status": "iniciado",
                 "mensaje": "Escaneo facturas de compra Gmail iniciado.",
@@ -1816,10 +1832,32 @@ def register_routes(app):
         if not nombre:
             return jsonify({"error": "Parametro 'nombre' requerido"}), 400
         try:
+            from app.panel_activity import log_line
+
+            log_line(f"HTTP consultar_producto: {nombre[:120]!r}")
             resultado = _leer_hoja(nombre)
+            if isinstance(resultado, str) and resultado.strip().startswith("❌"):
+                log_line(f"✖ consultar_producto: {resultado[:600]}")
+            else:
+                log_line("✔ consultar_producto: consulta Sheets OK")
             return jsonify({"status": "ok", "resultado": resultado})
         except Exception as e:
+            from app.panel_activity import log_line
+
+            log_line(f"✖ consultar_producto excepción: {e!r}")
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/panel/logs", methods=["GET", "DELETE"])
+    def api_panel_logs():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.panel_activity import clear_lines, get_lines
+
+        if request.method == "DELETE":
+            clear_lines()
+            return jsonify({"ok": True})
+        limit = request.args.get("limit", default=300, type=int) or 300
+        return jsonify({"lines": get_lines(limit)})
 
     # ══════════════════════════════════════════════════════════════════════════
     #  SPA — React build served from desktop/dist/
