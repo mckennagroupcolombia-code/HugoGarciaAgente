@@ -8,7 +8,7 @@ Instrucciones y arquitectura completa para cualquier IA que trabaje en este repo
 
 **Hugo García** es el agente de IA de McKenna Group S.A.S. (materias primas farmacéuticas y cosméticas, Bogotá, Colombia). Automatiza ventas por WhatsApp, preguntas de MercadoLibre, sincronización de stock, facturación Siigo, generación de catálogos y producción de contenido multimedia para redes sociales.
 
-**Stack**: Python 3.12 · Flask · **Anthropic Claude** (agente WhatsApp + `/chat`, tool-calling) · **Google GenAI Gemini 2.5-Pro** (solo preventa MeLi con ficha y scripts de contenido) · **bot-mckenna** (Node, `whatsapp-web.js`, puerto **3000** → proxy a `8081/whatsapp`; monitor `/monitor`) · Evolution API (opcional, p. ej. transcripción en `routes.py`) · MercadoLibre API · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
+**Stack**: Python 3.12 · Flask · **React 19 + TypeScript + Tailwind CSS** (panel operaciones `desktop/`) · **Anthropic Claude** (agente WhatsApp + `/chat`, tool-calling) · **Google GenAI Gemini 2.5-Pro** (solo preventa MeLi con ficha y scripts de contenido) · **bot-mckenna** (Node, `whatsapp-web.js`, puerto **3000** → proxy a `8081/whatsapp`; monitor `/monitor`) · Vite · Zustand · React Query · Evolution API (opcional, p. ej. transcripción en `routes.py`) · MercadoLibre API · Siigo ERP · Google Sheets · ReportLab · ChromaDB · SQLite · Ideogram · ElevenLabs · fal.ai (Kling) · PIL · ffmpeg · Facebook Graph API
 
 ---
 
@@ -26,6 +26,17 @@ source venv/bin/activate && python3 webhook_meli.py
 
 # Health check
 curl http://localhost:8081/status
+
+# Panel de Operaciones React (producción — ya compilado, servido por Flask)
+# Abrir en browser: http://localhost:8081/app
+
+# Panel de Operaciones React (desarrollo — hot reload)
+cd desktop && npm run dev
+# Abre http://localhost:5173/app (proxy automático a Flask :8081)
+
+# Recompilar panel tras cambios en desktop/src/
+cd desktop && npm run build
+# Luego reiniciar Flask: sudo systemctl restart agente-pro
 
 # Catálogo PDF
 source venv/bin/activate && python3 generar_catalogo.py
@@ -78,6 +89,19 @@ git pull origin main    # o: git pull origin master
 │
 ├── PAGINA_WEB/site/               Tienda y contenido (Flask `website.py`): pedidos, catálogo, datos JSON
 │
+├── desktop/                       Panel de Operaciones React (SPA servida por Flask en /app)
+│   ├── src/
+│   │   ├── components/           Chat, Dashboard, PreventaPanel, SyncPanel, StockPanel, Layout, Sidebar
+│   │   ├── stores/               Zustand: auth.ts (Bearer token), app.ts (panel activo)
+│   │   ├── hooks/                React Query: useMetricas, useStatus, usePreventa, useChat
+│   │   ├── api/client.ts         fetch wrapper con Bearer auth
+│   │   ├── App.tsx               Router de paneles
+│   │   └── main.tsx              Entry point
+│   ├── dist/                     Build de producción (generado por `npm run build`)
+│   ├── package.json              React 19, Vite, Tailwind, Zustand, React Query
+│   ├── vite.config.ts            base: "/app/", proxy /api → :8081
+│   └── tailwind.config.ts        Dark theme McKenna (surface, accent, muted)
+│
 ├── bot-mckenna/                   Puente WhatsApp (Node): server.js :3000, monitor /monitor
 │   ├── server.js                 whatsapp-web.js → POST /whatsapp :8081; /enviar para reportes
 │   ├── instalar_systemd.sh       Crea mckenna-whatsapp-bridge.service (no usar nombre bot-mckenna si choca con Python)
@@ -86,7 +110,7 @@ git pull origin main    # o: git pull origin master
 │
 ├── app/
 │   ├── core.py                    Claude (Anthropic): prompt sistema, registro herramientas, `obtener_respuesta_ia`
-│   ├── routes.py                  Endpoints Flask: /whatsapp, /sync/*, etc.
+│   ├── routes.py                  Endpoints Flask: /whatsapp, /api/*, /app (SPA), CORS
 │   ├── sync.py                    Lógica central sincronización stock + facturas
 │   ├── cli.py                     Menú CLI interactivo (8 opciones con submenús)
 │   ├── monitor.py                 Alertas automáticas y métricas diarias
@@ -322,21 +346,80 @@ sincronizar_facturas_recientes(dias=1):
 | `/whatsapp` | POST | — | Webhook principal WhatsApp |
 | `/status` | GET | — | Health check |
 | `/chat` | POST | Bearer | Chat IA (`mensaje` + `session_id` o `usuario_id` para historial) |
-| `/panel` | GET | — | Panel HTML |
-| `/sync/hoy` | POST | Bearer | Sync facturas último día |
-| `/sync/10dias` | POST | Bearer | Sync facturas 10 días |
-| `/sync/completo` | POST | Bearer | Full sync + reporte stock |
-| `/sync/inteligente` | POST | Bearer | Cruce MeLi ↔ Siigo |
-| `/sync/pack` | POST | Bearer | Sync por Pack ID |
-| `/sync/fecha` | POST | Bearer | Sync por fecha YYYY-MM-DD |
-| `/sync/stock` | POST | Bearer | Reporte stock WhatsApp |
-| `/sync/aprendizaje` | POST | Bearer | Fuerza aprendizaje IA MeLi |
-| `/sync/gmail` | POST | Bearer | Facturas de compra desde Gmail |
-| `/consultar/producto` | GET | Bearer | Busca producto en Sheets |
+| `/panel` | GET | — | Panel HTML (legacy) |
+| `/app` | GET | — | **Panel React SPA** (interfaz principal de operaciones) |
+| `/app/assets/*` | GET | — | Assets JS/CSS del build React |
+| `/api/status` | GET | — | Health check JSON (usado por SPA) |
+| `/api/metricas` | GET | — | Métricas diarias + estado token MeLi |
+| `/api/preventa/pendientes` | GET | Bearer | Preguntas MeLi sin responder |
+| `/api/preventa/casos` | GET | Bearer | Casos aprendidos (últimos 50) |
+| `/api/responder-preventa` | POST | Bearer | Responder pregunta MeLi pendiente |
+| `/api/sync/hoy` | POST | Bearer | Sync facturas último día |
+| `/api/sync/10dias` | POST | Bearer | Sync facturas 10 días |
+| `/api/sync/completo` | POST | Bearer | Full sync + reporte stock |
+| `/api/sync/inteligente` | POST | Bearer | Cruce MeLi ↔ Siigo |
+| `/api/sync/pack` | POST | Bearer | Sync por Pack ID |
+| `/api/sync/fecha` | POST | Bearer | Sync por fecha YYYY-MM-DD |
+| `/api/sync/stock` | POST | Bearer | Reporte stock WhatsApp |
+| `/api/sync/aprendizaje` | POST | Bearer | Fuerza aprendizaje IA MeLi |
+| `/api/sync/gmail` | POST | Bearer | Facturas de compra desde Gmail |
+| `/api/consultar/producto` | GET | Bearer | Busca producto en Sheets |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
 
+**CORS**: habilitado para `localhost:5173` (Vite dev), `tauri://localhost`. Middleware manual en `routes.py`.
+
 **Pedidos tienda web:** lógica en `PAGINA_WEB/site/website.py` y alertas/comandos en grupo `GRUPO_PEDIDOS_WEB_WA` vía `app/tools/web_pedidos.py` (facturación y envío desde WhatsApp).
+
+---
+
+## Panel de Operaciones React (`desktop/`)
+
+**URL**: `http://localhost:8081/app`  
+**Stack**: React 19 + TypeScript + Vite + Tailwind CSS + Zustand + React Query  
+**Build**: `desktop/dist/` (servido por Flask como archivos estáticos)
+
+### Paneles disponibles
+
+| Panel | Qué hace |
+|-------|----------|
+| **Dashboard** | KPIs en tiempo real: mensajes WA, preguntas MeLi, órdenes, pendientes. Estado de servicios (MeLi, Sheets, Siigo, token). Polling cada 30s |
+| **Chat IA** | Conversación con Hugo García vía `/chat`. Historial en memoria de sesión. Indicador de escritura |
+| **Preventa MeLi** | Lista de preguntas pendientes con respuesta inline. Polling cada 20s. Botón responder → `/api/responder-preventa` |
+| **Sincronización** | 10 acciones: sync hoy/10 días/inteligente/completo, aprendizaje IA, Gmail, stock, por Pack ID, por fecha, consultar producto. Feedback visual por acción |
+| **Stock** | Búsqueda de producto en Sheets, generar reporte stock, verificar SKUs |
+| **Ajustes** | Token actual, versión, estado, cerrar sesión |
+
+### Autenticación
+
+El SPA pide `CHAT_API_TOKEN` al ingresar. Se persiste en `localStorage` (Zustand persist). Todos los endpoints `/api/*` validan Bearer token.
+
+### Desarrollo del panel
+
+```bash
+# Instalar dependencias (una sola vez)
+cd desktop && npm install
+
+# Desarrollo con hot reload (Vite dev server)
+cd desktop && npm run dev
+# → http://localhost:5173/app   (proxy /api y /chat → Flask :8081)
+
+# Build de producción
+cd desktop && npm run build
+# → desktop/dist/   (Flask sirve en /app)
+
+# Reiniciar Flask tras rebuild
+sudo systemctl restart agente-pro
+```
+
+### Arquitectura
+
+```
+Browser → http://localhost:8081/app → Flask sirve desktop/dist/index.html
+  ↓ JS/CSS assets: /app/assets/* → Flask sirve desktop/dist/assets/
+  ↓ API calls: /api/* → Flask endpoints JSON (mismo puerto, con CORS)
+  ↓ Chat: /chat → Flask → Claude tool-use loop
+```
 
 ---
 

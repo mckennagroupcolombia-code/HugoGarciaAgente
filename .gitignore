@@ -49,6 +49,9 @@ node_modules/
 package-lock.json
 !bot-mckenna/package-lock.json
 
+# React SPA build output
+desktop/dist/
+
 # Puente WhatsApp (sesión y caché local; no commitear)
 bot-mckenna/.wwebjs_auth_nueva/
 bot-mckenna/.wwebjs_cache/

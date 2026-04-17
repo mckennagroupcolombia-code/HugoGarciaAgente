@@ -11,7 +11,7 @@ import os
 import requests
 from datetime import datetime, timedelta
 
-from app.utils import jid_grupo_preventa_wa
+from app.utils import jid_grupo_preventa_wa, jid_grupo_postventa_wa
 
 # Importación lazy para evitar dependencias circulares al arrancar
 _enviar_whatsapp = None
@@ -398,7 +398,10 @@ def monitor_loop():
 def _monitor_preguntas_sin_responder():
     """
     Cada 30 min consulta MeLi (UNANSWERED), sincroniza con preguntas_pendientes_preventa.json
-    y reintenta IA o envía un solo recordatorio por ventana (sin duplicar otro hilo).
+    y reintenta IA o envía un solo recordatorio por ventana.
+
+    KEY FIX: Only sends reminders for questions MeLi confirms are still UNANSWERED.
+    Questions answered outside the system are auto-marked and never reminded.
     """
     import json
     from datetime import datetime
@@ -442,6 +445,7 @@ def _monitor_preguntas_sin_responder():
             ahora = datetime.now()
             grupo_prev = jid_grupo_preventa_wa()
 
+            # Step 1: mark as responded any local pending that MeLi no longer lists as UNANSWERED
             for p in pendientes:
                 if (
                     not p.get("respondida")
@@ -452,6 +456,7 @@ def _monitor_preguntas_sin_responder():
                     modificado = True
                     print(f"✅ [MONITOR] Auto-marcada respondida: {p['question_id']}")
 
+            # Step 2: process only questions MeLi confirms are still UNANSWERED
             for q in preguntas_meli:
                 qid = str(q["id"])
 
@@ -479,6 +484,24 @@ def _monitor_preguntas_sin_responder():
                             ts = ahora
                         minutos = max(0, (ahora - ts).total_seconds() / 60)
                         if minutos >= 30:
+                            # Double-check: verify this specific question is still UNANSWERED
+                            try:
+                                r_check = requests.get(
+                                    f"https://api.mercadolibre.com/questions/{qid}?api_version=4",
+                                    headers={"Authorization": f"Bearer {token}"},
+                                    timeout=10,
+                                )
+                                if r_check.status_code == 200:
+                                    q_status = r_check.json().get("status", "").upper()
+                                    if q_status != "UNANSWERED":
+                                        p["respondida"] = True
+                                        p["nota"] = f"Auto-marcada respondida (verificación directa) {ahora.date()}"
+                                        modificado = True
+                                        print(f"✅ [MONITOR] Pregunta {qid} ya respondida (status={q_status}), no se envía recordatorio")
+                                        continue
+                            except Exception:
+                                pass
+
                             titulo = p.get("titulo_producto", "")
                             pregunta_txt = p.get("pregunta", "")
                             respondida_ahora = False
@@ -498,37 +521,52 @@ def _monitor_preguntas_sin_responder():
                                     )
                                     if respuesta_ia:
                                         token_r = refrescar_token_meli()
-                                        r_ans = requests.post(
-                                            "https://api.mercadolibre.com/answers",
-                                            headers={
-                                                "Authorization": f"Bearer {token_r}",
-                                                "Content-Type": "application/json",
-                                            },
-                                            json={
-                                                "question_id": int(qid),
-                                                "text": respuesta_ia,
-                                            },
+                                        # Verify still unanswered right before posting
+                                        r_pre = requests.get(
+                                            f"https://api.mercadolibre.com/questions/{qid}?api_version=4",
+                                            headers={"Authorization": f"Bearer {token_r}"},
                                             timeout=10,
                                         )
-                                        if r_ans.status_code == 200:
+                                        if r_pre.status_code == 200 and r_pre.json().get("status", "").upper() != "UNANSWERED":
                                             p["respondida"] = True
-                                            p["nota"] = (
-                                                f"Respondida automáticamente por monitor (reintento) {ahora.date()}"
-                                            )
-                                            guardar_caso_preventa(
-                                                titulo, pregunta_txt, respuesta_ia
-                                            )
+                                            p["nota"] = f"Auto-marcada respondida (pre-answer check) {ahora.date()}"
                                             respondida_ahora = True
-                                            print(
-                                                f"✅ [MONITOR] Pregunta {qid} respondida automáticamente en reintento."
+                                        else:
+                                            r_ans = requests.post(
+                                                "https://api.mercadolibre.com/answers",
+                                                headers={
+                                                    "Authorization": f"Bearer {token_r}",
+                                                    "Content-Type": "application/json",
+                                                },
+                                                json={
+                                                    "question_id": int(qid),
+                                                    "text": respuesta_ia,
+                                                },
+                                                timeout=10,
                                             )
-                                            enviar(
-                                                f"✅ *PREVENTA RESPONDIDA (reintento)*\n"
-                                                f"📦 Producto: {titulo}\n"
-                                                f"🗣 Cliente: {pregunta_txt}\n"
-                                                f"🤖 IA Respondió: {respuesta_ia[:300]}",
-                                                numero_destino=grupo_prev,
-                                            )
+                                            if r_ans.status_code == 200:
+                                                p["respondida"] = True
+                                                p["nota"] = (
+                                                    f"Respondida automáticamente por monitor (reintento) {ahora.date()}"
+                                                )
+                                                guardar_caso_preventa(
+                                                    titulo, pregunta_txt, respuesta_ia
+                                                )
+                                                respondida_ahora = True
+                                                print(
+                                                    f"✅ [MONITOR] Pregunta {qid} respondida automáticamente en reintento."
+                                                )
+                                                enviar(
+                                                    f"✅ *PREVENTA RESPONDIDA (reintento)*\n"
+                                                    f"📦 Producto: {titulo}\n"
+                                                    f"🗣 Cliente: {pregunta_txt}\n"
+                                                    f"🤖 IA Respondió: {respuesta_ia[:300]}",
+                                                    numero_destino=grupo_prev,
+                                                )
+                                            elif r_ans.status_code == 400 and "not_unanswered" in r_ans.text.lower():
+                                                p["respondida"] = True
+                                                p["nota"] = f"Auto-marcada respondida (400 not_unanswered) {ahora.date()}"
+                                                respondida_ahora = True
                             except Exception as e_retry:
                                 print(
                                     f"⚠️ [MONITOR] Reintento IA falló para {qid}: {e_retry}"
@@ -549,49 +587,207 @@ def _monitor_preguntas_sin_responder():
                             modificado = True
 
             if modificado:
-                try:
-                    try:
-                        with open(PENDIENTES_PATH, "r", encoding="utf-8") as f:
-                            data_actual = json.load(f)
-                        pendientes_actual = data_actual.get("preguntas", [])
-                    except Exception:
-                        pendientes_actual = []
-
-                    estado_disco = {str(p["question_id"]): p for p in pendientes_actual}
-
-                    for p in pendientes:
-                        qid = str(p["question_id"])
-                        p_disco = estado_disco.get(qid)
-                        if (
-                            p_disco
-                            and p_disco.get("respondida")
-                            and not p.get("respondida")
-                        ):
-                            continue
-                        if p_disco:
-                            if p.get("respondida") and not p_disco.get("respondida"):
-                                p_disco["respondida"] = True
-                                p_disco["nota"] = p.get("nota", "")
-                            if p.get("timestamp") != p_disco.get("timestamp"):
-                                p_disco["timestamp"] = p["timestamp"]
-
-                    ids_disco = set(estado_disco.keys())
-                    for p in pendientes:
-                        if str(p["question_id"]) not in ids_disco:
-                            pendientes_actual.append(p)
-
-                    with open(PENDIENTES_PATH, "w", encoding="utf-8") as f:
-                        json.dump(
-                            {"preguntas": pendientes_actual},
-                            f,
-                            indent=2,
-                            ensure_ascii=False,
-                        )
-                except Exception as e_write:
-                    print(f"⚠️ [MONITOR] Error escribiendo pendientes: {e_write}")
+                _guardar_pendientes_monitor(PENDIENTES_PATH, pendientes)
 
         except Exception as e:
             print(f"⚠️ [MONITOR] Error en ciclo de revisión: {e}")
+
+
+def _guardar_pendientes_monitor(path: str, pendientes: list):
+    """Merge in-memory pending list with on-disk state (other threads may have written)."""
+    import json
+
+    try:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data_actual = json.load(f)
+            pendientes_actual = data_actual.get("preguntas", [])
+        except Exception:
+            pendientes_actual = []
+
+        estado_disco = {str(p["question_id"]): p for p in pendientes_actual}
+
+        for p in pendientes:
+            qid = str(p["question_id"])
+            p_disco = estado_disco.get(qid)
+            if p_disco and p_disco.get("respondida") and not p.get("respondida"):
+                continue
+            if p_disco:
+                if p.get("respondida") and not p_disco.get("respondida"):
+                    p_disco["respondida"] = True
+                    p_disco["nota"] = p.get("nota", "")
+                if p.get("timestamp") != p_disco.get("timestamp"):
+                    p_disco["timestamp"] = p["timestamp"]
+
+        ids_disco = set(estado_disco.keys())
+        for p in pendientes:
+            if str(p["question_id"]) not in ids_disco:
+                pendientes_actual.append(p)
+
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(
+                {"preguntas": pendientes_actual},
+                f,
+                indent=2,
+                ensure_ascii=False,
+            )
+    except Exception as e_write:
+        print(f"⚠️ [MONITOR] Error escribiendo pendientes: {e_write}")
+
+
+# ---------------------------------------------------------------------------
+# HEALTH-CHECK cada 12 horas → alerta a grupo preventa y postventa
+# ---------------------------------------------------------------------------
+
+def _health_check_preventa_postventa():
+    """
+    Every 12 hours, run a full diagnostic of preventa + postventa pipelines
+    and send a status report to both groups. If something fails, include the
+    error log so the team knows exactly what's broken.
+    """
+    from app.utils import (
+        refrescar_token_meli,
+        jid_grupo_postventa_wa,
+        obtener_seller_id_meli,
+    )
+
+    INTERVALO = 43200  # 12 hours
+    time.sleep(120)  # let services stabilize after boot
+
+    while True:
+        try:
+            ahora = datetime.now().strftime("%Y-%m-%d %H:%M")
+            errores = []
+            ok_items = []
+
+            # 1. WhatsApp bridge
+            try:
+                r_wa = requests.get("http://localhost:3000/monitor/json", timeout=5)
+                if r_wa.status_code == 200:
+                    wa_data = r_wa.json()
+                    if wa_data.get("sistemaListo") and wa_data.get("waSesionOperativa"):
+                        ok_items.append("WhatsApp bridge: conectado")
+                    else:
+                        errores.append(
+                            f"WhatsApp bridge: sistemaListo={wa_data.get('sistemaListo')}, "
+                            f"sesion={wa_data.get('waSesionOperativa')}"
+                        )
+                else:
+                    errores.append(f"WhatsApp bridge: HTTP {r_wa.status_code}")
+            except Exception as e:
+                errores.append(f"WhatsApp bridge: no responde ({e})")
+
+            # 2. Webhook MeLi (8080)
+            try:
+                r_wh = requests.get("http://localhost:8080/status", timeout=5)
+                if r_wh.status_code == 200:
+                    ok_items.append("Webhook MeLi (8080): activo")
+                else:
+                    errores.append(f"Webhook MeLi (8080): HTTP {r_wh.status_code}")
+            except Exception as e:
+                errores.append(f"Webhook MeLi (8080): no responde ({e})")
+
+            # 3. Agente (8081)
+            try:
+                r_ag = requests.get("http://localhost:8081/status", timeout=5)
+                if r_ag.status_code == 200:
+                    ok_items.append("Agente Hugo (8081): activo")
+                else:
+                    errores.append(f"Agente Hugo (8081): HTTP {r_ag.status_code}")
+            except Exception as e:
+                errores.append(f"Agente Hugo (8081): no responde ({e})")
+
+            # 4. Token MeLi
+            try:
+                token = refrescar_token_meli()
+                if token:
+                    ok_items.append("Token MeLi: vigente")
+                else:
+                    errores.append("Token MeLi: no se pudo refrescar")
+            except Exception as e:
+                errores.append(f"Token MeLi: {e}")
+
+            # 5. Preventa — check UNANSWERED count
+            try:
+                token = refrescar_token_meli()
+                r_q = requests.get(
+                    "https://api.mercadolibre.com/my/received_questions/search?status=UNANSWERED&limit=1",
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10,
+                )
+                if r_q.status_code == 200:
+                    total = r_q.json().get("total", 0)
+                    if total == 0:
+                        ok_items.append("Preventa: 0 preguntas sin responder")
+                    else:
+                        ok_items.append(f"Preventa: {total} pregunta(s) sin responder")
+                else:
+                    errores.append(f"Preventa API: HTTP {r_q.status_code}")
+            except Exception as e:
+                errores.append(f"Preventa API: {e}")
+
+            # 6. Postventa — check recent messages accessible
+            try:
+                token = refrescar_token_meli()
+                seller_id = obtener_seller_id_meli()
+                r_o = requests.get(
+                    f"https://api.mercadolibre.com/orders/search?seller={seller_id}&sort=date_desc&limit=1",
+                    headers={"Authorization": f"Bearer {token}", "x-version": "2"},
+                    timeout=10,
+                )
+                if r_o.status_code == 200:
+                    ok_items.append("Postventa API órdenes: accesible")
+                else:
+                    errores.append(f"Postventa API órdenes: HTTP {r_o.status_code}")
+            except Exception as e:
+                errores.append(f"Postventa API órdenes: {e}")
+
+            # 7. Test WA send capability
+            try:
+                r_test = requests.post(
+                    "http://localhost:3000/enviar",
+                    json={"numero": "status@broadcast", "mensaje": "ping"},
+                    timeout=5,
+                )
+                # 503 = not connected, 500 = send error, 200 = ok (broadcast will fail but proves connection)
+                if r_test.status_code == 503:
+                    errores.append("WhatsApp envío: bridge no listo (503)")
+            except Exception as e:
+                errores.append(f"WhatsApp envío: {e}")
+
+            # Build report
+            if errores:
+                estado_emoji = "🔴"
+                estado_txt = "CON FALLOS"
+            else:
+                estado_emoji = "🟢"
+                estado_txt = "OPERATIVO"
+
+            reporte = f"{estado_emoji} *STATUS COMUNICACIONES MELI — {estado_txt}*\n📅 {ahora}\n\n"
+
+            if ok_items:
+                reporte += "✅ *Operativo:*\n"
+                for item in ok_items:
+                    reporte += f"  • {item}\n"
+
+            if errores:
+                reporte += "\n❌ *Fallos detectados:*\n"
+                for err in errores:
+                    reporte += f"  • {err}\n"
+                reporte += "\n⚠️ Revisar logs: `journalctl -u webhook-meli -n 50` o `journalctl -u mckenna-whatsapp-bridge -n 50`"
+
+            enviar = _get_enviar()
+            grupo_prev = jid_grupo_preventa_wa()
+            grupo_post = jid_grupo_postventa_wa()
+
+            enviar(reporte, numero_destino=grupo_prev)
+            enviar(reporte, numero_destino=grupo_post)
+            print(f"📊 [HEALTH-CHECK] Reporte enviado a preventa y postventa ({estado_txt})")
+
+        except Exception as e:
+            print(f"❌ [HEALTH-CHECK] Error en ciclo: {e}")
+
+        time.sleep(INTERVALO)
 
 
 _monitor_iniciado = False
@@ -611,4 +807,9 @@ def iniciar_monitor():
         daemon=True,
         name="monitor-preventa-meli",
     ).start()
-    print("✅ Monitor de alertas iniciado (preventa MeLi en hilo dedicado)")
+    threading.Thread(
+        target=_health_check_preventa_postventa,
+        daemon=True,
+        name="health-check-meli",
+    ).start()
+    print("✅ Monitor de alertas iniciado (preventa MeLi + health-check 12h en hilos dedicados)")
