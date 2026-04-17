@@ -84,6 +84,7 @@ from app.core import obtener_respuesta_ia
 from modulo_posventa import responder_mensaje_posventa
 from app.utils import (
     enviar_whatsapp_reporte,
+    jid_grupo_inventario_wa,
     jid_grupo_preventa_wa,
     jid_grupo_postventa_wa,
     meli_postventa_id_mensaje,
@@ -773,7 +774,7 @@ def register_routes(app):
         )
         grupo_preventa = jid_grupo_preventa_wa()
         grupo_posventa = jid_grupo_postventa_wa()
-        grupo_inventario = os.getenv("GRUPO_INVENTARIO_WA", "120363407538342427@g.us")
+        grupo_inventario = jid_grupo_inventario_wa()
 
         # Detectar de qué grupo proviene el mensaje (por flag explícito o por remoteJid/sender)
         remote_jid = data.get("remoteJid") or data.get("grupo_id", "")

@@ -53,6 +53,16 @@ def test_panel_logs_requires_auth():
         assert c.get("/api/panel/logs").status_code == 401
 
 
+def test_grupo_inventario_jid_strips_inline_comment(monkeypatch):
+    monkeypatch.setenv(
+        "GRUPO_INVENTARIO_WA",
+        "120363407538342427@g.us  # Sincronizacion_Inventario",
+    )
+    from app.utils import jid_grupo_inventario_wa
+
+    assert jid_grupo_inventario_wa() == "120363407538342427@g.us"
+
+
 def test_panel_logs_get_and_clear(monkeypatch):
     monkeypatch.setenv("CHAT_API_TOKEN", "secretpanel")
     from app.panel_activity import clear_lines, log_line

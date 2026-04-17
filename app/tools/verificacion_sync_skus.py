@@ -10,7 +10,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-GRUPO_INVENTARIO = os.getenv("GRUPO_INVENTARIO_WA", "120363407538342427@g.us")
+from app.utils import jid_grupo_inventario_wa
+
+GRUPO_INVENTARIO = jid_grupo_inventario_wa()
 URL_WA = os.getenv("URL_API_WHATSAPP", "http://127.0.0.1:3000/enviar")
 
 

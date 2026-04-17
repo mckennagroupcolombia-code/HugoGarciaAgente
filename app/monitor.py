@@ -11,7 +11,11 @@ import os
 import requests
 from datetime import datetime, timedelta
 
-from app.utils import jid_grupo_preventa_wa, jid_grupo_postventa_wa
+from app.utils import (
+    jid_grupo_inventario_wa,
+    jid_grupo_preventa_wa,
+    jid_grupo_postventa_wa,
+)
 
 # Importación lazy para evitar dependencias circulares al arrancar
 _enviar_whatsapp = None
@@ -31,7 +35,7 @@ GRUPO_SISTEMAS = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g
 GRUPO_COMPROBANTES = os.getenv(
     "GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us"
 )
-GRUPO_STOCK = os.getenv("GRUPO_INVENTARIO_WA", "120363407538342427@g.us")
+GRUPO_STOCK = jid_grupo_inventario_wa()
 GRUPO_RESUMEN = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")
 
 METRICAS_PATH = os.path.join(os.path.dirname(__file__), "data", "metricas_diarias.json")
