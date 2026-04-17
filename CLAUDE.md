@@ -364,6 +364,8 @@ sincronizar_facturas_recientes(dias=1):
 | `/api/sync/aprendizaje` | POST | Bearer | Fuerza aprendizaje IA MeLi |
 | `/api/sync/gmail` | POST | Bearer | Facturas de compra desde Gmail |
 | `/api/consultar/producto` | GET | Bearer | Busca producto en Sheets |
+| `/api/panel/logs` | GET | Bearer | Líneas recientes de actividad (sync/stock/consultas) para el visor del panel |
+| `/api/panel/logs` | DELETE | Bearer | Vacía el buffer de actividad en memoria |
 | `/confirmar-pago` | POST | — | Confirma/rechaza pago |
 | `/training/agregar-caso` | POST | — | Agrega caso de entrenamiento |
 

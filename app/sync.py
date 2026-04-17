@@ -304,11 +304,22 @@ def ejecutar_sincronizacion_y_reporte_stock():
             reporte += "\n\n✅ Todo el stock está por encima de 1 unidad."
 
         grupo_inventario = os.getenv("GRUPO_INVENTARIO_WA", "120363407538342427@g.us")
-        enviar_whatsapp_reporte(
+        ok_wa = enviar_whatsapp_reporte(
             reporte + f"\n\n🤖 _Total procesados: {len(ml_ids)}_",
             numero_destino=grupo_inventario,
         )
-        return f"✅ Reporte de stock enviado. Agotados: {len(agotados)}, Críticos: {len(criticos)}."
+        if not ok_wa:
+            print(
+                f"❌ [STOCK SYNC] WhatsApp no entregó el reporte (bridge :3000 / URL_API_WHATSAPP). "
+                f"Grupo: {grupo_inventario}"
+            )
+            return (
+                "⚠️ Reporte de stock generado pero NO se envió por WhatsApp. "
+                "Comprueba que bot-mckenna esté en marcha (puerto 3000) y que URL_API_WHATSAPP en .env "
+                f"apunte al /enviar correcto. Destino: {grupo_inventario}. "
+                f"Procesados en Sheets: {len(ml_ids)} productos. Agotados: {len(agotados)}, críticos: {len(criticos)}."
+            )
+        return f"✅ Reporte de stock enviado por WhatsApp. Agotados: {len(agotados)}, Críticos: {len(criticos)}."
 
     except Exception as e:
         return f"❌ Error crítico en reporte de stock: {e}"

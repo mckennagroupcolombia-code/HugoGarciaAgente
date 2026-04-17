@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
+import ActivityLog from "./ActivityLog";
 import { useAppStore } from "../stores/app";
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -31,7 +32,12 @@ export default function Layout({ children }: { children: ReactNode }) {
           </span>
         </header>
 
-        <div className="flex-1 overflow-auto p-4 lg:p-6">{children}</div>
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-auto p-4 lg:p-6">{children}</div>
+          <div className="shrink-0 border-t border-border bg-surface px-4 pb-3 pt-2 lg:px-6">
+            <ActivityLog />
+          </div>
+        </div>
       </main>
     </div>
   );

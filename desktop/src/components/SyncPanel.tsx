@@ -37,14 +37,34 @@ function ActionCard({ action }: { action: ActionDef }) {
   const mutation = useMutation({
     mutationFn: async () => {
       if (action.needsInput === "nombre") {
-        return api.get<SyncResult>(`${action.endpoint}?nombre=${encodeURIComponent(inputVal)}`);
+        return api.get<Record<string, unknown>>(
+          `${action.endpoint}?nombre=${encodeURIComponent(inputVal)}`,
+        );
       }
       const body = action.needsInput
         ? { [action.needsInput]: inputVal }
         : undefined;
       return api.post<SyncResult>(action.endpoint, body);
     },
-    onSuccess: (data) => setResult(data),
+    onSuccess: (data) => {
+      const d = data as Record<string, unknown>;
+      if ("resultado" in d) {
+        const r = d.resultado;
+        const text =
+          typeof r === "string"
+            ? r
+            : r != null
+              ? JSON.stringify(r, null, 2)
+              : "";
+        const errish = text.trim().startsWith("❌");
+        setResult({
+          status: errish ? "error" : "ok",
+          mensaje: text.slice(0, 8000) || "Sin datos",
+        });
+        return;
+      }
+      setResult(data as SyncResult);
+    },
     onError: (err) => setResult({ status: "error", mensaje: err.message }),
   });
 
