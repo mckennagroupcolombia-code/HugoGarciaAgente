@@ -1,0 +1,20 @@
+[Unit]
+Description=McKenna puente WhatsApp (Node whatsapp-web.js) puerto 3000
+Documentation=file:///home/mckg/mi-agente/bot-mckenna/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mckg
+Group=mckg
+WorkingDirectory=/home/mckg/mi-agente/bot-mckenna
+EnvironmentFile=-/home/mckg/mi-agente/.env
+ExecStart=/usr/bin/node /home/mckg/mi-agente/bot-mckenna/server.js
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Install]
+WantedBy=multi-user.target

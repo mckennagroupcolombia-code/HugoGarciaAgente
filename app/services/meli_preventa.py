@@ -173,20 +173,24 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
     return respuesta, True
 
 
+_GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]
+
+
 def generar_respuesta_con_ficha(titulo_producto: str, pregunta: str, ficha_tecnica: str):
     """
     Genera respuesta usando Gemini con la ficha técnica real.
-    Retorna el texto de respuesta, o None si la IA falla.
+    Tries multiple models: primary (2.5-pro), then flash fallbacks on 503/overload.
+    Retorna el texto de respuesta, o None si todos fallan.
     """
-    try:
-        api_key = os.getenv("GOOGLE_API_KEY", "").strip()
-        if not api_key:
-            print("Preventa: GOOGLE_API_KEY vacío — no se puede llamar a Gemini")
-            return None
-        client = genai.Client(api_key=api_key)
-        ejemplos = _ejemplos_fewshot(titulo_producto)
+    api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    if not api_key:
+        print("Preventa: GOOGLE_API_KEY vacío — no se puede llamar a Gemini")
+        return None
 
-        prompt = f"""Eres Hugo Garcia, asistente virtual de McKenna Group en Mercado Libre.
+    gemini_client = genai.Client(api_key=api_key)
+    ejemplos = _ejemplos_fewshot(titulo_producto)
+
+    prompt = f"""Eres Hugo Garcia, asistente virtual de McKenna Group en Mercado Libre.
 
 PRODUCTO: {titulo_producto}
 NUNCA menciones un producto diferente al indicado arriba.
@@ -207,13 +211,24 @@ REGLAS:
 
 Genera únicamente la respuesta para el cliente, sin comillas ni texto introductorio."""
 
-        resp = client.models.generate_content(model='gemini-2.5-pro', contents=prompt)
-        texto = (resp.text or "").strip()
-        if not texto:
-            print("Preventa: Gemini devolvió respuesta vacía (revisar bloqueos / modelo)")
+    for model_name in _GEMINI_MODELS:
+        try:
+            resp = gemini_client.models.generate_content(model=model_name, contents=prompt)
+            texto = (resp.text or "").strip()
+            if not texto:
+                print(f"Preventa: {model_name} devolvió respuesta vacía, probando siguiente…")
+                continue
+            if model_name != _GEMINI_MODELS[0]:
+                print(f"ℹ️ Preventa: respuesta generada con fallback {model_name}")
+            return texto[:1997] + "..." if len(texto) > 2000 else texto
+        except Exception as e:
+            err_str = str(e)
+            is_overload = "503" in err_str or "UNAVAILABLE" in err_str or "overloaded" in err_str.lower()
+            if is_overload and model_name != _GEMINI_MODELS[-1]:
+                print(f"⚠️ Preventa: {model_name} → {err_str[:120]}. Probando siguiente modelo…")
+                continue
+            print(f"❌ Preventa: error generando respuesta IA ({model_name}): {e}")
             return None
-        return texto[:1997] + "..." if len(texto) > 2000 else texto
 
-    except Exception as e:
-        print(f"❌ Preventa: error generando respuesta IA: {e}")
-        return None
+    print("❌ Preventa: todos los modelos Gemini fallaron")
+    return None

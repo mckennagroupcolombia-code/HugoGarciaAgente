@@ -41,8 +41,28 @@ def analizar_y_crear_respuesta(texto_pregunta, item_id, token, question_id=None)
     nombre_producto = obtener_nombre_producto_meli(item_id, token)
     return manejar_pregunta_preventa(question_id, nombre_producto, texto_pregunta)
 
+def _pregunta_sigue_sin_responder(question_id, token) -> bool:
+    """Check if question is still UNANSWERED before attempting to answer."""
+    url = f"https://api.mercadolibre.com/questions/{question_id}?api_version=4"
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        if res.status_code == 200:
+            status = res.json().get("status", "").upper()
+            if status != "UNANSWERED":
+                print(f"⏭️ Pregunta {question_id} ya tiene status '{status}' — no se responde de nuevo.")
+                return False
+            return True
+    except Exception as e:
+        print(f"⚠️ Error verificando status pregunta {question_id}: {e}")
+    return True
+
+
 def enviar_respuesta_meli(question_id, texto_respuesta, token):
     """Dispara la respuesta oficial a la publicación de Mercado Libre."""
+    if not _pregunta_sigue_sin_responder(question_id, token):
+        return False
+
     url = "https://api.mercadolibre.com/answers"
     headers = {
         "Authorization": f"Bearer {token}",

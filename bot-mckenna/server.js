@@ -95,7 +95,17 @@ client.on('auth_failure', msg => {
 client.on('disconnected', (reason) => {
     sistemaListo = false;
     console.warn('⚠️ WhatsApp desconectado:', reason);
-    logActividad('SISTEMA', { texto: `Desconectado: ${reason || 'sin detalle'}. Reiniciar el bridge si no reconecta solo.` });
+    logActividad('SISTEMA', { texto: `Desconectado: ${reason || 'sin detalle'}. Auto-reconectando en 10s…` });
+
+    setTimeout(() => {
+        console.log('🔄 Intentando reconexión automática…');
+        logActividad('SISTEMA', { texto: 'Reconexión automática iniciada.' });
+        client.initialize().catch(err => {
+            console.error('❌ Reconexión falló:', err.message);
+            logActividad('ERROR', { texto: `Reconexión falló: ${err.message}. systemd reiniciará el proceso.` });
+            process.exit(1);
+        });
+    }, 10000);
 });
 
 // ==========================================
