@@ -23,7 +23,9 @@ from flask import Flask
 from dotenv import load_dotenv
 
 # --- 1. Carga de Configuración ---
-load_dotenv()
+# Ruta explícita: systemd puede tener WorkingDirectory correcto, pero no depender del cwd.
+_REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_REPO_ROOT, ".env"))
 
 # --- 2. Importación de Componentes de la App ---
 from app.routes import register_routes

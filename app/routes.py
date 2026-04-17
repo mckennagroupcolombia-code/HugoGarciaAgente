@@ -220,6 +220,7 @@ def guardar_modos_atencion(data):
 import time
 
 from app.observability import bind_flask_request, log_json, spawn_thread
+from app.api_auth import chat_api_token_matches_request
 
 # --- Estado Temporal ---
 # TODO: Este diccionario en memoria se pierde si el servidor se reinicia.
@@ -1437,8 +1438,7 @@ def register_routes(app):
         import os
         from datetime import datetime
 
-        token = request.headers.get("Authorization", "").replace("Bearer ", "")
-        if token != os.getenv("CHAT_API_TOKEN", ""):
+        if not chat_api_token_matches_request():
             return jsonify({"error": "No autorizado"}), 401
         data = request.get_json()
         if not data:
@@ -1630,8 +1630,7 @@ def register_routes(app):
     # ══════════════════════════════════════════════════════════════════════════
 
     def _api_token_valido():
-        token = request.headers.get("Authorization", "").replace("Bearer ", "")
-        return token == os.getenv("CHAT_API_TOKEN", "")
+        return chat_api_token_matches_request()
 
     def _api_lanzar_en_hilo(fn, *args):
         spawn_thread(fn, args=args, daemon=True)
