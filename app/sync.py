@@ -10,7 +10,7 @@ from app.services.siigo import (
     descargar_factura_pdf_siigo,
 )
 from app.services.meli import subir_factura_meli
-from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
+from app.utils import refrescar_token_meli, enviar_whatsapp_reporte, jid_grupo_inventario_wa
 from app.tools.system_tools import enviar_reporte_controlado
 
 # ========================================================
@@ -303,7 +303,7 @@ def ejecutar_sincronizacion_y_reporte_stock():
         if not agotados and not criticos:
             reporte += "\n\n✅ Todo el stock está por encima de 1 unidad."
 
-        grupo_inventario = os.getenv("GRUPO_INVENTARIO_WA", "120363407538342427@g.us")
+        grupo_inventario = jid_grupo_inventario_wa()
         ok_wa = enviar_whatsapp_reporte(
             reporte + f"\n\n🤖 _Total procesados: {len(ml_ids)}_",
             numero_destino=grupo_inventario,

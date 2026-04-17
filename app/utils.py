@@ -322,6 +322,21 @@ def jid_grupo_postventa_wa() -> str:
     return _wa_jid_env("GRUPO_POSTVENTA_WA", _JID_POSTVENTA_DEFAULT)
 
 
+_JID_INVENTARIO_DEFAULT = "120363407538342427@g.us"
+
+
+def jid_grupo_inventario_wa() -> str:
+    """Stock, reportes de inventario, SKUs — GRUPO_INVENTARIO_WA (quita # comentario systemd)."""
+    return _wa_jid_env("GRUPO_INVENTARIO_WA", _JID_INVENTARIO_DEFAULT)
+
+
+def _normalizar_destino_wa(destino: str | None) -> str:
+    """JID o número: strip y comentario inline (#) por si llega desde .env sin pasar por _wa_jid_env."""
+    if not destino:
+        return ""
+    return destino.split("#", 1)[0].strip()
+
+
 def meli_postventa_id_mensaje(msg: dict) -> str:
     """ID estable para deduplicar (MeLi usa `id` o `message_id` según versión de API)."""
     return str(msg.get("id") or msg.get("message_id") or "").strip()
@@ -425,7 +440,9 @@ def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
     Envía un mensaje de texto al grupo de WhatsApp designado para reportes.
     Utiliza un servidor intermediario (Node.js) para la conexión con WhatsApp.
     """
-    destino = numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
+    destino = _normalizar_destino_wa(
+        numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
+    )
     payload = {"numero": destino, "mensaje": texto_mensaje}
     max_intentos = 3
 
@@ -467,7 +484,9 @@ def enviar_whatsapp_archivo(file_path: str, texto_mensaje: str = "", file_name: 
     """
     Envía un archivo (PDF, Imagen, etc.) al grupo de WhatsApp designado para reportes.
     """
-    destino = numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
+    destino = _normalizar_destino_wa(
+        numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
+    )
     payload = {
         "numero": destino,
         "mensaje": texto_mensaje,
