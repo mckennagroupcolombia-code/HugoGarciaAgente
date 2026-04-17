@@ -1,0 +1,31 @@
+{
+    "id_preliminar": "PRE-1776377474",
+    "nombre_cliente": "Conexion Colombia",
+    "identificacion": "9015245198",
+    "email": "logisticaguajira@coneionla.org",
+    "direccion_envio": "Cra 10a # 27a - 68 Riohacha - La Guajira",
+    "productos": [
+        {
+            "nombre": "Lecitina De Soya Polvo 500gr",
+            "cantidad": 1,
+            "precio_unitario": 29600
+        },
+        {
+            "nombre": "Alginato De Sodio X 100g Esferificaciones",
+            "cantidad": 2,
+            "precio_unitario": 29800
+        },
+        {
+            "nombre": "Agar-agar 100g Grado Laboratorio",
+            "cantidad": 1,
+            "precio_unitario": 58650
+        },
+        {
+            "nombre": "Env\u00edo Interrapid\u00edsimo Riohacha",
+            "cantidad": 1,
+            "precio_unitario": 18000
+        }
+    ],
+    "total": 165850,
+    "fecha": "2026-04-16 17:11:14"
+}
