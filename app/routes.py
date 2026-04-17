@@ -1,4 +1,4 @@
-from flask import request, jsonify, render_template
+from flask import request, jsonify, render_template, send_from_directory
 import os
 import json
 import re
@@ -6,6 +6,7 @@ import hmac
 import hashlib
 import base64
 import tempfile
+from datetime import datetime as _dt
 import requests as _requests_lib
 
 _ROUTES_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -1587,9 +1588,8 @@ def register_routes(app):
         Sirve archivos HTML de guías de productos desde PAGINA_WEB/.
         URL: /guia/kit-acidos  → PAGINA_WEB/guia-kit-acidos.html
         """
-        from flask import send_from_directory, abort
+        from flask import abort
 
-        # Sanitizar: solo letras, números, guiones
         import re as _re
 
         if not _re.match(r"^[a-zA-Z0-9\-]+$", nombre_guia):
@@ -1599,3 +1599,247 @@ def register_routes(app):
         if not os.path.isfile(ruta_completa):
             abort(404)
         return send_from_directory(_GUIAS_DIR, nombre_archivo)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  CORS middleware (manual) — permits requests from Vite dev & Tauri
+    # ══════════════════════════════════════════════════════════════════════════
+    _CORS_ORIGINS = {
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "tauri://localhost",
+        "https://tauri.localhost",
+    }
+
+    @app.after_request
+    def _cors_headers(response):
+        origin = request.headers.get("Origin", "")
+        if origin in _CORS_ORIGINS:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
+    @app.route("/api/<path:_path>", methods=["OPTIONS"])
+    def _cors_preflight(_path):
+        return "", 204
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  API endpoints — unified on :8081 for React SPA
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _api_token_valido():
+        token = request.headers.get("Authorization", "").replace("Bearer ", "")
+        return token == os.getenv("CHAT_API_TOKEN", "")
+
+    def _api_lanzar_en_hilo(fn, *args):
+        spawn_thread(fn, args=args, daemon=True)
+
+    # -- Sync imports (same as webhook_meli.py) --
+    from app.sync import (
+        sincronizar_inteligente as _sync_inteligente,
+        sincronizar_facturas_recientes as _sync_facturas_recientes,
+        ejecutar_sincronizacion_y_reporte_stock as _sync_stock_reporte,
+        sincronizar_manual_por_id as _sync_manual_id,
+        sincronizar_por_dia_especifico as _sync_por_dia,
+    )
+    from app.services.google_services import leer_datos_hoja as _leer_hoja
+    from app.services.meli import aprender_de_interacciones_meli as _aprender_meli
+
+    @app.route("/api/status")
+    def api_status():
+        from app.observability import get_request_id
+        return jsonify({
+            "estado": "activo",
+            "timestamp": _dt.now().isoformat(),
+            "request_id": get_request_id(),
+            "servicios": {
+                "mercadolibre": os.path.exists("credenciales_meli.json"),
+                "google": os.path.exists("credenciales_google.json"),
+                "siigo": os.path.exists("credenciales_SIIGO.json"),
+            },
+            "version": "2.0.0",
+        })
+
+    @app.route("/api/preventa/pendientes")
+    def api_preventa_pendientes():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            with open(PENDIENTES_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            pendientes = [
+                p for p in data.get("preguntas", []) if not p.get("respondida")
+            ]
+            return jsonify({"preguntas": pendientes, "total": len(pendientes)})
+        except FileNotFoundError:
+            return jsonify({"preguntas": [], "total": 0})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/preventa/casos")
+    def api_preventa_casos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            ruta = os.path.join(_ROUTES_DIR, "..", "app", "training", "casos_preventa.json")
+            ruta_abs = os.path.join(os.path.dirname(_ROUTES_DIR), "training", "casos_preventa.json")
+            with open(ruta_abs, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            casos = data.get("casos", [])
+            return jsonify({"casos": casos[-50:], "total": len(casos)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/sync/hoy", methods=["POST"])
+    def api_sync_hoy():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        _api_lanzar_en_hilo(_sync_facturas_recientes, 1)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Sync ultimo dia iniciado en segundo plano.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/10dias", methods=["POST"])
+    def api_sync_10dias():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        _api_lanzar_en_hilo(_sync_facturas_recientes, 10)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Sync ultimos 10 dias iniciado en segundo plano.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/completo", methods=["POST"])
+    def api_sync_completo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        _api_lanzar_en_hilo(_sync_stock_reporte)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Sync completo + reporte de stock iniciado.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/inteligente", methods=["POST"])
+    def api_sync_inteligente():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        _api_lanzar_en_hilo(_sync_inteligente)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Sync inteligente (MeLi vs Siigo) iniciado.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/pack", methods=["POST"])
+    def api_sync_pack():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json() or {}
+        pack_id = str(data.get("pack_id", "")).strip()
+        if not pack_id:
+            return jsonify({"error": "Campo 'pack_id' requerido"}), 400
+        _api_lanzar_en_hilo(_sync_manual_id, pack_id)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": f"Sync por Pack ID {pack_id} iniciado.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/fecha", methods=["POST"])
+    def api_sync_fecha():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json() or {}
+        fecha = str(data.get("fecha", "")).strip()
+        if not fecha:
+            return jsonify({"error": "Campo 'fecha' requerido (AAAA-MM-DD)"}), 400
+        _api_lanzar_en_hilo(_sync_por_dia, fecha)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": f"Sync por fecha {fecha} iniciado.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/stock", methods=["POST"])
+    def api_sync_stock():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        _api_lanzar_en_hilo(_sync_stock_reporte)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Reporte de stock iniciado. Resultado por WhatsApp.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/aprendizaje", methods=["POST"])
+    def api_sync_aprendizaje():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        _api_lanzar_en_hilo(_aprender_meli)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Aprendizaje IA iniciado.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/gmail", methods=["POST"])
+    def api_sync_gmail():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import procesar_facturas_para_importar_productos
+            from app.tools.sincronizar_facturas_de_compra_siigo import sincronizar_facturas_de_compra_siigo
+            body = request.get_json(silent=True) or {}
+            solo_nit = body.get("nit")
+            if solo_nit:
+                _api_lanzar_en_hilo(sincronizar_facturas_de_compra_siigo, solo_nit)
+            else:
+                _api_lanzar_en_hilo(procesar_facturas_para_importar_productos)
+            return jsonify({
+                "status": "iniciado",
+                "mensaje": "Escaneo facturas de compra Gmail iniciado.",
+                "timestamp": _dt.now().isoformat(),
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/consultar/producto")
+    def api_consultar_producto():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        nombre = request.args.get("nombre", "").strip()
+        if not nombre:
+            return jsonify({"error": "Parametro 'nombre' requerido"}), 400
+        try:
+            resultado = _leer_hoja(nombre)
+            return jsonify({"status": "ok", "resultado": resultado})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  SPA — React build served from desktop/dist/
+    # ══════════════════════════════════════════════════════════════════════════
+    _SPA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "desktop", "dist")
+
+    @app.route("/app/assets/<path:filename>")
+    def serve_spa_assets(filename):
+        """Serve JS/CSS hashed assets from the Vite build."""
+        assets_dir = os.path.join(_SPA_DIR, "assets")
+        return send_from_directory(assets_dir, filename)
+
+    @app.route("/app/favicon.svg")
+    def serve_spa_favicon():
+        return send_from_directory(_SPA_DIR, "favicon.svg")
+
+    @app.route("/app")
+    @app.route("/app/<path:path>")
+    def serve_spa(path=""):
+        if not os.path.isdir(_SPA_DIR):
+            return jsonify({"error": "SPA no compilada. Ejecutar: cd desktop && npm run build"}), 404
+        return send_from_directory(_SPA_DIR, "index.html")
