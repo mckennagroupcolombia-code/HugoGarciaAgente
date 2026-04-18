@@ -112,6 +112,321 @@ def test_file_tool_guard_dev_unrestricted():
             os.environ["FLASK_ENV"] = old_flask
 
 
+def test_api_5s_workspace_requires_auth():
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        assert c.get("/api/5s/workspace").status_code == 401
+        assert c.get("/app/api/5s/workspace").status_code == 401
+
+
+def test_api_5s_workspace_post_not_allowed():
+    """POST no está permitido en workspace (solo GET/PUT): Flask responde 405."""
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        assert c.post("/api/5s/workspace").status_code == 405
+        assert c.post("/app/api/5s/workspace").status_code == 405
+
+
+def test_api_5s_project_delete_via_post(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
+    from app.services import cinco_s as m5
+
+    monkeypatch.setattr(m5, "WORKSPACE_PATH", str(tmp_path / "ws.json"))
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok5s", "Content-Type": "application/json"}
+    body = {
+        "name": "Borrar",
+        "tags": [],
+        "preflight": [],
+        "tasks": ["x"],
+        "ritual_notes": "",
+        "also_save_template": False,
+    }
+    with app.test_client() as c:
+        r = c.post("/api/5s/project/routine", headers=hdr, json=body)
+        assert r.status_code == 200
+        pid = r.get_json()["project"]["id"]
+        r2 = c.post(f"/api/5s/project/{pid}/delete", headers=hdr, json={})
+        assert r2.status_code == 200
+        assert all(p["id"] != pid for p in r2.get_json()["workspace"]["projects"])
+        r3 = c.post(f"/app/api/5s/project/{pid}/delete", headers=hdr, json={})
+        assert r3.status_code == 404
+
+
+def test_app_api_5s_routine_post(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
+    from app.services import cinco_s as m5
+
+    monkeypatch.setattr(m5, "WORKSPACE_PATH", str(tmp_path / "ws.json"))
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok5s", "Content-Type": "application/json"}
+    body = {
+        "name": "Via app prefix",
+        "tags": ["cocina"],
+        "preflight": [],
+        "tasks": ["Un paso"],
+        "ritual_notes": "",
+        "also_save_template": False,
+    }
+    with app.test_client() as c:
+        r = c.post("/app/api/5s/project/routine", headers=hdr, json=body)
+        assert r.status_code == 200
+        assert r.get_json()["project"]["name"] == "Via app prefix"
+
+
+def test_serve_spa_rejects_post():
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        # POST must not fall through to index.html (evita 405 confundido con SPA).
+        assert c.post("/app", follow_redirects=False).status_code == 405
+
+
+def test_api_5s_workspace_get_put_roundtrip(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
+    from app.services import cinco_s as m5
+
+    monkeypatch.setattr(m5, "WORKSPACE_PATH", str(tmp_path / "ws.json"))
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok5s"}
+    with app.test_client() as c:
+        r = c.get("/api/5s/workspace", headers=hdr)
+        assert r.status_code == 200
+        ws = r.get_json()
+        assert "categories" in ws and len(ws["categories"]) >= 1
+        ws["categories"][0]["name"] = "CatTest"
+        r2 = c.put("/api/5s/workspace", headers=hdr, json=ws)
+        assert r2.status_code == 200
+        assert r2.get_json()["categories"][0]["name"] == "CatTest"
+
+
+def test_asistente_5s_ollama_mock(monkeypatch):
+    from unittest import mock
+
+    monkeypatch.setenv("AGENTE_5S_LLM", "ollama")
+
+    class FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": {"role": "assistant", "content": "  Paso 1: ordená el banco.  "}}
+
+    with mock.patch("app.services.cinco_s.requests.post", return_value=FakeResp()):
+        from app.services import cinco_s
+
+        out = cinco_s.asistente_5s_detailed("¿Qué hago?", {"proyecto": "Test"})
+    assert out["provider"] == "ollama"
+    assert "Paso 1" in out["reply"]
+
+
+def test_api_5s_project_delete(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
+    from app.services import cinco_s as m5
+
+    monkeypatch.setattr(m5, "WORKSPACE_PATH", str(tmp_path / "ws.json"))
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok5s", "Content-Type": "application/json"}
+    with app.test_client() as c:
+        ws = c.get("/api/5s/workspace", headers=hdr).get_json()
+        tpl = ws["templates"][0]["id"]
+        pid = c.post("/api/5s/project", headers=hdr, json={"template_id": tpl, "name": "Borrar"}).get_json()["project"][
+            "id"
+        ]
+        r = c.delete(f"/api/5s/project/{pid}", headers=hdr)
+        assert r.status_code == 200
+        assert not any(p.get("id") == pid for p in r.get_json()["workspace"]["projects"])
+
+
+def test_api_5s_audio_get_rejects_bad_name():
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        assert c.get("/api/5s/audio/nothex.wav").status_code == 404
+        assert c.get("/api/5s/audio/" + "a" * 32 + ".wav").status_code == 404
+
+
+def test_api_5s_template_delete(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
+    from app.services import cinco_s as m5
+
+    monkeypatch.setattr(m5, "WORKSPACE_PATH", str(tmp_path / "ws.json"))
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok5s", "Content-Type": "application/json"}
+    with app.test_client() as c:
+        ws = c.get("/api/5s/workspace", headers=hdr).get_json()
+        tid = ws["templates"][0]["id"]
+        r = c.delete(f"/api/5s/template/{tid}", headers=hdr)
+        assert r.status_code == 200
+        ws2 = r.get_json()["workspace"]
+        assert not any(t.get("id") == tid for t in ws2.get("templates", []))
+
+
+def test_api_5s_routine_create_with_supplies(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
+    from app.services import cinco_s as m5
+
+    monkeypatch.setattr(m5, "WORKSPACE_PATH", str(tmp_path / "ws.json"))
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok5s", "Content-Type": "application/json"}
+    body = {
+        "name": "Desayuno test",
+        "tags": ["cocina", "alimentacion"],
+        "preflight": ["Mesa limpia"],
+        "tasks": ["Servir"],
+        "ritual_notes": "",
+        "also_save_template": False,
+        "supplies": [
+            {
+                "name": "Granola",
+                "prep_action": "Hornear tanda",
+                "initial_qty": 1,
+                "reorder_below": 0.3,
+                "priority": 2,
+                "unit": "g",
+            },
+            {
+                "name": "Kefir",
+                "prep_action": "Elaborar fermentación",
+                "initial_qty": 0.5,
+                "reorder_below": 0.2,
+                "priority": 1,
+                "unit": "ml",
+            },
+        ],
+    }
+    with app.test_client() as c:
+        r = c.post("/api/5s/project/routine", headers=hdr, json=body)
+        assert r.status_code == 200
+        proj = r.get_json()["project"]
+        assert len(proj["pantry"]) == 2
+        assert proj["pantry"][0]["unit"] == "g"
+        assert proj["pantry"][1]["unit"] == "ml"
+        assert any(t.get("scope") == "prep" for t in proj["tasks"])
+        assert any(t.get("scope") == "main" for t in proj["tasks"])
+        assert len(proj["preflight"]) >= 3
+        r2 = c.post("/api/5s/routine", headers=hdr, json=body | {"name": "Otro"})
+        assert r2.status_code == 200
+
+
+def test_api_5s_routine_create(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
+    from app.services import cinco_s as m5
+
+    monkeypatch.setattr(m5, "WORKSPACE_PATH", str(tmp_path / "ws.json"))
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok5s", "Content-Type": "application/json"}
+    body = {
+        "name": "Rutina guiada test",
+        "tags": ["cocina"],
+        "preflight": ["Mesón limpio"],
+        "tasks": ["Paso uno", "Paso dos"],
+        "ritual_notes": "Cerrar con checklist",
+        "also_save_template": True,
+    }
+    with app.test_client() as c:
+        r = c.post("/api/5s/routine", headers=hdr, json=body)
+        assert r.status_code == 200
+        out = r.get_json()
+        assert out["project"]["name"] == "Rutina guiada test"
+        assert out["project"]["tags"] == ["cocina"]
+        tpls = out["workspace"]["templates"]
+        assert any("Patrón:" in (t.get("name") or "") for t in tpls)
+
+
+def test_suggest_routine_json_mock(monkeypatch):
+    from unittest import mock
+
+    class FakeResp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {
+                "message": {
+                    "content": '{"tags":["cocina","hogar"],"preflight":["Lavar manos"],"tasks":["A","B","C"],'
+                    '"ritual_notes":"Siempre igual"}'
+                }
+            }
+
+    with mock.patch("app.services.cinco_s.requests.post", return_value=FakeResp()):
+        from app.services import cinco_s
+
+        sug, err = cinco_s.suggest_routine_json("preparar almuerzo")
+    assert not err
+    assert sug and len(sug["tasks"]) == 3
+    assert "cocina" in sug["tags"]
+
+
+def test_api_5s_project_create(monkeypatch, tmp_path):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok5s")
+    from app.services import cinco_s as m5
+
+    monkeypatch.setattr(m5, "WORKSPACE_PATH", str(tmp_path / "ws.json"))
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok5s", "Content-Type": "application/json"}
+    with app.test_client() as c:
+        ws = c.get("/api/5s/workspace", headers=hdr).get_json()
+        tpl = ws["templates"][0]["id"]
+        cat_alim = next(c["id"] for c in ws["categories"] if "aliment" in c["name"].lower())
+        r = c.post(
+            "/api/5s/project",
+            headers=hdr,
+            json={"template_id": tpl, "name": "P1", "category_id": cat_alim},
+        )
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body["project"]["name"] == "P1"
+        assert body["project"]["category_id"] == cat_alim
+        assert any(p["name"] == "P1" for p in body["workspace"]["projects"])
+
+
 def test_file_tool_guard_restricted_blocks_core():
     import os
 

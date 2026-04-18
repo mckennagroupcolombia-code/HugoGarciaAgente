@@ -7,6 +7,7 @@ import Chat from "./components/Chat";
 import PreventaPanel from "./components/PreventaPanel";
 import SyncPanel from "./components/SyncPanel";
 import StockPanel from "./components/StockPanel";
+import CincoSPanel from "./components/CincoSPanel";
 import Settings from "./components/Settings";
 
 function PanelRouter() {
@@ -22,6 +23,8 @@ function PanelRouter() {
       return <SyncPanel />;
     case "stock":
       return <StockPanel />;
+    case "cinco_s":
+      return <CincoSPanel />;
     case "settings":
       return <Settings />;
     default:

@@ -127,9 +127,30 @@ def main() -> int:
         print(f"  (no existe {p})")
     print()
 
+    print("--- Incidentes webhook MeLi (JSONL) ---")
+    try:
+        from app.meli_webhook_incidents import INCIDENTS_PATH, contar_incidentes_por_evento
+
+        if Path(INCIDENTS_PATH).is_file():
+            tot = sum(contar_incidentes_por_evento().values())
+            print(f"  archivo: {INCIDENTS_PATH}")
+            print(f"  eventos (últimas líneas indexadas): {tot}")
+            for ev, n in sorted(
+                contar_incidentes_por_evento().items(), key=lambda x: -x[1]
+            )[:12]:
+                print(f"    · {ev}: {n}")
+        else:
+            print(f"  (aún no existe) {INCIDENTS_PATH}")
+    except Exception as e:
+        print(f"  (no se pudo leer) {e}")
+    print()
+
     print("--- Webhook MeLi (recordatorio) ---")
     print("  Callback debe apuntar SOLO a webhook_meli :8080 (no duplicar en :8081).")
-    print("  Tópicos: questions (preventa), messages (postventa), orders_v2.")
+    print(
+        "  Tópicos: questions + marketplace_questions (preventa); "
+        "messages + marketplace_messages + messages_* (postventa); orders_v2."
+    )
     print()
     print("  Si hay 2 procesos webhook_meli: ./scripts/normalizar_webhook_meli.sh")
     return 0

@@ -640,22 +640,22 @@ def _guardar_pendientes_monitor(path: str, pendientes: list):
 
 
 # ---------------------------------------------------------------------------
-# HEALTH-CHECK cada 12 horas → alerta a grupo preventa y postventa
+# HEALTH-CHECK cada 24 h → solo GRUPO_ALERTAS_SISTEMAS_WA (Auditoría_Scripts)
 # ---------------------------------------------------------------------------
 
 def _health_check_preventa_postventa():
     """
-    Every 12 hours, run a full diagnostic of preventa + postventa pipelines
-    and send a status report to both groups. If something fails, include the
-    error log so the team knows exactly what's broken.
+    Una vez al día: diagnóstico preventa + postventa (APIs) y envío del
+    resumen solo al grupo de alertas de sistemas / auditoría — no a preventa
+    ni postventa operativos.
     """
     from app.utils import (
         refrescar_token_meli,
-        jid_grupo_postventa_wa,
+        jid_grupo_alertas_sistemas_wa,
         obtener_seller_id_meli,
     )
 
-    INTERVALO = 43200  # 12 hours
+    INTERVALO = 86400  # 24 hours
     time.sleep(120)  # let services stabilize after boot
 
     while True:
@@ -781,12 +781,11 @@ def _health_check_preventa_postventa():
                 reporte += "\n⚠️ Revisar logs: `journalctl -u webhook-meli -n 50` o `journalctl -u mckenna-whatsapp-bridge -n 50`"
 
             enviar = _get_enviar()
-            grupo_prev = jid_grupo_preventa_wa()
-            grupo_post = jid_grupo_postventa_wa()
-
-            enviar(reporte, numero_destino=grupo_prev)
-            enviar(reporte, numero_destino=grupo_post)
-            print(f"📊 [HEALTH-CHECK] Reporte enviado a preventa y postventa ({estado_txt})")
+            grupo_audit = jid_grupo_alertas_sistemas_wa()
+            enviar(reporte, numero_destino=grupo_audit)
+            print(
+                f"📊 [HEALTH-CHECK] Reporte enviado a alertas sistemas ({grupo_audit}) — {estado_txt}"
+            )
 
         except Exception as e:
             print(f"❌ [HEALTH-CHECK] Error en ciclo: {e}")
@@ -816,4 +815,6 @@ def iniciar_monitor():
         daemon=True,
         name="health-check-meli",
     ).start()
-    print("✅ Monitor de alertas iniciado (preventa MeLi + health-check 12h en hilos dedicados)")
+    print(
+        "✅ Monitor de alertas iniciado (preventa MeLi + health-check MeLi 24h → alertas sistemas)"
+    )

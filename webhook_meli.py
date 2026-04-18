@@ -63,23 +63,13 @@ def _webhook_meli_singleton_lock():
 # quedar TIME_WAIT y bind() sin SO_REUSEADDR devuelve EADDRINUSE → exit 1 en bucle.
 _WEBHOOK_SINGLETON_LOCK_FP = _webhook_meli_singleton_lock()
 
-import re
 import json
 import requests
 import time
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from app.core import obtener_respuesta_ia, configurar_ia
-from app.utils import (
-    enviar_whatsapp_reporte,
-    refrescar_token_meli,
-    jid_grupo_postventa_wa,
-    meli_postventa_id_mensaje,
-    meli_postventa_nombre_remitente,
-    meli_postventa_remitente_user_id,
-    meli_postventa_texto_para_notif,
-    obtener_seller_id_meli,
-)
+from app.utils import enviar_whatsapp_reporte, refrescar_token_meli
 
 _REPO_ROOT = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(_REPO_ROOT, ".env"))
@@ -126,6 +116,8 @@ def responder_en_mercado_libre(question_id, texto):
 
 
 from preventa_meli import procesar_nueva_pregunta
+from app.meli_postventa_notif import procesar_postventa_meli_desde_webhook
+from app.meli_webhook_topics import meli_webhook_evaluar_despacho
 from app.sync import sincronizar_stock_todas_las_plataformas
 
 # Memoria para deduplicación de preguntas
@@ -227,236 +219,6 @@ def _procesar_orden_meli(order_id: str):
         print(f"❌ [MELI-ORDER] Error procesando orden {order_id}: {e}")
 
 
-_POSVENTA_STATE_PATH = os.path.join(
-    "/home/mckg/mi-agente", "app", "data", "mensajes_posventa_pendientes.json"
-)
-
-
-def _cargar_state_posventa() -> dict:
-    try:
-        if os.path.exists(_POSVENTA_STATE_PATH):
-            with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
-    except Exception:
-        pass
-    return {"pendientes": {}, "procesados": []}
-
-
-def _guardar_state_posventa(data: dict):
-    os.makedirs(os.path.dirname(_POSVENTA_STATE_PATH), exist_ok=True)
-    with open(_POSVENTA_STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-
-def _sufijo_pack(pack_id: str) -> str:
-    """Últimos 4 dígitos del pack_id para comando corto."""
-    digits = re.sub(r"\D", "", str(pack_id))
-    return digits[-4:] if len(digits) >= 4 else digits
-
-
-def _procesar_mensajes_de_pack(
-    pack_id: str,
-    seller_id: int,
-    headers: dict,
-    grupo_wa: str,
-    state: dict,
-    procesados: set,
-) -> int:
-    """
-    Fetch messages for a single pack/order and alert on new buyer messages.
-    Mutates `state` and `procesados` in-place. Returns count of new messages alerted.
-    """
-    res = requests.get(
-        f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{seller_id}?tag=post_sale",
-        headers=headers,
-        timeout=10,
-    )
-    if res.status_code != 200:
-        return 0
-
-    mensajes = res.json().get("messages", [])
-    nuevos = 0
-    for msg in mensajes:
-        if not isinstance(msg, dict):
-            continue
-        try:
-            from_id = meli_postventa_remitente_user_id(msg)
-            if from_id and from_id == str(seller_id):
-                continue
-
-            msg_id = meli_postventa_id_mensaje(msg)
-            if not msg_id or msg_id in procesados:
-                continue
-
-            texto = meli_postventa_texto_para_notif(msg)
-            if not texto:
-                continue
-
-            nombre_comprador = meli_postventa_nombre_remitente(msg, from_id)
-            sufijo = _sufijo_pack(pack_id)
-
-            print(
-                f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}"
-            )
-
-            productos_str = ""
-            try:
-                r_ord = requests.get(
-                    f"https://api.mercadolibre.com/orders/{pack_id}",
-                    headers=headers,
-                    timeout=8,
-                )
-                if r_ord.status_code == 200:
-                    prods = [
-                        i.get("item", {}).get("title", "")
-                        for i in r_ord.json().get("order_items", [])
-                        if i.get("item", {}).get("title")
-                    ]
-                    if prods:
-                        productos_str = "\n".join(f"  • {p}" for p in prods)
-            except Exception:
-                pass
-
-            state["pendientes"][sufijo] = {
-                "pack_id": pack_id,
-                "comprador": nombre_comprador,
-                "from_id": from_id,
-                "texto": texto,
-                "msg_id": msg_id,
-                "productos": productos_str,
-                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-            }
-            procesados.add(msg_id)
-
-            notif = (
-                f"💬 *MENSAJE POSTVENTA MELI*\n\n"
-                f"📦 *Pack:* `{pack_id}`  _(código: *{sufijo}*)_\n"
-                f"👤 *Comprador:* {nombre_comprador}\n"
-            )
-            if productos_str:
-                notif += f"🛍 *Productos:*\n{productos_str}\n"
-            notif += (
-                f"🗣 *Mensaje:* {texto}\n\n"
-                f"Para responder escribe en el grupo:\n"
-                f"*posventa {sufijo}: tu respuesta aquí*"
-            )
-            ok_wa = enviar_whatsapp_reporte(notif, numero_destino=grupo_wa)
-            if not ok_wa:
-                print(
-                    f"❌ [POSVENTA] WhatsApp NO entregó alerta. "
-                    f"pack={pack_id} msg_id={msg_id} grupo={grupo_wa}"
-                )
-            try:
-                incrementar_metrica("mensajes_posventa")
-            except Exception:
-                pass
-            nuevos += 1
-        except Exception as e_msg:
-            print(
-                f"⚠️ [POSVENTA] Error en un mensaje del pack {pack_id}: {e_msg}"
-            )
-            continue
-    return nuevos
-
-
-def _procesar_mensaje_posventa(resource: str):
-    """
-    Recibe notificación de mensaje postventa de MeLi.
-    Si el mensaje es del comprador (no nuestro), alerta al grupo de WhatsApp
-    con el comando de respuesta correcto: posventa <código>: <respuesta>
-
-    Deduplicación por message_id (persistente en JSON), sin filtro por tiempo.
-    """
-    GRUPO = jid_grupo_postventa_wa()
-    try:
-        token = refrescar_token_meli()
-        if not token:
-            print("❌ [POSVENTA] Sin token MeLi (refrescar_token_meli); no se puede notificar.")
-            return
-
-        seller_id = obtener_seller_id_meli()
-        headers = {"Authorization": f"Bearer {token}", "x-version": "2"}
-
-        # MeLi puede enviar el resource de dos formas:
-        # 1. Como path: "/messages/packs/{pack_id}/sellers/{seller_id}"
-        # 2. Como message_id directo: "019d52f0c31d7eb3b8f6437ac713c247"
-        partes = resource.strip("/").split("/")
-        pack_id = None
-        for i, p in enumerate(partes):
-            if p == "packs" and i + 1 < len(partes):
-                pack_id = partes[i + 1]
-                break
-
-        # MeLi a veces envía topic messages con resource /orders/{id} (mismo id que pack en postventa).
-        # Sin esto, msg_id_directo queda "orders/..." y falla la resolución — mismo criterio que app/routes.py.
-        if not pack_id and partes and partes[0] == "orders" and len(partes) >= 2:
-            pack_id = partes[1]
-
-        if not pack_id:
-            # MeLi sends topic=messages with a notification UUID that is NOT a
-            # message_id queryable via API. Instead of trying to match that UUID,
-            # scan recent orders for new buyer messages (dedup handles the rest).
-            msg_id_directo = resource.strip("/")
-            print(
-                f"🔍 [POSVENTA] Resource UUID '{msg_id_directo}' — escaneando órdenes recientes por mensajes nuevos…"
-            )
-
-            ordenes_con_mensajes = []
-            try:
-                res_orders = requests.get(
-                    f"https://api.mercadolibre.com/orders/search?seller={seller_id}&sort=date_desc&limit=15",
-                    headers=headers,
-                    timeout=10,
-                )
-                if res_orders.status_code == 200:
-                    for orden in res_orders.json().get("results", []):
-                        oid = str(orden.get("id", ""))
-                        ordenes_con_mensajes.append(oid)
-            except Exception as e_search:
-                print(f"⚠️ [POSVENTA] Error listando órdenes recientes: {e_search}")
-
-            if not ordenes_con_mensajes:
-                print(f"⚠️ [POSVENTA] Sin órdenes recientes para resource: {resource}")
-                return
-
-            # Process all orders that have new buyer messages (dedup prevents re-alerting)
-            state = _cargar_state_posventa()
-            procesados = set(state.get("procesados", []))
-            nuevos_total = 0
-
-            for oid in ordenes_con_mensajes:
-                try:
-                    nuevos_total += _procesar_mensajes_de_pack(
-                        oid, seller_id, headers, GRUPO, state, procesados
-                    )
-                except Exception as e_pack:
-                    print(f"⚠️ [POSVENTA] Error procesando pack {oid}: {e_pack}")
-
-            state["procesados"] = list(procesados)[-500:]
-            _guardar_state_posventa(state)
-
-            if nuevos_total:
-                print(f"✅ [POSVENTA] {nuevos_total} mensaje(s) nuevos notificados (scan de órdenes).")
-            return
-
-        # pack_id resolved from path — process just this one pack
-        state = _cargar_state_posventa()
-        procesados = set(state.get("procesados", []))
-
-        nuevos = _procesar_mensajes_de_pack(
-            pack_id, seller_id, headers, GRUPO, state, procesados
-        )
-
-        state["procesados"] = list(procesados)[-500:]
-        _guardar_state_posventa(state)
-
-        if nuevos:
-            print(f"✅ [POSVENTA] {nuevos} mensaje(s) nuevos notificados al grupo.")
-
-    except Exception as e:
-        print(f"❌ [POSVENTA] Error procesando mensaje: {e}")
-
-
 @app.route("/notifications", methods=["POST"])
 def notifications():
     """Recibe la notificación y responde 'OK' de inmediato a MeLi."""
@@ -478,42 +240,68 @@ def notifications():
 
     if not data:
         print("⚠️ [NOTIF] Body vacío o JSON inválido — ignorado.")
+        try:
+            from app.meli_webhook_incidents import registrar_meli_webhook_incidente
+
+            registrar_meli_webhook_incidente("notif_body_invalido", source="webhook_meli")
+        except Exception:
+            pass
         return jsonify({"status": "ok"}), 200
 
-    if topic == "questions":
-        if resource:
-            question_id = resource.split("/")[-1]
-            limpiar_preguntas_antiguas()
-            if question_id in preguntas_procesadas:
-                print(f"⏭️ [PREVENTA] Pregunta {question_id} ya procesada (dedup).")
-            else:
-                preguntas_procesadas[question_id] = time.time()
-                print(f"❓ [PREVENTA] Despachando pregunta {question_id}")
-                spawn_thread(procesar_nueva_pregunta, args=(question_id,))
-                try:
-                    incrementar_metrica("preguntas_meli")
-                except Exception:
-                    pass
+    from app.meli_webhook_incidents import registrar_meli_webhook_incidente
 
-    elif topic == "orders_v2":
-        if resource:
-            order_id = resource.split("/")[-1]
-            print(f"🛒 [MELI-ORDER] Nueva orden: {order_id}")
-            spawn_thread(_procesar_orden_meli, args=(order_id,))
+    plan = meli_webhook_evaluar_despacho(topic, resource, data)
+    t = plan["tipo"]
+
+    if t == "preventa":
+        question_id = plan["question_id"]
+        limpiar_preguntas_antiguas()
+        if question_id in preguntas_procesadas:
+            print(f"⏭️ [PREVENTA] Pregunta {question_id} ya procesada (dedup).")
+        else:
+            preguntas_procesadas[question_id] = time.time()
+            print(f"❓ [PREVENTA] Despachando pregunta {question_id}")
+            spawn_thread(procesar_nueva_pregunta, args=(question_id,))
             try:
-                incrementar_metrica("ordenes_meli")
+                incrementar_metrica("preguntas_meli")
             except Exception:
                 pass
-
-    elif topic and topic.startswith("messages"):
+    elif t == "orden":
+        order_id = plan["order_id"]
+        print(f"🛒 [MELI-ORDER] Nueva orden: {order_id}")
+        spawn_thread(_procesar_orden_meli, args=(order_id,))
+        try:
+            incrementar_metrica("ordenes_meli")
+        except Exception:
+            pass
+    elif t == "postventa":
         print(f"📩 [MELI-MSG] Posventa topic={topic!r} resource={resource!r}")
-        if resource:
-            spawn_thread(
-                _procesar_mensaje_posventa, args=(resource,), daemon=True
-            )
-
+        spawn_thread(
+            procesar_postventa_meli_desde_webhook,
+            args=(plan["resource"],),
+            daemon=True,
+        )
+    elif t == "postventa_omitir_lectura":
+        print(
+            f"⏭️ [POSVENTA] Sin action 'created' — omitida. "
+            f"actions={data.get('actions')!r}"
+        )
     else:
-        print(f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).")
+        _noop_msgs = {
+            "preventa_sin_resource": "⚠️ [PREVENTA] resource vacío, ignorado.",
+            "preventa_sin_question_id": "⚠️ [PREVENTA] resource sin id de pregunta, ignorado.",
+            "orden_sin_resource": "⚠️ [MELI-ORDER] orders_v2 sin resource, ignorado.",
+            "postventa_sin_resource": "⚠️ [POSVENTA] messages sin resource, ignorado.",
+            "topic_no_manejado": f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).",
+        }
+        print(_noop_msgs.get(t, f"ℹ️ [NOTIF] tipo plan={t!r}"))
+        registrar_meli_webhook_incidente(
+            "notif_sin_efecto_util",
+            tipo=t,
+            topic=topic,
+            resource=(resource or "")[:500],
+            source="webhook_meli",
+        )
 
     return jsonify({"status": "ok"}), 200
 

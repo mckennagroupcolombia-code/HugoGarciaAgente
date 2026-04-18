@@ -444,7 +444,10 @@ def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
         numero_destino if numero_destino else TELEFONO_GRUPO_REPORTE
     )
     payload = {"numero": destino, "mensaje": texto_mensaje}
-    max_intentos = 3
+    try:
+        max_intentos = max(1, min(12, int(os.getenv("WHATSAPP_REPORTE_MAX_INTENTOS", "5"))))
+    except ValueError:
+        max_intentos = 5
 
     for i in range(max_intentos):
         try:
@@ -455,11 +458,12 @@ def enviar_whatsapp_reporte(texto_mensaje: str, numero_destino: str = None):
                 return True
             # Puente Node suele responder 503 mientras WhatsApp aún no está listo ("Sincronizando...")
             if res.status_code == 503 and i < max_intentos - 1:
+                espera = min(30, 5 * (i + 1))
                 print(
                     f"⚠️ WhatsApp bridge 503 (intento {i + 1}/{max_intentos}), "
-                    f"reintentando en 5s…"
+                    f"reintentando en {espera}s…"
                 )
-                time.sleep(5)
+                time.sleep(espera)
                 continue
             print(
                 f"❌ Error al enviar reporte a WhatsApp. Código: {res.status_code}, "
