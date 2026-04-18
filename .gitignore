@@ -33,6 +33,11 @@ htmlcov/
 # Lock singleton webhook MeLi (runtime)
 .webhook_meli.lock
 
+# Incidentes notificaciones MeLi (runtime, puede crecer)
+app/data/webhook_meli_incidents.jsonl
+# Audio alertas 5S (subidas .wav)
+app/data/5s_audio/
+
 # Bases de datos y cache
 mckenna_business.db
 *.sqlite3

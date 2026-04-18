@@ -87,11 +87,6 @@ from app.utils import (
     jid_grupo_inventario_wa,
     jid_grupo_preventa_wa,
     jid_grupo_postventa_wa,
-    meli_postventa_id_mensaje,
-    meli_postventa_nombre_remitente,
-    meli_postventa_remitente_user_id,
-    meli_postventa_texto_para_notif,
-    obtener_seller_id_meli,
 )
 
 
@@ -324,6 +319,8 @@ def procesar_confirmacion_pago_async(numero_cliente):
 # --- Lógica de MercadoLibre (Migrada de webhook_meli.py) ---
 import time
 from preventa_meli import procesar_nueva_pregunta
+from app.meli_postventa_notif import procesar_postventa_meli_desde_webhook
+from app.meli_webhook_topics import meli_webhook_evaluar_despacho
 from app.utils import refrescar_token_meli
 
 # Memoria para deduplicación de preguntas
@@ -416,250 +413,6 @@ def _procesar_orden_meli(order_id: str):
         print(f"❌ [MELI-ORDER] Error procesando orden {order_id}: {e}")
 
 
-_POSVENTA_STATE_PATH = os.path.join(
-    "/home/mckg/mi-agente", "app", "data", "mensajes_posventa_pendientes.json"
-)
-
-
-def _cargar_state_posventa() -> dict:
-    try:
-        if os.path.exists(_POSVENTA_STATE_PATH):
-            with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
-    except Exception:
-        pass
-    return {"pendientes": {}, "procesados": []}
-
-
-def _guardar_state_posventa(data: dict):
-    os.makedirs(os.path.dirname(_POSVENTA_STATE_PATH), exist_ok=True)
-    with open(_POSVENTA_STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-
-def _sufijo_pack(pack_id: str) -> str:
-    """Últimos 4 dígitos del pack_id para comando corto."""
-    digits = re.sub(r"\D", "", str(pack_id))
-    return digits[-4:] if len(digits) >= 4 else digits
-
-
-def _procesar_mensaje_posventa(resource: str):
-    """
-    Recibe notificación de mensaje postventa de MeLi.
-    Si el mensaje es del comprador (no nuestro), alerta al grupo de WhatsApp
-    con el comando de respuesta correcto: posventa <código>: <respuesta>
-
-    Deduplicación por message_id (persistente en JSON), sin filtro por tiempo.
-    """
-    GRUPO = jid_grupo_postventa_wa()
-    try:
-        from app.monitor import incrementar_metrica
-
-        token = refrescar_token_meli()
-        if not token:
-            print("❌ [POSVENTA] Sin token MeLi (refrescar_token_meli); no se puede notificar.")
-            return
-
-        seller_id = obtener_seller_id_meli()
-        headers = {"Authorization": f"Bearer {token}", "x-version": "2"}
-
-        # MeLi puede enviar el resource de dos formas:
-        # 1. Como path: "/messages/packs/{pack_id}/sellers/{seller_id}"
-        # 2. Como message_id directo: "019d52f0c31d7eb3b8f6437ac713c247"
-        partes = resource.strip("/").split("/")
-        pack_id = None
-        for i, p in enumerate(partes):
-            if p == "packs" and i + 1 < len(partes):
-                pack_id = partes[i + 1]
-                break
-
-        if not pack_id and partes and partes[0] == "orders" and len(partes) >= 2:
-            pack_id = partes[1]
-
-        if not pack_id:
-            msg_id_directo = resource.strip("/")
-            print(
-                f"🔍 [POSVENTA] Resource sin pack_id explícito: '{msg_id_directo}'. Intentando resolver..."
-            )
-
-            for url_intento in [
-                f"https://api.mercadolibre.com/{msg_id_directo}",
-                f"https://api.mercadolibre.com/messages/{msg_id_directo}",
-            ]:
-                try:
-                    res_msg = _requests_lib.get(
-                        url_intento, headers=headers, timeout=10
-                    )
-                    print(f"   -> Intento {url_intento} -> {res_msg.status_code}")
-                    if res_msg.status_code == 200:
-                        msg_data = res_msg.json()
-                        for mr in msg_data.get("message_resources", []):
-                            if mr.get("name") in ("orders", "packs"):
-                                pack_id = str(mr.get("id", ""))
-                                break
-                        if not pack_id:
-                            pack_id = str(
-                                msg_data.get("pack_id", "")
-                                or msg_data.get("order_id", "")
-                                or ""
-                            )
-                        if pack_id:
-                            print(f"✅ [POSVENTA] pack_id resuelto: {pack_id}")
-                            break
-                except Exception as e_url:
-                    print(f"   -> Error: {e_url}")
-
-            if not pack_id:
-                try:
-                    print(
-                        f"🔍 [POSVENTA] Buscando en órdenes recientes del vendedor..."
-                    )
-                    res_orders = _requests_lib.get(
-                        f"https://api.mercadolibre.com/orders/search?seller={seller_id}&sort=date_desc&limit=10",
-                        headers=headers,
-                        timeout=10,
-                    )
-                    if res_orders.status_code == 200:
-                        for orden in res_orders.json().get("results", []):
-                            oid = str(orden.get("id", ""))
-                            res_msgs = _requests_lib.get(
-                                f"https://api.mercadolibre.com/messages/packs/{oid}/sellers/{seller_id}?tag=post_sale",
-                                headers=headers,
-                                timeout=8,
-                            )
-                            if res_msgs.status_code == 200:
-                                msgs = res_msgs.json().get("messages", [])
-                                for m in msgs:
-                                    if str(m.get("id", "")) == msg_id_directo:
-                                        pack_id = oid
-                                        print(
-                                            f"✅ [POSVENTA] pack_id encontrado por búsqueda: {pack_id}"
-                                        )
-                                        break
-                            if pack_id:
-                                break
-                except Exception as e_search:
-                    print(f"⚠️ [POSVENTA] Error buscando en órdenes: {e_search}")
-
-            if not pack_id:
-                print(
-                    f"⚠️ [POSVENTA] No se pudo resolver pack_id para resource: {resource}"
-                )
-                return
-
-        res = _requests_lib.get(
-            f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{seller_id}?tag=post_sale",
-            headers=headers,
-            timeout=10,
-        )
-        if res.status_code != 200:
-            print(
-                f"⚠️ [POSVENTA] Error obteniendo mensajes del pack {pack_id}: {res.status_code}"
-            )
-            return
-
-        state = _cargar_state_posventa()
-        procesados = set(state.get("procesados", []))
-
-        mensajes = res.json().get("messages", [])
-        nuevos = 0
-        for msg in mensajes:
-            if not isinstance(msg, dict):
-                continue
-            try:
-                from_id = meli_postventa_remitente_user_id(msg)
-                if from_id and from_id == str(seller_id):
-                    continue  # Mensaje nuestro, ignorar
-
-                msg_id = meli_postventa_id_mensaje(msg)
-                if not msg_id or msg_id in procesados:
-                    continue  # Ya notificado
-
-                texto = meli_postventa_texto_para_notif(msg)
-                if not texto:
-                    print(
-                        f"⏭️ [POSVENTA] Mensaje {msg_id} sin texto ni adjuntos reconocibles, omitiendo"
-                    )
-                    continue
-
-                nombre_comprador = meli_postventa_nombre_remitente(msg, from_id)
-                sufijo = _sufijo_pack(pack_id)
-
-                print(
-                    f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}"
-                )
-
-                # Obtener productos de la orden para contexto
-                productos_str = ""
-                try:
-                    r_ord = _requests_lib.get(
-                        f"https://api.mercadolibre.com/orders/{pack_id}",
-                        headers=headers,
-                        timeout=8,
-                    )
-                    if r_ord.status_code == 200:
-                        prods = [
-                            i.get("item", {}).get("title", "")
-                            for i in r_ord.json().get("order_items", [])
-                            if i.get("item", {}).get("title")
-                        ]
-                        if prods:
-                            productos_str = "\n".join(f"  • {p}" for p in prods)
-                except Exception:
-                    pass
-
-                # Guardar en cola de pendientes
-                state["pendientes"][sufijo] = {
-                    "pack_id": pack_id,
-                    "comprador": nombre_comprador,
-                    "from_id": from_id,
-                    "texto": texto,
-                    "msg_id": msg_id,
-                    "productos": productos_str,
-                    "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
-                }
-                procesados.add(msg_id)
-
-                notif = (
-                    f"💬 *MENSAJE POSTVENTA MELI*\n\n"
-                    f"📦 *Pack:* `{pack_id}`  _(código: *{sufijo}*)_\n"
-                    f"👤 *Comprador:* {nombre_comprador}\n"
-                )
-                if productos_str:
-                    notif += f"🛍 *Productos:*\n{productos_str}\n"
-                notif += (
-                    f"🗣 *Mensaje:* {texto}\n\n"
-                    f"Para responder escribe en el grupo:\n"
-                    f"*posventa {sufijo}: tu respuesta aquí*"
-                )
-                ok_wa = enviar_whatsapp_reporte(notif, numero_destino=GRUPO)
-                if not ok_wa:
-                    print(
-                        f"❌ [POSVENTA] WhatsApp NO entregó alerta (bridge :3000 / GRUPO). "
-                        f"pack={pack_id} msg_id={msg_id} grupo={GRUPO}"
-                    )
-                try:
-                    incrementar_metrica("mensajes_posventa")
-                except Exception:
-                    pass
-                nuevos += 1
-            except Exception as e_msg:
-                print(
-                    f"⚠️ [POSVENTA] Error en un mensaje del pack {pack_id} (se sigue con el resto): {e_msg}"
-                )
-                continue
-
-        # Limpiar procesados: guardar solo los últimos 500 para no crecer indefinidamente
-        state["procesados"] = list(procesados)[-500:]
-        _guardar_state_posventa(state)
-
-        if nuevos:
-            print(f"✅ [POSVENTA] {nuevos} mensaje(s) nuevos notificados al grupo.")
-
-    except Exception as e:
-        print(f"❌ [POSVENTA] Error procesando mensaje: {e}")
-
-
 def register_routes(app):
     @app.before_request
     def _mckenna_bind_request_id():
@@ -685,42 +438,69 @@ def register_routes(app):
 
         if not data:
             print("⚠️ [NOTIF] Body vacío o JSON inválido — ignorado.")
+            try:
+                from app.meli_webhook_incidents import registrar_meli_webhook_incidente
+
+                registrar_meli_webhook_incidente("notif_body_invalido", source="routes")
+            except Exception:
+                pass
             return jsonify({"status": "ok"}), 200
 
-        if topic == "questions":
-            if resource:
-                question_id = resource.split("/")[-1]
-                limpiar_preguntas_antiguas()
-                if question_id in preguntas_procesadas:
-                    print(f"⏭️ [PREVENTA] Pregunta {question_id} ya procesada (dedup).")
-                else:
-                    preguntas_procesadas[question_id] = time.time()
-                    print(f"❓ [PREVENTA] Despachando pregunta {question_id}")
-                    spawn_thread(procesar_nueva_pregunta, args=(question_id,))
-                    try:
-                        incrementar_metrica("preguntas_meli")
-                    except Exception:
-                        pass
+        from app.monitor import incrementar_metrica
+        from app.meli_webhook_incidents import registrar_meli_webhook_incidente
 
-        elif topic == "orders_v2":
-            if resource:
-                order_id = resource.split("/")[-1]
-                print(f"🛒 [MELI-ORDER] Nueva orden: {order_id}")
-                spawn_thread(_procesar_orden_meli, args=(order_id,))
+        plan = meli_webhook_evaluar_despacho(topic, resource, data)
+        t = plan["tipo"]
+
+        if t == "preventa":
+            question_id = plan["question_id"]
+            limpiar_preguntas_antiguas()
+            if question_id in preguntas_procesadas:
+                print(f"⏭️ [PREVENTA] Pregunta {question_id} ya procesada (dedup).")
+            else:
+                preguntas_procesadas[question_id] = time.time()
+                print(f"❓ [PREVENTA] Despachando pregunta {question_id}")
+                spawn_thread(procesar_nueva_pregunta, args=(question_id,))
                 try:
-                    incrementar_metrica("ordenes_meli")
+                    incrementar_metrica("preguntas_meli")
                 except Exception:
                     pass
-
-        elif topic and topic.startswith("messages"):
+        elif t == "orden":
+            order_id = plan["order_id"]
+            print(f"🛒 [MELI-ORDER] Nueva orden: {order_id}")
+            spawn_thread(_procesar_orden_meli, args=(order_id,))
+            try:
+                incrementar_metrica("ordenes_meli")
+            except Exception:
+                pass
+        elif t == "postventa":
             print(f"📩 [MELI-MSG] Posventa topic={topic!r} resource={resource!r}")
-            if resource:
-                spawn_thread(
-                    _procesar_mensaje_posventa, args=(resource,), daemon=True
-                )
-
+            spawn_thread(
+                procesar_postventa_meli_desde_webhook,
+                args=(plan["resource"],),
+                daemon=True,
+            )
+        elif t == "postventa_omitir_lectura":
+            print(
+                f"⏭️ [POSVENTA] Sin action 'created' — omitida. "
+                f"actions={data.get('actions')!r}"
+            )
         else:
-            print(f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).")
+            _noop_msgs = {
+                "preventa_sin_resource": "⚠️ [PREVENTA] resource vacío, ignorado.",
+                "preventa_sin_question_id": "⚠️ [PREVENTA] resource sin id de pregunta, ignorado.",
+                "orden_sin_resource": "⚠️ [MELI-ORDER] orders_v2 sin resource, ignorado.",
+                "postventa_sin_resource": "⚠️ [POSVENTA] messages sin resource, ignorado.",
+                "topic_no_manejado": f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).",
+            }
+            print(_noop_msgs.get(t, f"ℹ️ [NOTIF] tipo plan={t!r}"))
+            registrar_meli_webhook_incidente(
+                "notif_sin_efecto_util",
+                tipo=t,
+                topic=topic,
+                resource=(resource or "")[:500],
+                source="routes",
+            )
 
         return jsonify({"status": "ok"}), 200
 
@@ -1860,6 +1640,261 @@ def register_routes(app):
         limit = request.args.get("limit", default=300, type=int) or 300
         return jsonify({"lines": get_lines(limit)})
 
+    @app.route("/app/api/5s/workspace", methods=["GET", "PUT"])
+    @app.route("/api/5s/workspace", methods=["GET", "PUT"])
+    def api_5s_workspace():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        if request.method == "GET":
+            return jsonify(_5s.read_workspace())
+        try:
+            body = request.get_json(silent=True) or {}
+            if not isinstance(body, dict):
+                body = {}
+            saved = _5s.write_workspace(body)
+            return jsonify(saved)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/5s/project", methods=["POST"])
+    @app.route("/api/5s/project", methods=["POST"])
+    def api_5s_project_create():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        body = request.get_json(silent=True) or {}
+        tid = str(body.get("template_id", "")).strip()
+        name = str(body.get("name", "")).strip()
+        cat = str(body.get("category_id", "")).strip() or None
+        if not tid:
+            return jsonify({"error": "template_id requerido"}), 400
+        ws = _5s.read_workspace()
+        proj = _5s.new_project_from_template(tid, name, ws, category_id=cat)
+        if not proj:
+            return jsonify({"error": "Plantilla no encontrada"}), 404
+        try:
+            saved = _5s.write_workspace(ws)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        return jsonify({"project": proj, "workspace": saved})
+
+    @app.route("/app/api/5s/project/routine", methods=["POST"], strict_slashes=False)
+    @app.route("/app/api/5s/routine", methods=["POST"], strict_slashes=False)
+    @app.route("/api/5s/project/routine", methods=["POST"], strict_slashes=False)
+    @app.route("/api/5s/routine", methods=["POST"], strict_slashes=False)
+    def api_5s_routine_create():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        body = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            body = {}
+        name = str(body.get("name", "")).strip()
+        tags = body.get("tags") if isinstance(body.get("tags"), list) else []
+        pre = body.get("preflight") if isinstance(body.get("preflight"), list) else []
+        tasks = body.get("tasks") if isinstance(body.get("tasks"), list) else []
+        ritual = str(body.get("ritual_notes", "")).strip()
+        cat = str(body.get("category_id", "")).strip() or None
+        also_tpl = bool(body.get("also_save_template"))
+        raw_sup = body.get("supplies")
+        supplies = raw_sup if isinstance(raw_sup, list) else None
+        ws = _5s.read_workspace()
+        proj, err = _5s.create_routine_project(
+            ws,
+            name,
+            [str(x) for x in tags],
+            [str(x) for x in pre],
+            [str(x) for x in tasks],
+            ritual,
+            cat,
+            also_tpl,
+            supplies,
+        )
+        if err or not proj:
+            return jsonify({"error": err or "no se pudo crear"}), 400
+        try:
+            saved = _5s.write_workspace(ws)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        return jsonify({"project": proj, "workspace": saved})
+
+    @app.route("/app/api/5s/suggest-routine", methods=["POST"], strict_slashes=False)
+    @app.route("/api/5s/suggest-routine", methods=["POST"], strict_slashes=False)
+    def api_5s_suggest_routine():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        body = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            body = {}
+        desc = str(body.get("description", "")).strip()
+        hints = body.get("hints")
+        if hints is not None and not isinstance(hints, dict):
+            hints = None
+        sug, err = _5s.suggest_routine_json(desc, hints)
+        if err or not sug:
+            return jsonify({"ok": False, "suggestion": None, "error": err or "sin sugerencia"}), 200
+        return jsonify({"ok": True, "suggestion": sug, "error": ""})
+
+    @app.route("/app/api/5s/assistant", methods=["POST"])
+    @app.route("/api/5s/assistant", methods=["POST"])
+    def api_5s_assistant():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        body = request.get_json(silent=True) or {}
+        msg = str(body.get("message", "")).strip()
+        if not msg:
+            return jsonify({"ok": False, "reply": "", "error": "Campo 'message' requerido"}), 400
+        ctx = body.get("context")
+        if ctx is not None and not isinstance(ctx, dict):
+            ctx = None
+        out = _5s.asistente_5s_detailed(msg, ctx)
+        reply = (out.get("reply") or "").strip()
+        if not reply:
+            err = (out.get("error") or "Sin respuesta").strip()
+            return jsonify({
+                "ok": False,
+                "reply": "",
+                "error": err,
+                "provider": out.get("provider") or "",
+            })
+        return jsonify({
+            "ok": True,
+            "reply": reply,
+            "error": "",
+            "provider": out.get("provider") or "",
+        })
+
+    @app.route("/app/api/5s/audio", methods=["POST"])
+    @app.route("/api/5s/audio", methods=["POST"])
+    def api_5s_audio_upload():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        f = request.files.get("file")
+        if not f or not getattr(f, "filename", None):
+            return jsonify({"error": "campo multipart 'file' requerido"}), 400
+        if not str(f.filename).lower().endswith(".wav"):
+            return jsonify({"error": "solo archivos .wav"}), 400
+        try:
+            fname = _5s.save_wav_upload(f)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        prefix = "/app/api/5s/audio" if request.path.startswith("/app/api/") else "/api/5s/audio"
+        return jsonify({"url": f"{prefix}/{fname}", "filename": fname})
+
+    @app.route("/app/api/5s/audio/<fname>")
+    @app.route("/api/5s/audio/<fname>")
+    def api_5s_audio_get(fname):
+        from app.services.cinco_s import CINCO_S_AUDIO_DIR
+
+        safe = str(fname).strip()
+        if not re.match(r"^[a-f0-9]{32}\.wav$", safe, re.I):
+            return "", 404
+        fp = os.path.join(CINCO_S_AUDIO_DIR, safe)
+        if not os.path.isfile(fp):
+            return "", 404
+        return send_from_directory(CINCO_S_AUDIO_DIR, safe, mimetype="audio/wav")
+
+    def _api_5s_project_delete_response(project_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        ws = _5s.read_workspace()
+        if not _5s.remove_project(ws, project_id):
+            return jsonify({"error": "tablero no encontrado"}), 404
+        try:
+            saved = _5s.write_workspace(ws)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        return jsonify({"workspace": saved})
+
+    @app.route("/app/api/5s/project/<project_id>/delete", methods=["POST"], strict_slashes=False)
+    @app.route("/api/5s/project/<project_id>/delete", methods=["POST"], strict_slashes=False)
+    def api_5s_project_delete_post(project_id):
+        """Alias POST: muchos proxies bloquean DELETE; el panel usa esta ruta."""
+        return _api_5s_project_delete_response(project_id)
+
+    @app.route("/app/api/5s/project/<project_id>", methods=["DELETE"])
+    @app.route("/api/5s/project/<project_id>", methods=["DELETE"])
+    def api_5s_project_delete(project_id):
+        return _api_5s_project_delete_response(project_id)
+
+    def _api_5s_template_delete_response(template_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        ws = _5s.read_workspace()
+        if not _5s.remove_template(ws, template_id):
+            return jsonify({"error": "plantilla no encontrada"}), 404
+        try:
+            saved = _5s.write_workspace(ws)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        return jsonify({"workspace": saved})
+
+    @app.route("/app/api/5s/template/<template_id>/delete", methods=["POST"], strict_slashes=False)
+    @app.route("/api/5s/template/<template_id>/delete", methods=["POST"], strict_slashes=False)
+    def api_5s_template_delete_post(template_id):
+        return _api_5s_template_delete_response(template_id)
+
+    @app.route("/app/api/5s/template/<template_id>", methods=["PUT", "DELETE"])
+    @app.route("/api/5s/template/<template_id>", methods=["PUT", "DELETE"])
+    def api_5s_template_item(template_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        if request.method == "DELETE":
+            return _api_5s_template_delete_response(template_id)
+
+        body = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            body = {}
+        ws = _5s.read_workspace()
+        saved = _5s.replace_template(ws, template_id, body)
+        if saved is None:
+            return jsonify({"error": "plantilla no encontrada o datos inválidos"}), 400
+        return jsonify({"workspace": saved})
+
+    @app.route("/app/api/5s/template", methods=["POST"])
+    @app.route("/api/5s/template", methods=["POST"])
+    def api_5s_template_create():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services import cinco_s as _5s
+
+        body = request.get_json(silent=True) or {}
+        if not isinstance(body, dict):
+            body = {}
+        ws = _5s.read_workspace()
+        out, err = _5s.append_template(ws, body)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify({"workspace": out})
+
     # ══════════════════════════════════════════════════════════════════════════
     #  SPA — React build served from desktop/dist/
     # ══════════════════════════════════════════════════════════════════════════
@@ -1875,8 +1910,8 @@ def register_routes(app):
     def serve_spa_favicon():
         return send_from_directory(_SPA_DIR, "favicon.svg")
 
-    @app.route("/app")
-    @app.route("/app/<path:path>")
+    @app.route("/app", methods=["GET", "HEAD"])
+    @app.route("/app/<path:path>", methods=["GET", "HEAD"])
     def serve_spa(path=""):
         if not os.path.isdir(_SPA_DIR):
             return jsonify({"error": "SPA no compilada. Ejecutar: cd desktop && npm run build"}), 404

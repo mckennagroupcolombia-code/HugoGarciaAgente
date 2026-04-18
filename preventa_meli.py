@@ -142,6 +142,16 @@ def procesar_nueva_pregunta(question_id):
             f"logs). Pregunta MeLi {question_id} respondida={'sí' if status else 'no'}. "
             f"Grupo configurado: {jid_grupo_preventa_wa()}"
         )
+        try:
+            from app.meli_webhook_incidents import registrar_meli_webhook_incidente
+
+            registrar_meli_webhook_incidente(
+                "preventa_whatsapp_no_entregado",
+                question_id=str(question_id),
+                meli_respuesta_ok=bool(status),
+            )
+        except Exception:
+            pass
 
 # --- Para probar el script manualmente ---
 if __name__ == "__main__":

@@ -128,8 +128,9 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
 
         try:
             from app.utils import enviar_whatsapp_reporte
+
             sufijo = str(question_id)[-3:]
-            enviar_whatsapp_reporte(
+            ok_wa = enviar_whatsapp_reporte(
                 f"❓ CONSULTA PREVENTA PENDIENTE\n"
                 f"📦 Producto: {titulo_producto}\n"
                 f"🗣 Cliente preguntó: {pregunta_cliente}\n\n"
@@ -139,8 +140,27 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
                 f"resp {sufijo}: Se aplica 5ml por litro de agua",
                 numero_destino=jid_grupo_preventa_wa(),
             )
+            if not ok_wa:
+                from app.meli_webhook_incidents import registrar_meli_webhook_incidente
+
+                registrar_meli_webhook_incidente(
+                    "preventa_delegacion_whatsapp_fallo",
+                    question_id=str(question_id),
+                    motivo="sin_ficha",
+                )
         except Exception as e:
             print(f"❌ Preventa: error alertando al grupo: {e}")
+            try:
+                from app.meli_webhook_incidents import registrar_meli_webhook_incidente
+
+                registrar_meli_webhook_incidente(
+                    "preventa_delegacion_excepcion",
+                    question_id=str(question_id),
+                    error=str(e)[:300],
+                    motivo="sin_ficha",
+                )
+            except Exception:
+                pass
 
         return None, False
 
@@ -153,8 +173,9 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
         guardar_pregunta_pendiente(question_id, titulo_producto, pregunta_cliente)
         try:
             from app.utils import enviar_whatsapp_reporte
+
             sufijo = str(question_id)[-3:]
-            enviar_whatsapp_reporte(
+            ok_wa = enviar_whatsapp_reporte(
                 f"❓ CONSULTA PREVENTA PENDIENTE\n"
                 f"📦 Producto: {titulo_producto}\n"
                 f"🗣 Cliente preguntó: {pregunta_cliente}\n"
@@ -163,8 +184,27 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
                 f"resp {sufijo}: tu respuesta",
                 numero_destino=jid_grupo_preventa_wa(),
             )
+            if not ok_wa:
+                from app.meli_webhook_incidents import registrar_meli_webhook_incidente
+
+                registrar_meli_webhook_incidente(
+                    "preventa_delegacion_whatsapp_fallo",
+                    question_id=str(question_id),
+                    motivo="ia_fallo",
+                )
         except Exception as e:
             print(f"❌ Preventa: error alertando al grupo por fallo IA: {e}")
+            try:
+                from app.meli_webhook_incidents import registrar_meli_webhook_incidente
+
+                registrar_meli_webhook_incidente(
+                    "preventa_delegacion_excepcion",
+                    question_id=str(question_id),
+                    error=str(e)[:300],
+                    motivo="ia_fallo",
+                )
+            except Exception:
+                pass
         return None, False
 
     # Guardar como aprendizaje

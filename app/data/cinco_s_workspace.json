@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "updated_at": "2026-04-17T22:34:35",
+  "categories": [
+    {
+      "id": "c-diseno",
+      "name": "Diseño y taller",
+      "icon": "🛠"
+    },
+    {
+      "id": "c-finanzas",
+      "name": "Finanzas",
+      "icon": "📊"
+    },
+    {
+      "id": "c-ingenieria",
+      "name": "Ingeniería",
+      "icon": "⚙"
+    },
+    {
+      "id": "c-aseo",
+      "name": "Aseo y mantenimiento",
+      "icon": "🧹"
+    },
+    {
+      "id": "c-alimentacion",
+      "name": "Alimentación",
+      "icon": "🍳"
+    }
+  ],
+  "templates": [],
+  "projects": []
+}
