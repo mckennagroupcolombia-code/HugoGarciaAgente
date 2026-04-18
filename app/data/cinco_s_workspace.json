@@ -1,33 +1,275 @@
 {
   "version": 1,
-  "updated_at": "2026-04-17T22:34:35",
+  "updated_at": "2026-04-18T01:32:27",
   "categories": [
     {
+      "icon": "🛠",
       "id": "c-diseno",
-      "name": "Diseño y taller",
-      "icon": "🛠"
+      "name": "Diseño y taller"
     },
     {
+      "icon": "📊",
       "id": "c-finanzas",
-      "name": "Finanzas",
-      "icon": "📊"
+      "name": "Finanzas"
     },
     {
+      "icon": "⚙",
       "id": "c-ingenieria",
-      "name": "Ingeniería",
-      "icon": "⚙"
+      "name": "Ingeniería"
     },
     {
+      "icon": "🧹",
       "id": "c-aseo",
-      "name": "Aseo y mantenimiento",
-      "icon": "🧹"
+      "name": "Aseo y mantenimiento"
     },
     {
+      "icon": "🍳",
       "id": "c-alimentacion",
-      "name": "Alimentación",
-      "icon": "🍳"
+      "name": "Alimentación"
     }
   ],
-  "templates": [],
-  "projects": []
+  "templates": [
+    {
+      "category_id": "c-alimentacion",
+      "id": "t-fa1c451545",
+      "name": "Patrón: Desayunar",
+      "preflight_steps": [
+        {
+          "assignee": "",
+          "label": "Kefir: verificado en despensa (≥ 0.25 l)"
+        },
+        {
+          "assignee": "",
+          "label": "Mesones libres sin objetos, ollas o residuos"
+        }
+      ],
+      "ritual_notes": "Limpiar Cocina",
+      "tasks": [
+        {
+          "assignee": "",
+          "title": "Hervir agua en la olla grande, agregar 20 cucharas de leche en polvo, dejar enfriar y agregar el kefir. Luego envasa en el frasco previamente lavado. — Kefir"
+        },
+        {
+          "assignee": "",
+          "title": "Picar frutas"
+        },
+        {
+          "assignee": "",
+          "title": "Agregar granola y suplementos a los bowls"
+        },
+        {
+          "assignee": "",
+          "title": "Lavar tabla y utensilios"
+        },
+        {
+          "assignee": "",
+          "title": "Servir desayuno"
+        },
+        {
+          "assignee": "",
+          "title": "Dar residuos a mascotas"
+        },
+        {
+          "assignee": "",
+          "title": "Limpiar cocina"
+        }
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "category_id": "c-alimentacion",
+      "created_at": "2026-04-18T01:07:22",
+      "id": "p-4ea8e7a08bd6",
+      "materials": [
+        {
+          "id": "mat-6a5a09b7-0",
+          "name": "Trapo Verde de Secar",
+          "qty": 1,
+          "unit": "ud"
+        },
+        {
+          "id": "mat-a455252e-a",
+          "name": "Esponja Metalica",
+          "qty": 1,
+          "unit": "ud"
+        },
+        {
+          "id": "mat-c8f27144-8",
+          "name": "Trapo Amarillo de Limpiar",
+          "qty": 1,
+          "unit": "ud"
+        },
+        {
+          "id": "mat-5f9cfd65-0",
+          "name": "Dispensador de Jabon",
+          "qty": 1,
+          "unit": "ud"
+        }
+      ],
+      "name": "Desayunar",
+      "pantry": [
+        {
+          "id": "pan-708cb0e9fd",
+          "name": "Kefir",
+          "prep_notes": "Hervir agua en la olla grande, agregar 20 cucharas de leche en polvo, dejar enfriar y agregar el kefir. Luego envasa en el frasco previamente lavado.",
+          "qty": 4,
+          "reorder_below": 0.25,
+          "unit": "l"
+        },
+        {
+          "id": "pan-38cd971c-f",
+          "name": "Leche en Polvo",
+          "prep_notes": "",
+          "qty": 1,
+          "reorder_below": 0.2,
+          "unit": "ud"
+        },
+        {
+          "id": "pan-a86ebb8f-2",
+          "name": "Duraznos",
+          "prep_notes": "",
+          "qty": 1,
+          "reorder_below": 0.2,
+          "unit": "ud"
+        },
+        {
+          "id": "pan-986260a9-0",
+          "name": "Bananos",
+          "prep_notes": "Comprar bananos",
+          "qty": 2,
+          "reorder_below": 0.2,
+          "unit": "ud"
+        },
+        {
+          "id": "pan-e6a7a527-e",
+          "name": "Avena en Hojuelas",
+          "prep_notes": "Comprar Avena en Hojuelas",
+          "qty": 499,
+          "reorder_below": 2,
+          "unit": "g"
+        }
+      ],
+      "preflight": [
+        {
+          "assignee": "Armando",
+          "done": true,
+          "id": "pf-e23d9b4016",
+          "label": "Kefir: verificado en despensa (≥ 0.25 l)"
+        },
+        {
+          "assignee": "Armando",
+          "done": true,
+          "id": "pf-fadaac64e0",
+          "label": "Mesones libres sin objetos, ollas o residuos"
+        }
+      ],
+      "recipe_notes": "En dos bowls mezclamos los ingredientes ...",
+      "ritual_notes": "Limpiar Cocina",
+      "schedules": [
+        {
+          "id": "sch-14eec981-5",
+          "sound_url": "",
+          "time_local": "08:00",
+          "title": "Compra de Viveres Desayunos",
+          "weekdays": [
+            5
+          ]
+        }
+      ],
+      "tags": [
+        "cocina",
+        "alimentacion",
+        "desayuno"
+      ],
+      "tasks": [
+        {
+          "assignee": "",
+          "blocked_reason": "",
+          "id": "tk-4e98789613",
+          "linked_pantry_id": "pan-708cb0e9fd",
+          "order": 20,
+          "scope": "prep",
+          "status": "done",
+          "title": "Hervir agua en la olla grande, agregar 20 cucharas de leche en polvo, dejar enfriar y agregar el kefir. Luego envasa en el frasco previamente lavado. — Kefir"
+        },
+        {
+          "assignee": "",
+          "blocked_reason": "",
+          "id": "tk-3caa7ad0fd",
+          "order": 30,
+          "scope": "main",
+          "status": "done",
+          "title": "Picar frutas"
+        },
+        {
+          "assignee": "",
+          "blocked_reason": "",
+          "id": "tk-b593d314ff",
+          "order": 31,
+          "scope": "main",
+          "status": "done",
+          "title": "Agregar granola y suplementos a los bowls"
+        },
+        {
+          "assignee": "",
+          "blocked_reason": "",
+          "id": "tk-2b930ddb28",
+          "order": 32,
+          "scope": "main",
+          "status": "done",
+          "title": "Lavar tabla y utensilios"
+        },
+        {
+          "assignee": "",
+          "blocked_reason": "",
+          "id": "tk-253849ba97",
+          "order": 33,
+          "scope": "main",
+          "status": "done",
+          "title": "Servir desayuno"
+        },
+        {
+          "assignee": "",
+          "blocked_reason": "",
+          "id": "tk-15dc2afc9f",
+          "order": 34,
+          "scope": "main",
+          "status": "done",
+          "title": "Dar residuos a mascotas"
+        },
+        {
+          "assignee": "",
+          "blocked_reason": "",
+          "id": "tk-07e1068a5b",
+          "order": 35,
+          "scope": "main",
+          "status": "done",
+          "title": "Limpiar cocina"
+        },
+        {
+          "assignee": "",
+          "blocked_reason": "",
+          "id": "tk-8dabeb9d-5",
+          "linked_pantry_id": "pan-986260a9-0",
+          "order": -1,
+          "scope": "prep",
+          "status": "done",
+          "title": "Reponer: Bananos (bajo mínimo en despensa)"
+        },
+        {
+          "assignee": "Armando",
+          "blocked_reason": "No ha ido por la avena",
+          "id": "tk-681b0f19-4",
+          "linked_pantry_id": "pan-e6a7a527-e",
+          "order": -2,
+          "scope": "prep",
+          "status": "done",
+          "title": "Reponer: Avena en Hojuelas (bajo mínimo en despensa)"
+        }
+      ],
+      "template_id": "rutina-personalizada",
+      "updated_at": "2026-04-18T06:32:22.568Z"
+    }
+  ]
 }
