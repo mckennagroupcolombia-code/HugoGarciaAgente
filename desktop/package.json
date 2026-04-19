@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "qa:smoke": "npm run build && node scripts/qa-smoke.mjs",
+    "qa:behavior": "node scripts/qa-behavior.mjs",
+    "qa:full": "npm run qa:smoke && npm run qa:behavior"
   },
   "dependencies": {
     "react": "^19.1.0",

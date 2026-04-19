@@ -73,7 +73,7 @@ function ActionCard({ action }: { action: ActionDef }) {
   return (
     <div className="rounded-xl border border-border bg-surface-panel p-4 space-y-3">
       <div>
-        <p className="text-sm font-medium text-gray-100">{action.label}</p>
+        <p className="text-sm font-medium text-ink">{action.label}</p>
         <p className="text-xs text-muted">{action.description}</p>
       </div>
 
@@ -86,7 +86,7 @@ function ActionCard({ action }: { action: ActionDef }) {
             if (e.key === "Enter" && canSubmit) mutation.mutate();
           }}
           placeholder={action.inputPlaceholder}
-          className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-gray-100 outline-none placeholder:text-muted/50 focus:border-accent"
+          className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
         />
       )}
 
@@ -116,7 +116,7 @@ function ActionCard({ action }: { action: ActionDef }) {
 export default function SyncPanel() {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <h2 className="text-lg font-semibold text-gray-100">Sincronizacion y Operaciones</h2>
+      <h2 className="text-lg font-semibold text-ink">Sincronizacion y Operaciones</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         {ACTIONS.map((a) => (
           <ActionCard key={a.id} action={a} />

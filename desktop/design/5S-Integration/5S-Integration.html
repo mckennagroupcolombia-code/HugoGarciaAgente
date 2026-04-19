@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>5S Integration — referencia McKenna</title>
+    <style>
+      :root {
+        --canvas: #f4f3ee;
+        --panel: #fafaf8;
+        --line: #e5e3dc;
+        --ink: #141413;
+        --muted: #6b6962;
+        --accent: #c15f3c;
+        --led-ok: #22c55e;
+        --led-bad: #ef4444;
+        --note-1: #e0f0fe;
+        --note-2: #fdf0d2;
+        --note-3: #ede9fe;
+        --radius: 14px;
+        --font: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font);
+        background: var(--canvas);
+        color: var(--ink);
+        line-height: 1.45;
+        min-height: 100vh;
+      }
+      .shell {
+        display: flex;
+        flex-direction: row-reverse;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 20px 48px;
+        gap: 28px;
+      }
+      .rail {
+        width: 260px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 24px;
+        align-self: flex-start;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 8px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .rail h2 {
+        margin: 0;
+        padding: 10px 12px 6px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .rail button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+        margin: 2px 0;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .rail button:hover {
+        background: rgba(0, 0, 0, 0.04);
+        color: var(--ink);
+      }
+      .rail button.active {
+        background: var(--canvas);
+        color: var(--ink);
+        font-weight: 500;
+        box-shadow: inset 0 0 0 1px var(--line);
+      }
+      .main {
+        flex: 1;
+        min-width: 0;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .toolbar h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .toolbar .actions {
+        display: flex;
+        gap: 8px;
+      }
+      .btn {
+        padding: 8px 14px;
+        font-size: 12px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        cursor: pointer;
+        color: var(--ink);
+      }
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 600;
+      }
+      .board {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+      .board header {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .board .body {
+        padding: 18px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 18px;
+      }
+      .area {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        background: var(--canvas);
+      }
+      .area-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .led {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        box-shadow: 0 0 10px currentColor;
+      }
+      .led.ok {
+        color: var(--led-ok);
+        background: var(--led-ok);
+      }
+      .led.bad {
+        color: var(--led-bad);
+        background: var(--led-bad);
+      }
+      .note {
+        border-radius: 12px;
+        padding: 12px 12px 12px 14px;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-left-width: 4px;
+        margin-bottom: 10px;
+      }
+      .note:nth-child(3n + 1) {
+        background: var(--note-1);
+        border-left-color: #38bdf8;
+      }
+      .note:nth-child(3n + 2) {
+        background: var(--note-2);
+        border-left-color: #f59e0b;
+      }
+      .note:nth-child(3n + 3) {
+        background: var(--note-3);
+        border-left-color: #a78bfa;
+      }
+      .note h3 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      .note p {
+        margin: 0 0 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .note .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .note .row button {
+        padding: 8px;
+        font-size: 11px;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: rgba(255, 255, 255, 0.65);
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .note .row .go {
+        background: #2563eb;
+        color: #fff;
+        border-color: #2563eb;
+      }
+      .checklist {
+        margin-top: 28px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+      .checklist h2 {
+        margin: 0 0 12px;
+        font-size: 14px;
+      }
+      .phase {
+        margin-bottom: 16px;
+      }
+      .phase span {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(193, 95, 60, 0.1);
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      .row-check {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin-bottom: 8px;
+        font-size: 12px;
+        background: #fff;
+      }
+      @media (max-width: 960px) {
+        .shell {
+          flex-direction: column;
+        }
+        .rail {
+          position: static;
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="rail">
+        <h2>Navegación</h2>
+        <button type="button" class="active">Crear rutina guiada</button>
+        <button type="button">Mis rutinas</button>
+        <button type="button">Habla con Hugo</button>
+      </aside>
+      <div class="main">
+        <div class="toolbar">
+          <h1>5S · Rutinas y flujos</h1>
+          <div class="actions">
+            <button type="button" class="btn">Sincronizar</button>
+            <button type="button" class="btn btn-primary">Guardar</button>
+          </div>
+        </div>
+        <section class="board">
+          <header>Tablero por área</header>
+          <div class="body">
+            <div class="area">
+              <div class="area-top">
+                <span>Alimentación</span>
+                <span class="led bad" title="pendiente"></span>
+              </div>
+              <article class="note">
+                <h3>Desayuno fitness <span class="led ok" title="completo"></span></h3>
+                <span class="pill">Pendiente</span>
+                <p>Pre-flight → Core → Post-flight con checklist secuencial.</p>
+                <div class="row">
+                  <button type="button">Abrir</button>
+                  <button type="button" class="go">Iniciar rutina</button>
+                </div>
+              </article>
+            </div>
+            <div class="area">
+              <div class="area-top">
+                <span>Ingeniería</span>
+                <span class="led ok"></span>
+              </div>
+              <article class="note">
+                <h3>Setup CNC <span class="led bad"></span></h3>
+                <span class="pill">En curso</span>
+                <p>Materiales listos → condiciones 5S → pasos técnicos → cierre.</p>
+                <div class="row">
+                  <button type="button">Abrir</button>
+                  <button type="button" class="go">Iniciar rutina</button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+        <section class="checklist">
+          <h2>Checklist de la rutina</h2>
+          <div class="phase">
+            <span>Pre-flight (5S)</span>
+            <div class="row-check"><input type="checkbox" disabled /> Mesa despejada</div>
+          </div>
+          <div class="phase">
+            <span>Core-process</span>
+            <div class="row-check"><input type="checkbox" disabled /> Mise en place</div>
+          </div>
+          <div class="phase">
+            <span>Post-flight (5S)</span>
+            <div class="row-check"><input type="checkbox" disabled /> Registrar consumos</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

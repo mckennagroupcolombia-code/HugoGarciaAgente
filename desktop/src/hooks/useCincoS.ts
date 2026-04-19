@@ -18,6 +18,7 @@ export interface TaskItem {
   assignee: string;
   blocked_reason: string;
   order: number;
+  estimated_minutes?: number;
   /** prep = antes de la rutina o reposición; main = flujo principal */
   scope?: "prep" | "main";
   linked_pantry_id?: string;
@@ -28,6 +29,8 @@ export interface MaterialItem {
   name: string;
   qty: number;
   unit: string;
+  consumption_per_run?: number;
+  required_for_start?: boolean;
 }
 
 export interface PantryItem {
@@ -36,8 +39,17 @@ export interface PantryItem {
   qty: number;
   unit: string;
   reorder_below: number;
+  consumption_per_run?: number;
   /** Qué implica tenerlo listo (elaborar, comprar, etc.) */
   prep_notes?: string;
+}
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  qty: number;
+  unit: string;
+  done: boolean;
 }
 
 export interface ScheduleItem {
@@ -72,9 +84,15 @@ export interface ProjectRow {
   created_at: string;
   updated_at: string;
   preflight: PreflightItem[];
+  /** Post-flight: Seiketsu + Shitsuke (cierre y sostenibilidad) */
+  postflight?: PreflightItem[];
   tasks: TaskItem[];
   materials: MaterialItem[];
   pantry: PantryItem[];
+  shopping_list?: ShoppingItem[];
+  shopping_required?: boolean;
+  routine_state?: "pending" | "in_progress" | "done";
+  estimated_minutes?: number;
   recipe_notes: string;
   schedules: ScheduleItem[];
   ritual_notes: string;
@@ -129,11 +147,15 @@ export type RoutineCreatePayload = {
   name: string;
   tags: string[];
   preflight: string[];
+  postflight?: string[];
   tasks: string[];
   ritual_notes: string;
   category_id?: string;
   also_save_template: boolean;
   supplies?: SupplyCreatePayload[];
+  materials?: Array<{ name: string; qty: number; unit: string; consumption_per_run?: number }>;
+  recipe_notes?: string;
+  schedules?: ScheduleItem[];
 };
 
 export type SuggestRoutineResponse = {

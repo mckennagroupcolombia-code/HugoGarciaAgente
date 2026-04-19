@@ -63,10 +63,10 @@ export default function Chat() {
 
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col">
-      <h2 className="mb-4 text-lg font-semibold text-gray-100">Chat con Hugo Garcia</h2>
+      <h2 className="mb-4 text-lg font-semibold text-ink">Chat con Hugo Garcia</h2>
 
       {/* Messages */}
-      <div className="flex-1 space-y-3 overflow-auto rounded-xl border border-border bg-surface-panel p-4">
+      <div className="flex-1 space-y-3 overflow-auto rounded-paper-lg border border-border bg-surface-panel p-4 shadow-paper-sm">
         {messages.length === 0 && (
           <p className="py-12 text-center text-sm text-muted">
             Escribe un mensaje para comenzar la conversacion con Hugo Garcia.
@@ -78,7 +78,7 @@ export default function Chat() {
               className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 m.role === "user"
                   ? "rounded-br-md bg-accent text-white"
-                  : "rounded-bl-md bg-surface-hover text-gray-100"
+                  : "rounded-bl-md bg-surface-hover text-ink"
               }`}
             >
               <p className="whitespace-pre-wrap">{m.text}</p>
@@ -111,12 +111,12 @@ export default function Chat() {
           onKeyDown={onKeyDown}
           placeholder="Escribe tu mensaje..."
           rows={1}
-          className="flex-1 resize-none rounded-xl border border-border bg-surface-input px-4 py-3 text-sm text-gray-100 outline-none placeholder:text-muted/50 focus:border-accent"
+          className="flex-1 resize-none rounded-xl border border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
         />
         <button
           type="submit"
           disabled={!input.trim() || chat.isPending}
-          className="rounded-xl bg-accent px-5 py-3 text-sm font-medium text-white transition hover:bg-accent-hover disabled:opacity-40"
+          className="rounded-full bg-accent px-6 py-3 text-sm font-bold text-white shadow-[0_3px_0_rgba(0,0,0,0.15)] transition hover:-translate-y-px hover:bg-accent-hover disabled:opacity-40 disabled:hover:translate-y-0"
         >
           Enviar
         </button>

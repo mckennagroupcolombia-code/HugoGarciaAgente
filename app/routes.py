@@ -1700,12 +1700,16 @@ def register_routes(app):
         name = str(body.get("name", "")).strip()
         tags = body.get("tags") if isinstance(body.get("tags"), list) else []
         pre = body.get("preflight") if isinstance(body.get("preflight"), list) else []
+        post = body.get("postflight") if isinstance(body.get("postflight"), list) else []
         tasks = body.get("tasks") if isinstance(body.get("tasks"), list) else []
         ritual = str(body.get("ritual_notes", "")).strip()
         cat = str(body.get("category_id", "")).strip() or None
         also_tpl = bool(body.get("also_save_template"))
         raw_sup = body.get("supplies")
         supplies = raw_sup if isinstance(raw_sup, list) else None
+        raw_mat = body.get("materials")
+        materials = raw_mat if isinstance(raw_mat, list) else None
+        recipe_notes = str(body.get("recipe_notes", "")).strip()
         ws = _5s.read_workspace()
         proj, err = _5s.create_routine_project(
             ws,
@@ -1717,6 +1721,9 @@ def register_routes(app):
             cat,
             also_tpl,
             supplies,
+            materials,
+            recipe_notes,
+            [str(x) for x in post],
         )
         if err or not proj:
             return jsonify({"error": err or "no se pudo crear"}), 400

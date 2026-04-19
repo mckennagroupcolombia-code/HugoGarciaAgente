@@ -1,5 +1,7 @@
 # McKenna Group — Agente Hugo García
 
+[![Desktop QA](https://github.com/mckg/mi-agente/actions/workflows/desktop-qa.yml/badge.svg)](https://github.com/mckg/mi-agente/actions/workflows/desktop-qa.yml)
+
 Automatización para McKenna Group S.A.S.: WhatsApp (Claude), preventa MercadoLibre (Gemini + fichas), facturación Siigo, stock tienda web ↔ MeLi, panel y monitor.
 
 ## Documentación

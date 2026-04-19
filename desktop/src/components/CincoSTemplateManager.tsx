@@ -107,7 +107,7 @@ export default function CincoSTemplateManager({
     <section className="rounded-xl border border-border bg-surface-panel p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-100">Plantillas</h3>
+          <h3 className="text-base font-semibold text-ink">Plantillas</h3>
           <p className="mt-1 max-w-2xl text-xs text-muted">
             Modelos reutilizables al crear tableros. Editá nombre, área, checklist (una línea por ítem) y tareas (una por
             línea). Podés borrar plantillas que ya no uses.
@@ -129,9 +129,9 @@ export default function CincoSTemplateManager({
             className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface-hover/40 px-3 py-2"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-gray-100">{t.name}</p>
+              <p className="truncate text-sm font-medium text-ink">{t.name}</p>
               <p className="text-[10px] text-muted">
-                id <code className="text-gray-400">{t.id}</code> · {t.preflight_steps?.length ?? 0} preflight ·{" "}
+                id <code className="text-ink-muted">{t.id}</code> · {t.preflight_steps?.length ?? 0} preflight ·{" "}
                 {t.tasks?.length ?? 0} tareas
               </p>
             </div>
@@ -139,7 +139,7 @@ export default function CincoSTemplateManager({
               <button
                 type="button"
                 onClick={() => openEdit(t)}
-                className="rounded border border-border px-2 py-1 text-xs text-gray-200 hover:bg-surface-hover"
+                className="rounded border border-border px-2 py-1 text-xs text-ink-secondary hover:bg-surface-hover"
               >
                 Editar
               </button>
@@ -166,7 +166,7 @@ export default function CincoSTemplateManager({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-surface-hover px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-border bg-surface-hover px-3 py-2 text-sm text-ink"
             />
           </label>
           <label className="block text-xs text-muted">

@@ -32,11 +32,15 @@ def default_workspace() -> dict[str, Any]:
         "version": 1,
         "updated_at": _now_iso(),
         "categories": [
+            {"id": "c-limpieza", "name": "Limpieza", "icon": "🧹"},
             {"id": "c-diseno", "name": "Diseño y taller", "icon": "🛠"},
             {"id": "c-finanzas", "name": "Finanzas", "icon": "📊"},
             {"id": "c-ingenieria", "name": "Ingeniería", "icon": "⚙"},
-            {"id": "c-aseo", "name": "Aseo y mantenimiento", "icon": "🧹"},
             {"id": "c-alimentacion", "name": "Alimentación", "icon": "🍳"},
+            {"id": "c-mascotas", "name": "Mascotas", "icon": "🐾"},
+            {"id": "c-entrenamientos", "name": "Entrenamientos", "icon": "🏋️"},
+            {"id": "c-jardineria", "name": "Jardinería", "icon": "🌿"},
+            {"id": "c-gestion_empresarial", "name": "Gestión empresarial", "icon": "💼"},
         ],
         "templates": [
             {
@@ -73,7 +77,7 @@ def default_workspace() -> dict[str, Any]:
             },
             {
                 "id": "t-paseo",
-                "category_id": "c-aseo",
+                "category_id": "c-mascotas",
                 "name": "Rutina paseo mascotas",
                 "preflight_steps": [
                     {"label": "Alimento / hidratación revisados", "assignee": ""},
@@ -104,6 +108,29 @@ def _ensure_shape(data: dict[str, Any]) -> dict[str, Any]:
     if isinstance(ver, int):
         out["version"] = ver
     out["updated_at"] = _now_iso()
+    # Mantener categorías existentes pero asegurar set base de áreas del tablero 5S.
+    base_cats = {str(c.get("id")): c for c in default_workspace().get("categories", []) if isinstance(c, dict)}
+    cur = [c for c in (out.get("categories") or []) if isinstance(c, dict) and c.get("id")]
+    cur_ids = {str(c.get("id")) for c in cur}
+    for cid, row in base_cats.items():
+        if cid not in cur_ids:
+            cur.append(row)
+    out["categories"] = cur
+    # Proyectos legacy: asegurar postflight (cierre 5S) y campos mínimos.
+    projs = out.get("projects")
+    if isinstance(projs, list):
+        for p in projs:
+            if not isinstance(p, dict):
+                continue
+            pf = p.get("postflight")
+            if not isinstance(pf, list) or not pf:
+                p["postflight"] = default_postflight_steps()
+            if not isinstance(p.get("shopping_list"), list):
+                p["shopping_list"] = []
+            if "shopping_required" not in p:
+                p["shopping_required"] = False
+            if "routine_state" not in p:
+                p["routine_state"] = "pending"
     return out
 
 
@@ -154,10 +181,11 @@ def resolve_category_from_tags(
     if want and want in valid:
         return want
     tag_to_cat: dict[str, str] = {
-        "mascotas": "c-aseo",
-        "hogar": "c-aseo",
-        "limpieza": "c-aseo",
-        "salud": "c-aseo",
+        "mascotas": "c-mascotas",
+        "hogar": "c-limpieza",
+        "limpieza": "c-limpieza",
+        "mantenimiento": "c-limpieza",
+        "salud": "c-entrenamientos",
         "cocina": "c-alimentacion",
         "alimentacion": "c-alimentacion",
         "taller": "c-diseno",
@@ -165,6 +193,11 @@ def resolve_category_from_tags(
         "finanzas": "c-finanzas",
         "pagos": "c-finanzas",
         "ingenieria": "c-ingenieria",
+        "jardineria": "c-jardineria",
+        "entrenamiento": "c-entrenamientos",
+        "entrenamientos": "c-entrenamientos",
+        "empresa": "c-gestion_empresarial",
+        "gestion": "c-gestion_empresarial",
     }
     for raw in tags or []:
         s = str(raw).strip().lower()
@@ -271,6 +304,17 @@ def _normalize_supplies(raw: Any) -> list[dict[str, Any]]:
     return out
 
 
+def default_postflight_steps() -> list[dict[str, Any]]:
+    """Seiketsu + Shitsuke: cierre operativo tras Core-Process."""
+    return _steps_from_labels(
+        [
+            "Registrar consumos y ajustar inventario si aplica",
+            "Estandarizar: dejar checklist y utensilios listos para el próximo uso",
+            "Disciplina: confirmar área ordenada y sin residuos",
+        ]
+    )
+
+
 def create_routine_project(
     workspace: dict[str, Any],
     name: str,
@@ -281,6 +325,9 @@ def create_routine_project(
     category_id: str | None,
     also_save_template: bool,
     supplies: list[dict[str, Any]] | None = None,
+    materials: list[dict[str, Any]] | None = None,
+    recipe_notes: str | None = None,
+    postflight_labels: list[str] | None = None,
 ) -> tuple[dict[str, Any] | None, str | None]:
     """
     Crea un proyecto sin plantilla previa (rutina guiada).
@@ -318,6 +365,7 @@ def create_routine_project(
         return out
 
     pantry_list: list[dict[str, Any]] = []
+    materials_list: list[dict[str, Any]] = []
     prep_tasks: list[dict[str, Any]] = []
     preflight_gate_labels: list[str] = []
 
@@ -331,6 +379,7 @@ def create_routine_project(
                 "qty": float(s["initial_qty"]),
                 "unit": u,
                 "reorder_below": float(s["reorder_below"]),
+                "consumption_per_run": 1.0,
                 "prep_notes": s["prep_action"],
             }
         )
@@ -350,6 +399,31 @@ def create_routine_project(
                 }
             )
 
+    for m in materials or []:
+        if not isinstance(m, dict):
+            continue
+        name = str(m.get("name", "")).strip()
+        if not name:
+            continue
+        try:
+            qty = float(m.get("qty", 1))
+        except (TypeError, ValueError):
+            qty = 1.0
+        try:
+            cpr = float(m.get("consumption_per_run", 1))
+        except (TypeError, ValueError):
+            cpr = 1.0
+        materials_list.append(
+            {
+                "id": f"mat-{uuid.uuid4().hex[:10]}",
+                "name": name,
+                "qty": max(0.0, qty),
+                "unit": _norm_pantry_unit(m.get("unit")),
+                "consumption_per_run": max(0.0, cpr),
+                "required_for_start": True,
+            }
+        )
+
     max_prep_ord = max((int(t["order"]) for t in prep_tasks), default=-1)
     base_main = max_prep_ord + 10
     main_tasks: list[dict[str, Any]] = []
@@ -368,6 +442,8 @@ def create_routine_project(
 
     pre_all = preflight_gate_labels + pre_extras
     preflight_rows = _steps_from_labels(pre_all)
+    post_extras = [str(x).strip() for x in (postflight_labels or []) if str(x).strip()]
+    postflight_rows = _steps_from_labels(post_extras) if post_extras else default_postflight_steps()
 
     pid = f"p-{uuid.uuid4().hex[:12]}"
     ts = _now_iso()
@@ -383,10 +459,14 @@ def create_routine_project(
         "created_at": ts,
         "updated_at": ts,
         "preflight": preflight_rows,
+        "postflight": postflight_rows,
         "tasks": prep_tasks + main_tasks,
-        "materials": [],
+        "materials": materials_list,
         "pantry": pantry_list,
-        "recipe_notes": "",
+        "shopping_list": [],
+        "shopping_required": False,
+        "routine_state": "pending",
+        "recipe_notes": str(recipe_notes or "").strip(),
         "schedules": [],
         "ritual_notes": ritual,
     }
@@ -590,9 +670,13 @@ def new_project_from_template(
         "created_at": ts,
         "updated_at": ts,
         "preflight": _steps(tpl.get("preflight_steps")),
+        "postflight": default_postflight_steps(),
         "tasks": tasks_out,
         "materials": [],
         "pantry": [],
+        "shopping_list": [],
+        "shopping_required": False,
+        "routine_state": "pending",
         "recipe_notes": "",
         "schedules": [],
         "ritual_notes": (tpl.get("ritual_notes") or "").strip(),

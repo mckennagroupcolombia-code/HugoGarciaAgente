@@ -24,24 +24,24 @@ export default function Sidebar() {
     <aside
       className={`
         fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border bg-surface-panel
-        transition-transform duration-200 lg:static lg:translate-x-0
+        transition-transform duration-200 ease-out lg:static lg:translate-x-0
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
       `}
     >
       <div className="flex h-full flex-col">
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-sm font-bold text-white">
+        <div className="flex items-center gap-2.5 px-5 pb-4 pt-6">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-sun text-base font-black text-ink shadow-[0_3px_0_#e8a838]">
             M
           </div>
-          <div>
-            <div className="text-sm font-semibold text-gray-100">McKenna Group</div>
-            <div className="text-xs text-muted">Panel v2.0</div>
+          <div className="min-w-0">
+            <div className="truncate text-base font-extrabold tracking-tight text-ink">McKenna</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Panel operaciones</div>
           </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 space-y-0.5 px-3">
+        <p className="px-5 pb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Menu</p>
+
+        <nav className="flex-1 space-y-1 px-3 pb-4">
           {NAV.map((item) => {
             const active = panel === item.id;
             return (
@@ -49,19 +49,19 @@ export default function Sidebar() {
                 key={item.id}
                 onClick={() => setPanel(item.id)}
                 className={`
-                  flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition
+                  flex w-full items-center gap-3 rounded-paper border-2 px-3 py-2.5 text-left text-sm font-semibold transition
                   ${active
-                    ? "bg-accent/15 text-accent font-medium"
-                    : "text-muted hover:bg-surface-hover hover:text-gray-100"
+                    ? "border-ink bg-surface-hover text-ink"
+                    : "border-transparent text-ink-secondary hover:bg-surface-hover"
                   }
                 `}
               >
-                <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 shrink-0 opacity-80" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                 </svg>
-                <span className="flex-1">{item.label}</span>
+                <span className="min-w-0 flex-1 truncate">{item.label}</span>
                 {item.id === "preventa" && pendientes > 0 && (
-                  <span className="rounded-full bg-danger px-2 py-0.5 text-xs font-medium text-white">
+                  <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
                     {pendientes}
                   </span>
                 )}
@@ -70,11 +70,10 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="border-t border-border p-3">
+        <div className="mt-auto border-t border-border p-3">
           <button
             onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition hover:bg-surface-hover hover:text-danger"
+            className="flex w-full items-center gap-3 rounded-paper border-2 border-transparent px-3 py-2.5 text-sm font-semibold text-muted transition hover:border-border-strong hover:bg-surface-hover hover:text-danger"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
