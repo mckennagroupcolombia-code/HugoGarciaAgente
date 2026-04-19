@@ -3,10 +3,70 @@
 @tailwind utilities;
 
 @layer base {
-  * { box-sizing: border-box; }
-  body { margin: 0; }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+  }
 
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #eae4d4;
+    border-radius: 6px;
+    border: 2px solid #fdfbf5;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #d9d1bb;
+  }
+
+  /* Mascotas 5S (misma idea que `5S-plantilla-app/styles.css`) */
+  @keyframes cinco-s-wiggle {
+    0%,
+    100% {
+      transform: rotate(-2deg);
+    }
+    50% {
+      transform: rotate(2deg);
+    }
+  }
+  @keyframes cinco-s-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes cinco-s-blink {
+    0%,
+    92%,
+    100% {
+      transform: scaleY(1);
+    }
+    94%,
+    96% {
+      transform: scaleY(0.1);
+    }
+  }
+}
+
+@layer utilities {
+  .cinco-s-mascot-wiggle {
+    animation: cinco-s-wiggle 3.2s infinite ease-in-out;
+    transform-origin: center bottom;
+  }
+  .cinco-s-mascot-float {
+    animation: cinco-s-float 4s infinite ease-in-out;
+  }
+  .cinco-s-mascot-blink {
+    animation: cinco-s-blink 4s infinite;
+  }
 }

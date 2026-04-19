@@ -35,11 +35,11 @@ export default function StockPanel() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h2 className="text-lg font-semibold text-gray-100">Stock e Inventario</h2>
+      <h2 className="text-lg font-semibold text-ink">Stock e Inventario</h2>
 
       {/* Search product */}
       <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-3">
-        <h3 className="text-sm font-medium text-gray-100">Buscar producto</h3>
+        <h3 className="text-sm font-medium text-ink">Buscar producto</h3>
         <div className="flex gap-2">
           <input
             type="text"
@@ -49,7 +49,7 @@ export default function StockPanel() {
               if (e.key === "Enter" && search.trim()) buscarMut.mutate(search.trim());
             }}
             placeholder="Nombre del producto..."
-            className="flex-1 rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-gray-100 outline-none placeholder:text-muted/50 focus:border-accent"
+            className="flex-1 rounded-lg border border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"
           />
           <button
             onClick={() => buscarMut.mutate(search.trim())}
@@ -60,7 +60,7 @@ export default function StockPanel() {
           </button>
         </div>
         {searchResult && (
-          <pre className="max-h-64 overflow-auto rounded-lg bg-surface p-3 text-xs text-gray-300">
+          <pre className="max-h-64 overflow-auto rounded-lg bg-surface p-3 text-xs text-ink-muted">
             {searchResult}
           </pre>
         )}
@@ -73,7 +73,7 @@ export default function StockPanel() {
           disabled={reporteMut.isPending}
           className="rounded-xl border border-border bg-surface-panel p-5 text-left transition hover:border-accent/50"
         >
-          <p className="text-sm font-medium text-gray-100">Reporte de Stock</p>
+          <p className="text-sm font-medium text-ink">Reporte de Stock</p>
           <p className="mt-1 text-xs text-muted">
             {reporteMut.isPending
               ? "Generando..."
@@ -91,7 +91,7 @@ export default function StockPanel() {
           disabled={verificarMut.isPending}
           className="rounded-xl border border-border bg-surface-panel p-5 text-left transition hover:border-accent/50"
         >
-          <p className="text-sm font-medium text-gray-100">Verificar SKUs</p>
+          <p className="text-sm font-medium text-ink">Verificar SKUs</p>
           <p className="mt-1 text-xs text-muted">
             {verificarMut.isPending
               ? "Verificando..."

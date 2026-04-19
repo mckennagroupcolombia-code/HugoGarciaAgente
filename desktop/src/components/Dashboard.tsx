@@ -6,7 +6,7 @@ function StatCard({
   label,
   value,
   sub,
-  color = "text-gray-100",
+  color = "text-ink",
 }: {
   label: string;
   value: string | number;
@@ -14,7 +14,7 @@ function StatCard({
   color?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-surface-panel p-4">
+    <div className="rounded-paper border border-border bg-surface-panel p-4 shadow-paper-sm">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
       {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
@@ -24,9 +24,9 @@ function StatCard({
 
 function ServiceBadge({ name, ok }: { name: string; ok: boolean }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+    <div className="flex items-center gap-2 rounded-paper border border-border bg-surface px-3 py-2 shadow-paper-sm">
       <span className={`h-2.5 w-2.5 rounded-full ${ok ? "bg-success" : "bg-danger"}`} />
-      <span className="text-sm text-gray-100">{name}</span>
+      <span className="text-sm text-ink">{name}</span>
     </div>
   );
 }
@@ -47,7 +47,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-100">Dashboard</h2>
+        <h2 className="text-lg font-semibold text-ink">Dashboard</h2>
         {m?.fecha && (
           <span className="text-xs text-muted">{m.fecha}</span>
         )}
@@ -64,7 +64,7 @@ export default function Dashboard() {
           label="Preguntas MeLi"
           value={m?.preguntas_meli ?? 0}
           sub="preventa"
-          color="text-accent"
+          color="text-accent-sky"
         />
         <StatCard
           label="Ordenes MeLi"
