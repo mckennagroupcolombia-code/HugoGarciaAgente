@@ -250,7 +250,8 @@
       "titulo_producto": "Sebo De Cordero Cosmético Todo Tipo De Piel",
       "pregunta": "Que beneficios tiene usarlo",
       "timestamp": "2026-04-19T22:36:24.525317",
-      "respondida": false
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-19"
     }
   ]
 }
