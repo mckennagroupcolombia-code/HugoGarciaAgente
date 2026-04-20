@@ -1,6 +1,17 @@
 {
-  "pendientes": {},
+  "pendientes": {
+    "3020": {
+      "pack_id": "2000016054983020",
+      "comprador": "Comprador 508631610",
+      "from_id": "508631610",
+      "texto": "Buenas tardes, realicé la compra del codo 6 cm acero inoxidable. Quisiera acordar el envío, por favor.",
+      "msg_id": "019da75ea10d7aae9cfe1ccbdc6ffefb",
+      "productos": "  • Codo 6 Cm Acero Inoxidoble Tubo De Calefacción",
+      "timestamp": "2026-04-19T15:11:32"
+    }
+  },
   "procesados": [
+    "019da75ea10d7aae9cfe1ccbdc6ffefb",
     "019d6efc83d3721981a55e46885bca77",
     "019d7f2ccdab7c5d9f13dfdfd426aa04",
     "019d52f0c31d7eb3b8f6437ac713c247"
