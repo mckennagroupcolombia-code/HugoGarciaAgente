@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 load_dotenv(ROOT / '.env')
 
 import site_auth
+from app.api_auth import normalize_api_token
 
 from app.tools.web_pedidos import (
     migrate_orders_table,
@@ -1469,6 +1470,59 @@ def find_product(slug_or_sku: str) -> dict | None:
     return None
 
 
+def _chat_catalog_guess(message: str) -> str | None:
+    """
+    Si el proxy al agente falla, intenta contestar con productos del catálogo web (Sheets/cache).
+    Evita bucle de mensaje genérico idéntico en preguntas tipo '¿tienen cera de abejas?'.
+    """
+    msg = (message or "").strip().lower()
+    if len(msg) < 2:
+        return None
+    words = re.findall(r"[a-záéíóúüñ0-9]{3,}", msg)
+    if not words:
+        return None
+    try:
+        catalog = get_catalog()
+        products = get_all_products(catalog)
+    except Exception:
+        return None
+    if not products:
+        return None
+    scored: list[tuple[int, dict]] = []
+    for p in products:
+        name = (p.get("name") or "").lower()
+        ref = (p.get("ref") or "").lower()
+        slug = (p.get("slug") or "").lower()
+        blob = f"{name} {ref} {slug}"
+        score = 0
+        for w in words:
+            if w in blob:
+                score += 3
+            if len(w) >= 4 and (w in name or w in slug):
+                score += 2
+        if score > 0:
+            scored.append((score, p))
+    if not scored:
+        return None
+    scored.sort(key=lambda x: -x[0])
+    top = [x[1] for x in scored[:5]]
+    lines = [
+        "Mientras tanto, según nuestro catálogo en línea, esto podría interesarte:",
+    ]
+    for p in top:
+        nm = p.get("name") or "Producto"
+        ref = (p.get("ref") or "").strip()
+        precio = p.get("precio")
+        extra = f" — Ref. {ref}" if ref else ""
+        if precio:
+            extra += f" — desde {precio} COP (aprox. web)"
+        lines.append(f"• {nm}{extra}")
+    lines.append(
+        f"Para confirmar disponibilidad y comprar: WhatsApp https://wa.me/{WA_NUMBER}"
+    )
+    return "\n".join(lines)
+
+
 def wa_link(producto: dict) -> str:
     if producto.get("combos"):
         c0 = producto["combos"][0]
@@ -2536,31 +2590,58 @@ def api_chat():
             session_id = str(uuid.uuid4())
             session["hugo_chat_session"] = session_id
             session.modified = True
+    chat_url = (os.getenv("AGENTE_CHAT_URL") or "http://127.0.0.1:8081/chat").strip()
+    agent_token = normalize_api_token(os.getenv("CHAT_API_TOKEN", ""))
+    upstream_err = ""
     try:
-        agent_token = os.getenv("CHAT_API_TOKEN", "")
         payload = {"mensaje": message, "session_id": session_id}
         if attachments:
             payload["adjuntos"] = attachments
         res = requests.post(
-            "http://localhost:8081/chat",
+            chat_url,
             json=payload,
-            headers={"Authorization": f"Bearer {agent_token}",
-                     "Content-Type": "application/json"},
+            headers={
+                "Authorization": f"Bearer {agent_token}",
+                "Content-Type": "application/json",
+            },
             timeout=120,
         )
         if res.status_code == 200:
-            return jsonify({"reply": res.json().get("respuesta", ""), "ok": True})
-        log.warning(f"api_chat upstream {res.status_code}")
+            body = res.json() if res.text else {}
+            reply = (body.get("respuesta") or body.get("reply") or "").strip()
+            if reply:
+                return jsonify({"reply": reply, "ok": True})
+            upstream_err = "upstream_200_vacio"
+            log.warning("api_chat: 200 pero respuesta vacía")
+        else:
+            upstream_err = f"upstream_http_{res.status_code}"
+            log.warning(
+                "api_chat upstream %s body=%s",
+                res.status_code,
+                (res.text or "")[:400],
+            )
     except Exception as e:
-        log.warning(f"api_chat: {e}")
-    # Fallback: respuesta básica si el agente no está disponible
-    return jsonify({
-        "reply": ("Hola, soy el asistente de McKenna Group. "
-                  "Para asesoría personalizada escríbenos por WhatsApp "
-                  f"al +{WA_NUMBER} o llámanos. ¿En qué te podemos ayudar?"),
-        "ok": True,
-    })
+        upstream_err = f"upstream_excepcion:{type(e).__name__}"
+        log.warning("api_chat: %s", e)
 
+    if upstream_err:
+        log.warning("api_chat: fallback tras error upstream (%s)", upstream_err)
+    cat_reply = _chat_catalog_guess(message)
+    if cat_reply:
+        return jsonify({"reply": cat_reply, "ok": True, "source": "catalog_fallback"})
+
+    return jsonify(
+        {
+            "reply": (
+                "Ahora mismo no pude conectar con el asistente en línea. "
+                "Para productos, precios y disponibilidad escríbenos por WhatsApp "
+                f"al +{WA_NUMBER} o revisa el catálogo en la tienda. "
+                "Si el problema continúa, avísanos por el mismo canal."
+            ),
+            "ok": True,
+            "source": "offline",
+        }
+    )
 
 @app.route("/checkout/tarifas")
 def checkout_tarifas():

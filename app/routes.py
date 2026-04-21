@@ -217,6 +217,24 @@ import time
 
 from app.observability import bind_flask_request, log_json, spawn_thread
 from app.api_auth import chat_api_token_matches_request
+from app.services.autocorrector import (
+    estado_autocorrector,
+    manejar_incidente_autocorreccion,
+)
+
+
+def _normalizar_respuesta_cliente(texto: str) -> str:
+    """Evita enviar mensajes legacy/confusos al cliente final."""
+    if not texto:
+        return texto
+    legacy = "Veci, hubo un error en el formato del mensaje. Por favor inténtelo de nuevo 🙏"
+    if legacy in texto:
+        return (
+            "Veci, tuvimos un problema técnico temporal. "
+            "¿Me reenvía su mensaje, por favor? 🙏"
+        )
+    return texto
+
 
 # --- Estado Temporal ---
 # TODO: Este diccionario en memoria se pierde si el servidor se reinicia.
@@ -258,6 +276,50 @@ def _tiene_contexto_pago_reciente(numero_cliente: str) -> bool:
     # Limpieza perezosa para no acumular contexto viejo en memoria.
     contexto_pago_clientes.pop(numero_cliente, None)
     return False
+
+
+def _mensaje_sugiere_pago(texto: str) -> bool:
+    """
+    Heurística conservadora para evitar tratar cualquier imagen como comprobante.
+    Solo marca pago cuando texto menciona señales claras de transferencia/comprobante.
+    """
+    if not texto:
+        return False
+
+    t = texto.lower().strip()
+    if not t:
+        return False
+
+    claves_pago = (
+        "comprobante",
+        "soporte de pago",
+        "soporte pago",
+        "transferencia",
+        "transferi",
+        "transferí",
+        "consign",
+        "ya pague",
+        "ya pagué",
+        "pago realizado",
+        "te pague",
+        "te pagué",
+    )
+    claves_consulta = (
+        "como pago",
+        "cómo pago",
+        "forma de pago",
+        "metodo de pago",
+        "método de pago",
+        "datos de pago",
+        "cuanto pago",
+        "cuánto pago",
+        "soporte tecnico",
+        "soporte técnico",
+    )
+
+    if any(k in t for k in claves_consulta):
+        return False
+    return any(k in t for k in claves_pago)
 
 
 def transcribir_audio_whatsapp(media_path: str, message_id: str = "") -> str | None:
@@ -578,13 +640,17 @@ def register_routes(app):
         grupo_inventario = jid_grupo_inventario_wa()
 
         # Detectar de qué grupo proviene el mensaje (por flag explícito o por remoteJid/sender)
-        remote_jid = data.get("remoteJid") or data.get("grupo_id", "")
+        remote_jid = _jid_limpio(data.get("remoteJid") or data.get("grupo_id", ""))
         if not remote_jid and "@g.us" in sender_id:
-            remote_jid = sender_id
+            remote_jid = _jid_limpio(sender_id)
 
-        es_grupo_compras = es_grupo_contabilidad or remote_jid == grupo_compras
-        es_grupo_preventa_cmd = remote_jid == grupo_preventa
-        es_grupo_posventa_cmd = remote_jid == grupo_posventa
+        grupo_compras_norm = _jid_limpio(grupo_compras)
+        grupo_preventa_norm = _jid_limpio(grupo_preventa)
+        grupo_posventa_norm = _jid_limpio(grupo_posventa)
+
+        es_grupo_compras = es_grupo_contabilidad or remote_jid == grupo_compras_norm
+        es_grupo_preventa_cmd = remote_jid == grupo_preventa_norm
+        es_grupo_posventa_cmd = remote_jid == grupo_posventa_norm
         es_any_grupo_admin = (
             es_grupo_compras or es_grupo_preventa_cmd or es_grupo_posventa_cmd
         )
@@ -981,6 +1047,17 @@ def register_routes(app):
                 if len(partes) == 2 and partes[1].strip():
                     target_num = partes[0].strip()
                     resp_msg = partes[1].strip()
+                    # Evita desviar errores de preventa a WA directo (ej: "resp 997: ...")
+                    if target_num.isdigit() and len(target_num) <= 6:
+                        spawn_thread(
+                            enviar_whatsapp_reporte,
+                            args=(
+                                "⚠️ No pude resolver ese código corto como preventa pendiente.\n"
+                                "Usa `resp preventa <question_id>: ...` o verifica el código activo en la alerta.",
+                                grupo_preventa,
+                            ),
+                        )
+                        return jsonify({"status": "ok", "respuesta": None})
                     spawn_thread(
                         enviar_whatsapp_reporte, args=(resp_msg, target_num)
                     )
@@ -1036,34 +1113,9 @@ def register_routes(app):
                 )
 
         # --- Detección de Comprobantes de Pago ---
-        keywords_pago_sin_img = [
-            "soporte",
-            "comprobante",
-            "transferí",
-            "consigné",
-            "ya pagué",
-            "ya transferí",
-            "mira el soporte",
-            "ahí te envié",
-            "te mando el soporte",
-        ]
-        keywords_pago_ignorar = [
-            "y al nequi?",
-            "cómo pago",
-            "forma de pago",
-            "cuánto es",
-            "datos de pago",
-        ]
+        is_payment_keyword_sin_img = _mensaje_sugiere_pago(message_text)
 
-        message_text_lower = message_text.lower()
-        is_payment_keyword_sin_img = any(
-            keyword in message_text_lower for keyword in keywords_pago_sin_img
-        )
-        is_ignored_keyword = any(
-            keyword in message_text_lower for keyword in keywords_pago_ignorar
-        )
-
-        if is_payment_keyword_sin_img and not is_ignored_keyword:
+        if is_payment_keyword_sin_img:
             _marcar_contexto_pago(sender_id)
 
         if has_media and media_type == "image":
@@ -1073,7 +1125,7 @@ def register_routes(app):
                 and not pagos_pendientes_confirmacion[sender_id].get("confirmado")
             )
             parece_comprobante = (
-                (is_payment_keyword_sin_img and not is_ignored_keyword)
+                is_payment_keyword_sin_img
                 or tiene_contexto_pago
                 or ya_tiene_pago_pendiente
             )
@@ -1116,8 +1168,10 @@ def register_routes(app):
                         "respuesta": "Veci, recibí su comprobante. En un momento nuestro equipo de contabilidad lo verifica y le confirmamos. ¡Gracias por su compra!",
                     }
                 )
+            if not message_text:
+                message_text = "El cliente envió una imagen por WhatsApp."
 
-        elif is_payment_keyword_sin_img and not is_ignored_keyword and not has_media:
+        elif is_payment_keyword_sin_img and not has_media:
             return jsonify(
                 {
                     "status": "missing_image",
@@ -1191,6 +1245,7 @@ def register_routes(app):
 
         # --- Procesamiento del Mensaje por la IA ---
         respuesta_ia, _ = obtener_respuesta_ia(message_text, sender_id)
+        respuesta_ia = _normalizar_respuesta_cliente(respuesta_ia)
 
         incertidumbre_ia = ["no tengo información", "no puedo", "no estoy seguro"]
         if any(frase in respuesta_ia.lower() for frase in incertidumbre_ia):
@@ -1296,6 +1351,15 @@ def register_routes(app):
                 }
             )
         except Exception as e:
+            spawn_thread(
+                manejar_incidente_autocorreccion,
+                kwargs={
+                    "error": f"/chat exception: {e}",
+                    "contexto": f"session_id={session_id} mensaje={(mensaje or '')[:400]}",
+                    "origen": "routes_chat",
+                },
+                daemon=True,
+            )
             return jsonify({"error": str(e), "status": "error"}), 500
 
     @app.route("/panel")
@@ -1488,6 +1552,12 @@ def register_routes(app):
             },
             "version": "2.0.0",
         })
+
+    @app.route("/api/autocorrect/status")
+    def api_autocorrect_status():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        return jsonify(estado_autocorrector())
 
     @app.route("/api/preventa/pendientes")
     def api_preventa_pendientes():

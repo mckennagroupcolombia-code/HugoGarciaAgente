@@ -41,6 +41,38 @@ GRUPO_RESUMEN = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.
 METRICAS_PATH = os.path.join(os.path.dirname(__file__), "data", "metricas_diarias.json")
 
 
+def _autocorregir_y_reportar(error: str, contexto: str, origen: str) -> None:
+    """
+    Usa autocorrector local (Gemma + OpenHands) y manda reporte a alertas sistemas.
+    Import lazy para evitar ciclos con monitor/core.
+    """
+    try:
+        from app.services.autocorrector import manejar_incidente_autocorreccion
+        from app.utils import jid_grupo_alertas_sistemas_wa
+
+        resultado = manejar_incidente_autocorreccion(
+            error=error[:1000],
+            contexto=contexto[:6000],
+            origen=origen,
+        )
+        ok = bool(resultado.get("ok"))
+        reflexion = str(resultado.get("reflexion", ""))[:700]
+        oh = resultado.get("resultado_openhands", {}) or {}
+        resumen_oh = str(oh)[:700]
+        _get_enviar()(
+            (
+                f"{'✅' if ok else '⚠️'} *AUTOCORRECCIÓN {'EXITOSA' if ok else 'SIN FIX COMPLETO'}*\n"
+                f"Origen: {origen}\n"
+                f"Error: {error[:220]}\n"
+                f"Reflexión local: {reflexion or 'N/A'}\n"
+                f"Resultado OpenHands: {resumen_oh or 'N/A'}"
+            ),
+            numero_destino=jid_grupo_alertas_sistemas_wa(),
+        )
+    except Exception as e:
+        print(f"❌ Monitor: error autocorrección/reportería: {e}")
+
+
 # ---------------------------------------------------------------------------
 # MÉTRICAS DIARIAS
 # ---------------------------------------------------------------------------
@@ -97,7 +129,7 @@ def verificar_servicios():
         try:
             req.get(url, timeout=5)
             print(f"🔍 Monitor: {nombre} OK")
-        except Exception:
+        except Exception as e_check:
             print(f"🔴 Monitor: {nombre} NO RESPONDE — reiniciando...")
             _get_enviar()(
                 f"🔴 ALERTA SISTEMA\n"
@@ -109,6 +141,15 @@ def verificar_servicios():
                 subprocess.run(
                     ["sudo", "systemctl", "restart", nombre], timeout=30, check=False
                 )
+                threading.Thread(
+                    target=_autocorregir_y_reportar,
+                    args=(
+                        f"Servicio caído: {nombre} ({puerto})",
+                        f"url={url} exception={e_check}",
+                        "monitor_servicios",
+                    ),
+                    daemon=True,
+                ).start()
             except Exception as e:
                 print(f"❌ Monitor: error reiniciando {nombre}: {e}")
 
@@ -575,6 +616,15 @@ def _monitor_preguntas_sin_responder():
                                 print(
                                     f"⚠️ [MONITOR] Reintento IA falló para {qid}: {e_retry}"
                                 )
+                                threading.Thread(
+                                    target=_autocorregir_y_reportar,
+                                    args=(
+                                        f"Fallo reintento preventa qid={qid}",
+                                        f"producto={titulo} pregunta={pregunta_txt} error={e_retry}",
+                                        "monitor_preventa_retry",
+                                    ),
+                                    daemon=True,
+                                ).start()
 
                             if not respondida_ahora:
                                 sufijo = qid[-3:]
@@ -595,6 +645,15 @@ def _monitor_preguntas_sin_responder():
 
         except Exception as e:
             print(f"⚠️ [MONITOR] Error en ciclo de revisión: {e}")
+            threading.Thread(
+                target=_autocorregir_y_reportar,
+                args=(
+                    "Error ciclo monitor preventa",
+                    str(e),
+                    "monitor_preventa_loop",
+                ),
+                daemon=True,
+            ).start()
 
 
 def _guardar_pendientes_monitor(path: str, pendientes: list):
