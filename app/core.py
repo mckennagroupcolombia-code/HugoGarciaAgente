@@ -15,6 +15,7 @@ _CHAT_MEDIA_OK = frozenset(
 )
 
 import anthropic
+from google import genai
 
 _LOG_ERRORES = os.path.join(os.path.dirname(__file__), "..", "log_errores_ia.txt")
 
@@ -37,6 +38,7 @@ def _log_error(contexto: str, exc: Exception):
 # --- Importación de Herramientas desde los Nuevos Módulos ---
 
 from app.tools.memoria import query_sqlite, query_vector_db
+from app.services.autocorrector import manejar_incidente_autocorreccion
 from app.services.google_services import (
     leer_datos_hoja,
     buscar_producto_completo as _buscar_producto_completo,
@@ -72,7 +74,7 @@ from app.tools.generar_catalogo import generar_catalogo_pdf
 from app.tools.generar_guias_masivas import generar_guias_masivas_web
 from app.tools.pipeline_contenido_facebook import publicar_contenido_redes_sociales_ia
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
-from app.observability import log_json
+from app.observability import log_json, spawn_thread
 from app.tools.script_audit import auditar_scripts
 
 
@@ -164,6 +166,7 @@ REGLAS DE INTERACCIÓN WHATSAPP Y VENTAS:
    Una vez el cliente envíe el comprobante de pago:
    a. Usa la herramienta 'crear_factura_completa_siigo' pasando los datos de la cotización preliminar y la ruta del archivo del comprobante (si está disponible).
    b. Esta herramienta se encargará de crear la factura oficial en SIIGO, adjuntar el comprobante y enviar el reporte automático al grupo de WhatsApp con la factura PDF y el resumen de despacho.
+7. IMÁGENES SIN CONTEXTO DE PAGO: si recibes un mensaje tipo "El cliente envió una imagen por WhatsApp." y no hay señales explícitas de pago/comprobante, NO asumas pago. Responde pidiendo intención de forma breve (ej. "¿Desea cotización, validación de producto o soporte técnico?").
 
 REGLAS DE CONTROL DE HERRAMIENTAS:
 1. NO EJECUTTES 'sincronizar_inteligente' ni 'sincronizar_facturas_recientes' si el usuario solo hace preguntas de estado (ej: "¿Cómo va la conexión?").
@@ -182,14 +185,36 @@ REGLAS SOBRE NOMBRES Y PRECIOS DE PRODUCTOS:
 # Globals
 # ==========================================
 cliente_ia = None  # anthropic.Anthropic instance
+cliente_gemini = None  # google.genai.Client instance
 _tools_schema: list = []  # Claude tool definitions (JSON schema)
 _tools_map: dict = {}  # name → callable
 _system_prompt: str = ""
 # Per-user conversation history: user_id → list of message dicts
 _historiales: dict = {}
 
+def _mensaje_amigable_badrequest(error_text: str) -> str:
+    """
+    Mapea errores 400 comunes a mensajes claros para cliente final.
+    Evita culpar al usuario cuando el problema es de saldo/proveedor.
+    """
+    t = (error_text or "").lower()
+    if "credit balance is too low" in t or "billing" in t:
+        return (
+            "Veci, estamos en mantenimiento temporal por capacidad del servicio de IA. "
+            "Por favor intente de nuevo en unos minutos 🙏"
+        )
+    if "prompt is too long" in t or "too many tokens" in t:
+        return "Veci, el mensaje está muy largo. ¿Me lo envía en partes, por favor? 🙏"
+    return (
+        "Veci, tuve un problema técnico procesando este mensaje. "
+        "¿Puede reenviarlo, por favor? 🙏"
+    )
+
+
 # Compat stub (routes.py podría referenciar esto)
 modelo_ia = None
+_gemini_modelo_chat = "gemini-2.5-pro"
+_permitir_fallback_claude = os.getenv("AGENTE_PERMITIR_FALLBACK_CLAUDE", "0").strip() == "1"
 
 
 # ==========================================
@@ -393,17 +418,15 @@ def cargar_casos_especiales():
 
 def configurar_ia(app):
     """
-    Configura el cliente Anthropic y registra todas las herramientas disponibles
-    como schemas JSON para el model de Claude.
+    Configura clientes LLM y registra herramientas para fallback con Claude.
     """
-    global cliente_ia, _tools_schema, _tools_map, _system_prompt
+    global cliente_ia, cliente_gemini, _tools_schema, _tools_map, _system_prompt
 
     try:
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY no está configurado en .env")
-
-        cliente_ia = anthropic.Anthropic(api_key=api_key)
+        anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+        gemini_key = os.getenv("GOOGLE_API_KEY", "").strip()
+        cliente_ia = anthropic.Anthropic(api_key=anthropic_key) if anthropic_key else None
+        cliente_gemini = genai.Client(api_key=gemini_key) if gemini_key else None
 
         todas_las_herramientas = [
             query_sqlite,
@@ -445,13 +468,77 @@ def configurar_ia(app):
 
         _system_prompt = INSTRUCCIONES_MCKENNA + cargar_casos_especiales()
 
-        print(
-            f"🤖 Cerebro del Agente (Claude claude-sonnet-4-6) configurado — {len(_tools_schema)} herramientas registradas."
-        )
+        proveedor = []
+        if cliente_gemini:
+            proveedor.append("Gemini 2.5 Pro (primario)")
+        if cliente_ia and _permitir_fallback_claude:
+            proveedor.append("Claude (fallback + tools)")
+        elif cliente_ia:
+            proveedor.append("Claude (desactivado por AGENTE_PERMITIR_FALLBACK_CLAUDE=0)")
+        print(f"🤖 Cerebro IA configurado: {', '.join(proveedor) or 'sin proveedor activo'} — {len(_tools_schema)} herramientas.")
 
     except Exception as e:
         print(f"❌ Error crítico al configurar la IA: {e}")
         cliente_ia = None
+        cliente_gemini = None
+
+
+def _historial_a_texto_simple(messages: list) -> str:
+    """Convierte historial mixto a texto corto compatible con Gemini."""
+    partes = []
+    for m in messages[-12:]:
+        role = m.get("role", "")
+        content = m.get("content", "")
+        if isinstance(content, str):
+            texto = content
+        elif isinstance(content, list):
+            textos = []
+            for b in content:
+                if isinstance(b, dict) and b.get("type") == "text":
+                    textos.append(b.get("text", ""))
+                elif hasattr(b, "text"):
+                    textos.append(getattr(b, "text", ""))
+            texto = " ".join(t for t in textos if t).strip()
+        else:
+            texto = str(content)
+        if texto:
+            pref = "Cliente" if role == "user" else "Asistente"
+            partes.append(f"{pref}: {texto}")
+    return "\n".join(partes).strip()
+
+
+def _responder_con_gemini_primario(
+    pregunta: str, usuario_id: str, messages: list, adjuntos: list[tuple[str, bytes]]
+) -> str | None:
+    """
+    Primer intento de respuesta: Gemini 2.5 Pro.
+    Retorna texto o None para activar fallback a Claude.
+    """
+    if not cliente_gemini:
+        return None
+    if adjuntos:
+        # Gemini primario por ahora solo texto en este flujo.
+        # Si hay adjuntos, delega a fallback (Claude) que ya maneja binarios robustamente.
+        return None
+
+    contexto = _historial_a_texto_simple(messages)
+    prompt = (
+        f"{_system_prompt}\n\n"
+        f"ID de conversación: {usuario_id}\n"
+        f"Historial reciente:\n{contexto or '[sin historial]'}\n\n"
+        f"Mensaje actual del cliente:\n{pregunta}\n\n"
+        "Responde solo texto final para cliente."
+    )
+    try:
+        resp = cliente_gemini.models.generate_content(
+            model=_gemini_modelo_chat,
+            contents=prompt,
+        )
+        txt = (getattr(resp, "text", "") or "").strip()
+        return txt or None
+    except Exception as e:
+        _log_error(f"GeminiError usuario={usuario_id} msg='{(pregunta or '')[:80]}'", e)
+        return None
 
 
 # ==========================================
@@ -466,13 +553,12 @@ def obtener_respuesta_ia(
     adjuntos_payload: list = None,
 ):
     """
-    Envía la pregunta a Claude, ejecuta las herramientas que Claude solicite
-    en un loop, y retorna la respuesta final de texto junto con el historial
-    actualizado de la conversación.
+    Usa Gemini 2.5 Pro como primera opción. Si falla o requiere binarios/tools,
+    hace fallback a Claude con loop de herramientas.
 
     adjuntos_payload: lista de dicts {media_type, data_base64} (imagen/PDF) vía /chat.
     """
-    if not cliente_ia:
+    if not cliente_gemini and not cliente_ia:
         return "Veci, estamos en mantenimiento. Intente en unos minutos 🙏", []
 
     try:
@@ -499,6 +585,28 @@ def obtener_respuesta_ia(
         messages.append({"role": "user", "content": bloques})
     else:
         messages.append({"role": "user", "content": texto_usuario})
+
+    # 1) Ruta primaria: Gemini 2.5 Pro
+    respuesta_gemini = _responder_con_gemini_primario(
+        pregunta=pregunta or "",
+        usuario_id=usuario_id,
+        messages=messages,
+        adjuntos=adjuntos,
+    )
+    if respuesta_gemini:
+        final_messages = messages + [{"role": "assistant", "content": respuesta_gemini}]
+        _historiales[usuario_id] = final_messages[-40:]
+        return respuesta_gemini, final_messages
+
+    # 2) Fallback: Claude (tools/binarios), solo si está habilitado explícitamente.
+    if not _permitir_fallback_claude:
+        return (
+            "Veci, el servicio IA está en ajuste técnico temporal. "
+            "Por favor intente de nuevo en un momento 🙏",
+            [],
+        )
+    if not cliente_ia:
+        return "Veci, estamos en mantenimiento temporal. Intente de nuevo en unos minutos 🙏", []
 
     log_json(
         "ia_turn_start",
@@ -568,6 +676,17 @@ def obtener_respuesta_ia(
                                 result_str = (
                                     f"[TOOL_ERROR] La herramienta '{block.name}' falló: {tool_exc}. "
                                     "No asumas que se ejecutó bien; corrige argumentos o informa al usuario."
+                                )
+                                spawn_thread(
+                                    manejar_incidente_autocorreccion,
+                                    kwargs={
+                                        "error": f"ToolError {block.name}: {tool_exc}",
+                                        "contexto": json.dumps(
+                                            block.input, ensure_ascii=False
+                                        )[:2000],
+                                        "origen": "tool_use",
+                                    },
+                                    daemon=True,
                                 )
                                 _log_error(
                                     f"Tool {block.name} args={block.input}", tool_exc
@@ -670,22 +789,46 @@ def obtener_respuesta_ia(
             _log_error(
                 f"BadRequestError usuario={usuario_id} msg='{(pregunta or '')[:80]}'", e
             )
+            spawn_thread(
+                manejar_incidente_autocorreccion,
+                kwargs={
+                    "error": f"AnthropicBadRequest: {e}",
+                    "contexto": f"usuario_id={usuario_id} pregunta={(pregunta or '')[:400]}",
+                    "origen": "core_badrequest",
+                },
+                daemon=True,
+            )
             print(f"❌ Error de request Claude (BadRequest): {e}")
             # Limpiar historial de este usuario para evitar reenviar mensajes corruptos
             _historiales.pop(usuario_id, None)
-            return (
-                "Veci, hubo un error en el formato del mensaje. Por favor inténtelo de nuevo 🙏",
-                [],
-            )
+            return (_mensaje_amigable_badrequest(str(e)), [])
 
         except anthropic.AuthenticationError as e:
             _log_error("AuthenticationError — verificar ANTHROPIC_API_KEY", e)
+            spawn_thread(
+                manejar_incidente_autocorreccion,
+                kwargs={
+                    "error": f"AnthropicAuthError: {e}",
+                    "contexto": f"usuario_id={usuario_id}",
+                    "origen": "core_auth",
+                },
+                daemon=True,
+            )
             print(f"❌ Error de autenticación Claude: {e}")
             return "Veci, estamos en mantenimiento. Intente en unos minutos 🙏", []
 
         except Exception as e:
             error_str = str(e)
             _log_error(f"Error IA intento={intento + 1} usuario={usuario_id}", e)
+            spawn_thread(
+                manejar_incidente_autocorreccion,
+                kwargs={
+                    "error": f"CoreException {type(e).__name__}: {error_str}",
+                    "contexto": f"usuario_id={usuario_id} pregunta={(pregunta or '')[:400]}",
+                    "origen": "core_general",
+                },
+                daemon=True,
+            )
             print(
                 f"⚠️ Error IA (intento {intento + 1}/{MAX_REINTENTOS}): {type(e).__name__}: {error_str}"
             )
