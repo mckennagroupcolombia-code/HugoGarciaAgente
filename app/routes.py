@@ -224,6 +224,8 @@ from app.api_auth import chat_api_token_matches_request
 borradores_aprobacion = {}
 
 pagos_pendientes_confirmacion = {}
+contexto_pago_clientes = {}
+VENTANA_CONTEXTO_PAGO_SEGUNDOS = int(os.getenv("VENTANA_CONTEXTO_PAGO_SEGUNDOS", "3600"))
 
 
 def _sufijo_pago(numero: str) -> str:
@@ -238,6 +240,24 @@ def _buscar_pago_por_sufijo(sufijo: str) -> str:
         if _sufijo_pago(num) == sufijo and not datos.get("confirmado"):
             return num
     return None
+
+
+def _marcar_contexto_pago(numero_cliente: str):
+    """Guarda una señal reciente de que el cliente está en flujo de pago."""
+    if numero_cliente:
+        contexto_pago_clientes[numero_cliente] = time.time()
+
+
+def _tiene_contexto_pago_reciente(numero_cliente: str) -> bool:
+    """Retorna True si el cliente tuvo señales de pago dentro de la ventana."""
+    ts = contexto_pago_clientes.get(numero_cliente)
+    if not ts:
+        return False
+    if time.time() - ts <= VENTANA_CONTEXTO_PAGO_SEGUNDOS:
+        return True
+    # Limpieza perezosa para no acumular contexto viejo en memoria.
+    contexto_pago_clientes.pop(numero_cliente, None)
+    return False
 
 
 def transcribir_audio_whatsapp(media_path: str, message_id: str = "") -> str | None:
@@ -312,6 +332,7 @@ def procesar_confirmacion_pago_async(numero_cliente):
             mensaje_cliente = "Veci, le confirmamos que su pago ha sido recibido ✅ Estamos alistando su pedido y le avisamos cuando despachemos."
             enviar_whatsapp_reporte(mensaje_cliente, numero_destino=numero_cliente)
             del pagos_pendientes_confirmacion[numero_cliente]
+            contexto_pago_clientes.pop(numero_cliente, None)
     except Exception as e:
         print(f"Error procesando confirmación de pago: {e}")
 
@@ -650,6 +671,7 @@ def register_routes(app):
                 if target_num:
                     pagos_pendientes_confirmacion.pop(target_num, None)
                     borradores_aprobacion.pop(target_num, None)
+                    contexto_pago_clientes.pop(target_num, None)
                     spawn_thread(
                         enviar_whatsapp_reporte,
                         args=(
@@ -1033,50 +1055,67 @@ def register_routes(app):
             "datos de pago",
         ]
 
+        message_text_lower = message_text.lower()
         is_payment_keyword_sin_img = any(
-            keyword in message_text.lower() for keyword in keywords_pago_sin_img
+            keyword in message_text_lower for keyword in keywords_pago_sin_img
         )
         is_ignored_keyword = any(
-            keyword in message_text.lower() for keyword in keywords_pago_ignorar
+            keyword in message_text_lower for keyword in keywords_pago_ignorar
         )
 
+        if is_payment_keyword_sin_img and not is_ignored_keyword:
+            _marcar_contexto_pago(sender_id)
+
         if has_media and media_type == "image":
-            borradores_aprobacion[sender_id] = {
-                "estado": "esperando_validacion_pago",
-                "ruta_imagen": media_path,
-            }
-
-            codigo = _sufijo_pago(sender_id)
-            num_corto = sender_id.replace("@c.us", "")[
-                -7:
-            ]  # últimos 7 dígitos para mostrar
-            mensaje_aprobacion = (
-                f"🔔 *ALERTA DE PAGO*\n"
-                f"Cliente *...{num_corto}* envió un comprobante de pago.\n\n"
-                f"✅ *Para CONFIRMAR:*\n"
-                f"   Escribe: *ok {codigo}*\n\n"
-                f"❌ *Para RECHAZAR:*\n"
-                f"   Escribe: *no {codigo}*\n\n"
-                f"📎 Comprobante: {media_path}"
+            tiene_contexto_pago = _tiene_contexto_pago_reciente(sender_id)
+            ya_tiene_pago_pendiente = (
+                sender_id in pagos_pendientes_confirmacion
+                and not pagos_pendientes_confirmacion[sender_id].get("confirmado")
+            )
+            parece_comprobante = (
+                (is_payment_keyword_sin_img and not is_ignored_keyword)
+                or tiene_contexto_pago
+                or ya_tiene_pago_pendiente
             )
 
-            pagos_pendientes_confirmacion[sender_id] = {
-                "timestamp": time.time(),
-                "mensaje": mensaje_aprobacion,
-                "confirmado": False,
-                "codigo": codigo,
-            }
-
-            spawn_thread(
-                enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_compras)
-            )
-
-            return jsonify(
-                {
-                    "status": "waiting_for_payment_approval",
-                    "respuesta": "Veci, recibí su comprobante. En un momento nuestro equipo de contabilidad lo verifica y le confirmamos. ¡Gracias por su compra!",
+            if parece_comprobante:
+                _marcar_contexto_pago(sender_id)
+                borradores_aprobacion[sender_id] = {
+                    "estado": "esperando_validacion_pago",
+                    "ruta_imagen": media_path,
                 }
-            )
+
+                codigo = _sufijo_pago(sender_id)
+                num_corto = sender_id.replace("@c.us", "")[
+                    -7:
+                ]  # últimos 7 dígitos para mostrar
+                mensaje_aprobacion = (
+                    f"🔔 *ALERTA DE PAGO*\n"
+                    f"Cliente *...{num_corto}* envió un comprobante de pago.\n\n"
+                    f"✅ *Para CONFIRMAR:*\n"
+                    f"   Escribe: *ok {codigo}*\n\n"
+                    f"❌ *Para RECHAZAR:*\n"
+                    f"   Escribe: *no {codigo}*\n\n"
+                    f"📎 Comprobante: {media_path}"
+                )
+
+                pagos_pendientes_confirmacion[sender_id] = {
+                    "timestamp": time.time(),
+                    "mensaje": mensaje_aprobacion,
+                    "confirmado": False,
+                    "codigo": codigo,
+                }
+
+                spawn_thread(
+                    enviar_whatsapp_reporte, args=(mensaje_aprobacion, grupo_compras)
+                )
+
+                return jsonify(
+                    {
+                        "status": "waiting_for_payment_approval",
+                        "respuesta": "Veci, recibí su comprobante. En un momento nuestro equipo de contabilidad lo verifica y le confirmamos. ¡Gracias por su compra!",
+                    }
+                )
 
         elif is_payment_keyword_sin_img and not is_ignored_keyword and not has_media:
             return jsonify(
