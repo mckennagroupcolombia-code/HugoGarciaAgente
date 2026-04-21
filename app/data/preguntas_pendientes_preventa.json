@@ -258,7 +258,8 @@
       "titulo_producto": "Arcilla Blanca Usp Caolín 500gr",
       "pregunta": "Buenas tardes. Este material sirve para hacer figuras como las de cerámica ?",
       "timestamp": "2026-04-20T22:37:25.418477",
-      "respondida": false
+      "respondida": true,
+      "nota": "Auto-marcada respondida por monitor 2026-04-20"
     }
   ]
 }
