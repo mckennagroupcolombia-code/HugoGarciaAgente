@@ -57,6 +57,7 @@ fi
 export OPENHANDS_SUPPRESS_BANNER=1
 # Ollama suele reportar 8k; OpenHands exige ≥16k salvo este override (ver sdk/llm/llm.py).
 export ALLOW_SHORT_CONTEXT_WINDOWS="${ALLOW_SHORT_CONTEXT_WINDOWS:-true}"
+export OPENHANDS_MINIMAL_TOOLS="${OPENHANDS_MINIMAL_TOOLS:-true}"
 export M="$MODEL"
 export B="$BASE"
 export _OH_MODEL_SRC="$_model_src"
@@ -70,6 +71,9 @@ from openhands_cli.utils import get_default_cli_agent
 
 model = os.environ['M'].strip()
 base = os.environ['B']
+minimal_tools = os.environ.get('OPENHANDS_MINIMAL_TOOLS', '').strip().lower() in (
+    '1', 'true', 'yes',
+)
 # Ollama (LiteLLM ollama/*) no devuelve tool_calls al estilo OpenAI de forma fiable:
 # el modelo suele escribir JSON {thought, action, ...} en el texto. Con
 # native_tool_calling=True ese JSON llega tal cual a la TUI. False activa el
@@ -89,10 +93,15 @@ llm = LLM(
     enable_encrypted_reasoning=False,
 )
 agent = get_default_cli_agent(llm)
+if minimal_tools:
+    # Evita deriva de "planes" automáticos al saludar; deja solo edición + terminal.
+    filtered_tools = [t for t in agent.tools if t.name in ('terminal', 'file_editor')]
+    agent = agent.model_copy(update={'tools': filtered_tools})
 out = Path.home() / '.openhands' / 'agent_settings.json'
 out.parent.mkdir(parents=True, exist_ok=True)
 out.write_text(agent.model_dump_json(context={'expose_secrets': True}), encoding='utf-8')
 print('Escrito:', out)
 print('Modelo:', f'ollama/{model}', '| API:', base)
 print('Origen LOCAL_AI_MODEL:', os.environ.get('_OH_MODEL_SRC', '?'), '| OLLAMA_HOST:', os.environ.get('_OH_BASE_SRC', '?'))
+print('Tools:', ', '.join(t.name for t in agent.tools))
 "
