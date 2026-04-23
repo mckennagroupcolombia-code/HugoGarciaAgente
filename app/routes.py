@@ -14,17 +14,38 @@ PENDIENTES_PATH = os.path.join(_ROUTES_DIR, "data", "preguntas_pendientes_preven
 
 
 def encontrar_question_id_por_sufijo(sufijo: str):
-    """Busca en pendientes el question_id que termina con `sufijo`."""
+    """Busca en pendientes el question_id único que termina con `sufijo`."""
     try:
         with open(PENDIENTES_PATH) as f:
             data = json.load(f)
+        matches = []
         for p in data.get("preguntas", []):
             if not p.get("respondida"):
                 if str(p["question_id"]).endswith(sufijo):
-                    return str(p["question_id"])
+                    matches.append(str(p["question_id"]))
+        if len(matches) == 1:
+            return matches[0]
     except Exception:
         pass
     return None
+
+
+def diagnosticar_sufijo_preventa(sufijo: str):
+    """
+    Diagnostica sufijo en pendientes no respondidas.
+    Retorna {"matches": [...], "count": n}.
+    """
+    try:
+        with open(PENDIENTES_PATH) as f:
+            data = json.load(f)
+        matches = [
+            str(p.get("question_id"))
+            for p in data.get("preguntas", [])
+            if not p.get("respondida") and str(p.get("question_id", "")).endswith(sufijo)
+        ]
+        return {"matches": matches, "count": len(matches)}
+    except Exception:
+        return {"matches": [], "count": 0}
 
 
 def detectar_comando_preventa(texto: str):
@@ -146,6 +167,7 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
         from app.services.meli_preventa import (
             obtener_pregunta_pendiente,
             guardar_caso_preventa,
+            marcar_pregunta_respondida,
         )
         from app.utils import refrescar_token_meli
 
@@ -171,18 +193,21 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
                 json={"question_id": int(question_id), "text": respuesta_humana},
                 timeout=15,
             )
-            exito = res.status_code == 200
+            exito = res.status_code in (200, 201)
             if not exito:
                 print(f"❌ Preventa: MeLi API falló con {res.status_code} - {res.text}")
         else:
             exito = False
 
-        # Guardar como caso de entrenamiento
-        guardar_caso_preventa(
-            producto=pendiente.get("titulo_producto", ""),
-            pregunta=pendiente.get("pregunta", ""),
-            respuesta=respuesta_humana,
-        )
+        if exito:
+            # Cerrar pendiente solo tras envío confirmado a MeLi.
+            marcar_pregunta_respondida(question_id)
+            # Guardar como caso de entrenamiento
+            guardar_caso_preventa(
+                producto=pendiente.get("titulo_producto", ""),
+                pregunta=pendiente.get("pregunta", ""),
+                respuesta=respuesta_humana,
+            )
 
         # Confirmar al grupo preventa
         grupo_prev = jid_grupo_preventa_wa()
@@ -191,7 +216,7 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
             f"{emoji} *Respuesta preventa {'enviada' if exito else 'FALLÓ'} al cliente*\n"
             f"📦 Producto: {pendiente.get('titulo_producto', '')}\n"
             f"💬 Respuesta: {respuesta_humana[:120]}{'...' if len(respuesta_humana) > 120 else ''}\n"
-            f"📚 Guardada como caso de entrenamiento.",
+            f"{'📚 Guardada como caso de entrenamiento.' if exito else '🧾 La pregunta sigue pendiente para reintento.'}",
             numero_destino=grupo_prev,
         )
         print(f"✅ Preventa: respuesta humana procesada para question_id {question_id}")
@@ -1049,11 +1074,32 @@ def register_routes(app):
                     resp_msg = partes[1].strip()
                     # Evita desviar errores de preventa a WA directo (ej: "resp 997: ...")
                     if target_num.isdigit() and len(target_num) <= 6:
+                        diag = diagnosticar_sufijo_preventa(target_num)
+                        if diag["count"] > 1:
+                            ids = ", ".join(diag["matches"][:5])
+                            extra = " ..." if diag["count"] > 5 else ""
+                            msg_error = (
+                                "⚠️ Código corto ambiguo en preventa.\n"
+                                f"Hay {diag['count']} preguntas que terminan en *{target_num}* "
+                                f"({ids}{extra}).\n"
+                                "Usa formato completo: "
+                                "`resp preventa <question_id>: tu respuesta`."
+                            )
+                        elif diag["count"] == 0:
+                            msg_error = (
+                                "⚠️ No pude resolver ese código corto como preventa pendiente.\n"
+                                "Usa `resp preventa <question_id>: ...` o verifica el código activo en la alerta."
+                            )
+                        else:
+                            # Si hay 1 match y llegó aquí, hubo problema de formato.
+                            msg_error = (
+                                "⚠️ Detecté un pendiente con ese código, pero el formato no se pudo procesar.\n"
+                                "Usa: `resp preventa <question_id>: tu respuesta`."
+                            )
                         spawn_thread(
                             enviar_whatsapp_reporte,
                             args=(
-                                "⚠️ No pude resolver ese código corto como preventa pendiente.\n"
-                                "Usa `resp preventa <question_id>: ...` o verifica el código activo en la alerta.",
+                                msg_error,
                                 grupo_preventa,
                             ),
                         )

@@ -8,10 +8,7 @@ _OLLAMA_MODEL = os.getenv("LOCAL_AI_MODEL", "gemma4:26b").strip() or "gemma4:26b
 _OLLAMA_BIN = os.getenv("OLLAMA_BIN", "ollama").strip() or "ollama"
 
 
-def estado_local_ai() -> dict:
-    """
-    Estado del modelo local (Ollama/Gemma) sin romper flujo si no está instalado.
-    """
+def _listar_modelos_ollama() -> list[str]:
     try:
         proc = subprocess.run(
             [_OLLAMA_BIN, "list"],
@@ -20,13 +17,43 @@ def estado_local_ai() -> dict:
             timeout=10,
             check=False,
         )
-        txt = (proc.stdout or "") + "\n" + (proc.stderr or "")
-        disponible = proc.returncode == 0 and _OLLAMA_MODEL in txt
+        if proc.returncode != 0:
+            return []
+        modelos: list[str] = []
+        for line in (proc.stdout or "").splitlines()[1:]:
+            parts = line.split()
+            if parts:
+                modelos.append(parts[0].strip())
+        return modelos
+    except Exception:
+        return []
+
+
+def _resolver_modelo_ollama() -> str:
+    """
+    Prioridad: LOCAL_AI_MODEL si existe; si no, primer modelo instalado.
+    """
+    modelos = _listar_modelos_ollama()
+    if _OLLAMA_MODEL in modelos:
+        return _OLLAMA_MODEL
+    return modelos[0] if modelos else _OLLAMA_MODEL
+
+
+def estado_local_ai() -> dict:
+    """
+    Estado del modelo local (Ollama/Gemma) sin romper flujo si no está instalado.
+    """
+    try:
+        modelos = _listar_modelos_ollama()
+        modelo_efectivo = _resolver_modelo_ollama()
+        disponible = bool(modelos)
         return {
             "motor": "ollama",
             "modelo": _OLLAMA_MODEL,
+            "modelo_efectivo": modelo_efectivo,
+            "modelos_instalados": modelos[:10],
             "disponible": disponible,
-            "returncode": proc.returncode,
+            "returncode": 0 if disponible else 1,
         }
     except Exception as e:
         return {
@@ -42,7 +69,8 @@ def pedir_reflexion_local(prompt: str, max_chars: int = 3000) -> str:
     Llama Gemma local para estrategia corta de corrección/debug.
     """
     try:
-        cmd = [_OLLAMA_BIN, "run", _OLLAMA_MODEL, prompt[:8000]]
+        modelo = _resolver_modelo_ollama()
+        cmd = [_OLLAMA_BIN, "run", modelo, prompt[:8000]]
         proc = subprocess.run(
             cmd,
             capture_output=True,
@@ -68,16 +96,8 @@ def ejecutar_openhands_task(
     Bridge simple para OpenHands CLI/script local.
     Debe retornar JSON si OPENHANDS_CMD está configurado.
     """
-    cmd_tpl = os.getenv("OPENHANDS_CMD", "").strip()
-    if not cmd_tpl:
-        return {
-            "ok": False,
-            "error": "OPENHANDS_CMD no configurado",
-            "patch": "",
-            "checks": [],
-            "riesgo": "desconocido",
-            "rollback": "manual",
-        }
+    default_cmd = "python3 scripts/openhands_bridge.py --payload {payload}"
+    cmd_tpl = os.getenv("OPENHANDS_CMD", "").strip() or default_cmd
     payload = json.dumps(
         {"tarea": tarea, "contexto": contexto[:12000], "dry_run": bool(dry_run)},
         ensure_ascii=False,
