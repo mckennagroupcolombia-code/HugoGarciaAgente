@@ -15,6 +15,8 @@ from app.utils import (
     jid_grupo_inventario_wa,
     jid_grupo_preventa_wa,
     jid_grupo_postventa_wa,
+    meli_postventa_id_mensaje,
+    meli_postventa_remitente_user_id,
 )
 
 # Importación lazy para evitar dependencias circulares al arrancar
@@ -698,6 +700,259 @@ def _guardar_pendientes_monitor(path: str, pendientes: list):
         print(f"⚠️ [MONITOR] Error escribiendo pendientes: {e_write}")
 
 
+def _supervisar_colas_meli():
+    """
+    Supervisor operativo de colas humanas:
+    - Preventa pendiente estancada
+    - Postventa pendiente estancada
+    Envia alertas accionables y resumen a alertas sistemas.
+    """
+    path_preventa = os.path.join(
+        os.path.dirname(__file__), "data", "preguntas_pendientes_preventa.json"
+    )
+    path_postventa = os.path.join(
+        os.path.dirname(__file__), "data", "mensajes_posventa_pendientes.json"
+    )
+    intervalo = int(os.getenv("SUPERVISOR_COLAS_INTERVALO_SEG", "600"))
+    umbral_preventa = int(os.getenv("SUPERVISOR_PREVENTA_UMBRAL_MIN", "35"))
+    umbral_postventa = int(os.getenv("SUPERVISOR_POSTVENTA_UMBRAL_MIN", "30"))
+    cooldown_preventa_min = int(os.getenv("SUPERVISOR_PREVENTA_COOLDOWN_MIN", "45"))
+    cooldown_postventa_min = int(os.getenv("SUPERVISOR_POSTVENTA_COOLDOWN_MIN", "45"))
+    cooldown_resumen_min = int(os.getenv("SUPERVISOR_RESUMEN_COOLDOWN_MIN", "45"))
+    cooldown_preventa_seg = max(60, cooldown_preventa_min * 60)
+    cooldown_postventa_seg = max(60, cooldown_postventa_min * 60)
+    cooldown_resumen_seg = max(60, cooldown_resumen_min * 60)
+    enviar = _get_enviar()
+    ultima_alerta_preventa: dict[str, float] = {}
+    ultima_alerta_postventa: dict[str, float] = {}
+    ultima_alerta_resumen: float = 0.0
+
+    def _parse_ts(raw: str, ahora: datetime) -> datetime:
+        try:
+            ts = datetime.fromisoformat(str(raw).replace("Z", ""))
+            if ts.tzinfo is not None:
+                ts = ts.replace(tzinfo=None)
+            return ts
+        except Exception:
+            return ahora
+
+    while True:
+        try:
+            ahora = datetime.now()
+            ahora_epoch = time.time()
+            atascadas_preventa = []
+            atascadas_postventa = []
+            token_meli = None
+            seller_id = None
+
+            def _token() -> str | None:
+                nonlocal token_meli
+                if token_meli is None:
+                    try:
+                        from app.utils import refrescar_token_meli
+
+                        token_meli = refrescar_token_meli()
+                    except Exception:
+                        token_meli = None
+                return token_meli
+
+            def _seller() -> str | None:
+                nonlocal seller_id
+                if seller_id is None:
+                    try:
+                        from app.utils import obtener_seller_id_meli
+
+                        seller_id = str(obtener_seller_id_meli() or "")
+                    except Exception:
+                        seller_id = ""
+                return seller_id or None
+
+            # Preventa
+            try:
+                with open(path_preventa, "r", encoding="utf-8") as f:
+                    data_prev = json.load(f)
+                pendientes_prev = data_prev.get("preguntas", [])
+                prev_modificado = False
+                tok = _token()
+                for p in data_prev.get("preguntas", []):
+                    if p.get("respondida"):
+                        continue
+                    # Reconciliar en vivo contra estado MeLi para evitar falsos positivos.
+                    qid = str(p.get("question_id", "")).strip()
+                    if tok and qid:
+                        try:
+                            r_q = requests.get(
+                                f"https://api.mercadolibre.com/questions/{qid}?api_version=4",
+                                headers={"Authorization": f"Bearer {tok}"},
+                                timeout=8,
+                            )
+                            if r_q.status_code == 200:
+                                q_status = str(r_q.json().get("status", "")).upper()
+                                if q_status != "UNANSWERED":
+                                    p["respondida"] = True
+                                    p["nota"] = (
+                                        f"Auto-marcada respondida por supervisor {ahora.date()}"
+                                    )
+                                    prev_modificado = True
+                                    continue
+                        except Exception:
+                            pass
+                    ts = _parse_ts(p.get("timestamp", ""), ahora)
+                    mins = int(max(0, (ahora - ts).total_seconds() / 60))
+                    if mins >= umbral_preventa:
+                        atascadas_preventa.append(
+                            {
+                                "id": str(p.get("question_id", "")),
+                                "producto": str(p.get("titulo_producto", "")),
+                                "pregunta": str(p.get("pregunta", "")),
+                                "mins": mins,
+                            }
+                        )
+                if prev_modificado:
+                    _guardar_pendientes_monitor(path_preventa, pendientes_prev)
+            except Exception as e_prev:
+                print(f"⚠️ [SUPERVISOR] Error leyendo preventa pendientes: {e_prev}")
+
+            # Postventa
+            try:
+                with open(path_postventa, "r", encoding="utf-8") as f:
+                    data_post = json.load(f)
+                pendientes_post = (data_post.get("pendientes", {}) or {}).copy()
+                post_modificado = False
+                tok = _token()
+                sid = _seller()
+                for codigo, item in list((data_post.get("pendientes", {}) or {}).items()):
+                    # Reconciliar estado del pack: si vendedor ya habló después del msg pendiente, cerrar cola.
+                    if tok and sid and item.get("pack_id"):
+                        try:
+                            pack_id = str(item.get("pack_id"))
+                            r_m = requests.get(
+                                f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{sid}?tag=post_sale",
+                                headers={"Authorization": f"Bearer {tok}", "x-version": "2"},
+                                timeout=10,
+                            )
+                            if r_m.status_code == 200:
+                                msgs = r_m.json().get("messages", []) or []
+                                pending_msg_id = str(item.get("msg_id", "")).strip()
+                                idx_pend = -1
+                                idx_last_seller = -1
+                                for idx, m in enumerate(msgs):
+                                    from_id = meli_postventa_remitente_user_id(m)
+                                    mid = str(meli_postventa_id_mensaje(m) or "")
+                                    if pending_msg_id and mid == pending_msg_id:
+                                        idx_pend = idx
+                                    if from_id and str(from_id) == str(sid):
+                                        idx_last_seller = idx
+
+                                # Cerrar si mensaje pendiente no existe (stale) o ya hubo respuesta del vendedor después.
+                                if idx_pend == -1 or (idx_last_seller != -1 and idx_last_seller > idx_pend):
+                                    pendientes_post.pop(str(codigo), None)
+                                    post_modificado = True
+                                    continue
+                        except Exception:
+                            pass
+
+                    ts = _parse_ts(item.get("timestamp", ""), ahora)
+                    mins = int(max(0, (ahora - ts).total_seconds() / 60))
+                    if mins >= umbral_postventa:
+                        atascadas_postventa.append(
+                            {
+                                "codigo": str(codigo),
+                                "pack_id": str(item.get("pack_id", "")),
+                                "comprador": str(item.get("comprador", "")),
+                                "texto": str(item.get("texto", "")),
+                                "mins": mins,
+                            }
+                        )
+                if post_modificado:
+                    data_post["pendientes"] = pendientes_post
+                    with open(path_postventa, "w", encoding="utf-8") as f:
+                        json.dump(data_post, f, indent=2, ensure_ascii=False)
+            except Exception as e_post:
+                print(f"⚠️ [SUPERVISOR] Error leyendo postventa pendientes: {e_post}")
+
+            # Alertas operativas
+            if atascadas_preventa:
+                top = sorted(atascadas_preventa, key=lambda x: x["mins"], reverse=True)[0]
+                qid = top["id"]
+                sufijo = qid[-3:] if len(qid) >= 3 else qid
+                ult = float(ultima_alerta_preventa.get(qid, 0))
+                if (ahora_epoch - ult) >= cooldown_preventa_seg:
+                    enviar(
+                        f"🚨 *SUPERVISOR PREVENTA*\n"
+                        f"Hay {len(atascadas_preventa)} pregunta(s) sin respuesta > {umbral_preventa} min.\n"
+                        f"📦 Más antigua: {top['producto']}\n"
+                        f"🗣 {top['pregunta'][:200]}\n"
+                        f"⌛ {top['mins']} min\n\n"
+                        f"✍️ Responde con:\n"
+                        f"`resp {sufijo}: tu respuesta`\n"
+                        f"o mejor:\n"
+                        f"`resp preventa {qid}: tu respuesta`",
+                        numero_destino=jid_grupo_preventa_wa(),
+                    )
+                    ultima_alerta_preventa[qid] = ahora_epoch
+                # Limpieza de memoria en claves viejas/no presentes
+                activos_prev = {x["id"] for x in atascadas_preventa}
+                for k in list(ultima_alerta_preventa.keys()):
+                    if k not in activos_prev and (ahora_epoch - ultima_alerta_preventa[k]) > (
+                        cooldown_preventa_seg * 4
+                    ):
+                        ultima_alerta_preventa.pop(k, None)
+
+            if atascadas_postventa:
+                top = sorted(atascadas_postventa, key=lambda x: x["mins"], reverse=True)[0]
+                codigo = top["codigo"]
+                ult = float(ultima_alerta_postventa.get(codigo, 0))
+                if (ahora_epoch - ult) >= cooldown_postventa_seg:
+                    enviar(
+                        f"🚨 *SUPERVISOR POSTVENTA*\n"
+                        f"Hay {len(atascadas_postventa)} mensaje(s) sin respuesta > {umbral_postventa} min.\n"
+                        f"👤 Comprador: {top['comprador'] or 'N/A'}\n"
+                        f"📦 Pack: {top['pack_id']} (código {top['codigo']})\n"
+                        f"🗣 {top['texto'][:200]}\n"
+                        f"⌛ {top['mins']} min\n\n"
+                        f"✍️ Responde con:\n"
+                        f"`posventa {top['codigo']}: tu respuesta`",
+                        numero_destino=jid_grupo_postventa_wa(),
+                    )
+                    ultima_alerta_postventa[codigo] = ahora_epoch
+                activos_post = {x["codigo"] for x in atascadas_postventa}
+                for k in list(ultima_alerta_postventa.keys()):
+                    if k not in activos_post and (ahora_epoch - ultima_alerta_postventa[k]) > (
+                        cooldown_postventa_seg * 4
+                    ):
+                        ultima_alerta_postventa.pop(k, None)
+
+            if atascadas_preventa or atascadas_postventa:
+                if (ahora_epoch - ultima_alerta_resumen) >= cooldown_resumen_seg:
+                    from app.utils import jid_grupo_alertas_sistemas_wa
+
+                    enviar(
+                        f"🟠 *SUPERVISOR COLAS MELI*\n"
+                        f"Preventa atascadas: {len(atascadas_preventa)}\n"
+                        f"Postventa atascadas: {len(atascadas_postventa)}\n"
+                        f"Umbrales: preventa>{umbral_preventa}m, postventa>{umbral_postventa}m\n"
+                        f"Cooldown preventa: {cooldown_preventa_min} min\n"
+                        f"Cooldown postventa: {cooldown_postventa_min} min\n"
+                        f"Cooldown resumen: {cooldown_resumen_min} min",
+                        numero_destino=jid_grupo_alertas_sistemas_wa(),
+                    )
+                    ultima_alerta_resumen = ahora_epoch
+
+        except Exception as e:
+            print(f"❌ [SUPERVISOR] Error ciclo supervisor colas: {e}")
+            threading.Thread(
+                target=_autocorregir_y_reportar,
+                args=(
+                    "Error supervisor colas Meli",
+                    str(e),
+                    "monitor_supervisor_colas",
+                ),
+                daemon=True,
+            ).start()
+        time.sleep(intervalo)
+
+
 # ---------------------------------------------------------------------------
 # HEALTH-CHECK cada 24 h → solo GRUPO_ALERTAS_SISTEMAS_WA (Auditoría_Scripts)
 # ---------------------------------------------------------------------------
@@ -874,6 +1129,11 @@ def iniciar_monitor():
         daemon=True,
         name="health-check-meli",
     ).start()
+    threading.Thread(
+        target=_supervisar_colas_meli,
+        daemon=True,
+        name="supervisor-colas-meli",
+    ).start()
     print(
-        "✅ Monitor de alertas iniciado (preventa MeLi + health-check MeLi 24h → alertas sistemas)"
+        "✅ Monitor de alertas iniciado (preventa + supervisor colas + health-check)"
     )

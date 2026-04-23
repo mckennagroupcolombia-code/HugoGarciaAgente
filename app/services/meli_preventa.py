@@ -51,14 +51,23 @@ def obtener_preguntas_pendientes():
 
 
 def obtener_pregunta_pendiente(question_id: str):
-    """Busca una pregunta pendiente y la marca como respondida. Retorna el dict o None."""
+    """Busca una pregunta por ID. Retorna dict o None (sin mutar estado)."""
+    pendientes = _leer_pendientes()
+    for p in pendientes:
+        if str(p.get('question_id')) == str(question_id):
+            return p
+    return None
+
+
+def marcar_pregunta_respondida(question_id: str) -> bool:
+    """Marca pregunta como respondida solo después de confirmar envío exitoso."""
     pendientes = _leer_pendientes()
     for p in pendientes:
         if str(p.get('question_id')) == str(question_id):
             p['respondida'] = True
             _guardar_pendientes(pendientes)
-            return p
-    return None
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------
