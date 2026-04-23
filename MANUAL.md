@@ -21,6 +21,7 @@
 9. [APIs de Generación Multimedia (consola)](#9-apis-de-generación-de-contenido-multimedia-consola)
 10. [Nuevas Skills (Herramientas Autónomas)](#10-nuevas-skills-herramientas-autónomas)
 11. [Observabilidad, auditoría de scripts, backup y Git](#11-observabilidad-auditoría-de-scripts-backup-y-git)
+12. [Actualizaciones operativas (2026-04-23)](#12-actualizaciones-operativas-2026-04-23)
 
 ---
 
@@ -1562,3 +1563,91 @@ FAL_KEY               # fal.ai — generación de video con Kling
 FB_PAGE_TOKEN         # Facebook Graph API — publicación en página
 FB_PAGE_ID            # ID de la página de Facebook de McKenna Group
 ```
+
+---
+
+## 12. Actualizaciones operativas (2026-04-23)
+
+Esta sección documenta cambios recientes aplicados en producción para mejorar confiabilidad de preventa/postventa MeLi y supervisión autónoma.
+
+### 12.1 Preventa (`resp ...`) — cierre correcto de pendientes
+
+- Archivo: `app/routes.py`, `app/services/meli_preventa.py`
+- Antes: una pregunta podía marcarse como `respondida=true` incluso cuando el POST a `https://api.mercadolibre.com/answers` fallaba.
+- Ahora:
+  - Se marca `respondida=true` **solo** cuando MeLi confirma éxito (`200` o `201`).
+  - Si falla el envío, la pregunta queda pendiente para reintento.
+  - El caso de entrenamiento (`casos_preventa.json`) se guarda solo en éxito.
+
+Impacto: se elimina falso positivo "respondida" sin haber respondido al cliente final.
+
+### 12.2 Ambigüedad de comandos cortos (`resp 415:`)
+
+- Archivo: `app/routes.py`
+- Mejora:
+  - Si el sufijo corto coincide con varias preguntas, el sistema no adivina.
+  - Envía alerta de "código ambiguo" y exige formato completo:
+    - `resp preventa <question_id>: tu respuesta`
+
+Impacto: evita respuestas cruzadas a preguntas equivocadas.
+
+### 12.3 Integración OpenHands/Ollama — fallback operativo
+
+- Archivo: `app/services/local_ai.py`
+- Mejora:
+  - Si `OPENHANDS_CMD` no está definido, usa por defecto:
+    - `python3 scripts/openhands_bridge.py --payload {payload}`
+  - Detección robusta de modelos Ollama instalados (`ollama list`).
+  - `modelo_efectivo`:
+    - usa `LOCAL_AI_MODEL` si existe;
+    - si no, toma el primer modelo local disponible.
+
+Impacto: autocorrector deja de depender de configuración manual mínima para funcionar.
+
+### 12.4 Supervisor de colas MeLi (preventa + postventa)
+
+- Archivo: `app/monitor.py`
+- Nuevo hilo:
+  - `_supervisar_colas_meli()`
+- Función:
+  - Detecta pendientes estancados.
+  - Envía alertas accionables al grupo correcto:
+    - Preventa: `resp ...` / `resp preventa ...`
+    - Postventa: `posventa ...`
+  - Envía resumen al grupo de alertas sistemas.
+
+Variables:
+
+```env
+SUPERVISOR_COLAS_INTERVALO_SEG=600
+SUPERVISOR_PREVENTA_UMBRAL_MIN=35
+SUPERVISOR_POSTVENTA_UMBRAL_MIN=30
+SUPERVISOR_PREVENTA_COOLDOWN_MIN=30
+SUPERVISOR_POSTVENTA_COOLDOWN_MIN=20
+SUPERVISOR_RESUMEN_COOLDOWN_MIN=60
+```
+
+### 12.5 Anti-ruido + reconciliación con estado real de MeLi
+
+- Archivo: `app/monitor.py`
+- Problema resuelto:
+  - Supervisor reenviaba alertas de casos ya respondidos fuera del flujo local.
+- Corrección:
+  - **Preventa:** consulta `GET /questions/{id}` antes de alertar.
+    - Si ya no está en `UNANSWERED`, auto-marca `respondida=true`.
+  - **Postventa:** consulta `GET /messages/packs/{pack_id}/sellers/{seller_id}?tag=post_sale`.
+    - Si `msg_id` pendiente ya no existe, o vendedor respondió después, elimina pendiente local.
+  - Cooldown por canal (preventa/postventa/resumen) para evitar spam repetitivo.
+
+Impacto: alertas mucho más fieles al estado real de Mercado Libre.
+
+### 12.6 Reinicio requerido tras cambios
+
+Cada vez que se modifiquen `monitor.py`, `routes.py`, `local_ai.py` o variables `.env`, reiniciar:
+
+```bash
+sudo systemctl restart agente-pro
+sudo systemctl is-active agente-pro
+```
+
+Esperado: `active`.
