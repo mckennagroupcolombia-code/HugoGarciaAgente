@@ -32,6 +32,19 @@ def _get_enviar():
     return _enviar_whatsapp
 
 
+def _sort_key_meli_msg(m: dict) -> str:
+    """Misma heurística de fecha que scripts/postventa_cola_meli (API no garantiza orden)."""
+    if not isinstance(m, dict):
+        return ""
+    return str(
+        m.get("date")
+        or m.get("date_created")
+        or m.get("message_date")
+        or m.get("timestamp")
+        or ""
+    )
+
+
 # Grupos por tipo de alerta
 GRUPO_SISTEMAS = os.getenv("GRUPO_FACTURACION_COMPRAS_WA", "120363408323873426@g.us")
 GRUPO_COMPROBANTES = os.getenv(
@@ -823,6 +836,8 @@ def _supervisar_colas_meli():
                 sid = _seller()
                 for codigo, item in list((data_post.get("pendientes", {}) or {}).items()):
                     # Reconciliar estado del pack: si vendedor ya habló después del msg pendiente, cerrar cola.
+                    # Ordenar por fecha: sin esto, enumerate(msgs) puede poner "último seller" mal y el supervisor
+                    # re-alerta en bucle aunque MeLi ya tenga conversación al día.
                     if tok and sid and item.get("pack_id"):
                         try:
                             pack_id = str(item.get("pack_id"))
@@ -832,23 +847,46 @@ def _supervisar_colas_meli():
                                 timeout=10,
                             )
                             if r_m.status_code == 200:
-                                msgs = r_m.json().get("messages", []) or []
+                                raw = r_m.json().get("messages", []) or []
+                                msgs = sorted(
+                                    [m for m in raw if isinstance(m, dict)],
+                                    key=_sort_key_meli_msg,
+                                )
+                                sid_s = str(sid)
                                 pending_msg_id = str(item.get("msg_id", "")).strip()
-                                idx_pend = -1
-                                idx_last_seller = -1
-                                for idx, m in enumerate(msgs):
-                                    from_id = meli_postventa_remitente_user_id(m)
-                                    mid = str(meli_postventa_id_mensaje(m) or "")
-                                    if pending_msg_id and mid == pending_msg_id:
-                                        idx_pend = idx
-                                    if from_id and str(from_id) == str(sid):
-                                        idx_last_seller = idx
 
-                                # Cerrar si mensaje pendiente no existe (stale) o ya hubo respuesta del vendedor después.
-                                if idx_pend == -1 or (idx_last_seller != -1 and idx_last_seller > idx_pend):
-                                    pendientes_post.pop(str(codigo), None)
-                                    post_modificado = True
-                                    continue
+                                if not msgs:
+                                    if pending_msg_id:
+                                        pendientes_post.pop(str(codigo), None)
+                                        post_modificado = True
+                                        continue
+                                else:
+                                    # Misma regla operativa que postventa_cola_meli --limpiar-ya-respondidos
+                                    last_u = meli_postventa_remitente_user_id(msgs[-1])
+                                    if last_u and str(last_u) == sid_s:
+                                        pendientes_post.pop(str(codigo), None)
+                                        post_modificado = True
+                                        continue
+
+                                    idx_pend = -1
+                                    for idx, m in enumerate(msgs):
+                                        mid = str(meli_postventa_id_mensaje(m) or "")
+                                        if pending_msg_id and mid == pending_msg_id:
+                                            idx_pend = idx
+                                            break
+                                    if idx_pend == -1:
+                                        pendientes_post.pop(str(codigo), None)
+                                        post_modificado = True
+                                        continue
+
+                                    for m2 in msgs[idx_pend + 1 :]:
+                                        u = meli_postventa_remitente_user_id(m2)
+                                        if u and str(u) == sid_s:
+                                            pendientes_post.pop(str(codigo), None)
+                                            post_modificado = True
+                                            break
+                                    if not pendientes_post.get(str(codigo)):
+                                        continue
                         except Exception:
                             pass
 

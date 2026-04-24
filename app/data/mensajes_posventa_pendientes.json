@@ -8,12 +8,23 @@
       "msg_id": "019da75ea10d7aae9cfe1ccbdc6ffefb",
       "productos": "  • Codo 6 Cm Acero Inoxidoble Tubo De Calefacción",
       "timestamp": "2026-04-19T15:11:32"
+    },
+    "4010": {
+      "pack_id": "2000016112184010",
+      "comprador": "Comprador 166894391",
+      "from_id": "166894391",
+      "texto": "importante enviar certificado de análisis del producto.",
+      "msg_id": "019dbb2c47ea730885d6fa1baadff669",
+      "productos": "  • Cocoamida Propilbetaina 500 Ml",
+      "timestamp": "2026-04-23T11:29:01"
     }
   },
   "procesados": [
+    "019d52f0c31d7eb3b8f6437ac713c247",
+    "019dbb2baf2b74e9b60456fe5039cea7",
     "019da75ea10d7aae9cfe1ccbdc6ffefb",
-    "019d6efc83d3721981a55e46885bca77",
     "019d7f2ccdab7c5d9f13dfdfd426aa04",
-    "019d52f0c31d7eb3b8f6437ac713c247"
+    "019dbb2c47ea730885d6fa1baadff669",
+    "019d6efc83d3721981a55e46885bca77"
   ]
 }
