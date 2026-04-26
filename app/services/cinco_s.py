@@ -27,6 +27,23 @@ def _now_iso() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
+def _steps_from_labels(labels: list[str]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for label in labels:
+        lab = str(label or "").strip()
+        if not lab:
+            continue
+        out.append(
+            {
+                "id": f"pf-{uuid.uuid4().hex[:10]}",
+                "label": lab,
+                "done": False,
+                "assignee": "",
+            }
+        )
+    return out
+
+
 def default_workspace() -> dict[str, Any]:
     return {
         "version": 1,
@@ -350,19 +367,6 @@ def create_routine_project(
     resolved = resolve_category_from_tags(workspace, tags, category_id)
     if resolved not in valid:
         return None, "category_id inválido"
-
-    def _steps_from_labels(labels: list[str]) -> list[dict[str, Any]]:
-        out: list[dict[str, Any]] = []
-        for lab in labels:
-            out.append(
-                {
-                    "id": f"pf-{uuid.uuid4().hex[:10]}",
-                    "label": lab,
-                    "done": False,
-                    "assignee": "",
-                }
-            )
-        return out
 
     pantry_list: list[dict[str, Any]] = []
     materials_list: list[dict[str, Any]] = []

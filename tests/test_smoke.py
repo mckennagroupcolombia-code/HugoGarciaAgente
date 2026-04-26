@@ -1,6 +1,92 @@
 """Smoke tests sin credenciales externas (solo Flask y utilidades locales)."""
 
+from __future__ import annotations
+
+from pathlib import Path
+
 from flask import Flask
+
+
+def test_script_manifest_compiles() -> None:
+    from app.tools.script_audit import ejecutar_auditoria_dict
+
+    result = ejecutar_auditoria_dict()
+
+    assert "error" not in result
+    failures = [item for item in result.get("detalle", []) if not item.get("ok")]
+    assert failures == []
+    assert result.get("detalle")
+
+
+def test_file_tool_guard_restricts_mutations(monkeypatch) -> None:
+    from app.tools import system_tools
+
+    monkeypatch.setenv("AGENTE_RESTRICT_FILE_TOOLS", "1")
+    monkeypatch.setenv("AGENTE_FILE_TOOL_PREFIXES", "scripts/,app/tools/,tests/")
+
+    assert system_tools._guard_mutable_path("tests/test_smoke.py") is None
+    blocked = system_tools._guard_mutable_path("app/routes.py")
+
+    assert blocked is not None
+    assert "Herramienta de archivos restringida" in blocked
+
+
+def test_meli_webhook_dispatch_contracts() -> None:
+    from app.meli_webhook_topics import meli_webhook_evaluar_despacho
+
+    assert meli_webhook_evaluar_despacho(
+        "questions",
+        "/questions/123",
+        {"topic": "questions"},
+    ) == {"tipo": "preventa", "question_id": "123", "topic": "questions"}
+
+    assert meli_webhook_evaluar_despacho(
+        "orders_v2",
+        "/orders/456",
+        {"topic": "orders_v2"},
+    ) == {"tipo": "orden", "order_id": "456", "topic": "orders_v2"}
+
+    assert meli_webhook_evaluar_despacho(
+        "messages",
+        "/messages/packs/789",
+        {"topic": "messages", "actions": ["read"]},
+    )["tipo"] == "postventa_omitir_lectura"
+
+    assert meli_webhook_evaluar_despacho(
+        "messages",
+        "/messages/packs/789",
+        {"topic": "messages", "actions": ["created"]},
+    ) == {
+        "tipo": "postventa",
+        "resource": "/messages/packs/789",
+        "topic": "messages",
+    }
+
+
+def test_agentic_docs_exist() -> None:
+    root = Path(__file__).resolve().parents[1]
+    expected = [
+        "docs/agentic/INDEX.md",
+        "docs/agentic/ORCHESTRATION.md",
+        "docs/agentic/MEMORY.md",
+        "docs/agentic/SKILLS.md",
+        "docs/agentic/CHECKLIST.md",
+        "docs/agentic/CONTRACTS.md",
+        "docs/agentic/DECISIONS.md",
+        "docs/agentic/ECOSYSTEM.md",
+        "docs/agentic/learned_context.md",
+        "docs/agentic/modules/webhook-meli.md",
+        "docs/agentic/modules/whatsapp-routes.md",
+        "docs/agentic/modules/core-tools.md",
+        "docs/agentic/modules/sync-stock.md",
+        "docs/agentic/modules/desktop-panel.md",
+        "docs/agentic/modules/ops-systemd.md",
+        "docs/agentic/modules/backend-qa.md",
+        "docs/agentic/modules/guardian-review.md",
+    ]
+
+    missing = [path for path in expected if not (root / path).is_file()]
+    assert missing == []
 
 
 def test_parse_adjuntos_chat_accepts_png():
