@@ -52,7 +52,7 @@ def _sufijo_pack(pack_id: str) -> str:
     return digits[-4:] if len(digits) >= 4 else digits
 
 
-def procesar_postventa_meli_desde_webhook(resource: str) -> None:
+def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existentes: bool = False) -> None:
     """
     Recibe resource del webhook (path o id). Si hay mensaje nuevo del comprador, alerta WA.
     """
@@ -215,6 +215,55 @@ def procesar_postventa_meli_desde_webhook(resource: str) -> None:
                 print(
                     f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}"
                 )
+
+                # Polling/reconciliación: si el vendedor ya contestó después de este mensaje,
+                # solo registrar como procesado; no revivir una alerta vieja.
+                if reconciliar_existentes:
+                    try:
+                        def _k(m: dict) -> str:
+                            msg_date = m.get("message_date")
+                            if isinstance(msg_date, dict):
+                                return str(
+                                    msg_date.get("created")
+                                    or msg_date.get("received")
+                                    or msg_date.get("available")
+                                    or msg_date.get("notified")
+                                    or ""
+                                )
+                            return str(
+                                m.get("date")
+                                or m.get("date_created")
+                                or m.get("message_date")
+                                or m.get("timestamp")
+                                or ""
+                            )
+
+                        ordenados = sorted(
+                            [m for m in mensajes if isinstance(m, dict)],
+                            key=_k,
+                        )
+                        idx = next(
+                            (
+                                i
+                                for i, m in enumerate(ordenados)
+                                if meli_postventa_id_mensaje(m) == msg_id
+                            ),
+                            -1,
+                        )
+                        if idx >= 0:
+                            seller_s = str(seller_id)
+                            ya_respondido = any(
+                                meli_postventa_remitente_user_id(m2) == seller_s
+                                for m2 in ordenados[idx + 1 :]
+                            )
+                            if ya_respondido:
+                                procesados.add(msg_id)
+                                print(
+                                    f"✅ [POSVENTA] Mensaje {msg_id} ya tenía respuesta posterior del vendedor; no se alerta."
+                                )
+                                continue
+                    except Exception as e_rec:
+                        print(f"⚠️ [POSVENTA] No pude reconciliar hilo {pack_id}: {e_rec}")
 
                 productos_str = ""
                 try:

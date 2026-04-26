@@ -276,6 +276,12 @@ def notifications():
             pass
     elif t == "postventa":
         print(f"📩 [MELI-MSG] Posventa topic={topic!r} resource={resource!r}")
+        registrar_meli_webhook_incidente(
+            "postventa_webhook_recibido",
+            topic=topic,
+            resource=(resource or "")[:500],
+            source="webhook_meli",
+        )
         spawn_thread(
             procesar_postventa_meli_desde_webhook,
             args=(plan["resource"],),

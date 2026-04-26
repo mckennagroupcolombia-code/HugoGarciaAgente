@@ -78,3 +78,27 @@ def contar_incidentes_por_evento(limite_lineas: int = 50_000) -> dict[str, int]:
         except json.JSONDecodeError:
             continue
     return out
+
+
+def ultimo_incidente(event: str | None = None, limite_lineas: int = 50_000) -> dict[str, Any] | None:
+    """Devuelve el último incidente, opcionalmente filtrado por event."""
+    if not os.path.isfile(INCIDENTS_PATH):
+        return None
+    try:
+        with open(INCIDENTS_PATH, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            sz = f.tell()
+            chunk = min(sz, 2_000_000)
+            f.seek(max(0, sz - chunk))
+            raw = f.read().decode("utf-8", errors="replace")
+        lines = [ln for ln in raw.splitlines() if ln.strip()][-limite_lineas:]
+    except OSError:
+        return None
+    for ln in reversed(lines):
+        try:
+            rec = json.loads(ln)
+        except json.JSONDecodeError:
+            continue
+        if event is None or rec.get("event") == event:
+            return rec
+    return None

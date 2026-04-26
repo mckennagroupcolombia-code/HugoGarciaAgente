@@ -59,6 +59,15 @@ def _headers(token: str) -> dict:
 
 
 def _msg_sort_key(m: dict) -> str:
+    msg_date = m.get("message_date")
+    if isinstance(msg_date, dict):
+        return str(
+            msg_date.get("created")
+            or msg_date.get("received")
+            or msg_date.get("available")
+            or msg_date.get("notified")
+            or ""
+        )
     return str(
         m.get("date")
         or m.get("date_created")

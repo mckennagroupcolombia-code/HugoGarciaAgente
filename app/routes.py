@@ -13,6 +13,13 @@ _ROUTES_DIR = os.path.dirname(os.path.abspath(__file__))
 PENDIENTES_PATH = os.path.join(_ROUTES_DIR, "data", "preguntas_pendientes_preventa.json")
 
 
+def _normalizar_comando_grupo(texto: str) -> str:
+    """Normaliza comandos que WhatsApp puede entregar con markdown o espacios raros."""
+    t = (texto or "").replace("\u00a0", " ").strip()
+    t = re.sub(r"[*_~`]+", "", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
 def encontrar_question_id_por_sufijo(sufijo: str):
     """Busca en pendientes el question_id único que termina con `sufijo`."""
     try:
@@ -56,6 +63,8 @@ def detectar_comando_preventa(texto: str):
     Acepta con o sin llaves, mayúsculas/minúsculas.
     Retorna (question_id_completo, respuesta) o (None, None).
     """
+    texto = _normalizar_comando_grupo(texto)
+
     # Formato completo: resp preventa <digits>: <respuesta>
     patrones_completo = [
         r"resp\s+preventa\s+(\d+):\s*\{(.+?)\}\s*$",
@@ -179,10 +188,35 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
             )
             return
 
-        # Responder en MeLi
+        # Responder en MeLi. Si alguien ya contestó desde la UI de MeLi,
+        # cerramos el pendiente local para cortar recordatorios en bucle.
         token = refrescar_token_meli()
         if token:
             import requests as req
+
+            try:
+                r_check = req.get(
+                    f"https://api.mercadolibre.com/questions/{question_id}?api_version=4",
+                    headers={"Authorization": f"Bearer {token}"},
+                    timeout=10,
+                )
+                if r_check.status_code == 200:
+                    q_status = str(r_check.json().get("status", "")).upper()
+                    if q_status and q_status != "UNANSWERED":
+                        marcar_pregunta_respondida(question_id)
+                        enviar_whatsapp_reporte(
+                            f"✅ *Preventa ya estaba respondida en MeLi*\n"
+                            f"📦 Producto: {pendiente.get('titulo_producto', '')}\n"
+                            f"🧾 Estado MeLi: {q_status}\n"
+                            f"🧹 Cerré el pendiente local para detener recordatorios.",
+                            numero_destino=jid_grupo_preventa_wa(),
+                        )
+                        print(
+                            f"✅ Preventa: question_id {question_id} ya estaba {q_status}; cerrado localmente."
+                        )
+                        return
+            except Exception as e_check:
+                print(f"⚠️ Preventa: no pude verificar estado antes de responder {question_id}: {e_check}")
 
             res = req.post(
                 "https://api.mercadolibre.com/answers",
@@ -196,6 +230,15 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
             exito = res.status_code in (200, 201)
             if not exito:
                 print(f"❌ Preventa: MeLi API falló con {res.status_code} - {res.text}")
+                if res.status_code == 400 and "not_unanswered" in (res.text or "").lower():
+                    marcar_pregunta_respondida(question_id)
+                    enviar_whatsapp_reporte(
+                        f"✅ *Preventa ya estaba respondida en MeLi*\n"
+                        f"📦 Producto: {pendiente.get('titulo_producto', '')}\n"
+                        f"🧹 MeLi rechazó duplicado (`not_unanswered`); cerré el pendiente local.",
+                        numero_destino=jid_grupo_preventa_wa(),
+                    )
+                    return
         else:
             exito = False
 
@@ -583,6 +626,12 @@ def register_routes(app):
                 pass
         elif t == "postventa":
             print(f"📩 [MELI-MSG] Posventa topic={topic!r} resource={resource!r}")
+            registrar_meli_webhook_incidente(
+                "postventa_webhook_recibido",
+                topic=topic,
+                resource=(resource or "")[:500],
+                source="routes",
+            )
             spawn_thread(
                 procesar_postventa_meli_desde_webhook,
                 args=(plan["resource"],),
