@@ -47,6 +47,21 @@ cd bot-mckenna && npm ci && npm start
 # systemd (WhatsApp Node): sudo bot-mckenna/instalar_systemd.sh && systemctl enable --now mckenna-whatsapp-bridge
 ```
 
+### Metodología agentica
+
+Antes de cambios medianos/grandes, usar **`docs/agentic/INDEX.md`** como mapa corto: orquestador → memoria → skill/ficha de módulo → subagentes readonly → plan → implementación → verificación → aprendizaje reusable. Evita cargar todo `CLAUDE.md` cuando el cambio solo toca un módulo.
+
+Archivos clave:
+
+- `docs/agentic/ORCHESTRATION.md` — roles orquestador/subagentes y flujo.
+- `docs/agentic/MEMORY.md` — memoria local estilo Engram usando SQLite/Chroma/debug-memory existente.
+- `docs/agentic/SKILLS.md` — matriz de skills lazy por intención.
+- `docs/agentic/CHECKLIST.md` — checklist pre/post cambio.
+- `docs/agentic/CONTRACTS.md` — contratos API críticos de panel, WhatsApp y MeLi.
+- `docs/agentic/ECOSYSTEM.md` — mapa del ecosistema Gentleman: gentle-ai, Engram, ATL, Gentleman-Skills, GGA y Gentleman.Dots.
+- `docs/agentic/learned_context.md` — resumen portable/sincronizable de aprendizajes reutilizables.
+- `docs/agentic/modules/*.md` — fichas cortas por módulo crítico.
+
 ### Git: `git pull` sin rama de seguimiento
 
 Si aparece *No hay información de rastreo para la rama actual*, usa explícitamente el remoto y la rama (suele ser `main` o `master`):
