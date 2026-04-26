@@ -32,7 +32,8 @@ def _exec_placeholder(cmd: str) -> bool:
     c = (cmd or "").strip()
     if not c:
         return True
-    if c.startswith("<") or "tu comando" in c.lower():
+    low = c.lower().replace("_", " ")
+    if c.startswith("<") or "tu comando" in low:
         return True
     return False
 

@@ -36,6 +36,15 @@ def _sort_key_meli_msg(m: dict) -> str:
     """Misma heurística de fecha que scripts/postventa_cola_meli (API no garantiza orden)."""
     if not isinstance(m, dict):
         return ""
+    msg_date = m.get("message_date")
+    if isinstance(msg_date, dict):
+        return str(
+            msg_date.get("created")
+            or msg_date.get("received")
+            or msg_date.get("available")
+            or msg_date.get("notified")
+            or ""
+        )
     return str(
         m.get("date")
         or m.get("date_created")
@@ -43,6 +52,47 @@ def _sort_key_meli_msg(m: dict) -> str:
         or m.get("timestamp")
         or ""
     )
+
+
+def _monitor_postventa_meli_polling():
+    """
+    Fallback para postventa: MeLi no siempre manda topic messages al webhook.
+    Revisa órdenes recientes y usa el mismo dedupe de meli_postventa_notif.
+    """
+    from app.meli_postventa_notif import procesar_postventa_meli_desde_webhook
+    from app.utils import obtener_seller_id_meli, refrescar_token_meli
+
+    intervalo = int(os.getenv("POSTVENTA_POLL_INTERVALO_SEG", "300"))
+    limite = int(os.getenv("POSTVENTA_POLL_ORDENES_LIMIT", "50"))
+    time.sleep(45)
+    while True:
+        try:
+            token = refrescar_token_meli()
+            seller_id = obtener_seller_id_meli()
+            if token and seller_id:
+                r = requests.get(
+                    f"https://api.mercadolibre.com/orders/search?seller={seller_id}&sort=date_desc&limit={limite}",
+                    headers={"Authorization": f"Bearer {token}", "x-version": "2"},
+                    timeout=15,
+                )
+                if r.status_code == 200:
+                    for orden in r.json().get("results", []) or []:
+                        oid = str(orden.get("pack_id") or orden.get("id") or "").strip()
+                        if oid:
+                            procesar_postventa_meli_desde_webhook(
+                                f"/messages/packs/{oid}",
+                                reconciliar_existentes=True,
+                            )
+                else:
+                    print(f"⚠️ [POSTVENTA-POLL] orders/search HTTP {r.status_code}: {r.text[:200]}")
+        except Exception as e:
+            print(f"⚠️ [POSTVENTA-POLL] Error: {e}")
+            threading.Thread(
+                target=_autocorregir_y_reportar,
+                args=("Error polling postventa MeLi", str(e), "postventa_polling"),
+                daemon=True,
+            ).start()
+        time.sleep(intervalo)
 
 
 # Grupos por tipo de alerta
@@ -1098,6 +1148,25 @@ def _health_check_preventa_postventa():
             except Exception as e:
                 errores.append(f"Postventa API órdenes: {e}")
 
+            try:
+                from app.meli_webhook_incidents import ultimo_incidente
+
+                last_msg = ultimo_incidente("postventa_webhook_recibido")
+                if not last_msg:
+                    errores.append(
+                        "Postventa webhook: no hay eventos `messages` registrados; polling fallback activo"
+                    )
+                else:
+                    mins = int(max(0, (time.time() - float(last_msg.get("ts", 0))) / 60))
+                    if mins > 1440:
+                        errores.append(
+                            f"Postventa webhook: último evento `messages` hace {mins} min; revisar topics MeLi"
+                        )
+                    else:
+                        ok_items.append(f"Postventa webhook: último `messages` hace {mins} min")
+            except Exception as e:
+                errores.append(f"Postventa webhook audit: {e}")
+
             # 7. Test WA send capability
             try:
                 r_test = requests.post(
@@ -1172,6 +1241,11 @@ def iniciar_monitor():
         daemon=True,
         name="supervisor-colas-meli",
     ).start()
+    threading.Thread(
+        target=_monitor_postventa_meli_polling,
+        daemon=True,
+        name="monitor-postventa-polling",
+    ).start()
     print(
-        "✅ Monitor de alertas iniciado (preventa + supervisor colas + health-check)"
+        "✅ Monitor de alertas iniciado (preventa + postventa polling + supervisor colas + health-check)"
     )

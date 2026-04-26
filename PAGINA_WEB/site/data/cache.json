@@ -8402,7 +8402,7 @@
               "precio": "$8.684",
               "precio_meli": "$10.400",
               "ahorro": "$1.716",
-              "photo": "https://http2.mlstatic.com/D_728724-MCO93973710025_102025-O.jpg",
+              "photo": "https://http2.mlstatic.com/D_667649-MCO110865067111_042026-O.jpg",
               "meli_id": "MCO602225162",
               "cat": "Aceites",
               "cat_color": "#2E8B7A",
@@ -24638,7 +24638,7 @@
           "precio": "$5.678",
           "precio_meli": "$6.800",
           "ahorro": "—",
-          "photo": "https://http2.mlstatic.com/D_694381-MCO86627311530_062025-O.jpg",
+          "photo": "https://http2.mlstatic.com/D_982294-MLA109993486368_042026-O.jpg",
           "meli_id": "MCO2924070024",
           "cat": "Excipientes",
           "cat_color": "#3A9E8C",
@@ -24654,7 +24654,7 @@
               "precio": "$5.678",
               "precio_meli": "$6.800",
               "ahorro": "$1.122",
-              "photo": "https://http2.mlstatic.com/D_694381-MCO86627311530_062025-O.jpg",
+              "photo": "https://http2.mlstatic.com/D_982294-MLA109993486368_042026-O.jpg",
               "meli_id": "MCO2924070024",
               "cat": "Excipientes",
               "cat_color": "#3A9E8C",
@@ -40696,10 +40696,10 @@
           "precio_canal_label": "Lista"
         },
         {
-          "name": "CAOLIN ARCILLA g",
+          "name": "CAOLIN ARCILLA 500g",
           "ref": "C-CAOARC500g",
           "rep_sku": "C-CAOARC500g",
-          "slug": "caolin-arcilla-g-c-caoarc500g",
+          "slug": "caolin-arcilla-500g-c-caoarc500g",
           "precio": "$8.768",
           "precio_meli": "$10.500",
           "ahorro": "$1.732",
@@ -40714,7 +40714,7 @@
           "referencias": [],
           "combos": [
             {
-              "name": "CAOLIN ARCILLA g",
+              "name": "CAOLIN ARCILLA 500g",
               "ref": "C-CAOARC500g",
               "slug": "c-caoarc500g",
               "precio": "$8.768",
@@ -40731,7 +40731,7 @@
               "buyable": true,
               "is_combo": true,
               "precio_canal_label": "Lista",
-              "family_slug": "caolin-arcilla-g-c-caoarc500g"
+              "family_slug": "caolin-arcilla-500g-c-caoarc500g"
             }
           ],
           "precio_canal_label": "Lista"
@@ -46552,7 +46552,7 @@
       "family_slug": "caolin-arcilla-kg-c-caocarkg"
     },
     {
-      "name": "CAOLIN ARCILLA g",
+      "name": "CAOLIN ARCILLA 500g",
       "ref": "C-CAOARC500g",
       "slug": "c-caoarc500g",
       "precio": "$8.768",
@@ -46569,7 +46569,7 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "family_slug": "caolin-arcilla-g-c-caoarc500g"
+      "family_slug": "caolin-arcilla-500g-c-caoarc500g"
     },
     {
       "name": "GLUTAMATO MONOSODICO Kg",

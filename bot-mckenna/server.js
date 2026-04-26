@@ -21,6 +21,7 @@ const DIR_COMPROBANTES = process.env.COMPROBANTES_DIR
 // ==========================================
 const MAX_LOG = 200;
 const activityLog = [];
+const comandosRecientes = new Map();
 
 function logActividad(tipo, datos) {
     const entrada = {
@@ -30,6 +31,36 @@ function logActividad(tipo, datos) {
     };
     activityLog.unshift(entrada);
     if (activityLog.length > MAX_LOG) activityLog.pop();
+}
+
+function normalizarComando(texto) {
+    return String(texto || '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/[*_~`]+/g, '')
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
+function comandoDuplicado(msg, textoNorm) {
+    const id = msg && msg.id && msg.id._serialized ? msg.id._serialized : '';
+    const chatId = obtenerChatIdComando(msg) || msg.from || '';
+    const key = id || `${chatId}|${textoNorm}`;
+    const now = Date.now();
+    for (const [k, ts] of comandosRecientes.entries()) {
+        if (now - ts > 120000) comandosRecientes.delete(k);
+    }
+    if (comandosRecientes.has(key)) return true;
+    comandosRecientes.set(key, now);
+    return false;
+}
+
+function obtenerChatIdComando(msg) {
+    const candidatos = [
+        msg && msg.id && msg.id.remote,
+        msg && msg.to,
+        msg && msg.from,
+    ];
+    return candidatos.find(x => typeof x === 'string' && x.includes('@g.us')) || (msg && msg.from);
 }
 
 // ==========================================
@@ -132,8 +163,10 @@ const GRUPOS_ADMIN       = [GRUPO_CONTABILIDAD, GRUPO_COMPRAS];
 const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB, GRUPO_PREVENTA_MELI, GRUPO_POSTVENTA_MELI];
 
 // Función compartida: procesar comandos de grupos admin
-async function procesarComandoGrupo(msg) {
-    const texto = msg.body.toLowerCase().trim();
+async function procesarComandoGrupo(msg, chatIdOverride) {
+    const chatId = chatIdOverride || obtenerChatIdComando(msg);
+    const textoNorm = normalizarComando(msg.body);
+    const texto = textoNorm.toLowerCase();
     const esComando = (
         texto.includes('ok confirmado') ||
         texto === 'ok' ||
@@ -149,15 +182,20 @@ async function procesarComandoGrupo(msg) {
         texto.startsWith('envio ')
     );
     if (!esComando) return;
+    if (comandoDuplicado(msg, textoNorm)) {
+        console.log(`⏭️ Comando duplicado ignorado: ${textoNorm}`);
+        logActividad('SISTEMA', { de: chatId, texto: `Comando duplicado ignorado: ${textoNorm}` });
+        return;
+    }
 
-    console.log(`📨 Comando del grupo (fromMe=${msg.fromMe}): ${msg.body}`);
-    logActividad('COMANDO', { de: msg.from, fromMe: msg.fromMe, texto: msg.body });
+    console.log(`📨 Comando del grupo (fromMe=${msg.fromMe}): ${textoNorm}`);
+    logActividad('COMANDO', { de: chatId, fromMe: msg.fromMe, texto: textoNorm });
     try {
         await axios.post('http://localhost:8081/whatsapp', {
-            sender: msg.from,
-            remoteJid: msg.from,
-            mensaje: msg.body,
-            es_grupo_contabilidad: GRUPOS_ADMIN.includes(msg.from),
+            sender: chatId,
+            remoteJid: chatId,
+            mensaje: textoNorm,
+            es_grupo_contabilidad: GRUPOS_ADMIN.includes(chatId),
             hasMedia: false
         });
     } catch (error) {
@@ -171,9 +209,9 @@ async function procesarComandoGrupo(msg) {
 client.on('message_create', async (msg) => {
     if (!sistemaListo) return;
     if (!msg.fromMe) return;
-    const chatId = msg.from || (msg.id && msg.id.remote);
+    const chatId = obtenerChatIdComando(msg);
     if (!GRUPOS_COMANDO.includes(chatId)) return;
-    await procesarComandoGrupo(msg);
+    await procesarComandoGrupo(msg, chatId);
 });
 
 client.on('message', async (msg) => {
@@ -229,7 +267,7 @@ client.on('message', async (msg) => {
 
     // Grupos de comando (contabilidad, compras, pedidos web) — solo comandos
     if (esGrupoComando) {
-        await procesarComandoGrupo(msg);
+        await procesarComandoGrupo(msg, msg.from);
         return;
     }
 
