@@ -1,0 +1,49 @@
+name: Backend QA
+
+on:
+  push:
+    paths:
+      - "app/**"
+      - "scripts/**"
+      - "tests/**"
+      - "*.py"
+      - "requirements.txt"
+      - "docs/agentic/**"
+      - ".github/workflows/backend-qa.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - "scripts/**"
+      - "tests/**"
+      - "*.py"
+      - "requirements.txt"
+      - "docs/agentic/**"
+      - ".github/workflows/backend-qa.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run smoke tests
+        env:
+          WEBHOOK_MELI_SKIP_SINGLETON_LOCK: "1"
+          AGENTE_AUDITORIA_SKIP_WA: "1"
+        run: python -m pytest tests/test_smoke.py
+
+      - name: Run script audit
+        env:
+          AGENTE_AUDITORIA_SKIP_WA: "1"
+          AGENTE_AUDITORIA_CRON_QUIET: "1"
+        run: python scripts/auditar_scripts_cron.py

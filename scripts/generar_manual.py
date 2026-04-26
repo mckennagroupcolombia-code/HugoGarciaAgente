@@ -429,6 +429,12 @@ def tabla_contenidos(s: dict) -> list:
             'Restricción de parchear_funcion / ejecutar_script',
             'Manifiesto, cron, auditar_scripts',
             'Backup nocturno, GitHub, GRUPO_ALERTAS_SISTEMAS_WA']),
+        ('15', 'Metodología Agentica McKenna', [
+            'Orquestador y subagentes',
+            'Memoria local tipo Engram',
+            'Skills bajo demanda',
+            'Ecosistema Gentleman',
+            'Contratos, smoke tests y CI backend']),
     ]
 
     for num, titulo, subs in toc:
@@ -1624,13 +1630,140 @@ def sec14_operabilidad(s: dict) -> list:
     elems.append(
         nota(
             "📧",
-            "Manual actualizado (v3.2). Regenerar PDF: "
+            "Manual actualizado (v3.3). Regenerar PDF: "
             "<b>python3 scripts/generar_manual.py</b> · enviar por correo: <b>--enviar</b>.",
             s,
             bg=colors.HexColor("#f0fdf4"),
             border=C_GREEN,
         )
     )
+    elems.append(PageBreak())
+    return elems
+
+
+# ══════════════════════════════════════════════
+# SEC 15 — METODOLOGIA AGENTICA
+# ══════════════════════════════════════════════
+
+def sec15_metodologia_agentica(s: dict) -> list:
+    elems = []
+    elems += section_header(
+        "Sección 15",
+        "Metodología Agentica McKenna",
+        s,
+        C_PURPLE,
+    )
+
+    elems.append(body(
+        'McKenna adopta una metodología agentica inspirada en el paso de "vibe coding" '
+        'a desarrollo profesional con IA: el operador actúa como director de orquesta, '
+        'un agente orquestador conserva el contexto limpio, y subagentes especializados '
+        'exploran, implementan, verifican y revisan cambios sin cargar todo el proyecto en cada turno.',
+        s,
+    ))
+    elems.append(sp(0.25))
+
+    elems.append(subsection("15.1 Ecosistema Gentleman integrado", s, C_PURPLE))
+    ecosistema = [
+        ["Repositorio", "Rol", "Uso recomendado en McKenna"],
+        ["gentle-ai", "Configurador central: SDD, skills, MCP, Engram, persona y subagentes.", "Adopción objetivo para superagentes; instalar primero en dev."],
+        ["engram", "Memoria persistente agent-agnostic con SQLite + FTS5, CLI, HTTP API, MCP, TUI y sync.", "Candidato para memoria orgánica/sync entre agentes."],
+        ["agent-teams-lite", "Orquestador + subagentes + SDD en Markdown; proyecto archivado.", "Referencia histórica; preferir gentle-ai."],
+        ["Gentleman-Skills", "Catálogo de skills curadas/comunitarias.", "Importar selectivamente React 19, TypeScript, pytest, Playwright y github-pr."],
+        ["gentleman-guardian-angel", "Revisión AI provider-agnostic para commits/PRs.", "Usar como review no bloqueante antes de activar hooks."],
+        ["Gentleman.Dots", "Entorno dev: editor, shells, terminales, tmux/zellij.", "Opcional para máquinas dev; la capa AI vive en gentle-ai."],
+    ]
+    elems.append(tabla_comandos(
+        ecosistema,
+        s,
+        col_widths=[4.0 * cm, 6.2 * cm, PAGE_W - 2 * MARGEN - 10.4 * cm],
+    ))
+    elems.append(sp(0.25))
+
+    elems.append(subsection("15.2 Flujo operativo y delegación automática", s, C_PURPLE))
+    flujo = [
+        ["Paso", "Acción", "Archivo de referencia"],
+        ["1", "Identificar módulo principal y secundarios", "docs/agentic/INDEX.md"],
+        ["2", "Consultar memoria de bugs, decisiones e invariantes", "docs/agentic/MEMORY.md"],
+        ["3", "Cargar skill/ficha mínima según intención", "docs/agentic/SKILLS.md"],
+        ["4", "Delegar exploración readonly si el cambio cruza capas", "docs/agentic/ORCHESTRATION.md"],
+        ["5", "Planear, implementar acotado y verificar", "docs/agentic/CHECKLIST.md"],
+        ["6", "Actualizar contratos y guardar aprendizaje reusable", "docs/agentic/CONTRACTS.md / DECISIONS.md"],
+    ]
+    elems.append(tabla_comandos(
+        flujo,
+        s,
+        col_widths=[1.2 * cm, 8.3 * cm, PAGE_W - 2 * MARGEN - 9.7 * cm],
+    ))
+    elems.append(sp(0.25))
+
+    delegacion = [
+        ["Petición natural", "Skill/subagente"],
+        ["'revisa preguntas de MeLi / messages / orders_v2'", "webhook-meli + Explore/Verify"],
+        ["'arregla WhatsApp / resp / posventa / comprobante'", "whatsapp-routes + Explore"],
+        ["'agrega herramienta a Hugo / cambia prompt Claude'", "core-tools + Review"],
+        ["'stock / facturas / Siigo / sync web'", "sync-stock + Explore/Verify"],
+        ["'panel React / dashboard / Vite'", "desktop-panel + Verify"],
+        ["'systemd / puerto / deploy / nohup'", "ops-systemd + Explore"],
+        ["'review PR / pre-commit / estándares'", "guardian-review"],
+    ]
+    elems.append(tabla_comandos(
+        delegacion,
+        s,
+        col_widths=[7.2 * cm, PAGE_W - 2 * MARGEN - 7.4 * cm],
+    ))
+    elems.append(sp(0.25))
+
+    elems.append(subsection("15.3 Componentes creados", s, C_PURPLE))
+    componentes = [
+        ["Componente", "Propósito"],
+        ["docs/agentic/INDEX.md", "Mapa rápido de lectura por tipo de cambio para ahorrar tokens."],
+        ["docs/agentic/ORCHESTRATION.md", "Roles: orquestador, explore, implement, verify y review."],
+        ["docs/agentic/MEMORY.md", "Reglas para memoria local tipo Engram usando SQLite/Chroma/debug-memory existente."],
+        ["docs/agentic/SKILLS.md", "Registro de skills lazy por módulo y triggers de uso."],
+        ["docs/agentic/ECOSYSTEM.md", "Mapa de gentle-ai, Engram, ATL, Gentleman-Skills, GGA y Gentleman.Dots."],
+        ["docs/agentic/modules/*.md", "Fichas cortas por webhook MeLi, WhatsApp, core tools, sync, desktop, ops y QA."],
+        ["docs/agentic/CONTRACTS.md", "Contratos críticos de /api, /chat, /whatsapp y /notifications."],
+        ["docs/agentic/DECISIONS.md", "Memoria versionada de decisiones técnicas y agenticas."],
+        ["docs/agentic/learned_context.md", "Resumen portable para compartir contexto con otros devs/agentes."],
+    ]
+    elems.append(tabla_comandos(
+        componentes,
+        s,
+        col_widths=[5.5 * cm, PAGE_W - 2 * MARGEN - 5.7 * cm],
+    ))
+    elems.append(sp(0.25))
+
+    elems.append(subsection("15.4 Validación automática agregada", s, C_PURPLE))
+    elems.append(body(
+        'Se restauró y amplió <b>tests/test_smoke.py</b> para validar auditoría de scripts, '
+        'guards de herramientas de archivo, contratos puros de despacho MeLi, rutas Flask críticas '
+        'y existencia de la documentación agentica. También se agregó <b>.github/workflows/backend-qa.yml</b> '
+        'para ejecutar smoke tests y auditoría cuando cambie backend, scripts, tests, requirements o docs agentic.',
+        s,
+    ))
+    cmds = [
+        ["Validación", "Comando"],
+        ["Smoke backend", "venv/bin/python -m pytest tests/test_smoke.py"],
+        ["Auditoría scripts", "AGENTE_AUDITORIA_SKIP_WA=1 AGENTE_AUDITORIA_CRON_QUIET=1 venv/bin/python scripts/auditar_scripts_cron.py"],
+        ["QA panel React", "cd desktop && npm run qa:full"],
+    ]
+    elems.append(tabla_comandos(
+        cmds,
+        s,
+        col_widths=[4.3 * cm, PAGE_W - 2 * MARGEN - 4.5 * cm],
+    ))
+    elems.append(sp(0.25))
+
+    elems.append(nota(
+        "🧠",
+        "<b>Regla de memoria:</b> guardar solo conocimiento reutilizable: invariantes, bugs con causa raíz, "
+        "contratos entre servicios, comandos de validación y decisiones con tradeoff. Engram/sync nunca debe guardar "
+        "secretos, tokens, .env ni credenciales. No guardar ruido de cada edición.",
+        s,
+        bg=colors.HexColor("#f5f3ff"),
+        border=C_PURPLE,
+    ))
     elems.append(PageBreak())
     return elems
 
@@ -1653,7 +1786,7 @@ def generar_pdf() -> str:
     )
 
     s   = estilos()
-    dec = PaginaDecoracion('v3.2')
+    dec = PaginaDecoracion('v3.3')
 
     elems = []
     elems += portada(s)
@@ -1672,6 +1805,7 @@ def generar_pdf() -> str:
     elems += sec12_contenido_cientifico(s)
     elems += sec13_skills(s)
     elems += sec14_operabilidad(s)
+    elems += sec15_metodologia_agentica(s)
 
     doc.build(elems, onFirstPage=dec, onLaterPages=dec)
     print(f'✅ PDF generado: {OUT_PDF}  ({os.path.getsize(OUT_PDF)//1024} KB)')
@@ -1699,7 +1833,7 @@ def enviar_por_correo(pdf_path: str):
     msg = MIMEMultipart()
     msg['From']    = remitente
     msg['To']      = dest
-    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.2 · McKenna Group · {hoy}'
+    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.3 · McKenna Group · {hoy}'
 
     cuerpo = f"""Hola,
 
@@ -1720,8 +1854,10 @@ El manual incluye:
   • Observabilidad (request_id, logs JSON) y límites a herramientas de archivos
   • Auditoría de scripts (manifiesto, cron, avisos WhatsApp)
   • Backup nocturno, push a GitHub opcional y grupo GRUPO_ALERTAS_SISTEMAS_WA
+  • Metodología agentica McKenna: orquestador, subagentes, memoria local, skills lazy, contratos y CI backend
+  • Ecosistema Gentleman: gentle-ai, Engram, Agent Teams Lite, Gentleman-Skills, Guardian Angel y Gentleman.Dots
 
-Versión: v3.2 · Generado el {hoy}
+Versión: v3.3 · Generado el {hoy}
 
 ---
 McKenna Group S.A.S. · Bogotá, Colombia
@@ -1744,7 +1880,7 @@ Sistema de Automatización Hugo García
         )
         raise SystemExit(1)
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=30)
         server.starttls()
         server.login(remitente, password)
         server.send_message(msg)
