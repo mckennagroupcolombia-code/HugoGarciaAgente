@@ -101,6 +101,24 @@ const client = new Client({
 
 let sistemaListo = false;
 
+async function promoverSistemaListoSiSesionFunciona(origen = 'watchdog') {
+    if (sistemaListo || !client.info || !client.info.wid) return false;
+    try {
+        await client.getChats();
+        sistemaListo = true;
+        console.log(`🚀 SISTEMA LISTO por ${origen} - sesión WhatsApp operativa`);
+        logActividad('SISTEMA', { texto: `Sistema listo por ${origen}.` });
+        return true;
+    } catch (e) {
+        console.warn(`⏳ WhatsApp aún no listo (${origen}):`, e.message);
+        return false;
+    }
+}
+
+setInterval(() => {
+    promoverSistemaListoSiSesionFunciona('watchdog');
+}, 10000);
+
 // --- EVENTOS DE CONEXIÓN ---
 client.on('qr', qr => {
     console.log('📱 QR DETECTADO: Escanee para iniciar sesión.');
@@ -204,11 +222,11 @@ async function procesarComandoGrupo(msg, chatIdOverride) {
     }
 }
 
-// message_create captura mensajes enviados desde el propio número (fromMe=true).
-// En grupos, msg.from es el chat del grupo y msg.author es el remitente.
+// message_create captura mensajes creados en WhatsApp Web. En algunos entornos
+// los mensajes de otros participantes llegan aquí antes que en `message`.
+// `comandoDuplicado` evita procesar dos veces si también llega el evento message.
 client.on('message_create', async (msg) => {
     if (!sistemaListo) return;
-    if (!msg.fromMe) return;
     const chatId = obtenerChatIdComando(msg);
     if (!GRUPOS_COMANDO.includes(chatId)) return;
     await procesarComandoGrupo(msg, chatId);
@@ -223,8 +241,17 @@ client.on('message', async (msg) => {
     if (msg.type === 'notification_template') return;
     if (msg.type === 'call_log') return;
 
+    const chatIdComando = obtenerChatIdComando(msg);
+
+    // Algunos mensajes enviados desde el celular llegan por `message` con
+    // fromMe=true y el grupo en msg.to/id.remote, no en msg.from.
+    if (msg.fromMe && GRUPOS_COMANDO.includes(chatIdComando)) {
+        await procesarComandoGrupo(msg, chatIdComando);
+        return;
+    }
+
     // Filtro 2: ignorar mensajes del propio agente a clientes
-    if (msg.fromMe && !GRUPOS_COMANDO.includes(msg.from)) return;
+    if (msg.fromMe && !GRUPOS_COMANDO.includes(chatIdComando)) return;
 
     // Filtro 3: ignorar grupos que no sean de admin
     if (msg.from.includes('@g.us') && !GRUPOS_COMANDO.includes(msg.from)) {
@@ -330,6 +357,9 @@ app.post('/enviar', async (req, res) => {
     const { numero, mensaje } = req.body;
 
     try {
+        if (!sistemaListo && client.info && client.info.wid) {
+            await promoverSistemaListoSiSesionFunciona('API /enviar');
+        }
         if (!sistemaListo || !client.info || !client.info.wid) {
              return res.status(503).json({ status: "error", error: "Sincronizando..." });
         }
@@ -350,6 +380,9 @@ app.post('/enviar', async (req, res) => {
 app.post('/enviar-archivo', async (req, res) => {
     const { numero, mensaje, filePath, fileName } = req.body;
     try {
+        if (!sistemaListo && client.info && client.info.wid) {
+            await promoverSistemaListoSiSesionFunciona('API /enviar-archivo');
+        }
         if (!sistemaListo || !client.info || !client.info.wid) {
             return res.status(503).json({ status: "error", error: "Sincronizando..." });
         }

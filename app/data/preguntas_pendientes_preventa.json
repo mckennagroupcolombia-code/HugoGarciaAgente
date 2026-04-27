@@ -308,6 +308,20 @@
       "timestamp": "2026-04-25T18:08:58.336164",
       "respondida": true,
       "nota": "Auto-marcada respondida por monitor 2026-04-25"
+    },
+    {
+      "question_id": "13571508512",
+      "titulo_producto": "Aceite Para Bomba De Vacío Premium ",
+      "pregunta": "Buenas cuanto cuesta el envio",
+      "timestamp": "2026-04-26T18:42:44.670187",
+      "respondida": true
+    },
+    {
+      "question_id": "13571557046",
+      "titulo_producto": "Aceite Para Bomba De Vacío Premium ",
+      "pregunta": "Para Barranquilla",
+      "timestamp": "2026-04-26T19:42:48.304288",
+      "respondida": true
     }
   ]
 }
