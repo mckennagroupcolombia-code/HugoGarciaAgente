@@ -29,12 +29,12 @@ def _guardar_pendientes(lista):
         print(f"❌ Preventa: error guardando pendientes: {e}")
 
 
-def guardar_pregunta_pendiente(question_id: str, titulo_producto: str, pregunta: str):
+def guardar_pregunta_pendiente(question_id: str, titulo_producto: str, pregunta: str) -> bool:
     pendientes = _leer_pendientes()
     # Evitar duplicados: si ya existe (pendiente o respondida), no re-notificar
     if any(str(p.get('question_id')) == str(question_id) for p in pendientes):
         print(f"⚠️ Preventa: question_id {question_id} ya registrado, omitiendo duplicado")
-        return
+        return False
     pendientes.append({
         'question_id': str(question_id),
         'titulo_producto': titulo_producto,
@@ -43,6 +43,7 @@ def guardar_pregunta_pendiente(question_id: str, titulo_producto: str, pregunta:
         'respondida': False,
     })
     _guardar_pendientes(pendientes)
+    return True
 
 
 def obtener_preguntas_pendientes():
@@ -133,7 +134,9 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
     if not ficha:
         # Sin ficha → guardar pendiente y alertar al grupo. NO responder al cliente.
         print(f"⚠️ Preventa: sin ficha para '{titulo_producto}' — delegando al grupo")
-        guardar_pregunta_pendiente(question_id, titulo_producto, pregunta_cliente)
+        creada = guardar_pregunta_pendiente(question_id, titulo_producto, pregunta_cliente)
+        if not creada:
+            return None, False
 
         try:
             from app.utils import enviar_whatsapp_reporte
@@ -179,7 +182,9 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
     if respuesta is None:
         # IA falló (ej: Gemini 503) → delegar al grupo, NO responder al cliente
         print(f"⚠️ Preventa: IA falló para '{titulo_producto}' — delegando al grupo")
-        guardar_pregunta_pendiente(question_id, titulo_producto, pregunta_cliente)
+        creada = guardar_pregunta_pendiente(question_id, titulo_producto, pregunta_cliente)
+        if not creada:
+            return None, False
         try:
             from app.utils import enviar_whatsapp_reporte
 
