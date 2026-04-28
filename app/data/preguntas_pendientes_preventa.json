@@ -322,6 +322,28 @@
       "pregunta": "Para Barranquilla",
       "timestamp": "2026-04-26T19:42:48.304288",
       "respondida": true
+    },
+    {
+      "question_id": "13572111066",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "La cuchara medidora que trae es de 1g ? Porque en la cuchara aparece como 1ml",
+      "timestamp": "2026-04-27T22:54:53.780520",
+      "respondida": false
+    },
+    {
+      "question_id": "13572109652",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "Cómo hago para saber cuanta cantidad de zinc estoy consumiendo, en dado caso que la cuchara medidora no represente 1 g?",
+      "timestamp": "2026-04-27T14:25:32.251902",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-04-27"
+    },
+    {
+      "question_id": "13571655509",
+      "titulo_producto": "Azul De Metileno 30 Ml Mckenna Group Antiséptico Farmacéutico",
+      "pregunta": "Se puede consumir ?",
+      "timestamp": "2026-04-27T22:54:53.780520",
+      "respondida": false
     }
   ]
 }
