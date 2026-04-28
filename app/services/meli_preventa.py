@@ -1,5 +1,6 @@
 import os
 import json
+import threading
 from datetime import datetime
 from google import genai
 
@@ -7,6 +8,7 @@ from app.utils import jid_grupo_preventa_wa
 
 PENDIENTES_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'preguntas_pendientes_preventa.json')
 CASOS_PATH = os.path.join(os.path.dirname(__file__), '..', 'training', 'casos_preventa.json')
+_CASOS_LOCK = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -84,16 +86,32 @@ def _leer_casos():
 
 
 def guardar_caso_preventa(producto: str, pregunta: str, respuesta: str):
-    casos = _leer_casos()
-    casos.append({
+    nuevo = {
         'producto': producto,
         'pregunta': pregunta,
         'respuesta': respuesta,
         'timestamp': datetime.now().isoformat(),
-    })
+    }
     try:
-        with open(CASOS_PATH, 'w', encoding='utf-8') as f:
-            json.dump({'casos': casos}, f, indent=2, ensure_ascii=False)
+        with _CASOS_LOCK:
+            casos = _leer_casos()
+            key_nuevo = (
+                nuevo.get('producto', ''),
+                nuevo.get('pregunta', ''),
+                nuevo.get('respuesta', ''),
+            )
+            existentes = {
+                (
+                    c.get('producto', ''),
+                    c.get('pregunta', ''),
+                    c.get('respuesta', ''),
+                )
+                for c in casos
+            }
+            if key_nuevo not in existentes:
+                casos.append(nuevo)
+            with open(CASOS_PATH, 'w', encoding='utf-8') as f:
+                json.dump({'casos': casos}, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"❌ Preventa: error guardando caso: {e}")
 

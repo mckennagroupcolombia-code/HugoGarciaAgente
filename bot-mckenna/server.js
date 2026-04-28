@@ -242,22 +242,23 @@ client.on('message', async (msg) => {
     if (msg.type === 'call_log') return;
 
     const chatIdComando = obtenerChatIdComando(msg);
+    const esGrupoComando = GRUPOS_COMANDO.includes(chatIdComando);
 
     // Algunos mensajes enviados desde el celular llegan por `message` con
     // fromMe=true y el grupo en msg.to/id.remote, no en msg.from.
-    if (msg.fromMe && GRUPOS_COMANDO.includes(chatIdComando)) {
+    if (msg.fromMe && esGrupoComando) {
         await procesarComandoGrupo(msg, chatIdComando);
         return;
     }
 
     // Filtro 2: ignorar mensajes del propio agente a clientes
-    if (msg.fromMe && !GRUPOS_COMANDO.includes(chatIdComando)) return;
+    if (msg.fromMe && !esGrupoComando) return;
 
     // Filtro 3: ignorar grupos que no sean de admin
-    if (msg.from.includes('@g.us') && !GRUPOS_COMANDO.includes(msg.from)) {
-        console.log(`👥 GRUPO DESCONOCIDO [${msg.from}]: ${msg.body || '[media]'}`);
+    if (chatIdComando.includes('@g.us') && !esGrupoComando) {
+        console.log(`👥 GRUPO DESCONOCIDO [${chatIdComando}]: ${msg.body || '[media]'}`);
         logActividad('SISTEMA', {
-            de: msg.from,
+            de: chatIdComando,
             texto: `[Grupo no está en GRUPOS_COMANDO] ${msg.body || '[media]'}`,
         });
         return;
@@ -266,6 +267,14 @@ client.on('message', async (msg) => {
     // Filtro 4: ignorar mensajes vacíos o sin texto
     if (!msg.body || msg.body.trim() === '') {
         if (!msg.hasMedia) return;
+    }
+
+    // Los comandos de grupos operativos pueden llegar con timestamp viejo
+    // tras reconexión/sincronización de WhatsApp Web. Procesarlos antes
+    // del filtro de antigüedad evita perder respuestas MeLi `resp ...`.
+    if (esGrupoComando) {
+        await procesarComandoGrupo(msg, chatIdComando);
+        return;
     }
 
     // Filtro 5: ignorar mensajes muy antiguos (más de 60 segundos)
@@ -289,14 +298,6 @@ client.on('message', async (msg) => {
 
     console.log(`📩 Procesando mensaje - De: ${msg.from} | Tipo: ${msg.type} | fromMe: ${msg.fromMe}`);
     logActividad('ENTRANTE', { de: msg.from, tipo: msg.type, texto: msg.body || '[media]', hasMedia: msg.hasMedia });
-
-    const esGrupoComando = GRUPOS_COMANDO.includes(msg.from);
-
-    // Grupos de comando (contabilidad, compras, pedidos web) — solo comandos
-    if (esGrupoComando) {
-        await procesarComandoGrupo(msg, msg.from);
-        return;
-    }
 
     // Mensajes de clientes — solo chats individuales
     try {
