@@ -58,7 +58,7 @@ CACHE_FILE  = Path(__file__).parent / "data/cache.json"
 FICHAS_FILE = Path(__file__).parent / "data/fichas_tecnicas.json"
 FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 5       # v5 = combos públicos con precio, sin fórmulas internas
+CATALOG_CACHE_VERSION = 6       # v6 = fotos combo con fallback por familia segura
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -322,6 +322,9 @@ def _normalizar_match_producto(texto: str) -> str:
     ]:
         t = t.replace(a, b)
     t = t.replace("%", " pct ")
+    t = t.replace("dpalmitato", "palmitato")
+    t = t.replace("hialurinico", "hialuronico")
+    t = t.replace("acete", "aceite")
     return " ".join(re.sub(r"[^a-z0-9]+", " ", t).split())
 
 
@@ -336,6 +339,31 @@ def _tokens_match_producto(texto: str) -> set[str]:
     return {
         x for x in _normalizar_match_producto(texto).split()
         if x not in stop and len(x) > 1 and not x.isdigit()
+        and not re.fullmatch(r"\d+(?:ml|g|gr|kg|lt|lts)", x)
+    }
+
+
+def _compact_sku_for_photo(sku: str) -> str:
+    raw = re.sub(r"[^A-Z0-9]", "", (sku or "").upper())
+    for prefix in ("FOR", "C"):
+        if raw.startswith(prefix) and len(raw) > len(prefix) + 3:
+            return raw[len(prefix):]
+    return raw
+
+
+def _core_photo_tokens(texto: str) -> set[str]:
+    stop = {
+        "combo", "kit", "set", "de", "del", "la", "el", "los", "las", "para", "con", "por",
+        "tipo", "piel", "todo", "toda", "dia", "noche", "usp", "na", "mckenna", "group",
+        "certificado", "certificada", "cosmetico", "cosmetica", "farmaceutico", "farmaceutica",
+        "gr", "g", "kg", "ml", "lt", "lts", "litro", "litros", "gramos", "gramo", "kilo",
+        "kilos", "acido", "aceite", "esencial", "goma", "cera", "manteca", "alcohol",
+        "sal", "polvo", "puro", "pura", "seco", "seca", "neutro",
+    }
+    return {
+        x for x in _normalizar_match_producto(texto).split()
+        if x not in stop and len(x) > 1 and not x.isdigit()
+        and not re.fullmatch(r"\d+(?:ml|g|gr|kg|lt|lts)", x)
     }
 
 
@@ -466,21 +494,37 @@ def fetch_meli_combo_photo_map(token: str, combos: list[dict]) -> dict[str, dict
         for item in items
         if (item.get("_seller_sku") or "").strip()
     }
+    by_compact_sku = {
+        _compact_sku_for_photo(item.get("_seller_sku") or ""): item
+        for item in items
+        if _compact_sku_for_photo(item.get("_seller_sku") or "")
+    }
     out: dict[str, dict] = {}
-    exact = fallback = 0
+    exact = compact = fallback = family = 0
     for combo in combos:
         code = (combo.get("ref") or combo.get("code") or "").strip()
         if not code:
             continue
         item = by_sku.get(code.upper())
+        match_type = "sku"
         if item:
             out[code.upper()] = {
                 "photo": item.get("_photo", ""),
                 "meli_id": item.get("id", ""),
-                "match_type": "sku",
+                "match_type": match_type,
                 "score": 100.0,
             }
             exact += 1
+            continue
+        item = by_compact_sku.get(_compact_sku_for_photo(code))
+        if item:
+            out[code.upper()] = {
+                "photo": item.get("_photo", ""),
+                "meli_id": item.get("id", ""),
+                "match_type": "sku_alias",
+                "score": 98.0,
+            }
+            compact += 1
             continue
 
         ranked = sorted(
@@ -501,10 +545,46 @@ def fetch_meli_combo_photo_map(token: str, combos: list[dict]) -> dict[str, dict
                 "score": best_score,
             }
             fallback += 1
+
+    for combo in combos:
+        code = (combo.get("ref") or combo.get("code") or "").strip().upper()
+        if not code or code in out:
+            continue
+        combo_core = _core_photo_tokens(combo.get("name", ""))
+        if not combo_core:
+            continue
+        candidates = []
+        for item in items:
+            title_core = _core_photo_tokens(item.get("title", ""))
+            if not title_core:
+                continue
+            overlap = combo_core & title_core
+            coverage = len(overlap) / len(combo_core)
+            if combo_core.issubset(title_core):
+                score = 95.0
+            elif len(combo_core) == 1 and overlap:
+                score = 88.0
+            elif coverage >= 0.66 and len(overlap) >= 2:
+                score = round(82.0 + coverage * 10.0, 1)
+            else:
+                continue
+            candidates.append((score, item))
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        if candidates:
+            best_score, best_item = candidates[0]
+            out[code] = {
+                "photo": best_item.get("_photo", ""),
+                "meli_id": best_item.get("id", ""),
+                "match_type": "family",
+                "score": best_score,
+            }
+            family += 1
     log.info(
-        "Fotos combos MeLi: %s por SKU exacto, %s por nombre, %s sin foto",
+        "Fotos combos MeLi: %s por SKU exacto, %s por alias SKU, %s por nombre, %s por familia, %s sin foto",
         exact,
+        compact,
         fallback,
+        family,
         max(0, len(combos) - len(out)),
     )
     return out
