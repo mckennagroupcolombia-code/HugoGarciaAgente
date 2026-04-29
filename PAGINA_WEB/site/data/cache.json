@@ -912,7 +912,7 @@
           "is_combo": true,
           "precio_canal_label": "Lista",
           "photo_match_type": "name",
-          "photo_match_score": 93.8,
+          "photo_match_score": 91.7,
           "family_slug": "c-acikoj5p30ml"
         },
         {
@@ -925,8 +925,8 @@
           "precio_num": 18286.5,
           "lista_num": 21900.0,
           "ahorro": "$3.614",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_619942-MCO89015512165_072025-O.jpg",
+          "meli_id": "MCO2876880906",
           "cat": "Ácidos",
           "cat_color": "#143D36",
           "desc": "",
@@ -1048,6 +1048,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 91.7,
           "family_slug": "c-acdkojdpal30ml"
         },
         {
@@ -2465,8 +2467,8 @@
           "precio_num": 30728.0,
           "lista_num": 36800.0,
           "ahorro": "$6.072",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_787114-MCO54788950076_042023-O.jpg",
+          "meli_id": "MCO1278699815",
           "cat": "Aceites Esenciales",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -2475,6 +2477,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 84.2,
           "family_slug": "c-aceteatre30ml"
         },
         {
@@ -3805,8 +3809,8 @@
           "precio_num": 28807.5,
           "lista_num": 34500.0,
           "ahorro": "$5.692",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_977755-MCO81456438525_122024-O.jpg",
+          "meli_id": "MCO883017727",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3815,6 +3819,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-acenee120ml"
         },
         {
@@ -3827,8 +3833,8 @@
           "precio_num": 36322.5,
           "lista_num": 43500.0,
           "ahorro": "$7.178",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_977755-MCO81456438525_122024-O.jpg",
+          "meli_id": "MCO883017727",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3837,6 +3843,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-acenee250ml"
         },
         {
@@ -3873,8 +3881,8 @@
           "precio_num": 13861.0,
           "lista_num": 16600.0,
           "ahorro": "$2.739",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_977755-MCO81456438525_122024-O.jpg",
+          "meli_id": "MCO883017727",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3883,6 +3891,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-acenee60ml"
         },
         {
@@ -3967,8 +3977,8 @@
           "precio_num": 31730.0,
           "lista_num": 38000.0,
           "ahorro": "$6.270",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_941989-MCO110010203472_042026-O.jpg",
+          "meli_id": "MCO1339283727",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3977,6 +3987,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 92.5,
           "family_slug": "c-sebcor150g"
         }
       ]
@@ -4005,7 +4017,7 @@
           "is_combo": true,
           "precio_canal_label": "Lista",
           "photo_match_type": "name",
-          "photo_match_score": 78.8,
+          "photo_match_score": 100.0,
           "family_slug": "c-ceraberefamakg"
         },
         {
@@ -4169,13 +4181,13 @@
           "ref": "C-CERCAR500g",
           "rep_sku": "C-CERCAR500g",
           "slug": "c-cercar500g",
-          "precio": "$18.704",
-          "precio_meli": "$22.400",
-          "precio_num": 18704.0,
-          "lista_num": 22400.0,
-          "ahorro": "$3.696",
-          "photo": "",
-          "meli_id": "",
+          "precio": "$32.482",
+          "precio_meli": "$38.900",
+          "precio_num": 32481.5,
+          "lista_num": 38900.0,
+          "ahorro": "$6.418",
+          "photo": "https://http2.mlstatic.com/D_892883-MCO89543335197_082025-O.jpg",
+          "meli_id": "MCO837454367",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -4244,6 +4256,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 85.0,
           "family_slug": "c-cercar500g"
         },
         {
@@ -4251,11 +4265,11 @@
           "ref": "C-CERCARKg",
           "rep_sku": "C-CERCARKg",
           "slug": "c-cercarkg",
-          "precio": "$58.450",
-          "precio_meli": "$70.000",
-          "precio_num": 58450.0,
-          "lista_num": 70000.0,
-          "ahorro": "$11.550",
+          "precio": "$54.192",
+          "precio_meli": "$64.900",
+          "precio_num": 54191.5,
+          "lista_num": 64900.0,
+          "ahorro": "$10.708",
           "photo": "https://http2.mlstatic.com/D_892883-MCO89543335197_082025-O.jpg",
           "meli_id": "MCO837454367",
           "cat": "Ceras y Mantecas",
@@ -4340,8 +4354,8 @@
           "precio_num": 81830.0,
           "lista_num": 98000.0,
           "ahorro": "$16.170",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg",
+          "meli_id": "MCO600431364",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -4421,6 +4435,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-lan250g"
         },
         {
@@ -4433,8 +4449,8 @@
           "precio_num": 14946.5,
           "lista_num": 17900.0,
           "ahorro": "$2.954",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg",
+          "meli_id": "MCO600431364",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -4514,6 +4530,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 81.2,
           "family_slug": "c-lanolina40g"
         },
         {
@@ -4714,8 +4732,8 @@
           "precio_num": 26636.5,
           "lista_num": 31900.0,
           "ahorro": "$5.264",
-          "photo": "https://http2.mlstatic.com/D_721388-MCO110859451899_042026-O.jpg",
-          "meli_id": "MCO572516333",
+          "photo": "https://http2.mlstatic.com/D_651032-MCO109954325572_042026-O.jpg",
+          "meli_id": "MCO890848439",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -5230,109 +5248,6 @@
           "family_slug": "c-mankarbla125g"
         },
         {
-          "name": "MANTECA KARITE BLANCA 250g",
-          "ref": "C-MANKARBLA250g",
-          "rep_sku": "C-MANKARBLA250g",
-          "slug": "c-mankarbla250g",
-          "precio": "$51.686",
-          "precio_meli": "$61.900",
-          "precio_num": 51686.5,
-          "lista_num": 61900.0,
-          "ahorro": "$10.214",
-          "photo": "",
-          "meli_id": "",
-          "cat": "Ceras y Mantecas",
-          "cat_color": "#3A9E8C",
-          "desc": "",
-          "ficha": {
-            "titulo": "MANTECA KARITÉ",
-            "descripcion": "Grasa vegetal extraída de la semilla del árbol del karité (Butyrospermum parkii Kostchy, fam. Sapotáceas), un árbol de África Central.",
-            "secciones": [
-              {
-                "titulo": "APLICACIONES",
-                "items": [
-                  "La Manteca de Karité tiene diversas aplicaciones en la industria cosmética y de cuidado personal debido a sus propiedades hidratantes, nutritivas y regenerativas para la piel y el cabello.",
-                  "Hidratante corporal: En la fabricación de cremas hidratantes para el cuerpo debido a su capacidad para proporcionar una hidratación profunda y duradera a la piel seca y deshidratada.",
-                  "Cuidado del cabello: En acondicionadores y mascarillas para el cabello debido a su capacidad para suavizar y fortalecer el cabello, así como para reducir el frizz y la rotura.",
-                  "Protector solar:  Como un ingrediente en productos de protección solar debido a su capacidad para proteger la piel de los rayos UV y reducir la inflamación causada por la exposición al sol.",
-                  "Cuidado de la piel: En la fabricación de cremas hidratantes faciales, lociones corporales, bálsamos labiales, entre otros productos, debido a su capacidad para reducir la inflamación, prevenir la sequedad y suavizar la piel áspera.",
-                  "Tratamiento de afecciones de la piel:  Como el eczema, la psoriasis y la dermatitis debido a sus propiedades antiinflamatorias, regenerativas y calmantes."
-                ]
-              },
-              {
-                "titulo": "COMPOSICIÓN",
-                "items": [
-                  "Ácido esteárico, el ácido oleico y el ácido linoleico. También contiene vitaminas A y E, fitosteroles y triterpenos."
-                ]
-              },
-              {
-                "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-                "items": [
-                  "La formulación está diseñada para ser conservada en condiciones normales y según las recomendaciones del fabricante hasta por 24 meses después de abierto. Cada una de las unidades de fabricación es identificada en la etiqueta, con el número de lote y la fecha de fabricación. El número del lote es un consecutivo relacionado con la orden de producción."
-                ]
-              }
-            ],
-            "identidad": [
-              [
-                "NOMBRE DEL PRODUCTO",
-                "Manteca de  karité amarilla 100% natural"
-              ],
-              [
-                "NOMBRE IUPAC",
-                "Butyrospermum Parkii Butter"
-              ],
-              [
-                "# CAS",
-                "194043-82-0"
-              ],
-              [
-                "FECHA DE REVISIÓN",
-                "20 08 2024"
-              ]
-            ],
-            "propiedades": [
-              [
-                "Apariencia",
-                "Masa grasa de color amarillo."
-              ],
-              [
-                "Olor",
-                "Característico."
-              ],
-              [
-                "Ph",
-                "6.0 – 7.5"
-              ],
-              [
-                "Punto de fusión",
-                "29.0 – 34.0 °C"
-              ],
-              [
-                "FFA (como oleico), %",
-                "1.0 Max"
-              ],
-              [
-                "Índice de Yodo, g I2/100g",
-                "55.0 – 72.0"
-              ],
-              [
-                "Índice de Saponificación, mgKOH/g",
-                "178.8 – 195.0"
-              ],
-              [
-                "Valor de Peróxido, meq02/kg",
-                "5.0 Max"
-              ]
-            ],
-            "microbiologia": []
-          },
-          "solo_vitrina": false,
-          "buyable": true,
-          "is_combo": true,
-          "precio_canal_label": "Lista",
-          "family_slug": "c-mankarbla250g"
-        },
-        {
           "name": "MANTECA KARITE BLANCA 500g",
           "ref": "C-MANKARBLA500g",
           "rep_sku": "C-MANKARBLA500g",
@@ -5649,11 +5564,11 @@
           "ref": "C-ALCCET250g",
           "rep_sku": "C-ALCCET250g",
           "slug": "c-alccet250g",
-          "precio": "$7.874",
-          "precio_meli": "$9.430",
-          "precio_num": 7874.05,
-          "lista_num": 9430.0,
-          "ahorro": "$1.556",
+          "precio": "$10.438",
+          "precio_meli": "$12.500",
+          "precio_num": 10437.5,
+          "lista_num": 12500.0,
+          "ahorro": "$2.062",
           "photo": "https://http2.mlstatic.com/D_893735-MCO72474334340_102023-O.jpg",
           "meli_id": "MCO891097460",
           "cat": "Emulsionantes y Surfactantes",
@@ -6161,11 +6076,11 @@
           "ref": "C-BTMS250g",
           "rep_sku": "C-BTMS250g",
           "slug": "c-btms250g",
-          "precio": "$24.966",
-          "precio_meli": "$29.900",
-          "precio_num": 24966.5,
-          "lista_num": 29900.0,
-          "ahorro": "$4.934",
+          "precio": "$38.410",
+          "precio_meli": "$46.000",
+          "precio_num": 38410.0,
+          "lista_num": 46000.0,
+          "ahorro": "$7.590",
           "photo": "https://http2.mlstatic.com/D_957414-MCO72606523332_112023-O.jpg",
           "meli_id": "MCO595871200",
           "cat": "Emulsionantes y Surfactantes",
@@ -6300,8 +6215,8 @@
           "precio_num": 76820.0,
           "lista_num": 92000.0,
           "ahorro": "$15.180",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_957414-MCO72606523332_112023-O.jpg",
+          "meli_id": "MCO595871200",
           "cat": "Emulsionantes y Surfactantes",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -6310,6 +6225,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-btms500g"
         },
         {
@@ -7079,8 +6996,8 @@
           "precio_num": 23380.0,
           "lista_num": 28000.0,
           "ahorro": "$4.620",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_638535-MCO72603785511_102023-O.jpg",
+          "meli_id": "MCO1377417818",
           "cat": "Humectantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -7201,6 +7118,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 83.3,
           "family_slug": "c-ala100g"
         },
         {
@@ -7208,11 +7127,11 @@
           "ref": "C-DPAN85P120mL",
           "rep_sku": "C-DPAN85P120mL",
           "slug": "c-dpan85p120ml",
-          "precio": "$28.808",
-          "precio_meli": "$34.500",
-          "precio_num": 28807.5,
-          "lista_num": 34500.0,
-          "ahorro": "$5.692",
+          "precio": "$80.912",
+          "precio_meli": "$96.900",
+          "precio_num": 80911.5,
+          "lista_num": 96900.0,
+          "ahorro": "$15.988",
           "photo": "https://http2.mlstatic.com/D_695640-MCO52850692601_122022-O.jpg",
           "meli_id": "MCO893531765",
           "cat": "Humectantes",
@@ -7705,11 +7624,11 @@
           "ref": "C-GLIVEGLt",
           "rep_sku": "C-GLIVEGLt",
           "slug": "c-gliveglt",
-          "precio": "$18.788",
-          "precio_meli": "$22.500",
-          "precio_num": 18787.5,
-          "lista_num": 22500.0,
-          "ahorro": "$3.712",
+          "precio": "$35.905",
+          "precio_meli": "$43.000",
+          "precio_num": 35905.0,
+          "lista_num": 43000.0,
+          "ahorro": "$7.095",
           "photo": "https://http2.mlstatic.com/D_763836-MCO72580359370_112023-O.jpg",
           "meli_id": "MCO969136433",
           "cat": "Humectantes",
@@ -8382,11 +8301,11 @@
           "ref": "C-CITMAG500g",
           "rep_sku": "C-CITMAG500g",
           "slug": "c-citmag500g",
-          "precio": "$25.802",
-          "precio_meli": "$30.900",
-          "precio_num": 25801.5,
-          "lista_num": 30900.0,
-          "ahorro": "$5.098",
+          "precio": "$33.400",
+          "precio_meli": "$40.000",
+          "precio_num": 33400.0,
+          "lista_num": 40000.0,
+          "ahorro": "$6.600",
           "photo": "https://http2.mlstatic.com/D_790269-MCO93573344944_102025-O.jpg",
           "meli_id": "MCO2613588008",
           "cat": "Sales Minerales",
@@ -8406,11 +8325,11 @@
           "ref": "C-CITMAGKg",
           "rep_sku": "C-CITMAGKg",
           "slug": "c-citmagkg",
-          "precio": "$49.265",
-          "precio_meli": "$59.000",
-          "precio_num": 49265.0,
-          "lista_num": 59000.0,
-          "ahorro": "$9.735",
+          "precio": "$65.130",
+          "precio_meli": "$78.000",
+          "precio_num": 65130.0,
+          "lista_num": 78000.0,
+          "ahorro": "$12.870",
           "photo": "https://http2.mlstatic.com/D_643867-MCO93625581222_102025-O.jpg",
           "meli_id": "MCO2749238756",
           "cat": "Sales Minerales",
@@ -8459,8 +8378,8 @@
           "precio_num": 36656.5,
           "lista_num": 43900.0,
           "ahorro": "$7.244",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_682101-MCO53169864784_012023-O.jpg",
+          "meli_id": "MCO1175762643",
           "cat": "Sales Minerales",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -8469,6 +8388,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 86.2,
           "family_slug": "c-citpot250gmag250g"
         },
         {
@@ -8476,11 +8397,11 @@
           "ref": "C-CITPOT500g",
           "rep_sku": "C-CITPOT500g",
           "slug": "c-citpot500g",
-          "precio": "$260.436",
-          "precio_meli": "$311.900",
-          "precio_num": 260436.5,
-          "lista_num": 311900.0,
-          "ahorro": "$51.464",
+          "precio": "$32.482",
+          "precio_meli": "$38.900",
+          "precio_num": 32481.5,
+          "lista_num": 38900.0,
+          "ahorro": "$6.418",
           "photo": "https://http2.mlstatic.com/D_944081-MCO84007300067_042025-O.jpg",
           "meli_id": "MCO2854712994",
           "cat": "Sales Minerales",
@@ -9441,8 +9362,8 @@
           "precio_num": 61372.5,
           "lista_num": 73500.0,
           "ahorro": "$12.128",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_739042-MCO94156935519_102025-O.jpg",
+          "meli_id": "MCO835404031",
           "cat": "Suplementarios",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -9609,6 +9530,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-colpolhid500g"
         },
         {
@@ -10295,7 +10218,7 @@
           "is_combo": true,
           "precio_canal_label": "Lista",
           "photo_match_type": "name",
-          "photo_match_score": 84.2,
+          "photo_match_score": 92.5,
           "family_slug": "l-amipro100g"
         },
         {
@@ -10925,8 +10848,8 @@
           "precio_num": 9101.5,
           "lista_num": 10900.0,
           "ahorro": "$1.798",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_678926-MCO69683443766_052023-O.jpg",
+          "meli_id": "MCO1626151692",
           "cat": "Excipientes",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -11045,6 +10968,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 84.2,
           "family_slug": "c-glumon500g"
         },
         {
@@ -12291,8 +12216,8 @@
           "precio_num": 41332.5,
           "lista_num": 49500.0,
           "ahorro": "$8.168",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_824240-MCO72516816682_102023-O.jpg",
+          "meli_id": "MCO918784392",
           "cat": "Conservantes",
           "cat_color": "#143D36",
           "desc": "",
@@ -12301,6 +12226,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-sorpotkg"
         }
       ]
@@ -12313,11 +12240,11 @@
           "ref": "C-ALU250g",
           "rep_sku": "C-ALU250g",
           "slug": "c-alu250g",
-          "precio": "$30.812",
-          "precio_meli": "$36.900",
-          "precio_num": 30811.5,
-          "lista_num": 36900.0,
-          "ahorro": "$6.088",
+          "precio": "$15.865",
+          "precio_meli": "$19.000",
+          "precio_num": 15865.0,
+          "lista_num": 19000.0,
+          "ahorro": "$3.135",
           "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
           "meli_id": "MCO1929031180",
           "cat": "Edulcorantes",
@@ -12452,16 +12379,16 @@
         },
         {
           "name": "ALULOSA 500g",
-          "ref": "C-ALUALL500g",
-          "rep_sku": "C-ALUALL500g",
-          "slug": "c-aluall500g",
+          "ref": "C-ALU500g",
+          "rep_sku": "C-ALU500g",
+          "slug": "c-alu500g",
           "precio": "$30.812",
           "precio_meli": "$36.900",
           "precio_num": 30811.5,
           "lista_num": 36900.0,
           "ahorro": "$6.088",
-          "photo": "https://http2.mlstatic.com/D_610335-MLA99340211480_112025-O.jpg",
-          "meli_id": "MCO3105735890",
+          "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
+          "meli_id": "MCO1929031180",
           "cat": "Edulcorantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -12588,22 +12515,22 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
-          "family_slug": "c-aluall500g"
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
+          "family_slug": "c-alu500g"
         },
         {
           "name": "ALULOSA Kg",
-          "ref": "C-ALUALLKg",
-          "rep_sku": "C-ALUALLKg",
-          "slug": "c-aluallkg",
+          "ref": "C-ALUKg",
+          "rep_sku": "C-ALUKg",
+          "slug": "c-alukg",
           "precio": "$65.882",
           "precio_meli": "$78.900",
           "precio_num": 65881.5,
           "lista_num": 78900.0,
           "ahorro": "$13.018",
-          "photo": "https://http2.mlstatic.com/D_704222-MCO82946035647_032025-O.jpg",
-          "meli_id": "MCO1929427414",
+          "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
+          "meli_id": "MCO1929031180",
           "cat": "Edulcorantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -12730,9 +12657,9 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
-          "family_slug": "c-aluallkg"
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
+          "family_slug": "c-alukg"
         },
         {
           "name": "CREMOR TARTARO 500g",
@@ -12744,8 +12671,8 @@
           "precio_num": 15197.0,
           "lista_num": 18200.0,
           "ahorro": "$3.003",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_718203-MCO72543735991_102023-O.jpg",
+          "meli_id": "MCO1253150838",
           "cat": "Edulcorantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -12754,6 +12681,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 84.2,
           "family_slug": "c-cretar500g"
         },
         {
@@ -13877,8 +13806,8 @@
           "precio_num": 29225.0,
           "lista_num": 35000.0,
           "ahorro": "$5.775",
-          "photo": "https://http2.mlstatic.com/D_971227-MCO94065518055_102025-O.jpg",
-          "meli_id": "MCO1146475504",
+          "photo": "",
+          "meli_id": "",
           "cat": "Principios Activos",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -13995,8 +13924,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-mencri100g"
         },
         {
@@ -14784,8 +14711,8 @@
       "precio_num": 23380.0,
       "lista_num": 28000.0,
       "ahorro": "$4.620",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_638535-MCO72603785511_102023-O.jpg",
+      "meli_id": "MCO1377417818",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -14906,6 +14833,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 83.3,
       "family_slug": "c-ala100g"
     },
     {
@@ -15195,7 +15124,7 @@
       "is_combo": true,
       "precio_canal_label": "Lista",
       "photo_match_type": "name",
-      "photo_match_score": 84.2,
+      "photo_match_score": 92.5,
       "family_slug": "l-amipro100g"
     },
     {
@@ -15483,11 +15412,11 @@
       "ref": "C-ALU250g",
       "rep_sku": "C-ALU250g",
       "slug": "c-alu250g",
-      "precio": "$30.812",
-      "precio_meli": "$36.900",
-      "precio_num": 30811.5,
-      "lista_num": 36900.0,
-      "ahorro": "$6.088",
+      "precio": "$15.865",
+      "precio_meli": "$19.000",
+      "precio_num": 15865.0,
+      "lista_num": 19000.0,
+      "ahorro": "$3.135",
       "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
       "meli_id": "MCO1929031180",
       "cat": "Edulcorantes",
@@ -15974,11 +15903,11 @@
       "ref": "C-GLIVEGLt",
       "rep_sku": "C-GLIVEGLt",
       "slug": "c-gliveglt",
-      "precio": "$18.788",
-      "precio_meli": "$22.500",
-      "precio_num": 18787.5,
-      "lista_num": 22500.0,
-      "ahorro": "$3.712",
+      "precio": "$35.905",
+      "precio_meli": "$43.000",
+      "precio_num": 35905.0,
+      "lista_num": 43000.0,
+      "ahorro": "$7.095",
       "photo": "https://http2.mlstatic.com/D_763836-MCO72580359370_112023-O.jpg",
       "meli_id": "MCO969136433",
       "cat": "Humectantes",
@@ -16933,109 +16862,6 @@
       "family_slug": "c-mankarbla125g"
     },
     {
-      "name": "MANTECA KARITE BLANCA 250g",
-      "ref": "C-MANKARBLA250g",
-      "rep_sku": "C-MANKARBLA250g",
-      "slug": "c-mankarbla250g",
-      "precio": "$51.686",
-      "precio_meli": "$61.900",
-      "precio_num": 51686.5,
-      "lista_num": 61900.0,
-      "ahorro": "$10.214",
-      "photo": "",
-      "meli_id": "",
-      "cat": "Ceras y Mantecas",
-      "cat_color": "#3A9E8C",
-      "desc": "",
-      "ficha": {
-        "titulo": "MANTECA KARITÉ",
-        "descripcion": "Grasa vegetal extraída de la semilla del árbol del karité (Butyrospermum parkii Kostchy, fam. Sapotáceas), un árbol de África Central.",
-        "secciones": [
-          {
-            "titulo": "APLICACIONES",
-            "items": [
-              "La Manteca de Karité tiene diversas aplicaciones en la industria cosmética y de cuidado personal debido a sus propiedades hidratantes, nutritivas y regenerativas para la piel y el cabello.",
-              "Hidratante corporal: En la fabricación de cremas hidratantes para el cuerpo debido a su capacidad para proporcionar una hidratación profunda y duradera a la piel seca y deshidratada.",
-              "Cuidado del cabello: En acondicionadores y mascarillas para el cabello debido a su capacidad para suavizar y fortalecer el cabello, así como para reducir el frizz y la rotura.",
-              "Protector solar:  Como un ingrediente en productos de protección solar debido a su capacidad para proteger la piel de los rayos UV y reducir la inflamación causada por la exposición al sol.",
-              "Cuidado de la piel: En la fabricación de cremas hidratantes faciales, lociones corporales, bálsamos labiales, entre otros productos, debido a su capacidad para reducir la inflamación, prevenir la sequedad y suavizar la piel áspera.",
-              "Tratamiento de afecciones de la piel:  Como el eczema, la psoriasis y la dermatitis debido a sus propiedades antiinflamatorias, regenerativas y calmantes."
-            ]
-          },
-          {
-            "titulo": "COMPOSICIÓN",
-            "items": [
-              "Ácido esteárico, el ácido oleico y el ácido linoleico. También contiene vitaminas A y E, fitosteroles y triterpenos."
-            ]
-          },
-          {
-            "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-            "items": [
-              "La formulación está diseñada para ser conservada en condiciones normales y según las recomendaciones del fabricante hasta por 24 meses después de abierto. Cada una de las unidades de fabricación es identificada en la etiqueta, con el número de lote y la fecha de fabricación. El número del lote es un consecutivo relacionado con la orden de producción."
-            ]
-          }
-        ],
-        "identidad": [
-          [
-            "NOMBRE DEL PRODUCTO",
-            "Manteca de  karité amarilla 100% natural"
-          ],
-          [
-            "NOMBRE IUPAC",
-            "Butyrospermum Parkii Butter"
-          ],
-          [
-            "# CAS",
-            "194043-82-0"
-          ],
-          [
-            "FECHA DE REVISIÓN",
-            "20 08 2024"
-          ]
-        ],
-        "propiedades": [
-          [
-            "Apariencia",
-            "Masa grasa de color amarillo."
-          ],
-          [
-            "Olor",
-            "Característico."
-          ],
-          [
-            "Ph",
-            "6.0 – 7.5"
-          ],
-          [
-            "Punto de fusión",
-            "29.0 – 34.0 °C"
-          ],
-          [
-            "FFA (como oleico), %",
-            "1.0 Max"
-          ],
-          [
-            "Índice de Yodo, g I2/100g",
-            "55.0 – 72.0"
-          ],
-          [
-            "Índice de Saponificación, mgKOH/g",
-            "178.8 – 195.0"
-          ],
-          [
-            "Valor de Peróxido, meq02/kg",
-            "5.0 Max"
-          ]
-        ],
-        "microbiologia": []
-      },
-      "solo_vitrina": false,
-      "buyable": true,
-      "is_combo": true,
-      "precio_canal_label": "Lista",
-      "family_slug": "c-mankarbla250g"
-    },
-    {
       "name": "MANTECA KARITE BLANCA 500g",
       "ref": "C-MANKARBLA500g",
       "rep_sku": "C-MANKARBLA500g",
@@ -17145,11 +16971,11 @@
       "ref": "C-BTMS250g",
       "rep_sku": "C-BTMS250g",
       "slug": "c-btms250g",
-      "precio": "$24.966",
-      "precio_meli": "$29.900",
-      "precio_num": 24966.5,
-      "lista_num": 29900.0,
-      "ahorro": "$4.934",
+      "precio": "$38.410",
+      "precio_meli": "$46.000",
+      "precio_num": 38410.0,
+      "lista_num": 46000.0,
+      "ahorro": "$7.590",
       "photo": "https://http2.mlstatic.com/D_957414-MCO72606523332_112023-O.jpg",
       "meli_id": "MCO595871200",
       "cat": "Emulsionantes y Surfactantes",
@@ -17284,8 +17110,8 @@
       "precio_num": 76820.0,
       "lista_num": 92000.0,
       "ahorro": "$15.180",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_957414-MCO72606523332_112023-O.jpg",
+      "meli_id": "MCO595871200",
       "cat": "Emulsionantes y Surfactantes",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -17294,6 +17120,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-btms500g"
     },
     {
@@ -17301,11 +17129,11 @@
       "ref": "C-DPAN85P120mL",
       "rep_sku": "C-DPAN85P120mL",
       "slug": "c-dpan85p120ml",
-      "precio": "$28.808",
-      "precio_meli": "$34.500",
-      "precio_num": 28807.5,
-      "lista_num": 34500.0,
-      "ahorro": "$5.692",
+      "precio": "$80.912",
+      "precio_meli": "$96.900",
+      "precio_num": 80911.5,
+      "lista_num": 96900.0,
+      "ahorro": "$15.988",
       "photo": "https://http2.mlstatic.com/D_695640-MCO52850692601_122022-O.jpg",
       "meli_id": "MCO893531765",
       "cat": "Humectantes",
@@ -17700,11 +17528,11 @@
       "ref": "C-ALCCET250g",
       "rep_sku": "C-ALCCET250g",
       "slug": "c-alccet250g",
-      "precio": "$7.874",
-      "precio_meli": "$9.430",
-      "precio_num": 7874.05,
-      "lista_num": 9430.0,
-      "ahorro": "$1.556",
+      "precio": "$10.438",
+      "precio_meli": "$12.500",
+      "precio_num": 10437.5,
+      "lista_num": 12500.0,
+      "ahorro": "$2.062",
       "photo": "https://http2.mlstatic.com/D_893735-MCO72474334340_102023-O.jpg",
       "meli_id": "MCO891097460",
       "cat": "Emulsionantes y Surfactantes",
@@ -17831,8 +17659,8 @@
       "precio_num": 18286.5,
       "lista_num": 21900.0,
       "ahorro": "$3.614",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_619942-MCO89015512165_072025-O.jpg",
+      "meli_id": "MCO2876880906",
       "cat": "Ácidos",
       "cat_color": "#143D36",
       "desc": "",
@@ -17954,6 +17782,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 91.7,
       "family_slug": "c-acdkojdpal30ml"
     },
     {
@@ -18036,8 +17866,8 @@
       "precio_num": 36322.5,
       "lista_num": 43500.0,
       "ahorro": "$7.178",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_977755-MCO81456438525_122024-O.jpg",
+      "meli_id": "MCO883017727",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -18046,6 +17876,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-acenee250ml"
     },
     {
@@ -18058,8 +17890,8 @@
       "precio_num": 28807.5,
       "lista_num": 34500.0,
       "ahorro": "$5.692",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_977755-MCO81456438525_122024-O.jpg",
+      "meli_id": "MCO883017727",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -18068,6 +17900,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-acenee120ml"
     },
     {
@@ -18080,8 +17914,8 @@
       "precio_num": 13861.0,
       "lista_num": 16600.0,
       "ahorro": "$2.739",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_977755-MCO81456438525_122024-O.jpg",
+      "meli_id": "MCO883017727",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -18090,6 +17924,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-acenee60ml"
     },
     {
@@ -18358,8 +18194,8 @@
       "precio_num": 31730.0,
       "lista_num": 38000.0,
       "ahorro": "$6.270",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_941989-MCO110010203472_042026-O.jpg",
+      "meli_id": "MCO1339283727",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -18368,6 +18204,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 92.5,
       "family_slug": "c-sebcor150g"
     },
     {
@@ -19168,8 +19006,8 @@
       "precio_num": 15197.0,
       "lista_num": 18200.0,
       "ahorro": "$3.003",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_718203-MCO72543735991_102023-O.jpg",
+      "meli_id": "MCO1253150838",
       "cat": "Edulcorantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -19178,6 +19016,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 84.2,
       "family_slug": "c-cretar500g"
     },
     {
@@ -20092,8 +19932,8 @@
       "precio_num": 30728.0,
       "lista_num": 36800.0,
       "ahorro": "$6.072",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_787114-MCO54788950076_042023-O.jpg",
+      "meli_id": "MCO1278699815",
       "cat": "Aceites Esenciales",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -20102,6 +19942,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 84.2,
       "family_slug": "c-aceteatre30ml"
     },
     {
@@ -20173,7 +20015,7 @@
       "is_combo": true,
       "precio_canal_label": "Lista",
       "photo_match_type": "name",
-      "photo_match_score": 78.8,
+      "photo_match_score": 100.0,
       "family_slug": "c-ceraberefamakg"
     },
     {
@@ -20551,8 +20393,8 @@
       "precio_num": 81830.0,
       "lista_num": 98000.0,
       "ahorro": "$16.170",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg",
+      "meli_id": "MCO600431364",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -20632,6 +20474,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-lan250g"
     },
     {
@@ -20644,8 +20488,8 @@
       "precio_num": 14946.5,
       "lista_num": 17900.0,
       "ahorro": "$2.954",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg",
+      "meli_id": "MCO600431364",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -20725,6 +20569,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 81.2,
       "family_slug": "c-lanolina40g"
     },
     {
@@ -20802,13 +20648,13 @@
       "ref": "C-CERCAR500g",
       "rep_sku": "C-CERCAR500g",
       "slug": "c-cercar500g",
-      "precio": "$18.704",
-      "precio_meli": "$22.400",
-      "precio_num": 18704.0,
-      "lista_num": 22400.0,
-      "ahorro": "$3.696",
-      "photo": "",
-      "meli_id": "",
+      "precio": "$32.482",
+      "precio_meli": "$38.900",
+      "precio_num": 32481.5,
+      "lista_num": 38900.0,
+      "ahorro": "$6.418",
+      "photo": "https://http2.mlstatic.com/D_892883-MCO89543335197_082025-O.jpg",
+      "meli_id": "MCO837454367",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -20877,6 +20723,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 85.0,
       "family_slug": "c-cercar500g"
     },
     {
@@ -20884,11 +20732,11 @@
       "ref": "C-CERCARKg",
       "rep_sku": "C-CERCARKg",
       "slug": "c-cercarkg",
-      "precio": "$58.450",
-      "precio_meli": "$70.000",
-      "precio_num": 58450.0,
-      "lista_num": 70000.0,
-      "ahorro": "$11.550",
+      "precio": "$54.192",
+      "precio_meli": "$64.900",
+      "precio_num": 54191.5,
+      "lista_num": 64900.0,
+      "ahorro": "$10.708",
       "photo": "https://http2.mlstatic.com/D_892883-MCO89543335197_082025-O.jpg",
       "meli_id": "MCO837454367",
       "cat": "Ceras y Mantecas",
@@ -21567,7 +21415,7 @@
       "is_combo": true,
       "precio_canal_label": "Lista",
       "photo_match_type": "name",
-      "photo_match_score": 93.8,
+      "photo_match_score": 91.7,
       "family_slug": "c-acikoj5p30ml"
     },
     {
@@ -22280,8 +22128,8 @@
       "precio_num": 41332.5,
       "lista_num": 49500.0,
       "ahorro": "$8.168",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_824240-MCO72516816682_102023-O.jpg",
+      "meli_id": "MCO918784392",
       "cat": "Conservantes",
       "cat_color": "#143D36",
       "desc": "",
@@ -22290,6 +22138,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-sorpotkg"
     },
     {
@@ -22648,8 +22498,8 @@
       "precio_num": 29225.0,
       "lista_num": 35000.0,
       "ahorro": "$5.775",
-      "photo": "https://http2.mlstatic.com/D_971227-MCO94065518055_102025-O.jpg",
-      "meli_id": "MCO1146475504",
+      "photo": "",
+      "meli_id": "",
       "cat": "Principios Activos",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -22766,8 +22616,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-mencri100g"
     },
     {
@@ -23289,8 +23137,8 @@
       "precio_num": 26636.5,
       "lista_num": 31900.0,
       "ahorro": "$5.264",
-      "photo": "https://http2.mlstatic.com/D_721388-MCO110859451899_042026-O.jpg",
-      "meli_id": "MCO572516333",
+      "photo": "https://http2.mlstatic.com/D_651032-MCO109954325572_042026-O.jpg",
+      "meli_id": "MCO890848439",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -24933,8 +24781,8 @@
       "precio_num": 9101.5,
       "lista_num": 10900.0,
       "ahorro": "$1.798",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_678926-MCO69683443766_052023-O.jpg",
+      "meli_id": "MCO1626151692",
       "cat": "Excipientes",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -25053,6 +24901,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 84.2,
       "family_slug": "c-glumon500g"
     },
     {
@@ -27270,16 +27120,16 @@
     },
     {
       "name": "ALULOSA 500g",
-      "ref": "C-ALUALL500g",
-      "rep_sku": "C-ALUALL500g",
-      "slug": "c-aluall500g",
+      "ref": "C-ALU500g",
+      "rep_sku": "C-ALU500g",
+      "slug": "c-alu500g",
       "precio": "$30.812",
       "precio_meli": "$36.900",
       "precio_num": 30811.5,
       "lista_num": 36900.0,
       "ahorro": "$6.088",
-      "photo": "https://http2.mlstatic.com/D_610335-MLA99340211480_112025-O.jpg",
-      "meli_id": "MCO3105735890",
+      "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
+      "meli_id": "MCO1929031180",
       "cat": "Edulcorantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -27406,22 +27256,22 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
-      "family_slug": "c-aluall500g"
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
+      "family_slug": "c-alu500g"
     },
     {
       "name": "ALULOSA Kg",
-      "ref": "C-ALUALLKg",
-      "rep_sku": "C-ALUALLKg",
-      "slug": "c-aluallkg",
+      "ref": "C-ALUKg",
+      "rep_sku": "C-ALUKg",
+      "slug": "c-alukg",
       "precio": "$65.882",
       "precio_meli": "$78.900",
       "precio_num": 65881.5,
       "lista_num": 78900.0,
       "ahorro": "$13.018",
-      "photo": "https://http2.mlstatic.com/D_704222-MCO82946035647_032025-O.jpg",
-      "meli_id": "MCO1929427414",
+      "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
+      "meli_id": "MCO1929031180",
       "cat": "Edulcorantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -27548,9 +27398,9 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
-      "family_slug": "c-aluallkg"
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
+      "family_slug": "c-alukg"
     },
     {
       "name": "COLAGENO POLVO HIDROLIZADO 500g",
@@ -27562,8 +27412,8 @@
       "precio_num": 61372.5,
       "lista_num": 73500.0,
       "ahorro": "$12.128",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_739042-MCO94156935519_102025-O.jpg",
+      "meli_id": "MCO835404031",
       "cat": "Suplementarios",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -27730,6 +27580,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-colpolhid500g"
     },
     {
@@ -29247,11 +29099,11 @@
       "ref": "C-CITPOT500g",
       "rep_sku": "C-CITPOT500g",
       "slug": "c-citpot500g",
-      "precio": "$260.436",
-      "precio_meli": "$311.900",
-      "precio_num": 260436.5,
-      "lista_num": 311900.0,
-      "ahorro": "$51.464",
+      "precio": "$32.482",
+      "precio_meli": "$38.900",
+      "precio_num": 32481.5,
+      "lista_num": 38900.0,
+      "ahorro": "$6.418",
       "photo": "https://http2.mlstatic.com/D_944081-MCO84007300067_042025-O.jpg",
       "meli_id": "MCO2854712994",
       "cat": "Sales Minerales",
@@ -29300,8 +29152,8 @@
       "precio_num": 36656.5,
       "lista_num": 43900.0,
       "ahorro": "$7.244",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_682101-MCO53169864784_012023-O.jpg",
+      "meli_id": "MCO1175762643",
       "cat": "Sales Minerales",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -29310,6 +29162,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 86.2,
       "family_slug": "c-citpot250gmag250g"
     },
     {
@@ -29341,11 +29195,11 @@
       "ref": "C-CITMAGKg",
       "rep_sku": "C-CITMAGKg",
       "slug": "c-citmagkg",
-      "precio": "$49.265",
-      "precio_meli": "$59.000",
-      "precio_num": 49265.0,
-      "lista_num": 59000.0,
-      "ahorro": "$9.735",
+      "precio": "$65.130",
+      "precio_meli": "$78.000",
+      "precio_num": 65130.0,
+      "lista_num": 78000.0,
+      "ahorro": "$12.870",
       "photo": "https://http2.mlstatic.com/D_643867-MCO93625581222_102025-O.jpg",
       "meli_id": "MCO2749238756",
       "cat": "Sales Minerales",
@@ -29365,11 +29219,11 @@
       "ref": "C-CITMAG500g",
       "rep_sku": "C-CITMAG500g",
       "slug": "c-citmag500g",
-      "precio": "$25.802",
-      "precio_meli": "$30.900",
-      "precio_num": 25801.5,
-      "lista_num": 30900.0,
-      "ahorro": "$5.098",
+      "precio": "$33.400",
+      "precio_meli": "$40.000",
+      "precio_num": 33400.0,
+      "lista_num": 40000.0,
+      "ahorro": "$6.600",
       "photo": "https://http2.mlstatic.com/D_790269-MCO93573344944_102025-O.jpg",
       "meli_id": "MCO2613588008",
       "cat": "Sales Minerales",
@@ -29457,5 +29311,5 @@
       "family_slug": "c-aceric10ml"
     }
   ],
-  "version": 5
+  "version": 6
 }
