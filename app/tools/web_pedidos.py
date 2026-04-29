@@ -611,28 +611,63 @@ def send_shipped_email(order: dict, tracking_number: str, carrier: str) -> bool:
 
 
 def _format_whatsapp_pedido(order: dict) -> str:
-    """Aviso corto al grupo; detalle completo está en el correo al cliente y en la DB."""
+    """Aviso operativo al grupo de guías/envíos con los datos clave del pedido."""
     try:
         data = json.loads(order.get("items_json") or "{}")
     except json.JSONDecodeError:
         data = {}
     items = data.get("items") or []
     n = len(items)
-    refs = ", ".join(str(it.get("ref", "")) for it in items[:4])
-    if n > 4:
-        refs += f" (+{n - 4})"
+    item_lines = []
+    for it in items[:8]:
+        name = str(it.get("name") or "Producto").strip()
+        ref_item = str(it.get("ref") or "").strip()
+        qty = it.get("qty", 1)
+        price = it.get("price", 0)
+        try:
+            price_s = f"${float(price):,.0f}".replace(",", ".")
+        except (TypeError, ValueError):
+            price_s = str(price or "—")
+        item_lines.append(f"• {name} x{qty} — {price_s} ({ref_item})")
+    if n > 8:
+        item_lines.append(f"• +{n - 8} ítem(s) más")
+    items_txt = "\n".join(item_lines) if item_lines else "• (sin detalle)"
     ref = order["reference"]
     pay = order.get("payu_ref") or "—"
     total = f"${order.get('total', 0):,.0f}".replace(",", ".")
     city = order.get("buyer_city", "") or "—"
+    dept = data.get("dept") or "—"
+    address = data.get("address") or "—"
+    cedula = data.get("cedula") or "—"
+    notes = data.get("notes") or "—"
+    shipping = data.get("shipping") or 0
+    try:
+        shipping_s = f"${float(shipping):,.0f}".replace(",", ".")
+    except (TypeError, ValueError):
+        shipping_s = str(shipping or "—")
+    billing = data.get("billing") or {}
+    bill_name = billing.get("name") or order.get("buyer_name", "") or "—"
+    bill_nit = billing.get("nit") or cedula
+    bill_email = billing.get("email") or order.get("buyer_email", "") or "—"
+    bill_addr = billing.get("address") or address
     suf = ref[-3:].upper() if len(ref) >= 3 else ref.upper()
     return (
         f"🛒 *Web pagado* `{ref}`\n"
         f"💰 *{total} COP* · MP `{pay}`\n"
-        f"👤 {order.get('buyer_name', '')}\n"
-        f"📧 {order.get('buyer_email', '')} · 📱 {order.get('buyer_phone', '')}\n"
-        f"📍 {city}\n"
-        f"📦 {n} ítem(s): {refs}\n"
+        f"\n"
+        f"👤 *Cliente:* {order.get('buyer_name', '')}\n"
+        f"🪪 *CC/NIT:* {cedula}\n"
+        f"📧 *Email:* {order.get('buyer_email', '')}\n"
+        f"📱 *Tel:* {order.get('buyer_phone', '')}\n"
+        f"📍 *Envío:* {address} · {city}, {dept}\n"
+        f"🚚 *Costo envío:* {shipping_s} COP\n"
+        f"📝 *Notas:* {notes}\n"
+        f"\n"
+        f"🧾 *Facturar a:* {bill_name} · {bill_nit}\n"
+        f"📧 *Email factura:* {bill_email}\n"
+        f"🏢 *Dirección factura:* {bill_addr}\n"
+        f"\n"
+        f"📦 *Ítems ({n}):*\n{items_txt}\n"
         f"\n"
         f"📋 *Cómo responder en este grupo* (copiar y ajustar):\n"
         f"• Pedir factura en Siigo/registro:\n"

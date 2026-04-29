@@ -58,6 +58,7 @@ CACHE_FILE  = Path(__file__).parent / "data/cache.json"
 FICHAS_FILE = Path(__file__).parent / "data/fichas_tecnicas.json"
 FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
+CATALOG_CACHE_VERSION = 5       # v5 = combos públicos con precio, sin fórmulas internas
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -300,6 +301,213 @@ def fetch_meli_photo_urls(token: str, meli_id_to_sku: dict) -> dict:
 
     log.info(f"  {len(sku_photo)} fotos obtenidas de MeLi CDN")
     return sku_photo
+
+
+def _extract_meli_sku(item: dict) -> str:
+    sku = (item.get("seller_custom_field") or "").strip()
+    if sku:
+        return sku
+    for attr in item.get("attributes") or []:
+        if attr.get("id") == "SELLER_SKU":
+            val = (attr.get("value_name") or "").strip()
+            if val:
+                return val
+    return ""
+
+
+def _normalizar_match_producto(texto: str) -> str:
+    t = (texto or "").lower().strip()
+    for a, b in [
+        ("á", "a"), ("é", "e"), ("í", "i"), ("ó", "o"), ("ú", "u"), ("ü", "u"), ("ñ", "n"),
+    ]:
+        t = t.replace(a, b)
+    t = t.replace("%", " pct ")
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", t).split())
+
+
+def _tokens_match_producto(texto: str) -> set[str]:
+    stop = {
+        "combo", "kit", "set", "de", "del", "la", "el", "los", "las", "para", "con", "por",
+        "tipo", "piel", "todo", "toda", "dia", "noche", "usp", "na", "n", "a", "mckenna",
+        "group", "certificado", "certificada", "cosmetico", "cosmetica", "farmaceutico",
+        "farmaceutica", "gr", "g", "kg", "ml", "lt", "lts", "litro", "litros", "gramos",
+        "gramo", "kilo", "kilos", "acido", "aceite", "goma", "cera", "manteca", "alcohol",
+    }
+    return {
+        x for x in _normalizar_match_producto(texto).split()
+        if x not in stop and len(x) > 1 and not x.isdigit()
+    }
+
+
+def _cantidades_match_producto(texto: str) -> set[tuple[float, str]]:
+    out = set()
+    t = _normalizar_match_producto(texto)
+    unit_map = {
+        "g": ("g", 1), "gr": ("g", 1), "gramo": ("g", 1), "gramos": ("g", 1),
+        "kg": ("g", 1000), "kilo": ("g", 1000), "kilos": ("g", 1000),
+        "ml": ("ml", 1), "lt": ("ml", 1000), "lts": ("ml", 1000),
+        "litro": ("ml", 1000), "litros": ("ml", 1000),
+    }
+    for m in re.finditer(
+        r"\b(\d+(?:\.\d+)?)\s*(kg|kilo|kilos|g|gr|gramo|gramos|ml|lt|lts|litro|litros)\b",
+        t,
+    ):
+        unit, factor = unit_map[m.group(2)]
+        val = float(m.group(1)) * factor
+        out.add((int(val) if val.is_integer() else val, unit))
+    for m in re.finditer(r"\b(\d+(?:\.\d+)?)\s*pct\b", t):
+        val = float(m.group(1))
+        out.add((int(val) if val.is_integer() else val, "%"))
+    return out
+
+
+def _score_nombre_producto(nombre_combo: str, titulo_meli: str) -> float:
+    combo_tokens = _tokens_match_producto(nombre_combo)
+    meli_tokens = _tokens_match_producto(titulo_meli)
+    if not combo_tokens or not meli_tokens:
+        return 0.0
+    inter = combo_tokens & meli_tokens
+    coverage = len(inter) / len(combo_tokens)
+    jaccard = len(inter) / len(combo_tokens | meli_tokens)
+    q_combo = _cantidades_match_producto(nombre_combo)
+    q_meli = _cantidades_match_producto(titulo_meli)
+    if q_combo and q_meli:
+        qty_score = 1.0 if q_combo & q_meli else 0.0
+    else:
+        qty_score = 0.5
+    return round((coverage * 0.6 + jaccard * 0.25 + qty_score * 0.15) * 100, 1)
+
+
+def _meli_item_photo(item: dict) -> str:
+    pics = item.get("pictures") or []
+    if not pics:
+        return ""
+    return (pics[0].get("secure_url") or pics[0].get("url") or "").strip()
+
+
+def _fetch_meli_active_items_for_photos(token: str) -> list[dict]:
+    if not token:
+        return []
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        me = requests.get("https://api.mercadolibre.com/users/me", headers=headers, timeout=12)
+        if me.status_code != 200:
+            log.warning("MeLi fotos combos: /users/me respondió %s", me.status_code)
+            return []
+        seller_id = me.json().get("id")
+    except Exception as e:
+        log.warning("MeLi fotos combos: no se pudo consultar seller: %s", e)
+        return []
+
+    item_ids = []
+    offset = 0
+    while True:
+        try:
+            res = requests.get(
+                f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+                params={"status": "active", "limit": 100, "offset": offset},
+                headers=headers,
+                timeout=15,
+            )
+            if res.status_code != 200:
+                log.warning("MeLi fotos combos: items/search respondió %s", res.status_code)
+                break
+            data = res.json()
+            batch = data.get("results") or []
+            if not batch:
+                break
+            item_ids.extend(batch)
+            offset += len(batch)
+            if offset >= (data.get("paging") or {}).get("total", 0):
+                break
+        except Exception as e:
+            log.warning("MeLi fotos combos: error listando publicaciones: %s", e)
+            break
+
+    items = []
+    for i in range(0, len(item_ids), 20):
+        try:
+            res = requests.get(
+                "https://api.mercadolibre.com/items",
+                params={
+                    "ids": ",".join(item_ids[i:i + 20]),
+                    "attributes": "id,title,seller_custom_field,attributes,pictures",
+                },
+                headers=headers,
+                timeout=20,
+            )
+            if res.status_code != 200:
+                continue
+            for entry in res.json():
+                body = entry.get("body") or {}
+                if entry.get("code") != 200 or not body:
+                    continue
+                photo = _meli_item_photo(body)
+                if not photo:
+                    continue
+                body["_seller_sku"] = _extract_meli_sku(body)
+                body["_photo"] = photo
+                items.append(body)
+        except Exception as e:
+            log.warning("MeLi fotos combos: error batch items: %s", e)
+    return items
+
+
+def fetch_meli_combo_photo_map(token: str, combos: list[dict]) -> dict[str, dict]:
+    """
+    Retorna {SKU combo SIIGO: {photo, meli_id, match_type, score}}.
+    Prioridad: SKU exacto MeLi; fallback por nombre solo si es confiable.
+    """
+    if not token or not combos:
+        return {}
+    items = _fetch_meli_active_items_for_photos(token)
+    by_sku = {
+        (item.get("_seller_sku") or "").strip().upper(): item
+        for item in items
+        if (item.get("_seller_sku") or "").strip()
+    }
+    out: dict[str, dict] = {}
+    exact = fallback = 0
+    for combo in combos:
+        code = (combo.get("ref") or combo.get("code") or "").strip()
+        if not code:
+            continue
+        item = by_sku.get(code.upper())
+        if item:
+            out[code.upper()] = {
+                "photo": item.get("_photo", ""),
+                "meli_id": item.get("id", ""),
+                "match_type": "sku",
+                "score": 100.0,
+            }
+            exact += 1
+            continue
+
+        ranked = sorted(
+            (
+                (_score_nombre_producto(combo.get("name", ""), item.get("title", "")), item)
+                for item in items
+            ),
+            key=lambda x: x[0],
+            reverse=True,
+        )
+        best_score, best_item = ranked[0] if ranked else (0.0, {})
+        second_score = ranked[1][0] if len(ranked) > 1 else 0.0
+        if best_score >= 72 and (best_score - second_score) >= 8:
+            out[code.upper()] = {
+                "photo": best_item.get("_photo", ""),
+                "meli_id": best_item.get("id", ""),
+                "match_type": "name",
+                "score": best_score,
+            }
+            fallback += 1
+    log.info(
+        "Fotos combos MeLi: %s por SKU exacto, %s por nombre, %s sin foto",
+        exact,
+        fallback,
+        max(0, len(combos) - len(out)),
+    )
+    return out
 
 
 # ══════════════════════════════════════════════════════════
@@ -1070,6 +1278,165 @@ def _sheet_row_to_line(
     }
 
 
+def _combo_category_from_siigo(code: str, nombre: str) -> str:
+    sku_base = re.sub(r"^(?:C|FOR)-", "", (code or "").strip(), flags=re.I)
+    sku_base = re.sub(r"[^A-Za-z0-9]", "", sku_base)
+    nombre_clean = _finalize_catalog_name(nombre or "")
+    n = _normalizar_match_producto(nombre_clean)
+    if "aceite esencial" in n or n.startswith("aceite arbol") or "esencial" in n:
+        return "Aceites Esenciales"
+    if "azul metileno" in n or "glutaraldehido" in n:
+        return "Antisépticos"
+    if n.startswith("aceite ") or n.startswith("acete ") or " sebo " in f" {n} ":
+        return "Aceites"
+    if n.startswith("acido ") or " vitamina c " in f" {n} " or n.startswith("vitamina c"):
+        return "Ácidos"
+    if (
+        n.startswith("citrato ")
+        or n.startswith("cloruro ")
+        or n.startswith("lactato ")
+        or n.startswith("carbonato ")
+        or n.startswith("bicarbonato ")
+        or n.startswith("azul metileno")
+    ):
+        return "Sales Minerales"
+    if (
+        n.startswith("cera ")
+        or n.startswith("manteca ")
+        or n.startswith("lanolina")
+        or n.startswith("parafina")
+    ):
+        return "Ceras y Mantecas"
+    if (
+        "tensoactivo" in n
+        or "tenso activo" in n
+        or "tego betaina" in n
+        or "cocoamida" in n
+        or "polisorbato" in n
+        or "tween" in n
+        or n.startswith("btms")
+        or n.startswith("alcohol cetilico")
+    ):
+        return "Emulsionantes y Surfactantes"
+    if (
+        "glicerina" in n
+        or "pantenol" in n
+        or "alantoina" in n
+        or n.startswith("urea")
+        or "sorbitol" in n
+    ):
+        return "Humectantes"
+    if "arcilla" in n or "caolin" in n or "dioxido titanio" in n or "oxido zinc" in n:
+        return "Arcillas"
+    if (
+        "aminoacido" in n
+        or "creatina" in n
+        or "colageno" in n
+        or "proteina" in n
+        or "suero leche" in n
+        or "gelatina" in n
+        or "taurina" in n
+        or "glutamina" in n
+        or "prolina" in n
+    ):
+        return "Suplementarios"
+    if (
+        "benzoato" in n
+        or "sorbato" in n
+        or "glutaraldehido" in n
+        or "sharomix" in n
+    ):
+        return "Conservantes"
+    if (
+        "alulosa" in n
+        or "eritritol" in n
+        or "fructosa" in n
+        or "dextrosa" in n
+        or "maltodextrina" in n
+        or "cremor tartaro" in n
+    ):
+        return "Edulcorantes"
+    if (
+        "niacinamida" in n
+        or "retinol" in n
+        or "dihidroxiacetona" in n
+        or "mentol" in n
+        or "papaina" in n
+        or "cafeina" in n
+        or "embrion pato" in n
+        or "elastina" in n
+        or "gusano seda" in n
+        or "extracto" in n
+        or "flores secas" in n
+    ):
+        return "Principios Activos"
+    if (
+        "goma " in n
+        or "lecitina" in n
+        or "inulina" in n
+        or "glutamato" in n
+        or "agua destilada" in n
+    ):
+        return "Excipientes"
+    if n.startswith("vitamina ") or "cianocobalamina" in n:
+        return "Vitaminas"
+    if "sabor " in n:
+        return "Saborizantes"
+
+    stem = _family_stem(sku_base, nombre_clean)
+    base_cat = categorize(sku_base)
+    if base_cat != "Otros":
+        return _effective_catalog_category(base_cat, stem)
+    by_stem = {
+        "ACDASC": "Ácidos",
+        "ACDKJC": "Ácidos",
+        "ACDASCTMG": "Sales Minerales",
+        "ACIDESTEARICO": "Ácidos",
+        "ACDLACTICO": "Ácidos",
+        "ACDSALICILICO": "Ácidos",
+        "ACDSORBICO": "Ácidos",
+        "ACIDCITRICO": "Ácidos",
+        "ACIDMALICO": "Ácidos",
+        "HIALURONICO": "Kits",
+        "NEEM": "Aceites",
+        "RICINO": "Aceites",
+        "GIRASOL": "Aceites",
+        "LINAZA": "Aceites",
+        "CERACARNAUBA": "Ceras y Mantecas",
+        "CERAABEJA": "Ceras y Mantecas",
+        "LANOLINA": "Ceras y Mantecas",
+        "MANTECAKARITE": "Ceras y Mantecas",
+        "MANTECACACAO": "Ceras y Mantecas",
+        "VASELINA": "Aceites",
+        "ALCOHOLCETILICO": "Emulsionantes y Surfactantes",
+        "CERALANETTE": "Emulsionantes y Surfactantes",
+        "TENSIOSCI": "Emulsionantes y Surfactantes",
+        "UREACOSMETICA": "Humectantes",
+        "CITRATOMAGSAL": "Sales Minerales",
+        "CITRATOPOTASIO": "Sales Minerales",
+        "CLORUROMAGNESIO": "Sales Minerales",
+        "BISGLICINATOMG": "Sales Minerales",
+        "SULFATOCOBRE": "Minerales",
+        "SUEROLECHE": "Sales Minerales",
+        "GOMAXANTANA": "Excipientes",
+        "GOMAGUAR": "Excipientes",
+        "ALGINATOSODIO": "Excipientes",
+        "GLICERINAVEGETAL": "Humectantes",
+        "COLAGENOHI": "Suplementarios",
+        "BCAAAMINO": "Suplementarios",
+        "INULINA": "Suplementarios",
+        "SHAROMIX": "Conservantes",
+        "ALULOSA": "Edulcorantes",
+        "ERITRITOL": "Edulcorantes",
+        "FRUCTOSA": "Edulcorantes",
+        "ALFAARBUTINA": "Principios Activos",
+        "KIT_ALGINATO_CLORURO_CA": "Kits",
+        "KIT_ALGINATO_LACTATO_CA": "Kits",
+        "KIT_CITRATO_MG_PK_CA": "Kits",
+    }
+    return by_stem.get(stem or "", "Otros")
+
+
 def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
     code = (raw.get("code") or "").strip()
     if not code:
@@ -1079,12 +1446,17 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
         lista = float(raw["prices"][0]["price_list"][0]["value"])
     except (KeyError, IndexError, TypeError, ValueError):
         lista = 0.0
+    if lista <= 0:
+        log.info("Combo SIIGO omitido sin precio público: %s %s", code, nombre)
+        return None
     precio_web = lista * (1 - MELI_COMMISSION) if lista > 0 else 0.0
     ahorro = lista * MELI_COMMISSION if lista > 0 else 0.0
     slug = _slug_from_key(code.lower())
+    cat = _combo_category_from_siigo(code, nombre)
     return {
         "name": nombre,
         "ref": code,
+        "rep_sku": code,
         "slug": slug,
         "precio": _fmt_precio(precio_web) if precio_web > 0 else "—",
         "precio_meli": _fmt_precio(lista) if lista > 0 else "—",
@@ -1093,10 +1465,11 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
         "ahorro": _fmt_precio(ahorro) if ahorro > 0 else "—",
         "photo": "",
         "meli_id": "",
-        "cat": "Combos",
-        "cat_color": CAT_COLORS.get("Kits", "#2E8B7A"),
+        "cat": cat,
+        "cat_color": CAT_COLORS.get(cat, CAT_COLORS.get("Kits", "#2E8B7A")),
         "desc": (raw.get("description") or "")[:450],
-        "ficha": None,
+        "ficha": buscar_ficha(nombre),
+        "solo_vitrina": False,
         "buyable": True,
         "is_combo": True,
         "precio_canal_label": "Lista",
@@ -1104,262 +1477,42 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
 
 
 def leer_catalogo() -> tuple[list, list]:
-    """Sheets → familias (vitrina); SIIGO → combos (comprables). Retorna (secciones, combos_planos)."""
-    log.info("Conectando con Google Sheets (vitrina)…")
-    gc = gspread.service_account(filename=CREDS_PATH)
-    wb = gc.open_by_key(SHEET_ID)
-    ws = wb.sheet1
-    rows = ws.get_all_values()
-    log.info(f"  {len(rows)-1} filas en Sheets")
-
-    header = [h.strip().upper() for h in rows[0]]
-    idx_meli = 0
-    idx_sku = next((i for i, h in enumerate(header) if "SKU" in h), 1)
-    idx_nombre = next((i for i, h in enumerate(header) if "NOMBRE" in h), 3)
-    idx_precio = next((i for i, h in enumerate(header) if "PRECIO" in h), 4)
-    idx_desc = next((i for i, h in enumerate(header) if any(k in h for k in ["FICHA", "TDS", "DESC", "TECNICA", "TÉCNICA"])), 8)
-
-    seen_sku = set()
-    id_to_sku = {}
-    raw_lines = []
-
-    for row in rows[1:]:
-        if len(row) <= max(idx_sku, idx_nombre):
-            continue
-        meli_id = str(row[idx_meli]).strip().upper() if row[idx_meli] else ""
-        sku = row[idx_sku].strip()
-        nombre_original = row[idx_nombre].strip()
-        nombre = _strip_sheet_nombre_noise(nombre_original) or nombre_original
-        precio_raw = row[idx_precio].strip() if len(row) > idx_precio else ""
-        desc_raw = row[idx_desc].strip() if len(row) > idx_desc else ""
-        if not sku or not nombre or sku in seen_sku:
-            continue
-        seen_sku.add(sku)
-        if meli_id.startswith("MCO"):
-            id_to_sku[meli_id] = sku
-        pm = _parse_precio_sheet(precio_raw)
-        base_cat = categorize(sku)
-        stem = _family_stem(sku, nombre)
-        eff_cat = _effective_catalog_category(base_cat, stem)
-        raw_lines.append(
-            {
-                "sku": sku,
-                "nombre": nombre,
-                "nombre_original": nombre_original,
-                "meli_id": meli_id,
-                "desc_raw": desc_raw,
-                "precio_meli": pm,
-                "cat": eff_cat,
-                "_stem": stem,
-            }
-        )
-
-    token = get_meli_token()
-    photo_map = fetch_meli_photo_urls(token, id_to_sku)
-    for line in raw_lines:
-        line["photo"] = photo_map.get(line["sku"], "")
-
-    cfg = _load_catalogo_familias_config()
-    slug_to_combo_skus = cfg.get("slug_to_combo_skus") or cfg.get("slug_to_combos") or {}
-    photo_pref_by_stem = dict(_PREFERRED_REP_SKU)
-    photo_pref_by_stem.update(cfg.get("preferred_photo_by_stem", {}))
-
-    extra_codes = [c.strip() for c in os.getenv("WEB_SIIGO_COMBO_CODES", "").split(",") if c.strip()]
-    log.info("Consultando combos en SIIGO…")
+    """SIIGO Combo → catálogo web comprable. Sheets legacy no publica productos."""
+    log.info("Consultando combos activos en SIIGO…")
     combos_raw = listar_productos_combo_siigo()
-    combos_by_code = {}
+    combos_by_code: dict[str, dict] = {}
     for raw in combos_raw:
         d = _combo_dict_desde_siigo_raw(raw)
         if d:
             combos_by_code[d["ref"].upper()] = d
-    for code in extra_codes:
-        cu = code.upper()
-        if cu in combos_by_code:
-            continue
-        info = buscar_producto_siigo_por_sku(code)
-        if not info:
-            continue
-        faux = {
-            "code": info.get("referencia") or code,
-            "name": info.get("nombre") or code,
-            "description": "",
-            "prices": [{"price_list": [{"value": float(info.get("precio") or 0)}]}],
-            "active": True,
-            "type": "Combo",
-        }
-        d = _combo_dict_desde_siigo_raw(faux)
-        if d:
-            combos_by_code[d["ref"].upper()] = d
 
     combo_flat = list(combos_by_code.values())
-    assigned_codes = set()
-    for codes in slug_to_combo_skus.values():
-        for c in codes:
-            assigned_codes.add(str(c).strip().upper())
-
-    groups: dict[str, list] = defaultdict(list)
-    for line in raw_lines:
-        groups[_catalog_group_token(line)].append(line)
-
-    def pick_representative(items: list, stem_hint: str | None) -> dict:
-        pref = photo_pref_by_stem.get(stem_hint or "")
-        if pref:
-            pu = pref.strip().upper()
-            for x in items:
-                if x["sku"].upper() == pu:
-                    return x
-            for x in items:
-                if pu in x["sku"].upper():
-                    return x
-
-        def _rep_score(x: dict) -> tuple:
-            nm = (x.get("nombre") or "").lower()
-            usp = 1 if "usp" in nm else 0
-            meli = 0 if x.get("meli_id", "").startswith("MCO") else 1
-            sku_u = x.get("sku", "").strip().upper()
-            dep = 1 if sku_u in _DEPRIORITIZE_REP_SKU else 0
-            if not dep and any(sku_u.startswith(p) for p in _DEPRIORITIZE_REP_PREFIXES):
-                dep = 1
-            return (usp, meli, dep, len(x.get("nombre") or ""))
-
-        with_meli = [x for x in items if x.get("meli_id", "").startswith("MCO")]
-        pool = with_meli or items
-        return min(pool, key=_rep_score)
+    token = get_meli_token()
+    photo_map = fetch_meli_combo_photo_map(token, combo_flat)
 
     families_by_cat: dict[str, list] = defaultdict(list)
     used_slugs: set[str] = set()
+    for combo in sorted(combo_flat, key=lambda p: (p.get("cat", ""), p.get("name", ""))):
+        code_u = combo["ref"].upper()
+        photo = photo_map.get(code_u) or {}
+        if photo:
+            combo["photo"] = photo.get("photo", "")
+            combo["meli_id"] = photo.get("meli_id", "")
+            combo["photo_match_type"] = photo.get("match_type", "")
+            combo["photo_match_score"] = photo.get("score", 0.0)
 
-    for gtoken, items in groups.items():
-        if gtoken.startswith("sku:"):
-            stem_hint = gtoken[4:]
-        else:
-            stem_hint = _majority_stem(items)
-        rep = pick_representative(items, stem_hint)
-        stem = stem_hint
-        if stem and stem in _CANONICAL_FAMILY_TITLE:
-            base_slug = _canonical_family_slug(stem) or _slug_from_key(stem.lower())
-            display_name = _display_family_name(rep["nombre"], stem)
-        elif gtoken.startswith("namegrp:"):
-            nk_body = gtoken[8:]
-            base_slug = _slug_from_key(nk_body)
-            display_name = _display_family_name(rep["nombre"], stem)
-        elif gtoken.startswith("name:"):
-            fk_body = gtoken[5:]
-            base_slug = _slug_from_key(fk_body)
-            display_name = _display_family_name(rep["nombre"], stem)
-        else:
-            base_slug = _slug_from_key((stem or rep["sku"]).lower())
-            display_name = _display_family_name(rep["nombre"], stem)
-
+        base_slug = combo["slug"] or _slug_from_key(combo["ref"].lower())
         slug = base_slug
         n = 0
         while slug in used_slugs:
             n += 1
             slug = f"{base_slug}-{n}"
         used_slugs.add(slug)
-        sorted_items = sorted(items, key=lambda z: z["nombre"].lower())
-        line_objs = []
-        for x in sorted_items:
-            lo = _sheet_row_to_line(
-                x["sku"],
-                x["nombre"],
-                x["meli_id"],
-                x["desc_raw"],
-                x["precio_meli"],
-                x["cat"],
-                nombre_original=x.get("nombre_original") or x["nombre"],
-            )
-            lo["photo"] = x.get("photo") or ""
-            line_objs.append(lo)
+        combo["slug"] = slug
+        combo["family_slug"] = slug
+        families_by_cat[combo["cat"]].append(combo)
 
-        combo_codes = slug_to_combo_skus.get(slug) or slug_to_combo_skus.get(base_slug) or []
-        fam_combos = []
-        for code in combo_codes:
-            c = combos_by_code.get(str(code).strip().upper())
-            if c:
-                fam_combos.append(c)
-                c["family_slug"] = slug
-
-        nums_web = []
-        for c in fam_combos:
-            if c.get("precio_num"):
-                nums_web.append(c["precio_num"])
-        for x in items:
-            pm = x.get("precio_meli")
-            if pm and pm > 0:
-                nums_web.append(pm * (1 - MELI_COMMISSION))
-
-        if nums_web:
-            mn = min(nums_web)
-            mx = max(nums_web)
-            rango = _fmt_precio(mn) if abs(mn - mx) < 0.01 else f"Desde {_fmt_precio(mn)}"
-        else:
-            rango = "Consultar"
-
-        precio_meli_ref = line_objs[0]["precio_meli"] if line_objs else "—"
-
-        rep_cat = rep["cat"]
-        family = {
-            "name": display_name,
-            "ref": rep["sku"],
-            "rep_sku": rep["sku"],
-            "slug": slug,
-            "precio": rango,
-            "precio_meli": precio_meli_ref,
-            "ahorro": "—",
-            "photo": rep.get("photo") or "",
-            "meli_id": rep["meli_id"] if rep["meli_id"].startswith("MCO") else "",
-            "cat": rep_cat,
-            "cat_color": CAT_COLORS.get(rep_cat, "#2E8B7A"),
-            "desc": (rep["desc_raw"][:450] if rep.get("desc_raw") else "")
-            or (line_objs[0].get("desc", "") if line_objs else ""),
-            "ficha": buscar_ficha(rep.get("nombre_original") or rep["nombre"])
-            or buscar_ficha(rep["nombre"])
-            or buscar_ficha(display_name),
-            "solo_vitrina": True,
-            "buyable": False,
-            "referencias": line_objs,
-            "combos": fam_combos,
-            "precio_canal_label": "Referencia",
-        }
-        families_by_cat[rep_cat].append(family)
-
-    for c in combo_flat:
-        cu = c["ref"].upper()
-        if cu in assigned_codes:
-            continue
-        fam_slug = _slug_from_key(c["name"] + "-" + c["ref"])
-        base_fs = fam_slug
-        n = 0
-        while fam_slug in used_slugs:
-            n += 1
-            fam_slug = f"{base_fs}-{n}"
-        used_slugs.add(fam_slug)
-        c["family_slug"] = fam_slug
-        solo = {
-            "name": c["name"],
-            "ref": c["ref"],
-            "rep_sku": c["ref"],
-            "slug": fam_slug,
-            "precio": c["precio"],
-            "precio_meli": c["precio_meli"],
-            "ahorro": c["ahorro"],
-            "photo": "",
-            "meli_id": "",
-            "cat": "Combos",
-            "cat_color": CAT_COLORS.get("Kits", "#2E8B7A"),
-            "desc": c.get("desc", ""),
-            "ficha": None,
-            "solo_vitrina": True,
-            "buyable": False,
-            "referencias": [],
-            "combos": [c],
-            "precio_canal_label": c.get("precio_canal_label", "Lista"),
-        }
-        families_by_cat["Combos"].append(solo)
-        assigned_codes.add(cu)
-
-    orden = [cat for _, cat in CATEGORY_MAP] + ["Otros", "Combos"]
+    orden = [cat for _, cat in CATEGORY_MAP] + ["Saborizantes", "Otros"]
     seen_ord, orden_final = set(), []
     for c in orden:
         if c not in seen_ord:
@@ -1376,7 +1529,7 @@ def leer_catalogo() -> tuple[list, list]:
             result.append({"name": cat, "products": sorted(prods, key=lambda p: p["name"].lower())})
 
     total_f = sum(len(s["products"]) for s in result)
-    log.info(f"Catálogo listo: {len(result)} categorías, {total_f} familias, {len(combo_flat)} combos SIIGO")
+    log.info(f"Catálogo listo: {len(result)} categorías, {total_f} combos SIIGO publicados")
     return result, combo_flat
 
 
@@ -1409,6 +1562,8 @@ def get_catalog(force=False) -> list:
             try:
                 raw = json.loads(CACHE_FILE.read_text())
                 if isinstance(raw, dict) and "sections" in raw:
+                    if raw.get("version") != CATALOG_CACHE_VERSION:
+                        raise ValueError("cache de catálogo obsoleto")
                     data = raw["sections"]
                     combos = raw.get("combos", [])
                 else:
@@ -1426,7 +1581,7 @@ def get_catalog(force=False) -> list:
         _rebuild_product_index(data, combo_flat)
         _catalog_cache.update({"data": data, "ts": now})
         CACHE_FILE.parent.mkdir(exist_ok=True)
-        payload = {"sections": data, "combos": combo_flat, "version": 2}
+        payload = {"sections": data, "combos": combo_flat, "version": CATALOG_CACHE_VERSION}
         CACHE_FILE.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
         log.info("Cache guardado en disco")
         return data
@@ -1438,6 +1593,8 @@ def get_catalog(force=False) -> list:
             try:
                 raw = json.loads(CACHE_FILE.read_text())
                 if isinstance(raw, dict) and "sections" in raw:
+                    if raw.get("version") != CATALOG_CACHE_VERSION:
+                        raise ValueError("cache de catálogo obsoleto")
                     _rebuild_product_index(raw["sections"], raw.get("combos", []))
                     return raw["sections"]
                 if isinstance(raw, list):
