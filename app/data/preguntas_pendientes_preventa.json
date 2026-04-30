@@ -358,6 +358,41 @@
       "pregunta": "Tiene opción para kilates? Cuanto tiempo se demora en llegar a puerto tejada cauca o hay opcion de entrega en Cali inme",
       "timestamp": "2026-04-29T01:13:26.113113",
       "respondida": true
+    },
+    {
+      "question_id": "13573222082",
+      "titulo_producto": "Citrato De Calcio 500gr Ningún",
+      "pregunta": "Buenos Días, Cuál es la porción en MG de la cuchara medidora que viene en el empaque?",
+      "timestamp": "2026-04-29T11:14:00.976916",
+      "respondida": true
+    },
+    {
+      "question_id": "13573570076",
+      "titulo_producto": "Envase De Vidrio 100 Ml Ámbar",
+      "pregunta": "Necesito las mismas pero de mayor capacidad. Tal vez de 500ml o 1.000ml. Otra pregunta la tapa de qué es? PP, HDPE, LDPE",
+      "timestamp": "2026-04-29T14:26:56.913550",
+      "respondida": true
+    },
+    {
+      "question_id": "13573637326",
+      "titulo_producto": "Dipropilengicol Usp Dpg 500 Ml ",
+      "pregunta": "Me confirma si “Grado cosmético” “USP” “Farmacéutico” Es transparente Tiene bajo olor",
+      "timestamp": "2026-04-29T16:09:16.942538",
+      "respondida": true
+    },
+    {
+      "question_id": "13572891267",
+      "titulo_producto": "Dipropilengicol Usp Dpg 500 Ml ",
+      "pregunta": "¿Este producto es grado USP o cosmético certificado? ¿Tiene ficha técnica o COA?",
+      "timestamp": "2026-04-29T16:25:26.180200",
+      "respondida": true
+    },
+    {
+      "question_id": "13573762438",
+      "titulo_producto": "Citrato De Zinc 500gr N/a",
+      "pregunta": "CUANTO E DEBE TOMAR EN EL DIA",
+      "timestamp": "2026-04-29T22:43:06.920876",
+      "respondida": false
     }
   ]
 }

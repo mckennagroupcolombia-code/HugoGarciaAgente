@@ -188,7 +188,15 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
         state = _cargar_state_posventa()
         procesados = set(state.get("procesados", []))
 
-        mensajes = res.json().get("messages", [])
+        data_msg = res.json()
+        conv = data_msg.get("conversation_status") or {}
+        if conv.get("status") == "blocked" and conv.get("substatus") == "blocked_by_cancelled_order":
+            print(
+                f"⏭️ [POSVENTA] Pack {pack_id} cancelado/bloqueado; no se alerta postventa."
+            )
+            return
+
+        mensajes = data_msg.get("messages", [])
         nuevos = 0
         for msg in mensajes:
             if not isinstance(msg, dict):

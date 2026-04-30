@@ -897,7 +897,19 @@ def _supervisar_colas_meli():
                                 timeout=10,
                             )
                             if r_m.status_code == 200:
-                                raw = r_m.json().get("messages", []) or []
+                                data_m = r_m.json()
+                                conv = data_m.get("conversation_status") or {}
+                                if (
+                                    conv.get("status") == "blocked"
+                                    and conv.get("substatus") == "blocked_by_cancelled_order"
+                                ):
+                                    pendientes_post.pop(str(codigo), None)
+                                    post_modificado = True
+                                    print(
+                                        f"✅ [SUPERVISOR] Quitado postventa {codigo}: orden cancelada/bloqueada."
+                                    )
+                                    continue
+                                raw = data_m.get("messages", []) or []
                                 msgs = sorted(
                                     [m for m in raw if isinstance(m, dict)],
                                     key=_sort_key_meli_msg,
