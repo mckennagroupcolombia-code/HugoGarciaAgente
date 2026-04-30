@@ -391,8 +391,15 @@
       "question_id": "13573762438",
       "titulo_producto": "Citrato De Zinc 500gr N/a",
       "pregunta": "CUANTO E DEBE TOMAR EN EL DIA",
-      "timestamp": "2026-04-29T22:43:06.920876",
+      "timestamp": "2026-04-30T01:43:23.223447",
       "respondida": false
+    },
+    {
+      "question_id": "13573857292",
+      "titulo_producto": "D-pantenol Vitamina B5 75%",
+      "pregunta": "Forma de uso para la piel?",
+      "timestamp": "2026-04-29T23:44:15.706357",
+      "respondida": true
     }
   ]
 }
