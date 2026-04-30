@@ -57,8 +57,9 @@ MELI_CREDS  = Path(os.getenv("MELI_CREDS_PATH", str(ROOT / "credenciales_meli.js
 CACHE_FILE  = Path(__file__).parent / "data/cache.json"
 FICHAS_FILE = Path(__file__).parent / "data/fichas_tecnicas.json"
 FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
+SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
-CATALOG_CACHE_VERSION = 6       # v6 = fotos combo con fallback por familia segura
+CATALOG_CACHE_VERSION = 7       # v7 = evita cruces cuando falta foto SIIGO propia
 WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
@@ -66,6 +67,34 @@ SITE_URL    = "https://mckennagroup.co"
 # El precio web = precio_meli × (1 - MELI_COMMISSION)
 # El cliente ahorra la comisión; el envío se cobra por separado (≤ ahorro)
 MELI_COMMISSION = 0.165
+
+SIIGO_PHOTO_REQUIRED_SKUS = {
+    "C-ACITRA10G",
+    "C-ACEESEALB5ML",
+    "C-ACEESEEUC5ML",
+    "C-ACEESEHIEBUE5ML",
+    "C-ACEESEJAZ5ML",
+    "C-ACEESEJEN5ML",
+    "C-ACEESELIM5ML",
+    "C-ACEESNMAN5ML",
+    "C-ACEESEMANZ5ML",
+    "C-ACEESNMEN5ML",
+    "C-ACEESENAR5ML",
+    "C-ACEESNPIN5ML",
+    "C-ACEESETOM5ML",
+    "C-ACEIESENROM5ML",
+    "C-ACELIN250ML",
+    "C-SORPOLKG",
+    "C-SOR500ML",
+    "C-CARCAL500G",
+    "C-CLOCAL500G",
+    "C-COLPOLHID500G",
+    "C-COLHID30ML",
+    "C-EMBPAT30ML",
+    "C-EXTRAMAL500G",
+    "C-MENCRI100G",
+    "C-AMILTRI100G",
+}
 
 # Tarifas Interrapidísimo (fuente: app/data/tarifas_interrapidisimo.json)
 _tarifas_path = ROOT / "app/data/tarifas_interrapidisimo.json"
@@ -665,6 +694,32 @@ def _load_catalogo_familias_config() -> dict:
         return json.loads(FAMILIAS_FILE.read_text(encoding="utf-8"))
     except Exception:
         return {}
+
+
+def _load_siigo_photo_overrides() -> dict[str, str]:
+    """
+    Fotos propias exportadas desde SIIGO cuando no existen en MeLi activo.
+
+    Formato esperado `PAGINA_WEB/site/data/siigo_fotos.json`:
+    {
+      "C-SOR500mL": "https://.../foto.jpg",
+      "C-SORPOLKg": "/home/mckg/mi-agente/PAGINA_WEB/site/static/img/productos/sorbitol-polvo.jpg"
+    }
+    La API pública de SIIGO no entrega imágenes de producto, por eso este mapa es la entrada segura.
+    """
+    try:
+        raw = json.loads(SIIGO_FOTOS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    out = {}
+    for k, v in raw.items():
+        key = str(k or "").strip().upper()
+        val = str(v or "").strip()
+        if key and val:
+            out[key] = val
+    return out
 
 
 def _strip_sheet_nombre_noise(raw: str) -> str:
@@ -1569,17 +1624,30 @@ def leer_catalogo() -> tuple[list, list]:
     combo_flat = list(combos_by_code.values())
     token = get_meli_token()
     photo_map = fetch_meli_combo_photo_map(token, combo_flat)
+    siigo_photo_overrides = _load_siigo_photo_overrides()
 
     families_by_cat: dict[str, list] = defaultdict(list)
     used_slugs: set[str] = set()
     for combo in sorted(combo_flat, key=lambda p: (p.get("cat", ""), p.get("name", ""))):
         code_u = combo["ref"].upper()
-        photo = photo_map.get(code_u) or {}
-        if photo:
-            combo["photo"] = photo.get("photo", "")
-            combo["meli_id"] = photo.get("meli_id", "")
-            combo["photo_match_type"] = photo.get("match_type", "")
-            combo["photo_match_score"] = photo.get("score", 0.0)
+        siigo_photo = siigo_photo_overrides.get(code_u, "")
+        if siigo_photo:
+            combo["photo"] = siigo_photo
+            combo["meli_id"] = ""
+            combo["photo_match_type"] = "siigo"
+            combo["photo_match_score"] = 100.0
+        elif code_u in SIIGO_PHOTO_REQUIRED_SKUS:
+            combo["photo"] = ""
+            combo["meli_id"] = ""
+            combo["photo_match_type"] = "siigo_missing"
+            combo["photo_match_score"] = 0.0
+        else:
+            photo = photo_map.get(code_u) or {}
+            if photo:
+                combo["photo"] = photo.get("photo", "")
+                combo["meli_id"] = photo.get("meli_id", "")
+                combo["photo_match_type"] = photo.get("match_type", "")
+                combo["photo_match_score"] = photo.get("score", 0.0)
 
         base_slug = combo["slug"] or _slug_from_key(combo["ref"].lower())
         slug = base_slug

@@ -1750,6 +1750,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-acitra10g"
         },
         {
@@ -2577,6 +2579,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesealb5ml"
         },
         {
@@ -2675,6 +2679,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceeseeuc5ml"
         },
         {
@@ -2774,6 +2780,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesehiebue5ml"
         },
         {
@@ -2872,6 +2880,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesejaz5ml"
         },
         {
@@ -2970,6 +2980,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesejen5ml"
         },
         {
@@ -2992,6 +3004,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceeselim5ml"
         },
         {
@@ -3088,6 +3102,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesnman5ml"
         },
         {
@@ -3185,6 +3201,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesemanz5ml"
         },
         {
@@ -3283,6 +3301,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesnmen5ml"
         },
         {
@@ -3382,6 +3402,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesenar5ml"
         },
         {
@@ -3479,6 +3501,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesnpin5ml"
         },
         {
@@ -3579,7 +3603,31 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceesetom5ml"
+        },
+        {
+          "name": "ACEITE ESENCIALCORTEZA CEDRO 5mL",
+          "ref": "C-ACEESECORCED5mL",
+          "rep_sku": "C-ACEESECORCED5mL",
+          "slug": "c-aceesecorced5ml",
+          "precio": "$14.195",
+          "precio_meli": "$17.000",
+          "precio_num": 14195.0,
+          "lista_num": 17000.0,
+          "ahorro": "$2.805",
+          "photo": "",
+          "meli_id": "",
+          "cat": "Aceites Esenciales",
+          "cat_color": "#1E5C51",
+          "desc": "",
+          "ficha": null,
+          "solo_vitrina": false,
+          "buyable": true,
+          "is_combo": true,
+          "precio_canal_label": "Lista",
+          "family_slug": "c-aceesecorced5ml"
         },
         {
           "name": "ACETE ESENCIAL ROMERO 5mL",
@@ -3676,6 +3724,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-aceiesenrom5ml"
         }
       ]
@@ -3706,28 +3756,6 @@
           "photo_match_type": "sku",
           "photo_match_score": 100.0,
           "family_slug": "c-aceargan50ml"
-        },
-        {
-          "name": "ACEITE CORTEZA CEDRO 5mL",
-          "ref": "C-ACECORCED5mL",
-          "rep_sku": "C-ACECORCED5mL",
-          "slug": "c-acecorced5ml",
-          "precio": "$14.195",
-          "precio_meli": "$17.000",
-          "precio_num": 14195.0,
-          "lista_num": 17000.0,
-          "ahorro": "$2.805",
-          "photo": "",
-          "meli_id": "",
-          "cat": "Aceites",
-          "cat_color": "#2E8B7A",
-          "desc": "",
-          "ficha": null,
-          "solo_vitrina": false,
-          "buyable": true,
-          "is_combo": true,
-          "precio_canal_label": "Lista",
-          "family_slug": "c-acecorced5ml"
         },
         {
           "name": "ACEITE GIRASOL 500mL",
@@ -3797,6 +3825,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-acelin250ml"
         },
         {
@@ -3828,11 +3858,11 @@
           "ref": "C-ACENEE250mL",
           "rep_sku": "C-ACENEE250mL",
           "slug": "c-acenee250ml",
-          "precio": "$36.322",
-          "precio_meli": "$43.500",
-          "precio_num": 36322.5,
-          "lista_num": 43500.0,
-          "ahorro": "$7.178",
+          "precio": "$54.192",
+          "precio_meli": "$64.900",
+          "precio_num": 54191.5,
+          "lista_num": 64900.0,
+          "ahorro": "$10.708",
           "photo": "https://http2.mlstatic.com/D_977755-MCO81456438525_122024-O.jpg",
           "meli_id": "MCO883017727",
           "cat": "Aceites",
@@ -3852,11 +3882,11 @@
           "ref": "C-ACENEE500mL",
           "rep_sku": "C-ACENEE500mL",
           "slug": "c-acenee500ml",
-          "precio": "$69.222",
-          "precio_meli": "$82.900",
-          "precio_num": 69221.5,
-          "lista_num": 82900.0,
-          "ahorro": "$13.678",
+          "precio": "$98.530",
+          "precio_meli": "$118.000",
+          "precio_num": 98530.0,
+          "lista_num": 118000.0,
+          "ahorro": "$19.470",
           "photo": "https://http2.mlstatic.com/D_606625-MLA99330647218_112025-O.jpg",
           "meli_id": "MCO3226490166",
           "cat": "Aceites",
@@ -3997,30 +4027,6 @@
       "name": "Ceras y Mantecas",
       "products": [
         {
-          "name": "CERA ABEJAS AMARILLA REFINADA 500g",
-          "ref": "C-CERABEREFAMAKg",
-          "rep_sku": "C-CERABEREFAMAKg",
-          "slug": "c-ceraberefamakg",
-          "precio": "$29.976",
-          "precio_meli": "$35.900",
-          "precio_num": 29976.5,
-          "lista_num": 35900.0,
-          "ahorro": "$5.924",
-          "photo": "https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg",
-          "meli_id": "MCO590695436",
-          "cat": "Ceras y Mantecas",
-          "cat_color": "#3A9E8C",
-          "desc": "",
-          "ficha": null,
-          "solo_vitrina": false,
-          "buyable": true,
-          "is_combo": true,
-          "precio_canal_label": "Lista",
-          "photo_match_type": "name",
-          "photo_match_score": 100.0,
-          "family_slug": "c-ceraberefamakg"
-        },
-        {
           "name": "CERA ABEJAS REFINADA AMARILLA 500g",
           "ref": "C-CERABEREFAMA500g",
           "rep_sku": "C-CERABEREFAMA500g",
@@ -4043,6 +4049,30 @@
           "photo_match_type": "sku",
           "photo_match_score": 100.0,
           "family_slug": "c-ceraberefama500g"
+        },
+        {
+          "name": "CERA ABEJAS REFINADA AMARILLA Kg",
+          "ref": "C-CERABEREFAMAKg",
+          "rep_sku": "C-CERABEREFAMAKg",
+          "slug": "c-ceraberefamakg",
+          "precio": "$39.162",
+          "precio_meli": "$46.900",
+          "precio_num": 39161.5,
+          "lista_num": 46900.0,
+          "ahorro": "$7.738",
+          "photo": "https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg",
+          "meli_id": "MCO590695436",
+          "cat": "Ceras y Mantecas",
+          "cat_color": "#3A9E8C",
+          "desc": "",
+          "ficha": null,
+          "solo_vitrina": false,
+          "buyable": true,
+          "is_combo": true,
+          "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 92.5,
+          "family_slug": "c-ceraberefamakg"
         },
         {
           "name": "CERA ABEJAS REFINADA BLANCA 500g",
@@ -4539,11 +4569,11 @@
           "ref": "C-MANCACREF500g",
           "rep_sku": "C-MANCACREF500g",
           "slug": "c-mancacref500g",
-          "precio": "$29.142",
-          "precio_meli": "$34.900",
-          "precio_num": 29141.5,
-          "lista_num": 34900.0,
-          "ahorro": "$5.758",
+          "precio": "$14.112",
+          "precio_meli": "$16.900",
+          "precio_num": 14111.5,
+          "lista_num": 16900.0,
+          "ahorro": "$2.788",
           "photo": "https://http2.mlstatic.com/D_861141-MCO89986938011_082025-O.jpg",
           "meli_id": "MCO566619739",
           "cat": "Ceras y Mantecas",
@@ -4732,8 +4762,8 @@
           "precio_num": 26636.5,
           "lista_num": 31900.0,
           "ahorro": "$5.264",
-          "photo": "https://http2.mlstatic.com/D_651032-MCO109954325572_042026-O.jpg",
-          "meli_id": "MCO890848439",
+          "photo": "https://http2.mlstatic.com/D_721388-MCO110859451899_042026-O.jpg",
+          "meli_id": "MCO572516333",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -5690,11 +5720,11 @@
           "ref": "C-ALCCET500g",
           "rep_sku": "C-ALCCET500g",
           "slug": "c-alccet500g",
-          "precio": "$32.482",
-          "precio_meli": "$38.900",
-          "precio_num": 32481.5,
-          "lista_num": 38900.0,
-          "ahorro": "$6.418",
+          "precio": "$19.956",
+          "precio_meli": "$23.900",
+          "precio_num": 19956.5,
+          "lista_num": 23900.0,
+          "ahorro": "$3.944",
           "photo": "https://http2.mlstatic.com/D_952648-MCO72474333460_102023-O.jpg",
           "meli_id": "MCO581495025",
           "cat": "Emulsionantes y Surfactantes",
@@ -5816,11 +5846,11 @@
           "ref": "C-ALCCETKg",
           "rep_sku": "C-ALCCETKg",
           "slug": "c-alccetkg",
-          "precio": "$58.450",
-          "precio_meli": "$70.000",
-          "precio_num": 58450.0,
-          "lista_num": 70000.0,
-          "ahorro": "$11.550",
+          "precio": "$37.909",
+          "precio_meli": "$45.400",
+          "precio_num": 37909.0,
+          "lista_num": 45400.0,
+          "ahorro": "$7.491",
           "photo": "https://http2.mlstatic.com/D_612305-MCO109558009156_042026-O.jpg",
           "meli_id": "MCO581495164",
           "cat": "Emulsionantes y Surfactantes",
@@ -6708,11 +6738,11 @@
           "ref": "C-TENSCIKg",
           "rep_sku": "C-TENSCIKg",
           "slug": "c-tenscikg",
-          "precio": "$54.192",
-          "precio_meli": "$64.900",
-          "precio_num": 54191.5,
-          "lista_num": 64900.0,
-          "ahorro": "$10.708",
+          "precio": "$124.415",
+          "precio_meli": "$149.000",
+          "precio_num": 124415.0,
+          "lista_num": 149000.0,
+          "ahorro": "$24.585",
           "photo": "",
           "meli_id": "",
           "cat": "Emulsionantes y Surfactantes",
@@ -7802,8 +7832,8 @@
           "precio_num": 10771.5,
           "lista_num": 12900.0,
           "ahorro": "$2.128",
-          "photo": "https://http2.mlstatic.com/D_727410-MCO82867222984_032025-O.jpg",
-          "meli_id": "MCO1235520034",
+          "photo": "",
+          "meli_id": "",
           "cat": "Humectantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -7812,8 +7842,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-sor500ml"
         },
         {
@@ -7826,8 +7856,8 @@
           "precio_num": 26636.5,
           "lista_num": 31900.0,
           "ahorro": "$5.264",
-          "photo": "https://http2.mlstatic.com/D_727410-MCO82867222984_032025-O.jpg",
-          "meli_id": "MCO1235520034",
+          "photo": "",
+          "meli_id": "",
           "cat": "Humectantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -7836,8 +7866,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "name",
-          "photo_match_score": 84.2,
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-sorpolkg"
         },
         {
@@ -8231,11 +8261,11 @@
           "ref": "C-CARCAL500g",
           "rep_sku": "C-CARCAL500g",
           "slug": "c-carcal500g",
-          "precio": "$33.609",
-          "precio_meli": "$40.250",
-          "precio_num": 33608.75,
-          "lista_num": 40250.0,
-          "ahorro": "$6.641",
+          "precio": "$11.690",
+          "precio_meli": "$14.000",
+          "precio_num": 11690.0,
+          "lista_num": 14000.0,
+          "ahorro": "$2.310",
           "photo": "",
           "meli_id": "",
           "cat": "Sales Minerales",
@@ -8246,6 +8276,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-carcal500g"
         },
         {
@@ -8484,6 +8516,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-clocal500g"
         },
         {
@@ -9180,8 +9214,8 @@
           "precio_num": 19372.0,
           "lista_num": 23200.0,
           "ahorro": "$3.828",
-          "photo": "https://http2.mlstatic.com/D_739042-MCO94156935519_102025-O.jpg",
-          "meli_id": "MCO835404031",
+          "photo": "",
+          "meli_id": "",
           "cat": "Suplementarios",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -9348,8 +9382,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-colhid30ml"
         },
         {
@@ -9362,8 +9396,8 @@
           "precio_num": 61372.5,
           "lista_num": 73500.0,
           "ahorro": "$12.128",
-          "photo": "https://http2.mlstatic.com/D_739042-MCO94156935519_102025-O.jpg",
-          "meli_id": "MCO835404031",
+          "photo": "",
+          "meli_id": "",
           "cat": "Suplementarios",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -9530,8 +9564,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "family",
-          "photo_match_score": 95.0,
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-colpolhid500g"
         },
         {
@@ -10843,11 +10877,11 @@
           "ref": "C-GLUMON500g",
           "rep_sku": "C-GLUMON500g",
           "slug": "c-glumon500g",
-          "precio": "$9.102",
-          "precio_meli": "$10.900",
-          "precio_num": 9101.5,
-          "lista_num": 10900.0,
-          "ahorro": "$1.798",
+          "precio": "$9.936",
+          "precio_meli": "$11.900",
+          "precio_num": 9936.5,
+          "lista_num": 11900.0,
+          "ahorro": "$1.964",
           "photo": "https://http2.mlstatic.com/D_678926-MCO69683443766_052023-O.jpg",
           "meli_id": "MCO1626151692",
           "cat": "Excipientes",
@@ -12387,8 +12421,8 @@
           "precio_num": 30811.5,
           "lista_num": 36900.0,
           "ahorro": "$6.088",
-          "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
-          "meli_id": "MCO1929031180",
+          "photo": "https://http2.mlstatic.com/D_704222-MCO82946035647_032025-O.jpg",
+          "meli_id": "MCO1929427414",
           "cat": "Edulcorantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -12529,8 +12563,8 @@
           "precio_num": 65881.5,
           "lista_num": 78900.0,
           "ahorro": "$13.018",
-          "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
-          "meli_id": "MCO1929031180",
+          "photo": "https://http2.mlstatic.com/D_704222-MCO82946035647_032025-O.jpg",
+          "meli_id": "MCO1929427414",
           "cat": "Edulcorantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -13584,6 +13618,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-embpat30ml"
         },
         {
@@ -13722,6 +13758,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-extramal500g"
         },
         {
@@ -13924,6 +13962,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-mencri100g"
         },
         {
@@ -14618,6 +14658,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "siigo_missing",
+          "photo_match_score": 0.0,
           "family_slug": "c-amiltri100g"
         },
         {
@@ -15132,11 +15174,11 @@
       "ref": "C-TENSCIKg",
       "rep_sku": "C-TENSCIKg",
       "slug": "c-tenscikg",
-      "precio": "$54.192",
-      "precio_meli": "$64.900",
-      "precio_num": 54191.5,
-      "lista_num": 64900.0,
-      "ahorro": "$10.708",
+      "precio": "$124.415",
+      "precio_meli": "$149.000",
+      "precio_num": 124415.0,
+      "lista_num": 149000.0,
+      "ahorro": "$24.585",
       "photo": "",
       "meli_id": "",
       "cat": "Emulsionantes y Surfactantes",
@@ -16457,11 +16499,11 @@
       "ref": "C-MANCACREF500g",
       "rep_sku": "C-MANCACREF500g",
       "slug": "c-mancacref500g",
-      "precio": "$29.142",
-      "precio_meli": "$34.900",
-      "precio_num": 29141.5,
-      "lista_num": 34900.0,
-      "ahorro": "$5.758",
+      "precio": "$14.112",
+      "precio_meli": "$16.900",
+      "precio_num": 14111.5,
+      "lista_num": 16900.0,
+      "ahorro": "$2.788",
       "photo": "https://http2.mlstatic.com/D_861141-MCO89986938011_082025-O.jpg",
       "meli_id": "MCO566619739",
       "cat": "Ceras y Mantecas",
@@ -17395,6 +17437,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesejaz5ml"
     },
     {
@@ -17402,11 +17446,11 @@
       "ref": "C-ALCCETKg",
       "rep_sku": "C-ALCCETKg",
       "slug": "c-alccetkg",
-      "precio": "$58.450",
-      "precio_meli": "$70.000",
-      "precio_num": 58450.0,
-      "lista_num": 70000.0,
-      "ahorro": "$11.550",
+      "precio": "$37.909",
+      "precio_meli": "$45.400",
+      "precio_num": 37909.0,
+      "lista_num": 45400.0,
+      "ahorro": "$7.491",
       "photo": "https://http2.mlstatic.com/D_612305-MCO109558009156_042026-O.jpg",
       "meli_id": "MCO581495164",
       "cat": "Emulsionantes y Surfactantes",
@@ -17806,6 +17850,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-clocal500g"
     },
     {
@@ -17861,11 +17907,11 @@
       "ref": "C-ACENEE250mL",
       "rep_sku": "C-ACENEE250mL",
       "slug": "c-acenee250ml",
-      "precio": "$36.322",
-      "precio_meli": "$43.500",
-      "precio_num": 36322.5,
-      "lista_num": 43500.0,
-      "ahorro": "$7.178",
+      "precio": "$54.192",
+      "precio_meli": "$64.900",
+      "precio_num": 54191.5,
+      "lista_num": 64900.0,
+      "ahorro": "$10.708",
       "photo": "https://http2.mlstatic.com/D_977755-MCO81456438525_122024-O.jpg",
       "meli_id": "MCO883017727",
       "cat": "Aceites",
@@ -17948,6 +17994,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-acitra10g"
     },
     {
@@ -18146,8 +18194,8 @@
       "precio_num": 10771.5,
       "lista_num": 12900.0,
       "ahorro": "$2.128",
-      "photo": "https://http2.mlstatic.com/D_727410-MCO82867222984_032025-O.jpg",
-      "meli_id": "MCO1235520034",
+      "photo": "",
+      "meli_id": "",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -18156,8 +18204,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-sor500ml"
     },
     {
@@ -18566,6 +18614,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesealb5ml"
     },
     {
@@ -18588,6 +18638,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-acelin250ml"
     },
     {
@@ -18752,11 +18804,11 @@
       "ref": "C-ALCCET500g",
       "rep_sku": "C-ALCCET500g",
       "slug": "c-alccet500g",
-      "precio": "$32.482",
-      "precio_meli": "$38.900",
-      "precio_num": 32481.5,
-      "lista_num": 38900.0,
-      "ahorro": "$6.418",
+      "precio": "$19.956",
+      "precio_meli": "$23.900",
+      "precio_num": 19956.5,
+      "lista_num": 23900.0,
+      "ahorro": "$3.944",
       "photo": "https://http2.mlstatic.com/D_952648-MCO72474333460_102023-O.jpg",
       "meli_id": "MCO581495025",
       "cat": "Emulsionantes y Surfactantes",
@@ -18994,6 +19046,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesehiebue5ml"
     },
     {
@@ -19115,6 +19169,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesnpin5ml"
     },
     {
@@ -19469,6 +19525,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesetom5ml"
     },
     {
@@ -19567,6 +19625,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesejen5ml"
     },
     {
@@ -19823,6 +19883,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesenar5ml"
     },
     {
@@ -19920,6 +19982,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesemanz5ml"
     },
     {
@@ -19995,15 +20059,15 @@
       "family_slug": "c-ceraberefbla500g"
     },
     {
-      "name": "CERA ABEJAS AMARILLA REFINADA 500g",
+      "name": "CERA ABEJAS REFINADA AMARILLA Kg",
       "ref": "C-CERABEREFAMAKg",
       "rep_sku": "C-CERABEREFAMAKg",
       "slug": "c-ceraberefamakg",
-      "precio": "$29.976",
-      "precio_meli": "$35.900",
-      "precio_num": 29976.5,
-      "lista_num": 35900.0,
-      "ahorro": "$5.924",
+      "precio": "$39.162",
+      "precio_meli": "$46.900",
+      "precio_num": 39161.5,
+      "lista_num": 46900.0,
+      "ahorro": "$7.738",
       "photo": "https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg",
       "meli_id": "MCO590695436",
       "cat": "Ceras y Mantecas",
@@ -20015,7 +20079,7 @@
       "is_combo": true,
       "precio_canal_label": "Lista",
       "photo_match_type": "name",
-      "photo_match_score": 100.0,
+      "photo_match_score": 92.5,
       "family_slug": "c-ceraberefamakg"
     },
     {
@@ -20593,6 +20657,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-embpat30ml"
     },
     {
@@ -22616,6 +22682,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-mencri100g"
     },
     {
@@ -22638,6 +22706,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceeselim5ml"
     },
     {
@@ -22660,6 +22730,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-extramal500g"
     },
     {
@@ -22929,6 +23001,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesnman5ml"
     },
     {
@@ -23027,6 +23101,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceeseeuc5ml"
     },
     {
@@ -23125,6 +23201,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceesnmen5ml"
     },
     {
@@ -23137,8 +23215,8 @@
       "precio_num": 26636.5,
       "lista_num": 31900.0,
       "ahorro": "$5.264",
-      "photo": "https://http2.mlstatic.com/D_651032-MCO109954325572_042026-O.jpg",
-      "meli_id": "MCO890848439",
+      "photo": "https://http2.mlstatic.com/D_721388-MCO110859451899_042026-O.jpg",
+      "meli_id": "MCO572516333",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -23242,8 +23320,8 @@
       "precio_num": 26636.5,
       "lista_num": 31900.0,
       "ahorro": "$5.264",
-      "photo": "https://http2.mlstatic.com/D_727410-MCO82867222984_032025-O.jpg",
-      "meli_id": "MCO1235520034",
+      "photo": "",
+      "meli_id": "",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -23252,8 +23330,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "name",
-      "photo_match_score": 84.2,
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-sorpolkg"
     },
     {
@@ -23419,11 +23497,11 @@
       "ref": "C-CARCAL500g",
       "rep_sku": "C-CARCAL500g",
       "slug": "c-carcal500g",
-      "precio": "$33.609",
-      "precio_meli": "$40.250",
-      "precio_num": 33608.75,
-      "lista_num": 40250.0,
-      "ahorro": "$6.641",
+      "precio": "$11.690",
+      "precio_meli": "$14.000",
+      "precio_num": 11690.0,
+      "lista_num": 14000.0,
+      "ahorro": "$2.310",
       "photo": "",
       "meli_id": "",
       "cat": "Sales Minerales",
@@ -23434,13 +23512,15 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-carcal500g"
     },
     {
-      "name": "ACEITE CORTEZA CEDRO 5mL",
-      "ref": "C-ACECORCED5mL",
-      "rep_sku": "C-ACECORCED5mL",
-      "slug": "c-acecorced5ml",
+      "name": "ACEITE ESENCIALCORTEZA CEDRO 5mL",
+      "ref": "C-ACEESECORCED5mL",
+      "rep_sku": "C-ACEESECORCED5mL",
+      "slug": "c-aceesecorced5ml",
       "precio": "$14.195",
       "precio_meli": "$17.000",
       "precio_num": 14195.0,
@@ -23448,15 +23528,15 @@
       "ahorro": "$2.805",
       "photo": "",
       "meli_id": "",
-      "cat": "Aceites",
-      "cat_color": "#2E8B7A",
+      "cat": "Aceites Esenciales",
+      "cat_color": "#1E5C51",
       "desc": "",
       "ficha": null,
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "family_slug": "c-acecorced5ml"
+      "family_slug": "c-aceesecorced5ml"
     },
     {
       "name": "ACEITE ARBOL DE TE 5 mL",
@@ -23669,6 +23749,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-aceiesenrom5ml"
     },
     {
@@ -24776,11 +24858,11 @@
       "ref": "C-GLUMON500g",
       "rep_sku": "C-GLUMON500g",
       "slug": "c-glumon500g",
-      "precio": "$9.102",
-      "precio_meli": "$10.900",
-      "precio_num": 9101.5,
-      "lista_num": 10900.0,
-      "ahorro": "$1.798",
+      "precio": "$9.936",
+      "precio_meli": "$11.900",
+      "precio_num": 9936.5,
+      "lista_num": 11900.0,
+      "ahorro": "$1.964",
       "photo": "https://http2.mlstatic.com/D_678926-MCO69683443766_052023-O.jpg",
       "meli_id": "MCO1626151692",
       "cat": "Excipientes",
@@ -26160,6 +26242,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-amiltri100g"
     },
     {
@@ -27128,8 +27212,8 @@
       "precio_num": 30811.5,
       "lista_num": 36900.0,
       "ahorro": "$6.088",
-      "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
-      "meli_id": "MCO1929031180",
+      "photo": "https://http2.mlstatic.com/D_704222-MCO82946035647_032025-O.jpg",
+      "meli_id": "MCO1929427414",
       "cat": "Edulcorantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -27270,8 +27354,8 @@
       "precio_num": 65881.5,
       "lista_num": 78900.0,
       "ahorro": "$13.018",
-      "photo": "https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg",
-      "meli_id": "MCO1929031180",
+      "photo": "https://http2.mlstatic.com/D_704222-MCO82946035647_032025-O.jpg",
+      "meli_id": "MCO1929427414",
       "cat": "Edulcorantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -27412,8 +27496,8 @@
       "precio_num": 61372.5,
       "lista_num": 73500.0,
       "ahorro": "$12.128",
-      "photo": "https://http2.mlstatic.com/D_739042-MCO94156935519_102025-O.jpg",
-      "meli_id": "MCO835404031",
+      "photo": "",
+      "meli_id": "",
       "cat": "Suplementarios",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -27580,8 +27664,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "family",
-      "photo_match_score": 95.0,
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-colpolhid500g"
     },
     {
@@ -27936,8 +28020,8 @@
       "precio_num": 19372.0,
       "lista_num": 23200.0,
       "ahorro": "$3.828",
-      "photo": "https://http2.mlstatic.com/D_739042-MCO94156935519_102025-O.jpg",
-      "meli_id": "MCO835404031",
+      "photo": "",
+      "meli_id": "",
       "cat": "Suplementarios",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -28104,8 +28188,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "siigo_missing",
+      "photo_match_score": 0.0,
       "family_slug": "c-colhid30ml"
     },
     {
@@ -28275,11 +28359,11 @@
       "ref": "C-ACENEE500mL",
       "rep_sku": "C-ACENEE500mL",
       "slug": "c-acenee500ml",
-      "precio": "$69.222",
-      "precio_meli": "$82.900",
-      "precio_num": 69221.5,
-      "lista_num": 82900.0,
-      "ahorro": "$13.678",
+      "precio": "$98.530",
+      "precio_meli": "$118.000",
+      "precio_num": 98530.0,
+      "lista_num": 118000.0,
+      "ahorro": "$19.470",
       "photo": "https://http2.mlstatic.com/D_606625-MLA99330647218_112025-O.jpg",
       "meli_id": "MCO3226490166",
       "cat": "Aceites",
@@ -29311,5 +29395,5 @@
       "family_slug": "c-aceric10ml"
     }
   ],
-  "version": 6
+  "version": 7
 }

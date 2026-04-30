@@ -1047,8 +1047,7 @@ def register_routes(app):
 
                     exito = responder_mensaje_posventa(pack_id, respuesta)
 
-                    if exito:
-                        # Quitar de pendientes (clave real del dict o mismo pack_id)
+                    def _quitar_pendiente_postventa():
                         try:
                             with open(state_path, "r", encoding="utf-8") as _f:
                                 _state = json.load(_f)
@@ -1064,6 +1063,10 @@ def register_routes(app):
                                 json.dump(_state, _f, indent=2, ensure_ascii=False)
                         except Exception:
                             pass
+
+                    if exito:
+                        # Quitar de pendientes (clave real del dict o mismo pack_id)
+                        _quitar_pendiente_postventa()
                         enviar_whatsapp_reporte(
                             f"✅ *Respuesta postventa enviada*\n"
                             f"👤 Comprador: {comprador or pack_id}\n"
@@ -1072,6 +1075,32 @@ def register_routes(app):
                             numero_destino=grupo_posventa,
                         )
                     else:
+                        try:
+                            from app.utils import refrescar_token_meli, obtener_seller_id_meli
+
+                            tok = refrescar_token_meli()
+                            sid = obtener_seller_id_meli()
+                            r_m = _requests_lib.get(
+                                f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{sid}?tag=post_sale",
+                                headers={"Authorization": f"Bearer {tok}", "x-version": "2"},
+                                timeout=10,
+                            )
+                            if r_m.status_code == 200:
+                                conv = (r_m.json().get("conversation_status") or {})
+                                if (
+                                    conv.get("status") == "blocked"
+                                    and conv.get("substatus") == "blocked_by_cancelled_order"
+                                ):
+                                    _quitar_pendiente_postventa()
+                                    enviar_whatsapp_reporte(
+                                        f"✅ *Postventa cerrada: orden cancelada*\n"
+                                        f"📦 Pack: {pack_id}\n"
+                                        f"🧹 MeLi bloqueó la conversación por cancelación; quité el pendiente local.",
+                                        numero_destino=grupo_posventa,
+                                    )
+                                    return
+                        except Exception as e_cancel:
+                            print(f"⚠️ [POSVENTA-CMD] No pude verificar cancelación {pack_id}: {e_cancel}")
                         enviar_whatsapp_reporte(
                             f"❌ *Error enviando respuesta postventa* al pack {pack_id}.\n"
                             f"Intenta responder directamente en MeLi.",
