@@ -41,6 +41,7 @@ from flask import (
     session,
     flash,
     Response,
+    send_from_directory,
 )
 import requests
 import gspread
@@ -702,8 +703,8 @@ def _load_siigo_photo_overrides() -> dict[str, str]:
 
     Formato esperado `PAGINA_WEB/site/data/siigo_fotos.json`:
     {
-      "C-SOR500mL": "https://.../foto.jpg",
-      "C-SORPOLKg": "/home/mckg/mi-agente/PAGINA_WEB/site/static/img/productos/sorbitol-polvo.jpg"
+      "C-SOR500mL": "/imagenes-productos-catalogo/C-SOR500mL%20.png",
+      "C-SORPOLKg": "/imagenes-productos-catalogo/C-SORPOLKg.png"
     }
     La API pública de SIIGO no entrega imágenes de producto, por eso este mapa es la entrada segura.
     """
@@ -2003,6 +2004,11 @@ def _inject_site_auth():
         "admin_panel_enabled": site_auth.admin_panel_enabled(),
         "admin_orders_session_ok": site_auth.session_admin_orders_authorized(session),
     }
+
+
+@app.route("/imagenes-productos-catalogo/<path:filename>")
+def imagen_producto_catalogo(filename: str):
+    return send_from_directory(ROOT / "IMAGENES_PRODUCTOS_CATALOGO", filename)
 
 
 @app.route("/")

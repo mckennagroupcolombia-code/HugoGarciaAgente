@@ -1,0 +1,4980 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo McKenna Group — Combos Web</title>
+  <style>
+    @font-face {
+      font-family: "Montserrat";
+      src: url("file:///usr/share/fonts/truetype/montserrat/Montserrat-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Montserrat";
+      src: url("file:///usr/share/fonts/truetype/montserrat/Montserrat-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Montserrat";
+      src: url("file:///usr/share/fonts/truetype/montserrat/Montserrat-ExtraBold.ttf");
+      font-weight: 800;
+    }
+    @font-face {
+      font-family: "Montserrat";
+      src: url("file:///usr/share/fonts/truetype/montserrat/Montserrat-Light.ttf");
+      font-weight: 300;
+    }
+
+    :root {
+      --green: #0c6069;
+      --green-dark: #045159;
+      --green-deep: #022D33;
+      --green-light: #6aacb3;
+      --green-pale: #c0f0f5;
+      --green-ultra: #e3fcff;
+      --text-dark: #022D33;
+      --text-mid: #045159;
+      --text-muted: #3a7e87;
+      --border: rgba(12,96,105,0.18);
+      --white: #ffffff;
+    }
+
+    @page {
+      size: A4;
+      margin: 12mm;
+      @bottom-center {
+        content: "McKenna Group S.A.S. · www.mckennagroup.co · " counter(page);
+        font-family: "Montserrat", sans-serif;
+        font-size: 7.5pt;
+        color: #3a7e87;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+      color: var(--text-dark);
+      background: var(--green-ultra);
+      font-size: 9.5pt;
+      line-height: 1.45;
+    }
+
+    .cover {
+      min-height: 255mm;
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      background: var(--green-deep);
+      color: #fff;
+      page-break-after: always;
+      overflow: hidden;
+      position: relative;
+    }
+    .cover::before {
+      content: "";
+      position: absolute;
+      width: 160mm;
+      height: 160mm;
+      border-radius: 50%;
+      left: -55mm;
+      top: -55mm;
+      background: radial-gradient(circle, rgba(46,139,122,.32), transparent 65%);
+    }
+    .cover-left,
+    .cover-right {
+      position: relative;
+      z-index: 1;
+      padding: 22mm 18mm;
+    }
+    .cover-logo {
+      width: 44mm;
+      height: auto;
+      margin-bottom: 22mm;
+      opacity: .96;
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2.2pt;
+      color: var(--green-light);
+      margin-bottom: 8mm;
+    }
+    .cover-title {
+      font-size: 38pt;
+      line-height: .92;
+      letter-spacing: -1.8pt;
+      font-weight: 800;
+      margin: 0 0 8mm;
+    }
+    .cover-title em {
+      font-style: italic;
+      font-weight: 300;
+      color: var(--green-ultra);
+    }
+    .cover-subtitle {
+      max-width: 92mm;
+      font-size: 11pt;
+      color: rgba(227,252,255,.76);
+      margin: 0;
+    }
+    .cover-right {
+      background: var(--green-ultra);
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .brand-card {
+      background: #fff;
+      border: 1.5px solid var(--green-pale);
+      padding: 14mm;
+    }
+    .brand-card h2 {
+      margin: 0 0 8mm;
+      font-size: 20pt;
+      line-height: 1;
+      letter-spacing: -1pt;
+      color: var(--green-deep);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      margin-top: 9mm;
+    }
+    .stat {
+      border-top: 2px solid var(--green);
+      padding-top: 4mm;
+    }
+    .stat strong {
+      display: block;
+      font-size: 22pt;
+      line-height: 1;
+      color: var(--green);
+      font-weight: 800;
+    }
+    .stat span {
+      display: block;
+      margin-top: 2mm;
+      font-size: 7.5pt;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1pt;
+      font-weight: 700;
+    }
+    .cover-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3mm;
+      margin-top: 9mm;
+    }
+    .cover-badges span {
+      border: 1px solid var(--green-pale);
+      background: var(--green-ultra);
+      color: var(--green-dark);
+      font-weight: 700;
+      font-size: 7.3pt;
+      padding: 2.3mm 3.6mm;
+      border-radius: 4px;
+    }
+
+    .section {
+      page-break-before: always;
+    }
+    .section:first-of-type {
+      page-break-before: auto;
+    }
+    .section-header {
+      display: grid;
+      grid-template-columns: 28mm 1fr;
+      gap: 7mm;
+      align-items: start;
+      padding: 0 0 8mm;
+      border-bottom: 2px solid var(--green);
+      margin-bottom: 8mm;
+    }
+    .section-number {
+      font-size: 28pt;
+      font-weight: 800;
+      line-height: .8;
+      color: rgba(12,96,105,.16);
+    }
+    .section-title {
+      margin: 0;
+      font-size: 20pt;
+      line-height: 1;
+      color: var(--green-deep);
+      letter-spacing: -.7pt;
+      font-weight: 800;
+    }
+    .section-title em {
+      font-style: italic;
+      font-weight: 300;
+      color: var(--green);
+    }
+    .section-lead {
+      margin: 3mm 0 0;
+      color: var(--text-muted);
+      font-size: 8.5pt;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5mm;
+    }
+    .product-card {
+      background: #fff;
+      border: 1.5px solid var(--green-pale);
+      break-inside: avoid;
+      min-height: 72mm;
+      display: grid;
+      grid-template-rows: 34mm 1fr;
+    }
+    .product-media {
+      background: #ffffff;
+      border-bottom: 1.5px solid var(--green-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4mm;
+    }
+    .product-media img {
+      max-width: 100%;
+      max-height: 28mm;
+      object-fit: contain;
+    }
+    .product-placeholder {
+      width: 18mm;
+      height: 18mm;
+      border-radius: 50%;
+      border: 1.5px solid rgba(12,96,105,.2);
+    }
+    .product-body {
+      padding: 5mm;
+      display: flex;
+      flex-direction: column;
+      gap: 3mm;
+    }
+    .product-cat {
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 1.2pt;
+      font-size: 6.8pt;
+      font-weight: 700;
+    }
+    .product-name {
+      font-size: 10pt;
+      line-height: 1.22;
+      font-weight: 800;
+      color: var(--green-deep);
+      min-height: 18mm;
+    }
+    .product-ref {
+      color: var(--text-muted);
+      font-size: 7.4pt;
+      font-weight: 600;
+    }
+    .price-row {
+      margin-top: auto;
+      border-top: 1px solid var(--green-pale);
+      padding-top: 3mm;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 4mm;
+    }
+    .price {
+      color: var(--green);
+      font-size: 15pt;
+      font-weight: 800;
+      letter-spacing: -.4pt;
+      line-height: 1;
+    }
+    .list-price {
+      color: var(--text-muted);
+      font-size: 7.5pt;
+      text-decoration: line-through;
+      white-space: nowrap;
+    }
+    .saving {
+      color: #2e7d32;
+      font-size: 7pt;
+      font-weight: 700;
+      margin-top: 1.5mm;
+    }
+
+    .toc {
+      page-break-after: always;
+    }
+    .product-placeholder {
+      width: 18mm;
+      height: 18mm;
+      border-radius: 50%;
+      border: 1.5px solid rgba(12,96,105,.2);
+    }
+    .product-body {
+      padding: 5mm;
+      display: flex;
+      flex-direction: column;
+      color: var(--green-dark);
+      font-weight: 700;
+      font-size: 8.5pt;
+    }
+    .toc-item span:last-child {
+      color: var(--text-muted);
+    }
+
+  </style>
+  <style media="screen">
+    body { background: var(--green-ultra); }
+    .cover,
+    .toc,
+    .section {
+      max-width: 1120px;
+      margin: 0 auto 20px;
+      box-shadow: 0 18px 60px rgba(2,45,51,.08);
+    }
+    .section {
+      background: var(--green-ultra);
+      padding: 24px;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .cover {
+        min-height: auto;
+        display: block;
+        overflow: visible;
+      }
+      .cover::before {
+        width: 360px;
+        height: 360px;
+        left: -150px;
+        top: -120px;
+      }
+      .cover-left,
+      .cover-right {
+        padding: 42px 22px;
+      }
+      .cover-logo {
+        width: 150px;
+        margin-bottom: 38px;
+      }
+      .cover-title {
+        font-size: clamp(44px, 16vw, 72px);
+        line-height: .94;
+        letter-spacing: -2px;
+      }
+      .cover-subtitle {
+        max-width: none;
+        font-size: 15px;
+      }
+      .cover-right {
+        min-height: auto;
+      }
+      .brand-card {
+        padding: 28px 22px;
+      }
+      .brand-card h2 {
+        font-size: 28px;
+        line-height: 1.05;
+      }
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+      .stat strong {
+        font-size: 34px;
+      }
+      .toc {
+        margin: 0 12px 20px;
+        padding: 28px 20px;
+      }
+      .toc h2 {
+        font-size: 30px;
+      }
+      .toc-grid {
+        grid-template-columns: 1fr;
+      }
+      .section {
+        margin: 0 12px 20px;
+        padding: 28px 16px;
+      }
+      .section-header {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .section-number {
+        display: none;
+      }
+      .section-title {
+        font-size: 28px;
+        line-height: 1.08;
+      }
+      .products-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .product-card {
+        min-height: auto;
+        grid-template-rows: 190px 1fr;
+      }
+      .product-media {
+        padding: 18px;
+      }
+      .product-media img {
+        max-height: 150px;
+      }
+      .product-body {
+        padding: 18px;
+      }
+      .product-name {
+        min-height: auto;
+        font-size: 16px;
+      }
+      .price {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="cover-left">
+      <img src="file:///home/mckg/mi-agente/DISENO%20CORPORATIVO%20/LOGO%20MCKENNA.jpg" alt="McKenna Group" class="cover-logo">
+      <span class="eyebrow">Catálogo Oficial · April 2026</span>
+      <h1 class="cover-title">Productos<br><em>Web</em><br>Combo</h1>
+      <p class="cover-subtitle">
+        Materias primas de calidad certificada con precios sincronizados desde SIIGO COMBOS
+        y compra directa en mckennagroup.co.
+      </p>
+    </div>
+    <div class="cover-right">
+      <div class="brand-card">
+        <span class="eyebrow">McKenna Group S.A.S.</span>
+        <h2>Catálogo limpio, actualizado y listo para compra.</h2>
+        <p>Solo productos públicos de la página web. Se excluyen fórmulas internas, SKUs sin precio y publicaciones legacy.</p>
+        <div class="stats">
+          <div class="stat"><strong>173</strong><span>Productos</span></div>
+          <div class="stat"><strong>18</strong><span>Categorías</span></div>
+        </div>
+        <div class="cover-badges">
+          <span>SIIGO COMBOS</span>
+          <span>Fotos verificadas</span>
+          <span>Despacho nacional</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="toc">
+    <span class="eyebrow">Índice</span>
+    <h2>Categorías del catálogo</h2>
+    <div class="toc-grid">
+      
+      <div class="toc-item">
+        <span>Ácidos</span>
+        <span>19</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Aceites Esenciales</span>
+        <span>16</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Aceites</span>
+        <span>12</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Ceras y Mantecas</span>
+        <span>19</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Emulsionantes y Surfactantes</span>
+        <span>14</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Humectantes</span>
+        <span>10</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Arcillas</span>
+        <span>4</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Sales Minerales</span>
+        <span>15</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Vitaminas</span>
+        <span>2</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Suplementarios</span>
+        <span>15</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Excipientes</span>
+        <span>10</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Conservantes</span>
+        <span>8</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Edulcorantes</span>
+        <span>7</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Principios Activos</span>
+        <span>14</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Kits</span>
+        <span>3</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Saborizantes</span>
+        <span>1</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Otros</span>
+        <span>2</span>
+      </div>
+      
+      <div class="toc-item">
+        <span>Antisépticos</span>
+        <span>2</span>
+      </div>
+      
+    </div>
+  </section>
+
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">01</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Ácidos <em>(19)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACIAZE10g.jpg" alt="ACIDO AZELAICO 10g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO AZELAICO 10g</div>
+          <div class="product-ref">Ref. C-ACIAZE10g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.863</div>
+              
+              <div class="saving">Ahorras $2.937</div>
+              
+            </div>
+            
+            <div class="list-price">$17.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_860987-MLA81567398311_122024-O.jpg" alt="ACIDO CITRICO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO CITRICO 250g</div>
+          <div class="product-ref">Ref. C-ACICIT250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$7.874</div>
+              
+              <div class="saving">Ahorras $1.556</div>
+              
+            </div>
+            
+            <div class="list-price">$9.430</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_696967-MCO94062815955_102025-O.jpg" alt="ACIDO CITRICO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO CITRICO 500g</div>
+          <div class="product-ref">Ref. C-ACICIT500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$12.442</div>
+              
+              <div class="saving">Ahorras $2.458</div>
+              
+            </div>
+            
+            <div class="list-price">$14.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_603324-MCO93972017683_102025-O.jpg" alt="ACIDO GLICOLICO 50% 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO GLICOLICO 50% 30mL</div>
+          <div class="product-ref">Ref. C-ACIGLI50P30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$20.792</div>
+              
+              <div class="saving">Ahorras $4.108</div>
+              
+            </div>
+            
+            <div class="list-price">$24.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_640368-MCO93625600032_102025-O.jpg" alt="ACIDO HIALURONICO ALTO PESO 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO HIALURONICO ALTO PESO 30mL</div>
+          <div class="product-ref">Ref. C-ACIHIAALTPES85P30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$17.452</div>
+              
+              <div class="saving">Ahorras $3.448</div>
+              
+            </div>
+            
+            <div class="list-price">$20.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_978630-MCO94097384399_102025-O.jpg" alt="ACIDO HIALURONICO BAJO PESO 85% 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO HIALURONICO BAJO PESO 85% 30mL</div>
+          <div class="product-ref">Ref. C-ACDHIABAJPES85P30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$19.122</div>
+              
+              <div class="saving">Ahorras $3.778</div>
+              
+            </div>
+            
+            <div class="list-price">$22.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_619942-MCO89015512165_072025-O.jpg" alt="ACIDO KOJICO 5% 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO KOJICO 5% 30mL</div>
+          <div class="product-ref">Ref. C-ACIKOJ5P30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.286</div>
+              
+              <div class="saving">Ahorras $3.614</div>
+              
+            </div>
+            
+            <div class="list-price">$21.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_619942-MCO89015512165_072025-O.jpg" alt="ACIDO KOJICO D PALMITATO 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO KOJICO D PALMITATO 30mL</div>
+          <div class="product-ref">Ref. C-ACDKOJDPAL30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.286</div>
+              
+              <div class="saving">Ahorras $3.614</div>
+              
+            </div>
+            
+            <div class="list-price">$21.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_888663-MCO93552645844_102025-O.jpg" alt="ACIDO LACTICO 85% 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO LACTICO 85% 30mL</div>
+          <div class="product-ref">Ref. C-ACDLAC85P30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$17.118</div>
+              
+              <div class="saving">Ahorras $3.382</div>
+              
+            </div>
+            
+            <div class="list-price">$20.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_639982-MCO72514484402_102023-O.jpg" alt="ACIDO MALICO 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO MALICO 100g</div>
+          <div class="product-ref">Ref. C-ACIMAL100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$9.936</div>
+              
+              <div class="saving">Ahorras $1.964</div>
+              
+            </div>
+            
+            <div class="list-price">$11.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_689105-MCO94065847185_102025-O.jpg" alt="ACIDO MANDELICO 5g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO MANDELICO 5g</div>
+          <div class="product-ref">Ref. C-ACIMAN5g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$10.772</div>
+              
+              <div class="saving">Ahorras $2.128</div>
+              
+            </div>
+            
+            <div class="list-price">$12.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_840098-MCO93564190876_102025-O.jpg" alt="ACIDO SALICILICO 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO SALICILICO 100g</div>
+          <div class="product-ref">Ref. C-ACISAL100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$9.770</div>
+              
+              <div class="saving">Ahorras $1.930</div>
+              
+            </div>
+            
+            <div class="list-price">$11.700</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_807100-MCO82378380845_022025-O.jpg" alt="ACIDO SALICILICO 20 % 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO SALICILICO 20 % 30mL</div>
+          <div class="product-ref">Ref. C-ACDSAL20P30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$24.966</div>
+              
+              <div class="saving">Ahorras $4.934</div>
+              
+            </div>
+            
+            <div class="list-price">$29.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_957731-MCO93551707024_102025-O.jpg" alt="ACIDO SALICILICO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO SALICILICO 500g</div>
+          <div class="product-ref">Ref. C-ACISAL500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$36.573</div>
+              
+              <div class="saving">Ahorras $7.227</div>
+              
+            </div>
+            
+            <div class="list-price">$43.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACITRA10g.jpg" alt="ACIDO TRANEXAMICO 10g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">ACIDO TRANEXAMICO 10g</div>
+          <div class="product-ref">Ref. C-ACITRA10g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$32.482</div>
+              
+              <div class="saving">Ahorras $6.418</div>
+              
+            </div>
+            
+            <div class="list-price">$38.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_795389-MCO94079413829_102025-O.jpg" alt="VITAMINA C 30% 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">VITAMINA C 30% 30mL</div>
+          <div class="product-ref">Ref. C-VITC30P30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$15.782</div>
+              
+              <div class="saving">Ahorras $3.118</div>
+              
+            </div>
+            
+            <div class="list-price">$18.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_795292-MCO93971092297_102025-O.jpg" alt="VITAMINA C ACIDO ASCORBICO 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">VITAMINA C ACIDO ASCORBICO 100g</div>
+          <div class="product-ref">Ref. C-VITCACIASC100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$11.440</div>
+              
+              <div class="saving">Ahorras $2.260</div>
+              
+            </div>
+            
+            <div class="list-price">$13.700</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_692704-MCO93971589281_102025-O.jpg" alt="VITAMINA C ACIDO ASCORBICO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">VITAMINA C ACIDO ASCORBICO 250g</div>
+          <div class="product-ref">Ref. C-VITCACIASC250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$16.616</div>
+              
+              <div class="saving">Ahorras $3.284</div>
+              
+            </div>
+            
+            <div class="list-price">$19.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_711852-MCO93549301596_102025-O.jpg" alt="VITAMINA C ACIDO ASCORBICO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ácidos</div>
+          <div class="product-name">VITAMINA C ACIDO ASCORBICO 500g</div>
+          <div class="product-ref">Ref. C-VITCACIASC500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$30.895</div>
+              
+              <div class="saving">Ahorras $6.105</div>
+              
+            </div>
+            
+            <div class="list-price">$37.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">02</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Aceites Esenciales <em>(16)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_787114-MCO54788950076_042023-O.jpg" alt="ACEITE ARBOL DE TE 5 mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ARBOL DE TE 5 mL</div>
+          <div class="product-ref">Ref. C-ACEITEATRE5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_787114-MCO54788950076_042023-O.jpg" alt="ACEITE ARBOL TE 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ARBOL TE 30mL</div>
+          <div class="product-ref">Ref. C-ACETEATRE30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$30.728</div>
+              
+              <div class="saving">Ahorras $6.072</div>
+              
+            </div>
+            
+            <div class="list-price">$36.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESEALB5mL.png" alt="ACEITE ESENCIAL ALBAHACA 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL ALBAHACA 5mL</div>
+          <div class="product-ref">Ref. C-ACEESEALB5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESEEUC5mL.png" alt="ACEITE ESENCIAL EUCALIPTO 5 mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL EUCALIPTO 5 mL</div>
+          <div class="product-ref">Ref. C-ACEESEEUC5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESEHIEBUE5mL.png" alt="ACEITE ESENCIAL HIERBA BUENA 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL HIERBA BUENA 5mL</div>
+          <div class="product-ref">Ref. C-ACEESEHIEBUE5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESEJAZ5mL.png" alt="ACEITE ESENCIAL JAZMIN 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL JAZMIN 5mL</div>
+          <div class="product-ref">Ref. C-ACEESEJAZ5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESEJEN5mL.png" alt="ACEITE ESENCIAL JENGIBRE 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL JENGIBRE 5mL</div>
+          <div class="product-ref">Ref. C-ACEESEJEN5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESELIM5mL.png" alt="ACEITE ESENCIAL LIMON 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL LIMON 5mL</div>
+          <div class="product-ref">Ref. C-ACEESELIM5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESNMAN5mL.png" alt="ACEITE ESENCIAL MANDARINA 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL MANDARINA 5mL</div>
+          <div class="product-ref">Ref. C-ACEESNMAN5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESEMANZ5mL.png" alt="ACEITE ESENCIAL MANZANILLA 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL MANZANILLA 5mL</div>
+          <div class="product-ref">Ref. C-ACEESEMANZ5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESNMEN5mL.png" alt="ACEITE ESENCIAL MENTA 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL MENTA 5mL</div>
+          <div class="product-ref">Ref. C-ACEESNMEN5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESENAR5mL.png" alt="ACEITE ESENCIAL NARANJA 5 mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL NARANJA 5 mL</div>
+          <div class="product-ref">Ref. C-ACEESENAR5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESNPIN5mL.png" alt="ACEITE ESENCIAL PINO 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL PINO 5mL</div>
+          <div class="product-ref">Ref. C-ACEESNPIN5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESETOM5mL.png" alt="ACEITE ESENCIAL TOMILLO 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIAL TOMILLO 5mL</div>
+          <div class="product-ref">Ref. C-ACEESETOM5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEESECORCE5mL.png" alt="ACEITE ESENCIALCORTEZA CEDRO 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACEITE ESENCIALCORTEZA CEDRO 5mL</div>
+          <div class="product-ref">Ref. C-ACEESECORCED5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACEIESENROM5mL.png" alt="ACETE ESENCIAL ROMERO 5mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites Esenciales</div>
+          <div class="product-name">ACETE ESENCIAL ROMERO 5mL</div>
+          <div class="product-ref">Ref. C-ACEIESENROM5mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.195</div>
+              
+              <div class="saving">Ahorras $2.805</div>
+              
+            </div>
+            
+            <div class="list-price">$17.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">03</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Aceites <em>(12)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_936385-MCO89016504772_082025-O.jpg" alt="ACEITE ARGAN 50 mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE ARGAN 50 mL</div>
+          <div class="product-ref">Ref. C-ACEARGAN50mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$24.132</div>
+              
+              <div class="saving">Ahorras $4.768</div>
+              
+            </div>
+            
+            <div class="list-price">$28.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_775718-MCO53055669004_122022-O.jpg" alt="ACEITE GIRASOL 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE GIRASOL 500mL</div>
+          <div class="product-ref">Ref. C-ACEGIR500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$19.122</div>
+              
+              <div class="saving">Ahorras $3.778</div>
+              
+            </div>
+            
+            <div class="list-price">$22.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_740199-MCO89149741449_082025-O.jpg" alt="ACEITE JOJOBA 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE JOJOBA 30mL</div>
+          <div class="product-ref">Ref. C-ACEIJOJ30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$23.296</div>
+              
+              <div class="saving">Ahorras $4.604</div>
+              
+            </div>
+            
+            <div class="list-price">$27.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACELIN250mL.png" alt="ACEITE LINAZA 250mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE LINAZA 250mL</div>
+          <div class="product-ref">Ref. C-ACELIN250mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$15.782</div>
+              
+              <div class="saving">Ahorras $3.118</div>
+              
+            </div>
+            
+            <div class="list-price">$18.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACENEE120mL.png" alt="ACEITE NEEM 120mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE NEEM 120mL</div>
+          <div class="product-ref">Ref. C-ACENEE120mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$28.808</div>
+              
+              <div class="saving">Ahorras $5.692</div>
+              
+            </div>
+            
+            <div class="list-price">$34.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACENEE250mL.png" alt="ACEITE NEEM 250mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE NEEM 250mL</div>
+          <div class="product-ref">Ref. C-ACENEE250mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$54.192</div>
+              
+              <div class="saving">Ahorras $10.708</div>
+              
+            </div>
+            
+            <div class="list-price">$64.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_606625-MLA99330647218_112025-O.jpg" alt="ACEITE NEEM 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE NEEM 500mL</div>
+          <div class="product-ref">Ref. C-ACENEE500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$98.530</div>
+              
+              <div class="saving">Ahorras $19.470</div>
+              
+            </div>
+            
+            <div class="list-price">$118.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-ACENEE60mL.png" alt="ACEITE NEEM 60mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE NEEM 60mL</div>
+          <div class="product-ref">Ref. C-ACENEE60mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$13.861</div>
+              
+              <div class="saving">Ahorras $2.739</div>
+              
+            </div>
+            
+            <div class="list-price">$16.600</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_667649-MCO110865067111_042026-O.jpg" alt="ACEITE RICINO 10mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE RICINO 10mL</div>
+          <div class="product-ref">Ref. C-ACERIC10mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$8.684</div>
+              
+              <div class="saving">Ahorras $1.716</div>
+              
+            </div>
+            
+            <div class="list-price">$10.400</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg" alt="ACEITE RICINO 250mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE RICINO 250mL</div>
+          <div class="product-ref">Ref. C-ACERIC250mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$12.108</div>
+              
+              <div class="saving">Ahorras $2.392</div>
+              
+            </div>
+            
+            <div class="list-price">$14.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_959264-MCO81298464976_122024-O.jpg" alt="ACEITE RICINO 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">ACEITE RICINO 500mL</div>
+          <div class="product-ref">Ref. C-ACERIC500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$20.708</div>
+              
+              <div class="saving">Ahorras $4.092</div>
+              
+            </div>
+            
+            <div class="list-price">$24.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_941989-MCO110010203472_042026-O.jpg" alt="SEBO CORDERO 150g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Aceites</div>
+          <div class="product-name">SEBO CORDERO 150g</div>
+          <div class="product-ref">Ref. C-SEBCOR150g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$31.730</div>
+              
+              <div class="saving">Ahorras $6.270</div>
+              
+            </div>
+            
+            <div class="list-price">$38.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">04</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Ceras y Mantecas <em>(19)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg" alt="CERA ABEJAS REFINADA AMARILLA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">CERA ABEJAS REFINADA AMARILLA 500g</div>
+          <div class="product-ref">Ref. C-CERABEREFAMA500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$21.042</div>
+              
+              <div class="saving">Ahorras $4.158</div>
+              
+            </div>
+            
+            <div class="list-price">$25.200</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg" alt="CERA ABEJAS REFINADA AMARILLA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">CERA ABEJAS REFINADA AMARILLA Kg</div>
+          <div class="product-ref">Ref. C-CERABEREFAMAKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$39.162</div>
+              
+              <div class="saving">Ahorras $7.738</div>
+              
+            </div>
+            
+            <div class="list-price">$46.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_919432-MCO71731068570_092023-O.jpg" alt="CERA ABEJAS REFINADA BLANCA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">CERA ABEJAS REFINADA BLANCA 500g</div>
+          <div class="product-ref">Ref. C-CERABEREFBLA500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.286</div>
+              
+              <div class="saving">Ahorras $3.614</div>
+              
+            </div>
+            
+            <div class="list-price">$21.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_651012-MCO109559235112_042026-O.jpg" alt="CERA ABEJAS REFINADA BLANCA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">CERA ABEJAS REFINADA BLANCA Kg</div>
+          <div class="product-ref">Ref. C-CERABEREFBLAKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$34.486</div>
+              
+              <div class="saving">Ahorras $6.814</div>
+              
+            </div>
+            
+            <div class="list-price">$41.300</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_892883-MCO89543335197_082025-O.jpg" alt="CERA CARNAUBA 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">CERA CARNAUBA 250g</div>
+          <div class="product-ref">Ref. C-CERCAR250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.704</div>
+              
+              <div class="saving">Ahorras $3.696</div>
+              
+            </div>
+            
+            <div class="list-price">$22.400</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_892883-MCO89543335197_082025-O.jpg" alt="CERA CARNAUBA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">CERA CARNAUBA 500g</div>
+          <div class="product-ref">Ref. C-CERCAR500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$32.482</div>
+              
+              <div class="saving">Ahorras $6.418</div>
+              
+            </div>
+            
+            <div class="list-price">$38.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_892883-MCO89543335197_082025-O.jpg" alt="CERA CARNAUBA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">CERA CARNAUBA Kg</div>
+          <div class="product-ref">Ref. C-CERCARKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$54.192</div>
+              
+              <div class="saving">Ahorras $10.708</div>
+              
+            </div>
+            
+            <div class="list-price">$64.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg" alt="LANOLINA 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">LANOLINA 250g</div>
+          <div class="product-ref">Ref. C-LAN250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$81.830</div>
+              
+              <div class="saving">Ahorras $16.170</div>
+              
+            </div>
+            
+            <div class="list-price">$98.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg" alt="LANOLINA 40g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">LANOLINA 40g</div>
+          <div class="product-ref">Ref. C-LANOLINA40g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.946</div>
+              
+              <div class="saving">Ahorras $2.954</div>
+              
+            </div>
+            
+            <div class="list-price">$17.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-MANCACREFKg.png" alt="MANTECA CACAO REFINADA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA CACAO REFINADA 500g</div>
+          <div class="product-ref">Ref. C-MANCACREF500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.112</div>
+              
+              <div class="saving">Ahorras $2.788</div>
+              
+            </div>
+            
+            <div class="list-price">$16.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_715746-MCO82482966684_022025-O.jpg" alt="MANTECA CACAO REFINADA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA CACAO REFINADA Kg</div>
+          <div class="product-ref">Ref. C-MANCACREFKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$29.142</div>
+              
+              <div class="saving">Ahorras $5.758</div>
+              
+            </div>
+            
+            <div class="list-price">$34.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_651032-MCO109954325572_042026-O.jpg" alt="MANTECA KARITE AMARILLA 125g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA KARITE AMARILLA 125g</div>
+          <div class="product-ref">Ref. C-MANTKARAMA125g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$26.636</div>
+              
+              <div class="saving">Ahorras $5.264</div>
+              
+            </div>
+            
+            <div class="list-price">$31.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_905398-MCO109955043942_042026-O.jpg" alt="MANTECA KARITE AMARILLA 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA KARITE AMARILLA 250g</div>
+          <div class="product-ref">Ref. C-MANKARAMA250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$51.686</div>
+              
+              <div class="saving">Ahorras $10.214</div>
+              
+            </div>
+            
+            <div class="list-price">$61.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_915191-MLA70719119779_072023-O.jpg" alt="MANTECA KARITE AMARILLA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA KARITE AMARILLA 500g</div>
+          <div class="product-ref">Ref. C-MANKARAMA500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$99.365</div>
+              
+              <div class="saving">Ahorras $19.635</div>
+              
+            </div>
+            
+            <div class="list-price">$119.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_770707-MCO42822397442_072020-O.jpg" alt="MANTECA KARITE AMARILLA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA KARITE AMARILLA Kg</div>
+          <div class="product-ref">Ref. C-MANKARAMAKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$155.310</div>
+              
+              <div class="saving">Ahorras $30.690</div>
+              
+            </div>
+            
+            <div class="list-price">$186.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_912928-MLA110859293429_042026-O.jpg" alt="MANTECA KARITE BLANCA 125g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA KARITE BLANCA 125g</div>
+          <div class="product-ref">Ref. C-MANKARBLA125g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$26.636</div>
+              
+              <div class="saving">Ahorras $5.264</div>
+              
+            </div>
+            
+            <div class="list-price">$31.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_958044-MLA72049366366_102023-O.jpg" alt="MANTECA KARITE BLANCA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA KARITE BLANCA 500g</div>
+          <div class="product-ref">Ref. C-MANKARBLA500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$99.365</div>
+              
+              <div class="saving">Ahorras $19.635</div>
+              
+            </div>
+            
+            <div class="list-price">$119.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_703025-MLA54985511651_052023-O.jpg" alt="MANTECA KARITE BLANCA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">MANTECA KARITE BLANCA Kg</div>
+          <div class="product-ref">Ref. C-MANKARBLAKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$157.815</div>
+              
+              <div class="saving">Ahorras $31.185</div>
+              
+            </div>
+            
+            <div class="list-price">$189.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_833589-MCO49240364553_032022-O.jpg" alt="PARAFINA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Ceras y Mantecas</div>
+          <div class="product-name">PARAFINA Kg</div>
+          <div class="product-ref">Ref. C-PARKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$21.042</div>
+              
+              <div class="saving">Ahorras $4.158</div>
+              
+            </div>
+            
+            <div class="list-price">$25.200</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">05</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Emulsionantes y Surfactantes <em>(14)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_893735-MCO72474334340_102023-O.jpg" alt="ALCOHOL CETILICO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">ALCOHOL CETILICO 250g</div>
+          <div class="product-ref">Ref. C-ALCCET250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$10.438</div>
+              
+              <div class="saving">Ahorras $2.062</div>
+              
+            </div>
+            
+            <div class="list-price">$12.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_952648-MCO72474333460_102023-O.jpg" alt="ALCOHOL CETILICO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">ALCOHOL CETILICO 500g</div>
+          <div class="product-ref">Ref. C-ALCCET500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$19.956</div>
+              
+              <div class="saving">Ahorras $3.944</div>
+              
+            </div>
+            
+            <div class="list-price">$23.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_612305-MCO109558009156_042026-O.jpg" alt="ALCOHOL CETILICO Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">ALCOHOL CETILICO Kg</div>
+          <div class="product-ref">Ref. C-ALCCETKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$37.909</div>
+              
+              <div class="saving">Ahorras $7.491</div>
+              
+            </div>
+            
+            <div class="list-price">$45.400</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_786608-MCO72678757627_112023-O.jpg" alt="BTMS 50 125g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">BTMS 50 125g</div>
+          <div class="product-ref">Ref. C-BTMS50125g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$24.966</div>
+              
+              <div class="saving">Ahorras $4.934</div>
+              
+            </div>
+            
+            <div class="list-price">$29.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_957414-MCO72606523332_112023-O.jpg" alt="BTMS 50 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">BTMS 50 250g</div>
+          <div class="product-ref">Ref. C-BTMS250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$38.410</div>
+              
+              <div class="saving">Ahorras $7.590</div>
+              
+            </div>
+            
+            <div class="list-price">$46.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_957414-MCO72606523332_112023-O.jpg" alt="BTMS 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">BTMS 500g</div>
+          <div class="product-ref">Ref. C-BTMS500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$76.820</div>
+              
+              <div class="saving">Ahorras $15.180</div>
+              
+            </div>
+            
+            <div class="list-price">$92.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_687896-MCO81186083304_122024-O.jpg" alt="COCOAMIDA PROPIL BETAINA 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">COCOAMIDA PROPIL BETAINA 500mL</div>
+          <div class="product-ref">Ref. C-COCPROBET500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$16.116</div>
+              
+              <div class="saving">Ahorras $3.184</div>
+              
+            </div>
+            
+            <div class="list-price">$19.300</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_617187-MCO110751068797_042026-O.jpg" alt="POLISORBATO TWEEN 20 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">POLISORBATO TWEEN 20 500mL</div>
+          <div class="product-ref">Ref. C-POLTWE20P500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$22.128</div>
+              
+              <div class="saving">Ahorras $4.372</div>
+              
+            </div>
+            
+            <div class="list-price">$26.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_621939-MLA109512305520_042026-O.jpg" alt="POLISORBATO TWEEN 80P 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">POLISORBATO TWEEN 80P 500mL</div>
+          <div class="product-ref">Ref. C-POLTWE80P500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$37.575</div>
+              
+              <div class="saving">Ahorras $7.425</div>
+              
+            </div>
+            
+            <div class="list-price">$45.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-TEGBET250mL.png" alt="TEGO BETAINA 250mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">TEGO BETAINA 250mL</div>
+          <div class="product-ref">Ref. C-TEGBET250mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$11.440</div>
+              
+              <div class="saving">Ahorras $2.260</div>
+              
+            </div>
+            
+            <div class="list-price">$13.700</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_999931-MLA99415098040_112025-O.jpg" alt="TEGO BETAINA COCO 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">TEGO BETAINA COCO 500mL</div>
+          <div class="product-ref">Ref. C-TEGBET500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$21.042</div>
+              
+              <div class="saving">Ahorras $4.158</div>
+              
+            </div>
+            
+            <div class="list-price">$25.200</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_718203-MCO72543735991_102023-O.jpg" alt="TEGO BETAINA DE COCO Lt">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">TEGO BETAINA DE COCO Lt</div>
+          <div class="product-ref">Ref. C-TEGBETLt</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$40.372</div>
+              
+              <div class="saving">Ahorras $7.978</div>
+              
+            </div>
+            
+            <div class="list-price">$48.350</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-TENSCIKg.png" alt="TENSO ACTIVO SCI Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">TENSO ACTIVO SCI Kg</div>
+          <div class="product-ref">Ref. C-TENSCIKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$124.415</div>
+              
+              <div class="saving">Ahorras $24.585</div>
+              
+            </div>
+            
+            <div class="list-price">$149.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_938717-MCO109854454824_042026-O.jpg" alt="TENSOACTIVO SCI 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Emulsionantes y Surfactantes</div>
+          <div class="product-name">TENSOACTIVO SCI 100g</div>
+          <div class="product-ref">Ref. C-TENSCI100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$20.958</div>
+              
+              <div class="saving">Ahorras $4.142</div>
+              
+            </div>
+            
+            <div class="list-price">$25.100</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">06</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Humectantes <em>(10)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_638535-MCO72603785511_102023-O.jpg" alt="ALANTOINA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">ALANTOINA 100g</div>
+          <div class="product-ref">Ref. C-ALA100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$23.380</div>
+              
+              <div class="saving">Ahorras $4.620</div>
+              
+            </div>
+            
+            <div class="list-price">$28.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_695640-MCO52850692601_122022-O.jpg" alt="D PANTENOL 85% 120 mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">D PANTENOL 85% 120 mL</div>
+          <div class="product-ref">Ref. C-DPAN85P120mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$80.912</div>
+              
+              <div class="saving">Ahorras $15.988</div>
+              
+            </div>
+            
+            <div class="list-price">$96.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg" alt="DPANTENOL 50mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">DPANTENOL 50mL</div>
+          <div class="product-ref">Ref. C-DPAN50mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$42.168</div>
+              
+              <div class="saving">Ahorras $8.332</div>
+              
+            </div>
+            
+            <div class="list-price">$50.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_951229-MCO72580074562_112023-O.jpg" alt="GLICERINA VEGETAL 250g/mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">GLICERINA VEGETAL 250g/mL</div>
+          <div class="product-ref">Ref. C-GLIVEG250mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$10.020</div>
+              
+              <div class="saving">Ahorras $1.980</div>
+              
+            </div>
+            
+            <div class="list-price">$12.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_925400-MLA81185334502_122024-O.jpg" alt="GLICERINA VEGETAL 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">GLICERINA VEGETAL 500mL</div>
+          <div class="product-ref">Ref. C-GLICVEG500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.788</div>
+              
+              <div class="saving">Ahorras $3.712</div>
+              
+            </div>
+            
+            <div class="list-price">$22.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_763836-MCO72580359370_112023-O.jpg" alt="GLICERINA VEGETAL Lt">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">GLICERINA VEGETAL Lt</div>
+          <div class="product-ref">Ref. C-GLIVEGLt</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$35.905</div>
+              
+              <div class="saving">Ahorras $7.095</div>
+              
+            </div>
+            
+            <div class="list-price">$43.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-SOR500mL%20.png" alt="SORBITOL 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">SORBITOL 500mL</div>
+          <div class="product-ref">Ref. C-SOR500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$10.772</div>
+              
+              <div class="saving">Ahorras $2.128</div>
+              
+            </div>
+            
+            <div class="list-price">$12.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-SORPOLKg.png" alt="SORBITOL POLVO Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">SORBITOL POLVO Kg</div>
+          <div class="product-ref">Ref. C-SORPOLKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$26.636</div>
+              
+              <div class="saving">Ahorras $5.264</div>
+              
+            </div>
+            
+            <div class="list-price">$31.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_900784-MCO83154149221_032025-O.jpg" alt="UREA 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">UREA 250g</div>
+          <div class="product-ref">Ref. C-URE250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.320</div>
+              
+              <div class="saving">Ahorras $2.830</div>
+              
+            </div>
+            
+            <div class="list-price">$17.150</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_673778-MCO82919929955_032025-O.jpg" alt="UREA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Humectantes</div>
+          <div class="product-name">UREA 500g</div>
+          <div class="product-ref">Ref. C-URE500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$24.883</div>
+              
+              <div class="saving">Ahorras $4.917</div>
+              
+            </div>
+            
+            <div class="list-price">$29.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">07</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Arcillas <em>(4)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_731027-MCO82274982924_022025-O.jpg" alt="CAOLIN ARCILLA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Arcillas</div>
+          <div class="product-name">CAOLIN ARCILLA 500g</div>
+          <div class="product-ref">Ref. C-CAOARC500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$8.768</div>
+              
+              <div class="saving">Ahorras $1.732</div>
+              
+            </div>
+            
+            <div class="list-price">$10.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_731027-MCO82274982924_022025-O.jpg" alt="CAOLIN ARCILLA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Arcillas</div>
+          <div class="product-name">CAOLIN ARCILLA Kg</div>
+          <div class="product-ref">Ref. C-CAOCARCKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$16.784</div>
+              
+              <div class="saving">Ahorras $3.316</div>
+              
+            </div>
+            
+            <div class="list-price">$20.100</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_877099-MCO93548168170_102025-O.jpg" alt="DIOXIDO TITANIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Arcillas</div>
+          <div class="product-name">DIOXIDO TITANIO 500g</div>
+          <div class="product-ref">Ref. C-DIOTIT500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$22.044</div>
+              
+              <div class="saving">Ahorras $4.356</div>
+              
+            </div>
+            
+            <div class="list-price">$26.400</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_730332-MCO82622577993_022025-O.jpg" alt="OXIDO ZINC 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Arcillas</div>
+          <div class="product-name">OXIDO ZINC 250g</div>
+          <div class="product-ref">Ref. C-OXIZIN250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$23.130</div>
+              
+              <div class="saving">Ahorras $4.570</div>
+              
+            </div>
+            
+            <div class="list-price">$27.700</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">08</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Sales Minerales <em>(15)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_802937-MCO82274574402_022025-O.jpg" alt="BICARBONATO SODIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">BICARBONATO SODIO 500g</div>
+          <div class="product-ref">Ref. C-BICSOD500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$6.680</div>
+              
+              <div class="saving">Ahorras $1.320</div>
+              
+            </div>
+            
+            <div class="list-price">$8.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-CARCAL500g.png" alt="CARBONATO CALCIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CARBONATO CALCIO 500g</div>
+          <div class="product-ref">Ref. C-CARCAL500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$11.690</div>
+              
+              <div class="saving">Ahorras $2.310</div>
+              
+            </div>
+            
+            <div class="list-price">$14.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_810355-MCO93715562008_102025-O.jpg" alt="CITRATO CALCIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO CALCIO 500g</div>
+          <div class="product-ref">Ref. C-CITCAL500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$27.764</div>
+              
+              <div class="saving">Ahorras $5.486</div>
+              
+            </div>
+            
+            <div class="list-price">$33.250</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_904764-MCO82589016015_022025-O.jpg" alt="CITRATO MAGNESIO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO MAGNESIO 250g</div>
+          <div class="product-ref">Ref. C-CITMAG250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$22.462</div>
+              
+              <div class="saving">Ahorras $4.438</div>
+              
+            </div>
+            
+            <div class="list-price">$26.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_790269-MCO93573344944_102025-O.jpg" alt="CITRATO MAGNESIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO MAGNESIO 500g</div>
+          <div class="product-ref">Ref. C-CITMAG500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$33.400</div>
+              
+              <div class="saving">Ahorras $6.600</div>
+              
+            </div>
+            
+            <div class="list-price">$40.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_643867-MCO93625581222_102025-O.jpg" alt="CITRATO MAGNESIO Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO MAGNESIO Kg</div>
+          <div class="product-ref">Ref. C-CITMAGKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$65.130</div>
+              
+              <div class="saving">Ahorras $12.870</div>
+              
+            </div>
+            
+            <div class="list-price">$78.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_640425-MCO89727330344_082025-O.jpg" alt="CITRATO POTASIO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO POTASIO 250g</div>
+          <div class="product-ref">Ref. C-CITPOT250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.454</div>
+              
+              <div class="saving">Ahorras $3.646</div>
+              
+            </div>
+            
+            <div class="list-price">$22.100</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_682101-MCO53169864784_012023-O.jpg" alt="CITRATO POTASIO 250g MAGNESIO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO POTASIO 250g MAGNESIO 250g</div>
+          <div class="product-ref">Ref. C-CITPOT250gMAG250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$36.656</div>
+              
+              <div class="saving">Ahorras $7.244</div>
+              
+            </div>
+            
+            <div class="list-price">$43.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_944081-MCO84007300067_042025-O.jpg" alt="CITRATO POTASIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO POTASIO 500g</div>
+          <div class="product-ref">Ref. C-CITPOT500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$32.482</div>
+              
+              <div class="saving">Ahorras $6.418</div>
+              
+            </div>
+            
+            <div class="list-price">$38.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_732429-MCO93631247688_102025-O.jpg" alt="CITRATO POTASIO Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO POTASIO Kg</div>
+          <div class="product-ref">Ref. C-CITPOTKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$56.780</div>
+              
+              <div class="saving">Ahorras $11.220</div>
+              
+            </div>
+            
+            <div class="list-price">$68.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_976857-MCO90553382667_082025-O.jpg" alt="CITRATO ZINC 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CITRATO ZINC 500g</div>
+          <div class="product-ref">Ref. C-CITZIN500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$24.132</div>
+              
+              <div class="saving">Ahorras $4.768</div>
+              
+            </div>
+            
+            <div class="list-price">$28.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-CLOCAL500g.jpg" alt="CLORURO CALCIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CLORURO CALCIO 500g</div>
+          <div class="product-ref">Ref. C-CLOCAL500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$27.764</div>
+              
+              <div class="saving">Ahorras $5.486</div>
+              
+            </div>
+            
+            <div class="list-price">$33.250</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_613491-MLA82557694121_022025-O.jpg" alt="CLORURO MAGNESIO HEXAHIDRATADO">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">CLORURO MAGNESIO HEXAHIDRATADO</div>
+          <div class="product-ref">Ref. C-CLOMAGHEXKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$28.306</div>
+              
+              <div class="saving">Ahorras $5.594</div>
+              
+            </div>
+            
+            <div class="list-price">$33.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_726103-MCO94035896967_102025-O.jpg" alt="LACTATO CALCIO 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">LACTATO CALCIO 100g</div>
+          <div class="product-ref">Ref. C-LACCAL100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$9.936</div>
+              
+              <div class="saving">Ahorras $1.964</div>
+              
+            </div>
+            
+            <div class="list-price">$11.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_725434-MCO93991632597_102025-O.jpg" alt="LACTATO CALCIO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Sales Minerales</div>
+          <div class="product-name">LACTATO CALCIO 250g</div>
+          <div class="product-ref">Ref. C-LACCAL250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$19.956</div>
+              
+              <div class="saving">Ahorras $3.944</div>
+              
+            </div>
+            
+            <div class="list-price">$23.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">09</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Vitaminas <em>(2)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_670127-MCO94112598659_102025-O.jpg" alt="CIANOCOBALAMINA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Vitaminas</div>
+          <div class="product-name">CIANOCOBALAMINA 100g</div>
+          <div class="product-ref">Ref. C-CIA100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$56.780</div>
+              
+              <div class="saving">Ahorras $11.220</div>
+              
+            </div>
+            
+            <div class="list-price">$68.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_893847-MCO82374494951_022025-O.jpg" alt="VITAMINA E 30 mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Vitaminas</div>
+          <div class="product-name">VITAMINA E 30 mL</div>
+          <div class="product-ref">Ref. C-VITE30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.203</div>
+              
+              <div class="saving">Ahorras $3.597</div>
+              
+            </div>
+            
+            <div class="list-price">$21.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">10</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Suplementarios <em>(15)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_639874-MCO93635148206_102025-O.jpg" alt="AMINOACIDO BCAA 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">AMINOACIDO BCAA 250g</div>
+          <div class="product-ref">Ref. C-AMIBCA250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$40.832</div>
+              
+              <div class="saving">Ahorras $8.068</div>
+              
+            </div>
+            
+            <div class="list-price">$48.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_768972-MCO89786501507_082025-O.jpg" alt="AMINOACIDO L ARGININA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">AMINOACIDO L ARGININA 100g</div>
+          <div class="product-ref">Ref. C-AMILARG100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.286</div>
+              
+              <div class="saving">Ahorras $3.614</div>
+              
+            </div>
+            
+            <div class="list-price">$21.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_694322-MCO93549747398_102025-O.jpg" alt="AMINOACIDO L CARNITINA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">AMINOACIDO L CARNITINA 100g</div>
+          <div class="product-ref">Ref. C-AMILCAR100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$44.172</div>
+              
+              <div class="saving">Ahorras $8.728</div>
+              
+            </div>
+            
+            <div class="list-price">$52.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-COLHID30mL.png" alt="COLAGENO HIDROLIZADO 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">COLAGENO HIDROLIZADO 30mL</div>
+          <div class="product-ref">Ref. C-COLHID30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$19.372</div>
+              
+              <div class="saving">Ahorras $3.828</div>
+              
+            </div>
+            
+            <div class="list-price">$23.200</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-COLPOLHID500g.jpg" alt="COLAGENO POLVO HIDROLIZADO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">COLAGENO POLVO HIDROLIZADO 500g</div>
+          <div class="product-ref">Ref. C-COLPOLHID500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$61.372</div>
+              
+              <div class="saving">Ahorras $12.128</div>
+              
+            </div>
+            
+            <div class="list-price">$73.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_820431-MCO93967590283_102025-O.jpg" alt="CREATINA MONOHIDRATO 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">CREATINA MONOHIDRATO 100g</div>
+          <div class="product-ref">Ref. C-CREMON100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$38.326</div>
+              
+              <div class="saving">Ahorras $7.574</div>
+              
+            </div>
+            
+            <div class="list-price">$45.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_964859-MCO93967351123_102025-O.jpg" alt="CREATINA MONOHIDRATO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">CREATINA MONOHIDRATO 250g</div>
+          <div class="product-ref">Ref. C-CREMON250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$69.222</div>
+              
+              <div class="saving">Ahorras $13.678</div>
+              
+            </div>
+            
+            <div class="list-price">$82.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_964859-MCO93967351123_102025-O.jpg" alt="CREATINA MONOHIDRATO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">CREATINA MONOHIDRATO 500g</div>
+          <div class="product-ref">Ref. C-CREMON500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$118.570</div>
+              
+              <div class="saving">Ahorras $23.430</div>
+              
+            </div>
+            
+            <div class="list-price">$142.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_854779-MCO72045976526_102023-O.jpg" alt="GELATINA SIN SABOR 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">GELATINA SIN SABOR 500g</div>
+          <div class="product-ref">Ref. C-GELSINSAB500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$38.911</div>
+              
+              <div class="saving">Ahorras $7.689</div>
+              
+            </div>
+            
+            <div class="list-price">$46.600</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_932871-MCO93543841182_102025-O.jpg" alt="L AMINOACIDO PROLINA">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">L AMINOACIDO PROLINA</div>
+          <div class="product-ref">Ref. L-AMIPRO100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$35.488</div>
+              
+              <div class="saving">Ahorras $7.012</div>
+              
+            </div>
+            
+            <div class="list-price">$42.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_963726-MCO93544037372_102025-O.jpg" alt="L GLUTAMINA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">L GLUTAMINA 100g</div>
+          <div class="product-ref">Ref. C-GLU100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$19.956</div>
+              
+              <div class="saving">Ahorras $3.944</div>
+              
+            </div>
+            
+            <div class="list-price">$23.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_745734-MCO93571624922_102025-O.jpg" alt="PROTEINA AISLADA SOYA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">PROTEINA AISLADA SOYA 500g</div>
+          <div class="product-ref">Ref. C-PROAISSOY500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$23.296</div>
+              
+              <div class="saving">Ahorras $4.604</div>
+              
+            </div>
+            
+            <div class="list-price">$27.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_868223-MCO89823219949_082025-O.jpg" alt="PROTEINA CONCENTRADA SUERO LECHE 80P Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">PROTEINA CONCENTRADA SUERO LECHE 80P Kg</div>
+          <div class="product-ref">Ref. C-PROCONSUE80PKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$86.756</div>
+              
+              <div class="saving">Ahorras $17.144</div>
+              
+            </div>
+            
+            <div class="list-price">$103.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_899106-MCO82482965722_022025-O.jpg" alt="SUERO LECHE DULCE Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">SUERO LECHE DULCE Kg</div>
+          <div class="product-ref">Ref. C-SURLECDULKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$24.716</div>
+              
+              <div class="saving">Ahorras $4.884</div>
+              
+            </div>
+            
+            <div class="list-price">$29.600</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_832195-MCO82361867068_022025-O.jpg" alt="TAURINA 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Suplementarios</div>
+          <div class="product-name">TAURINA 250g</div>
+          <div class="product-ref">Ref. C-TAU250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$40.832</div>
+              
+              <div class="saving">Ahorras $8.068</div>
+              
+            </div>
+            
+            <div class="list-price">$48.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">11</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Excipientes <em>(10)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/AGUA%20DESTILADA%20250%20mL.png" alt="AGUA DESTILADA 250mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">AGUA DESTILADA 250mL</div>
+          <div class="product-ref">Ref. C-AGUDES250mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$5.678</div>
+              
+              <div class="saving">Ahorras $1.122</div>
+              
+            </div>
+            
+            <div class="list-price">$6.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_678926-MCO69683443766_052023-O.jpg" alt="GLUTAMATO MONOSODICO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">GLUTAMATO MONOSODICO 500g</div>
+          <div class="product-ref">Ref. C-GLUMON500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$9.936</div>
+              
+              <div class="saving">Ahorras $1.964</div>
+              
+            </div>
+            
+            <div class="list-price">$11.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_678926-MCO69683443766_052023-O.jpg" alt="GLUTAMATO MONOSODICO Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">GLUTAMATO MONOSODICO Kg</div>
+          <div class="product-ref">Ref. C-GLUMONKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$19.038</div>
+              
+              <div class="saving">Ahorras $3.762</div>
+              
+            </div>
+            
+            <div class="list-price">$22.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_778633-MCO84096125514_052025-O.jpg" alt="GOMA GUAR 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">GOMA GUAR 500g</div>
+          <div class="product-ref">Ref. C-GOMGUA500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.203</div>
+              
+              <div class="saving">Ahorras $3.597</div>
+              
+            </div>
+            
+            <div class="list-price">$21.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_817267-MCO84095807188_052025-O.jpg" alt="GOMA XANTANA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">GOMA XANTANA 500g</div>
+          <div class="product-ref">Ref. C-GOMXAN500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$32.482</div>
+              
+              <div class="saving">Ahorras $6.418</div>
+              
+            </div>
+            
+            <div class="list-price">$38.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_863855-MCO93667220940_102025-O.jpg" alt="GOMA XANTANA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">GOMA XANTANA Kg</div>
+          <div class="product-ref">Ref. C-GOMXANKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$54.192</div>
+              
+              <div class="saving">Ahorras $10.708</div>
+              
+            </div>
+            
+            <div class="list-price">$64.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_843624-MCO72374439286_102023-O.jpg" alt="INULINA 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">INULINA 250g</div>
+          <div class="product-ref">Ref. C-INU250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.788</div>
+              
+              <div class="saving">Ahorras $3.712</div>
+              
+            </div>
+            
+            <div class="list-price">$22.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_930045-MLA82361202594_022025-O.jpg" alt="INULINA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">INULINA 500g</div>
+          <div class="product-ref">Ref. C-INU500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$32.148</div>
+              
+              <div class="saving">Ahorras $6.352</div>
+              
+            </div>
+            
+            <div class="list-price">$38.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_773853-MCO90126991583_082025-O.jpg" alt="INULINA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">INULINA Kg</div>
+          <div class="product-ref">Ref. C-INUKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$57.532</div>
+              
+              <div class="saving">Ahorras $11.368</div>
+              
+            </div>
+            
+            <div class="list-price">$68.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_606346-MCO93547587442_102025-O.jpg" alt="LECITINA SOYA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Excipientes</div>
+          <div class="product-name">LECITINA SOYA 500g</div>
+          <div class="product-ref">Ref. C-LECSOY500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$20.040</div>
+              
+              <div class="saving">Ahorras $3.960</div>
+              
+            </div>
+            
+            <div class="list-price">$24.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">12</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Conservantes <em>(8)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_640336-MCO93552885092_102025-O.jpg" alt="BENZOATO SODIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Conservantes</div>
+          <div class="product-name">BENZOATO SODIO 500g</div>
+          <div class="product-ref">Ref. C-BENSOD500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$13.944</div>
+              
+              <div class="saving">Ahorras $2.756</div>
+              
+            </div>
+            
+            <div class="list-price">$16.700</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_925139-MCO81453983183_122024-O.jpg" alt="SHAROMIX 705 250 mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Conservantes</div>
+          <div class="product-name">SHAROMIX 705 250 mL</div>
+          <div class="product-ref">Ref. C-SHA705250mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$45.925</div>
+              
+              <div class="saving">Ahorras $9.075</div>
+              
+            </div>
+            
+            <div class="list-price">$55.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_619181-MCO89014936511_072025-O.jpg" alt="SHAROMIX 705 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Conservantes</div>
+          <div class="product-name">SHAROMIX 705 500mL</div>
+          <div class="product-ref">Ref. C-SHA705500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$90.932</div>
+              
+              <div class="saving">Ahorras $17.968</div>
+              
+            </div>
+            
+            <div class="list-price">$108.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_627105-MCO72579221358_112023-O.jpg" alt="SHAROMIX 705 50mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Conservantes</div>
+          <div class="product-name">SHAROMIX 705 50mL</div>
+          <div class="product-ref">Ref. C-SHA70550mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$15.448</div>
+              
+              <div class="saving">Ahorras $3.052</div>
+              
+            </div>
+            
+            <div class="list-price">$18.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_824240-MCO72516816682_102023-O.jpg" alt="SORBATO POTASIO 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Conservantes</div>
+          <div class="product-name">SORBATO POTASIO 100g</div>
+          <div class="product-ref">Ref. C-SORPOT100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$7.515</div>
+              
+              <div class="saving">Ahorras $1.485</div>
+              
+            </div>
+            
+            <div class="list-price">$9.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_796241-MCO71861815744_092023-O.jpg" alt="SORBATO POTASIO 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Conservantes</div>
+          <div class="product-name">SORBATO POTASIO 250g</div>
+          <div class="product-ref">Ref. C-SORPOT250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$15.030</div>
+              
+              <div class="saving">Ahorras $2.970</div>
+              
+            </div>
+            
+            <div class="list-price">$18.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_874536-MCO71861743930_092023-O.jpg" alt="SORBATO POTASIO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Conservantes</div>
+          <div class="product-name">SORBATO POTASIO 500g</div>
+          <div class="product-ref">Ref. C-SORPOT500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$20.875</div>
+              
+              <div class="saving">Ahorras $4.125</div>
+              
+            </div>
+            
+            <div class="list-price">$25.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_824240-MCO72516816682_102023-O.jpg" alt="SORBATO POTASIO Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Conservantes</div>
+          <div class="product-name">SORBATO POTASIO Kg</div>
+          <div class="product-ref">Ref. C-SORPOTKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$41.332</div>
+              
+              <div class="saving">Ahorras $8.168</div>
+              
+            </div>
+            
+            <div class="list-price">$49.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">13</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Edulcorantes <em>(7)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg" alt="ALULOSA 250g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Edulcorantes</div>
+          <div class="product-name">ALULOSA 250g</div>
+          <div class="product-ref">Ref. C-ALU250g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$15.865</div>
+              
+              <div class="saving">Ahorras $3.135</div>
+              
+            </div>
+            
+            <div class="list-price">$19.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg" alt="ALULOSA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Edulcorantes</div>
+          <div class="product-name">ALULOSA 500g</div>
+          <div class="product-ref">Ref. C-ALU500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$30.812</div>
+              
+              <div class="saving">Ahorras $6.088</div>
+              
+            </div>
+            
+            <div class="list-price">$36.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_615867-MLA72305183968_102023-O.jpg" alt="ALULOSA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Edulcorantes</div>
+          <div class="product-name">ALULOSA Kg</div>
+          <div class="product-ref">Ref. C-ALUKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$65.882</div>
+              
+              <div class="saving">Ahorras $13.018</div>
+              
+            </div>
+            
+            <div class="list-price">$78.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_718203-MCO72543735991_102023-O.jpg" alt="CREMOR TARTARO 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Edulcorantes</div>
+          <div class="product-name">CREMOR TARTARO 500g</div>
+          <div class="product-ref">Ref. C-CRETAR500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$15.197</div>
+              
+              <div class="saving">Ahorras $3.003</div>
+              
+            </div>
+            
+            <div class="list-price">$18.200</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_995970-MCO69574662809_052023-O.jpg" alt="DEXTROSA Kg">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Edulcorantes</div>
+          <div class="product-name">DEXTROSA Kg</div>
+          <div class="product-ref">Ref. C-DEXKg</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$14.320</div>
+              
+              <div class="saving">Ahorras $2.830</div>
+              
+            </div>
+            
+            <div class="list-price">$17.150</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_857727-MCO93713104340_102025-O.jpg" alt="FRUCTOSA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Edulcorantes</div>
+          <div class="product-name">FRUCTOSA 500g</div>
+          <div class="product-ref">Ref. C-FRU500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$12.942</div>
+              
+              <div class="saving">Ahorras $2.558</div>
+              
+            </div>
+            
+            <div class="list-price">$15.500</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_727723-MCO93968267775_102025-O.jpg" alt="MALTODEXTRINA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Edulcorantes</div>
+          <div class="product-name">MALTODEXTRINA 500g</div>
+          <div class="product-ref">Ref. C-MAL500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$9.936</div>
+              
+              <div class="saving">Ahorras $1.964</div>
+              
+            </div>
+            
+            <div class="list-price">$11.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">14</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Principios Activos <em>(14)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_615095-MCO88988544179_072025-O.jpg" alt="CAFEINA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">CAFEINA 100g</div>
+          <div class="product-ref">Ref. C-CAF100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$47.929</div>
+              
+              <div class="saving">Ahorras $9.471</div>
+              
+            </div>
+            
+            <div class="list-price">$57.400</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_774066-MCO93973681397_102025-O.jpg" alt="CAFEINA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">CAFEINA 500g</div>
+          <div class="product-ref">Ref. C-CAF500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$171.175</div>
+              
+              <div class="saving">Ahorras $33.825</div>
+              
+            </div>
+            
+            <div class="list-price">$205.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_870056-MCO78343312560_082024-O.jpg" alt="DIHIDROXIACETONA 10g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">DIHIDROXIACETONA 10g</div>
+          <div class="product-ref">Ref. C-ACIDIH10g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$24.883</div>
+              
+              <div class="saving">Ahorras $4.917</div>
+              
+            </div>
+            
+            <div class="list-price">$29.800</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_644629-MCO90614234717_082025-O.jpg" alt="ELASTINA HIDROLIZADA 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">ELASTINA HIDROLIZADA 30mL</div>
+          <div class="product-ref">Ref. C-ELAHID30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$18.286</div>
+              
+              <div class="saving">Ahorras $3.614</div>
+              
+            </div>
+            
+            <div class="list-price">$21.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-EMBPAT30mL.png" alt="EMBRION PATO 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">EMBRION PATO 30mL</div>
+          <div class="product-ref">Ref. C-EMBPAT30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$19.122</div>
+              
+              <div class="saving">Ahorras $3.778</div>
+              
+            </div>
+            
+            <div class="list-price">$22.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_820898-MCO82096368514_022025-O.jpg" alt="EXTRACTO ALOE VERA 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">EXTRACTO ALOE VERA 30mL</div>
+          <div class="product-ref">Ref. C-EXTALOVER30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$11.440</div>
+              
+              <div class="saving">Ahorras $2.260</div>
+              
+            </div>
+            
+            <div class="list-price">$13.700</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-EXTRAMAL500g.jpg" alt="EXTRACTO MALTA 500g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">EXTRACTO MALTA 500g</div>
+          <div class="product-ref">Ref. C-EXTRAMAL500g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$20.624</div>
+              
+              <div class="saving">Ahorras $4.076</div>
+              
+            </div>
+            
+            <div class="list-price">$24.700</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_759010-MCO94151008825_102025-O.jpg" alt="EXTRACTO TE VERDE MATCHA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">EXTRACTO TE VERDE MATCHA 100g</div>
+          <div class="product-ref">Ref. C-EXTTEMATVER100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$28.724</div>
+              
+              <div class="saving">Ahorras $5.676</div>
+              
+            </div>
+            
+            <div class="list-price">$34.400</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_801417-MCO53807448802_022023-O.jpg" alt="FLORES SECAS LAVANDA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">FLORES SECAS LAVANDA 100g</div>
+          <div class="product-ref">Ref. C-FLOSECLAV100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$58.366</div>
+              
+              <div class="saving">Ahorras $11.534</div>
+              
+            </div>
+            
+            <div class="list-price">$69.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_726059-MCO88716954398_072025-O.jpg" alt="GUSANO SEDA 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">GUSANO SEDA 30mL</div>
+          <div class="product-ref">Ref. C-GUSSED30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$24.966</div>
+              
+              <div class="saving">Ahorras $4.934</div>
+              
+            </div>
+            
+            <div class="list-price">$29.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-MENCRI100g.png" alt="MENTOL CRISTAL 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">MENTOL CRISTAL 100g</div>
+          <div class="product-ref">Ref. C-MENCRI100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$29.225</div>
+              
+              <div class="saving">Ahorras $5.775</div>
+              
+            </div>
+            
+            <div class="list-price">$35.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_790737-MCO93973054053_102025-O.jpg" alt="NIACINAMIDA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">NIACINAMIDA 100g</div>
+          <div class="product-ref">Ref. C-NIA100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$52.730</div>
+              
+              <div class="saving">Ahorras $10.420</div>
+              
+            </div>
+            
+            <div class="list-price">$63.150</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_981756-MCO94136708813_102025-O.jpg" alt="PAPAINA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">PAPAINA 100g</div>
+          <div class="product-ref">Ref. C-PAP100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$33.316</div>
+              
+              <div class="saving">Ahorras $6.584</div>
+              
+            </div>
+            
+            <div class="list-price">$39.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_752424-MCO82116288472_022025-O.jpg" alt="RETINOL 5% 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Principios Activos</div>
+          <div class="product-name">RETINOL 5% 30mL</div>
+          <div class="product-ref">Ref. C-RET5P30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$37.492</div>
+              
+              <div class="saving">Ahorras $7.408</div>
+              
+            </div>
+            
+            <div class="list-price">$44.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">15</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Kits <em>(3)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_988153-MCO93966804985_102025-O.jpg" alt="KIT REPARADOR COSMETICO 1">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Kits</div>
+          <div class="product-name">KIT REPARADOR COSMETICO 1</div>
+          <div class="product-ref">Ref. C-KITREPCOS1</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$65.882</div>
+              
+              <div class="saving">Ahorras $13.018</div>
+              
+            </div>
+            
+            <div class="list-price">$78.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_870648-MCO94050552149_102025-O.jpg" alt="KIT REPARADOR COSMETICO 2">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Kits</div>
+          <div class="product-name">KIT REPARADOR COSMETICO 2</div>
+          <div class="product-ref">Ref. C-KITREPCOS2</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$65.882</div>
+              
+              <div class="saving">Ahorras $13.018</div>
+              
+            </div>
+            
+            <div class="list-price">$78.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_863447-MCO93550994204_102025-O.jpg" alt="KIT REPARADOR COSMETICO 3">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Kits</div>
+          <div class="product-name">KIT REPARADOR COSMETICO 3</div>
+          <div class="product-ref">Ref. C-KITREPCOS3</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$66.716</div>
+              
+              <div class="saving">Ahorras $13.184</div>
+              
+            </div>
+            
+            <div class="list-price">$79.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">16</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Saborizantes <em>(1)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_899247-MCO51671635371_092022-O.jpg" alt="SABOR CARNE AHUMADA 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Saborizantes</div>
+          <div class="product-name">SABOR CARNE AHUMADA 100g</div>
+          <div class="product-ref">Ref. C-SABCARAHU100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$12.442</div>
+              
+              <div class="saving">Ahorras $2.458</div>
+              
+            </div>
+            
+            <div class="list-price">$14.900</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">17</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Otros <em>(2)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="file:///home/mckg/mi-agente/IMAGENES_PRODUCTOS_CATALOGO/C-AMILTRI100g.jpg" alt="AMIOACIDO L TRIPTOFANO 100g">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Otros</div>
+          <div class="product-name">AMIOACIDO L TRIPTOFANO 100g</div>
+          <div class="product-ref">Ref. C-AMILTRI100g</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$26.720</div>
+              
+              <div class="saving">Ahorras $5.280</div>
+              
+            </div>
+            
+            <div class="list-price">$32.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_851161-MLA110386519423_042026-O.jpg" alt="DIPROPILENGLICOL500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Otros</div>
+          <div class="product-name">DIPROPILENGLICOL500mL</div>
+          <div class="product-ref">Ref. C-DPG500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$25.050</div>
+              
+              <div class="saving">Ahorras $4.950</div>
+              
+            </div>
+            
+            <div class="list-price">$30.000</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">18</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">Antisépticos <em>(2)</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_786635-MLA100079656059_122025-O.jpg" alt="AZUL METILENO 30mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Antisépticos</div>
+          <div class="product-name">AZUL METILENO 30mL</div>
+          <div class="product-ref">Ref. C-AZUMMET30mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$6.722</div>
+              
+              <div class="saving">Ahorras $1.328</div>
+              
+            </div>
+            
+            <div class="list-price">$8.050</div>
+            
+          </div>
+        </div>
+      </article>
+      
+      <article class="product-card">
+        <div class="product-media">
+          
+          <img src="https://http2.mlstatic.com/D_980902-MCO81454856239_122024-O.jpg" alt="GLUTARALDEHIDO 2% 500mL">
+          
+        </div>
+        <div class="product-body">
+          <div class="product-cat">Antisépticos</div>
+          <div class="product-name">GLUTARALDEHIDO 2% 500mL</div>
+          <div class="product-ref">Ref. C-GLU2P500mL</div>
+          <div class="price-row">
+            <div>
+              <div class="price">$9.519</div>
+              
+              <div class="saving">Ahorras $1.881</div>
+              
+            </div>
+            
+            <div class="list-price">$11.400</div>
+            
+          </div>
+        </div>
+      </article>
+      
+    </div>
+  </section>
+  
+</body>
+</html>

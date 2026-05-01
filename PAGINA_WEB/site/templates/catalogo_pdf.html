@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo McKenna Group — Combos Web</title>
+  <style>
+    @font-face {
+      font-family: "Montserrat";
+      src: url("file:///usr/share/fonts/truetype/montserrat/Montserrat-Regular.ttf");
+      font-weight: 400;
+    }
+    @font-face {
+      font-family: "Montserrat";
+      src: url("file:///usr/share/fonts/truetype/montserrat/Montserrat-Bold.ttf");
+      font-weight: 700;
+    }
+    @font-face {
+      font-family: "Montserrat";
+      src: url("file:///usr/share/fonts/truetype/montserrat/Montserrat-ExtraBold.ttf");
+      font-weight: 800;
+    }
+    @font-face {
+      font-family: "Montserrat";
+      src: url("file:///usr/share/fonts/truetype/montserrat/Montserrat-Light.ttf");
+      font-weight: 300;
+    }
+
+    :root {
+      --green: #0c6069;
+      --green-dark: #045159;
+      --green-deep: #022D33;
+      --green-light: #6aacb3;
+      --green-pale: #c0f0f5;
+      --green-ultra: #e3fcff;
+      --text-dark: #022D33;
+      --text-mid: #045159;
+      --text-muted: #3a7e87;
+      --border: rgba(12,96,105,0.18);
+      --white: #ffffff;
+    }
+
+    @page {
+      size: A4;
+      margin: 12mm;
+      @bottom-center {
+        content: "McKenna Group S.A.S. · www.mckennagroup.co · " counter(page);
+        font-family: "Montserrat", sans-serif;
+        font-size: 7.5pt;
+        color: #3a7e87;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+      color: var(--text-dark);
+      background: var(--green-ultra);
+      font-size: 9.5pt;
+      line-height: 1.45;
+    }
+
+    .cover {
+      min-height: 255mm;
+      display: grid;
+      grid-template-columns: 1.05fr .95fr;
+      background: var(--green-deep);
+      color: #fff;
+      page-break-after: always;
+      overflow: hidden;
+      position: relative;
+    }
+    .cover::before {
+      content: "";
+      position: absolute;
+      width: 160mm;
+      height: 160mm;
+      border-radius: 50%;
+      left: -55mm;
+      top: -55mm;
+      background: radial-gradient(circle, rgba(46,139,122,.32), transparent 65%);
+    }
+    .cover-left,
+    .cover-right {
+      position: relative;
+      z-index: 1;
+      padding: 22mm 18mm;
+    }
+    .cover-logo {
+      width: 44mm;
+      height: auto;
+      margin-bottom: 22mm;
+      opacity: .96;
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2.2pt;
+      color: var(--green-light);
+      margin-bottom: 8mm;
+    }
+    .cover-title {
+      font-size: 38pt;
+      line-height: .92;
+      letter-spacing: -1.8pt;
+      font-weight: 800;
+      margin: 0 0 8mm;
+    }
+    .cover-title em {
+      font-style: italic;
+      font-weight: 300;
+      color: var(--green-ultra);
+    }
+    .cover-subtitle {
+      max-width: 92mm;
+      font-size: 11pt;
+      color: rgba(227,252,255,.76);
+      margin: 0;
+    }
+    .cover-right {
+      background: var(--green-ultra);
+      color: var(--text-dark);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .brand-card {
+      background: #fff;
+      border: 1.5px solid var(--green-pale);
+      padding: 14mm;
+    }
+    .brand-card h2 {
+      margin: 0 0 8mm;
+      font-size: 20pt;
+      line-height: 1;
+      letter-spacing: -1pt;
+      color: var(--green-deep);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      margin-top: 9mm;
+    }
+    .stat {
+      border-top: 2px solid var(--green);
+      padding-top: 4mm;
+    }
+    .stat strong {
+      display: block;
+      font-size: 22pt;
+      line-height: 1;
+      color: var(--green);
+      font-weight: 800;
+    }
+    .stat span {
+      display: block;
+      margin-top: 2mm;
+      font-size: 7.5pt;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1pt;
+      font-weight: 700;
+    }
+    .cover-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3mm;
+      margin-top: 9mm;
+    }
+    .cover-badges span {
+      border: 1px solid var(--green-pale);
+      background: var(--green-ultra);
+      color: var(--green-dark);
+      font-weight: 700;
+      font-size: 7.3pt;
+      padding: 2.3mm 3.6mm;
+      border-radius: 4px;
+    }
+
+    .section {
+      page-break-before: always;
+    }
+    .section:first-of-type {
+      page-break-before: auto;
+    }
+    .section-header {
+      display: grid;
+      grid-template-columns: 28mm 1fr;
+      gap: 7mm;
+      align-items: start;
+      padding: 0 0 8mm;
+      border-bottom: 2px solid var(--green);
+      margin-bottom: 8mm;
+    }
+    .section-number {
+      font-size: 28pt;
+      font-weight: 800;
+      line-height: .8;
+      color: rgba(12,96,105,.16);
+    }
+    .section-title {
+      margin: 0;
+      font-size: 20pt;
+      line-height: 1;
+      color: var(--green-deep);
+      letter-spacing: -.7pt;
+      font-weight: 800;
+    }
+    .section-title em {
+      font-style: italic;
+      font-weight: 300;
+      color: var(--green);
+    }
+    .section-lead {
+      margin: 3mm 0 0;
+      color: var(--text-muted);
+      font-size: 8.5pt;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5mm;
+    }
+    .product-card {
+      background: #fff;
+      border: 1.5px solid var(--green-pale);
+      break-inside: avoid;
+      min-height: 72mm;
+      display: grid;
+      grid-template-rows: 34mm 1fr;
+    }
+    .product-media {
+      background: #ffffff;
+      border-bottom: 1.5px solid var(--green-pale);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4mm;
+    }
+    .product-media img {
+      max-width: 100%;
+      max-height: 28mm;
+      object-fit: contain;
+    }
+    .product-placeholder {
+      width: 18mm;
+      height: 18mm;
+      border-radius: 50%;
+      border: 1.5px solid rgba(12,96,105,.2);
+    }
+    .product-body {
+      padding: 5mm;
+      display: flex;
+      flex-direction: column;
+      gap: 3mm;
+    }
+    .product-cat {
+      color: var(--green);
+      text-transform: uppercase;
+      letter-spacing: 1.2pt;
+      font-size: 6.8pt;
+      font-weight: 700;
+    }
+    .product-name {
+      font-size: 10pt;
+      line-height: 1.22;
+      font-weight: 800;
+      color: var(--green-deep);
+      min-height: 18mm;
+    }
+    .product-ref {
+      color: var(--text-muted);
+      font-size: 7.4pt;
+      font-weight: 600;
+    }
+    .price-row {
+      margin-top: auto;
+      border-top: 1px solid var(--green-pale);
+      padding-top: 3mm;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 4mm;
+    }
+    .price {
+      color: var(--green);
+      font-size: 15pt;
+      font-weight: 800;
+      letter-spacing: -.4pt;
+      line-height: 1;
+    }
+    .list-price {
+      color: var(--text-muted);
+      font-size: 7.5pt;
+      text-decoration: line-through;
+      white-space: nowrap;
+    }
+    .saving {
+      color: #2e7d32;
+      font-size: 7pt;
+      font-weight: 700;
+      margin-top: 1.5mm;
+    }
+
+    .toc {
+      page-break-after: always;
+    }
+    .product-placeholder {
+      width: 18mm;
+      height: 18mm;
+      border-radius: 50%;
+      border: 1.5px solid rgba(12,96,105,.2);
+    }
+    .product-body {
+      padding: 5mm;
+      display: flex;
+      flex-direction: column;
+      color: var(--green-dark);
+      font-weight: 700;
+      font-size: 8.5pt;
+    }
+    .toc-item span:last-child {
+      color: var(--text-muted);
+    }
+
+  </style>
+  <style media="screen">
+    body { background: var(--green-ultra); }
+    .cover,
+    .toc,
+    .section {
+      max-width: 1120px;
+      margin: 0 auto 20px;
+      box-shadow: 0 18px 60px rgba(2,45,51,.08);
+    }
+    .section {
+      background: var(--green-ultra);
+      padding: 24px;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .cover {
+        min-height: auto;
+        display: block;
+        overflow: visible;
+      }
+      .cover::before {
+        width: 360px;
+        height: 360px;
+        left: -150px;
+        top: -120px;
+      }
+      .cover-left,
+      .cover-right {
+        padding: 42px 22px;
+      }
+      .cover-logo {
+        width: 150px;
+        margin-bottom: 38px;
+      }
+      .cover-title {
+        font-size: clamp(44px, 16vw, 72px);
+        line-height: .94;
+        letter-spacing: -2px;
+      }
+      .cover-subtitle {
+        max-width: none;
+        font-size: 15px;
+      }
+      .cover-right {
+        min-height: auto;
+      }
+      .brand-card {
+        padding: 28px 22px;
+      }
+      .brand-card h2 {
+        font-size: 28px;
+        line-height: 1.05;
+      }
+      .stats {
+        grid-template-columns: 1fr 1fr;
+      }
+      .stat strong {
+        font-size: 34px;
+      }
+      .toc {
+        margin: 0 12px 20px;
+        padding: 28px 20px;
+      }
+      .toc h2 {
+        font-size: 30px;
+      }
+      .toc-grid {
+        grid-template-columns: 1fr;
+      }
+      .section {
+        margin: 0 12px 20px;
+        padding: 28px 16px;
+      }
+      .section-header {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .section-number {
+        display: none;
+      }
+      .section-title {
+        font-size: 28px;
+        line-height: 1.08;
+      }
+      .products-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+      .product-card {
+        min-height: auto;
+        grid-template-rows: 190px 1fr;
+      }
+      .product-media {
+        padding: 18px;
+      }
+      .product-media img {
+        max-height: 150px;
+      }
+      .product-body {
+        padding: 18px;
+      }
+      .product-name {
+        min-height: auto;
+        font-size: 16px;
+      }
+      .price {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div class="cover-left">
+      <img src="{{ logo_url }}" alt="McKenna Group" class="cover-logo">
+      <span class="eyebrow">Catálogo Oficial · {{ generated_label }}</span>
+      <h1 class="cover-title">Productos<br><em>Web</em><br>Combo</h1>
+      <p class="cover-subtitle">
+        Materias primas de calidad certificada con precios sincronizados desde SIIGO COMBOS
+        y compra directa en mckennagroup.co.
+      </p>
+    </div>
+    <div class="cover-right">
+      <div class="brand-card">
+        <span class="eyebrow">McKenna Group S.A.S.</span>
+        <h2>Catálogo limpio, actualizado y listo para compra.</h2>
+        <p>Solo productos públicos de la página web. Se excluyen fórmulas internas, SKUs sin precio y publicaciones legacy.</p>
+        <div class="stats">
+          <div class="stat"><strong>{{ total_products }}</strong><span>Productos</span></div>
+          <div class="stat"><strong>{{ sections|length }}</strong><span>Categorías</span></div>
+        </div>
+        <div class="cover-badges">
+          <span>SIIGO COMBOS</span>
+          <span>Fotos verificadas</span>
+          <span>Despacho nacional</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="toc">
+    <span class="eyebrow">Índice</span>
+    <h2>Categorías del catálogo</h2>
+    <div class="toc-grid">
+      {% for section in sections %}
+      <div class="toc-item">
+        <span>{{ section.name }}</span>
+        <span>{{ section.products|length }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% for section in sections %}
+  <section class="section">
+    <div class="section-header">
+      <div class="section-number">{{ "%02d"|format(loop.index) }}</div>
+      <div>
+        <span class="eyebrow">Categoría</span>
+        <h2 class="section-title">{{ section.name }} <em>({{ section.products|length }})</em></h2>
+        <p class="section-lead">Productos tipo combo publicados en la tienda web.</p>
+      </div>
+    </div>
+    <div class="products-grid">
+      {% for p in section.products %}
+      <article class="product-card">
+        <div class="product-media">
+          {% if p.photo %}
+          <img src="{{ p.photo }}" alt="{{ p.name }}">
+          {% else %}
+          <div class="product-placeholder"></div>
+          {% endif %}
+        </div>
+        <div class="product-body">
+          <div class="product-cat">{{ p.cat }}</div>
+          <div class="product-name">{{ p.name }}</div>
+          <div class="product-ref">Ref. {{ p.ref }}</div>
+          <div class="price-row">
+            <div>
+              <div class="price">{{ p.precio }}</div>
+              {% if p.ahorro and p.ahorro != "—" %}
+              <div class="saving">Ahorras {{ p.ahorro }}</div>
+              {% endif %}
+            </div>
+            {% if p.precio_meli and p.precio_meli != "—" %}
+            <div class="list-price">{{ p.precio_meli }}</div>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</body>
+</html>
