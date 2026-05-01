@@ -392,13 +392,34 @@
       "titulo_producto": "Citrato De Zinc 500gr N/a",
       "pregunta": "CUANTO E DEBE TOMAR EN EL DIA",
       "timestamp": "2026-04-30T01:43:23.223447",
-      "respondida": false
+      "respondida": true
     },
     {
       "question_id": "13573857292",
       "titulo_producto": "D-pantenol Vitamina B5 75%",
       "pregunta": "Forma de uso para la piel?",
       "timestamp": "2026-04-29T23:44:15.706357",
+      "respondida": true
+    },
+    {
+      "question_id": "13573282179",
+      "titulo_producto": "Gotero De Vidrio Ámbar 60 Ml Ambar",
+      "pregunta": "Es estéril?",
+      "timestamp": "2026-04-30T11:43:42.416098",
+      "respondida": true
+    },
+    {
+      "question_id": "13574166348",
+      "titulo_producto": "Arcilla Blanca Usp Caolín 500gr",
+      "pregunta": "Esta arcilla sirve para fabricar platos o tazas ? Se puede hornear?",
+      "timestamp": "2026-04-30T14:13:48.379705",
+      "respondida": true
+    },
+    {
+      "question_id": "13574295902",
+      "titulo_producto": "Vitamina B12 Cianocobalamina  Sin Sabor",
+      "pregunta": "Una pregunta, como se toma, con agua ? o si es es via sublingual el polvo de b12",
+      "timestamp": "2026-04-30T17:27:01.749009",
       "respondida": true
     }
   ]
