@@ -1010,6 +1010,7 @@ def register_routes(app):
                     state_path = "/home/mckg/mi-agente/app/data/mensajes_posventa_pendientes.json"
                     pack_id = None
                     comprador = ""
+                    comprador_id = None
                     clave_pendiente = None
                     try:
                         with open(state_path, "r", encoding="utf-8") as _f:
@@ -1027,6 +1028,7 @@ def register_routes(app):
                         if entrada:
                             pack_id = entrada["pack_id"]
                             comprador = entrada.get("comprador", "")
+                            comprador_id = entrada.get("from_id")
                             clave_pendiente = clave_candidata
                     except Exception as _e:
                         print(f"⚠️ [POSVENTA-CMD] Error leyendo state: {_e}")
@@ -1045,7 +1047,7 @@ def register_routes(app):
 
                     from modulo_posventa import responder_mensaje_posventa
 
-                    exito = responder_mensaje_posventa(pack_id, respuesta)
+                    exito = responder_mensaje_posventa(pack_id, respuesta, comprador_id)
 
                     def _quitar_pendiente_postventa():
                         try:
