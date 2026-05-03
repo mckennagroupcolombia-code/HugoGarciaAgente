@@ -168,7 +168,7 @@ def cmd_enviar(codigo: str, texto: str) -> int:
         print(f"❌ No hay pendiente con código '{codigo}'. Usa --list.")
         return 1
     pack_id = str(entrada["pack_id"])
-    ok = responder_mensaje_posventa(pack_id, texto)
+    ok = responder_mensaje_posventa(pack_id, texto, entrada.get("from_id"))
     if not ok:
         print("❌ MeLi rechazó el envío (ver consola arriba).")
         return 1

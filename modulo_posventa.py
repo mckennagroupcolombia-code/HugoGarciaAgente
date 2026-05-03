@@ -1,11 +1,72 @@
 import datetime
 import requests
 import json
-from app.utils import refrescar_token_meli
+from app.utils import refrescar_token_meli, obtener_seller_id_meli
 
-def responder_mensaje_posventa(order_id, texto):
+
+def _post_mensaje_pack(pack_id, vendedor_id, comprador_id, texto, headers, order_resource_id=None):
+    url_msg = (
+        f"https://api.mercadolibre.com/messages/packs/{pack_id}/"
+        f"sellers/{vendedor_id}?tag=post_sale"
+    )
+
+    payloads = []
+    if order_resource_id:
+        payloads.append(
+            {
+                "from": {"user_id": int(vendedor_id)},
+                "to": {"user_id": int(comprador_id)},
+                "text": str(texto),
+                "message_resources": [{"id": str(order_resource_id), "name": "orders"}],
+            }
+        )
+
+    payloads.append(
+        {
+            "from": {"user_id": int(vendedor_id)},
+            "to": {"user_id": int(comprador_id)},
+            "text": str(texto),
+        }
+    )
+
+    for idx, payload in enumerate(payloads, start=1):
+        response = requests.post(url_msg, json=payload, headers=headers, timeout=20)
+        if response.status_code in [200, 201]:
+            print(f"🚀 ¡MENSAJE ENVIADO EXITOSAMENTE! intento={idx}")
+            return True
+        print(
+            f"⚠️ Fallo enviando a MeLi intento={idx} status={response.status_code}: "
+            f"{response.text[:500]}"
+        )
+
+    return False
+
+
+def _inferir_comprador_desde_mensajes(pack_id, vendedor_id, headers):
+    url_msg = (
+        f"https://api.mercadolibre.com/messages/packs/{pack_id}/"
+        f"sellers/{vendedor_id}?tag=post_sale"
+    )
+    res = requests.get(url_msg, headers=headers, timeout=10)
+    if res.status_code != 200:
+        print(f"⚠️ No pude leer mensajes del pack {pack_id}. Status: {res.status_code}")
+        return None
+
+    for msg in res.json().get("messages", []):
+        remitente = msg.get("from")
+        if isinstance(remitente, dict):
+            uid = remitente.get("user_id")
+        else:
+            uid = remitente
+        if uid and str(uid) != str(vendedor_id):
+            return str(uid)
+    return None
+
+
+def responder_mensaje_posventa(order_id, texto, comprador_id=None):
     """
-    Versión Blindada: Limpia IDs con decimales y usa el flujo unificado de MeLi.
+    Envía respuesta postventa por MeLi.
+    Acepta order_id o pack_id. Si recibe pack_id, usa comprador_id de la cola.
     """
     try:
         # 0. LIMPIEZA CRÍTICA: Convertimos "2000015703413240.0" -> 2000015703413240 -> "2000015703413240"
@@ -19,58 +80,46 @@ def responder_mensaje_posventa(order_id, texto):
             "x-version": "2" 
         }
         
-        # 1. Obtener datos de la orden (Usando el ID limpio)
+        # 1. Primero probar como order_id. En postventa la cola suele guardar pack_id.
         url_orden = f"https://api.mercadolibre.com/orders/{clean_id}"
-        res_orden = requests.get(url_orden, headers=headers)
+        res_orden = requests.get(url_orden, headers=headers, timeout=10)
         
-        if res_orden.status_code != 200:
-            print(f"❌ Orden {clean_id} no accesible. Status: {res_orden.status_code}")
+        if res_orden.status_code == 200:
+            data = res_orden.json()
+            vendedor_id = data["seller"]["id"]
+            comprador_id_final = data["buyer"]["id"]
+            pack_id = data.get("pack_id") or clean_id
+
+            print(f"📡 Enviando a MeLi (Order: {clean_id} | Pack: {pack_id})...")
+            return _post_mensaje_pack(
+                pack_id,
+                vendedor_id,
+                comprador_id_final,
+                texto,
+                headers,
+                order_resource_id=clean_id,
+            )
+
+        print(
+            f"⚠️ {clean_id} no abrió como orden (status {res_orden.status_code}); "
+            "tratando como pack_id."
+        )
+        vendedor_id = obtener_seller_id_meli()
+        comprador_id_final = comprador_id or _inferir_comprador_desde_mensajes(
+            clean_id, vendedor_id, headers
+        )
+        if not comprador_id_final:
+            print(f"❌ No pude inferir comprador para pack {clean_id}.")
             return False
-            
-        data = res_orden.json()
-        vendedor_id = data['seller']['id']
-        comprador_id = data['buyer']['id']
-        pack_id = data.get('pack_id') or clean_id
 
-        # 2. PAYLOAD UNIFICADO
-        payload = {
-            "from": { "user_id": int(vendedor_id) },
-            "to": { "user_id": int(comprador_id) },
-            "text": str(texto),
-            "message_resources": [
-                {
-                    "id": str(clean_id),
-                    "name": "orders"
-                }
-            ]
-        }
-
-        # 3. ENDPOINT DE MENSAJERÍA
-        url_msg = f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{vendedor_id}?tag=post_sale"
-        
-        print(f"📡 Enviando a MeLi (ID Limpio: {clean_id} | Pack: {pack_id})...")
-        
-        response = requests.post(url_msg, json=payload, headers=headers)
-        
-        if response.status_code in [200, 201]:
-            print(f"🚀 ¡MENSAJE ENVIADO EXITOSAMENTE!")
-            return True
-        else:
-            # Reintento con formato clásico si el unificado falla
-            print(f"⚠️ Fallo Unificado ({response.status_code}), intentando formato clásico...")
-            payload_clasico = {
-                "from": { "user_id": int(vendedor_id) },
-                "to": [{ "user_id": int(comprador_id) }],
-                "text": str(texto)
-            }
-            response = requests.post(url_msg, json=payload_clasico, headers=headers)
-            
-            if response.status_code in [200, 201]:
-                print("🚀 ¡Enviado con formato clásico!")
-                return True
-            else:
-                print(f"❌ Error final de MeLi: {response.text}")
-                return False
+        print(f"📡 Enviando a MeLi (Pack: {clean_id} | Comprador: {comprador_id_final})...")
+        return _post_mensaje_pack(
+            clean_id,
+            vendedor_id,
+            comprador_id_final,
+            texto,
+            headers,
+        )
             
     except Exception as e:
         print(f"❌ Error crítico en responder_mensaje_posventa: {e}")
