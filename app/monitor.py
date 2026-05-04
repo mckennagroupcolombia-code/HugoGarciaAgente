@@ -1076,6 +1076,7 @@ def _health_check_preventa_postventa():
         try:
             ahora = datetime.now().strftime("%Y-%m-%d %H:%M")
             errores = []
+            advertencias = []
             ok_items = []
 
             # 1. WhatsApp bridge
@@ -1165,14 +1166,14 @@ def _health_check_preventa_postventa():
 
                 last_msg = ultimo_incidente("postventa_webhook_recibido")
                 if not last_msg:
-                    errores.append(
+                    advertencias.append(
                         "Postventa webhook: no hay eventos `messages` registrados; polling fallback activo"
                     )
                 else:
                     mins = int(max(0, (time.time() - float(last_msg.get("ts", 0))) / 60))
                     if mins > 1440:
-                        errores.append(
-                            f"Postventa webhook: último evento `messages` hace {mins} min; revisar topics MeLi"
+                        advertencias.append(
+                            f"Postventa webhook: último `messages` hace {mins} min; polling fallback activo"
                         )
                     else:
                         ok_items.append(f"Postventa webhook: último `messages` hace {mins} min")
@@ -1212,6 +1213,11 @@ def _health_check_preventa_postventa():
                 for err in errores:
                     reporte += f"  • {err}\n"
                 reporte += "\n⚠️ Revisar logs: `journalctl -u webhook-meli -n 50` o `journalctl -u mckenna-whatsapp-bridge -n 50`"
+
+            if advertencias:
+                reporte += "\n⚠️ *Advertencias:*\n"
+                for adv in advertencias:
+                    reporte += f"  • {adv}\n"
 
             enviar = _get_enviar()
             grupo_audit = jid_grupo_alertas_sistemas_wa()
