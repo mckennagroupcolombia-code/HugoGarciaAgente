@@ -3,6 +3,8 @@ import json
 import requests
 import time
 import hashlib
+import fcntl
+from contextlib import contextmanager
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde el archivo .env
@@ -100,7 +102,65 @@ def _token_meli_es_valido(access_token: str) -> bool:
         return False
 
 
+@contextmanager
+def _bloqueo_refresco_meli():
+    """Evita que varios procesos roten el refresh_token al mismo tiempo."""
+    if not MELI_CREDS_PATH:
+        yield
+        return
+
+    lock_path = f"{MELI_CREDS_PATH}.lock"
+    lock_file = None
+    try:
+        lock_file = open(lock_path, "a", encoding="utf-8")
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        yield
+    finally:
+        if lock_file:
+            try:
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
+                lock_file.close()
+            except OSError:
+                pass
+
+
+def _post_oauth_meli_con_reintentos(payload: dict) -> requests.Response:
+    """Reintenta caídas transitorias de OAuth MeLi antes de disparar alerta."""
+    retry_statuses = {429, 500, 502, 503, 504}
+    last_error = None
+    last_response = None
+    for intento in range(1, 4):
+        try:
+            res = requests.post(
+                "https://api.mercadolibre.com/oauth/token",
+                data=payload,
+                timeout=10,
+            )
+            last_response = res
+            if res.status_code not in retry_statuses:
+                return res
+            print(
+                f"⚠️ OAuth MeLi transitorio HTTP {res.status_code} "
+                f"(intento {intento}/3): {(res.text or '')[:180]}"
+            )
+        except requests.RequestException as e:
+            last_error = e
+            print(f"⚠️ OAuth MeLi error de red (intento {intento}/3): {e}")
+
+        if intento < 3:
+            time.sleep(1.5 * intento)
+
+    if last_response is not None:
+        return last_response
+    raise last_error or requests.RequestException("OAuth MeLi sin respuesta")
+
+
 def refrescar_token_meli():
+    with _bloqueo_refresco_meli():
+        return _refrescar_token_meli_sin_bloqueo()
+
+
+def _refrescar_token_meli_sin_bloqueo():
     """
     Refresca el token de acceso de Mercado Libre usando el refresh_token.
 
@@ -156,7 +216,7 @@ def refrescar_token_meli():
         }
         attempted_refresh_token = str(config.get("refresh_token") or "").strip()
 
-        res = requests.post("https://api.mercadolibre.com/oauth/token", data=payload, timeout=10)
+        res = _post_oauth_meli_con_reintentos(payload)
         res.raise_for_status()  # Lanza una excepción para errores HTTP (4xx o 5xx)
 
         try:
@@ -208,6 +268,15 @@ def refrescar_token_meli():
             err_code = str(err_j.get("error") or "").strip().lower()
         except (json.JSONDecodeError, ValueError, TypeError):
             pass
+        if res.status_code >= 500:
+            cfg = _cargar_config_meli_desde_archivo() or {}
+            fallback_token = str(cfg.get("access_token") or "").strip()
+            if fallback_token and _token_meli_es_valido(fallback_token):
+                print(
+                    "⚠️ OAuth MeLi falló por upstream/5xx, pero access_token en disco "
+                    "sigue válido. Usando token actual."
+                )
+                return fallback_token
         if err_code == "invalid_grant":
             cfg = _cargar_config_meli_desde_archivo() or {}
             fallback_token = str(cfg.get("access_token") or "").strip()
