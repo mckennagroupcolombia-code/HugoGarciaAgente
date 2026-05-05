@@ -533,3 +533,217 @@ def test_file_tool_guard_restricted_blocks_core():
             os.environ["AGENTE_RESTRICT_FILE_TOOLS"] = old
         if old_flask is not None:
             os.environ["FLASK_ENV"] = old_flask
+
+
+def _insert_web_order_for_siigo_test(
+    db_path: Path, *, reference: str = "MCKG-ABC12336E", items_json: dict | None = None
+) -> None:
+    import json
+    import sqlite3
+
+    from app.tools import web_pedidos as wp
+
+    wp.migrate_orders_table()
+    data = items_json or {
+        "items": [
+            {"name": "Acido Lactico", "ref": "C-ACDLAC85P30ML", "price": 10000, "qty": 2}
+        ],
+        "cedula": "1012381852",
+        "address": "Carrera 107 #58-42 sur",
+        "shipping": 8500,
+        "billing": {
+            "name": "Angie Silva",
+            "nit": "1012381852",
+            "address": "Carrera 107 #58-42 sur",
+            "email": "cliente@example.com",
+        },
+    }
+    con = sqlite3.connect(db_path)
+    con.execute(
+        """INSERT INTO orders
+           (reference, buyer_name, buyer_email, buyer_phone, buyer_city,
+            items_json, total, status, payu_ref, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (
+            reference,
+            "Angie Silva",
+            "cliente@example.com",
+            "3102023819",
+            "Bogota",
+            json.dumps(data),
+            28500,
+            "approved",
+            "156872784393",
+            "2026-05-04T14:00:00",
+        ),
+    )
+    con.commit()
+    con.close()
+
+
+def _siigo_invoice_row_for_test(db_path: Path, reference: str = "MCKG-ABC12336E"):
+    import sqlite3
+
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    row = con.execute(
+        "SELECT * FROM orders WHERE reference = ?",
+        (reference,),
+    ).fetchone()
+    con.close()
+    assert row is not None
+    return row
+
+
+def test_emitir_factura_siigo_pedido_web_success(monkeypatch, tmp_path):
+    from app.services import siigo
+    from app.tools import web_pedidos as wp
+
+    db_path = tmp_path / "orders.db"
+    monkeypatch.setattr(wp, "ORDERS_DB", db_path)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE", raising=False)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE_8500", raising=False)
+    _insert_web_order_for_siigo_test(db_path)
+
+    monkeypatch.setattr(siigo, "buscar_producto_siigo_por_sku", lambda sku: {"sku": sku})
+    captured = {}
+
+    def fake_crear_factura_venta_siigo(**kwargs):
+        captured.update(kwargs)
+        return {
+            "ok": True,
+            "invoice_id": "inv-123",
+            "number": "FE-123",
+            "status": "Accepted",
+            "cufe": "CUFE123",
+            "stamp": {"status": "Accepted", "cufe": "CUFE123"},
+            "url": "https://siigo.test/inv-123",
+        }
+
+    monkeypatch.setattr(siigo, "crear_factura_venta_siigo", fake_crear_factura_venta_siigo)
+
+    ok, msg = wp.emitir_factura_siigo_pedido_web("MCKG-ABC12336E")
+
+    assert ok is True
+    assert "FE-123" in msg
+    assert captured["purchase_order"] == "MCKG-ABC12336E"
+    assert captured["identificacion"] == "1012381852"
+    assert captured["total"] == 28500
+    assert [p["codigo"] for p in captured["productos"]] == [
+        "C-ACDLAC85P30ML",
+        "WEB-ENVIO-8500",
+    ]
+    row = _siigo_invoice_row_for_test(db_path)
+    assert row["siigo_invoice_id"] == "inv-123"
+    assert row["siigo_invoice_number"] == "FE-123"
+    assert row["siigo_invoice_status"] == "Accepted"
+    assert row["siigo_invoice_cufe"] == "CUFE123"
+    assert row["siigo_invoice_emitted_at"]
+
+
+def test_emitir_factura_siigo_pedido_web_no_duplica(monkeypatch, tmp_path):
+    import sqlite3
+
+    from app.services import siigo
+    from app.tools import web_pedidos as wp
+
+    db_path = tmp_path / "orders.db"
+    monkeypatch.setattr(wp, "ORDERS_DB", db_path)
+    _insert_web_order_for_siigo_test(db_path)
+    con = sqlite3.connect(db_path)
+    con.execute(
+        """UPDATE orders
+           SET siigo_invoice_id = 'inv-prev',
+               siigo_invoice_number = 'FE-PREV',
+               siigo_invoice_status = 'Accepted'
+           WHERE reference = 'MCKG-ABC12336E'"""
+    )
+    con.commit()
+    con.close()
+
+    def fail_if_called(**_kwargs):
+        raise AssertionError("No debe crear otra factura")
+
+    monkeypatch.setattr(siigo, "crear_factura_venta_siigo", fail_if_called)
+
+    ok, msg = wp.emitir_factura_siigo_pedido_web("MCKG-ABC12336E")
+
+    assert ok is True
+    assert "ya tiene factura" in msg
+    assert "FE-PREV" in msg
+
+
+def test_emitir_factura_siigo_pedido_web_rechaza_envio_sin_codigo(monkeypatch, tmp_path):
+    from app.services import siigo
+    from app.tools import web_pedidos as wp
+
+    db_path = tmp_path / "orders.db"
+    monkeypatch.setattr(wp, "ORDERS_DB", db_path)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE", raising=False)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE_8500", raising=False)
+    _insert_web_order_for_siigo_test(db_path)
+
+    def fake_buscar_producto(sku):
+        if sku == "WEB-ENVIO-8500":
+            return None
+        return {"sku": sku}
+
+    monkeypatch.setattr(siigo, "buscar_producto_siigo_por_sku", fake_buscar_producto)
+
+    def fail_if_called(**_kwargs):
+        raise AssertionError("No debe crear factura sin SKU de envio")
+
+    monkeypatch.setattr(siigo, "crear_factura_venta_siigo", fail_if_called)
+
+    ok, msg = wp.emitir_factura_siigo_pedido_web("MCKG-ABC12336E")
+
+    assert ok is False
+    assert "WEB-ENVIO-8500" in msg
+    row = _siigo_invoice_row_for_test(db_path)
+    assert row["siigo_invoice_status"] == "error"
+    assert "WEB-ENVIO-8500" in row["siigo_invoice_error"]
+
+
+def test_marcar_solicitud_facturacion_reintenta(monkeypatch, tmp_path):
+    import sqlite3
+
+    from app.services import siigo
+    from app.tools import web_pedidos as wp
+
+    db_path = tmp_path / "orders.db"
+    monkeypatch.setattr(wp, "ORDERS_DB", db_path)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE", raising=False)
+    monkeypatch.delenv("WEB_SIIGO_SHIPPING_CODE_8500", raising=False)
+    _insert_web_order_for_siigo_test(db_path)
+    con = sqlite3.connect(db_path)
+    con.execute(
+        """UPDATE orders
+           SET siigo_invoice_status = 'error',
+               siigo_invoice_error = 'fallo anterior'
+           WHERE reference = 'MCKG-ABC12336E'"""
+    )
+    con.commit()
+    con.close()
+
+    monkeypatch.setattr(siigo, "buscar_producto_siigo_por_sku", lambda sku: {"sku": sku})
+    monkeypatch.setattr(
+        siigo,
+        "crear_factura_venta_siigo",
+        lambda **_kwargs: {
+            "ok": True,
+            "invoice_id": "inv-retry",
+            "number": "FE-RETRY",
+            "status": "Accepted",
+            "cufe": "CUFERETRY",
+            "stamp": {"status": "Accepted", "cufe": "CUFERETRY"},
+            "url": "https://siigo.test/inv-retry",
+        },
+    )
+
+    ok, msg = wp.marcar_solicitud_facturacion("MCKG-ABC12336E")
+
+    assert ok is True
+    assert "FE-RETRY" in msg
+    row = _siigo_invoice_row_for_test(db_path)
+    assert row["invoice_requested_at"]
+    assert row["siigo_invoice_error"] is None

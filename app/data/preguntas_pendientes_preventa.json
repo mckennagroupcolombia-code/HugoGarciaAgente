@@ -421,6 +421,20 @@
       "pregunta": "Una pregunta, como se toma, con agua ? o si es es via sublingual el polvo de b12",
       "timestamp": "2026-04-30T17:27:01.749009",
       "respondida": true
+    },
+    {
+      "question_id": "13576097472",
+      "titulo_producto": "Fragancia Cosmética 120 Ml",
+      "pregunta": "Hola tienen de rosas",
+      "timestamp": "2026-05-04T11:13:37.090526",
+      "respondida": true
+    },
+    {
+      "question_id": "13575732147",
+      "titulo_producto": "Agua Destilada  250 Ml",
+      "pregunta": "Se puede mezclar con en el liquido refrigerante que utilizan las camionetas hibridas?",
+      "timestamp": "2026-05-04T22:45:37.835842",
+      "respondida": false
     }
   ]
 }
