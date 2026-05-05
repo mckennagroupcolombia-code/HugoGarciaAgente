@@ -15,6 +15,7 @@ import sqlite3
 import ssl
 import uuid
 from datetime import datetime
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
@@ -51,6 +52,10 @@ if not SMTP_HOST and SMTP_USER:
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 EMAIL_FROM = os.getenv("EMAIL_FROM", "").strip() or SMTP_USER
 EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "McKenna Group").strip()
+# Si el pedido no trae correo en facturación ni comprador, el PDF de la FE va aquí (SMTP).
+WEB_INVOICE_EMAIL_FALLBACK = (
+    os.getenv("WEB_INVOICE_EMAIL_FALLBACK", "facturasmckennagroup@gmail.com") or ""
+).strip()
 
 # Paleta alineada con PAGINA_WEB/site/static/css/main.css
 _MCK_GREEN = "#0c6069"
@@ -155,6 +160,13 @@ def migrate_orders_table() -> None:
         ("shipped_email_sent_at", "TEXT"),
         ("whatsapp_notified_at", "TEXT"),
         ("invoice_requested_at", "TEXT"),
+        ("siigo_invoice_id", "TEXT"),
+        ("siigo_invoice_number", "TEXT"),
+        ("siigo_invoice_status", "TEXT"),
+        ("siigo_invoice_cufe", "TEXT"),
+        ("siigo_invoice_emitted_at", "TEXT"),
+        ("siigo_invoice_error", "TEXT"),
+        ("siigo_invoice_attempted_at", "TEXT"),
     ]
     for col, decl in additions:
         if col not in existing:
@@ -346,6 +358,155 @@ def _send_smtp(to_addr: str, subject: str, text_body: str, html_body: str) -> bo
     except Exception as e:
         log.exception("Error enviando correo a %s: %s", to_addr, e)
         return False
+
+
+def _send_smtp_with_attachments(
+    to_addr: str,
+    subject: str,
+    text_body: str,
+    html_body: str,
+    attachments: list[tuple[str, str, bytes]],
+) -> bool:
+    """attachments: [(filename, mime_type, data)]"""
+    if not _smtp_ready():
+        log.warning("SMTP no configurado: no se envía correo a %s", to_addr)
+        return False
+    msg = MIMEMultipart("mixed")
+    msg["Subject"] = subject
+    msg["From"] = f"{EMAIL_FROM_NAME} <{EMAIL_FROM}>"
+    msg["To"] = to_addr
+    alt = MIMEMultipart("alternative")
+    alt.attach(MIMEText(text_body, "plain", "utf-8"))
+    alt.attach(MIMEText(html_body, "html", "utf-8"))
+    msg.attach(alt)
+    for fname, mime, data in attachments:
+        if not fname or not data:
+            continue
+        part = MIMEApplication(data, _subtype=mime.split("/")[-1] if "/" in mime else "octet-stream")
+        part.add_header("Content-Disposition", "attachment", filename=fname)
+        msg.attach(part)
+    try:
+        ctx = ssl.create_default_context()
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as server:
+            server.ehlo()
+            server.starttls(context=ctx)
+            server.ehlo()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(EMAIL_FROM, [to_addr], msg.as_string())
+        return True
+    except Exception as e:
+        log.exception("Error enviando correo con adjuntos a %s: %s", to_addr, e)
+        return False
+
+
+def _billing_email_from_order(order: dict) -> str:
+    """Correo para PDF de FE: primero facturación (billing.email), luego comprador (buyer_email)."""
+    try:
+        data = json.loads(order.get("items_json") or "{}")
+    except json.JSONDecodeError:
+        data = {}
+    bill = data.get("billing") or {}
+    return (bill.get("email") or order.get("buyer_email") or "").strip()
+
+
+def _invoice_email_for_fe(order: dict) -> tuple[str, bool]:
+    """
+    Correo destino del PDF de factura electrónica (billing.email → buyer_email).
+    Retorna (email, True) si se usa el fallback interno por falta de cualquier correo en la venta.
+    """
+    direct = _billing_email_from_order(order)
+    if direct:
+        return direct, False
+    if WEB_INVOICE_EMAIL_FALLBACK:
+        return WEB_INVOICE_EMAIL_FALLBACK, True
+    return "", True
+
+
+def _ensure_siigo_invoice_pdf_path(
+    invoice_id: str, invoice_number: str | int | None, existing_path: str | None
+) -> str | None:
+    if existing_path and Path(existing_path).is_file():
+        return existing_path
+    if not invoice_id:
+        return None
+    try:
+        from app.services.siigo import descargar_factura_pdf_siigo
+        import base64
+
+        b64 = descargar_factura_pdf_siigo(invoice_id)
+        if not b64 or "Error" in str(b64):
+            return None
+        pdf_dir = _ROOT / "facturas_descargadas"
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+        name = f"Factura_{invoice_number or invoice_id}.pdf"
+        out = pdf_dir / name
+        out.write_bytes(base64.b64decode(b64))
+        return str(out)
+    except Exception as e:
+        log.warning("No se pudo descargar PDF Siigo %s: %s", invoice_id, e)
+        return None
+
+
+def send_siigo_invoice_email_to_customer(
+    order: dict,
+    *,
+    invoice_number: str | int | None,
+    invoice_id: str | None,
+    pdf_path: str | None,
+    cufe: str = "",
+) -> bool:
+    to_addr, used_fallback = _invoice_email_for_fe(order)
+    if not to_addr:
+        log.warning(
+            "Pedido %s sin correo de facturación y sin WEB_INVOICE_EMAIL_FALLBACK",
+            order.get("reference"),
+        )
+        return False
+    ref = order.get("reference") or ""
+    if used_fallback:
+        log.info(
+            "FE pedido %s: sin email en datos de venta; envío PDF a %s",
+            ref,
+            to_addr,
+        )
+    num = str(invoice_number or "").strip() or str(invoice_id or "").strip()
+    pdf = _ensure_siigo_invoice_pdf_path(str(invoice_id or ""), invoice_number, pdf_path)
+    subj = f"Factura electrónica {num} — McKenna Group"
+    cufe_txt = (cufe or "").strip()
+    text = (
+        f"Hola,\n\n"
+        f"Adjuntamos la factura electrónica de tu compra en McKenna Group.\n\n"
+        f"Pedido: {ref}\n"
+        f"Factura: {num}\n"
+    )
+    if cufe_txt:
+        text += f"CUFE: {cufe_txt}\n"
+    text += (
+        f"\nSi tienes dudas, responde a este correo o escríbenos por WhatsApp.\n\n"
+        f"McKenna Group S.A.S.\n"
+    )
+    num_esc = html_module.escape(num)
+    ref_esc = html_module.escape(str(ref))
+    cufe_esc = html_module.escape(cufe_txt) if cufe_txt else ""
+    inner = f"""
+<p style="margin:0 0 18px 0;">Hola,</p>
+<p style="margin:0 0 18px 0;">Adjuntamos la <strong style="color:{_MCK_GREEN_DARK};">factura electrónica</strong> de tu compra en McKenna Group.</p>
+<table role="presentation" width="100%" style="margin:0 0 20px 0;background:{_MCK_BG};border-radius:12px;border:1px solid rgba(12,96,105,0.12);">
+  <tr><td style="padding:16px 18px;">
+    <p style="margin:0 0 8px 0;font-family:{_MCK_FONT};font-size:13px;color:{_MCK_MUTED};">Pedido</p>
+    <p style="margin:0 0 14px 0;font-family:{_MCK_FONT};font-size:16px;font-weight:700;color:{_MCK_GREEN_DEEP};">{ref_esc}</p>
+    <p style="margin:0 0 8px 0;font-family:{_MCK_FONT};font-size:13px;color:{_MCK_MUTED};">Factura</p>
+    <p style="margin:0;font-family:{_MCK_FONT};font-size:16px;font-weight:700;color:{_MCK_GREEN};">{num_esc}</p>
+    {f'<p style="margin:14px 0 0 0;font-family:{_MCK_FONT};font-size:12px;color:{_MCK_MUTED};">CUFE<br><span style="word-break:break-all;color:{_MCK_GREEN_DEEP};">{cufe_esc}</span></p>' if cufe_esc else ''}
+  </td></tr>
+</table>
+<p style="margin:0;font-size:14px;color:{_MCK_MUTED};line-height:1.65;">Si tienes dudas, responde a este correo.</p>
+""".strip()
+    html = _wrap_mckenna_email(preheader=f"Factura {num} — McKenna Group", inner_html=inner)
+    atts: list[tuple[str, str, bytes]] = []
+    if pdf and Path(pdf).is_file():
+        atts.append((Path(pdf).name, "application/pdf", Path(pdf).read_bytes()))
+    return _send_smtp_with_attachments(to_addr, subj, text, html, atts)
 
 
 def _build_order_confirmation_content(order: dict) -> tuple[str, str, str]:
@@ -681,6 +842,416 @@ def _format_whatsapp_pedido(order: dict) -> str:
     )
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on", "si", "sí"}
+
+
+def _siigo_invoice_url(invoice_id: str | None) -> str:
+    return f"https://siigonube.siigo.com/#/invoice/843/{invoice_id}" if invoice_id else ""
+
+
+def _money_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _shipping_sku_for_amount(amount: float) -> str:
+    amount_int = int(round(amount))
+    env_key = f"WEB_SIIGO_SHIPPING_CODE_{amount_int}"
+    override = os.getenv(env_key, "").strip()
+    if override:
+        return override
+    legacy = os.getenv("WEB_SIIGO_SHIPPING_CODE", "").strip()
+    if legacy:
+        return legacy
+    prefix = os.getenv("WEB_SIIGO_SHIPPING_SKU_PREFIX", "WEB-ENVIO").strip() or "WEB-ENVIO"
+    return f"{prefix}-{amount_int}"
+
+
+def _qty_float(value) -> float:
+    try:
+        qty = float(value)
+    except (TypeError, ValueError):
+        qty = 1.0
+    return qty if qty > 0 else 1.0
+
+
+def _update_invoice_state(reference: str, **fields) -> None:
+    allowed = {
+        "siigo_invoice_id",
+        "siigo_invoice_number",
+        "siigo_invoice_status",
+        "siigo_invoice_cufe",
+        "siigo_invoice_emitted_at",
+        "siigo_invoice_error",
+        "siigo_invoice_attempted_at",
+        "invoice_requested_at",
+    }
+    updates = [(k, v) for k, v in fields.items() if k in allowed]
+    if not updates:
+        return
+    set_sql = ", ".join(f"{k} = ?" for k, _ in updates)
+    params = [v for _, v in updates]
+    params.append(reference.strip().upper())
+    con = sqlite3.connect(ORDERS_DB, timeout=30)
+    con.execute(f"UPDATE orders SET {set_sql} WHERE upper(reference) = ?", params)
+    con.commit()
+    con.close()
+
+
+def _parse_order_items_json(order: dict) -> tuple[dict, str | None]:
+    try:
+        data = json.loads(order.get("items_json") or "{}")
+    except json.JSONDecodeError:
+        return {}, "Detalle JSON del pedido inválido."
+    if not isinstance(data, dict):
+        return {}, "Detalle del pedido inválido."
+    return data, None
+
+
+def _build_siigo_web_invoice_lines(order: dict, data: dict) -> tuple[list[dict], str | None]:
+    from app.services.siigo import buscar_producto_siigo_por_sku
+
+    items = data.get("items") or []
+    if not items:
+        return [], "El pedido no tiene ítems para facturar."
+
+    lines = []
+    missing = []
+    for it in items:
+        code = str(it.get("ref") or "").strip()
+        name = str(it.get("name") or "Producto").strip()
+        qty = _qty_float(it.get("qty", 1))
+        price = _money_float(it.get("price"), -1)
+        if not code:
+            missing.append(f"{name}: sin SKU/ref")
+            continue
+        if price < 0:
+            missing.append(f"{code}: precio inválido")
+            continue
+        if not buscar_producto_siigo_por_sku(code):
+            missing.append(f"{code}: no existe en Siigo")
+            continue
+        lines.append(
+            {
+                "codigo": code,
+                "nombre": name,
+                "cantidad": qty,
+                "precio_unitario": price,
+            }
+        )
+
+    shipping = _money_float(data.get("shipping"), 0)
+    if shipping > 0:
+        shipping_code = _shipping_sku_for_amount(shipping)
+        if not shipping_code:
+            missing.append("envío: no se pudo resolver SKU de envío")
+        elif not buscar_producto_siigo_por_sku(shipping_code):
+            missing.append(f"envío {shipping_code}: no existe en Siigo")
+        else:
+            lines.append(
+                {
+                    "codigo": shipping_code,
+                    "nombre": os.getenv("WEB_SIIGO_SHIPPING_NAME", "Envío pedido web").strip()
+                    or "Envío pedido web",
+                    "cantidad": 1,
+                    "precio_unitario": shipping,
+                }
+            )
+
+    if missing:
+        return [], "No puedo emitir factura automática: " + "; ".join(missing)
+    return lines, None
+
+
+def _build_web_order_siigo_observations(order: dict, data: dict, ref: str) -> str:
+    """Texto para campo observations en Siigo: envío, facturación y contacto (como en checkout web)."""
+    chunks: list[str] = []
+    pay = (order.get("payu_ref") or "").strip() or "N/A"
+    chunks.append(f"Pedido web {ref}. Mercado Pago: {pay}.")
+
+    ship_addr = (data.get("address") or "").strip()
+    city = (order.get("buyer_city") or "").strip()
+    dept = (data.get("dept") or "").strip()
+    loc = " — ".join(x for x in (city, dept) if x)
+    if ship_addr or loc:
+        if ship_addr and loc:
+            chunks.append(f"ENVÍO: {ship_addr} | {loc}")
+        elif ship_addr:
+            chunks.append(f"ENVÍO: {ship_addr}")
+        else:
+            chunks.append(f"ENVÍO: {loc}")
+
+    billing = data.get("billing") or {}
+    bn = (billing.get("name") or "").strip()
+    nit = (billing.get("nit") or data.get("cedula") or "").strip()
+    be = (billing.get("email") or "").strip()
+    ba = (billing.get("address") or "").strip()
+    bc = (billing.get("city") or "").strip()
+    fac: list[str] = []
+    if bn:
+        fac.append(bn)
+    if nit:
+        fac.append(f"NIT/CC {nit}")
+    if be:
+        fac.append(be)
+    bill_loc = " — ".join(x for x in (ba, bc) if x)
+    if bill_loc:
+        fac.append(bill_loc)
+    if fac:
+        chunks.append("FACTURACIÓN: " + " · ".join(fac))
+
+    phone = (order.get("buyer_phone") or "").strip()
+    if phone:
+        chunks.append(f"Tel: {phone}")
+    notes = (data.get("notes") or "").strip()
+    if notes:
+        chunks.append(f"Notas pedido: {notes}")
+
+    obs = " ".join(chunks)
+    try:
+        max_obs = int(os.getenv("WEB_SIIGO_OBSERVATIONS_MAX", "3900"))
+    except (TypeError, ValueError):
+        max_obs = 3900
+    if len(obs) > max_obs:
+        obs = obs[: max(0, max_obs - 3)] + "..."
+    return obs
+
+
+def _infer_siigo_city_codes_from_web_order(order: dict, data: dict) -> tuple[str, str]:
+    """
+    Códigos ciudad/departamento Siigo para dirección del tercero.
+    Heurística: Bogotá → 11001 / 11; si no, variables de entorno o Bogotá por defecto.
+    """
+    blob = " ".join(
+        [
+            str(order.get("buyer_city") or ""),
+            str(data.get("dept") or ""),
+            str((data.get("billing") or {}).get("city") or ""),
+        ]
+    ).upper()
+    if "BOGOT" in blob:
+        return "11001", "11"
+    return (
+        (os.getenv("SIIGO_INVOICE_CUSTOMER_CITY_CODE") or "11001").strip(),
+        (os.getenv("SIIGO_INVOICE_CUSTOMER_STATE_CODE") or "11").strip(),
+    )
+
+
+def _lock_order_for_siigo_invoice(reference: str, force: bool) -> tuple[dict | None, str | None]:
+    ref = reference.strip().upper()
+    con = sqlite3.connect(ORDERS_DB, timeout=30)
+    con.row_factory = sqlite3.Row
+    try:
+        con.execute("BEGIN IMMEDIATE")
+        row = con.execute(
+            "SELECT * FROM orders WHERE upper(reference) = ?",
+            (ref,),
+        ).fetchone()
+        if not row:
+            con.rollback()
+            return None, f"No encontré el pedido {ref}."
+        order = _row_dict(row)
+        if order.get("status") != "approved":
+            con.rollback()
+            return None, f"El pedido {ref} no está aprobado para facturar."
+        if order.get("siigo_invoice_id"):
+            con.rollback()
+            return order, None
+        if order.get("siigo_invoice_status") == "processing" and not force:
+            con.rollback()
+            return None, f"La factura de {ref} ya está en proceso."
+        now = datetime.now().isoformat()
+        con.execute(
+            """UPDATE orders
+               SET siigo_invoice_status = 'processing',
+                   siigo_invoice_attempted_at = ?,
+                   siigo_invoice_error = NULL,
+                   invoice_requested_at = COALESCE(invoice_requested_at, ?)
+               WHERE upper(reference) = ?""",
+            (now, now, ref),
+        )
+        con.commit()
+        return order, None
+    except Exception:
+        con.rollback()
+        raise
+    finally:
+        con.close()
+
+
+def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> tuple[bool, str]:
+    """Emite/reintenta la factura Siigo de un pedido web aprobado, sin duplicarla.
+
+    Datos tomados del checkout (``website.py`` → ``orders.items_json`` / columnas ``orders``):
+
+    - **Tercero / FE:** nombre y NIT/CC de ``billing`` (fallback ``buyer_name`` / ``cedula``);
+      email y teléfono de facturación; dirección fiscal = ``billing.address`` o envío ``address``.
+    - **Observaciones:** bloques ENVÍO (calle, ciudad, depto) y FACTURACIÓN (nombre, NIT, email,
+      dirección/ciudad facturación), MP y notas.
+    - **Ciudad DIAN en Siigo:** heurística Bogotá (11001/11) desde ciudad/depto del pedido; si no,
+      ``SIIGO_INVOICE_CUSTOMER_*`` en ``.env``.
+    - **Sincronización:** si ``WEB_SIIGO_SYNC_CUSTOMER_BEFORE_INVOICE`` (default 1), se hace
+      ``PUT`` del tercero en Siigo antes de facturar para que la FE no use una ficha antigua
+      con el mismo documento.
+    """
+    migrate_orders_table()
+    ref = (reference or "").strip().upper()
+    if not ref:
+        return False, "Referencia vacía."
+
+    order, lock_msg = _lock_order_for_siigo_invoice(ref, force)
+    if lock_msg:
+        return False, lock_msg
+    if not order:
+        return False, f"No encontré el pedido {ref}."
+    if order.get("siigo_invoice_id"):
+        number = order.get("siigo_invoice_number") or order.get("siigo_invoice_id")
+        status = order.get("siigo_invoice_status") or "emitida"
+        cufe = order.get("siigo_invoice_cufe") or "pendiente/no registrado"
+        return True, (
+            f"✅ *{ref}* ya tiene factura Siigo *{number}*.\n"
+            f"Estado: {status}\n"
+            f"CUFE: {cufe}\n"
+            f"{_siigo_invoice_url(order.get('siigo_invoice_id'))}"
+        )
+
+    data, parse_error = _parse_order_items_json(order)
+    if parse_error:
+        _update_invoice_state(
+            ref,
+            siigo_invoice_status="error",
+            siigo_invoice_error=parse_error,
+        )
+        return False, f"❌ *{ref}*: {parse_error}"
+
+    lines, line_error = _build_siigo_web_invoice_lines(order, data)
+    if line_error:
+        _update_invoice_state(
+            ref,
+            siigo_invoice_status="error",
+            siigo_invoice_error=line_error,
+        )
+        return False, f"❌ *{ref}*: {line_error}"
+
+    billing = data.get("billing") or {}
+    cedula = data.get("cedula") or ""
+    address = data.get("address") or ""
+    billing_name = billing.get("name") or order.get("buyer_name") or ""
+    billing_nit = billing.get("nit") or cedula
+    billing_email = billing.get("email") or order.get("buyer_email") or ""
+    # Dirección en Siigo (cliente.address): preferir calle de facturación; si no, envío.
+    fiscal_address_line = (billing.get("address") or "").strip() or (address or "").strip()
+    total = _money_float(order.get("total"), 0)
+    observations = _build_web_order_siigo_observations(order, data, ref)
+
+    try:
+        from app.services.siigo import crear_factura_venta_siigo, sincronizar_tercero_siigo_antes_factura_web
+
+        city_code, state_code = _infer_siigo_city_codes_from_web_order(order, data)
+        if _env_bool("WEB_SIIGO_SYNC_CUSTOMER_BEFORE_INVOICE", True):
+            sync = sincronizar_tercero_siigo_antes_factura_web(
+                nombre_cliente=billing_name,
+                identificacion=billing_nit,
+                direccion=fiscal_address_line,
+                email=billing_email,
+                telefono=order.get("buyer_phone") or "",
+                city_code=city_code,
+                state_code=state_code,
+            )
+            if not sync.get("ok"):
+                log.warning("Siigo sync tercero antes de factura %s: %s", ref, sync.get("error"))
+        else:
+            log.info("WEB_SIIGO_SYNC_CUSTOMER_BEFORE_INVOICE=0: omito sync tercero Siigo para %s", ref)
+
+        result = crear_factura_venta_siigo(
+            nombre_cliente=billing_name,
+            identificacion=billing_nit,
+            direccion_envio=fiscal_address_line,
+            productos=lines,
+            total=total,
+            email=billing_email,
+            telefono=order.get("buyer_phone") or "",
+            observaciones=observations,
+            purchase_order=ref,
+            descargar_pdf=True,
+            enviar_dian=True,
+            # Siigo envía al correo de la cuenta (p. ej. facturasmckennagroup@gmail.com).
+            # El PDF al cliente va por SMTP (send_siigo_invoice_email_to_customer).
+            enviar_correo=_env_bool("WEB_SIIGO_SIIGO_MAIL", False),
+            customer_city_code=city_code,
+            customer_state_code=state_code,
+        )
+    except Exception as e:
+        result = {"ok": False, "error": f"Error llamando Siigo: {e}"}
+
+    now = datetime.now().isoformat()
+    if result.get("ok"):
+        invoice_id = str(result.get("invoice_id") or "")
+        number = str(result.get("number") or invoice_id or "")
+        status = str(result.get("status") or "emitida")
+        cufe = str(result.get("cufe") or "")
+        stamp = result.get("stamp") if isinstance(result.get("stamp"), dict) else {}
+        stamp_error = stamp.get("errors") or stamp.get("observations") or None
+        mail_customer = False
+        try:
+            mail_customer = send_siigo_invoice_email_to_customer(
+                order,
+                invoice_number=number,
+                invoice_id=invoice_id,
+                pdf_path=result.get("pdf_path"),
+                cufe=cufe,
+            )
+        except Exception as e:
+            log.warning("Correo factura cliente %s: %s", ref, e)
+        _update_invoice_state(
+            ref,
+            siigo_invoice_id=invoice_id,
+            siigo_invoice_number=number,
+            siigo_invoice_status=status,
+            siigo_invoice_cufe=cufe or None,
+            siigo_invoice_emitted_at=now,
+            siigo_invoice_error=stamp_error,
+        )
+        cufe_line = f"CUFE: `{cufe}`\n" if cufe else "CUFE: pendiente/no recibido aún\n"
+        used_fe_fallback = bool(_invoice_email_for_fe(order)[1])
+        mail_line = (
+            "Correo PDF cliente: enviado ✅\n"
+            if mail_customer
+            else (
+                "Correo PDF cliente: no enviado (revisa SMTP o email en datos de facturación)\n"
+                if _billing_email_from_order(order) or WEB_INVOICE_EMAIL_FALLBACK
+                else "Correo PDF cliente: sin email en pedido ni fallback configurado\n"
+            )
+        )
+        if mail_customer and used_fe_fallback and WEB_INVOICE_EMAIL_FALLBACK:
+            mail_line += (
+                f"_(Sin email en la venta → PDF a {WEB_INVOICE_EMAIL_FALLBACK})_\n"
+            )
+        return True, (
+            f"✅ *Factura automática web emitida*\n"
+            f"Pedido: *{ref}*\n"
+            f"Factura Siigo: *{number}*\n"
+            f"Estado DIAN/Siigo: {status}\n"
+            f"{cufe_line}"
+            f"{mail_line}"
+            f"{result.get('url') or _siigo_invoice_url(invoice_id)}"
+        )
+
+    error = str(result.get("error") or "Siigo no emitió la factura.")
+    _update_invoice_state(
+        ref,
+        siigo_invoice_status="error",
+        siigo_invoice_error=error[:1000],
+    )
+    return False, f"❌ *{ref}*: {error}\nReintenta con *facturar {ref[-3:]}* cuando corrijas el dato."
+
+
 def process_order_paid_side_effects(reference: str) -> None:
     """Idempotente: correo cliente + WhatsApp grupo ventas web (una vez cada uno)."""
     migrate_orders_table()
@@ -737,6 +1308,18 @@ def process_order_paid_side_effects(reference: str) -> None:
                 con.close()
         except Exception as e:
             log.warning("WhatsApp pedido web: %s", e)
+
+    if _env_bool("WEB_SIIGO_AUTO_INVOICE", False):
+        try:
+            ok, out = emitir_factura_siigo_pedido_web(ref)
+            if out:
+                from app.utils import enviar_whatsapp_reporte
+
+                enviar_whatsapp_reporte(out, numero_destino=GRUPO_PEDIDOS_WEB_WA)
+            if not ok:
+                log.warning("Factura Siigo web pendiente/fallida %s: %s", ref, out)
+        except Exception as e:
+            log.warning("Factura Siigo web %s: %s", ref, e)
 
 
 def registrar_envio_y_notificar(
@@ -808,7 +1391,4 @@ def marcar_solicitud_facturacion(reference: str) -> tuple[bool, str]:
     con.close()
     if not ok:
         return False, f"No encontré el pedido {ref}."
-    return True, (
-        f"✅ *{ref}* marcado para facturar.\n"
-        f"Siigo aún no está enlazado a la web: emitir FE manual con datos del pedido (correo cliente / SQLite)."
-    )
+    return emitir_factura_siigo_pedido_web(ref, force=True)

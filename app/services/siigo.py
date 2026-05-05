@@ -1,7 +1,9 @@
 import os
 import json
 import time
+import copy
 import requests
+import base64
 from datetime import datetime
 
 # Variable de configuración para la API de Siigo
@@ -178,7 +180,7 @@ def crear_factura_compra_siigo(factura_data: dict):
         )
 
         if response.status_code == 201: # 201 Created
-            print(f"✅ Factura de compra creada en SIIGO: {response.json().get("id")}")
+            print(f"✅ Factura de compra creada en SIIGO: {response.json().get('id')}")
             return {"status": "success", "data": response.json()}
         else:
             print(f"❌ Error al crear factura de compra en SIIGO: {response.status_code} - {response.text}")
@@ -427,6 +429,517 @@ def editar_factura_siigo(factura_id: str, factura_data: dict):
     except requests.RequestException as e:
         print(f"⚠️ Error de red al conectar con SIIGO: {e}")
         return {"status": "error", "message": str(e)}
+
+
+def _env_int_siigo(nombre: str, default: int) -> int:
+    try:
+        return int(os.getenv(nombre, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _siigo_customer_address_payload(
+    direccion: str,
+    *,
+    city_code: str | None = None,
+    state_code: str | None = None,
+    country_code: str | None = None,
+) -> dict | None:
+    """
+    Dirección del cliente en factura Siigo (requiere ciudad/código DIAN en Siigo).
+    Por defecto Bogotá D.C.; ajustar con SIIGO_INVOICE_CUSTOMER_* en .env.
+    """
+    line = (direccion or "").strip()
+    if not line:
+        return None
+    cc = (city_code or os.getenv("SIIGO_INVOICE_CUSTOMER_CITY_CODE", "11001") or "11001").strip()
+    sc = (state_code or os.getenv("SIIGO_INVOICE_CUSTOMER_STATE_CODE", "11") or "11").strip()
+    co = (country_code or os.getenv("SIIGO_INVOICE_CUSTOMER_COUNTRY_CODE", "Co") or "Co").strip()
+    return {
+        "address": line[:256],
+        "city": {"city_code": cc, "state_code": sc, "country_code": co},
+    }
+
+
+def _siigo_person_name_parts(nombre_completo: str) -> tuple[str, str]:
+    """Nombres y apellidos para customer.name (Person): primer token / resto."""
+    parts = (nombre_completo or "").strip().split()
+    if not parts:
+        return "Cliente", ""
+    if len(parts) == 1:
+        return parts[0][:100], ""
+    return parts[0][:100], " ".join(parts[1:])[:100]
+
+
+def _siigo_phone_digits(telefono: str) -> str:
+    d = "".join(c for c in (telefono or "") if c.isdigit())
+    if len(d) > 10 and d.startswith("57"):
+        d = d[2:]
+    return d[:10]
+
+
+def _construir_customer_payload_factura_siigo(
+    *,
+    nombre_cliente: str,
+    identificacion: str,
+    direccion: str,
+    email: str,
+    telefono: str,
+    city_code: str | None = None,
+    state_code: str | None = None,
+    country_code: str | None = None,
+) -> dict:
+    """Payload customer según doc Siigo (factura con creación/actualización de tercero)."""
+    identificacion = "".join(ch for ch in str(identificacion or "") if ch.isdigit())
+    person_type = "Person" if len(identificacion) <= 10 else "Company"
+    id_type = "13" if person_type == "Person" else "31"
+    if person_type == "Person":
+        n0, n1 = _siigo_person_name_parts(nombre_cliente)
+        name_arr = [n0, n1]
+    else:
+        name_arr = [(nombre_cliente or "").strip()[:100], ""]
+    customer: dict = {
+        "person_type": person_type,
+        "id_type": id_type,
+        "identification": identificacion,
+        "branch_office": 0,
+        "name": name_arr,
+    }
+    addr = _siigo_customer_address_payload(
+        direccion,
+        city_code=city_code,
+        state_code=state_code,
+        country_code=country_code,
+    )
+    if addr:
+        customer["address"] = addr
+    ph = _siigo_phone_digits(telefono)
+    if ph:
+        customer["phones"] = [{"number": ph}]
+    em = (email or "").strip()
+    if em:
+        customer["contacts"] = [
+            {
+                "first_name": (name_arr[0] or "Cliente")[:50],
+                "last_name": (name_arr[1] or name_arr[0] or "Cliente")[:50],
+                "email": em[:100],
+            }
+        ]
+    return customer
+
+
+def sincronizar_tercero_siigo_antes_factura_web(
+    *,
+    nombre_cliente: str,
+    identificacion: str,
+    direccion: str,
+    email: str,
+    telefono: str,
+    city_code: str | None = None,
+    state_code: str | None = None,
+    country_code: str | None = None,
+) -> dict:
+    """
+    Si el NIT/CC ya existe en Siigo, la factura usa la ficha del tercero (dirección/correo viejos).
+    Actualiza tercero con los datos del checkout web antes del POST /v1/invoices.
+    """
+    identificacion = "".join(ch for ch in str(identificacion or "") if ch.isdigit())
+    if not identificacion:
+        return {"ok": False, "error": "Identificación vacía."}
+
+    token = autenticar_siigo()
+    if not token:
+        return {"ok": False, "error": "No se pudo autenticar con Siigo."}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Partner-Id": PARTNER_ID,
+        "Content-Type": "application/json",
+    }
+
+    try:
+        res = requests.get(
+            "https://api.siigo.com/v1/customers",
+            params={"identification": identificacion, "page": 1, "page_size": 10},
+            headers=headers,
+            timeout=20,
+        )
+        if res.status_code != 200:
+            return {
+                "ok": False,
+                "error": f"GET customers {res.status_code}: {res.text[:800]}",
+            }
+        data = res.json()
+        results = data.get("results") if isinstance(data, dict) else None
+        if not results:
+            return {"ok": True, "message": "Tercero nuevo en Siigo; se creará con la factura."}
+
+        cust = results[0]
+        cid = cust.get("id")
+        if not cid:
+            return {"ok": False, "error": "Cliente Siigo sin id en respuesta."}
+
+        body = copy.deepcopy(cust)
+        for k in ("metadata", "_links", "self", "id"):
+            body.pop(k, None)
+
+        patch = _construir_customer_payload_factura_siigo(
+            nombre_cliente=nombre_cliente,
+            identificacion=identificacion,
+            direccion=direccion,
+            email=email,
+            telefono=telefono,
+            city_code=city_code,
+            state_code=state_code,
+            country_code=country_code,
+        )
+        body["person_type"] = patch["person_type"]
+        # PUT /customers exige id_type como código (string); el GET devuelve objeto.
+        body["id_type"] = patch["id_type"]
+        body["name"] = patch["name"]
+        body["branch_office"] = patch.get("branch_office", 0)
+        if "address" in patch:
+            body["address"] = patch["address"]
+        if "phones" in patch:
+            body["phones"] = patch["phones"]
+        if "contacts" in patch:
+            body["contacts"] = patch["contacts"]
+
+        res_put = requests.put(
+            f"https://api.siigo.com/v1/customers/{cid}",
+            json=body,
+            headers=headers,
+            timeout=25,
+        )
+        if res_put.status_code not in (200, 201):
+            return {
+                "ok": False,
+                "error": f"PUT customer {res_put.status_code}: {res_put.text[:1200]}",
+            }
+        return {"ok": True, "customer_id": cid, "message": "Tercero actualizado en Siigo con datos del pedido web."}
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Red Siigo (tercero): {e}"}
+
+
+def _estado_factura_siigo(factura: dict) -> str:
+    if not isinstance(factura, dict):
+        return "Desconocido"
+    stamp = factura.get("stamp") or {}
+    if isinstance(stamp, dict) and stamp.get("status"):
+        return str(stamp.get("status"))
+    return str(factura.get("state") or "Desconocido")
+
+
+def _stamp_info_siigo(factura: dict) -> dict:
+    stamp = factura.get("stamp") if isinstance(factura, dict) else {}
+    if not isinstance(stamp, dict):
+        stamp = {}
+    return {
+        "status": str(stamp.get("status") or _estado_factura_siigo(factura)),
+        "cufe": stamp.get("cufe") or "",
+        "cude": stamp.get("cude") or "",
+        "observations": stamp.get("observations") or "",
+        "errors": stamp.get("errors") or "",
+    }
+
+
+def _siigo_invoice_put_body_sin_numero_auto(factura: dict) -> dict | None:
+    """
+    Siigo rechaza PUT si se envía document_settings.number con numeración automática.
+    Clonamos el GET y quitamos ese campo.
+    """
+    if not isinstance(factura, dict):
+        return None
+    body = copy.deepcopy(factura)
+    ds = body.get("document_settings")
+    if isinstance(ds, dict) and "number" in ds:
+        ds.pop("number", None)
+    return body
+
+
+def forzar_envio_dian_factura_siigo(factura_id: str, *, poll_loops: int = 10, sleep_s: float = 2.0) -> dict:
+    """
+    Si la factura queda en Draft / Sending tras POST, fuerza stamp.send vía PUT
+    (mismo cuerpo que GET, sin document_settings.number) y reconsulta hasta Accepted/Rejected.
+    """
+    factura_id = str(factura_id or "").strip()
+    if not factura_id:
+        return {"ok": False, "error": "factura_id vacío."}
+
+    token = autenticar_siigo()
+    if not token:
+        return {"ok": False, "error": "No se pudo autenticar con Siigo."}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Partner-Id": PARTNER_ID,
+        "Content-Type": "application/json",
+    }
+
+    try:
+        res_get = requests.get(
+            f"https://api.siigo.com/v1/invoices/{factura_id}",
+            headers=headers,
+            timeout=15,
+        )
+        if res_get.status_code != 200:
+            return {
+                "ok": False,
+                "error": f"GET factura {res_get.status_code}: {res_get.text[:800]}",
+            }
+        factura = res_get.json()
+        put_body = _siigo_invoice_put_body_sin_numero_auto(factura)
+        if not put_body:
+            return {"ok": False, "error": "No se pudo armar cuerpo PUT."}
+        put_body["stamp"] = {"send": True}
+
+        res_put = requests.put(
+            f"https://api.siigo.com/v1/invoices/{factura_id}",
+            json=put_body,
+            headers=headers,
+            timeout=20,
+        )
+        if res_put.status_code not in (200, 201):
+            return {
+                "ok": False,
+                "error": f"PUT timbrado {res_put.status_code}: {res_put.text[:1000]}",
+                "get_data": factura,
+            }
+
+        for _ in range(max(1, poll_loops)):
+            time.sleep(sleep_s)
+            res_poll = requests.get(
+                f"https://api.siigo.com/v1/invoices/{factura_id}",
+                headers=headers,
+                timeout=15,
+            )
+            if res_poll.status_code != 200:
+                break
+            factura = res_poll.json()
+            st = _stamp_info_siigo(factura).get("status") or ""
+            if st in {"Accepted", "Rejected"}:
+                break
+
+        stamp_info = _stamp_info_siigo(factura)
+        return {
+            "ok": True,
+            "invoice_id": factura_id,
+            "status": stamp_info.get("status") or _estado_factura_siigo(factura),
+            "cufe": stamp_info.get("cufe") or stamp_info.get("cude") or "",
+            "stamp": stamp_info,
+            "data": factura,
+        }
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red timbrado Siigo: {e}"}
+
+
+def _siigo_invoice_url(factura_id: str | int | None) -> str:
+    return f"https://siigonube.siigo.com/#/invoice/843/{factura_id}" if factura_id else ""
+
+
+def crear_factura_venta_siigo(
+    *,
+    nombre_cliente: str,
+    identificacion: str,
+    direccion_envio: str,
+    productos: list[dict],
+    total: float,
+    email: str = "",
+    telefono: str = "",
+    observaciones: str = "",
+    purchase_order: str = "",
+    document_id: int | None = None,
+    seller_id: int | None = None,
+    payment_id: int | None = None,
+    descargar_pdf: bool = True,
+    enviar_dian: bool = True,
+    enviar_correo: bool = False,
+    customer_city_code: str | None = None,
+    customer_state_code: str | None = None,
+    customer_country_code: str | None = None,
+) -> dict:
+    """
+    Crea una factura electrónica de venta en Siigo y retorna un resultado estructurado.
+
+    `direccion_envio`: si viene, se envía a Siigo como `customer.address` (máx. 256 caracteres).
+    Ciudad/códigos: `customer_city_code` / `customer_state_code` o variables de entorno
+    `SIIGO_INVOICE_CUSTOMER_*` (por defecto Bogotá 11001 / 11 / Co).
+
+    Para pedidos web, antes conviene llamar `sincronizar_tercero_siigo_antes_factura_web` si el
+    tercero ya existe en Siigo (si no, la FE puede salir con dirección/correo viejos de la ficha).
+
+    `productos` debe venir normalizado como:
+    [{"codigo": "SKU", "nombre": "Producto", "cantidad": 1, "precio_unitario": 1000}]
+    """
+    token = autenticar_siigo()
+    if not token:
+        return {"ok": False, "error": "No se pudo autenticar con Siigo."}
+
+    if not productos:
+        return {"ok": False, "error": "La factura no tiene productos."}
+
+    nombre_cliente = (nombre_cliente or "").strip()
+    identificacion = "".join(ch for ch in str(identificacion or "") if ch.isdigit())
+    direccion_envio = (direccion_envio or "").strip()
+    email = (email or "").strip()
+    telefono = (telefono or "").strip()
+    if not nombre_cliente or not identificacion:
+        return {"ok": False, "error": "Faltan nombre o identificación del cliente."}
+
+    document_id = document_id or _env_int_siigo("SIIGO_SALES_DOCUMENT_ID", 26670)
+    seller_id = seller_id or _env_int_siigo("SIIGO_SELLER_ID", 150)
+    payment_id = payment_id or _env_int_siigo("SIIGO_PAYMENT_ID", 1333)
+    hoy = datetime.now().strftime("%Y-%m-%d")
+
+    items = []
+    for p in productos:
+        codigo = str(p.get("codigo") or "").strip()
+        nombre = str(p.get("nombre") or "").strip()
+        try:
+            cantidad = float(p.get("cantidad", 1))
+            precio_unitario = float(p.get("precio_unitario", 0))
+        except (TypeError, ValueError):
+            return {"ok": False, "error": f"Cantidad/precio inválido para {nombre or codigo}."}
+        if not codigo or not nombre or cantidad <= 0 or precio_unitario < 0:
+            return {"ok": False, "error": f"Línea inválida para factura: {p!r}"}
+        items.append(
+            {
+                "code": codigo,
+                "description": nombre,
+                "quantity": cantidad,
+                "price": precio_unitario,
+            }
+        )
+
+    customer = _construir_customer_payload_factura_siigo(
+        nombre_cliente=nombre_cliente,
+        identificacion=identificacion,
+        direccion=direccion_envio,
+        email=email,
+        telefono=telefono,
+        city_code=customer_city_code,
+        state_code=customer_state_code,
+        country_code=customer_country_code,
+    )
+
+    payload = {
+        "document": {"id": document_id},
+        "date": hoy,
+        "customer": customer,
+        "seller": seller_id,
+        "items": items,
+        "payments": [
+            {
+                "id": payment_id,
+                "value": float(total),
+                "due_date": hoy,
+            }
+        ],
+    }
+    if observaciones:
+        payload["observations"] = observaciones
+    if purchase_order:
+        payload["purchase_order"] = purchase_order
+    if enviar_dian:
+        payload["stamp"] = {"send": True}
+    if enviar_correo:
+        payload["mail"] = {"send": True}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Partner-Id": PARTNER_ID,
+        "Content-Type": "application/json",
+    }
+
+    puede_reintentar_auth = True
+    try:
+        while True:
+            res = requests.post(
+                "https://api.siigo.com/v1/invoices",
+                json=payload,
+                headers=headers,
+                timeout=20,
+            )
+            if res.status_code in (200, 201):
+                break
+            if res.status_code == 401 and puede_reintentar_auth:
+                _invalidar_cache_token_siigo()
+                token = autenticar_siigo(forzar=True)
+                puede_reintentar_auth = False
+                if not token:
+                    return {"ok": False, "error": "Siigo 401 y no fue posible renovar token."}
+                headers["Authorization"] = f"Bearer {token}"
+                continue
+            return {
+                "ok": False,
+                "status_code": res.status_code,
+                "error": f"Error al crear factura en Siigo: {res.text[:1000]}",
+                "payload": payload,
+            }
+
+        factura_siigo = res.json()
+        factura_id = factura_siigo.get("id")
+        factura_numero = factura_siigo.get("number")
+
+        if factura_id:
+            poll_count = 6 if enviar_dian else 1
+            for poll_idx in range(poll_count):
+                if poll_idx:
+                    time.sleep(2)
+                try:
+                    res_get = requests.get(
+                        f"https://api.siigo.com/v1/invoices/{factura_id}",
+                        headers=headers,
+                        timeout=15,
+                    )
+                    if res_get.status_code == 200:
+                        factura_siigo = res_get.json()
+                        stamp_status = _stamp_info_siigo(factura_siigo).get("status")
+                        if not enviar_dian or stamp_status in {"Accepted", "Rejected"}:
+                            break
+                except requests.RequestException as e:
+                    print(f"⚠️ No se pudo refrescar el estado de la factura: {e}")
+                    break
+
+            if enviar_dian and factura_id:
+                st = (_stamp_info_siigo(factura_siigo).get("status") or "").strip()
+                if st and st not in {"Accepted", "Rejected"}:
+                    forced = forzar_envio_dian_factura_siigo(str(factura_id))
+                    if forced.get("ok") and isinstance(forced.get("data"), dict):
+                        factura_siigo = forced["data"]
+
+        pdf_path = None
+        if descargar_pdf and factura_id:
+            pdf_base64 = descargar_factura_pdf_siigo(factura_id)
+            if pdf_base64 and "Error" not in str(pdf_base64):
+                pdf_dir = "facturas_descargadas"
+                os.makedirs(pdf_dir, exist_ok=True)
+                pdf_name = f"Factura_{factura_numero or factura_id}.pdf"
+                pdf_path = os.path.join(pdf_dir, pdf_name)
+                try:
+                    with open(pdf_path, "wb") as f:
+                        f.write(base64.b64decode(pdf_base64))
+                except Exception as e:
+                    print(f"⚠️ No se pudo guardar PDF Siigo {factura_id}: {e}")
+                    pdf_path = None
+
+        stamp_info = _stamp_info_siigo(factura_siigo)
+        return {
+            "ok": True,
+            "invoice_id": factura_id,
+            "number": factura_numero,
+            "status": stamp_info.get("status") or _estado_factura_siigo(factura_siigo),
+            "cufe": stamp_info.get("cufe") or stamp_info.get("cude") or "",
+            "stamp": stamp_info,
+            "url": _siigo_invoice_url(factura_id),
+            "pdf_path": pdf_path,
+            "data": factura_siigo,
+            "payload": payload,
+        }
+    except requests.RequestException as e:
+        return {"ok": False, "error": f"Error de red con Siigo: {e}"}
+    except Exception as e:
+        return {"ok": False, "error": f"Error crítico creando factura Siigo: {e}"}
 
 
 def crear_factura_completa_siigo(nombre_cliente: str, identificacion: str, direccion_envio: str, productos: str, total: float, comprobante_pago_path: str = ""):
