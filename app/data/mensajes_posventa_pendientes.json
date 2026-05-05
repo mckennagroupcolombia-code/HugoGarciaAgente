@@ -1,15 +1,5 @@
 {
-  "pendientes": {
-    "9495": {
-      "pack_id": "2000012805399495",
-      "comprador": "Comprador 32086338",
-      "from_id": "32086338",
-      "texto": "Amigo se puede mezclar con el Liquido refrigerante de una camioneta?",
-      "msg_id": "019df548c689749e82ddd075ac0c64c4",
-      "productos": "",
-      "timestamp": "2026-05-04T18:22:16"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019dd9a945dc731bb389747b4b6606bc",
     "019de411653677609de520ab90c00940",
