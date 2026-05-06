@@ -435,6 +435,27 @@
       "pregunta": "Se puede mezclar con en el liquido refrigerante que utilizan las camionetas hibridas?",
       "timestamp": "2026-05-04T22:45:37.835842",
       "respondida": true
+    },
+    {
+      "question_id": "13576368237",
+      "titulo_producto": "Dipropilengicol Usp Dpg 500 Ml ",
+      "pregunta": "Hola, buenas tardes! Este producto sirve ¿como fijador y solvente ?",
+      "timestamp": "2026-05-05T15:10:55.986337",
+      "respondida": true
+    },
+    {
+      "question_id": "13577228842",
+      "titulo_producto": "Cera De Abejas  Blanca 500gr",
+      "pregunta": "Este producto contiene parafina",
+      "timestamp": "2026-05-05T17:36:05.586968",
+      "respondida": true
+    },
+    {
+      "question_id": "13577395754",
+      "titulo_producto": "Producto desconocido",
+      "pregunta": "Buenas noches. Cómo lo utilizo?con que se diluye? Cómo lo aplicó en mi rostro? En qué cantidad? Expliqueme por favor? Gracias",
+      "timestamp": "2026-05-05T22:46:31.689177",
+      "respondida": false
     }
   ]
 }
