@@ -93,3 +93,4 @@ comprobantes/
 
 # Facturas descargadas (PDFs/XMLs/ZIPs de SIIGO/MeLi — runtime)
 facturas_descargadas/
+.env.save
