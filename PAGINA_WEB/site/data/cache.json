@@ -274,9 +274,9 @@
         },
         {
           "name": "ACIDO CITRICO 500g",
-          "ref": "C-ACICIT500g",
-          "rep_sku": "C-ACICIT500g",
-          "slug": "c-acicit500g",
+          "ref": "C-ACICITR500g",
+          "rep_sku": "C-ACICITR500g",
+          "slug": "c-acicitr500g",
           "precio": "$12.442",
           "precio_meli": "$14.900",
           "precio_num": 12441.5,
@@ -401,7 +401,7 @@
           "precio_canal_label": "Lista",
           "photo_match_type": "sku",
           "photo_match_score": 100.0,
-          "family_slug": "c-acicit500g"
+          "family_slug": "c-acicitr500g"
         },
         {
           "name": "ACIDO GLICOLICO 50% 30mL",
@@ -1062,8 +1062,8 @@
           "precio_num": 17117.5,
           "lista_num": 20500.0,
           "ahorro": "$3.382",
-          "photo": "https://http2.mlstatic.com/D_888663-MCO93552645844_102025-O.jpg",
-          "meli_id": "MCO587471185",
+          "photo": "",
+          "meli_id": "",
           "cat": "Ácidos",
           "cat_color": "#143D36",
           "desc": "",
@@ -1180,8 +1180,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-acdlac85p30ml"
         },
         {
@@ -3937,8 +3935,8 @@
           "precio_num": 8684.0,
           "lista_num": 10400.0,
           "ahorro": "$1.716",
-          "photo": "https://http2.mlstatic.com/D_959264-MCO81298464976_122024-O.jpg",
-          "meli_id": "MCO577035616",
+          "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
+          "meli_id": "MCO1636834856",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3985,8 +3983,8 @@
           "precio_num": 20708.0,
           "lista_num": 24800.0,
           "ahorro": "$4.092",
-          "photo": "https://http2.mlstatic.com/D_959264-MCO81298464976_122024-O.jpg",
-          "meli_id": "MCO577035616",
+          "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
+          "meli_id": "MCO1636834856",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3995,8 +3993,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-aceric500ml"
         },
         {
@@ -4084,8 +4082,8 @@
           "precio_num": 18286.5,
           "lista_num": 21900.0,
           "ahorro": "$3.614",
-          "photo": "https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg",
-          "meli_id": "MCO590695436",
+          "photo": "https://http2.mlstatic.com/D_919432-MCO71731068570_092023-O.jpg",
+          "meli_id": "MCO1912833896",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -4094,8 +4092,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "family",
-          "photo_match_score": 88.7,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-ceraberefbla500g"
         },
         {
@@ -4384,8 +4382,8 @@
           "precio_num": 81830.0,
           "lista_num": 98000.0,
           "ahorro": "$16.170",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg",
+          "meli_id": "MCO600431364",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -4465,6 +4463,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-lan250g"
         },
         {
@@ -4477,8 +4477,8 @@
           "precio_num": 14946.5,
           "lista_num": 17900.0,
           "ahorro": "$2.954",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg",
+          "meli_id": "MCO600431364",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -4558,6 +4558,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 81.2,
           "family_slug": "c-lanolina40g"
         },
         {
@@ -6265,8 +6267,8 @@
           "precio_num": 16115.5,
           "lista_num": 19300.0,
           "ahorro": "$3.184",
-          "photo": "https://http2.mlstatic.com/D_687896-MCO81186083304_122024-O.jpg",
-          "meli_id": "MCO581502209",
+          "photo": "https://http2.mlstatic.com/D_999931-MLA99415098040_112025-O.jpg",
+          "meli_id": "MCO3924456518",
           "cat": "Emulsionantes y Surfactantes",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -8290,8 +8292,8 @@
           "precio_num": 27763.75,
           "lista_num": 33250.0,
           "ahorro": "$5.486",
-          "photo": "https://http2.mlstatic.com/D_781646-MCO82587176713_022025-O.jpg",
-          "meli_id": "MCO616763443",
+          "photo": "https://http2.mlstatic.com/D_810355-MCO93715562008_102025-O.jpg",
+          "meli_id": "MCO901663592",
           "cat": "Sales Minerales",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -9394,8 +9396,8 @@
           "precio_num": 61372.5,
           "lista_num": 73500.0,
           "ahorro": "$12.128",
-          "photo": "https://http2.mlstatic.com/D_739042-MCO94156935519_102025-O.jpg",
-          "meli_id": "MCO835404031",
+          "photo": "https://http2.mlstatic.com/D_826672-MLA111018212247_042026-O.jpg",
+          "meli_id": "MCO3902022608",
           "cat": "Suplementarios",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -9562,8 +9564,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "family",
-          "photo_match_score": 95.0,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-colhid500g"
         },
         {
@@ -11603,8 +11605,8 @@
           "precio_num": 57531.5,
           "lista_num": 68900.0,
           "ahorro": "$11.368",
-          "photo": "https://http2.mlstatic.com/D_773853-MCO90126991583_082025-O.jpg",
-          "meli_id": "MCO991723745",
+          "photo": "https://http2.mlstatic.com/D_843624-MCO72374439286_102023-O.jpg",
+          "meli_id": "MCO982532236",
           "cat": "Excipientes",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -11726,8 +11728,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-inukg"
         },
         {
@@ -11920,8 +11922,8 @@
           "precio_num": 90931.5,
           "lista_num": 108900.0,
           "ahorro": "$17.968",
-          "photo": "https://http2.mlstatic.com/D_619181-MCO89014936511_072025-O.jpg",
-          "meli_id": "MCO894908184",
+          "photo": "https://http2.mlstatic.com/D_627105-MCO72579221358_112023-O.jpg",
+          "meli_id": "MCO592968863",
           "cat": "Conservantes",
           "cat_color": "#143D36",
           "desc": "",
@@ -12033,8 +12035,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-sha705500ml"
         },
         {
@@ -13320,6 +13322,139 @@
           "family_slug": "c-caf100g"
         },
         {
+          "name": "CAFEINA 100g",
+          "ref": "C-CAFE100g",
+          "rep_sku": "C-CAFE100g",
+          "slug": "c-cafe100g",
+          "precio": "$47.929",
+          "precio_meli": "$57.400",
+          "precio_num": 47929.0,
+          "lista_num": 57400.0,
+          "ahorro": "$9.471",
+          "photo": "https://http2.mlstatic.com/D_615095-MCO88988544179_072025-O.jpg",
+          "meli_id": "MCO862291253",
+          "cat": "Principios Activos",
+          "cat_color": "#1E5C51",
+          "desc": "",
+          "ficha": {
+            "titulo": "CAFEÍNA",
+            "descripcion": "La cafeína es un alcaloide (compuesto de origen vegetal) presente en más de 60 especies de plantas. Es un estimulante directo y moderado del sistema nervioso central, así como del sistema cardiovascular.",
+            "secciones": [
+              {
+                "titulo": "PROPIEDADES",
+                "items": [
+                  "Tiene un fuerte efecto anti-fatiga (retrasa su aparición y reduce la percepción de esfuerzo) que, junto a la estimulación del sistema nervioso central, da como resultado una mejora del rendimiento aeróbico y anaeróbico. También es capaz de aumentar la capacidad del atleta en ejercicios de fuerza/potencia, aunque este efecto es dependiente tanto de las dosis adecuadas, como de la tolerancia a la cafeína.",
+                  "Es capaz de aumentar la adrenalina y dopamina, lo que conlleva a una mejora de los reflejos y la concentración, así como el aumento del umbral del dolor durante el ejercicio.",
+                  "Ayuda a mejorar la circulación y evita la aparición de varices, este efecto de activación de la circulación sanguínea y su efecto drenante también es aprovechado para la eliminación de ojeras.",
+                  "Gracias a su efecto estimulante   ayuda a la eliminación de toxinas y por su efecto lipolítico reducimos los depósitos de grasa.",
+                  "Es uno de los mejores anticelulíticos naturales ya que, facilita la rotura de las celdas de grasa, reactiva la circulación e incrementa los niveles de moléculas quema grasas."
+                ]
+              },
+              {
+                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+                "items": [
+                  "Nota: El producto cumple con el estándar USP."
+                ]
+              },
+              {
+                "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
+                "items": [
+                  "Se recomienda guardar en envases o empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+                ]
+              }
+            ],
+            "identidad": [
+              [
+                "NOMBRE DEL PRODUCTO",
+                "Cafeína anhidra"
+              ],
+              [
+                "CAS #",
+                "58-08-2"
+              ],
+              [
+                "NOMBRE IUPAC",
+                "1,3,7-Trimetilxantina. Metilteobromina. 7-Metilteofilina. Teína. Guaranina."
+              ],
+              [
+                "FORMULA QUÍMICA",
+                "C8H10N4O2"
+              ],
+              [
+                "ADITIVO ALIMENTARIO",
+                "Sin  datos"
+              ],
+              [
+                "FECHA DE REVISIÓN",
+                "09 08 2024"
+              ]
+            ],
+            "propiedades": [
+              [
+                "Apariencia",
+                "Polvo cristalino blanco."
+              ],
+              [
+                "Olor y sabor",
+                "Neutro"
+              ],
+              [
+                "Pureza",
+                "99%"
+              ],
+              [
+                "Peso Molecular",
+                "194.19 g/mol"
+              ],
+              [
+                "Punto de ebullición",
+                "178  °C"
+              ],
+              [
+                "Punto de fusión",
+                "235 a 239 °C"
+              ],
+              [
+                "Solubilidad",
+                "Muy soluble en agua a 25 °C"
+              ],
+              [
+                "pH",
+                "6.0 – 8.0"
+              ]
+            ],
+            "microbiologia": [
+              [
+                "Bacterias totales CFU/g",
+                "≥ 10000"
+              ],
+              [
+                "Coliformes MPN/g",
+                "≥ 10"
+              ],
+              [
+                "Staphylococcus coagulasa positiva",
+                "Ausencia en 10g"
+              ],
+              [
+                "Salmonella (/25g)",
+                "Ausencia en 10g"
+              ],
+              [
+                "Bacillus cereus",
+                "Máx. 100 ufc/g"
+              ]
+            ]
+          },
+          "solo_vitrina": false,
+          "buyable": true,
+          "is_combo": true,
+          "precio_canal_label": "Lista",
+          "photo_match_type": "name",
+          "photo_match_score": 87.5,
+          "family_slug": "c-cafe100g"
+        },
+        {
           "name": "CAFEINA 500g",
           "ref": "C-CAF500g",
           "rep_sku": "C-CAF500g",
@@ -13792,8 +13927,8 @@
           "precio_num": 58366.5,
           "lista_num": 69900.0,
           "ahorro": "$11.534",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_801417-MCO53807448802_022023-O.jpg",
+          "meli_id": "MCO2004400418",
           "cat": "Principios Activos",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -13802,6 +13937,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-floseclav100g"
         },
         {
@@ -13814,8 +13951,8 @@
           "precio_num": 24966.5,
           "lista_num": 29900.0,
           "ahorro": "$4.934",
-          "photo": "https://http2.mlstatic.com/D_726059-MCO88716954398_072025-O.jpg",
-          "meli_id": "MCO607698764",
+          "photo": "",
+          "meli_id": "",
           "cat": "Principios Activos",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -13824,8 +13961,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-gussed30ml"
         },
         {
@@ -14737,6 +14872,270 @@
     }
   ],
   "combos": [
+    {
+      "name": "CAFEINA 100g",
+      "ref": "C-CAF100g",
+      "rep_sku": "C-CAF100g",
+      "slug": "c-caf100g",
+      "precio": "$47.929",
+      "precio_meli": "$57.400",
+      "precio_num": 47929.0,
+      "lista_num": 57400.0,
+      "ahorro": "$9.471",
+      "photo": "https://http2.mlstatic.com/D_615095-MCO88988544179_072025-O.jpg",
+      "meli_id": "MCO862291253",
+      "cat": "Principios Activos",
+      "cat_color": "#1E5C51",
+      "desc": "",
+      "ficha": {
+        "titulo": "CAFEÍNA",
+        "descripcion": "La cafeína es un alcaloide (compuesto de origen vegetal) presente en más de 60 especies de plantas. Es un estimulante directo y moderado del sistema nervioso central, así como del sistema cardiovascular.",
+        "secciones": [
+          {
+            "titulo": "PROPIEDADES",
+            "items": [
+              "Tiene un fuerte efecto anti-fatiga (retrasa su aparición y reduce la percepción de esfuerzo) que, junto a la estimulación del sistema nervioso central, da como resultado una mejora del rendimiento aeróbico y anaeróbico. También es capaz de aumentar la capacidad del atleta en ejercicios de fuerza/potencia, aunque este efecto es dependiente tanto de las dosis adecuadas, como de la tolerancia a la cafeína.",
+              "Es capaz de aumentar la adrenalina y dopamina, lo que conlleva a una mejora de los reflejos y la concentración, así como el aumento del umbral del dolor durante el ejercicio.",
+              "Ayuda a mejorar la circulación y evita la aparición de varices, este efecto de activación de la circulación sanguínea y su efecto drenante también es aprovechado para la eliminación de ojeras.",
+              "Gracias a su efecto estimulante   ayuda a la eliminación de toxinas y por su efecto lipolítico reducimos los depósitos de grasa.",
+              "Es uno de los mejores anticelulíticos naturales ya que, facilita la rotura de las celdas de grasa, reactiva la circulación e incrementa los niveles de moléculas quema grasas."
+            ]
+          },
+          {
+            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+            "items": [
+              "Nota: El producto cumple con el estándar USP."
+            ]
+          },
+          {
+            "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
+            "items": [
+              "Se recomienda guardar en envases o empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+            ]
+          }
+        ],
+        "identidad": [
+          [
+            "NOMBRE DEL PRODUCTO",
+            "Cafeína anhidra"
+          ],
+          [
+            "CAS #",
+            "58-08-2"
+          ],
+          [
+            "NOMBRE IUPAC",
+            "1,3,7-Trimetilxantina. Metilteobromina. 7-Metilteofilina. Teína. Guaranina."
+          ],
+          [
+            "FORMULA QUÍMICA",
+            "C8H10N4O2"
+          ],
+          [
+            "ADITIVO ALIMENTARIO",
+            "Sin  datos"
+          ],
+          [
+            "FECHA DE REVISIÓN",
+            "09 08 2024"
+          ]
+        ],
+        "propiedades": [
+          [
+            "Apariencia",
+            "Polvo cristalino blanco."
+          ],
+          [
+            "Olor y sabor",
+            "Neutro"
+          ],
+          [
+            "Pureza",
+            "99%"
+          ],
+          [
+            "Peso Molecular",
+            "194.19 g/mol"
+          ],
+          [
+            "Punto de ebullición",
+            "178  °C"
+          ],
+          [
+            "Punto de fusión",
+            "235 a 239 °C"
+          ],
+          [
+            "Solubilidad",
+            "Muy soluble en agua a 25 °C"
+          ],
+          [
+            "pH",
+            "6.0 – 8.0"
+          ]
+        ],
+        "microbiologia": [
+          [
+            "Bacterias totales CFU/g",
+            "≥ 10000"
+          ],
+          [
+            "Coliformes MPN/g",
+            "≥ 10"
+          ],
+          [
+            "Staphylococcus coagulasa positiva",
+            "Ausencia en 10g"
+          ],
+          [
+            "Salmonella (/25g)",
+            "Ausencia en 10g"
+          ],
+          [
+            "Bacillus cereus",
+            "Máx. 100 ufc/g"
+          ]
+        ]
+      },
+      "solo_vitrina": false,
+      "buyable": true,
+      "is_combo": true,
+      "precio_canal_label": "Lista",
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
+      "family_slug": "c-caf100g"
+    },
+    {
+      "name": "ACIDO CITRICO 500g",
+      "ref": "C-ACICITR500g",
+      "rep_sku": "C-ACICITR500g",
+      "slug": "c-acicitr500g",
+      "precio": "$12.442",
+      "precio_meli": "$14.900",
+      "precio_num": 12441.5,
+      "lista_num": 14900.0,
+      "ahorro": "$2.458",
+      "photo": "https://http2.mlstatic.com/D_696967-MCO94062815955_102025-O.jpg",
+      "meli_id": "MCO953116239",
+      "cat": "Ácidos",
+      "cat_color": "#143D36",
+      "desc": "",
+      "ficha": {
+        "titulo": "ÁCIDO CÍTRICO",
+        "descripcion": "El ácido cítrico monohidrato es un ácido natural tricarboxílico, contiene una molécula de agua por cada molécula de ácido cítrico. Se encuentra en la naturaleza en muchas frutas, sobre todo en las de carácter cítrico tales como la naranja, el limón, pomelo.",
+        "secciones": [
+          {
+            "titulo": "APLICACIONES",
+            "items": [
+              "En la elaboración de encurtidos, conservas, enlatados. Como aditivo para mejorar las características de los alimentos congelados, manteniendo el color y el sabor incluso al descongelarse, evitando el deterioro de los mismos durante el tiempo de conservación, almacenamiento y transporte.",
+              "En la elaboración de bebidas, es usado como regulador del pH y el saborizante de las bebidas. Potencia la efectividad de los conservantes antimicrobianos que se encuentran en las bebidas y es por esto que ciertas bebidas tienen un sabor agrio y ácido.",
+              "En la elaboración de las golosinas y caramelos se usa para regular el pH y el acidulante para los sabores de los caramelos y su principal función es que los geles alcancen la máxima dureza permitida.",
+              "Por su alto valor como antioxidante es muy utilizado en cremas para la cara y gel para el cuerpo. Protege la piel del estrés oxidativo y mejora la acción de vitaminas y compuestos orgánicos. Es un ácido recomendado para tipo de pieles con acné, mixta y grasas. Siendo éste muy adecuado para las pieles con acné porque puede limpiar los poros y también ayuda a cerrar los poros dilatados. Es utilizado a bajas concentraciones en peelings por su capacidad despigmentantes y anti manchas.",
+              "Es un ingrediente activo en las fórmulas de desodorantes y geles de lavado ya que contribuye de manera eficaz a evitar la descomposición enzimática del sudor y de asi previenen olores indeseados. Para que pueda ser utilizado como desodorante debe un PH entre 4-5 para que pueda funcionar. Este ácido aplicado directamente sobre la piel, actúa como AHA- ácido alfa hidróxido- produciendo un efecto exfoliante, dando resultado la renovación del cutis de forma sencilla y ayudando a la estimulación en la producción del colágeno, de esta forma permite mejorar arrugas y estrías, dando a la piel una textura suave y aterciopelada. Es capaz de prevenir la foto envejecimiento, arrugas y proporciona hidratación y elasticidad de la piel.",
+              "En aplicaciones industriales, como la limpieza y el pulido de metales, así como en la producción de biocombustibles y otros productos químicos.",
+              "En procedimientos médicos como la diálisis renal para ayudar a eliminar el exceso de minerales de la sangre."
+            ]
+          },
+          {
+            "titulo": "RECOMENDACIONES",
+            "items": [
+              "Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de lote."
+            ]
+          },
+          {
+            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+            "items": [
+              "Nota: El producto cumple con el estándar USP."
+            ]
+          }
+        ],
+        "identidad": [
+          [
+            "NOMBRE DEL PRODUCTO",
+            "Ácido cítrico monohidrato"
+          ],
+          [
+            "CAS #",
+            "77-92-9"
+          ],
+          [
+            "NOMBRE IUPAC",
+            "Ácido 2-hidroxi-1,2,3-propanotricarboxílico. Ácido betahidroxitricarbalílico."
+          ],
+          [
+            "ADITIVO ALIMENTARIO",
+            "E-330"
+          ],
+          [
+            "FÓRMULA MOLECULAR",
+            "C6H8O7"
+          ],
+          [
+            "FECHA DE REVISIÓN",
+            "29 08 2024"
+          ]
+        ],
+        "propiedades": [
+          [
+            "Apariencia",
+            "Polvo blanco cristalino."
+          ],
+          [
+            "Olor y sabor",
+            "Inodoro, con fuerte sabor ácido."
+          ],
+          [
+            "Peso molecular  (g/mol)",
+            "210.14 g/mol"
+          ],
+          [
+            "Punto de fusión",
+            "Descompone"
+          ],
+          [
+            "Punto de ebullición",
+            "153°C"
+          ],
+          [
+            "Solubilidad",
+            "Soluble en  alcohol, éter y agua"
+          ],
+          [
+            "pH",
+            "2.1 Para una solución acuosa 0.1 molar"
+          ],
+          [
+            "Impurezas orgánicas volátiles",
+            "Cumple"
+          ]
+        ],
+        "microbiologia": [
+          [
+            "Recuento total de placa cfu/g",
+            "≤ 5000"
+          ],
+          [
+            "Hongos  y levaduras",
+            "≤ 5000"
+          ],
+          [
+            "E. Coli",
+            "Negativo"
+          ],
+          [
+            "Salmonella",
+            "Negativo/ 25 gr"
+          ]
+        ]
+      },
+      "solo_vitrina": false,
+      "buyable": true,
+      "is_combo": true,
+      "precio_canal_label": "Lista",
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
+      "family_slug": "c-acicitr500g"
+    },
     {
       "name": "ALANTOINA 100g",
       "ref": "C-ALA100g",
@@ -16244,8 +16643,8 @@
       "precio_num": 90931.5,
       "lista_num": 108900.0,
       "ahorro": "$17.968",
-      "photo": "https://http2.mlstatic.com/D_619181-MCO89014936511_072025-O.jpg",
-      "meli_id": "MCO894908184",
+      "photo": "https://http2.mlstatic.com/D_627105-MCO72579221358_112023-O.jpg",
+      "meli_id": "MCO592968863",
       "cat": "Conservantes",
       "cat_color": "#143D36",
       "desc": "",
@@ -16357,8 +16756,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-sha705500ml"
     },
     {
@@ -18380,137 +18779,6 @@
       "family_slug": "c-acicit250g"
     },
     {
-      "name": "ACIDO CITRICO 500g",
-      "ref": "C-ACICIT500g",
-      "rep_sku": "C-ACICIT500g",
-      "slug": "c-acicit500g",
-      "precio": "$12.442",
-      "precio_meli": "$14.900",
-      "precio_num": 12441.5,
-      "lista_num": 14900.0,
-      "ahorro": "$2.458",
-      "photo": "https://http2.mlstatic.com/D_696967-MCO94062815955_102025-O.jpg",
-      "meli_id": "MCO953116239",
-      "cat": "Ácidos",
-      "cat_color": "#143D36",
-      "desc": "",
-      "ficha": {
-        "titulo": "ÁCIDO CÍTRICO",
-        "descripcion": "El ácido cítrico monohidrato es un ácido natural tricarboxílico, contiene una molécula de agua por cada molécula de ácido cítrico. Se encuentra en la naturaleza en muchas frutas, sobre todo en las de carácter cítrico tales como la naranja, el limón, pomelo.",
-        "secciones": [
-          {
-            "titulo": "APLICACIONES",
-            "items": [
-              "En la elaboración de encurtidos, conservas, enlatados. Como aditivo para mejorar las características de los alimentos congelados, manteniendo el color y el sabor incluso al descongelarse, evitando el deterioro de los mismos durante el tiempo de conservación, almacenamiento y transporte.",
-              "En la elaboración de bebidas, es usado como regulador del pH y el saborizante de las bebidas. Potencia la efectividad de los conservantes antimicrobianos que se encuentran en las bebidas y es por esto que ciertas bebidas tienen un sabor agrio y ácido.",
-              "En la elaboración de las golosinas y caramelos se usa para regular el pH y el acidulante para los sabores de los caramelos y su principal función es que los geles alcancen la máxima dureza permitida.",
-              "Por su alto valor como antioxidante es muy utilizado en cremas para la cara y gel para el cuerpo. Protege la piel del estrés oxidativo y mejora la acción de vitaminas y compuestos orgánicos. Es un ácido recomendado para tipo de pieles con acné, mixta y grasas. Siendo éste muy adecuado para las pieles con acné porque puede limpiar los poros y también ayuda a cerrar los poros dilatados. Es utilizado a bajas concentraciones en peelings por su capacidad despigmentantes y anti manchas.",
-              "Es un ingrediente activo en las fórmulas de desodorantes y geles de lavado ya que contribuye de manera eficaz a evitar la descomposición enzimática del sudor y de asi previenen olores indeseados. Para que pueda ser utilizado como desodorante debe un PH entre 4-5 para que pueda funcionar. Este ácido aplicado directamente sobre la piel, actúa como AHA- ácido alfa hidróxido- produciendo un efecto exfoliante, dando resultado la renovación del cutis de forma sencilla y ayudando a la estimulación en la producción del colágeno, de esta forma permite mejorar arrugas y estrías, dando a la piel una textura suave y aterciopelada. Es capaz de prevenir la foto envejecimiento, arrugas y proporciona hidratación y elasticidad de la piel.",
-              "En aplicaciones industriales, como la limpieza y el pulido de metales, así como en la producción de biocombustibles y otros productos químicos.",
-              "En procedimientos médicos como la diálisis renal para ayudar a eliminar el exceso de minerales de la sangre."
-            ]
-          },
-          {
-            "titulo": "RECOMENDACIONES",
-            "items": [
-              "Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de lote."
-            ]
-          },
-          {
-            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-            "items": [
-              "Nota: El producto cumple con el estándar USP."
-            ]
-          }
-        ],
-        "identidad": [
-          [
-            "NOMBRE DEL PRODUCTO",
-            "Ácido cítrico monohidrato"
-          ],
-          [
-            "CAS #",
-            "77-92-9"
-          ],
-          [
-            "NOMBRE IUPAC",
-            "Ácido 2-hidroxi-1,2,3-propanotricarboxílico. Ácido betahidroxitricarbalílico."
-          ],
-          [
-            "ADITIVO ALIMENTARIO",
-            "E-330"
-          ],
-          [
-            "FÓRMULA MOLECULAR",
-            "C6H8O7"
-          ],
-          [
-            "FECHA DE REVISIÓN",
-            "29 08 2024"
-          ]
-        ],
-        "propiedades": [
-          [
-            "Apariencia",
-            "Polvo blanco cristalino."
-          ],
-          [
-            "Olor y sabor",
-            "Inodoro, con fuerte sabor ácido."
-          ],
-          [
-            "Peso molecular  (g/mol)",
-            "210.14 g/mol"
-          ],
-          [
-            "Punto de fusión",
-            "Descompone"
-          ],
-          [
-            "Punto de ebullición",
-            "153°C"
-          ],
-          [
-            "Solubilidad",
-            "Soluble en  alcohol, éter y agua"
-          ],
-          [
-            "pH",
-            "2.1 Para una solución acuosa 0.1 molar"
-          ],
-          [
-            "Impurezas orgánicas volátiles",
-            "Cumple"
-          ]
-        ],
-        "microbiologia": [
-          [
-            "Recuento total de placa cfu/g",
-            "≤ 5000"
-          ],
-          [
-            "Hongos  y levaduras",
-            "≤ 5000"
-          ],
-          [
-            "E. Coli",
-            "Negativo"
-          ],
-          [
-            "Salmonella",
-            "Negativo/ 25 gr"
-          ]
-        ]
-      },
-      "solo_vitrina": false,
-      "buyable": true,
-      "is_combo": true,
-      "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
-      "family_slug": "c-acicit500g"
-    },
-    {
       "name": "ACEITE ESENCIAL ALBAHACA 5mL",
       "ref": "C-ACEESEALB5mL",
       "rep_sku": "C-ACEESEALB5mL",
@@ -19623,9 +19891,9 @@
     },
     {
       "name": "CAFEINA 100g",
-      "ref": "C-CAF100g",
-      "rep_sku": "C-CAF100g",
-      "slug": "c-caf100g",
+      "ref": "C-CAFE100g",
+      "rep_sku": "C-CAFE100g",
+      "slug": "c-cafe100g",
       "precio": "$47.929",
       "precio_meli": "$57.400",
       "precio_num": 47929.0,
@@ -19750,9 +20018,9 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
-      "family_slug": "c-caf100g"
+      "photo_match_type": "name",
+      "photo_match_score": 87.5,
+      "family_slug": "c-cafe100g"
     },
     {
       "name": "AGUA DESTILADA 250mL",
@@ -20036,8 +20304,8 @@
       "precio_num": 18286.5,
       "lista_num": 21900.0,
       "ahorro": "$3.614",
-      "photo": "https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg",
-      "meli_id": "MCO590695436",
+      "photo": "https://http2.mlstatic.com/D_919432-MCO71731068570_092023-O.jpg",
+      "meli_id": "MCO1912833896",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -20046,8 +20314,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "family",
-      "photo_match_score": 88.7,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-ceraberefbla500g"
     },
     {
@@ -20449,8 +20717,8 @@
       "precio_num": 81830.0,
       "lista_num": 98000.0,
       "ahorro": "$16.170",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg",
+      "meli_id": "MCO600431364",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -20530,6 +20798,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-lan250g"
     },
     {
@@ -20542,8 +20812,8 @@
       "precio_num": 14946.5,
       "lista_num": 17900.0,
       "ahorro": "$2.954",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_859870-MLA109908708436_042026-O.jpg",
+      "meli_id": "MCO600431364",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -20623,6 +20893,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "name",
+      "photo_match_score": 81.2,
       "family_slug": "c-lanolina40g"
     },
     {
@@ -20659,8 +20931,8 @@
       "precio_num": 24966.5,
       "lista_num": 29900.0,
       "ahorro": "$4.934",
-      "photo": "https://http2.mlstatic.com/D_726059-MCO88716954398_072025-O.jpg",
-      "meli_id": "MCO607698764",
+      "photo": "",
+      "meli_id": "",
       "cat": "Principios Activos",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -20669,8 +20941,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-gussed30ml"
     },
     {
@@ -21604,8 +21874,8 @@
       "precio_num": 17117.5,
       "lista_num": 20500.0,
       "ahorro": "$3.382",
-      "photo": "https://http2.mlstatic.com/D_888663-MCO93552645844_102025-O.jpg",
-      "meli_id": "MCO587471185",
+      "photo": "",
+      "meli_id": "",
       "cat": "Ácidos",
       "cat_color": "#143D36",
       "desc": "",
@@ -21722,8 +21992,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-acdlac85p30ml"
     },
     {
@@ -23466,8 +23734,8 @@
       "precio_num": 27763.75,
       "lista_num": 33250.0,
       "ahorro": "$5.486",
-      "photo": "https://http2.mlstatic.com/D_781646-MCO82587176713_022025-O.jpg",
-      "meli_id": "MCO616763443",
+      "photo": "https://http2.mlstatic.com/D_810355-MCO93715562008_102025-O.jpg",
+      "meli_id": "MCO901663592",
       "cat": "Sales Minerales",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -27063,8 +27331,8 @@
       "precio_num": 57531.5,
       "lista_num": 68900.0,
       "ahorro": "$11.368",
-      "photo": "https://http2.mlstatic.com/D_773853-MCO90126991583_082025-O.jpg",
-      "meli_id": "MCO991723745",
+      "photo": "https://http2.mlstatic.com/D_843624-MCO72374439286_102023-O.jpg",
+      "meli_id": "MCO982532236",
       "cat": "Excipientes",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -27186,8 +27454,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-inukg"
     },
     {
@@ -27484,8 +27752,8 @@
       "precio_num": 61372.5,
       "lista_num": 73500.0,
       "ahorro": "$12.128",
-      "photo": "https://http2.mlstatic.com/D_739042-MCO94156935519_102025-O.jpg",
-      "meli_id": "MCO835404031",
+      "photo": "https://http2.mlstatic.com/D_826672-MLA111018212247_042026-O.jpg",
+      "meli_id": "MCO3902022608",
       "cat": "Suplementarios",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -27652,8 +27920,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "family",
-      "photo_match_score": 95.0,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-colhid500g"
     },
     {
@@ -27866,8 +28134,8 @@
       "precio_num": 58366.5,
       "lista_num": 69900.0,
       "ahorro": "$11.534",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_801417-MCO53807448802_022023-O.jpg",
+      "meli_id": "MCO2004400418",
       "cat": "Principios Activos",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -27876,6 +28144,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-floseclav100g"
     },
     {
@@ -28376,8 +28646,8 @@
       "precio_num": 16115.5,
       "lista_num": 19300.0,
       "ahorro": "$3.184",
-      "photo": "https://http2.mlstatic.com/D_687896-MCO81186083304_122024-O.jpg",
-      "meli_id": "MCO581502209",
+      "photo": "https://http2.mlstatic.com/D_999931-MLA99415098040_112025-O.jpg",
+      "meli_id": "MCO3924456518",
       "cat": "Emulsionantes y Surfactantes",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -29320,8 +29590,8 @@
       "precio_num": 20708.0,
       "lista_num": 24800.0,
       "ahorro": "$4.092",
-      "photo": "https://http2.mlstatic.com/D_959264-MCO81298464976_122024-O.jpg",
-      "meli_id": "MCO577035616",
+      "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
+      "meli_id": "MCO1636834856",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -29330,8 +29600,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-aceric500ml"
     },
     {
@@ -29368,8 +29638,8 @@
       "precio_num": 8684.0,
       "lista_num": 10400.0,
       "ahorro": "$1.716",
-      "photo": "https://http2.mlstatic.com/D_959264-MCO81298464976_122024-O.jpg",
-      "meli_id": "MCO577035616",
+      "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
+      "meli_id": "MCO1636834856",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
