@@ -39,7 +39,7 @@ export default function ActivityLog() {
       </div>
 
       {open && (
-        <div className="rounded-paper border border-border-strong bg-surface-panel p-3 font-mono text-[11px] leading-relaxed text-ink-secondary shadow-paper-sm">
+        <div className="max-h-44 overflow-y-auto rounded-paper border border-border-strong bg-surface-panel p-3 font-mono text-[11px] leading-relaxed text-ink-secondary shadow-paper-sm">
           {isError && (
             <p className="text-danger">
               No se pudo leer el log: {(error as Error)?.message}

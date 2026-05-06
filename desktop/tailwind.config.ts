@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-/** Tokens alineados con `5S-plantilla-app/styles.css` (Montserrat, papel cálido, sombras suaves). */
+/** Paleta McKenna Group: verde teal (#0c6069) + Daily Quest amber en iframe. */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   darkMode: "class",
@@ -16,62 +16,46 @@ export default {
         "paper-xl": "32px",
       },
       boxShadow: {
-        paper: "0 4px 0 rgba(0,0,0,0.05), 0 12px 32px rgba(80,60,20,0.06)",
-        "paper-sm": "0 2px 0 rgba(0,0,0,0.04)",
-        "paper-lg": "0 8px 0 rgba(0,0,0,0.06), 0 24px 60px rgba(80,60,20,0.1)",
+        paper:    "0 4px 0 rgba(2,45,51,0.06), 0 12px 32px rgba(12,96,105,0.08)",
+        "paper-sm": "0 2px 0 rgba(2,45,51,0.04)",
+        "paper-lg": "0 8px 0 rgba(2,45,51,0.07), 0 24px 60px rgba(12,96,105,0.12)",
       },
       colors: {
+        /* ── Superficies ───────────────────────────── */
         surface: {
-          DEFAULT: "#fdfbf5",
-          panel: "#ffffff",
-          input: "#ffffff",
-          hover: "#f5f1e6",
+          DEFAULT: "#e8fafb",   // fondo de página (teal muy pálido)
+          panel:   "#f4fdfe",   // tarjetas y paneles
+          input:   "#ffffff",   // inputs
+          hover:   "#cff0f4",   // hover state
         },
+        /* ── Texto ─────────────────────────────────── */
         ink: {
-          DEFAULT: "#1a1a1f",
-          secondary: "#4a4a56",
-          muted: "#8a8a94",
+          DEFAULT:   "#022D33", // texto primario (teal muy oscuro)
+          secondary: "#0a4a52", // texto secundario
+          muted:     "#2d7880", // texto muted
         },
+        /* ── Bordes ────────────────────────────────── */
         border: {
-          DEFAULT: "#eae4d4",
-          strong: "#d9d1bb",
+          DEFAULT: "#9dcdd4",   // borde suave
+          strong:  "#5fb3bc",   // borde marcado
         },
-        muted: "#8a8a94",
+        muted: "#3a7e87",
+        /* ── Acento principal: McKenna teal ─────────── */
         accent: {
-          DEFAULT: "#1a1a1f",
-          hover: "#2d2d38",
-          sun: "#f4c44d",
-          "sun-deep": "#e8a838",
-          leaf: "#7cb86f",
-          "leaf-deep": "#5a9a4d",
-          sky: "#6fa8d6",
-          "sky-deep": "#4a88bc",
-          rose: "#e58c8c",
-          plum: "#a68bc8",
+          DEFAULT:  "#0c6069", // McKenna primary teal
+          hover:    "#045159", // dark teal hover
+          sun:      "#f4c44d", // dorado (logo McKenna M)
+          "sun-deep":"#e8a838",
+          leaf:     "#4a9a6a",
+          "leaf-deep":"#2d7a4e",
+          sky:      "#6aacb3",
+          "sky-deep":"#3d8a93",
+          rose:     "#e58c8c",
+          plum:     "#a68bc8",
         },
-        success: "#5a9a4d",
-        danger: "#c86a6a",
+        success: "#2a7d4e",
+        danger:  "#c86a6a",
         warning: "#e8a838",
-        /** Panel 5S (misma familia cromática que la plantilla). */
-        c5s: {
-          canvas: "#fdfbf5",
-          panel: "#ffffff",
-          "panel-deep": "#f5f1e6",
-          line: "#eae4d4",
-          "line-strong": "#d9d1bb",
-          ink: "#1a1a1f",
-          muted: "#8a8a94",
-          accent: "#1a1a1f",
-          "accent-hover": "#2d2d38",
-          "accent-soft": "rgba(26,26,31,0.08)",
-          "note-sky": "#e8f4fc",
-          "note-amber": "#fdf6e4",
-          "note-violet": "#f0e8fa",
-          "note-cyan": "#e4f6f7",
-          "note-fuchsia": "#fceef6",
-          "note-orange": "#fff0e6",
-          "note-indigo": "#e8ebfa",
-        },
       },
     },
   },
