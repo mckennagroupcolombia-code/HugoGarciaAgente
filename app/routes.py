@@ -954,7 +954,7 @@ def register_routes(app):
                 )
                 return jsonify({"status": "ok", "respuesta": None})
 
-            # ── Comandos de facturas de compra: inv ok/skip/inventario/gasto/lista ──
+            # ── Comandos de facturas de compra: solo gasto/skip/lista desde WA ──
             elif msg_lower.startswith("inv "):
 
                 def _manejar_inv(texto):
@@ -967,17 +967,25 @@ def register_routes(app):
                     if len(partes) >= 2 and partes[1].lower() == "lista":
                         resultado = listar_facturas_pendientes()
                     elif len(partes) >= 3:
-                        cmd = partes[1].lower()  # ok | skip | inventario | gasto
+                        cmd = partes[1].lower()
                         sufijo = partes[2].upper()
-                        resultado = procesar_respuesta_factura_compra(cmd, sufijo)
+                        if cmd in ("inventario", "ok"):
+                            resultado = (
+                                f"ℹ️ La clasificación como *inventario* se hace desde el "
+                                f"Panel de Operaciones para revisar y aprobar cada producto individualmente.\n\n"
+                                f"Comandos disponibles aquí:\n"
+                                f"  *inv gasto {sufijo}*  → registrar como gasto en SIIGO\n"
+                                f"  *inv skip {sufijo}*   → omitir esta factura"
+                            )
+                        else:
+                            resultado = procesar_respuesta_factura_compra(cmd, sufijo)
                     else:
                         resultado = (
-                            "⚠️ Formato inválido. Comandos disponibles:\n"
-                            "  *inv ok <código>*          → procesar (proveedor conocido)\n"
-                            "  *inv skip <código>*        → omitir factura\n"
-                            "  *inv inventario <código>*  → clasificar como materia prima\n"
-                            "  *inv gasto <código>*       → clasificar como gasto/consumible\n"
-                            "  *inv lista*                → ver facturas pendientes"
+                            "ℹ️ Comandos de facturas de compra:\n"
+                            "  *inv gasto <código>*   → registrar como gasto en SIIGO\n"
+                            "  *inv skip <código>*    → omitir factura\n"
+                            "  *inv lista*            → ver pendientes\n\n"
+                            "_Para inventariar productos: usar el Panel de Operaciones_"
                         )
                     enviar_whatsapp_reporte(
                         resultado, numero_destino=grupo_contabilidad
@@ -1907,6 +1915,7 @@ def register_routes(app):
 
     @app.route("/api/facturas/clasificar", methods=["POST"])
     def api_facturas_clasificar():
+        """Acción rápida: solo gasto o skip (sin revisión de ítems)."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         try:
@@ -1917,13 +1926,104 @@ def register_routes(app):
             sufijo = body.get("sufijo", "").strip().upper()
             if not cmd or not sufijo:
                 return jsonify({"error": "Parámetros 'cmd' y 'sufijo' requeridos"}), 400
-            if cmd not in ("ok", "skip", "inventario", "gasto"):
-                return jsonify({"error": "cmd debe ser: ok, skip, inventario, gasto"}), 400
+            if cmd not in ("skip", "gasto"):
+                return jsonify({"error": "cmd debe ser: gasto | skip  (inventario usa /procesar)"}), 400
             log_line(f"▶ clasificar_factura {sufijo} → {cmd}")
             resultado = procesar_respuesta_factura_compra(cmd, sufijo)
             icon = "✔" if any(c in resultado for c in ("✅", "⏭️")) else "⚠️"
             log_line(f"{icon} {resultado[:300]}")
             return jsonify({"ok": True, "mensaje": resultado})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/facturas/<sufijo>/detalle", methods=["GET"])
+    def api_factura_detalle(sufijo):
+        """Retorna la factura con todos los ítems computados (código McKenna, unidades, precios)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import obtener_detalle_factura
+            from app.panel_activity import log_line
+            log_line(f"▶ detalle_factura {sufijo.upper()}")
+            detalle = obtener_detalle_factura(sufijo.upper())
+            if detalle is None:
+                return jsonify({"error": f"Factura {sufijo} no encontrada"}), 404
+            log_line(f"✔ detalle_factura {sufijo.upper()} — {len(detalle.get('items', []))} ítems")
+            return jsonify(detalle)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/facturas/<sufijo>/procesar", methods=["POST"])
+    def api_factura_procesar(sufijo):
+        """Procesa ítems seleccionados como inventario: genera Excel + XML, envía reporte WA."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import (
+                procesar_items_inventario,
+                cargar_proveedores_especiales,
+            )
+            from app.panel_activity import log_line, run_logged_job
+            body = request.get_json(silent=True) or {}
+            indices = body.get("indices", [])
+            agregar_proveedor = body.get("agregar_proveedor", False)
+            if not isinstance(indices, list):
+                return jsonify({"error": "'indices' debe ser una lista"}), 400
+
+            # Si el usuario marcó que quiere agregar el proveedor a la lista especial
+            if agregar_proveedor:
+                from app.tools.importar_productos_siigo import (
+                    obtener_detalle_factura,
+                    _RUTA_PROVEEDORES,
+                )
+                detalle_tmp = obtener_detalle_factura(sufijo.upper())
+                if detalle_tmp:
+                    nit = re.sub(r'\D', '', detalle_tmp.get('nit') or '')
+                    proveedor = detalle_tmp.get('proveedor', '')
+                    data_prov = cargar_proveedores_especiales()
+                    ya_existe = any(
+                        re.sub(r'\D', '', p.get('nit', '')) == nit
+                        for p in data_prov.get('proveedores', [])
+                        if nit
+                    )
+                    if not ya_existe and nit:
+                        data_prov['proveedores'].append({
+                            'nit':    detalle_tmp.get('nit', ''),
+                            'nombre': proveedor,
+                            'activo': True,
+                            'nota':   f'Agregado desde el panel el {_dt.now().strftime("%Y-%m-%d")}',
+                        })
+                        with open(_RUTA_PROVEEDORES, 'w', encoding='utf-8') as _f:
+                            json.dump(data_prov, _f, indent=2, ensure_ascii=False)
+                        log_line(f"📋 Proveedor agregado: {proveedor} ({nit})")
+
+            log_line(f"▶ procesar_inventario {sufijo.upper()} — {len(indices)} ítems seleccionados")
+
+            def _job():
+                return procesar_items_inventario(sufijo.upper(), indices)
+
+            resultado = None
+            import threading as _thr
+            ev = _thr.Event()
+            res_holder = {}
+
+            def _run():
+                try:
+                    res_holder['r'] = procesar_items_inventario(sufijo.upper(), indices)
+                except Exception as ex:
+                    res_holder['r'] = {'ok': False, 'error': str(ex)}
+                finally:
+                    ev.set()
+
+            _thr.Thread(target=_run, daemon=True).start()
+            ev.wait(timeout=120)
+            resultado = res_holder.get('r', {'ok': False, 'error': 'timeout'})
+
+            if resultado.get('ok'):
+                log_line(f"✔ inventario {sufijo.upper()} — {resultado.get('nuevos',0)} nuevos, {resultado.get('duplicados',0)} duplicados")
+            else:
+                log_line(f"✖ inventario {sufijo.upper()} — {resultado.get('error','')}")
+            return jsonify(resultado)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
