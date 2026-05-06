@@ -1004,40 +1004,158 @@ def _notificar_siguiente_factura_pendiente():
     total          = entrada.get('total', 0)
     es_nuevo       = entrada.get('es_nuevo_proveedor', False)
 
-    if es_nuevo:
-        msg = (
-            f"📦 *FACTURA DE COMPRA DETECTADA*\n\n"
-            f"🔢 *Factura:* {numero_factura}  _(código: *{sufijo}*)_\n"
-            f"🏢 *Proveedor:* {proveedor}\n"
-            f"🆔 *NIT:* {nit or '—'}\n"
-            f"📦 *Ítems:* {n_items}  |  💰 *Total:* ${total:,.0f} COP\n\n"
-            f"⚠️ *Proveedor NO registrado* en la lista de materias primas.\n\n"
-            f"¿Esta factura corresponde a?\n\n"
-            f"   *inv inventario {sufijo}*\n"
-            f"   → Materias primas · se inventaría en SIIGO\n\n"
-            f"   *inv gasto {sufijo}*\n"
-            f"   → Consumibles/gastos · registrar directo en SIIGO"
-        )
-    else:
-        msg = (
-            f"📦 *FACTURA DE COMPRA — PROVEEDOR ESPECIAL*\n\n"
-            f"🔢 *Factura:* {numero_factura}  _(código: *{sufijo}*)_\n"
-            f"🏢 *Proveedor:* {proveedor}\n"
-            f"📦 *Ítems:* {n_items}  |  💰 *Total:* ${total:,.0f} COP\n\n"
-            f"✅ Proveedor registrado como proveedor de materias primas.\n\n"
-            f"¿Proceder con la codificación e importación?\n\n"
-            f"   *inv ok {sufijo}* → Sí, procesar\n"
-            f"   *inv skip {sufijo}* → No, omitir"
-        )
-
-    # Separador visual antes de la siguiente factura
+    estado_prov = "⚠️ Proveedor nuevo" if es_nuevo else "✅ Proveedor conocido"
     pendientes_restantes = len(pendientes)
-    if pendientes_restantes > 1:
-        cabecera = f"─────────────────────────\n⏭️ *Siguiente factura en cola ({pendientes_restantes - 1} más después):*\n\n"
-        msg = cabecera + msg
+    cabecera = (
+        f"─────────────────────────\n"
+        f"⏭️ *Siguiente en cola ({pendientes_restantes - 1} más después):*\n\n"
+        if pendientes_restantes > 1 else ""
+    )
+    msg = (
+        f"{cabecera}"
+        f"📦 *Nueva factura de compra*  —  código: `{sufijo}`\n\n"
+        f"🔢 {numero_factura}\n"
+        f"🏢 {proveedor}  |  NIT: {nit or '—'}\n"
+        f"📦 {n_items} ítem(s)  |  💰 ${total:,.0f} COP\n"
+        f"{estado_prov}\n\n"
+        f"👉 Clasifícala en el *Panel de Operaciones*\n"
+        f"   _(o usa *inv gasto {sufijo}* / *inv skip {sufijo}* desde aquí)_"
+    )
 
     enviar_whatsapp_reporte(msg, numero_destino=GRUPO_COMPRAS)
     print(f"  ✉️  Notificación enviada al grupo — código: {sufijo}")
+
+
+# ─────────────────────────────────────────────
+#  Panel de operaciones — inspección y proceso manual
+# ─────────────────────────────────────────────
+
+def _computar_items_factura(datos: dict, xml_content: str) -> list:
+    """
+    Computa ítems con códigos McKenna, unidades y precios SIN generar archivos.
+    Para mostrar en el panel antes de que el usuario decida qué incluir.
+    """
+    items_out = []
+    codigos_en_factura = set()
+    for idx, item in enumerate(datos.get('items', [])):
+        nombre = item.get('description', '').strip()
+        subtotal = item.get('subtotal', 0)
+        cantidad_original = item.get('quantity', 1)
+        iva_linea = sum(
+            imp['valor'] for imp in item.get('impuestos', [])
+            if imp.get('id_dian') == '01'
+        )
+        unit_code = _extraer_unit_code_de_xml(xml_content, nombre)
+        cantidad_min, unidad_min, codigo_dian_min = convertir_a_unidad_minima(
+            cantidad_original, unit_code
+        )
+        multiplicador = _extraer_multiplicador_descripcion(nombre)
+        if multiplicador > 1:
+            cantidad_min    = round(cantidad_min * multiplicador, 6)
+            unidad_min      = 'Un'
+            codigo_dian_min = 'NAR'
+        elif unidad_min == 'Un':
+            vol_ml = _extraer_volumen_ml_descripcion(nombre)
+            if vol_ml > 0:
+                cantidad_min    = round(cantidad_min * vol_ml, 6)
+                unidad_min      = 'mL'
+                codigo_dian_min = 'MLT'
+            else:
+                masa_g = _extraer_masa_g_descripcion(nombre)
+                if masa_g > 0:
+                    cantidad_min    = round(cantidad_min * masa_g, 6)
+                    unidad_min      = 'g'
+                    codigo_dian_min = 'GRM'
+        precio_unitario = calcular_precio_unitario_min(subtotal, iva_linea, cantidad_min)
+        precio_neto     = round(subtotal / cantidad_min, 6) if cantidad_min > 0 else 0.0
+        codigo          = generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
+        codigos_en_factura.add(codigo)
+        es_duplicado    = verificar_producto_en_siigo(codigo)
+        items_out.append({
+            'indice':            idx,
+            'nombre':            nombre,
+            'codigo':            codigo,
+            'cantidad_original': cantidad_original,
+            'unidad_original':   unit_code,
+            'multiplicador':     multiplicador,
+            'cantidad_min':      round(cantidad_min, 4),
+            'unidad_min':        unidad_min,
+            'codigo_dian_min':   codigo_dian_min,
+            'subtotal':          subtotal,
+            'iva':               iva_linea,
+            'precio_unitario':   precio_unitario,
+            'precio_neto':       precio_neto,
+            'duplicado':         es_duplicado,
+            'impuestos':         item.get('impuestos', []),
+            'precio_proveedor':  item.get('price', 0),
+        })
+    return items_out
+
+
+def obtener_detalle_factura(sufijo: str) -> dict | None:
+    """Retorna factura completa con ítems computados para el panel."""
+    key, entrada = _buscar_pendiente(sufijo)
+    if not entrada:
+        return None
+    datos = json.loads(entrada['datos_json'])
+    xml_content = base64.b64decode(entrada['xml_b64']).decode('utf-8')
+    items = _computar_items_factura(datos, xml_content)
+    return {
+        'sufijo':             sufijo,
+        'numero_factura':     entrada['numero_factura'],
+        'proveedor':          entrada['proveedor'],
+        'nit':                entrada.get('nit', ''),
+        'es_nuevo_proveedor': entrada.get('es_nuevo_proveedor', False),
+        'total':              entrada.get('total', 0),
+        'estado':             entrada.get('estado', ''),
+        'fecha':              datos.get('fecha', ''),
+        'total_bruto':        datos.get('total_bruto', 0),
+        'total_descuentos':   datos.get('total_descuentos', 0),
+        'total_neto':         datos.get('total_neto', 0),
+        'items':              items,
+        'timestamp':          entrada.get('timestamp', ''),
+    }
+
+
+def procesar_items_inventario(sufijo: str, indices: list) -> dict:
+    """
+    Genera Excel + XML solo con los ítems en `indices`.
+    Envía reporte de texto al grupo WA (sin adjuntos).
+    Quita la factura de la cola.
+    """
+    key, entrada = _buscar_pendiente(sufijo)
+    if not entrada:
+        return {'ok': False, 'error': f'Factura {sufijo} no encontrada'}
+    xml_content   = base64.b64decode(entrada['xml_b64']).decode('utf-8')
+    datos         = json.loads(entrada['datos_json'])
+    todos_items   = datos.get('items', [])
+    items_sel     = [todos_items[i] for i in sorted(set(indices)) if i < len(todos_items)]
+    if not items_sel:
+        return {'ok': False, 'error': 'Ningún ítem seleccionado'}
+    datos_sel     = {**datos, 'items': items_sel}
+    arch          = _ejecutar_procesamiento(entrada['numero_factura'], datos_sel, xml_content, silent=True)
+    if not arch:
+        return {'ok': False, 'error': 'No se pudieron procesar los ítems'}
+    msg = (
+        f"✅ *Factura procesada desde el panel*\n\n"
+        f"🔢 {entrada['numero_factura']}\n"
+        f"🏢 {entrada['proveedor']}\n"
+        f"📦 {arch['nuevos']} producto(s) nuevo(s)  ·  {arch['duplicados']} duplicado(s)\n"
+        f"📎 Archivos generados en el servidor:\n"
+        f"   • {os.path.basename(arch['ruta'])}\n"
+        f"   • {os.path.basename(arch.get('ruta_xml', '—'))}"
+    )
+    enviar_whatsapp_reporte(msg, numero_destino=GRUPO_COMPRAS)
+    _quitar_pendiente(key)
+    threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
+    return {
+        'ok':      True,
+        'nuevos':  arch['nuevos'],
+        'duplicados': arch['duplicados'],
+        'ruta_excel': os.path.basename(arch['ruta']),
+        'ruta_xml':   os.path.basename(arch.get('ruta_xml', '')),
+        'mensaje': msg,
+    }
 
 
 # ─────────────────────────────────────────────
