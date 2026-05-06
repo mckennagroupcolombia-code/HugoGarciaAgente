@@ -707,6 +707,18 @@
       "pregunta": "Este producto contiene parafina",
       "respuesta": "Cordial saludo veci, no contiene parafinas. Sin embargo su textura puede asimilarse aunque es un error muy común asegurar que la cera de abejas blanca es parafina. Lo que pasa es que esta cera se produce de manera sintética y no procede de una fuente natural, sino que es creada en laboratorio obteniendo la misma cadena de polímeros que producen las abejas. Igualmente también manejamos cera de abejas de origen natural, pero el stock no siempre está disponible ya que dependemos de la producción de las abejas y la disponibilidad del apiario.",
       "timestamp": "2026-05-05T17:40:49.086966"
+    },
+    {
+      "producto": "Producto desconocido",
+      "pregunta": "Buenas noches. Cómo lo utilizo?con que se diluye? Cómo lo aplicó en mi rostro? En qué cantidad? Expliqueme por favor? Gracias",
+      "respuesta": "Cordial saludo veci, puedes encontrar información en la página web. Por este medio no es el indicado porque puedes tener muchas aplicaciones y no sabemos para qué lo requieres. Pero en la página encuentras incluso guías. Saludos",
+      "timestamp": "2026-05-05T23:16:11.482492"
+    },
+    {
+      "producto": "Ácido Salicílico 100gr Todo Tipo De Piel",
+      "pregunta": "Buenas noches. Cómo lo utilizo?con que se diluye? Cómo lo aplicó en mi rostro? En qué cantidad? Expliqueme por favor? Gracias",
+      "respuesta": "¡Hola, veci! Con gusto le colaboro. Para aplicarlo en el rostro, la concentración recomendada para productos de cuidado de la piel es del 0,5% al 2%. De esta preparación, se aplica una pequeña cantidad directamente sobre las áreas afectadas, una o dos veces al día. Es importante no usarlo en exceso para evitar resequedad o irritación.\n\nEs clave que al aplicarlo evite el contacto con los ojos, la boca y las mucosas. Tampoco lo use sobre piel que ya esté irritada, inflamada o dañada. Adicionalmente, le recomiendo evitar la exposición al sol mientras lo esté usando, ya que la piel puede volverse más sensible a los rayos UV.\n\nSi llega a experimentar cualquier tipo de irritación, enrojecimiento o picazón en la piel, debe suspender su uso inmediatamente. ¡Quedo atento a cualquier otra duda",
+      "timestamp": "2026-05-05T23:16:34.537168"
     }
   ]
 }
