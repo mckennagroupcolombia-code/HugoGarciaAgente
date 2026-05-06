@@ -1867,13 +1867,293 @@ def register_routes(app):
     def api_panel_logs():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        from app.panel_activity import clear_lines, get_lines
+        from app.panel_activity import clear_lines, get_lines_with_count
 
         if request.method == "DELETE":
             clear_lines()
             return jsonify({"ok": True})
         limit = request.args.get("limit", default=300, type=int) or 300
-        return jsonify({"lines": get_lines(limit)})
+        lines, count = get_lines_with_count(limit)
+        return jsonify({"lines": lines, "count": count})
+
+    # ── Facturas de compra (clasificación desde panel) ─────────────────────
+
+    @app.route("/api/facturas/pendientes", methods=["GET"])
+    def api_facturas_pendientes():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            facturas_path = os.path.join(_ROUTES_DIR, "data", "facturas_compra_pendientes.json")
+            with open(facturas_path, encoding="utf-8") as _f:
+                state = json.load(_f)
+            pendientes = state.get("pendientes", {})
+            items = []
+            for sufijo, e in pendientes.items():
+                items.append({
+                    "sufijo": sufijo,
+                    "numero_factura": e.get("numero_factura", ""),
+                    "proveedor": e.get("proveedor", ""),
+                    "nit": e.get("nit", ""),
+                    "es_nuevo_proveedor": e.get("es_nuevo_proveedor", False),
+                    "items_count": e.get("items_count", 0),
+                    "total": e.get("total", 0),
+                    "estado": e.get("estado", ""),
+                })
+            return jsonify({"pendientes": items, "total": len(items)})
+        except FileNotFoundError:
+            return jsonify({"pendientes": [], "total": 0})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/facturas/clasificar", methods=["POST"])
+    def api_facturas_clasificar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import procesar_respuesta_factura_compra
+            from app.panel_activity import log_line
+            body = request.get_json(silent=True) or {}
+            cmd = body.get("cmd", "").strip().lower()
+            sufijo = body.get("sufijo", "").strip().upper()
+            if not cmd or not sufijo:
+                return jsonify({"error": "Parámetros 'cmd' y 'sufijo' requeridos"}), 400
+            if cmd not in ("ok", "skip", "inventario", "gasto"):
+                return jsonify({"error": "cmd debe ser: ok, skip, inventario, gasto"}), 400
+            log_line(f"▶ clasificar_factura {sufijo} → {cmd}")
+            resultado = procesar_respuesta_factura_compra(cmd, sufijo)
+            icon = "✔" if any(c in resultado for c in ("✅", "⏭️")) else "⚠️"
+            log_line(f"{icon} {resultado[:300]}")
+            return jsonify({"ok": True, "mensaje": resultado})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── Pedidos tienda web ──────────────────────────────────────────────────
+
+    @app.route("/api/pedidos/web")
+    def api_pedidos_web():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import sqlite3 as _sqlite3
+        db_path = os.path.join(_ROUTES_DIR, "..", "PAGINA_WEB", "site", "data", "orders.db")
+        db_path = os.path.normpath(db_path)
+        if not os.path.exists(db_path):
+            return jsonify({"orders": [], "total": 0, "page": 1, "per_page": 50})
+        search = (request.args.get("q") or "").strip()
+        status_filter = (request.args.get("status") or "").strip()
+        page = max(1, int(request.args.get("page", 1) or 1))
+        per_page = 50
+        try:
+            con = _sqlite3.connect(db_path)
+            con.row_factory = _sqlite3.Row
+            where, params = ["1=1"], []
+            if search:
+                where.append(
+                    "(lower(reference) LIKE ? OR lower(buyer_email) LIKE ? OR lower(buyer_name) LIKE ?)"
+                )
+                s = f"%{search.lower()}%"
+                params += [s, s, s]
+            if status_filter:
+                where.append("status = ?")
+                params.append(status_filter)
+            w = " AND ".join(where)
+            total = con.execute(f"SELECT COUNT(*) FROM orders WHERE {w}", params).fetchone()[0]
+            offset = (page - 1) * per_page
+            rows = con.execute(
+                f"SELECT * FROM orders WHERE {w} ORDER BY id DESC LIMIT ? OFFSET ?",
+                params + [per_page, offset],
+            ).fetchall()
+            orders = []
+            for row in rows:
+                d = dict(row)
+                try:
+                    raw = json.loads(d.get("items_json") or "{}")
+                    if isinstance(raw, dict):
+                        d["items"] = raw.get("items", [])
+                        d["shipping_cost"] = raw.get("shipping", 0)
+                        d["buyer_address"] = raw.get("address", "")
+                        d["buyer_dept"] = raw.get("dept", "")
+                        d["buyer_notes"] = raw.get("notes", "")
+                        d["billing"] = raw.get("billing", {})
+                        d["buyer_cedula"] = raw.get("cedula", "")
+                    elif isinstance(raw, list):
+                        d["items"] = raw
+                    else:
+                        d["items"] = []
+                except Exception:
+                    d["items"] = []
+                del d["items_json"]
+                orders.append(d)
+            con.close()
+            return jsonify({"orders": orders, "total": total, "page": page, "per_page": per_page})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/pedidos/web/stats")
+    def api_pedidos_web_stats():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import sqlite3 as _sqlite3
+        db_path = os.path.normpath(
+            os.path.join(_ROUTES_DIR, "..", "PAGINA_WEB", "site", "data", "orders.db")
+        )
+        if not os.path.exists(db_path):
+            return jsonify({"total": 0, "by_status": {}, "by_shipping": {}})
+        try:
+            con = _sqlite3.connect(db_path)
+            con.row_factory = _sqlite3.Row
+            by_status = {
+                r["status"]: r["c"]
+                for r in con.execute(
+                    "SELECT status, COUNT(*) as c FROM orders GROUP BY status"
+                ).fetchall()
+            }
+            by_ship = {
+                r["shipping_status"]: r["c"]
+                for r in con.execute(
+                    "SELECT shipping_status, COUNT(*) as c FROM orders GROUP BY shipping_status"
+                ).fetchall()
+            }
+            total = sum(by_status.values())
+            con.close()
+            return jsonify({"total": total, "by_status": by_status, "by_shipping": by_ship})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── Sistema: servicios y repositorio ───────────────────────────────────
+
+    _SERVICIOS = {
+        "agente-pro":              "Agente Pro (Flask :8081)",
+        "webhook-meli":            "Webhook MeLi (Flask :8080)",
+        "mckenna-whatsapp-bridge": "Puente WhatsApp (Node :3000)",
+        "admin-panel":             "Panel Admin",
+    }
+
+    @app.route("/api/sistema/servicios")
+    def api_sistema_servicios():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+        resultado = []
+        for name, label in _SERVICIOS.items():
+            try:
+                r = _sp.run(
+                    ["systemctl", "is-active", name],
+                    capture_output=True, text=True, timeout=5,
+                )
+                estado = r.stdout.strip()
+            except Exception:
+                estado = "unknown"
+            resultado.append({"id": name, "label": label, "estado": estado})
+        return jsonify({"servicios": resultado})
+
+    @app.route("/api/sistema/reiniciar", methods=["POST"])
+    def api_sistema_reiniciar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        servicio = str(body.get("servicio", "")).strip()
+        if servicio not in _SERVICIOS:
+            return jsonify({"error": f"Servicio no permitido: {servicio!r}"}), 400
+        import subprocess as _sp
+        from app.panel_activity import run_logged_job
+
+        label = _SERVICIOS[servicio]
+
+        def _do_restart():
+            print(f"🔄 Reiniciando {label}…")
+            r = _sp.run(
+                ["sudo", "systemctl", "restart", servicio],
+                capture_output=True, text=True, timeout=30,
+            )
+            if r.returncode == 0:
+                print(f"✅ {label} reiniciado correctamente")
+            else:
+                err = (r.stderr or r.stdout).strip()
+                print(f"❌ Error al reiniciar {label}: {err or '(sin detalle)'}")
+
+        spawn_thread(lambda: run_logged_job(f"reiniciar_{servicio}", _do_restart), daemon=True)
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": f"Reiniciando {label}…",
+            "aviso": "Si reinicias agente-pro el panel perderá conexión brevemente (±15 s).",
+        })
+
+    @app.route("/api/sistema/git-status")
+    def api_sistema_git_status():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+        repo_dir = os.path.normpath(os.path.join(_ROUTES_DIR, ".."))
+        try:
+            branch = _sp.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                capture_output=True, text=True, timeout=5, cwd=repo_dir,
+            ).stdout.strip()
+            last_commit = _sp.run(
+                ["git", "log", "-1", "--format=%h %s (%ar)"],
+                capture_output=True, text=True, timeout=5, cwd=repo_dir,
+            ).stdout.strip()
+            short_status = _sp.run(
+                ["git", "status", "--short"],
+                capture_output=True, text=True, timeout=5, cwd=repo_dir,
+            ).stdout.strip()
+            modified = len([l for l in short_status.splitlines() if l.strip()])
+            # Commits behind remote
+            _sp.run(["git", "fetch", "--dry-run"], capture_output=True, timeout=10, cwd=repo_dir)
+            behind_out = _sp.run(
+                ["git", "rev-list", "--count", "HEAD..@{u}"],
+                capture_output=True, text=True, timeout=5, cwd=repo_dir,
+            ).stdout.strip()
+            behind = int(behind_out) if behind_out.isdigit() else 0
+            return jsonify({
+                "branch": branch,
+                "last_commit": last_commit,
+                "modified_files": modified,
+                "commits_behind": behind,
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/sistema/git-pull", methods=["POST"])
+    def api_sistema_git_pull():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+        from app.panel_activity import run_logged_job
+        repo_dir = os.path.normpath(os.path.join(_ROUTES_DIR, ".."))
+        body = request.get_json(silent=True) or {}
+        rebuild_frontend = bool(body.get("rebuild_frontend", False))
+
+        def _do_pull():
+            print(f"📥 Actualizando repositorio desde GitHub…")
+            r = _sp.run(
+                ["git", "pull", "--rebase", "origin", "master"],
+                capture_output=True, text=True, timeout=60, cwd=repo_dir,
+            )
+            for line in (r.stdout + r.stderr).splitlines():
+                if line.strip():
+                    print(line)
+            if r.returncode != 0:
+                print(f"❌ git pull falló (código {r.returncode})")
+                return
+            print("✅ Repositorio actualizado")
+            if rebuild_frontend:
+                print("🔨 Compilando panel React…")
+                rb = _sp.run(
+                    ["npm", "run", "build"],
+                    capture_output=True, text=True, timeout=120,
+                    cwd=os.path.join(repo_dir, "desktop"),
+                )
+                for line in (rb.stdout + rb.stderr).splitlines():
+                    if line.strip():
+                        print(line)
+                if rb.returncode == 0:
+                    print("✅ Panel React compilado")
+                else:
+                    print(f"❌ Error compilando React (código {rb.returncode})")
+
+        spawn_thread(lambda: run_logged_job("git_pull", _do_pull), daemon=True)
+        return jsonify({"status": "iniciado", "mensaje": "Git pull iniciado…"})
 
     @app.route("/app/api/5s/workspace", methods=["GET", "PUT"])
     @app.route("/api/5s/workspace", methods=["GET", "PUT"])
@@ -2151,6 +2431,11 @@ def register_routes(app):
     @app.route("/app/favicon.svg")
     def serve_spa_favicon():
         return send_from_directory(_SPA_DIR, "favicon.svg")
+
+    @app.route("/app/daily-quest.html")
+    def serve_daily_quest():
+        """Sirve la plantilla Daily Quest directamente (usada en iframe por DailyQuestPanel)."""
+        return send_from_directory(_SPA_DIR, "daily-quest.html")
 
     @app.route("/app", methods=["GET", "HEAD"])
     @app.route("/app/<path:path>", methods=["GET", "HEAD"])

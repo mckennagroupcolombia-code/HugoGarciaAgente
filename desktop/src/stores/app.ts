@@ -7,7 +7,9 @@ export type Panel =
   | "preventa"
   | "sync"
   | "stock"
-  | "cinco_s"
+  | "pedidos"
+  | "facturas"
+  | "daily_quest"
   | "settings";
 
 interface AppState {

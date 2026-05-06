@@ -7,7 +7,9 @@ import Chat from "./components/Chat";
 import PreventaPanel from "./components/PreventaPanel";
 import SyncPanel from "./components/SyncPanel";
 import StockPanel from "./components/StockPanel";
-import CincoSPanel from "./components/CincoSPanel";
+import PedidosWebPanel from "./components/PedidosWebPanel";
+import FacturasCompraPanel from "./components/FacturasCompraPanel";
+import DailyQuestPanel from "./components/DailyQuestPanel";
 import Settings from "./components/Settings";
 
 function PanelRouter() {
@@ -23,8 +25,12 @@ function PanelRouter() {
       return <SyncPanel />;
     case "stock":
       return <StockPanel />;
-    case "cinco_s":
-      return <CincoSPanel />;
+    case "pedidos":
+      return <PedidosWebPanel />;
+    case "facturas":
+      return <FacturasCompraPanel />;
+    case "daily_quest":
+      return <DailyQuestPanel />;
     case "settings":
       return <Settings />;
     default:

@@ -90,3 +90,6 @@ mi-agente-ubuntu-8a79d0d674c3.json
 tunnel_url.txt
 comprobantes/
 comprobantes/
+
+# Facturas descargadas (PDFs/XMLs/ZIPs de SIIGO/MeLi — runtime)
+facturas_descargadas/
