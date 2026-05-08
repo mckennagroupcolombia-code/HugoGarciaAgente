@@ -1062,8 +1062,8 @@
           "precio_num": 17117.5,
           "lista_num": 20500.0,
           "ahorro": "$3.382",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_888663-MCO93552645844_102025-O.jpg",
+          "meli_id": "MCO587471185",
           "cat": "Ácidos",
           "cat_color": "#143D36",
           "desc": "",
@@ -1180,6 +1180,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-acdlac85p30ml"
         },
         {
@@ -3935,8 +3937,8 @@
           "precio_num": 8684.0,
           "lista_num": 10400.0,
           "ahorro": "$1.716",
-          "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
-          "meli_id": "MCO1636834856",
+          "photo": "",
+          "meli_id": "",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3945,8 +3947,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "family",
-          "photo_match_score": 95.0,
           "family_slug": "c-aceric10ml"
         },
         {
@@ -3959,8 +3959,8 @@
           "precio_num": 12107.5,
           "lista_num": 14500.0,
           "ahorro": "$2.392",
-          "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
-          "meli_id": "MCO1636834856",
+          "photo": "",
+          "meli_id": "",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3969,8 +3969,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-aceric250ml"
         },
         {
@@ -3983,8 +3981,8 @@
           "precio_num": 20708.0,
           "lista_num": 24800.0,
           "ahorro": "$4.092",
-          "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
-          "meli_id": "MCO1636834856",
+          "photo": "",
+          "meli_id": "",
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -3993,8 +3991,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "family",
-          "photo_match_score": 95.0,
           "family_slug": "c-aceric500ml"
         },
         {
@@ -6267,8 +6263,8 @@
           "precio_num": 16115.5,
           "lista_num": 19300.0,
           "ahorro": "$3.184",
-          "photo": "https://http2.mlstatic.com/D_999931-MLA99415098040_112025-O.jpg",
-          "meli_id": "MCO3924456518",
+          "photo": "",
+          "meli_id": "",
           "cat": "Emulsionantes y Surfactantes",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -6378,8 +6374,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-cocprobet500ml"
         },
         {
@@ -6392,8 +6386,8 @@
           "precio_num": 22127.5,
           "lista_num": 26500.0,
           "ahorro": "$4.372",
-          "photo": "https://http2.mlstatic.com/D_617187-MCO110751068797_042026-O.jpg",
-          "meli_id": "MCO1910946156",
+          "photo": "https://http2.mlstatic.com/D_944337-MCO109564363762_042026-O.jpg",
+          "meli_id": "MCO1910972470",
           "cat": "Emulsionantes y Surfactantes",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -6601,8 +6595,8 @@
           "precio_num": 40372.25,
           "lista_num": 48350.0,
           "ahorro": "$7.978",
-          "photo": "https://http2.mlstatic.com/D_718203-MCO72543735991_102023-O.jpg",
-          "meli_id": "MCO1253150838",
+          "photo": "https://http2.mlstatic.com/D_882595-MCO72652011799_112023-O.jpg",
+          "meli_id": "MCO595871453",
           "cat": "Emulsionantes y Surfactantes",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -7164,8 +7158,8 @@
           "precio_num": 80911.5,
           "lista_num": 96900.0,
           "ahorro": "$15.988",
-          "photo": "https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg",
-          "meli_id": "MCO585538997",
+          "photo": "",
+          "meli_id": "",
           "cat": "Humectantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -7277,8 +7271,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "name",
-          "photo_match_score": 72.5,
           "family_slug": "c-dpan85p120ml"
         },
         {
@@ -7291,8 +7283,8 @@
           "precio_num": 42167.5,
           "lista_num": 50500.0,
           "ahorro": "$8.332",
-          "photo": "https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg",
-          "meli_id": "MCO585538997",
+          "photo": "",
+          "meli_id": "",
           "cat": "Humectantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -7301,8 +7293,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-dpan50ml"
         },
         {
@@ -8460,8 +8450,8 @@
           "precio_num": 56780.0,
           "lista_num": 68000.0,
           "ahorro": "$11.220",
-          "photo": "https://http2.mlstatic.com/D_732429-MCO93631247688_102025-O.jpg",
-          "meli_id": "MCO943535271",
+          "photo": "https://http2.mlstatic.com/D_828307-MCO93968801913_102025-O.jpg",
+          "meli_id": "MCO899130581",
           "cat": "Sales Minerales",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -8470,8 +8460,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
+          "photo_match_type": "name",
+          "photo_match_score": 92.5,
           "family_slug": "c-citpotkg"
         },
         {
@@ -11605,8 +11595,8 @@
           "precio_num": 57531.5,
           "lista_num": 68900.0,
           "ahorro": "$11.368",
-          "photo": "https://http2.mlstatic.com/D_843624-MCO72374439286_102023-O.jpg",
-          "meli_id": "MCO982532236",
+          "photo": "https://http2.mlstatic.com/D_930045-MLA82361202594_022025-O.jpg",
+          "meli_id": "MCO991717213",
           "cat": "Excipientes",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -11795,133 +11785,6 @@
           "precio_num": 45925.0,
           "lista_num": 55000.0,
           "ahorro": "$9.075",
-          "photo": "https://http2.mlstatic.com/D_925139-MCO81453983183_122024-O.jpg",
-          "meli_id": "MCO1591252977",
-          "cat": "Conservantes",
-          "cat_color": "#143D36",
-          "desc": "",
-          "ficha": {
-            "titulo": "SHAROMIX  705",
-            "descripcion": "Sharomix 705 es un conservante cosmético que se utiliza para prolongar la vida útil de los productos de cuidado personal y cosméticos. Está compuesto por una mezcla de cuatro ingredientes: fenoxietanol, etilhexilglicerina, caprililglicol y ácido benzoico.",
-            "secciones": [
-              {
-                "titulo": "DESCRIPCIÓN",
-                "items": [
-                  "El fenoxietanol es un conservante eficaz contra bacterias y hongos, mientras que la etilhexilglicerina y el caprililglicol actúan como agentes acondicionadores de la piel y mejoradores de la textura. El ácido benzoico se utiliza como agente conservante y fungicida adicional.",
-                  "Sharomix 705 es compatible con una amplia variedad de formulaciones cosméticas y tiene una buena tolerancia en la piel. También se considera seguro para su uso en cosméticos y se ha evaluado de acuerdo con los estándares de seguridad de la UE y la FDA."
-                ]
-              },
-              {
-                "titulo": "BENEFICIOS",
-                "items": [
-                  "Tiene una amplia actividad antimicrobiana y puede proteger contra una amplia gama de microorganismos, incluyendo bacterias, hongos y levaduras.",
-                  "Es una mezcla estable que no afecta significativamente las propiedades físicas o químicas de los productos en los que se utiliza. También es compatible con una amplia gama de ingredientes y formulaciones.",
-                  "Es considerado seguro para su uso en productos cosméticos y de cuidado personal, siempre y cuando se utilice dentro de los límites de concentración recomendados.",
-                  "Ha demostrado ser efectivo en la prevención del crecimiento microbiano en productos cosméticos y de cuidado personal, lo que ayuda a prolongar su vida útil y a garantizar la seguridad del consumidor."
-                ]
-              },
-              {
-                "titulo": "RECOMENDACIONES",
-                "items": [
-                  "Se recomienda guardar el envase bien cerrado, en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación.",
-                  "Realice pruebas de compatibilidad: Es compatible con muchos ingredientes comunes en productos cosméticos y de cuidado personal, pero es importante realizar pruebas de compatibilidad antes de incorporarlo a una formulación para asegurarse de que no haya interacciones negativas.",
-                  "Realice pruebas de eficacia: Es importante realizar pruebas de eficacia del conservante en la formulación final para asegurarse de que cumpla con los requisitos de conservación y seguridad."
-                ]
-              },
-              {
-                "titulo": "DOSIFICACIÓN",
-                "items": [
-                  "0,5-2,0% en peso del producto final."
-                ]
-              },
-              {
-                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-                "items": [
-                  "Nota: El producto cumple con el estándar USP."
-                ]
-              }
-            ],
-            "identidad": [
-              [
-                "NOMBRE QUÍMICO",
-                "Mixture of 5-chloro-2-methyl-4-isothiazolin-3-one and 2-methyl-4-isothiazolin-3-one"
-              ],
-              [
-                "SINÓNIMOS",
-                "Fenoxietanol: etilenglicol monofenil éter, 2-fenoxietanol, 2-fenoxyethanol.\nEtilhexilglicerina: 2-etilhexilglicerol, 2-etilhexil glicerina.\nCaprililglicol: 1,2-octanodiol, 2-octanodiol, 1,2-caprilenglicol, 2-caprilenglicol.\nÁcido benzoico: benzoato de sodio, benzoato de calcio, ácido fenilcarboxílico."
-              ],
-              [
-                "CONCENTRACIÓN",
-                "99%"
-              ],
-              [
-                "COMPONENTES, #CAS & FÓRMULA",
-                "Fenoxietanol: 122-99-6, C8H10O2\nEtilhexilglicerina: 70445-33-9 C10H22O3\nCaprililglicol: 1117-86-8, C8H18O2\nÁcido benzoico: 65-85-0,  C7H6O2"
-              ],
-              [
-                "FECHA DE REVISIÓN",
-                "12 08 2024"
-              ]
-            ],
-            "propiedades": [
-              [
-                "Apariencia",
-                "Líquido claro, incoloro o amarillo pálido."
-              ],
-              [
-                "Peso molecular  (g/mol)",
-                "No aplica"
-              ],
-              [
-                "Solubilidad",
-                "Soluble en agua, glicerina, propilenglicol y etano."
-              ],
-              [
-                "pH",
-                "2.0-5.0"
-              ],
-              [
-                "Impurezas orgánicas volátiles",
-                "Cumple"
-              ]
-            ],
-            "microbiologia": [
-              [
-                "Recuento total de placa cfu/g",
-                "≤ 5000"
-              ],
-              [
-                "Hongos  y levaduras",
-                "≤ 5000"
-              ],
-              [
-                "E. Coli",
-                "Negativo"
-              ],
-              [
-                "Salmonella",
-                "Negativo/ 25 gr"
-              ]
-            ]
-          },
-          "solo_vitrina": false,
-          "buyable": true,
-          "is_combo": true,
-          "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
-          "family_slug": "c-sha705250ml"
-        },
-        {
-          "name": "SHAROMIX 705 500mL",
-          "ref": "C-SHA705500mL",
-          "rep_sku": "C-SHA705500mL",
-          "slug": "c-sha705500ml",
-          "precio": "$90.932",
-          "precio_meli": "$108.900",
-          "precio_num": 90931.5,
-          "lista_num": 108900.0,
-          "ahorro": "$17.968",
           "photo": "https://http2.mlstatic.com/D_627105-MCO72579221358_112023-O.jpg",
           "meli_id": "MCO592968863",
           "cat": "Conservantes",
@@ -12037,6 +11900,133 @@
           "precio_canal_label": "Lista",
           "photo_match_type": "family",
           "photo_match_score": 95.0,
+          "family_slug": "c-sha705250ml"
+        },
+        {
+          "name": "SHAROMIX 705 500mL",
+          "ref": "C-SHA705500mL",
+          "rep_sku": "C-SHA705500mL",
+          "slug": "c-sha705500ml",
+          "precio": "$90.932",
+          "precio_meli": "$108.900",
+          "precio_num": 90931.5,
+          "lista_num": 108900.0,
+          "ahorro": "$17.968",
+          "photo": "https://http2.mlstatic.com/D_619181-MCO89014936511_072025-O.jpg",
+          "meli_id": "MCO894908184",
+          "cat": "Conservantes",
+          "cat_color": "#143D36",
+          "desc": "",
+          "ficha": {
+            "titulo": "SHAROMIX  705",
+            "descripcion": "Sharomix 705 es un conservante cosmético que se utiliza para prolongar la vida útil de los productos de cuidado personal y cosméticos. Está compuesto por una mezcla de cuatro ingredientes: fenoxietanol, etilhexilglicerina, caprililglicol y ácido benzoico.",
+            "secciones": [
+              {
+                "titulo": "DESCRIPCIÓN",
+                "items": [
+                  "El fenoxietanol es un conservante eficaz contra bacterias y hongos, mientras que la etilhexilglicerina y el caprililglicol actúan como agentes acondicionadores de la piel y mejoradores de la textura. El ácido benzoico se utiliza como agente conservante y fungicida adicional.",
+                  "Sharomix 705 es compatible con una amplia variedad de formulaciones cosméticas y tiene una buena tolerancia en la piel. También se considera seguro para su uso en cosméticos y se ha evaluado de acuerdo con los estándares de seguridad de la UE y la FDA."
+                ]
+              },
+              {
+                "titulo": "BENEFICIOS",
+                "items": [
+                  "Tiene una amplia actividad antimicrobiana y puede proteger contra una amplia gama de microorganismos, incluyendo bacterias, hongos y levaduras.",
+                  "Es una mezcla estable que no afecta significativamente las propiedades físicas o químicas de los productos en los que se utiliza. También es compatible con una amplia gama de ingredientes y formulaciones.",
+                  "Es considerado seguro para su uso en productos cosméticos y de cuidado personal, siempre y cuando se utilice dentro de los límites de concentración recomendados.",
+                  "Ha demostrado ser efectivo en la prevención del crecimiento microbiano en productos cosméticos y de cuidado personal, lo que ayuda a prolongar su vida útil y a garantizar la seguridad del consumidor."
+                ]
+              },
+              {
+                "titulo": "RECOMENDACIONES",
+                "items": [
+                  "Se recomienda guardar el envase bien cerrado, en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación.",
+                  "Realice pruebas de compatibilidad: Es compatible con muchos ingredientes comunes en productos cosméticos y de cuidado personal, pero es importante realizar pruebas de compatibilidad antes de incorporarlo a una formulación para asegurarse de que no haya interacciones negativas.",
+                  "Realice pruebas de eficacia: Es importante realizar pruebas de eficacia del conservante en la formulación final para asegurarse de que cumpla con los requisitos de conservación y seguridad."
+                ]
+              },
+              {
+                "titulo": "DOSIFICACIÓN",
+                "items": [
+                  "0,5-2,0% en peso del producto final."
+                ]
+              },
+              {
+                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+                "items": [
+                  "Nota: El producto cumple con el estándar USP."
+                ]
+              }
+            ],
+            "identidad": [
+              [
+                "NOMBRE QUÍMICO",
+                "Mixture of 5-chloro-2-methyl-4-isothiazolin-3-one and 2-methyl-4-isothiazolin-3-one"
+              ],
+              [
+                "SINÓNIMOS",
+                "Fenoxietanol: etilenglicol monofenil éter, 2-fenoxietanol, 2-fenoxyethanol.\nEtilhexilglicerina: 2-etilhexilglicerol, 2-etilhexil glicerina.\nCaprililglicol: 1,2-octanodiol, 2-octanodiol, 1,2-caprilenglicol, 2-caprilenglicol.\nÁcido benzoico: benzoato de sodio, benzoato de calcio, ácido fenilcarboxílico."
+              ],
+              [
+                "CONCENTRACIÓN",
+                "99%"
+              ],
+              [
+                "COMPONENTES, #CAS & FÓRMULA",
+                "Fenoxietanol: 122-99-6, C8H10O2\nEtilhexilglicerina: 70445-33-9 C10H22O3\nCaprililglicol: 1117-86-8, C8H18O2\nÁcido benzoico: 65-85-0,  C7H6O2"
+              ],
+              [
+                "FECHA DE REVISIÓN",
+                "12 08 2024"
+              ]
+            ],
+            "propiedades": [
+              [
+                "Apariencia",
+                "Líquido claro, incoloro o amarillo pálido."
+              ],
+              [
+                "Peso molecular  (g/mol)",
+                "No aplica"
+              ],
+              [
+                "Solubilidad",
+                "Soluble en agua, glicerina, propilenglicol y etano."
+              ],
+              [
+                "pH",
+                "2.0-5.0"
+              ],
+              [
+                "Impurezas orgánicas volátiles",
+                "Cumple"
+              ]
+            ],
+            "microbiologia": [
+              [
+                "Recuento total de placa cfu/g",
+                "≤ 5000"
+              ],
+              [
+                "Hongos  y levaduras",
+                "≤ 5000"
+              ],
+              [
+                "E. Coli",
+                "Negativo"
+              ],
+              [
+                "Salmonella",
+                "Negativo/ 25 gr"
+              ]
+            ]
+          },
+          "solo_vitrina": false,
+          "buyable": true,
+          "is_combo": true,
+          "precio_canal_label": "Lista",
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-sha705500ml"
         },
         {
@@ -12703,8 +12693,8 @@
           "precio_num": 15197.0,
           "lista_num": 18200.0,
           "ahorro": "$3.003",
-          "photo": "https://http2.mlstatic.com/D_718203-MCO72543735991_102023-O.jpg",
-          "meli_id": "MCO1253150838",
+          "photo": "",
+          "meli_id": "",
           "cat": "Edulcorantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -12713,8 +12703,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "name",
-          "photo_match_score": 84.2,
           "family_slug": "c-cretar500g"
         },
         {
@@ -13951,8 +13939,8 @@
           "precio_num": 24966.5,
           "lista_num": 29900.0,
           "ahorro": "$4.934",
-          "photo": "",
-          "meli_id": "",
+          "photo": "https://http2.mlstatic.com/D_726059-MCO88716954398_072025-O.jpg",
+          "meli_id": "MCO607698764",
           "cat": "Principios Activos",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -13961,6 +13949,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-gussed30ml"
         },
         {
@@ -15710,8 +15700,8 @@
       "precio_num": 40372.25,
       "lista_num": 48350.0,
       "ahorro": "$7.978",
-      "photo": "https://http2.mlstatic.com/D_718203-MCO72543735991_102023-O.jpg",
-      "meli_id": "MCO1253150838",
+      "photo": "https://http2.mlstatic.com/D_882595-MCO72652011799_112023-O.jpg",
+      "meli_id": "MCO595871453",
       "cat": "Emulsionantes y Surfactantes",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -16158,8 +16148,8 @@
       "precio_num": 22127.5,
       "lista_num": 26500.0,
       "ahorro": "$4.372",
-      "photo": "https://http2.mlstatic.com/D_617187-MCO110751068797_042026-O.jpg",
-      "meli_id": "MCO1910946156",
+      "photo": "https://http2.mlstatic.com/D_944337-MCO109564363762_042026-O.jpg",
+      "meli_id": "MCO1910972470",
       "cat": "Emulsionantes y Surfactantes",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -16516,133 +16506,6 @@
       "precio_num": 45925.0,
       "lista_num": 55000.0,
       "ahorro": "$9.075",
-      "photo": "https://http2.mlstatic.com/D_925139-MCO81453983183_122024-O.jpg",
-      "meli_id": "MCO1591252977",
-      "cat": "Conservantes",
-      "cat_color": "#143D36",
-      "desc": "",
-      "ficha": {
-        "titulo": "SHAROMIX  705",
-        "descripcion": "Sharomix 705 es un conservante cosmético que se utiliza para prolongar la vida útil de los productos de cuidado personal y cosméticos. Está compuesto por una mezcla de cuatro ingredientes: fenoxietanol, etilhexilglicerina, caprililglicol y ácido benzoico.",
-        "secciones": [
-          {
-            "titulo": "DESCRIPCIÓN",
-            "items": [
-              "El fenoxietanol es un conservante eficaz contra bacterias y hongos, mientras que la etilhexilglicerina y el caprililglicol actúan como agentes acondicionadores de la piel y mejoradores de la textura. El ácido benzoico se utiliza como agente conservante y fungicida adicional.",
-              "Sharomix 705 es compatible con una amplia variedad de formulaciones cosméticas y tiene una buena tolerancia en la piel. También se considera seguro para su uso en cosméticos y se ha evaluado de acuerdo con los estándares de seguridad de la UE y la FDA."
-            ]
-          },
-          {
-            "titulo": "BENEFICIOS",
-            "items": [
-              "Tiene una amplia actividad antimicrobiana y puede proteger contra una amplia gama de microorganismos, incluyendo bacterias, hongos y levaduras.",
-              "Es una mezcla estable que no afecta significativamente las propiedades físicas o químicas de los productos en los que se utiliza. También es compatible con una amplia gama de ingredientes y formulaciones.",
-              "Es considerado seguro para su uso en productos cosméticos y de cuidado personal, siempre y cuando se utilice dentro de los límites de concentración recomendados.",
-              "Ha demostrado ser efectivo en la prevención del crecimiento microbiano en productos cosméticos y de cuidado personal, lo que ayuda a prolongar su vida útil y a garantizar la seguridad del consumidor."
-            ]
-          },
-          {
-            "titulo": "RECOMENDACIONES",
-            "items": [
-              "Se recomienda guardar el envase bien cerrado, en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación.",
-              "Realice pruebas de compatibilidad: Es compatible con muchos ingredientes comunes en productos cosméticos y de cuidado personal, pero es importante realizar pruebas de compatibilidad antes de incorporarlo a una formulación para asegurarse de que no haya interacciones negativas.",
-              "Realice pruebas de eficacia: Es importante realizar pruebas de eficacia del conservante en la formulación final para asegurarse de que cumpla con los requisitos de conservación y seguridad."
-            ]
-          },
-          {
-            "titulo": "DOSIFICACIÓN",
-            "items": [
-              "0,5-2,0% en peso del producto final."
-            ]
-          },
-          {
-            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-            "items": [
-              "Nota: El producto cumple con el estándar USP."
-            ]
-          }
-        ],
-        "identidad": [
-          [
-            "NOMBRE QUÍMICO",
-            "Mixture of 5-chloro-2-methyl-4-isothiazolin-3-one and 2-methyl-4-isothiazolin-3-one"
-          ],
-          [
-            "SINÓNIMOS",
-            "Fenoxietanol: etilenglicol monofenil éter, 2-fenoxietanol, 2-fenoxyethanol.\nEtilhexilglicerina: 2-etilhexilglicerol, 2-etilhexil glicerina.\nCaprililglicol: 1,2-octanodiol, 2-octanodiol, 1,2-caprilenglicol, 2-caprilenglicol.\nÁcido benzoico: benzoato de sodio, benzoato de calcio, ácido fenilcarboxílico."
-          ],
-          [
-            "CONCENTRACIÓN",
-            "99%"
-          ],
-          [
-            "COMPONENTES, #CAS & FÓRMULA",
-            "Fenoxietanol: 122-99-6, C8H10O2\nEtilhexilglicerina: 70445-33-9 C10H22O3\nCaprililglicol: 1117-86-8, C8H18O2\nÁcido benzoico: 65-85-0,  C7H6O2"
-          ],
-          [
-            "FECHA DE REVISIÓN",
-            "12 08 2024"
-          ]
-        ],
-        "propiedades": [
-          [
-            "Apariencia",
-            "Líquido claro, incoloro o amarillo pálido."
-          ],
-          [
-            "Peso molecular  (g/mol)",
-            "No aplica"
-          ],
-          [
-            "Solubilidad",
-            "Soluble en agua, glicerina, propilenglicol y etano."
-          ],
-          [
-            "pH",
-            "2.0-5.0"
-          ],
-          [
-            "Impurezas orgánicas volátiles",
-            "Cumple"
-          ]
-        ],
-        "microbiologia": [
-          [
-            "Recuento total de placa cfu/g",
-            "≤ 5000"
-          ],
-          [
-            "Hongos  y levaduras",
-            "≤ 5000"
-          ],
-          [
-            "E. Coli",
-            "Negativo"
-          ],
-          [
-            "Salmonella",
-            "Negativo/ 25 gr"
-          ]
-        ]
-      },
-      "solo_vitrina": false,
-      "buyable": true,
-      "is_combo": true,
-      "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
-      "family_slug": "c-sha705250ml"
-    },
-    {
-      "name": "SHAROMIX 705 500mL",
-      "ref": "C-SHA705500mL",
-      "rep_sku": "C-SHA705500mL",
-      "slug": "c-sha705500ml",
-      "precio": "$90.932",
-      "precio_meli": "$108.900",
-      "precio_num": 90931.5,
-      "lista_num": 108900.0,
-      "ahorro": "$17.968",
       "photo": "https://http2.mlstatic.com/D_627105-MCO72579221358_112023-O.jpg",
       "meli_id": "MCO592968863",
       "cat": "Conservantes",
@@ -16758,6 +16621,133 @@
       "precio_canal_label": "Lista",
       "photo_match_type": "family",
       "photo_match_score": 95.0,
+      "family_slug": "c-sha705250ml"
+    },
+    {
+      "name": "SHAROMIX 705 500mL",
+      "ref": "C-SHA705500mL",
+      "rep_sku": "C-SHA705500mL",
+      "slug": "c-sha705500ml",
+      "precio": "$90.932",
+      "precio_meli": "$108.900",
+      "precio_num": 90931.5,
+      "lista_num": 108900.0,
+      "ahorro": "$17.968",
+      "photo": "https://http2.mlstatic.com/D_619181-MCO89014936511_072025-O.jpg",
+      "meli_id": "MCO894908184",
+      "cat": "Conservantes",
+      "cat_color": "#143D36",
+      "desc": "",
+      "ficha": {
+        "titulo": "SHAROMIX  705",
+        "descripcion": "Sharomix 705 es un conservante cosmético que se utiliza para prolongar la vida útil de los productos de cuidado personal y cosméticos. Está compuesto por una mezcla de cuatro ingredientes: fenoxietanol, etilhexilglicerina, caprililglicol y ácido benzoico.",
+        "secciones": [
+          {
+            "titulo": "DESCRIPCIÓN",
+            "items": [
+              "El fenoxietanol es un conservante eficaz contra bacterias y hongos, mientras que la etilhexilglicerina y el caprililglicol actúan como agentes acondicionadores de la piel y mejoradores de la textura. El ácido benzoico se utiliza como agente conservante y fungicida adicional.",
+              "Sharomix 705 es compatible con una amplia variedad de formulaciones cosméticas y tiene una buena tolerancia en la piel. También se considera seguro para su uso en cosméticos y se ha evaluado de acuerdo con los estándares de seguridad de la UE y la FDA."
+            ]
+          },
+          {
+            "titulo": "BENEFICIOS",
+            "items": [
+              "Tiene una amplia actividad antimicrobiana y puede proteger contra una amplia gama de microorganismos, incluyendo bacterias, hongos y levaduras.",
+              "Es una mezcla estable que no afecta significativamente las propiedades físicas o químicas de los productos en los que se utiliza. También es compatible con una amplia gama de ingredientes y formulaciones.",
+              "Es considerado seguro para su uso en productos cosméticos y de cuidado personal, siempre y cuando se utilice dentro de los límites de concentración recomendados.",
+              "Ha demostrado ser efectivo en la prevención del crecimiento microbiano en productos cosméticos y de cuidado personal, lo que ayuda a prolongar su vida útil y a garantizar la seguridad del consumidor."
+            ]
+          },
+          {
+            "titulo": "RECOMENDACIONES",
+            "items": [
+              "Se recomienda guardar el envase bien cerrado, en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación.",
+              "Realice pruebas de compatibilidad: Es compatible con muchos ingredientes comunes en productos cosméticos y de cuidado personal, pero es importante realizar pruebas de compatibilidad antes de incorporarlo a una formulación para asegurarse de que no haya interacciones negativas.",
+              "Realice pruebas de eficacia: Es importante realizar pruebas de eficacia del conservante en la formulación final para asegurarse de que cumpla con los requisitos de conservación y seguridad."
+            ]
+          },
+          {
+            "titulo": "DOSIFICACIÓN",
+            "items": [
+              "0,5-2,0% en peso del producto final."
+            ]
+          },
+          {
+            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+            "items": [
+              "Nota: El producto cumple con el estándar USP."
+            ]
+          }
+        ],
+        "identidad": [
+          [
+            "NOMBRE QUÍMICO",
+            "Mixture of 5-chloro-2-methyl-4-isothiazolin-3-one and 2-methyl-4-isothiazolin-3-one"
+          ],
+          [
+            "SINÓNIMOS",
+            "Fenoxietanol: etilenglicol monofenil éter, 2-fenoxietanol, 2-fenoxyethanol.\nEtilhexilglicerina: 2-etilhexilglicerol, 2-etilhexil glicerina.\nCaprililglicol: 1,2-octanodiol, 2-octanodiol, 1,2-caprilenglicol, 2-caprilenglicol.\nÁcido benzoico: benzoato de sodio, benzoato de calcio, ácido fenilcarboxílico."
+          ],
+          [
+            "CONCENTRACIÓN",
+            "99%"
+          ],
+          [
+            "COMPONENTES, #CAS & FÓRMULA",
+            "Fenoxietanol: 122-99-6, C8H10O2\nEtilhexilglicerina: 70445-33-9 C10H22O3\nCaprililglicol: 1117-86-8, C8H18O2\nÁcido benzoico: 65-85-0,  C7H6O2"
+          ],
+          [
+            "FECHA DE REVISIÓN",
+            "12 08 2024"
+          ]
+        ],
+        "propiedades": [
+          [
+            "Apariencia",
+            "Líquido claro, incoloro o amarillo pálido."
+          ],
+          [
+            "Peso molecular  (g/mol)",
+            "No aplica"
+          ],
+          [
+            "Solubilidad",
+            "Soluble en agua, glicerina, propilenglicol y etano."
+          ],
+          [
+            "pH",
+            "2.0-5.0"
+          ],
+          [
+            "Impurezas orgánicas volátiles",
+            "Cumple"
+          ]
+        ],
+        "microbiologia": [
+          [
+            "Recuento total de placa cfu/g",
+            "≤ 5000"
+          ],
+          [
+            "Hongos  y levaduras",
+            "≤ 5000"
+          ],
+          [
+            "E. Coli",
+            "Negativo"
+          ],
+          [
+            "Salmonella",
+            "Negativo/ 25 gr"
+          ]
+        ]
+      },
+      "solo_vitrina": false,
+      "buyable": true,
+      "is_combo": true,
+      "precio_canal_label": "Lista",
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-sha705500ml"
     },
     {
@@ -17569,8 +17559,8 @@
       "precio_num": 80911.5,
       "lista_num": 96900.0,
       "ahorro": "$15.988",
-      "photo": "https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg",
-      "meli_id": "MCO585538997",
+      "photo": "",
+      "meli_id": "",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -17682,8 +17672,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "name",
-      "photo_match_score": 72.5,
       "family_slug": "c-dpan85p120ml"
     },
     {
@@ -19320,8 +19308,8 @@
       "precio_num": 15197.0,
       "lista_num": 18200.0,
       "ahorro": "$3.003",
-      "photo": "https://http2.mlstatic.com/D_718203-MCO72543735991_102023-O.jpg",
-      "meli_id": "MCO1253150838",
+      "photo": "",
+      "meli_id": "",
       "cat": "Edulcorantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -19330,8 +19318,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "name",
-      "photo_match_score": 84.2,
       "family_slug": "c-cretar500g"
     },
     {
@@ -20931,8 +20917,8 @@
       "precio_num": 24966.5,
       "lista_num": 29900.0,
       "ahorro": "$4.934",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_726059-MCO88716954398_072025-O.jpg",
+      "meli_id": "MCO607698764",
       "cat": "Principios Activos",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -20941,6 +20927,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-gussed30ml"
     },
     {
@@ -21874,8 +21862,8 @@
       "precio_num": 17117.5,
       "lista_num": 20500.0,
       "ahorro": "$3.382",
-      "photo": "",
-      "meli_id": "",
+      "photo": "https://http2.mlstatic.com/D_888663-MCO93552645844_102025-O.jpg",
+      "meli_id": "MCO587471185",
       "cat": "Ácidos",
       "cat_color": "#143D36",
       "desc": "",
@@ -21992,6 +21980,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-acdlac85p30ml"
     },
     {
@@ -23149,8 +23139,8 @@
       "precio_num": 42167.5,
       "lista_num": 50500.0,
       "ahorro": "$8.332",
-      "photo": "https://http2.mlstatic.com/D_789216-MCO71716080110_092023-O.jpg",
-      "meli_id": "MCO585538997",
+      "photo": "",
+      "meli_id": "",
       "cat": "Humectantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -23159,8 +23149,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-dpan50ml"
     },
     {
@@ -27331,8 +27319,8 @@
       "precio_num": 57531.5,
       "lista_num": 68900.0,
       "ahorro": "$11.368",
-      "photo": "https://http2.mlstatic.com/D_843624-MCO72374439286_102023-O.jpg",
-      "meli_id": "MCO982532236",
+      "photo": "https://http2.mlstatic.com/D_930045-MLA82361202594_022025-O.jpg",
+      "meli_id": "MCO991717213",
       "cat": "Excipientes",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -28646,8 +28634,8 @@
       "precio_num": 16115.5,
       "lista_num": 19300.0,
       "ahorro": "$3.184",
-      "photo": "https://http2.mlstatic.com/D_999931-MLA99415098040_112025-O.jpg",
-      "meli_id": "MCO3924456518",
+      "photo": "",
+      "meli_id": "",
       "cat": "Emulsionantes y Surfactantes",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -28757,8 +28745,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-cocprobet500ml"
     },
     {
@@ -29422,8 +29408,8 @@
       "precio_num": 56780.0,
       "lista_num": 68000.0,
       "ahorro": "$11.220",
-      "photo": "https://http2.mlstatic.com/D_732429-MCO93631247688_102025-O.jpg",
-      "meli_id": "MCO943535271",
+      "photo": "https://http2.mlstatic.com/D_828307-MCO93968801913_102025-O.jpg",
+      "meli_id": "MCO899130581",
       "cat": "Sales Minerales",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -29432,8 +29418,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "name",
+      "photo_match_score": 92.5,
       "family_slug": "c-citpotkg"
     },
     {
@@ -29590,8 +29576,8 @@
       "precio_num": 20708.0,
       "lista_num": 24800.0,
       "ahorro": "$4.092",
-      "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
-      "meli_id": "MCO1636834856",
+      "photo": "",
+      "meli_id": "",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -29600,8 +29586,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "family",
-      "photo_match_score": 95.0,
       "family_slug": "c-aceric500ml"
     },
     {
@@ -29614,8 +29598,8 @@
       "precio_num": 12107.5,
       "lista_num": 14500.0,
       "ahorro": "$2.392",
-      "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
-      "meli_id": "MCO1636834856",
+      "photo": "",
+      "meli_id": "",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -29624,8 +29608,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-aceric250ml"
     },
     {
@@ -29638,8 +29620,8 @@
       "precio_num": 8684.0,
       "lista_num": 10400.0,
       "ahorro": "$1.716",
-      "photo": "https://http2.mlstatic.com/D_883525-MCO72652014203_112023-O.jpg",
-      "meli_id": "MCO1636834856",
+      "photo": "",
+      "meli_id": "",
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -29648,8 +29630,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "family",
-      "photo_match_score": 95.0,
       "family_slug": "c-aceric10ml"
     }
   ],
