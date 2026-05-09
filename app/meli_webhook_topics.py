@@ -34,18 +34,43 @@ def meli_webhook_question_id_desde_resource(resource: str) -> str:
     return r.split("/")[-1]
 
 
+# Acciones que típicamente no implican mensaje nuevo del comprador (solo estado de entrega/lectura).
+_PASSIVE_MESSAGE_WEBHOOK_ACTIONS = frozenset(
+    {"read", "delivered", "seen", "viewed", "opened"}
+)
+
+
 def meli_webhook_ignorar_messages_sin_created(data: dict | None) -> bool:
     """
-    Notificaciones topic messages a veces traen actions=['read'] (lectura), sin mensaje nuevo.
-    Si MeLi envía lista de actions y no incluye 'created', no hay contenido nuevo que alertar.
-    Si no hay campo actions (integraciones viejas), no ignorar.
+    Notificaciones topic messages a veces traen solo actions de lectura/entrega — sin mensaje nuevo.
+    Antes se exigía el string exacto "created"; MeLi/Nuevo formato puede usar otros nombres
+    (p. ej. variantes con "creat"), y entonces se ignoraban todas → cero alerta WhatsApp.
+
+    Si no hay campo `actions` (integraciones viejas), no ignorar.
+
+    Regla: ignorar solo si todas las actions son "pasivas" conocidas. Cualquier otra cosa
+    o subcadena "creat" → no ignorar (procesar postventa).
     """
     if not isinstance(data, dict):
         return False
     actions = data.get("actions")
     if not isinstance(actions, list) or len(actions) == 0:
         return False
-    return "created" not in actions
+    partes: list[str] = []
+    for a in actions:
+        if a is None:
+            continue
+        s = str(a).strip().lower()
+        if s:
+            partes.append(s)
+    if not partes:
+        return False
+    for s in partes:
+        if "creat" in s:
+            return False
+        if s not in _PASSIVE_MESSAGE_WEBHOOK_ACTIONS:
+            return False
+    return True
 
 
 def meli_webhook_evaluar_despacho(

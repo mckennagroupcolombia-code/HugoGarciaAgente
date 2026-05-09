@@ -7,7 +7,10 @@ from datetime import datetime, timedelta
 # --- Importaciones de Servicios y Utilidades Modulares ---
 from app.services.siigo import (
     obtener_facturas_siigo_paginadas,
-    descargar_factura_pdf_siigo,
+    siigo_factura_etiqueta_log,
+    siigo_factura_estado_log,
+    siigo_omitir_pdf_mientras_timbrado,
+    obtener_documento_fiscal_siigo_para_meli,
 )
 from app.services.meli import subir_factura_meli
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte, jid_grupo_inventario_wa
@@ -88,10 +91,25 @@ def sincronizar_facturas_recientes(dias: int = 1):
             match = re.search(r"\d{12,20}", texto)
             if match:
                 p_id = match.group()
-                pdf = descargar_factura_pdf_siigo(f.get("id"))
-                if "❌" not in pdf and pdf and "✅" in subir_factura_meli(p_id, pdf):
+                if siigo_omitir_pdf_mientras_timbrado(f):
+                    print(
+                        f"   └──> ⏭️ PDF omitido (timbrado: {siigo_factura_estado_log(f)}): "
+                        f"{siigo_factura_etiqueta_log(f)}"
+                    )
+                    continue
+                doc, fmt = obtener_documento_fiscal_siigo_para_meli(f.get("id"))
+                if (
+                    doc
+                    and "✅" in subir_factura_meli(p_id, doc, formato=fmt)
+                ):
                     exitos += 1
-                    print(f"   └──> ✅ Sincronizado Pack ID: {p_id}")
+                    suf = " (XML DIAN)" if fmt == "xml" else ""
+                    print(f"   └──> ✅ Sincronizado Pack ID: {p_id}{suf}")
+                elif not doc:
+                    print(
+                        f"   └──> ⚠️ Sin documento Siigo (PDF/XML) Pack {p_id} "
+                        f"({siigo_factura_etiqueta_log(f)} est={siigo_factura_estado_log(f)})"
+                    )
         return f"✅ Revisión terminada. Se subieron {exitos} facturas."
     except Exception as e:
         return f"❌ Error crítico en sync reciente: {e}"
@@ -116,10 +134,25 @@ def sincronizar_por_dia_especifico(fecha_consulta: str):
             match = re.search(r"\d{12,20}", texto)
             if match:
                 p_id = match.group()
-                pdf = descargar_factura_pdf_siigo(f.get("id"))
-                if "❌" not in pdf and pdf and "✅" in subir_factura_meli(p_id, pdf):
+                if siigo_omitir_pdf_mientras_timbrado(f):
+                    print(
+                        f"   └──> ⏭️ PDF omitido (timbrado: {siigo_factura_estado_log(f)}): "
+                        f"{siigo_factura_etiqueta_log(f)}"
+                    )
+                    continue
+                doc, fmt = obtener_documento_fiscal_siigo_para_meli(f.get("id"))
+                if (
+                    doc
+                    and "✅" in subir_factura_meli(p_id, doc, formato=fmt)
+                ):
                     exitos += 1
-                    print(f"   └──> ✅ Sincronizado Pack ID: {p_id}")
+                    suf = " (XML DIAN)" if fmt == "xml" else ""
+                    print(f"   └──> ✅ Sincronizado Pack ID: {p_id}{suf}")
+                elif not doc:
+                    print(
+                        f"   └──> ⚠️ Sin documento Siigo (PDF/XML) Pack {p_id} "
+                        f"({siigo_factura_etiqueta_log(f)} est={siigo_factura_estado_log(f)})"
+                    )
         return f"✅ Fin del proceso para {fecha_consulta}. Facturas subidas: {exitos}"
     except Exception as e:
         return f"❌ Error crítico en sync por día: {e}"
@@ -141,13 +174,20 @@ def sincronizar_manual_por_id(pack_id: str):
                 print(
                     f"✨ ¡Coincidencia encontrada! Factura Siigo ID: {fac.get('id')}. Procediendo a subir..."
                 )
-                pdf = descargar_factura_pdf_siigo(fac.get("id"))
-                if "❌" not in pdf and pdf:
+                if siigo_omitir_pdf_mientras_timbrado(fac):
                     return (
-                        f"🚀 Resultado de la subida: {subir_factura_meli(pack_id, pdf)}"
+                        f"⏭️ La factura está en timbrado ({siigo_factura_estado_log(fac)}). "
+                        f"No se puede obtener PDF todavía; reintente cuando esté Accepted en Siigo."
+                    )
+                doc, fmt = obtener_documento_fiscal_siigo_para_meli(fac.get("id"))
+                if doc:
+                    return (
+                        f"🚀 Resultado de la subida: "
+                        f"{subir_factura_meli(pack_id, doc, formato=fmt)}"
+                        + (" (XML DIAN)" if fmt == "xml" else "")
                     )
                 else:
-                    return f"❌ Se encontró la factura pero no se pudo descargar el PDF de Siigo."
+                    return f"❌ Se encontró la factura pero no se pudo descargar PDF ni XML de Siigo."
         return "❌ No se encontró una factura en los últimos 90 días con ese Pack ID."
     except Exception as e:
         return f"❌ Error crítico en sync manual: {e}"
@@ -200,17 +240,31 @@ def sincronizar_inteligente():
                     p_id
                     in f"{fac.get('observations', '')} {fac.get('purchase_order', '')}"
                 ):
-                    pdf = descargar_factura_pdf_siigo(fac.get("id"))
-                    if (
-                        "❌" not in pdf
-                        and pdf
-                        and "✅" in subir_factura_meli(p_id, pdf)
-                    ):
-                        print(f"   └──> ✅ Sincronizada factura para Pack ID: {p_id}")
-                        exitosas.append(p_id)
                     encontrada = True
+                    if siigo_omitir_pdf_mientras_timbrado(fac):
+                        print(
+                            f"   └──> ⏭️ PDF omitido Pack {p_id} "
+                            f"(timbrado: {siigo_factura_estado_log(fac)}): "
+                            f"{siigo_factura_etiqueta_log(fac)}"
+                        )
+                        break
+                    doc, fmt = obtener_documento_fiscal_siigo_para_meli(fac.get("id"))
+                    if (
+                        doc
+                        and "✅" in subir_factura_meli(p_id, doc, formato=fmt)
+                    ):
+                        suf = " (XML DIAN)" if fmt == "xml" else ""
+                        print(f"   └──> ✅ Sincronizada factura para Pack ID: {p_id}{suf}")
+                        exitosas.append(p_id)
+                    elif not doc:
+                        print(
+                            f"   └──> ⚠️ Sin documento Siigo (PDF/XML) Pack {p_id} "
+                            f"({siigo_factura_etiqueta_log(fac)} est={siigo_factura_estado_log(fac)})"
+                        )
                     break
             if not encontrada:
+                faltantes.append(p_id)
+            elif p_id not in exitosas:
                 faltantes.append(p_id)
 
         if faltantes:

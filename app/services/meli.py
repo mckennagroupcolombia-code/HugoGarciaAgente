@@ -64,18 +64,24 @@ def consultar_detalle_venta_meli(pack_id: str):
     except requests.RequestException as e:
         return f"Error de red consultando detalle de venta en Meli: {e}"
 
-def subir_factura_meli(pack_id, pdf_base64):
+def subir_factura_meli(pack_id, documento_base64, formato: str = "pdf"):
     """
-    Sube un archivo de factura en formato PDF (codificado en base64) 
-    a una orden específica en Mercado Libre.
+    Sube documento fiscal al pack en Mercado Libre (Colombia: PDF y/o XML DIAN).
+    formato: \"pdf\" (default) o \"xml\" — ver docs MeLi `fiscal_documents`.
     """
     try:
         token = refrescar_token_meli()
         if not token:
             return "❌ Error: No se pudo obtener el token de Mercado Libre para la subida."
 
+        fmt = (formato or "pdf").strip().lower()
+        if fmt == "xml":
+            mime, ext = "application/xml", "xml"
+        else:
+            mime, ext = "application/pdf", "pdf"
+
         # Limpieza del string base64
-        pdf_puro = str(pdf_base64).strip().replace("\n", "").replace("\r", "")
+        pdf_puro = str(documento_base64).strip().replace("\n", "").replace("\r", "")
         if "," in pdf_puro:
             pdf_puro = pdf_puro.split(",")[1]
         
@@ -83,7 +89,7 @@ def subir_factura_meli(pack_id, pdf_base64):
 
         url = f"https://api.mercadolibre.com/packs/{pack_id}/fiscal_documents"
         headers = {"Authorization": f"Bearer {token}"}
-        files = {'file': (f"Fac_{pack_id}.pdf", pdf_decodificado, 'application/pdf')}
+        files = {"file": (f"Fac_{pack_id}.{ext}", pdf_decodificado, mime)}
         
         res = requests.post(url, headers=headers, files=files, timeout=30)
         

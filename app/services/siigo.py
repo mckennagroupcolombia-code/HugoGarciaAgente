@@ -127,35 +127,191 @@ def obtener_facturas_siigo_paginadas(fecha_inicio):
             break
     return todas_las_facturas
 
+
+def _siigo_extraer_base64_pdf_respuesta(res: requests.Response) -> str | None:
+    """
+    Siigo puede devolver JSON {base64:...} o PDF binario según Accept.
+    """
+    ctype = (res.headers.get("Content-Type") or "").lower()
+    if "application/pdf" in ctype or "octet-stream" in ctype:
+        raw = res.content or b""
+        if len(raw) > 8:
+            return base64.b64encode(raw).decode("ascii")
+        return None
+    try:
+        data = res.json()
+    except ValueError:
+        return None
+    if isinstance(data, dict):
+        for key in ("base64", "file", "data", "pdf", "content", "document"):
+            v = data.get(key)
+            if isinstance(v, str) and len(v.strip()) > 50:
+                return v.strip()
+    return None
+
+
+def _siigo_prefetch_invoice_antes_pdf(id_factura: str, token: str) -> None:
+    """GET /invoices/{id}; a veces la API genera PDF estable tras refrescar el documento."""
+    try:
+        requests.get(
+            f"https://api.siigo.com/v1/invoices/{id_factura}",
+            headers={"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID},
+            timeout=15,
+        )
+    except Exception:
+        pass
+
+
 def descargar_factura_pdf_siigo(id_factura):
     """
     Descarga el PDF de una factura específica de Siigo en formato base64.
     """
+    id_factura = str(id_factura).strip()
     token = autenticar_siigo()
     if not token:
         return "❌ Error: No se pudo autenticar con Siigo."
 
-    puede_reintentar_auth = True
+    url = f"https://api.siigo.com/v1/invoices/{id_factura}/pdf"
+    ultimo_status = None
+    ultimo_cuerpo = ""
+    # Segundos de espera antes de cada oleada (0 = primera petición inmediata)
+    oleadas_sleep = [0, 2, 5, 10]
+
     try:
-        while True:
-            res = requests.get(
-                f"https://api.siigo.com/v1/invoices/{id_factura}/pdf",
-                headers={"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID},
-                timeout=15
-            )
-            if res.status_code == 200:
-                return res.json().get("base64", "")
-            if res.status_code == 401 and puede_reintentar_auth:
-                _invalidar_cache_token_siigo()
-                token = autenticar_siigo(forzar=True)
-                puede_reintentar_auth = False
-                if token:
-                    continue
-            print(f"⚠️ Error descargando PDF de Siigo (ID: {id_factura}): {res.status_code}")
-            return "❌ Error"
+        for oleada, espera in enumerate(oleadas_sleep):
+            if espera > 0:
+                _siigo_prefetch_invoice_antes_pdf(id_factura, token)
+                time.sleep(espera)
+
+            for accept in ("application/json", "application/pdf"):
+                puede_reintentar_auth = True
+                while True:
+                    _siigo_throttle_antes_pdf()
+                    res = requests.get(
+                        url,
+                        headers={
+                            "Authorization": f"Bearer {token}",
+                            "Partner-Id": PARTNER_ID,
+                            "Accept": accept,
+                        },
+                        timeout=45,
+                    )
+                    ultimo_status = res.status_code
+                    ultimo_cuerpo = (res.text or "")[:500]
+
+                    if res.status_code == 200:
+                        b64 = _siigo_extraer_base64_pdf_respuesta(res)
+                        if b64:
+                            return b64
+                        break
+
+                    if res.status_code == 401 and puede_reintentar_auth:
+                        _invalidar_cache_token_siigo()
+                        token = autenticar_siigo(forzar=True)
+                        puede_reintentar_auth = False
+                        if token:
+                            continue
+                    break
+
+            if ultimo_status not in (500, 502, 503, 504, None):
+                break
+
+        detalle = f" {ultimo_cuerpo}" if ultimo_cuerpo else ""
+        print(
+            f"⚠️ Error descargando PDF de Siigo (ID: {id_factura}): "
+            f"{ultimo_status}{detalle}"
+        )
+        return "❌ Error"
     except requests.RequestException as e:
         print(f"⚠️ Error de red descargando PDF de Siigo: {e}")
         return f"⚠️ Error: {e}"
+
+
+def descargar_xml_factura_siigo(id_factura: str) -> str:
+    """
+    GET /v1/invoices/{id}/xml — XML de factura electrónica (DIAN) en base64.
+    Documentación Siigo: alternativa cuando /pdf responde error.
+    """
+    id_factura = str(id_factura).strip()
+    token = autenticar_siigo()
+    if not token:
+        return "❌ Error: No se pudo autenticar con Siigo."
+
+    url = f"https://api.siigo.com/v1/invoices/{id_factura}/xml"
+    ultimo_status = None
+    ultimo_cuerpo = ""
+    oleadas_sleep = [0, 3]
+
+    try:
+        for espera in oleadas_sleep:
+            if espera > 0:
+                time.sleep(espera)
+            puede_reintentar_auth = True
+            while True:
+                _siigo_throttle_antes_pdf()
+                res = requests.get(
+                    url,
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Partner-Id": PARTNER_ID,
+                        "Accept": "application/json",
+                    },
+                    timeout=45,
+                )
+                ultimo_status = res.status_code
+                ultimo_cuerpo = (res.text or "")[:500]
+
+                if res.status_code == 200:
+                    try:
+                        data = res.json()
+                    except ValueError:
+                        break
+                    if isinstance(data, dict):
+                        b64 = data.get("base64")
+                        if isinstance(b64, str) and len(b64.strip()) > 50:
+                            return b64.strip()
+                    break
+
+                if res.status_code == 401 and puede_reintentar_auth:
+                    _invalidar_cache_token_siigo()
+                    token = autenticar_siigo(forzar=True)
+                    puede_reintentar_auth = False
+                    if token:
+                        continue
+                break
+
+            if ultimo_status not in (500, 502, 503, 504, None):
+                break
+
+        detalle = f" {ultimo_cuerpo}" if ultimo_cuerpo else ""
+        print(
+            f"⚠️ Error descargando XML de Siigo (ID: {id_factura}): "
+            f"{ultimo_status}{detalle}"
+        )
+        return "❌ Error"
+    except requests.RequestException as e:
+        print(f"⚠️ Error de red descargando XML de Siigo: {e}")
+        return f"⚠️ Error: {e}"
+
+
+def obtener_documento_fiscal_siigo_para_meli(id_factura: str) -> tuple[str, str]:
+    """
+    Preferencia: PDF para MeLi. Si GET /pdf falla (p. ej. 500), intenta XML DIAN (/xml),
+    que Mercado Libre Colombia acepta en fiscal_documents.
+    Devuelve (base64, \"pdf\"|\"xml\") o (\"\", \"\").
+    """
+    pdf = descargar_factura_pdf_siigo(id_factura)
+    if pdf and "❌" not in str(pdf) and not str(pdf).startswith("⚠️ Error"):
+        return pdf, "pdf"
+    xml = descargar_xml_factura_siigo(id_factura)
+    if xml and "❌" not in str(xml) and not str(xml).startswith("⚠️ Error"):
+        print(
+            f"ℹ️ [SIIGO] PDF no disponible por API; usando XML DIAN para MeLi "
+            f"({str(id_factura)[:13]}…)."
+        )
+        return xml, "xml"
+    return "", ""
+
 
 def crear_factura_compra_siigo(factura_data: dict):
     """
@@ -628,6 +784,53 @@ def _estado_factura_siigo(factura: dict) -> str:
     if isinstance(stamp, dict) and stamp.get("status"):
         return str(stamp.get("status"))
     return str(factura.get("state") or "Desconocido")
+
+
+# Evita ráfagas GET /pdf: Siigo a veces responde 500 bajo muchas peticiones seguidas.
+_last_siigo_pdf_req_at = 0.0
+_SIIGO_PDF_MIN_INTERVAL_S = 0.35
+
+
+def _siigo_throttle_antes_pdf() -> None:
+    global _last_siigo_pdf_req_at
+    ahora = time.time()
+    transcurrido = ahora - _last_siigo_pdf_req_at
+    if _last_siigo_pdf_req_at > 0 and transcurrido < _SIIGO_PDF_MIN_INTERVAL_S:
+        time.sleep(_SIIGO_PDF_MIN_INTERVAL_S - transcurrido)
+    _last_siigo_pdf_req_at = time.time()
+
+
+def siigo_factura_etiqueta_log(factura: dict) -> str:
+    """Nombre o número visible para logs (listado GET /v1/invoices)."""
+    if not isinstance(factura, dict):
+        return "?"
+    name = str(factura.get("name") or "").strip()
+    ds = factura.get("document_settings")
+    if not name and isinstance(ds, dict):
+        name = f"{ds.get('prefix') or ''}{ds.get('number') or ''}".strip()
+    if not name:
+        name = str(factura.get("id") or "?")[:12]
+    return name[:88]
+
+
+def siigo_omitir_pdf_mientras_timbrado(factura: dict) -> bool:
+    """
+    GET /v1/invoices/{id}/pdf suele devolver 500 si el timbrado DIAN aún no terminó
+    (borrador / enviando / pendiente).
+    """
+    est = (str(_estado_factura_siigo(factura) or "")).strip().lower()
+    return est in (
+        "draft",
+        "sending",
+        "pending",
+        "en proceso",
+        "processing",
+    )
+
+
+def siigo_factura_estado_log(factura: dict) -> str:
+    """Estado DIAN / documento (listado GET /v1/invoices)."""
+    return _estado_factura_siigo(factura)
 
 
 def _stamp_info_siigo(factura: dict) -> dict:
