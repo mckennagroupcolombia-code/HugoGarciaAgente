@@ -2161,12 +2161,16 @@ def register_routes(app):
 
         def _do_restart():
             print(f"🔄 Reiniciando {label}…")
+            # --no-block: no esperar a que el unit termine stop/start (p.ej. bridge WA >30s).
             r = _sp.run(
-                ["sudo", "systemctl", "restart", servicio],
-                capture_output=True, text=True, timeout=30,
+                ["sudo", "systemctl", "--no-block", "restart", servicio],
+                capture_output=True, text=True, timeout=15,
             )
             if r.returncode == 0:
-                print(f"✅ {label} reiniciado correctamente")
+                print(
+                    f"✅ Reinicio de {label} encolado en systemd "
+                    f"(sigue en segundo plano; el unit puede tardar 1–2 min)."
+                )
             else:
                 err = (r.stderr or r.stdout).strip()
                 print(f"❌ Error al reiniciar {label}: {err or '(sin detalle)'}")

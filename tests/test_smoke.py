@@ -55,6 +55,22 @@ def test_meli_webhook_dispatch_contracts() -> None:
     assert meli_webhook_evaluar_despacho(
         "messages",
         "/messages/packs/789",
+        {"topic": "messages", "actions": ["message_created"]},
+    ) == {
+        "tipo": "postventa",
+        "resource": "/messages/packs/789",
+        "topic": "messages",
+    }
+
+    assert meli_webhook_evaluar_despacho(
+        "messages",
+        "/messages/packs/789",
+        {"topic": "messages", "actions": ["read", "delivered"]},
+    )["tipo"] == "postventa_omitir_lectura"
+
+    assert meli_webhook_evaluar_despacho(
+        "messages",
+        "/messages/packs/789",
         {"topic": "messages", "actions": ["created"]},
     ) == {
         "tipo": "postventa",
