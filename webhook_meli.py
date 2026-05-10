@@ -297,6 +297,10 @@ def notifications():
             "preventa_sin_resource": "⚠️ [PREVENTA] resource vacío, ignorado.",
             "preventa_sin_question_id": "⚠️ [PREVENTA] resource sin id de pregunta, ignorado.",
             "orden_sin_resource": "⚠️ [MELI-ORDER] orders_v2 sin resource, ignorado.",
+            "orden_omitir_accion_pasiva": (
+                f"⏭️ [MELI-ORDER] Evento pasivo omitido. "
+                f"actions={data.get('actions')!r}"
+            ),
             "postventa_sin_resource": "⚠️ [POSVENTA] messages sin resource, ignorado.",
             "topic_no_manejado": f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).",
         }
