@@ -70,26 +70,32 @@ def subir_factura_meli(pack_id, documento_base64, formato: str = "pdf"):
     formato: \"pdf\" (default) o \"xml\" — ver docs MeLi `fiscal_documents`.
     """
     try:
-        token = refrescar_token_meli()
-        if not token:
-            return "❌ Error: No se pudo obtener el token de Mercado Libre para la subida."
-
         fmt = (formato or "pdf").strip().lower()
         if fmt == "xml":
             mime, ext = "application/xml", "xml"
         else:
+            fmt = "pdf"
             mime, ext = "application/pdf", "pdf"
 
         # Limpieza del string base64
         pdf_puro = str(documento_base64).strip().replace("\n", "").replace("\r", "")
         if "," in pdf_puro:
-            pdf_puro = pdf_puro.split(",")[1]
-        
-        pdf_decodificado = base64.b64decode(pdf_puro)
+            pdf_puro = pdf_puro.split(",", 1)[1]
+
+        padding = "=" * (-len(pdf_puro) % 4)
+        pdf_decodificado = base64.b64decode(pdf_puro + padding, validate=True)
+        if not _documento_fiscal_meli_valido(pdf_decodificado, fmt):
+            return f"❌ Documento fiscal {fmt.upper()} vacío o inválido; no se subió a Mercado Libre."
+
+        token = refrescar_token_meli()
+        if not token:
+            return "❌ Error: No se pudo obtener el token de Mercado Libre para la subida."
 
         url = f"https://api.mercadolibre.com/packs/{pack_id}/fiscal_documents"
         headers = {"Authorization": f"Bearer {token}"}
-        files = {"file": (f"Fac_{pack_id}.{ext}", pdf_decodificado, mime)}
+        files = {
+            "fiscal_document": (f"Fac_{pack_id}.{ext}", pdf_decodificado, mime)
+        }
         
         res = requests.post(url, headers=headers, files=files, timeout=30)
         
@@ -102,6 +108,28 @@ def subir_factura_meli(pack_id, documento_base64, formato: str = "pdf"):
     except Exception as e:
         print(f"⚠️ Error crítico subiendo factura a Meli: {e}")
         return f"⚠️ Error: {e}"
+
+
+def _documento_fiscal_meli_valido(raw: bytes, formato: str) -> bool:
+    if not raw or len(raw.strip()) < 32:
+        return False
+    if formato == "xml":
+        inicio = raw.lstrip()[:256].lower()
+        if not inicio.startswith((b"<?xml", b"<attached", b"<invoice", b"<creditnote", b"<applicationresponse")):
+            return False
+        muestra = raw[:200000].lower()
+        return any(
+            tag in muestra
+            for tag in (
+                b"<invoice",
+                b":invoice",
+                b"<attacheddocument",
+                b":attacheddocument",
+                b"<creditnote",
+                b":creditnote",
+            )
+        )
+    return raw.lstrip().startswith(b"%PDF")
 
 def aprender_de_interacciones_meli():
     """Descarga preguntas recientes de MeLi, las resume con Gemini y las guarda como aprendizaje en ChromaDB."""

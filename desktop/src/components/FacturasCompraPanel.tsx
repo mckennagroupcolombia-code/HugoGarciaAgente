@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
@@ -28,6 +28,8 @@ interface ItemFactura {
   indice: number;
   nombre: string;
   codigo: string;
+  codigo_sugerido?: string;
+  codigo_manual?: boolean;
   cantidad_original: number;
   unidad_original: string;
   multiplicador: number;
@@ -39,7 +41,25 @@ interface ItemFactura {
   precio_neto: number;
   precio_proveedor: number;
   duplicado: boolean;
+  siigo_producto?: SiigoProducto | null;
   impuestos: Impuesto[];
+}
+
+interface SiigoProducto {
+  codigo: string;
+  nombre: string;
+  unidad: string;
+  activo: boolean;
+}
+
+interface CompraRegistradaSiigo {
+  id: string;
+  name: string;
+  nit: string;
+  fecha?: string;
+  valor?: number | null;
+  provider_invoice?: { prefix?: string; number?: string };
+  match?: { numero: boolean; fecha: boolean; valor: boolean };
 }
 
 interface FacturaDetalle {
@@ -54,6 +74,7 @@ interface FacturaDetalle {
   total_bruto: number;
   total_descuentos: number;
   total_neto: number;
+  compra_registrada_siigo?: CompraRegistradaSiigo | null;
   items: ItemFactura[];
   timestamp: string;
 }
@@ -150,6 +171,12 @@ function DetalleFactura({
 }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [agregarProveedor, setAgregarProveedor] = useState(false);
+  const [codigosManual, setCodigosManual] = useState<Record<string, string>>({});
+  const [checksCodigo, setChecksCodigo] = useState<Record<string, {
+    codigo: string;
+    duplicado: boolean;
+    siigo_producto: SiigoProducto | null;
+  }>>({});
   const { data: logData } = usePanelLogs(true);
   const clearLogs = useClearPanelLogs();
   const qc = useQueryClient();
@@ -160,19 +187,37 @@ function DetalleFactura({
     staleTime: 30_000,
   });
 
-  // Select all non-duplicate by default when data loads
   const [defaulted, setDefaulted] = useState(false);
-  if (detalle && !defaulted) {
-    setSelected(new Set(detalle.items.filter(i => !i.duplicado).map(i => i.indice)));
+  useEffect(() => {
+    if (!detalle || defaulted) return;
+    const initialCodes: Record<string, string> = {};
+    detalle.items.forEach((item) => {
+      initialCodes[String(item.indice)] = item.codigo;
+    });
+    setCodigosManual(initialCodes);
+    setSelected(
+      detalle.compra_registrada_siigo
+        ? new Set()
+        : new Set(detalle.items.filter(i => !i.duplicado).map(i => i.indice)),
+    );
     setDefaulted(true);
-  }
+  }, [detalle, defaulted]);
 
   const procesar = useMutation({
     mutationFn: () =>
       api.post(`/api/facturas/${sufijo}/procesar`, {
         indices: Array.from(selected),
         agregar_proveedor: agregarProveedor,
+        codigos_manual: codigosManual,
       }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["facturas-pendientes"] });
+      onDone();
+    },
+  });
+
+  const omitirDuplicada = useMutation({
+    mutationFn: () => api.post("/api/facturas/clasificar", { cmd: "skip", sufijo }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["facturas-pendientes"] });
       onDone();
@@ -197,6 +242,30 @@ function DetalleFactura({
   };
 
   const lines = logData?.lines ?? [];
+
+  const handleCodeChange = (idx: number, codigo: string) => {
+    setCodigosManual(prev => ({ ...prev, [String(idx)]: codigo }));
+    setChecksCodigo(prev => {
+      const next = { ...prev };
+      delete next[String(idx)];
+      return next;
+    });
+  };
+
+  const handleCodeCheck = (idx: number, result: {
+    codigo: string;
+    duplicado: boolean;
+    siigo_producto: SiigoProducto | null;
+  }) => {
+    setChecksCodigo(prev => ({ ...prev, [String(idx)]: result }));
+    if (result.duplicado) {
+      setSelected(prev => {
+        const next = new Set(prev);
+        next.delete(idx);
+        return next;
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -224,6 +293,11 @@ function DetalleFactura({
   const nuevos = detalle.items.filter(i => !i.duplicado).length;
   const duplicados = detalle.items.filter(i => i.duplicado).length;
   const selCount = selected.size;
+  const productosExistentes = detalle.items.filter(i => {
+    const check = checksCodigo[String(i.indice)];
+    return i.siigo_producto || check?.siigo_producto;
+  });
+  const facturaYaRegistrada = detalle.compra_registrada_siigo;
 
   return (
     <div className="flex flex-col gap-4" style={{ minHeight: 0 }}>
@@ -253,6 +327,52 @@ function DetalleFactura({
           </div>
         ))}
       </div>
+
+      {facturaYaRegistrada && (
+        <div className="shrink-0 rounded-xl border border-red-500/30 bg-red-500/10 p-3">
+          <p className="text-sm font-bold text-red-300">
+            Esta factura ya aparece registrada en SIIGO
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Documento SIIGO: <span className="font-mono text-ink">{facturaYaRegistrada.name || facturaYaRegistrada.id}</span>
+            {facturaYaRegistrada.fecha ? ` · Fecha ${facturaYaRegistrada.fecha}` : ""}
+            {facturaYaRegistrada.valor ? ` · Valor $${fmt(facturaYaRegistrada.valor)}` : ""}
+          </p>
+          <p className="mt-1 text-xs text-red-200">
+            Se bloquea inventariar para evitar duplicar la compra. Puedes omitirla de la cola.
+          </p>
+          <button
+            disabled={omitirDuplicada.isPending}
+            onClick={() => omitirDuplicada.mutate()}
+            className="mt-3 rounded-lg bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-300 hover:bg-red-500/25 transition disabled:opacity-40"
+          >
+            Omitir de pendientes
+          </button>
+        </div>
+      )}
+
+      {productosExistentes.length > 0 && (
+        <div className="shrink-0 rounded-xl border border-yellow-500/25 bg-yellow-500/5 p-3">
+          <p className="text-xs font-bold text-yellow-300">
+            Productos ya creados en SIIGO para {detalle.proveedor}
+          </p>
+          <div className="mt-2 grid gap-1 text-[11px] font-mono text-muted">
+            {productosExistentes.map(item => (
+              <div key={item.indice} className="grid gap-1 sm:grid-cols-[120px_1fr]">
+                <span className="text-yellow-300">
+                  {checksCodigo[String(item.indice)]?.siigo_producto?.codigo || item.siigo_producto?.codigo}
+                </span>
+                <span className="truncate">
+                  {checksCodigo[String(item.indice)]?.siigo_producto?.nombre || item.siigo_producto?.nombre || item.nombre}
+                  {(checksCodigo[String(item.indice)]?.siigo_producto?.unidad || item.siigo_producto?.unidad)
+                    ? ` · ${checksCodigo[String(item.indice)]?.siigo_producto?.unidad || item.siigo_producto?.unidad}`
+                    : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-4 min-h-0 flex-1">
         {/* Items table */}
@@ -292,8 +412,12 @@ function DetalleFactura({
               <ItemRow
                 key={item.indice}
                 item={item}
+                codigo={codigosManual[String(item.indice)] ?? item.codigo}
+                check={checksCodigo[String(item.indice)]}
                 checked={selected.has(item.indice)}
                 onToggle={() => toggleItem(item.indice)}
+                onCodeChange={(codigo) => handleCodeChange(item.indice, codigo)}
+                onCodeCheck={(result) => handleCodeCheck(item.indice, result)}
               />
             ))}
           </div>
@@ -301,7 +425,7 @@ function DetalleFactura({
           {/* Actions */}
           <div className="shrink-0 flex gap-3 pt-2 border-t border-border flex-wrap">
             <button
-              disabled={selCount === 0 || procesar.isPending}
+              disabled={Boolean(facturaYaRegistrada) || selCount === 0 || procesar.isPending}
               onClick={() => procesar.mutate()}
               className="flex-1 rounded-xl bg-emerald-500/15 px-4 py-2.5 text-sm font-bold text-emerald-400 hover:bg-emerald-500/30 transition disabled:opacity-40 flex items-center justify-center gap-2"
             >
@@ -338,19 +462,37 @@ function DetalleFactura({
 
 function ItemRow({
   item,
+  codigo,
+  check,
   checked,
   onToggle,
+  onCodeChange,
+  onCodeCheck,
 }: {
   item: ItemFactura;
+  codigo: string;
+  check?: { codigo: string; duplicado: boolean; siigo_producto: SiigoProducto | null };
   checked: boolean;
   onToggle: () => void;
+  onCodeChange: (codigo: string) => void;
+  onCodeCheck: (result: { codigo: string; duplicado: boolean; siigo_producto: SiigoProducto | null }) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const hasImpuestos = item.impuestos.length > 0;
+  const checkCodigo = useMutation({
+    mutationFn: (codigoActual: string) =>
+      api.post<{ codigo: string; duplicado: boolean; siigo_producto: SiigoProducto | null }>(
+        "/api/facturas/codigo/check",
+        { codigo: codigoActual },
+      ),
+    onSuccess: onCodeCheck,
+  });
+  const siigoProducto = check?.siigo_producto || item.siigo_producto || null;
+  const duplicado = check?.duplicado ?? item.duplicado;
 
   return (
     <div className={`rounded-xl border transition ${
-      item.duplicado
+      duplicado
         ? "border-yellow-500/30 bg-yellow-500/5"
         : checked
           ? "border-accent/40 bg-accent/5"
@@ -367,21 +509,54 @@ function ItemRow({
           {/* Name + duplicate badge */}
           <div className="flex items-start gap-2 flex-wrap">
             <span className="text-sm font-semibold text-ink leading-tight">{item.nombre}</span>
-            {item.duplicado && (
+            {duplicado && (
               <span className="shrink-0 rounded-full bg-yellow-500/20 px-2 py-0.5 text-[10px] font-bold text-yellow-400">
                 Ya en SIIGO
               </span>
             )}
+            {check && !check.duplicado && (
+              <span className="shrink-0 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                Código libre
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+            <label className="flex-1 text-[10px] uppercase tracking-wide text-muted">
+              Código SIIGO editable
+              <input
+                type="text"
+                value={codigo}
+                onChange={(e) => onCodeChange(e.target.value)}
+                onBlur={() => {
+                  if (codigo.trim()) checkCodigo.mutate(codigo.trim());
+                }}
+                className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 font-mono text-xs text-ink outline-none focus:border-accent"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={checkCodigo.isPending || !codigo.trim()}
+              onClick={() => checkCodigo.mutate(codigo.trim())}
+              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted hover:text-ink transition disabled:opacity-40 sm:mt-4"
+            >
+              {checkCodigo.isPending ? "Verificando…" : "Verificar"}
+            </button>
           </div>
 
           {/* Computed fields grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0.5 text-[11px] font-mono text-muted">
-            <span><span className="text-ink-secondary">Código:</span> {item.codigo}</span>
+            <span><span className="text-ink-secondary">Sugerido:</span> {item.codigo_sugerido || item.codigo}</span>
             <span><span className="text-ink-secondary">Proveedor:</span> {item.cantidad_original} {item.unidad_original}</span>
             <span><span className="text-ink-secondary">Unitario min:</span> {fmtDec(item.cantidad_min)} {item.unidad_min}</span>
             <span><span className="text-ink-secondary">P. venta:</span> ${fmtDec(item.precio_unitario, 2)}/{item.unidad_min}</span>
             <span><span className="text-ink-secondary">P. neto:</span> ${fmtDec(item.precio_neto, 4)}/{item.unidad_min}</span>
             <span><span className="text-ink-secondary">Subtotal:</span> ${fmt(item.subtotal)}</span>
+            {siigoProducto && (
+              <span className="col-span-2 text-yellow-300">
+                SIIGO: {siigoProducto.codigo} · {siigoProducto.nombre || "Producto existente"}
+              </span>
+            )}
             {item.iva > 0 && (
               <span><span className="text-ink-secondary">IVA:</span> ${fmt(item.iva)}</span>
             )}

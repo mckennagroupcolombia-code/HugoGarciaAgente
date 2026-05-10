@@ -1,4 +1,15 @@
 {
-  "numeros_en_humano": [],
-  "timestamps": {}
+  "numeros_en_humano": [
+    "573009990001@c.us"
+  ],
+  "timestamps": {
+    "573009990001@c.us": 1778371893.0154
+  },
+  "bot_auto_pausados": {
+    "573009990001@c.us": {
+      "timestamp": 1778371893.0154002,
+      "razon": "mensaje repetido por posible bot",
+      "ultimo_mensaje": "hola"
+    }
+  }
 }

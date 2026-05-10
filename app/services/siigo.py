@@ -135,7 +135,7 @@ def _siigo_extraer_base64_pdf_respuesta(res: requests.Response) -> str | None:
     ctype = (res.headers.get("Content-Type") or "").lower()
     if "application/pdf" in ctype or "octet-stream" in ctype:
         raw = res.content or b""
-        if len(raw) > 8:
+        if _bytes_pdf_valido(raw):
             return base64.b64encode(raw).decode("ascii")
         return None
     try:
@@ -145,9 +145,59 @@ def _siigo_extraer_base64_pdf_respuesta(res: requests.Response) -> str | None:
     if isinstance(data, dict):
         for key in ("base64", "file", "data", "pdf", "content", "document"):
             v = data.get(key)
-            if isinstance(v, str) and len(v.strip()) > 50:
-                return v.strip()
+            if isinstance(v, str) and _base64_pdf_valido(v):
+                return _limpiar_base64_documento(v)
     return None
+
+
+def _limpiar_base64_documento(valor: str) -> str:
+    doc = str(valor or "").strip().replace("\n", "").replace("\r", "")
+    if "," in doc:
+        doc = doc.split(",", 1)[1]
+    return doc
+
+
+def _decodificar_base64_documento(valor: str) -> bytes:
+    doc = _limpiar_base64_documento(valor)
+    if not doc:
+        return b""
+    padding = "=" * (-len(doc) % 4)
+    try:
+        return base64.b64decode(doc + padding, validate=True)
+    except Exception:
+        return b""
+
+
+def _bytes_pdf_valido(raw: bytes) -> bool:
+    return bool(raw and len(raw) > 32 and raw.lstrip().startswith(b"%PDF"))
+
+
+def _base64_pdf_valido(valor: str) -> bool:
+    return _bytes_pdf_valido(_decodificar_base64_documento(valor))
+
+
+def _bytes_xml_fiscal_valido(raw: bytes) -> bool:
+    if not raw or len(raw.strip()) < 80:
+        return False
+    inicio = raw.lstrip()[:256].lower()
+    if not inicio.startswith((b"<?xml", b"<attached", b"<invoice", b"<creditnote", b"<applicationresponse")):
+        return False
+    muestra = raw[:200000].lower()
+    return any(
+        tag in muestra
+        for tag in (
+            b"<invoice",
+            b":invoice",
+            b"<attacheddocument",
+            b":attacheddocument",
+            b"<creditnote",
+            b":creditnote",
+        )
+    )
+
+
+def _base64_xml_fiscal_valido(valor: str) -> bool:
+    return _bytes_xml_fiscal_valido(_decodificar_base64_documento(valor))
 
 
 def _siigo_prefetch_invoice_antes_pdf(id_factura: str, token: str) -> None:
@@ -262,14 +312,21 @@ def descargar_xml_factura_siigo(id_factura: str) -> str:
                 ultimo_cuerpo = (res.text or "")[:500]
 
                 if res.status_code == 200:
+                    raw = res.content or b""
+                    ctype = (res.headers.get("Content-Type") or "").lower()
+                    if "xml" in ctype and _bytes_xml_fiscal_valido(raw):
+                        return base64.b64encode(raw).decode("ascii")
                     try:
                         data = res.json()
                     except ValueError:
+                        if _bytes_xml_fiscal_valido(raw):
+                            return base64.b64encode(raw).decode("ascii")
                         break
                     if isinstance(data, dict):
-                        b64 = data.get("base64")
-                        if isinstance(b64, str) and len(b64.strip()) > 50:
-                            return b64.strip()
+                        for key in ("base64", "file", "data", "xml", "content", "document"):
+                            b64 = data.get(key)
+                            if isinstance(b64, str) and _base64_xml_fiscal_valido(b64):
+                                return _limpiar_base64_documento(b64)
                     break
 
                 if res.status_code == 401 and puede_reintentar_auth:
@@ -301,10 +358,20 @@ def obtener_documento_fiscal_siigo_para_meli(id_factura: str) -> tuple[str, str]
     Devuelve (base64, \"pdf\"|\"xml\") o (\"\", \"\").
     """
     pdf = descargar_factura_pdf_siigo(id_factura)
-    if pdf and "❌" not in str(pdf) and not str(pdf).startswith("⚠️ Error"):
+    if (
+        pdf
+        and "❌" not in str(pdf)
+        and not str(pdf).startswith("⚠️ Error")
+        and _base64_pdf_valido(str(pdf))
+    ):
         return pdf, "pdf"
     xml = descargar_xml_factura_siigo(id_factura)
-    if xml and "❌" not in str(xml) and not str(xml).startswith("⚠️ Error"):
+    if (
+        xml
+        and "❌" not in str(xml)
+        and not str(xml).startswith("⚠️ Error")
+        and _base64_xml_fiscal_valido(str(xml))
+    ):
         print(
             f"ℹ️ [SIIGO] PDF no disponible por API; usando XML DIAN para MeLi "
             f"({str(id_factura)[:13]}…)."
