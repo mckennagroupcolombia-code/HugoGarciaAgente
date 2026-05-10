@@ -3,6 +3,7 @@ import copy
 import os
 import inspect
 import json
+import sqlite3
 import time as _time
 import traceback
 from typing import get_type_hints, get_origin, get_args, Union
@@ -191,6 +192,11 @@ _tools_map: dict = {}  # name → callable
 _system_prompt: str = ""
 # Per-user conversation history: user_id → list of message dicts
 _historiales: dict = {}
+_CONVERSACIONES_DB = os.getenv(
+    "AGENTE_CONVERSACIONES_DB",
+    os.path.join(os.path.dirname(__file__), "data", "conversaciones_whatsapp.sqlite3"),
+)
+_MAX_HISTORIAL_PERSISTENTE = int(os.getenv("AGENTE_MAX_HISTORIAL_CLIENTE", "40"))
 
 def _mensaje_amigable_badrequest(error_text: str) -> str:
     """
@@ -209,6 +215,102 @@ def _mensaje_amigable_badrequest(error_text: str) -> str:
         "Veci, tuve un problema técnico procesando este mensaje. "
         "¿Puede reenviarlo, por favor? 🙏"
     )
+
+
+def _ensure_conversaciones_db() -> None:
+    os.makedirs(os.path.dirname(_CONVERSACIONES_DB), exist_ok=True)
+    with sqlite3.connect(_CONVERSACIONES_DB) as conn:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversaciones_whatsapp (
+                usuario_id TEXT NOT NULL,
+                idx INTEGER NOT NULL,
+                role TEXT NOT NULL,
+                content_json TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (usuario_id, idx)
+            )
+            """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_conversaciones_usuario "
+            "ON conversaciones_whatsapp(usuario_id, idx)"
+        )
+
+
+def _cargar_historial_persistente(usuario_id: str) -> list:
+    if not usuario_id:
+        return []
+    try:
+        _ensure_conversaciones_db()
+        with sqlite3.connect(_CONVERSACIONES_DB) as conn:
+            rows = conn.execute(
+                """
+                SELECT role, content_json
+                FROM conversaciones_whatsapp
+                WHERE usuario_id = ?
+                ORDER BY idx ASC
+                """,
+                (usuario_id,),
+            ).fetchall()
+        historial = []
+        for role, content_json in rows:
+            try:
+                content = json.loads(content_json)
+            except json.JSONDecodeError:
+                content = content_json
+            historial.append({"role": role, "content": content})
+        return historial[-_MAX_HISTORIAL_PERSISTENTE:]
+    except Exception as e:
+        _log_error(f"Cargar historial persistente usuario={usuario_id}", e)
+        return []
+
+
+def _guardar_historial_persistente(usuario_id: str, messages: list) -> None:
+    if not usuario_id:
+        return
+    try:
+        limpio = messages[-_MAX_HISTORIAL_PERSISTENTE:]
+        _ensure_conversaciones_db()
+        with sqlite3.connect(_CONVERSACIONES_DB) as conn:
+            conn.execute(
+                "DELETE FROM conversaciones_whatsapp WHERE usuario_id = ?",
+                (usuario_id,),
+            )
+            conn.executemany(
+                """
+                INSERT INTO conversaciones_whatsapp
+                    (usuario_id, idx, role, content_json)
+                VALUES (?, ?, ?, ?)
+                """,
+                [
+                    (
+                        usuario_id,
+                        idx,
+                        msg.get("role", ""),
+                        json.dumps(msg.get("content", ""), ensure_ascii=False),
+                    )
+                    for idx, msg in enumerate(limpio)
+                ],
+            )
+    except Exception as e:
+        _log_error(f"Guardar historial persistente usuario={usuario_id}", e)
+
+
+def _memoria_vectorial_para_chat(pregunta: str) -> str:
+    if os.getenv("AGENTE_USAR_MEMORIA_VECTORIAL_CHAT", "1").strip() == "0":
+        return ""
+    if not (pregunta or "").strip():
+        return ""
+    try:
+        memoria = query_vector_db(pregunta[:500])
+    except Exception as e:
+        _log_error("Memoria vectorial chat", e)
+        return ""
+    baja = (memoria or "").lower()
+    if not memoria or "error:" in baja or "no tengo recuerdos" in baja:
+        return ""
+    return memoria[:1800]
 
 
 # Compat stub (routes.py podría referenciar esto)
@@ -522,10 +624,12 @@ def _responder_con_gemini_primario(
         return None
 
     contexto = _historial_a_texto_simple(messages)
+    memoria_vectorial = _memoria_vectorial_para_chat(pregunta)
     prompt = (
         f"{_system_prompt}\n\n"
         f"ID de conversación: {usuario_id}\n"
         f"Historial reciente:\n{contexto or '[sin historial]'}\n\n"
+        f"Memoria vectorial relevante:\n{memoria_vectorial or '[sin recuerdos relevantes]'}\n\n"
         f"Mensaje actual del cliente:\n{pregunta}\n\n"
         "Responde solo texto final para cliente."
     )
@@ -575,7 +679,10 @@ def obtener_respuesta_ia(
     if historial:
         messages = list(historial)
     else:
-        messages = list(_historiales.get(usuario_id, []))
+        messages = list(
+            _historiales.get(usuario_id)
+            or _cargar_historial_persistente(usuario_id)
+        )
 
     user_msg_index = len(messages)
     if adjuntos:
@@ -595,7 +702,9 @@ def obtener_respuesta_ia(
     )
     if respuesta_gemini:
         final_messages = messages + [{"role": "assistant", "content": respuesta_gemini}]
-        _historiales[usuario_id] = final_messages[-40:]
+        final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+        _historiales[usuario_id] = final_messages
+        _guardar_historial_persistente(usuario_id, final_messages)
         return respuesta_gemini, final_messages
 
     # 2) Fallback: Claude (tools/binarios), solo si está habilitado explícitamente.
@@ -619,7 +728,9 @@ def obtener_respuesta_ia(
         limpio = _sanitizar_turno_usuario_binario(
             msgs, user_msg_index, usuario_id, (pregunta or "").strip(), n_adj
         )
-        _historiales[usuario_id] = limpio[-40:]
+        limpio = limpio[-_MAX_HISTORIAL_PERSISTENTE:]
+        _historiales[usuario_id] = limpio
+        _guardar_historial_persistente(usuario_id, limpio)
         return limpio
 
     MAX_REINTENTOS = 3

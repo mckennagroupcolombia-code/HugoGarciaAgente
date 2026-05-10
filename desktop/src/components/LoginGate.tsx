@@ -30,7 +30,9 @@ export default function LoginGate() {
       }
       setToken(t);
     } catch {
-      setError("No se pudo conectar. ¿Flask en :8081 y URL http://localhost:8081/app ?");
+      setError(
+        "No se pudo conectar. Verifica que Flask esté corriendo en :8081 y abre el panel con http://IP-DEL-SERVIDOR:8081/app desde la red local.",
+      );
     } finally {
       setLoading(false);
     }

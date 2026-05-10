@@ -63,6 +63,20 @@ const ACTIONS: ActionDef[] = [
     icon: "📊",
   },
   {
+    id: "skus-meli",
+    label: "Sincronizar SKUs",
+    description: "Actualizar SKUs MeLi → Google Sheets",
+    endpoint: "/api/sync/skus-meli",
+    icon: "🏷️",
+  },
+  {
+    id: "reporte-skus",
+    label: "Reporte SKUs Pendientes",
+    description: "Enviar lista sin combo al grupo Inventario",
+    endpoint: "/api/sync/reporte-skus-pendientes",
+    icon: "📋",
+  },
+  {
     id: "pack",
     label: "Sync por Pack",
     description: "Sincronizar un Pack ID específico",

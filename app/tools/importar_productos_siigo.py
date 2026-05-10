@@ -93,6 +93,16 @@ PALABRAS_MEDIDA = {
     'BULTO', 'BOLSA', 'CAJA', 'PAQUETE', 'ROLLO',
 }
 
+# Envases o material de empaque que se compra por unidad aunque el nombre tenga
+# capacidad ("FARMA 5ML AMBAR", "FRASCO 30 ML"). En estos casos "5ML" describe
+# el tamaño del envase, no una cantidad de líquido inventariable.
+PALABRAS_ENVASE_UNIDAD = {
+    'FARMA', 'FRASCO', 'FRASCOS', 'ENVASE', 'ENVASES', 'BOTELLA', 'BOTELLAS',
+    'GOTERO', 'GOTEROS', 'PIPETA', 'PIPETAS', 'TARRO', 'TARROS', 'POTE',
+    'POTES', 'TAPA', 'TAPAS', 'VALVULA', 'VALVULAS', 'DOSIFICADOR',
+    'DOSIFICADORES', 'ATOMIZADOR', 'ATOMIZADORES', 'SPRAY', 'ROLLON',
+}
+
 # Conversión desde código DIAN de la factura → (unidad_mínima, factor_multiplicador)
 # La unidad mínima es la que se registra en SIIGO
 CONVERSION_UNIDADES = {
@@ -234,15 +244,27 @@ def generar_codigo_producto(nombre: str, unidad_minima: str,
     """
     nombre_norm = _normalizar(nombre)
     palabras_raw = re.split(r'[\s\-_/,.()+]+', nombre_norm)
-    palabras_clave = [
-        p for p in palabras_raw
-        if p
-        and p.lower() not in STOPWORDS        # artículos/preposiciones
-        and p.upper() not in PALABRAS_MEDIDA  # palabras de cantidad/unidad (KILO, LITRO…)
-        and not p.isdigit()                   # números puros (500, 1000…) — la cantidad va en el sufijo
-        and not re.match(r'^x?\d+(?:ml|g|gr|grs|kg|kgs|l|lt|lts|cc|oz|lb|lbs)$', p, re.IGNORECASE)
-        and len(p) >= 2
-    ]
+    palabras_clave = []
+    for p in palabras_raw:
+        if not p:
+            continue
+        es_medida_compacta = re.match(
+            r'^x?\d+(?:ml|g|gr|grs|kg|kgs|l|lt|lts|cc|oz|lb|lbs)$',
+            p,
+            re.IGNORECASE,
+        )
+        if (
+            p.lower() in STOPWORDS
+            or p.upper() in PALABRAS_MEDIDA
+            or p.isdigit()
+            or len(p) < 2
+        ):
+            continue
+        # En productos por unidad, una medida compacta puede ser parte esencial
+        # de la referencia del envase: FARMA 5ML AMBAR -> FAR5MLAMBUn.
+        if es_medida_compacta and unidad_minima != 'Un':
+            continue
+        palabras_clave.append(p)
 
     # Fallback si el nombre no tiene palabras útiles
     if not palabras_clave:
@@ -385,6 +407,12 @@ def _extraer_volumen_ml_descripcion(descripcion: str) -> float:
     return 0.0
 
 
+def _descripcion_es_envase_unitario(descripcion: str) -> bool:
+    """True si el texto parece un envase comprado por unidad con capacidad nominal."""
+    palabras = set(re.split(r'[\s\-_/,.()+]+', _normalizar(descripcion)))
+    return bool(palabras & PALABRAS_ENVASE_UNIDAD)
+
+
 def _extraer_masa_g_descripcion(descripcion: str) -> float:
     """
     Detecta si la descripción de un producto sólido/polvo indica su masa por unidad facturada.
@@ -477,16 +505,16 @@ def calcular_precio_unitario_min(subtotal_linea: float, iva_linea: float, cantid
 #  Verificación de duplicados en SIIGO
 # ─────────────────────────────────────────────
 
-def verificar_producto_en_siigo(codigo: str) -> bool:
+def buscar_producto_en_siigo_por_codigo(codigo: str) -> dict | None:
     """
     Consulta SIIGO API para saber si ya existe un producto con ese código.
-    Retorna True si YA existe (duplicado), False si es nuevo o si no se pudo consultar.
+    Retorna el producto SIIGO cuando hay coincidencia exacta de código.
     Intenta hasta 2 veces con timeout de 15 s antes de rendirse.
     """
     token = autenticar_siigo()
     if not token:
         print(f"  ⚠️ [SIIGO] Sin token — {codigo} se tratará como producto nuevo")
-        return False
+        return None
 
     headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
 
@@ -499,12 +527,12 @@ def verificar_producto_en_siigo(codigo: str) -> bool:
             )
             if res.status_code == 200:
                 results = res.json().get('results', [])
-                return len(results) > 0 and any(
-                    p.get('code', '').upper() == codigo.upper()
-                    for p in results
-                )
+                for p in results:
+                    if p.get('code', '').upper() == codigo.upper():
+                        return p
+                return None
             # Cualquier otro status HTTP: no es duplicado
-            return False
+            return None
         except requests.exceptions.Timeout:
             if intento < 2:
                 print(f"  ⏳ [SIIGO] Timeout verificando {codigo}, reintentando...")
@@ -514,7 +542,25 @@ def verificar_producto_en_siigo(codigo: str) -> bool:
             print(f"  ⚠️ [SIIGO] Error verificando {codigo}: {e} — se asume nuevo")
             break
 
-    return False
+    return None
+
+
+def verificar_producto_en_siigo(codigo: str) -> bool:
+    """Retorna True si el código ya existe exactamente en SIIGO."""
+    return buscar_producto_en_siigo_por_codigo(codigo) is not None
+
+
+def _resumen_producto_siigo(producto: dict | None) -> dict | None:
+    if not producto:
+        return None
+    unidad_raw = producto.get('unit', {})
+    unidad = unidad_raw.get('name', '') if isinstance(unidad_raw, dict) else str(unidad_raw or '')
+    return {
+        'codigo': producto.get('code', ''),
+        'nombre': producto.get('name', ''),
+        'unidad': unidad,
+        'activo': producto.get('active', True),
+    }
 
 
 # ─────────────────────────────────────────────
@@ -898,11 +944,13 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
             # Si la unidad del proveedor es UN pero el producto tiene volumen o masa
             # indicados en la descripción, convertir a la unidad mínima real
             vol_ml = _extraer_volumen_ml_descripcion(nombre)
-            if vol_ml > 0:
+            if vol_ml > 0 and not _descripcion_es_envase_unitario(nombre):
                 cantidad_min    = round(cantidad_min * vol_ml, 6)
                 unidad_min      = 'mL'
                 codigo_dian_min = 'MLT'
                 print(f"  💧 Líquido detectado: {int(cantidad_original)} × {vol_ml} mL = {cantidad_min:.0f} mL")
+            elif vol_ml > 0:
+                print(f"  🧴 Envase detectado: {nombre[:40]} → se conserva como unidad")
             else:
                 masa_g = _extraer_masa_g_descripcion(nombre)
                 if masa_g > 0:
@@ -1030,13 +1078,23 @@ def _notificar_siguiente_factura_pendiente():
 #  Panel de operaciones — inspección y proceso manual
 # ─────────────────────────────────────────────
 
-def _computar_items_factura(datos: dict, xml_content: str) -> list:
+def _codigo_manual_valido(codigo: str) -> str:
+    codigo = (codigo or '').strip()
+    if not codigo:
+        return ''
+    if not re.match(r'^[A-Za-z0-9._-]{2,40}$', codigo):
+        raise ValueError(f"Código SIIGO inválido: {codigo}")
+    return codigo
+
+
+def _computar_items_factura(datos: dict, xml_content: str, codigos_manual: dict | None = None) -> list:
     """
     Computa ítems con códigos McKenna, unidades y precios SIN generar archivos.
     Para mostrar en el panel antes de que el usuario decida qué incluir.
     """
     items_out = []
     codigos_en_factura = set()
+    codigos_manual = codigos_manual or {}
     for idx, item in enumerate(datos.get('items', [])):
         nombre = item.get('description', '').strip()
         subtotal = item.get('subtotal', 0)
@@ -1056,10 +1114,12 @@ def _computar_items_factura(datos: dict, xml_content: str) -> list:
             codigo_dian_min = 'NAR'
         elif unidad_min == 'Un':
             vol_ml = _extraer_volumen_ml_descripcion(nombre)
-            if vol_ml > 0:
+            if vol_ml > 0 and not _descripcion_es_envase_unitario(nombre):
                 cantidad_min    = round(cantidad_min * vol_ml, 6)
                 unidad_min      = 'mL'
                 codigo_dian_min = 'MLT'
+            elif vol_ml > 0:
+                pass
             else:
                 masa_g = _extraer_masa_g_descripcion(nombre)
                 if masa_g > 0:
@@ -1068,13 +1128,17 @@ def _computar_items_factura(datos: dict, xml_content: str) -> list:
                     codigo_dian_min = 'GRM'
         precio_unitario = calcular_precio_unitario_min(subtotal, iva_linea, cantidad_min)
         precio_neto     = round(subtotal / cantidad_min, 6) if cantidad_min > 0 else 0.0
-        codigo          = generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
+        codigo_manual = _codigo_manual_valido(str(codigos_manual.get(str(idx)) or codigos_manual.get(idx) or ''))
+        codigo          = codigo_manual or generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
         codigos_en_factura.add(codigo)
-        es_duplicado    = verificar_producto_en_siigo(codigo)
+        producto_siigo  = buscar_producto_en_siigo_por_codigo(codigo)
+        es_duplicado    = producto_siigo is not None
         items_out.append({
             'indice':            idx,
             'nombre':            nombre,
             'codigo':            codigo,
+            'codigo_sugerido':   generar_codigo_producto(nombre, unidad_min, set()),
+            'codigo_manual':     bool(codigo_manual),
             'cantidad_original': cantidad_original,
             'unidad_original':   unit_code,
             'multiplicador':     multiplicador,
@@ -1086,6 +1150,7 @@ def _computar_items_factura(datos: dict, xml_content: str) -> list:
             'precio_unitario':   precio_unitario,
             'precio_neto':       precio_neto,
             'duplicado':         es_duplicado,
+            'siigo_producto':    _resumen_producto_siigo(producto_siigo),
             'impuestos':         item.get('impuestos', []),
             'precio_proveedor':  item.get('price', 0),
         })
@@ -1100,6 +1165,10 @@ def obtener_detalle_factura(sufijo: str) -> dict | None:
     datos = json.loads(entrada['datos_json'])
     xml_content = base64.b64decode(entrada['xml_b64']).decode('utf-8')
     items = _computar_items_factura(datos, xml_content)
+    compra_registrada = buscar_compra_siigo_registrada(
+        datos,
+        obtener_compras_siigo_para_dedupe(),
+    )
     return {
         'sufijo':             sufijo,
         'numero_factura':     entrada['numero_factura'],
@@ -1112,12 +1181,24 @@ def obtener_detalle_factura(sufijo: str) -> dict | None:
         'total_bruto':        datos.get('total_bruto', 0),
         'total_descuentos':   datos.get('total_descuentos', 0),
         'total_neto':         datos.get('total_neto', 0),
+        'compra_registrada_siigo': compra_registrada,
         'items':              items,
         'timestamp':          entrada.get('timestamp', ''),
     }
 
 
-def procesar_items_inventario(sufijo: str, indices: list) -> dict:
+def revisar_codigo_producto_siigo(codigo: str) -> dict:
+    """Valida un código manual y consulta si ya existe en SIIGO."""
+    codigo_limpio = _codigo_manual_valido(codigo)
+    producto = buscar_producto_en_siigo_por_codigo(codigo_limpio)
+    return {
+        'codigo': codigo_limpio,
+        'duplicado': producto is not None,
+        'siigo_producto': _resumen_producto_siigo(producto),
+    }
+
+
+def procesar_items_inventario(sufijo: str, indices: list, codigos_manual: dict | None = None) -> dict:
     """
     Genera Excel + XML solo con los ítems en `indices`.
     Envía reporte de texto al grupo WA (sin adjuntos).
@@ -1128,34 +1209,226 @@ def procesar_items_inventario(sufijo: str, indices: list) -> dict:
         return {'ok': False, 'error': f'Factura {sufijo} no encontrada'}
     xml_content   = base64.b64decode(entrada['xml_b64']).decode('utf-8')
     datos         = json.loads(entrada['datos_json'])
-    todos_items   = datos.get('items', [])
-    items_sel     = [todos_items[i] for i in sorted(set(indices)) if i < len(todos_items)]
+
+    compra_registrada = buscar_compra_siigo_registrada(datos, obtener_compras_siigo_para_dedupe())
+    if compra_registrada:
+        doc = compra_registrada.get('name') or compra_registrada.get('id') or 'SIIGO'
+        return {
+            'ok': False,
+            'error': f'Factura ya registrada en SIIGO ({doc}). No se debe inventariar de nuevo.',
+            'compra_registrada_siigo': compra_registrada,
+        }
+
+    productos_calc = _computar_items_factura(datos, xml_content, codigos_manual)
+    indices_norm = sorted({int(i) for i in indices if str(i).isdigit() or isinstance(i, int)})
+    items_sel     = [p for p in productos_calc if p.get('indice') in indices_norm]
     if not items_sel:
         return {'ok': False, 'error': 'Ningún ítem seleccionado'}
-    datos_sel     = {**datos, 'items': items_sel}
-    arch          = _ejecutar_procesamiento(entrada['numero_factura'], datos_sel, xml_content, silent=True)
-    if not arch:
-        return {'ok': False, 'error': 'No se pudieron procesar los ítems'}
+
+    ruta_excel = generar_excel_importacion(items_sel, entrada['numero_factura'])
+    ruta_xml   = generar_xml_compra_siigo(datos, items_sel, entrada['numero_factura'])
+    nuevos = sum(1 for p in items_sel if not p.get('duplicado'))
+    duplicados = sum(1 for p in items_sel if p.get('duplicado'))
     msg = (
         f"✅ *Factura procesada desde el panel*\n\n"
         f"🔢 {entrada['numero_factura']}\n"
         f"🏢 {entrada['proveedor']}\n"
-        f"📦 {arch['nuevos']} producto(s) nuevo(s)  ·  {arch['duplicados']} duplicado(s)\n"
+        f"📦 {nuevos} producto(s) nuevo(s)  ·  {duplicados} duplicado(s)\n"
         f"📎 Archivos generados en el servidor:\n"
-        f"   • {os.path.basename(arch['ruta'])}\n"
-        f"   • {os.path.basename(arch.get('ruta_xml', '—'))}"
+        f"   • {os.path.basename(ruta_excel)}\n"
+        f"   • {os.path.basename(ruta_xml or '—')}"
     )
     enviar_whatsapp_reporte(msg, numero_destino=GRUPO_COMPRAS)
     _quitar_pendiente(key)
     threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
     return {
         'ok':      True,
-        'nuevos':  arch['nuevos'],
-        'duplicados': arch['duplicados'],
-        'ruta_excel': os.path.basename(arch['ruta']),
-        'ruta_xml':   os.path.basename(arch.get('ruta_xml', '')),
+        'nuevos':  nuevos,
+        'duplicados': duplicados,
+        'ruta_excel': os.path.basename(ruta_excel),
+        'ruta_xml':   os.path.basename(ruta_xml or ''),
         'mensaje': msg,
     }
+
+
+FECHA_INICIO_COMPRAS_SIIGO = os.getenv("FECHA_INICIO_COMPRAS_SIIGO", "2026-01-01")
+
+
+def _nit_base(nit: str) -> str:
+    """NIT sin dígito de verificación ni separadores."""
+    raw = str(nit or '').strip()
+    if '-' in raw:
+        raw = raw.split('-', 1)[0]
+    return re.sub(r'\D', '', raw)
+
+
+def _factura_id_normalizado(valor: str) -> str:
+    return re.sub(r'[^A-Z0-9]', '', (valor or '').upper())
+
+
+def _variantes_factura(prefix: str, number: str) -> set[str]:
+    pref = _factura_id_normalizado(prefix)
+    num = _factura_id_normalizado(number)
+    variantes = {v for v in (num, f"{pref}{num}") if v}
+    if num:
+        num_sin_ceros = num.lstrip('0') or '0'
+        variantes.add(num_sin_ceros)
+        if pref:
+            variantes.add(f"{pref}{num_sin_ceros}")
+    return variantes
+
+
+def _variantes_compra_siigo(compra: dict) -> set[str]:
+    pi = compra.get('provider_invoice') or {}
+    variantes = _variantes_factura(str(pi.get('prefix', '')), str(pi.get('number', '')))
+    for campo in ('name', 'number'):
+        valor = _factura_id_normalizado(str(compra.get(campo, '')))
+        if valor:
+            variantes.add(valor)
+    return variantes
+
+
+def _nit_compra_siigo(compra: dict) -> str:
+    supplier = compra.get('supplier') or compra.get('provider') or {}
+    if isinstance(supplier, dict):
+        return _nit_base(str(
+            supplier.get('identification')
+            or supplier.get('nit')
+            or supplier.get('id')
+            or ''
+        ))
+    return ''
+
+
+def _fecha_compra_siigo(compra: dict) -> str:
+    for campo in ('date', 'created', 'created_at', 'updated_at'):
+        valor = str(compra.get(campo) or '').strip()
+        if valor:
+            return valor[:10]
+    return ''
+
+
+def _float_or_none(valor) -> float | None:
+    try:
+        if valor is None:
+            return None
+        if isinstance(valor, str):
+            valor = valor.replace(',', '').strip()
+        return float(valor)
+    except (TypeError, ValueError):
+        return None
+
+
+def _valor_compra_siigo(compra: dict) -> float | None:
+    for campo in ('total', 'total_value', 'value', 'paid_value'):
+        val = _float_or_none(compra.get(campo))
+        if val is not None:
+            return val
+    payments = compra.get('payments')
+    if isinstance(payments, list):
+        total = 0.0
+        found = False
+        for p in payments:
+            if isinstance(p, dict):
+                val = _float_or_none(p.get('value') or p.get('payment_value'))
+                if val is not None:
+                    total += val
+                    found = True
+        if found:
+            return total
+    return None
+
+
+def _valor_factura_datos(datos: dict) -> float:
+    val = _float_or_none(datos.get('total_neto'))
+    if val is not None and val > 0:
+        return val
+    return round(sum(
+        item.get('subtotal', 0) + sum(
+            imp.get('valor', 0) for imp in item.get('impuestos', [])
+        )
+        for item in datos.get('items', [])
+    ), 2)
+
+
+def obtener_compras_siigo_para_dedupe(fecha_inicio: str = FECHA_INICIO_COMPRAS_SIIGO) -> list[dict]:
+    """Carga compras SIIGO para evitar re-encolar facturas ya registradas."""
+    token = autenticar_siigo()
+    if not token:
+        print("  ⚠️ [SIIGO] Sin token — no se podrán detectar compras ya registradas")
+        return []
+
+    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+    compras = []
+    pagina = 1
+    while True:
+        try:
+            res = requests.get(
+                "https://api.siigo.com/v1/purchases",
+                params={"date_start": fecha_inicio, "page": pagina, "page_size": 100},
+                headers=headers,
+                timeout=20,
+            )
+            if res.status_code != 200:
+                print(f"  ⚠️ [SIIGO] No se pudo consultar compras: HTTP {res.status_code}")
+                break
+            data = res.json()
+            resultados = data.get('results') or []
+            compras.extend(resultados)
+            pag = data.get('pagination') or {}
+            total = int(pag.get('total_results') or len(compras))
+            if not resultados or len(compras) >= total:
+                break
+            pagina += 1
+        except Exception as e:
+            print(f"  ⚠️ [SIIGO] Error consultando compras registradas: {e}")
+            break
+    print(f"  🗂️  {len(compras)} compra(s) SIIGO cargadas para detectar duplicados")
+    return compras
+
+
+def buscar_compra_siigo_registrada(datos: dict, compras_siigo: list[dict]) -> dict | None:
+    """
+    Retorna resumen de compra SIIGO si coincide por número, fecha y valor.
+    Si SIIGO no trae alguno de esos datos, usa NIT/proveedor como apoyo.
+    Soporta SIIGO guardando prefix/number como ("FE", "32480"), ("", "FE32480")
+    o con ceros a la izquierda.
+    """
+    variantes_xml = _variantes_factura(str(datos.get('prefix', '')), str(datos.get('number', '')))
+    nit_xml = _nit_base(str(datos.get('nit_proveedor') or datos.get('nit') or ''))
+    fecha_xml = str(datos.get('fecha') or '')[:10]
+    valor_xml = _valor_factura_datos(datos)
+    for compra in compras_siigo:
+        if not (variantes_xml & _variantes_compra_siigo(compra)):
+            continue
+        nit_siigo = _nit_compra_siigo(compra)
+        if nit_xml and nit_siigo and nit_xml != nit_siigo:
+            continue
+
+        fecha_siigo = _fecha_compra_siigo(compra)
+        if fecha_xml and fecha_siigo and fecha_xml != fecha_siigo:
+            continue
+
+        valor_siigo = _valor_compra_siigo(compra)
+        if valor_siigo is not None and valor_xml is not None:
+            tolerancia = max(2.0, round(abs(valor_xml) * 0.001, 2))
+            if abs(valor_siigo - valor_xml) > tolerancia:
+                continue
+
+        return {
+            'id': compra.get('id', ''),
+            'name': compra.get('name', ''),
+            'nit': nit_siigo,
+            'fecha': fecha_siigo,
+            'valor': valor_siigo,
+            'match': {
+                'numero': True,
+                'fecha': bool(fecha_xml and fecha_siigo and fecha_xml == fecha_siigo),
+                'valor': valor_siigo is not None and abs(valor_siigo - valor_xml) <= max(2.0, round(abs(valor_xml) * 0.001, 2)),
+            },
+            'provider_invoice': compra.get('provider_invoice') or {},
+        }
+    return None
 
 
 # ─────────────────────────────────────────────
@@ -1181,6 +1454,7 @@ def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
         return "No se encontraron facturas nuevas en el correo (label: FACTURAS MCKG)."
 
     service  = get_gmail_service()
+    compras_siigo = obtener_compras_siigo_para_dedupe()
     encoladas = []
 
     for correo in correos:
@@ -1203,7 +1477,7 @@ def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
 
             numero_factura = f"{datos['prefix']}{datos['number']}"
             proveedor      = datos.get('proveedor', '')
-            nit            = datos.get('nit_proveedor', '')
+            nit            = datos.get('nit_proveedor') or datos.get('nit') or ''
             n_items        = len(datos.get('items', []))
             total          = round(sum(
                 item.get('subtotal', 0) + sum(
@@ -1212,6 +1486,17 @@ def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
                 for item in datos.get('items', [])
             ), 2)
             print(f"  📄 Factura: {numero_factura} | Proveedor: {proveedor} | NIT: {nit}")
+
+            compra_registrada = buscar_compra_siigo_registrada(datos, compras_siigo)
+            if compra_registrada:
+                doc = compra_registrada.get('name') or compra_registrada.get('id') or 'SIIGO'
+                print(f"  ⏭️ Ya registrada en SIIGO ({doc}) — no se encola")
+                try:
+                    from app.panel_activity import log_line
+                    log_line(f"⏭️ {numero_factura} ya existe en SIIGO ({doc}) — {proveedor}")
+                except Exception:
+                    pass
+                continue
 
             es_nuevo = not es_proveedor_especial(nit, proveedor)
             sufijo   = _encolar_factura(numero_factura, datos, xml_content, es_nuevo)

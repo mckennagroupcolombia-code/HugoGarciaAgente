@@ -112,6 +112,7 @@ def detectar_comando_preventa(texto: str):
 # TODO: Eventualmente, estas dependencias se deben limpiar y organizar.
 from app.core import obtener_respuesta_ia
 from modulo_posventa import responder_mensaje_posventa
+from app.services.gemini_vision import analizar_imagen_pago, AnalisisImagenPago
 from app.utils import (
     enviar_whatsapp_reporte,
     jid_grupo_inventario_wa,
@@ -271,12 +272,19 @@ def _procesar_respuesta_preventa(question_id: str, respuesta_humana: str):
 def cargar_modos_atencion():
     try:
         with open("app/data/modos_atencion.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
     except FileNotFoundError:
-        return {"numeros_en_humano": [], "timestamps": {}}
+        data = {}
+    data.setdefault("numeros_en_humano", [])
+    data.setdefault("timestamps", {})
+    data.setdefault("bot_auto_pausados", {})
+    return data
 
 
 def guardar_modos_atencion(data):
+    data.setdefault("numeros_en_humano", [])
+    data.setdefault("timestamps", {})
+    data.setdefault("bot_auto_pausados", {})
     with open("app/data/modos_atencion.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
@@ -312,6 +320,85 @@ borradores_aprobacion = {}
 pagos_pendientes_confirmacion = {}
 contexto_pago_clientes = {}
 VENTANA_CONTEXTO_PAGO_SEGUNDOS = int(os.getenv("VENTANA_CONTEXTO_PAGO_SEGUNDOS", "3600"))
+mensajes_recientes_clientes = {}
+VENTANA_ANTI_BOT_SEGUNDOS = int(os.getenv("VENTANA_ANTI_BOT_SEGUNDOS", "120"))
+UMBRAL_RAFAGA_ANTI_BOT = int(os.getenv("UMBRAL_RAFAGA_ANTI_BOT", "6"))
+
+
+def _normalizar_texto_anti_bot(texto: str) -> str:
+    t = (texto or "").lower()
+    t = re.sub(r"https?://\S+", " ", t)
+    t = re.sub(r"[^a-záéíóúñü0-9\s]", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _detectar_mensaje_de_bot(texto: str) -> str | None:
+    """Señales fuertes de autoresponder para cortar bucles bot↔bot."""
+    t = _normalizar_texto_anti_bot(texto)
+    if not t:
+        return None
+
+    patrones = [
+        (r"\b(mensaje|respuesta)\s+autom[aá]tic[ao]\b", "mensaje automático"),
+        (r"\bsoy\s+(un\s+)?(bot|asistente\s+virtual|asistente\s+digital)\b", "se identifica como bot"),
+        (r"\b(no\s+responda|no\s+responder)\s+(a\s+)?este\s+mensaje\b", "pide no responder"),
+        (r"\b(en|por)\s+favor\s+(digita|escribe|responde|marca)\s+\d\b", "menú automático"),
+        (r"\b(digita|escribe|responde|marca)\s+\d\s+(para|si)\b", "menú automático"),
+        (r"\bselecciona\s+(una\s+)?opci[oó]n\b", "menú automático"),
+        (r"\bmen[uú]\s+(principal|de\s+opciones)\b", "menú automático"),
+        (r"\bopci[oó]n\s+\d\b", "menú automático"),
+        (r"\bnuestro\s+horario\s+de\s+atenci[oó]n\b.*\b(es|ser[aá])\b", "fuera de horario automático"),
+        (r"\bgracias\s+por\s+(comunicarte|contactarte|contactarnos)\b", "saludo automático"),
+    ]
+    for patron, razon in patrones:
+        if re.search(patron, t, re.IGNORECASE):
+            return razon
+    return None
+
+
+def _detectar_rafaga_automatica(sender_id: str, texto: str) -> str | None:
+    ahora = time.time()
+    ventana = max(10, VENTANA_ANTI_BOT_SEGUNDOS)
+    norm = _normalizar_texto_anti_bot(texto)
+    recientes = [
+        item
+        for item in mensajes_recientes_clientes.get(sender_id, [])
+        if ahora - item["ts"] <= ventana
+    ]
+    recientes.append({"ts": ahora, "texto": norm})
+    mensajes_recientes_clientes[sender_id] = recientes[-12:]
+
+    if len(recientes) >= UMBRAL_RAFAGA_ANTI_BOT:
+        return f"ráfaga de {len(recientes)} mensajes en {ventana}s"
+    if norm and sum(1 for item in recientes if item["texto"] == norm) >= 3:
+        return "mensaje repetido por posible bot"
+    return None
+
+
+def _pausar_por_bot(sender_id: str, razon: str, texto: str, grupo_destino: str):
+    modos = cargar_modos_atencion()
+    modos.setdefault("numeros_en_humano", [])
+    modos.setdefault("timestamps", {})
+    modos.setdefault("bot_auto_pausados", {})
+    if sender_id not in modos["numeros_en_humano"]:
+        modos["numeros_en_humano"].append(sender_id)
+    modos["timestamps"][sender_id] = time.time()
+    modos["bot_auto_pausados"][sender_id] = {
+        "timestamp": time.time(),
+        "razon": razon,
+        "ultimo_mensaje": (texto or "")[:500],
+    }
+    guardar_modos_atencion(modos)
+
+    aviso = (
+        "🛑 *Anti-loop WhatsApp activado*\n"
+        f"Cliente/contacto: `{sender_id}`\n"
+        f"Razón: {razon}\n"
+        "Hugo quedó en silencio para este chat. Un humano puede responder o usar "
+        f"`activar {sender_id}` para reactivar la IA.\n\n"
+        f"Último mensaje: {(texto or '[sin texto]')[:700]}"
+    )
+    spawn_thread(enviar_whatsapp_reporte, args=(aviso, grupo_destino))
 
 
 def _sufijo_pago(numero: str) -> str:
@@ -388,6 +475,62 @@ def _mensaje_sugiere_pago(texto: str) -> bool:
     if any(k in t for k in claves_consulta):
         return False
     return any(k in t for k in claves_pago)
+
+
+def _resumen_analisis_pago(analisis: AnalisisImagenPago) -> str:
+    partes = []
+    if analisis.monto:
+        partes.append(f"💵 Valor detectado: {analisis.monto} {analisis.moneda or 'COP'}")
+    if analisis.titular:
+        partes.append(f"👤 Titular / nombre visible: {analisis.titular}")
+    if analisis.banco_origen or analisis.banco_destino:
+        bancos = " → ".join(
+            b for b in (analisis.banco_origen, analisis.banco_destino) if b
+        )
+        partes.append(f"🏦 Banco/cuenta: {bancos}")
+    if analisis.referencia:
+        partes.append(f"🔢 Referencia: {analisis.referencia}")
+    if analisis.fecha:
+        partes.append(f"📅 Fecha visible: {analisis.fecha}")
+    if analisis.items:
+        partes.append("🧾 Items visibles: " + ", ".join(analisis.items[:8]))
+    if analisis.razon:
+        partes.append(f"🤖 Lectura Gemini: {analisis.razon}")
+    if analisis.texto_extraido:
+        partes.append(f"📝 Texto visible: {analisis.texto_extraido[:500]}")
+    return "\n".join(partes)
+
+
+def _mensaje_imagen_para_ia(
+    texto_original: str,
+    analisis: AnalisisImagenPago | None,
+    media_path: str,
+) -> str:
+    base = (texto_original or "").strip()
+    partes = []
+    if base:
+        partes.append(base)
+    partes.append("El cliente envió una imagen por WhatsApp.")
+    if analisis:
+        if analisis.error:
+            partes.append(f"No pude analizar visualmente la imagen: {analisis.error}.")
+        else:
+            partes.append(
+                "Análisis visual Gemini: "
+                f"{'comprobante de pago' if analisis.es_comprobante else 'no parece comprobante de pago'} "
+                f"(confianza {analisis.confianza:.2f})."
+            )
+            if analisis.descripcion:
+                partes.append(f"Descripción: {analisis.descripcion}")
+            if analisis.texto_extraido:
+                partes.append(f"Texto visible: {analisis.texto_extraido[:700]}")
+            if analisis.items:
+                partes.append("Items/productos visibles: " + ", ".join(analisis.items[:10]))
+            if analisis.razon:
+                partes.append(f"Razón: {analisis.razon}")
+    else:
+        partes.append(f"Ruta interna de imagen: {media_path}")
+    return "\n".join(partes)
 
 
 def transcribir_audio_whatsapp(media_path: str, message_id: str = "") -> str | None:
@@ -930,7 +1073,8 @@ def register_routes(app):
                 target_num = message_text.split(" ", 1)[1].strip()
                 if target_num not in modos["numeros_en_humano"]:
                     modos["numeros_en_humano"].append(target_num)
-                    guardar_modos_atencion(modos)
+                modos["timestamps"][target_num] = time.time()
+                guardar_modos_atencion(modos)
                 spawn_thread(
                     enviar_whatsapp_reporte,
                     args=(
@@ -944,7 +1088,9 @@ def register_routes(app):
                 target_num = message_text.split(" ", 1)[1].strip()
                 if target_num in modos["numeros_en_humano"]:
                     modos["numeros_en_humano"].remove(target_num)
-                    guardar_modos_atencion(modos)
+                modos.get("timestamps", {}).pop(target_num, None)
+                modos.get("bot_auto_pausados", {}).pop(target_num, None)
+                guardar_modos_atencion(modos)
                 spawn_thread(
                     enviar_whatsapp_reporte,
                     args=(
@@ -1200,6 +1346,14 @@ def register_routes(app):
 
             return jsonify({"status": "ok", "respuesta": None})
 
+        if not es_any_grupo_admin:
+            razon_bot = _detectar_mensaje_de_bot(message_text)
+            if not razon_bot:
+                razon_bot = _detectar_rafaga_automatica(sender_id, message_text)
+            if razon_bot:
+                _pausar_por_bot(sender_id, razon_bot, message_text, grupo_contabilidad)
+                return jsonify({"status": "bot_loop_paused", "respuesta": None})
+
         # --- SWITCH IA/HUMANO ---
         if not es_any_grupo_admin:
             modos = cargar_modos_atencion()
@@ -1258,17 +1412,62 @@ def register_routes(app):
                 sender_id in pagos_pendientes_confirmacion
                 and not pagos_pendientes_confirmacion[sender_id].get("confirmado")
             )
-            parece_comprobante = (
-                is_payment_keyword_sin_img
-                or tiene_contexto_pago
-                or ya_tiene_pago_pendiente
+            analisis_imagen = analizar_imagen_pago(
+                media_path,
+                mensaje=message_text,
+                contexto_pago=(
+                    is_payment_keyword_sin_img
+                    or tiene_contexto_pago
+                    or ya_tiene_pago_pendiente
+                ),
             )
+            parece_comprobante = (
+                analisis_imagen.es_comprobante and analisis_imagen.confianza >= 0.55
+            )
+
+            # Si el texto actual dice explícitamente "comprobante" pero Gemini
+            # falla, no perdemos el caso; para imágenes mudas se exige lectura visual.
+            if (
+                not parece_comprobante
+                and is_payment_keyword_sin_img
+                and analisis_imagen.error
+            ):
+                parece_comprobante = True
+
+            if analisis_imagen.error:
+                print(f"⚠️ Gemini Vision no pudo analizar imagen: {analisis_imagen.error}")
+            else:
+                print(
+                    "👁️ Gemini Vision imagen WhatsApp: "
+                    f"comprobante={analisis_imagen.es_comprobante} "
+                    f"confianza={analisis_imagen.confianza:.2f}"
+                )
+
+            if not parece_comprobante and (
+                tiene_contexto_pago or ya_tiene_pago_pendiente
+            ):
+                contexto_pago_clientes.pop(sender_id, None)
+
+            if not parece_comprobante and not analisis_imagen.error:
+                is_payment_keyword_sin_img = False
+                message_text = _mensaje_imagen_para_ia(
+                    message_text,
+                    analisis_imagen,
+                    media_path,
+                )
+            elif not parece_comprobante and not message_text:
+                message_text = _mensaje_imagen_para_ia(
+                    message_text,
+                    analisis_imagen,
+                    media_path,
+                )
 
             if parece_comprobante:
                 _marcar_contexto_pago(sender_id)
                 borradores_aprobacion[sender_id] = {
                     "estado": "esperando_validacion_pago",
                     "ruta_imagen": media_path,
+                    "analisis_imagen": analisis_imagen.__dict__,
                 }
 
                 codigo = _sufijo_pago(sender_id)
@@ -1277,19 +1476,24 @@ def register_routes(app):
                 ]  # últimos 7 dígitos para mostrar
                 mensaje_aprobacion = (
                     f"🔔 *ALERTA DE PAGO*\n"
-                    f"Cliente *...{num_corto}* envió un comprobante de pago.\n\n"
+                    f"Cliente *...{num_corto}* envió un comprobante de pago.\n"
+                    f"Confianza Gemini: *{analisis_imagen.confianza:.0%}*\n\n"
                     f"✅ *Para CONFIRMAR:*\n"
                     f"   Escribe: *ok {codigo}*\n\n"
                     f"❌ *Para RECHAZAR:*\n"
                     f"   Escribe: *no {codigo}*\n\n"
                     f"📎 Comprobante: {media_path}"
                 )
+                resumen_pago = _resumen_analisis_pago(analisis_imagen)
+                if resumen_pago:
+                    mensaje_aprobacion += f"\n\n{resumen_pago}"
 
                 pagos_pendientes_confirmacion[sender_id] = {
                     "timestamp": time.time(),
                     "mensaje": mensaje_aprobacion,
                     "confirmado": False,
                     "codigo": codigo,
+                    "analisis_imagen": analisis_imagen.__dict__,
                 }
 
                 spawn_thread(
@@ -1302,9 +1506,6 @@ def register_routes(app):
                         "respuesta": "Veci, recibí su comprobante. En un momento nuestro equipo de contabilidad lo verifica y le confirmamos. ¡Gracias por su compra!",
                     }
                 )
-            if not message_text:
-                message_text = "El cliente envió una imagen por WhatsApp."
-
         elif is_payment_keyword_sin_img and not has_media:
             return jsonify(
                 {
@@ -1848,6 +2049,30 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/sync/skus-meli", methods=["POST"])
+    def api_sync_skus_meli():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.sync_skus import sincronizar_skus_meli_sheets
+        _api_lanzar_en_hilo(sincronizar_skus_meli_sheets, job="sync_skus_meli_sheets")
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Sincronización de SKUs MeLi → Sheets iniciada en segundo plano.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
+    @app.route("/api/sync/reporte-skus-pendientes", methods=["POST"])
+    def api_reporte_skus_pendientes():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.sync_skus import reporte_skus_pendientes_wa
+        _api_lanzar_en_hilo(reporte_skus_pendientes_wa, job="reporte_skus_pendientes_wa")
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": "Generando reporte de SKUs pendientes. Se enviará a Sincronizacion_Inventario.",
+            "timestamp": _dt.now().isoformat(),
+        })
+
     @app.route("/api/consultar/producto")
     def api_consultar_producto():
         if not _api_token_valido():
@@ -1953,6 +2178,23 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/facturas/codigo/check", methods=["POST"])
+    def api_factura_codigo_check():
+        """Valida un código SIIGO manual y retorna si ya existe."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import revisar_codigo_producto_siigo
+            body = request.get_json(silent=True) or {}
+            codigo = str(body.get("codigo", "")).strip()
+            if not codigo:
+                return jsonify({"error": "Parámetro 'codigo' requerido"}), 400
+            return jsonify(revisar_codigo_producto_siigo(codigo))
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/facturas/<sufijo>/procesar", methods=["POST"])
     def api_factura_procesar(sufijo):
         """Procesa ítems seleccionados como inventario: genera Excel + XML, envía reporte WA."""
@@ -1966,9 +2208,12 @@ def register_routes(app):
             from app.panel_activity import log_line, run_logged_job
             body = request.get_json(silent=True) or {}
             indices = body.get("indices", [])
+            codigos_manual = body.get("codigos_manual", {})
             agregar_proveedor = body.get("agregar_proveedor", False)
             if not isinstance(indices, list):
                 return jsonify({"error": "'indices' debe ser una lista"}), 400
+            if not isinstance(codigos_manual, dict):
+                return jsonify({"error": "'codigos_manual' debe ser un objeto"}), 400
 
             # Si el usuario marcó que quiere agregar el proveedor a la lista especial
             if agregar_proveedor:
@@ -2000,7 +2245,7 @@ def register_routes(app):
             log_line(f"▶ procesar_inventario {sufijo.upper()} — {len(indices)} ítems seleccionados")
 
             def _job():
-                return procesar_items_inventario(sufijo.upper(), indices)
+                return procesar_items_inventario(sufijo.upper(), indices, codigos_manual)
 
             resultado = None
             import threading as _thr
@@ -2009,7 +2254,7 @@ def register_routes(app):
 
             def _run():
                 try:
-                    res_holder['r'] = procesar_items_inventario(sufijo.upper(), indices)
+                    res_holder['r'] = procesar_items_inventario(sufijo.upper(), indices, codigos_manual)
                 except Exception as ex:
                     res_holder['r'] = {'ok': False, 'error': str(ex)}
                 finally:

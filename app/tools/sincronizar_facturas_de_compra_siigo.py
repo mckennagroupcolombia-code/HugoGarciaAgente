@@ -23,8 +23,68 @@ TOKEN_GMAIL_PATH = os.path.join(os.path.dirname(__file__), "token_gmail.json")
 # Carpeta local para guardar facturas descargadas
 CARPETA_FACTURAS_LOCAL = os.path.join("/home/mckg/mi-agente", "facturas_descargadas")
 os.makedirs(CARPETA_FACTURAS_LOCAL, exist_ok=True)
+RUTA_FACTURAS_DESCARGADAS = os.path.join(
+    "/home/mckg/mi-agente", "app", "data", "facturas_gmail_descargadas.json"
+)
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/gmail.labels"]
+
+
+def _clave_adjunto_gmail(msg_id: str, att_id: str, filename: str) -> str:
+    return f"{msg_id}:{att_id}:{filename}"
+
+
+def _cargar_facturas_gmail_descargadas() -> dict:
+    try:
+        if os.path.exists(RUTA_FACTURAS_DESCARGADAS):
+            with open(RUTA_FACTURAS_DESCARGADAS, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    data.setdefault("adjuntos", {})
+                    return data
+    except Exception:
+        pass
+    return {"adjuntos": {}}
+
+
+def _guardar_facturas_gmail_descargadas(data: dict) -> None:
+    os.makedirs(os.path.dirname(RUTA_FACTURAS_DESCARGADAS), exist_ok=True)
+    with open(RUTA_FACTURAS_DESCARGADAS, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def _registrar_adjunto_gmail_descargado(msg_id: str, att_id: str, filename: str) -> None:
+    data = _cargar_facturas_gmail_descargadas()
+    data["adjuntos"][_clave_adjunto_gmail(msg_id, att_id, filename)] = {
+        "msg_id": msg_id,
+        "att_id": att_id,
+        "filename": filename,
+        "zip_path": os.path.join(CARPETA_FACTURAS_LOCAL, filename),
+        "timestamp": datetime.now().isoformat(),
+    }
+    _guardar_facturas_gmail_descargadas(data)
+
+
+def _adjunto_gmail_ya_descargado(msg_id: str, att_id: str, filename: str, descargadas: dict) -> bool:
+    clave = _clave_adjunto_gmail(msg_id, att_id, filename)
+    if clave in descargadas.get("adjuntos", {}):
+        return True
+
+    # Bootstrap para instalaciones que ya tenían ZIPs descargados antes del manifest.
+    # Evita volver a bajar las 100+ facturas históricas en la primera corrida.
+    zip_path = os.path.join(CARPETA_FACTURAS_LOCAL, filename)
+    if os.path.exists(zip_path):
+        descargadas.setdefault("adjuntos", {})[clave] = {
+            "msg_id": msg_id,
+            "att_id": att_id,
+            "filename": filename,
+            "zip_path": zip_path,
+            "timestamp": datetime.now().isoformat(),
+            "bootstrap": True,
+        }
+        return True
+
+    return False
 
 def get_gmail_service():
     creds = None
@@ -312,7 +372,7 @@ def extraer_datos_xml_dian(xml_content):
 
 def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
     """
-    Devuelve todos los correos de la etiqueta FACTURAS-MCKG que tengan adjunto ZIP,
+    Devuelve correos de la etiqueta FACTURAS-MCKG con adjuntos ZIP no descargados,
     desde `fecha_desde` (formato YYYY/MM/DD) hasta hoy.
     Maneja paginación para no perder correos cuando hay más de 100.
     """
@@ -339,6 +399,9 @@ def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
 
         print(f"  📧 {len(messages)} correo(s) encontrado(s) desde {fecha_desde}")
         correos_con_facturas = []
+        descargadas = _cargar_facturas_gmail_descargadas()
+        manifest_cambio = False
+        adjuntos_omitidos = 0
 
         for msg in messages:
             msg_data = service.users().messages().get(userId="me", id=msg["id"], format="full").execute()
@@ -352,7 +415,13 @@ def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
                     if part.get("filename", "").lower().endswith(".zip"):
                         att_id = part["body"].get("attachmentId")
                         if att_id:
-                            adjuntos.append({"filename": part["filename"], "id": att_id, "msg_id": msg["id"]})
+                            filename = part["filename"]
+                            before = len(descargadas.get("adjuntos", {}))
+                            if _adjunto_gmail_ya_descargado(msg["id"], att_id, filename, descargadas):
+                                adjuntos_omitidos += 1
+                                manifest_cambio = manifest_cambio or len(descargadas.get("adjuntos", {})) != before
+                                continue
+                            adjuntos.append({"filename": filename, "id": att_id, "msg_id": msg["id"]})
                     if "parts" in part:
                         _buscar_zips(part["parts"])
 
@@ -366,6 +435,11 @@ def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
                     "asunto": asunto,
                     "adjuntos_zip": adjuntos,
                 })
+
+        if manifest_cambio:
+            _guardar_facturas_gmail_descargadas(descargadas)
+        if adjuntos_omitidos:
+            print(f"  ⏭️ {adjuntos_omitidos} adjunto(s) ZIP ya descargado(s) omitidos")
 
         return correos_con_facturas
     except Exception as e:
@@ -400,7 +474,8 @@ def descargar_y_extraer_zip(gmail_service, msg_id, att_id, zip_filename):
                     with open(extraido_path, "rb") as fpdf:
                         pdf_content = fpdf.read()
                         pdf_filename = name
-                        
+
+        _registrar_adjunto_gmail_descargado(msg_id, att_id, zip_filename)
         return xml_content, pdf_content, pdf_filename
     except Exception as e:
         print(f"Error procesando ZIP {zip_filename}: {e}")

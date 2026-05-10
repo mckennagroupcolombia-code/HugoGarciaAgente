@@ -17,6 +17,7 @@
 # =======================================================================
 
 import os
+import socket
 import threading
 import logging
 from flask import Flask
@@ -82,6 +83,27 @@ def create_app():
 
     return app
 
+
+def _obtener_ip_lan() -> str | None:
+    """Devuelve una IP LAN probable para abrir el panel desde otros dispositivos."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            if ip and not ip.startswith("127."):
+                return ip
+    except OSError:
+        pass
+
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip and not ip.startswith("127."):
+            return ip
+    except OSError:
+        pass
+    return None
+
+
 # --- 4. Ejecución Principal ---
 
 if __name__ == "__main__":
@@ -89,6 +111,14 @@ if __name__ == "__main__":
     app = create_app()
 
     print("🚀 Iniciando el Agente de McKenna Group...")
+    host = os.getenv("AGENTE_HOST", "0.0.0.0")
+    port = int(os.getenv("AGENTE_PORT", "8081"))
+    ip_lan = _obtener_ip_lan()
+    print(f"🌐 Panel local: http://localhost:{port}/app")
+    if host in {"0.0.0.0", "::"} and ip_lan:
+        print(f"📱 Panel en red local: http://{ip_lan}:{port}/app")
+    elif host not in {"0.0.0.0", "::", "127.0.0.1", "localhost"}:
+        print(f"📱 Panel en red local: http://{host}:{port}/app")
     
     # Iniciar la Interfaz de Línea de Comandos (CLI) en un hilo separado.
     # Esto permite que el menú y el servidor web funcionen al mismo tiempo.
@@ -99,5 +129,5 @@ if __name__ == "__main__":
     # Se ejecuta en el puerto 8081 y es accesible desde la red local.
     # El `debug=False` es importante para producción, pero puede ser útil 
     # activarlo (`debug=True`) durante el desarrollo.
-    app.run(host='0.0.0.0', port=8081, debug=False)
+    app.run(host=host, port=port, debug=False)
 
