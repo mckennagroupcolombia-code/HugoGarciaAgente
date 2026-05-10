@@ -40,6 +40,20 @@ _PASSIVE_MESSAGE_WEBHOOK_ACTIONS = frozenset(
 )
 
 
+def meli_webhook_ignorar_order_pasiva(data: dict | None) -> bool:
+    """
+    MeLi envía `orders_v2` por cambios de tags/documentos sobre órdenes antiguas.
+    Esos eventos no son una venta nueva y no deben disparar sync de stock.
+    """
+    if not isinstance(data, dict):
+        return False
+    actions = data.get("actions")
+    if not isinstance(actions, list):
+        return False
+    normalizadas = {str(a).strip().lower() for a in actions if a is not None}
+    return "action:new_tag" in normalizadas
+
+
 def meli_webhook_ignorar_messages_sin_created(data: dict | None) -> bool:
     """
     Notificaciones topic messages a veces traen solo actions de lectura/entrega — sin mensaje nuevo.
@@ -97,6 +111,13 @@ def meli_webhook_evaluar_despacho(
     if (topic or "").strip() == "orders_v2":
         if not res:
             return {"tipo": "orden_sin_resource", "topic": topic}
+        if meli_webhook_ignorar_order_pasiva(data):
+            return {
+                "tipo": "orden_omitir_accion_pasiva",
+                "topic": topic,
+                "resource": res,
+                "actions": data.get("actions"),
+            }
         return {"tipo": "orden", "order_id": res.split("/")[-1], "topic": topic}
     if meli_webhook_es_mensajes_postventa(topic):
         if meli_webhook_ignorar_messages_sin_created(data):

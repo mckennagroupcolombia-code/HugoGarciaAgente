@@ -4,6 +4,9 @@ import time
 import copy
 import requests
 import base64
+import re
+import xml.etree.ElementTree as ET
+from io import BytesIO
 from datetime import datetime
 
 # Variable de configuración para la API de Siigo
@@ -81,6 +84,7 @@ def obtener_facturas_siigo_paginadas(fecha_inicio):
     todas_las_facturas = []
     page = 1
     puede_reintentar_auth = True
+    reintentos_429 = 0
     while True:
         try:
             res = requests.get(
@@ -107,6 +111,15 @@ def obtener_facturas_siigo_paginadas(fecha_inicio):
                         "Siigo /v1/invoices devolvió 401 y POST /auth no devolvió token. "
                         "Revise username y api_key en credenciales_SIIGO.json."
                     )
+                continue
+            elif res.status_code == 429 and reintentos_429 < 8:
+                reintentos_429 += 1
+                espera_429 = _siigo_retry_after_seconds(res)
+                print(
+                    f"⏳ Siigo rate limit listando facturas "
+                    f"(página {page}); reintento {reintentos_429}/8 en {espera_429}s."
+                )
+                time.sleep(espera_429)
                 continue
             elif res.status_code == 401:
                 cuerpo = (res.text or "")[:500]
@@ -200,6 +213,198 @@ def _base64_xml_fiscal_valido(valor: str) -> bool:
     return _bytes_xml_fiscal_valido(_decodificar_base64_documento(valor))
 
 
+def _xml_local_name(tag: str) -> str:
+    return str(tag or "").split("}")[-1].split(":")[-1]
+
+
+def _xml_find_first(node, tag_name: str):
+    if node is None:
+        return None
+    for elem in node.iter():
+        if _xml_local_name(elem.tag) == tag_name:
+            return elem
+    return None
+
+
+def _xml_find_children(node, tag_name: str) -> list:
+    if node is None:
+        return []
+    return [elem for elem in node.iter() if _xml_local_name(elem.tag) == tag_name]
+
+
+def _xml_text(node, tag_name: str, default: str = "") -> str:
+    elem = _xml_find_first(node, tag_name)
+    if elem is not None and elem.text:
+        return elem.text.strip()
+    return default
+
+
+def _xml_parse_factura(raw: bytes):
+    text = raw.decode("utf-8", errors="ignore")
+    cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
+    try:
+        root = ET.fromstring(cleaned.encode("utf-8"))
+    except ET.ParseError:
+        safe = re.sub(r"(</?)[a-zA-Z0-9]+:", r"\1", cleaned)
+        safe = re.sub(r" [a-zA-Z0-9]+:([a-zA-Z0-9]+)=", r" \1=", safe)
+        root = ET.fromstring(safe.encode("utf-8"))
+
+    invoice = _xml_find_first(root, "Invoice")
+    if invoice is None:
+        for desc in _xml_find_children(root, "Description"):
+            if desc.text and "<" in desc.text and "Invoice" in desc.text:
+                embedded = desc.text.strip()
+                try:
+                    invoice = ET.fromstring(embedded.encode("utf-8"))
+                except ET.ParseError:
+                    safe = re.sub(r"(</?)[a-zA-Z0-9]+:", r"\1", embedded)
+                    safe = re.sub(r" [a-zA-Z0-9]+:([a-zA-Z0-9]+)=", r" \1=", safe)
+                    try:
+                        invoice = ET.fromstring(safe.encode("utf-8"))
+                    except ET.ParseError:
+                        invoice = None
+                if invoice is not None:
+                    break
+    return root, invoice if invoice is not None else root
+
+
+def _xml_party_info(invoice, tag_name: str) -> dict:
+    party_node = _xml_find_first(invoice, tag_name)
+    party = _xml_find_first(party_node, "Party") if party_node is not None else None
+    node = party or party_node
+    return {
+        "name": _xml_text(node, "RegistrationName") or _xml_text(node, "Name"),
+        "nit": _xml_text(node, "CompanyID"),
+    }
+
+
+def _xml_float(node, tag_name: str) -> float:
+    raw = _xml_text(node, tag_name, "0")
+    try:
+        return float(str(raw).replace(",", "."))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _xml_extraer_resumen_factura(raw: bytes) -> dict:
+    root, invoice = _xml_parse_factura(raw)
+    supplier = _xml_party_info(invoice, "AccountingSupplierParty")
+    customer = _xml_party_info(invoice, "AccountingCustomerParty")
+    legal_total = _xml_find_first(invoice, "LegalMonetaryTotal")
+    tax_total = _xml_find_first(invoice, "TaxTotal")
+    lineas = []
+    for line in _xml_find_children(invoice, "InvoiceLine"):
+        item = _xml_find_first(line, "Item")
+        price = _xml_find_first(line, "Price")
+        lineas.append({
+            "descripcion": _xml_text(item, "Description") or "Producto",
+            "cantidad": _xml_text(line, "InvoicedQuantity", "1"),
+            "valor": _xml_float(line, "LineExtensionAmount"),
+            "precio": _xml_float(price, "PriceAmount"),
+        })
+    return {
+        "numero": _xml_text(invoice, "ID") or _xml_text(root, "ParentDocumentID") or "Factura",
+        "fecha": _xml_text(invoice, "IssueDate"),
+        "hora": _xml_text(invoice, "IssueTime"),
+        "proveedor": supplier,
+        "cliente": customer,
+        "lineas": lineas,
+        "subtotal": _xml_float(legal_total, "LineExtensionAmount"),
+        "impuestos": _xml_float(tax_total, "TaxAmount"),
+        "total": _xml_float(legal_total, "PayableAmount"),
+        "cufe": _xml_text(invoice, "UUID") or _xml_text(root, "UUID"),
+    }
+
+
+def _pdf_line(c, x: int, y: int, text: str, *, size: int = 9, bold: bool = False) -> int:
+    c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+    c.drawString(x, y, str(text or "")[:115])
+    return y - int(size * 1.45)
+
+
+def _money(value: float) -> str:
+    return f"${value:,.2f} COP"
+
+
+def convertir_xml_fiscal_a_pdf_base64(xml_base64: str) -> str:
+    """
+    Convierte XML DIAN/Siigo a una representación PDF legible para MeLi.
+    No reemplaza la representación gráfica oficial de Siigo; evita subir XML cuando MeLi lo
+    descarga con extensión PDF y el comprador no lo puede abrir.
+    """
+    raw = _decodificar_base64_documento(xml_base64)
+    if not _bytes_xml_fiscal_valido(raw):
+        return ""
+
+    data = _xml_extraer_resumen_factura(raw)
+    buffer = BytesIO()
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+    except Exception as e:
+        print(f"⚠️ No se pudo importar ReportLab para convertir XML a PDF: {e}")
+        return ""
+
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    y = int(height) - 48
+
+    y = _pdf_line(c, 42, y, "McKenna Group S.A.S.", size=16, bold=True)
+    y = _pdf_line(c, 42, y, "Representación gráfica generada desde XML fiscal electrónico", size=10)
+    y -= 8
+    y = _pdf_line(c, 42, y, f"Factura: {data['numero']}", size=13, bold=True)
+    y = _pdf_line(c, 42, y, f"Fecha: {data.get('fecha', '')} {data.get('hora', '')}".strip(), size=10)
+    y -= 8
+
+    prov = data["proveedor"]
+    cli = data["cliente"]
+    y = _pdf_line(c, 42, y, "Emisor", size=10, bold=True)
+    y = _pdf_line(c, 58, y, f"{prov.get('name') or 'N/D'}  NIT: {prov.get('nit') or 'N/D'}", size=9)
+    y = _pdf_line(c, 42, y, "Adquiriente", size=10, bold=True)
+    y = _pdf_line(c, 58, y, f"{cli.get('name') or 'N/D'}  ID/NIT: {cli.get('nit') or 'N/D'}", size=9)
+    y -= 8
+
+    y = _pdf_line(c, 42, y, "Detalle", size=10, bold=True)
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(42, y, "Cant.")
+    c.drawString(92, y, "Descripción")
+    c.drawRightString(width - 42, y, "Valor")
+    y -= 13
+    c.line(42, y + 8, width - 42, y + 8)
+
+    for linea in data["lineas"][:28]:
+        if y < 105:
+            c.showPage()
+            y = int(height) - 48
+            y = _pdf_line(c, 42, y, f"Factura {data['numero']} - continuación", size=11, bold=True)
+        c.setFont("Helvetica", 8)
+        c.drawString(42, y, str(linea.get("cantidad") or ""))
+        c.drawString(92, y, str(linea.get("descripcion") or "")[:74])
+        c.drawRightString(width - 42, y, _money(float(linea.get("valor") or 0)))
+        y -= 13
+
+    y -= 8
+    c.line(width - 230, y + 6, width - 42, y + 6)
+    y = _pdf_line(c, width - 230, y, f"Subtotal: {_money(data['subtotal'])}", size=9)
+    y = _pdf_line(c, width - 230, y, f"Impuestos: {_money(data['impuestos'])}", size=9)
+    y = _pdf_line(c, width - 230, y, f"Total: {_money(data['total'])}", size=10, bold=True)
+
+    if data.get("cufe"):
+        y -= 8
+        y = _pdf_line(c, 42, y, "CUFE/CUDE:", size=8, bold=True)
+        _pdf_line(c, 42, y, data["cufe"], size=7)
+
+    c.setFont("Helvetica", 7)
+    c.drawString(
+        42,
+        36,
+        "PDF generado automáticamente desde XML DIAN/Siigo para visualización del comprador en Mercado Libre.",
+    )
+    c.save()
+    pdf = buffer.getvalue()
+    return base64.b64encode(pdf).decode("ascii") if _bytes_pdf_valido(pdf) else ""
+
+
 def _siigo_prefetch_invoice_antes_pdf(id_factura: str, token: str) -> None:
     """GET /invoices/{id}; a veces la API genera PDF estable tras refrescar el documento."""
     try:
@@ -210,6 +415,24 @@ def _siigo_prefetch_invoice_antes_pdf(id_factura: str, token: str) -> None:
         )
     except Exception:
         pass
+
+
+def _siigo_retry_after_seconds(res: requests.Response, default: int = 3) -> int:
+    retry_after = res.headers.get("Retry-After")
+    if retry_after:
+        try:
+            return max(1, min(30, int(float(retry_after))))
+        except (TypeError, ValueError):
+            pass
+    try:
+        data = res.json()
+    except ValueError:
+        data = {}
+    text = json.dumps(data) if isinstance(data, dict) else (res.text or "")
+    match = re.search(r"try again in (\d+) seconds?", text, re.I)
+    if match:
+        return max(1, min(30, int(match.group(1))))
+    return default
 
 
 def descargar_factura_pdf_siigo(id_factura):
@@ -235,6 +458,7 @@ def descargar_factura_pdf_siigo(id_factura):
 
             for accept in ("application/json", "application/pdf"):
                 puede_reintentar_auth = True
+                reintentos_429 = 0
                 while True:
                     _siigo_throttle_antes_pdf()
                     res = requests.get(
@@ -261,9 +485,18 @@ def descargar_factura_pdf_siigo(id_factura):
                         puede_reintentar_auth = False
                         if token:
                             continue
+                    if res.status_code == 429 and reintentos_429 < 4:
+                        reintentos_429 += 1
+                        espera_429 = _siigo_retry_after_seconds(res)
+                        print(
+                            f"⏳ Siigo rate limit PDF ({id_factura}); "
+                            f"reintento {reintentos_429}/4 en {espera_429}s."
+                        )
+                        time.sleep(espera_429)
+                        continue
                     break
 
-            if ultimo_status not in (500, 502, 503, 504, None):
+            if ultimo_status not in (429, 500, 502, 503, 504, None):
                 break
 
         detalle = f" {ultimo_cuerpo}" if ultimo_cuerpo else ""
@@ -297,6 +530,7 @@ def descargar_xml_factura_siigo(id_factura: str) -> str:
             if espera > 0:
                 time.sleep(espera)
             puede_reintentar_auth = True
+            reintentos_429 = 0
             while True:
                 _siigo_throttle_antes_pdf()
                 res = requests.get(
@@ -335,9 +569,18 @@ def descargar_xml_factura_siigo(id_factura: str) -> str:
                     puede_reintentar_auth = False
                     if token:
                         continue
+                if res.status_code == 429 and reintentos_429 < 4:
+                    reintentos_429 += 1
+                    espera_429 = _siigo_retry_after_seconds(res)
+                    print(
+                        f"⏳ Siigo rate limit XML ({id_factura}); "
+                        f"reintento {reintentos_429}/4 en {espera_429}s."
+                    )
+                    time.sleep(espera_429)
+                    continue
                 break
 
-            if ultimo_status not in (500, 502, 503, 504, None):
+            if ultimo_status not in (429, 500, 502, 503, 504, None):
                 break
 
         detalle = f" {ultimo_cuerpo}" if ultimo_cuerpo else ""
@@ -372,11 +615,18 @@ def obtener_documento_fiscal_siigo_para_meli(id_factura: str) -> tuple[str, str]
         and not str(xml).startswith("⚠️ Error")
         and _base64_xml_fiscal_valido(str(xml))
     ):
+        pdf_generado = convertir_xml_fiscal_a_pdf_base64(str(xml))
+        if not pdf_generado:
+            print(
+                f"⚠️ [SIIGO] XML fiscal descargado pero no se pudo convertir a PDF "
+                f"({str(id_factura)[:13]}…)."
+            )
+            return "", ""
         print(
-            f"ℹ️ [SIIGO] PDF no disponible por API; usando XML DIAN para MeLi "
+            f"ℹ️ [SIIGO] PDF no disponible por API; generando PDF desde XML DIAN "
             f"({str(id_factura)[:13]}…)."
         )
-        return xml, "xml"
+        return pdf_generado, "pdf"
     return "", ""
 
 
