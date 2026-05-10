@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-05-10">
+  <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
+  <Cabecera>
+    <NumeroFacturaProveedor>FE59114303</NumeroFacturaProveedor>
+    <FechaFactura>2026-01-31</FechaFactura>
+    <Moneda>COP</Moneda>
+    <Proveedor>
+      <NIT>800251569</NIT>
+      <Nombre>INTER RAPIDISIMO S.A</Nombre>
+    </Proveedor>
+  </Cabecera>
+  <Detalle totalItems="3">
+    <Item numero="1">
+      <CodigoSiigo>MENUn</CodigoSiigo>
+      <DescripcionOriginalProveedor>MENSAJERÍA 700182906654</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">1.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 1.0 × 1 = 1.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>8800.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>8800.00</Total>
+        <PrecioUnitarioMin>8800.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 8800.00 COP / 1.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="2">
+      <CodigoSiigo>MENUn2</CodigoSiigo>
+      <DescripcionOriginalProveedor>MENSAJERÍA 700182907143</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">1.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 1.0 × 1 = 1.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>11000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>11000.00</Total>
+        <PrecioUnitarioMin>11000.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 11000.00 COP / 1.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+    <Item numero="3">
+      <CodigoSiigo>MENUn3</CodigoSiigo>
+      <DescripcionOriginalProveedor>MENSAJERÍA 700182906085</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="94">1.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="NAR" simbolo="Un">1.0</CantidadConvertida>
+        <ReglaConversion>1 94 = 1 Un | 1.0 × 1 = 1.0 Un</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>18000.00</Subtotal>
+        <IVA>0.00</IVA>
+        <Total>18000.00</Total>
+        <PrecioUnitarioMin>18000.0000</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 Un (total 18000.00 COP / 1.0 Un)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>NUEVO</EstadoSiigo>
+    </Item>
+  </Detalle>
+  <Totales moneda="COP">
+    <Subtotal>37800.00</Subtotal>
+    <TotalIVA>0.00</TotalIVA>
+    <TotalGeneral>37800.00</TotalGeneral>
+    <Verificacion>IMPORTANTE: Confirmar que el TotalGeneral coincide con el total de la factura física del proveedor antes de asentar en SIIGO.</Verificacion>
+  </Totales>
+  <ProtocoloRegistroSIIGO>
+    <Paso1>Ingresar a SIIGO Nube → módulo Compras o Contabilidad.</Paso1>
+    <Paso2>Hacer clic en el botón: "Crear compra o gasto desde un XML o ZIP".</Paso2>
+    <Paso3>Cargar el archivo: FE59114303 codigos siigo.xml</Paso3>
+    <Paso4>Verificar que el TotalGeneral en SIIGO coincide con el total de la factura original del proveedor.</Paso4>
+    <Paso5>Si los valores son correctos, asentar el documento para registrar la compra.</Paso5>
+    <Paso6>NOTA: Este proceso registra la COMPRA de inventario. Es independiente del proceso de facturación de VENTA a clientes. No mezclar estos dos flujos.</Paso6>
+  </ProtocoloRegistroSIIGO>
+</RegistroCompra>

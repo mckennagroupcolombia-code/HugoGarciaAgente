@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-04-07">
+<RegistroCompra xmlns:mckg="https://mckennagroup.co/siigo-import/v1" generadoPor="Agente Hugo Garcia - McKenna Group S.A.S." fecha_generacion="2026-05-09">
   <Aviso>FLUJO DE REGISTRO DE COMPRA — Independiente del flujo de facturación de venta. Este XML es para registrar la compra del proveedor en SIIGO con códigos internos McKenna. NO confundir con las facturas de venta a clientes (módulo siigo.py).</Aviso>
   <Cabecera>
     <NumeroFacturaProveedor>FEE87198</NumeroFacturaProveedor>
@@ -12,7 +12,7 @@
   </Cabecera>
   <Detalle totalItems="6">
     <Item numero="1">
-      <CodigoSiigo>AMIBCAINSg</CodigoSiigo>
+      <CodigoSiigo>AMIBCAg</CodigoSiigo>
       <DescripcionOriginalProveedor>AMINOACIDO BCAA INSTANT POWDER</DescripcionOriginalProveedor>
       <Unidad>
         <CantidadOriginal codigoDIAN="KGM">2.0</CantidadOriginal>
@@ -26,7 +26,7 @@
         <PrecioUnitarioMin>80.9200</PrecioUnitarioMin>
         <PrecioUnitarioMinDesc>Precio por 1 g (total 161840.00 COP / 2000.0 g)</PrecioUnitarioMinDesc>
       </Precios>
-      <EstadoSiigo>NUEVO</EstadoSiigo>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
     </Item>
     <Item numero="2">
       <CodigoSiigo>MALM15MALg</CodigoSiigo>
@@ -43,10 +43,10 @@
         <PrecioUnitarioMin>6.5400</PrecioUnitarioMin>
         <PrecioUnitarioMinDesc>Precio por 1 g (total 163625.00 COP / 25000.0 g)</PrecioUnitarioMinDesc>
       </Precios>
-      <EstadoSiigo>NUEVO</EstadoSiigo>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
     </Item>
     <Item numero="3">
-      <CodigoSiigo>VITNICUSPg</CodigoSiigo>
+      <CodigoSiigo>NIAg</CodigoSiigo>
       <DescripcionOriginalProveedor>VITAMINA B-3 (NICOTINAMIDA USP)</DescripcionOriginalProveedor>
       <Unidad>
         <CantidadOriginal codigoDIAN="KGM">2.0</CantidadOriginal>
@@ -60,26 +60,9 @@
         <PrecioUnitarioMin>56.0000</PrecioUnitarioMin>
         <PrecioUnitarioMinDesc>Precio por 1 g (total 112000.00 COP / 2000.0 g)</PrecioUnitarioMinDesc>
       </Precios>
-      <EstadoSiigo>NUEVO</EstadoSiigo>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
     </Item>
     <Item numero="4">
-      <CodigoSiigo>SOYEMUg</CodigoSiigo>
-      <DescripcionOriginalProveedor>SOYPRO 900 EMULSION</DescripcionOriginalProveedor>
-      <Unidad>
-        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
-        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
-        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
-      </Unidad>
-      <Precios moneda="COP">
-        <Subtotal>304000.00</Subtotal>
-        <IVA>57760.00</IVA>
-        <Total>361760.00</Total>
-        <PrecioUnitarioMin>18.0900</PrecioUnitarioMin>
-        <PrecioUnitarioMinDesc>Precio por 1 g (total 361760.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
-      </Precios>
-      <EstadoSiigo>NUEVO</EstadoSiigo>
-    </Item>
-    <Item numero="5">
       <CodigoSiigo>CITMAGFCCg</CodigoSiigo>
       <DescripcionOriginalProveedor>CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE</DescripcionOriginalProveedor>
       <Unidad>
@@ -96,8 +79,25 @@
       </Precios>
       <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
     </Item>
+    <Item numero="5">
+      <CodigoSiigo>SOYEMUg</CodigoSiigo>
+      <DescripcionOriginalProveedor>SOYPRO 900 EMULSION</DescripcionOriginalProveedor>
+      <Unidad>
+        <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
+        <CantidadConvertida codigoDIAN="GRM" simbolo="g">20000.0</CantidadConvertida>
+        <ReglaConversion>1 KGM = 1000 g | 20.0 × 1000 = 20000.0 g</ReglaConversion>
+      </Unidad>
+      <Precios moneda="COP">
+        <Subtotal>304000.00</Subtotal>
+        <IVA>57760.00</IVA>
+        <Total>361760.00</Total>
+        <PrecioUnitarioMin>18.0900</PrecioUnitarioMin>
+        <PrecioUnitarioMinDesc>Precio por 1 g (total 361760.00 COP / 20000.0 g)</PrecioUnitarioMinDesc>
+      </Precios>
+      <EstadoSiigo>DUPLICADO - Ya existe en SIIGO, revisar antes de importar</EstadoSiigo>
+    </Item>
     <Item numero="6">
-      <CodigoSiigo>COLPOLHIDg</CodigoSiigo>
+      <CodigoSiigo>COLHIDg</CodigoSiigo>
       <DescripcionOriginalProveedor>COLAGENO EN POLVO HIDROLIZADO</DescripcionOriginalProveedor>
       <Unidad>
         <CantidadOriginal codigoDIAN="KGM">20.0</CantidadOriginal>
