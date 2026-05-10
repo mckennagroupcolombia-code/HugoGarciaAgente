@@ -23,6 +23,10 @@ _original_stdout = sys.stdout
 _routing_installed = False
 _routing_lock = threading.Lock()
 
+# Hilo activo actual (solo uno a la vez por convención del panel)
+_active_job: dict | None = None  # {"name": str, "tid": int}
+_active_lock = threading.Lock()
+
 
 def log_line(message: str) -> None:
     global _line_count
@@ -54,6 +58,41 @@ def get_lines_with_count(limit: int = 300) -> tuple[list[str], int]:
 def clear_lines() -> None:
     with _lock:
         _lines.clear()
+
+
+def get_active_job() -> dict | None:
+    with _active_lock:
+        return dict(_active_job) if _active_job else None
+
+
+def cancel_active_job() -> str:
+    """
+    Inyecta SystemExit en el hilo activo para interrumpirlo.
+    Retorna mensaje descriptivo del resultado.
+    """
+    import ctypes
+
+    with _active_lock:
+        job = _active_job
+    if not job:
+        return "No hay ningún job en ejecución."
+
+    tid = job["tid"]
+    name = job["name"]
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+        ctypes.c_ulong(tid),
+        ctypes.py_object(SystemExit),
+    )
+    if res == 1:
+        log_line(f"⛔ {name} — cancelado por el usuario")
+        return f"Job '{name}' cancelado."
+    elif res == 0:
+        log_line(f"⚠️ No se encontró el hilo de '{name}' (puede haber terminado ya).")
+        return f"Hilo de '{name}' no encontrado — puede haber terminado."
+    else:
+        # res > 1 → múltiples hilos afectados, revertir
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_ulong(tid), None)
+        return "Error al cancelar: múltiples hilos afectados (revertido)."
 
 
 # ── Captura stdout por hilo ──────────────────────────────────────────────────
@@ -145,6 +184,8 @@ def _install_routing_stdout() -> None:
 
 def run_logged_job(job_name: str, fn, args: tuple = ()) -> None:
     """Ejecuta fn(*args) capturando su stdout hacia panel_activity."""
+    global _active_job
+
     _install_routing_stdout()
     log_line(f"▶ {job_name} — inicio")
 
@@ -152,11 +193,16 @@ def run_logged_job(job_name: str, fn, args: tuple = ()) -> None:
     tid = threading.get_ident()
     with _captures_lock:
         _thread_captures[tid] = cap
+    with _active_lock:
+        _active_job = {"name": job_name, "tid": tid}
     try:
         out = fn(*args)
         cap.flush()
         with _captures_lock:
             _thread_captures.pop(tid, None)
+        with _active_lock:
+            if _active_job and _active_job.get("tid") == tid:
+                _active_job = None
 
         if isinstance(out, str):
             o = out.strip()
@@ -168,9 +214,20 @@ def run_logged_job(job_name: str, fn, args: tuple = ()) -> None:
             log_line(f"✔ {job_name} — terminado")
         else:
             log_line(f"✔ {job_name} — {repr(out)[:800]}")
+    except SystemExit:
+        cap.flush()
+        with _captures_lock:
+            _thread_captures.pop(tid, None)
+        with _active_lock:
+            if _active_job and _active_job.get("tid") == tid:
+                _active_job = None
+        log_line(f"⛔ {job_name} — interrumpido")
     except Exception as e:
         cap.flush()
         with _captures_lock:
             _thread_captures.pop(tid, None)
+        with _active_lock:
+            if _active_job and _active_job.get("tid") == tid:
+                _active_job = None
         log_line(f"✖ {job_name} — excepción: {e!r}")
         log_line(traceback.format_exc()[-3500:])

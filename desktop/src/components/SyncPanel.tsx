@@ -244,6 +244,17 @@ export default function SyncPanel() {
     }
   }, []);
 
+  const handleStop = useCallback(async () => {
+    setIsRunning(false);
+    setActiveEndpoint(null);
+    if (runningTimeoutRef.current) clearTimeout(runningTimeoutRef.current);
+    try {
+      await api.post("/api/sync/stop");
+    } catch {
+      // ignore — UI ya se desbloqueó
+    }
+  }, []);
+
   return (
     <div className="flex flex-col gap-4" style={{ minHeight: 0 }}>
       <h2 className="text-lg font-semibold text-ink shrink-0">
@@ -269,6 +280,7 @@ export default function SyncPanel() {
             lines={lines}
             isRunning={isRunning}
             onClear={handleClear}
+            onStop={handleStop}
             className="h-[600px] lg:h-[700px]"
           />
         </div>
