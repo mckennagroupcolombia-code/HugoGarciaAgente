@@ -2049,6 +2049,22 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/sync/stop", methods=["POST"])
+    def api_sync_stop():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.panel_activity import cancel_active_job, get_active_job
+        job = get_active_job()
+        if not job:
+            return jsonify({"status": "idle", "mensaje": "No hay ningún job en ejecución."})
+        mensaje = cancel_active_job()
+        return jsonify({
+            "status": "cancelado",
+            "job": job.get("name"),
+            "mensaje": mensaje,
+            "timestamp": _dt.now().isoformat(),
+        })
+
     @app.route("/api/sync/skus-meli", methods=["POST"])
     def api_sync_skus_meli():
         if not _api_token_valido():

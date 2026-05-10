@@ -4,6 +4,7 @@ interface Props {
   lines: string[];
   isRunning?: boolean;
   onClear?: () => void;
+  onStop?: () => void;
   className?: string;
 }
 
@@ -18,7 +19,7 @@ function lineClass(line: string): string {
   return "text-gray-300";
 }
 
-export default function TerminalLog({ lines, isRunning = false, onClear, className = "" }: Props) {
+export default function TerminalLog({ lines, isRunning = false, onClear, onStop, className = "" }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
@@ -58,6 +59,15 @@ export default function TerminalLog({ lines, isRunning = false, onClear, classNa
         )}
         <div className="ml-auto flex items-center gap-3">
           <span className="text-[11px] text-gray-600 font-mono">{lines.length} líneas</span>
+          {isRunning && onStop && (
+            <button
+              onClick={onStop}
+              className="flex items-center gap-1 text-[11px] font-semibold text-red-400 hover:text-red-300 border border-red-500/40 hover:border-red-400/60 rounded px-2 py-0.5 transition"
+            >
+              <span className="inline-block w-2 h-2 rounded-sm bg-red-500" />
+              detener
+            </button>
+          )}
           {onClear && (
             <button
               onClick={onClear}
