@@ -2353,6 +2353,26 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/pedidos/web/facturar", methods=["POST"])
+    @app.route("/api/pedidos/web/facturar", methods=["POST"])
+    def api_pedidos_web_facturar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        reference = (body.get("reference") or body.get("ref") or "").strip().upper()
+        if not reference:
+            return jsonify({"ok": False, "message": "Falta la referencia del pedido."}), 400
+        try:
+            from app.tools.web_pedidos import marcar_solicitud_facturacion
+
+            ok, message = marcar_solicitud_facturacion(reference)
+            payload = {"ok": ok, "message": message, "reference": reference}
+            if not ok:
+                payload["error"] = message
+            return jsonify(payload), (200 if ok else 400)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e), "message": str(e)}), 500
+
     @app.route("/api/pedidos/web/stats")
     def api_pedidos_web_stats():
         if not _api_token_valido():
