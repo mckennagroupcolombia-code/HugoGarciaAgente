@@ -52,6 +52,25 @@ def _sufijo_pack(pack_id: str) -> str:
     return digits[-4:] if len(digits) >= 4 else digits
 
 
+def _pack_id_desde_payload_mensaje(msg_data: dict) -> str:
+    """Extrae pack/order id desde las formas que devuelve MeLi para /messages/{id}?tag=post_sale."""
+    candidatos = [msg_data]
+    mensajes = msg_data.get("messages")
+    if isinstance(mensajes, list):
+        candidatos.extend(m for m in mensajes if isinstance(m, dict))
+
+    for payload in candidatos:
+        for mr in payload.get("message_resources", []) or []:
+            if mr.get("name") in ("orders", "packs"):
+                pack_id = str(mr.get("id", "")).strip()
+                if pack_id:
+                    return pack_id
+        pack_id = str(payload.get("pack_id") or payload.get("order_id") or "").strip()
+        if pack_id:
+            return pack_id
+    return ""
+
+
 def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existentes: bool = False) -> None:
     """
     Recibe resource del webhook (path o id). Si hay mensaje nuevo del comprador, alerta WA.
@@ -95,6 +114,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
             for url_intento in [
                 f"https://api.mercadolibre.com/{msg_id_directo}",
                 f"https://api.mercadolibre.com/messages/{msg_id_directo}",
+                f"https://api.mercadolibre.com/messages/{msg_id_directo}?tag=post_sale",
             ]:
                 try:
                     res_msg = _requests_lib.get(
@@ -103,16 +123,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     print(f"   -> Intento {url_intento} -> {res_msg.status_code}")
                     if res_msg.status_code == 200:
                         msg_data = res_msg.json()
-                        for mr in msg_data.get("message_resources", []):
-                            if mr.get("name") in ("orders", "packs"):
-                                pack_id = str(mr.get("id", ""))
-                                break
-                        if not pack_id:
-                            pack_id = str(
-                                msg_data.get("pack_id", "")
-                                or msg_data.get("order_id", "")
-                                or ""
-                            )
+                        pack_id = _pack_id_desde_payload_mensaje(msg_data)
                         if pack_id:
                             print(f"✅ [POSVENTA] pack_id resuelto: {pack_id}")
                             break
