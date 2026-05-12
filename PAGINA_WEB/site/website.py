@@ -2524,6 +2524,7 @@ def pago_respuesta():
                 con.close()
             except Exception:
                 pass
+            # Confirmación cliente, grupo WA y factura Siigo (app.tools.web_pedidos): ver process_order_paid_side_effects
             threading.Thread(
                 target=process_order_paid_side_effects,
                 args=(ref,),
@@ -2571,6 +2572,7 @@ def pago_confirmacion():
                 log.warning(f"MP confirmacion DB: {e}")
             log.info(f"MP IPN: payment={payment_id} ref={ref} status={new_status}")
             if new_status == "approved" and ref:
+                # Misma cola async que /pago/respuesta (idempotencia en web_pedidos)
                 threading.Thread(
                     target=process_order_paid_side_effects,
                     args=(ref.strip().upper(),),

@@ -849,6 +849,23 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on", "si", "sí"}
 
 
+def _web_siigo_auto_invoice_enabled() -> bool:
+    """Tienda ↔ Siigo: tras pago aprobado emitir FE (WEB_SIIGO_AUTO_INVOICE=0 desactiva; ausente/vacío = sí)."""
+    raw = os.getenv("WEB_SIIGO_AUTO_INVOICE")
+    if raw is None or not str(raw).strip():
+        return True
+    return _env_bool("WEB_SIIGO_AUTO_INVOICE", False)
+
+
+def _whatsapp_pedido_factura_siigo_reportable(ok: bool, out: str) -> bool:
+    """Solo emisión nueva o error (evita doble WA si return + IPN y la FE ya existe)."""
+    if not (out or "").strip():
+        return False
+    if not ok:
+        return True
+    return "Factura automática web emitida" in out
+
+
 def _siigo_invoice_url(invoice_id: str | None) -> str:
     return f"https://siigonube.siigo.com/#/invoice/843/{invoice_id}" if invoice_id else ""
 
@@ -1253,7 +1270,16 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
 
 
 def process_order_paid_side_effects(reference: str) -> None:
-    """Idempotente: correo cliente + WhatsApp grupo ventas web (una vez cada uno)."""
+    """Efectos al aprobar pago (MercadoPago): orden `approved` desde ``website``.
+
+    Pipeline idempotente (puede ejecutarse desde ``/pago/respuesta`` y/o IPN ``/pago/confirmacion``):
+
+    1. Correo de confirmación al comprador (una vez).
+    2. WhatsApp al grupo pedidos web con resumen (una vez).
+    3. Factura electrónica en Siigo con datos del checkout cuando ``WEB_SIIGO_AUTO_INVOICE`` está activo:
+       por defecto **activado** (variable ausente); ``WEB_SIIGO_AUTO_INVOICE=0`` en ``.env`` desactiva.
+       La sync del tercero y la emisión están en ``emitir_factura_siigo_pedido_web``.
+    """
     migrate_orders_table()
     ref = (reference or "").strip().upper()
     if not ref:
@@ -1309,10 +1335,10 @@ def process_order_paid_side_effects(reference: str) -> None:
         except Exception as e:
             log.warning("WhatsApp pedido web: %s", e)
 
-    if _env_bool("WEB_SIIGO_AUTO_INVOICE", False):
+    if _web_siigo_auto_invoice_enabled():
         try:
             ok, out = emitir_factura_siigo_pedido_web(ref)
-            if out:
+            if _whatsapp_pedido_factura_siigo_reportable(ok, out):
                 from app.utils import enviar_whatsapp_reporte
 
                 enviar_whatsapp_reporte(out, numero_destino=GRUPO_PEDIDOS_WEB_WA)

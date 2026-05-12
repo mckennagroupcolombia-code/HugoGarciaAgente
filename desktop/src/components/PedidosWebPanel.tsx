@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 
 interface OrderItem {
@@ -46,6 +46,7 @@ interface Order {
   billing?: Billing;
   siigo_invoice_number?: string;
   siigo_invoice_status?: string;
+  siigo_invoice_error?: string;
 }
 
 interface OrdersResponse {
@@ -101,7 +102,28 @@ function fmtDate(s: string) {
   } catch { return s; }
 }
 
-function OrderRow({ order, onExpand, expanded }: { order: Order; onExpand: () => void; expanded: boolean }) {
+interface FacturarResponse {
+  ok: boolean;
+  message: string;
+  reference: string;
+}
+
+function OrderRow({
+  order,
+  onExpand,
+  expanded,
+  onFacturar,
+  facturando,
+}: {
+  order: Order;
+  onExpand: () => void;
+  expanded: boolean;
+  onFacturar: (reference: string) => void;
+  facturando: boolean;
+}) {
+  const facturaEmitida = Boolean(order.siigo_invoice_number);
+  const puedeFacturar = order.status === "approved" && !facturaEmitida;
+
   return (
     <>
       <tr
@@ -230,9 +252,9 @@ function OrderRow({ order, onExpand, expanded }: { order: Order; onExpand: () =>
                 </div>
 
                 {/* Facturación */}
-                {order.billing && (
-                  <div>
-                    <p className="font-semibold text-muted uppercase tracking-wide mb-2">Facturación</p>
+                <div>
+                  <p className="font-semibold text-muted uppercase tracking-wide mb-2">Facturación</p>
+                  {order.billing ? (
                     <dl className="space-y-1">
                       {order.billing.name && (
                         <div className="flex gap-2">
@@ -253,14 +275,43 @@ function OrderRow({ order, onExpand, expanded }: { order: Order; onExpand: () =>
                         </div>
                       )}
                     </dl>
-                    {order.siigo_invoice_number && (
-                      <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-[11px] text-emerald-400">
-                        Factura Siigo #{order.siigo_invoice_number}
-                        {order.siigo_invoice_status ? ` — ${order.siigo_invoice_status}` : ""}
-                      </div>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-muted italic">Sin datos de facturación</p>
+                  )}
+                  {order.siigo_invoice_number ? (
+                    <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 text-[11px] text-emerald-400">
+                      Factura Siigo #{order.siigo_invoice_number}
+                      {order.siigo_invoice_status ? ` — ${order.siigo_invoice_status}` : ""}
+                    </div>
+                  ) : puedeFacturar ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onFacturar(order.reference);
+                      }}
+                      disabled={!puedeFacturar || facturando}
+                      className="mt-2 inline-flex items-center gap-2 rounded-lg bg-emerald-500/15 px-3 py-1.5 text-[11px] font-bold text-emerald-400 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                      title={
+                        order.status !== "approved"
+                          ? "Solo se puede facturar cuando el pago está aprobado"
+                          : "Emitir factura electrónica en Siigo"
+                      }
+                    >
+                      {facturando && (
+                        <span className="inline-block h-3 w-3 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+                      )}
+                      {facturando ? "Facturando…" : "Facturar con Siigo"}
+                    </button>
+                  ) : (
+                    <p className="mt-2 text-[11px] text-muted">
+                      Disponible cuando el pago esté aprobado.
+                    </p>
+                  )}
+                  {order.siigo_invoice_error && (
+                    <p className="mt-2 text-[11px] text-danger">{order.siigo_invoice_error}</p>
+                  )}
+                </div>
               </div>
             </div>
           </td>
@@ -271,10 +322,12 @@ function OrderRow({ order, onExpand, expanded }: { order: Order; onExpand: () =>
 }
 
 export default function PedidosWebPanel() {
+  const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
   const [expandedRef, setExpandedRef] = useState<string | null>(null);
+  const [facturarMsg, setFacturarMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
   const queryParams = new URLSearchParams({
     q: search,
@@ -286,6 +339,20 @@ export default function PedidosWebPanel() {
     queryKey: ["pedidos-web", search, statusFilter, page],
     queryFn: () => api.get<OrdersResponse>(`/api/pedidos/web?${queryParams}`),
     refetchInterval: 30_000,
+  });
+
+  const facturar = useMutation({
+    mutationFn: (reference: string) =>
+      api.post<FacturarResponse>("/api/pedidos/web/facturar", { reference }, { timeoutMs: 120_000 }),
+    onMutate: () => setFacturarMsg(null),
+    onSuccess: (res) => {
+      setFacturarMsg({ type: "ok", text: res.message || "Factura emitida en Siigo." });
+      qc.invalidateQueries({ queryKey: ["pedidos-web"] });
+    },
+    onError: (e: Error) => {
+      setFacturarMsg({ type: "error", text: e.message || "No se pudo facturar el pedido." });
+      qc.invalidateQueries({ queryKey: ["pedidos-web"] });
+    },
   });
 
   const totalPages = data ? Math.ceil(data.total / data.per_page) : 1;
@@ -335,6 +402,18 @@ export default function PedidosWebPanel() {
         </select>
       </form>
 
+      {facturarMsg && (
+        <div
+          className={`rounded-lg border px-4 py-2 text-xs ${
+            facturarMsg.type === "ok"
+              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+              : "border-red-500/25 bg-red-500/10 text-red-300"
+          }`}
+        >
+          {facturarMsg.text}
+        </div>
+      )}
+
       {/* Table */}
       <div className="rounded-xl border border-border bg-surface-panel overflow-hidden">
         {isLoading ? (
@@ -371,6 +450,8 @@ export default function PedidosWebPanel() {
                     key={order.reference}
                     order={order}
                     expanded={expandedRef === order.reference}
+                    facturando={facturar.isPending && facturar.variables === order.reference}
+                    onFacturar={(reference) => facturar.mutate(reference)}
                     onExpand={() =>
                       setExpandedRef((prev) =>
                         prev === order.reference ? null : order.reference,
