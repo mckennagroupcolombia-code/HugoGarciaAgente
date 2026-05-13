@@ -21,6 +21,7 @@ load_dotenv(ROOT / '.env')
 
 import site_auth
 from app.api_auth import normalize_api_token
+from app.web_chat_activity import record_interaction
 
 from app.tools.web_pedidos import (
     migrate_orders_table,
@@ -1813,7 +1814,7 @@ def _chat_catalog_guess(message: str) -> str | None:
     scored.sort(key=lambda x: -x[0])
     top = [x[1] for x in scored[:5]]
     lines = [
-        "Mientras tanto, según nuestro catálogo en línea, esto podría interesarte:",
+        "Mientras tanto, según nuestros combos activos en SIIGO publicados en la tienda, esto podría interesarte:",
     ]
     for p in top:
         nm = p.get("name") or "Producto"
@@ -1821,7 +1822,7 @@ def _chat_catalog_guess(message: str) -> str | None:
         precio = p.get("precio")
         extra = f" — Ref. {ref}" if ref else ""
         if precio:
-            extra += f" — desde {precio} COP (aprox. web)"
+            extra += f" — {precio} COP"
         lines.append(f"• {nm}{extra}")
     lines.append(
         f"Para confirmar disponibilidad y comprar: WhatsApp https://wa.me/{WA_NUMBER}"
@@ -2900,14 +2901,22 @@ def api_chat():
     if not session_id:
         session_id = session.get("hugo_chat_session")
         if not session_id:
-            session_id = str(uuid.uuid4())
+            session_id = f"web-{uuid.uuid4()}"
             session["hugo_chat_session"] = session_id
             session.modified = True
+    page_url = request.headers.get("X-Chat-Page", "").strip() or request.referrer or ""
+    user_agent = request.headers.get("User-Agent", "")
     chat_url = (os.getenv("AGENTE_CHAT_URL") or "http://127.0.0.1:8081/chat").strip()
     agent_token = normalize_api_token(os.getenv("CHAT_API_TOKEN", ""))
     upstream_err = ""
     try:
-        payload = {"mensaje": message, "session_id": session_id}
+        payload = {
+            "mensaje": message,
+            "session_id": session_id,
+            "origen": "web_chat",
+            "page_url": page_url,
+            "user_agent": user_agent,
+        }
         if attachments:
             payload["adjuntos"] = attachments
         res = requests.post(
@@ -2923,7 +2932,8 @@ def api_chat():
             body = res.json() if res.text else {}
             reply = (body.get("respuesta") or body.get("reply") or "").strip()
             if reply:
-                return jsonify({"reply": reply, "ok": True})
+                source = body.get("source") or "agent"
+                return jsonify({"reply": reply, "ok": True, "source": source})
             upstream_err = "upstream_200_vacio"
             log.warning("api_chat: 200 pero respuesta vacía")
         else:
@@ -2941,20 +2951,42 @@ def api_chat():
         log.warning("api_chat: fallback tras error upstream (%s)", upstream_err)
     cat_reply = _chat_catalog_guess(message)
     if cat_reply:
+        try:
+            record_interaction(
+                session_id=session_id,
+                user_message=message,
+                agent_reply=cat_reply,
+                attachments_count=len(attachments) if isinstance(attachments, list) else 0,
+                source="catalog_fallback",
+                upstream_error=upstream_err,
+                page_url=page_url,
+                user_agent=user_agent,
+            )
+        except Exception as log_err:
+            log.warning("api_chat: no se pudo registrar fallback (%s)", log_err)
         return jsonify({"reply": cat_reply, "ok": True, "source": "catalog_fallback"})
 
-    return jsonify(
-        {
-            "reply": (
-                "Ahora mismo no pude conectar con el asistente en línea. "
-                "Para productos, precios y disponibilidad escríbenos por WhatsApp "
-                f"al +{WA_NUMBER} o revisa el catálogo en la tienda. "
-                "Si el problema continúa, avísanos por el mismo canal."
-            ),
-            "ok": True,
-            "source": "offline",
-        }
+    offline_reply = (
+        "Ahora mismo no pude conectar con el asistente en línea. "
+        "Para productos, precios y disponibilidad escríbenos por WhatsApp "
+        f"al +{WA_NUMBER} o revisa el catálogo en la tienda. "
+        "Si el problema continúa, avísanos por el mismo canal."
     )
+    try:
+        record_interaction(
+            session_id=session_id,
+            user_message=message,
+            agent_reply=offline_reply,
+            attachments_count=len(attachments) if isinstance(attachments, list) else 0,
+            source="offline",
+            upstream_error=upstream_err,
+            page_url=page_url,
+            user_agent=user_agent,
+        )
+    except Exception as log_err:
+        log.warning("api_chat: no se pudo registrar offline (%s)", log_err)
+
+    return jsonify({"reply": offline_reply, "ok": True, "source": "offline"})
 
 @app.route("/checkout/tarifas")
 def checkout_tarifas():

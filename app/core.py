@@ -3,6 +3,7 @@ import copy
 import os
 import inspect
 import json
+import re
 import sqlite3
 import time as _time
 import traceback
@@ -585,6 +586,128 @@ def configurar_ia(app):
         cliente_gemini = None
 
 
+def _extraer_texto_visible_mensaje(content) -> str:
+    """Texto legible del cliente (sin tool_use ni bloques binarios)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        partes: list[str] = []
+        for b in content:
+            if isinstance(b, dict) and b.get("type") == "text":
+                partes.append(b.get("text", "") or "")
+            elif hasattr(b, "type") and getattr(b, "type", None) == "text":
+                partes.append(getattr(b, "text", "") or "")
+        return " ".join(t for t in partes if t).strip()
+    return str(content or "")
+
+
+def _ultimo_texto_asistente_previo(messages: list) -> str | None:
+    """Último turno assistant con texto, ignorando el user final."""
+    if len(messages) < 2 or messages[-1].get("role") != "user":
+        return None
+    for i in range(len(messages) - 2, -1, -1):
+        if messages[i].get("role") != "assistant":
+            continue
+        t = _extraer_texto_visible_mensaje(messages[i].get("content"))
+        if t.strip():
+            return t
+    return None
+
+
+def _asistente_pidio_cantidad_tras_producto(texto_asistente: str) -> bool:
+    low = texto_asistente.lower()
+    if "referencia:" not in low and "sku/referencia:" not in low:
+        return False
+    disparadores = (
+        "cotización",
+        "cotizacion",
+        "cantidad",
+        "cuánt",
+        "cuant",
+        "me indica",
+        "indica la cantidad",
+        "cuántas unidades",
+        "cuantas unidades",
+        "cuántos",
+        "cuantos",
+    )
+    return any(d in low for d in disparadores)
+
+
+def _extraer_referencia_desde_texto_asistente(texto: str) -> str | None:
+    for pat in (
+        r"sku/referencia:\s*([^\n]+)",
+        r"referencia:\s*([^\n]+)",
+    ):
+        m = re.search(pat, texto, flags=re.I)
+        if m:
+            ref = m.group(1).strip()
+            if ref:
+                return ref.split()[0]
+    return None
+
+
+def _extraer_nombre_producto_desde_texto_asistente(texto: str) -> str | None:
+    m = re.search(r"(?:nombre oficial|producto):\s*([^\n]+)", texto, flags=re.I)
+    if m:
+        n = m.group(1).strip()
+        return n or None
+    return None
+
+
+def _parse_cantidad_respuesta_cliente(texto: str) -> float | None:
+    t = (texto or "").strip().lower()
+    if not t:
+        return None
+    if t in ("una", "un", "uno", "1u"):
+        return 1.0
+    if re.match(r"^\d+(?:[.,]\d+)?$", t):
+        return float(t.replace(",", "."))
+    m = re.match(r"^(\d+(?:[.,]\d+)?)\s*(unidad|unidades|uds?\.?|u)\s*$", t)
+    if m:
+        return float(m.group(1).replace(",", "."))
+    if re.match(r"^\d+\s*(ml|l|g|gr|kg|oz)\s*$", t):
+        return 1.0
+    return None
+
+
+def _fmt_precio_cop(n: float) -> str:
+    return f"${n:,.0f} COP"
+
+
+def resolver_cantidad_tras_oferta_producto(messages: list, pregunta: str) -> str | None:
+    """
+    Si el asistente acaba de ofrecer producto con referencia y pidió cantidad,
+    interpreta la respuesta del usuario como cantidad (p. ej. "1", "1 unidad", "120 ml")
+    y devuelve texto de confirmación con subtotal. Si no aplica, None.
+    """
+    cant = _parse_cantidad_respuesta_cliente(pregunta or "")
+    if cant is None or cant <= 0 or cant > 1_000_000:
+        return None
+    asst = _ultimo_texto_asistente_previo(messages)
+    if not asst or not _asistente_pidio_cantidad_tras_producto(asst):
+        return None
+    sku = _extraer_referencia_desde_texto_asistente(asst)
+    if not sku:
+        return None
+    prod = buscar_producto_siigo_por_sku(sku)
+    if not prod:
+        return None
+    precio = float(prod.get("precio") or 0)
+    if precio <= 0:
+        return None
+    nombre = (prod.get("nombre") or "").strip() or (
+        _extraer_nombre_producto_desde_texto_asistente(asst) or sku
+    )
+    subtotal = precio * cant
+    qtxt = str(int(cant)) if abs(cant - round(cant)) < 1e-9 else str(cant)
+    return (
+        f"Listo veci, te anoto {qtxt} unidad(es) de {nombre} (ref. {sku}).\n"
+        f"Precio unitario: {_fmt_precio_cop(precio)} — subtotal: {_fmt_precio_cop(subtotal)}.\n"
+        "¿Me comparte nombre o razón social y NIT o cédula para seguir con la cotización?"
+    )
+
+
 def _historial_a_texto_simple(messages: list) -> str:
     """Convierte historial mixto a texto corto compatible con Gemini."""
     partes = []
@@ -692,6 +815,16 @@ def obtener_respuesta_ia(
         messages.append({"role": "user", "content": bloques})
     else:
         messages.append({"role": "user", "content": texto_usuario})
+
+    # Respuesta a cantidad tras ofertar producto (evita que "1" o "1 unidad" disparen nueva búsqueda).
+    if not adjuntos:
+        resp_cant = resolver_cantidad_tras_oferta_producto(messages, pregunta or "")
+        if resp_cant:
+            final_messages = messages + [{"role": "assistant", "content": resp_cant}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return resp_cant, final_messages
 
     # 1) Ruta primaria: Gemini 2.5 Pro
     respuesta_gemini = _responder_con_gemini_primario(

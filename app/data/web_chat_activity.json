@@ -1,0 +1,263 @@
+{
+  "updated_at": "2026-05-12T17:55:06",
+  "daily_counts": {
+    "2026-05-12": 18
+  },
+  "sessions": [
+    {
+      "session_id": "web-dcbe5c4e-667d-46e4-aef0-eca68d2d5415",
+      "started_at": "2026-05-12T17:52:17",
+      "last_at": "2026-05-12T17:55:06",
+      "messages_count": 9,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "1 unidad",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-12T17:52:56",
+          "user_message": "Arcilla kilo, niacinamida, vitamina e, agua destilada",
+          "agent_reply": "Sí veci, sí lo manejamos. - Producto: AGUA DESTILADA 250mL - Referencia: C-AGUDES250mL - Precio: $6,800 COP Si desea cotización, me indica la cantidad.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T17:53:15",
+          "user_message": "1 de 250ml",
+          "agent_reply": "Veci, no ubico ese producto tal como me lo escribió. Si quiere, me puede confirmar el nombre exacto o la presentación. De pronto busca alguno de estos: - ACEITE LINAZA 250mL - ACEITE NEEM 250mL - ACEITE RICINO 250mL",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T17:53:38",
+          "user_message": "Aceite linaza 250ml",
+          "agent_reply": "Sí veci, sí lo manejamos. - Producto: ACEITE LINAZA 250mL - Referencia: C-ACELIN250mL - Precio: $18,900 COP Si desea cotización, me indica la cantidad.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T17:53:45",
+          "user_message": "1",
+          "agent_reply": "Veci, no ubico ese producto tal como me lo escribió. Si quiere, me puede confirmar el nombre exacto o la presentación. De pronto busca alguno de estos: - ACEITE NEEM 120mL - ACEITE RICINO 10mL - ACIDO AZELAICO 10g",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T17:54:14",
+          "user_message": "Aceite de neem 120 ml",
+          "agent_reply": "Veci, no ubico ese producto tal como me lo escribió. Si quiere, me puede confirmar el nombre exacto o la presentación. De pronto busca alguno de estos: - ACEITE NEEM 120mL - ACEITE NEEM 250mL - ACEITE NEEM 500mL",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T17:54:34",
+          "user_message": "Aceite neem 120ml",
+          "agent_reply": "Sí veci, sí lo manejamos. - Producto: ACEITE NEEM 120mL - Referencia: C-ACENEE120mL - Precio: $34,500 COP Si desea cotización, me indica la cantidad.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T17:54:43",
+          "user_message": "120ml",
+          "agent_reply": "Sí veci, sí lo manejamos. - Producto: ACEITE NEEM 120mL - Referencia: C-ACENEE120mL - Precio: $34,500 COP Si desea cotización, me indica la cantidad.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T17:55:06",
+          "user_message": "1 unidad",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-4c63e3f9-3010-43d0-aced-bbbb3fc5e211",
+      "started_at": "2026-05-12T16:05:45",
+      "last_at": "2026-05-12T16:05:45",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/mis-pedidos",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Como agrego niacinamida a mi carrito si no la encuentro",
+      "last_agent_reply": "Claro, la Niacinamida la encuentras en este enlace directo. Desde ahí la puedes agregar al carrito sin problema: https://mckennagroup.co/producto/niacinamida-usp-x-100gr/",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-12T16:05:45",
+          "user_message": "Como agrego niacinamida a mi carrito si no la encuentro",
+          "agent_reply": "Claro, la Niacinamida la encuentras en este enlace directo. Desde ahí la puedes agregar al carrito sin problema: https://mckennagroup.co/producto/niacinamida-usp-x-100gr/",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-2d950503-cd65-4121-b4a5-2536b9da9e53",
+      "started_at": "2026-05-12T16:04:59",
+      "last_at": "2026-05-12T16:04:59",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/mis-pedidos",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Como agrego niacinamida a mi carrito si no la encuentro",
+      "last_agent_reply": "Claro, búsquela en la tienda como \"Niacinamida USP\". Así le debe aparecer de una para que la pueda agregar al carrito.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-12T16:04:59",
+          "user_message": "Como agrego niacinamida a mi carrito si no la encuentro",
+          "agent_reply": "Claro, búsquela en la tienda como \"Niacinamida USP\". Así le debe aparecer de una para que la pueda agregar al carrito.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "eca7fe89-d52f-4539-8b38-2ce29e51a165",
+      "started_at": "2026-05-12T15:53:27",
+      "last_at": "2026-05-12T15:56:35",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Niacinamida",
+      "last_agent_reply": "Sí veci, sí lo manejamos. - Producto: NIACINAMIDA 100g - Referencia: C-NIA100g - Precio: $63,150 COP Si desea cotización, me indica la cantidad.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-12T15:53:27",
+          "user_message": "Buens tardes manejas oliven",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T15:54:07",
+          "user_message": "Cosgard",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T15:56:07",
+          "user_message": "Me puedes cotizar acido hialuronico, niacinamida, goma xantana y aceite de lavanda",
+          "agent_reply": "Veci, no ubico ese producto tal como me lo escribió. Si quiere, me puede confirmar el nombre exacto o la presentación. De pronto busca alguno de estos: - GOMA XANTANA 500g - GOMA XANTANA Kg - ACIDO HIALURONICO ALTO PESO 30mL",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-12T15:56:35",
+          "user_message": "Niacinamida",
+          "agent_reply": "Sí veci, sí lo manejamos. - Producto: NIACINAMIDA 100g - Referencia: C-NIA100g - Precio: $63,150 COP Si desea cotización, me indica la cantidad.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-smoke-1778619089",
+      "started_at": "2026-05-12T15:51:35",
+      "last_at": "2026-05-12T15:51:35",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-05-12T15:53:02",
+      "page_url": "https://mckennagroup.co/arcillas",
+      "user_agent": "python-requests/2.32.5",
+      "last_user_message": "Y manejas oliven",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-12T15:51:35",
+          "user_message": "Y manejas oliven",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-smoke-1778618569",
+      "started_at": "2026-05-12T15:42:55",
+      "last_at": "2026-05-12T15:42:55",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-05-12T15:52:58",
+      "page_url": "https://mckennagroup.co/arcillas",
+      "user_agent": "python-requests/2.32.5",
+      "last_user_message": "Y manejas oliven",
+      "last_agent_reply": "No encontré un combo SIIGO activo para 'Y manejas oliven'. Si necesita cotización oficial, envíeme el nombre o código exacto del combo SIIGO y la cantidad.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-12T15:42:55",
+          "user_message": "Y manejas oliven",
+          "agent_reply": "No encontré un combo SIIGO activo para 'Y manejas oliven'. Si necesita cotización oficial, envíeme el nombre o código exacto del combo SIIGO y la cantidad.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-smoke-1778617806",
+      "started_at": "2026-05-12T15:30:06",
+      "last_at": "2026-05-12T15:30:06",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-05-12T15:53:00",
+      "page_url": "https://mckennagroup.co/arcillas",
+      "user_agent": "python-requests/2.32.5",
+      "last_user_message": "Y manejas oliven",
+      "last_agent_reply": "Veci, el servicio IA está en ajuste técnico temporal. Por favor intente de nuevo en un momento 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-12T15:30:06",
+          "user_message": "Y manejas oliven",
+          "agent_reply": "Veci, el servicio IA está en ajuste técnico temporal. Por favor intente de nuevo en un momento 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    }
+  ]
+}
