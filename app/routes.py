@@ -1651,6 +1651,7 @@ def register_routes(app):
     def chat():
         import os
         from datetime import datetime
+        from app.web_chat_activity import record_interaction
 
         if not chat_api_token_matches_request():
             return jsonify({"error": "No autorizado"}), 401
@@ -1668,6 +1669,9 @@ def register_routes(app):
             ),
         )
         session_id = (data.get("session_id") or data.get("usuario_id") or "").strip()
+        origen = (data.get("origen") or "").strip().lower()
+        page_url = (data.get("page_url") or "").strip()
+        es_web_chat = origen == "web_chat" or session_id.startswith("web-")
         if not session_id:
             return (
                 jsonify(
@@ -1682,11 +1686,25 @@ def register_routes(app):
             respuesta, _ = obtener_respuesta_ia(
                 mensaje, session_id, adjuntos_payload=adjuntos
             )
+            if es_web_chat and respuesta:
+                try:
+                    record_interaction(
+                        session_id=session_id,
+                        user_message=mensaje,
+                        agent_reply=respuesta,
+                        attachments_count=len(adjuntos) if isinstance(adjuntos, list) else 0,
+                        source="agent",
+                        page_url=page_url,
+                        user_agent=(data.get("user_agent") or request.headers.get("User-Agent", "")),
+                    )
+                except Exception:
+                    pass
             return jsonify(
                 {
                     "respuesta": respuesta,
                     "timestamp": datetime.now().isoformat(),
                     "status": "ok",
+                    "source": "agent",
                 }
             )
         except Exception as e:
@@ -1784,6 +1802,17 @@ def register_routes(app):
                 data["token_meli"] = bool(refrescar_token_meli())
             except Exception:
                 data["token_meli"] = False
+            try:
+                from app.web_chat_activity import get_summary as _get_web_chat_summary
+
+                web_chat_summary = _get_web_chat_summary()
+                data["web_chat_interacciones_hoy"] = web_chat_summary.get("today_interactions", 0)
+                data["web_chat_sin_revisar"] = web_chat_summary.get("unreviewed_count", 0)
+                data["web_chat_activas_24h"] = web_chat_summary.get("active_last_24h", 0)
+            except Exception:
+                data["web_chat_interacciones_hoy"] = 0
+                data["web_chat_sin_revisar"] = 0
+                data["web_chat_activas_24h"] = 0
             return jsonify(data)
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -2128,6 +2157,43 @@ def register_routes(app):
         limit = request.args.get("limit", default=300, type=int) or 300
         lines, count = get_lines_with_count(limit)
         return jsonify({"lines": lines, "count": count})
+
+    @app.route("/api/web-chat")
+    def api_web_chat():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.web_chat_activity import get_panel_payload
+
+            limit = request.args.get("limit", default=40, type=int) or 40
+            only_unreviewed = request.args.get("only_unreviewed", default=0, type=int) == 1
+            return jsonify(get_panel_payload(limit=limit, only_unreviewed=only_unreviewed))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/web-chat/<session_id>/review", methods=["POST"])
+    def api_web_chat_review(session_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.web_chat_activity import get_summary, mark_session_reviewed
+
+            changed = mark_session_reviewed(session_id)
+            return jsonify({"ok": True, "changed": changed, "summary": get_summary()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/web-chat/review-all", methods=["POST"])
+    def api_web_chat_review_all():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.web_chat_activity import get_summary, mark_all_reviewed
+
+            reviewed = mark_all_reviewed()
+            return jsonify({"ok": True, "reviewed": reviewed, "summary": get_summary()})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     # ── Facturas de compra (clasificación desde panel) ─────────────────────
 
