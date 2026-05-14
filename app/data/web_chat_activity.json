@@ -1,9 +1,140 @@
 {
-  "updated_at": "2026-05-12T17:55:06",
+  "updated_at": "2026-05-13T19:57:46",
   "daily_counts": {
-    "2026-05-12": 18
+    "2026-05-12": 18,
+    "2026-05-13": 19
   },
   "sessions": [
+    {
+      "session_id": "web-f9fe24d8-491e-4097-abbf-ee92ddb994c9",
+      "started_at": "2026-05-13T19:55:31",
+      "last_at": "2026-05-13T19:57:46",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/checkout",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Gracias",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-13T19:55:31",
+          "user_message": "Buenas noches . Necesito comprar sharomix de 500 pero la página se desconfigura",
+          "agent_reply": "Claro que sí, veci. Fresco con la página, por acá le colaboro de una. El Sharomix de 500g está disponible. Para generarle la cotización y que pueda hacer el pago, por favor regáleme los siguientes datos: * Nombre completo o razón social y NIT/Cédula. * Correo electrónico. * Dirección de envío.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T19:56:48",
+          "user_message": "Patricia Mariaca, tejemaria@gmail.com, finca #6 Vereda Yarumal sector Sajonia en Rionegro Antioquia",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T19:57:26",
+          "user_message": "Lo tienen o no? Me dijiste primero que si",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T19:57:46",
+          "user_message": "Gracias",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-931c3cd1-ff16-40e3-bdd7-7092069aa0a4",
+      "started_at": "2026-05-13T11:40:11",
+      "last_at": "2026-05-13T11:56:14",
+      "messages_count": 15,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "ok",
+      "last_agent_reply": "Con gusto, veci. Quedo atento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-13T11:46:57",
+          "user_message": "y otra materia",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T11:47:10",
+          "user_message": "como hago que me llamen",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T11:51:17",
+          "user_message": "AMODIMETHICONE (EMULSIÓN 35%)",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T11:54:08",
+          "user_message": "ALQUILBENCENO",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T11:54:24",
+          "user_message": "HOLA COMO ESTAS",
+          "agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T11:54:45",
+          "user_message": "QUIERO CONSEGUIR ALQUIBECENO",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T11:55:11",
+          "user_message": "Alquilbenceno Sulfonato de Sodio en Polvo/ Dodecilbenceno sulfonato de sodio en polvo",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-13T11:56:14",
+          "user_message": "ok",
+          "agent_reply": "Con gusto, veci. Quedo atento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-dcbe5c4e-667d-46e4-aef0-eca68d2d5415",
       "started_at": "2026-05-12T17:52:17",
