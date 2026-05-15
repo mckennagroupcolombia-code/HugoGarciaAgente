@@ -1,10 +1,174 @@
 {
-  "updated_at": "2026-05-13T19:57:46",
+  "updated_at": "2026-05-14T13:12:33",
   "daily_counts": {
     "2026-05-12": 18,
-    "2026-05-13": 19
+    "2026-05-13": 19,
+    "2026-05-14": 14
   },
   "sessions": [
+    {
+      "session_id": "web-d95d3e5b-c2b5-45b9-8af7-421556ff7232",
+      "started_at": "2026-05-14T13:08:25",
+      "last_at": "2026-05-14T13:12:33",
+      "messages_count": 5,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Cuanto suelen durar? Si o si la fecha de vencimiento o depende de su cuidado?",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-14T13:08:25",
+          "user_message": "Gluconactato",
+          "agent_reply": "Claro, tengo es Gluconato de Calcio. ¿Es el que necesita? Está disponible.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:11:30",
+          "user_message": "Gluconolactato de Calcio es la cosa para hacer esferificacion directa",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:11:47",
+          "user_message": ";(",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:12:07",
+          "user_message": "Oye ven una pregunta, yo les compre a ustedes dos quimicos hace como finales de 2024",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:12:33",
+          "user_message": "Cuanto suelen durar? Si o si la fecha de vencimiento o depende de su cuidado?",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-2363db51-c0b6-4eb6-af55-8e0ab4f94bd9",
+      "started_at": "2026-05-14T13:11:56",
+      "last_at": "2026-05-14T13:12:12",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Asesor",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-14T13:11:56",
+          "user_message": "Hola",
+          "agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:12:06",
+          "user_message": "Quiero cotizar unos productos por favor",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:12:12",
+          "user_message": "Asesor",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-d1e4b174-80b8-42b1-a4ce-6f5781a135dc",
+      "started_at": "2026-05-14T13:05:59",
+      "last_at": "2026-05-14T13:10:52",
+      "messages_count": 6,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "hola",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-14T13:05:59",
+          "user_message": "Hola buenas tardes",
+          "agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:06:37",
+          "user_message": "gracias, me puedes dar información sobre el áctido tranexámico",
+          "agent_reply": "Claro que sí, veci. El Ácido Tranexámico que manejamos es Grado USP (farmacéutico), ideal para formulaciones cosméticas despigmentantes como sueros o cremas para tratar manchas y melasma. Se recomienda usarlo en una concentración del 0.5% al 3%. Es clave que sepa que es un producto para uso tópico exclusivamente. **No es inyectable ni para consumo oral.** Lo tenemos disponible. ¿Necesita saber algo más o le cotizo alguna presentación?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:07:18",
+          "user_message": "en cuál presentación está?",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:08:02",
+          "user_message": "no tienen ácido tranexámico?",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:10:46",
+          "user_message": "Ok. entonces por favor me puede cotizar:",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-14T13:10:52",
+          "user_message": "hola",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-f9fe24d8-491e-4097-abbf-ee92ddb994c9",
       "started_at": "2026-05-13T19:55:31",
