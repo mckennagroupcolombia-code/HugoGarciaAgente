@@ -1,11 +1,61 @@
 {
-  "updated_at": "2026-05-14T13:12:33",
+  "updated_at": "2026-05-15T09:31:47",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
-    "2026-05-14": 14
+    "2026-05-14": 14,
+    "2026-05-15": 4
   },
   "sessions": [
+    {
+      "session_id": "web-7542b845-0459-4215-8a55-77d5af7c5fd0",
+      "started_at": "2026-05-15T09:30:13",
+      "last_at": "2026-05-15T09:31:47",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "​L-Histidina",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-15T09:30:13",
+          "user_message": "Hola, ¿cómo estás? Quisiera saber si manejan unas materias primas que necesito",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-15T09:30:57",
+          "user_message": "​L-Histidina L-Citrulina Malato (Relación 2:1​ L-Arginina AAKG Cafeína Anhidra L-Teanina:",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-15T09:31:20",
+          "user_message": "L-Arginina AAKG",
+          "agent_reply": "Sí veci, sí lo manejamos. - Producto: AMINOACIDO L ARGININA 100g - Referencia: C-AMILARG100g - Precio: $21,900 COP Si desea cotización, me indica la cantidad.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-15T09:31:47",
+          "user_message": "​L-Histidina",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-d95d3e5b-c2b5-45b9-8af7-421556ff7232",
       "started_at": "2026-05-14T13:08:25",
