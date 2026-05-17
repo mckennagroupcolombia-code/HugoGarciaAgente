@@ -1,12 +1,162 @@
 {
-  "updated_at": "2026-05-15T09:31:47",
+  "updated_at": "2026-05-16T15:55:56",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
     "2026-05-14": 14,
-    "2026-05-15": 4
+    "2026-05-15": 4,
+    "2026-05-16": 8
   },
   "sessions": [
+    {
+      "session_id": "web-c8490d64-44e5-482d-8106-3518bddcc6d5",
+      "started_at": "2026-05-16T15:55:40",
+      "last_at": "2026-05-16T15:55:56",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 15; 25028RN03L Build/AP3A.240905.015.A2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.120 Mobile Safari/537.36",
+      "last_user_message": "Cuáles tienes disponibles",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-16T15:55:40",
+          "user_message": "Citrato de magnesio y potasio",
+          "agent_reply": "Claro que sí. Manejo ambos, Citrato de Magnesio y Citrato de Potasio. ¿Busca alguna presentación en especial?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-16T15:55:56",
+          "user_message": "Cuáles tienes disponibles",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-e13a5dcc-b72f-4774-a467-f9e30656e8b1",
+      "started_at": "2026-05-16T15:55:14",
+      "last_at": "2026-05-16T15:55:14",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/?cat=Suplementarios",
+      "user_agent": "Mozilla/5.0 (Linux; Android 15; 25028RN03L Build/AP3A.240905.015.A2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.120 Mobile Safari/537.36",
+      "last_user_message": "Buenas tardes maneja citrato de magnesio y potasio",
+      "last_agent_reply": "Claro que sí, veci. Manejamos ambos, Citrato de Magnesio y Citrato de Potasio, en grado farmacéutico (USP).",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-16T15:55:14",
+          "user_message": "Buenas tardes maneja citrato de magnesio y potasio",
+          "agent_reply": "Claro que sí, veci. Manejamos ambos, Citrato de Magnesio y Citrato de Potasio, en grado farmacéutico (USP).",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-332eedea-ef62-436a-8551-5effcf617289",
+      "started_at": "2026-05-16T15:32:39",
+      "last_at": "2026-05-16T15:32:48",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/?cat=Aceites",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Esta bien, gracias",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-16T15:32:39",
+          "user_message": "Hola ¿tienen aceite de pepita de uva? No lo veo en la pagina web :c si tienen cual es el precio?",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-16T15:32:48",
+          "user_message": "Esta bien, gracias",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-fdfea1b7-d943-4fdf-ac74-3ee1cdf9cd80",
+      "started_at": "2026-05-16T10:31:33",
+      "last_at": "2026-05-16T10:32:03",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "Hola Hugo, Soy Yaira, mucho gusto",
+      "last_agent_reply": "Mucho gusto, Yaira. ¿En qué le puedo colaborar?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-16T10:31:33",
+          "user_message": "Hola, buen dia",
+          "agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-16T10:32:03",
+          "user_message": "Hola Hugo, Soy Yaira, mucho gusto",
+          "agent_reply": "Mucho gusto, Yaira. ¿En qué le puedo colaborar?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-e7633783-bf84-4e47-8f53-a38d44694a96",
+      "started_at": "2026-05-16T09:44:58",
+      "last_at": "2026-05-16T09:44:58",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Bueno días que precio tiene ácido ascirbico",
+      "last_agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-16T09:44:58",
+          "user_message": "Bueno días que precio tiene ácido ascirbico",
+          "agent_reply": "No veci, ese producto no lo manejamos en este momento.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-7542b845-0459-4215-8a55-77d5af7c5fd0",
       "started_at": "2026-05-15T09:30:13",
