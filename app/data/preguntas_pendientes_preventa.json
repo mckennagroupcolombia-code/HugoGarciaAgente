@@ -477,6 +477,35 @@
       "pregunta": "El ácido hialurónico ofrecido es de alto o bajo peso molecular?",
       "timestamp": "2026-05-15T22:23:41.358438",
       "respondida": true
+    },
+    {
+      "question_id": "13583457297",
+      "titulo_producto": "Jabón Potásico Combate Pulgon Mosca Blanca Hongos 1 Lt",
+      "pregunta": "Hola cuentame, este jabón trae aceite de Neen o ácido salicílico? Muchas gracias",
+      "timestamp": "2026-05-16T11:24:08.233947",
+      "respondida": true
+    },
+    {
+      "question_id": "13583620879",
+      "titulo_producto": "Extensión Eléctrica Profesional Certificada Retie  5 Mts",
+      "pregunta": "Buenas tardes, si la compro hay posibilidad de que llegue hoy? La necesito urgente",
+      "timestamp": "2026-05-16T14:01:26.488204",
+      "respondida": true
+    },
+    {
+      "question_id": "13584402728",
+      "titulo_producto": "Extensión Eléctrica Profesional Certificada Retie  5 Mts",
+      "pregunta": "Es para Bogotá si es necesario yo voy y la recojo",
+      "timestamp": "2026-05-16T14:56:18.246083",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-05-16"
+    },
+    {
+      "question_id": "13583668533",
+      "titulo_producto": "Extensión Eléctrica Profesional Certificada Retie  5 Mts",
+      "pregunta": "Estoy en la boyaca con 13 ciudad alsacia",
+      "timestamp": "2026-05-16T16:54:20.843362",
+      "respondida": true
     }
   ]
 }
