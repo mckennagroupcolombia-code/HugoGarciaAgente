@@ -9,7 +9,6 @@ import SyncPanel from "./components/SyncPanel";
 import StockPanel from "./components/StockPanel";
 import PedidosWebPanel from "./components/PedidosWebPanel";
 import FacturasCompraPanel from "./components/FacturasCompraPanel";
-import DailyQuestPanel from "./components/DailyQuestPanel";
 import TicketsPanel from "./components/TicketsPanel";
 import Settings from "./components/Settings";
 
@@ -30,8 +29,6 @@ function PanelRouter() {
       return <PedidosWebPanel />;
     case "facturas":
       return <FacturasCompraPanel />;
-    case "daily_quest":
-      return <DailyQuestPanel />;
     case "tickets":
       return <TicketsPanel />;
     case "settings":

@@ -15,6 +15,8 @@ from app.services.tickets_db import (
     crear_mision, listar_misiones, get_mision, actualizar_mision, lanzar_mision,
     eliminar_mision, eliminar_ticket,
     agregar_participante, quitar_participante,
+    listar_categorias, crear_categoria, eliminar_categoria,
+    renovar_mision,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
@@ -296,6 +298,38 @@ def register_tickets_routes(app):
 
     # ── MISIONES ──────────────────────────────────────────────────────────────
 
+    # ── Categorías ────────────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/categorias/", methods=["GET"])
+    @_auth
+    def tickets_listar_categorias():
+        return jsonify(listar_categorias()), 200
+
+    @app.route("/api/tickets/categorias/", methods=["POST"])
+    @_auth
+    @_nivel_min(3)
+    def tickets_crear_categoria():
+        data = request.get_json(force=True) or {}
+        slug   = (data.get("slug") or "").strip().lower().replace(" ", "_")
+        nombre = (data.get("nombre") or "").strip()
+        color  = data.get("color", "#0c6069")
+        icono  = data.get("icono", "📋")
+        cat, err = crear_categoria(slug, nombre, color, icono)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(cat), 201
+
+    @app.route("/api/tickets/categorias/<slug>", methods=["DELETE"])
+    @_auth
+    @_nivel_min(3)
+    def tickets_eliminar_categoria(slug):
+        ok, err = eliminar_categoria(slug)
+        if not ok:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": True}), 200
+
+    # ── Misiones ──────────────────────────────────────────────────────────────
+
     @app.route("/api/tickets/misiones/", methods=["GET"])
     @_auth
     def tickets_listar_misiones():
@@ -350,6 +384,15 @@ def register_tickets_routes(app):
         if not ok:
             return jsonify({"error": err}), 400
         return jsonify(get_mision(mision_id)), 200
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/renovar", methods=["POST"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_renovar_mision(mision_id):
+        ok, result = renovar_mision(mision_id, request.tickets_usuario["id"])
+        if not ok:
+            return jsonify({"error": result}), 400
+        return jsonify({"ok": True, "proxima_renovacion": result, "mision": get_mision(mision_id)}), 200
 
     # ── PARTICIPANTES ─────────────────────────────────────────────────────────
 
