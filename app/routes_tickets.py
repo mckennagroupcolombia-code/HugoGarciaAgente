@@ -17,6 +17,7 @@ from app.services.tickets_db import (
     agregar_participante, quitar_participante,
     listar_categorias, crear_categoria, eliminar_categoria,
     renovar_mision,
+    agregar_etapa_mision, actualizar_etapa_mision, eliminar_etapa_mision,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
@@ -393,6 +394,42 @@ def register_tickets_routes(app):
         if not ok:
             return jsonify({"error": result}), 400
         return jsonify({"ok": True, "proxima_renovacion": result, "mision": get_mision(mision_id)}), 200
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/etapas", methods=["POST"])
+    @_auth
+    def tickets_agregar_etapa(mision_id):
+        data = request.get_json(force=True) or {}
+        titulo = (data.get("titulo") or "").strip()
+        descripcion = data.get("descripcion") or ""
+        asignado_a = data.get("asignado_a") or None
+        if asignado_a:
+            asignado_a = int(asignado_a)
+        mision, err = agregar_etapa_mision(
+            mision_id, titulo, descripcion, asignado_a, request.tickets_usuario["id"]
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mision), 201
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/etapas/<int:etapa_id>", methods=["PUT"])
+    @_auth
+    def tickets_actualizar_etapa(mision_id, etapa_id):
+        data = request.get_json(force=True) or {}
+        mision, err = actualizar_etapa_mision(
+            mision_id, etapa_id,
+            data.get("titulo", ""), data.get("descripcion", "")
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mision), 200
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/etapas/<int:etapa_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_etapa(mision_id, etapa_id):
+        mision, err = eliminar_etapa_mision(mision_id, etapa_id, request.tickets_usuario)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mision), 200
 
     # ── PARTICIPANTES ─────────────────────────────────────────────────────────
 

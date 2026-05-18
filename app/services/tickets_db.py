@@ -733,6 +733,128 @@ def get_mision(mision_id: int) -> dict | None:
         return _mision_full(db, mision_id)
 
 
+def agregar_etapa_mision(mision_id: int, titulo: str, descripcion: str,
+                         asignado_a: int | None, usuario_id: int) -> tuple:
+    """Añade una etapa+ticket a una misión activa."""
+    titulo = titulo.strip()
+    if not titulo:
+        return None, "Título requerido"
+    with _conn() as db:
+        m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
+        if not m:
+            return None, "Misión no encontrada"
+        if m["estado"] in ("completada", "cancelada"):
+            return None, f"La misión está {m['estado']} y no puede editarse"
+
+        orden = (db.execute(
+            "SELECT COALESCE(MAX(orden), 0) + 1 AS n FROM etapas_mision WHERE mision_id=?",
+            (mision_id,)
+        ).fetchone()["n"])
+
+        db.execute(
+            "INSERT INTO etapas_mision (mision_id, orden, titulo, descripcion, estado) VALUES (?,?,?,?,?)",
+            (mision_id, orden, titulo, descripcion or "", "activa"),
+        )
+        etapa_id = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+
+        # For sequential missions, block by last existing ticket
+        bloqueado_por = None
+        if m["tipo"] == "secuencial":
+            last = db.execute("""
+                SELECT t.id FROM etapas_mision e
+                JOIN tickets t ON t.id = e.ticket_id
+                WHERE e.mision_id = ? AND e.orden < ?
+                ORDER BY e.orden DESC LIMIT 1
+            """, (mision_id, orden)).fetchone()
+            if last:
+                bloqueado_por = last["id"]
+
+        estado_ticket = "en_proceso" if (not bloqueado_por and asignado_a) else "pendiente"
+        if bloqueado_por:
+            estado_ticket = "pendiente"
+
+        numero = _generar_numero(db)
+        db.execute("""
+            INSERT INTO tickets
+                (numero, titulo, categoria, descripcion, prioridad,
+                 creado_por, asignado_a, mision_id, etapa_id, bloqueado_por, estado)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            numero, titulo, m["categoria"], descripcion or titulo,
+            "media", usuario_id, asignado_a, mision_id, etapa_id, bloqueado_por, estado_ticket,
+        ))
+        tid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        db.execute("UPDATE etapas_mision SET ticket_id=? WHERE id=?", (tid, etapa_id))
+        db.execute(
+            "UPDATE misiones SET total_etapas = total_etapas + 1 WHERE id=?",
+            (mision_id,)
+        )
+        _log(db, tid, usuario_id, "ticket_creado",
+             detalles=f"Añadido manualmente a misión '{m['titulo']}' — Etapa {orden}")
+        db.commit()
+        return _mision_full(db, mision_id), None
+
+
+def actualizar_etapa_mision(mision_id: int, etapa_id: int,
+                             titulo: str, descripcion: str) -> tuple:
+    """Edita título/descripción de una etapa existente (y su ticket asociado)."""
+    titulo = titulo.strip()
+    if not titulo:
+        return None, "Título requerido"
+    with _conn() as db:
+        m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
+        if not m:
+            return None, "Misión no encontrada"
+        if m["estado"] in ("completada", "cancelada"):
+            return None, f"La misión está {m['estado']} y no puede editarse"
+        etapa = db.execute(
+            "SELECT * FROM etapas_mision WHERE id=? AND mision_id=?", (etapa_id, mision_id)
+        ).fetchone()
+        if not etapa:
+            return None, "Etapa no encontrada"
+        db.execute(
+            "UPDATE etapas_mision SET titulo=?, descripcion=? WHERE id=?",
+            (titulo, descripcion or "", etapa_id),
+        )
+        if etapa["ticket_id"]:
+            db.execute(
+                "UPDATE tickets SET titulo=?, descripcion=?, actualizado_en=datetime('now') WHERE id=?",
+                (titulo, descripcion or titulo, etapa["ticket_id"]),
+            )
+        db.commit()
+        return _mision_full(db, mision_id), None
+
+
+def eliminar_etapa_mision(mision_id: int, etapa_id: int, usuario: dict) -> tuple:
+    """Elimina una etapa y su ticket si aún no está resuelto."""
+    with _conn() as db:
+        m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
+        if not m:
+            return None, "Misión no encontrada"
+        if m["estado"] in ("completada", "cancelada"):
+            return None, f"La misión está {m['estado']} y no puede editarse"
+        etapa = db.execute(
+            "SELECT * FROM etapas_mision WHERE id=? AND mision_id=?", (etapa_id, mision_id)
+        ).fetchone()
+        if not etapa:
+            return None, "Etapa no encontrada"
+        if etapa["estado"] == "completada":
+            return None, "No se puede eliminar una etapa ya completada"
+        tid = etapa["ticket_id"]
+        if tid:
+            db.execute("UPDATE tickets SET bloqueado_por=NULL WHERE bloqueado_por=?", (tid,))
+            db.execute("UPDATE etapas_mision SET ticket_id=NULL WHERE ticket_id=?", (tid,))
+            db.execute("DELETE FROM logs_auditoria WHERE ticket_id=?", (tid,))
+            db.execute("DELETE FROM tickets WHERE id=?", (tid,))
+        db.execute("DELETE FROM etapas_mision WHERE id=?", (etapa_id,))
+        db.execute(
+            "UPDATE misiones SET total_etapas = MAX(0, total_etapas - 1) WHERE id=?",
+            (mision_id,)
+        )
+        db.commit()
+        return _mision_full(db, mision_id), None
+
+
 def actualizar_mision(mision_id: int, data: dict) -> tuple:
     """Update mission metadata. Locked when completada or cancelada."""
     with _conn() as db:

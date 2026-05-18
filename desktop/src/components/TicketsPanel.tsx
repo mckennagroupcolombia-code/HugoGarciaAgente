@@ -2034,10 +2034,23 @@ function MisionDetailView({
   token: string; user: TicketsUser; misionId: number;
   onBack: () => void; onTicket: (id: number) => void;
 }) {
+  const { cats: categorias } = useContext(CategoriasCtx);
   const [mision, setMision] = useState<Mision | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [renewing, setRenewing] = useState(false);
+
+  // Edit metadata panel
+  const [editingMeta, setEditingMeta] = useState(false);
+  const [metaForm, setMetaForm] = useState({ titulo: "", descripcion: "", reino: "", color: "", frecuencia: "" });
+  const [metaSaving, setMetaSaving] = useState(false);
+
+  // Add-ticket inline form
+  const [showAddEtapa, setShowAddEtapa] = useState(false);
+  const [addForm, setAddForm] = useState({ titulo: "", descripcion: "", asignado_a: "" });
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState("");
+  const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
 
   const nivel = user.rol?.nivel ?? 1;
 
@@ -2054,6 +2067,68 @@ function MisionDetailView({
   }, [token, misionId]);
 
   useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    tapi("/usuarios", token).then(setUsuarios).catch(() => {});
+  }, [token]);
+  useEffect(() => {
+    if (mision) {
+      setMetaForm({
+        titulo: mision.titulo,
+        descripcion: mision.descripcion || "",
+        reino: mision.reino || "",
+        color: mision.color || "#0c6069",
+        frecuencia: mision.frecuencia || "",
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mision?.id]);
+
+  const isLocked = mision?.estado === "completada" || mision?.estado === "cancelada";
+
+  async function saveMeta() {
+    setMetaSaving(true);
+    try {
+      const updated = await tapi(`/misiones/${misionId}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ ...metaForm, frecuencia: metaForm.frecuencia || null }),
+      });
+      setMision(updated);
+      setEditingMeta(false);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setMetaSaving(false);
+    }
+  }
+
+  async function submitAddEtapa() {
+    setAddError("");
+    if (!addForm.titulo.trim()) { setAddError("Título requerido"); return; }
+    setAddSaving(true);
+    try {
+      const updated = await tapi(`/misiones/${misionId}/etapas`, token, {
+        method: "POST",
+        body: JSON.stringify({ ...addForm, asignado_a: addForm.asignado_a || null }),
+      });
+      setMision(updated);
+      setAddForm({ titulo: "", descripcion: "", asignado_a: "" });
+      setShowAddEtapa(false);
+    } catch (e: any) {
+      setAddError(e.message);
+    } finally {
+      setAddSaving(false);
+    }
+  }
+
+  async function deleteEtapa(etapaId: number, titulo: string) {
+    if (!confirm(`¿Eliminar el ticket "${titulo}" de esta misión?`)) return;
+    try {
+      const updated = await tapi(`/misiones/${misionId}/etapas/${etapaId}`, token, { method: "DELETE" });
+      setMision(updated);
+    } catch (e: any) {
+      alert(e.message);
+    }
+  }
 
   const ETAPA_COLOR: Record<string, string> = {
     pendiente: "border-gray-300 bg-gray-50 text-gray-500",
@@ -2103,6 +2178,16 @@ function MisionDetailView({
           </span>
         )}
         <div className="ml-auto flex gap-2">
+          {!isLocked && (
+            <button
+              onClick={() => setEditingMeta((v) => !v)}
+              className={`rounded-paper border-2 px-3 py-1.5 text-sm font-bold transition
+                ${editingMeta
+                  ? "border-accent bg-accent text-white"
+                  : "border-border text-muted hover:border-accent hover:text-accent"}`}>
+              ✏️ Editar
+            </button>
+          )}
           {mision.frecuencia && nivel >= 2 && (
             <button
               disabled={renewing}
@@ -2144,6 +2229,73 @@ function MisionDetailView({
         </div>
       </div>
 
+      {/* Edit metadata panel */}
+      {editingMeta && !isLocked && (
+        <div className="rounded-paper border-2 border-accent bg-surface-panel p-5 shadow-paper space-y-4">
+          <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Editar misión</h3>
+          <div>
+            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Título *</label>
+            <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              value={metaForm.titulo} onChange={(e) => setMetaForm((f) => ({ ...f, titulo: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Categoría</label>
+              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                value={metaForm.color} onChange={(e) => setMetaForm((f) => ({ ...f, color: e.target.value }))}>
+                {categorias.map((c) => <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Recurrencia</label>
+              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                value={metaForm.frecuencia} onChange={(e) => setMetaForm((f) => ({ ...f, frecuencia: e.target.value }))}>
+                <option value="">Sin repetición</option>
+                <option value="diaria">♻️ Diaria</option>
+                <option value="semanal">♻️ Semanal</option>
+                <option value="quincenal">♻️ Quincenal</option>
+                <option value="mensual">♻️ Mensual</option>
+                <option value="bimestral">♻️ Bimestral</option>
+                <option value="trimestral">♻️ Trimestral</option>
+                <option value="semestral">♻️ Semestral</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Descripción</label>
+            <textarea className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent resize-none"
+              rows={2} value={metaForm.descripcion}
+              onChange={(e) => setMetaForm((f) => ({ ...f, descripcion: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Reino / Contexto</label>
+              <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                value={metaForm.reino} onChange={(e) => setMetaForm((f) => ({ ...f, reino: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Color</label>
+              <div className="flex items-center gap-3">
+                <input type="color" value={metaForm.color}
+                  onChange={(e) => setMetaForm((f) => ({ ...f, color: e.target.value }))}
+                  className="h-9 w-14 cursor-pointer rounded border-2 border-border p-0.5" />
+                <span className="text-xs font-mono text-muted">{metaForm.color}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setEditingMeta(false)}
+              className="rounded-paper border-2 border-border px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover transition">
+              Cancelar
+            </button>
+            <button onClick={saveMeta} disabled={metaSaving || !metaForm.titulo.trim()}
+              className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+              {metaSaving ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header card */}
       <div className="rounded-paper border-2 p-5 shadow-paper" style={{ borderColor: mision.color + "66", background: mision.color + "11" }}>
         <h2 className="text-xl font-extrabold text-ink mb-1">{mision.titulo}</h2>
@@ -2179,8 +2331,8 @@ function MisionDetailView({
         {isSecuencial ? (
           <div className="space-y-1">
             {etapas.map((et, i) => {
-              const isLocked = et.estado === "pendiente" && !!et.ticket_bloqueado_por;
-              const isDone   = et.estado === "completada";
+              const etapaLocked = et.estado === "pendiente" && !!et.ticket_bloqueado_por;
+              const isDone      = et.estado === "completada";
               return (
                 <div key={et.id}>
                   <div className={`flex items-center gap-3 rounded-paper border-2 p-3 transition ${ETAPA_COLOR[et.estado]}`}>
@@ -2188,30 +2340,32 @@ function MisionDetailView({
                       style={isDone
                         ? { background: mision.color }
                         : { color: mision.color, border: `2px solid ${mision.color}33` }}>
-                      {isDone ? "✓" : isLocked ? "🔒" : et.orden}
+                      {isDone ? "✓" : etapaLocked ? "🔒" : et.orden}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className={`font-semibold text-sm ${isLocked ? "opacity-50" : ""}`}>{et.titulo}</p>
+                      <p className={`font-semibold text-sm ${etapaLocked ? "opacity-50" : ""}`}>{et.titulo}</p>
                       {et.asignado_nombre && (
-                        <p className="text-xs opacity-75 flex items-center gap-1">
-                          <span>👤</span>{et.asignado_nombre}
-                        </p>
+                        <p className="text-xs opacity-75 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>
                       )}
-                      {isLocked && (
-                        <p className="text-xs opacity-60">Esperando ticket anterior</p>
+                      {etapaLocked && <p className="text-xs opacity-60">Esperando ticket anterior</p>}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {et.ticket_id && et.ticket_numero && (
+                        <div className="flex items-center gap-1.5">
+                          {et.ticket_estado && (
+                            <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
+                          )}
+                          <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
+                            className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
+                            {et.ticket_numero}
+                          </button>
+                        </div>
+                      )}
+                      {!isLocked && !isDone && (
+                        <button onClick={() => deleteEtapa(et.id, et.titulo)}
+                          className="text-xs text-red-400 hover:text-red-600 transition px-1">✕</button>
                       )}
                     </div>
-                    {et.ticket_id && et.ticket_numero && (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {et.ticket_estado && (
-                          <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
-                        )}
-                        <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
-                          className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
-                          {et.ticket_numero}
-                        </button>
-                      </div>
-                    )}
                   </div>
                   {i < etapas.length - 1 && (
                     <div className="flex justify-center">
@@ -2238,17 +2392,23 @@ function MisionDetailView({
                       </span>
                       <span className="text-xs font-semibold text-muted">⚡ Activo</span>
                     </div>
-                    {et.ticket_id && et.ticket_numero && (
-                      <div className="flex items-center gap-1.5">
-                        {et.ticket_estado && (
-                          <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
-                        )}
-                        <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
-                          className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
-                          {et.ticket_numero}
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {et.ticket_id && et.ticket_numero && (
+                        <div className="flex items-center gap-1.5">
+                          {et.ticket_estado && (
+                            <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
+                          )}
+                          <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
+                            className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
+                            {et.ticket_numero}
+                          </button>
+                        </div>
+                      )}
+                      {!isLocked && !isDone && (
+                        <button onClick={() => deleteEtapa(et.id, et.titulo)}
+                          className="text-xs text-red-400 hover:text-red-600 transition px-1">✕</button>
+                      )}
+                    </div>
                   </div>
                   <p className="font-semibold text-sm">{et.titulo}</p>
                   {et.descripcion && <p className="text-xs opacity-75 mt-0.5">{et.descripcion}</p>}
@@ -2256,6 +2416,58 @@ function MisionDetailView({
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Add ticket inline form */}
+        {!isLocked && (
+          <div className="mt-4">
+            {showAddEtapa ? (
+              <div className="rounded-paper border-2 border-accent bg-surface p-4 space-y-3">
+                <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Nuevo ticket</p>
+                <input
+                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder="Título del ticket *"
+                  value={addForm.titulo}
+                  onChange={(e) => setAddForm((f) => ({ ...f, titulo: e.target.value }))}
+                  autoFocus
+                />
+                <input
+                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder="Descripción (opcional)"
+                  value={addForm.descripcion}
+                  onChange={(e) => setAddForm((f) => ({ ...f, descripcion: e.target.value }))}
+                />
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 shrink-0 text-muted" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                  <select
+                    className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
+                    value={addForm.asignado_a}
+                    onChange={(e) => setAddForm((f) => ({ ...f, asignado_a: e.target.value }))}>
+                    <option value="">Sin asignar</option>
+                    {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+                  </select>
+                </div>
+                {addError && <p className="text-xs text-red-600">{addError}</p>}
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => { setShowAddEtapa(false); setAddError(""); }}
+                    className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:bg-surface-hover transition">
+                    Cancelar
+                  </button>
+                  <button onClick={submitAddEtapa} disabled={addSaving}
+                    className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+                    {addSaving ? "Agregando..." : "Agregar ticket"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setShowAddEtapa(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-paper border-2 border-dashed border-border py-2.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
+                + Agregar ticket a esta misión
+              </button>
+            )}
           </div>
         )}
       </div>
