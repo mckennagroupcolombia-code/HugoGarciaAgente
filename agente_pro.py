@@ -62,6 +62,12 @@ def create_app():
     configurar_ia(app)
     register_routes(app)
 
+    try:
+        from app.routes_tickets import register_tickets_routes
+        register_tickets_routes(app)
+    except Exception as e:
+        print(f"⚠️ Centro de Mando (tickets): {e}")
+
     # Iniciar daemons de las nuevas funcionalidades
     try:
         from app.monitor import iniciar_monitor
