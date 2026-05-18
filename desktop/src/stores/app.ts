@@ -10,6 +10,7 @@ export type Panel =
   | "pedidos"
   | "facturas"
   | "daily_quest"
+  | "tickets"
   | "settings";
 
 interface AppState {

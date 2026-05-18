@@ -309,6 +309,7 @@ body{font-family:'Montserrat',sans-serif;min-height:100vh;background:#e8fafb;dis
         <div class="quest-name editable-text" id="qName" onclick="eQName()"></div>
       </div>
       <input type="date" class="due-input" id="dueDate" title="Fecha límite" onchange="saveDue()">
+      <button class="back-btn" onclick="openExportModal()" title="Exportar a Centro de Mando" style="background:#0c6069;color:#f4fdfe;border-color:#0c6069;white-space:nowrap">🚀 Exportar</button>
     </div>
     <div class="quest-body">
       <div><div class="notes-label">📜 Notas de la misión</div><textarea class="notes-area" id="notesArea" placeholder="Escribe notas, contexto o detalles aquí..." oninput="saveNotes()" rows="2"></textarea></div>
@@ -835,6 +836,109 @@ function wizConfirm(){
 
 /* ══ INIT ══ */
 load();
+
+/* ══ EXPORT TO CENTRO DE MANDO ══ */
+function openExportModal(){
+  if(curN===null||curM===null){alert('Abre una misión primero.');return;}
+  document.getElementById('expOverlay').classList.add('open');
+  document.getElementById('expError').textContent='';
+  document.getElementById('expTipo').value='secuencial';
+  document.getElementById('expCat').value='logistica';
+}
+function closeExportModal(){document.getElementById('expOverlay').classList.remove('open');}
+
+async function doExport(){
+  var tipo=document.getElementById('expTipo').value;
+  var cat=document.getElementById('expCat').value;
+  var errEl=document.getElementById('expError');
+  var btn=document.getElementById('expBtn');
+  errEl.textContent='';
+
+  // Get token from tickets auth store in localStorage
+  var raw=localStorage.getItem('mckenna-tickets-auth');
+  var token=null;
+  try{var parsed=JSON.parse(raw);token=parsed.state.token;}catch(e){}
+  if(!token){errEl.textContent='No hay sesión activa en Centro de Mando. Ingresa primero desde el panel.';return;}
+
+  var n=NATIONS[curN],m=n.missions[curM];
+  var etapas=m.steps.filter(function(s){return s.title&&s.title.trim();}).map(function(s,i){
+    var desc=[].concat(s.desc||[]).filter(function(d){return d&&d.trim();}).join('\n');
+    return{titulo:s.title.trim(),descripcion:desc||s.title.trim()};
+  });
+  if(!etapas.length){
+    // Fallback: use prereqs + materials as etapas
+    var combined=(m.prereqs||[]).concat(m.materials||[]);
+    etapas=combined.filter(function(x){return x&&(x.text||x.name);}).map(function(x){
+      return{titulo:x.text||x.name,descripcion:x.sub||x.name||''};
+    });
+  }
+  if(!etapas.length){errEl.textContent='La misión no tiene pasos/etapas para exportar.';return;}
+
+  btn.disabled=true;btn.textContent='Exportando...';
+  try{
+    var body={
+      titulo:m.name,
+      descripcion:m.notes||'',
+      reino:n.name,
+      color:n.color||'#0c6069',
+      tipo:tipo,
+      categoria:cat,
+      etapas:etapas
+    };
+    var resp=await fetch('/api/tickets/misiones/',{
+      method:'POST',
+      headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    var data=await resp.json();
+    if(!resp.ok)throw new Error(data.error||'Error del servidor');
+    closeExportModal();
+    showToast('✅ Misión exportada a Centro de Mando (borrador). ¡Lánzala cuando estés listo!');
+  }catch(e){errEl.textContent=e.message;}
+  finally{btn.disabled=false;btn.textContent='🚀 Exportar misión';}
+}
+
+function showToast(msg){
+  var t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#0c6069;color:#f4fdfe;font-family:Montserrat,sans-serif;font-size:.8rem;font-weight:700;padding:.6rem 1.2rem;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:9999;max-width:90vw;text-align:center;transition:opacity .4s';
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove();},400);},3500);
+}
 </script>
+
+<!-- ══ EXPORT TO CENTRO DE MANDO MODAL ══ -->
+<div class="wz-overlay" id="expOverlay" onclick="if(event.target===this)closeExportModal()">
+  <div class="wz-modal" style="max-width:420px" onclick="event.stopPropagation()">
+    <div class="wz-header" style="padding:1.2rem 1.5rem;border-bottom:1px solid rgba(12,96,105,.3)">
+      <div class="wz-htitle">🚀 Exportar a Centro de Mando</div>
+    </div>
+    <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem">
+      <p style="font-family:Montserrat,sans-serif;font-size:.8rem;color:#9dcdd4;margin:0">
+        La misión se creará en Centro de Mando como borrador. Cada paso se convierte en una etapa.
+      </p>
+      <div>
+        <label style="font-family:Montserrat,sans-serif;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9dcdd4;display:block;margin-bottom:.4rem">Tipo de misión</label>
+        <select id="expTipo" style="width:100%;font-family:Montserrat,sans-serif;font-size:.82rem;font-weight:600;background:#011a1f;color:#e8fafb;border:1.5px solid #0c6069;border-radius:6px;padding:.5rem .8rem;outline:none">
+          <option value="secuencial">🔗 Secuencial — Etapas en orden estricto</option>
+          <option value="paralelo">⚡ Paralelo — Etapas simultáneas</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-family:Montserrat,sans-serif;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9dcdd4;display:block;margin-bottom:.4rem">Categoría</label>
+        <select id="expCat" style="width:100%;font-family:Montserrat,sans-serif;font-size:.82rem;font-weight:600;background:#011a1f;color:#e8fafb;border:1.5px solid #0c6069;border-radius:6px;padding:.5rem .8rem;outline:none">
+          <option value="logistica">🚚 Logística y Operaciones</option>
+          <option value="mantenimiento">🔧 Mantenimiento y Sistemas</option>
+          <option value="rrhh">👥 Recursos Humanos</option>
+        </select>
+      </div>
+      <p id="expError" style="font-family:Montserrat,sans-serif;font-size:.78rem;font-weight:600;color:#e07070;min-height:1.1em;margin:0"></p>
+      <div style="display:flex;gap:.8rem;justify-content:flex-end;margin-top:.5rem">
+        <button class="back-btn" onclick="closeExportModal()">Cancelar</button>
+        <button id="expBtn" class="back-btn" onclick="doExport()" style="background:#0c6069;color:#f4fdfe;border-color:#0c6069">🚀 Exportar misión</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
