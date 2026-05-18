@@ -22,10 +22,223 @@ def _add_col(db, table: str, col: str, defn: str):
         db.execute(f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
 
 
+def _recreate_table(db, name: str, create_sql: str, columns: str = "*"):
+    """Helper: CREATE new → INSERT data → DROP old → RENAME new → old name.
+    Using DROP (not RENAME) on the original preserves FK references in child tables,
+    since SQLite 3.26+ updates FK references when RENAME is used but not when DROP is used.
+    """
+    db.execute(create_sql)
+    db.execute(f"INSERT INTO {name}_new SELECT {columns} FROM {name}")
+    db.execute(f"DROP TABLE {name}")
+    db.execute(f"ALTER TABLE {name}_new RENAME TO {name}")
+
+
+def _migrate_categorias():
+    """
+    One-time migration: creates the categorias table and removes the hard-coded
+    CHECK constraint on `categoria` in both `tickets` and `misiones`.
+    Uses DROP (not RENAME) on the original tables so child-table FK references
+    keep pointing to the original name and remain valid after recreation.
+    Idempotent — skips if `categorias` already exists.
+    """
+    db = sqlite3.connect(DB_PATH)
+    db.row_factory = sqlite3.Row
+    try:
+        tables = {r["name"] for r in db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()}
+        if "categorias" in tables:
+            return
+
+        db.execute("PRAGMA foreign_keys=OFF")
+        db.execute("BEGIN EXCLUSIVE")
+
+        db.execute("""
+            CREATE TABLE categorias (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug      TEXT NOT NULL UNIQUE,
+                nombre    TEXT NOT NULL,
+                color     TEXT DEFAULT '#0c6069',
+                icono     TEXT DEFAULT '📋',
+                activo    INTEGER DEFAULT 1,
+                creado_en TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        for slug, nombre, color, icono in [
+            ("rrhh",          "Recursos Humanos", "#e8a838", "👥"),
+            ("logistica",     "Logística",        "#4a9a6a", "🚚"),
+            ("mantenimiento", "Mantenimiento",    "#a68bc8", "🔧"),
+        ]:
+            db.execute(
+                "INSERT INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
+                (slug, nombre, color, icono),
+            )
+
+        _recreate_table(db, "misiones", """
+            CREATE TABLE misiones_new (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo              TEXT NOT NULL,
+                descripcion         TEXT,
+                reino               TEXT,
+                color               TEXT DEFAULT '#0c6069',
+                tipo                TEXT NOT NULL DEFAULT 'secuencial'
+                                        CHECK(tipo IN ('secuencial','paralelo')),
+                categoria           TEXT DEFAULT 'logistica',
+                estado              TEXT NOT NULL DEFAULT 'activa'
+                                        CHECK(estado IN ('borrador','activa','completada','cancelada')),
+                total_etapas        INTEGER DEFAULT 0,
+                etapas_completadas  INTEGER DEFAULT 0,
+                creado_por          INTEGER REFERENCES usuarios(id),
+                creado_en           TEXT DEFAULT (datetime('now')),
+                completada_en       TEXT
+            )
+        """)
+
+        _recreate_table(db, "tickets", """
+            CREATE TABLE tickets_new (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                numero          TEXT NOT NULL UNIQUE,
+                titulo          TEXT NOT NULL,
+                categoria       TEXT NOT NULL DEFAULT 'logistica',
+                descripcion     TEXT NOT NULL,
+                estado          TEXT NOT NULL DEFAULT 'pendiente'
+                                    CHECK(estado IN ('pendiente','en_proceso','esperando_aprobacion','resuelto','rechazado')),
+                prioridad       TEXT DEFAULT 'media'
+                                    CHECK(prioridad IN ('baja','media','alta','urgente')),
+                creado_por      INTEGER NOT NULL REFERENCES usuarios(id),
+                asignado_a      INTEGER REFERENCES usuarios(id),
+                soporte_archivo TEXT,
+                creado_en       TEXT DEFAULT (datetime('now')),
+                actualizado_en  TEXT DEFAULT (datetime('now')),
+                resuelto_en     TEXT,
+                mision_id       INTEGER REFERENCES misiones(id),
+                etapa_id        INTEGER REFERENCES etapas_mision(id),
+                bloqueado_por   INTEGER REFERENCES tickets(id)
+            )
+        """)
+
+        db.execute("COMMIT")
+    except Exception as exc:
+        try:
+            db.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise RuntimeError(f"_migrate_categorias failed: {exc}") from exc
+    finally:
+        db.close()
+
+
+def _repair_broken_fk():
+    """
+    Repairs the broken FK references left by the first (buggy) version of
+    _migrate_categorias, which used RENAME on original tables causing SQLite
+    3.26+ to rewrite child-table FK refs to point to the now-dropped _old tables.
+    Idempotent — skips if child tables already reference 'tickets' correctly.
+    """
+    db = sqlite3.connect(DB_PATH)
+    db.row_factory = sqlite3.Row
+    try:
+        row = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='ticket_participantes'"
+        ).fetchone()
+        if not row or "tickets_old" not in (row["sql"] or ""):
+            return  # Not broken or already fixed
+
+        db.execute("PRAGMA foreign_keys=OFF")
+        db.execute("BEGIN EXCLUSIVE")
+
+        # Rebuild etapas_mision (references misiones_old + tickets_old)
+        _recreate_table(db, "etapas_mision", """
+            CREATE TABLE etapas_mision_new (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                mision_id  INTEGER NOT NULL REFERENCES misiones(id) ON DELETE CASCADE,
+                orden      INTEGER NOT NULL,
+                titulo     TEXT NOT NULL,
+                descripcion TEXT,
+                ticket_id  INTEGER REFERENCES tickets(id),
+                estado     TEXT DEFAULT 'pendiente'
+                               CHECK(estado IN ('pendiente','activa','completada')),
+                creado_en  TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        # Rebuild ticket_participantes
+        _recreate_table(db, "ticket_participantes", """
+            CREATE TABLE ticket_participantes_new (
+                ticket_id   INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                usuario_id  INTEGER NOT NULL REFERENCES usuarios(id),
+                rol         TEXT DEFAULT 'colaborador'
+                                CHECK(rol IN ('colaborador','revisor','observador')),
+                agregado_en TEXT DEFAULT (datetime('now')),
+                PRIMARY KEY (ticket_id, usuario_id)
+            )
+        """)
+
+        # Rebuild comentarios_tickets
+        _recreate_table(db, "comentarios_tickets", """
+            CREATE TABLE comentarios_tickets_new (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id  INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+                texto      TEXT NOT NULL,
+                es_interno INTEGER DEFAULT 0,
+                creado_en  TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        # Rebuild bitacora_tiempo
+        _recreate_table(db, "bitacora_tiempo", """
+            CREATE TABLE bitacora_tiempo_new (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id  INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+                horas      REAL NOT NULL,
+                notas      TEXT,
+                creado_en  TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        # Rebuild logs_auditoria
+        _recreate_table(db, "logs_auditoria", """
+            CREATE TABLE logs_auditoria_new (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id       INTEGER NOT NULL REFERENCES tickets(id),
+                usuario_id      INTEGER REFERENCES usuarios(id),
+                accion          TEXT NOT NULL,
+                valor_anterior  TEXT,
+                valor_nuevo     TEXT,
+                detalles        TEXT,
+                creado_en       TEXT DEFAULT (datetime('now'))
+            )
+        """)
+
+        db.execute("COMMIT")
+        print("✅ FK repair migration applied")
+    except Exception as exc:
+        try:
+            db.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise RuntimeError(f"_repair_broken_fk failed: {exc}") from exc
+    finally:
+        db.close()
+
+
 def init_db():
+    _repair_broken_fk()
+    _migrate_categorias()
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
+            CREATE TABLE IF NOT EXISTS categorias (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                slug      TEXT NOT NULL UNIQUE,
+                nombre    TEXT NOT NULL,
+                color     TEXT DEFAULT '#0c6069',
+                icono     TEXT DEFAULT '📋',
+                activo    INTEGER DEFAULT 1,
+                creado_en TEXT DEFAULT (datetime('now'))
+            );
             CREATE TABLE IF NOT EXISTS departamentos (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 nombre     TEXT NOT NULL UNIQUE,
@@ -145,6 +358,22 @@ def init_db():
         _add_col(db, "tickets", "mision_id",    "INTEGER REFERENCES misiones(id)")
         _add_col(db, "tickets", "etapa_id",     "INTEGER REFERENCES etapas_mision(id)")
         _add_col(db, "tickets", "bloqueado_por","INTEGER REFERENCES tickets(id)")
+
+        # Migrate misiones table with recurrence columns
+        _add_col(db, "misiones", "frecuencia",
+                 "TEXT CHECK(frecuencia IN ('diaria','semanal','quincenal','mensual','bimestral','trimestral','semestral'))")
+        _add_col(db, "misiones", "proxima_renovacion", "TEXT")
+
+        # Seed categorias
+        for slug, nombre, color, icono in [
+            ("rrhh",          "Recursos Humanos", "#e8a838", "👥"),
+            ("logistica",     "Logística",        "#4a9a6a", "🚚"),
+            ("mantenimiento", "Mantenimiento",    "#a68bc8", "🔧"),
+        ]:
+            db.execute(
+                "INSERT OR IGNORE INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
+                (slug, nombre, color, icono),
+            )
 
         # Seed roles
         for nombre, nivel, desc in [
@@ -398,33 +627,87 @@ def _mision_full(db, mision_id: int) -> dict | None:
 
 
 def crear_mision(data: dict, usuario_id: int) -> tuple:
-    titulo     = (data.get("titulo") or "").strip()
-    etapas_raw = data.get("etapas") or []
+    """Crea la misión y sus tickets en un solo paso (sin fase borrador)."""
+    titulo       = (data.get("titulo") or "").strip()
+    etapas_raw   = data.get("etapas") or []
+    asignaciones = data.get("asignaciones") or {}   # {"1": user_id, "2": user_id, ...}
+    tipo         = data.get("tipo", "secuencial")
+    categoria    = data.get("categoria", "logistica")
+    frecuencia   = data.get("frecuencia") or None    # None = one-time
+
     if not titulo:
         return None, "titulo requerido"
     if not etapas_raw:
         return None, "Se requiere al menos una etapa"
+
+    proxima = _calcular_proxima(frecuencia) if frecuencia else None
+
     with _conn() as db:
         db.execute("""
             INSERT INTO misiones
-                (titulo, descripcion, reino, color, tipo, categoria, creado_por, total_etapas)
-            VALUES (?,?,?,?,?,?,?,?)
+                (titulo, descripcion, reino, color, tipo, categoria, creado_por, total_etapas, estado, frecuencia, proxima_renovacion)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?)
         """, (
             titulo,
             data.get("descripcion", ""),
             data.get("reino", ""),
             data.get("color", "#0c6069"),
-            data.get("tipo", "secuencial"),
-            data.get("categoria", "logistica"),
+            tipo,
+            categoria,
             usuario_id,
             len(etapas_raw),
+            "activa",
+            frecuencia,
+            proxima,
         ))
         mid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
-        for i, etapa in enumerate(etapas_raw, 1):
+
+        prev_ticket_id = None
+        for i, etapa_raw in enumerate(etapas_raw, 1):
+            etapa_titulo = (etapa_raw.get("titulo") or "").strip()
+            etapa_desc   = (etapa_raw.get("descripcion") or "").strip()
+
             db.execute(
                 "INSERT INTO etapas_mision (mision_id, orden, titulo, descripcion) VALUES (?,?,?,?)",
-                (mid, i, etapa.get("titulo", ""), etapa.get("descripcion", "")),
+                (mid, i, etapa_titulo, etapa_desc),
             )
+            etapa_id = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
+
+            asig_raw = asignaciones.get(str(i))
+            asig     = int(asig_raw) if asig_raw else None
+            numero   = _generar_numero(db)
+            bloqueado_por  = prev_ticket_id if tipo == "secuencial" else None
+            estado_inicial = "en_proceso" if (not bloqueado_por and asig) else "pendiente"
+
+            db.execute("""
+                INSERT INTO tickets
+                    (numero, titulo, categoria, descripcion, prioridad,
+                     creado_por, asignado_a, mision_id, etapa_id, bloqueado_por, estado)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                numero,
+                etapa_titulo,
+                categoria,
+                etapa_desc or etapa_titulo,
+                "media",
+                usuario_id,
+                asig,
+                mid,
+                etapa_id,
+                bloqueado_por,
+                estado_inicial,
+            ))
+            tid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
+
+            etapa_estado = "activa" if not bloqueado_por else "pendiente"
+            db.execute(
+                "UPDATE etapas_mision SET ticket_id=?, estado=? WHERE id=?",
+                (tid, etapa_estado, etapa_id),
+            )
+            _log(db, tid, usuario_id, "ticket_creado",
+                 detalles=f"Generado por misión '{titulo}' — Etapa {i}")
+            prev_ticket_id = tid
+
         db.commit()
         return _mision_full(db, mid), None
 
@@ -451,15 +734,15 @@ def get_mision(mision_id: int) -> dict | None:
 
 
 def actualizar_mision(mision_id: int, data: dict) -> tuple:
-    """Update mission metadata and/or replace all etapas atomically. Borrador only."""
+    """Update mission metadata. Locked when completada or cancelada."""
     with _conn() as db:
         m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
         if not m:
             return None, "Misión no encontrada"
-        if m["estado"] != "borrador":
-            return None, "Solo se pueden editar misiones en estado borrador"
+        if m["estado"] in ("completada", "cancelada"):
+            return None, f"La misión está {m['estado']} y no puede editarse"
         campos = {k: v for k, v in data.items()
-                  if k in ("titulo", "descripcion", "reino", "color", "tipo", "categoria")
+                  if k in ("titulo", "descripcion", "reino", "color", "tipo", "categoria", "frecuencia")
                   and v is not None}
         if campos:
             set_clause = ", ".join(f"{k}=?" for k in campos)
@@ -556,10 +839,13 @@ def _actualizar_mision(db, mision_id: int):
         WHERE mision_id=? AND ticket_id IN (SELECT id FROM tickets WHERE estado='resuelto')
     """, (mision_id,))
     if completadas >= total > 0:
+        m = db.execute("SELECT frecuencia FROM misiones WHERE id=?", (mision_id,)).fetchone()
+        frecuencia = m["frecuencia"] if m else None
+        proxima = _calcular_proxima(frecuencia) if frecuencia else None
         db.execute(
             "UPDATE misiones SET estado='completada', etapas_completadas=?, "
-            "completada_en=datetime('now') WHERE id=?",
-            (completadas, mision_id),
+            "completada_en=datetime('now'), proxima_renovacion=? WHERE id=?",
+            (completadas, proxima, mision_id),
         )
     else:
         db.execute(
@@ -601,8 +887,8 @@ def eliminar_mision(mision_id: int, usuario: dict) -> tuple:
             "SELECT id FROM tickets WHERE mision_id=?", (mision_id,)
         ).fetchall()]
         for tid in ticket_ids:
-            # Unblock dependents
             db.execute("UPDATE tickets SET bloqueado_por=NULL WHERE bloqueado_por=?", (tid,))
+            db.execute("UPDATE etapas_mision SET ticket_id=NULL WHERE ticket_id=?", (tid,))
             db.execute("DELETE FROM logs_auditoria WHERE ticket_id=?", (tid,))
         if ticket_ids:
             placeholders = ",".join("?" * len(ticket_ids))
@@ -611,6 +897,139 @@ def eliminar_mision(mision_id: int, usuario: dict) -> tuple:
         db.execute("DELETE FROM misiones WHERE id=?", (mision_id,))
         db.commit()
         return True, None
+
+
+# ── RECURRENCIA ───────────────────────────────────────────────────────────────
+
+_FRECUENCIA_DELTA = {
+    "diaria":     timedelta(days=1),
+    "semanal":    timedelta(weeks=1),
+    "quincenal":  timedelta(days=15),
+    "mensual":    timedelta(days=30),
+    "bimestral":  timedelta(days=60),
+    "trimestral": timedelta(days=90),
+    "semestral":  timedelta(days=180),
+}
+
+_FRECUENCIA_LABEL = {
+    "diaria":     "Diaria",
+    "semanal":    "Semanal",
+    "quincenal":  "Quincenal",
+    "mensual":    "Mensual",
+    "bimestral":  "Bimestral",
+    "trimestral": "Trimestral",
+    "semestral":  "Semestral",
+}
+
+
+def _calcular_proxima(frecuencia: str) -> str:
+    delta = _FRECUENCIA_DELTA.get(frecuencia)
+    if not delta:
+        return ""
+    return (datetime.utcnow() + delta).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
+    """
+    Clona los tickets de la misión con las mismas asignaciones, resetea etapas
+    a pendiente/activa, cambia estado a 'activa' y calcula la próxima renovación.
+    Solo aplica a misiones con frecuencia definida.
+    """
+    with _conn() as db:
+        m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
+        if not m:
+            return False, "Misión no encontrada"
+        if not m["frecuencia"]:
+            return False, "La misión no tiene frecuencia de recurrencia"
+
+        etapas = db.execute(
+            "SELECT * FROM etapas_mision WHERE mision_id=? ORDER BY orden", (mision_id,)
+        ).fetchall()
+
+        # Collect assignees from last cycle's tickets before wiping them
+        asig_por_orden: dict[int, int | None] = {}
+        for etapa in etapas:
+            if etapa["ticket_id"]:
+                t = db.execute("SELECT asignado_a FROM tickets WHERE id=?", (etapa["ticket_id"],)).fetchone()
+                if t:
+                    asig_por_orden[etapa["orden"]] = t["asignado_a"]
+
+        # Remove old tickets (same cleanup as eliminar_mision but per-ticket)
+        old_ticket_ids = [e["ticket_id"] for e in etapas if e["ticket_id"]]
+        for tid in old_ticket_ids:
+            db.execute("UPDATE tickets SET bloqueado_por=NULL WHERE bloqueado_por=?", (tid,))
+            db.execute("UPDATE etapas_mision SET ticket_id=NULL WHERE ticket_id=?", (tid,))
+            db.execute("DELETE FROM logs_auditoria WHERE ticket_id=?", (tid,))
+        if old_ticket_ids:
+            ph = ",".join("?" * len(old_ticket_ids))
+            db.execute(f"DELETE FROM tickets WHERE id IN ({ph})", old_ticket_ids)
+
+        # Recreate tickets
+        creator = usuario_id or m["creado_por"]
+        prev_ticket_id = None
+        for etapa in etapas:
+            asig = asig_por_orden.get(etapa["orden"])
+            numero = _generar_numero(db)
+            bloqueado_por = prev_ticket_id if m["tipo"] == "secuencial" else None
+            estado_inicial = "en_proceso" if (not bloqueado_por and asig) else "pendiente"
+
+            db.execute("""
+                INSERT INTO tickets
+                    (numero, titulo, categoria, descripcion, prioridad,
+                     creado_por, asignado_a, mision_id, etapa_id, bloqueado_por, estado)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                numero,
+                etapa["titulo"],
+                m["categoria"],
+                etapa["descripcion"] or etapa["titulo"],
+                "media",
+                creator,
+                asig,
+                mision_id,
+                etapa["id"],
+                bloqueado_por,
+                estado_inicial,
+            ))
+            tid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
+
+            etapa_estado = "activa" if not bloqueado_por else "pendiente"
+            db.execute(
+                "UPDATE etapas_mision SET ticket_id=?, estado=? WHERE id=?",
+                (tid, etapa_estado, etapa["id"]),
+            )
+            _log(db, tid, creator, "ticket_renovado",
+                 detalles=f"Renovación automática — misión '{m['titulo']}' (frecuencia: {m['frecuencia']})")
+            prev_ticket_id = tid
+
+        proxima = _calcular_proxima(m["frecuencia"])
+        db.execute("""
+            UPDATE misiones
+            SET estado='activa', etapas_completadas=0, completada_en=NULL,
+                proxima_renovacion=?
+            WHERE id=?
+        """, (proxima, mision_id))
+        db.commit()
+        return True, proxima
+
+
+def procesar_renovaciones() -> list[int]:
+    """Check all recurring missions and renew those past their proxima_renovacion date."""
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    renovadas = []
+    with _conn() as db:
+        pendientes = db.execute("""
+            SELECT id FROM misiones
+            WHERE frecuencia IS NOT NULL
+              AND estado = 'completada'
+              AND proxima_renovacion IS NOT NULL
+              AND proxima_renovacion <= ?
+        """, (now,)).fetchall()
+    for row in pendientes:
+        ok, _ = renovar_mision(row["id"])
+        if ok:
+            renovadas.append(row["id"])
+    return renovadas
 
 
 # ── PARTICIPANTES ─────────────────────────────────────────────────────────────
@@ -642,9 +1061,11 @@ def quitar_participante(ticket_id: int, usuario_id: int) -> bool:
 
 def _generar_numero(db) -> str:
     year = datetime.utcnow().year
-    n = db.execute(
-        "SELECT COUNT(*) as c FROM tickets WHERE numero LIKE ?", (f"TKT-{year}-%",)
-    ).fetchone()["c"]
+    row = db.execute(
+        "SELECT MAX(CAST(SUBSTR(numero, 10) AS INTEGER)) AS mx FROM tickets WHERE numero LIKE ?",
+        (f"TKT-{year}-%",),
+    ).fetchone()
+    n = row["mx"] or 0
     return f"TKT-{year}-{(n + 1):04d}"
 
 
@@ -947,3 +1368,50 @@ def dashboard_carga() -> list:
             ).fetchone()["h"], 1)
             result.append(u)
         return sorted(result, key=lambda x: x["tickets_abiertos"], reverse=True)
+
+
+# ── CATEGORÍAS ────────────────────────────────────────────────────────────────
+
+def listar_categorias() -> list:
+    with _conn() as db:
+        rows = db.execute(
+            "SELECT * FROM categorias WHERE activo=1 ORDER BY nombre"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def crear_categoria(slug: str, nombre: str, color: str = "#0c6069", icono: str = "📋") -> tuple:
+    slug = slug.strip().lower().replace(" ", "_")
+    nombre = nombre.strip()
+    if not slug or not nombre:
+        return None, "slug y nombre son requeridos"
+    if not slug.replace("_", "").replace("-", "").isalnum():
+        return None, "slug solo puede contener letras, números, _ y -"
+    with _conn() as db:
+        existing = db.execute("SELECT id FROM categorias WHERE slug=?", (slug,)).fetchone()
+        if existing:
+            return None, f"Ya existe una categoría con el slug '{slug}'"
+        db.execute(
+            "INSERT INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
+            (slug, nombre, color, icono),
+        )
+        db.commit()
+        row = db.execute("SELECT * FROM categorias WHERE slug=?", (slug,)).fetchone()
+        return dict(row), None
+
+
+def eliminar_categoria(slug: str) -> tuple:
+    if slug in ("rrhh", "logistica", "mantenimiento"):
+        return False, "No se pueden eliminar las categorías del sistema"
+    with _conn() as db:
+        cat = db.execute("SELECT id FROM categorias WHERE slug=?", (slug,)).fetchone()
+        if not cat:
+            return False, "Categoría no encontrada"
+        en_uso = db.execute(
+            "SELECT COUNT(*) as n FROM tickets WHERE categoria=?", (slug,)
+        ).fetchone()["n"]
+        if en_uso:
+            return False, f"No se puede eliminar: {en_uso} ticket(s) usan esta categoría"
+        db.execute("DELETE FROM categorias WHERE slug=?", (slug,))
+        db.commit()
+        return True, None

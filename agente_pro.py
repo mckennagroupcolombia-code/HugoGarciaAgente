@@ -68,6 +68,25 @@ def create_app():
     except Exception as e:
         print(f"⚠️ Centro de Mando (tickets): {e}")
 
+    try:
+        import threading, time as _time
+        from app.services.tickets_db import procesar_renovaciones
+
+        def _renovaciones_loop():
+            while True:
+                _time.sleep(3600)  # check every hour
+                try:
+                    ids = procesar_renovaciones()
+                    if ids:
+                        print(f"♻️ Misiones renovadas: {ids}")
+                except Exception as _e:
+                    print(f"⚠️ Renovaciones: {_e}")
+
+        threading.Thread(target=_renovaciones_loop, daemon=True, name="renovaciones-scheduler").start()
+        print("✅ Scheduler de renovaciones de misiones activo")
+    except Exception as e:
+        print(f"⚠️ Scheduler renovaciones: {e}")
+
     # Iniciar daemons de las nuevas funcionalidades
     try:
         from app.monitor import iniciar_monitor

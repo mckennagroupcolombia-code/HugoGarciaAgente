@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 
 // ── API helper ────────────────────────────────────────────────────────────────
@@ -79,6 +79,8 @@ interface EtapaMision {
   estado: "pendiente" | "activa" | "completada";
 }
 
+type Frecuencia = "diaria" | "semanal" | "quincenal" | "mensual" | "bimestral" | "trimestral" | "semestral";
+
 interface Mision {
   id: number;
   titulo: string;
@@ -86,7 +88,7 @@ interface Mision {
   reino: string;
   color: string;
   tipo: "secuencial" | "paralelo";
-  categoria: "rrhh" | "logistica" | "mantenimiento";
+  categoria: string;
   estado: "borrador" | "activa" | "completada" | "cancelada";
   total_etapas: number;
   etapas_completadas: number;
@@ -95,6 +97,8 @@ interface Mision {
   creado_por_info?: { id: number; nombre: string } | null;
   creado_en: string;
   completada_en: string | null;
+  frecuencia?: Frecuencia | null;
+  proxima_renovacion?: string | null;
   etapas?: EtapaMision[];
 }
 
@@ -124,6 +128,15 @@ interface LogEntry {
   creado_en: string;
 }
 
+interface Categoria {
+  id: number;
+  slug: string;
+  nombre: string;
+  color: string;
+  icono: string;
+  activo: number;
+}
+
 interface UserInfo {
   id: number;
   nombre: string;
@@ -132,6 +145,11 @@ interface UserInfo {
   rol: { id: number; nombre: string; nivel: number } | null;
   departamento: { id: number; nombre: string; color: string } | null;
 }
+
+const CategoriasCtx = createContext<{ cats: Categoria[]; reload: () => void }>({
+  cats: [],
+  reload: () => {},
+});
 
 interface Rol {
   id: number;
@@ -165,17 +183,27 @@ const ESTADO_LABEL: Record<string, string> = {
   rechazado:             "Rechazado",
 };
 
-const CATEGORIA_STYLES: Record<string, string> = {
-  rrhh:          "bg-amber-100 text-amber-800",
-  logistica:     "bg-teal-100 text-teal-800",
-  mantenimiento: "bg-purple-100 text-purple-800",
+const CATEGORIA_FALLBACK: Record<string, { label: string; cls: string }> = {
+  rrhh:          { label: "RR.HH.",       cls: "bg-amber-100 text-amber-800" },
+  logistica:     { label: "Logística",    cls: "bg-teal-100 text-teal-800" },
+  mantenimiento: { label: "Mantenimiento", cls: "bg-purple-100 text-purple-800" },
 };
 
-const CATEGORIA_LABEL: Record<string, string> = {
-  rrhh:          "RR.HH.",
-  logistica:     "Logística",
-  mantenimiento: "Mantenimiento",
+const FRECUENCIA_LABEL: Record<string, string> = {
+  diaria:     "♻️ Diaria",
+  semanal:    "♻️ Semanal",
+  quincenal:  "♻️ Quincenal",
+  mensual:    "♻️ Mensual",
+  bimestral:  "♻️ Bimestral",
+  trimestral: "♻️ Trimestral",
+  semestral:  "♻️ Semestral",
 };
+
+function fmtFecha(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso.replace(" ", "T") + "Z");
+  return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 const PRIORIDAD_STYLES: Record<string, string> = {
   baja:    "bg-gray-100 text-gray-600",
@@ -204,9 +232,21 @@ function EstadoBadge({ estado }: { estado: string }) {
 }
 
 function CategoriaBadge({ cat }: { cat: string }) {
+  const { cats } = useContext(CategoriasCtx);
+  const info = cats.find((c) => c.slug === cat);
+  if (info) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+        style={{ background: info.color + "22", color: info.color }}>
+        {info.icono} {info.nombre}
+      </span>
+    );
+  }
+  const fb = CATEGORIA_FALLBACK[cat];
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${CATEGORIA_STYLES[cat] || "bg-gray-100 text-gray-600"}`}>
-      {CATEGORIA_LABEL[cat] || cat}
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${fb?.cls ?? "bg-gray-100 text-gray-600"}`}>
+      {fb?.label ?? cat}
     </span>
   );
 }
@@ -437,6 +477,7 @@ function TicketListView({
   onMisiones: () => void;
   onMisionDetail: (id: number) => void;
 }) {
+  const { cats: categorias } = useContext(CategoriasCtx);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -555,9 +596,9 @@ function TicketListView({
         <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
           className="rounded-paper border-2 border-border bg-surface-input px-3 py-1.5 text-sm text-ink outline-none focus:border-accent">
           <option value="">Todas las categorías</option>
-          <option value="rrhh">RR.HH.</option>
-          <option value="logistica">Logística</option>
-          <option value="mantenimiento">Mantenimiento</option>
+          {categorias.map((c) => (
+            <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
+          ))}
         </select>
         <button onClick={load}
           className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
@@ -624,6 +665,7 @@ function CreateTicketView({
   onBack: () => void;
   onCreated: (id: number) => void;
 }) {
+  const { cats: categorias } = useContext(CategoriasCtx);
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -701,9 +743,9 @@ function CreateTicketView({
               value={form.categoria} onChange={set("categoria")} required
             >
               <option value="">Seleccionar...</option>
-              <option value="rrhh">👥 Recursos Humanos</option>
-              <option value="logistica">🚚 Logística y Operaciones</option>
-              <option value="mantenimiento">🔧 Mantenimiento y Sistemas</option>
+              {categorias.map((c) => (
+                <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
+              ))}
             </select>
             {form.categoria === "rrhh" && (
               <p className="mt-1 text-xs font-medium text-amber-700">
@@ -1134,7 +1176,8 @@ function TicketDetailView({
 
 // Admin: Users, Roles, Departments
 function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
-  const [tab, setTab] = useState<"usuarios" | "roles" | "departamentos">("usuarios");
+  const { cats: categorias, reload: reloadCats } = useContext(CategoriasCtx);
+  const [tab, setTab] = useState<"usuarios" | "roles" | "departamentos" | "categorias">("usuarios");
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [depts, setDepts] = useState<Dept[]>([]);
@@ -1144,6 +1187,10 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
   const [form, setForm] = useState<any>({});
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  // Category form state
+  const [catForm, setCatForm] = useState({ slug: "", nombre: "", color: "#0c6069", icono: "📋" });
+  const [catError, setCatError] = useState("");
+  const [catSaving, setCatSaving] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -1217,6 +1264,26 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
     finally { setSaving(false); }
   }
 
+  async function crearCategoria() {
+    if (!catForm.slug || !catForm.nombre) { setCatError("Slug y nombre son requeridos"); return; }
+    setCatSaving(true);
+    setCatError("");
+    try {
+      await tapi("/categorias/", token, { method: "POST", body: JSON.stringify(catForm) });
+      setCatForm({ slug: "", nombre: "", color: "#0c6069", icono: "📋" });
+      reloadCats();
+    } catch (e: any) { setCatError(e.message); }
+    finally { setCatSaving(false); }
+  }
+
+  async function eliminarCategoria(slug: string, nombre: string) {
+    if (!confirm(`¿Eliminar la categoría "${nombre}"?\nSolo se puede eliminar si no tiene tickets asociados.`)) return;
+    try {
+      await tapi(`/categorias/${slug}`, token, { method: "DELETE" });
+      reloadCats();
+    } catch (e: any) { alert(e.message); }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -1224,17 +1291,109 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
         <h2 className="text-xl font-extrabold text-ink">Administración</h2>
       </div>
 
-      <div className="flex gap-2">
-        {(["usuarios", "roles", "departamentos"] as const).map((t) => (
+      <div className="flex flex-wrap gap-2">
+        {(["usuarios", "roles", "departamentos", "categorias"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`rounded-paper border-2 px-4 py-1.5 text-sm font-bold capitalize transition
               ${tab === t ? "border-accent bg-surface-hover text-ink" : "border-transparent text-muted hover:text-ink"}`}>
-            {t === "usuarios" ? "👤 Usuarios" : t === "roles" ? "🎭 Roles" : "🏢 Departamentos"}
+            {t === "usuarios" ? "👤 Usuarios"
+              : t === "roles" ? "🎭 Roles"
+              : t === "departamentos" ? "🏢 Departamentos"
+              : "🏷️ Categorías"}
           </button>
         ))}
       </div>
 
-      {loading ? (
+      {tab === "categorias" ? (
+        <div className="space-y-4">
+          {/* Create form */}
+          <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
+            <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Nueva categoría</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-bold text-muted">Slug (identificador único)</label>
+                <input
+                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder="ej: produccion"
+                  value={catForm.slug}
+                  onChange={(e) => setCatForm((f) => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, "_") }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-muted">Nombre visible</label>
+                <input
+                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder="ej: Producción"
+                  value={catForm.nombre}
+                  onChange={(e) => setCatForm((f) => ({ ...f, nombre: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-muted">Ícono (emoji)</label>
+                <input
+                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder="ej: 🏭"
+                  value={catForm.icono}
+                  onChange={(e) => setCatForm((f) => ({ ...f, icono: e.target.value }))}
+                  maxLength={4}
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-muted">Color</label>
+                <div className="flex items-center gap-2">
+                  <input type="color" value={catForm.color}
+                    onChange={(e) => setCatForm((f) => ({ ...f, color: e.target.value }))}
+                    className="h-9 w-14 cursor-pointer rounded-paper border-2 border-border p-0.5" />
+                  <span className="text-xs font-mono text-muted">{catForm.color}</span>
+                  {catForm.slug && catForm.nombre && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                      style={{ background: catForm.color + "22", color: catForm.color }}>
+                      {catForm.icono} {catForm.nombre}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            {catError && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{catError}</p>}
+            <button onClick={crearCategoria} disabled={catSaving}
+              className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50">
+              {catSaving ? "Creando..." : "+ Crear categoría"}
+            </button>
+          </div>
+
+          {/* List */}
+          <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-2">
+            <h3 className="mb-3 text-sm font-extrabold uppercase tracking-wide text-muted">Categorías actuales</h3>
+            {categorias.map((c) => (
+              <div key={c.slug} className="flex items-center justify-between rounded-paper border-2 border-border bg-surface p-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
+                    style={{ background: c.color + "22" }}>
+                    {c.icono}
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold text-ink">{c.nombre}</p>
+                    <p className="text-xs font-mono text-muted">{c.slug}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                    style={{ background: c.color + "22", color: c.color }}>
+                    {c.icono} {c.nombre}
+                  </span>
+                </div>
+                {!["rrhh", "logistica", "mantenimiento"].includes(c.slug) && (
+                  <button onClick={() => eliminarCategoria(c.slug, c.nombre)}
+                    className="text-xs font-semibold text-red-400 transition hover:text-red-600">
+                    🗑️ Eliminar
+                  </button>
+                )}
+                {["rrhh", "logistica", "mantenimiento"].includes(c.slug) && (
+                  <span className="text-xs text-muted">Sistema</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : loading ? (
         <div className="py-10 text-center text-sm text-muted">Cargando...</div>
       ) : tab === "usuarios" ? (
         <div className="space-y-3">
@@ -1565,6 +1724,16 @@ function MisionesView({
                       </div>
                       {m.reino && <p className="text-xs text-muted">Reino: {m.reino}</p>}
                       {m.descripcion && <p className="text-xs text-muted mt-0.5 line-clamp-1">{m.descripcion}</p>}
+                      {m.frecuencia && (
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-xs font-semibold">
+                            {FRECUENCIA_LABEL[m.frecuencia] ?? m.frecuencia}
+                          </span>
+                          {m.proxima_renovacion && m.estado === "completada" && (
+                            <span className="text-xs text-muted">Próxima: {fmtFecha(m.proxima_renovacion)}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right shrink-0">
                       <div className="text-lg font-black text-ink">{m.etapas_completadas}/{m.total_etapas}</div>
@@ -1615,13 +1784,20 @@ function CreateMisionView({
 }: {
   token: string; onBack: () => void; onCreated: (id: number) => void;
 }) {
+  const { cats: categorias } = useContext(CategoriasCtx);
   const [form, setForm] = useState({
     titulo: "", descripcion: "", reino: "",
-    tipo: "secuencial", categoria: "logistica", color: "#0c6069",
+    tipo: "secuencial", categoria: "logistica", color: "#0c6069", frecuencia: "",
   });
   const [etapas, setEtapas] = useState([{ titulo: "", descripcion: "" }]);
+  const [asignaciones, setAsignaciones] = useState<Record<number, string>>({});
+  const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    tapi("/usuarios", token).then(setUsuarios).catch(() => {});
+  }, [token]);
 
   function setF(k: string) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -1629,7 +1805,18 @@ function CreateMisionView({
   }
 
   function addEtapa() { setEtapas((e) => [...e, { titulo: "", descripcion: "" }]); }
-  function removeEtapa(i: number) { setEtapas((e) => e.filter((_, idx) => idx !== i)); }
+  function removeEtapa(i: number) {
+    setEtapas((e) => e.filter((_, idx) => idx !== i));
+    setAsignaciones((a) => {
+      const next: Record<number, string> = {};
+      Object.entries(a).forEach(([k, v]) => {
+        const ki = parseInt(k);
+        if (ki < i + 1) next[ki] = v;
+        else if (ki > i + 1) next[ki - 1] = v;
+      });
+      return next;
+    });
+  }
   function setEtapa(i: number, k: "titulo" | "descripcion", v: string) {
     setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, [k]: v } : et));
   }
@@ -1640,10 +1827,17 @@ function CreateMisionView({
     if (!form.titulo) { setError("Título de misión requerido"); return; }
     if (etapas.some((e) => !e.titulo)) { setError("Todas las etapas deben tener título"); return; }
     setLoading(true);
+    const asignacionesPorOrden: Record<string, string> = {};
+    Object.entries(asignaciones).forEach(([k, v]) => { if (v) asignacionesPorOrden[k] = v; });
     try {
       const m = await tapi("/misiones/", token, {
         method: "POST",
-        body: JSON.stringify({ ...form, etapas }),
+        body: JSON.stringify({
+          ...form,
+          frecuencia: form.frecuencia || null,
+          etapas,
+          asignaciones: asignacionesPorOrden,
+        }),
       });
       onCreated(m.id);
     } catch (e: any) {
@@ -1652,6 +1846,8 @@ function CreateMisionView({
       setLoading(false);
     }
   }
+
+  const isSecuencial = form.tipo === "secuencial";
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
@@ -1675,25 +1871,25 @@ function CreateMisionView({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Tipo</label>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Tipo de flujo</label>
               <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
                 value={form.tipo} onChange={setF("tipo")}>
-                <option value="secuencial">🔗 Secuencial (etapas estrictas)</option>
-                <option value="paralelo">⚡ Paralelo (etapas simultáneas)</option>
+                <option value="secuencial">🔗 Secuencial — etapas en orden</option>
+                <option value="paralelo">⚡ Asíncrono — etapas simultáneas</option>
               </select>
               <p className="mt-1 text-xs text-muted">
-                {form.tipo === "secuencial"
-                  ? "Cada etapa se desbloquea al completar la anterior."
-                  : "Todas las etapas se activan a la vez."}
+                {isSecuencial
+                  ? "Cada ticket se desbloquea al completar el anterior."
+                  : "Todos los tickets se activan a la vez, sin dependencias."}
               </p>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Categoría</label>
               <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
                 value={form.categoria} onChange={setF("categoria")}>
-                <option value="logistica">🚚 Logística</option>
-                <option value="mantenimiento">🔧 Mantenimiento</option>
-                <option value="rrhh">👥 Recursos Humanos</option>
+                {categorias.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -1720,42 +1916,96 @@ function CreateMisionView({
               </div>
             </div>
           </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Recurrencia</label>
+            <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
+              value={form.frecuencia} onChange={setF("frecuencia")}>
+              <option value="">Una sola vez (sin repetición)</option>
+              <option value="diaria">♻️ Diaria — se renueva cada día</option>
+              <option value="semanal">♻️ Semanal — se renueva cada semana</option>
+              <option value="quincenal">♻️ Quincenal — se renueva cada 15 días</option>
+              <option value="mensual">♻️ Mensual — se renueva cada mes</option>
+              <option value="bimestral">♻️ Bimestral — se renueva cada 2 meses</option>
+              <option value="trimestral">♻️ Trimestral — se renueva cada 3 meses</option>
+              <option value="semestral">♻️ Semestral — se renueva cada 6 meses</option>
+            </select>
+            {form.frecuencia && (
+              <p className="mt-1 text-xs text-muted">
+                Al completarse todos los tickets, la misión se reiniciará automáticamente.
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Etapas */}
+        {/* Etapas + asignaciones */}
         <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">
-              Etapas ({etapas.length})
-            </h3>
+            <div>
+              <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">
+                Tickets a generar ({etapas.length})
+              </h3>
+              <p className="mt-0.5 text-xs text-muted">
+                {isSecuencial
+                  ? "🔗 Flujo secuencial: cada ticket depende del anterior"
+                  : "⚡ Flujo asíncrono: todos los tickets se crean activos simultáneamente"}
+              </p>
+            </div>
             <button type="button" onClick={addEtapa}
               className="rounded-paper border-2 border-accent px-3 py-1 text-xs font-bold text-accent transition hover:bg-surface-hover">
-              + Agregar etapa
+              + Agregar
             </button>
           </div>
 
           {etapas.map((et, i) => (
-            <div key={i} className="rounded-paper border-2 border-border bg-surface p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-                  style={{ background: form.color }}>
-                  {i + 1}
-                </span>
-                {etapas.length > 1 && (
-                  <button type="button" onClick={() => removeEtapa(i)}
-                    className="text-xs font-bold text-muted hover:text-danger transition">
-                    Eliminar
-                  </button>
-                )}
+            <div key={i}>
+              <div className="rounded-paper border-2 border-border bg-surface p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
+                      style={{ background: form.color }}>
+                      {i + 1}
+                    </span>
+                    {isSecuencial && i > 0 && (
+                      <span className="text-xs font-semibold text-muted">🔒 Bloqueado hasta completar #{i}</span>
+                    )}
+                    {!isSecuencial && (
+                      <span className="text-xs font-semibold text-muted">⚡ Activo desde el inicio</span>
+                    )}
+                  </div>
+                  {etapas.length > 1 && (
+                    <button type="button" onClick={() => removeEtapa(i)}
+                      className="text-xs font-bold text-muted hover:text-danger transition">
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+                <input
+                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder={`Título del ticket ${i + 1} *`}
+                  value={et.titulo} onChange={(e) => setEtapa(i, "titulo", e.target.value)} />
+                <input
+                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder="Descripción (opcional)"
+                  value={et.descripcion} onChange={(e) => setEtapa(i, "descripcion", e.target.value)} />
+                <div className="flex items-center gap-2">
+                  <svg className="h-4 w-4 shrink-0 text-muted" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                  <select
+                    value={asignaciones[i + 1] || ""}
+                    onChange={(e) => setAsignaciones((a) => ({ ...a, [i + 1]: e.target.value }))}
+                    className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent">
+                    <option value="">Sin asignar</option>
+                    {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+                  </select>
+                </div>
               </div>
-              <input
-                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                placeholder={`Título de la etapa ${i + 1} *`}
-                value={et.titulo} onChange={(e) => setEtapa(i, "titulo", e.target.value)} />
-              <input
-                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                placeholder="Descripción (opcional)"
-                value={et.descripcion} onChange={(e) => setEtapa(i, "descripcion", e.target.value)} />
+              {isSecuencial && i < etapas.length - 1 && (
+                <div className="flex justify-center my-0.5">
+                  <div className="h-4 w-0.5 rounded-full opacity-30" style={{ background: form.color }} />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1769,7 +2019,7 @@ function CreateMisionView({
           </button>
           <button type="submit" disabled={loading}
             className="rounded-paper border-2 border-accent bg-accent px-6 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50">
-            {loading ? "Creando..." : "Crear Misión"}
+            {loading ? "Creando tickets..." : "✅ Crear Misión y Generar Tickets"}
           </button>
         </div>
       </form>
@@ -1785,29 +2035,17 @@ function MisionDetailView({
   onBack: () => void; onTicket: (id: number) => void;
 }) {
   const [mision, setMision] = useState<Mision | null>(null);
-  const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showLaunch, setShowLaunch] = useState(false);
-  const [asignaciones, setAsignaciones] = useState<Record<number, string>>({});
-  const [launching, setLaunching] = useState(false);
-  const [launchError, setLaunchError] = useState("");
-  // Inline editor state (borrador only)
-  const [editEtapas, setEditEtapas] = useState<{ titulo: string; descripcion: string }[]>([]);
-  const [editDirty, setEditDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [renewing, setRenewing] = useState(false);
 
   const nivel = user.rol?.nivel ?? 1;
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [m, us] = await Promise.all([
-        tapi(`/misiones/${misionId}`, token),
-        tapi("/usuarios", token),
-      ]);
+      const m = await tapi(`/misiones/${misionId}`, token);
       setMision(m);
-      setUsuarios(us);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -1816,71 +2054,6 @@ function MisionDetailView({
   }, [token, misionId]);
 
   useEffect(() => { reload(); }, [reload]);
-
-  // Sync edit state when mission loads/reloads
-  useEffect(() => {
-    if (mision?.etapas) {
-      setEditEtapas(mision.etapas.map((e) => ({ titulo: e.titulo, descripcion: e.descripcion || "" })));
-      setEditDirty(false);
-    }
-  }, [mision]);
-
-  async function saveEtapas() {
-    if (!mision) return;
-    setSaving(true);
-    try {
-      await tapi(`/misiones/${misionId}`, token, {
-        method: "PUT",
-        body: JSON.stringify({ etapas: editEtapas }),
-      });
-      await reload();
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function moveEtapa(i: number, dir: -1 | 1) {
-    const j = i + dir;
-    if (j < 0 || j >= editEtapas.length) return;
-    const next = [...editEtapas];
-    [next[i], next[j]] = [next[j], next[i]];
-    setEditEtapas(next);
-    setEditDirty(true);
-  }
-
-  function addEtapaEdit() {
-    setEditEtapas((e) => [...e, { titulo: "", descripcion: "" }]);
-    setEditDirty(true);
-  }
-
-  function removeEtapaEdit(i: number) {
-    setEditEtapas((e) => e.filter((_, idx) => idx !== i));
-    setEditDirty(true);
-  }
-
-  function updateEtapaEdit(i: number, k: "titulo" | "descripcion", v: string) {
-    setEditEtapas((e) => e.map((et, idx) => idx === i ? { ...et, [k]: v } : et));
-    setEditDirty(true);
-  }
-
-  async function launch() {
-    setLaunching(true);
-    setLaunchError("");
-    try {
-      await tapi(`/misiones/${misionId}/lanzar`, token, {
-        method: "POST",
-        body: JSON.stringify({ asignaciones }),
-      });
-      setShowLaunch(false);
-      await reload();
-    } catch (e: any) {
-      setLaunchError(e.message);
-    } finally {
-      setLaunching(false);
-    }
-  }
 
   const ETAPA_COLOR: Record<string, string> = {
     pendiente: "border-gray-300 bg-gray-50 text-gray-500",
@@ -1919,11 +2092,34 @@ function MisionDetailView({
         <span className="inline-flex items-center rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-semibold text-muted">
           {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
         </span>
+        {mision.frecuencia && (
+          <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold">
+            {FRECUENCIA_LABEL[mision.frecuencia] ?? mision.frecuencia}
+          </span>
+        )}
+        {mision.estado === "completada" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-800 border border-green-300 px-2.5 py-0.5 text-xs font-bold">
+            🔒 Completada — solo lectura
+          </span>
+        )}
         <div className="ml-auto flex gap-2">
-          {nivel >= 2 && mision.estado === "borrador" && (
-            <button onClick={() => { setAsignaciones({}); setShowLaunch(true); }}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-              🚀 Lanzar misión
+          {mision.frecuencia && nivel >= 2 && (
+            <button
+              disabled={renewing}
+              onClick={async () => {
+                if (!confirm(`¿Renovar la misión "${mision.titulo}" ahora?\n\nSe crearán tickets nuevos y la misión quedará activa.`)) return;
+                setRenewing(true);
+                try {
+                  const res = await tapi(`/misiones/${misionId}/renovar`, token, { method: "POST" });
+                  setMision(res.mision);
+                } catch (e: any) {
+                  alert(e.message);
+                } finally {
+                  setRenewing(false);
+                }
+              }}
+              className="rounded-paper border-2 border-emerald-400 px-3 py-1.5 text-sm font-bold text-emerald-600 transition hover:bg-emerald-500 hover:border-emerald-500 hover:text-white disabled:opacity-50">
+              {renewing ? "Renovando..." : "♻️ Renovar"}
             </button>
           )}
           {nivel >= 3 && (
@@ -1953,6 +2149,13 @@ function MisionDetailView({
         <h2 className="text-xl font-extrabold text-ink mb-1">{mision.titulo}</h2>
         {mision.reino && <p className="text-xs font-semibold text-muted mb-2">Reino: {mision.reino}</p>}
         {mision.descripcion && <p className="text-sm text-ink mb-3">{mision.descripcion}</p>}
+        {mision.frecuencia && mision.proxima_renovacion && (
+          <p className="mb-3 text-xs font-semibold" style={{ color: mision.color }}>
+            {mision.estado === "completada"
+              ? `⏰ Próxima renovación automática: ${fmtFecha(mision.proxima_renovacion)}`
+              : `♻️ Se renovará el ${fmtFecha(mision.proxima_renovacion)} al completarse`}
+          </p>
+        )}
         <div className="h-2 rounded-full bg-white/60 overflow-hidden">
           <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: mision.color }} />
         </div>
@@ -1962,194 +2165,101 @@ function MisionDetailView({
         </div>
       </div>
 
-      {/* Etapas pipeline */}
+      {/* Pipeline de tickets */}
       <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper">
-        <h3 className="mb-4 text-sm font-extrabold uppercase tracking-wide text-muted">Pipeline de Etapas</h3>
+        <div className="mb-4 flex items-center gap-2">
+          <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">
+            {isSecuencial ? "🔗 Pipeline Secuencial" : "⚡ Tickets Asíncronos"}
+          </h3>
+          <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-semibold text-muted">
+            {isSecuencial ? "Se desbloquean en orden" : "Todos activos en paralelo"}
+          </span>
+        </div>
 
-        {mision.estado === "borrador" ? (
-          <div className="space-y-3">
-            {editEtapas.map((et, i) => (
-              <div key={i}>
-                <div className="rounded-paper border-2 border-dashed border-border bg-surface p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-                      style={{ background: mision.color }}>
-                      {i + 1}
+        {isSecuencial ? (
+          <div className="space-y-1">
+            {etapas.map((et, i) => {
+              const isLocked = et.estado === "pendiente" && !!et.ticket_bloqueado_por;
+              const isDone   = et.estado === "completada";
+              return (
+                <div key={et.id}>
+                  <div className={`flex items-center gap-3 rounded-paper border-2 p-3 transition ${ETAPA_COLOR[et.estado]}`}>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isDone ? "text-white" : "bg-white"}`}
+                      style={isDone
+                        ? { background: mision.color }
+                        : { color: mision.color, border: `2px solid ${mision.color}33` }}>
+                      {isDone ? "✓" : isLocked ? "🔒" : et.orden}
                     </span>
-                    <input
-                      className="flex-1 rounded border border-border bg-surface-input px-2 py-1 text-sm font-semibold text-ink outline-none focus:border-accent"
-                      placeholder="Título de la etapa *"
-                      value={et.titulo}
-                      onChange={(e) => updateEtapaEdit(i, "titulo", e.target.value)}
-                    />
-                    <div className="flex gap-1 shrink-0">
-                      <button onClick={() => moveEtapa(i, -1)} disabled={i === 0}
-                        className="rounded px-1.5 py-1 text-xs font-bold text-muted hover:bg-surface-hover disabled:opacity-30 transition">
-                        ↑
-                      </button>
-                      <button onClick={() => moveEtapa(i, 1)} disabled={i === editEtapas.length - 1}
-                        className="rounded px-1.5 py-1 text-xs font-bold text-muted hover:bg-surface-hover disabled:opacity-30 transition">
-                        ↓
-                      </button>
-                      <button onClick={() => removeEtapaEdit(i)} disabled={editEtapas.length <= 1}
-                        className="rounded px-1.5 py-1 text-xs font-bold text-muted hover:text-danger disabled:opacity-30 transition">
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                  <input
-                    className="w-full rounded border border-border bg-surface-input px-2 py-1 text-xs text-muted outline-none focus:border-accent"
-                    placeholder="Descripción (opcional)"
-                    value={et.descripcion}
-                    onChange={(e) => updateEtapaEdit(i, "descripcion", e.target.value)}
-                  />
-                </div>
-                {isSecuencial && i < editEtapas.length - 1 && (
-                  <div className="flex justify-center my-0.5">
-                    <div className="h-3 w-0.5 rounded-full opacity-30" style={{ background: mision.color }} />
-                  </div>
-                )}
-              </div>
-            ))}
-
-            <div className="flex items-center gap-3 pt-1">
-              <button onClick={addEtapaEdit}
-                className="rounded-paper border-2 border-dashed border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-                + Agregar etapa
-              </button>
-              {editDirty && (
-                <button onClick={saveEtapas} disabled={saving || editEtapas.some(e => !e.titulo.trim())}
-                  className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50">
-                  {saving ? "Guardando..." : "💾 Guardar cambios"}
-                </button>
-              )}
-              {editDirty && (
-                <button onClick={() => {
-                  if (mision.etapas) {
-                    setEditEtapas(mision.etapas.map((e) => ({ titulo: e.titulo, descripcion: e.descripcion || "" })));
-                    setEditDirty(false);
-                  }
-                }}
-                  className="text-xs font-semibold text-muted hover:text-danger transition">
-                  Descartar
-                </button>
-              )}
-            </div>
-
-            <p className="text-center text-xs font-semibold text-muted pt-1">
-              Edita las etapas y luego lanza la misión para crear los tickets.
-            </p>
-          </div>
-        ) : isSecuencial ? (
-          <div className="space-y-2">
-            {etapas.map((et, i) => (
-              <div key={et.id}>
-                <div className={`flex items-center gap-3 rounded-paper border-2 p-3 transition ${ETAPA_COLOR[et.estado]}`}>
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-black shadow-sm"
-                    style={{ color: mision.color, border: `2px solid ${mision.color}33` }}>
-                    {et.orden}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm">{et.titulo}</p>
-                    {et.asignado_nombre && <p className="text-xs opacity-75">👤 {et.asignado_nombre}</p>}
-                    {et.ticket_bloqueado_por && <p className="text-xs opacity-75">🔒 Bloqueado</p>}
-                  </div>
-                  {et.ticket_id && et.ticket_numero && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {et.ticket_estado && (
-                        <span className={`h-2 w-2 rounded-full ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm ${isLocked ? "opacity-50" : ""}`}>{et.titulo}</p>
+                      {et.asignado_nombre && (
+                        <p className="text-xs opacity-75 flex items-center gap-1">
+                          <span>👤</span>{et.asignado_nombre}
+                        </p>
                       )}
-                      <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
-                        className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
-                        {et.ticket_numero}
-                      </button>
+                      {isLocked && (
+                        <p className="text-xs opacity-60">Esperando ticket anterior</p>
+                      )}
+                    </div>
+                    {et.ticket_id && et.ticket_numero && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {et.ticket_estado && (
+                          <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
+                        )}
+                        <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
+                          className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
+                          {et.ticket_numero}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {i < etapas.length - 1 && (
+                    <div className="flex justify-center">
+                      <div className="my-0.5 h-5 w-0.5 rounded-full" style={{ background: mision.color + "55" }} />
                     </div>
                   )}
                 </div>
-                {i < etapas.length - 1 && (
-                  <div className="flex justify-center">
-                    <div className="my-0.5 h-4 w-0.5 rounded-full" style={{ background: mision.color + "44" }} />
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {etapas.map((et) => (
-              <div key={et.id} className={`rounded-paper border-2 p-3 ${ETAPA_COLOR[et.estado]}`}>
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-black shadow-sm"
-                    style={{ color: mision.color, border: `2px solid ${mision.color}33` }}>
-                    {et.orden}
-                  </span>
-                  {et.ticket_id && et.ticket_numero && (
+            {etapas.map((et) => {
+              const isDone = et.estado === "completada";
+              return (
+                <div key={et.id} className={`rounded-paper border-2 p-3 ${ETAPA_COLOR[et.estado]}`}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-1.5">
-                      {et.ticket_estado && (
-                        <span className={`h-2 w-2 rounded-full ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
-                      )}
-                      <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
-                        className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
-                        {et.ticket_numero}
-                      </button>
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isDone ? "text-white" : "bg-white"}`}
+                        style={isDone
+                          ? { background: mision.color }
+                          : { color: mision.color, border: `2px solid ${mision.color}33` }}>
+                        {isDone ? "✓" : et.orden}
+                      </span>
+                      <span className="text-xs font-semibold text-muted">⚡ Activo</span>
                     </div>
-                  )}
+                    {et.ticket_id && et.ticket_numero && (
+                      <div className="flex items-center gap-1.5">
+                        {et.ticket_estado && (
+                          <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
+                        )}
+                        <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
+                          className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
+                          {et.ticket_numero}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <p className="font-semibold text-sm">{et.titulo}</p>
+                  {et.descripcion && <p className="text-xs opacity-75 mt-0.5">{et.descripcion}</p>}
+                  {et.asignado_nombre && <p className="text-xs opacity-75 mt-1 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>}
                 </div>
-                <p className="font-semibold text-sm">{et.titulo}</p>
-                {et.descripcion && <p className="text-xs opacity-75 mt-0.5">{et.descripcion}</p>}
-                {et.asignado_nombre && <p className="text-xs opacity-75 mt-0.5">👤 {et.asignado_nombre}</p>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Launch modal */}
-      {showLaunch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-paper border-2 border-border bg-surface-panel p-6 shadow-paper-lg max-h-[90vh] overflow-y-auto">
-            <h3 className="mb-1 text-lg font-extrabold text-ink">🚀 Lanzar misión</h3>
-            <p className="mb-4 text-sm text-muted">
-              Asigna responsables a cada etapa. {isSecuencial ? "Las etapas se desbloquean en orden." : "Todas las etapas se activan simultáneamente."}
-            </p>
-
-            <div className="space-y-3 mb-5">
-              {etapas.map((et) => (
-                <div key={et.id} className="flex items-center gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-                    style={{ background: mision.color }}>
-                    {et.orden}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-ink truncate">{et.titulo}</p>
-                  </div>
-                  <select
-                    value={asignaciones[et.orden] || ""}
-                    onChange={(e) => setAsignaciones((a) => ({ ...a, [et.orden]: e.target.value }))}
-                    className="rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent min-w-0 flex-shrink"
-                  >
-                    <option value="">Sin asignar</option>
-                    {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-                  </select>
-                </div>
-              ))}
-            </div>
-
-            {launchError && <div className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{launchError}</div>}
-
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowLaunch(false)}
-                className="rounded-paper border-2 border-border px-4 py-2 text-sm font-bold text-muted transition hover:bg-surface-hover">
-                Cancelar
-              </button>
-              <button onClick={launch} disabled={launching}
-                className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50">
-                {launching ? "Lanzando..." : "🚀 Confirmar lanzamiento"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -2238,6 +2348,14 @@ export default function TicketsPanel() {
   const [view, setView] = useState<View>("list");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(null);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+
+  const reloadCats = useCallback(() => {
+    if (!token) return;
+    tapi("/categorias/", token).then(setCategorias).catch(() => {});
+  }, [token]);
+
+  useEffect(() => { reloadCats(); }, [reloadCats]);
 
   if (!token || !user) {
     return (
@@ -2254,6 +2372,7 @@ export default function TicketsPanel() {
   function goMisionDetail(id: number) { setSelectedMisionId(id); setView("mision_detail"); }
 
   return (
+    <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
     <div className="relative">
       {/* Logout button */}
       <div className="absolute right-0 top-0 z-10">
@@ -2326,5 +2445,6 @@ export default function TicketsPanel() {
         )}
       </div>
     </div>
+    </CategoriasCtx.Provider>
   );
 }

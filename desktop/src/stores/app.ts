@@ -9,7 +9,6 @@ export type Panel =
   | "stock"
   | "pedidos"
   | "facturas"
-  | "daily_quest"
   | "tickets"
   | "settings";
 
