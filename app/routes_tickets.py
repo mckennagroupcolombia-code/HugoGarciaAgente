@@ -19,6 +19,11 @@ from app.services.tickets_db import (
     renovar_mision,
     agregar_etapa_mision, actualizar_etapa_mision, eliminar_etapa_mision,
     reordenar_etapas_mision,
+    listar_pasos, agregar_paso, completar_paso, eliminar_paso, reordenar_pasos,
+    listar_materiales, get_material, crear_material, actualizar_material,
+    listar_materiales_ticket, agregar_material_ticket, actualizar_material_ticket, eliminar_material_ticket,
+    registrar_consumo, historial_consumo,
+    listar_ordenes_compra, crear_orden_compra, actualizar_orden_compra,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
@@ -464,3 +469,178 @@ def register_tickets_routes(app):
     def tickets_quitar_participante(ticket_id, user_id):
         quitar_participante(ticket_id, user_id)
         return jsonify(get_ticket(ticket_id, request.tickets_usuario)), 200
+
+    # ── PASOS DE TICKET ───────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/<int:ticket_id>/pasos", methods=["GET"])
+    @_auth
+    def tickets_listar_pasos(ticket_id):
+        return jsonify(listar_pasos(ticket_id)), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/pasos", methods=["POST"])
+    @_auth
+    def tickets_agregar_paso(ticket_id):
+        data = request.get_json(force=True) or {}
+        pasos, err = agregar_paso(ticket_id, data.get("descripcion", ""), request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(pasos), 201
+
+    @app.route("/api/tickets/pasos/<int:paso_id>/completar", methods=["POST"])
+    @_auth
+    def tickets_completar_paso(paso_id):
+        pasos, err = completar_paso(paso_id, request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(pasos), 200
+
+    @app.route("/api/tickets/pasos/<int:paso_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_paso(paso_id):
+        pasos, err = eliminar_paso(paso_id)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(pasos), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/pasos/orden", methods=["PUT"])
+    @_auth
+    def tickets_reordenar_pasos(ticket_id):
+        data = request.get_json(force=True) or {}
+        pasos, err = reordenar_pasos(ticket_id, [int(x) for x in data.get("paso_ids", [])])
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(pasos), 200
+
+    # ── CATÁLOGO DE MATERIALES ────────────────────────────────────────────────
+
+    @app.route("/api/tickets/materiales", methods=["GET"])
+    @_auth
+    def tickets_listar_materiales():
+        todos = request.args.get("todos") == "1"
+        return jsonify(listar_materiales(solo_activos=not todos)), 200
+
+    @app.route("/api/tickets/materiales", methods=["POST"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_crear_material():
+        data = request.get_json(force=True) or {}
+        mat, err = crear_material(data)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mat), 201
+
+    @app.route("/api/tickets/materiales/<int:material_id>", methods=["GET"])
+    @_auth
+    def tickets_get_material(material_id):
+        m = get_material(material_id)
+        if not m:
+            return jsonify({"error": "No encontrado"}), 404
+        return jsonify(m), 200
+
+    @app.route("/api/tickets/materiales/<int:material_id>", methods=["PUT"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_actualizar_material(material_id):
+        data = request.get_json(force=True) or {}
+        mat, err = actualizar_material(material_id, data)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mat), 200
+
+    # ── MATERIALES DE TICKET ──────────────────────────────────────────────────
+
+    @app.route("/api/tickets/<int:ticket_id>/materiales", methods=["GET"])
+    @_auth
+    def tickets_listar_materiales_ticket(ticket_id):
+        return jsonify(listar_materiales_ticket(ticket_id)), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/materiales", methods=["POST"])
+    @_auth
+    def tickets_agregar_material_ticket(ticket_id):
+        data = request.get_json(force=True) or {}
+        mats, err = agregar_material_ticket(
+            ticket_id, int(data.get("material_id",0)), float(data.get("cantidad",0))
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mats), 201
+
+    @app.route("/api/tickets/ticket_materiales/<int:tm_id>", methods=["PUT"])
+    @_auth
+    def tickets_actualizar_material_ticket(tm_id):
+        data = request.get_json(force=True) or {}
+        mats, err = actualizar_material_ticket(tm_id, float(data.get("cantidad",0)))
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mats), 200
+
+    @app.route("/api/tickets/ticket_materiales/<int:tm_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_material_ticket(tm_id):
+        mats, err = eliminar_material_ticket(tm_id)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mats), 200
+
+    # ── CONSUMO ───────────────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/<int:ticket_id>/consumo", methods=["POST"])
+    @_auth
+    def tickets_registrar_consumo(ticket_id):
+        data = request.get_json(force=True) or {}
+        res, err = registrar_consumo(
+            ticket_id,
+            int(data.get("material_id", 0)),
+            float(data.get("cantidad", 0)),
+            data.get("tipo", "consumo"),
+            data.get("notas", ""),
+            request.tickets_usuario["id"]
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(res), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/consumo", methods=["GET"])
+    @_auth
+    def tickets_historial_consumo_ticket(ticket_id):
+        return jsonify(historial_consumo(ticket_id=ticket_id)), 200
+
+    @app.route("/api/tickets/materiales/<int:material_id>/consumo", methods=["GET"])
+    @_auth
+    def tickets_historial_consumo_material(material_id):
+        return jsonify(historial_consumo(material_id=material_id)), 200
+
+    # ── ÓRDENES DE COMPRA ─────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/ordenes-compra", methods=["GET"])
+    @_auth
+    def tickets_listar_ordenes():
+        estado = request.args.get("estado")
+        return jsonify(listar_ordenes_compra(estado or None)), 200
+
+    @app.route("/api/tickets/ordenes-compra", methods=["POST"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_crear_orden():
+        data = request.get_json(force=True) or {}
+        oc, err = crear_orden_compra(
+            int(data.get("material_id", 0)),
+            float(data.get("cantidad", 0)),
+            float(data.get("precio_unitario", 0)),
+            data.get("proveedor", ""),
+            data.get("notas", ""),
+            request.tickets_usuario["id"]
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(oc), 201
+
+    @app.route("/api/tickets/ordenes-compra/<int:orden_id>", methods=["PUT"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_actualizar_orden(orden_id):
+        data = request.get_json(force=True) or {}
+        ocs, err = actualizar_orden_compra(orden_id, data, request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(ocs), 200
