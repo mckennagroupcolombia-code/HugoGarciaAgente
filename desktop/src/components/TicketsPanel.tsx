@@ -2052,6 +2052,10 @@ function MisionDetailView({
   const [addError, setAddError] = useState("");
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
 
+  // Drag-and-drop reorder
+  const dragIdx = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+
   const nivel = user.rol?.nivel ?? 1;
 
   const reload = useCallback(async () => {
@@ -2126,6 +2130,29 @@ function MisionDetailView({
       const updated = await tapi(`/misiones/${misionId}/etapas/${etapaId}`, token, { method: "DELETE" });
       setMision(updated);
     } catch (e: any) {
+      alert(e.message);
+    }
+  }
+
+  async function handleDrop(toIdx: number) {
+    const fromIdx = dragIdx.current;
+    dragIdx.current = null;
+    setDragOver(null);
+    if (fromIdx === null || fromIdx === toIdx || !mision) return;
+    const etapas = mision.etapas ?? [];
+    const reordered = [...etapas];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    // Optimistic update
+    setMision((m) => m ? { ...m, etapas: reordered } : m);
+    try {
+      const updated = await tapi(`/misiones/${misionId}/etapas/orden`, token, {
+        method: "PUT",
+        body: JSON.stringify({ etapa_ids: reordered.map((e) => e.id) }),
+      });
+      setMision(updated);
+    } catch (e: any) {
+      reload(); // revert on error
       alert(e.message);
     }
   }
@@ -2333,9 +2360,21 @@ function MisionDetailView({
             {etapas.map((et, i) => {
               const etapaLocked = et.estado === "pendiente" && !!et.ticket_bloqueado_por;
               const isDone      = et.estado === "completada";
+              const isOver      = dragOver === i;
               return (
-                <div key={et.id}>
-                  <div className={`flex items-center gap-3 rounded-paper border-2 p-3 transition ${ETAPA_COLOR[et.estado]}`}>
+                <div key={et.id}
+                  draggable={!isLocked}
+                  onDragStart={() => { dragIdx.current = i; }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+                  onDragLeave={() => setDragOver(null)}
+                  onDrop={() => handleDrop(i)}
+                  onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+                  className={isOver ? "opacity-50" : ""}
+                >
+                  <div className={`flex items-center gap-3 rounded-paper border-2 p-3 transition ${ETAPA_COLOR[et.estado]} ${isOver ? "border-accent border-dashed" : ""}`}>
+                    {!isLocked && (
+                      <span className="shrink-0 cursor-grab text-muted opacity-40 hover:opacity-80 select-none text-lg leading-none" title="Arrastrar para reordenar">⠿</span>
+                    )}
                     <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isDone ? "text-white" : "bg-white"}`}
                       style={isDone
                         ? { background: mision.color }
@@ -2378,12 +2417,24 @@ function MisionDetailView({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {etapas.map((et) => {
+            {etapas.map((et, i) => {
               const isDone = et.estado === "completada";
+              const isOver = dragOver === i;
               return (
-                <div key={et.id} className={`rounded-paper border-2 p-3 ${ETAPA_COLOR[et.estado]}`}>
+                <div key={et.id}
+                  draggable={!isLocked}
+                  onDragStart={() => { dragIdx.current = i; }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+                  onDragLeave={() => setDragOver(null)}
+                  onDrop={() => handleDrop(i)}
+                  onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+                  className={`rounded-paper border-2 p-3 transition ${ETAPA_COLOR[et.estado]} ${isOver ? "opacity-50 border-accent border-dashed" : ""}`}
+                >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-1.5">
+                      {!isLocked && (
+                        <span className="cursor-grab text-muted opacity-40 hover:opacity-80 select-none text-lg leading-none" title="Arrastrar para reordenar">⠿</span>
+                      )}
                       <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isDone ? "text-white" : "bg-white"}`}
                         style={isDone
                           ? { background: mision.color }

@@ -18,6 +18,7 @@ from app.services.tickets_db import (
     listar_categorias, crear_categoria, eliminar_categoria,
     renovar_mision,
     agregar_etapa_mision, actualizar_etapa_mision, eliminar_etapa_mision,
+    reordenar_etapas_mision,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
@@ -427,6 +428,18 @@ def register_tickets_routes(app):
     @_auth
     def tickets_eliminar_etapa(mision_id, etapa_id):
         mision, err = eliminar_etapa_mision(mision_id, etapa_id, request.tickets_usuario)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(mision), 200
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/etapas/orden", methods=["PUT"])
+    @_auth
+    def tickets_reordenar_etapas(mision_id):
+        data = request.get_json(force=True) or {}
+        etapa_ids = data.get("etapa_ids", [])
+        if not etapa_ids or not isinstance(etapa_ids, list):
+            return jsonify({"error": "etapa_ids requerido"}), 400
+        mision, err = reordenar_etapas_mision(mision_id, [int(x) for x in etapa_ids])
         if err:
             return jsonify({"error": err}), 400
         return jsonify(mision), 200

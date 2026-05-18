@@ -733,6 +733,58 @@ def get_mision(mision_id: int) -> dict | None:
         return _mision_full(db, mision_id)
 
 
+def reordenar_etapas_mision(mision_id: int, etapa_ids: list) -> tuple:
+    """
+    Reordena las etapas de una misión activa.
+    etapa_ids: lista de IDs de etapas en el nuevo orden deseado.
+    Para misiones secuenciales, recalcula la cadena bloqueado_por de los tickets.
+    """
+    with _conn() as db:
+        m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
+        if not m:
+            return None, "Misión no encontrada"
+        if m["estado"] in ("completada", "cancelada"):
+            return None, f"La misión está {m['estado']} y no puede editarse"
+
+        existing_ids = {r["id"] for r in db.execute(
+            "SELECT id FROM etapas_mision WHERE mision_id=?", (mision_id,)
+        ).fetchall()}
+        if set(etapa_ids) != existing_ids:
+            return None, "La lista de etapas no coincide con las etapas actuales"
+
+        for i, eid in enumerate(etapa_ids, 1):
+            db.execute("UPDATE etapas_mision SET orden=? WHERE id=?", (i, eid))
+
+        if m["tipo"] == "secuencial":
+            etapas_ordered = db.execute(
+                "SELECT * FROM etapas_mision WHERE mision_id=? ORDER BY orden", (mision_id,)
+            ).fetchall()
+            prev_ticket_id = None
+            for etapa in etapas_ordered:
+                tid = etapa["ticket_id"]
+                if not tid:
+                    prev_ticket_id = None
+                    continue
+                db.execute("UPDATE tickets SET bloqueado_por=? WHERE id=?", (prev_ticket_id, tid))
+                # Re-derive estado: unblocked + assigned → en_proceso; blocked → pendiente
+                if prev_ticket_id is None:
+                    t = db.execute("SELECT estado, asignado_a FROM tickets WHERE id=?", (tid,)).fetchone()
+                    if t["estado"] == "pendiente" and t["asignado_a"]:
+                        db.execute("UPDATE tickets SET estado='en_proceso' WHERE id=?", (tid,))
+                else:
+                    prev_estado = db.execute(
+                        "SELECT estado FROM tickets WHERE id=?", (prev_ticket_id,)
+                    ).fetchone()["estado"]
+                    if prev_estado != "resuelto":
+                        t = db.execute("SELECT estado FROM tickets WHERE id=?", (tid,)).fetchone()
+                        if t["estado"] == "en_proceso":
+                            db.execute("UPDATE tickets SET estado='pendiente' WHERE id=?", (tid,))
+                prev_ticket_id = tid
+
+        db.commit()
+        return _mision_full(db, mision_id), None
+
+
 def agregar_etapa_mision(mision_id: int, titulo: str, descripcion: str,
                          asignado_a: int | None, usuario_id: int) -> tuple:
     """Añade una etapa+ticket a una misión activa."""
