@@ -81,6 +81,13 @@ interface EtapaMision {
 
 type Frecuencia = "diaria" | "semanal" | "quincenal" | "mensual" | "bimestral" | "trimestral" | "semestral";
 
+interface Dependencia {
+  id: number;
+  titulo: string;
+  estado: string;
+  reino: string | null;
+}
+
 interface Mision {
   id: number;
   titulo: string;
@@ -100,6 +107,7 @@ interface Mision {
   frecuencia?: Frecuencia | null;
   proxima_renovacion?: string | null;
   etapas?: EtapaMision[];
+  dependencias?: Dependencia[];
 }
 
 interface Comentario {
@@ -1761,11 +1769,6 @@ function MaterialesSection({ ticketId, token }: { ticketId: number; token: strin
   const [selMat, setSelMat] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [saving, setSaving] = useState(false);
-  const [showConsumo, setShowConsumo] = useState<number | null>(null);
-  const [cantConsumo, setCantConsumo] = useState("");
-  const [tipoConsumo, setTipoConsumo] = useState("consumo");
-  const [notasConsumo, setNotasConsumo] = useState("");
-  const [msgConsumo, setMsgConsumo] = useState("");
 
   useEffect(() => {
     tapi(`/${ticketId}/materiales`, token).then(setItems).catch(() => {});
@@ -1789,22 +1792,6 @@ function MaterialesSection({ ticketId, token }: { ticketId: number; token: strin
     setItems(res);
   }
 
-  async function consumir(matId: number) {
-    if (!cantConsumo) return;
-    setMsgConsumo("");
-    try {
-      const res = await tapi(`/${ticketId}/consumo`, token, {
-        method: "POST",
-        body: JSON.stringify({ material_id: matId, cantidad: parseFloat(cantConsumo), tipo: tipoConsumo, notas: notasConsumo }),
-      });
-      const msg = res.oc_generada
-        ? `✅ Consumo registrado. Stock nuevo: ${res.stock_nuevo}. ⚠️ OC generada: ${res.oc_generada}`
-        : `✅ Stock actualizado: ${res.stock_nuevo}`;
-      setMsgConsumo(msg);
-      setCantConsumo(""); setNotasConsumo("");
-      tapi(`/${ticketId}/materiales`, token).then(setItems).catch(() => {});
-    } catch (e: any) { setMsgConsumo("Error: " + e.message); }
-  }
 
   const disponibles = catalogo.filter((m) => !items.find((i) => i.material_id === m.id));
 
@@ -1830,36 +1817,9 @@ function MaterialesSection({ ticketId, token }: { ticketId: number; token: strin
                     </p>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
-                    <button onClick={() => setShowConsumo(showConsumo === it.material_id ? null : it.material_id)}
-                      className="rounded border border-accent px-2 py-1 text-xs font-bold text-accent hover:bg-accent hover:text-white transition">
-                      Registrar uso
-                    </button>
                     <button onClick={() => del(it.id)} className="text-xs text-muted hover:text-danger transition px-1">✕</button>
                   </div>
                 </div>
-                {showConsumo === it.material_id && (
-                  <div className="mt-3 pt-3 border-t border-border space-y-2">
-                    <div className="flex gap-2">
-                      <input type="number" min="0" step="any"
-                        className="w-28 rounded border-2 border-border bg-surface-input px-2 py-1 text-sm outline-none focus:border-accent"
-                        placeholder="Cantidad" value={cantConsumo} onChange={(e) => setCantConsumo(e.target.value)} />
-                      <select className="rounded border-2 border-border bg-surface-input px-2 py-1 text-xs outline-none focus:border-accent"
-                        value={tipoConsumo} onChange={(e) => setTipoConsumo(e.target.value)}>
-                        <option value="consumo">Consumo</option>
-                        <option value="devolucion">Devolución</option>
-                        <option value="ajuste_salida">Ajuste salida</option>
-                        <option value="ajuste_entrada">Ajuste entrada</option>
-                      </select>
-                    </div>
-                    <input className="w-full rounded border-2 border-border bg-surface-input px-2 py-1 text-xs outline-none focus:border-accent"
-                      placeholder="Notas (opcional)" value={notasConsumo} onChange={(e) => setNotasConsumo(e.target.value)} />
-                    <button onClick={() => consumir(it.material_id)} disabled={!cantConsumo}
-                      className="rounded border-2 border-accent bg-accent px-3 py-1 text-xs font-bold text-white disabled:opacity-50">
-                      Confirmar
-                    </button>
-                    {msgConsumo && <p className={`text-xs font-medium ${msgConsumo.startsWith("Error") ? "text-red-600" : "text-green-700"}`}>{msgConsumo}</p>}
-                  </div>
-                )}
               </div>
             );
           })}
@@ -2478,9 +2438,12 @@ function CreateMisionView({
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [todasMisiones, setTodasMisiones] = useState<Mision[]>([]);
+  const [depIds, setDepIds] = useState<number[]>([]);
 
   useEffect(() => {
     tapi("/usuarios", token).then(setUsuarios).catch(() => {});
+    tapi("/misiones/", token).then(setTodasMisiones).catch(() => {});
   }, [token]);
 
   function setF(k: string) {
@@ -2509,6 +2472,7 @@ function CreateMisionView({
     ev.preventDefault();
     setError("");
     if (!form.titulo) { setError("Título de misión requerido"); return; }
+    if (!form.reino.trim()) { setError("El Reino es obligatorio"); return; }
     if (etapas.some((e) => !e.titulo)) { setError("Todas las etapas deben tener título"); return; }
     setLoading(true);
     const asignacionesPorOrden: Record<string, string> = {};
@@ -2523,6 +2487,13 @@ function CreateMisionView({
           asignaciones: asignacionesPorOrden,
         }),
       });
+      // Add prerequisites sequentially
+      for (const depId of depIds) {
+        await tapi(`/misiones/${m.id}/dependencias`, token, {
+          method: "POST",
+          body: JSON.stringify({ depende_de_id: depId }),
+        }).catch(() => {});
+      }
       onCreated(m.id);
     } catch (e: any) {
       setError(e.message);
@@ -2587,9 +2558,9 @@ function CreateMisionView({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Reino / Contexto (opcional)</label>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Reino *</label>
               <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
-                placeholder="Ej: Producción de cacao" value={form.reino} onChange={setF("reino")} />
+                placeholder="Ej: Hogar, Producción, Ventas" value={form.reino} onChange={setF("reino")} required />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Color</label>
@@ -2694,6 +2665,44 @@ function CreateMisionView({
           ))}
         </div>
 
+        {/* Misiones prerequisito */}
+        {todasMisiones.length > 0 && (
+          <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
+            <div>
+              <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Misiones prerequisito (opcional)</h3>
+              <p className="mt-1 text-xs text-muted">
+                Misiones que deben haberse completado antes de iniciar esta. Solo se muestran misiones existentes.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              {todasMisiones.map((m) => {
+                const checked = depIds.includes(m.id);
+                return (
+                  <label key={m.id} className="flex items-center gap-2.5 cursor-pointer rounded-paper border border-border bg-surface px-3 py-2 hover:border-accent transition">
+                    <input type="checkbox" checked={checked}
+                      onChange={() => setDepIds((ids) => checked ? ids.filter((x) => x !== m.id) : [...ids, m.id])}
+                      className="accent-accent" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-ink truncate">{m.titulo}</p>
+                      {m.reino && <p className="text-xs text-muted">{m.reino}</p>}
+                    </div>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      m.estado === "completada" ? "bg-green-100 text-green-700"
+                      : m.estado === "cancelada" ? "bg-red-100 text-red-600"
+                      : "bg-blue-100 text-blue-700"
+                    }`}>{m.estado}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {depIds.length > 0 && (
+              <p className="text-xs font-semibold text-accent">
+                {depIds.length} misión{depIds.length > 1 ? "es" : ""} seleccionada{depIds.length > 1 ? "s" : ""} como prerequisito
+              </p>
+            )}
+          </div>
+        )}
+
         {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
         <div className="flex gap-3 justify-end">
@@ -2726,8 +2735,13 @@ function MisionDetailView({
 
   // Edit metadata panel
   const [editingMeta, setEditingMeta] = useState(false);
-  const [metaForm, setMetaForm] = useState({ titulo: "", descripcion: "", reino: "", color: "", frecuencia: "" });
+  const [metaForm, setMetaForm] = useState({ titulo: "", descripcion: "", reino: "", color: "", frecuencia: "", estado: "" });
   const [metaSaving, setMetaSaving] = useState(false);
+
+  // Dependencies
+  const [todasMisiones, setTodasMisiones] = useState<Mision[]>([]);
+  const [depAddId, setDepAddId] = useState("");
+  const [depAdding, setDepAdding] = useState(false);
 
   // Add-ticket inline form
   const [showAddEtapa, setShowAddEtapa] = useState(false);
@@ -2760,6 +2774,7 @@ function MisionDetailView({
   useEffect(() => { reload(); }, [reload]);
   useEffect(() => {
     tapi("/usuarios", token).then(setUsuarios).catch(() => {});
+    tapi("/misiones/", token).then(setTodasMisiones).catch(() => {});
   }, [token]);
   useEffect(() => {
     if (mision) {
@@ -2769,14 +2784,16 @@ function MisionDetailView({
         reino: mision.reino || "",
         color: mision.color || "#0c6069",
         frecuencia: mision.frecuencia || "",
+        estado: mision.estado,
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mision?.id]);
 
-  const isLocked = mision?.estado === "completada" || mision?.estado === "cancelada";
+  const isLocked = false; // editing allowed for all states
 
   async function saveMeta() {
+    if (!metaForm.reino.trim()) { alert("El Reino es obligatorio"); return; }
     setMetaSaving(true);
     try {
       const updated = await tapi(`/misiones/${misionId}`, token, {
@@ -2888,20 +2905,23 @@ function MisionDetailView({
         )}
         {mision.estado === "completada" && (
           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-800 border border-green-300 px-2.5 py-0.5 text-xs font-bold">
-            🔒 Completada — solo lectura
+            ✅ Completada
+          </span>
+        )}
+        {mision.estado === "cancelada" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 border border-red-300 px-2.5 py-0.5 text-xs font-bold">
+            ❌ Cancelada
           </span>
         )}
         <div className="ml-auto flex gap-2">
-          {!isLocked && (
-            <button
-              onClick={() => setEditingMeta((v) => !v)}
-              className={`rounded-paper border-2 px-3 py-1.5 text-sm font-bold transition
-                ${editingMeta
-                  ? "border-accent bg-accent text-white"
-                  : "border-border text-muted hover:border-accent hover:text-accent"}`}>
-              ✏️ Editar
-            </button>
-          )}
+          <button
+            onClick={() => setEditingMeta((v) => !v)}
+            className={`rounded-paper border-2 px-3 py-1.5 text-sm font-bold transition
+              ${editingMeta
+                ? "border-accent bg-accent text-white"
+                : "border-border text-muted hover:border-accent hover:text-accent"}`}>
+            ✏️ Editar
+          </button>
           {mision.frecuencia && nivel >= 2 && (
             <button
               disabled={renewing}
@@ -2944,7 +2964,7 @@ function MisionDetailView({
       </div>
 
       {/* Edit metadata panel */}
-      {editingMeta && !isLocked && (
+      {editingMeta && (
         <div className="rounded-paper border-2 border-accent bg-surface-panel p-5 shadow-paper space-y-4">
           <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Editar misión</h3>
           <div>
@@ -2952,7 +2972,7 @@ function MisionDetailView({
             <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               value={metaForm.titulo} onChange={(e) => setMetaForm((f) => ({ ...f, titulo: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Categoría</label>
               <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
@@ -2974,6 +2994,15 @@ function MisionDetailView({
                 <option value="semestral">♻️ Semestral</option>
               </select>
             </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Estado</label>
+              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                value={metaForm.estado} onChange={(e) => setMetaForm((f) => ({ ...f, estado: e.target.value }))}>
+                <option value="activa">🟢 Activa</option>
+                <option value="completada">✅ Completada</option>
+                <option value="cancelada">❌ Cancelada</option>
+              </select>
+            </div>
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Descripción</label>
@@ -2983,8 +3012,9 @@ function MisionDetailView({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Reino / Contexto</label>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Reino *</label>
               <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                placeholder="Ej: Hogar, Producción, Ventas"
                 value={metaForm.reino} onChange={(e) => setMetaForm((f) => ({ ...f, reino: e.target.value }))} />
             </div>
             <div>
@@ -3030,6 +3060,77 @@ function MisionDetailView({
           <span className="font-bold">{pct}%</span>
         </div>
       </div>
+
+      {/* Misiones prerequisito */}
+      {(() => {
+        const deps = mision.dependencias ?? [];
+        const disponibles = todasMisiones.filter(
+          (m) => m.id !== misionId && !deps.find((d) => d.id === m.id)
+        );
+        return (
+          <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
+            <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">🔗 Misiones prerequisito</h3>
+            {deps.length === 0 ? (
+              <p className="text-xs text-muted">Sin prerequisitos — esta misión puede iniciarse en cualquier momento.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {deps.map((dep) => (
+                  <div key={dep.id} className="flex items-center gap-2 rounded-paper border border-border bg-surface px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-ink truncate">{dep.titulo}</p>
+                      {dep.reino && <p className="text-xs text-muted">{dep.reino}</p>}
+                    </div>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      dep.estado === "completada" ? "bg-green-100 text-green-700"
+                      : dep.estado === "cancelada" ? "bg-red-100 text-red-600"
+                      : "bg-blue-100 text-blue-700"
+                    }`}>{dep.estado}</span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const updated = await tapi(`/misiones/${misionId}/dependencias/${dep.id}`, token, { method: "DELETE" });
+                          setMision(updated);
+                        } catch (e: any) { alert(e.message); }
+                      }}
+                      className="text-muted hover:text-danger transition text-xs px-1">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {disponibles.length > 0 && (
+              <div className="flex gap-2">
+                <select
+                  value={depAddId}
+                  onChange={(e) => setDepAddId(e.target.value)}
+                  className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent">
+                  <option value="">Agregar prerequisito...</option>
+                  {disponibles.map((m) => (
+                    <option key={m.id} value={m.id}>{m.titulo}{m.reino ? ` — ${m.reino}` : ""}</option>
+                  ))}
+                </select>
+                <button
+                  disabled={!depAddId || depAdding}
+                  onClick={async () => {
+                    if (!depAddId) return;
+                    setDepAdding(true);
+                    try {
+                      const updated = await tapi(`/misiones/${misionId}/dependencias`, token, {
+                        method: "POST",
+                        body: JSON.stringify({ depende_de_id: parseInt(depAddId) }),
+                      });
+                      setMision(updated);
+                      setDepAddId("");
+                    } catch (e: any) { alert(e.message); }
+                    finally { setDepAdding(false); }
+                  }}
+                  className="rounded-paper border-2 border-accent px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-white transition disabled:opacity-50">
+                  {depAdding ? "..." : "+ Agregar"}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Pipeline de tickets */}
       <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper">

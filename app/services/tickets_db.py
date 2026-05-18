@@ -408,6 +408,11 @@ def init_db():
                 creado_en       TEXT DEFAULT (datetime('now')),
                 recibida_en     TEXT
             );
+            CREATE TABLE IF NOT EXISTS dependencias_misiones (
+                mision_id       INTEGER NOT NULL REFERENCES misiones(id) ON DELETE CASCADE,
+                depende_de_id   INTEGER NOT NULL REFERENCES misiones(id) ON DELETE CASCADE,
+                PRIMARY KEY (mision_id, depende_de_id)
+            );
         """)
 
         # Migrate tickets table with new columns
@@ -679,6 +684,14 @@ def _mision_full(db, mision_id: int) -> dict | None:
         ORDER BY e.orden
     """, (mision_id,)).fetchall()
     d["etapas"] = [dict(e) for e in etapas]
+    deps = db.execute("""
+        SELECT dm.depende_de_id AS id, m.titulo, m.estado, m.reino
+        FROM dependencias_misiones dm
+        JOIN misiones m ON m.id = dm.depende_de_id
+        WHERE dm.mision_id = ?
+        ORDER BY m.titulo
+    """, (mision_id,)).fetchall()
+    d["dependencias"] = [dict(dep) for dep in deps]
     return d
 
 
@@ -964,28 +977,76 @@ def eliminar_etapa_mision(mision_id: int, etapa_id: int, usuario: dict) -> tuple
 
 
 def actualizar_mision(mision_id: int, data: dict) -> tuple:
-    """Update mission metadata. Locked when completada or cancelada."""
+    """Update mission metadata. No state lock — allows editing completed/cancelled missions."""
     with _conn() as db:
         m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
         if not m:
             return None, "Misión no encontrada"
-        if m["estado"] in ("completada", "cancelada"):
-            return None, f"La misión está {m['estado']} y no puede editarse"
         campos = {k: v for k, v in data.items()
-                  if k in ("titulo", "descripcion", "reino", "color", "tipo", "categoria", "frecuencia")
+                  if k in ("titulo", "descripcion", "reino", "color", "tipo", "categoria",
+                            "frecuencia", "estado")
                   and v is not None}
+        # Validate estado transitions if provided
+        if "estado" in campos:
+            estado_val = campos["estado"]
+            if estado_val not in ("activa", "completada", "cancelada"):
+                return None, f"Estado inválido: {estado_val}"
+            # Reset completada_en if reverting from completada
+            if estado_val == "activa" and m["estado"] == "completada":
+                db.execute(
+                    "UPDATE misiones SET completada_en=NULL WHERE id=?", (mision_id,)
+                )
         if campos:
             set_clause = ", ".join(f"{k}=?" for k in campos)
             db.execute(f"UPDATE misiones SET {set_clause} WHERE id=?", (*campos.values(), mision_id))
-        etapas_raw = data.get("etapas")
-        if etapas_raw is not None:
-            db.execute("DELETE FROM etapas_mision WHERE mision_id=?", (mision_id,))
-            for i, etapa in enumerate(etapas_raw, 1):
-                db.execute(
-                    "INSERT INTO etapas_mision (mision_id, orden, titulo, descripcion) VALUES (?,?,?,?)",
-                    (mision_id, i, (etapa.get("titulo") or "").strip(), etapa.get("descripcion") or ""),
-                )
-            db.execute("UPDATE misiones SET total_etapas=? WHERE id=?", (len(etapas_raw), mision_id))
+        db.commit()
+        return _mision_full(db, mision_id), None
+
+
+def get_dependencias_mision(mision_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT dm.depende_de_id AS id, m.titulo, m.estado, m.reino
+            FROM dependencias_misiones dm
+            JOIN misiones m ON m.id = dm.depende_de_id
+            WHERE dm.mision_id = ?
+            ORDER BY m.titulo
+        """, (mision_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def agregar_dependencia_mision(mision_id: int, depende_de_id: int) -> tuple:
+    if mision_id == depende_de_id:
+        return None, "Una misión no puede depender de sí misma"
+    with _conn() as db:
+        if not db.execute("SELECT id FROM misiones WHERE id=?", (mision_id,)).fetchone():
+            return None, "Misión no encontrada"
+        if not db.execute("SELECT id FROM misiones WHERE id=?", (depende_de_id,)).fetchone():
+            return None, "Misión prerequisito no encontrada"
+        # prevent circular: depende_de_id must not depend (directly or indirectly) on mision_id
+        # Simple one-level check is enough for the UI use case
+        if db.execute(
+            "SELECT 1 FROM dependencias_misiones WHERE mision_id=? AND depende_de_id=?",
+            (depende_de_id, mision_id)
+        ).fetchone():
+            return None, "Dependencia circular: la misión prerequisito ya depende de esta misión"
+        try:
+            db.execute(
+                "INSERT OR IGNORE INTO dependencias_misiones (mision_id, depende_de_id) VALUES (?,?)",
+                (mision_id, depende_de_id)
+            )
+            db.commit()
+        except Exception as e:
+            return None, str(e)
+        return _mision_full(db, mision_id), None
+
+
+def eliminar_dependencia_mision(mision_id: int, depende_de_id: int) -> tuple:
+    with _conn() as db:
+        db.execute(
+            "DELETE FROM dependencias_misiones WHERE mision_id=? AND depende_de_id=?",
+            (mision_id, depende_de_id)
+        )
         db.commit()
         return _mision_full(db, mision_id), None
 
@@ -1055,6 +1116,54 @@ def lanzar_mision(mision_id: int, asignaciones: dict, usuario: dict) -> tuple:
         return True, None
 
 
+def _deducir_materiales_mision(db, mision_id: int):
+    """Auto-deduct required materials from all resolved tickets when mission completes."""
+    tickets = db.execute(
+        "SELECT id FROM tickets WHERE mision_id=? AND estado='resuelto'", (mision_id,)
+    ).fetchall()
+    for t in tickets:
+        mats = db.execute(
+            "SELECT tm.material_id, tm.cantidad_requerida "
+            "FROM ticket_materiales tm WHERE tm.ticket_id=?",
+            (t["id"],)
+        ).fetchall()
+        for mat in mats:
+            m = db.execute(
+                "SELECT stock_actual, stock_minimo, precio_unitario, proveedor, unidad "
+                "FROM materiales_catalogo WHERE id=?", (mat["material_id"],)
+            ).fetchone()
+            if not m:
+                continue
+            nuevo_stock = max(0.0, m["stock_actual"] - mat["cantidad_requerida"])
+            db.execute(
+                "UPDATE materiales_catalogo SET stock_actual=?, actualizado_en=datetime('now') WHERE id=?",
+                (nuevo_stock, mat["material_id"])
+            )
+            db.execute(
+                "INSERT INTO consumo_materiales "
+                "(ticket_id, material_id, cantidad, tipo, notas) VALUES (?,?,?,'consumo',?)",
+                (t["id"], mat["material_id"], mat["cantidad_requerida"],
+                 f"Auto-descontado al completar misión #{mision_id}")
+            )
+            if m["stock_minimo"] > 0 and nuevo_stock < m["stock_minimo"]:
+                ya_existe = db.execute(
+                    "SELECT id FROM ordenes_compra WHERE material_id=? AND estado='pendiente'",
+                    (mat["material_id"],)
+                ).fetchone()
+                if not ya_existe:
+                    num = _generar_numero_oc(db)
+                    cantidad_oc = max(m["stock_minimo"] * 2 - nuevo_stock, mat["cantidad_requerida"])
+                    db.execute("""
+                        INSERT INTO ordenes_compra
+                            (numero, material_id, cantidad, precio_unitario, proveedor, notas)
+                        VALUES (?,?,?,?,?,?)
+                    """, (
+                        num, mat["material_id"], cantidad_oc,
+                        m["precio_unitario"], m["proveedor"] or "",
+                        f"Auto-generada al completar misión #{mision_id} — stock bajo ({nuevo_stock} {m['unidad']})"
+                    ))
+
+
 def _actualizar_mision(db, mision_id: int):
     total = db.execute(
         "SELECT COUNT(*) as n FROM etapas_mision WHERE mision_id=?", (mision_id,)
@@ -1069,14 +1178,18 @@ def _actualizar_mision(db, mision_id: int):
         WHERE mision_id=? AND ticket_id IN (SELECT id FROM tickets WHERE estado='resuelto')
     """, (mision_id,))
     if completadas >= total > 0:
-        m = db.execute("SELECT frecuencia FROM misiones WHERE id=?", (mision_id,)).fetchone()
+        m = db.execute("SELECT frecuencia, estado FROM misiones WHERE id=?", (mision_id,)).fetchone()
         frecuencia = m["frecuencia"] if m else None
         proxima = _calcular_proxima(frecuencia) if frecuencia else None
+        already_done = m and m["estado"] == "completada"
         db.execute(
             "UPDATE misiones SET estado='completada', etapas_completadas=?, "
             "completada_en=datetime('now'), proxima_renovacion=? WHERE id=?",
             (completadas, proxima, mision_id),
         )
+        # Auto-deduct materials only the first time the mission completes
+        if not already_done:
+            _deducir_materiales_mision(db, mision_id)
     else:
         db.execute(
             "UPDATE misiones SET etapas_completadas=? WHERE id=?",

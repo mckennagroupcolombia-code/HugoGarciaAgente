@@ -24,6 +24,7 @@ from app.services.tickets_db import (
     listar_materiales_ticket, agregar_material_ticket, actualizar_material_ticket, eliminar_material_ticket,
     registrar_consumo, historial_consumo,
     listar_ordenes_compra, crear_orden_compra, actualizar_orden_compra,
+    get_dependencias_mision, agregar_dependencia_mision, eliminar_dependencia_mision,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
@@ -644,3 +645,30 @@ def register_tickets_routes(app):
         if err:
             return jsonify({"error": err}), 400
         return jsonify(ocs), 200
+
+    # ── DEPENDENCIAS DE MISIÓN ────────────────────────────────────────────────
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/dependencias", methods=["GET"])
+    @_auth
+    def tickets_get_dependencias(mision_id):
+        return jsonify(get_dependencias_mision(mision_id)), 200
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/dependencias", methods=["POST"])
+    @_auth
+    def tickets_agregar_dependencia(mision_id):
+        data = request.get_json(force=True) or {}
+        depende_de_id = data.get("depende_de_id")
+        if not depende_de_id:
+            return jsonify({"error": "depende_de_id requerido"}), 400
+        result, err = agregar_dependencia_mision(mision_id, int(depende_de_id))
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(result), 201
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/dependencias/<int:dep_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_dependencia(mision_id, dep_id):
+        result, err = eliminar_dependencia_mision(mision_id, dep_id)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(result), 200
