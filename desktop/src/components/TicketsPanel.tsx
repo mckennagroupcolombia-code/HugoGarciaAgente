@@ -484,6 +484,13 @@ function TicketListView({
   const [error, setError] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("");
+  const [bajoStockCount, setBajoStockCount] = useState(0);
+
+  useEffect(() => {
+    tapi("/materiales", token)
+      .then((mats: Material[]) => setBajoStockCount(mats.filter((m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo).length))
+      .catch(() => {});
+  }, [token]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -550,8 +557,13 @@ function TicketListView({
             🎯 Misiones
           </button>
           <button onClick={onInventario}
-            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
+            className="relative rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
             🧪 Inventario
+            {bajoStockCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none">
+                {bajoStockCount}
+              </span>
+            )}
           </button>
           {nivel >= 2 && (
             <button onClick={onWorkload}
@@ -1883,10 +1895,12 @@ interface OrdenCompra { id: number; numero: string; material_id: number; materia
 function InventarioView({ token, user, onBack }: { token: string; user: TicketsUser; onBack: () => void }) {
   const [materiales, setMateriales] = useState<Material[]>([]);
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([]);
-  const [tab, setTab] = useState<"stock" | "ordenes" | "nuevo">("stock");
+  const [tab, setTab] = useState<"lista" | "stock" | "nuevo">("lista");
   const [form, setForm] = useState({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "" });
   const [saving, setSaving] = useState(false);
-  const [ocForm, setOcForm] = useState({ material_id: "", cantidad: "", precio_unitario: "", proveedor: "", notas: "" });
+  // Formulario rápido de orden por material_id
+  const [pedidoAbierto, setPedidoAbierto] = useState<number | null>(null);
+  const [pedidoForm, setPedidoForm] = useState({ cantidad: "", precio_unitario: "", proveedor: "", notas: "" });
   const nivel = user.rol?.nivel ?? 1;
 
   const reload = useCallback(async () => {
@@ -1903,7 +1917,12 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
   async function crearMaterial() {
     setSaving(true);
     try {
-      await tapi("/materiales", token, { method: "POST", body: JSON.stringify({ ...form, stock_actual: parseFloat(form.stock_actual||"0"), stock_minimo: parseFloat(form.stock_minimo||"0"), precio_unitario: parseFloat(form.precio_unitario||"0") }) });
+      await tapi("/materiales", token, { method: "POST", body: JSON.stringify({
+        ...form,
+        stock_actual: parseFloat(form.stock_actual || "0"),
+        stock_minimo: parseFloat(form.stock_minimo || "0"),
+        precio_unitario: parseFloat(form.precio_unitario || "0"),
+      }) });
       setForm({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "" });
       setTab("stock");
       reload();
@@ -1911,11 +1930,22 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
     finally { setSaving(false); }
   }
 
-  async function crearOC() {
+  async function crearOCRapida(materialId: number) {
+    if (!pedidoForm.cantidad) return;
     setSaving(true);
     try {
-      await tapi("/ordenes-compra", token, { method: "POST", body: JSON.stringify({ ...ocForm, material_id: parseInt(ocForm.material_id), cantidad: parseFloat(ocForm.cantidad), precio_unitario: parseFloat(ocForm.precio_unitario||"0") }) });
-      setOcForm({ material_id: "", cantidad: "", precio_unitario: "", proveedor: "", notas: "" });
+      await tapi("/ordenes-compra", token, {
+        method: "POST",
+        body: JSON.stringify({
+          material_id: materialId,
+          cantidad: parseFloat(pedidoForm.cantidad),
+          precio_unitario: parseFloat(pedidoForm.precio_unitario || "0"),
+          proveedor: pedidoForm.proveedor,
+          notas: pedidoForm.notas,
+        }),
+      });
+      setPedidoAbierto(null);
+      setPedidoForm({ cantidad: "", precio_unitario: "", proveedor: "", notas: "" });
       reload();
     } catch (e: any) { alert(e.message); }
     finally { setSaving(false); }
@@ -1926,7 +1956,17 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
     reload();
   }
 
-  const bajoStock = materiales.filter((m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo);
+  const bajoStock = materiales
+    .filter((m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo)
+    .sort((a, b) => {
+      // Agotados primero, luego por mayor brecha relativa
+      const aAgotado = a.stock_actual <= 0 ? 1 : 0;
+      const bAgotado = b.stock_actual <= 0 ? 1 : 0;
+      if (aAgotado !== bAgotado) return bAgotado - aAgotado;
+      return (a.stock_actual / a.stock_minimo) - (b.stock_actual / b.stock_minimo);
+    });
+
+  const ocsActivas = ordenes.filter((oc) => oc.estado === "pendiente" || oc.estado === "aprobada");
 
   const OC_COLOR: Record<string, string> = {
     pendiente: "bg-yellow-100 text-yellow-800 border-yellow-300",
@@ -1937,42 +1977,258 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">← Volver</button>
-        <div>
-          <h2 className="text-xl font-extrabold text-ink">Inventario</h2>
-          <p className="text-xs text-muted">Materiales, stock y órdenes de compra</p>
-        </div>
-      </div>
-
-      {bajoStock.length > 0 && (
-        <div className="rounded-paper border-2 border-red-300 bg-red-50 p-4">
-          <p className="text-sm font-bold text-red-700 mb-2">⚠️ {bajoStock.length} material(es) bajo el stock mínimo:</p>
-          <div className="flex flex-wrap gap-2">
-            {bajoStock.map((m) => (
-              <span key={m.id} className="rounded-full bg-red-100 border border-red-300 px-2.5 py-0.5 text-xs font-semibold text-red-700">
-                {m.nombre}: {m.stock_actual} / {m.stock_minimo} {m.unidad}
-              </span>
-            ))}
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">← Volver</button>
+          <div>
+            <h2 className="text-xl font-extrabold text-ink">Inventario</h2>
+            <p className="text-xs text-muted">Materiales, stock y lista de compras</p>
           </div>
         </div>
-      )}
+        {bajoStock.length > 0 && (
+          <div className="flex items-center gap-2 rounded-full border-2 border-red-300 bg-red-50 px-4 py-1.5">
+            <span className="text-sm font-black text-red-600">{bajoStock.length}</span>
+            <span className="text-xs font-semibold text-red-600">
+              {bajoStock.length === 1 ? "material necesita reposición" : "materiales necesitan reposición"}
+            </span>
+          </div>
+        )}
+      </div>
 
+      {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {(["stock","ordenes"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-bold transition border-b-2 -mb-px ${tab === t ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
-            {t === "stock" ? "📦 Stock" : "🛒 Órdenes de compra"}
-          </button>
-        ))}
+        <button onClick={() => setTab("lista")}
+          className={`relative px-4 py-2.5 text-sm font-bold transition border-b-2 -mb-px ${tab === "lista" ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
+          🛒 Lista de compras
+          {bajoStock.length > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white">
+              {bajoStock.length}
+            </span>
+          )}
+        </button>
+        <button onClick={() => setTab("stock")}
+          className={`px-4 py-2.5 text-sm font-bold transition border-b-2 -mb-px ${tab === "stock" ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
+          📦 Stock
+        </button>
         {nivel >= 2 && (
           <button onClick={() => setTab("nuevo")}
-            className={`px-4 py-2 text-sm font-bold transition border-b-2 -mb-px ${tab === "nuevo" ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
+            className={`px-4 py-2.5 text-sm font-bold transition border-b-2 -mb-px ${tab === "nuevo" ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
             + Nuevo material
           </button>
         )}
       </div>
 
+      {/* ── LISTA DE COMPRAS ── */}
+      {tab === "lista" && (
+        <div className="space-y-6">
+          {bajoStock.length === 0 ? (
+            <div className="py-16 text-center">
+              <div className="mb-3 text-4xl">✅</div>
+              <p className="text-sm font-semibold text-muted">Todo el stock está en nivel adecuado.</p>
+              <p className="mt-1 text-xs text-muted">Cuando un material baje del mínimo aparecerá aquí automáticamente.</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {bajoStock.map((m) => {
+                  const agotado = m.stock_actual <= 0;
+                  const sugerido = Math.max(0, m.stock_minimo - m.stock_actual);
+                  const ocExistente = ocsActivas.find((oc) => oc.material_id === m.id);
+                  const abriendo = pedidoAbierto === m.id;
+
+                  return (
+                    <div key={m.id} className={`rounded-paper border-2 bg-surface-panel shadow-paper-sm overflow-hidden ${agotado ? "border-red-400" : "border-orange-300"}`}>
+                      {/* Urgency stripe */}
+                      <div className={`h-1 w-full ${agotado ? "bg-red-500" : "bg-orange-400"}`} />
+
+                      <div className="p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-base">{agotado ? "🔴" : "🟡"}</span>
+                              <span className="font-bold text-sm text-ink">{m.nombre}</span>
+                              {agotado && (
+                                <span className="rounded-full bg-red-100 border border-red-300 px-2 py-0.5 text-xs font-black text-red-700">AGOTADO</span>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                              <span>Stock actual: <strong className={agotado ? "text-red-600" : "text-orange-600"}>{m.stock_actual} {m.unidad}</strong></span>
+                              <span>Mínimo: <strong className="text-ink">{m.stock_minimo} {m.unidad}</strong></span>
+                              <span className="font-semibold text-ink">→ Pedir al menos: <strong className="text-accent">{sugerido} {m.unidad}</strong></span>
+                            </div>
+                            {m.proveedor && <p className="mt-1 text-xs text-muted">Proveedor habitual: {m.proveedor}</p>}
+                            {m.precio_unitario > 0 && (
+                              <p className="mt-0.5 text-xs text-muted">
+                                Precio ref: ${m.precio_unitario.toLocaleString("es-CO")} / {m.unidad}
+                                {sugerido > 0 && (
+                                  <span className="ml-2 font-semibold text-ink">
+                                    ≈ ${(m.precio_unitario * sugerido).toLocaleString("es-CO")} total
+                                  </span>
+                                )}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Acción principal */}
+                          {nivel >= 2 && (
+                            <div className="shrink-0">
+                              {ocExistente ? (
+                                <div className="text-right">
+                                  <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${OC_COLOR[ocExistente.estado]}`}>
+                                    {ocExistente.estado === "pendiente" ? "🕐 OC Pendiente" : "✓ OC Aprobada"}
+                                  </span>
+                                  <p className="mt-1 text-xs text-muted font-mono">{ocExistente.numero}</p>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => {
+                                    if (abriendo) { setPedidoAbierto(null); return; }
+                                    setPedidoAbierto(m.id);
+                                    setPedidoForm({
+                                      cantidad: String(sugerido || m.stock_minimo),
+                                      precio_unitario: String(m.precio_unitario || ""),
+                                      proveedor: m.proveedor || "",
+                                      notas: "",
+                                    });
+                                  }}
+                                  className={`rounded-paper border-2 px-4 py-2 text-sm font-bold transition
+                                    ${abriendo ? "border-accent bg-accent text-white" : "border-accent text-accent hover:bg-accent hover:text-white"}`}>
+                                  🛒 Ordenar
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Formulario rápido de OC */}
+                        {abriendo && nivel >= 2 && !ocExistente && (
+                          <div className="mt-4 pt-4 border-t border-border space-y-3">
+                            <p className="text-xs font-extrabold uppercase tracking-wide text-accent">Nueva orden de compra</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="mb-1 block text-xs font-bold text-muted">Cantidad * ({m.unidad})</label>
+                                <input type="number" min="0" step="any"
+                                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                                  value={pedidoForm.cantidad}
+                                  onChange={(e) => setPedidoForm((f) => ({ ...f, cantidad: e.target.value }))}
+                                  autoFocus />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs font-bold text-muted">Precio unitario ($)</label>
+                                <input type="number" min="0" step="any"
+                                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                                  value={pedidoForm.precio_unitario}
+                                  onChange={(e) => setPedidoForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs font-bold text-muted">Proveedor</label>
+                                <input
+                                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                                  value={pedidoForm.proveedor}
+                                  onChange={(e) => setPedidoForm((f) => ({ ...f, proveedor: e.target.value }))} />
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-xs font-bold text-muted">Notas</label>
+                                <input
+                                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                                  value={pedidoForm.notas}
+                                  onChange={(e) => setPedidoForm((f) => ({ ...f, notas: e.target.value }))} />
+                              </div>
+                            </div>
+                            {pedidoForm.cantidad && pedidoForm.precio_unitario && (
+                              <p className="text-xs font-semibold text-accent">
+                                Total estimado: ${(parseFloat(pedidoForm.cantidad) * parseFloat(pedidoForm.precio_unitario)).toLocaleString("es-CO")}
+                              </p>
+                            )}
+                            <div className="flex gap-2 justify-end">
+                              <button onClick={() => setPedidoAbierto(null)}
+                                className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:bg-surface-hover transition">
+                                Cancelar
+                              </button>
+                              <button onClick={() => crearOCRapida(m.id)} disabled={saving || !pedidoForm.cantidad}
+                                className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+                                {saving ? "Guardando..." : "✓ Crear orden de compra"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Acciones de OC existente */}
+                        {ocExistente && nivel >= 2 && (
+                          <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-2">
+                            <span className="text-xs text-muted self-center">
+                              {ocExistente.cantidad} {ocExistente.unidad}
+                              {ocExistente.proveedor ? ` · ${ocExistente.proveedor}` : ""}
+                            </span>
+                            <div className="ml-auto flex gap-2">
+                              {ocExistente.estado === "pendiente" && (
+                                <button onClick={() => actualizarOC(ocExistente.id, "aprobada")}
+                                  className="rounded border border-blue-400 px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-500 hover:text-white transition">
+                                  ✓ Aprobar
+                                </button>
+                              )}
+                              <button onClick={() => actualizarOC(ocExistente.id, "recibida")}
+                                className="rounded border border-green-400 px-2.5 py-1 text-xs font-bold text-green-600 hover:bg-green-500 hover:text-white transition">
+                                📥 Recibida
+                              </button>
+                              <button onClick={() => actualizarOC(ocExistente.id, "cancelada")}
+                                className="rounded border border-red-300 px-2.5 py-1 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition">
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Órdenes activas adicionales (materiales NO bajo stock) */}
+              {ocsActivas.filter((oc) => !bajoStock.find((m) => m.id === oc.material_id)).length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Otras órdenes activas</p>
+                  {ocsActivas
+                    .filter((oc) => !bajoStock.find((m) => m.id === oc.material_id))
+                    .map((oc) => (
+                      <div key={oc.id} className="rounded-paper border-2 border-border bg-surface-panel p-3 shadow-paper-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <span className="font-mono text-xs font-bold text-muted mr-2">{oc.numero}</span>
+                            <span className="font-semibold text-sm text-ink">{oc.material_nombre}</span>
+                            <span className="ml-2 text-xs text-muted">{oc.cantidad} {oc.unidad}{oc.proveedor ? ` · ${oc.proveedor}` : ""}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-bold ${OC_COLOR[oc.estado]}`}>
+                              {oc.estado === "pendiente" ? "Pendiente" : "Aprobada"}
+                            </span>
+                            {nivel >= 2 && (
+                              <>
+                                {oc.estado === "pendiente" && (
+                                  <button onClick={() => actualizarOC(oc.id, "aprobada")}
+                                    className="rounded border border-blue-400 px-2 py-0.5 text-xs font-bold text-blue-600 hover:bg-blue-500 hover:text-white transition">
+                                    ✓ Aprobar
+                                  </button>
+                                )}
+                                <button onClick={() => actualizarOC(oc.id, "recibida")}
+                                  className="rounded border border-green-400 px-2 py-0.5 text-xs font-bold text-green-600 hover:bg-green-500 hover:text-white transition">
+                                  📥 Recibida
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── STOCK COMPLETO ── */}
       {tab === "stock" && (
         <div className="space-y-3">
           {materiales.length === 0 ? (
@@ -1984,7 +2240,10 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
               <div key={m.id} className={`rounded-paper border-2 bg-surface-panel p-4 shadow-paper-sm ${bajo ? "border-red-300" : "border-border"}`}>
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                   <div>
-                    <p className="font-bold text-sm text-ink">{m.nombre}</p>
+                    <div className="flex items-center gap-2">
+                      {bajo && <span className="text-sm">{m.stock_actual <= 0 ? "🔴" : "🟡"}</span>}
+                      <p className="font-bold text-sm text-ink">{m.nombre}</p>
+                    </div>
                     {m.proveedor && <p className="text-xs text-muted">Proveedor: {m.proveedor}</p>}
                   </div>
                   <div className="text-right">
@@ -1995,96 +2254,23 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
                   </div>
                 </div>
                 {m.stock_minimo > 0 && (
-                  <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
-                    <div className={`h-full rounded-full transition-all ${bajo ? "bg-red-500" : "bg-accent"}`} style={{ width: `${pct}%` }} />
-                  </div>
+                  <>
+                    <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
+                      <div className={`h-full rounded-full transition-all ${m.stock_actual <= 0 ? "bg-red-600" : bajo ? "bg-orange-400" : "bg-accent"}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="mt-1 flex justify-between text-xs text-muted">
+                      <span>{pct}% del mínimo</span>
+                      {m.precio_unitario > 0 && <span>${m.precio_unitario.toLocaleString("es-CO")} / {m.unidad}</span>}
+                    </div>
+                  </>
                 )}
-                <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-muted">
-                  <span>{m.precio_unitario > 0 ? `$${m.precio_unitario.toLocaleString("es-CO")} / ${m.unidad}` : ""}</span>
-                  {bajo && nivel >= 2 && (
-                    <button onClick={async () => {
-                      setOcForm((f) => ({ ...f, material_id: String(m.id), cantidad: String(Math.max(m.stock_minimo, 1)), proveedor: m.proveedor || "", precio_unitario: String(m.precio_unitario || "") }));
-                      setTab("ordenes");
-                    }}
-                      className="rounded border border-accent px-2 py-0.5 font-bold text-accent hover:bg-accent hover:text-white transition">
-                      + Crear OC
-                    </button>
-                  )}
-                </div>
               </div>
             );
           })}
         </div>
       )}
 
-      {tab === "ordenes" && (
-        <div className="space-y-3">
-          {nivel >= 2 && (
-            <div className="rounded-paper border-2 border-border bg-surface-panel p-4 space-y-3">
-              <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Nueva orden de compra</p>
-              <div className="grid grid-cols-2 gap-3">
-                <select className="col-span-2 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                  value={ocForm.material_id} onChange={(e) => setOcForm((f) => ({ ...f, material_id: e.target.value }))}>
-                  <option value="">Seleccionar material *</option>
-                  {materiales.map((m) => <option key={m.id} value={m.id}>{m.nombre} (stock: {m.stock_actual} {m.unidad})</option>)}
-                </select>
-                <input type="number" min="0" step="any" placeholder="Cantidad *"
-                  className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                  value={ocForm.cantidad} onChange={(e) => setOcForm((f) => ({ ...f, cantidad: e.target.value }))} />
-                <input type="number" min="0" step="any" placeholder="Precio unitario"
-                  className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                  value={ocForm.precio_unitario} onChange={(e) => setOcForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
-                <input placeholder="Proveedor"
-                  className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                  value={ocForm.proveedor} onChange={(e) => setOcForm((f) => ({ ...f, proveedor: e.target.value }))} />
-                <input placeholder="Notas"
-                  className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                  value={ocForm.notas} onChange={(e) => setOcForm((f) => ({ ...f, notas: e.target.value }))} />
-              </div>
-              <button onClick={crearOC} disabled={saving || !ocForm.material_id || !ocForm.cantidad}
-                className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
-                Crear orden
-              </button>
-            </div>
-          )}
-          {ordenes.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted">No hay órdenes de compra.</p>
-          ) : ordenes.map((oc) => (
-            <div key={oc.id} className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm space-y-1">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="font-mono text-xs font-bold text-muted">{oc.numero}</p>
-                  <p className="font-bold text-sm text-ink">{oc.material_nombre}</p>
-                  <p className="text-xs text-muted">{oc.cantidad} {oc.unidad}{oc.proveedor ? ` · ${oc.proveedor}` : ""}</p>
-                  {oc.notas && <p className="text-xs text-muted mt-0.5 italic">{oc.notas}</p>}
-                </div>
-                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${OC_COLOR[oc.estado]}`}>
-                  {oc.estado.charAt(0).toUpperCase() + oc.estado.slice(1)}
-                </span>
-              </div>
-              {nivel >= 2 && oc.estado !== "recibida" && oc.estado !== "cancelada" && (
-                <div className="flex gap-2 pt-1">
-                  {oc.estado === "pendiente" && (
-                    <button onClick={() => actualizarOC(oc.id, "aprobada")}
-                      className="rounded border border-blue-400 px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-500 hover:text-white transition">
-                      ✓ Aprobar
-                    </button>
-                  )}
-                  <button onClick={() => actualizarOC(oc.id, "recibida")}
-                    className="rounded border border-green-400 px-2.5 py-1 text-xs font-bold text-green-600 hover:bg-green-500 hover:text-white transition">
-                    📥 Marcar recibida
-                  </button>
-                  <button onClick={() => actualizarOC(oc.id, "cancelada")}
-                    className="rounded border border-red-300 px-2.5 py-1 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition">
-                    Cancelar
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* ── NUEVO MATERIAL ── */}
       {tab === "nuevo" && nivel >= 2 && (
         <div className="rounded-paper border-2 border-border bg-surface-panel p-5 space-y-4">
           <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Agregar material al catálogo</h3>
