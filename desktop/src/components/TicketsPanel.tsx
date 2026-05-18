@@ -271,7 +271,7 @@ function fmtDate(s: string) {
 
 // ── Sub-views ─────────────────────────────────────────────────────────────────
 
-type View = "list" | "create" | "detail" | "admin" | "workload" | "misiones" | "crear_mision" | "mision_detail";
+type View = "list" | "create" | "detail" | "admin" | "workload" | "misiones" | "crear_mision" | "mision_detail" | "inventario";
 
 // Login
 function LoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser) => void }) {
@@ -467,7 +467,7 @@ function MisionGroupCard({
 }
 
 function TicketListView({
-  token, user, onSelect, onCreate, onAdmin, onWorkload, onMisiones, onMisionDetail,
+  token, user, onSelect, onCreate, onAdmin, onWorkload, onMisiones, onMisionDetail, onInventario,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
@@ -476,6 +476,7 @@ function TicketListView({
   onWorkload: () => void;
   onMisiones: () => void;
   onMisionDetail: (id: number) => void;
+  onInventario: () => void;
 }) {
   const { cats: categorias } = useContext(CategoriasCtx);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -547,6 +548,10 @@ function TicketListView({
           <button onClick={onMisiones}
             className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
             🎯 Misiones
+          </button>
+          <button onClick={onInventario}
+            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
+            🧪 Inventario
           </button>
           {nivel >= 2 && (
             <button onClick={onWorkload}
@@ -1076,6 +1081,12 @@ function TicketDetailView({
         usuarios={usuarios} submitting={submitting}
         onAct={act}
       />
+
+      {/* Pasos del procedimiento */}
+      <PasosSection ticketId={ticket.id} token={token} />
+
+      {/* Materiales requeridos */}
+      <MaterialesSection ticketId={ticket.id} token={token} />
 
       {/* Comments */}
       <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
@@ -1640,6 +1651,522 @@ function ParticipantesSection({
           >
             Agregar
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── PASOS ─────────────────────────────────────────────────────────────────────
+
+interface Paso {
+  id: number; ticket_id: number; orden: number; descripcion: string;
+  completado: number; completado_en: string | null; completado_por_nombre: string | null;
+}
+
+function PasosSection({ ticketId, token }: { ticketId: number; token: string }) {
+  const [pasos, setPasos] = useState<Paso[]>([]);
+  const [nuevo, setNuevo] = useState("");
+  const [saving, setSaving] = useState(false);
+  const dragIdx = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+
+  useEffect(() => {
+    tapi(`/${ticketId}/pasos`, token).then(setPasos).catch(() => {});
+  }, [ticketId, token]);
+
+  async function add() {
+    if (!nuevo.trim()) return;
+    setSaving(true);
+    try {
+      const res = await tapi(`/${ticketId}/pasos`, token, {
+        method: "POST", body: JSON.stringify({ descripcion: nuevo }),
+      });
+      setPasos(res); setNuevo("");
+    } finally { setSaving(false); }
+  }
+
+  async function toggle(id: number) {
+    const res = await tapi(`/pasos/${id}/completar`, token, { method: "POST" });
+    setPasos(res);
+  }
+
+  async function del(id: number) {
+    const res = await tapi(`/pasos/${id}`, token, { method: "DELETE" });
+    setPasos(res);
+  }
+
+  async function drop(toIdx: number) {
+    const fromIdx = dragIdx.current;
+    dragIdx.current = null; setDragOver(null);
+    if (fromIdx === null || fromIdx === toIdx) return;
+    const reordered = [...pasos];
+    const [moved] = reordered.splice(fromIdx, 1);
+    reordered.splice(toIdx, 0, moved);
+    setPasos(reordered);
+    const res = await tapi(`/${ticketId}/pasos/orden`, token, {
+      method: "PUT", body: JSON.stringify({ paso_ids: reordered.map((p) => p.id) }),
+    });
+    setPasos(res);
+  }
+
+  const completados = pasos.filter((p) => p.completado).length;
+  const pct = pasos.length > 0 ? Math.round((completados / pasos.length) * 100) : 0;
+
+  return (
+    <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">📋 Pasos del procedimiento</h3>
+        {pasos.length > 0 && (
+          <span className="text-xs font-semibold text-muted">{completados}/{pasos.length} — {pct}%</span>
+        )}
+      </div>
+      {pasos.length > 0 && (
+        <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
+          <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${pct}%` }} />
+        </div>
+      )}
+      <div className="space-y-1.5">
+        {pasos.map((p, i) => (
+          <div key={p.id}
+            draggable
+            onDragStart={() => { dragIdx.current = i; }}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+            onDragLeave={() => setDragOver(null)}
+            onDrop={() => drop(i)}
+            onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+            className={`flex items-center gap-2 rounded-paper border px-3 py-2 transition
+              ${p.completado ? "border-green-200 bg-green-50" : "border-border bg-surface"}
+              ${dragOver === i ? "opacity-50 border-dashed border-accent" : ""}`}
+          >
+            <span className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none">⠿</span>
+            <button onClick={() => toggle(p.id)}
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition
+                ${p.completado ? "border-green-500 bg-green-500 text-white" : "border-border bg-white hover:border-accent"}`}>
+              {p.completado && <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+            </button>
+            <span className={`flex-1 text-sm ${p.completado ? "line-through text-muted" : "text-ink"}`}>{p.descripcion}</span>
+            {p.completado_por_nombre && (
+              <span className="text-xs text-muted shrink-0">👤 {p.completado_por_nombre}</span>
+            )}
+            <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0">✕</button>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input className="flex-1 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          placeholder="Nuevo paso..." value={nuevo}
+          onChange={(e) => setNuevo(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()} />
+        <button onClick={add} disabled={saving || !nuevo.trim()}
+          className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+          + Añadir
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── MATERIALES ────────────────────────────────────────────────────────────────
+
+interface Material { id: number; nombre: string; unidad: string; stock_actual: number; stock_minimo: number; precio_unitario: number; proveedor?: string; }
+interface TicketMaterial { id: number; ticket_id: number; material_id: number; nombre: string; unidad: string; cantidad_requerida: number; stock_actual: number; }
+
+function MaterialesSection({ ticketId, token }: { ticketId: number; token: string }) {
+  const [items, setItems] = useState<TicketMaterial[]>([]);
+  const [catalogo, setCatalogo] = useState<Material[]>([]);
+  const [selMat, setSelMat] = useState("");
+  const [cantidad, setCantidad] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [showConsumo, setShowConsumo] = useState<number | null>(null);
+  const [cantConsumo, setCantConsumo] = useState("");
+  const [tipoConsumo, setTipoConsumo] = useState("consumo");
+  const [notasConsumo, setNotasConsumo] = useState("");
+  const [msgConsumo, setMsgConsumo] = useState("");
+
+  useEffect(() => {
+    tapi(`/${ticketId}/materiales`, token).then(setItems).catch(() => {});
+    tapi("/materiales", token).then(setCatalogo).catch(() => {});
+  }, [ticketId, token]);
+
+  async function add() {
+    if (!selMat || !cantidad) return;
+    setSaving(true);
+    try {
+      const res = await tapi(`/${ticketId}/materiales`, token, {
+        method: "POST", body: JSON.stringify({ material_id: parseInt(selMat), cantidad: parseFloat(cantidad) }),
+      });
+      setItems(res); setSelMat(""); setCantidad("");
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function del(tmId: number) {
+    const res = await tapi(`/ticket_materiales/${tmId}`, token, { method: "DELETE" });
+    setItems(res);
+  }
+
+  async function consumir(matId: number) {
+    if (!cantConsumo) return;
+    setMsgConsumo("");
+    try {
+      const res = await tapi(`/${ticketId}/consumo`, token, {
+        method: "POST",
+        body: JSON.stringify({ material_id: matId, cantidad: parseFloat(cantConsumo), tipo: tipoConsumo, notas: notasConsumo }),
+      });
+      const msg = res.oc_generada
+        ? `✅ Consumo registrado. Stock nuevo: ${res.stock_nuevo}. ⚠️ OC generada: ${res.oc_generada}`
+        : `✅ Stock actualizado: ${res.stock_nuevo}`;
+      setMsgConsumo(msg);
+      setCantConsumo(""); setNotasConsumo("");
+      tapi(`/${ticketId}/materiales`, token).then(setItems).catch(() => {});
+    } catch (e: any) { setMsgConsumo("Error: " + e.message); }
+  }
+
+  const disponibles = catalogo.filter((m) => !items.find((i) => i.material_id === m.id));
+
+  return (
+    <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
+      <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">📦 Materiales e insumos</h3>
+
+      {items.length > 0 ? (
+        <div className="space-y-2">
+          {items.map((it) => {
+            const stockOk = it.stock_actual >= it.cantidad_requerida;
+            return (
+              <div key={it.id} className="rounded-paper border border-border bg-surface p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm text-ink">{it.nombre}</p>
+                    <p className="text-xs text-muted">
+                      Requerido: <span className="font-bold">{it.cantidad_requerida} {it.unidad}</span>
+                      {" · "}
+                      <span className={stockOk ? "text-green-600" : "text-red-500"}>
+                        Stock: {it.stock_actual} {it.unidad} {stockOk ? "✓" : "⚠️ insuficiente"}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => setShowConsumo(showConsumo === it.material_id ? null : it.material_id)}
+                      className="rounded border border-accent px-2 py-1 text-xs font-bold text-accent hover:bg-accent hover:text-white transition">
+                      Registrar uso
+                    </button>
+                    <button onClick={() => del(it.id)} className="text-xs text-muted hover:text-danger transition px-1">✕</button>
+                  </div>
+                </div>
+                {showConsumo === it.material_id && (
+                  <div className="mt-3 pt-3 border-t border-border space-y-2">
+                    <div className="flex gap-2">
+                      <input type="number" min="0" step="any"
+                        className="w-28 rounded border-2 border-border bg-surface-input px-2 py-1 text-sm outline-none focus:border-accent"
+                        placeholder="Cantidad" value={cantConsumo} onChange={(e) => setCantConsumo(e.target.value)} />
+                      <select className="rounded border-2 border-border bg-surface-input px-2 py-1 text-xs outline-none focus:border-accent"
+                        value={tipoConsumo} onChange={(e) => setTipoConsumo(e.target.value)}>
+                        <option value="consumo">Consumo</option>
+                        <option value="devolucion">Devolución</option>
+                        <option value="ajuste_salida">Ajuste salida</option>
+                        <option value="ajuste_entrada">Ajuste entrada</option>
+                      </select>
+                    </div>
+                    <input className="w-full rounded border-2 border-border bg-surface-input px-2 py-1 text-xs outline-none focus:border-accent"
+                      placeholder="Notas (opcional)" value={notasConsumo} onChange={(e) => setNotasConsumo(e.target.value)} />
+                    <button onClick={() => consumir(it.material_id)} disabled={!cantConsumo}
+                      className="rounded border-2 border-accent bg-accent px-3 py-1 text-xs font-bold text-white disabled:opacity-50">
+                      Confirmar
+                    </button>
+                    {msgConsumo && <p className={`text-xs font-medium ${msgConsumo.startsWith("Error") ? "text-red-600" : "text-green-700"}`}>{msgConsumo}</p>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-xs text-muted">Sin materiales asignados aún.</p>
+      )}
+
+      {disponibles.length > 0 && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          <select className="flex-1 min-w-32 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent"
+            value={selMat} onChange={(e) => setSelMat(e.target.value)}>
+            <option value="">Seleccionar material...</option>
+            {disponibles.map((m) => <option key={m.id} value={m.id}>{m.nombre} ({m.unidad})</option>)}
+          </select>
+          <input type="number" min="0" step="any"
+            className="w-24 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm outline-none focus:border-accent"
+            placeholder="Cant." value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
+          <button onClick={add} disabled={saving || !selMat || !cantidad}
+            className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+            + Agregar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── INVENTARIO ────────────────────────────────────────────────────────────────
+
+interface OrdenCompra { id: number; numero: string; material_id: number; material_nombre: string; unidad: string; cantidad: number; precio_unitario: number; proveedor: string; estado: string; notas: string; creado_en: string; recibida_en: string | null; creado_por_nombre: string; }
+
+function InventarioView({ token, user, onBack }: { token: string; user: TicketsUser; onBack: () => void }) {
+  const [materiales, setMateriales] = useState<Material[]>([]);
+  const [ordenes, setOrdenes] = useState<OrdenCompra[]>([]);
+  const [tab, setTab] = useState<"stock" | "ordenes" | "nuevo">("stock");
+  const [form, setForm] = useState({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "" });
+  const [saving, setSaving] = useState(false);
+  const [ocForm, setOcForm] = useState({ material_id: "", cantidad: "", precio_unitario: "", proveedor: "", notas: "" });
+  const nivel = user.rol?.nivel ?? 1;
+
+  const reload = useCallback(async () => {
+    const [mats, ocs] = await Promise.all([
+      tapi("/materiales", token),
+      tapi("/ordenes-compra", token),
+    ]);
+    setMateriales(mats);
+    setOrdenes(ocs);
+  }, [token]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  async function crearMaterial() {
+    setSaving(true);
+    try {
+      await tapi("/materiales", token, { method: "POST", body: JSON.stringify({ ...form, stock_actual: parseFloat(form.stock_actual||"0"), stock_minimo: parseFloat(form.stock_minimo||"0"), precio_unitario: parseFloat(form.precio_unitario||"0") }) });
+      setForm({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "" });
+      setTab("stock");
+      reload();
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function crearOC() {
+    setSaving(true);
+    try {
+      await tapi("/ordenes-compra", token, { method: "POST", body: JSON.stringify({ ...ocForm, material_id: parseInt(ocForm.material_id), cantidad: parseFloat(ocForm.cantidad), precio_unitario: parseFloat(ocForm.precio_unitario||"0") }) });
+      setOcForm({ material_id: "", cantidad: "", precio_unitario: "", proveedor: "", notas: "" });
+      reload();
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function actualizarOC(id: number, estado: string) {
+    await tapi(`/ordenes-compra/${id}`, token, { method: "PUT", body: JSON.stringify({ estado }) });
+    reload();
+  }
+
+  const bajoStock = materiales.filter((m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo);
+
+  const OC_COLOR: Record<string, string> = {
+    pendiente: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    aprobada:  "bg-blue-100 text-blue-800 border-blue-300",
+    recibida:  "bg-green-100 text-green-800 border-green-300",
+    cancelada: "bg-gray-100 text-gray-600 border-gray-300",
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">← Volver</button>
+        <div>
+          <h2 className="text-xl font-extrabold text-ink">Inventario</h2>
+          <p className="text-xs text-muted">Materiales, stock y órdenes de compra</p>
+        </div>
+      </div>
+
+      {bajoStock.length > 0 && (
+        <div className="rounded-paper border-2 border-red-300 bg-red-50 p-4">
+          <p className="text-sm font-bold text-red-700 mb-2">⚠️ {bajoStock.length} material(es) bajo el stock mínimo:</p>
+          <div className="flex flex-wrap gap-2">
+            {bajoStock.map((m) => (
+              <span key={m.id} className="rounded-full bg-red-100 border border-red-300 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+                {m.nombre}: {m.stock_actual} / {m.stock_minimo} {m.unidad}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-1 border-b border-border">
+        {(["stock","ordenes"] as const).map((t) => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`px-4 py-2 text-sm font-bold transition border-b-2 -mb-px ${tab === t ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
+            {t === "stock" ? "📦 Stock" : "🛒 Órdenes de compra"}
+          </button>
+        ))}
+        {nivel >= 2 && (
+          <button onClick={() => setTab("nuevo")}
+            className={`px-4 py-2 text-sm font-bold transition border-b-2 -mb-px ${tab === "nuevo" ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
+            + Nuevo material
+          </button>
+        )}
+      </div>
+
+      {tab === "stock" && (
+        <div className="space-y-3">
+          {materiales.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted">No hay materiales en el catálogo aún.</p>
+          ) : materiales.map((m) => {
+            const pct = m.stock_minimo > 0 ? Math.min(100, Math.round((m.stock_actual / m.stock_minimo) * 100)) : 100;
+            const bajo = m.stock_minimo > 0 && m.stock_actual < m.stock_minimo;
+            return (
+              <div key={m.id} className={`rounded-paper border-2 bg-surface-panel p-4 shadow-paper-sm ${bajo ? "border-red-300" : "border-border"}`}>
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                  <div>
+                    <p className="font-bold text-sm text-ink">{m.nombre}</p>
+                    {m.proveedor && <p className="text-xs text-muted">Proveedor: {m.proveedor}</p>}
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-lg font-black ${bajo ? "text-red-600" : "text-ink"}`}>
+                      {m.stock_actual} <span className="text-sm font-normal text-muted">{m.unidad}</span>
+                    </p>
+                    {m.stock_minimo > 0 && <p className="text-xs text-muted">Mín: {m.stock_minimo} {m.unidad}</p>}
+                  </div>
+                </div>
+                {m.stock_minimo > 0 && (
+                  <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${bajo ? "bg-red-500" : "bg-accent"}`} style={{ width: `${pct}%` }} />
+                  </div>
+                )}
+                <div className="mt-2 flex flex-wrap justify-between gap-2 text-xs text-muted">
+                  <span>{m.precio_unitario > 0 ? `$${m.precio_unitario.toLocaleString("es-CO")} / ${m.unidad}` : ""}</span>
+                  {bajo && nivel >= 2 && (
+                    <button onClick={async () => {
+                      setOcForm((f) => ({ ...f, material_id: String(m.id), cantidad: String(Math.max(m.stock_minimo, 1)), proveedor: m.proveedor || "", precio_unitario: String(m.precio_unitario || "") }));
+                      setTab("ordenes");
+                    }}
+                      className="rounded border border-accent px-2 py-0.5 font-bold text-accent hover:bg-accent hover:text-white transition">
+                      + Crear OC
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab === "ordenes" && (
+        <div className="space-y-3">
+          {nivel >= 2 && (
+            <div className="rounded-paper border-2 border-border bg-surface-panel p-4 space-y-3">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Nueva orden de compra</p>
+              <div className="grid grid-cols-2 gap-3">
+                <select className="col-span-2 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                  value={ocForm.material_id} onChange={(e) => setOcForm((f) => ({ ...f, material_id: e.target.value }))}>
+                  <option value="">Seleccionar material *</option>
+                  {materiales.map((m) => <option key={m.id} value={m.id}>{m.nombre} (stock: {m.stock_actual} {m.unidad})</option>)}
+                </select>
+                <input type="number" min="0" step="any" placeholder="Cantidad *"
+                  className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                  value={ocForm.cantidad} onChange={(e) => setOcForm((f) => ({ ...f, cantidad: e.target.value }))} />
+                <input type="number" min="0" step="any" placeholder="Precio unitario"
+                  className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                  value={ocForm.precio_unitario} onChange={(e) => setOcForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
+                <input placeholder="Proveedor"
+                  className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                  value={ocForm.proveedor} onChange={(e) => setOcForm((f) => ({ ...f, proveedor: e.target.value }))} />
+                <input placeholder="Notas"
+                  className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                  value={ocForm.notas} onChange={(e) => setOcForm((f) => ({ ...f, notas: e.target.value }))} />
+              </div>
+              <button onClick={crearOC} disabled={saving || !ocForm.material_id || !ocForm.cantidad}
+                className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+                Crear orden
+              </button>
+            </div>
+          )}
+          {ordenes.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted">No hay órdenes de compra.</p>
+          ) : ordenes.map((oc) => (
+            <div key={oc.id} className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm space-y-1">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-mono text-xs font-bold text-muted">{oc.numero}</p>
+                  <p className="font-bold text-sm text-ink">{oc.material_nombre}</p>
+                  <p className="text-xs text-muted">{oc.cantidad} {oc.unidad}{oc.proveedor ? ` · ${oc.proveedor}` : ""}</p>
+                  {oc.notas && <p className="text-xs text-muted mt-0.5 italic">{oc.notas}</p>}
+                </div>
+                <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-bold ${OC_COLOR[oc.estado]}`}>
+                  {oc.estado.charAt(0).toUpperCase() + oc.estado.slice(1)}
+                </span>
+              </div>
+              {nivel >= 2 && oc.estado !== "recibida" && oc.estado !== "cancelada" && (
+                <div className="flex gap-2 pt-1">
+                  {oc.estado === "pendiente" && (
+                    <button onClick={() => actualizarOC(oc.id, "aprobada")}
+                      className="rounded border border-blue-400 px-2.5 py-1 text-xs font-bold text-blue-600 hover:bg-blue-500 hover:text-white transition">
+                      ✓ Aprobar
+                    </button>
+                  )}
+                  <button onClick={() => actualizarOC(oc.id, "recibida")}
+                    className="rounded border border-green-400 px-2.5 py-1 text-xs font-bold text-green-600 hover:bg-green-500 hover:text-white transition">
+                    📥 Marcar recibida
+                  </button>
+                  <button onClick={() => actualizarOC(oc.id, "cancelada")}
+                    className="rounded border border-red-300 px-2.5 py-1 text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition">
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "nuevo" && nivel >= 2 && (
+        <div className="rounded-paper border-2 border-border bg-surface-panel p-5 space-y-4">
+          <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Agregar material al catálogo</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Nombre *</label>
+              <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Unidad</label>
+              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={form.unidad} onChange={(e) => setForm((f) => ({ ...f, unidad: e.target.value }))}>
+                {["kg","g","mg","L","mL","unidad","m","cm","m²","m³","caja","bolsa","rollo","galón"].map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Stock inicial</label>
+              <input type="number" min="0" step="any"
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={form.stock_actual} onChange={(e) => setForm((f) => ({ ...f, stock_actual: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Stock mínimo (alerta)</label>
+              <input type="number" min="0" step="any"
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={form.stock_minimo} onChange={(e) => setForm((f) => ({ ...f, stock_minimo: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Precio unitario ($)</label>
+              <input type="number" min="0" step="any"
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={form.precio_unitario} onChange={(e) => setForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Proveedor</label>
+              <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={form.proveedor} onChange={(e) => setForm((f) => ({ ...f, proveedor: e.target.value }))} />
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Descripción</label>
+              <textarea rows={2} className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent resize-none"
+                value={form.descripcion} onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))} />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button onClick={crearMaterial} disabled={saving || !form.nombre.trim()}
+              className="rounded-paper border-2 border-accent bg-accent px-6 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+              {saving ? "Guardando..." : "Crear material"}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -2658,6 +3185,7 @@ export default function TicketsPanel() {
             onWorkload={() => setView("workload")}
             onMisiones={() => setView("misiones")}
             onMisionDetail={goMisionDetail}
+            onInventario={() => setView("inventario")}
           />
         )}
         {view === "create" && (
@@ -2704,6 +3232,12 @@ export default function TicketsPanel() {
             misionId={selectedMisionId}
             onBack={() => setView("misiones")}
             onTicket={(id) => { setSelectedId(id); setView("detail"); }}
+          />
+        )}
+        {view === "inventario" && (
+          <InventarioView
+            token={token} user={user}
+            onBack={goBack}
           />
         )}
       </div>

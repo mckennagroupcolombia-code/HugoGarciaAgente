@@ -352,6 +352,62 @@ def init_db():
                 detalles        TEXT,
                 creado_en       TEXT DEFAULT (datetime('now'))
             );
+            CREATE TABLE IF NOT EXISTS materiales_catalogo (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre          TEXT NOT NULL UNIQUE,
+                descripcion     TEXT,
+                unidad          TEXT NOT NULL DEFAULT 'unidad',
+                stock_actual    REAL DEFAULT 0,
+                stock_minimo    REAL DEFAULT 0,
+                precio_unitario REAL DEFAULT 0,
+                proveedor       TEXT,
+                activo          INTEGER DEFAULT 1,
+                creado_en       TEXT DEFAULT (datetime('now')),
+                actualizado_en  TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS ticket_pasos (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id       INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                orden           INTEGER NOT NULL,
+                descripcion     TEXT NOT NULL,
+                completado      INTEGER DEFAULT 0,
+                completado_en   TEXT,
+                completado_por  INTEGER REFERENCES usuarios(id),
+                creado_en       TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS ticket_materiales (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id           INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                material_id         INTEGER NOT NULL REFERENCES materiales_catalogo(id),
+                cantidad_requerida  REAL NOT NULL,
+                creado_en           TEXT DEFAULT (datetime('now')),
+                UNIQUE(ticket_id, material_id)
+            );
+            CREATE TABLE IF NOT EXISTS consumo_materiales (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id       INTEGER REFERENCES tickets(id),
+                material_id     INTEGER NOT NULL REFERENCES materiales_catalogo(id),
+                cantidad        REAL NOT NULL,
+                tipo            TEXT DEFAULT 'consumo'
+                                    CHECK(tipo IN ('consumo','ajuste_entrada','ajuste_salida','devolucion')),
+                notas           TEXT,
+                registrado_por  INTEGER REFERENCES usuarios(id),
+                creado_en       TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS ordenes_compra (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                numero          TEXT NOT NULL UNIQUE,
+                material_id     INTEGER NOT NULL REFERENCES materiales_catalogo(id),
+                cantidad        REAL NOT NULL,
+                precio_unitario REAL DEFAULT 0,
+                proveedor       TEXT,
+                estado          TEXT DEFAULT 'pendiente'
+                                    CHECK(estado IN ('pendiente','aprobada','recibida','cancelada')),
+                notas           TEXT,
+                creado_por      INTEGER REFERENCES usuarios(id),
+                creado_en       TEXT DEFAULT (datetime('now')),
+                recibida_en     TEXT
+            );
         """)
 
         # Migrate tickets table with new columns
@@ -1542,6 +1598,335 @@ def dashboard_carga() -> list:
             ).fetchone()["h"], 1)
             result.append(u)
         return sorted(result, key=lambda x: x["tickets_abiertos"], reverse=True)
+
+
+# ── PASOS DE TICKET ───────────────────────────────────────────────────────────
+
+def listar_pasos(ticket_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT p.*, u.nombre AS completado_por_nombre
+            FROM ticket_pasos p
+            LEFT JOIN usuarios u ON u.id = p.completado_por
+            WHERE p.ticket_id = ? ORDER BY p.orden
+        """, (ticket_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def agregar_paso(ticket_id: int, descripcion: str, usuario_id: int) -> tuple:
+    descripcion = descripcion.strip()
+    if not descripcion:
+        return None, "Descripción requerida"
+    with _conn() as db:
+        t = db.execute("SELECT id FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return None, "Ticket no encontrado"
+        orden = db.execute(
+            "SELECT COALESCE(MAX(orden),0)+1 AS n FROM ticket_pasos WHERE ticket_id=?", (ticket_id,)
+        ).fetchone()["n"]
+        db.execute(
+            "INSERT INTO ticket_pasos (ticket_id, orden, descripcion) VALUES (?,?,?)",
+            (ticket_id, orden, descripcion)
+        )
+        db.commit()
+        return listar_pasos(ticket_id), None
+
+
+def completar_paso(paso_id: int, usuario_id: int) -> tuple:
+    with _conn() as db:
+        p = db.execute("SELECT * FROM ticket_pasos WHERE id=?", (paso_id,)).fetchone()
+        if not p:
+            return None, "Paso no encontrado"
+        nuevo = 0 if p["completado"] else 1
+        db.execute(
+            "UPDATE ticket_pasos SET completado=?, completado_en=?, completado_por=? WHERE id=?",
+            (nuevo, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") if nuevo else None,
+             usuario_id if nuevo else None, paso_id)
+        )
+        db.commit()
+        return listar_pasos(p["ticket_id"]), None
+
+
+def eliminar_paso(paso_id: int) -> tuple:
+    with _conn() as db:
+        p = db.execute("SELECT ticket_id FROM ticket_pasos WHERE id=?", (paso_id,)).fetchone()
+        if not p:
+            return None, "Paso no encontrado"
+        tid = p["ticket_id"]
+        db.execute("DELETE FROM ticket_pasos WHERE id=?", (paso_id,))
+        db.commit()
+        return listar_pasos(tid), None
+
+
+def reordenar_pasos(ticket_id: int, paso_ids: list) -> tuple:
+    with _conn() as db:
+        existing = {r["id"] for r in db.execute(
+            "SELECT id FROM ticket_pasos WHERE ticket_id=?", (ticket_id,)
+        ).fetchall()}
+        if set(paso_ids) != existing:
+            return None, "Lista de pasos inválida"
+        for i, pid in enumerate(paso_ids, 1):
+            db.execute("UPDATE ticket_pasos SET orden=? WHERE id=?", (i, pid))
+        db.commit()
+        return listar_pasos(ticket_id), None
+
+
+# ── MATERIALES CATÁLOGO ────────────────────────────────────────────────────────
+
+def _generar_numero_oc(db) -> str:
+    year = datetime.utcnow().year
+    max_n = db.execute(
+        "SELECT MAX(CAST(SUBSTR(numero,10) AS INTEGER)) AS n FROM ordenes_compra WHERE numero LIKE ?",
+        (f"OC-{year}-%",)
+    ).fetchone()["n"] or 0
+    return f"OC-{year}-{max_n+1:04d}"
+
+
+def listar_materiales(solo_activos: bool = True) -> list:
+    with _conn() as db:
+        q = "SELECT * FROM materiales_catalogo"
+        if solo_activos:
+            q += " WHERE activo=1"
+        q += " ORDER BY nombre"
+        return [dict(r) for r in db.execute(q).fetchall()]
+
+
+def get_material(material_id: int) -> dict | None:
+    with _conn() as db:
+        r = db.execute("SELECT * FROM materiales_catalogo WHERE id=?", (material_id,)).fetchone()
+        return dict(r) if r else None
+
+
+def crear_material(data: dict) -> tuple:
+    nombre = (data.get("nombre") or "").strip()
+    if not nombre:
+        return None, "Nombre requerido"
+    with _conn() as db:
+        try:
+            db.execute("""
+                INSERT INTO materiales_catalogo
+                    (nombre, descripcion, unidad, stock_actual, stock_minimo, precio_unitario, proveedor)
+                VALUES (?,?,?,?,?,?,?)
+            """, (
+                nombre,
+                data.get("descripcion") or "",
+                data.get("unidad") or "unidad",
+                float(data.get("stock_actual") or 0),
+                float(data.get("stock_minimo") or 0),
+                float(data.get("precio_unitario") or 0),
+                data.get("proveedor") or "",
+            ))
+            mid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+            db.commit()
+            return get_material(mid), None
+        except Exception as exc:
+            return None, str(exc)
+
+
+def actualizar_material(material_id: int, data: dict) -> tuple:
+    with _conn() as db:
+        m = db.execute("SELECT id FROM materiales_catalogo WHERE id=?", (material_id,)).fetchone()
+        if not m:
+            return None, "Material no encontrado"
+        campos = {k: v for k, v in data.items()
+                  if k in ("nombre","descripcion","unidad","stock_minimo","precio_unitario","proveedor","activo")
+                  and v is not None}
+        if campos:
+            set_cl = ", ".join(f"{k}=?" for k in campos)
+            db.execute(
+                f"UPDATE materiales_catalogo SET {set_cl}, actualizado_en=datetime('now') WHERE id=?",
+                (*campos.values(), material_id)
+            )
+        db.commit()
+        return get_material(material_id), None
+
+
+# ── MATERIALES DE TICKET ───────────────────────────────────────────────────────
+
+def listar_materiales_ticket(ticket_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT tm.*, mc.nombre, mc.unidad, mc.stock_actual, mc.precio_unitario
+            FROM ticket_materiales tm
+            JOIN materiales_catalogo mc ON mc.id = tm.material_id
+            WHERE tm.ticket_id = ?
+            ORDER BY mc.nombre
+        """, (ticket_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def agregar_material_ticket(ticket_id: int, material_id: int, cantidad: float) -> tuple:
+    if cantidad <= 0:
+        return None, "Cantidad debe ser mayor a 0"
+    with _conn() as db:
+        try:
+            db.execute(
+                "INSERT INTO ticket_materiales (ticket_id, material_id, cantidad_requerida) VALUES (?,?,?)",
+                (ticket_id, material_id, cantidad)
+            )
+            db.commit()
+            return listar_materiales_ticket(ticket_id), None
+        except Exception as exc:
+            return None, "Material ya está en este ticket" if "UNIQUE" in str(exc) else str(exc)
+
+
+def actualizar_material_ticket(tm_id: int, cantidad: float) -> tuple:
+    if cantidad <= 0:
+        return None, "Cantidad debe ser mayor a 0"
+    with _conn() as db:
+        tm = db.execute("SELECT ticket_id FROM ticket_materiales WHERE id=?", (tm_id,)).fetchone()
+        if not tm:
+            return None, "No encontrado"
+        db.execute("UPDATE ticket_materiales SET cantidad_requerida=? WHERE id=?", (cantidad, tm_id))
+        db.commit()
+        return listar_materiales_ticket(tm["ticket_id"]), None
+
+
+def eliminar_material_ticket(tm_id: int) -> tuple:
+    with _conn() as db:
+        tm = db.execute("SELECT ticket_id FROM ticket_materiales WHERE id=?", (tm_id,)).fetchone()
+        if not tm:
+            return None, "No encontrado"
+        tid = tm["ticket_id"]
+        db.execute("DELETE FROM ticket_materiales WHERE id=?", (tm_id,))
+        db.commit()
+        return listar_materiales_ticket(tid), None
+
+
+# ── CONSUMO Y STOCK ────────────────────────────────────────────────────────────
+
+def registrar_consumo(ticket_id: int | None, material_id: int, cantidad: float,
+                      tipo: str, notas: str, usuario_id: int) -> tuple:
+    with _conn() as db:
+        m = db.execute("SELECT * FROM materiales_catalogo WHERE id=?", (material_id,)).fetchone()
+        if not m:
+            return None, "Material no encontrado"
+        if tipo in ("consumo", "ajuste_salida"):
+            nuevo_stock = max(0, m["stock_actual"] - cantidad)
+        elif tipo in ("ajuste_entrada", "devolucion"):
+            nuevo_stock = m["stock_actual"] + cantidad
+        else:
+            return None, "Tipo inválido"
+        db.execute(
+            "INSERT INTO consumo_materiales (ticket_id, material_id, cantidad, tipo, notas, registrado_por) "
+            "VALUES (?,?,?,?,?,?)",
+            (ticket_id, material_id, cantidad, tipo, notas or "", usuario_id)
+        )
+        db.execute(
+            "UPDATE materiales_catalogo SET stock_actual=?, actualizado_en=datetime('now') WHERE id=?",
+            (nuevo_stock, material_id)
+        )
+        # Auto-generate purchase order if stock drops below minimum
+        oc_generada = None
+        if nuevo_stock < m["stock_minimo"] and m["stock_minimo"] > 0:
+            ya_existe = db.execute(
+                "SELECT id FROM ordenes_compra WHERE material_id=? AND estado='pendiente'",
+                (material_id,)
+            ).fetchone()
+            if not ya_existe:
+                num = _generar_numero_oc(db)
+                cantidad_oc = m["stock_minimo"] * 2 - nuevo_stock
+                db.execute("""
+                    INSERT INTO ordenes_compra
+                        (numero, material_id, cantidad, precio_unitario, proveedor, notas, creado_por)
+                    VALUES (?,?,?,?,?,?,?)
+                """, (
+                    num, material_id, max(cantidad_oc, cantidad),
+                    m["precio_unitario"], m["proveedor"] or "",
+                    f"Generada automáticamente — stock bajo ({nuevo_stock} {m['unidad']} < mínimo {m['stock_minimo']})",
+                    usuario_id
+                ))
+                oc_generada = num
+        db.commit()
+        return {"stock_nuevo": nuevo_stock, "oc_generada": oc_generada}, None
+
+
+def historial_consumo(material_id: int | None = None, ticket_id: int | None = None, limit: int = 50) -> list:
+    with _conn() as db:
+        q = """
+            SELECT c.*, mc.nombre AS material_nombre, mc.unidad,
+                   u.nombre AS registrado_por_nombre, t.numero AS ticket_numero
+            FROM consumo_materiales c
+            JOIN materiales_catalogo mc ON mc.id = c.material_id
+            LEFT JOIN usuarios u ON u.id = c.registrado_por
+            LEFT JOIN tickets t ON t.id = c.ticket_id
+            WHERE 1=1
+        """
+        params = []
+        if material_id:
+            q += " AND c.material_id=?"; params.append(material_id)
+        if ticket_id:
+            q += " AND c.ticket_id=?"; params.append(ticket_id)
+        q += f" ORDER BY c.creado_en DESC LIMIT {limit}"
+        return [dict(r) for r in db.execute(q, params).fetchall()]
+
+
+# ── ÓRDENES DE COMPRA ─────────────────────────────────────────────────────────
+
+def listar_ordenes_compra(estado: str | None = None) -> list:
+    with _conn() as db:
+        q = """
+            SELECT oc.*, mc.nombre AS material_nombre, mc.unidad,
+                   u.nombre AS creado_por_nombre
+            FROM ordenes_compra oc
+            JOIN materiales_catalogo mc ON mc.id = oc.material_id
+            LEFT JOIN usuarios u ON u.id = oc.creado_por
+            WHERE 1=1
+        """
+        params = []
+        if estado:
+            q += " AND oc.estado=?"; params.append(estado)
+        q += " ORDER BY oc.creado_en DESC"
+        return [dict(r) for r in db.execute(q, params).fetchall()]
+
+
+def crear_orden_compra(material_id: int, cantidad: float, precio_unitario: float,
+                       proveedor: str, notas: str, usuario_id: int) -> tuple:
+    if cantidad <= 0:
+        return None, "Cantidad debe ser mayor a 0"
+    with _conn() as db:
+        m = db.execute("SELECT id FROM materiales_catalogo WHERE id=?", (material_id,)).fetchone()
+        if not m:
+            return None, "Material no encontrado"
+        num = _generar_numero_oc(db)
+        db.execute("""
+            INSERT INTO ordenes_compra
+                (numero, material_id, cantidad, precio_unitario, proveedor, notas, creado_por)
+            VALUES (?,?,?,?,?,?,?)
+        """, (num, material_id, cantidad, precio_unitario or 0, proveedor or "", notas or "", usuario_id))
+        db.commit()
+        ocs = listar_ordenes_compra()
+        return next((o for o in ocs if o["numero"] == num), None), None
+
+
+def actualizar_orden_compra(orden_id: int, data: dict, usuario_id: int) -> tuple:
+    with _conn() as db:
+        oc = db.execute("SELECT * FROM ordenes_compra WHERE id=?", (orden_id,)).fetchone()
+        if not oc:
+            return None, "Orden no encontrada"
+        nuevo_estado = data.get("estado", oc["estado"])
+        campos = {k: v for k, v in data.items()
+                  if k in ("estado","cantidad","precio_unitario","proveedor","notas") and v is not None}
+        if campos:
+            set_cl = ", ".join(f"{k}=?" for k in campos)
+            db.execute(f"UPDATE ordenes_compra SET {set_cl} WHERE id=?", (*campos.values(), orden_id))
+        # When received: increment stock
+        if nuevo_estado == "recibida" and oc["estado"] != "recibida":
+            db.execute(
+                "UPDATE ordenes_compra SET recibida_en=datetime('now') WHERE id=?", (orden_id,)
+            )
+            cantidad_recibida = float(data.get("cantidad", oc["cantidad"]))
+            db.execute(
+                "UPDATE materiales_catalogo SET stock_actual=stock_actual+?, actualizado_en=datetime('now') WHERE id=?",
+                (cantidad_recibida, oc["material_id"])
+            )
+            db.execute(
+                "INSERT INTO consumo_materiales (material_id, cantidad, tipo, notas, registrado_por) VALUES (?,?,?,?,?)",
+                (oc["material_id"], cantidad_recibida, "ajuste_entrada",
+                 f"Recepción de orden {oc['numero']}", usuario_id)
+            )
+        db.commit()
+        return listar_ordenes_compra(), None
 
 
 # ── CATEGORÍAS ────────────────────────────────────────────────────────────────
