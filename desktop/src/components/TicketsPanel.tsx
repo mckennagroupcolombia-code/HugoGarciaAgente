@@ -852,11 +852,9 @@ function TicketDetailView({
   const [error, setError] = useState("");
   const [comentario, setComentario] = useState("");
   const [esInterno, setEsInterno] = useState(false);
-  const [horas, setHoras] = useState("");
-  const [notasTiempo, setNotasTiempo] = useState("");
-  const [motivo, setMotivo] = useState("");
   const [asignarA, setAsignarA] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showComentarios, setShowComentarios] = useState(false);
 
   const nivel = user.rol?.nivel ?? 1;
 
@@ -899,29 +897,28 @@ function TicketDetailView({
   );
 
   const canApprove = nivel >= 2 && (ticket.categoria !== "rrhh" || nivel >= 3);
-  const canChangeState = nivel >= 2 || ticket.asignado_a === user.id;
   const canAssign = nivel >= 2;
   const isAssignee = ticket.asignado_a === user.id;
+  const isClosed = ticket.estado === "resuelto" || ticket.estado === "rechazado";
 
-  // Estado transitions available for current user
-  const availableStates: { val: string; label: string }[] = [];
+  const availableStates: { val: string; label: string; cls: string }[] = [];
   if (ticket.estado === "pendiente" && canAssign) {
-    availableStates.push({ val: "en_proceso", label: "Poner en Proceso" });
-    availableStates.push({ val: "rechazado", label: "Rechazar" });
+    availableStates.push({ val: "en_proceso", label: "▶ Iniciar", cls: "border-blue-400 bg-blue-500 text-white hover:bg-blue-600 shadow-[0_2px_0_#1d4ed8]" });
+    availableStates.push({ val: "rechazado", label: "Rechazar", cls: "border-red-400 bg-red-500 text-white hover:bg-red-600 shadow-[0_2px_0_#991b1b]" });
   }
   if (ticket.estado === "en_proceso" && (isAssignee || nivel >= 2)) {
-    availableStates.push({ val: "esperando_aprobacion", label: "Marcar como Listo" });
-    if (nivel >= 2) availableStates.push({ val: "rechazado", label: "Rechazar" });
+    availableStates.push({ val: "esperando_aprobacion", label: "✓ Marcar Listo", cls: "border-orange-400 bg-orange-500 text-white hover:bg-orange-600 shadow-[0_2px_0_#c2410c]" });
   }
   if (ticket.estado === "esperando_aprobacion" && canApprove) {
-    availableStates.push({ val: "resuelto", label: "✅ Aprobar y Cerrar" });
-    availableStates.push({ val: "en_proceso", label: "↩ Devolver a proceso" });
-    availableStates.push({ val: "rechazado", label: "❌ Rechazar" });
+    availableStates.push({ val: "resuelto", label: "✅ Aprobar", cls: "border-green-500 bg-green-600 text-white hover:bg-green-700 shadow-[0_2px_0_#166534]" });
+    availableStates.push({ val: "en_proceso", label: "↩ Devolver", cls: "border-gray-400 bg-gray-500 text-white hover:bg-gray-600 shadow-[0_2px_0_#374151]" });
+    availableStates.push({ val: "rechazado", label: "❌ Rechazar", cls: "border-red-400 bg-red-500 text-white hover:bg-red-600 shadow-[0_2px_0_#991b1b]" });
   }
 
   return (
-    <div className="space-y-5 pb-8">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-4 pb-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-2">
         <button onClick={onBack}
           className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
           ← Volver
@@ -930,257 +927,145 @@ function TicketDetailView({
         <CategoriaBadge cat={ticket.categoria} />
         <PrioridadBadge p={ticket.prioridad} />
         <EstadoBadge estado={ticket.estado} />
+        {ticket.total_horas != null && ticket.total_horas > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/30 px-2.5 py-0.5 text-xs font-bold text-accent">
+            ⏱ {ticket.total_horas}h
+          </span>
+        )}
       </div>
 
-      {/* Main info */}
-      <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper">
-        <h2 className="mb-3 text-lg font-extrabold text-ink">{ticket.titulo}</h2>
+      {/* Info + acciones rápidas */}
+      <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
+        <h2 className="text-lg font-extrabold text-ink">{ticket.titulo}</h2>
         {ticket.mision_info && ticket.etapa_info && (
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
+          <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
             style={{ borderColor: ticket.mision_info.color + "66", background: ticket.mision_info.color + "18", color: ticket.mision_info.color }}>
             🎯 {ticket.mision_info.titulo} · Etapa {ticket.etapa_info.orden}/{ticket.mision_info.total_etapas}
-            {ticket.mision_info.tipo === "secuencial" ? " · 🔗 Secuencial" : " · ⚡ Paralela"}
           </div>
         )}
         {ticket.bloqueado_por && (
-          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 ml-2">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 ml-2">
             🔒 Bloqueado por {ticket.bloqueado_por_numero}
           </div>
         )}
-        <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-          <div><span className="font-semibold text-muted">Creado por:</span><br/><span className="text-ink">{ticket.creado_por_info?.nombre || "—"}</span></div>
-          <div><span className="font-semibold text-muted">Asignado a:</span><br/><span className="text-ink">{ticket.asignado_a_info?.nombre || <em className="text-muted">Sin asignar</em>}</span></div>
-          <div><span className="font-semibold text-muted">Creado:</span><br/><span className="text-ink">{fmtDate(ticket.creado_en)}</span></div>
-          <div><span className="font-semibold text-muted">Actualizado:</span><br/><span className="text-ink">{fmtDate(ticket.actualizado_en)}</span></div>
-        </div>
-        <div className="rounded-paper border border-border bg-surface p-3">
-          <p className="text-sm font-bold uppercase tracking-wide text-muted mb-1">Descripción</p>
-          <p className="whitespace-pre-wrap text-sm text-ink">{ticket.descripcion}</p>
-        </div>
-        {ticket.soporte_archivo && (
-          <div className="mt-3">
-            <p className="text-xs font-bold uppercase tracking-wide text-muted mb-1">Soporte documental</p>
-            <a
-              href={`/api/tickets/uploads/${ticket.soporte_archivo}?token=${token}`}
-              target="_blank" rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-paper border-2 border-border px-3 py-1.5 text-xs font-semibold text-accent transition hover:border-accent hover:bg-surface-hover"
-            >
-              📎 Ver archivo adjunto
-            </a>
-          </div>
+        {ticket.descripcion && (
+          <p className="whitespace-pre-wrap text-sm text-ink border-t border-border pt-3">{ticket.descripcion}</p>
         )}
-      </div>
-
-      {/* Actions */}
-      {(availableStates.length > 0 || canAssign) && ticket.estado !== "resuelto" && ticket.estado !== "rechazado" && (
-        <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
-          <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Acciones</h3>
-
-          {canAssign && (
-            <div className="flex flex-wrap gap-2 items-end">
-              <div className="flex-1 min-w-48">
-                <label className="mb-1 block text-xs font-bold text-muted">Asignar responsable</label>
+        {ticket.soporte_archivo && (
+          <a href={`/api/tickets/uploads/${ticket.soporte_archivo}?token=${token}`}
+            target="_blank" rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-paper border-2 border-border px-3 py-1 text-xs font-semibold text-accent hover:border-accent transition">
+            📎 Ver adjunto
+          </a>
+        )}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted border-t border-border pt-3">
+          <span>Creado por: <strong className="text-ink">{ticket.creado_por_info?.nombre || "—"}</strong></span>
+          <span>{fmtDate(ticket.creado_en)}</span>
+          {ticket.asignado_a_info && <span>→ <strong className="text-ink">{ticket.asignado_a_info.nombre}</strong></span>}
+        </div>
+        {/* Assign + state actions */}
+        {!isClosed && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            {canAssign && (
+              <>
                 <select value={asignarA} onChange={(e) => setAsignarA(e.target.value)}
-                  className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent">
+                  className="rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent">
                   <option value="">Sin asignar</option>
-                  {usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>{u.nombre}</option>
-                  ))}
+                  {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
                 </select>
-              </div>
-              <button
-                disabled={submitting}
-                onClick={() => act(() => tapi(`/${ticketId}/asignar`, token, {
-                  method: "PUT",
-                  body: JSON.stringify({ asignado_a: asignarA ? parseInt(asignarA) : null }),
+                <button disabled={submitting}
+                  onClick={() => act(() => tapi(`/${ticketId}/asignar`, token, {
+                    method: "PUT", body: JSON.stringify({ asignado_a: asignarA ? parseInt(asignarA) : null }),
+                  }))}
+                  className="rounded-paper border-2 border-border px-2.5 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent disabled:opacity-50">
+                  Asignar
+                </button>
+              </>
+            )}
+            {availableStates.map((s) => (
+              <button key={s.val} disabled={submitting}
+                onClick={() => act(() => tapi(`/${ticketId}/estado`, token, {
+                  method: "PUT", body: JSON.stringify({ estado: s.val }),
                 }))}
-                className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50"
-              >
-                Asignar
+                className={`rounded-paper border-2 px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 active:translate-y-0.5 active:shadow-none ${s.cls}`}>
+                {s.label}
               </button>
-            </div>
-          )}
-
-          {availableStates.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex-1">
-                <label className="mb-1 block text-xs font-bold text-muted">Motivo / Nota (opcional)</label>
-                <input value={motivo} onChange={(e) => setMotivo(e.target.value)}
-                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                  placeholder="Agrega un comentario al cambio de estado..." />
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {availableStates.map((s) => (
-                  <button key={s.val}
-                    disabled={submitting}
-                    onClick={() => act(() => tapi(`/${ticketId}/estado`, token, {
-                      method: "PUT",
-                      body: JSON.stringify({ estado: s.val, motivo }),
-                    }).then(() => setMotivo("")))}
-                    className={`rounded-paper border-2 px-4 py-2 text-xs font-bold transition disabled:opacity-50 active:translate-y-0.5 active:shadow-none
-                      ${s.val === "resuelto" ? "border-green-600 bg-green-600 text-white shadow-[0_2px_0_#166534] hover:bg-green-700"
-                        : s.val === "rechazado" ? "border-red-500 bg-red-500 text-white shadow-[0_2px_0_#991b1b] hover:bg-red-600"
-                        : "border-accent bg-accent text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover"}`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Time tracking */}
-      <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Tiempo Invertido</h3>
-          <span className="text-lg font-black text-accent">{ticket.total_horas ?? 0} h</span>
-        </div>
-        {ticket.tiempo_registrado && ticket.tiempo_registrado.length > 0 && (
-          <div className="mb-4 space-y-1">
-            {ticket.tiempo_registrado.map((t) => (
-              <div key={t.id} className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 text-xs">
-                <span className="font-semibold text-ink">{t.autor_nombre}</span>
-                <span className="text-muted">{t.notas}</span>
-                <span className="font-bold text-accent">{t.horas}h</span>
-              </div>
             ))}
           </div>
         )}
-        {ticket.estado !== "resuelto" && ticket.estado !== "rechazado" && (
-          <div className="flex flex-wrap gap-2 items-end">
-            <div>
-              <label className="mb-1 block text-xs font-bold text-muted">Horas</label>
-              <input type="number" step="0.25" min="0.25" value={horas} onChange={(e) => setHoras(e.target.value)}
-                placeholder="0.5"
-                className="w-24 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent" />
-            </div>
-            <div className="flex-1 min-w-32">
-              <label className="mb-1 block text-xs font-bold text-muted">Nota</label>
-              <input value={notasTiempo} onChange={(e) => setNotasTiempo(e.target.value)}
-                placeholder="¿Qué hiciste?"
-                className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent" />
-            </div>
-            <button disabled={submitting || !horas}
-              onClick={() => act(() => tapi(`/${ticketId}/tiempo`, token, {
-                method: "POST",
-                body: JSON.stringify({ horas: parseFloat(horas), notas: notasTiempo }),
-              }).then(() => { setHoras(""); setNotasTiempo(""); }))}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50"
-            >
-              Registrar
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Participants */}
+      {/* Pasos — sección principal */}
+      <PasosSection ticketId={ticket.id} token={token} />
+
+      {/* Materiales */}
+      <MaterialesSection ticketId={ticket.id} token={token} />
+
+      {/* Participantes */}
       <ParticipantesSection
         ticket={ticket} token={token} user={user}
         usuarios={usuarios} submitting={submitting}
         onAct={act}
       />
 
-      {/* Pasos del procedimiento */}
-      <PasosSection ticketId={ticket.id} token={token} />
-
-      {/* Materiales requeridos */}
-      <MaterialesSection ticketId={ticket.id} token={token} />
-
-      {/* Comments */}
-      <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
-        <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Comentarios</h3>
-        {ticket.comentarios && ticket.comentarios.length > 0 ? (
-          <div className="space-y-3">
-            {ticket.comentarios.map((c) => (
-              <div key={c.id} className={`rounded-paper border-2 p-3 ${c.es_interno ? "border-amber-200 bg-amber-50" : "border-border bg-surface"}`}>
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-xs font-bold text-ink">{c.autor_nombre}</span>
-                  <div className="flex items-center gap-2">
-                    {c.es_interno ? <span className="text-xs font-semibold text-amber-700">🔒 Interno</span> : null}
-                    <span className="text-xs text-muted">{fmtDate(c.creado_en)}</span>
-                  </div>
-                </div>
-                <p className="whitespace-pre-wrap text-sm text-ink">{c.texto}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted">No hay comentarios aún.</p>
-        )}
-        <div className="space-y-2 border-t border-border pt-4">
-          <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3}
-            placeholder="Agrega un comentario..."
-            className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none transition focus:border-accent resize-none" />
-          <div className="flex items-center justify-between">
-            {nivel >= 2 && (
-              <label className="flex items-center gap-2 text-xs font-semibold text-muted cursor-pointer">
-                <input type="checkbox" checked={esInterno} onChange={(e) => setEsInterno(e.target.checked)}
-                  className="rounded" />
-                Comentario interno (solo staff)
-              </label>
+      {/* Comentarios — colapsable */}
+      <div className="rounded-paper border-2 border-border bg-surface-panel shadow-paper overflow-hidden">
+        <button
+          className="flex w-full items-center justify-between px-5 py-3 text-left"
+          onClick={() => setShowComentarios((v) => !v)}
+        >
+          <span className="text-sm font-extrabold uppercase tracking-wide text-muted">
+            💬 Comentarios
+            {ticket.comentarios && ticket.comentarios.length > 0 && (
+              <span className="ml-2 rounded-full bg-surface-hover px-2 py-0.5 text-xs font-bold">{ticket.comentarios.length}</span>
             )}
-            <button disabled={submitting || !comentario.trim()}
-              onClick={() => act(() => tapi(`/${ticketId}/comentarios`, token, {
-                method: "POST",
-                body: JSON.stringify({ texto: comentario, es_interno: esInterno }),
-              }).then(() => { setComentario(""); setEsInterno(false); }))}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50 ml-auto"
-            >
-              Comentar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Audit log */}
-      <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper">
-        <h3 className="mb-4 text-sm font-extrabold uppercase tracking-wide text-muted">Historial de Auditoría</h3>
-        <div className="space-y-2">
-          {(ticket.historial || []).map((l) => (
-            <div key={l.id} className="flex items-start gap-3 text-xs">
-              <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-accent-sky" />
-              <div className="flex-1">
-                <span className="font-bold text-ink">{LOG_LABELS[l.accion] || l.accion}</span>
-                {l.valor_anterior && l.valor_nuevo && (
-                  <span className="text-muted"> · <span className="line-through">{l.valor_anterior}</span> → <span className="font-semibold">{l.valor_nuevo}</span></span>
-                )}
-                {l.detalles && <span className="text-muted"> · {l.detalles}</span>}
+          </span>
+          <span className="text-xs text-muted">{showComentarios ? "▲" : "▼"}</span>
+        </button>
+        {showComentarios && (
+          <div className="border-t border-border px-5 pb-5 space-y-3">
+            {ticket.comentarios && ticket.comentarios.length > 0 ? (
+              <div className="mt-4 space-y-2">
+                {ticket.comentarios.map((c) => (
+                  <div key={c.id} className={`rounded-paper border-2 p-3 ${c.es_interno ? "border-amber-200 bg-amber-50" : "border-border bg-surface"}`}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-xs font-bold text-ink">{c.autor_nombre}</span>
+                      <div className="flex items-center gap-2">
+                        {Boolean(c.es_interno) && <span className="text-xs font-semibold text-amber-700">🔒 Interno</span>}
+                        <span className="text-xs text-muted">{fmtDate(c.creado_en)}</span>
+                      </div>
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm text-ink">{c.texto}</p>
+                  </div>
+                ))}
               </div>
-              <div className="shrink-0 text-right text-muted">
-                {l.usuario_nombre && <div className="font-semibold">{l.usuario_nombre}</div>}
-                <div>{fmtDate(l.creado_en)}</div>
+            ) : (
+              <p className="mt-4 text-sm text-muted">Sin comentarios aún.</p>
+            )}
+            <div className="space-y-2 border-t border-border pt-3">
+              <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={2}
+                placeholder="Agregar comentario..."
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none transition focus:border-accent resize-none" />
+              <div className="flex items-center justify-between">
+                {nivel >= 2 && (
+                  <label className="flex items-center gap-2 text-xs font-semibold text-muted cursor-pointer">
+                    <input type="checkbox" checked={esInterno} onChange={(e) => setEsInterno(e.target.checked)} className="rounded" />
+                    Interno
+                  </label>
+                )}
+                <button disabled={submitting || !comentario.trim()}
+                  onClick={() => act(() => tapi(`/${ticketId}/comentarios`, token, {
+                    method: "POST",
+                    body: JSON.stringify({ texto: comentario, es_interno: esInterno }),
+                  }).then(() => { setComentario(""); setEsInterno(false); }))}
+                  className="ml-auto rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+                  Comentar
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
-
-      {/* Danger zone (admins only) */}
-      {nivel >= 3 && (
-        <div className="rounded-paper border-2 border-red-200 bg-red-50 p-4">
-          <p className="mb-3 text-xs font-bold uppercase tracking-wide text-red-500">Zona de peligro</p>
-          <button
-            disabled={submitting}
-            onClick={async () => {
-              if (!confirm(`¿Eliminar permanentemente el ticket ${ticket.numero}?\n\nEsta acción no se puede deshacer.`)) return;
-              setSubmitting(true);
-              try {
-                await tapi(`/${ticketId}`, token, { method: "DELETE" });
-                onBack();
-              } catch (e: any) {
-                alert(e.message);
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-            className="rounded-paper border-2 border-red-400 bg-white px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-500 hover:text-white disabled:opacity-50"
-          >
-            🗑️ Eliminar ticket permanentemente
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -1671,9 +1556,55 @@ function PasosSection({ ticketId, token }: { ticketId: number; token: string }) 
   const dragIdx = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
 
+  // Cronómetro por paso
+  const [timerPasoId, setTimerPasoId] = useState<number | null>(null);
+  const [timerElapsed, setTimerElapsed] = useState(0);
+  const timerStartRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     tapi(`/${ticketId}/pasos`, token).then(setPasos).catch(() => {});
   }, [ticketId, token]);
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  function fmtTimer(secs: number) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+      : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function startTimer(pasoId: number) {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const start = Date.now();
+    timerStartRef.current = start;
+    setTimerPasoId(pasoId);
+    setTimerElapsed(0);
+    timerRef.current = setInterval(() => {
+      setTimerElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+  }
+
+  async function stopTimer(pasoId: number) {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    const elapsed = timerElapsed;
+    const pasoDesc = pasos.find((p) => p.id === pasoId)?.descripcion ?? "";
+    setTimerPasoId(null);
+    timerStartRef.current = null;
+    setTimerElapsed(0);
+    if (elapsed >= 30) {
+      const horas = Math.round((elapsed / 3600) * 100) / 100;
+      try {
+        await tapi(`/${ticketId}/tiempo`, token, {
+          method: "POST",
+          body: JSON.stringify({ horas, notas: `Paso: ${pasoDesc.slice(0, 60)}` }),
+        });
+      } catch { /* silent — tiempo guardado en segundo plano */ }
+    }
+  }
 
   async function add() {
     if (!nuevo.trim()) return;
@@ -1718,44 +1649,84 @@ function PasosSection({ ticketId, token }: { ticketId: number; token: string }) 
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">📋 Pasos del procedimiento</h3>
         {pasos.length > 0 && (
-          <span className="text-xs font-semibold text-muted">{completados}/{pasos.length} — {pct}%</span>
+          <span className={`text-xs font-bold ${pct === 100 ? "text-green-600" : "text-muted"}`}>
+            {completados}/{pasos.length} — {pct}%
+          </span>
         )}
       </div>
       {pasos.length > 0 && (
-        <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
-          <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-2 rounded-full bg-surface-hover overflow-hidden">
+          <div className="h-full rounded-full transition-all"
+            style={{ width: `${pct}%`, background: pct === 100 ? "#16a34a" : "#0c6069" }} />
         </div>
       )}
-      <div className="space-y-1.5">
-        {pasos.map((p, i) => (
-          <div key={p.id}
-            draggable
-            onDragStart={() => { dragIdx.current = i; }}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
-            onDragLeave={() => setDragOver(null)}
-            onDrop={() => drop(i)}
-            onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
-            className={`flex items-center gap-2 rounded-paper border px-3 py-2 transition
-              ${p.completado ? "border-green-200 bg-green-50" : "border-border bg-surface"}
-              ${dragOver === i ? "opacity-50 border-dashed border-accent" : ""}`}
-          >
-            <span className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none">⠿</span>
-            <button onClick={() => toggle(p.id)}
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition
-                ${p.completado ? "border-green-500 bg-green-500 text-white" : "border-border bg-white hover:border-accent"}`}>
-              {p.completado && <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-            </button>
-            <span className={`flex-1 text-sm ${p.completado ? "line-through text-muted" : "text-ink"}`}>{p.descripcion}</span>
-            {p.completado_por_nombre && (
-              <span className="text-xs text-muted shrink-0">👤 {p.completado_por_nombre}</span>
-            )}
-            <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0">✕</button>
-          </div>
-        ))}
+      <div className="space-y-2">
+        {pasos.map((p, i) => {
+          const isRunning = timerPasoId === p.id;
+          return (
+            <div key={p.id}
+              draggable
+              onDragStart={() => { dragIdx.current = i; }}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+              onDragLeave={() => setDragOver(null)}
+              onDrop={() => drop(i)}
+              onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+              className={`flex items-center gap-2 rounded-paper border px-3 py-2.5 transition
+                ${p.completado ? "border-green-200 bg-green-50"
+                  : isRunning ? "border-blue-300 bg-blue-50"
+                  : "border-border bg-surface"}
+                ${dragOver === i ? "opacity-50 border-dashed border-accent" : ""}`}
+            >
+              <span className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none shrink-0">⠿</span>
+              <button onClick={() => toggle(p.id)}
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition
+                  ${p.completado ? "border-green-500 bg-green-500 text-white" : "border-border bg-white hover:border-accent"}`}>
+                {p.completado && (
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+              <span className={`flex-1 text-sm ${p.completado ? "line-through text-muted" : "text-ink"}`}>
+                {p.descripcion}
+              </span>
+              {p.completado_por_nombre && (
+                <span className="text-xs text-muted shrink-0">👤 {p.completado_por_nombre}</span>
+              )}
+              {/* Cronómetro por paso */}
+              {!p.completado && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isRunning && (
+                    <span className="font-mono text-xs font-bold text-blue-600 min-w-[46px] text-right">
+                      {fmtTimer(timerElapsed)}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => isRunning ? stopTimer(p.id) : startTimer(p.id)}
+                    title={isRunning ? "Detener — guarda el tiempo automáticamente" : "Iniciar cronómetro"}
+                    disabled={timerPasoId !== null && !isRunning}
+                    className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition
+                      ${isRunning
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : timerPasoId !== null
+                          ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                          : "border border-border bg-surface text-muted hover:border-accent hover:text-accent"}`}
+                  >
+                    {isRunning ? "⏹" : "▶"}
+                  </button>
+                </div>
+              )}
+              <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0 px-0.5">✕</button>
+            </div>
+          );
+        })}
       </div>
-      <div className="flex gap-2">
+      {pasos.length === 0 && (
+        <p className="py-2 text-center text-xs text-muted">Sin pasos aún. Agrega los pasos del procedimiento.</p>
+      )}
+      <div className="flex gap-2 pt-1">
         <input className="flex-1 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-          placeholder="Nuevo paso..." value={nuevo}
+          placeholder="Agregar paso..." value={nuevo}
           onChange={(e) => setNuevo(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()} />
         <button onClick={add} disabled={saving || !nuevo.trim()}
@@ -2583,6 +2554,9 @@ function MisionDetailView({
   const dragIdx = useRef<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
 
+  // Configurar pasos/materiales de un ticket inline desde la misión
+  const [configurandoTicketId, setConfigurandoTicketId] = useState<number | null>(null);
+
   const nivel = user.rol?.nivel ?? 1;
 
   const reload = useCallback(async () => {
@@ -2927,12 +2901,33 @@ function MisionDetailView({
                           </button>
                         </div>
                       )}
+                      {et.ticket_id && (
+                        <button
+                          onClick={() => setConfigurandoTicketId(configurandoTicketId === et.ticket_id ? null : et.ticket_id!)}
+                          title="Configurar pasos y materiales de este ticket"
+                          className={`rounded border px-1.5 py-0.5 text-xs font-bold transition
+                            ${configurandoTicketId === et.ticket_id
+                              ? "border-accent bg-accent text-white"
+                              : "border-border text-muted hover:border-accent hover:text-accent"}`}>
+                          ⚙️
+                        </button>
+                      )}
                       {!isLocked && !isDone && (
                         <button onClick={() => deleteEtapa(et.id, et.titulo)}
                           className="text-xs text-red-400 hover:text-red-600 transition px-1">✕</button>
                       )}
                     </div>
                   </div>
+                  {/* Panel de configuración inline */}
+                  {configurandoTicketId === et.ticket_id && et.ticket_id && (
+                    <div className="mt-2 rounded-paper border border-accent/30 bg-surface p-4 space-y-3">
+                      <p className="text-xs font-extrabold uppercase tracking-wide text-accent">
+                        ⚙️ Configurar: {et.titulo}
+                      </p>
+                      <PasosSection ticketId={et.ticket_id} token={token} />
+                      <MaterialesSection ticketId={et.ticket_id} token={token} />
+                    </div>
+                  )}
                   {i < etapas.length - 1 && (
                     <div className="flex justify-center">
                       <div className="my-0.5 h-5 w-0.5 rounded-full" style={{ background: mision.color + "55" }} />
@@ -2982,6 +2977,17 @@ function MisionDetailView({
                           </button>
                         </div>
                       )}
+                      {et.ticket_id && (
+                        <button
+                          onClick={() => setConfigurandoTicketId(configurandoTicketId === et.ticket_id ? null : et.ticket_id!)}
+                          title="Configurar pasos y materiales"
+                          className={`rounded border px-1.5 py-0.5 text-xs font-bold transition
+                            ${configurandoTicketId === et.ticket_id
+                              ? "border-accent bg-accent text-white"
+                              : "border-border text-muted hover:border-accent hover:text-accent"}`}>
+                          ⚙️
+                        </button>
+                      )}
                       {!isLocked && !isDone && (
                         <button onClick={() => deleteEtapa(et.id, et.titulo)}
                           className="text-xs text-red-400 hover:text-red-600 transition px-1">✕</button>
@@ -2991,6 +2997,14 @@ function MisionDetailView({
                   <p className="font-semibold text-sm">{et.titulo}</p>
                   {et.descripcion && <p className="text-xs opacity-75 mt-0.5">{et.descripcion}</p>}
                   {et.asignado_nombre && <p className="text-xs opacity-75 mt-1 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>}
+                  {/* Panel de configuración inline */}
+                  {configurandoTicketId === et.ticket_id && et.ticket_id && (
+                    <div className="mt-3 pt-3 border-t border-border space-y-3">
+                      <p className="text-xs font-extrabold uppercase tracking-wide text-accent">⚙️ Configurar</p>
+                      <PasosSection ticketId={et.ticket_id} token={token} />
+                      <MaterialesSection ticketId={et.ticket_id} token={token} />
+                    </div>
+                  )}
                 </div>
               );
             })}
