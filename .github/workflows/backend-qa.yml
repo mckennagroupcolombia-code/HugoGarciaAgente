@@ -37,7 +37,13 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Run smoke tests
-        run: bash scripts/ci_backend_smoke.sh
+        run: |
+          bash scripts/ci_backend_smoke.sh 2>&1 | tee ci-pytest.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Show pytest log on failure
+        if: failure()
+        run: cat ci-pytest.log || true
 
       - name: Run script audit
         env:
