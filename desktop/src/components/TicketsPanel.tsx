@@ -269,6 +269,35 @@ function PrioridadBadge({ p }: { p: string }) {
   );
 }
 
+// ── Daily Quest helpers ───────────────────────────────────────────────────────
+
+const ESTADO_DOT_COLOR: Record<string, string> = {
+  pendiente:            "#9ca3af",
+  en_proceso:           "#3b82f6",
+  esperando_aprobacion: "#f59e0b",
+  resuelto:             "#22c55e",
+  rechazado:            "#ef4444",
+};
+
+function StatusOrb({ estado }: { estado: string }) {
+  const col = ESTADO_DOT_COLOR[estado] ?? "#9ca3af";
+  return (
+    <span className="inline-flex h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-offset-1 ring-gray-200"
+      style={{ background: col }} />
+  );
+}
+
+const PRIORIDAD_DOT: Record<string, { sym: string; cls: string }> = {
+  baja:    { sym: "—",  cls: "text-gray-400" },
+  media:   { sym: "▲",  cls: "text-blue-500" },
+  alta:    { sym: "▲▲", cls: "text-orange-500" },
+  urgente: { sym: "⚡",  cls: "text-red-500" },
+};
+function PrioridadDot({ p }: { p: string }) {
+  const d = PRIORIDAD_DOT[p] ?? PRIORIDAD_DOT.media;
+  return <span className={`text-[10px] font-extrabold leading-none ${d.cls} shrink-0`}>{d.sym}</span>;
+}
+
 function fmtDate(s: string) {
   if (!s) return "—";
   try {
@@ -366,22 +395,20 @@ interface MisionGroup {
 function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className="w-full rounded-paper border-2 border-border bg-surface-panel p-4 text-left shadow-paper-sm transition hover:border-accent hover:shadow-paper">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="text-xs font-mono font-bold text-muted">{t.numero}</span>
-            <CategoriaBadge cat={t.categoria} />
-            <PrioridadBadge p={t.prioridad} />
-          </div>
-          <p className="font-bold text-ink truncate">{t.titulo}</p>
-          <p className="mt-0.5 text-xs text-muted">
-            {fmtDate(t.creado_en)}
-            {t.asignado_a_nombre && ` · 👤 ${t.asignado_a_nombre}`}
-          </p>
+      className="w-full flex items-center gap-3 rounded-xl border-l-4 bg-surface-panel px-4 py-3 text-left shadow-sm transition hover:shadow-md hover:translate-x-0.5"
+      style={{ borderLeftColor: ESTADO_DOT_COLOR[t.estado] ?? "#9ca3af" }}>
+      <StatusOrb estado={t.estado} />
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-sm text-ink leading-snug truncate">{t.titulo}</p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <span className="text-[10px] font-mono text-muted">{t.numero}</span>
+          <CategoriaBadge cat={t.categoria} />
+          {t.asignado_a_nombre && (
+            <span className="text-[10px] text-muted">👤 {t.asignado_a_nombre}</span>
+          )}
         </div>
-        <EstadoBadge estado={t.estado} />
       </div>
+      <PrioridadDot p={t.prioridad} />
     </button>
   );
 }
@@ -398,78 +425,78 @@ function MisionGroupCard({
   const resolved = group.tickets.filter((t) => t.estado === "resuelto").length;
   const total = group.tickets.length;
   const pct = total > 0 ? Math.round((resolved / total) * 100) : 0;
+  const isComplete = resolved === total && total > 0;
+  const c = group.mision_color;
 
-  // Sequential: show only the frontmost active (unblocked, not done)
-  // Parallel: show all non-done tickets
   const visible = isSeq
     ? group.tickets.filter((t) => !t.bloqueado_por && !done.includes(t.estado))
     : group.tickets.filter((t) => !done.includes(t.estado));
 
-  const isComplete = resolved === total && total > 0;
-
   return (
-    <div className="rounded-paper border-2 overflow-hidden shadow-paper-sm"
-      style={{ borderColor: group.mision_color + "66" }}>
-      {/* Mission header */}
-      <button
-        onClick={() => onMisionDetail(group.mision_id)}
-        className="w-full px-4 py-3 text-left transition hover:bg-surface-hover flex items-center gap-3"
-        style={{ background: group.mision_color + "0d" }}>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1.5">
-            <span className="font-extrabold text-sm" style={{ color: group.mision_color }}>
-              🎯 {group.mision_titulo}
-            </span>
-            <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold text-gray-600 border border-gray-200">
-              {isSeq ? "🔗 Secuencial" : "⚡ Paralelo"}
-            </span>
-            {isComplete && (
-              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700 border border-green-300">
-                ✅ Completada
-              </span>
-            )}
+    <div className="overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-sm"
+      style={{ borderTop: `3px solid ${c}` }}>
+
+      {/* Campaign header */}
+      <button onClick={() => onMisionDetail(group.mision_id)}
+        className="w-full p-4 text-left transition hover:bg-surface-hover"
+        style={{ background: c + "0a" }}>
+        <div className="flex items-start gap-3 mb-3">
+          <div className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center text-white text-base font-black shadow-sm"
+            style={{ background: c }}>
+            {isSeq ? "🔗" : "⚡"}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-black/10">
-              <div className="h-full rounded-full transition-all"
-                style={{ width: `${pct}%`, background: group.mision_color }} />
+          <div className="flex-1 min-w-0">
+            <div className="font-extrabold text-sm leading-snug" style={{ color: c }}>
+              {group.mision_titulo}
             </div>
-            <span className="shrink-0 text-xs font-bold" style={{ color: group.mision_color }}>
-              {resolved}/{total}
-            </span>
+            <div className="text-[11px] text-muted mt-0.5">
+              {isSeq ? "Secuencial" : "Paralelo"} · {total} etapa{total !== 1 ? "s" : ""}
+              {isComplete && <span className="ml-2 text-green-600 font-bold">✅ Completada</span>}
+            </div>
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="text-2xl font-black leading-none" style={{ color: c }}>
+              {pct}<span className="text-sm font-bold">%</span>
+            </div>
+            <div className="text-[10px] text-muted mt-0.5">{resolved}/{total}</div>
           </div>
         </div>
-        <span className="shrink-0 text-xs text-muted font-semibold">Ver misión →</span>
+
+        {/* XP bar */}
+        <div className="h-2.5 rounded-full overflow-hidden" style={{ background: c + "22" }}>
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${c}99, ${c})` }} />
+        </div>
       </button>
 
-      {/* Active tickets */}
+      {/* Quest list */}
       {visible.length > 0 ? (
-        <div className="border-t divide-y" style={{ borderColor: group.mision_color + "33" }}>
+        <div className="divide-y" style={{ borderColor: c + "22" }}>
           {visible.map((t) => (
             <button key={t.id} onClick={() => onSelect(t.id)}
-              className="w-full px-4 py-3 text-left transition hover:bg-surface-hover flex items-center gap-3">
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition hover:bg-surface-hover">
+              <StatusOrb estado={t.estado} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-mono font-bold text-muted">{t.numero}</span>
-                  <PrioridadBadge p={t.prioridad} />
+                <p className="text-sm font-semibold text-ink truncate">{t.titulo}</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-muted">{t.numero}</span>
                   {isSeq && total > 1 && (
-                    <span className="text-xs text-muted">
-                      Etapa {group.tickets.findIndex((x) => x.id === t.id) + 1}/{total}
+                    <span className="text-[10px] text-muted">
+                      · Etapa {group.tickets.findIndex((x) => x.id === t.id) + 1}/{total}
                     </span>
                   )}
+                  {t.asignado_a_nombre && (
+                    <span className="text-[10px] text-muted">· 👤 {t.asignado_a_nombre}</span>
+                  )}
                 </div>
-                <p className="text-sm font-bold text-ink truncate">{t.titulo}</p>
-                {t.asignado_a_nombre && (
-                  <p className="text-xs text-muted">👤 {t.asignado_a_nombre}</p>
-                )}
               </div>
-              <EstadoBadge estado={t.estado} />
+              <PrioridadDot p={t.prioridad} />
             </button>
           ))}
         </div>
       ) : (
-        <div className="px-4 py-2 text-xs text-muted border-t" style={{ borderColor: group.mision_color + "33" }}>
-          {isComplete ? "Todos los tickets resueltos" : "Sin etapas activas pendientes"}
+        <div className="px-4 py-2.5 text-xs text-muted">
+          {isComplete ? "✅ Todas las etapas completadas" : "Sin etapas activas pendientes"}
         </div>
       )}
     </div>
@@ -477,11 +504,10 @@ function MisionGroupCard({
 }
 
 function TicketListView({
-  token, user, onSelect, onCreate, onAdmin, onWorkload, onMisiones, onMisionDetail, onInventario,
+  token, user, onSelect, onAdmin, onWorkload, onMisiones, onMisionDetail, onInventario,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
-  onCreate: () => void;
   onAdmin: () => void;
   onWorkload: () => void;
   onMisiones: () => void;
@@ -555,19 +581,21 @@ function TicketListView({
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* ── Daily Quest header ── */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold text-ink">Centro de Mando</h2>
-          <p className="text-sm text-muted">— {user.nombre}</p>
+          <h2 className="text-2xl font-extrabold tracking-tight text-ink">📜 Tablero de Quests</h2>
+          <p className="text-sm text-muted mt-0.5">
+            {user.nombre} · <span className="font-bold text-accent">{tickets.length}</span> quest{tickets.length !== 1 ? "s" : ""} activa{tickets.length !== 1 ? "s" : ""}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={onMisiones}
-            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-            🎯 Misiones
+            className="rounded-xl border-2 border-accent bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
+            🎯 Gestionar Misiones
           </button>
           <button onClick={onInventario}
-            className="relative rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
+            className="relative rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
             🧪 Inventario
             {bajoStockCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none">
@@ -577,64 +605,62 @@ function TicketListView({
           </button>
           {nivel >= 2 && (
             <button onClick={onWorkload}
-              className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
+              className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
               📊 Carga
             </button>
           )}
           {nivel >= 3 && (
             <button onClick={onAdmin}
-              className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
+              className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
               ⚙️ Admin
             </button>
           )}
-          <button onClick={onCreate}
-            className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-            + Nuevo ticket
-          </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* ── Quest Log stats ── */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
-          { label: "Pendientes", val: stats.pendientes, cls: "border-yellow-300 bg-yellow-50" },
-          { label: "En proceso",  val: stats.en_proceso,  cls: "border-blue-300 bg-blue-50" },
-          { label: "Esperando",   val: stats.esperando,   cls: "border-orange-300 bg-orange-50" },
-          { label: "Resueltos",   val: stats.resueltos,   cls: "border-green-300 bg-green-50" },
+          { label: "⚔️ En campaña",  val: stats.en_proceso,  color: "#3b82f6" },
+          { label: "🔔 En revisión", val: stats.esperando,   color: "#f59e0b" },
+          { label: "⏳ Por iniciar", val: stats.pendientes,  color: "#9ca3af" },
+          { label: "✅ Completadas", val: stats.resueltos,   color: "#22c55e" },
         ].map((s) => (
-          <div key={s.label} className={`rounded-paper border-2 p-3 text-center ${s.cls}`}>
-            <div className="text-2xl font-black text-ink">{s.val}</div>
-            <div className="text-xs font-semibold text-muted">{s.label}</div>
+          <div key={s.label} className="rounded-xl border-2 p-3 text-center bg-surface-panel shadow-sm"
+            style={{ borderColor: s.color + "55" }}>
+            <div className="text-2xl font-black" style={{ color: s.color }}>{s.val}</div>
+            <div className="text-[11px] font-bold text-muted mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      {/* ── Filters ── */}
+      <div className="flex flex-wrap gap-2 items-center">
         <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}
-          className="rounded-paper border-2 border-border bg-surface-input px-3 py-1.5 text-sm text-ink outline-none focus:border-accent">
+          className="rounded-xl border-2 border-border bg-surface-input px-3 py-1.5 text-sm text-ink outline-none focus:border-accent">
           <option value="">Todos los estados</option>
-          <option value="pendiente">Pendiente</option>
-          <option value="en_proceso">En Proceso</option>
-          <option value="esperando_aprobacion">Esperando Aprobación</option>
-          <option value="resuelto">Resuelto</option>
-          <option value="rechazado">Rechazado</option>
+          <option value="pendiente">⏳ Pendiente</option>
+          <option value="en_proceso">⚔️ En proceso</option>
+          <option value="esperando_aprobacion">🔔 Esperando revisión</option>
+          <option value="resuelto">✅ Resuelto</option>
+          <option value="rechazado">❌ Rechazado</option>
         </select>
         <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
-          className="rounded-paper border-2 border-border bg-surface-input px-3 py-1.5 text-sm text-ink outline-none focus:border-accent">
+          className="rounded-xl border-2 border-border bg-surface-input px-3 py-1.5 text-sm text-ink outline-none focus:border-accent">
           <option value="">Todas las categorías</option>
           {categorias.map((c) => (
             <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
           ))}
         </select>
         <button onClick={load}
-          className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-          ↻ Actualizar
+          className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+          title="Actualizar">
+          ↻
         </button>
         {hasFilters && (
           <button onClick={() => { setFiltroEstado(""); setFiltroCategoria(""); }}
-            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger">
-            ✕ Limpiar filtros
+            className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger">
+            ✕ Limpiar
           </button>
         )}
       </div>
@@ -862,33 +888,21 @@ function CreateTicketView({
   );
 }
 
-// Ticket detail
+// Ticket detail — read-only board view (execution only: step timers + checkboxes)
 function TicketDetailView({
-  token, user, ticketId, onBack,
+  token, ticketId, onBack,
 }: {
   token: string; user: TicketsUser; ticketId: number; onBack: () => void;
 }) {
   const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [comentario, setComentario] = useState("");
-  const [esInterno, setEsInterno] = useState(false);
-  const [asignarA, setAsignarA] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [showComentarios, setShowComentarios] = useState(false);
-
-  const nivel = user.rol?.nivel ?? 1;
 
   const reload = useCallback(async () => {
     setLoading(true);
     try {
-      const [t, us] = await Promise.all([
-        tapi(`/${ticketId}`, token),
-        tapi("/usuarios", token),
-      ]);
-      setTicket(t);
-      setUsuarios(us);
+      setTicket(await tapi(`/${ticketId}`, token));
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -898,52 +912,21 @@ function TicketDetailView({
 
   useEffect(() => { reload(); }, [reload]);
 
-  async function act(fn: () => Promise<any>) {
-    setSubmitting(true);
-    try {
-      await fn();
-      await reload();
-    } catch (e: any) {
-      alert(e.message);
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (loading) return <div className="py-16 text-center text-sm text-muted">Cargando ticket...</div>;
+  if (loading) return <div className="py-16 text-center text-sm text-muted">Cargando quest...</div>;
   if (error || !ticket) return (
     <div className="space-y-3">
-      <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition">← Volver</button>
+      <button onClick={onBack} className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition">← Tablero</button>
       <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error || "No encontrado"}</div>
     </div>
   );
-
-  const canApprove = nivel >= 2 && (ticket.categoria !== "rrhh" || nivel >= 3);
-  const canAssign = nivel >= 2;
-  const isAssignee = ticket.asignado_a === user.id;
-  const isClosed = ticket.estado === "resuelto" || ticket.estado === "rechazado";
-
-  const availableStates: { val: string; label: string; cls: string }[] = [];
-  if (ticket.estado === "pendiente" && canAssign) {
-    availableStates.push({ val: "en_proceso", label: "▶ Iniciar", cls: "border-blue-400 bg-blue-500 text-white hover:bg-blue-600 shadow-[0_2px_0_#1d4ed8]" });
-    availableStates.push({ val: "rechazado", label: "Rechazar", cls: "border-red-400 bg-red-500 text-white hover:bg-red-600 shadow-[0_2px_0_#991b1b]" });
-  }
-  if (ticket.estado === "en_proceso" && (isAssignee || nivel >= 2)) {
-    availableStates.push({ val: "esperando_aprobacion", label: "✓ Marcar Listo", cls: "border-orange-400 bg-orange-500 text-white hover:bg-orange-600 shadow-[0_2px_0_#c2410c]" });
-  }
-  if (ticket.estado === "esperando_aprobacion" && canApprove) {
-    availableStates.push({ val: "resuelto", label: "✅ Aprobar", cls: "border-green-500 bg-green-600 text-white hover:bg-green-700 shadow-[0_2px_0_#166534]" });
-    availableStates.push({ val: "en_proceso", label: "↩ Devolver", cls: "border-gray-400 bg-gray-500 text-white hover:bg-gray-600 shadow-[0_2px_0_#374151]" });
-    availableStates.push({ val: "rechazado", label: "❌ Rechazar", cls: "border-red-400 bg-red-500 text-white hover:bg-red-600 shadow-[0_2px_0_#991b1b]" });
-  }
 
   return (
     <div className="space-y-4 pb-8">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-2">
         <button onClick={onBack}
-          className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-          ← Volver
+          className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
+          ← Tablero
         </button>
         <span className="font-mono text-sm font-bold text-muted">{ticket.numero}</span>
         <CategoriaBadge cat={ticket.categoria} />
@@ -954,11 +937,13 @@ function TicketDetailView({
             ⏱ {ticket.total_horas}h
           </span>
         )}
+        <span className="ml-auto rounded-full bg-surface-hover border border-border px-2.5 py-0.5 text-[10px] font-bold text-muted">
+          👁 Solo visualización
+        </span>
       </div>
 
-      {/* Info + acciones rápidas */}
-      <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
-        <h2 className="text-lg font-extrabold text-ink">{ticket.titulo}</h2>
+      {/* Quest info card — read only */}
+      <div className="rounded-xl border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
         {ticket.mision_info && ticket.etapa_info && (
           <div className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold"
             style={{ borderColor: ticket.mision_info.color + "66", background: ticket.mision_info.color + "18", color: ticket.mision_info.color }}>
@@ -966,128 +951,83 @@ function TicketDetailView({
           </div>
         )}
         {ticket.bloqueado_por && (
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 ml-2">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600">
             🔒 Bloqueado por {ticket.bloqueado_por_numero}
           </div>
         )}
+        <h2 className="text-lg font-extrabold text-ink">{ticket.titulo}</h2>
         {ticket.descripcion && (
           <p className="whitespace-pre-wrap text-sm text-ink border-t border-border pt-3">{ticket.descripcion}</p>
         )}
         {ticket.soporte_archivo && (
           <a href={`/api/tickets/uploads/${ticket.soporte_archivo}?token=${token}`}
             target="_blank" rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-paper border-2 border-border px-3 py-1 text-xs font-semibold text-accent hover:border-accent transition">
+            className="inline-flex items-center gap-1.5 rounded-xl border-2 border-border px-3 py-1 text-xs font-semibold text-accent hover:border-accent transition">
             📎 Ver adjunto
           </a>
         )}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted border-t border-border pt-3">
           <span>Creado por: <strong className="text-ink">{ticket.creado_por_info?.nombre || "—"}</strong></span>
           <span>{fmtDate(ticket.creado_en)}</span>
-          {ticket.asignado_a_info && <span>→ <strong className="text-ink">{ticket.asignado_a_info.nombre}</strong></span>}
+          {ticket.asignado_a_info && (
+            <span>Asignado a: <strong className="text-ink">{ticket.asignado_a_info.nombre}</strong></span>
+          )}
         </div>
-        {/* Assign + state actions */}
-        {!isClosed && (
-          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-            {canAssign && (
-              <>
-                <select value={asignarA} onChange={(e) => setAsignarA(e.target.value)}
-                  className="rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent">
-                  <option value="">Sin asignar</option>
-                  {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-                </select>
-                <button disabled={submitting}
-                  onClick={() => act(() => tapi(`/${ticketId}/asignar`, token, {
-                    method: "PUT", body: JSON.stringify({ asignado_a: asignarA ? parseInt(asignarA) : null }),
-                  }))}
-                  className="rounded-paper border-2 border-border px-2.5 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent disabled:opacity-50">
-                  Asignar
-                </button>
-              </>
-            )}
-            {availableStates.map((s) => (
-              <button key={s.val} disabled={submitting}
-                onClick={() => act(() => tapi(`/${ticketId}/estado`, token, {
-                  method: "PUT", body: JSON.stringify({ estado: s.val }),
-                }))}
-                className={`rounded-paper border-2 px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 active:translate-y-0.5 active:shadow-none ${s.cls}`}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Pasos — sección principal (solo lectura en ejecución) */}
+      {/* Pasos — ejecución: timer + checkbox activos, sin edición */}
       <PasosSection ticketId={ticket.id} token={token} editMode={false} />
 
-      {/* Materiales (solo lectura en ejecución) */}
+      {/* Materiales — solo referencia */}
       <MaterialesSection ticketId={ticket.id} token={token} readonly={true} />
 
-      {/* Participantes */}
-      <ParticipantesSection
-        ticket={ticket} token={token} user={user}
-        usuarios={usuarios} submitting={submitting}
-        onAct={act}
-      />
-
-      {/* Comentarios — colapsable */}
-      <div className="rounded-paper border-2 border-border bg-surface-panel shadow-paper overflow-hidden">
-        <button
-          className="flex w-full items-center justify-between px-5 py-3 text-left"
-          onClick={() => setShowComentarios((v) => !v)}
-        >
-          <span className="text-sm font-extrabold uppercase tracking-wide text-muted">
-            💬 Comentarios
-            {ticket.comentarios && ticket.comentarios.length > 0 && (
-              <span className="ml-2 rounded-full bg-surface-hover px-2 py-0.5 text-xs font-bold">{ticket.comentarios.length}</span>
-            )}
-          </span>
-          <span className="text-xs text-muted">{showComentarios ? "▲" : "▼"}</span>
-        </button>
-        {showComentarios && (
-          <div className="border-t border-border px-5 pb-5 space-y-3">
-            {ticket.comentarios && ticket.comentarios.length > 0 ? (
-              <div className="mt-4 space-y-2">
-                {ticket.comentarios.map((c) => (
-                  <div key={c.id} className={`rounded-paper border-2 p-3 ${c.es_interno ? "border-amber-200 bg-amber-50" : "border-border bg-surface"}`}>
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="text-xs font-bold text-ink">{c.autor_nombre}</span>
-                      <div className="flex items-center gap-2">
-                        {Boolean(c.es_interno) && <span className="text-xs font-semibold text-amber-700">🔒 Interno</span>}
-                        <span className="text-xs text-muted">{fmtDate(c.creado_en)}</span>
-                      </div>
-                    </div>
-                    <p className="whitespace-pre-wrap text-sm text-ink">{c.texto}</p>
-                  </div>
-                ))}
+      {/* Participantes — solo visualización */}
+      {ticket.participantes && ticket.participantes.length > 0 && (
+        <div className="rounded-xl border-2 border-border bg-surface-panel p-5 shadow-paper">
+          <h3 className="mb-3 text-sm font-extrabold uppercase tracking-wide text-muted">Participantes</h3>
+          <div className="flex flex-wrap gap-2">
+            {ticket.participantes.map((p) => (
+              <div key={p.usuario_id}
+                className="flex items-center gap-1.5 rounded-full border-2 border-border bg-surface px-3 py-1 text-xs font-semibold">
+                <span className="text-ink">{p.usuario_nombre}</span>
+                <span className="text-muted capitalize">· {p.rol}</span>
               </div>
-            ) : (
-              <p className="mt-4 text-sm text-muted">Sin comentarios aún.</p>
-            )}
-            <div className="space-y-2 border-t border-border pt-3">
-              <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={2}
-                placeholder="Agregar comentario..."
-                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none transition focus:border-accent resize-none" />
-              <div className="flex items-center justify-between">
-                {nivel >= 2 && (
-                  <label className="flex items-center gap-2 text-xs font-semibold text-muted cursor-pointer">
-                    <input type="checkbox" checked={esInterno} onChange={(e) => setEsInterno(e.target.checked)} className="rounded" />
-                    Interno
-                  </label>
-                )}
-                <button disabled={submitting || !comentario.trim()}
-                  onClick={() => act(() => tapi(`/${ticketId}/comentarios`, token, {
-                    method: "POST",
-                    body: JSON.stringify({ texto: comentario, es_interno: esInterno }),
-                  }).then(() => { setComentario(""); setEsInterno(false); }))}
-                  className="ml-auto rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
-                  Comentar
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Comentarios — solo lectura */}
+      {ticket.comentarios && ticket.comentarios.length > 0 && (
+        <div className="rounded-xl border-2 border-border bg-surface-panel shadow-paper overflow-hidden">
+          <button
+            className="flex w-full items-center justify-between px-5 py-3 text-left"
+            onClick={() => setShowComentarios((v) => !v)}>
+            <span className="text-sm font-extrabold uppercase tracking-wide text-muted">
+              💬 Comentarios
+              <span className="ml-2 rounded-full bg-surface-hover px-2 py-0.5 text-xs font-bold">{ticket.comentarios.length}</span>
+            </span>
+            <span className="text-xs text-muted">{showComentarios ? "▲" : "▼"}</span>
+          </button>
+          {showComentarios && (
+            <div className="border-t border-border px-5 pb-5 mt-3 space-y-2">
+              {ticket.comentarios.map((c) => (
+                <div key={c.id}
+                  className={`rounded-xl border-2 p-3 ${c.es_interno ? "border-amber-200 bg-amber-50" : "border-border bg-surface"}`}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-xs font-bold text-ink">{c.autor_nombre}</span>
+                    <div className="flex items-center gap-2">
+                      {Boolean(c.es_interno) && <span className="text-xs font-semibold text-amber-700">🔒 Interno</span>}
+                      <span className="text-xs text-muted">{fmtDate(c.creado_en)}</span>
+                    </div>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm text-ink">{c.texto}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -3634,7 +3574,6 @@ export default function TicketsPanel() {
           <TicketListView
             token={token} user={user}
             onSelect={goDetail}
-            onCreate={() => setView("create")}
             onAdmin={() => setView("admin")}
             onWorkload={() => setView("workload")}
             onMisiones={() => setView("misiones")}
