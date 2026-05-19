@@ -1017,11 +1017,11 @@ function TicketDetailView({
         )}
       </div>
 
-      {/* Pasos — sección principal */}
-      <PasosSection ticketId={ticket.id} token={token} />
+      {/* Pasos — sección principal (solo lectura en ejecución) */}
+      <PasosSection ticketId={ticket.id} token={token} editMode={false} />
 
-      {/* Materiales */}
-      <MaterialesSection ticketId={ticket.id} token={token} />
+      {/* Materiales (solo lectura en ejecución) */}
+      <MaterialesSection ticketId={ticket.id} token={token} readonly={true} />
 
       {/* Participantes */}
       <ParticipantesSection
@@ -1571,7 +1571,7 @@ interface Paso {
   completado: number; completado_en: string | null; completado_por_nombre: string | null;
 }
 
-function PasosSection({ ticketId, token }: { ticketId: number; token: string }) {
+function PasosSection({ ticketId, token, editMode = true }: { ticketId: number; token: string; editMode?: boolean }) {
   const [pasos, setPasos] = useState<Paso[]>([]);
   const [nuevo, setNuevo] = useState("");
   const [saving, setSaving] = useState(false);
@@ -1687,19 +1687,21 @@ function PasosSection({ ticketId, token }: { ticketId: number; token: string }) 
           const isRunning = timerPasoId === p.id;
           return (
             <div key={p.id}
-              draggable
-              onDragStart={() => { dragIdx.current = i; }}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={() => drop(i)}
-              onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+              draggable={editMode}
+              onDragStart={editMode ? () => { dragIdx.current = i; } : undefined}
+              onDragOver={editMode ? (e) => { e.preventDefault(); setDragOver(i); } : undefined}
+              onDragLeave={editMode ? () => setDragOver(null) : undefined}
+              onDrop={editMode ? () => drop(i) : undefined}
+              onDragEnd={editMode ? () => { dragIdx.current = null; setDragOver(null); } : undefined}
               className={`flex items-center gap-2 rounded-paper border px-3 py-2.5 transition
                 ${p.completado ? "border-green-200 bg-green-50"
                   : isRunning ? "border-blue-300 bg-blue-50"
                   : "border-border bg-surface"}
-                ${dragOver === i ? "opacity-50 border-dashed border-accent" : ""}`}
+                ${editMode && dragOver === i ? "opacity-50 border-dashed border-accent" : ""}`}
             >
-              <span className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none shrink-0">⠿</span>
+              {editMode && (
+                <span className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none shrink-0">⠿</span>
+              )}
               <button onClick={() => toggle(p.id)}
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition
                   ${p.completado ? "border-green-500 bg-green-500 text-white" : "border-border bg-white hover:border-accent"}`}>
@@ -1738,24 +1740,30 @@ function PasosSection({ ticketId, token }: { ticketId: number; token: string }) 
                   </button>
                 </div>
               )}
-              <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0 px-0.5">✕</button>
+              {editMode && (
+                <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0 px-0.5">✕</button>
+              )}
             </div>
           );
         })}
       </div>
       {pasos.length === 0 && (
-        <p className="py-2 text-center text-xs text-muted">Sin pasos aún. Agrega los pasos del procedimiento.</p>
+        <p className="py-2 text-center text-xs text-muted">
+          {editMode ? "Sin pasos aún. Agrega los pasos del procedimiento." : "Sin pasos definidos."}
+        </p>
       )}
-      <div className="flex gap-2 pt-1">
-        <input className="flex-1 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-          placeholder="Agregar paso..." value={nuevo}
-          onChange={(e) => setNuevo(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()} />
-        <button onClick={add} disabled={saving || !nuevo.trim()}
-          className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
-          + Añadir
-        </button>
-      </div>
+      {editMode && (
+        <div className="flex gap-2 pt-1">
+          <input className="flex-1 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+            placeholder="Agregar paso..." value={nuevo}
+            onChange={(e) => setNuevo(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()} />
+          <button onClick={add} disabled={saving || !nuevo.trim()}
+            className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
+            + Añadir
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1765,7 +1773,7 @@ function PasosSection({ ticketId, token }: { ticketId: number; token: string }) 
 interface Material { id: number; nombre: string; unidad: string; stock_actual: number; stock_minimo: number; precio_unitario: number; proveedor?: string; tipo?: "materia_prima" | "elaborado"; mision_origen_id?: number | null; }
 interface TicketMaterial { id: number; ticket_id: number; material_id: number; nombre: string; unidad: string; cantidad_requerida: number; stock_actual: number; tipo?: "materia_prima" | "elaborado"; }
 
-function MaterialesSection({ ticketId, token }: { ticketId: number; token: string }) {
+function MaterialesSection({ ticketId, token, readonly = false }: { ticketId: number; token: string; readonly?: boolean }) {
   const [items, setItems] = useState<TicketMaterial[]>([]);
   const [catalogo, setCatalogo] = useState<Material[]>([]);
   const [selMat, setSelMat] = useState("");
@@ -1823,9 +1831,11 @@ function MaterialesSection({ ticketId, token }: { ticketId: number; token: strin
                       </span>
                     </p>
                   </div>
-                  <div className="flex gap-1.5 shrink-0">
-                    <button onClick={() => del(it.id)} className="text-xs text-muted hover:text-danger transition px-1">✕</button>
-                  </div>
+                  {!readonly && (
+                    <div className="flex gap-1.5 shrink-0">
+                      <button onClick={() => del(it.id)} className="text-xs text-muted hover:text-danger transition px-1">✕</button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -1835,7 +1845,7 @@ function MaterialesSection({ ticketId, token }: { ticketId: number; token: strin
         <p className="text-xs text-muted">Sin materiales asignados aún.</p>
       )}
 
-      {disponibles.length > 0 && (
+      {!readonly && disponibles.length > 0 && (
         <div className="flex flex-wrap gap-2 pt-1">
           <select className="flex-1 min-w-32 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent"
             value={selMat} onChange={(e) => setSelMat(e.target.value)}>
@@ -3354,8 +3364,8 @@ function MisionDetailView({
                       <p className="text-xs font-extrabold uppercase tracking-wide text-accent">
                         ⚙️ Configurar: {et.titulo}
                       </p>
-                      <PasosSection ticketId={et.ticket_id} token={token} />
-                      <MaterialesSection ticketId={et.ticket_id} token={token} />
+                      <PasosSection ticketId={et.ticket_id} token={token} editMode={true} />
+                      <MaterialesSection ticketId={et.ticket_id} token={token} readonly={false} />
                     </div>
                   )}
                   {i < etapas.length - 1 && (
@@ -3431,8 +3441,8 @@ function MisionDetailView({
                   {configurandoTicketId === et.ticket_id && et.ticket_id && (
                     <div className="mt-3 pt-3 border-t border-border space-y-3">
                       <p className="text-xs font-extrabold uppercase tracking-wide text-accent">⚙️ Configurar</p>
-                      <PasosSection ticketId={et.ticket_id} token={token} />
-                      <MaterialesSection ticketId={et.ticket_id} token={token} />
+                      <PasosSection ticketId={et.ticket_id} token={token} editMode={true} />
+                      <MaterialesSection ticketId={et.ticket_id} token={token} readonly={false} />
                     </div>
                   )}
                 </div>
