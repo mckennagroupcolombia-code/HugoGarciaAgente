@@ -2694,10 +2694,11 @@ function CreateMisionView({
 
 // Mission detail with etapa pipeline and launch modal
 function MisionDetailView({
-  token, user, misionId, onBack, onTicket,
+  token, user, misionId, onBack, onTicket, readonly = false,
 }: {
   token: string; user: TicketsUser; misionId: number;
   onBack: () => void; onTicket: (id: number) => void;
+  readonly?: boolean;
 }) {
   const { cats: categorias } = useContext(CategoriasCtx);
   const [mision, setMision] = useState<Mision | null>(null);
@@ -2895,57 +2896,65 @@ function MisionDetailView({
           </span>
         )}
         <div className="ml-auto flex gap-2">
-          <button
-            onClick={() => setEditingMeta((v) => !v)}
-            className={`rounded-paper border-2 px-3 py-1.5 text-sm font-bold transition
-              ${editingMeta
-                ? "border-accent bg-accent text-white"
-                : "border-border text-muted hover:border-accent hover:text-accent"}`}>
-            ✏️ Editar
-          </button>
-          {nivel >= 2 && (
-            <button
-              disabled={renewing}
-              onClick={async () => {
-                if (!confirm(`¿Renovar la misión "${mision.titulo}"?\n\nSe eliminarán los tickets actuales y se crearán nuevos. La misión quedará activa.`)) return;
-                setRenewing(true);
-                try {
-                  const res = await tapi(`/misiones/${misionId}/renovar`, token, { method: "POST" });
-                  setMision(res.mision);
-                } catch (e: any) {
-                  alert(e.message);
-                } finally {
-                  setRenewing(false);
-                }
-              }}
-              className="rounded-paper border-2 border-emerald-400 px-3 py-1.5 text-sm font-bold text-emerald-600 transition hover:bg-emerald-500 hover:border-emerald-500 hover:text-white disabled:opacity-50">
-              {renewing ? "Renovando..." : "♻️ Renovar"}
-            </button>
-          )}
-          {nivel >= 3 && (
-            <button
-              onClick={async () => {
-                const ticketCount = (mision.etapas || []).filter((e) => e.ticket_id).length;
-                const msg = ticketCount > 0
-                  ? `¿Eliminar la misión "${mision.titulo}" y sus ${ticketCount} ticket(s) asociados?\n\nEsta acción no se puede deshacer.`
-                  : `¿Eliminar la misión "${mision.titulo}"?\n\nEsta acción no se puede deshacer.`;
-                if (!confirm(msg)) return;
-                try {
-                  await tapi(`/misiones/${misionId}`, token, { method: "DELETE" });
-                  onBack();
-                } catch (e: any) {
-                  alert(e.message);
-                }
-              }}
-              className="rounded-paper border-2 border-red-300 px-3 py-1.5 text-sm font-bold text-red-500 transition hover:bg-red-500 hover:border-red-500 hover:text-white">
-              🗑️ Eliminar
-            </button>
+          {readonly ? (
+            <span className="rounded-full bg-surface-hover border border-border px-2.5 py-0.5 text-[10px] font-bold text-muted">
+              👁 Solo visualización
+            </span>
+          ) : (
+            <>
+              <button
+                onClick={() => setEditingMeta((v) => !v)}
+                className={`rounded-paper border-2 px-3 py-1.5 text-sm font-bold transition
+                  ${editingMeta
+                    ? "border-accent bg-accent text-white"
+                    : "border-border text-muted hover:border-accent hover:text-accent"}`}>
+                ✏️ Editar
+              </button>
+              {nivel >= 2 && (
+                <button
+                  disabled={renewing}
+                  onClick={async () => {
+                    if (!confirm(`¿Renovar la misión "${mision.titulo}"?\n\nSe eliminarán los tickets actuales y se crearán nuevos. La misión quedará activa.`)) return;
+                    setRenewing(true);
+                    try {
+                      const res = await tapi(`/misiones/${misionId}/renovar`, token, { method: "POST" });
+                      setMision(res.mision);
+                    } catch (e: any) {
+                      alert(e.message);
+                    } finally {
+                      setRenewing(false);
+                    }
+                  }}
+                  className="rounded-paper border-2 border-emerald-400 px-3 py-1.5 text-sm font-bold text-emerald-600 transition hover:bg-emerald-500 hover:border-emerald-500 hover:text-white disabled:opacity-50">
+                  {renewing ? "Renovando..." : "♻️ Renovar"}
+                </button>
+              )}
+              {nivel >= 3 && (
+                <button
+                  onClick={async () => {
+                    const ticketCount = (mision.etapas || []).filter((e) => e.ticket_id).length;
+                    const msg = ticketCount > 0
+                      ? `¿Eliminar la misión "${mision.titulo}" y sus ${ticketCount} ticket(s) asociados?\n\nEsta acción no se puede deshacer.`
+                      : `¿Eliminar la misión "${mision.titulo}"?\n\nEsta acción no se puede deshacer.`;
+                    if (!confirm(msg)) return;
+                    try {
+                      await tapi(`/misiones/${misionId}`, token, { method: "DELETE" });
+                      onBack();
+                    } catch (e: any) {
+                      alert(e.message);
+                    }
+                  }}
+                  className="rounded-paper border-2 border-red-300 px-3 py-1.5 text-sm font-bold text-red-500 transition hover:bg-red-500 hover:border-red-500 hover:text-white">
+                  🗑️ Eliminar
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
 
       {/* Edit metadata panel */}
-      {editingMeta && (
+      {!readonly && editingMeta && (
         <div className="rounded-paper border-2 border-accent bg-surface-panel p-5 shadow-paper space-y-4">
           <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Editar misión</h3>
           <div>
@@ -3066,19 +3075,21 @@ function MisionDetailView({
                       : dep.estado === "cancelada" ? "bg-red-100 text-red-600"
                       : "bg-blue-100 text-blue-700"
                     }`}>{dep.estado}</span>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const updated = await tapi(`/misiones/${misionId}/dependencias/${dep.id}`, token, { method: "DELETE" });
-                          setMision(updated);
-                        } catch (e: any) { alert(e.message); }
-                      }}
-                      className="text-muted hover:text-danger transition text-xs px-1">✕</button>
+                    {!readonly && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const updated = await tapi(`/misiones/${misionId}/dependencias/${dep.id}`, token, { method: "DELETE" });
+                            setMision(updated);
+                          } catch (e: any) { alert(e.message); }
+                        }}
+                        className="text-muted hover:text-danger transition text-xs px-1">✕</button>
+                    )}
                   </div>
                 ))}
               </div>
             )}
-            {disponibles.length > 0 && (
+            {!readonly && disponibles.length > 0 && (
               <div className="flex gap-2">
                 <select
                   value={depAddId}
@@ -3163,13 +3174,17 @@ function MisionDetailView({
                   <p className="font-bold text-sm text-ink">{prod.nombre}</p>
                   <p className="text-xs text-muted">Stock actual: <span className="font-bold text-purple-700">{prod.stock_actual} {prod.unidad}</span></p>
                 </div>
-                <button
-                  disabled={prodSaving}
-                  onClick={() => setProd(null)}
-                  className="text-xs text-muted hover:text-danger transition px-2">
-                  {prodSaving ? "..." : "✕ Desvincular"}
-                </button>
+                {!readonly && (
+                  <button
+                    disabled={prodSaving}
+                    onClick={() => setProd(null)}
+                    className="text-xs text-muted hover:text-danger transition px-2">
+                    {prodSaving ? "..." : "✕ Desvincular"}
+                  </button>
+                )}
               </div>
+            ) : readonly ? (
+              <p className="text-xs text-muted italic">Sin producto resultante vinculado.</p>
             ) : (
               <div className="space-y-2">
                 <div className="flex gap-2">
@@ -3244,16 +3259,16 @@ function MisionDetailView({
               const isOver      = dragOver === i;
               return (
                 <div key={et.id}
-                  draggable={!isLocked}
-                  onDragStart={() => { dragIdx.current = i; }}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
-                  onDragLeave={() => setDragOver(null)}
-                  onDrop={() => handleDrop(i)}
-                  onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+                  draggable={!isLocked && !readonly}
+                  onDragStart={!readonly ? () => { dragIdx.current = i; } : undefined}
+                  onDragOver={!readonly ? (e) => { e.preventDefault(); setDragOver(i); } : undefined}
+                  onDragLeave={!readonly ? () => setDragOver(null) : undefined}
+                  onDrop={!readonly ? () => handleDrop(i) : undefined}
+                  onDragEnd={!readonly ? () => { dragIdx.current = null; setDragOver(null); } : undefined}
                   className={isOver ? "opacity-50" : ""}
                 >
                   <div className={`flex items-center gap-3 rounded-paper border-2 p-3 transition ${ETAPA_COLOR[et.estado]} ${isOver ? "border-accent border-dashed" : ""}`}>
-                    {!isLocked && (
+                    {!isLocked && !readonly && (
                       <span className="shrink-0 cursor-grab text-muted opacity-40 hover:opacity-80 select-none text-lg leading-none" title="Arrastrar para reordenar">⠿</span>
                     )}
                     <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isDone ? "text-white" : "bg-white"}`}
@@ -3281,7 +3296,7 @@ function MisionDetailView({
                           </button>
                         </div>
                       )}
-                      {et.ticket_id && (
+                      {et.ticket_id && !readonly && (
                         <button
                           onClick={() => setConfigurandoTicketId(configurandoTicketId === et.ticket_id ? null : et.ticket_id!)}
                           title="Configurar pasos y materiales de este ticket"
@@ -3292,14 +3307,14 @@ function MisionDetailView({
                           ⚙️
                         </button>
                       )}
-                      {!isLocked && !isDone && (
+                      {!isLocked && !isDone && !readonly && (
                         <button onClick={() => deleteEtapa(et.id, et.titulo)}
                           className="text-xs text-red-400 hover:text-red-600 transition px-1">✕</button>
                       )}
                     </div>
                   </div>
-                  {/* Panel de configuración inline */}
-                  {configurandoTicketId === et.ticket_id && et.ticket_id && (
+                  {/* Panel de configuración inline — solo en modo edición */}
+                  {!readonly && configurandoTicketId === et.ticket_id && et.ticket_id && (
                     <div className="mt-2 rounded-paper border border-accent/30 bg-surface p-4 space-y-3">
                       <p className="text-xs font-extrabold uppercase tracking-wide text-accent">
                         ⚙️ Configurar: {et.titulo}
@@ -3324,17 +3339,17 @@ function MisionDetailView({
               const isOver = dragOver === i;
               return (
                 <div key={et.id}
-                  draggable={!isLocked}
-                  onDragStart={() => { dragIdx.current = i; }}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
-                  onDragLeave={() => setDragOver(null)}
-                  onDrop={() => handleDrop(i)}
-                  onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+                  draggable={!isLocked && !readonly}
+                  onDragStart={!readonly ? () => { dragIdx.current = i; } : undefined}
+                  onDragOver={!readonly ? (e) => { e.preventDefault(); setDragOver(i); } : undefined}
+                  onDragLeave={!readonly ? () => setDragOver(null) : undefined}
+                  onDrop={!readonly ? () => handleDrop(i) : undefined}
+                  onDragEnd={!readonly ? () => { dragIdx.current = null; setDragOver(null); } : undefined}
                   className={`rounded-paper border-2 p-3 transition ${ETAPA_COLOR[et.estado]} ${isOver ? "opacity-50 border-accent border-dashed" : ""}`}
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-1.5">
-                      {!isLocked && (
+                      {!isLocked && !readonly && (
                         <span className="cursor-grab text-muted opacity-40 hover:opacity-80 select-none text-lg leading-none" title="Arrastrar para reordenar">⠿</span>
                       )}
                       <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black shadow-sm ${isDone ? "text-white" : "bg-white"}`}
@@ -3357,7 +3372,7 @@ function MisionDetailView({
                           </button>
                         </div>
                       )}
-                      {et.ticket_id && (
+                      {et.ticket_id && !readonly && (
                         <button
                           onClick={() => setConfigurandoTicketId(configurandoTicketId === et.ticket_id ? null : et.ticket_id!)}
                           title="Configurar pasos y materiales"
@@ -3368,7 +3383,7 @@ function MisionDetailView({
                           ⚙️
                         </button>
                       )}
-                      {!isLocked && !isDone && (
+                      {!isLocked && !isDone && !readonly && (
                         <button onClick={() => deleteEtapa(et.id, et.titulo)}
                           className="text-xs text-red-400 hover:text-red-600 transition px-1">✕</button>
                       )}
@@ -3377,8 +3392,8 @@ function MisionDetailView({
                   <p className="font-semibold text-sm">{et.titulo}</p>
                   {et.descripcion && <p className="text-xs opacity-75 mt-0.5">{et.descripcion}</p>}
                   {et.asignado_nombre && <p className="text-xs opacity-75 mt-1 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>}
-                  {/* Panel de configuración inline */}
-                  {configurandoTicketId === et.ticket_id && et.ticket_id && (
+                  {/* Panel de configuración inline — solo en modo edición */}
+                  {!readonly && configurandoTicketId === et.ticket_id && et.ticket_id && (
                     <div className="mt-3 pt-3 border-t border-border space-y-3">
                       <p className="text-xs font-extrabold uppercase tracking-wide text-accent">⚙️ Configurar</p>
                       <PasosSection ticketId={et.ticket_id} token={token} editMode={true} />
@@ -3391,8 +3406,8 @@ function MisionDetailView({
           </div>
         )}
 
-        {/* Add ticket inline form */}
-        {!isLocked && (
+        {/* Add ticket inline form — solo en modo edición */}
+        {!isLocked && !readonly && (
           <div className="mt-4">
             {showAddEtapa ? (
               <div className="rounded-paper border-2 border-accent bg-surface p-4 space-y-3">
@@ -3551,9 +3566,12 @@ export default function TicketsPanel() {
 
   const nivel = user.rol?.nivel ?? 1;
 
+  const [misionReadonly, setMisionReadonly] = useState(false);
+
   function goDetail(id: number) { setSelectedId(id); setView("detail"); }
   function goBack() { setView("list"); setSelectedId(null); setSelectedMisionId(null); }
-  function goMisionDetail(id: number) { setSelectedMisionId(id); setView("mision_detail"); }
+  function goMisionDetail(id: number) { setSelectedMisionId(id); setMisionReadonly(false); setView("mision_detail"); }
+  function goMisionDetailReadonly(id: number) { setSelectedMisionId(id); setMisionReadonly(true); setView("mision_detail"); }
 
   return (
     <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
@@ -3577,7 +3595,7 @@ export default function TicketsPanel() {
             onAdmin={() => setView("admin")}
             onWorkload={() => setView("workload")}
             onMisiones={() => setView("misiones")}
-            onMisionDetail={goMisionDetail}
+            onMisionDetail={goMisionDetailReadonly}
             onInventario={() => setView("inventario")}
           />
         )}
@@ -3623,7 +3641,8 @@ export default function TicketsPanel() {
           <MisionDetailView
             token={token} user={user}
             misionId={selectedMisionId}
-            onBack={() => setView("misiones")}
+            readonly={misionReadonly}
+            onBack={() => misionReadonly ? goBack() : setView("misiones")}
             onTicket={(id) => { setSelectedId(id); setView("detail"); }}
           />
         )}
