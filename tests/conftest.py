@@ -11,4 +11,4 @@ import os
 # Forzar en suite de tests (no usar en producción).
 os.environ["WEBHOOK_MELI_SKIP_SINGLETON_LOCK"] = "1"
 # Evita que un secret de Actions con CHAT_API_TOKEN rompa tests que esperan 401.
-os.environ.pop("CHAT_API_TOKEN", None)
+os.environ["CHAT_API_TOKEN"] = ""
