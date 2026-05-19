@@ -17,4 +17,12 @@ if grep -q 'read_text().*splitlines' app/tools/pipeline_contenido_facebook.py 2>
   exit 1
 fi
 
-python -m pytest tests/test_smoke.py -v --tb=short
+if ! python -c "from app.tools.generar_guias_masivas import generar_guias_masivas_web; from app.routes import register_routes"; then
+  echo "::error::No se pudo importar app (revisar .env / dependencias)"
+  exit 1
+fi
+
+if ! python -m pytest tests/test_smoke.py -v --tb=short; then
+  echo "::error::pytest tests/test_smoke.py falló"
+  exit 1
+fi
