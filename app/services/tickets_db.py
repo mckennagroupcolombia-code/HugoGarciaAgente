@@ -1268,8 +1268,9 @@ def eliminar_ticket(ticket_id: int, usuario: dict) -> tuple:
             "UPDATE etapas_mision SET ticket_id=NULL, estado='pendiente' WHERE ticket_id=?",
             (ticket_id,),
         )
-        # logs_auditoria has no CASCADE — delete manually
+        # logs_auditoria and consumo_materiales have no CASCADE — handle manually
         db.execute("DELETE FROM logs_auditoria WHERE ticket_id=?", (ticket_id,))
+        db.execute("UPDATE consumo_materiales SET ticket_id=NULL WHERE ticket_id=?", (ticket_id,))
         # comentarios, bitacora, participantes have ON DELETE CASCADE
         db.execute("DELETE FROM tickets WHERE id=?", (ticket_id,))
         db.commit()
@@ -1359,6 +1360,7 @@ def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
             db.execute("UPDATE tickets SET bloqueado_por=NULL WHERE bloqueado_por=?", (tid,))
             db.execute("UPDATE etapas_mision SET ticket_id=NULL WHERE ticket_id=?", (tid,))
             db.execute("DELETE FROM logs_auditoria WHERE ticket_id=?", (tid,))
+            db.execute("UPDATE consumo_materiales SET ticket_id=NULL WHERE ticket_id=?", (tid,))
         if old_ticket_ids:
             ph = ",".join("?" * len(old_ticket_ids))
             db.execute(f"DELETE FROM tickets WHERE id IN ({ph})", old_ticket_ids)
