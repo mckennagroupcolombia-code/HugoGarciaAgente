@@ -2582,8 +2582,8 @@ def register_routes(app):
         def _do_pull():
             print(f"📥 Actualizando repositorio desde GitHub…")
             r = _sp.run(
-                ["git", "pull", "--rebase", "origin", "master"],
-                capture_output=True, text=True, timeout=60, cwd=repo_dir,
+                ["git", "pull", "--rebase", "--autostash", "origin", "master"],
+                capture_output=True, text=True, timeout=120, cwd=repo_dir,
             )
             for line in (r.stdout + r.stderr).splitlines():
                 if line.strip():
