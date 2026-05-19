@@ -1728,7 +1728,8 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         if nuevo_estado == "resuelto":
             if t["categoria"] == "rrhh" and nivel < 3:
                 return False, "Solo Administración puede aprobar tickets de RR.HH."
-            if t["creado_por"] != uid and nivel < 2:
+            is_authorized = (nivel >= 2 or t["creado_por"] == uid or t["asignado_a"] == uid)
+            if not is_authorized:
                 return False, "Sin autorización"
         if nuevo_estado == "rechazado" and nivel < 2:
             return False, "Sin autorización para rechazar tickets"
