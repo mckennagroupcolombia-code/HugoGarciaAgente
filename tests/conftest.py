@@ -7,14 +7,8 @@ Importar `webhook_meli` en el mismo árbol que un proceso systemd activo choca c
 from __future__ import annotations
 
 import os
-from pathlib import Path
-
-from dotenv import load_dotenv
-
-_root = Path(__file__).resolve().parents[1]
-load_dotenv(_root / ".env")
-if not (_root / ".env").is_file():
-    load_dotenv(_root / ".env.example")
 
 # Forzar en suite de tests (no usar en producción).
 os.environ["WEBHOOK_MELI_SKIP_SINGLETON_LOCK"] = "1"
+# Evita que un secret de Actions con CHAT_API_TOKEN rompa tests que esperan 401.
+os.environ.pop("CHAT_API_TOKEN", None)
