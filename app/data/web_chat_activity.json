@@ -1,14 +1,39 @@
 {
-  "updated_at": "2026-05-18T14:14:06",
+  "updated_at": "2026-05-18T23:18:26",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
     "2026-05-14": 14,
     "2026-05-15": 4,
     "2026-05-16": 8,
-    "2026-05-18": 2
+    "2026-05-18": 3
   },
   "sessions": [
+    {
+      "session_id": "web-016c9b62-5dfc-4ce6-88f0-b51de2509cd1",
+      "started_at": "2026-05-18T23:18:26",
+      "last_at": "2026-05-18T23:18:26",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+      "last_user_message": "Hola",
+      "last_agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-18T23:18:26",
+          "user_message": "Hola",
+          "agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-2f98ab5d-be7e-4e9a-8590-7c034c10ca95",
       "started_at": "2026-05-18T14:12:59",
