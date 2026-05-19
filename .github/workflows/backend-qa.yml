@@ -40,6 +40,7 @@ jobs:
         env:
           WEBHOOK_MELI_SKIP_SINGLETON_LOCK: "1"
           AGENTE_AUDITORIA_SKIP_WA: "1"
+          CHAT_API_TOKEN: ""
         run: python -m pytest tests/test_smoke.py
 
       - name: Run script audit
