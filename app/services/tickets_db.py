@@ -1346,13 +1346,25 @@ def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
             "SELECT * FROM etapas_mision WHERE mision_id=? ORDER BY orden", (mision_id,)
         ).fetchall()
 
-        # Collect assignees from last cycle's tickets before wiping them
+        # Collect assignees and pasos from last cycle's tickets before wiping them
         asig_por_orden: dict[int, int | None] = {}
+        pasos_por_etapa: dict[int, list[dict]] = {}
+        mats_por_etapa: dict[int, list[dict]] = {}
         for etapa in etapas:
             if etapa["ticket_id"]:
                 t = db.execute("SELECT asignado_a FROM tickets WHERE id=?", (etapa["ticket_id"],)).fetchone()
                 if t:
                     asig_por_orden[etapa["orden"]] = t["asignado_a"]
+                pasos = db.execute(
+                    "SELECT descripcion, orden FROM ticket_pasos WHERE ticket_id=? ORDER BY orden",
+                    (etapa["ticket_id"],),
+                ).fetchall()
+                pasos_por_etapa[etapa["id"]] = [dict(p) for p in pasos]
+                mats = db.execute(
+                    "SELECT material_id, cantidad_requerida FROM ticket_materiales WHERE ticket_id=? ORDER BY id",
+                    (etapa["ticket_id"],),
+                ).fetchall()
+                mats_por_etapa[etapa["id"]] = [dict(m) for m in mats]
 
         # ── Revertir consumos del ciclo anterior ─────────────────────────────
         old_ticket_ids = [e["ticket_id"] for e in etapas if e["ticket_id"]]
@@ -1453,8 +1465,22 @@ def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
                 "UPDATE etapas_mision SET ticket_id=?, estado=? WHERE id=?",
                 (tid, etapa_estado, etapa["id"]),
             )
+            # Restore pasos and materiales from the previous cycle
+            for paso in pasos_por_etapa.get(etapa["id"], []):
+                db.execute(
+                    "INSERT INTO ticket_pasos (ticket_id, orden, descripcion) VALUES (?,?,?)",
+                    (tid, paso["orden"], paso["descripcion"]),
+                )
+            for mat in mats_por_etapa.get(etapa["id"], []):
+                try:
+                    db.execute(
+                        "INSERT INTO ticket_materiales (ticket_id, material_id, cantidad_requerida) VALUES (?,?,?)",
+                        (tid, mat["material_id"], mat["cantidad_requerida"]),
+                    )
+                except Exception:
+                    pass  # duplicate guard
             _log(db, tid, creator, "ticket_renovado",
-                 detalles=f"Renovación automática — misión '{m['titulo']}' (frecuencia: {m['frecuencia']})")
+                 detalles=f"Renovación — misión '{m['titulo']}'; pasos y materiales restaurados")
             prev_ticket_id = tid
 
         proxima = _calcular_proxima(m["frecuencia"])
