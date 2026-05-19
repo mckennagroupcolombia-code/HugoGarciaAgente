@@ -2,6 +2,7 @@ name: Backend QA
 
 on:
   push:
+    branches: [master]
     paths:
       - "app/**"
       - "scripts/**"
@@ -34,6 +35,14 @@ jobs:
 
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
+
+      - name: Verify import without .env
+        env:
+          CHAT_API_TOKEN: ""
+        run: |
+          test ! -f .env
+          grep -q 'load_dotenv' app/tools/generar_guias_masivas.py
+          python -c "from app.routes import register_routes; print('import ok')"
 
       - name: Run smoke tests
         env:
