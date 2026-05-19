@@ -27,4 +27,7 @@ def bearer_token_from_request() -> str:
 
 
 def chat_api_token_matches_request() -> bool:
-    return bearer_token_from_request() == chat_api_token_expected()
+    expected = chat_api_token_expected()
+    if not expected:
+        return False
+    return bearer_token_from_request() == expected

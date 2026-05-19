@@ -46,6 +46,7 @@ interface Ticket {
   mision_titulo?: string | null;
   mision_color?: string | null;
   mision_tipo?: string | null;
+  mision_reino?: string | null;
   mision_info?: { id: number; titulo: string; tipo: string; color: string; total_etapas: number; etapas_completadas: number } | null;
   etapa_info?: { id: number; orden: number } | null;
   participantes?: Participante[];
@@ -298,6 +299,18 @@ function PrioridadDot({ p }: { p: string }) {
   return <span className={`text-[10px] font-extrabold leading-none ${d.cls} shrink-0`}>{d.sym}</span>;
 }
 
+/** Convert fractional hours to "Xh Ym Zs" with the right precision */
+function fmtHoras(h: number): string {
+  const totalSecs = Math.round(h * 3600);
+  if (totalSecs < 1) return "0s";
+  const hh = Math.floor(totalSecs / 3600);
+  const mm = Math.floor((totalSecs % 3600) / 60);
+  const ss = totalSecs % 60;
+  if (hh > 0) return `${hh}h ${mm}m`;
+  if (mm > 0) return `${mm}m ${ss}s`;
+  return `${ss}s`;
+}
+
 function fmtDate(s: string) {
   if (!s) return "—";
   try {
@@ -389,6 +402,7 @@ interface MisionGroup {
   mision_titulo: string;
   mision_color: string;
   mision_tipo: string;
+  reino: string | null;
   tickets: Ticket[];
 }
 
@@ -562,6 +576,7 @@ function TicketListView({
             mision_titulo: t.mision_titulo || `Misión #${t.mision_id}`,
             mision_color: t.mision_color || "#0c6069",
             mision_tipo: t.mision_tipo || "secuencial",
+            reino: t.mision_reino || null,
             tickets: [],
           });
         }
@@ -570,6 +585,14 @@ function TicketListView({
         standalone.push(t);
       }
     }
+  }
+
+  // Group mision groups by reino for kingdom-style sections
+  const reinoGroups = new Map<string, MisionGroup[]>();
+  for (const group of misionGroups.values()) {
+    const reino = group.reino || "Sin Reino";
+    if (!reinoGroups.has(reino)) reinoGroups.set(reino, []);
+    reinoGroups.get(reino)!.push(group);
   }
 
   const stats = {
@@ -680,24 +703,47 @@ function TicketListView({
           ))}
         </div>
       ) : (
-        /* Grouped view */
-        <div className="space-y-4">
-          {misionGroups.size > 0 && (
-            <div className="space-y-3">
-              {Array.from(misionGroups.values()).map((group) => (
-                <MisionGroupCard
-                  key={group.mision_id}
-                  group={group}
-                  onSelect={onSelect}
-                  onMisionDetail={onMisionDetail}
-                />
-              ))}
-            </div>
+        /* Grouped view — kingdoms */
+        <div className="space-y-6">
+          {reinoGroups.size > 0 && (
+            <>
+              {Array.from(reinoGroups.entries())
+                .sort(([a], [b]) =>
+                  a === "Sin Reino" ? 1 : b === "Sin Reino" ? -1 : a.localeCompare(b, "es")
+                )
+                .map(([reino, groups]) => (
+                  <div key={reino} className="space-y-3">
+                    {/* Kingdom divider */}
+                    <div className="flex items-center gap-3">
+                      <div className="h-0.5 w-4 rounded-full bg-accent shrink-0" />
+                      <h3 className="text-xs font-extrabold uppercase tracking-widest text-accent whitespace-nowrap">
+                        🏰 {reino}
+                      </h3>
+                      <div className="flex-1 h-px rounded-full bg-accent/20" />
+                      <span className="text-[10px] font-bold text-muted shrink-0">
+                        {groups.length} misión{groups.length !== 1 ? "es" : ""}
+                      </span>
+                    </div>
+                    {groups.map((group) => (
+                      <MisionGroupCard
+                        key={group.mision_id}
+                        group={group}
+                        onSelect={onSelect}
+                        onMisionDetail={onMisionDetail}
+                      />
+                    ))}
+                  </div>
+                ))}
+            </>
           )}
           {standalone.length > 0 && (
             <div className="space-y-2">
-              {misionGroups.size > 0 && (
-                <p className="text-xs font-bold uppercase tracking-wider text-muted pt-1">Tickets independientes</p>
+              {reinoGroups.size > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="h-0.5 w-4 rounded-full bg-muted shrink-0" />
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted whitespace-nowrap">📋 Tickets independientes</p>
+                  <div className="flex-1 h-px rounded-full bg-border" />
+                </div>
               )}
               {standalone.map((t) => (
                 <TicketCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
@@ -947,7 +993,7 @@ function TicketDetailView({
         <EstadoBadge estado={ticket.estado} />
         {ticket.total_horas != null && ticket.total_horas > 0 && (
           <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/30 px-2.5 py-0.5 text-xs font-bold text-accent">
-            ⏱ {ticket.total_horas}h
+            ⏱ {fmtHoras(ticket.total_horas!)}
           </span>
         )}
         <span className="ml-auto rounded-full bg-surface-hover border border-border px-2.5 py-0.5 text-[10px] font-bold text-muted">
@@ -1576,15 +1622,15 @@ function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
     }, 1000);
   }
 
-  async function stopTimer(pasoId: number) {
+  async function stopTimer(pasoId: number, capturedElapsed?: number) {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    const elapsed = timerElapsed;
+    const elapsed = capturedElapsed ?? timerElapsed;
     const pasoDesc = pasos.find((p) => p.id === pasoId)?.descripcion ?? "";
     setTimerPasoId(null);
     timerStartRef.current = null;
     setTimerElapsed(0);
-    if (elapsed >= 30) {
-      const horas = Math.round((elapsed / 3600) * 100) / 100;
+    if (elapsed >= 1) {
+      const horas = elapsed / 3600;
       try {
         await tapi(`/${ticketId}/tiempo`, token, {
           method: "POST",
@@ -1606,6 +1652,10 @@ function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
   }
 
   async function toggle(id: number) {
+    // Auto-stop timer for this paso before completing so the time is saved
+    if (timerPasoId === id) {
+      await stopTimer(id, Math.floor((Date.now() - (timerStartRef.current ?? Date.now())) / 1000));
+    }
     const res: Paso[] = await tapi(`/pasos/${id}/completar`, token, { method: "POST" });
     setPasos(res);
     if (onAllComplete && res.length > 0 && res.every((p) => p.completado)) {
@@ -3539,8 +3589,8 @@ function WorkloadView({ token, onBack }: { token: string; onBack: () => void }) 
                     <div className="text-xs font-semibold text-muted">Resueltos / sem.</div>
                   </div>
                   <div>
-                    <div className="text-xl font-black text-accent">{u.total_horas}h</div>
-                    <div className="text-xs font-semibold text-muted">Horas totales</div>
+                    <div className="text-xl font-black text-accent">{fmtHoras(u.total_horas)}</div>
+                    <div className="text-xs font-semibold text-muted">Tiempo total</div>
                   </div>
                 </div>
               </div>

@@ -19,14 +19,10 @@ from pathlib import Path
 # ─── Rutas ────────────────────────────────────────────────────────────────────
 BASE        = Path(__file__).parent.parent.parent
 GUIAS_JSON  = BASE / "PAGINA_WEB/site/data/guias.json"
-DOTENV      = BASE / ".env"
 
-# Cargar .env
-for line in DOTENV.read_text().splitlines():
-    line = line.strip()
-    if line and not line.startswith("#") and "=" in line:
-        k, v = line.split("=", 1)
-        os.environ.setdefault(k.strip(), v.strip())
+from dotenv import load_dotenv
+
+load_dotenv(BASE / ".env")
 
 # ─── Catálogo de ingredientes a generar ───────────────────────────────────────
 INGREDIENTES = [

@@ -1681,6 +1681,7 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                    m.titulo   AS mision_titulo,
                    m.color    AS mision_color,
                    m.tipo     AS mision_tipo,
+                   m.reino    AS mision_reino,
                    bt.numero  AS bloqueado_por_numero
             FROM tickets t
             LEFT JOIN usuarios uc ON uc.id = t.creado_por
@@ -1844,10 +1845,10 @@ def dashboard_carga() -> list:
                 "SELECT COUNT(*) as n FROM tickets WHERE asignado_a=? "
                 "AND estado='resuelto' AND resuelto_en >= datetime('now','-7 days')", (uid,)
             ).fetchone()["n"]
-            u["total_horas"] = round(db.execute(
+            u["total_horas"] = db.execute(
                 "SELECT COALESCE(SUM(horas),0) as h FROM bitacora_tiempo WHERE usuario_id=?",
                 (uid,),
-            ).fetchone()["h"], 1)
+            ).fetchone()["h"]
             result.append(u)
         return sorted(result, key=lambda x: x["tickets_abiertos"], reverse=True)
 

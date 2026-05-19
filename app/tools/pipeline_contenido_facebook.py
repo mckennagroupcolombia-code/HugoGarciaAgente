@@ -19,12 +19,9 @@ import requests
 
 BASE = Path(__file__).parent.parent.parent
 
-# ── Cargar .env ───────────────────────────────────────────────────────────────
-for line in (BASE / ".env").read_text().splitlines():
-    line = line.strip()
-    if line and not line.startswith("#") and "=" in line:
-        k, v = line.split("=", 1)
-        os.environ.setdefault(k.strip(), v.strip())
+from dotenv import load_dotenv
+
+load_dotenv(BASE / ".env")
 
 # ── Config ────────────────────────────────────────────────────────────────────
 GOOGLE_KEY      = os.getenv("GOOGLE_API_KEY", "")
