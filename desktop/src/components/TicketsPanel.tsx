@@ -2953,11 +2953,11 @@ function MisionDetailView({
                 : "border-border text-muted hover:border-accent hover:text-accent"}`}>
             ✏️ Editar
           </button>
-          {mision.frecuencia && nivel >= 2 && (
+          {nivel >= 2 && (
             <button
               disabled={renewing}
               onClick={async () => {
-                if (!confirm(`¿Renovar la misión "${mision.titulo}" ahora?\n\nSe crearán tickets nuevos y la misión quedará activa.`)) return;
+                if (!confirm(`¿Renovar la misión "${mision.titulo}"?\n\nSe eliminarán los tickets actuales y se crearán nuevos. La misión quedará activa.`)) return;
                 setRenewing(true);
                 try {
                   const res = await tapi(`/misiones/${misionId}/renovar`, token, { method: "POST" });
