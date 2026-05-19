@@ -898,6 +898,7 @@ function TicketDetailView({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showComentarios, setShowComentarios] = useState(false);
+  const [completandoTicket, setCompletandoTicket] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -911,6 +912,18 @@ function TicketDetailView({
   }, [token, ticketId]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  async function handleAllPasosComplete() {
+    setCompletandoTicket(true);
+    try {
+      await tapi(`/${ticketId}/estado`, token, {
+        method: "PUT",
+        body: JSON.stringify({ estado: "resuelto" }),
+      });
+      await reload();
+    } catch { /* estado incorrecto u otro error — ignorar silenciosamente */ }
+    finally { setCompletandoTicket(false); }
+  }
 
   if (loading) return <div className="py-16 text-center text-sm text-muted">Cargando quest...</div>;
   if (error || !ticket) return (
@@ -976,7 +989,17 @@ function TicketDetailView({
       </div>
 
       {/* Pasos — ejecución: timer + checkbox activos, sin edición */}
-      <PasosSection ticketId={ticket.id} token={token} editMode={false} />
+      {completandoTicket && (
+        <div className="rounded-xl border-2 border-green-400 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+          ✅ Todos los pasos completados — marcando ticket como resuelto...
+        </div>
+      )}
+      <PasosSection
+        ticketId={ticket.id}
+        token={token}
+        editMode={false}
+        onAllComplete={ticket.estado === "en_proceso" ? handleAllPasosComplete : undefined}
+      />
 
       {/* Materiales — solo referencia */}
       <MaterialesSection ticketId={ticket.id} token={token} readonly={true} />
@@ -1511,7 +1534,10 @@ interface Paso {
   completado: number; completado_en: string | null; completado_por_nombre: string | null;
 }
 
-function PasosSection({ ticketId, token, editMode = true }: { ticketId: number; token: string; editMode?: boolean }) {
+function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
+  ticketId: number; token: string; editMode?: boolean;
+  onAllComplete?: () => Promise<void>;
+}) {
   const [pasos, setPasos] = useState<Paso[]>([]);
   const [nuevo, setNuevo] = useState("");
   const [saving, setSaving] = useState(false);
@@ -1580,8 +1606,11 @@ function PasosSection({ ticketId, token, editMode = true }: { ticketId: number; 
   }
 
   async function toggle(id: number) {
-    const res = await tapi(`/pasos/${id}/completar`, token, { method: "POST" });
+    const res: Paso[] = await tapi(`/pasos/${id}/completar`, token, { method: "POST" });
     setPasos(res);
+    if (onAllComplete && res.length > 0 && res.every((p) => p.completado)) {
+      await onAllComplete();
+    }
   }
 
   async function del(id: number) {
