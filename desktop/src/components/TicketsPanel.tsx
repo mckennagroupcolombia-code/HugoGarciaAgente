@@ -108,6 +108,8 @@ interface Mision {
   proxima_renovacion?: string | null;
   etapas?: EtapaMision[];
   dependencias?: Dependencia[];
+  producto_resultante_id?: number | null;
+  producto_resultante?: { id: number; nombre: string; unidad: string; stock_actual: number } | null;
 }
 
 interface Comentario {
@@ -1760,8 +1762,8 @@ function PasosSection({ ticketId, token }: { ticketId: number; token: string }) 
 
 // ── MATERIALES ────────────────────────────────────────────────────────────────
 
-interface Material { id: number; nombre: string; unidad: string; stock_actual: number; stock_minimo: number; precio_unitario: number; proveedor?: string; }
-interface TicketMaterial { id: number; ticket_id: number; material_id: number; nombre: string; unidad: string; cantidad_requerida: number; stock_actual: number; }
+interface Material { id: number; nombre: string; unidad: string; stock_actual: number; stock_minimo: number; precio_unitario: number; proveedor?: string; tipo?: "materia_prima" | "elaborado"; mision_origen_id?: number | null; }
+interface TicketMaterial { id: number; ticket_id: number; material_id: number; nombre: string; unidad: string; cantidad_requerida: number; stock_actual: number; tipo?: "materia_prima" | "elaborado"; }
 
 function MaterialesSection({ ticketId, token }: { ticketId: number; token: string }) {
   const [items, setItems] = useState<TicketMaterial[]>([]);
@@ -1807,7 +1809,12 @@ function MaterialesSection({ ticketId, token }: { ticketId: number; token: strin
               <div key={it.id} className="rounded-paper border border-border bg-surface p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
-                    <p className="font-semibold text-sm text-ink">{it.nombre}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-semibold text-sm text-ink">{it.nombre}</p>
+                      {it.tipo === "elaborado" && (
+                        <span className="rounded-full bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold">✨ elaborado</span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted">
                       Requerido: <span className="font-bold">{it.cantidad_requerida} {it.unidad}</span>
                       {" · "}
@@ -1833,7 +1840,7 @@ function MaterialesSection({ ticketId, token }: { ticketId: number; token: strin
           <select className="flex-1 min-w-32 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent"
             value={selMat} onChange={(e) => setSelMat(e.target.value)}>
             <option value="">Seleccionar material...</option>
-            {disponibles.map((m) => <option key={m.id} value={m.id}>{m.nombre} ({m.unidad})</option>)}
+            {disponibles.map((m) => <option key={m.id} value={m.id}>{m.tipo === "elaborado" ? "✨ " : ""}{m.nombre} ({m.unidad})</option>)}
           </select>
           <input type="number" min="0" step="any"
             className="w-24 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm outline-none focus:border-accent"
@@ -1856,7 +1863,7 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
   const [materiales, setMateriales] = useState<Material[]>([]);
   const [ordenes, setOrdenes] = useState<OrdenCompra[]>([]);
   const [tab, setTab] = useState<"lista" | "stock" | "nuevo">("lista");
-  const [form, setForm] = useState({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "" });
+  const [form, setForm] = useState({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "", tipo: "materia_prima" });
   const [saving, setSaving] = useState(false);
   // Formulario rápido de orden por material_id
   const [pedidoAbierto, setPedidoAbierto] = useState<number | null>(null);
@@ -1883,7 +1890,7 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
         stock_minimo: parseFloat(form.stock_minimo || "0"),
         precio_unitario: parseFloat(form.precio_unitario || "0"),
       }) });
-      setForm({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "" });
+      setForm({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "", tipo: "materia_prima" });
       setTab("stock");
       reload();
     } catch (e: any) { alert(e.message); }
@@ -2203,8 +2210,12 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
                     <div className="flex items-center gap-2">
                       {bajo && <span className="text-sm">{m.stock_actual <= 0 ? "🔴" : "🟡"}</span>}
                       <p className="font-bold text-sm text-ink">{m.nombre}</p>
+                      {m.tipo === "elaborado" && (
+                        <span className="rounded-full bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold">✨ elaborado</span>
+                      )}
                     </div>
                     {m.proveedor && <p className="text-xs text-muted">Proveedor: {m.proveedor}</p>}
+                    {m.tipo === "elaborado" && <p className="text-xs text-purple-600">Producido internamente</p>}
                   </div>
                   <div className="text-right">
                     <p className={`text-lg font-black ${bajo ? "text-red-600" : "text-ink"}`}>
@@ -2235,10 +2246,21 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
         <div className="rounded-paper border-2 border-border bg-surface-panel p-5 space-y-4">
           <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Agregar material al catálogo</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+            <div>
               <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Nombre *</label>
               <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
                 value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Tipo</label>
+              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={form.tipo} onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}>
+                <option value="materia_prima">🧱 Materia prima</option>
+                <option value="elaborado">✨ Producto elaborado</option>
+              </select>
+              {form.tipo === "elaborado" && (
+                <p className="mt-1 text-xs text-purple-600">El stock se actualizará automáticamente al completar la misión vinculada.</p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Unidad</label>
@@ -2743,6 +2765,14 @@ function MisionDetailView({
   const [depAddId, setDepAddId] = useState("");
   const [depAdding, setDepAdding] = useState(false);
 
+  // Producto resultante
+  const [catalogoMateriales, setCatalogoMateriales] = useState<Material[]>([]);
+  const [prodSelId, setProdSelId] = useState("");
+  const [prodSaving, setProdSaving] = useState(false);
+  const [showNuevoProd, setShowNuevoProd] = useState(false);
+  const [nuevoProdForm, setNuevoProdForm] = useState({ nombre: "", unidad: "kg" });
+  const [nuevoProdSaving, setNuevoProdSaving] = useState(false);
+
   // Add-ticket inline form
   const [showAddEtapa, setShowAddEtapa] = useState(false);
   const [addForm, setAddForm] = useState({ titulo: "", descripcion: "", asignado_a: "" });
@@ -2775,6 +2805,7 @@ function MisionDetailView({
   useEffect(() => {
     tapi("/usuarios", token).then(setUsuarios).catch(() => {});
     tapi("/misiones/", token).then(setTodasMisiones).catch(() => {});
+    tapi("/materiales?todos=1", token).then(setCatalogoMateriales).catch(() => {});
   }, [token]);
   useEffect(() => {
     if (mision) {
@@ -3126,6 +3157,118 @@ function MisionDetailView({
                   className="rounded-paper border-2 border-accent px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-white transition disabled:opacity-50">
                   {depAdding ? "..." : "+ Agregar"}
                 </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Producto resultante */}
+      {(() => {
+        const prod = mision.producto_resultante;
+        const disponiblesProd = catalogoMateriales.filter((m) => m.id !== prod?.id);
+        async function setProd(matId: number | null) {
+          setProdSaving(true);
+          try {
+            const updated = await tapi(`/misiones/${misionId}/producto-resultante`, token, {
+              method: "PUT",
+              body: JSON.stringify({ material_id: matId }),
+            });
+            setMision(updated);
+            setProdSelId("");
+          } catch (e: any) { alert(e.message); }
+          finally { setProdSaving(false); }
+        }
+        async function crearYVincular() {
+          if (!nuevoProdForm.nombre.trim()) return;
+          setNuevoProdSaving(true);
+          try {
+            const mat = await tapi("/materiales", token, {
+              method: "POST",
+              body: JSON.stringify({ ...nuevoProdForm, tipo: "elaborado", stock_actual: 0 }),
+            });
+            setCatalogoMateriales((prev) => [...prev, mat]);
+            const updated = await tapi(`/misiones/${misionId}/producto-resultante`, token, {
+              method: "PUT",
+              body: JSON.stringify({ material_id: mat.id }),
+            });
+            setMision(updated);
+            setShowNuevoProd(false);
+            setNuevoProdForm({ nombre: "", unidad: "kg" });
+          } catch (e: any) { alert(e.message); }
+          finally { setNuevoProdSaving(false); }
+        }
+        return (
+          <div className="rounded-paper border-2 border-purple-200 bg-purple-50/40 p-5 shadow-paper space-y-3">
+            <div>
+              <h3 className="text-sm font-extrabold uppercase tracking-wide text-purple-700">✨ Producto resultante</h3>
+              <p className="mt-0.5 text-xs text-purple-600">
+                Al completar esta misión, el stock del producto vinculado aumenta automáticamente con la suma de todos los insumos usados.
+              </p>
+            </div>
+
+            {prod ? (
+              <div className="flex items-center gap-3 rounded-paper border border-purple-300 bg-white px-4 py-3">
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-ink">{prod.nombre}</p>
+                  <p className="text-xs text-muted">Stock actual: <span className="font-bold text-purple-700">{prod.stock_actual} {prod.unidad}</span></p>
+                </div>
+                <button
+                  disabled={prodSaving}
+                  onClick={() => setProd(null)}
+                  className="text-xs text-muted hover:text-danger transition px-2">
+                  {prodSaving ? "..." : "✕ Desvincular"}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <select
+                    value={prodSelId}
+                    onChange={(e) => setProdSelId(e.target.value)}
+                    className="flex-1 rounded-paper border-2 border-border bg-white px-2 py-1.5 text-sm text-ink outline-none focus:border-purple-400">
+                    <option value="">Seleccionar producto del catálogo...</option>
+                    {disponiblesProd.map((m) => (
+                      <option key={m.id} value={m.id}>{m.tipo === "elaborado" ? "✨ " : ""}{m.nombre} ({m.unidad})</option>
+                    ))}
+                  </select>
+                  <button
+                    disabled={!prodSelId || prodSaving}
+                    onClick={() => setProd(parseInt(prodSelId))}
+                    className="rounded-paper border-2 border-purple-400 px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-500 hover:border-purple-500 hover:text-white transition disabled:opacity-50">
+                    {prodSaving ? "..." : "Vincular"}
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowNuevoProd((v) => !v)}
+                  className="text-xs font-bold text-purple-600 hover:underline">
+                  {showNuevoProd ? "▲ Cancelar" : "+ Crear nuevo producto elaborado"}
+                </button>
+                {showNuevoProd && (
+                  <div className="rounded-paper border border-purple-200 bg-white p-3 space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        className="flex-1 rounded border-2 border-border px-2 py-1.5 text-sm outline-none focus:border-purple-400"
+                        placeholder="Nombre del producto (ej: Masa Madre)"
+                        value={nuevoProdForm.nombre}
+                        onChange={(e) => setNuevoProdForm((f) => ({ ...f, nombre: e.target.value }))} />
+                      <select
+                        className="rounded border-2 border-border px-2 py-1.5 text-sm outline-none focus:border-purple-400"
+                        value={nuevoProdForm.unidad}
+                        onChange={(e) => setNuevoProdForm((f) => ({ ...f, unidad: e.target.value }))}>
+                        {["kg","g","mg","L","mL","unidad","m","cm","porción"].map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <button
+                      disabled={nuevoProdSaving || !nuevoProdForm.nombre.trim()}
+                      onClick={crearYVincular}
+                      className="rounded border-2 border-purple-400 bg-purple-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-purple-600 transition disabled:opacity-50">
+                      {nuevoProdSaving ? "Creando..." : "✨ Crear y vincular"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

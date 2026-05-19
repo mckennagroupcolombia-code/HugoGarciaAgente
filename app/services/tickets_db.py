@@ -424,6 +424,13 @@ def init_db():
         _add_col(db, "misiones", "frecuencia",
                  "TEXT CHECK(frecuencia IN ('diaria','semanal','quincenal','mensual','bimestral','trimestral','semestral'))")
         _add_col(db, "misiones", "proxima_renovacion", "TEXT")
+        # Producto elaborado resultante de la misión
+        _add_col(db, "misiones", "producto_resultante_id", "INTEGER REFERENCES materiales_catalogo(id)")
+
+        # Migrate materiales_catalogo with tipo and origin
+        _add_col(db, "materiales_catalogo", "tipo",
+                 "TEXT DEFAULT 'materia_prima' CHECK(tipo IN ('materia_prima','elaborado'))")
+        _add_col(db, "materiales_catalogo", "mision_origen_id", "INTEGER REFERENCES misiones(id)")
 
         # Seed categorias
         for slug, nombre, color, icono in [
@@ -692,6 +699,14 @@ def _mision_full(db, mision_id: int) -> dict | None:
         ORDER BY m.titulo
     """, (mision_id,)).fetchall()
     d["dependencias"] = [dict(dep) for dep in deps]
+    if m["producto_resultante_id"]:
+        pr = db.execute(
+            "SELECT id, nombre, unidad, stock_actual, tipo FROM materiales_catalogo WHERE id=?",
+            (m["producto_resultante_id"],)
+        ).fetchone()
+        d["producto_resultante"] = dict(pr) if pr else None
+    else:
+        d["producto_resultante"] = None
     return d
 
 
@@ -1051,6 +1066,28 @@ def eliminar_dependencia_mision(mision_id: int, depende_de_id: int) -> tuple:
         return _mision_full(db, mision_id), None
 
 
+def set_producto_resultante(mision_id: int, material_id: int | None) -> tuple:
+    """Link (or unlink) an elaborated product to a mission."""
+    with _conn() as db:
+        if not db.execute("SELECT id FROM misiones WHERE id=?", (mision_id,)).fetchone():
+            return None, "Misión no encontrada"
+        if material_id is not None:
+            mat = db.execute("SELECT id FROM materiales_catalogo WHERE id=?", (material_id,)).fetchone()
+            if not mat:
+                return None, "Material no encontrado"
+            # Mark the material as elaborado and link origin
+            db.execute(
+                "UPDATE materiales_catalogo SET tipo='elaborado', mision_origen_id=? WHERE id=?",
+                (mision_id, material_id)
+            )
+        db.execute(
+            "UPDATE misiones SET producto_resultante_id=? WHERE id=?",
+            (material_id, mision_id)
+        )
+        db.commit()
+        return _mision_full(db, mision_id), None
+
+
 def lanzar_mision(mision_id: int, asignaciones: dict, usuario: dict) -> tuple:
     """
     asignaciones: {str(orden): usuario_id | null}
@@ -1117,10 +1154,11 @@ def lanzar_mision(mision_id: int, asignaciones: dict, usuario: dict) -> tuple:
 
 
 def _deducir_materiales_mision(db, mision_id: int):
-    """Auto-deduct required materials from all resolved tickets when mission completes."""
+    """Deduct consumed materials and credit the resulting elaborated product on mission completion."""
     tickets = db.execute(
         "SELECT id FROM tickets WHERE mision_id=? AND estado='resuelto'", (mision_id,)
     ).fetchall()
+    total_producido = 0.0
     for t in tickets:
         mats = db.execute(
             "SELECT tm.material_id, tm.cantidad_requerida "
@@ -1134,6 +1172,7 @@ def _deducir_materiales_mision(db, mision_id: int):
             ).fetchone()
             if not m:
                 continue
+            total_producido += mat["cantidad_requerida"]
             nuevo_stock = max(0.0, m["stock_actual"] - mat["cantidad_requerida"])
             db.execute(
                 "UPDATE materiales_catalogo SET stock_actual=?, actualizado_en=datetime('now') WHERE id=?",
@@ -1162,6 +1201,24 @@ def _deducir_materiales_mision(db, mision_id: int):
                         m["precio_unitario"], m["proveedor"] or "",
                         f"Auto-generada al completar misión #{mision_id} — stock bajo ({nuevo_stock} {m['unidad']})"
                     ))
+
+    # Credit the elaborated product with the sum of all input quantities
+    if total_producido > 0:
+        prod_id = db.execute(
+            "SELECT producto_resultante_id FROM misiones WHERE id=?", (mision_id,)
+        ).fetchone()
+        if prod_id and prod_id["producto_resultante_id"]:
+            pid = prod_id["producto_resultante_id"]
+            db.execute(
+                "UPDATE materiales_catalogo SET stock_actual=stock_actual+?, actualizado_en=datetime('now') WHERE id=?",
+                (total_producido, pid)
+            )
+            db.execute(
+                "INSERT INTO consumo_materiales "
+                "(ticket_id, material_id, cantidad, tipo, notas) VALUES (?,?,?,'ajuste_entrada',?)",
+                (None, pid, total_producido,
+                 f"Producto elaborado: misión #{mision_id} completada — {total_producido:.3g} unidades producidas")
+            )
 
 
 def _actualizar_mision(db, mision_id: int):
@@ -1814,12 +1871,17 @@ def crear_material(data: dict) -> tuple:
     nombre = (data.get("nombre") or "").strip()
     if not nombre:
         return None, "Nombre requerido"
+    tipo = data.get("tipo") or "materia_prima"
+    if tipo not in ("materia_prima", "elaborado"):
+        return None, "tipo debe ser materia_prima o elaborado"
+    mision_origen_id = data.get("mision_origen_id") or None
     with _conn() as db:
         try:
             db.execute("""
                 INSERT INTO materiales_catalogo
-                    (nombre, descripcion, unidad, stock_actual, stock_minimo, precio_unitario, proveedor)
-                VALUES (?,?,?,?,?,?,?)
+                    (nombre, descripcion, unidad, stock_actual, stock_minimo,
+                     precio_unitario, proveedor, tipo, mision_origen_id)
+                VALUES (?,?,?,?,?,?,?,?,?)
             """, (
                 nombre,
                 data.get("descripcion") or "",
@@ -1828,6 +1890,8 @@ def crear_material(data: dict) -> tuple:
                 float(data.get("stock_minimo") or 0),
                 float(data.get("precio_unitario") or 0),
                 data.get("proveedor") or "",
+                tipo,
+                int(mision_origen_id) if mision_origen_id else None,
             ))
             mid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
             db.commit()
@@ -1842,7 +1906,7 @@ def actualizar_material(material_id: int, data: dict) -> tuple:
         if not m:
             return None, "Material no encontrado"
         campos = {k: v for k, v in data.items()
-                  if k in ("nombre","descripcion","unidad","stock_minimo","precio_unitario","proveedor","activo")
+                  if k in ("nombre","descripcion","unidad","stock_minimo","precio_unitario","proveedor","activo","tipo")
                   and v is not None}
         if campos:
             set_cl = ", ".join(f"{k}=?" for k in campos)

@@ -25,6 +25,7 @@ from app.services.tickets_db import (
     registrar_consumo, historial_consumo,
     listar_ordenes_compra, crear_orden_compra, actualizar_orden_compra,
     get_dependencias_mision, agregar_dependencia_mision, eliminar_dependencia_mision,
+    set_producto_resultante,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
@@ -669,6 +670,20 @@ def register_tickets_routes(app):
     @_auth
     def tickets_eliminar_dependencia(mision_id, dep_id):
         result, err = eliminar_dependencia_mision(mision_id, dep_id)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(result), 200
+
+    # ── PRODUCTO RESULTANTE ───────────────────────────────────────────────────
+
+    @app.route("/api/tickets/misiones/<int:mision_id>/producto-resultante", methods=["PUT"])
+    @_auth
+    def tickets_set_producto_resultante(mision_id):
+        data = request.get_json(force=True) or {}
+        material_id = data.get("material_id")  # None = desvincular
+        result, err = set_producto_resultante(
+            mision_id, int(material_id) if material_id else None
+        )
         if err:
             return jsonify({"error": err}), 400
         return jsonify(result), 200
