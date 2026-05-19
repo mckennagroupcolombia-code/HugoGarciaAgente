@@ -1354,8 +1354,53 @@ def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
                 if t:
                     asig_por_orden[etapa["orden"]] = t["asignado_a"]
 
-        # Remove old tickets (same cleanup as eliminar_mision but per-ticket)
+        # ── Revertir consumos del ciclo anterior ─────────────────────────────
         old_ticket_ids = [e["ticket_id"] for e in etapas if e["ticket_id"]]
+        if old_ticket_ids:
+            ph = ",".join("?" * len(old_ticket_ids))
+            # Group consumed quantities by material and add them back to stock
+            consumos = db.execute(
+                f"SELECT material_id, SUM(cantidad) AS total "
+                f"FROM consumo_materiales WHERE ticket_id IN ({ph}) AND tipo='consumo' "
+                f"GROUP BY material_id",
+                old_ticket_ids,
+            ).fetchall()
+            for c in consumos:
+                db.execute(
+                    "UPDATE materiales_catalogo "
+                    "SET stock_actual=stock_actual+?, actualizado_en=datetime('now') WHERE id=?",
+                    (c["total"], c["material_id"]),
+                )
+                db.execute(
+                    "INSERT INTO consumo_materiales (material_id, cantidad, tipo, notas) "
+                    "VALUES (?,?,'ajuste_entrada',?)",
+                    (c["material_id"], c["total"],
+                     f"Reversión por renovación de misión #{mision_id}"),
+                )
+
+        # Revert elaborated product that was credited when the mission completed
+        if m["producto_resultante_id"]:
+            entrada = db.execute(
+                "SELECT id, cantidad FROM consumo_materiales "
+                "WHERE material_id=? AND tipo='ajuste_entrada' AND ticket_id IS NULL "
+                "AND notas LIKE ?",
+                (m["producto_resultante_id"], f"%misión #{mision_id}%"),
+            ).fetchone()
+            if entrada:
+                db.execute(
+                    "UPDATE materiales_catalogo "
+                    "SET stock_actual=MAX(0.0, stock_actual-?), actualizado_en=datetime('now') WHERE id=?",
+                    (entrada["cantidad"], m["producto_resultante_id"]),
+                )
+                db.execute(
+                    "INSERT INTO consumo_materiales (material_id, cantidad, tipo, notas) "
+                    "VALUES (?,?,'ajuste_salida',?)",
+                    (m["producto_resultante_id"], entrada["cantidad"],
+                     f"Reversión de producto elaborado por renovación de misión #{mision_id}"),
+                )
+                db.execute("DELETE FROM consumo_materiales WHERE id=?", (entrada["id"],))
+
+        # ── Eliminar tickets del ciclo anterior ───────────────────────────────
         for tid in old_ticket_ids:
             db.execute("UPDATE tickets SET bloqueado_por=NULL WHERE bloqueado_por=?", (tid,))
             db.execute("UPDATE etapas_mision SET ticket_id=NULL WHERE ticket_id=?", (tid,))
