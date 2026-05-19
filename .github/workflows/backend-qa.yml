@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -41,7 +43,9 @@ jobs:
           WEBHOOK_MELI_SKIP_SINGLETON_LOCK: "1"
           AGENTE_AUDITORIA_SKIP_WA: "1"
           CHAT_API_TOKEN: ""
-        run: python -m pytest tests/test_smoke.py -v --tb=short
+        run: |
+          rm -f .env
+          python -m pytest tests/test_smoke.py -v --tb=short
 
       - name: Run script audit
         env:
