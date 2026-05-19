@@ -1339,8 +1339,7 @@ def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
         m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
         if not m:
             return False, "Misión no encontrada"
-        if not m["frecuencia"]:
-            return False, "La misión no tiene frecuencia de recurrencia"
+        # frecuencia is optional — one-time missions can also be manually renewed
 
         etapas = db.execute(
             "SELECT * FROM etapas_mision WHERE mision_id=? ORDER BY orden", (mision_id,)
