@@ -11,6 +11,21 @@
       "contexto": "Publicación con envío a cargo del comprador",
       "instruccion": "En este caso debes consultar la tarifa de Interrapidísimo con consultar_tarifa_envio() y dar el precio exacto. No digas que MercadoLibre maneja el envío.",
       "ejemplo_respuesta": "Hola veci, para envíos a [ciudad] el costo es de $XX.000 con Interrapidísimo y demora aproximadamente X días hábiles."
+    },
+    {
+      "id": "acido_ascorbico_limite_5_solucion",
+      "trigger": [
+        "concentración superior al 5%",
+        "concentracion superior al 5%",
+        "más del 5%",
+        "mas del 5%",
+        "por qué no recomiendan",
+        "por que no recomiendan",
+        "solución tópica",
+        "solucion topica"
+      ],
+      "contexto": "Vitamina C / Ácido Ascórbico en polvo (materia prima USP)",
+      "instruccion": "Si preguntan por qué no se recomienda usar por encima del 5% en soluciones tópicas, la respuesta correcta es: la solubilidad máxima garantizada del Ácido Ascórbico en solución acuosa es del 5%; por encima no se disuelve de forma estable. Para mayores concentraciones, indicar emulsiones/cremas/bases anhidras. NO decir que no hay concentración recomendada ni que depende solo del producto final."
     }
   ]
 }

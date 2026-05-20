@@ -4,6 +4,7 @@ import Layout from "./components/Layout";
 import LoginGate from "./components/LoginGate";
 import Dashboard from "./components/Dashboard";
 import Chat from "./components/Chat";
+import VozIA from "./components/VozIA";
 import PreventaPanel from "./components/PreventaPanel";
 import SyncPanel from "./components/SyncPanel";
 import StockPanel from "./components/StockPanel";
@@ -19,6 +20,8 @@ function PanelRouter() {
       return <Dashboard />;
     case "chat":
       return <Chat />;
+    case "voz":
+      return <VozIA />;
     case "preventa":
       return <PreventaPanel />;
     case "sync":

@@ -1,14 +1,162 @@
 {
-  "updated_at": "2026-05-18T23:18:26",
+  "updated_at": "2026-05-19T12:07:19",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
     "2026-05-14": 14,
     "2026-05-15": 4,
     "2026-05-16": 8,
-    "2026-05-18": 3
+    "2026-05-18": 3,
+    "2026-05-19": 12
   },
   "sessions": [
+    {
+      "session_id": "web-35d399ec-eaf4-4ae1-89c6-b69fa38f22dd",
+      "started_at": "2026-05-19T12:04:22",
+      "last_at": "2026-05-19T12:07:19",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "de casualidad tu sabes con quien la puedo ubicar terminada",
+      "last_agent_reply": "Veci, el servicio IA está en ajuste técnico temporal. Por favor intente de nuevo en un momento 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-19T12:04:22",
+          "user_message": "Mckenna Group",
+          "agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T12:05:09",
+          "user_message": "Crema de lanolina\t40 g, emoliente e hidratante para cuidado del pezón",
+          "agent_reply": "Claro, pero ojo, nosotros manejamos es la materia prima, no la crema como producto terminado. Le puedo ofrecer la Lanolina Anhidra USP, que es el principio activo.\n\n`tools.buscar_producto_completo(nombre_producto=\"Lanolina\")`",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T12:06:47",
+          "user_message": "entiendon",
+          "agent_reply": "Listo, veci. Le confirmo, la Lanolina Anhidra USP está disponible. La manejamos en las siguientes presentaciones y precios:\n\n- Lanolina Anhidra Usp x 100g: $15.000\n- Lanolina Anhidra Usp x 250g: $32.000\n- Lanolina Anhidra Usp x 500g: $58.000\n\nUsted me dirá cuál le sirve.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T12:07:19",
+          "user_message": "de casualidad tu sabes con quien la puedo ubicar terminada",
+          "agent_reply": "Veci, el servicio IA está en ajuste técnico temporal. Por favor intente de nuevo en un momento 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-5dbb5737-ba27-45e4-8072-b341066f625c",
+      "started_at": "2026-05-19T11:19:59",
+      "last_at": "2026-05-19T11:22:46",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Ok voy a hacer una requisición de ácidos y le estoy escribiendo que necesito realmente",
+      "last_agent_reply": "Hágale, quedo pendiente.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-19T11:19:59",
+          "user_message": "Hola tienes agua destilada",
+          "agent_reply": "Claro que sí, veci. Manejamos el Agua Destilada Desionizada por litro a $12.000.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T11:20:51",
+          "user_message": "Y manteca de Kari te",
+          "agent_reply": "Claro, veci. La Manteca de Karité Refinada la tenemos en estas presentaciones: 100g a $25.000, 250g a $45.000 y 500g a $80.000.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T11:21:40",
+          "user_message": "Cómo hago el pedido para Cali",
+          "agent_reply": "Claro que sí, veci. Para despacharle a Cali, primero confírmeme por favor qué productos y en qué cantidades va a llevar para armarle la cotización.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T11:22:46",
+          "user_message": "Ok voy a hacer una requisición de ácidos y le estoy escribiendo que necesito realmente",
+          "agent_reply": "Hágale, quedo pendiente.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-552d53cb-2bcc-45c0-b6b2-aefde4a69c56",
+      "started_at": "2026-05-19T09:17:07",
+      "last_at": "2026-05-19T09:18:30",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/?utm_source=chatgpt.com",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "polyglyceryl 4 oleate",
+      "last_agent_reply": "Veci, el servicio IA está en ajuste técnico temporal. Por favor intente de nuevo en un momento 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-19T09:17:07",
+          "user_message": "hola buen dia hablas con nicole sanchez",
+          "agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T09:17:40",
+          "user_message": "puedo conseguir esta materia prima",
+          "agent_reply": "Claro, dígame cuál necesita.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T09:18:00",
+          "user_message": "Polyglyceryl-4  Oleate",
+          "agent_reply": "Veci, el servicio IA está en ajuste técnico temporal. Por favor intente de nuevo en un momento 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-19T09:18:30",
+          "user_message": "polyglyceryl 4 oleate",
+          "agent_reply": "Veci, el servicio IA está en ajuste técnico temporal. Por favor intente de nuevo en un momento 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-016c9b62-5dfc-4ce6-88f0-b51de2509cd1",
       "started_at": "2026-05-18T23:18:26",

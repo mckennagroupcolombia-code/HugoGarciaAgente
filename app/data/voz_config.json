@@ -1,0 +1,12 @@
+{
+  "engine": "voicebox",
+  "language": "Spanish",
+  "speaker": "ryan",
+  "clone_enabled": false,
+  "ref_text": "",
+  "ref_audio_path": "",
+  "wake_word": "hugo",
+  "listen_memory": true,
+  "voicebox_profile": "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
+  "voicebox_engine": "qwen3"
+}

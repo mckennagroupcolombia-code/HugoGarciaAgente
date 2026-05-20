@@ -131,6 +131,27 @@ export default function Settings() {
     runTimerRef.current = setTimeout(() => setIsRunning(false), 120_000);
   };
 
+  // Network access
+  interface AccesoRed { habilitado: boolean; ip_lan: string | null; puerto: number; url: string | null }
+  const { data: accesoRed, refetch: refetchAcceso } = useQuery<AccesoRed>({
+    queryKey: ["acceso-red"],
+    queryFn: () => api.get("/api/sistema/acceso-red"),
+    refetchInterval: 30_000,
+  });
+  const [copied, setCopied] = useState(false);
+  const toggleAccesoMutation = useMutation({
+    mutationFn: (habilitado: boolean) =>
+      api.post<AccesoRed>("/api/sistema/acceso-red", { habilitado }),
+    onSuccess: () => refetchAcceso(),
+  });
+  const copyUrl = () => {
+    if (accesoRed?.url) {
+      navigator.clipboard.writeText(accesoRed.url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   // Services
   const { data: serviciosData, refetch: refetchServicios } = useQuery<{ servicios: Servicio[] }>({
     queryKey: ["servicios"],
@@ -213,6 +234,61 @@ export default function Settings() {
               <dd className="text-emerald-400 font-semibold">{status.estado}</dd>
             </div>
           </dl>
+        )}
+      </section>
+
+      {/* ── Acceso desde red local ── */}
+      <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-ink">Acceso desde red local</h3>
+            <p className="text-xs text-muted mt-0.5">
+              Abre el panel desde el móvil u otro equipo en la misma red Wi-Fi
+            </p>
+          </div>
+          <button
+            onClick={() => toggleAccesoMutation.mutate(!accesoRed?.habilitado)}
+            disabled={toggleAccesoMutation.isPending || !accesoRed}
+            aria-label="Activar acceso desde red local"
+            className={`relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40 focus:outline-none ${
+              accesoRed?.habilitado
+                ? "bg-accent"
+                : "bg-surface-hover border border-border"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                accesoRed?.habilitado ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+
+        {accesoRed?.habilitado && accesoRed.url && (
+          <div className="rounded-lg border border-border bg-surface-hover px-4 py-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] text-muted mb-1">URL de acceso</p>
+              <code className="text-sm text-accent break-all">{accesoRed.url}</code>
+            </div>
+            <button
+              onClick={copyUrl}
+              className="shrink-0 rounded-lg border border-border bg-surface-panel px-3 py-1.5 text-xs font-medium text-ink transition hover:border-accent hover:text-accent"
+            >
+              {copied ? "✓ Copiado" : "Copiar"}
+            </button>
+          </div>
+        )}
+
+        {accesoRed?.habilitado && !accesoRed.ip_lan && (
+          <p className="text-xs text-yellow-400">
+            No se detectó IP de red local. Verifica la conexión Wi-Fi o ethernet.
+          </p>
+        )}
+
+        {!accesoRed?.habilitado && (
+          <p className="text-xs text-muted">
+            Panel solo accesible desde este equipo (localhost).
+          </p>
         )}
       </section>
 

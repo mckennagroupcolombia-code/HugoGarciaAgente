@@ -35,10 +35,19 @@ function logActividad(tipo, datos) {
 
 function normalizarComando(texto) {
     return String(texto || '')
+        .replace(/[\u200b-\u200d\ufeff]/g, '')
         .replace(/\u00a0/g, ' ')
         .replace(/[*_~`]+/g, '')
         .trim()
         .replace(/\s+/g, ' ');
+}
+
+function esComandoMeliOperativo(textoLower) {
+    return (
+        textoLower.startsWith('posventa ') ||
+        textoLower.startsWith('resp preventa ') ||
+        /^resp\s+\d{2,}:/.test(textoLower)
+    );
 }
 
 function comandoDuplicado(msg, textoNorm) {
@@ -54,13 +63,56 @@ function comandoDuplicado(msg, textoNorm) {
     return false;
 }
 
+function _serializarChatId(val) {
+    if (!val) return '';
+    if (typeof val === 'string') return val;
+    if (typeof val === 'object' && val._serialized) return val._serialized;
+    return String(val);
+}
+
 function obtenerChatIdComando(msg) {
     const candidatos = [
-        msg && msg.id && msg.id.remote,
+        _serializarChatId(msg && msg.chatId),
+        _serializarChatId(msg && msg.id && msg.id.remote),
         msg && msg.to,
         msg && msg.from,
     ];
     return candidatos.find(x => typeof x === 'string' && x.includes('@g.us')) || (msg && msg.from);
+}
+
+async function obtenerChatIdComandoAsync(msg) {
+    let chatId = obtenerChatIdComando(msg);
+    if (typeof chatId === 'string' && chatId.includes('@g.us')) return chatId;
+    try {
+        const chat = await msg.getChat();
+        const cid = _serializarChatId(chat && chat.id);
+        if (cid.includes('@g.us')) return cid;
+    } catch (_) { /* sesión aún sincronizando */ }
+    return chatId || (msg && msg.from);
+}
+
+async function expandirComandoDesdeCita(msg, textoNorm) {
+    if (!msg.hasQuotedMsg) return textoNorm;
+    const t = textoNorm.toLowerCase();
+    if (t.startsWith('posventa ') || t.startsWith('resp ')) return textoNorm;
+    try {
+        const quoted = await msg.getQuotedMessage();
+        const qb = String((quoted && quoted.body) || '');
+        const codigo =
+            (qb.match(/c[oó]digo[:\s*]*\*?(\d{3,8})\*?/i) || [])[1] ||
+            (qb.match(/posventa\s+(\d{3,8})\s*:/i) || [])[1] ||
+            (qb.match(/resp\s+(\d{3,12})\s*:/i) || [])[1];
+        if (!codigo) return textoNorm;
+        if (/SUPERVISOR POSTVENTA|MENSAJE POSTVENTA/i.test(qb)) {
+            return `posventa ${codigo}: ${textoNorm.trim()}`;
+        }
+        if (/SUPERVISOR PREVENTA|MENSAJE PREVENTA|pregunta.*meli/i.test(qb)) {
+            return `resp preventa ${codigo}: ${textoNorm.trim()}`;
+        }
+    } catch (e) {
+        console.warn('⚠️ No pude leer mensaje citado:', e.message);
+    }
+    return textoNorm;
 }
 
 // ==========================================
@@ -182,8 +234,9 @@ const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB, GRUPO_PREVENTA_M
 
 // Función compartida: procesar comandos de grupos admin
 async function procesarComandoGrupo(msg, chatIdOverride) {
-    const chatId = chatIdOverride || obtenerChatIdComando(msg);
-    const textoNorm = normalizarComando(msg.body);
+    const chatId = chatIdOverride || await obtenerChatIdComandoAsync(msg);
+    let textoNorm = normalizarComando(msg.body);
+    textoNorm = await expandirComandoDesdeCita(msg, textoNorm);
     const texto = textoNorm.toLowerCase();
     const esComando = (
         texto.includes('ok confirmado') ||
@@ -227,9 +280,11 @@ async function procesarComandoGrupo(msg, chatIdOverride) {
 // `comandoDuplicado` evita procesar dos veces si también llega el evento message.
 client.on('message_create', async (msg) => {
     if (!sistemaListo) return;
-    const chatId = obtenerChatIdComando(msg);
-    if (!GRUPOS_COMANDO.includes(chatId)) return;
-    await procesarComandoGrupo(msg, chatId);
+    const chatId = await obtenerChatIdComandoAsync(msg);
+    const textoProbe = normalizarComando(msg.body || '').toLowerCase();
+    const enGrupoCmd = GRUPOS_COMANDO.includes(chatId);
+    if (!enGrupoCmd && !esComandoMeliOperativo(textoProbe)) return;
+    await procesarComandoGrupo(msg, enGrupoCmd ? chatId : GRUPO_POSTVENTA_MELI);
 });
 
 client.on('message', async (msg) => {
@@ -241,26 +296,35 @@ client.on('message', async (msg) => {
     if (msg.type === 'notification_template') return;
     if (msg.type === 'call_log') return;
 
-    const chatIdComando = obtenerChatIdComando(msg);
+    const chatIdComando = await obtenerChatIdComandoAsync(msg);
     const esGrupoComando = GRUPOS_COMANDO.includes(chatIdComando);
+    const textoProbe = normalizarComando(msg.body || '').toLowerCase();
+    const esCmdMeli = esComandoMeliOperativo(textoProbe);
 
     // Algunos mensajes enviados desde el celular llegan por `message` con
     // fromMe=true y el grupo en msg.to/id.remote, no en msg.from.
-    if (msg.fromMe && esGrupoComando) {
-        await procesarComandoGrupo(msg, chatIdComando);
+    if (msg.fromMe && (esGrupoComando || esCmdMeli)) {
+        await procesarComandoGrupo(
+            msg,
+            esGrupoComando ? chatIdComando : GRUPO_POSTVENTA_MELI
+        );
         return;
     }
 
-    // Filtro 2: ignorar mensajes del propio agente a clientes
-    if (msg.fromMe && !esGrupoComando) return;
+    // Filtro 2: ignorar mensajes del propio agente a clientes (salvo comandos MeLi)
+    if (msg.fromMe && !esGrupoComando && !esCmdMeli) return;
 
     // Filtro 3: ignorar grupos que no sean de admin
     if (chatIdComando.includes('@g.us') && !esGrupoComando) {
-        console.log(`👥 GRUPO DESCONOCIDO [${chatIdComando}]: ${msg.body || '[media]'}`);
-        logActividad('SISTEMA', {
-            de: chatIdComando,
-            texto: `[Grupo no está en GRUPOS_COMANDO] ${msg.body || '[media]'}`,
-        });
+        const cuerpo = msg.body || '[media]';
+        console.log(`👥 GRUPO DESCONOCIDO [${chatIdComando}]: ${cuerpo}`);
+        const logTxt = esCmdMeli
+            ? `[Comando MeLi fuera de grupo operativo — reenviando] ${cuerpo}`
+            : `[Grupo no está en GRUPOS_COMANDO] ${cuerpo}`;
+        logActividad('SISTEMA', { de: chatIdComando, texto: logTxt });
+        if (esCmdMeli) {
+            await procesarComandoGrupo(msg, GRUPO_POSTVENTA_MELI);
+        }
         return;
     }
 
