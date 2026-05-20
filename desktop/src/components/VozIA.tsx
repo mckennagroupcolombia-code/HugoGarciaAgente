@@ -173,6 +173,7 @@ function useRecorder(
       if (!texto) setError("No se detectó audio.");
     } catch {
       setError("Error al transcribir. Verifica la conexión.");
+      onTranscriptRef.current(""); // permite al handler limpiar el estado
     } finally {
       setTranscribing(false);
     }
@@ -945,6 +946,7 @@ export default function VozIA() {
   const wakeWordRef                   = useRef("hugo");
   const listenChunkTimer              = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wakeActivatedRef              = useRef(false);
+  const partialQueryRef               = useRef(""); // fragmento de pregunta del chunk pasivo
   const passiveListenRef              = useRef(false); // chunk pasivo: no mostrar estado en UI
   const convStatusRef                 = useRef<ConvStatus>("idle");
 
@@ -986,43 +988,60 @@ export default function VozIA() {
     const wasPasive = passiveListenRef.current;
     passiveListenRef.current = false;
 
-    // Silencio o transcripción vacía en chunk pasivo → siguiente chunk
+    // Silencio o transcripción vacía — siempre resetear wakeActivatedRef
     if (!text.trim()) {
-      if (wasPasive) scheduleNextChunk(); // sigue esperando la palabra mágica
+      wakeActivatedRef.current = false;
+      if (wasPasive) {
+        scheduleNextChunk(); // sigue esperando la palabra mágica
+      } else {
+        // Grabación activa (pregunta) no detectó audio → volver a escucha pasiva
+        setConvStatus("idle");
+        scheduleNextChunk();
+      }
       return;
     }
 
     const lower = text.toLowerCase().trim();
     const wake  = wakeWordRef.current.toLowerCase().trim();
 
-    // Stage 2: ya se activó la palabra mágica → este texto es la pregunta completa
+    // Stage 2: ya se activó la palabra mágica → combinar con fragmento parcial del chunk pasivo
     if (wakeActivatedRef.current) {
       wakeActivatedRef.current = false;
-      setLastTranscript(text);
-      sendToAgentRef.current(text); // sendToAgent maneja convStatus internamente
+      const partial = partialQueryRef.current;
+      partialQueryRef.current = "";
+      // Combinar: fragmento previo + lo que capturó la grabación activa
+      const combined = partial
+        ? partial + (text.trim() ? " " + text.trim() : "")
+        : text;
+      if (combined.trim()) {
+        setLastTranscript(combined);
+        sendToAgentRef.current(combined);
+      } else {
+        // Nada capturado → volver a escucha pasiva
+        setConvStatus("idle");
+        scheduleNextChunk();
+      }
       return;
     }
 
     // Stage 1: chunk pasivo — buscar palabra mágica
     const wakeIdx = wake ? lower.indexOf(wake) : -1;
     if (wakeIdx >= 0) {
+      // Siempre iniciar grabación activa aunque haya texto después del wake word.
+      // El chunk de 4 s puede haber cortado la frase a la mitad; la grabación
+      // activa con silencio captura el resto y combina con el fragmento parcial.
       const query = text.slice(wakeIdx + wake.length).trim();
-      if (query.length > 2) {
-        // Palabra mágica + pregunta en el mismo chunk → enviar directamente
-        setLastTranscript(text);
-        sendToAgentRef.current(query);
-      } else {
-        // Solo la palabra mágica → activar grabación de pregunta con 3 s de silencio
-        setConvStatus("idle");
-        wakeActivatedRef.current = true;
-        setTimeout(() => {
-          if (listenModeRef.current && convStatusRef.current === "idle") {
-            recorderRef.current?.start(3000, 0); // 3 s de silencio para terminar pregunta
-          } else {
-            wakeActivatedRef.current = false;
-          }
-        }, 200);
-      }
+      setConvStatus("idle");
+      partialQueryRef.current = query; // guardar fragmento (puede estar incompleto)
+      wakeActivatedRef.current = true;
+      setTimeout(() => {
+        if (listenModeRef.current && convStatusRef.current === "idle") {
+          recorderRef.current?.start(1500, 10000); // 1.5 s silencio o máx 10 s
+        } else {
+          wakeActivatedRef.current = false;
+          partialQueryRef.current = "";
+        }
+      }, 200);
     } else {
       // Sin palabra mágica — guardar en memoria y seguir escuchando
       if (vozCfg?.listen_memory !== false) {
@@ -1050,16 +1069,6 @@ export default function VozIA() {
   // Store ref so scheduleNextChunk can access start()
   const recorderRef = useRef(recorder);
   useEffect(() => { recorderRef.current = recorder; }, [recorder]);
-
-  // Red de seguridad: transcripción de pregunta activa terminó pero convStatus quedó en
-  // "transcribing" (p.ej. error de red). Solo aplica a grabación activa (no pasiva).
-  useEffect(() => {
-    if (!recorder.transcribing && listenMode && !passiveListenRef.current
-        && convStatusRef.current === "transcribing") {
-      setConvStatus("idle");
-      scheduleNextChunk();
-    }
-  }, [recorder.transcribing, listenMode, scheduleNextChunk]);
 
   // ── sendToAgent ───────────────────────────────────────────────────────────
   const sendToAgent = useCallback((text: string) => {
