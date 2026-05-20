@@ -995,6 +995,24 @@
       "pregunta": "Volverán más unidades?",
       "respuesta": "Cordial saludo veci, asi es. Nuestro sistema de carga de inventario depende de la disponibilidad del area de laboratorio. Por lo que el stock que aparece en Meli es el actual. Apenas tengamos mas unidades de este producto el stock se actualizara en todos los canales de venta.",
       "timestamp": "2026-05-18T21:23:24.593023"
+    },
+    {
+      "producto": "Vitamina C Acido Ascórbico 100g N-a",
+      "pregunta": "Buenas tardes. ¿Por qué no recomiendan usar éste producto en soluciones tópicas con concentración superior al 5%?",
+      "respuesta": "¡Hola veci! Buenas tardes, esperamos que se encuentre muy bien.\n\nCon gusto le colaboro con su duda. No recomendamos usar este Ácido Ascórbico en soluciones tópicas por encima del 5% porque la solubilidad máxima garantizada de nuestra materia prima en solución es del 5%. Por encima de ese porcentaje el activo no se disuelve de forma estable y homogénea en la base acuosa.\n\nPara formulaciones con mayor concentración de vitamina C, lo indicado es trabajar en emulsiones, cremas o bases anhidras, no en soluciones acuosas concentradas. Si necesita orientación para su preparación, con gusto le apoyamos.\n\n¡Que tenga un excelente día",
+      "timestamp": "2026-05-19T11:51:03.045773"
+    },
+    {
+      "producto": "Aceite De Jojoba",
+      "pregunta": "Para que sirve la manteca Copoazu",
+      "respuesta": "¡Hola, veci! ¿Cómo estás?\n\nGracias por tu interés. Con gusto te cuento sobre el producto de esta publicación, nuestro Aceite de Jojoba. Es un excelente acondicionador natural para la piel y el cabello, ya que su composición es muy similar al sebo que producimos naturalmente.\n\nEs ideal porque no obstruye los poros, lo que lo hace adecuado para todo tipo de pieles, incluso las propensas al acné. Además, ayuda a proteger la piel de la pérdida de humedad y contiene antioxidantes como la vitamina E.\n\nSi tienes alguna otra pregunta sobre nuestro Aceite de Jojoba, no dudes en consultarme. ¡Con todo gusto te colaboro",
+      "timestamp": "2026-05-19T15:31:36.649635"
+    },
+    {
+      "producto": "Ácido Salicílico 50gr ",
+      "pregunta": "Para que se utiliza este producto",
+      "respuesta": "Hola veci, con gusto le colaboro.\n\nEl Ácido Salicílico es un compuesto muy versátil que se utiliza en una variedad de aplicaciones, principalmente como ingrediente activo en productos para el cuidado de la piel, gracias a sus propiedades exfoliantes y antiinflamatorias.\n\nSe utiliza para el tratamiento del acné, ya que ayuda a reducir la inflamación y la acumulación de células muertas en los poros. También actúa como un exfoliante suave que mejora la textura y apariencia de la piel, y es eficaz en el tratamiento de la psoriasis y la caspa. Además, se usa en tratamientos para eliminar verrugas, ayudando a disolver las capas externas de la piel.",
+      "timestamp": "2026-05-19T22:20:12.694098"
     }
   ]
 }

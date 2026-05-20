@@ -4,6 +4,7 @@ import { persist } from "zustand/middleware";
 export type Panel =
   | "dashboard"
   | "chat"
+  | "voz"
   | "preventa"
   | "sync"
   | "stock"

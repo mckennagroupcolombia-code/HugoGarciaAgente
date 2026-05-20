@@ -107,6 +107,136 @@ def detectar_comando_preventa(texto: str):
     return None, None
 
 
+_POSVENTA_STATE_PATH = os.path.join(
+    _ROUTES_DIR, "data", "mensajes_posventa_pendientes.json"
+)
+
+
+def _procesar_comando_posventa_wa(texto_cmd: str) -> None:
+    """
+    Envía respuesta postventa a MeLi por comando WhatsApp:
+    posventa <código>: <texto>
+    """
+    texto_cmd = _normalizar_comando_grupo(texto_cmd)
+    m = re.match(
+        r"^posventa\s+(\S+):\s*(.+)",
+        texto_cmd.strip(),
+        re.IGNORECASE | re.DOTALL,
+    )
+    grupo_posventa = jid_grupo_postventa_wa()
+    if not m:
+        enviar_whatsapp_reporte(
+            "⚠️ Formato: *posventa <código>: tu respuesta*\n"
+            "Ejemplo: posventa 3240: Hola, su pedido ya fue despachado.",
+            numero_destino=grupo_posventa,
+        )
+        return
+
+    sufijo = m.group(1).strip()
+    respuesta = m.group(2).strip()
+    pack_id = None
+    comprador = ""
+    comprador_id = None
+    clave_pendiente = None
+    try:
+        with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
+            _state = json.load(_f)
+        pendientes = _state.get("pendientes", {})
+        entrada = None
+        for candidato in (sufijo, sufijo.upper(), sufijo.lower()):
+            entrada = pendientes.get(candidato)
+            if entrada:
+                clave_pendiente = candidato
+                break
+        if not entrada:
+            sufijo_busqueda = sufijo.upper()
+            for k, v in pendientes.items():
+                if k.endswith(sufijo_busqueda) or sufijo_busqueda.endswith(k):
+                    entrada = v
+                    clave_pendiente = k
+                    break
+        if entrada:
+            pack_id = entrada["pack_id"]
+            comprador = entrada.get("comprador", "")
+            comprador_id = entrada.get("from_id")
+    except Exception as _e:
+        print(f"⚠️ [POSVENTA-CMD] Error leyendo state: {_e}")
+
+    if not pack_id:
+        if sufijo.isdigit() and len(sufijo) > 8:
+            pack_id = sufijo
+        else:
+            enviar_whatsapp_reporte(
+                f"⚠️ No encontré mensaje postventa pendiente con código *{sufijo}*.\n"
+                f"Verifica el código en la alerta original o responde directo en MeLi.",
+                numero_destino=grupo_posventa,
+            )
+            return
+
+    exito = responder_mensaje_posventa(pack_id, respuesta, comprador_id)
+
+    def _quitar_pendiente_postventa():
+        try:
+            with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
+                _state = json.load(_f)
+            pd = _state.get("pendientes", {})
+            if clave_pendiente and clave_pendiente in pd:
+                pd.pop(clave_pendiente, None)
+            else:
+                for k, v in list(pd.items()):
+                    if str(v.get("pack_id")) == str(pack_id):
+                        pd.pop(k, None)
+                        break
+            with open(_POSVENTA_STATE_PATH, "w", encoding="utf-8") as _f:
+                json.dump(_state, _f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    if exito:
+        _quitar_pendiente_postventa()
+        enviar_whatsapp_reporte(
+            f"✅ *Respuesta postventa enviada*\n"
+            f"👤 Comprador: {comprador or pack_id}\n"
+            f"📦 Pack: {pack_id}\n"
+            f"💬 Respuesta: {respuesta[:120]}{'…' if len(respuesta) > 120 else ''}",
+            numero_destino=grupo_posventa,
+        )
+        return
+
+    try:
+        from app.utils import refrescar_token_meli, obtener_seller_id_meli
+
+        tok = refrescar_token_meli()
+        sid = obtener_seller_id_meli()
+        r_m = _requests_lib.get(
+            f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{sid}?tag=post_sale",
+            headers={"Authorization": f"Bearer {tok}", "x-version": "2"},
+            timeout=10,
+        )
+        if r_m.status_code == 200:
+            conv = r_m.json().get("conversation_status") or {}
+            if (
+                conv.get("status") == "blocked"
+                and conv.get("substatus") == "blocked_by_cancelled_order"
+            ):
+                _quitar_pendiente_postventa()
+                enviar_whatsapp_reporte(
+                    f"✅ *Postventa cerrada: orden cancelada*\n"
+                    f"📦 Pack: {pack_id}\n"
+                    f"🧹 MeLi bloqueó la conversación por cancelación; quité el pendiente local.",
+                    numero_destino=grupo_posventa,
+                )
+                return
+    except Exception as e_cancel:
+        print(f"⚠️ [POSVENTA-CMD] No pude verificar cancelación {pack_id}: {e_cancel}")
+
+    enviar_whatsapp_reporte(
+        f"❌ *Error enviando respuesta postventa* al pack {pack_id}.\n"
+        f"Intenta responder directamente en MeLi.",
+        numero_destino=grupo_posventa,
+    )
+
+
 # --- Dependencias de Lógica de Negocio ---
 # Estas son las funciones que nuestra ruta necesita para operar.
 # TODO: Eventualmente, estas dependencias se deben limpiar y organizar.
@@ -707,10 +837,209 @@ def _procesar_orden_meli(order_id: str):
         print(f"❌ [MELI-ORDER] Error procesando orden {order_id}: {e}")
 
 
+_ACCESO_RED_CFG = os.path.join(_ROUTES_DIR, "data", "acceso_red.json")
+
+# ── Panel multi-modelo ─────────────────────────────────────────────────────
+
+_MODELOS_API_FIJOS = [
+    {"id": "claude-sonnet-4-6",        "nombre": "Claude Sonnet 4.6", "categoria": "claude",  "proveedor": "Anthropic API"},
+    {"id": "claude-haiku-4-5-20251001", "nombre": "Claude Haiku 4.5",  "categoria": "claude",  "proveedor": "Anthropic API"},
+    {"id": "gemini-2.5-pro",            "nombre": "Gemini 2.5 Pro",     "categoria": "gemini",  "proveedor": "Google API"},
+    {"id": "gemini-2.5-flash",           "nombre": "Gemini 2.5 Flash",   "categoria": "gemini",  "proveedor": "Google API"},
+]
+
+_panel_histories: dict = {}  # key: "{session_id}:{modelo_id}" → list[dict]
+
+_SYSTEM_OLLAMA_HUGO = (
+    "Eres Hugo García, asesor ejecutivo de McKenna Group S.A.S. (Bogotá, Colombia). "
+    "Responde siempre en español colombiano, directo y sin rodeos."
+)
+_SYSTEM_OLLAMA_DEV = (
+    "Eres un asistente de desarrollo para McKenna Group. "
+    "Especialidad: Python, Flask, React, TypeScript. "
+    "Revisas bugs, rutinas y código. Respondes en español."
+)
+_SYSTEM_PANEL_CLAUDE = (
+    "Eres Hugo García, asesor ejecutivo de McKenna Group S.A.S. "
+    "Panel interno de pruebas. Responde en español colombiano."
+)
+
+
+def _panel_chat_claude(modelo_id: str, historial: list, mensaje: str) -> str:
+    from app.core import cliente_ia
+    if not cliente_ia:
+        raise RuntimeError("Cliente Anthropic no inicializado — verifica ANTHROPIC_API_KEY en .env")
+    msgs = historial + [{"role": "user", "content": mensaje}]
+    response = cliente_ia.messages.create(
+        model=modelo_id,
+        max_tokens=2048,
+        system=_SYSTEM_PANEL_CLAUDE,
+        messages=msgs,
+    )
+    return response.content[0].text
+
+
+def _panel_chat_gemini(modelo_id: str, historial: list, mensaje: str) -> str:
+    from app.core import cliente_gemini
+    if not cliente_gemini:
+        raise RuntimeError("Cliente Gemini no inicializado — verifica GOOGLE_API_KEY en .env")
+    contents = []
+    for m in historial:
+        role = "user" if m["role"] == "user" else "model"
+        contents.append({"role": role, "parts": [{"text": m["content"]}]})
+    contents.append({"role": "user", "parts": [{"text": mensaje}]})
+    resp = cliente_gemini.models.generate_content(
+        model=modelo_id,
+        contents=contents,
+        config={"system_instruction": "Eres Hugo García, asesor de McKenna Group. Responde en español colombiano."},
+    )
+    return resp.text
+
+
+# ── Voz IA: cola de notificaciones en memoria ─────────────────────────────
+_voz_notificaciones: list = []  # list[{id, texto, nivel, timestamp}]
+
+# ── Canales activos (asignación por canal) ────────────────────────────────
+_CANALES_DEFAULT = [
+    {
+        "id": "whatsapp", "nombre": "WhatsApp", "icono": "wa",
+        "modelo_id": "claude-sonnet-4-6", "modelo_nombre": "Claude Sonnet 4.6",
+        "proveedor": "Anthropic API", "modo": "tool-use",
+        "descripcion": "Atiende clientes con acceso a inventario, pagos y catálogo.",
+    },
+    {
+        "id": "meli_preventa", "nombre": "MeLi Preventa", "icono": "ml",
+        "modelo_id": "gemini-2.5-pro", "modelo_nombre": "Gemini 2.5 Pro",
+        "proveedor": "Google API", "modo": "ficha + delegación",
+        "descripcion": "Responde con ficha técnica. Sin ficha → delega al equipo.",
+    },
+    {
+        "id": "web_chat", "nombre": "Web Chat (burbuja)", "icono": "web",
+        "modelo_id": "claude-sonnet-4-6", "modelo_nombre": "Claude Sonnet 4.6",
+        "proveedor": "Anthropic API", "modo": "tool-use",
+        "descripcion": "Burbuja de chat en mckennagroup.co — mismo agente que WhatsApp.",
+    },
+    {
+        "id": "panel_chat", "nombre": "Panel Chat IA", "icono": "panel",
+        "modelo_id": "seleccionable", "modelo_nombre": "Seleccionable",
+        "proveedor": "Multi-proveedor", "modo": "conversacional",
+        "descripcion": "Panel de pruebas. Selecciona cualquier modelo.",
+    },
+    {
+        "id": "voz_ia", "nombre": "Voz IA", "icono": "mic",
+        "modelo_id": "seleccionable", "modelo_nombre": "Seleccionable + ElevenLabs TTS",
+        "proveedor": "Multi-proveedor", "modo": "voz + TTS",
+        "descripcion": "STT por navegador. TTS: ElevenLabs. Qwen3 TTS disponible tras instalación local.",
+    },
+]
+
+def _panel_chat_ollama(modelo_id: str, historial: list, mensaje: str) -> str:
+    import requests as _req
+
+    # ── Consultar memoria vectorial para contexto ──────────────────────────
+    contexto = ""
+    try:
+        import chromadb as _chroma
+        _chroma_path = os.path.join(_ROUTES_DIR, "..", "memoria_vectorial")
+        _cc = _chroma.PersistentClient(path=os.path.normpath(_chroma_path))
+        fragmentos = []
+        for col_name in ("mckenna_brain", "mckenna_debug_memory", "conocimiento_cientifico"):
+            try:
+                col = _cc.get_collection(col_name)
+                res = col.query(query_texts=[mensaje], n_results=2)
+                docs = res.get("documents", [[]])[0]
+                fragmentos.extend(d for d in docs if d and len(d) > 20)
+            except Exception:
+                pass
+        if fragmentos:
+            contexto = "\n\n[Contexto de memoria relevante]:\n" + "\n---\n".join(fragmentos[:4])
+    except Exception:
+        pass
+
+    base_system = _SYSTEM_OLLAMA_HUGO if modelo_id.startswith("hugo-garcia") else _SYSTEM_OLLAMA_DEV
+    system = base_system + contexto
+    messages = [{"role": "system", "content": system}] + historial + [{"role": "user", "content": mensaje}]
+    r = _req.post(
+        "http://localhost:11434/api/chat",
+        json={"model": modelo_id, "messages": messages, "stream": False},
+        timeout=180,
+    )
+    r.raise_for_status()
+    return r.json()["message"]["content"]
+
+
+def _guardar_en_memoria_panel(mensaje: str, respuesta: str, modelo_id: str) -> None:
+    """Guarda el Q&A del panel en ChromaDB para contexto futuro."""
+    try:
+        import chromadb as _chroma, uuid as _uuid
+        from datetime import datetime as _dt2
+        _chroma_path = os.path.join(_ROUTES_DIR, "..", "memoria_vectorial")
+        _cc = _chroma.PersistentClient(path=os.path.normpath(_chroma_path))
+        col = _cc.get_or_create_collection("mckenna_brain")
+        col.add(
+            documents=[f"Pregunta: {mensaje}\nRespuesta: {respuesta}"],
+            ids=[_uuid.uuid4().hex],
+            metadatas=[{"modelo": modelo_id, "fecha": _dt2.now().isoformat(), "origen": "panel_chat"}],
+        )
+    except Exception:
+        pass
+
+
+def _leer_acceso_red() -> bool:
+    try:
+        with open(_ACCESO_RED_CFG) as _f:
+            return bool(json.load(_f).get("habilitado", True))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return True
+
+
+def _escribir_acceso_red(habilitado: bool) -> None:
+    with open(_ACCESO_RED_CFG, "w") as _f:
+        json.dump({"habilitado": habilitado}, _f)
+
+
+def _ip_lan_local() -> str | None:
+    import socket as _socket
+    try:
+        with _socket.socket(_socket.AF_INET, _socket.SOCK_DGRAM) as _s:
+            _s.connect(("8.8.8.8", 80))
+            _ip = _s.getsockname()[0]
+            if _ip and not _ip.startswith("127."):
+                return _ip
+    except OSError:
+        pass
+    try:
+        _ip = _socket.gethostbyname(_socket.gethostname())
+        if _ip and not _ip.startswith("127."):
+            return _ip
+    except OSError:
+        pass
+    return None
+
+
 def register_routes(app):
     @app.before_request
     def _mckenna_bind_request_id():
         bind_flask_request(request)
+
+    @app.before_request
+    def _check_acceso_red():
+        remote = request.remote_addr
+        if remote in ("127.0.0.1", "::1") or (remote or "").startswith("127."):
+            return
+        if request.method == "OPTIONS":
+            return
+        if not _leer_acceso_red():
+            from flask import Response as _R
+            return _R(
+                "<html><body style='font-family:sans-serif;padding:2rem'>"
+                "<h2>Acceso restringido</h2>"
+                "<p>El panel solo está disponible desde el equipo local.</p>"
+                "<p>Activa el acceso desde red local en Ajustes.</p>"
+                "</body></html>",
+                status=403,
+                content_type="text/html; charset=utf-8",
+            )
 
     @app.route("/notifications", methods=["POST"])
     def notifications():
@@ -878,6 +1207,13 @@ def register_routes(app):
 
         # Alias para compatibilidad con código existente
         grupo_contabilidad = grupo_compras
+
+        # Comandos MeLi operativos: aceptar aunque lleguen por chat 1:1 al número del negocio
+        # (a veces el operador escribe ahí en vez del grupo Postventa_Meli).
+        _msg_norm = _normalizar_comando_grupo(message_text)
+        if _msg_norm.lower().startswith("posventa "):
+            spawn_thread(_procesar_comando_posventa_wa, args=(_msg_norm,))
+            return jsonify({"status": "ok", "respuesta": None})
 
         # --- Comandos pedidos web: facturar / envio (varios grupos operativos) ---
         if _remote_es_grupo_web_pedido(remote_jid) and message_text:
@@ -1142,132 +1478,6 @@ def register_routes(app):
                     )
 
                 spawn_thread(_manejar_inv, args=(message_text,))
-                return jsonify({"status": "ok", "respuesta": None})
-
-            # ── Respuesta a mensajes postventa MeLi: posventa <código>: <texto> ──
-            elif msg_lower.startswith("posventa "):
-
-                def _manejar_posventa(texto_cmd):
-                    m = re.match(
-                        r"^posventa\s+(\S+):\s*(.+)",
-                        texto_cmd.strip(),
-                        re.IGNORECASE | re.DOTALL,
-                    )
-                    if not m:
-                        enviar_whatsapp_reporte(
-                            "⚠️ Formato: *posventa <código>: tu respuesta*\n"
-                            "Ejemplo: posventa 3240: Hola, su pedido ya fue despachado.",
-                            numero_destino=grupo_posventa,
-                        )
-                        return
-
-                    sufijo = m.group(1).strip()
-                    respuesta = m.group(2).strip()
-
-                    # Buscar pack_id en la cola de pendientes
-                    state_path = "/home/mckg/mi-agente/app/data/mensajes_posventa_pendientes.json"
-                    pack_id = None
-                    comprador = ""
-                    comprador_id = None
-                    clave_pendiente = None
-                    try:
-                        with open(state_path, "r", encoding="utf-8") as _f:
-                            _state = json.load(_f)
-                        pendientes = _state.get("pendientes", {})
-                        sufijo_busqueda = sufijo.upper()
-                        entrada = pendientes.get(sufijo_busqueda)
-                        clave_candidata = sufijo_busqueda
-                        if not entrada:
-                            for k, v in pendientes.items():
-                                if k.endswith(sufijo_busqueda) or sufijo_busqueda.endswith(k):
-                                    entrada = v
-                                    clave_candidata = k
-                                    break
-                        if entrada:
-                            pack_id = entrada["pack_id"]
-                            comprador = entrada.get("comprador", "")
-                            comprador_id = entrada.get("from_id")
-                            clave_pendiente = clave_candidata
-                    except Exception as _e:
-                        print(f"⚠️ [POSVENTA-CMD] Error leyendo state: {_e}")
-
-                    if not pack_id:
-                        # Intentar usar el sufijo directamente como pack_id completo
-                        if sufijo.isdigit() and len(sufijo) > 8:
-                            pack_id = sufijo
-                        else:
-                            enviar_whatsapp_reporte(
-                                f"⚠️ No encontré mensaje postventa pendiente con código *{sufijo}*.\n"
-                                f"Verifica el código en la alerta original o responde directo en MeLi.",
-                                numero_destino=grupo_posventa,
-                            )
-                            return
-
-                    from modulo_posventa import responder_mensaje_posventa
-
-                    exito = responder_mensaje_posventa(pack_id, respuesta, comprador_id)
-
-                    def _quitar_pendiente_postventa():
-                        try:
-                            with open(state_path, "r", encoding="utf-8") as _f:
-                                _state = json.load(_f)
-                            pd = _state.get("pendientes", {})
-                            if clave_pendiente and clave_pendiente in pd:
-                                pd.pop(clave_pendiente, None)
-                            else:
-                                for k, v in list(pd.items()):
-                                    if str(v.get("pack_id")) == str(pack_id):
-                                        pd.pop(k, None)
-                                        break
-                            with open(state_path, "w", encoding="utf-8") as _f:
-                                json.dump(_state, _f, indent=2, ensure_ascii=False)
-                        except Exception:
-                            pass
-
-                    if exito:
-                        # Quitar de pendientes (clave real del dict o mismo pack_id)
-                        _quitar_pendiente_postventa()
-                        enviar_whatsapp_reporte(
-                            f"✅ *Respuesta postventa enviada*\n"
-                            f"👤 Comprador: {comprador or pack_id}\n"
-                            f"📦 Pack: {pack_id}\n"
-                            f"💬 Respuesta: {respuesta[:120]}{'…' if len(respuesta) > 120 else ''}",
-                            numero_destino=grupo_posventa,
-                        )
-                    else:
-                        try:
-                            from app.utils import refrescar_token_meli, obtener_seller_id_meli
-
-                            tok = refrescar_token_meli()
-                            sid = obtener_seller_id_meli()
-                            r_m = _requests_lib.get(
-                                f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{sid}?tag=post_sale",
-                                headers={"Authorization": f"Bearer {tok}", "x-version": "2"},
-                                timeout=10,
-                            )
-                            if r_m.status_code == 200:
-                                conv = (r_m.json().get("conversation_status") or {})
-                                if (
-                                    conv.get("status") == "blocked"
-                                    and conv.get("substatus") == "blocked_by_cancelled_order"
-                                ):
-                                    _quitar_pendiente_postventa()
-                                    enviar_whatsapp_reporte(
-                                        f"✅ *Postventa cerrada: orden cancelada*\n"
-                                        f"📦 Pack: {pack_id}\n"
-                                        f"🧹 MeLi bloqueó la conversación por cancelación; quité el pendiente local.",
-                                        numero_destino=grupo_posventa,
-                                    )
-                                    return
-                        except Exception as e_cancel:
-                            print(f"⚠️ [POSVENTA-CMD] No pude verificar cancelación {pack_id}: {e_cancel}")
-                        enviar_whatsapp_reporte(
-                            f"❌ *Error enviando respuesta postventa* al pack {pack_id}.\n"
-                            f"Intenta responder directamente en MeLi.",
-                            numero_destino=grupo_posventa,
-                        )
-
-                spawn_thread(_manejar_posventa, args=(message_text,))
                 return jsonify({"status": "ok", "respuesta": None})
 
             elif msg_lower.startswith("resp preventa "):
@@ -2609,6 +2819,417 @@ def register_routes(app):
 
         spawn_thread(lambda: run_logged_job("git_pull", _do_pull), daemon=True)
         return jsonify({"status": "iniciado", "mensaje": "Git pull iniciado…"})
+
+    @app.route("/api/sistema/modelos")
+    def api_sistema_modelos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import requests as _req
+        ollama_models = []
+        try:
+            r = _req.get("http://localhost:11434/api/tags", timeout=3)
+            if r.ok:
+                for m in r.json().get("models", []):
+                    ollama_models.append({
+                        "id": m["name"],
+                        "nombre": m["name"],
+                        "categoria": "ollama",
+                        "proveedor": "Local (Ollama)",
+                        "size_mb": m.get("size", 0) // 1024 // 1024,
+                    })
+        except Exception:
+            pass
+        return jsonify({"modelos": _MODELOS_API_FIJOS + ollama_models})
+
+    @app.route("/api/chat-panel", methods=["POST"])
+    def api_chat_panel():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        mensaje = (body.get("mensaje") or "").strip()
+        modelo_id = (body.get("modelo_id") or "claude-sonnet-4-6").strip()
+        session_id = (body.get("session_id") or "panel").strip()
+        reset = bool(body.get("reset", False))
+        if not mensaje:
+            return jsonify({"error": "mensaje requerido"}), 400
+
+        key = f"{session_id}:{modelo_id}"
+        if reset:
+            _panel_histories.pop(key, None)
+        historial = list(_panel_histories.get(key, []))
+
+        try:
+            if modelo_id.startswith("claude-"):
+                respuesta = _panel_chat_claude(modelo_id, historial, mensaje)
+            elif modelo_id.startswith("gemini-"):
+                respuesta = _panel_chat_gemini(modelo_id, historial, mensaje)
+            else:
+                respuesta = _panel_chat_ollama(modelo_id, historial, mensaje)
+
+            historial = historial + [
+                {"role": "user",      "content": mensaje},
+                {"role": "assistant", "content": respuesta},
+            ]
+            if len(historial) > 40:
+                historial = historial[-40:]
+            _panel_histories[key] = historial
+
+            # Guardar en ChromaDB en hilo daemon (no bloquea la respuesta)
+            spawn_thread(
+                lambda m=mensaje, r=respuesta, mid=modelo_id: _guardar_en_memoria_panel(m, r, mid),
+                daemon=True,
+            )
+
+            return jsonify({
+                "respuesta": respuesta,
+                "modelo_id": modelo_id,
+                "timestamp": _dt.now().isoformat(),
+                "status": "ok",
+            })
+        except Exception as exc:
+            return jsonify({"error": str(exc), "status": "error"}), 500
+
+    # ── Canales ──────────────────────────────────────────────────────────────
+
+    @app.route("/api/sistema/canales")
+    def api_sistema_canales():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        eleven_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
+        from app.services.tts_qwen3 import qwen3_disponible
+        qwen3_ok = qwen3_disponible()
+        return jsonify({
+            "canales": _CANALES_DEFAULT,
+            "tts_disponible": {
+                "elevenlabs": bool(eleven_key),
+                "qwen3_local": qwen3_ok,
+                "browser": True,
+            },
+        })
+
+    # ── Voz IA ───────────────────────────────────────────────────────────────
+
+    @app.route("/api/voz/status")
+    def api_voz_status():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_qwen3 import qwen3_disponible
+        from app.services.tts_voicebox import voicebox_disponible
+        from app.services.voz_config import leer_config
+        eleven_key   = os.getenv("ELEVENLABS_API_KEY", "").strip()
+        eleven_voice = os.getenv("ELEVENLABS_VOICE_ID", "cgSgspJ2msm6clMCkdW9").strip()
+        qwen3_ok    = qwen3_disponible()
+        voicebox_ok = voicebox_disponible()
+        cfg         = leer_config()
+        engine      = cfg["engine"]
+        if engine == "qwen3" and qwen3_ok:
+            motor = "qwen3-clone" if cfg.get("clone_enabled") else "qwen3"
+        elif engine == "voicebox" and voicebox_ok:
+            motor = "voicebox-clone" if cfg.get("voicebox_profile") else "voicebox"
+        elif engine == "elevenlabs" and eleven_key:
+            motor = "elevenlabs"
+        elif voicebox_ok:
+            motor = "voicebox"
+        elif qwen3_ok:
+            motor = "qwen3"
+        elif eleven_key:
+            motor = "elevenlabs"
+        else:
+            motor = "browser"
+        return jsonify({
+            "elevenlabs": bool(eleven_key),
+            "elevenlabs_voice_id": eleven_voice if eleven_key else None,
+            "qwen3_local": qwen3_ok,
+            "qwen3_voces": ["ryan","aiden","serena","vivian","uncle_fu","dylan","eric","ono_anna","sohee"],
+            "voicebox_local": voicebox_ok,
+            "browser_tts": True,
+            "motor_activo": motor,
+            "config": cfg,
+        })
+
+    def _qwen3_soporta_clonacion() -> bool:
+        """Qwen3-TTS-*-CustomVoice no soporta generate_voice_clone; solo los modelos Base lo hacen."""
+        model_id = os.getenv("QWEN3_TTS_MODEL", "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice").lower()
+        return "customvoice" not in model_id and "custom_voice" not in model_id
+
+    @app.route("/api/voz/config", methods=["GET"])
+    def api_voz_config_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.voz_config import leer_config
+        from app.services.tts_qwen3 import qwen3_disponible
+        from app.services.tts_voicebox import voicebox_disponible, listar_perfiles_voicebox
+        cfg = leer_config()
+        qwen3_ok    = qwen3_disponible()
+        voicebox_ok = voicebox_disponible()
+        return jsonify({
+            **cfg,
+            "qwen3_disponible":    qwen3_ok,
+            "qwen3_clonacion":     _qwen3_soporta_clonacion() if qwen3_ok else False,
+            "qwen3_voces":         ["ryan","aiden","serena","vivian","uncle_fu","dylan","eric","ono_anna","sohee"],
+            "idiomas":             ["Spanish","English","Chinese","Japanese","Korean","German","French","Italian","Russian"],
+            "voicebox_disponible": voicebox_ok,
+            "voicebox_perfiles":   listar_perfiles_voicebox() if voicebox_ok else [],
+            "voicebox_engines":    ["qwen3","qwen3-0.6b","chatterbox","kokoro"],
+        })
+
+    @app.route("/api/voz/config", methods=["POST"])
+    def api_voz_config_post():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.voz_config import guardar_config
+        body = request.get_json(force=True, silent=True) or {}
+        cfg = guardar_config(
+            engine=body.get("engine"),
+            language=body.get("language"),
+            speaker=body.get("speaker"),
+            ref_text=body.get("ref_text"),
+            wake_word=body.get("wake_word"),
+            listen_memory=body.get("listen_memory"),
+            voicebox_profile=body.get("voicebox_profile"),
+            voicebox_engine=body.get("voicebox_engine"),
+        )
+        return jsonify({"ok": True, "config": cfg})
+
+    @app.route("/api/voz/config/referencia", methods=["POST"])
+    def api_voz_config_referencia_upload():
+        """Sube un audio WAV/MP3 como voz de referencia para clonación."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.voz_config import guardar_audio_referencia
+        audio = request.files.get("audio")
+        if not audio:
+            return jsonify({"error": "campo 'audio' requerido (multipart/form-data)"}), 400
+        ref_text = (request.form.get("ref_text") or "").strip()
+        audio_bytes = audio.read()
+        if not audio_bytes:
+            return jsonify({"error": "audio vacío"}), 400
+        cfg = guardar_audio_referencia(audio_bytes, ref_text=ref_text)
+        return jsonify({"ok": True, "config": cfg})
+
+    @app.route("/api/voz/config/referencia", methods=["DELETE"])
+    def api_voz_config_referencia_delete():
+        """Elimina el audio de referencia y desactiva la clonación."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.voz_config import eliminar_audio_referencia
+        cfg = eliminar_audio_referencia()
+        return jsonify({"ok": True, "config": cfg})
+
+    @app.route("/api/voz/config/referencia/preview", methods=["GET"])
+    def api_voz_config_referencia_preview():
+        """Devuelve el audio de referencia guardado para preescucha."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.voz_config import leer_audio_referencia
+        from flask import Response as _R
+        data = leer_audio_referencia()
+        if not data:
+            return jsonify({"error": "Sin audio de referencia"}), 404
+        return _R(data, content_type="audio/wav")
+
+    @app.route("/api/voz/sintetizar", methods=["POST"])
+    def api_voz_sintetizar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(force=True, silent=True) or {}
+        texto = (body.get("texto") or "").strip()[:1200]
+        motor_forzado = (body.get("motor") or "").strip()   # fuerza un motor ignorando config
+        if not texto:
+            return jsonify({"error": "texto requerido"}), 400
+
+        from app.services.voz_config import leer_config, leer_audio_referencia
+        from app.services.tts_qwen3 import qwen3_disponible, sintetizar_qwen3, clonar_voz_qwen3
+        from flask import Response as _R
+
+        cfg      = leer_config()
+        engine   = motor_forzado or cfg["engine"]
+        language = body.get("language") or cfg["language"]
+        speaker  = body.get("speaker")  or cfg["speaker"]
+        clone_on = cfg.get("clone_enabled", False)
+        ref_text = cfg.get("ref_text", "")
+
+        voicebox_profile = cfg.get("voicebox_profile", "")
+        voicebox_engine  = body.get("voicebox_engine") or cfg.get("voicebox_engine", "qwen3")
+
+        # ── Motor 1: Voicebox (Qwen3-TTS-Base — mejor clonación) ──────────
+        from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
+        if engine == "voicebox" and voicebox_disponible():
+            try:
+                audio = sintetizar_voicebox(texto, profile_id=voicebox_profile, engine=voicebox_engine)
+                motor_hdr = "voicebox-clone" if voicebox_profile else "voicebox"
+                return _R(audio, content_type="audio/wav",
+                          headers={"X-TTS-Motor": motor_hdr})
+            except Exception as exc:
+                print(f"[Voz] Voicebox falló: {exc}")
+
+        # ── Motor 2: Qwen3 TTS local (GPU) ────────────────────────────────
+        if engine in ("qwen3", "auto") and qwen3_disponible():
+            try:
+                if clone_on:
+                    ref_bytes = leer_audio_referencia()
+                    if ref_bytes and ref_text:
+                        try:
+                            audio = clonar_voz_qwen3(texto, ref_bytes, ref_text, language)
+                            return _R(audio, content_type="audio/wav",
+                                      headers={"X-TTS-Motor": "qwen3-clone"})
+                        except Exception as clone_exc:
+                            print(f"[Voz] Qwen3 clone no soportado ({clone_exc}), usando voz predefinida")
+                audio = sintetizar_qwen3(texto, speaker=speaker, language=language)
+                return _R(audio, content_type="audio/wav",
+                          headers={"X-TTS-Motor": "qwen3"})
+            except Exception as exc:
+                print(f"[Voz] Qwen3 falló: {exc}")
+
+        # ── Motor 3: ElevenLabs API ────────────────────────────────────────
+        eleven_key   = os.getenv("ELEVENLABS_API_KEY", "").strip()
+        eleven_voice = os.getenv("ELEVENLABS_VOICE_ID", "cgSgspJ2msm6clMCkdW9").strip()
+        if eleven_key and engine not in ("qwen3", "voicebox"):
+            import requests as _req
+            try:
+                r = _req.post(
+                    f"https://api.elevenlabs.io/v1/text-to-speech/{eleven_voice}",
+                    headers={"xi-api-key": eleven_key, "Content-Type": "application/json"},
+                    json={
+                        "text": texto,
+                        "model_id": "eleven_multilingual_v2",
+                        "voice_settings": {"stability": 0.45, "similarity_boost": 0.80},
+                    },
+                    timeout=30,
+                )
+                r.raise_for_status()
+                return _R(r.content, content_type="audio/mpeg",
+                          headers={"X-TTS-Motor": "elevenlabs"})
+            except Exception as exc:
+                print(f"[Voz] ElevenLabs falló: {exc}")
+
+        # ── Fallback: sin audio desde servidor (browser SpeechSynthesis) ──
+        return jsonify({"error": "Sin motor TTS disponible", "fallback": "browser"}), 503
+
+    @app.route("/api/voz/memoria", methods=["POST"])
+    def api_voz_memoria():
+        """Agrega texto escuchado en modo escucha continua a la memoria vectorial."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body   = request.get_json(silent=True) or {}
+        texto  = (body.get("texto") or "").strip()
+        fuente = (body.get("fuente") or "voz_escucha").strip()
+        if not texto or len(texto) < 5:
+            return jsonify({"error": "texto muy corto"}), 400
+        try:
+            import chromadb as _chroma
+            import uuid as _uuid
+            _chroma_path = os.path.join(_ROUTES_DIR, "..", "memoria_vectorial")
+            _cc  = _chroma.PersistentClient(path=os.path.normpath(_chroma_path))
+            col  = _cc.get_or_create_collection("mckenna_brain")
+            col.add(
+                documents=[texto],
+                ids=[f"voz_{_uuid.uuid4().hex[:12]}"],
+                metadatas=[{"fuente": fuente, "timestamp": datetime.now().isoformat()}],
+            )
+            return jsonify({"ok": True, "chars": len(texto)})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/voicebox/perfiles", methods=["GET"])
+    def api_voz_voicebox_perfiles():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import listar_perfiles_voicebox
+        return jsonify({"perfiles": listar_perfiles_voicebox()})
+
+    @app.route("/api/voz/voicebox/perfiles", methods=["POST"])
+    def api_voz_voicebox_crear_perfil():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import crear_perfil_voicebox
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or body.get("name") or "Mi voz").strip()
+        try:
+            perfil = crear_perfil_voicebox(nombre)
+            return jsonify({"ok": True, "perfil": perfil})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/voicebox/perfiles/<profile_id>/muestras", methods=["POST"])
+    def api_voz_voicebox_subir_muestra(profile_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.tts_voicebox import agregar_muestra_voicebox
+        audio = request.files.get("audio")
+        if not audio:
+            return jsonify({"error": "campo 'audio' requerido"}), 400
+        ref_text     = (request.form.get("ref_text") or "").strip()
+        audio_bytes  = audio.read()
+        content_type = audio.content_type or audio.mimetype or ""
+        filename     = audio.filename or "sample.wav"
+        try:
+            result = agregar_muestra_voicebox(profile_id, audio_bytes, ref_text, filename, content_type)
+            return jsonify({"ok": True, "result": result})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/voz/notificaciones")
+    def api_voz_notificaciones_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.voz_notif import leer_notificaciones
+        notifs = leer_notificaciones()
+        return jsonify({"notificaciones": notifs, "total": len(notifs)})
+
+    @app.route("/api/voz/notificaciones/marcar", methods=["POST"])
+    def api_voz_notificaciones_marcar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.voz_notif import marcar_leidas
+        body = request.get_json(silent=True) or {}
+        ids = body.get("ids")   # None = marcar todas
+        eliminadas = marcar_leidas(ids)
+        from app.services.voz_notif import leer_notificaciones
+        return jsonify({"ok": True, "eliminadas": eliminadas, "restantes": len(leer_notificaciones())})
+
+    @app.route("/api/voz/transcribir", methods=["POST"])
+    def api_voz_transcribir():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.whisper_stt import whisper_disponible, transcribir as _transcribir
+        if not whisper_disponible():
+            return jsonify({"error": "faster-whisper no instalado"}), 503
+        audio = request.files.get("audio")
+        if not audio:
+            return jsonify({"error": "campo 'audio' requerido (multipart/form-data)"}), 400
+        audio_bytes = audio.read()
+        if not audio_bytes:
+            return jsonify({"error": "audio vacío"}), 400
+        try:
+            texto = _transcribir(audio_bytes, filename=audio.filename or "audio.webm")
+            return jsonify({"texto": texto, "motor": "faster-whisper"})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    # ── Acceso red ────────────────────────────────────────────────────────────
+
+    @app.route("/api/sistema/acceso-red", methods=["GET"])
+    def api_acceso_red_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        puerto = int(os.getenv("AGENTE_PORT", "8081"))
+        ip_lan = _ip_lan_local()
+        habilitado = _leer_acceso_red()
+        url = f"http://{ip_lan}:{puerto}/app" if (habilitado and ip_lan) else None
+        return jsonify({"habilitado": habilitado, "ip_lan": ip_lan, "puerto": puerto, "url": url})
+
+    @app.route("/api/sistema/acceso-red", methods=["POST"])
+    def api_acceso_red_post():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        habilitado = bool(body.get("habilitado", True))
+        _escribir_acceso_red(habilitado)
+        puerto = int(os.getenv("AGENTE_PORT", "8081"))
+        ip_lan = _ip_lan_local()
+        url = f"http://{ip_lan}:{puerto}/app" if (habilitado and ip_lan) else None
+        return jsonify({"habilitado": habilitado, "ip_lan": ip_lan, "puerto": puerto, "url": url})
 
     @app.route("/app/api/5s/workspace", methods=["GET", "PUT"])
     @app.route("/api/5s/workspace", methods=["GET", "PUT"])
