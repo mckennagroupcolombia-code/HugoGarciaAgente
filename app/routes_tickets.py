@@ -11,6 +11,7 @@ from app.services.tickets_db import (
     listar_roles, crear_rol, actualizar_rol,
     listar_departamentos, crear_departamento, actualizar_departamento,
     listar_usuarios, crear_usuario, actualizar_usuario,
+    actualizar_foto_usuario, eliminar_foto_usuario,
     crear_ticket, listar_tickets, get_ticket,
     cambiar_estado, asignar_ticket, agregar_comentario,
     registrar_tiempo, dashboard_carga, UPLOADS_DIR,
@@ -33,6 +34,7 @@ from app.services.tickets_db import (
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
+_AVATAR_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
 
 
 def _ext_ok(filename: str) -> bool:
@@ -119,6 +121,42 @@ def register_tickets_routes(app):
         token = request.headers.get("Authorization", "")[7:].strip()
         logout_usuario(token)
         return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/auth/me/foto", methods=["POST"])
+    @_auth
+    def tickets_subir_foto_me():
+        uid = request.tickets_usuario["id"]
+        f = request.files.get("foto")
+        if not f or not f.filename:
+            return jsonify({"error": "Archivo foto requerido"}), 400
+        if not _ext_ok(f.filename):
+            return jsonify({"error": "Tipo de archivo no permitido (JPG, PNG, GIF, WEBP)"}), 400
+        ext = f.filename.rsplit(".", 1)[1].lower()
+        if ext not in _AVATAR_EXT:
+            return jsonify({"error": "Solo imágenes (JPG, PNG, GIF, WEBP)"}), 400
+        archivo = f"avatar_{uid}_{uuid.uuid4().hex[:12]}.{ext}"
+        f.save(os.path.join(UPLOADS_DIR, archivo))
+        ok, err = actualizar_foto_usuario(uid, archivo)
+        if not ok:
+            try:
+                os.remove(os.path.join(UPLOADS_DIR, archivo))
+            except OSError:
+                pass
+            return jsonify({"error": err or "No se pudo guardar la foto"}), 400
+        token = request.headers.get("Authorization", "")[7:].strip()
+        usuario = get_usuario_by_token(token)
+        return jsonify({"ok": True, "usuario": usuario}), 200
+
+    @app.route("/api/tickets/auth/me/foto", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_foto_me():
+        uid = request.tickets_usuario["id"]
+        ok, err = eliminar_foto_usuario(uid)
+        if not ok:
+            return jsonify({"error": err or "No se pudo eliminar la foto"}), 400
+        token = request.headers.get("Authorization", "")[7:].strip()
+        usuario = get_usuario_by_token(token)
+        return jsonify({"ok": True, "usuario": usuario}), 200
 
     # ── ROLES ────────────────────────────────────────────────────────────────
 

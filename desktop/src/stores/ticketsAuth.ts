@@ -18,6 +18,7 @@ export interface TicketsUser {
   nombre: string;
   username: string;
   activo: number;
+  foto?: string | null;
   rol: TicketsRol | null;
   departamento: TicketsDept | null;
 }

@@ -690,6 +690,7 @@ def init_db():
                     ("Administrador", "admin", generate_password_hash("admin123"), rol["id"], dept["id"]),
                 )
 
+        _add_col(db, "usuarios", "foto", "TEXT")
         db.commit()
     print("✅ Centro de Mando (tickets DB) inicializado")
 
@@ -698,7 +699,7 @@ def init_db():
 
 def _usuario_full(db, user_id: int) -> dict | None:
     row = db.execute("""
-        SELECT u.id, u.nombre, u.username, u.activo, u.creado_en,
+        SELECT u.id, u.nombre, u.username, u.activo, u.creado_en, u.foto,
                r.id as rol_id, r.nombre as rol_nombre, r.nivel as rol_nivel,
                d.id as dept_id, d.nombre as dept_nombre, d.color as dept_color
         FROM usuarios u
@@ -714,6 +715,7 @@ def _usuario_full(db, user_id: int) -> dict | None:
         "username": row["username"],
         "activo":   row["activo"],
         "creado_en": row["creado_en"],
+        "foto":     row["foto"],
         "rol": {"id": row["rol_id"], "nombre": row["rol_nombre"], "nivel": row["rol_nivel"]}
                if row["rol_id"] else None,
         "departamento": {"id": row["dept_id"], "nombre": row["dept_nombre"], "color": row["dept_color"]}
@@ -860,6 +862,39 @@ def crear_usuario(nombre: str, username: str, password: str,
             if "UNIQUE" in str(e):
                 return None, f"El username '{username}' ya existe"
             return None, str(e)
+
+
+def actualizar_foto_usuario(user_id: int, filename: str) -> tuple:
+    with _conn() as db:
+        row = db.execute("SELECT foto FROM usuarios WHERE id=?", (user_id,)).fetchone()
+        if not row:
+            return False, "Usuario no encontrado"
+        old = row["foto"]
+        db.execute("UPDATE usuarios SET foto=? WHERE id=?", (filename, user_id))
+        db.commit()
+    if old and old != filename:
+        try:
+            os.remove(os.path.join(UPLOADS_DIR, old))
+        except OSError:
+            pass
+    return True, None
+
+
+def eliminar_foto_usuario(user_id: int) -> tuple:
+    with _conn() as db:
+        row = db.execute("SELECT foto FROM usuarios WHERE id=?", (user_id,)).fetchone()
+        if not row:
+            return False, "Usuario no encontrado"
+        old = row["foto"]
+        if not old:
+            return True, None
+        db.execute("UPDATE usuarios SET foto=NULL WHERE id=?", (user_id,))
+        db.commit()
+    try:
+        os.remove(os.path.join(UPLOADS_DIR, old))
+    except OSError:
+        pass
+    return True, None
 
 
 def actualizar_usuario(user_id: int, data: dict) -> tuple:

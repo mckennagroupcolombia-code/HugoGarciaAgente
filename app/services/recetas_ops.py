@@ -90,6 +90,11 @@ def _validar_reino_id(db, reino_id) -> tuple[int | None, str | None]:
     return raiz, None
 
 
+def _clasificacion_receta(origen_id) -> str:
+    """catalogo = importadas del sitio (origen_id); reino = creadas en Centro de Mando."""
+    return "catalogo" if origen_id is not None else "reino"
+
+
 def _enriquecer_reino(db, d: dict) -> dict:
     rid = d.get("reino_id")
     if not rid:
@@ -105,6 +110,16 @@ def _enriquecer_reino(db, d: dict) -> dict:
         d["reino_nombre"] = row["nombre"]
         d["reino_icono"] = row["icono"]
         d["reino_color"] = row["color"]
+    return d
+
+
+def _enriquecer_meta_receta(db, d: dict) -> dict:
+    oid = d.get("origen_id")
+    d["es_propia"] = oid is None
+    d["clasificacion"] = _clasificacion_receta(oid)
+    d["es_catalogo"] = d["clasificacion"] == "catalogo"
+    d["es_receta_reino"] = d["clasificacion"] == "reino"
+    _enriquecer_reino(db, d)
     return d
 
 
@@ -280,7 +295,7 @@ def listar_recetas_ops(usuario_id: int | None = None) -> list:
         out = []
         for r in rows:
             d = dict(r)
-            d["es_propia"] = d.get("origen_id") is None
+            _enriquecer_meta_receta(db, d)
             d["num_lineas"] = db.execute(
                 "SELECT COUNT(*) AS n FROM receta_lineas WHERE receta_id=?", (r["id"],)
             ).fetchone()["n"]
@@ -298,7 +313,6 @@ def listar_recetas_ops(usuario_id: int | None = None) -> list:
                 ).fetchone()
                 d["corrida_activa_id"] = act["id"] if act else None
                 d["corrida_estado"] = act["estado"] if act else None
-            _enriquecer_reino(db, d)
             out.append(d)
         return out
 
@@ -456,7 +470,7 @@ def get_receta_ops(receta_id: int, usuario_id: int | None = None) -> dict | None
         if not r:
             return None
         d = dict(r)
-        d["es_propia"] = d.get("origen_id") is None
+        _enriquecer_meta_receta(db, d)
         d["lineas"] = _lineas_receta(db, receta_id)
         d["procesos"] = _procesos_receta(db, receta_id)
         if usuario_id:
@@ -469,7 +483,6 @@ def get_receta_ops(receta_id: int, usuario_id: int | None = None) -> dict | None
                 (receta_id, usuario_id),
             ).fetchone()
             d["corrida"] = _corrida_dict(db, c) if c else None
-        _enriquecer_reino(db, d)
         return d
 
 
