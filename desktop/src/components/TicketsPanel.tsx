@@ -1,5 +1,20 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
+import { useQuestTheme } from "../stores/questTheme";
+import QuestThemeToggle from "./QuestThemeToggle";
+import {
+  ESTADO_STYLES,
+  PRIORIDAD_STYLES,
+  CATEGORIA_FALLBACK,
+  TIPO_MATERIAL_BADGE,
+  ALERT_ERROR,
+  ALERT_ERROR_SM,
+  QUEST_STAT_ITEMS,
+  ESTADO_DOT_COLOR,
+  PRIORIDAD_DOT,
+  QUEST_MISION_CHROME,
+  questTone,
+} from "../lib/questStyles";
 
 // ── API helper ────────────────────────────────────────────────────────────────
 
@@ -178,26 +193,12 @@ interface Dept {
 
 // ── Badge helpers ─────────────────────────────────────────────────────────────
 
-const ESTADO_STYLES: Record<string, string> = {
-  pendiente:             "bg-yellow-100 text-yellow-800 border-yellow-300",
-  en_proceso:            "bg-blue-100 text-blue-800 border-blue-300",
-  esperando_aprobacion:  "bg-orange-100 text-orange-800 border-orange-300",
-  resuelto:              "bg-green-100 text-green-800 border-green-300",
-  rechazado:             "bg-red-100 text-red-700 border-red-300",
-};
-
 const ESTADO_LABEL: Record<string, string> = {
   pendiente:             "Pendiente",
   en_proceso:            "En Proceso",
   esperando_aprobacion:  "Esperando Aprobación",
   resuelto:              "Resuelto",
   rechazado:             "Rechazado",
-};
-
-const CATEGORIA_FALLBACK: Record<string, { label: string; cls: string }> = {
-  rrhh:          { label: "RR.HH.",       cls: "bg-amber-100 text-amber-800" },
-  logistica:     { label: "Logística",    cls: "bg-teal-100 text-teal-800" },
-  mantenimiento: { label: "Mantenimiento", cls: "bg-purple-100 text-purple-800" },
 };
 
 const FRECUENCIA_LABEL: Record<string, string> = {
@@ -216,13 +217,6 @@ function fmtFecha(iso: string | null | undefined): string {
   return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-const PRIORIDAD_STYLES: Record<string, string> = {
-  baja:    "bg-gray-100 text-gray-600",
-  media:   "bg-blue-100 text-blue-700",
-  alta:    "bg-orange-100 text-orange-700",
-  urgente: "bg-red-100 text-red-700",
-};
-
 const LOG_LABELS: Record<string, string> = {
   ticket_creado:       "Ticket creado",
   estado_cambiado:     "Estado cambiado",
@@ -236,7 +230,7 @@ const LOG_LABELS: Record<string, string> = {
 
 function EstadoBadge({ estado }: { estado: string }) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ESTADO_STYLES[estado] || "bg-gray-100 text-gray-600 border-gray-300"}`}>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${ESTADO_STYLES[estado] || "bg-gray-100 text-gray-600 border-gray-300 dark:bg-ink/30 dark:text-muted dark:border-border"}`}>
       {ESTADO_LABEL[estado] || estado}
     </span>
   );
@@ -256,7 +250,7 @@ function CategoriaBadge({ cat }: { cat: string }) {
   }
   const fb = CATEGORIA_FALLBACK[cat];
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${fb?.cls ?? "bg-gray-100 text-gray-600"}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${fb?.cls ?? "bg-gray-100 text-gray-600 dark:bg-ink/30 dark:text-muted"}`}>
       {fb?.label ?? cat}
     </span>
   );
@@ -264,7 +258,7 @@ function CategoriaBadge({ cat }: { cat: string }) {
 
 function PrioridadBadge({ p }: { p: string }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${PRIORIDAD_STYLES[p] || "bg-gray-100 text-gray-600"}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${PRIORIDAD_STYLES[p] || "bg-gray-100 text-gray-600 dark:bg-ink/30 dark:text-muted"}`}>
       {p}
     </span>
   );
@@ -272,28 +266,16 @@ function PrioridadBadge({ p }: { p: string }) {
 
 // ── Daily Quest helpers ───────────────────────────────────────────────────────
 
-const ESTADO_DOT_COLOR: Record<string, string> = {
-  pendiente:            "#9ca3af",
-  en_proceso:           "#3b82f6",
-  esperando_aprobacion: "#f59e0b",
-  resuelto:             "#22c55e",
-  rechazado:            "#ef4444",
-};
-
 function StatusOrb({ estado }: { estado: string }) {
-  const col = ESTADO_DOT_COLOR[estado] ?? "#9ca3af";
+  const dark = useQuestTheme((s) => s.dark);
+  const pair = ESTADO_DOT_COLOR[estado as keyof typeof ESTADO_DOT_COLOR] ?? ESTADO_DOT_COLOR.pendiente;
+  const col = questTone(pair.light, pair.dark, dark);
   return (
-    <span className="inline-flex h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-offset-1 ring-gray-200"
+    <span className="quest-status-orb inline-flex h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-offset-1 ring-gray-200 dark:ring-border dark:ring-offset-surface-panel"
       style={{ background: col }} />
   );
 }
 
-const PRIORIDAD_DOT: Record<string, { sym: string; cls: string }> = {
-  baja:    { sym: "—",  cls: "text-gray-400" },
-  media:   { sym: "▲",  cls: "text-blue-500" },
-  alta:    { sym: "▲▲", cls: "text-orange-500" },
-  urgente: { sym: "⚡",  cls: "text-red-500" },
-};
 function PrioridadDot({ p }: { p: string }) {
   const d = PRIORIDAD_DOT[p] ?? PRIORIDAD_DOT.media;
   return <span className={`text-[10px] font-extrabold leading-none ${d.cls} shrink-0`}>{d.sym}</span>;
@@ -323,7 +305,7 @@ function fmtDate(s: string) {
 
 // ── Sub-views ─────────────────────────────────────────────────────────────────
 
-type View = "list" | "create" | "detail" | "admin" | "workload" | "misiones" | "crear_mision" | "mision_detail" | "inventario";
+type View = "list" | "create" | "detail" | "admin" | "workload" | "crear_mision" | "mision_detail" | "inventario";
 
 // Login
 function LoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser) => void }) {
@@ -380,7 +362,7 @@ function LoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser) =>
               placeholder="••••••••"
             />
           </div>
-          {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>}
+          {error && <p className={ALERT_ERROR_SM}>{error}</p>}
           <button
             type="submit" disabled={loading}
             className="w-full rounded-paper border-2 border-accent bg-accent py-2.5 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50"
@@ -407,10 +389,13 @@ interface MisionGroup {
 }
 
 function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
+  const dark = useQuestTheme((s) => s.dark);
+  const dotPair = ESTADO_DOT_COLOR[t.estado as keyof typeof ESTADO_DOT_COLOR] ?? ESTADO_DOT_COLOR.pendiente;
+  const borderColor = questTone(dotPair.light, dotPair.dark, dark);
   return (
     <button onClick={onClick}
-      className="w-full flex items-center gap-3 rounded-xl border-l-4 bg-surface-panel px-4 py-3 text-left shadow-sm transition hover:shadow-md hover:translate-x-0.5"
-      style={{ borderLeftColor: ESTADO_DOT_COLOR[t.estado] ?? "#9ca3af" }}>
+      className="w-full flex items-center gap-3 rounded-xl border-l-4 bg-surface-panel px-4 py-3 text-left shadow-sm transition hover:shadow-md hover:translate-x-0.5 dark:shadow-none"
+      style={{ borderLeftColor: borderColor }}>
       <StatusOrb estado={t.estado} />
       <div className="flex-1 min-w-0">
         <p className="font-bold text-sm text-ink leading-snug truncate">{t.titulo}</p>
@@ -428,12 +413,13 @@ function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
 }
 
 function MisionGroupCard({
-  group, onSelect, onMisionDetail,
+  group, onSelect, onEditMision,
 }: {
   group: MisionGroup;
   onSelect: (id: number) => void;
-  onMisionDetail: (id: number) => void;
+  onEditMision: (id: number) => void;
 }) {
+  const dark = useQuestTheme((s) => s.dark);
   const isSeq = group.mision_tipo === "secuencial";
   const done = ["resuelto", "rechazado"];
   const resolved = group.tickets.filter((t) => t.estado === "resuelto").length;
@@ -447,41 +433,60 @@ function MisionGroupCard({
     : group.tickets.filter((t) => !done.includes(t.estado));
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-sm"
+    <div className="overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-sm dark:shadow-none dark:border-border/80"
       style={{ borderTop: `3px solid ${c}` }}>
 
       {/* Campaign header */}
-      <button onClick={() => onMisionDetail(group.mision_id)}
-        className="w-full p-4 text-left transition hover:bg-surface-hover"
-        style={{ background: c + "0a" }}>
-        <div className="flex items-start gap-3 mb-3">
-          <div className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center text-white text-base font-black shadow-sm"
+      <div
+        className="w-full p-4 transition hover:bg-surface-hover dark:hover:bg-surface-hover/80"
+        style={{ background: dark ? c + "06" : c + "0a" }}>
+        <div className={`flex items-start gap-3 mb-3 ${QUEST_MISION_CHROME}`}>
+          <div className="shrink-0 h-10 w-10 rounded-lg flex items-center justify-center text-white text-base font-black shadow-sm dark:opacity-80 dark:saturate-[0.45]"
             style={{ background: c }}>
             {isSeq ? "🔗" : "⚡"}
           </div>
-          <div className="flex-1 min-w-0">
+          <button
+            type="button"
+            onClick={() => onEditMision(group.mision_id)}
+            className="flex-1 min-w-0 text-left rounded-lg -m-1 p-1 transition hover:bg-black/5 dark:hover:bg-white/5"
+            title="Editar misión">
             <div className="font-extrabold text-sm leading-snug" style={{ color: c }}>
               {group.mision_titulo}
             </div>
             <div className="text-[11px] text-muted mt-0.5">
               {isSeq ? "Secuencial" : "Paralelo"} · {total} etapa{total !== 1 ? "s" : ""}
-              {isComplete && <span className="ml-2 text-green-600 font-bold">✅ Completada</span>}
+              {isComplete && <span className="ml-2 text-green-600 dark:text-green-500/55 font-bold">✅ Completada</span>}
             </div>
-          </div>
-          <div className="shrink-0 text-right">
-            <div className="text-2xl font-black leading-none" style={{ color: c }}>
-              {pct}<span className="text-sm font-bold">%</span>
+          </button>
+          <div className="shrink-0 flex flex-col items-end gap-1.5">
+            <button
+              type="button"
+              onClick={() => onEditMision(group.mision_id)}
+              className="rounded-lg border-2 border-border px-2 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
+              title="Editar misión">
+              ✏️ Editar
+            </button>
+            <div className="text-right">
+              <div className="text-2xl font-black leading-none" style={{ color: c }}>
+                {pct}<span className="text-sm font-bold">%</span>
+              </div>
+              <div className="text-[10px] text-muted mt-0.5">{resolved}/{total}</div>
             </div>
-            <div className="text-[10px] text-muted mt-0.5">{resolved}/{total}</div>
           </div>
         </div>
 
         {/* XP bar */}
-        <div className="h-2.5 rounded-full overflow-hidden" style={{ background: c + "22" }}>
-          <div className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${c}99, ${c})` }} />
-        </div>
-      </button>
+        <button
+          type="button"
+          onClick={() => onEditMision(group.mision_id)}
+          className="w-full text-left"
+          title="Editar misión">
+          <div className="h-2.5 rounded-full overflow-hidden dark:opacity-60" style={{ background: dark ? c + "14" : c + "22" }}>
+            <div className="h-full rounded-full transition-all duration-500 dark:opacity-75"
+              style={{ width: `${pct}%`, background: dark ? c + "99" : `linear-gradient(90deg, ${c}99, ${c})` }} />
+          </div>
+        </button>
+      </div>
 
       {/* Quest list */}
       {visible.length > 0 ? (
@@ -518,16 +523,17 @@ function MisionGroupCard({
 }
 
 function TicketListView({
-  token, user, onSelect, onAdmin, onWorkload, onMisiones, onMisionDetail, onInventario,
+  token, user, onSelect, onAdmin, onWorkload, onEditMision, onCreateMision, onInventario,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
   onAdmin: () => void;
   onWorkload: () => void;
-  onMisiones: () => void;
-  onMisionDetail: (id: number) => void;
+  onEditMision: (id: number) => void;
+  onCreateMision: () => void;
   onInventario: () => void;
 }) {
+  const questDark = useQuestTheme((s) => s.dark);
   const { cats: categorias } = useContext(CategoriasCtx);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -605,17 +611,18 @@ function TicketListView({
   return (
     <div className="space-y-5">
       {/* ── Daily Quest header ── */}
+      <div className="quest-board-banner mb-1">
+        <h2 className="text-2xl font-extrabold tracking-tight text-ink">📜 Tablero de Quests</h2>
+        <p className="text-sm text-muted mt-0.5">
+          {user.nombre} · <span className="font-bold text-accent quest-board-accent-count">{tickets.length}</span> quest{tickets.length !== 1 ? "s" : ""} activa{tickets.length !== 1 ? "s" : ""}
+        </p>
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-ink">📜 Tablero de Quests</h2>
-          <p className="text-sm text-muted mt-0.5">
-            {user.nombre} · <span className="font-bold text-accent">{tickets.length}</span> quest{tickets.length !== 1 ? "s" : ""} activa{tickets.length !== 1 ? "s" : ""}
-          </p>
-        </div>
+        <QuestThemeToggle />
         <div className="flex flex-wrap gap-2">
-          <button onClick={onMisiones}
+          <button onClick={onCreateMision}
             className="rounded-xl border-2 border-accent bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-            🎯 Gestionar Misiones
+            + Nueva misión
           </button>
           <button onClick={onInventario}
             className="relative rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
@@ -643,18 +650,18 @@ function TicketListView({
 
       {/* ── Quest Log stats ── */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {[
-          { label: "⚔️ En campaña",  val: stats.en_proceso,  color: "#3b82f6" },
-          { label: "🔔 En revisión", val: stats.esperando,   color: "#f59e0b" },
-          { label: "⏳ Por iniciar", val: stats.pendientes,  color: "#9ca3af" },
-          { label: "✅ Completadas", val: stats.resueltos,   color: "#22c55e" },
-        ].map((s) => (
-          <div key={s.label} className="rounded-xl border-2 p-3 text-center bg-surface-panel shadow-sm"
-            style={{ borderColor: s.color + "55" }}>
-            <div className="text-2xl font-black" style={{ color: s.color }}>{s.val}</div>
-            <div className="text-[11px] font-bold text-muted mt-0.5">{s.label}</div>
-          </div>
-        ))}
+        {QUEST_STAT_ITEMS.map((s) => {
+          const val = stats[s.key];
+          const valueColor = questTone(s.color, s.colorDark, questDark);
+          const borderColor = questDark ? s.borderDark : s.color + "55";
+          return (
+            <div key={s.label} className="quest-stat-card rounded-xl border-2 p-3 text-center bg-surface-panel shadow-sm"
+              style={{ borderColor }}>
+              <div className="quest-stat-value text-2xl font-black" style={{ color: valueColor }}>{val}</div>
+              <div className="text-[11px] font-bold text-muted mt-0.5">{s.label}</div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Filters ── */}
@@ -692,7 +699,7 @@ function TicketListView({
       {loading ? (
         <div className="py-12 text-center text-sm text-muted">Cargando...</div>
       ) : error ? (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className={ALERT_ERROR}>{error}</div>
       ) : tickets.length === 0 ? (
         <div className="py-12 text-center text-sm text-muted">No hay tickets con estos filtros.</div>
       ) : hasFilters ? (
@@ -715,11 +722,11 @@ function TicketListView({
                   <div key={reino} className="space-y-3">
                     {/* Kingdom divider */}
                     <div className="flex items-center gap-3">
-                      <div className="h-0.5 w-4 rounded-full bg-accent shrink-0" />
-                      <h3 className="text-xs font-extrabold uppercase tracking-widest text-accent whitespace-nowrap">
+                      <div className="h-0.5 w-4 rounded-full bg-accent shrink-0 dark:bg-border" />
+                      <h3 className="quest-kingdom-title text-xs font-extrabold uppercase tracking-widest text-accent whitespace-nowrap">
                         🏰 {reino}
                       </h3>
-                      <div className="flex-1 h-px rounded-full bg-accent/20" />
+                      <div className="quest-kingdom-rule flex-1 h-px rounded-full bg-accent/20" />
                       <span className="text-[10px] font-bold text-muted shrink-0">
                         {groups.length} misión{groups.length !== 1 ? "es" : ""}
                       </span>
@@ -729,7 +736,7 @@ function TicketListView({
                         key={group.mision_id}
                         group={group}
                         onSelect={onSelect}
-                        onMisionDetail={onMisionDetail}
+                        onEditMision={onEditMision}
                       />
                     ))}
                   </div>
@@ -1789,29 +1796,103 @@ function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
 
 // ── MATERIALES ────────────────────────────────────────────────────────────────
 
-interface Material { id: number; nombre: string; unidad: string; stock_actual: number; stock_minimo: number; precio_unitario: number; proveedor?: string; tipo?: "materia_prima" | "elaborado"; mision_origen_id?: number | null; }
-interface TicketMaterial { id: number; ticket_id: number; material_id: number; nombre: string; unidad: string; cantidad_requerida: number; stock_actual: number; tipo?: "materia_prima" | "elaborado"; }
+type MaterialTipo = "materia_prima" | "elaborado" | "consumibles" | "repuestos" | "herramientas";
 
-function MaterialesSection({ ticketId, token, readonly = false }: { ticketId: number; token: string; readonly?: boolean }) {
+const UNIDADES_MATERIAL = ["kg", "g", "mg", "L", "mL", "unidad", "m", "cm", "m²", "m³", "caja", "bolsa", "rollo", "galón"];
+
+function emptyNuevoMaterialForm() {
+  return { nombre: "", tipo: "consumibles" as MaterialTipo, unidad: "unidad", cantidad: "", stock_actual: "0" };
+}
+
+function materialTipoPrefix(tipo?: string) {
+  if (tipo === "elaborado") return "✨ ";
+  if (tipo === "consumibles") return "📦 ";
+  if (tipo === "repuestos") return "🔩 ";
+  if (tipo === "herramientas") return "🔧 ";
+  return "";
+}
+
+function BadgeTipoMaterial({ tipo }: { tipo?: string }) {
+  if (!tipo || tipo === "materia_prima") return null;
+  const cfg = TIPO_MATERIAL_BADGE[tipo];
+  if (!cfg) return null;
+  return (
+    <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${cfg.className}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+interface Material { id: number; nombre: string; descripcion?: string; unidad: string; stock_actual: number; stock_minimo: number; precio_unitario: number; proveedor?: string; tipo?: MaterialTipo; mision_origen_id?: number | null; }
+interface TicketMaterial { id: number; ticket_id: number; material_id: number; nombre: string; unidad: string; cantidad_requerida: number; stock_actual: number; tipo?: MaterialTipo; }
+
+function MaterialesSection({
+  ticketId, token, user, readonly = false,
+}: {
+  ticketId: number;
+  token: string;
+  user?: TicketsUser;
+  readonly?: boolean;
+}) {
   const [items, setItems] = useState<TicketMaterial[]>([]);
   const [catalogo, setCatalogo] = useState<Material[]>([]);
   const [selMat, setSelMat] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showNuevo, setShowNuevo] = useState(false);
+  const [nuevoForm, setNuevoForm] = useState(emptyNuevoMaterialForm);
+
+  const nivel = user?.rol?.nivel ?? 1;
+  const canCreateCatalog = nivel >= 2;
+
+  const reloadCatalogo = useCallback(() => {
+    tapi("/materiales", token).then(setCatalogo).catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     tapi(`/${ticketId}/materiales`, token).then(setItems).catch(() => {});
-    tapi("/materiales", token).then(setCatalogo).catch(() => {});
-  }, [ticketId, token]);
+    reloadCatalogo();
+  }, [ticketId, token, reloadCatalogo]);
 
-  async function add() {
+  async function addExisting() {
     if (!selMat || !cantidad) return;
     setSaving(true);
     try {
       const res = await tapi(`/${ticketId}/materiales`, token, {
         method: "POST", body: JSON.stringify({ material_id: parseInt(selMat), cantidad: parseFloat(cantidad) }),
       });
-      setItems(res); setSelMat(""); setCantidad("");
+      setItems(res);
+      setSelMat("");
+      setCantidad("");
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function crearYVincular() {
+    if (!nuevoForm.nombre.trim() || !nuevoForm.cantidad) return;
+    setSaving(true);
+    try {
+      const mat = await tapi("/materiales", token, {
+        method: "POST",
+        body: JSON.stringify({
+          nombre: nuevoForm.nombre.trim(),
+          descripcion: "",
+          unidad: nuevoForm.unidad,
+          tipo: nuevoForm.tipo,
+          stock_actual: parseFloat(nuevoForm.stock_actual || "0"),
+          stock_minimo: 0,
+          precio_unitario: 0,
+          proveedor: "",
+        }),
+      });
+      setCatalogo((prev) => [...prev, mat]);
+      const res = await tapi(`/${ticketId}/materiales`, token, {
+        method: "POST",
+        body: JSON.stringify({ material_id: mat.id, cantidad: parseFloat(nuevoForm.cantidad) }),
+      });
+      setItems(res);
+      setShowNuevo(false);
+      setNuevoForm(emptyNuevoMaterialForm());
     } catch (e: any) { alert(e.message); }
     finally { setSaving(false); }
   }
@@ -1821,12 +1902,14 @@ function MaterialesSection({ ticketId, token, readonly = false }: { ticketId: nu
     setItems(res);
   }
 
-
   const disponibles = catalogo.filter((m) => !items.find((i) => i.material_id === m.id));
 
   return (
     <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
       <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">📦 Materiales e insumos</h3>
+      <p className="text-[11px] text-muted -mt-2">
+        Los materiales nuevos se guardan en el inventario general y quedan vinculados a esta etapa.
+      </p>
 
       {items.length > 0 ? (
         <div className="space-y-2">
@@ -1838,22 +1921,18 @@ function MaterialesSection({ ticketId, token, readonly = false }: { ticketId: nu
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5">
                       <p className="font-semibold text-sm text-ink">{it.nombre}</p>
-                      {it.tipo === "elaborado" && (
-                        <span className="rounded-full bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold">✨ elaborado</span>
-                      )}
+                      <BadgeTipoMaterial tipo={it.tipo} />
                     </div>
                     <p className="text-xs text-muted">
                       Requerido: <span className="font-bold">{it.cantidad_requerida} {it.unidad}</span>
                       {" · "}
-                      <span className={stockOk ? "text-green-600" : "text-red-500"}>
+                      <span className={stockOk ? "text-green-600 dark:text-green-500/70" : "text-red-500"}>
                         Stock: {it.stock_actual} {it.unidad} {stockOk ? "✓" : "⚠️ insuficiente"}
                       </span>
                     </p>
                   </div>
                   {!readonly && (
-                    <div className="flex gap-1.5 shrink-0">
-                      <button onClick={() => del(it.id)} className="text-xs text-muted hover:text-danger transition px-1">✕</button>
-                    </div>
+                    <button type="button" onClick={() => del(it.id)} className="text-xs text-muted hover:text-danger transition px-1">✕</button>
                   )}
                 </div>
               </div>
@@ -1864,20 +1943,109 @@ function MaterialesSection({ ticketId, token, readonly = false }: { ticketId: nu
         <p className="text-xs text-muted">Sin materiales asignados aún.</p>
       )}
 
-      {!readonly && disponibles.length > 0 && (
-        <div className="flex flex-wrap gap-2 pt-1">
-          <select className="flex-1 min-w-32 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent"
-            value={selMat} onChange={(e) => setSelMat(e.target.value)}>
-            <option value="">Seleccionar material...</option>
-            {disponibles.map((m) => <option key={m.id} value={m.id}>{m.tipo === "elaborado" ? "✨ " : ""}{m.nombre} ({m.unidad})</option>)}
-          </select>
-          <input type="number" min="0" step="any"
-            className="w-24 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm outline-none focus:border-accent"
-            placeholder="Cant." value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
-          <button onClick={add} disabled={saving || !selMat || !cantidad}
-            className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
-            + Agregar
-          </button>
+      {!readonly && (
+        <div className="space-y-3 border-t border-border pt-3">
+          {disponibles.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">Del inventario</p>
+              <div className="flex flex-wrap gap-2">
+                <select className="flex-1 min-w-32 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent"
+                  value={selMat} onChange={(e) => setSelMat(e.target.value)}>
+                  <option value="">Seleccionar material...</option>
+                  {disponibles.map((m) => (
+                    <option key={m.id} value={m.id}>{materialTipoPrefix(m.tipo)}{m.nombre} ({m.unidad})</option>
+                  ))}
+                </select>
+                <input type="number" min="0" step="any"
+                  className="w-24 rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm outline-none focus:border-accent"
+                  placeholder="Cant." value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
+                <button type="button" onClick={addExisting} disabled={saving || !selMat || !cantidad}
+                  className="rounded-paper border-2 border-border px-4 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent disabled:opacity-50">
+                  Vincular
+                </button>
+              </div>
+            </div>
+          )}
+
+          {canCreateCatalog ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowNuevo((v) => !v)}
+                className="text-xs font-bold text-accent hover:underline">
+                {showNuevo ? "▲ Ocultar formulario" : "+ Crear material nuevo en inventario y vincular"}
+              </button>
+              {showNuevo && (
+                <div className="mt-2 rounded-paper border-2 border-accent/40 bg-surface p-3 space-y-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Nuevo en catálogo + esta etapa</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
+                      <label className="mb-1 block text-[10px] font-bold text-muted">Nombre *</label>
+                      <input
+                        className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+                        value={nuevoForm.nombre}
+                        onChange={(e) => setNuevoForm((f) => ({ ...f, nombre: e.target.value }))}
+                        placeholder="Ej: Alcohol isopropílico"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold text-muted">Tipo</label>
+                      <select
+                        className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+                        value={nuevoForm.tipo}
+                        onChange={(e) => setNuevoForm((f) => ({ ...f, tipo: e.target.value as MaterialTipo }))}>
+                        <option value="materia_prima">🧱 Materia prima</option>
+                        <option value="consumibles">📦 Consumibles</option>
+                        <option value="repuestos">🔩 Repuestos</option>
+                        <option value="herramientas">🔧 Herramientas</option>
+                        <option value="elaborado">✨ Elaborado</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold text-muted">Unidad</label>
+                      <select
+                        className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+                        value={nuevoForm.unidad}
+                        onChange={(e) => setNuevoForm((f) => ({ ...f, unidad: e.target.value }))}>
+                        {UNIDADES_MATERIAL.map((u) => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold text-muted">Cant. en esta etapa *</label>
+                      <input type="number" min="0" step="any"
+                        className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+                        value={nuevoForm.cantidad}
+                        onChange={(e) => setNuevoForm((f) => ({ ...f, cantidad: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10px] font-bold text-muted">Stock inicial inventario</label>
+                      <input type="number" min="0" step="any"
+                        className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+                        value={nuevoForm.stock_actual}
+                        onChange={(e) => setNuevoForm((f) => ({ ...f, stock_actual: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => { setShowNuevo(false); setNuevoForm(emptyNuevoMaterialForm()); }}
+                      className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:bg-surface-hover">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={crearYVincular}
+                      disabled={saving || !nuevoForm.nombre.trim() || !nuevoForm.cantidad}
+                      className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50">
+                      {saving ? "Guardando..." : "✓ Crear y vincular"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : disponibles.length === 0 ? (
+            <p className="text-xs text-muted">
+              No hay materiales libres en inventario. Un supervisor puede crearlos en Inventario o elevar tu rol.
+            </p>
+          ) : null}
         </div>
       )}
     </div>
@@ -1897,6 +2065,11 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
   // Formulario rápido de orden por material_id
   const [pedidoAbierto, setPedidoAbierto] = useState<number | null>(null);
   const [pedidoForm, setPedidoForm] = useState({ cantidad: "", precio_unitario: "", proveedor: "", notas: "" });
+  const [editId, setEditId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({
+    nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "",
+    precio_unitario: "", proveedor: "", tipo: "materia_prima" as MaterialTipo,
+  });
   const nivel = user.rol?.nivel ?? 1;
 
   const reload = useCallback(async () => {
@@ -1952,6 +2125,43 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
     reload();
   }
 
+  function iniciarEdicion(m: Material) {
+    setEditId(m.id);
+    setEditForm({
+      nombre: m.nombre,
+      descripcion: m.descripcion || "",
+      unidad: m.unidad,
+      stock_actual: String(m.stock_actual),
+      stock_minimo: String(m.stock_minimo),
+      precio_unitario: String(m.precio_unitario),
+      proveedor: m.proveedor || "",
+      tipo: m.tipo || "materia_prima",
+    });
+  }
+
+  async function guardarEdicion() {
+    if (editId == null || !editForm.nombre.trim()) return;
+    setSaving(true);
+    try {
+      await tapi(`/materiales/${editId}`, token, {
+        method: "PUT",
+        body: JSON.stringify({
+          nombre: editForm.nombre.trim(),
+          descripcion: editForm.descripcion,
+          unidad: editForm.unidad,
+          tipo: editForm.tipo,
+          stock_actual: parseFloat(editForm.stock_actual || "0"),
+          stock_minimo: parseFloat(editForm.stock_minimo || "0"),
+          precio_unitario: parseFloat(editForm.precio_unitario || "0"),
+          proveedor: editForm.proveedor,
+        }),
+      });
+      setEditId(null);
+      reload();
+    } catch (e: any) { alert(e.message); }
+    finally { setSaving(false); }
+  }
+
   const bajoStock = materiales
     .filter((m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo)
     .sort((a, b) => {
@@ -1983,7 +2193,7 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
           </div>
         </div>
         {bajoStock.length > 0 && (
-          <div className="flex items-center gap-2 rounded-full border-2 border-red-300 bg-red-50 px-4 py-1.5">
+          <div className="flex items-center gap-2 rounded-full border-2 border-red-300 bg-red-50 px-4 py-1.5 dark:border-red-900/50 dark:bg-red-950/50">
             <span className="text-sm font-black text-red-600">{bajoStock.length}</span>
             <span className="text-xs font-semibold text-red-600">
               {bajoStock.length === 1 ? "material necesita reposición" : "materiales necesitan reposición"}
@@ -2227,30 +2437,125 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
       {/* ── STOCK COMPLETO ── */}
       {tab === "stock" && (
         <div className="space-y-3">
+          {nivel < 2 && (
+            <p className="rounded-lg border border-border bg-surface-hover px-3 py-2 text-xs text-muted">
+              Vista de solo lectura. Supervisor o administrador puede editar stock y datos del catálogo.
+            </p>
+          )}
           {materiales.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted">No hay materiales en el catálogo aún.</p>
           ) : materiales.map((m) => {
             const pct = m.stock_minimo > 0 ? Math.min(100, Math.round((m.stock_actual / m.stock_minimo) * 100)) : 100;
             const bajo = m.stock_minimo > 0 && m.stock_actual < m.stock_minimo;
+            const editando = editId === m.id;
+
+            if (editando && nivel >= 2) {
+              return (
+                <div key={m.id} className="rounded-paper border-2 border-accent bg-surface-panel p-4 shadow-paper-sm space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-extrabold text-accent">✏️ Editar material</h3>
+                    <button type="button" onClick={() => setEditId(null)}
+                      className="text-xs font-bold text-muted hover:text-ink">Cancelar</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <label className="mb-1 block text-xs font-bold text-muted">Nombre *</label>
+                      <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                        value={editForm.nombre} onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-muted">Tipo</label>
+                      <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                        value={editForm.tipo} onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value as MaterialTipo }))}>
+                        <option value="materia_prima">🧱 Materia prima</option>
+                        <option value="elaborado">✨ Producto elaborado</option>
+                        <option value="consumibles">📦 Consumibles</option>
+                        <option value="repuestos">🔩 Repuestos</option>
+                        <option value="herramientas">🔧 Herramientas</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-muted">Unidad</label>
+                      <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                        value={editForm.unidad} onChange={(e) => setEditForm((f) => ({ ...f, unidad: e.target.value }))}>
+                        {["kg","g","mg","L","mL","unidad","m","cm","m²","m³","caja","bolsa","rollo","galón"].map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-muted">Stock actual</label>
+                      <input type="number" min="0" step="any"
+                        className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                        value={editForm.stock_actual} onChange={(e) => setEditForm((f) => ({ ...f, stock_actual: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-muted">Stock mínimo</label>
+                      <input type="number" min="0" step="any"
+                        className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                        value={editForm.stock_minimo} onChange={(e) => setEditForm((f) => ({ ...f, stock_minimo: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-muted">Precio unitario ($)</label>
+                      <input type="number" min="0" step="any"
+                        className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                        value={editForm.precio_unitario} onChange={(e) => setEditForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-muted">Proveedor</label>
+                      <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                        value={editForm.proveedor} onChange={(e) => setEditForm((f) => ({ ...f, proveedor: e.target.value }))} />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="mb-1 block text-xs font-bold text-muted">Descripción</label>
+                      <textarea rows={2} className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent resize-none"
+                        value={editForm.descripcion} onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))} />
+                    </div>
+                  </div>
+                  {editForm.tipo === "elaborado" && (
+                    <p className="text-xs text-purple-600">El stock también puede actualizarse al completar la misión vinculada.</p>
+                  )}
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => setEditId(null)}
+                      className="rounded-paper border-2 border-border px-4 py-2 text-xs font-bold text-muted hover:bg-surface-hover">
+                      Cancelar
+                    </button>
+                    <button type="button" onClick={guardarEdicion} disabled={saving || !editForm.nombre.trim()}
+                      className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50">
+                      {saving ? "Guardando..." : "✓ Guardar cambios"}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={m.id} className={`rounded-paper border-2 bg-surface-panel p-4 shadow-paper-sm ${bajo ? "border-red-300" : "border-border"}`}>
                 <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {bajo && <span className="text-sm">{m.stock_actual <= 0 ? "🔴" : "🟡"}</span>}
                       <p className="font-bold text-sm text-ink">{m.nombre}</p>
-                      {m.tipo === "elaborado" && (
-                        <span className="rounded-full bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold">✨ elaborado</span>
-                      )}
+                      <BadgeTipoMaterial tipo={m.tipo} />
                     </div>
                     {m.proveedor && <p className="text-xs text-muted">Proveedor: {m.proveedor}</p>}
+                    {m.descripcion && <p className="text-xs text-muted line-clamp-2">{m.descripcion}</p>}
                     {m.tipo === "elaborado" && <p className="text-xs text-purple-600">Producido internamente</p>}
                   </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-black ${bajo ? "text-red-600" : "text-ink"}`}>
-                      {m.stock_actual} <span className="text-sm font-normal text-muted">{m.unidad}</span>
-                    </p>
-                    {m.stock_minimo > 0 && <p className="text-xs text-muted">Mín: {m.stock_minimo} {m.unidad}</p>}
+                  <div className="flex items-start gap-2 shrink-0">
+                    <div className="text-right">
+                      <p className={`text-lg font-black ${bajo ? "text-red-600" : "text-ink"}`}>
+                        {m.stock_actual} <span className="text-sm font-normal text-muted">{m.unidad}</span>
+                      </p>
+                      {m.stock_minimo > 0 && <p className="text-xs text-muted">Mín: {m.stock_minimo} {m.unidad}</p>}
+                    </div>
+                    {nivel >= 2 && (
+                      <button type="button" onClick={() => iniciarEdicion(m)}
+                        className="rounded-paper border-2 border-border px-2.5 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+                        title="Editar material">
+                        ✏️
+                      </button>
+                    )}
                   </div>
                 </div>
                 {m.stock_minimo > 0 && (
@@ -2286,6 +2591,9 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
                 value={form.tipo} onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}>
                 <option value="materia_prima">🧱 Materia prima</option>
                 <option value="elaborado">✨ Producto elaborado</option>
+                <option value="consumibles">📦 Consumibles</option>
+                <option value="repuestos">🔩 Repuestos</option>
+                <option value="herramientas">🔧 Herramientas</option>
               </select>
               {form.tipo === "elaborado" && (
                 <p className="mt-1 text-xs text-purple-600">El stock se actualizará automáticamente al completar la misión vinculada.</p>
@@ -2295,7 +2603,7 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
               <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Unidad</label>
               <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
                 value={form.unidad} onChange={(e) => setForm((f) => ({ ...f, unidad: e.target.value }))}>
-                {["kg","g","mg","L","mL","unidad","m","cm","m²","m³","caja","bolsa","rollo","galón"].map((u) => (
+                {UNIDADES_MATERIAL.map((u) => (
                   <option key={u} value={u}>{u}</option>
                 ))}
               </select>
@@ -2335,138 +2643,6 @@ function InventarioView({ token, user, onBack }: { token: string; user: TicketsU
               {saving ? "Guardando..." : "Crear material"}
             </button>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Missions list
-function MisionesView({
-  token, user, onSelect, onCreate, onBack,
-}: {
-  token: string; user: TicketsUser;
-  onSelect: (id: number) => void;
-  onCreate: () => void;
-  onBack: () => void;
-}) {
-  const [misiones, setMisiones] = useState<Mision[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    tapi("/misiones/", token)
-      .then(setMisiones)
-      .catch((e: any) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [token]);
-
-  const MISION_ESTADO: Record<string, string> = {
-    borrador: "bg-gray-100 text-gray-600 border-gray-300",
-    activa: "bg-blue-100 text-blue-800 border-blue-300",
-    completada: "bg-green-100 text-green-800 border-green-300",
-    cancelada: "bg-red-100 text-red-700 border-red-300",
-  };
-
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack}
-            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-            ← Volver
-          </button>
-          <div>
-            <h2 className="text-xl font-extrabold text-ink">Misiones</h2>
-            <p className="text-sm text-muted">Proyectos multi-etapa</p>
-          </div>
-        </div>
-        <button onClick={onCreate}
-          className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-          + Nueva Misión
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="py-12 text-center text-sm text-muted">Cargando...</div>
-      ) : error ? (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-      ) : misiones.length === 0 ? (
-        <div className="py-16 text-center">
-          <div className="mb-3 text-4xl">🎯</div>
-          <p className="text-sm font-semibold text-muted">No hay misiones aún.</p>
-          <p className="mt-1 text-xs text-muted">Crea una misión para organizar proyectos en etapas.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {misiones.map((m) => {
-            const pct = m.total_etapas > 0 ? Math.round((m.etapas_completadas / m.total_etapas) * 100) : 0;
-            const nivel = user.rol?.nivel ?? 1;
-            return (
-              <div key={m.id} className="rounded-paper border-2 border-border bg-surface-panel shadow-paper-sm transition hover:border-accent hover:shadow-paper">
-                <button onClick={() => onSelect(m.id)} className="w-full p-4 text-left">
-                  <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="text-sm font-bold text-ink">{m.titulo}</span>
-                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold ${MISION_ESTADO[m.estado] || "bg-gray-100 text-gray-600"}`}>
-                          {m.estado.charAt(0).toUpperCase() + m.estado.slice(1)}
-                        </span>
-                        <span className="inline-flex items-center rounded-full bg-surface-hover px-2 py-0.5 text-xs font-semibold text-muted">
-                          {m.tipo === "secuencial" ? "🔗 Secuencial" : "⚡ Paralelo"}
-                        </span>
-                        <CategoriaBadge cat={m.categoria} />
-                      </div>
-                      {m.reino && <p className="text-xs text-muted">Reino: {m.reino}</p>}
-                      {m.descripcion && <p className="text-xs text-muted mt-0.5 line-clamp-1">{m.descripcion}</p>}
-                      {m.frecuencia && (
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 px-2 py-0.5 text-xs font-semibold">
-                            {FRECUENCIA_LABEL[m.frecuencia] ?? m.frecuencia}
-                          </span>
-                          {m.proxima_renovacion && m.estado === "completada" && (
-                            <span className="text-xs text-muted">Próxima: {fmtFecha(m.proxima_renovacion)}</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-lg font-black text-ink">{m.etapas_completadas}/{m.total_etapas}</div>
-                      <div className="text-xs text-muted">etapas</div>
-                    </div>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: m.color || "#0c6069" }} />
-                  </div>
-                  <div className="mt-1 flex justify-between text-xs text-muted">
-                    <span>{m.creado_por_nombre && `Por ${m.creado_por_nombre}`}</span>
-                    <span>{pct}% completado</span>
-                  </div>
-                </button>
-                {nivel >= 3 && (
-                  <div className="border-t border-border px-4 py-2 flex justify-end">
-                    <button
-                      onClick={async () => {
-                        const msg = m.total_etapas > 0
-                          ? `¿Eliminar la misión "${m.titulo}" y sus ${m.total_etapas} ticket(s) asociados?\n\nEsta acción no se puede deshacer.`
-                          : `¿Eliminar la misión "${m.titulo}"?`;
-                        if (!confirm(msg)) return;
-                        try {
-                          await tapi(`/misiones/${m.id}`, token, { method: "DELETE" });
-                          setMisiones((prev) => prev.filter((x) => x.id !== m.id));
-                        } catch (e: any) {
-                          alert(e.message);
-                        }
-                      }}
-                      className="text-xs font-semibold text-red-400 hover:text-red-600 transition"
-                    >
-                      🗑️ Eliminar misión
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
         </div>
       )}
     </div>
@@ -2773,12 +2949,12 @@ function CreateMisionView({
 
 // Mission detail with etapa pipeline and launch modal
 function MisionDetailView({
-  token, user, misionId, onBack, onTicket, readonly = false,
+  token, user, misionId, onBack, onTicket,
 }: {
   token: string; user: TicketsUser; misionId: number;
   onBack: () => void; onTicket: (id: number) => void;
-  readonly?: boolean;
 }) {
+  const readonly = false;
   const { cats: categorias } = useContext(CategoriasCtx);
   const [mision, setMision] = useState<Mision | null>(null);
   const [loading, setLoading] = useState(true);
@@ -3121,7 +3297,7 @@ function MisionDetailView({
               : `♻️ Se renovará el ${fmtFecha(mision.proxima_renovacion)} al completarse`}
           </p>
         )}
-        <div className="h-2 rounded-full bg-white/60 overflow-hidden">
+        <div className="h-2 rounded-full bg-white/60 dark:bg-ink/20 overflow-hidden">
           <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: mision.color }} />
         </div>
         <div className="mt-1.5 flex justify-between text-xs" style={{ color: mision.color }}>
@@ -3239,16 +3415,16 @@ function MisionDetailView({
           finally { setNuevoProdSaving(false); }
         }
         return (
-          <div className="rounded-paper border-2 border-purple-200 bg-purple-50/40 p-5 shadow-paper space-y-3">
+          <div className="rounded-paper border-2 border-purple-200 bg-purple-50/40 p-5 shadow-paper space-y-3 dark:border-purple-500/30 dark:bg-purple-950/30">
             <div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-purple-700">✨ Producto resultante</h3>
-              <p className="mt-0.5 text-xs text-purple-600">
+              <h3 className="text-sm font-extrabold uppercase tracking-wide text-purple-700 dark:text-purple-300">✨ Producto resultante</h3>
+              <p className="mt-0.5 text-xs text-purple-600 dark:text-purple-300/80">
                 Al completar esta misión, el stock del producto vinculado aumenta automáticamente con la suma de todos los insumos usados.
               </p>
             </div>
 
             {prod ? (
-              <div className="flex items-center gap-3 rounded-paper border border-purple-300 bg-white px-4 py-3">
+              <div className="flex items-center gap-3 rounded-paper border border-purple-300 bg-white px-4 py-3 dark:border-purple-500/40 dark:bg-surface-input">
                 <div className="flex-1">
                   <p className="font-bold text-sm text-ink">{prod.nombre}</p>
                   <p className="text-xs text-muted">Stock actual: <span className="font-bold text-purple-700">{prod.stock_actual} {prod.unidad}</span></p>
@@ -3270,10 +3446,10 @@ function MisionDetailView({
                   <select
                     value={prodSelId}
                     onChange={(e) => setProdSelId(e.target.value)}
-                    className="flex-1 rounded-paper border-2 border-border bg-white px-2 py-1.5 text-sm text-ink outline-none focus:border-purple-400">
+                    className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-purple-400 dark:focus:border-purple-400">
                     <option value="">Seleccionar producto del catálogo...</option>
                     {disponiblesProd.map((m) => (
-                      <option key={m.id} value={m.id}>{m.tipo === "elaborado" ? "✨ " : ""}{m.nombre} ({m.unidad})</option>
+                      <option key={m.id} value={m.id}>{materialTipoPrefix(m.tipo)}{m.nombre} ({m.unidad})</option>
                     ))}
                   </select>
                   <button
@@ -3289,7 +3465,7 @@ function MisionDetailView({
                   {showNuevoProd ? "▲ Cancelar" : "+ Crear nuevo producto elaborado"}
                 </button>
                 {showNuevoProd && (
-                  <div className="rounded-paper border border-purple-200 bg-white p-3 space-y-2">
+                  <div className="rounded-paper border border-purple-200 bg-surface-input p-3 space-y-2 dark:border-purple-500/30">
                     <div className="flex gap-2">
                       <input
                         className="flex-1 rounded border-2 border-border px-2 py-1.5 text-sm outline-none focus:border-purple-400"
@@ -3399,7 +3575,7 @@ function MisionDetailView({
                         ⚙️ Configurar: {et.titulo}
                       </p>
                       <PasosSection ticketId={et.ticket_id} token={token} editMode={true} />
-                      <MaterialesSection ticketId={et.ticket_id} token={token} readonly={false} />
+                      <MaterialesSection ticketId={et.ticket_id} token={token} user={user} readonly={false} />
                     </div>
                   )}
                   {i < etapas.length - 1 && (
@@ -3476,7 +3652,7 @@ function MisionDetailView({
                     <div className="mt-3 pt-3 border-t border-border space-y-3">
                       <p className="text-xs font-extrabold uppercase tracking-wide text-accent">⚙️ Configurar</p>
                       <PasosSection ticketId={et.ticket_id} token={token} editMode={true} />
-                      <MaterialesSection ticketId={et.ticket_id} token={token} readonly={false} />
+                      <MaterialesSection ticketId={et.ticket_id} token={token} user={user} readonly={false} />
                     </div>
                   )}
                 </div>
@@ -3623,6 +3799,7 @@ function WorkloadView({ token, onBack }: { token: string; onBack: () => void }) 
 
 export default function TicketsPanel() {
   const { token, user, setAuth, clear } = useTicketsAuth();
+  const questDark = useQuestTheme((s) => s.dark);
   const [view, setView] = useState<View>("list");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(null);
@@ -3637,26 +3814,29 @@ export default function TicketsPanel() {
 
   if (!token || !user) {
     return (
-      <LoginView
-        onLogin={(t, u) => { setAuth(t, u as TicketsUser); setView("list"); }}
-      />
+      <div className={`quest-canvas min-h-[60vh] transition-colors duration-200 ${questDark ? "dark" : ""}`}>
+        <div className="mb-4 flex justify-end">
+          <QuestThemeToggle />
+        </div>
+        <LoginView
+          onLogin={(t, u) => { setAuth(t, u as TicketsUser); setView("list"); }}
+        />
+      </div>
     );
   }
 
   const nivel = user.rol?.nivel ?? 1;
 
-  const [misionReadonly, setMisionReadonly] = useState(false);
-
   function goDetail(id: number) { setSelectedId(id); setView("detail"); }
   function goBack() { setView("list"); setSelectedId(null); setSelectedMisionId(null); }
-  function goMisionDetail(id: number) { setSelectedMisionId(id); setMisionReadonly(false); setView("mision_detail"); }
-  function goMisionDetailReadonly(id: number) { setSelectedMisionId(id); setMisionReadonly(true); setView("mision_detail"); }
+  function goMisionDetail(id: number) { setSelectedMisionId(id); setView("mision_detail"); }
 
   return (
     <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
-    <div className="relative">
-      {/* Logout button */}
-      <div className="absolute right-0 top-0 z-10">
+    <div className={`quest-canvas relative min-h-full transition-colors duration-200 ${questDark ? "dark" : ""}`}>
+      {/* Logout + tema */}
+      <div className="absolute right-0 top-0 z-10 flex items-center gap-2">
+        <QuestThemeToggle />
         <button onClick={clear}
           className="flex items-center gap-1.5 rounded-paper border-2 border-border px-3 py-1 text-xs font-semibold text-muted transition hover:border-danger hover:text-danger">
           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -3673,8 +3853,8 @@ export default function TicketsPanel() {
             onSelect={goDetail}
             onAdmin={() => setView("admin")}
             onWorkload={() => setView("workload")}
-            onMisiones={() => setView("misiones")}
-            onMisionDetail={goMisionDetailReadonly}
+            onEditMision={goMisionDetail}
+            onCreateMision={() => setView("crear_mision")}
             onInventario={() => setView("inventario")}
           />
         )}
@@ -3701,18 +3881,10 @@ export default function TicketsPanel() {
         {view === "workload" && nivel >= 2 && (
           <WorkloadView token={token} onBack={goBack} />
         )}
-        {view === "misiones" && (
-          <MisionesView
-            token={token} user={user}
-            onSelect={goMisionDetail}
-            onCreate={() => setView("crear_mision")}
-            onBack={goBack}
-          />
-        )}
         {view === "crear_mision" && (
           <CreateMisionView
             token={token}
-            onBack={() => setView("misiones")}
+            onBack={goBack}
             onCreated={(id) => goMisionDetail(id)}
           />
         )}
@@ -3720,8 +3892,7 @@ export default function TicketsPanel() {
           <MisionDetailView
             token={token} user={user}
             misionId={selectedMisionId}
-            readonly={misionReadonly}
-            onBack={() => misionReadonly ? goBack() : setView("misiones")}
+            onBack={goBack}
             onTicket={(id) => { setSelectedId(id); setView("detail"); }}
           />
         )}

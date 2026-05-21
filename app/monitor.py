@@ -422,6 +422,13 @@ def monitor_loop():
             contadores["comprobantes"] += 1
             contadores["token_meli"] += 1
 
+            # Cada tick (60s) — recordatorios programados por el supervisor
+            try:
+                from app.tools.supervisor_actions import verificar_y_disparar_recordatorios
+                verificar_y_disparar_recordatorios()
+            except Exception as _e_rec:
+                print(f"⚠️ Monitor recordatorios: {_e_rec}")
+
             # Cada 5 minutos
             if contadores["servicios"] >= 5:
                 verificar_servicios()

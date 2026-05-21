@@ -396,6 +396,9 @@ export default function Settings() {
         </button>
       </section>
 
+      {/* ── Supervisor IA ── */}
+      <SupervisorSection onMarkRunning={markRunning} />
+
       {/* ── Terminal ── */}
       <section className="space-y-2">
         <h3 className="text-sm font-semibold text-ink">Salida del Sistema</h3>
@@ -407,5 +410,78 @@ export default function Settings() {
         />
       </section>
     </div>
+  );
+}
+
+// ── Supervisor IA section ──────────────────────────────────────────────────
+
+function SupervisorSection({ onMarkRunning }: { onMarkRunning: () => void }) {
+  const { data: svStatus, refetch: refetchSv } = useQuery<{
+    chunks_indexados: number;
+    coleccion: string;
+    status: string;
+  }>({
+    queryKey: ["supervisor-status"],
+    queryFn: () => api.get("/api/supervisor/status"),
+    retry: false,
+    staleTime: 30_000,
+  });
+
+  const indexMutation = useMutation({
+    mutationFn: () => api.post("/api/supervisor/index", {}),
+    onSuccess: () => {
+      onMarkRunning();
+      setTimeout(() => refetchSv(), 10_000);
+    },
+  });
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-ink">Supervisor IA (gemma4:e4b)</h3>
+          <p className="text-xs text-muted mt-0.5">
+            Índice de código fuente en ChromaDB — permite responder preguntas sobre el proyecto
+          </p>
+        </div>
+        <button
+          onClick={() => indexMutation.mutate()}
+          disabled={indexMutation.isPending}
+          className="shrink-0 rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-xs font-medium text-ink transition hover:border-accent hover:text-accent disabled:opacity-40 flex items-center gap-1.5"
+        >
+          {indexMutation.isPending ? (
+            <span className="inline-block w-3 h-3 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+          ) : (
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          )}
+          Re-indexar
+        </button>
+      </div>
+
+      <div className="flex items-center gap-6 text-sm">
+        <div>
+          <p className="text-xs text-muted">Chunks indexados</p>
+          <p className="text-ink font-mono font-semibold">
+            {svStatus?.status === "ok" ? svStatus.chunks_indexados.toLocaleString("es-CO") : "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">Colección</p>
+          <p className="text-ink font-mono text-xs">{svStatus?.coleccion ?? "proyecto_codigo"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-muted">Estado</p>
+          <p className={`text-xs font-semibold ${svStatus?.status === "ok" ? "text-emerald-400" : "text-yellow-400"}`}>
+            {svStatus?.status === "ok" ? "listo" : "sin índice"}
+          </p>
+        </div>
+      </div>
+
+      {indexMutation.isSuccess && (
+        <p className="text-xs text-emerald-400">Indexación iniciada en segundo plano — puede tomar ~30 s</p>
+      )}
+    </section>
   );
 }
