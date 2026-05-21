@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { TicketsUser } from "../stores/ticketsAuth";
 import { ALERT_ERROR_SM } from "../lib/questStyles";
 
@@ -167,6 +167,101 @@ function fmtTiempo(seg: number): string {
   return `${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 }
 
+function useCronometro() {
+  const [segundos, setSegundos] = useState(0);
+  const [activo, setActivo] = useState(false);
+  const acumRef = useRef(0);
+  const inicioRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!activo) return;
+    const iv = setInterval(() => {
+      if (inicioRef.current != null) {
+        const total = acumRef.current + Math.floor((Date.now() - inicioRef.current) / 1000);
+        setSegundos(total);
+      }
+    }, 250);
+    return () => clearInterval(iv);
+  }, [activo]);
+
+  function tomarSegundos() {
+    if (activo && inicioRef.current != null) {
+      return acumRef.current + Math.floor((Date.now() - inicioRef.current) / 1000);
+    }
+    return acumRef.current;
+  }
+
+  function iniciar() {
+    if (activo) return;
+    inicioRef.current = Date.now();
+    setActivo(true);
+  }
+
+  function pausar() {
+    if (!activo || inicioRef.current == null) return;
+    acumRef.current = tomarSegundos();
+    inicioRef.current = null;
+    setSegundos(acumRef.current);
+    setActivo(false);
+  }
+
+  function reiniciar() {
+    acumRef.current = 0;
+    inicioRef.current = null;
+    setSegundos(0);
+    setActivo(false);
+  }
+
+  return { segundos, activo, iniciar, pausar, reiniciar, tomarSegundos };
+}
+
+function CronometroPanel({
+  segundos,
+  activo,
+  onIniciar,
+  onPausar,
+  onReiniciar,
+  subtitulo,
+}: {
+  segundos: number;
+  activo: boolean;
+  onIniciar: () => void;
+  onPausar: () => void;
+  onReiniciar: () => void;
+  subtitulo?: string;
+}) {
+  return (
+    <div className="rounded-paper border-2 border-accent/50 bg-accent/10 p-4 shadow-paper-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase text-muted">Cronómetro de misión</p>
+          <p className="font-mono text-4xl font-black tabular-nums text-accent">{fmtTiempo(segundos)}</p>
+          <p className="mt-1 text-xs text-muted">
+            {subtitulo || (activo ? "En curso — marca el tiempo real de la misión" : "Pulsa iniciar al comenzar la misión")}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {activo ? (
+            <button type="button" onClick={onPausar}
+              className="rounded-paper border-2 border-border bg-surface-panel px-4 py-2 text-sm font-bold">
+              ⏸ Pausar
+            </button>
+          ) : (
+            <button type="button" onClick={onIniciar}
+              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white">
+              ▶ Iniciar
+            </button>
+          )}
+          <button type="button" onClick={onReiniciar}
+            className="rounded-paper border-2 border-border px-3 py-2 text-sm font-bold text-muted">
+            ↺ Reiniciar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const UNIDADES = ["g", "kg", "ml", "L", "unidad", "gotas", "%"];
 
 export default function RecetasPanel({
@@ -208,6 +303,7 @@ export default function RecetasPanel({
   const [procesosDraft, setProcesosDraft] = useState<RecetaProceso[]>([]);
   const [saving, setSaving] = useState(false);
   const [tick, setTick] = useState(0);
+  const cronometroNueva = useCronometro();
 
   const reloadLista = useCallback(() => {
     return tapi("/recetas", token).then(setLista).catch((e) => setError(e.message));
@@ -372,6 +468,7 @@ export default function RecetasPanel({
   }
 
   function volverLista() {
+    cronometroNueva.reiniciar();
     setReceta(null);
     setModo("lista");
     setEditLineas(false);
@@ -382,6 +479,7 @@ export default function RecetasPanel({
   }
 
   function abrirNueva() {
+    cronometroNueva.reiniciar();
     setError("");
     setMetaDraft({
       titulo: "",
@@ -396,7 +494,7 @@ export default function RecetasPanel({
     setModo("nueva");
   }
 
-  async function crearReceta(ev: React.FormEvent) {
+  async function crearReceta(ev: React.FormEvent, opts?: { iniciarMision?: boolean }) {
     ev.preventDefault();
     if (!metaDraft.titulo.trim()) {
       setError("El título es obligatorio.");
@@ -404,6 +502,11 @@ export default function RecetasPanel({
     }
     if (metaDraft.reino_id === "") {
       setError("Elige un reino.");
+      return;
+    }
+    const procesosValidos = procesosDraft.filter((p) => p.descripcion.trim());
+    if (opts?.iniciarMision && procesosValidos.length === 0) {
+      setError("Agrega al menos un paso en Procesos para iniciar la misión.");
       return;
     }
     setSaving(true);
@@ -424,21 +527,33 @@ export default function RecetasPanel({
             cantidad: Number(l.cantidad) || 0,
             unidad: l.unidad || "g",
           })),
-        procesos: procesosDraft
-          .filter((p) => p.descripcion.trim())
-          .map((p) => ({
-            descripcion: p.descripcion.trim(),
-            duracion_min: p.duracion_min ?? null,
-          })),
+        procesos: procesosValidos.map((p) => ({
+          descripcion: p.descripcion.trim(),
+          duracion_min: p.duracion_min ?? null,
+        })),
       };
       const creada = await tapi("/recetas", token, { method: "POST", body: JSON.stringify(body) });
       await reloadLista();
-      setReceta(creada);
-      setLineasDraft(creada.lineas.map((l: RecetaLinea) => ({ ...l })));
-      setProcesosDraft(creada.procesos.map((p: RecetaProceso) => ({ ...p })));
-      setModo("detalle");
-      setEditLineas(creada.lineas.length === 0);
-      setEditProcesos(creada.procesos.length === 0);
+      if (opts?.iniciarMision) {
+        if (cronometroNueva.activo) cronometroNueva.pausar();
+        const c = await tapi(`/recetas/${creada.id}/iniciar`, token, {
+          method: "POST",
+          body: JSON.stringify({ segundos_previos: cronometroNueva.tomarSegundos() }),
+        });
+        creada.corrida = c;
+        setReceta(creada);
+        setLineasDraft(creada.lineas.map((l: RecetaLinea) => ({ ...l })));
+        setProcesosDraft(creada.procesos.map((p: RecetaProceso) => ({ ...p })));
+        setModo("elaborar");
+        cronometroNueva.reiniciar();
+      } else {
+        setReceta(creada);
+        setLineasDraft(creada.lineas.map((l: RecetaLinea) => ({ ...l })));
+        setProcesosDraft(creada.procesos.map((p: RecetaProceso) => ({ ...p })));
+        setModo("detalle");
+        setEditLineas(creada.lineas.length === 0);
+        setEditProcesos(creada.procesos.length === 0);
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -821,7 +936,15 @@ export default function RecetasPanel({
           <h2 className="text-xl font-extrabold text-ink">✨ Nueva receta</h2>
         </div>
         {error && <p className={ALERT_ERROR_SM}>{error}</p>}
-        <form onSubmit={crearReceta} className="space-y-5">
+        <CronometroPanel
+          segundos={cronometroNueva.segundos}
+          activo={cronometroNueva.activo}
+          onIniciar={cronometroNueva.iniciar}
+          onPausar={cronometroNueva.pausar}
+          onReiniciar={cronometroNueva.reiniciar}
+          subtitulo="Inicia al comenzar la misión; el tiempo se guardará al crear e iniciar."
+        />
+        <form onSubmit={(e) => crearReceta(e)} className="space-y-5">
           <section className="rounded-paper border-2 border-border bg-surface-panel p-4 space-y-3">
             <h3 className="text-sm font-extrabold uppercase text-muted">Datos generales</h3>
             <div>
@@ -863,8 +986,16 @@ export default function RecetasPanel({
             {bloqueProcesosEditor(procesosDraft, setProcesosDraft)}
           </section>
           <button type="submit" disabled={saving || !metaDraft.titulo.trim() || metaDraft.reino_id === ""}
-            className="w-full rounded-paper border-2 border-accent bg-accent py-3 text-sm font-bold text-white disabled:opacity-50">
+            className="w-full rounded-paper border-2 border-border bg-surface-panel py-3 text-sm font-bold text-ink disabled:opacity-50">
             {saving ? "Creando…" : "Crear receta"}
+          </button>
+          <button
+            type="button"
+            disabled={saving || !metaDraft.titulo.trim() || metaDraft.reino_id === ""}
+            onClick={(e) => crearReceta(e as unknown as React.FormEvent, { iniciarMision: true })}
+            className="w-full rounded-paper border-2 border-accent bg-accent py-3 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {saving ? "Creando…" : "▶ Crear e iniciar misión"}
           </button>
         </form>
       </div>
