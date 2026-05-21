@@ -36,6 +36,18 @@ function tapi(path: string, token: string, options: RequestInit = {}) {
   });
 }
 
+async function archivarRecetaApi(recetaId: number, token: string) {
+  try {
+    return await tapi(`/recetas/${recetaId}/archivar`, token, { method: "POST" });
+  } catch (e: any) {
+    const msg = String(e?.message || e);
+    if (msg.includes("404") || msg.includes("405")) {
+      return tapi(`/recetas/${recetaId}`, token, { method: "DELETE" });
+    }
+    throw e;
+  }
+}
+
 interface Material {
   id: number;
   nombre: string;
@@ -165,6 +177,8 @@ export default function RecetasPanel({
   const [filtroTipo, setFiltroTipo] = useState<"" | "propias" | "catalogo">("");
   const [filtroReino, setFiltroReino] = useState<number | "">("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [confirmArchivar, setConfirmArchivar] = useState<number[] | null>(null);
+  const [okMsg, setOkMsg] = useState("");
   const [modo, setModo] = useState<"lista" | "nueva" | "detalle" | "elaborar">("lista");
   const [editLineas, setEditLineas] = useState(false);
   const [editProcesos, setEditProcesos] = useState(false);
@@ -444,12 +458,48 @@ export default function RecetasPanel({
   }
 
   async function archivarReceta() {
-    if (!receta || !confirm(`¿Archivar la receta «${receta.titulo}»?`)) return;
+    if (!receta) return;
+    setConfirmArchivar([receta.id]);
+  }
+
+  async function ejecutarArchivar(ids: number[]) {
+    if (!ids.length) return;
+    setConfirmArchivar(null);
+    setSaving(true);
+    setError("");
+    setOkMsg("");
+    const errores: string[] = [];
+    let okCount = 0;
     try {
-      await tapi(`/recetas/${receta.id}`, token, { method: "DELETE" });
-      volverLista();
-    } catch (e: any) {
-      setError(e.message);
+      for (const id of ids) {
+        try {
+          await archivarRecetaApi(id, token);
+          okCount += 1;
+        } catch (e: any) {
+          errores.push(e.message);
+        }
+      }
+      setSelectedIds(new Set());
+      if (receta && ids.includes(receta.id)) {
+        setReceta(null);
+        setModo("lista");
+      }
+      await reloadLista();
+      if (errores.length) {
+        setError(
+          okCount > 0
+            ? `${okCount} archivada(s). Error: ${errores[0]}`
+            : errores[0],
+        );
+      } else {
+        setOkMsg(
+          okCount === 1
+            ? "Receta archivada."
+            : `${okCount} recetas archivadas.`,
+        );
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -498,33 +548,10 @@ export default function RecetasPanel({
     setSelectedIds(new Set());
   }
 
-  async function eliminarSeleccionadas() {
+  function pedirArchivarSeleccionadas() {
     const ids = Array.from(selectedIds);
     if (!ids.length) return;
-    if (!confirm(`¿Archivar ${ids.length} receta(s)?`)) return;
-
-    setSaving(true);
-    setError("");
-    const errores: string[] = [];
-    let okCount = 0;
-    for (const id of ids) {
-      try {
-        await tapi(`/recetas/${id}`, token, { method: "DELETE" });
-        okCount += 1;
-      } catch (e: any) {
-        errores.push(e.message);
-      }
-    }
-    setSelectedIds(new Set());
-    await reloadLista();
-    setSaving(false);
-    if (errores.length) {
-      setError(
-        okCount > 0
-          ? `${okCount} archivada(s). Error: ${errores[0]}`
-          : errores[0],
-      );
-    }
+    setConfirmArchivar(ids);
   }
 
   const filtradas = lista.filter((r) => {
@@ -571,6 +598,40 @@ export default function RecetasPanel({
       ))}
     </select>
   );
+
+  const modalConfirmarArchivar = confirmArchivar ? (
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="w-full max-w-md rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper-lg space-y-4">
+        <h3 className="text-lg font-extrabold text-ink">¿Archivar receta(s)?</h3>
+        <p className="text-sm text-muted">
+          Se ocultarán {confirmArchivar.length} receta
+          {confirmArchivar.length !== 1 ? "s" : ""} del recetario.
+        </p>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => setConfirmArchivar(null)}
+            className="rounded-paper border-2 border-border px-4 py-2 text-sm font-bold text-muted"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => ejecutarArchivar(confirmArchivar)}
+            className="rounded-paper border-2 border-red-500 bg-red-500 px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
+          >
+            {saving ? "Archivando…" : "Sí, archivar"}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   const bloqueLineasEditor = (draft: RecetaLinea[], setDraft: typeof setLineasDraft) => (
     <div className="space-y-2">
@@ -641,6 +702,8 @@ export default function RecetasPanel({
 
   if (modo === "nueva") {
     return (
+      <>
+      {modalConfirmarArchivar}
       <div className="space-y-5 max-w-3xl">
         <div className="flex items-center gap-3">
           <button type="button" onClick={volverLista}
@@ -697,6 +760,7 @@ export default function RecetasPanel({
           </button>
         </form>
       </div>
+      </>
     );
   }
 
@@ -704,6 +768,8 @@ export default function RecetasPanel({
     const hechos = new Set(corrida?.procesos_hechos ?? []);
 
     return (
+      <>
+      {modalConfirmarArchivar}
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={volverLista}
@@ -1033,10 +1099,13 @@ export default function RecetasPanel({
           <p className="text-sm text-muted">{receta.descripcion}</p>
         )}
       </div>
+      </>
     );
   }
 
   return (
+    <>
+    {modalConfirmarArchivar}
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -1091,6 +1160,12 @@ export default function RecetasPanel({
       </div>
 
       {error && <p className={ALERT_ERROR_SM}>{error}</p>}
+      {okMsg && (
+        <p className="rounded-lg bg-emerald-500/15 px-3 py-2 text-sm font-bold text-emerald-700 dark:text-emerald-300">
+          {okMsg}
+        </p>
+      )}
+
       {loading && <p className="text-sm text-muted py-8 text-center">Cargando…</p>}
 
       {!loading && filtradas.length > 0 && (
@@ -1121,10 +1196,14 @@ export default function RecetasPanel({
               <button
                 type="button"
                 disabled={saving}
-                onClick={eliminarSeleccionadas}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  pedirArchivarSeleccionadas();
+                }}
                 className="rounded-paper border-2 border-red-400/70 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-40"
               >
-                🗑 Eliminar ({selectedIds.size})
+                {saving ? "Archivando…" : `🗑 Eliminar (${selectedIds.size})`}
               </button>
               <button
                 type="button"
@@ -1211,5 +1290,6 @@ export default function RecetasPanel({
         })}
       </div>
     </div>
+    </>
   );
 }

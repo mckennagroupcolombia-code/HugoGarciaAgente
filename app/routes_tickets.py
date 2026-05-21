@@ -858,6 +858,15 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 400
         return jsonify(r), 200
 
+    @app.route("/api/tickets/recetas/<int:receta_id>/archivar", methods=["POST"])
+    @_auth
+    def tickets_archivar_receta_post(receta_id):
+        """Alias POST: algunos proxies bloquean DELETE."""
+        ok, err = eliminar_receta_ops(receta_id, _nivel_usuario())
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": ok}), 200
+
     @app.route("/api/tickets/recetas/<int:receta_id>", methods=["DELETE"])
     @_auth
     def tickets_eliminar_receta(receta_id):
