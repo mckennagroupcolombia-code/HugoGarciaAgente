@@ -93,3 +93,24 @@ export const ALERT_ERROR_SM =
 
 /** Envuelve títulos/porcentajes de misión con color dinámico (menos saturación en oscuro). */
 export const QUEST_MISION_CHROME = "quest-mision-chrome";
+
+/** Botones del menú principal (QuestNavBar, tema, salir). */
+export const QUEST_NAV_BTN = "quest-nav-btn";
+export function questNavBtn(active = false, extra = ""): string {
+  return [QUEST_NAV_BTN, active ? "quest-nav-btn--active" : "", extra].filter(Boolean).join(" ");
+}
+
+/** Rotación estable por id (efecto post-it en el tablero). */
+export function stickyRotation(id: number): number {
+  const angles = [-2.5, 1.8, -1.2, 2.2, -0.8, 1.5, -2, 0.9, 1.1, -1.6, 2.5, -0.5];
+  return angles[Math.abs(id) % angles.length];
+}
+
+/** Fondo tipo papel con tinte del color de la misión. */
+export function stickyPaperBackground(color: string, dark: boolean): string {
+  const c = color || "#0c6069";
+  if (dark) {
+    return `linear-gradient(168deg, ${c}38 0%, rgb(32 40 42) 42%, rgb(24 32 34) 100%)`;
+  }
+  return `linear-gradient(168deg, ${c}40 0%, #fffef8 42%, #fff9e0 100%)`;
+}

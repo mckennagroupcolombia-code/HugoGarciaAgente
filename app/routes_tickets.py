@@ -1,6 +1,8 @@
+import json
 import os
 import uuid
 from functools import wraps
+from pathlib import Path
 from flask import request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 
@@ -20,8 +22,10 @@ from app.services.tickets_db import (
     agregar_etapa_mision, actualizar_etapa_mision, eliminar_etapa_mision,
     reordenar_etapas_mision,
     listar_pasos, agregar_paso, completar_paso, eliminar_paso, reordenar_pasos,
-    listar_materiales, get_material, crear_material, actualizar_material,
+    listar_materiales, get_material, crear_material, actualizar_material, eliminar_materiales_catalogo,
+    listar_zonas_trabajo, crear_zona_trabajo, actualizar_zona_trabajo, eliminar_zona_trabajo,
     listar_materiales_ticket, agregar_material_ticket, actualizar_material_ticket, eliminar_material_ticket,
+    get_observaciones_materiales, set_observaciones_materiales,
     registrar_consumo, historial_consumo,
     listar_ordenes_compra, crear_orden_compra, actualizar_orden_compra,
     get_dependencias_mision, agregar_dependencia_mision, eliminar_dependencia_mision,
@@ -87,6 +91,27 @@ def register_tickets_routes(app):
     @_auth
     def tickets_me():
         return jsonify(request.tickets_usuario), 200
+
+    @app.route("/api/tickets/auth/me", methods=["PUT"])
+    @_auth
+    def tickets_actualizar_me():
+        data = request.get_json(force=True) or {}
+        uid = request.tickets_usuario["id"]
+        payload: dict = {}
+        nombre = (data.get("nombre") or "").strip()
+        if nombre:
+            payload["nombre"] = nombre
+        password = data.get("password") or ""
+        if password:
+            payload["password"] = password
+        if not payload:
+            return jsonify({"error": "Indica nombre o nueva contraseña"}), 400
+        ok, err = actualizar_usuario(uid, payload)
+        if not ok:
+            return jsonify({"error": err or "No se pudo actualizar"}), 400
+        token = request.headers.get("Authorization", "")[7:].strip()
+        usuario = get_usuario_by_token(token)
+        return jsonify({"ok": True, "usuario": usuario}), 200
 
     @app.route("/api/tickets/auth/logout", methods=["POST"])
     @_auth
@@ -513,13 +538,51 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 400
         return jsonify(pasos), 200
 
+    # ── ZONAS DE TRABAJO ──────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/zonas-trabajo", methods=["GET"])
+    @_auth
+    def tickets_listar_zonas():
+        return jsonify(listar_zonas_trabajo()), 200
+
+    @app.route("/api/tickets/zonas-trabajo", methods=["POST"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_crear_zona():
+        data = request.get_json(force=True) or {}
+        zona, err = crear_zona_trabajo(data)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(zona), 201
+
+    @app.route("/api/tickets/zonas-trabajo/<int:zona_id>", methods=["PUT"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_actualizar_zona(zona_id):
+        data = request.get_json(force=True) or {}
+        zona, err = actualizar_zona_trabajo(zona_id, data)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(zona), 200
+
+    @app.route("/api/tickets/zonas-trabajo/<int:zona_id>", methods=["DELETE"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_eliminar_zona(zona_id):
+        res, err = eliminar_zona_trabajo(zona_id)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": True, **res}), 200
+
     # ── CATÁLOGO DE MATERIALES ────────────────────────────────────────────────
 
     @app.route("/api/tickets/materiales", methods=["GET"])
     @_auth
     def tickets_listar_materiales():
         todos = request.args.get("todos") == "1"
-        return jsonify(listar_materiales(solo_activos=not todos)), 200
+        zona_id = request.args.get("zona_id")
+        zid = int(zona_id) if zona_id not in (None, "") else None
+        return jsonify(listar_materiales(solo_activos=not todos, zona_id=zid)), 200
 
     @app.route("/api/tickets/materiales", methods=["POST"])
     @_auth
@@ -530,6 +593,16 @@ def register_tickets_routes(app):
         if err:
             return jsonify({"error": err}), 400
         return jsonify(mat), 201
+
+    @app.route("/api/tickets/materiales/eliminar", methods=["POST"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_eliminar_materiales():
+        data = request.get_json(force=True) or {}
+        res, err = eliminar_materiales_catalogo(data.get("ids") or [])
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(res), 200
 
     @app.route("/api/tickets/materiales/<int:material_id>", methods=["GET"])
     @_auth
@@ -549,6 +622,17 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 400
         return jsonify(mat), 200
 
+    @app.route("/api/tickets/materiales/<int:material_id>", methods=["DELETE"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_eliminar_material(material_id):
+        res, err = eliminar_materiales_catalogo([material_id])
+        if err:
+            return jsonify({"error": err}), 400
+        if res.get("errores"):
+            return jsonify({"error": res["errores"][0].get("error", "No se pudo eliminar")}), 400
+        return jsonify({"ok": True, "id": material_id}), 200
+
     # ── MATERIALES DE TICKET ──────────────────────────────────────────────────
 
     @app.route("/api/tickets/<int:ticket_id>/materiales", methods=["GET"])
@@ -556,12 +640,32 @@ def register_tickets_routes(app):
     def tickets_listar_materiales_ticket(ticket_id):
         return jsonify(listar_materiales_ticket(ticket_id)), 200
 
+    @app.route("/api/tickets/<int:ticket_id>/materiales/observaciones", methods=["GET"])
+    @_auth
+    def tickets_get_observaciones_materiales(ticket_id):
+        data, err = get_observaciones_materiales(ticket_id)
+        if err:
+            return jsonify({"error": err}), 404
+        return jsonify(data), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/materiales/observaciones", methods=["PUT"])
+    @_auth
+    def tickets_set_observaciones_materiales(ticket_id):
+        data = request.get_json(force=True) or {}
+        res, err = set_observaciones_materiales(ticket_id, data.get("observaciones", ""))
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(res), 200
+
     @app.route("/api/tickets/<int:ticket_id>/materiales", methods=["POST"])
     @_auth
     def tickets_agregar_material_ticket(ticket_id):
         data = request.get_json(force=True) or {}
         mats, err = agregar_material_ticket(
-            ticket_id, int(data.get("material_id",0)), float(data.get("cantidad",0))
+            ticket_id, 
+            int(data.get("material_id", 0)), 
+            float(data.get("cantidad", 0)),
+            data.get("notas")
         )
         if err:
             return jsonify({"error": err}), 400
@@ -571,7 +675,19 @@ def register_tickets_routes(app):
     @_auth
     def tickets_actualizar_material_ticket(tm_id):
         data = request.get_json(force=True) or {}
-        mats, err = actualizar_material_ticket(tm_id, float(data.get("cantidad",0)))
+        # We allow partial updates for cantidad and notas
+        cantidad = data.get("cantidad")
+        if cantidad is not None:
+            try:
+                cantidad = float(cantidad)
+            except (ValueError, TypeError):
+                return jsonify({"error": "cantidad debe ser un número"}), 400
+
+        mats, err = actualizar_material_ticket(
+            tm_id, 
+            cantidad=cantidad,
+            notas=data.get("notas")
+        )
         if err:
             return jsonify({"error": err}), 400
         return jsonify(mats), 200
@@ -687,3 +803,139 @@ def register_tickets_routes(app):
         if err:
             return jsonify({"error": err}), 400
         return jsonify(result), 200
+
+    # ── RECETAS OPERATIVAS (inventario + procesos + cronómetro) ───────────────
+
+    from app.services.recetas_ops import (
+        listar_recetas_ops,
+        get_receta_ops,
+        crear_receta_ops,
+        actualizar_receta_ops,
+        eliminar_receta_ops,
+        guardar_lineas_receta,
+        guardar_procesos_receta,
+        iniciar_corrida,
+        get_corrida,
+        pausar_corrida,
+        reanudar_corrida,
+        completar_proceso_corrida,
+        finalizar_corrida,
+    )
+
+    def _nivel_usuario():
+        return (request.tickets_usuario.get("rol") or {}).get("nivel") or 1
+
+    @app.route("/api/tickets/recetas", methods=["GET"])
+    @_auth
+    def tickets_listar_recetas():
+        uid = request.tickets_usuario["id"]
+        return jsonify(listar_recetas_ops(uid)), 200
+
+    @app.route("/api/tickets/recetas", methods=["POST"])
+    @_auth
+    def tickets_crear_receta():
+        data = request.get_json(force=True) or {}
+        r, err = crear_receta_ops(data)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(r), 201
+
+    @app.route("/api/tickets/recetas/<int:receta_id>", methods=["GET"])
+    @_auth
+    def tickets_get_receta(receta_id):
+        uid = request.tickets_usuario["id"]
+        r = get_receta_ops(receta_id, uid)
+        if not r:
+            return jsonify({"error": "Receta no encontrada"}), 404
+        return jsonify(r), 200
+
+    @app.route("/api/tickets/recetas/<int:receta_id>", methods=["PUT"])
+    @_auth
+    def tickets_actualizar_receta(receta_id):
+        data = request.get_json(force=True) or {}
+        r, err = actualizar_receta_ops(receta_id, data, _nivel_usuario())
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(r), 200
+
+    @app.route("/api/tickets/recetas/<int:receta_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_receta(receta_id):
+        ok, err = eliminar_receta_ops(receta_id, _nivel_usuario())
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": ok}), 200
+
+    @app.route("/api/tickets/recetas/<int:receta_id>/lineas", methods=["PUT"])
+    @_auth
+    def tickets_guardar_lineas_receta(receta_id):
+        data = request.get_json(force=True) or {}
+        lineas = data.get("lineas") if isinstance(data.get("lineas"), list) else data if isinstance(data, list) else []
+        r, err = guardar_lineas_receta(receta_id, lineas, _nivel_usuario())
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(r), 200
+
+    @app.route("/api/tickets/recetas/<int:receta_id>/procesos", methods=["PUT"])
+    @_auth
+    def tickets_guardar_procesos_receta(receta_id):
+        data = request.get_json(force=True) or {}
+        procesos = data.get("procesos") if isinstance(data.get("procesos"), list) else []
+        r, err = guardar_procesos_receta(receta_id, procesos, _nivel_usuario())
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(r), 200
+
+    @app.route("/api/tickets/recetas/<int:receta_id>/iniciar", methods=["POST"])
+    @_auth
+    def tickets_iniciar_corrida(receta_id):
+        uid = request.tickets_usuario["id"]
+        c, err = iniciar_corrida(receta_id, uid)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(c), 201
+
+    @app.route("/api/tickets/recetas/corridas/<int:corrida_id>", methods=["GET"])
+    @_auth
+    def tickets_get_corrida(corrida_id):
+        uid = request.tickets_usuario["id"]
+        c = get_corrida(corrida_id, uid)
+        if not c:
+            return jsonify({"error": "Corrida no encontrada"}), 404
+        return jsonify(c), 200
+
+    @app.route("/api/tickets/recetas/corridas/<int:corrida_id>/pausar", methods=["POST"])
+    @_auth
+    def tickets_pausar_corrida(corrida_id):
+        uid = request.tickets_usuario["id"]
+        c, err = pausar_corrida(corrida_id, uid)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(c), 200
+
+    @app.route("/api/tickets/recetas/corridas/<int:corrida_id>/reanudar", methods=["POST"])
+    @_auth
+    def tickets_reanudar_corrida(corrida_id):
+        uid = request.tickets_usuario["id"]
+        c, err = reanudar_corrida(corrida_id, uid)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(c), 200
+
+    @app.route("/api/tickets/recetas/corridas/<int:corrida_id>/procesos/<int:proceso_id>/completar", methods=["POST"])
+    @_auth
+    def tickets_completar_proceso_corrida(corrida_id, proceso_id):
+        uid = request.tickets_usuario["id"]
+        c, err = completar_proceso_corrida(corrida_id, uid, proceso_id)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(c), 200
+
+    @app.route("/api/tickets/recetas/corridas/<int:corrida_id>/finalizar", methods=["POST"])
+    @_auth
+    def tickets_finalizar_corrida(corrida_id):
+        uid = request.tickets_usuario["id"]
+        c, err = finalizar_corrida(corrida_id, uid)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(c), 200

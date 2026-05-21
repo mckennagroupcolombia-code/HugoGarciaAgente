@@ -1,4 +1,4 @@
-from flask import request, jsonify, render_template, send_from_directory
+from flask import request, jsonify, render_template, send_from_directory, make_response
 import os
 import json
 import re
@@ -2290,13 +2290,24 @@ def register_routes(app):
         if origin in _CORS_ORIGINS:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
-            response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS,DELETE"
+            response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
-    @app.route("/api/<path:_path>", methods=["OPTIONS"])
-    def _cors_preflight(_path):
-        return "", 204
+    @app.before_request
+    def _cors_preflight():
+        """Preflight CORS sin registrar OPTIONS en cada URL (evita 405 en rutas nuevas)."""
+        if request.method != "OPTIONS" or not request.path.startswith("/api/"):
+            return None
+        origin = request.headers.get("Origin", "")
+        if origin not in _CORS_ORIGINS:
+            return None
+        resp = make_response("", 204)
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+        resp.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
+        resp.headers["Access-Control-Allow-Credentials"] = "true"
+        return resp
 
     # ══════════════════════════════════════════════════════════════════════════
     #  API endpoints — unified on :8081 for React SPA

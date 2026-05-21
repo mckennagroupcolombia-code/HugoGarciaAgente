@@ -1,4 +1,5 @@
 import { useQuestTheme } from "../stores/questTheme";
+import { questNavBtn } from "../lib/questStyles";
 
 export default function QuestThemeToggle({ className = "" }: { className?: string }) {
   const dark = useQuestTheme((s) => s.dark);
@@ -10,12 +11,7 @@ export default function QuestThemeToggle({ className = "" }: { className?: strin
       onClick={toggle}
       title={dark ? "Modo claro" : "Modo oscuro (quests)"}
       aria-pressed={dark}
-      className={`
-        flex items-center gap-1.5 rounded-paper border-2 border-border px-3 py-1.5
-        text-xs font-bold text-muted transition
-        hover:border-accent hover:text-accent hover:bg-surface-hover
-        ${className}
-      `}
+      className={`${questNavBtn(dark)} ${className}`.trim()}
     >
       {dark ? (
         <>
