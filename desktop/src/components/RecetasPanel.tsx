@@ -93,6 +93,8 @@ interface ZonaTrabajo {
   orden?: number;
 }
 
+type ClasificacionReceta = "catalogo" | "reino";
+
 interface RecetaLista {
   id: number;
   titulo: string;
@@ -103,6 +105,9 @@ interface RecetaLista {
   categoria?: string;
   origen_id?: number | null;
   es_propia?: boolean;
+  clasificacion?: ClasificacionReceta;
+  es_catalogo?: boolean;
+  es_receta_reino?: boolean;
   num_lineas: number;
   num_procesos: number;
   corrida_activa_id?: number | null;
@@ -123,6 +128,9 @@ interface RecetaDetalle {
   tip?: string;
   origen_id?: number | null;
   es_propia?: boolean;
+  clasificacion?: ClasificacionReceta;
+  es_catalogo?: boolean;
+  es_receta_reino?: boolean;
   lineas: RecetaLinea[];
   procesos: RecetaProceso[];
   corrida?: RecetaCorrida | null;
@@ -135,14 +143,19 @@ const CAT_LEGACY: Record<string, string> = {
   hogar: "Hogar",
 };
 
-function etiquetaReino(r: {
-  reino_nombre?: string | null;
-  reino_icono?: string | null;
-  categoria?: string;
-}): string {
-  if (r.reino_nombre) return `${r.reino_icono || "🏰"} ${r.reino_nombre}`;
-  if (r.categoria) return `📖 ${CAT_LEGACY[r.categoria] ?? r.categoria}`;
-  return "";
+function esRecetaCatalogo(r: { origen_id?: number | null; clasificacion?: string; es_catalogo?: boolean }): boolean {
+  if (r.clasificacion === "catalogo" || r.es_catalogo) return true;
+  return r.origen_id != null;
+}
+
+function esRecetaDeReino(r: { origen_id?: number | null; clasificacion?: string; es_receta_reino?: boolean; es_propia?: boolean }): boolean {
+  if (r.clasificacion === "reino" || r.es_receta_reino) return true;
+  return r.origen_id == null || r.es_propia === true;
+}
+
+function etiquetaCategoriaCatalogo(categoria?: string): string {
+  if (!categoria) return "";
+  return CAT_LEGACY[categoria] ?? categoria;
 }
 
 function fmtTiempo(seg: number): string {
@@ -174,7 +187,7 @@ export default function RecetasPanel({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState<"" | "propias" | "catalogo">("");
+  const [filtroTipo, setFiltroTipo] = useState<"" | "catalogo" | "reinos">("");
   const [filtroReino, setFiltroReino] = useState<number | "">("");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [confirmArchivar, setConfirmArchivar] = useState<number[] | null>(null);
@@ -555,17 +568,30 @@ export default function RecetasPanel({
   }
 
   const filtradas = lista.filter((r) => {
-    if (filtroTipo === "propias" && !r.es_propia) return false;
-    if (filtroTipo === "catalogo" && r.es_propia) return false;
-    if (filtroReino !== "" && r.reino_id !== filtroReino) return false;
+    if (filtroTipo === "catalogo" && !esRecetaCatalogo(r)) return false;
+    if (filtroTipo === "reinos" && !esRecetaDeReino(r)) return false;
+    if (filtroReino !== "" && (!esRecetaDeReino(r) || r.reino_id !== filtroReino)) return false;
     if (!q.trim()) return true;
     const t = q.trim().toLowerCase();
     return (
       r.titulo.toLowerCase().includes(t)
       || (r.reino_nombre || "").toLowerCase().includes(t)
       || (r.categoria || "").toLowerCase().includes(t)
+      || (esRecetaCatalogo(r) ? "catalogo" : "reino").includes(t)
     );
   });
+
+  const recetasCatalogo = filtradas.filter(esRecetaCatalogo);
+  const recetasReinos = filtradas.filter(esRecetaDeReino);
+  const reinosAgrupados = reinos
+    .map((reino) => ({
+      reino,
+      items: recetasReinos.filter((r) => r.reino_id === reino.id),
+    }))
+    .filter((g) => g.items.length > 0);
+  const reinosSinAsignar = recetasReinos.filter((r) => !r.reino_id);
+  const totalCatalogo = lista.filter(esRecetaCatalogo).length;
+  const totalReinos = lista.filter(esRecetaDeReino).length;
 
   const todasVisiblesSeleccionadas =
     filtradas.length > 0 && filtradas.every((r) => selectedIds.has(r.id));
@@ -598,6 +624,88 @@ export default function RecetasPanel({
       ))}
     </select>
   );
+
+  function badgeClasificacion(r: RecetaLista | RecetaDetalle, size: "sm" | "md" = "sm") {
+    const cls = size === "md"
+      ? "rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+      : "rounded-full px-2 py-0.5 text-[10px] font-bold";
+    if (esRecetaCatalogo(r)) {
+      return (
+        <span className={`${cls} bg-amber-500/15 text-amber-800 dark:text-amber-200`}>
+          📚 Catálogo McKenna
+          {r.categoria ? ` · ${etiquetaCategoriaCatalogo(r.categoria)}` : ""}
+        </span>
+      );
+    }
+    return (
+      <span
+        className={`${cls} bg-emerald-500/15 text-emerald-800 dark:text-emerald-300`}
+        style={r.reino_color ? { boxShadow: `inset 0 0 0 1px ${r.reino_color}44` } : undefined}
+      >
+        🏰 {r.reino_nombre ? `Reino: ${r.reino_nombre}` : "Receta de reino"}
+      </span>
+    );
+  }
+
+  function renderTarjeta(r: RecetaLista) {
+    const marcada = selectedIds.has(r.id);
+    return (
+      <div
+        key={r.id}
+        className={`relative rounded-paper border-2 bg-surface-panel shadow-paper-sm transition ${
+          marcada ? "border-accent ring-1 ring-accent/30" : "border-border hover:border-accent/60"
+        }`}
+      >
+        <label
+          className="absolute left-3 top-3 z-10 flex cursor-pointer items-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-2 border-border accent-accent"
+            checked={marcada}
+            onChange={() => toggleSeleccion(r.id)}
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => loadReceta(r.id)}
+          className="w-full p-4 pt-3 pl-10 text-left"
+        >
+          {r.corrida_activa_id && (
+            <span className="mb-2 inline-block rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-bold text-accent">
+              ⏱ En elaboración
+            </span>
+          )}
+          <div className="mb-1">{badgeClasificacion(r)}</div>
+          <h3 className="mt-1 font-extrabold text-ink">{r.titulo}</h3>
+          <p className="mt-2 text-[10px] text-muted">
+            {r.num_lineas} materiales · {r.num_procesos} procesos
+          </p>
+        </button>
+      </div>
+    );
+  }
+
+  function renderSeccion(
+    titulo: string,
+    subtitulo: string,
+    items: RecetaLista[],
+    accentClass = "border-border",
+  ) {
+    if (!items.length) return null;
+    return (
+      <section className="space-y-3">
+        <div className={`rounded-paper border-l-4 ${accentClass} bg-surface-panel/50 px-4 py-2`}>
+          <h3 className="text-sm font-extrabold text-ink">{titulo}</h3>
+          <p className="text-[10px] text-muted">{subtitulo} · {items.length} receta{items.length !== 1 ? "s" : ""}</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map(renderTarjeta)}
+        </div>
+      </section>
+    );
+  }
 
   const modalConfirmarArchivar = confirmArchivar ? (
     <div
@@ -779,19 +887,7 @@ export default function RecetasPanel({
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-extrabold text-ink truncate">{receta.titulo}</h2>
             <div className="mt-1 flex flex-wrap gap-2">
-              {receta.es_propia && (
-                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
-                  ✨ Mi receta
-                </span>
-              )}
-              {etiquetaReino(receta) && (
-                <span
-                  className="text-[10px] font-bold uppercase"
-                  style={receta.reino_color ? { color: receta.reino_color } : undefined}
-                >
-                  {etiquetaReino(receta)}
-                </span>
-              )}
+              {badgeClasificacion(receta, "md")}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1116,7 +1212,7 @@ export default function RecetasPanel({
           <div>
             <h2 className="text-xl font-extrabold text-ink">📖 Recetario</h2>
             <p className="text-xs text-muted">
-              Crea tus recetas · materiales del inventario · cronómetro
+              📚 Catálogo importado · 🏰 recetas por reino · cronómetro
             </p>
           </div>
         </div>
@@ -1139,18 +1235,19 @@ export default function RecetasPanel({
         <select
           className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
           value={filtroTipo}
-          onChange={(e) => setFiltroTipo(e.target.value as "" | "propias" | "catalogo")}
+          onChange={(e) => setFiltroTipo(e.target.value as "" | "catalogo" | "reinos")}
         >
-          <option value="">Todas</option>
-          <option value="propias">Solo mis recetas</option>
-          <option value="catalogo">Catálogo McKenna</option>
+          <option value="">Todas (clasificadas)</option>
+          <option value="catalogo">📚 Catálogo McKenna</option>
+          <option value="reinos">🏰 Recetas de reinos</option>
         </select>
         <select
-          className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+          className="rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent disabled:opacity-40"
           value={filtroReino === "" ? "" : String(filtroReino)}
+          disabled={filtroTipo === "catalogo"}
           onChange={(e) => setFiltroReino(e.target.value ? Number(e.target.value) : "")}
         >
-          <option value="">Todos los reinos</option>
+          <option value="">{filtroTipo === "catalogo" ? "— Solo catálogo —" : "Todos los reinos"}</option>
           {reinos.map((r) => (
             <option key={r.id} value={r.id}>
               {r.icono || "🏰"} {r.nombre}
@@ -1158,6 +1255,17 @@ export default function RecetasPanel({
           ))}
         </select>
       </div>
+
+      {!loading && lista.length > 0 && (
+        <div className="flex flex-wrap gap-2 text-[10px] font-bold">
+          <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-800 dark:text-amber-200">
+            📚 Catálogo: {totalCatalogo}
+          </span>
+          <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-emerald-700 dark:text-emerald-300">
+            🏰 Reinos: {totalReinos}
+          </span>
+        </div>
+      )}
 
       {error && <p className={ALERT_ERROR_SM}>{error}</p>}
       {okMsg && (
@@ -1220,9 +1328,11 @@ export default function RecetasPanel({
       {!loading && !error && filtradas.length === 0 && (
         <div className="py-12 text-center space-y-3">
           <p className="text-sm text-muted">
-            {filtroTipo === "propias"
-              ? "Aún no tienes recetas propias."
-              : "No hay recetas con ese filtro."}
+            {filtroTipo === "reinos"
+              ? "Aún no hay recetas creadas en los reinos. Usa + Nueva receta y elige un reino."
+              : filtroTipo === "catalogo"
+                ? "No hay recetas del catálogo con ese filtro."
+                : "No hay recetas con ese filtro."}
           </p>
           <button
             type="button"
@@ -1234,60 +1344,47 @@ export default function RecetasPanel({
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {filtradas.map((r) => {
-          const marcada = selectedIds.has(r.id);
-          return (
-            <div
-              key={r.id}
-              className={`relative rounded-paper border-2 bg-surface-panel shadow-paper-sm transition ${
-                marcada ? "border-accent ring-1 ring-accent/30" : "border-border hover:border-accent/60"
-              }`}
-            >
-              <label
-                className="absolute left-3 top-3 z-10 flex cursor-pointer items-center"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-2 border-border accent-accent"
-                  checked={marcada}
-                  onChange={() => toggleSeleccion(r.id)}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => loadReceta(r.id)}
-                className="w-full p-4 pt-3 pl-10 text-left"
-              >
-                {r.corrida_activa_id && (
-                  <span className="mb-2 inline-block rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-bold text-accent">
-                    ⏱ En elaboración
-                  </span>
-                )}
-                {r.es_propia && (
-                  <span className="mb-1 inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
-                    Mi receta
-                  </span>
-                )}
-                {etiquetaReino(r) ? (
-                  <span
-                    className="text-[10px] font-bold uppercase"
-                    style={r.reino_color ? { color: r.reino_color } : undefined}
-                  >
-                    {etiquetaReino(r)}
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-bold uppercase text-muted">Sin reino</span>
-                )}
-                <h3 className="mt-1 font-extrabold text-ink">{r.titulo}</h3>
-                <p className="mt-2 text-[10px] text-muted">
-                  {r.num_lineas} materiales · {r.num_procesos} procesos
-                </p>
-              </button>
+      <div className="space-y-8">
+        {(filtroTipo === "" || filtroTipo === "catalogo") &&
+          renderSeccion(
+            "📚 Recetas del catálogo McKenna",
+            "Importadas del sitio web · referencia y elaboración",
+            recetasCatalogo,
+            "border-l-amber-500",
+          )}
+
+        {(filtroTipo === "" || filtroTipo === "reinos") && recetasReinos.length > 0 && (
+          <>
+            <div className="rounded-paper border-l-4 border-l-emerald-500 bg-surface-panel/50 px-4 py-2">
+              <h3 className="text-sm font-extrabold text-ink">🏰 Recetas de los reinos</h3>
+              <p className="text-[10px] text-muted">
+                Creadas en el Centro de Mando · vinculadas a un reino · {recetasReinos.length} receta
+                {recetasReinos.length !== 1 ? "s" : ""}
+              </p>
             </div>
-          );
-        })}
+            {reinosAgrupados.map(({ reino, items }) => (
+              <div key={reino.id} className="space-y-3 pl-0 sm:pl-2">
+                <p
+                  className="text-xs font-extrabold uppercase tracking-wide"
+                  style={{ color: reino.color || undefined }}
+                >
+                  {reino.icono || "🏰"} {reino.nombre}
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {items.map(renderTarjeta)}
+                </div>
+              </div>
+            ))}
+            {reinosSinAsignar.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-bold text-muted">Sin reino asignado</p>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {reinosSinAsignar.map(renderTarjeta)}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
     </>
