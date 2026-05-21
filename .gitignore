@@ -19,6 +19,8 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+pytest-ci.log
+pytest-results.xml
 .coverage
 htmlcov/
 
