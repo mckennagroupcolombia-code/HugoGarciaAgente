@@ -1369,3 +1369,184 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-05-19 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
+[master cadb5e4] Auto-commit: actualizacion diaria 2026-05-20 23:00
+ 188 files changed, 3061 insertions(+), 1017 deletions(-)
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Account Web Data
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Account Web Data-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Affiliation Database
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Affiliation Database-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/Cache_Data/index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/Cache_Data/sqldb0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/Cache_Data/sqldb0-wal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/Cache_Data/sqldb1
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/Cache_Data/sqldb1-wal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/Cache_Data/sqldb2
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/Cache_Data/sqldb2-wal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/No_Vary_Search/journal.baj
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cache/No_Vary_Search/snapshot.baf
+ create mode 100644 .wwebjs_auth_nueva/session/Default/ClientCertificates/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/ClientCertificates/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Code Cache/pc/5bb[a`6`2`2e2.ue5-ba-[[u0@;`2.db
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Code Cache/pc/5bb[a`6`2`2e2.ue5-ba-[[u0@;`2.journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cookies
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Cookies-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnGraphiteCache/data_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnGraphiteCache/data_1
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnGraphiteCache/data_2
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnGraphiteCache/data_3
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnGraphiteCache/index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnWebGPUCache/data_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnWebGPUCache/data_1
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnWebGPUCache/data_2
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnWebGPUCache/data_3
+ create mode 100644 .wwebjs_auth_nueva/session/Default/DawnWebGPUCache/index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension Rules/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension Rules/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension Rules/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension Rules/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension Scripts/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension Scripts/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension Scripts/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension Scripts/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension State/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension State/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension State/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Extension State/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Favicons
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Favicons-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/GPUCache/data_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/GPUCache/data_1
+ create mode 100644 .wwebjs_auth_nueva/session/Default/GPUCache/data_2
+ create mode 100644 .wwebjs_auth_nueva/session/Default/GPUCache/data_3
+ create mode 100644 .wwebjs_auth_nueva/session/Default/GPUCache/index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/History
+ create mode 100644 .wwebjs_auth_nueva/session/Default/History-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/LOG.old
+ create mode 100644 .wwebjs_auth_nueva/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Local Storage/leveldb/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Local Storage/leveldb/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Local Storage/leveldb/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Local Storage/leveldb/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Login Data
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Login Data For Account
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Login Data For Account-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Login Data-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/PersistentOriginTrials/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/PersistentOriginTrials/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/README
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Reporting and NEL
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Reporting and NEL-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/SCT Auditing Pending Reports
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Safe Browsing Cookies
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Safe Browsing Cookies-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Segmentation Platform/SegmentInfoDB/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Segmentation Platform/SegmentInfoDB/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Segmentation Platform/SignalDB/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Segmentation Platform/SignalDB/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Segmentation Platform/SignalStorageConfigDB/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Segmentation Platform/SignalStorageConfigDB/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/ServerCertificate
+ create mode 100644 .wwebjs_auth_nueva/session/Default/ServerCertificate-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/4ed7a427-b05a-4aa0-a920-30e62a7e4841/2a2b7cbbc61290b4_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/4ed7a427-b05a-4aa0-a920-30e62a7e4841/6ea66fa5b36b4157_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/4ed7a427-b05a-4aa0-a920-30e62a7e4841/92172a9e586cee2a_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/4ed7a427-b05a-4aa0-a920-30e62a7e4841/e6039a61e4d2a504_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/4ed7a427-b05a-4aa0-a920-30e62a7e4841/index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/4ed7a427-b05a-4aa0-a920-30e62a7e4841/index-dir/the-real-index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/b0e736d6-105a-4c7b-ba64-4d705a37b275/index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/b0e736d6-105a-4c7b-ba64-4d705a37b275/index-dir/the-real-index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/CacheStorage/0bf6ab7f94a21cdc9c1649f884333ec20f40a544/index.txt
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/Database/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/Database/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/Database/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/Database/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/ScriptCache/2cc80dabc69f58b6_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/ScriptCache/2cc80dabc69f58b6_1
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/ScriptCache/4cb013792b196a35_0
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/ScriptCache/4cb013792b196a35_1
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/ScriptCache/index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Service Worker/ScriptCache/index-dir/the-real-index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Session Storage/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Session Storage/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Session Storage/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Session Storage/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Sessions/Session_13423785484809862
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Shared Dictionary/cache/index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Shared Dictionary/cache/index-dir/the-real-index
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Shared Dictionary/db
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Shared Dictionary/db-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/SharedStorage
+ create mode 100644 .wwebjs_auth_nueva/session/Default/SharedStorage-wal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Site Characteristics Database/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Site Characteristics Database/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Site Characteristics Database/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Site Characteristics Database/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Sync Data/LevelDB/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Sync Data/LevelDB/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Sync Data/LevelDB/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Sync Data/LevelDB/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Top Sites
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Top Sites-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Trust Tokens
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Trust Tokens-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Web Data
+ create mode 100644 .wwebjs_auth_nueva/session/Default/Web Data-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/WebStorage/QuotaManager
+ create mode 100644 .wwebjs_auth_nueva/session/Default/WebStorage/QuotaManager-journal
+ create mode 100644 .wwebjs_auth_nueva/session/Default/chrome_cart_db/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/chrome_cart_db/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/commerce_subscription_db/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/commerce_subscription_db/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/discount_infos_db/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/discount_infos_db/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/discounts_db/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/discounts_db/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/parcel_tracking_db/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/parcel_tracking_db/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/shared_proto_db/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/shared_proto_db/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/shared_proto_db/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/shared_proto_db/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/shared_proto_db/metadata/CURRENT
+ create mode 100644 .wwebjs_auth_nueva/session/Default/shared_proto_db/metadata/LOCK
+ create mode 100644 .wwebjs_auth_nueva/session/Default/shared_proto_db/metadata/LOG
+ create mode 100644 .wwebjs_auth_nueva/session/Default/shared_proto_db/metadata/MANIFEST-000001
+ create mode 100644 .wwebjs_auth_nueva/session/Default/trusted_vault.pb
+ create mode 100644 .wwebjs_auth_nueva/session/DevToolsActivePort
+ create mode 100644 .wwebjs_auth_nueva/session/GPUPersistentCache/GPUCache/2WHCBIAU7ZWIVZSO6MPEH46W7FCQ2IPM/cache.db
+ create mode 100644 .wwebjs_auth_nueva/session/GPUPersistentCache/GPUCache/2WHCBIAU7ZWIVZSO6MPEH46W7FCQ2IPM/cache.db-wal
+ create mode 100644 .wwebjs_auth_nueva/session/GPUPersistentCache/GPUCache/2WHCBIAU7ZWIVZSO6MPEH46W7FCQ2IPM/cache.journal
+ create mode 100644 .wwebjs_auth_nueva/session/GraphiteDawnCache/data_0
+ create mode 100644 .wwebjs_auth_nueva/session/GraphiteDawnCache/data_1
+ create mode 100644 .wwebjs_auth_nueva/session/GraphiteDawnCache/data_2
+ create mode 100644 .wwebjs_auth_nueva/session/GraphiteDawnCache/data_3
+ create mode 100644 .wwebjs_auth_nueva/session/GraphiteDawnCache/index
+ create mode 100644 .wwebjs_auth_nueva/session/Last Version
+ create mode 100644 .wwebjs_auth_nueva/session/Local State
+ create mode 120000 .wwebjs_auth_nueva/session/SingletonCookie
+ create mode 120000 .wwebjs_auth_nueva/session/SingletonLock
+ create mode 120000 .wwebjs_auth_nueva/session/SingletonSocket
+ create mode 100644 .wwebjs_auth_nueva/session/Variations
+ create mode 100644 .wwebjs_auth_nueva/session/WidevineCdm/latest-component-updated-widevine-cdm
+ create mode 100644 .wwebjs_auth_nueva/session/segmentation_platform/ukm_db
+ create mode 100644 .wwebjs_auth_nueva/session/segmentation_platform/ukm_db-wal
+ create mode 100644 app/data/contactos_supervisor.json
+ create mode 100644 app/data/recordatorios_programados.json
+ create mode 100644 app/tools/project_indexer.py
+ create mode 100644 app/tools/supervisor_actions.py
+ create mode 100644 desktop/src/components/QuestThemeToggle.tsx
+ create mode 100644 desktop/src/lib/questStyles.ts
+ create mode 100644 desktop/src/stores/questTheme.ts
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-05-20 23:00:05] ERROR en el push. Revisar credenciales o conflictos.

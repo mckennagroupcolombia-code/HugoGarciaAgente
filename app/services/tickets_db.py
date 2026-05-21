@@ -304,10 +304,105 @@ def _migrate_materiales_tipo():
         db.close()
 
 
+def _migrate_zonas_subareas():
+    """parent_id en zonas; quita UNIQUE global en nombre (permite subáreas con mismo nombre en otra zona)."""
+    db_path = os.path.join(os.path.dirname(__file__), "..", "data", "tickets.db")
+    if not os.path.isfile(db_path):
+        return
+    db = sqlite3.connect(db_path)
+    db.row_factory = sqlite3.Row
+    try:
+        if not db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='zonas_trabajo'"
+        ).fetchone():
+            return
+        sql_row = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='zonas_trabajo'"
+        ).fetchone()
+        sql = (sql_row[0] or "") if sql_row else ""
+        if "parent_id" in sql and "nombre TEXT NOT NULL UNIQUE" not in sql:
+            return
+        db.execute("PRAGMA foreign_keys=OFF")
+        db.execute("BEGIN EXCLUSIVE")
+        db.execute("""
+            CREATE TABLE zonas_trabajo_new (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre      TEXT NOT NULL,
+                parent_id   INTEGER REFERENCES zonas_trabajo(id),
+                descripcion TEXT,
+                color       TEXT DEFAULT '#4a9a6a',
+                icono       TEXT DEFAULT '🏭',
+                orden       INTEGER DEFAULT 0,
+                activo      INTEGER DEFAULT 1,
+                creado_en   TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        db.execute("""
+            INSERT INTO zonas_trabajo_new
+                (id, nombre, parent_id, descripcion, color, icono, orden, activo, creado_en)
+            SELECT id, nombre, NULL, descripcion, color, icono, orden, activo, creado_en
+            FROM zonas_trabajo
+        """)
+        db.execute("DROP TABLE zonas_trabajo")
+        db.execute("ALTER TABLE zonas_trabajo_new RENAME TO zonas_trabajo")
+        db.commit()
+    except Exception as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise RuntimeError(f"_migrate_zonas_subareas failed: {exc}") from exc
+    finally:
+        db.close()
+
+
+def _migrate_mision_zona_id():
+    """Vincula misiones a zonas_trabajo (reino / zona / subzona) vía zona_id."""
+    db_path = os.path.join(os.path.dirname(__file__), "..", "data", "tickets.db")
+    if not os.path.isfile(db_path):
+        return
+    db = sqlite3.connect(db_path)
+    db.row_factory = sqlite3.Row
+    try:
+        cols = [r[1] for r in db.execute("PRAGMA table_info(misiones)").fetchall()]
+        if "zona_id" not in cols:
+            db.execute(
+                "ALTER TABLE misiones ADD COLUMN zona_id INTEGER REFERENCES zonas_trabajo(id)"
+            )
+            db.commit()
+        pend = db.execute("""
+            SELECT id, reino FROM misiones
+            WHERE (zona_id IS NULL OR zona_id = 0)
+              AND reino IS NOT NULL AND TRIM(reino) != ''
+        """).fetchall()
+        for m in pend:
+            r = db.execute(
+                """SELECT id FROM zonas_trabajo
+                   WHERE activo=1 AND parent_id IS NULL
+                     AND LOWER(TRIM(nombre)) = LOWER(TRIM(?))""",
+                (m["reino"],),
+            ).fetchone()
+            if r:
+                db.execute("UPDATE misiones SET zona_id=? WHERE id=?", (r["id"], m["id"]))
+        db.commit()
+    except Exception as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise RuntimeError(f"_migrate_mision_zona_id failed: {exc}") from exc
+    finally:
+        db.close()
+
+
 def init_db():
     _repair_broken_fk()
     _migrate_categorias()
     _migrate_materiales_tipo()
+    _migrate_zonas_subareas()
+    _migrate_mision_zona_id()
+    from app.services.recetas_ops import _migrate_recetas_ops
+    _migrate_recetas_ops()
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -358,6 +453,7 @@ def init_db():
                 titulo              TEXT NOT NULL,
                 descripcion         TEXT,
                 reino               TEXT,
+                zona_id             INTEGER REFERENCES zonas_trabajo(id),
                 color               TEXT DEFAULT '#0c6069',
                 tipo                TEXT NOT NULL DEFAULT 'secuencial'
                                         CHECK(tipo IN ('secuencial','paralelo')),
@@ -512,6 +608,42 @@ def init_db():
         _add_col(db, "materiales_catalogo", "tipo",
                  "TEXT DEFAULT 'materia_prima' CHECK(tipo IN ('materia_prima','elaborado','consumibles','repuestos','herramientas'))")
         _add_col(db, "materiales_catalogo", "mision_origen_id", "INTEGER REFERENCES misiones(id)")
+
+        # Notas en materiales de ticket
+        _add_col(db, "ticket_materiales", "notas", "TEXT")
+        # Observaciones generales de la sección materiales (por etapa/ticket)
+        _add_col(db, "tickets", "observaciones_materiales", "TEXT")
+
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS zonas_trabajo (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre      TEXT NOT NULL,
+                parent_id   INTEGER REFERENCES zonas_trabajo(id),
+                descripcion TEXT,
+                color       TEXT DEFAULT '#4a9a6a',
+                icono       TEXT DEFAULT '🏭',
+                orden       INTEGER DEFAULT 0,
+                activo      INTEGER DEFAULT 1,
+                creado_en   TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS material_zonas (
+                material_id INTEGER NOT NULL REFERENCES materiales_catalogo(id) ON DELETE CASCADE,
+                zona_id     INTEGER NOT NULL REFERENCES zonas_trabajo(id) ON DELETE CASCADE,
+                PRIMARY KEY (material_id, zona_id)
+            );
+        """)
+        if db.execute("SELECT COUNT(*) AS n FROM zonas_trabajo").fetchone()["n"] == 0:
+            for nombre, desc, color, icono, orden in [
+                ("Producción", "Laboratorio y formulación", "#e8a838", "⚗️", 10),
+                ("Bodega", "Almacén e inventario físico", "#4a9a6a", "📦", 20),
+                ("Limpieza", "Aseo e higiene de planta", "#5ba3c9", "🧹", 30),
+                ("Empaque", "Despacho y empaque", "#a68bc8", "📤", 40),
+                ("Oficina", "Administración y papelería", "#94a3b8", "🏢", 50),
+            ]:
+                db.execute(
+                    "INSERT INTO zonas_trabajo (nombre, parent_id, descripcion, color, icono, orden) VALUES (?,NULL,?,?,?,?)",
+                    (nombre, desc, color, icono, orden),
+                )
 
         # Seed categorias
         for slug, nombre, color, icono in [
@@ -749,6 +881,150 @@ def actualizar_usuario(user_id: int, data: dict) -> tuple:
 
 # ── MISIONES ──────────────────────────────────────────────────────────────────
 
+def _slug_departamento(nombre: str) -> str:
+    import re
+    s = re.sub(r"[^a-z0-9]+", "_", (nombre or "").lower().strip()).strip("_")
+    return (s[:48] or "operaciones")
+
+
+def _zona_jerarquia(db, zona_id: int) -> dict | None:
+    """Cadena reino → zona → subzona → departamento para un id de zonas_trabajo."""
+    row = db.execute(
+        "SELECT id, nombre, parent_id, color, icono FROM zonas_trabajo WHERE id=? AND activo=1",
+        (zona_id,),
+    ).fetchone()
+    if not row:
+        return None
+    chain: list[dict] = []
+    current = dict(row)
+    for _ in range(8):
+        chain.insert(0, current)
+        if not current.get("parent_id"):
+            break
+        parent = db.execute(
+            "SELECT id, nombre, parent_id, color, icono FROM zonas_trabajo WHERE id=?",
+            (current["parent_id"],),
+        ).fetchone()
+        if not parent:
+            break
+        current = dict(parent)
+    reino = chain[0]
+    out = {
+        "zona_id": zona_id,
+        "reino_id": reino["id"],
+        "reino_nombre": reino["nombre"],
+        "zona_nombre": None,
+        "subzona_nombre": None,
+        "ubicacion_label": reino["nombre"],
+    }
+    if len(chain) >= 2:
+        out["zona_nombre"] = chain[1]["nombre"]
+        out["ubicacion_label"] = f"{reino['nombre']} › {chain[1]['nombre']}"
+    if len(chain) >= 3:
+        out["subzona_nombre"] = chain[2]["nombre"]
+        out["ubicacion_label"] = (
+            f"{reino['nombre']} › {chain[1]['nombre']} › {chain[2]['nombre']}"
+        )
+    if len(chain) >= 4:
+        out["departamento_nombre"] = chain[-1]["nombre"]
+        out["departamento_id"] = chain[-1]["id"]
+        out["ubicacion_label"] = " › ".join(x["nombre"] for x in chain)
+    elif len(chain) == 3:
+        out["departamento_nombre"] = None
+        out["departamento_id"] = None
+    return out
+
+
+def _categoria_desde_zona(db, zona_id: int) -> str:
+    """Slug de categoría para tickets: labor = departamento (nivel 3) o genérico."""
+    niv = _zona_nivel(db, zona_id)
+    if niv >= 3:
+        row = db.execute(
+            "SELECT nombre FROM zonas_trabajo WHERE id=? AND activo=1", (zona_id,)
+        ).fetchone()
+        if row:
+            slug = _slug_departamento(row["nombre"])
+            db.execute(
+                "INSERT OR IGNORE INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
+                (slug, row["nombre"], "#0c6069", "🏢"),
+            )
+            return slug
+    return "logistica"
+
+
+def _enriquecer_mision_zona(db, d: dict) -> dict:
+    zid = d.get("zona_id")
+    if zid:
+        jer = _zona_jerarquia(db, zid)
+        if jer:
+            d.update(jer)
+            if not (d.get("reino") or "").strip():
+                d["reino"] = jer["reino_nombre"]
+    elif (d.get("reino") or "").strip():
+        d["ubicacion_label"] = (d.get("reino") or "").strip()
+        d["reino_nombre"] = d["reino"]
+    return d
+
+
+def _resolver_zona_mision(db, data: dict) -> tuple[dict | None, str | None]:
+    """Devuelve {zona_id, reino, categoria} listos para INSERT/UPDATE."""
+    raw = data.get("zona_id")
+    if raw not in (None, "", 0):
+        try:
+            zona_id = int(raw)
+        except (TypeError, ValueError):
+            return None, "zona_id inválido"
+        jer = _zona_jerarquia(db, zona_id)
+        if not jer:
+            return None, "Ubicación no encontrada en el catálogo"
+        niv = _zona_nivel(db, zona_id)
+        if niv < 1:
+            return None, "La misión debe ubicarse al menos en una zona del catálogo"
+        if niv == 1:
+            if _zona_tiene_subzonas_activas(db, zona_id):
+                return None, (
+                    "Esta zona tiene subzonas: elige una subzona o un departamento bajo ella."
+                )
+            hijos = db.execute(
+                "SELECT id FROM zonas_trabajo WHERE parent_id=? AND activo=1",
+                (zona_id,),
+            ).fetchall()
+            if any(_zona_nivel(db, h["id"]) >= 3 for h in hijos):
+                return None, (
+                    "Selecciona el departamento (labor) bajo esta zona "
+                    "(ej. Cocina → Lavar platos). Créalo en 🏰 Reinos."
+                )
+        elif niv == 2:
+            hijos = db.execute(
+                "SELECT 1 FROM zonas_trabajo WHERE parent_id=? AND activo=1 LIMIT 1",
+                (zona_id,),
+            ).fetchone()
+            if hijos:
+                return None, (
+                    "Selecciona el departamento (labor) donde se ejecuta la misión. "
+                    "Créalo en 🏰 Reinos bajo la subzona."
+                )
+        cat = _categoria_desde_zona(db, zona_id)
+        return {
+            "zona_id": zona_id,
+            "reino": jer["reino_nombre"],
+            "categoria": cat,
+        }, None
+    reino_txt = (data.get("reino") or "").strip()
+    if reino_txt:
+        r = db.execute(
+            """SELECT id FROM zonas_trabajo
+               WHERE activo=1 AND parent_id IS NULL
+                 AND LOWER(TRIM(nombre)) = LOWER(TRIM(?))""",
+            (reino_txt,),
+        ).fetchone()
+        if r:
+            jer = _zona_jerarquia(db, r["id"])
+            return {"zona_id": r["id"], "reino": jer["reino_nombre"] if jer else reino_txt}, None
+        return {"zona_id": None, "reino": reino_txt}, None
+    return None, "Selecciona reino, zona, subzona y departamento (labor)"
+
+
 def _mision_full(db, mision_id: int) -> dict | None:
     m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
     if not m:
@@ -788,7 +1064,7 @@ def _mision_full(db, mision_id: int) -> dict | None:
         d["producto_resultante"] = dict(pr) if pr else None
     else:
         d["producto_resultante"] = None
-    return d
+    return _enriquecer_mision_zona(db, d)
 
 
 def crear_mision(data: dict, usuario_id: int) -> tuple:
@@ -797,7 +1073,6 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
     etapas_raw   = data.get("etapas") or []
     asignaciones = data.get("asignaciones") or {}   # {"1": user_id, "2": user_id, ...}
     tipo         = data.get("tipo", "secuencial")
-    categoria    = data.get("categoria", "logistica")
     frecuencia   = data.get("frecuencia") or None    # None = one-time
 
     if not titulo:
@@ -808,14 +1083,20 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
     proxima = _calcular_proxima(frecuencia) if frecuencia else None
 
     with _conn() as db:
+        ubic, err = _resolver_zona_mision(db, data)
+        if err:
+            return None, err
+        categoria = ubic.get("categoria") or "logistica"
         db.execute("""
             INSERT INTO misiones
-                (titulo, descripcion, reino, color, tipo, categoria, creado_por, total_etapas, estado, frecuencia, proxima_renovacion)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                (titulo, descripcion, reino, zona_id, color, tipo, categoria, creado_por,
+                 total_etapas, estado, frecuencia, proxima_renovacion)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
             titulo,
             data.get("descripcion", ""),
-            data.get("reino", ""),
+            ubic["reino"],
+            ubic.get("zona_id"),
             data.get("color", "#0c6069"),
             tipo,
             categoria,
@@ -890,7 +1171,10 @@ def listar_misiones() -> list:
             LEFT JOIN usuarios u ON u.id = m.creado_por
             ORDER BY m.creado_en DESC
         """).fetchall()
-        return [dict(r) for r in rows]
+        out = []
+        for r in rows:
+            out.append(_enriquecer_mision_zona(db, dict(r)))
+        return out
 
 
 def get_mision(mision_id: int) -> dict | None:
@@ -1082,6 +1366,14 @@ def actualizar_mision(mision_id: int, data: dict) -> tuple:
                   if k in ("titulo", "descripcion", "reino", "color", "tipo", "categoria",
                             "frecuencia", "estado")
                   and v is not None}
+        if "zona_id" in data:
+            ubic, err = _resolver_zona_mision(db, data)
+            if err:
+                return None, err
+            campos["zona_id"] = ubic.get("zona_id")
+            campos["reino"] = ubic["reino"]
+            if ubic.get("categoria"):
+                campos["categoria"] = ubic["categoria"]
         # Validate estado transitions if provided
         if "estado" in campos:
             estado_val = campos["estado"]
@@ -1763,6 +2055,7 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                    m.color    AS mision_color,
                    m.tipo     AS mision_tipo,
                    m.reino    AS mision_reino,
+                   m.zona_id  AS mision_zona_id,
                    bt.numero  AS bloqueado_por_numero
             FROM tickets t
             LEFT JOIN usuarios uc ON uc.id = t.creado_por
@@ -2016,19 +2309,324 @@ def _generar_numero_oc(db) -> str:
     return f"OC-{year}-{max_n+1:04d}"
 
 
-def listar_materiales(solo_activos: bool = True) -> list:
+def _parse_zona_ids(data: dict) -> list[int] | None:
+    if "zona_ids" not in data:
+        return None
+    raw = data.get("zona_ids")
+    if not isinstance(raw, list):
+        return []
+    ids = []
+    for x in raw:
+        try:
+            ids.append(int(x))
+        except (TypeError, ValueError):
+            continue
+    return ids
+
+
+def _set_material_zonas(db, material_id: int, zona_ids: list[int]) -> None:
+    db.execute("DELETE FROM material_zonas WHERE material_id=?", (material_id,))
+    for zid in zona_ids:
+        if db.execute(
+            "SELECT id FROM zonas_trabajo WHERE id=? AND activo=1", (zid,)
+        ).fetchone():
+            db.execute(
+                "INSERT OR IGNORE INTO material_zonas (material_id, zona_id) VALUES (?,?)",
+                (material_id, zid),
+            )
+
+
+def _zonas_map_for_materials(db, material_ids: list[int]) -> dict[int, list]:
+    if not material_ids:
+        return {}
+    ph = ",".join("?" * len(material_ids))
+    rows = db.execute(
+        f"""
+        SELECT mz.material_id, z.id, z.nombre, z.parent_id, p.nombre AS parent_nombre
+        FROM material_zonas mz
+        JOIN zonas_trabajo z ON z.id = mz.zona_id AND z.activo = 1
+        LEFT JOIN zonas_trabajo p ON p.id = z.parent_id AND p.activo = 1
+        WHERE mz.material_id IN ({ph})
+        ORDER BY COALESCE(z.parent_id, z.id), z.parent_id IS NOT NULL, z.orden, z.nombre
+        """,
+        material_ids,
+    ).fetchall()
+    out: dict[int, list] = {}
+    for r in rows:
+        d = dict(r)
+        mid = d.pop("material_id")
+        out.setdefault(mid, []).append(d)
+    return out
+
+
+def _zona_tiene_subzonas_activas(db, zona_id: int) -> bool:
+    """True si la zona tiene hijos de nivel subzona (no aplica modo Hogar: solo zonas + deptos)."""
+    for row in db.execute(
+        "SELECT id FROM zonas_trabajo WHERE parent_id=? AND activo=1", (zona_id,)
+    ).fetchall():
+        if _zona_nivel(db, row["id"]) == 2:
+            return True
+    return False
+
+
+def _zona_nivel(db, zona_id: int) -> int:
+    """0 = reino, 1 = zona, 2 = subzona, 3 = departamento; -1 si no existe."""
+    row = db.execute(
+        "SELECT parent_id FROM zonas_trabajo WHERE id=? AND activo=1", (zona_id,)
+    ).fetchone()
+    if not row:
+        return -1
+    n = 0
+    pid = row["parent_id"]
+    while pid is not None and n < 8:
+        n += 1
+        pr = db.execute(
+            "SELECT parent_id FROM zonas_trabajo WHERE id=?", (pid,)
+        ).fetchone()
+        if not pr:
+            return -1
+        pid = pr["parent_id"]
+    return n
+
+
+def _zona_profundidad(db, zona_id: int) -> int:
+    """Alias de _zona_nivel."""
+    return _zona_nivel(db, zona_id)
+
+
+def _zona_descendientes_ids(db, zona_id: int, solo_activas: bool = True) -> list[int]:
+    ids = [zona_id]
+    queue = [zona_id]
+    activo_sql = " AND activo=1" if solo_activas else ""
+    while queue:
+        pid = queue.pop(0)
+        hijos = db.execute(
+            f"SELECT id FROM zonas_trabajo WHERE parent_id=?{activo_sql}", (pid,)
+        ).fetchall()
+        for h in hijos:
+            ids.append(h["id"])
+            queue.append(h["id"])
+    return ids
+
+
+def _zona_nombre_ocupado(db, nombre: str, parent_id: int | None, excluir_id: int | None = None) -> bool:
+    if parent_id:
+        q = "SELECT 1 FROM zonas_trabajo WHERE activo=1 AND parent_id=? AND nombre=?"
+        params: list = [parent_id, nombre]
+    else:
+        q = "SELECT 1 FROM zonas_trabajo WHERE activo=1 AND parent_id IS NULL AND nombre=?"
+        params = [nombre]
+    if excluir_id is not None:
+        q += " AND id!=?"
+        params.append(excluir_id)
+    return bool(db.execute(q, params).fetchone())
+
+
+def _get_zona_row(db, zona_id: int) -> dict | None:
+    r = db.execute(
+        """
+        SELECT z.*, p.nombre AS parent_nombre
+        FROM zonas_trabajo z
+        LEFT JOIN zonas_trabajo p ON p.id = z.parent_id
+        WHERE z.id=?
+        """,
+        (zona_id,),
+    ).fetchone()
+    return dict(r) if r else None
+
+
+def listar_zonas_trabajo(solo_activas: bool = True) -> list:
     with _conn() as db:
-        q = "SELECT * FROM materiales_catalogo"
-        if solo_activos:
-            q += " WHERE activo=1"
-        q += " ORDER BY nombre"
+        q = """
+            SELECT z.*, p.nombre AS parent_nombre
+            FROM zonas_trabajo z
+            LEFT JOIN zonas_trabajo p ON p.id = z.parent_id
+        """
+        if solo_activas:
+            q += " WHERE z.activo=1"
+        q += " ORDER BY COALESCE(z.parent_id, z.id), z.parent_id IS NOT NULL, z.orden, z.nombre"
         return [dict(r) for r in db.execute(q).fetchall()]
+
+
+def crear_zona_trabajo(data: dict) -> tuple:
+    nombre = (data.get("nombre") or "").strip()
+    if not nombre:
+        return None, "Nombre requerido"
+    parent_id = data.get("parent_id")
+    try:
+        parent_id = int(parent_id) if parent_id not in (None, "", 0) else None
+    except (TypeError, ValueError):
+        return None, "parent_id inválido"
+    nivel = (data.get("nivel") or "").strip().lower()
+    with _conn() as db:
+        if nivel == "reino":
+            if parent_id is not None:
+                return None, "Un reino no lleva zona padre"
+            parent_id = None
+        elif nivel == "zona":
+            if parent_id is None:
+                return None, "Indica el reino padre"
+            padre = db.execute(
+                "SELECT id FROM zonas_trabajo WHERE id=? AND activo=1", (parent_id,)
+            ).fetchone()
+            if not padre:
+                return None, "Reino padre no encontrado"
+            if _zona_nivel(db, parent_id) != 0:
+                return None, "La zona debe crearse bajo un reino (nivel raíz)"
+        elif nivel == "subzona":
+            if parent_id is None:
+                return None, "Indica la zona padre"
+            padre = db.execute(
+                "SELECT id FROM zonas_trabajo WHERE id=? AND activo=1", (parent_id,)
+            ).fetchone()
+            if not padre:
+                return None, "Zona padre no encontrada"
+            niv_padre = _zona_nivel(db, parent_id)
+            if niv_padre == 0:
+                return None, (
+                    "La subzona no puede ir directo bajo el reino. "
+                    "Primero crea una zona en ese reino y luego la subzona bajo esa zona."
+                )
+            if niv_padre >= 2:
+                return None, "No se pueden crear más niveles bajo una subzona"
+        elif nivel == "departamento":
+            if parent_id is None:
+                return None, "Indica la subzona padre"
+            padre = db.execute(
+                "SELECT id FROM zonas_trabajo WHERE id=? AND activo=1", (parent_id,)
+            ).fetchone()
+            if not padre:
+                return None, "Subzona padre no encontrada"
+            niv_padre = _zona_nivel(db, parent_id)
+            if niv_padre == 1:
+                if _zona_tiene_subzonas_activas(db, parent_id):
+                    return None, (
+                        "Esta zona ya tiene subzonas: crea el departamento bajo la subzona. "
+                        "Si no usas subzonas (ej. Hogar Dulce Hogar), crea labores directo bajo la zona."
+                    )
+            elif niv_padre < 1:
+                return None, "El departamento va bajo una zona o subzona"
+            elif niv_padre >= 3:
+                return None, "No se pueden crear más niveles bajo un departamento"
+        elif parent_id is not None:
+            padre = db.execute(
+                "SELECT id, parent_id FROM zonas_trabajo WHERE id=? AND activo=1", (parent_id,)
+            ).fetchone()
+            if not padre:
+                return None, "Zona padre no encontrada"
+            if _zona_nivel(db, parent_id) >= 3:
+                return None, (
+                    "No se pueden crear más niveles "
+                    "(máx: reino → zona → subzona → departamento)"
+                )
+        if _zona_nombre_ocupado(db, nombre, parent_id):
+            return None, "Ya existe una zona o subárea con ese nombre en el mismo nivel"
+        try:
+            db.execute(
+                """
+                INSERT INTO zonas_trabajo (nombre, parent_id, descripcion, color, icono, orden)
+                VALUES (?,?,?,?,?,?)
+                """,
+                (nombre, parent_id, "", "#4a9a6a", "🏭", int(data.get("orden") or 0)),
+            )
+            zid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+            if nivel == "departamento":
+                slug = _slug_departamento(nombre)
+                color = (data.get("color") or "#0c6069").strip()
+                icono = (data.get("icono") or "🏢").strip()
+                db.execute(
+                    "INSERT OR IGNORE INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
+                    (slug, nombre, color, icono),
+                )
+            db.commit()
+            return _get_zona_row(db, zid), None
+        except Exception as exc:
+            return None, str(exc)
+
+
+def actualizar_zona_trabajo(zona_id: int, data: dict) -> tuple:
+    with _conn() as db:
+        actual = db.execute(
+            "SELECT id, parent_id FROM zonas_trabajo WHERE id=?", (zona_id,)
+        ).fetchone()
+        if not actual:
+            return None, "Zona no encontrada"
+        campos = {}
+        if "nombre" in data and data["nombre"] is not None:
+            nombre = str(data["nombre"]).strip()
+            if not nombre:
+                return None, "Nombre requerido"
+            if _zona_nombre_ocupado(db, nombre, actual["parent_id"], excluir_id=zona_id):
+                return None, "Ya existe una zona o subárea con ese nombre en el mismo nivel"
+            campos["nombre"] = nombre
+        for k in ("descripcion", "color", "icono", "orden"):
+            if k in data and data[k] is not None:
+                campos[k] = data[k]
+        if "activo" in data:
+            campos["activo"] = 1 if data["activo"] in (1, True, "1", "true") else 0
+        if "orden" in campos:
+            try:
+                campos["orden"] = int(campos["orden"])
+            except (TypeError, ValueError):
+                return None, "orden debe ser entero"
+        if campos:
+            set_cl = ", ".join(f"{k}=?" for k in campos)
+            db.execute(f"UPDATE zonas_trabajo SET {set_cl} WHERE id=?", (*campos.values(), zona_id))
+        db.commit()
+        return _get_zona_row(db, zona_id), None
+
+
+def eliminar_zona_trabajo(zona_id: int) -> tuple:
+    """Archiva zona (activo=0), quita vínculos en material_zonas; si es principal, archiva subáreas."""
+    with _conn() as db:
+        row = db.execute(
+            "SELECT id, nombre, parent_id FROM zonas_trabajo WHERE id=? AND activo=1", (zona_id,)
+        ).fetchone()
+        if not row:
+            return None, "Zona no encontrada o ya eliminada"
+        ids = _zona_descendientes_ids(db, zona_id, solo_activas=True)
+        ph = ",".join("?" * len(ids))
+        db.execute(f"DELETE FROM material_zonas WHERE zona_id IN ({ph})", ids)
+        db.execute(f"UPDATE zonas_trabajo SET activo=0 WHERE id IN ({ph})", ids)
+        db.commit()
+        return {"id": zona_id, "nombre": row["nombre"], "archivadas": ids}, None
+
+
+def listar_materiales(solo_activos: bool = True, zona_id: int | None = None) -> list:
+    with _conn() as db:
+        conds, params = [], []
+        if solo_activos:
+            conds.append("activo=1")
+        if zona_id is not None:
+            conds.append(
+                """id IN (
+                    SELECT material_id FROM material_zonas WHERE zona_id=?
+                    UNION
+                    SELECT mz.material_id FROM material_zonas mz
+                    JOIN zonas_trabajo z ON z.id = mz.zona_id AND z.activo=1
+                    WHERE z.parent_id=?
+                )"""
+            )
+            params.extend([zona_id, zona_id])
+        q = "SELECT * FROM materiales_catalogo"
+        if conds:
+            q += " WHERE " + " AND ".join(conds)
+        q += " ORDER BY nombre"
+        mats = [dict(r) for r in db.execute(q, params).fetchall()]
+        zmap = _zonas_map_for_materials(db, [m["id"] for m in mats])
+        for m in mats:
+            m["zonas"] = zmap.get(m["id"], [])
+        return mats
 
 
 def get_material(material_id: int) -> dict | None:
     with _conn() as db:
         r = db.execute("SELECT * FROM materiales_catalogo WHERE id=?", (material_id,)).fetchone()
-        return dict(r) if r else None
+        if not r:
+            return None
+        m = dict(r)
+        m["zonas"] = _zonas_map_for_materials(db, [material_id]).get(material_id, [])
+        return m
 
 
 def crear_material(data: dict) -> tuple:
@@ -2058,6 +2656,9 @@ def crear_material(data: dict) -> tuple:
                 int(mision_origen_id) if mision_origen_id else None,
             ))
             mid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+            zona_ids = _parse_zona_ids(data)
+            if zona_ids is not None:
+                _set_material_zonas(db, mid, zona_ids)
             db.commit()
             return get_material(mid), None
         except Exception as exc:
@@ -2070,9 +2671,11 @@ def actualizar_material(material_id: int, data: dict) -> tuple:
         if not m:
             return None, "Material no encontrado"
         campos = {}
-        for k in ("nombre", "descripcion", "unidad", "proveedor", "activo", "tipo"):
+        for k in ("nombre", "descripcion", "unidad", "proveedor", "tipo"):
             if k in data and data[k] is not None:
                 campos[k] = data[k]
+        if "activo" in data:
+            campos["activo"] = 1 if data["activo"] in (1, True, "1", "true") else 0
         if "tipo" in campos:
             campos["tipo"] = _normalizar_tipo_material(campos["tipo"])
             if campos["tipo"] not in MATERIAL_TIPOS_VALIDOS:
@@ -2093,8 +2696,43 @@ def actualizar_material(material_id: int, data: dict) -> tuple:
                 f"UPDATE materiales_catalogo SET {set_cl}, actualizado_en=datetime('now') WHERE id=?",
                 (*campos.values(), material_id)
             )
+        zona_ids = _parse_zona_ids(data)
+        if zona_ids is not None:
+            _set_material_zonas(db, material_id, zona_ids)
         db.commit()
         return get_material(material_id), None
+
+
+def eliminar_materiales_catalogo(ids: list[int]) -> tuple:
+    """Archiva materiales del catálogo (activo=0). No borra filas por referencias históricas."""
+    clean = []
+    for i in ids:
+        try:
+            clean.append(int(i))
+        except (TypeError, ValueError):
+            continue
+    if not clean:
+        return None, "Sin IDs válidos"
+    with _conn() as db:
+        ph = ",".join("?" * len(clean))
+        rows = db.execute(
+            f"SELECT id, nombre FROM materiales_catalogo WHERE id IN ({ph}) AND activo=1",
+            clean,
+        ).fetchall()
+        found = {r["id"] for r in rows}
+        eliminados = []
+        errores = []
+        for i in clean:
+            if i not in found:
+                errores.append({"id": i, "error": "No encontrado o ya eliminado"})
+        for r in rows:
+            db.execute(
+                "UPDATE materiales_catalogo SET activo=0, actualizado_en=datetime('now') WHERE id=?",
+                (r["id"],),
+            )
+            eliminados.append({"id": r["id"], "nombre": r["nombre"]})
+        db.commit()
+        return {"eliminados": eliminados, "errores": errores}, None
 
 
 # ── MATERIALES DE TICKET ───────────────────────────────────────────────────────
@@ -2102,23 +2740,27 @@ def actualizar_material(material_id: int, data: dict) -> tuple:
 def listar_materiales_ticket(ticket_id: int) -> list:
     with _conn() as db:
         rows = db.execute("""
-            SELECT tm.*, mc.nombre, mc.unidad, mc.stock_actual, mc.precio_unitario
+            SELECT tm.*, mc.nombre, mc.unidad, mc.stock_actual, mc.precio_unitario, mc.tipo
             FROM ticket_materiales tm
             JOIN materiales_catalogo mc ON mc.id = tm.material_id
             WHERE tm.ticket_id = ?
             ORDER BY mc.nombre
         """, (ticket_id,)).fetchall()
-        return [dict(r) for r in rows]
+        items = [dict(r) for r in rows]
+        zmap = _zonas_map_for_materials(db, [i["material_id"] for i in items])
+        for it in items:
+            it["zonas"] = zmap.get(it["material_id"], [])
+        return items
 
 
-def agregar_material_ticket(ticket_id: int, material_id: int, cantidad: float) -> tuple:
+def agregar_material_ticket(ticket_id: int, material_id: int, cantidad: float, notas: str = None) -> tuple:
     if cantidad <= 0:
         return None, "Cantidad debe ser mayor a 0"
     with _conn() as db:
         try:
             db.execute(
-                "INSERT INTO ticket_materiales (ticket_id, material_id, cantidad_requerida) VALUES (?,?,?)",
-                (ticket_id, material_id, cantidad)
+                "INSERT INTO ticket_materiales (ticket_id, material_id, cantidad_requerida, notas) VALUES (?,?,?,?)",
+                (ticket_id, material_id, cantidad, notas)
             )
             db.commit()
             return listar_materiales_ticket(ticket_id), None
@@ -2126,14 +2768,19 @@ def agregar_material_ticket(ticket_id: int, material_id: int, cantidad: float) -
             return None, "Material ya está en este ticket" if "UNIQUE" in str(exc) else str(exc)
 
 
-def actualizar_material_ticket(tm_id: int, cantidad: float) -> tuple:
-    if cantidad <= 0:
-        return None, "Cantidad debe ser mayor a 0"
+def actualizar_material_ticket(tm_id: int, cantidad: float = None, notas: str = None) -> tuple:
     with _conn() as db:
-        tm = db.execute("SELECT ticket_id FROM ticket_materiales WHERE id=?", (tm_id,)).fetchone()
+        tm = db.execute("SELECT ticket_id, cantidad_requerida, notas FROM ticket_materiales WHERE id=?", (tm_id,)).fetchone()
         if not tm:
             return None, "No encontrado"
-        db.execute("UPDATE ticket_materiales SET cantidad_requerida=? WHERE id=?", (cantidad, tm_id))
+        
+        cant = cantidad if cantidad is not None else tm["cantidad_requerida"]
+        note = notas if notas is not None else tm["notas"]
+        
+        if cant <= 0:
+            return None, "Cantidad debe ser mayor a 0"
+
+        db.execute("UPDATE ticket_materiales SET cantidad_requerida=?, notas=? WHERE id=?", (cant, note, tm_id))
         db.commit()
         return listar_materiales_ticket(tm["ticket_id"]), None
 
@@ -2147,6 +2794,29 @@ def eliminar_material_ticket(tm_id: int) -> tuple:
         db.execute("DELETE FROM ticket_materiales WHERE id=?", (tm_id,))
         db.commit()
         return listar_materiales_ticket(tid), None
+
+
+def get_observaciones_materiales(ticket_id: int) -> tuple:
+    with _conn() as db:
+        r = db.execute(
+            "SELECT observaciones_materiales FROM tickets WHERE id=?", (ticket_id,)
+        ).fetchone()
+        if not r:
+            return None, "Ticket no encontrado"
+        return {"observaciones": r["observaciones_materiales"] or ""}, None
+
+
+def set_observaciones_materiales(ticket_id: int, texto: str) -> tuple:
+    with _conn() as db:
+        if not db.execute("SELECT id FROM tickets WHERE id=?", (ticket_id,)).fetchone():
+            return None, "Ticket no encontrado"
+        note = (texto or "").strip()
+        db.execute(
+            "UPDATE tickets SET observaciones_materiales=?, actualizado_en=datetime('now') WHERE id=?",
+            (note, ticket_id),
+        )
+        db.commit()
+        return {"observaciones": note}, None
 
 
 # ── CONSUMO Y STOCK ────────────────────────────────────────────────────────────

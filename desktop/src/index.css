@@ -102,6 +102,76 @@
     }
   }
 
+  .quest-nav-bar {
+    @apply bg-surface-panel/90;
+  }
+  .quest-canvas.dark .quest-nav-bar {
+    background: rgb(var(--mck-surface) / 0.92);
+  }
+
+  /* AnimatiSS — shadow-drop-center (menú principal Centro de Mando) */
+  @keyframes shadow-drop-center {
+    0% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+    100% {
+      box-shadow: 0 0 20px 0 rgba(255, 255, 255, 0.55);
+    }
+  }
+  @keyframes shadow-drop-center-accent {
+    0% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+    100% {
+      box-shadow: 0 0 20px 0 rgba(12, 96, 105, 0.45);
+    }
+  }
+
+  .quest-nav-btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-xs font-bold;
+    border-color: rgb(var(--mck-border));
+    color: rgb(var(--mck-muted));
+    background: rgb(var(--mck-surface-panel) / 0.75);
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .quest-nav-btn:hover {
+    animation: shadow-drop-center-accent 0.4s linear both;
+    border-color: rgb(var(--mck-accent));
+    color: rgb(var(--mck-accent));
+    background: rgb(var(--mck-surface-hover) / 0.9);
+  }
+  .quest-canvas.dark .quest-nav-btn:hover {
+    animation: shadow-drop-center 0.4s linear both;
+  }
+  .quest-nav-btn--active {
+    border-color: rgb(var(--mck-accent));
+    color: rgb(var(--mck-accent));
+    background: rgb(var(--mck-accent) / 0.15);
+    box-shadow: 0 0 12px 0 rgb(var(--mck-accent) / 0.2);
+  }
+  .quest-nav-btn--active:hover {
+    background: rgb(var(--mck-accent) / 0.22);
+  }
+  .quest-nav-btn--cta {
+    border-color: rgb(var(--mck-accent));
+    background: rgb(var(--mck-accent));
+    color: #fff;
+  }
+  .quest-nav-btn--cta:hover {
+    background: rgb(var(--mck-accent-hover));
+    color: #fff;
+  }
+  .quest-nav-btn--cta.quest-nav-btn--active {
+    box-shadow: 0 0 16px 0 rgb(var(--mck-accent) / 0.45);
+  }
+  .quest-nav-btn--ghost-danger:hover {
+    border-color: rgb(var(--mck-danger));
+    color: rgb(var(--mck-danger));
+  }
+
   .quest-board-banner {
     @apply rounded-paper border-2 border-border bg-surface-panel/80 px-4 py-3 text-center;
   }
@@ -162,5 +232,181 @@
   .dark .shadow-paper-sm,
   .dark .shadow-paper-lg {
     box-shadow: var(--mck-shadow-paper-sm);
+  }
+
+  /* Tablero tipo corcho + post-its */
+  .quest-board-by-reinos {
+    @apply space-y-6;
+  }
+
+  .quest-board-reino {
+    @apply overflow-hidden rounded-2xl border-2 bg-surface-panel/40 shadow-paper-sm;
+  }
+  .quest-canvas.dark .quest-board-reino {
+    @apply bg-surface-panel/25 shadow-none;
+  }
+
+  .quest-board-reino-header {
+    @apply border-b border-border/60 px-4 py-3;
+    border-left-width: 4px;
+    border-left-style: solid;
+  }
+
+  .quest-board-cork--nested {
+    @apply rounded-none border-0 shadow-none;
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+  }
+  .quest-canvas.dark .quest-board-cork--nested {
+    background: rgb(var(--mck-surface) / 0.35);
+    background-image:
+      radial-gradient(circle, rgb(var(--mck-border) / 0.28) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  .quest-board-cork {
+    @apply rounded-2xl border-2 p-4 sm:p-6;
+    border-color: rgba(139, 119, 88, 0.4);
+    background-color: #d4c4a8;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 255, 255, 0.2), transparent),
+      radial-gradient(circle, rgba(60, 45, 30, 0.06) 1px, transparent 1px);
+    background-size: 100% 100%, 22px 22px;
+    box-shadow: inset 0 2px 8px rgba(60, 45, 30, 0.12);
+  }
+  .quest-canvas.dark .quest-board-cork {
+    border-color: rgb(var(--mck-border) / 0.45);
+    background-color: rgb(var(--mck-surface-input) / 0.35);
+    background-image:
+      radial-gradient(ellipse 70% 40% at 50% 0%, rgb(var(--mck-accent) / 0.12), transparent 60%),
+      radial-gradient(circle, rgb(var(--mck-border) / 0.35) 1px, transparent 1px);
+    box-shadow: inset 0 1px 0 rgb(var(--mck-border) / 0.2);
+  }
+
+  .quest-sticky-grid {
+    display: grid;
+    gap: 1.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  }
+  @media (min-width: 1280px) {
+    .quest-sticky-grid {
+      gap: 2rem;
+    }
+  }
+
+  .quest-sticky {
+    @apply relative rounded-sm border border-black/5 text-left;
+    box-shadow:
+      1px 2px 0 rgba(0, 0, 0, 0.05),
+      3px 6px 14px rgba(0, 0, 0, 0.1),
+      6px 14px 32px rgba(0, 0, 0, 0.06);
+    transition:
+      transform 0.22s ease,
+      box-shadow 0.22s ease,
+      z-index 0s;
+  }
+  .quest-sticky:hover {
+    z-index: 20;
+    box-shadow:
+      1px 3px 0 rgba(0, 0, 0, 0.06),
+      6px 12px 24px rgba(0, 0, 0, 0.14),
+      12px 28px 48px rgba(0, 0, 0, 0.1);
+  }
+  .quest-canvas.dark .quest-sticky {
+    border-color: rgb(var(--mck-border) / 0.35);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.4),
+      4px 10px 24px rgba(0, 0, 0, 0.45);
+  }
+  .quest-canvas.dark .quest-sticky:hover {
+    box-shadow:
+      0 2px 0 rgba(0, 0, 0, 0.45),
+      8px 18px 36px rgba(0, 0, 0, 0.55);
+  }
+
+  .quest-sticky-tape {
+    @apply pointer-events-none absolute left-1/2 z-10 h-5 w-[3.25rem] -translate-x-1/2 rounded-[2px];
+    top: -0.65rem;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 235, 0.95) 0%,
+      rgba(250, 248, 210, 0.82) 100%
+    );
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    transform: translateX(-50%) rotate(-2.5deg);
+    opacity: 0.92;
+  }
+  .quest-canvas.dark .quest-sticky-tape {
+    background: linear-gradient(
+      180deg,
+      rgba(180, 175, 150, 0.55) 0%,
+      rgba(140, 135, 115, 0.35) 100%
+    );
+    opacity: 0.75;
+  }
+
+  .quest-sticky-mission {
+    @apply relative flex min-h-[11rem] flex-col p-4 pt-5 pb-3;
+  }
+
+  .quest-sticky-close {
+    @apply absolute right-2 top-2 z-20 flex h-6 w-6 items-center justify-center rounded-full border-2 text-base font-black leading-none transition;
+    border-color: rgba(120, 80, 80, 0.35);
+    background: rgba(255, 255, 255, 0.75);
+    color: rgba(140, 60, 60, 0.9);
+    line-height: 1;
+    padding-bottom: 1px;
+  }
+  .quest-sticky-close:hover:not(:disabled) {
+    border-color: rgb(220, 80, 80);
+    background: rgb(220, 80, 80);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(180, 50, 50, 0.35);
+  }
+  .quest-sticky-close:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+  .quest-canvas.dark .quest-sticky-close {
+    border-color: rgba(190, 100, 100, 0.45);
+    background: rgba(0, 0, 0, 0.35);
+    color: rgba(230, 140, 140, 0.95);
+  }
+  .quest-canvas.dark .quest-sticky-close:hover:not(:disabled) {
+    background: rgb(180, 70, 70);
+    color: #fff;
+  }
+
+  .quest-sticky-solo {
+    @apply flex min-h-[5.5rem] flex-col justify-center gap-2 p-4 pt-5;
+  }
+
+  .quest-sticky-task {
+    @apply relative flex w-full items-center gap-2 rounded-sm border border-black/[0.06] px-2.5 py-2 text-left transition;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.07);
+  }
+  .quest-sticky-task:hover {
+    background: rgba(255, 255, 255, 0.78);
+    transform: translateY(-1px);
+  }
+  .quest-canvas.dark .quest-sticky-task {
+    background: rgba(0, 0, 0, 0.22);
+    border-color: rgb(var(--mck-border) / 0.3);
+  }
+  .quest-canvas.dark .quest-sticky-task:hover {
+    background: rgba(0, 0, 0, 0.32);
+  }
+
+  .quest-kingdom-pin {
+    @apply inline-flex items-center gap-2 rounded-full border-2 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest shadow-sm;
+    border-color: rgba(139, 119, 88, 0.45);
+    background: rgba(255, 252, 240, 0.92);
+    color: rgb(80, 55, 35);
+  }
+  .quest-canvas.dark .quest-kingdom-pin {
+    border-color: rgb(var(--mck-border) / 0.5);
+    background: rgb(var(--mck-surface-panel) / 0.9);
+    color: rgb(var(--mck-ink-secondary));
   }
 }
