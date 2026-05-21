@@ -937,7 +937,9 @@ def register_tickets_routes(app):
     @_auth
     def tickets_iniciar_corrida(receta_id):
         uid = request.tickets_usuario["id"]
-        c, err = iniciar_corrida(receta_id, uid)
+        data = request.get_json(silent=True) or {}
+        segundos_previos = data.get("segundos_previos", 0)
+        c, err = iniciar_corrida(receta_id, uid, segundos_previos=segundos_previos)
         if err:
             return jsonify({"error": err}), 400
         return jsonify(c), 201

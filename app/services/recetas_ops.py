@@ -552,7 +552,11 @@ def guardar_procesos_receta(
         return get_receta_ops(receta_id), None
 
 
-def iniciar_corrida(receta_id: int, usuario_id: int) -> tuple[dict | None, str | None]:
+def iniciar_corrida(
+    receta_id: int,
+    usuario_id: int,
+    segundos_previos: int = 0,
+) -> tuple[dict | None, str | None]:
     with _conn() as db:
         if not db.execute("SELECT 1 FROM recetas_ops WHERE id=? AND activo=1", (receta_id,)).fetchone():
             return None, "Receta no encontrada"
@@ -565,15 +569,16 @@ def iniciar_corrida(receta_id: int, usuario_id: int) -> tuple[dict | None, str |
         ).fetchone()
         if prev:
             return None, "Ya hay una elaboración en curso para esta receta"
+        seg0 = max(0, int(segundos_previos or 0))
         now = _now_iso()
         db.execute(
             """
             INSERT INTO receta_corridas (
                 receta_id, usuario_id, estado, iniciada_en, reanudada_en,
                 segundos_acumulados, proceso_orden_actual, procesos_hechos
-            ) VALUES (?,?,?,?,?,0,1,'[]')
+            ) VALUES (?,?,?,?,?,?,1,'[]')
             """,
-            (receta_id, usuario_id, "activa", now, now),
+            (receta_id, usuario_id, "activa", now, now, seg0),
         )
         cid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
         db.commit()
