@@ -857,7 +857,20 @@ _SYSTEM_OLLAMA_HUGO = (
 _SYSTEM_OLLAMA_DEV = (
     "Eres un asistente de desarrollo para McKenna Group. "
     "Especialidad: Python, Flask, React, TypeScript. "
+    "IMPORTANTE: NUNCA inventes IDs, JIDs, tokens, rutas ni valores. "
+    "Si no tienes el dato en el contexto adjunto, dilo explícitamente. "
     "Revisas bugs, rutinas y código. Respondes en español."
+)
+_SYSTEM_OLLAMA_SUPERVISOR = (
+    "Eres el Supervisor Técnico del proyecto McKenna Group (Bogotá, Colombia). "
+    "REGLA CRÍTICA: SOLO puedes usar los datos del contexto [Código fuente relevante] que se te adjunta. "
+    "NUNCA inventes IDs, JIDs, tokens, rutas, nombres de funciones ni valores numéricos. "
+    "Si el dato no aparece en el contexto adjunto, responde exactamente: "
+    "'No tengo ese dato en el índice actual. Usa /api/supervisor/index para re-indexar.' "
+    "Stack: Python/Flask (:8081), React 19+TypeScript (desktop/), WhatsApp bot (bot-mckenna/ :3000), "
+    "MercadoLibre API, Siigo ERP, ChromaDB, SQLite. "
+    "Al responder: cita siempre el archivo y línea de donde sacaste la información. "
+    "Responde en español. Sé directo y preciso."
 )
 _SYSTEM_PANEL_CLAUDE = (
     "Eres Hugo García, asesor ejecutivo de McKenna Group S.A.S. "
@@ -936,13 +949,193 @@ _CANALES_DEFAULT = [
 def _panel_chat_ollama(modelo_id: str, historial: list, mensaje: str) -> str:
     import requests as _req
 
-    # ── Consultar memoria vectorial para contexto ──────────────────────────
+    es_supervisor = "gemma4" in modelo_id
+    _repo_root = os.path.normpath(os.path.join(_ROUTES_DIR, ".."))
+    _msg_lower = mensaje.lower()
+    _respuesta_directa: str | None = None
+
+    # ── Comandos de automatización (con o sin prefijo "Hugo") ────────────────
+    # Se intenta siempre: interpretar_comando devuelve None si no hay match,
+    # así que no hay falsos positivos para preguntas normales.
+    try:
+        from app.tools.supervisor_actions import interpretar_comando, ejecutar_accion
+        _msg_para_cmd = mensaje if _msg_lower.startswith("hugo") else f"Hugo {mensaje}"
+        cmd = interpretar_comando(_msg_para_cmd)
+        if cmd is not None:
+            return ejecutar_accion(cmd)
+    except Exception as _sa_exc:
+        return f"Error en supervisor_actions: {_sa_exc}"
+
+    # ── Inyección directa por palabras clave (bypassa embedding) ─────────────
+    # Para datos exactos (JIDs, IDs, rutas) el embedding semántico falla;
+    # mapeamos keywords → archivo a leer directamente.
+    _KEYWORD_FILES: list[tuple[list[str], str]] = [
+        (["grupo", "whatsapp", "jid"],          "app/data/grupos_whatsapp_oficiales.json"),
+        (["grupo", "whatsapp", "id"],            "app/data/grupos_whatsapp_oficiales.json"),
+        (["grupos", "whatsapp"],                 "app/data/grupos_whatsapp_oficiales.json"),
+        (["grupos_whatsapp", "oficiales"],        "app/data/grupos_whatsapp_oficiales.json"),
+        (["tarifas", "interrapidisimo"],         "app/data/tarifas_interrapidisimo.json"),
+        (["modos", "atencion"],                  "app/data/modos_atencion.json"),
+        (["metricas", "diarias"],                "app/data/metricas_diarias.json"),
+    ]
+
+    # Posición ordinal en casos_preventa: última=0, penúltima=1, antepenúltima=2
+    _ORDINAL_INDEX = 0
+    if any(w in _msg_lower for w in ("antepenultima", "antepenúltima", "ante penultima", "ante penúltima")):
+        _ORDINAL_INDEX = 2
+    elif any(w in _msg_lower for w in ("penultima", "penúltima")):
+        _ORDINAL_INDEX = 1
+
+    _ORDINAL_LABEL = ["última", "penúltima", "antepenúltima"][_ORDINAL_INDEX]
+
+    # Consultas de "último/a" o "reciente" — requieren orden cronológico, no semántico
+    _PREVENTA_KEYWORDS = (
+        "preventa", "pregunta", "caso", "meli", "mercadolibre", "mercado libre",
+        "resuelta", "resuelto", "respondida", "respondido",
+    )
+    _is_preventa_query = (
+        any(w in _msg_lower for w in ("ultima", "último", "penultima", "penúltima",
+                                       "antepenultima", "antepenúltima", "reciente"))
+        and any(w in _msg_lower for w in _PREVENTA_KEYWORDS)
+    )
+    _is_pendientes_query = (
+        ("pendiente" in _msg_lower or "sin responder" in _msg_lower)
+        and any(w in _msg_lower for w in ("preventa", "pregunta", "meli"))
+    )
+
+    if _is_preventa_query or _is_pendientes_query:
+        try:
+            if _is_pendientes_query:
+                full_path = os.path.join(_repo_root, "app/data/preguntas_pendientes_preventa.json")
+                raw = json.load(open(full_path, encoding="utf-8"))
+                pendientes = [p for p in raw.get("preguntas", []) if not p.get("respondida")]
+                if not pendientes:
+                    _respuesta_directa = "No hay preguntas de preventa pendientes en este momento."
+                else:
+                    lines = [f"**Preguntas de preventa pendientes ({len(pendientes)}):**\n"]
+                    for p in pendientes[:10]:
+                        ts = (p.get("timestamp","")[:16]).replace("T"," ")
+                        lines.append(f"- [{ts}] **{p.get('titulo_producto','')}** — {p.get('pregunta','')[:120]}")
+                    _respuesta_directa = "\n".join(lines)
+            else:
+                full_path = os.path.join(_repo_root, "app/training/casos_preventa.json")
+                raw = json.load(open(full_path, encoding="utf-8"))
+                casos = sorted(raw.get("casos", []), key=lambda c: c.get("timestamp",""), reverse=True)
+                if len(casos) <= _ORDINAL_INDEX:
+                    _respuesta_directa = f"No hay suficientes casos registrados para mostrar la {_ORDINAL_LABEL}."
+                else:
+                    n = casos[_ORDINAL_INDEX]
+                    ts = n.get("timestamp","")[:16].replace("T"," ")
+                    lines = [
+                        f"**{_ORDINAL_LABEL.capitalize()} pregunta de preventa resuelta** "
+                        f"(#{_ORDINAL_INDEX + 1} más reciente · fuente: `app/training/casos_preventa.json`)\n",
+                        f"**Fecha:** {ts}",
+                        f"**Producto:** {n.get('producto','(sin producto)')}",
+                        f"**Pregunta del cliente:** {n.get('pregunta','')}",
+                        f"**Respuesta enviada:**\n{n.get('respuesta','')}",
+                    ]
+                    _respuesta_directa = "\n".join(lines)
+        except Exception as exc:
+            _respuesta_directa = f"Error leyendo casos_preventa.json: {exc}"
+
+    # ── Búsqueda por producto/contenido en casos_preventa ─────────────────────
+    # Detecta preguntas como "qué respondió la IA para X", "respuesta al caso de Y"
+    _buscar_en_casos = (
+        _respuesta_directa is None
+        and any(w in _msg_lower for w in ("respondio", "respondió", "que dijo", "qué dijo",
+                                           "respuesta para", "respuesta al", "respuesta de la ia",
+                                           "respondio la ia", "respondió la ia"))
+        and any(w in _msg_lower for w in ("preventa", "pregunta", "caso", "producto",
+                                           "cliente", "meli", "vitamina", "acido", "ácido",
+                                           "urea", "niacinamida", "retinol", "colageno",
+                                           "colágeno", "glicerina"))
+    )
+    if not _buscar_en_casos and _respuesta_directa is None:
+        # Fallback: si mencionan un producto específico y "respondió" o "respuesta"
+        _buscar_en_casos = (
+            any(w in _msg_lower for w in ("respondio", "respondió", "que dijo", "qué dijo"))
+            and len(mensaje) > 30
+        )
+    if _buscar_en_casos:
+        try:
+            full_path = os.path.join(_repo_root, "app/training/casos_preventa.json")
+            raw = json.load(open(full_path, encoding="utf-8"))
+            casos = raw.get("casos", [])
+            # Buscar coincidencias por palabras del mensaje en producto + pregunta
+            palabras = [w for w in _msg_lower.split() if len(w) > 3
+                        and w not in {"cual", "cuál", "como", "cómo", "para", "este", "esta",
+                                      "respondio", "respondió", "pregunta", "respuesta", "producto"}]
+            def _score(c: dict) -> int:
+                texto = (c.get("producto","") + " " + c.get("pregunta","")).lower()
+                return sum(1 for p in palabras if p in texto)
+            matches = sorted(casos, key=_score, reverse=True)
+            best = [m for m in matches if _score(m) > 0][:3]
+            if not best:
+                _respuesta_directa = "No encontré un caso en preventa que coincida con esa búsqueda."
+            else:
+                lines = [f"**{len(best)} caso(s) de preventa que coinciden** (fuente: `casos_preventa.json`)\n"]
+                for i, n in enumerate(best, 1):
+                    ts = n.get("timestamp","")[:16].replace("T"," ")
+                    lines.append(f"### Caso {i} — {ts}")
+                    lines.append(f"**Producto:** {n.get('producto','')}")
+                    lines.append(f"**Pregunta del cliente:** {n.get('pregunta','')}")
+                    lines.append(f"**Respuesta enviada:**\n{n.get('respuesta','')}\n")
+                _respuesta_directa = "\n".join(lines)
+        except Exception as exc:
+            _respuesta_directa = f"Error buscando en casos_preventa.json: {exc}"
+
+    fragmentos_directos: list[str] = []
+    for keywords, filepath in _KEYWORD_FILES:
+        if all(k in _msg_lower for k in keywords):
+            try:
+                full_path = os.path.join(_repo_root, filepath)
+                raw = json.load(open(full_path, encoding="utf-8"))
+                if "grupos_whatsapp" in filepath:
+                    # Para datos exactos (JIDs) retornamos directamente sin pasar por el modelo
+                    lines = [f"Grupos WhatsApp McKenna Group (fuente: `{filepath}`)\n"]
+                    excl = raw.get("pedidos_web_exclusivo", {})
+                    if excl:
+                        lines.append(f"**{excl.get('nombre')}** ← exclusivo pedidos web")
+                        lines.append(f"  JID: `{excl.get('jid')}` · env: `{excl.get('env')}`")
+                        lines.append(f"  Uso: {excl.get('uso')}\n")
+                    lines.append("**Todos los grupos:**")
+                    for g in raw.get("grupos", []):
+                        env = f" · env: `{g['env_sugerido']}`" if g.get("env_sugerido") else ""
+                        lines.append(f"- **{g.get('nombre')}** — JID: `{g.get('jid')}`{env}")
+                    _respuesta_directa = "\n".join(lines)
+                else:
+                    content = json.dumps(raw, ensure_ascii=False, indent=2)
+                    fragmentos_directos.append(f"[{filepath} — lectura directa]\n{content}")
+            except Exception:
+                pass
+            break  # solo el primer match
+
+    # Si hay respuesta directa (datos exactos), retornar sin llamar al modelo
+    if _respuesta_directa is not None:
+        return _respuesta_directa
+
+    # ── Consultar memoria vectorial para contexto ─────────────────────────
     contexto = ""
     try:
         import chromadb as _chroma
         _chroma_path = os.path.join(_ROUTES_DIR, "..", "memoria_vectorial")
         _cc = _chroma.PersistentClient(path=os.path.normpath(_chroma_path))
-        fragmentos = []
+        fragmentos = list(fragmentos_directos)  # directos van primero
+
+        # Código fuente por embedding (supervisor)
+        if es_supervisor and not fragmentos_directos:
+            try:
+                col = _cc.get_collection("proyecto_codigo")
+                res = col.query(query_texts=[mensaje], n_results=6)
+                docs = res.get("documents", [[]])[0]
+                metas = res.get("metadatas", [[]])[0]
+                for doc, meta in zip(docs, metas):
+                    if doc and len(doc) > 30:
+                        fragmentos.append(f"[{meta.get('file','')} L{meta.get('lines','')}]\n{doc}")
+            except Exception:
+                pass
+
+        # Memoria conversacional
         for col_name in ("mckenna_brain", "mckenna_debug_memory", "conocimiento_cientifico"):
             try:
                 col = _cc.get_collection(col_name)
@@ -951,14 +1144,32 @@ def _panel_chat_ollama(modelo_id: str, historial: list, mensaje: str) -> str:
                 fragmentos.extend(d for d in docs if d and len(d) > 20)
             except Exception:
                 pass
+
         if fragmentos:
-            contexto = "\n\n[Contexto de memoria relevante]:\n" + "\n---\n".join(fragmentos[:4])
+            contexto = "\n---\n".join(fragmentos[:6])
     except Exception:
         pass
 
-    base_system = _SYSTEM_OLLAMA_HUGO if modelo_id.startswith("hugo-garcia") else _SYSTEM_OLLAMA_DEV
-    system = base_system + contexto
-    messages = [{"role": "system", "content": system}] + historial + [{"role": "user", "content": mensaje}]
+    if es_supervisor:
+        base_system = _SYSTEM_OLLAMA_SUPERVISOR
+    elif modelo_id.startswith("hugo-garcia"):
+        base_system = _SYSTEM_OLLAMA_HUGO
+    else:
+        base_system = _SYSTEM_OLLAMA_DEV
+
+    # Inyectar contexto RAG dentro del mensaje del usuario (no en el system),
+    # así el modelo lo ve justo antes de generar la respuesta y no lo ignora.
+    if contexto and es_supervisor:
+        mensaje_con_ctx = (
+            f"<contexto_del_proyecto>\n{contexto}\n</contexto_del_proyecto>\n\n"
+            f"Usando SOLO los datos del contexto anterior, responde:\n{mensaje}"
+        )
+    elif contexto:
+        mensaje_con_ctx = f"[Contexto relevante]:\n{contexto}\n\nPregunta: {mensaje}"
+    else:
+        mensaje_con_ctx = mensaje
+
+    messages = [{"role": "system", "content": base_system}] + historial + [{"role": "user", "content": mensaje_con_ctx}]
     r = _req.post(
         "http://localhost:11434/api/chat",
         json={"model": modelo_id, "messages": messages, "stream": False},
@@ -2819,6 +3030,34 @@ def register_routes(app):
 
         spawn_thread(lambda: run_logged_job("git_pull", _do_pull), daemon=True)
         return jsonify({"status": "iniciado", "mensaje": "Git pull iniciado…"})
+
+    @app.route("/api/supervisor/index", methods=["POST"])
+    def api_supervisor_index():
+        """Re-indexa el código fuente del proyecto en ChromaDB (colección proyecto_codigo)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        def _run():
+            from app.tools.project_indexer import indexar_proyecto
+            stats = indexar_proyecto(verbose=False)
+            print(f"[supervisor] índice actualizado — {stats['archivos']} archivos, {stats['chunks']} chunks", flush=True)
+
+        spawn_thread(_run, daemon=True)
+        return jsonify({"status": "iniciado", "mensaje": "Indexando código fuente del proyecto en segundo plano…"})
+
+    @app.route("/api/supervisor/status")
+    def api_supervisor_status():
+        """Retorna cuántos chunks de código están indexados."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            import chromadb as _chroma
+            _cc = _chroma.PersistentClient(path=os.path.normpath(os.path.join(_ROUTES_DIR, "..", "memoria_vectorial")))
+            col = _cc.get_or_create_collection("proyecto_codigo")
+            count = col.count()
+            return jsonify({"status": "ok", "chunks_indexados": count, "coleccion": "proyecto_codigo"})
+        except Exception as exc:
+            return jsonify({"status": "error", "error": str(exc)}), 500
 
     @app.route("/api/sistema/modelos")
     def api_sistema_modelos():

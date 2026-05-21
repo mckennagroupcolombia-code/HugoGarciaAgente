@@ -224,9 +224,90 @@ def _repair_broken_fk():
         db.close()
 
 
+MATERIAL_TIPOS_VALIDOS = frozenset({
+    "materia_prima", "elaborado", "consumibles", "repuestos", "herramientas",
+})
+
+_TIPO_MATERIAL_ALIASES = {
+    "insumos": "consumibles",
+    "insumo": "consumibles",
+    "consumible": "consumibles",
+    "repuesto": "repuestos",
+}
+
+
+def _normalizar_tipo_material(tipo: str | None) -> str:
+    t = (tipo or "materia_prima").strip().lower()
+    return _TIPO_MATERIAL_ALIASES.get(t, t)
+
+
+def _migrate_materiales_tipo():
+    """Amplía CHECK de tipo en materiales_catalogo (consumibles, repuestos, herramientas)."""
+    db = sqlite3.connect(DB_PATH)
+    db.row_factory = sqlite3.Row
+    try:
+        row = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='materiales_catalogo'"
+        ).fetchone()
+        if not row:
+            return
+        sql = row["sql"] or ""
+        if "'consumibles'" in sql and "'repuestos'" in sql:
+            return
+
+        db.execute("PRAGMA foreign_keys=OFF")
+        db.execute("BEGIN EXCLUSIVE")
+        db.execute("""
+            CREATE TABLE materiales_catalogo_new (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                nombre           TEXT NOT NULL UNIQUE,
+                descripcion      TEXT,
+                unidad           TEXT NOT NULL DEFAULT 'unidad',
+                stock_actual     REAL DEFAULT 0,
+                stock_minimo     REAL DEFAULT 0,
+                precio_unitario  REAL DEFAULT 0,
+                proveedor        TEXT,
+                activo           INTEGER DEFAULT 1,
+                creado_en        TEXT DEFAULT (datetime('now')),
+                actualizado_en   TEXT DEFAULT (datetime('now')),
+                tipo             TEXT DEFAULT 'materia_prima'
+                    CHECK(tipo IN ('materia_prima','elaborado','consumibles','repuestos','herramientas')),
+                mision_origen_id INTEGER REFERENCES misiones(id)
+            )
+        """)
+        db.execute("""
+            INSERT INTO materiales_catalogo_new (
+                id, nombre, descripcion, unidad, stock_actual, stock_minimo,
+                precio_unitario, proveedor, activo, creado_en, actualizado_en,
+                tipo, mision_origen_id
+            )
+            SELECT
+                id, nombre, descripcion, unidad, stock_actual, stock_minimo,
+                precio_unitario, proveedor, activo, creado_en, actualizado_en,
+                CASE tipo
+                    WHEN 'insumos' THEN 'consumibles'
+                    ELSE tipo
+                END,
+                mision_origen_id
+            FROM materiales_catalogo
+        """)
+        db.execute("DROP TABLE materiales_catalogo")
+        db.execute("ALTER TABLE materiales_catalogo_new RENAME TO materiales_catalogo")
+        db.execute("COMMIT")
+    except Exception as exc:
+        try:
+            db.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise RuntimeError(f"_migrate_materiales_tipo failed: {exc}") from exc
+    finally:
+        db.close()
+
+
 def init_db():
     _repair_broken_fk()
     _migrate_categorias()
+    _migrate_materiales_tipo()
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -429,7 +510,7 @@ def init_db():
 
         # Migrate materiales_catalogo with tipo and origin
         _add_col(db, "materiales_catalogo", "tipo",
-                 "TEXT DEFAULT 'materia_prima' CHECK(tipo IN ('materia_prima','elaborado'))")
+                 "TEXT DEFAULT 'materia_prima' CHECK(tipo IN ('materia_prima','elaborado','consumibles','repuestos','herramientas'))")
         _add_col(db, "materiales_catalogo", "mision_origen_id", "INTEGER REFERENCES misiones(id)")
 
         # Seed categorias
@@ -1954,9 +2035,9 @@ def crear_material(data: dict) -> tuple:
     nombre = (data.get("nombre") or "").strip()
     if not nombre:
         return None, "Nombre requerido"
-    tipo = data.get("tipo") or "materia_prima"
-    if tipo not in ("materia_prima", "elaborado"):
-        return None, "tipo debe ser materia_prima o elaborado"
+    tipo = _normalizar_tipo_material(data.get("tipo"))
+    if tipo not in MATERIAL_TIPOS_VALIDOS:
+        return None, "tipo debe ser uno de: materia_prima, elaborado, consumibles, repuestos, herramientas"
     mision_origen_id = data.get("mision_origen_id") or None
     with _conn() as db:
         try:
@@ -1988,9 +2069,24 @@ def actualizar_material(material_id: int, data: dict) -> tuple:
         m = db.execute("SELECT id FROM materiales_catalogo WHERE id=?", (material_id,)).fetchone()
         if not m:
             return None, "Material no encontrado"
-        campos = {k: v for k, v in data.items()
-                  if k in ("nombre","descripcion","unidad","stock_minimo","precio_unitario","proveedor","activo","tipo")
-                  and v is not None}
+        campos = {}
+        for k in ("nombre", "descripcion", "unidad", "proveedor", "activo", "tipo"):
+            if k in data and data[k] is not None:
+                campos[k] = data[k]
+        if "tipo" in campos:
+            campos["tipo"] = _normalizar_tipo_material(campos["tipo"])
+            if campos["tipo"] not in MATERIAL_TIPOS_VALIDOS:
+                return None, "tipo debe ser uno de: materia_prima, elaborado, consumibles, repuestos, herramientas"
+        for k in ("stock_minimo", "precio_unitario", "stock_actual"):
+            if k in data and data[k] is not None:
+                try:
+                    campos[k] = float(data[k])
+                except (TypeError, ValueError):
+                    return None, f"{k} debe ser numérico"
+        if "stock_actual" in campos and campos["stock_actual"] < 0:
+            return None, "stock_actual no puede ser negativo"
+        if "stock_minimo" in campos and campos["stock_minimo"] < 0:
+            return None, "stock_minimo no puede ser negativo"
         if campos:
             set_cl = ", ".join(f"{k}=?" for k in campos)
             db.execute(

@@ -3,6 +3,66 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --mck-surface: 232 250 251;
+    --mck-surface-panel: 244 253 254;
+    --mck-surface-input: 255 255 255;
+    --mck-surface-hover: 207 240 244;
+    --mck-ink: 2 45 51;
+    --mck-ink-secondary: 10 74 82;
+    --mck-ink-muted: 45 126 134;
+    --mck-border: 157 205 212;
+    --mck-border-strong: 95 179 188;
+    --mck-muted: 58 126 135;
+    --mck-accent: 12 96 105;
+    --mck-accent-hover: 4 81 89;
+    --mck-accent-sun: 244 196 77;
+    --mck-accent-sun-deep: 232 168 56;
+    --mck-accent-leaf: 74 154 106;
+    --mck-accent-leaf-deep: 45 122 78;
+    --mck-accent-sky: 106 172 179;
+    --mck-accent-sky-deep: 61 138 147;
+    --mck-accent-rose: 229 140 140;
+    --mck-accent-plum: 166 139 200;
+    --mck-success: 42 125 78;
+    --mck-danger: 200 106 106;
+    --mck-warning: 232 168 56;
+    --mck-shadow-paper: 0 4px 0 rgba(2, 45, 51, 0.06), 0 12px 32px rgba(12, 96, 105, 0.08);
+    --mck-shadow-paper-sm: 0 2px 0 rgba(2, 45, 51, 0.04);
+    --mck-shadow-paper-lg: 0 8px 0 rgba(2, 45, 51, 0.07), 0 24px 60px rgba(12, 96, 105, 0.12);
+  }
+
+  /* Centro de Mando — oscuro profundo (Daily Quest: #011a1f → #022D33) */
+  .dark {
+    --mck-surface: 1 14 18;
+    --mck-surface-panel: 2 29 33;
+    --mck-surface-input: 4 40 46;
+    --mck-surface-hover: 6 52 58;
+    --mck-ink: 186 218 222;
+    --mck-ink-secondary: 157 205 212;
+    --mck-ink-muted: 58 126 135;
+    --mck-border: 24 58 64;
+    --mck-border-strong: 38 82 88;
+    --mck-muted: 45 120 128;
+    --mck-accent: 12 96 105;
+    --mck-accent-hover: 61 138 147;
+    --mck-accent-sun: 212 168 52;
+    --mck-accent-sun-deep: 196 148 40;
+    --mck-accent-leaf: 74 154 106;
+    --mck-accent-leaf-deep: 58 130 82;
+    --mck-accent-sky: 61 138 147;
+    --mck-accent-sky-deep: 45 110 118;
+    --mck-accent-rose: 180 110 110;
+    --mck-accent-plum: 140 115 170;
+    --mck-success: 58 160 98;
+    --mck-danger: 190 95 95;
+    --mck-warning: 196 148 48;
+    --mck-shadow-paper: 0 1px 0 rgba(0, 0, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.55);
+    --mck-shadow-paper-sm: 0 1px 0 rgba(0, 0, 0, 0.45);
+    --mck-shadow-paper-lg: 0 2px 0 rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -18,11 +78,89 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #9dcdd4;
+    background: rgb(var(--mck-border));
     border-radius: 6px;
-    border: 2px solid #e8fafb;
+    border: 2px solid rgb(var(--mck-surface));
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #5fb3bc;
+    background: rgb(var(--mck-border-strong));
+  }
+}
+
+@layer components {
+  /* Cubre el padding claro del layout cuando el quest está en oscuro */
+  .quest-canvas.dark {
+    @apply bg-surface text-ink;
+    margin: -1.25rem -1rem;
+    padding: 1.25rem 1rem;
+    min-height: calc(100% + 0.5rem);
+  }
+  @media (min-width: 1024px) {
+    .quest-canvas.dark {
+      margin: -2rem -2.5rem;
+      padding: 2rem 2.5rem;
+    }
+  }
+
+  .quest-board-banner {
+    @apply rounded-paper border-2 border-border bg-surface-panel/80 px-4 py-3 text-center;
+  }
+  .dark .quest-board-banner {
+    background: linear-gradient(
+      180deg,
+      rgb(var(--mck-surface-panel) / 0.85) 0%,
+      rgb(var(--mck-surface) / 0.95) 100%
+    );
+    border-color: rgb(var(--mck-border-strong) / 0.5);
+    box-shadow: inset 0 1px 0 rgb(var(--mck-border) / 0.25);
+  }
+
+  .dark .quest-stat-card {
+    background: rgb(var(--mck-surface-panel) / 0.65) !important;
+    box-shadow: none !important;
+  }
+
+  .dark .quest-stat-value {
+    opacity: 0.88;
+    filter: saturate(0.5) brightness(0.95);
+  }
+
+  .dark .quest-stat-card .text-muted {
+    opacity: 0.85;
+  }
+
+  .dark .quest-mision-chrome {
+    filter: saturate(0.48) brightness(0.9);
+  }
+
+  .dark .quest-mision-chrome .text-muted,
+  .dark .quest-mision-chrome .text-green-600 {
+    filter: none;
+    opacity: 0.8;
+  }
+
+  .dark .quest-kingdom-title {
+    color: rgb(var(--mck-muted) / 0.85) !important;
+  }
+
+  .dark .quest-kingdom-rule {
+    background: rgb(var(--mck-border) / 0.35) !important;
+  }
+
+  .dark .quest-board-accent-count {
+    color: rgb(var(--mck-accent-sky) / 0.75) !important;
+  }
+
+  .dark .quest-status-orb {
+    --tw-ring-color: rgb(var(--mck-border) / 0.5);
+    --tw-ring-offset-color: rgb(var(--mck-surface-panel));
+    opacity: 0.85;
+    filter: saturate(0.45);
+  }
+
+  .dark .shadow-paper,
+  .dark .shadow-paper-sm,
+  .dark .shadow-paper-lg {
+    box-shadow: var(--mck-shadow-paper-sm);
   }
 }

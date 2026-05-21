@@ -9,7 +9,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 require('dotenv').config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 // Comprobantes: raíz del repo (un nivel arriba de bot-mckenna/) o variable de entorno
 const DIR_COMPROBANTES = process.env.COMPROBANTES_DIR
@@ -208,6 +208,22 @@ client.on('disconnected', (reason) => {
         });
     }, 10000);
 });
+
+// Shutdown limpio: evita SIGKILL de systemd que deja el evento `ready` sin disparar al reiniciar
+async function _shutdown(signal) {
+    console.log(`🛑 ${signal} recibido — cerrando cliente WhatsApp...`);
+    logActividad('SISTEMA', { texto: `Shutdown por ${signal}.` });
+    sistemaListo = false;
+    try {
+        await Promise.race([
+            client.destroy(),
+            new Promise(r => setTimeout(r, 8000)),
+        ]);
+    } catch (_) {}
+    process.exit(0);
+}
+process.on('SIGTERM', () => _shutdown('SIGTERM'));
+process.on('SIGINT',  () => _shutdown('SIGINT'));
 
 // ==========================================
 // 3. ESCUCHADOR DE MENSAJES ENTRANTES (IA)
@@ -462,6 +478,32 @@ app.post('/enviar-archivo', async (req, res) => {
         res.status(200).json({ status: "success" });
     } catch (error) {
         console.error("❌ Error enviando archivo:", error.message);
+        res.status(500).json({ status: "error", error: error.message });
+    }
+});
+
+// ── Enviar nota de voz (PTT) ─────────────────────────────────────────────────
+app.post('/enviar-ptt', async (req, res) => {
+    const { numero, audioBase64, mimeType } = req.body;
+    if (!numero || !audioBase64) {
+        return res.status(400).json({ status: "error", error: "Faltan numero o audioBase64" });
+    }
+    try {
+        if (!sistemaListo && client.info && client.info.wid) {
+            await promoverSistemaListoSiSesionFunciona('API /enviar-ptt');
+        }
+        if (!sistemaListo || !client.info || !client.info.wid) {
+            return res.status(503).json({ status: "error", error: "Sincronizando..." });
+        }
+        const { MessageMedia } = require('whatsapp-web.js');
+        const chatId = numero.includes('@') ? numero : `${numero}@c.us`;
+        const mime = mimeType || 'audio/mpeg';
+        const media = new MessageMedia(mime, audioBase64, 'voice.mp3');
+        await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
+        console.log(`🎙️ PTT enviado a: ${chatId}`);
+        res.status(200).json({ status: "success" });
+    } catch (error) {
+        console.error("❌ Error enviando PTT:", error.message);
         res.status(500).json({ status: "error", error: error.message });
     }
 });

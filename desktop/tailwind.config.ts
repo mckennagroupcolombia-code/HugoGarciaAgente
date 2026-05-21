@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-/** Paleta McKenna Group: verde teal (#0c6069) + Daily Quest amber en iframe. */
+/** Paleta McKenna Group: verde teal (#0c6069) + Daily Quest. Colores vía CSS vars (modo oscuro en .dark). */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   darkMode: "class",
@@ -16,46 +16,42 @@ export default {
         "paper-xl": "32px",
       },
       boxShadow: {
-        paper:    "0 4px 0 rgba(2,45,51,0.06), 0 12px 32px rgba(12,96,105,0.08)",
-        "paper-sm": "0 2px 0 rgba(2,45,51,0.04)",
-        "paper-lg": "0 8px 0 rgba(2,45,51,0.07), 0 24px 60px rgba(12,96,105,0.12)",
+        paper:    "var(--mck-shadow-paper)",
+        "paper-sm": "var(--mck-shadow-paper-sm)",
+        "paper-lg": "var(--mck-shadow-paper-lg)",
       },
       colors: {
-        /* ── Superficies ───────────────────────────── */
         surface: {
-          DEFAULT: "#e8fafb",   // fondo de página (teal muy pálido)
-          panel:   "#f4fdfe",   // tarjetas y paneles
-          input:   "#ffffff",   // inputs
-          hover:   "#cff0f4",   // hover state
+          DEFAULT: "rgb(var(--mck-surface) / <alpha-value>)",
+          panel:   "rgb(var(--mck-surface-panel) / <alpha-value>)",
+          input:   "rgb(var(--mck-surface-input) / <alpha-value>)",
+          hover:   "rgb(var(--mck-surface-hover) / <alpha-value>)",
         },
-        /* ── Texto ─────────────────────────────────── */
         ink: {
-          DEFAULT:   "#022D33", // texto primario (teal muy oscuro)
-          secondary: "#0a4a52", // texto secundario
-          muted:     "#2d7880", // texto muted
+          DEFAULT:   "rgb(var(--mck-ink) / <alpha-value>)",
+          secondary: "rgb(var(--mck-ink-secondary) / <alpha-value>)",
+          muted:     "rgb(var(--mck-ink-muted) / <alpha-value>)",
         },
-        /* ── Bordes ────────────────────────────────── */
         border: {
-          DEFAULT: "#9dcdd4",   // borde suave
-          strong:  "#5fb3bc",   // borde marcado
+          DEFAULT: "rgb(var(--mck-border) / <alpha-value>)",
+          strong:  "rgb(var(--mck-border-strong) / <alpha-value>)",
         },
-        muted: "#3a7e87",
-        /* ── Acento principal: McKenna teal ─────────── */
+        muted: "rgb(var(--mck-muted) / <alpha-value>)",
         accent: {
-          DEFAULT:  "#0c6069", // McKenna primary teal
-          hover:    "#045159", // dark teal hover
-          sun:      "#f4c44d", // dorado (logo McKenna M)
-          "sun-deep":"#e8a838",
-          leaf:     "#4a9a6a",
-          "leaf-deep":"#2d7a4e",
-          sky:      "#6aacb3",
-          "sky-deep":"#3d8a93",
-          rose:     "#e58c8c",
-          plum:     "#a68bc8",
+          DEFAULT:  "rgb(var(--mck-accent) / <alpha-value>)",
+          hover:    "rgb(var(--mck-accent-hover) / <alpha-value>)",
+          sun:      "rgb(var(--mck-accent-sun) / <alpha-value>)",
+          "sun-deep":"rgb(var(--mck-accent-sun-deep) / <alpha-value>)",
+          leaf:     "rgb(var(--mck-accent-leaf) / <alpha-value>)",
+          "leaf-deep":"rgb(var(--mck-accent-leaf-deep) / <alpha-value>)",
+          sky:      "rgb(var(--mck-accent-sky) / <alpha-value>)",
+          "sky-deep":"rgb(var(--mck-accent-sky-deep) / <alpha-value>)",
+          rose:     "rgb(var(--mck-accent-rose) / <alpha-value>)",
+          plum:     "rgb(var(--mck-accent-plum) / <alpha-value>)",
         },
-        success: "#2a7d4e",
-        danger:  "#c86a6a",
-        warning: "#e8a838",
+        success: "rgb(var(--mck-success) / <alpha-value>)",
+        danger:  "rgb(var(--mck-danger) / <alpha-value>)",
+        warning: "rgb(var(--mck-warning) / <alpha-value>)",
       },
     },
   },
