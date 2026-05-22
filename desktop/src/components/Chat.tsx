@@ -1,8 +1,12 @@
 import { useState, useRef, useEffect, type FormEvent } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { usePanelChatMutation } from "../hooks/useChat";
 import { useModelos, CATEGORIA_LABEL, CATEGORIA_COLOR, type Modelo } from "../hooks/useModelos";
+import {
+  useCanales,
+  useAsignarModeloCanal,
+  type CanalConfig,
+} from "../hooks/useCanales";
 
 interface Message {
   role: "user" | "agent";
@@ -80,17 +84,6 @@ function ModelPill({
 
 // ── Channel assignments panel ──────────────────────────────────────────────
 
-interface Canal {
-  id: string;
-  nombre: string;
-  icono: string;
-  modelo_id: string;
-  modelo_nombre: string;
-  proveedor: string;
-  modo: string;
-  descripcion: string;
-}
-
 const CANAL_ICONO: Record<string, string> = {
   wa: "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z M11.5 2.5A9.5 9.5 0 002 12c0 1.674.435 3.247 1.198 4.613L2 22l5.54-1.175A9.5 9.5 0 1011.5 2.5z",
   ml: "M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z M16 3H8L6 7h12l-2-4z",
@@ -107,55 +100,156 @@ const CANAL_COLOR: Record<string, string> = {
   mic:   "text-purple-400",
 };
 
-function CanalesPanel({ modeloId, onLoadModel }: { modeloId: string; onLoadModel: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const { data } = useQuery<{ canales: Canal[] }>({
-    queryKey: ["canales"],
-    queryFn: () => api.get("/api/sistema/canales"),
-    staleTime: 60_000,
-  });
+function CanalModeloSelector({
+  canal,
+  modelos,
+  onSaved,
+}: {
+  canal: CanalConfig;
+  modelos: Modelo[];
+  onSaved?: () => void;
+}) {
+  const asignar = useAsignarModeloCanal();
+  const cats = canal.categorias_modelo ?? ["claude", "gemini"];
+  const opciones = modelos.filter((m) => cats.includes(m.categoria));
+  const [draft, setDraft] = useState(canal.modelo_id);
+  const dirty = draft !== canal.modelo_id;
+
+  useEffect(() => {
+    setDraft(canal.modelo_id);
+  }, [canal.modelo_id]);
+
+  const guardar = () => {
+    asignar.mutate(
+      { canalId: canal.id, modeloId: draft },
+      { onSuccess: () => onSaved?.() },
+    );
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        className="min-w-[10rem] flex-1 rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
+        disabled={asignar.isPending}
+      >
+        {opciones.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.nombre} ({m.categoria})
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={guardar}
+        disabled={!dirty || asignar.isPending}
+        className="shrink-0 rounded-lg border border-accent bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/20 disabled:opacity-40"
+      >
+        {asignar.isPending ? "Guardando…" : "Guardar"}
+      </button>
+      {asignar.isError && (
+        <span className="text-[10px] text-danger w-full">
+          {(asignar.error as Error).message}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function CanalesPanel({
+  modeloId,
+  onLoadModel,
+}: {
+  modeloId: string;
+  onLoadModel: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const { data, isLoading } = useCanales();
+  const { data: modelos = [] } = useModelos();
 
   const canales = data?.canales ?? [];
 
   return (
     <div className="rounded-xl border border-border bg-surface-panel overflow-hidden">
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-surface-hover transition-colors"
       >
-        <span className="text-xs font-semibold text-muted uppercase tracking-wider">Canales activos</span>
-        <svg className={`w-3.5 h-3.5 text-muted transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <span className="text-xs font-semibold text-muted uppercase tracking-wider">
+          Canales activos — modelo por canal
+        </span>
+        <svg
+          className={`w-3.5 h-3.5 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          viewBox="0 0 24 24"
+        >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {open && (
         <div className="border-t border-border divide-y divide-border">
+          {isLoading && (
+            <p className="px-4 py-3 text-xs text-muted">Cargando canales…</p>
+          )}
           {canales.map((c) => {
             const isPanel = c.id === "panel_chat";
-            const isActive = isPanel && c.modelo_id === modeloId;
+            const catColor =
+              CATEGORIA_COLOR[c.modelo_categoria ?? "claude"] ?? "text-muted";
             return (
-              <div key={c.id} className="flex items-center gap-3 px-4 py-2.5">
-                <svg className={`h-4 w-4 shrink-0 ${CANAL_COLOR[c.icono] ?? "text-muted"}`} fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d={CANAL_ICONO[c.icono] ?? ""} />
-                </svg>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-ink">{c.nombre}</span>
-                    <span className="text-[10px] text-muted border border-border rounded px-1.5 py-0.5 font-mono">{c.modo}</span>
-                    {isPanel && (
-                      <span className="text-[10px] text-accent">← aquí</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-accent font-medium">{c.modelo_nombre}</p>
-                </div>
-                {isPanel && !isActive && (
-                  <button
-                    onClick={() => onLoadModel(c.modelo_id)}
-                    className="shrink-0 text-[10px] text-muted border border-border rounded px-2 py-1 hover:text-ink hover:border-accent/50 transition"
+              <div key={c.id} className="px-4 py-3 space-y-2">
+                <div className="flex items-start gap-3">
+                  <svg
+                    className={`h-4 w-4 shrink-0 mt-0.5 ${CANAL_COLOR[c.icono] ?? "text-muted"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    viewBox="0 0 24 24"
                   >
-                    Cargar
-                  </button>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d={CANAL_ICONO[c.icono] ?? ""}
+                    />
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold text-ink">
+                        {c.nombre}
+                      </span>
+                      <span className="text-[10px] text-muted border border-border rounded px-1.5 py-0.5 font-mono">
+                        {c.modo}
+                      </span>
+                    </div>
+                    <p className={`text-[11px] font-medium mt-0.5 ${catColor.split(" ")[0]}`}>
+                      {c.modelo_nombre}
+                      {c.proveedor ? ` · ${c.proveedor}` : ""}
+                    </p>
+                    <p className="text-[10px] text-muted mt-1 leading-snug">
+                      {c.descripcion}
+                    </p>
+                  </div>
+                  {isPanel && c.modelo_id === "seleccionable" && (
+                    <button
+                      type="button"
+                      onClick={() => onLoadModel(modeloId)}
+                      className="shrink-0 text-[10px] text-muted border border-border rounded px-2 py-1 hover:text-ink hover:border-accent/50 transition"
+                      title="Usar el modelo del selector superior"
+                    >
+                      Sync panel
+                    </button>
+                  )}
+                </div>
+                {c.editable ? (
+                  <CanalModeloSelector canal={c} modelos={modelos} />
+                ) : (
+                  <p className="text-[10px] text-muted pl-7">
+                    Modelo elegido en este panel (selector superior).
+                  </p>
                 )}
               </div>
             );

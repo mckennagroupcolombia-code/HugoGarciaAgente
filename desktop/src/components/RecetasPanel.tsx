@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { TicketsUser } from "../stores/ticketsAuth";
 import { ALERT_ERROR_SM } from "../lib/questStyles";
+import { CorridaCronometroBlock, CronometroPanel, fmtTiempo, useCronometro } from "./Cronometro";
 
 function tapi(path: string, token: string, options: RequestInit = {}) {
   return fetch(`/api/tickets${path}`, {
@@ -158,110 +159,6 @@ function etiquetaCategoriaCatalogo(categoria?: string): string {
   return CAT_LEGACY[categoria] ?? categoria;
 }
 
-function fmtTiempo(seg: number): string {
-  const s = Math.max(0, Math.floor(seg));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const ss = s % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-  return `${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-}
-
-function useCronometro() {
-  const [segundos, setSegundos] = useState(0);
-  const [activo, setActivo] = useState(false);
-  const acumRef = useRef(0);
-  const inicioRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!activo) return;
-    const iv = setInterval(() => {
-      if (inicioRef.current != null) {
-        const total = acumRef.current + Math.floor((Date.now() - inicioRef.current) / 1000);
-        setSegundos(total);
-      }
-    }, 250);
-    return () => clearInterval(iv);
-  }, [activo]);
-
-  function tomarSegundos() {
-    if (activo && inicioRef.current != null) {
-      return acumRef.current + Math.floor((Date.now() - inicioRef.current) / 1000);
-    }
-    return acumRef.current;
-  }
-
-  function iniciar() {
-    if (activo) return;
-    inicioRef.current = Date.now();
-    setActivo(true);
-  }
-
-  function pausar() {
-    if (!activo || inicioRef.current == null) return;
-    acumRef.current = tomarSegundos();
-    inicioRef.current = null;
-    setSegundos(acumRef.current);
-    setActivo(false);
-  }
-
-  function reiniciar() {
-    acumRef.current = 0;
-    inicioRef.current = null;
-    setSegundos(0);
-    setActivo(false);
-  }
-
-  return { segundos, activo, iniciar, pausar, reiniciar, tomarSegundos };
-}
-
-function CronometroPanel({
-  segundos,
-  activo,
-  onIniciar,
-  onPausar,
-  onReiniciar,
-  subtitulo,
-}: {
-  segundos: number;
-  activo: boolean;
-  onIniciar: () => void;
-  onPausar: () => void;
-  onReiniciar: () => void;
-  subtitulo?: string;
-}) {
-  return (
-    <div className="rounded-paper border-2 border-accent/50 bg-accent/10 p-4 shadow-paper-sm">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase text-muted">Cronómetro de misión</p>
-          <p className="font-mono text-4xl font-black tabular-nums text-accent">{fmtTiempo(segundos)}</p>
-          <p className="mt-1 text-xs text-muted">
-            {subtitulo || (activo ? "En curso — marca el tiempo real de la misión" : "Pulsa iniciar al comenzar la misión")}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {activo ? (
-            <button type="button" onClick={onPausar}
-              className="rounded-paper border-2 border-border bg-surface-panel px-4 py-2 text-sm font-bold">
-              ⏸ Pausar
-            </button>
-          ) : (
-            <button type="button" onClick={onIniciar}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white">
-              ▶ Iniciar
-            </button>
-          )}
-          <button type="button" onClick={onReiniciar}
-            className="rounded-paper border-2 border-border px-3 py-2 text-sm font-bold text-muted">
-            ↺ Reiniciar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const UNIDADES = ["g", "kg", "ml", "L", "unidad", "gotas", "%"];
 
 export default function RecetasPanel({
@@ -302,6 +199,7 @@ export default function RecetasPanel({
   const [lineasDraft, setLineasDraft] = useState<RecetaLinea[]>([]);
   const [procesosDraft, setProcesosDraft] = useState<RecetaProceso[]>([]);
   const [saving, setSaving] = useState(false);
+  const [guardandoCronometro, setGuardandoCronometro] = useState(false);
   const [tick, setTick] = useState(0);
   const cronometroNueva = useCronometro();
 
@@ -397,6 +295,21 @@ export default function RecetasPanel({
     if (!c) return;
     const updated = await tapi(`/recetas/corridas/${c.id}/reanudar`, token, { method: "POST" });
     setReceta((r) => (r ? { ...r, corrida: updated } : r));
+  }
+
+  async function guardarTiempo() {
+    const c = receta?.corrida;
+    if (!c) return;
+    setGuardandoCronometro(true);
+    try {
+      const updated = await tapi(`/recetas/corridas/${c.id}/guardar`, token, { method: "POST" });
+      setReceta((r) => (r ? { ...r, corrida: updated } : r));
+      alert(`Tiempo guardado: ${fmtTiempo(updated.segundos_transcurridos ?? updated.segundos_acumulados ?? 0)}`);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Error al guardar tiempo");
+    } finally {
+      setGuardandoCronometro(false);
+    }
   }
 
   async function finalizar() {
@@ -718,7 +631,6 @@ export default function RecetasPanel({
     ? Boolean(receta.es_propia || receta.origen_id == null || canEditCatalogo)
     : true;
 
-  const tiempoMostrar = corrida ? fmtTiempo(corrida.segundos_transcurridos ?? 0) : "00:00";
   void tick; // fuerza re-render cada segundo con el poll del cronómetro
 
   const selCls =
@@ -928,22 +840,30 @@ export default function RecetasPanel({
       <>
       {modalConfirmarArchivar}
       <div className="space-y-5 max-w-3xl">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={volverLista}
-            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent">
-            ← Cancelar
-          </button>
-          <h2 className="text-xl font-extrabold text-ink">✨ Nueva receta</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={volverLista}
+              className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent">
+              ← Cancelar
+            </button>
+            <h2 className="text-xl font-extrabold text-ink">✨ Nueva receta</h2>
+          </div>
+          <CronometroPanel
+            compact
+            segundos={cronometroNueva.segundos}
+            activo={cronometroNueva.activo}
+            onIniciar={cronometroNueva.iniciar}
+            onPausar={cronometroNueva.pausar}
+            onReiniciar={cronometroNueva.reiniciar}
+            onGuardar={() => {
+              const seg = cronometroNueva.guardar();
+              alert(`Tiempo guardado: ${fmtTiempo(seg)}`);
+            }}
+            etiqueta="Elaboración"
+            subtitulo={cronometroNueva.activo ? "En curso" : "Al crear"}
+          />
         </div>
         {error && <p className={ALERT_ERROR_SM}>{error}</p>}
-        <CronometroPanel
-          segundos={cronometroNueva.segundos}
-          activo={cronometroNueva.activo}
-          onIniciar={cronometroNueva.iniciar}
-          onPausar={cronometroNueva.pausar}
-          onReiniciar={cronometroNueva.reiniciar}
-          subtitulo="Inicia al comenzar la misión; el tiempo se guardará al crear e iniciar."
-        />
         <form onSubmit={(e) => crearReceta(e)} className="space-y-5">
           <section className="rounded-paper border-2 border-border bg-surface-panel p-4 space-y-3">
             <h3 className="text-sm font-extrabold uppercase text-muted">Datos generales</h3>
@@ -1021,30 +941,40 @@ export default function RecetasPanel({
               {badgeClasificacion(receta, "md")}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {(corrida || canEditReceta) && (
+              <div className="w-full sm:w-auto sm:min-w-[240px]">
+                <CorridaCronometroBlock
+                  compact
+                  etiqueta="Cronómetro"
+                  segundos={corrida?.segundos_transcurridos ?? 0}
+                  estado={
+                    corrida?.estado === "finalizada"
+                      ? "finalizada"
+                      : corrida
+                        ? (corrida.estado as "activa" | "pausada")
+                        : null
+                  }
+                  guardando={guardandoCronometro}
+                  onIniciar={iniciarElaboracion}
+                  onPausar={pausar}
+                  onReanudar={reanudar}
+                  onGuardar={guardarTiempo}
+                  onFinalizar={finalizar}
+                />
+              </div>
+            )}
             {canEditReceta && !corrida && (
               <>
                 <button type="button" onClick={() => setEditMeta((v) => !v)}
                   className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent">
                   ✏️ Datos
                 </button>
-                {!corrida && (
-                  <button type="button" onClick={archivarReceta}
-                    className="rounded-paper border-2 border-red-400/70 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50">
-                    🗑
-                  </button>
-                )}
+                <button type="button" onClick={archivarReceta}
+                  className="rounded-paper border-2 border-red-400/70 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50">
+                  🗑
+                </button>
               </>
-            )}
-            {!corrida && (
-              <button
-                type="button"
-                disabled={saving || receta.procesos.length === 0}
-                onClick={iniciarElaboracion}
-                className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-              >
-                ▶ Iniciar elaboración
-              </button>
             )}
           </div>
         </div>
@@ -1095,46 +1025,6 @@ export default function RecetasPanel({
               Guardar datos
             </button>
           </form>
-        )}
-
-        {corrida && corrida.estado !== "finalizada" && (
-          <div className="rounded-paper border-2 border-accent/50 bg-accent/10 p-5 shadow-paper-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase text-muted">Cronómetro</p>
-                <p className="font-mono text-4xl font-black tabular-nums text-accent">{tiempoMostrar}</p>
-                <p className="mt-1 text-xs text-muted">
-                  Estado:{" "}
-                  <span className="font-bold text-ink">
-                    {corrida.estado === "activa" ? "En curso" : "En pausa"}
-                  </span>
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {corrida.estado === "activa" ? (
-                  <button type="button" onClick={pausar}
-                    className="rounded-paper border-2 border-border bg-surface-panel px-4 py-2 text-sm font-bold">
-                    ⏸ Pausar
-                  </button>
-                ) : (
-                  <button type="button" onClick={reanudar}
-                    className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white">
-                    ▶ Reanudar
-                  </button>
-                )}
-                <button type="button" onClick={finalizar}
-                  className="rounded-paper border-2 border-green-600 bg-green-600 px-4 py-2 text-sm font-bold text-white">
-                  ✓ Finalizar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {corrida?.estado === "finalizada" && (
-          <p className="rounded-lg bg-green-100 px-4 py-3 text-sm font-semibold text-green-800 dark:bg-green-950/40 dark:text-green-300">
-            Elaboración finalizada · Tiempo total: {fmtTiempo(corrida.segundos_transcurridos)}
-          </p>
         )}
 
         <div className="grid gap-5 lg:grid-cols-2">

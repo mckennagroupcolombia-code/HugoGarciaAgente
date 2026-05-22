@@ -1814,7 +1814,7 @@ def _chat_catalog_guess(message: str) -> str | None:
     scored.sort(key=lambda x: -x[0])
     top = [x[1] for x in scored[:5]]
     lines = [
-        "Mientras tanto, según nuestros combos activos en SIIGO publicados en la tienda, esto podría interesarte:",
+        "Mientras tanto, según nuestro catálogo en la tienda, esto podría interesarte:",
     ]
     for p in top:
         nm = p.get("name") or "Producto"

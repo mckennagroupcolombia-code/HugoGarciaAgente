@@ -172,6 +172,64 @@
     color: rgb(var(--mck-danger));
   }
 
+  .quest-board-toolbar {
+    @apply flex flex-col gap-3 rounded-paper border-2 border-border bg-surface-panel/80 px-3 py-2.5 sm:px-4;
+  }
+  @media (min-width: 1024px) {
+    .quest-board-toolbar {
+      @apply flex-row flex-wrap items-center justify-between gap-x-4 gap-y-2;
+    }
+  }
+  .dark .quest-board-toolbar {
+    background: linear-gradient(
+      180deg,
+      rgb(var(--mck-surface-panel) / 0.85) 0%,
+      rgb(var(--mck-surface) / 0.95) 100%
+    );
+    border-color: rgb(var(--mck-border-strong) / 0.5);
+  }
+
+  .quest-board-toolbar-title {
+    @apply min-w-0 shrink-0;
+  }
+
+  .quest-board-toolbar-stats {
+    @apply flex flex-wrap items-center gap-1.5;
+  }
+
+  .quest-board-stat-pill {
+    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums;
+  }
+
+  .quest-board-toolbar-filters {
+    @apply flex flex-wrap items-center gap-1.5 sm:ml-auto;
+  }
+
+  .quest-inventario-grupo {
+    @apply rounded-paper border-2 border-border bg-surface-panel/60 overflow-hidden;
+    border-left-width: 4px;
+    border-left-color: var(--inv-accent, rgb(var(--mck-accent)));
+  }
+  .dark .quest-inventario-grupo {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--inv-accent, #0c6069) 12%, transparent) 0%,
+      rgb(var(--mck-surface-panel) / 0.55) 28%
+    );
+  }
+
+  .quest-inventario-grupo-header {
+    @apply flex items-center gap-2 border-b border-border/80 bg-surface-hover/50 px-3 py-2;
+  }
+
+  .quest-inventario-grupo-count {
+    @apply inline-flex min-w-[1.5rem] items-center justify-center rounded-full border border-border bg-surface-panel px-1.5 py-0.5 text-[10px] font-bold text-muted;
+  }
+
+  .quest-inventario-grupo-items {
+    @apply p-2 sm:p-3;
+  }
+
   .quest-board-banner {
     @apply rounded-paper border-2 border-border bg-surface-panel/80 px-4 py-3 text-center;
   }
@@ -236,18 +294,18 @@
 
   /* Tablero tipo corcho + post-its */
   .quest-board-by-reinos {
-    @apply space-y-6;
+    @apply space-y-4;
   }
 
   .quest-board-reino {
-    @apply overflow-hidden rounded-2xl border-2 bg-surface-panel/40 shadow-paper-sm;
+    @apply overflow-hidden rounded-xl border-2 bg-surface-panel/40 shadow-paper-sm;
   }
   .quest-canvas.dark .quest-board-reino {
     @apply bg-surface-panel/25 shadow-none;
   }
 
   .quest-board-reino-header {
-    @apply border-b border-border/60 px-4 py-3;
+    @apply border-b border-border/60 px-3 py-2;
     border-left-width: 4px;
     border-left-style: solid;
   }
@@ -265,7 +323,7 @@
     background-size: 20px 20px;
   }
   .quest-board-cork {
-    @apply rounded-2xl border-2 p-4 sm:p-6;
+    @apply rounded-2xl border-2 p-3 sm:p-4;
     border-color: rgba(139, 119, 88, 0.4);
     background-color: #d4c4a8;
     background-image:
@@ -285,12 +343,24 @@
 
   .quest-sticky-grid {
     display: grid;
-    gap: 1.75rem;
-    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  }
+  @media (min-width: 768px) {
+    .quest-sticky-grid {
+      gap: 0.85rem;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
   }
   @media (min-width: 1280px) {
     .quest-sticky-grid {
-      gap: 2rem;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    }
+  }
+  @media (min-width: 1536px) {
+    .quest-sticky-grid {
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     }
   }
 
@@ -324,6 +394,11 @@
       8px 18px 36px rgba(0, 0, 0, 0.55);
   }
 
+  .quest-sticky-mission--compact .quest-sticky-tape {
+    @apply h-4 w-11;
+    top: -0.5rem;
+  }
+
   .quest-sticky-tape {
     @apply pointer-events-none absolute left-1/2 z-10 h-5 w-[3.25rem] -translate-x-1/2 rounded-[2px];
     top: -0.65rem;
@@ -346,7 +421,31 @@
   }
 
   .quest-sticky-mission {
-    @apply relative flex min-h-[11rem] flex-col p-4 pt-5 pb-3;
+    @apply relative flex min-h-0 flex-col gap-2 p-3 pb-2.5 pt-4;
+  }
+
+  .quest-sticky-mission--compact {
+    @apply gap-1.5 p-2.5 pb-2 pt-3.5;
+  }
+
+  .quest-sticky-mission-head {
+    @apply flex items-start gap-2 pr-5;
+  }
+
+  .quest-sticky-mission-meta {
+    @apply flex min-w-0 flex-1 flex-col gap-0.5;
+  }
+
+  .quest-sticky-mission-pct {
+    @apply shrink-0 text-right leading-none;
+  }
+
+  .quest-sticky-tasks {
+    @apply flex flex-col gap-1;
+  }
+
+  .quest-sticky-tasks--grid {
+    @apply grid gap-1 sm:grid-cols-2;
   }
 
   .quest-sticky-close {
@@ -378,11 +477,11 @@
   }
 
   .quest-sticky-solo {
-    @apply flex min-h-[5.5rem] flex-col justify-center gap-2 p-4 pt-5;
+    @apply flex min-h-0 flex-col justify-center gap-1.5 p-3 pt-4;
   }
 
   .quest-sticky-task {
-    @apply relative flex w-full items-center gap-2 rounded-sm border border-black/[0.06] px-2.5 py-2 text-left transition;
+    @apply relative flex w-full flex-col items-stretch gap-1 rounded-sm border border-black/[0.06] px-2 py-1.5 text-left transition;
     background: rgba(255, 255, 255, 0.5);
     box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.07);
   }
@@ -408,5 +507,22 @@
     border-color: rgb(var(--mck-border) / 0.5);
     background: rgb(var(--mck-surface-panel) / 0.9);
     color: rgb(var(--mck-ink-secondary));
+  }
+
+  /* Checklist de pasos en tickets — casilla siempre visible (claro/oscuro) */
+  .paso-checklist-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    min-width: 1.25rem;
+    min-height: 1.25rem;
+    margin: 0;
+    flex-shrink: 0;
+    pointer-events: auto;
+    accent-color: #16a34a;
+    -webkit-appearance: checkbox;
+    appearance: auto;
+  }
+  .paso-checklist-input[aria-disabled="true"] {
+    opacity: 0.45;
   }
 }

@@ -107,6 +107,20 @@ export default function Dashboard() {
           color="text-success"
         />
         <StatCard
+          label="Chat web"
+          value={m?.web_chat_interacciones_hoy ?? 0}
+          sub={
+            (m?.web_chat_sin_revisar ?? 0) > 0
+              ? `${m?.web_chat_sin_revisar} sin revisar`
+              : "interacciones hoy"
+          }
+          color={
+            (m?.web_chat_sin_revisar ?? 0) > 0
+              ? "text-warning"
+              : "text-accent-sky"
+          }
+        />
+        <StatCard
           label="Version"
           value={status?.version ?? "-"}
           sub={status?.estado ?? ""}

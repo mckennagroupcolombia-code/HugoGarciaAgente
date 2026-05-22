@@ -46,6 +46,10 @@ from app.services.google_services import (
     buscar_producto_completo as _buscar_producto_completo,
 )
 from app.services.siigo import *
+from app.services.siigo import (
+    buscar_productos_combo_siigo as _buscar_productos_combo_siigo,
+    buscar_combos_siigo_estructurado,
+)
 from app.services.meli import (
     aprender_de_interacciones_meli,
     consultar_devoluciones_meli,
@@ -134,6 +138,26 @@ def buscar_producto_completo(consulta: str) -> str:
             f"- Ficha técnica: {ficha}"
         )
     return f"Producto '{consulta}' no encontrado en el catálogo."
+
+
+def buscar_productos_combo_siigo(consulta: str) -> str:
+    """
+    Busca presentaciones tipo Combo activas en SIIGO (catálogo web comprable).
+    Usar en chat web para precios y presentaciones. No usar catálogo legacy de Sheets.
+    """
+    return _buscar_productos_combo_siigo(consulta)
+
+
+INSTRUCCIONES_WEB_CHAT = """
+CANAL CHAT WEB (burbuja mckennagroup.co):
+1. SOLO ofrezca presentaciones y precios que devuelva buscar_productos_combo_siigo (catálogo interno).
+2. PROHIBIDO al cliente mencionar SIIGO, combo, ERP, Sheets o configuración interna. Diga "materia prima", "presentación" o "referencia".
+3. PROHIBIDO inventar presentaciones ni precios sin consultar buscar_productos_combo_siigo.
+4. Si preguntan USO, DOSIS, "cómo tomar", recomendación de consumo o formulación: NO liste precios otra vez.
+   Responda la consulta técnica (usa buscar_productos_combo_siigo + contexto de ficha si aplica). Aclare que vendemos materia prima, no producto terminado.
+5. Si no hay presentación en catálogo, invite a revisar la tienda o WhatsApp sin tecnicismos internos.
+6. La referencia (Ref.) es el SKU oficial para pedido y cotización.
+"""
 
 
 # ==========================================
@@ -318,6 +342,8 @@ def _memoria_vectorial_para_chat(pregunta: str) -> str:
 modelo_ia = None
 _gemini_modelo_chat = "gemini-2.5-pro"
 _permitir_fallback_claude = os.getenv("AGENTE_PERMITIR_FALLBACK_CLAUDE", "0").strip() == "1"
+# Chat web necesita tools (combos SIIGO); por defecto Claude activo solo en web aunque el global esté en 0.
+_permitir_claude_web_chat = os.getenv("AGENTE_WEB_CHAT_CLAUDE", "1").strip() != "0"
 
 
 # ==========================================
@@ -563,6 +589,7 @@ def configurar_ia(app):
             consultar_tarifa_envio,
             consultar_tarifa_mercadoenvios,
             buscar_producto_completo,
+            buscar_productos_combo_siigo,
             auditar_scripts,
         ]
 
@@ -732,8 +759,343 @@ def _historial_a_texto_simple(messages: list) -> str:
     return "\n".join(partes).strip()
 
 
+def _es_canal_web_chat(canal: str, usuario_id: str) -> bool:
+    c = (canal or "").strip().lower()
+    if c in ("web_chat", "web"):
+        return True
+    uid = (usuario_id or "").strip().lower()
+    return uid.startswith("web-")
+
+
+_SALUDOS_WEB = frozenset(
+    {
+        "hola",
+        "buenas",
+        "buenos dias",
+        "buenas tardes",
+        "buenas noches",
+        "buen dia",
+        "hey",
+        "hi",
+        "hello",
+        "ok",
+        "gracias",
+        "muchas gracias",
+        "vale",
+        "listo",
+        "perfecto",
+        "entiendo",
+        "entendido",
+        "de acuerdo",
+    }
+)
+
+
+def _es_reconocimiento_corto_web(texto: str) -> bool:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    if low in _SALUDOS_WEB:
+        return True
+    return bool(re.match(r"^(ok|entiendo|entendido|gracias|vale|listo|si|sí)\b", low))
+
+
+def _mensaje_parece_consulta_tecnica_web(texto: str) -> bool:
+    """Uso, dosis, cómo tomar — no es búsqueda de catálogo/precio."""
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    if len(low) < 4:
+        return False
+    patrones = (
+        r"\b(como|cómo)\s+(se\s+)?(toma|tomar|usa|usar|aplica|aplicar|prepara|preparar|debe)",
+        r"\bdebe\s+tomar\b",
+        r"\b(cuantos|cuántos)\s+gramos\b",
+        r"\bgramos\s+(al|por)\s+d[ií]a\b",
+        r"\b(dosis|dosificaci[oó]n|ingerir|consumir|recomendaci[oó]n)\b",
+        r"\bmodo\s+de\s+(uso|empleo|preparaci[oó]n)\b",
+        r"\buna\s+pregunta\b",
+        r"\b(formulaci[oó]n|mezclar|diluir)\b",
+        r"\bpara\s+que\s+sirve\b",
+    )
+    if any(re.search(p, low) for p in patrones):
+        return True
+    if "proteína" in low or "proteina" in low:
+        if any(w in low for w in ("tomar", "toma", "dia", "día", "gramos", "dosis", "debe")):
+            return True
+    return False
+
+
+def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
+    """Precio, disponibilidad o nombre de producto — respuesta directa de catálogo."""
+    if _mensaje_parece_consulta_tecnica_web(texto):
+        return False
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    if len(low) < 3:
+        return False
+    if low in _SALUDOS_WEB:
+        return False
+    if re.match(r"^(ok|gracias|si|no|vale|listo)\b", low):
+        return False
+    if re.search(r"\b(cuanto|cuánto)\s+(cuesta|vale|es|sale|cobra|est[aá])\b", low):
+        return True
+    disparadores = (
+        "precio",
+        "cuesta",
+        "tienen",
+        "tiene",
+        "venden",
+        "manejan",
+        "dispon",
+        "stock",
+        "presentacion",
+        "presentación",
+        "referencia",
+        "cotiz",
+        "comprar",
+        "pedir",
+        "necesito precio",
+        "aminoacido",
+        "aminoácido",
+        "proteina",
+        "proteína",
+    )
+    if any(d in low for d in disparadores):
+        return True
+    if _es_seleccion_presentacion_web(texto):
+        return True
+    tokens = re.findall(r"[a-záéíóúüñ]{4,}", low)
+    return len(tokens) >= 1 and len(low) >= 4 and "?" not in low
+
+
+def _es_seleccion_presentacion_web(texto: str) -> bool:
+    """Cliente elige variante corta (ej. 'concentrada suero de leche')."""
+    low = (texto or "").strip().lower()
+    if not low or len(low) > 70:
+        return False
+    if _mensaje_parece_consulta_tecnica_web(texto):
+        return False
+    if any(w in low for w in ("?", "como ", "cómo ", "cuantos", "cuántos", "precio", "cuesta")):
+        return False
+    return True
+
+
+def _mensaje_parece_consulta_producto(texto: str) -> bool:
+    """Compat: catálogo o consulta técnica con producto."""
+    return _mensaje_parece_consulta_catalogo_web(texto) or _mensaje_parece_consulta_tecnica_web(
+        texto
+    )
+
+
+def _contexto_historial_web(messages: list) -> str:
+    partes: list[str] = []
+    for m in (messages or [])[-8:]:
+        texto = _extraer_texto_visible_mensaje(m.get("content"))
+        if texto:
+            partes.append(texto[:600])
+    return " ".join(partes)[-1200:]
+
+
+def _termino_busqueda_producto_web(pregunta: str, messages: list) -> str:
+    pregunta = (pregunta or "").strip()
+    if _mensaje_parece_consulta_catalogo_web(pregunta):
+        return pregunta
+    if _mensaje_parece_consulta_tecnica_web(pregunta):
+        prod = _extraer_producto_reciente_historial_web(messages)
+        if prod:
+            return prod
+        return pregunta
+    return pregunta
+
+
+def _extraer_producto_reciente_historial_web(messages: list) -> str:
+    for m in reversed((messages or [])[-12:]):
+        if m.get("role") != "assistant":
+            continue
+        text = _extraer_texto_visible_mensaje(m.get("content"))
+        for line in text.split("\n"):
+            line = line.strip()
+            if line.startswith("- ") and "Ref." in line:
+                nombre = line[2:].split(":")[0].strip()
+                if nombre:
+                    return nombre
+        m_star = re.search(r"\*([^*]+)\*", text)
+        if m_star:
+            return m_star.group(1).strip()
+    return ""
+
+
+def _filtrar_items_por_seleccion_cliente(
+    items: list[dict], pregunta: str
+) -> list[dict]:
+    """Si el cliente eligió una variante corta, mostrar solo la coincidencia fuerte."""
+    if not _es_seleccion_presentacion_web(pregunta):
+        return items
+    low = _normalizar_busqueda_combo_web(pregunta)
+    if not low:
+        return items
+    palabras = [w for w in low.split() if len(w) >= 4]
+    filtrados: list[tuple[int, dict]] = []
+    for it in items:
+        blob = _normalizar_busqueda_combo_web(f"{it.get('name', '')} {it.get('ref', '')}")
+        score = sum(3 for w in palabras if w in blob)
+        if low in blob or all(w in blob for w in palabras[:3] if len(palabras) >= 2):
+            score += 8
+        if score > 0:
+            filtrados.append((score, it))
+    if not filtrados:
+        return items
+    filtrados.sort(key=lambda x: -x[0])
+    if filtrados[0][0] >= 6:
+        return [filtrados[0][1]]
+    return items
+
+
+def _normalizar_busqueda_combo_web(texto: str) -> str:
+    import unicodedata
+
+    t = (texto or "").strip().lower()
+    t = unicodedata.normalize("NFD", t)
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    t = re.sub(r"[^a-z0-9\s]", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _formatear_respuesta_directa_combos_web(
+    items: list[dict], consulta: str, pregunta_cliente: str = ""
+) -> str:
+    items = _filtrar_items_por_seleccion_cliente(items, pregunta_cliente or consulta)
+    if not items:
+        return (
+            "Veci, por ahora no tenemos esa referencia publicada en el catálogo web. "
+            "Puede revisar mckennagroup.co o escribirnos por WhatsApp y le confirmamos."
+        )
+    if len(items) == 1:
+        it = items[0]
+        precio = (
+            f"${it['precio_web']:,.0f} COP"
+            if it.get("precio_web", 0) > 0
+            else "precio a confirmar"
+        )
+        return (
+            f"Claro, veci. Tenemos *{it['name']}* como materia prima. "
+            f"Presentación: {precio} — Ref. {it['ref']}. "
+            "¿Cuántas unidades necesita?"
+        )
+    lineas = [
+        "Claro, veci. Manejamos materia prima; estas son las presentaciones disponibles en catálogo:",
+    ]
+    for it in items:
+        precio = (
+            f"${it['precio_web']:,.0f} COP"
+            if it.get("precio_web", 0) > 0
+            else "consultar precio"
+        )
+        lineas.append(f"- {it['name']}: {precio} (Ref. {it['ref']})")
+    lineas.append("¿Cuál presentación le sirve?")
+    return "\n".join(lineas)
+
+
+def _respuesta_directa_web_si_combos(
+    pregunta: str, messages: list
+) -> str | None:
+    """
+    Respuesta sin LLM solo para consultas de catálogo/precio (no uso ni dosis).
+    """
+    if _es_reconocimiento_corto_web(pregunta):
+        return None
+    if _mensaje_parece_consulta_tecnica_web(pregunta):
+        return None
+    if not _mensaje_parece_consulta_catalogo_web(pregunta):
+        return None
+    termino = _termino_busqueda_producto_web(pregunta, messages)
+    if len((termino or "").strip()) < 3:
+        return None
+    try:
+        items, estado = buscar_combos_siigo_estructurado(termino)
+    except Exception as e:
+        _log_error("respuesta_directa_web_combos", e)
+        return None
+    if items:
+        return _formatear_respuesta_directa_combos_web(
+            items, termino, pregunta_cliente=pregunta
+        )
+    if estado and "No encontré combo" in estado:
+        return (
+            "Veci, no encontré esa presentación en nuestro catálogo web en este momento. "
+            "Revise mckennagroup.co o escríbanos por WhatsApp y le ayudamos."
+        )
+    return None
+
+
+def _enriquecer_pregunta_tecnica_web(pregunta: str, messages: list) -> str:
+    prod = _extraer_producto_reciente_historial_web(messages)
+    base = (pregunta or "").strip()
+    if prod:
+        return (
+            f"[Contexto: el cliente consulta sobre la materia prima '{prod}' "
+            f"que ya se ofreció en el chat. Vendemos materia prima, NO producto terminado.]\n\n"
+            f"Pregunta del cliente: {base}\n\n"
+            "Responda uso, dosis orientativa o cómo se suele emplear en formulación. "
+            "No repita lista de precios. Si no tiene dato exacto en ficha, dé orientación "
+            "general prudente y sugiera validar con su formulador o WhatsApp."
+        )
+    return (
+        f"{base}\n\n"
+        "(Consulta técnica de uso/dosis — materia prima McKenna, no producto terminado.)"
+    )
+
+
+def _sanitizar_respuesta_web_chat(texto: str) -> str:
+    """Quita ruido de tool-use y términos internos que no debe ver el cliente."""
+    if not texto:
+        return texto
+    t = re.sub(
+        r"`?tools\.\w+\([^)]*\)`?",
+        "",
+        texto,
+        flags=re.IGNORECASE,
+    )
+    t = re.sub(
+        r"presentaciones?\s+combo\s+siigo\s+activas?",
+        "presentaciones disponibles en catálogo",
+        t,
+        flags=re.IGNORECASE,
+    )
+    t = re.sub(
+        r"combo\s+siigo",
+        "presentación en catálogo",
+        t,
+        flags=re.IGNORECASE,
+    )
+    t = re.sub(r"\bSIIGO\b", "", t, flags=re.IGNORECASE)
+    t = re.sub(r"\s{2,}", " ", t)
+    t = re.sub(r"\n{3,}", "\n\n", t).strip()
+    return t
+
+
+def _preflight_contexto_combos_web(pregunta: str, messages: list | None = None) -> str | None:
+    if _mensaje_parece_consulta_tecnica_web(pregunta):
+        return None
+    termino = _termino_busqueda_producto_web(pregunta, messages or [])
+    if not _mensaje_parece_consulta_catalogo_web(pregunta) and not _mensaje_parece_consulta_catalogo_web(
+        termino
+    ):
+        if not messages:
+            return None
+    try:
+        datos = _buscar_productos_combo_siigo(termino)
+    except Exception as e:
+        _log_error("preflight_combos_web", e)
+        return None
+    if not datos:
+        return None
+    return datos
+
+
 def _responder_con_gemini_primario(
-    pregunta: str, usuario_id: str, messages: list, adjuntos: list[tuple[str, bytes]]
+    pregunta: str,
+    usuario_id: str,
+    messages: list,
+    adjuntos: list[tuple[str, bytes]],
+    system_prompt: str | None = None,
+    modelo_id: str | None = None,
 ) -> str | None:
     """
     Primer intento de respuesta: Gemini 2.5 Pro.
@@ -748,8 +1110,9 @@ def _responder_con_gemini_primario(
 
     contexto = _historial_a_texto_simple(messages)
     memoria_vectorial = _memoria_vectorial_para_chat(pregunta)
+    sys_txt = system_prompt or _system_prompt
     prompt = (
-        f"{_system_prompt}\n\n"
+        f"{sys_txt}\n\n"
         f"ID de conversación: {usuario_id}\n"
         f"Historial reciente:\n{contexto or '[sin historial]'}\n\n"
         f"Memoria vectorial relevante:\n{memoria_vectorial or '[sin recuerdos relevantes]'}\n\n"
@@ -757,8 +1120,11 @@ def _responder_con_gemini_primario(
         "Responde solo texto final para cliente."
     )
     try:
+        modelo_gemini = (modelo_id or _gemini_modelo_chat).strip()
+        if not modelo_gemini.startswith("gemini-"):
+            modelo_gemini = _gemini_modelo_chat
         resp = cliente_gemini.models.generate_content(
-            model=_gemini_modelo_chat,
+            model=modelo_gemini,
             contents=prompt,
         )
         txt = (getattr(resp, "text", "") or "").strip()
@@ -778,13 +1144,23 @@ def obtener_respuesta_ia(
     usuario_id: str,
     historial: list = None,
     adjuntos_payload: list = None,
+    canal: str = "",
 ):
     """
     Usa Gemini 2.5 Pro como primera opción. Si falla o requiere binarios/tools,
     hace fallback a Claude con loop de herramientas.
 
     adjuntos_payload: lista de dicts {media_type, data_base64} (imagen/PDF) vía /chat.
+    canal: 'web_chat' fuerza reglas y catálogo solo combos SIIGO (sin Gemini sin tools).
     """
+    from app.services.canales_config import obtener_modelo_canal
+
+    es_web = _es_canal_web_chat(canal, usuario_id)
+    canal_efectivo = "web_chat" if es_web else ((canal or "").strip() or "whatsapp")
+    modelo_canal = obtener_modelo_canal(canal_efectivo)
+    system_prompt_efectivo = (
+        _system_prompt + INSTRUCCIONES_WEB_CHAT if es_web else _system_prompt
+    )
     if not cliente_gemini and not cliente_ia:
         return "Veci, estamos en mantenimiento. Intente en unos minutos 🙏", []
 
@@ -794,9 +1170,7 @@ def obtener_respuesta_ia(
         return f"Veci, no pude leer el adjunto: {ve} 🙏", []
 
     n_adj = len(adjuntos)
-    texto_usuario = f"Usuario_{usuario_id}: {pregunta or ''}".strip()
-    if not (pregunta or "").strip() and not adjuntos:
-        return "Veci, escribe un mensaje o adjunta un archivo 🙏", []
+    pregunta_visible = (pregunta or "").strip()
 
     # Recuperar historial previo del usuario (o usar el pasado como parámetro)
     if historial:
@@ -806,6 +1180,38 @@ def obtener_respuesta_ia(
             _historiales.get(usuario_id)
             or _cargar_historial_persistente(usuario_id)
         )
+
+    if es_web and not adjuntos:
+        directa = _respuesta_directa_web_si_combos(pregunta_visible, messages)
+        if directa:
+            user_msg_index = len(messages)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [
+                {"role": "assistant", "content": directa}
+            ]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return _sanitizar_respuesta_web_chat(directa), final_messages
+
+    contexto_combos = (
+        _preflight_contexto_combos_web(pregunta_visible, messages) if es_web else None
+    )
+    if _mensaje_parece_consulta_tecnica_web(pregunta_visible):
+        pregunta_para_ia = _enriquecer_pregunta_tecnica_web(pregunta_visible, messages)
+    elif contexto_combos and pregunta_visible:
+        pregunta_para_ia = (
+            f"[Catálogo web verificado — uso interno, no mencionar SIIGO/combo al cliente]\n"
+            f"{contexto_combos}\n\n"
+            f"Pregunta del cliente: {pregunta_visible}"
+        )
+    else:
+        pregunta_para_ia = pregunta_visible
+    texto_usuario = f"Usuario_{usuario_id}: {pregunta_para_ia}".strip()
+    if not pregunta_visible and not adjuntos:
+        return "Veci, escribe un mensaje o adjunta un archivo 🙏", []
 
     user_msg_index = len(messages)
     if adjuntos:
@@ -826,22 +1232,49 @@ def obtener_respuesta_ia(
             _guardar_historial_persistente(usuario_id, final_messages)
             return resp_cant, final_messages
 
-    # 1) Ruta primaria: Gemini 2.5 Pro
-    respuesta_gemini = _responder_con_gemini_primario(
-        pregunta=pregunta or "",
-        usuario_id=usuario_id,
-        messages=messages,
-        adjuntos=adjuntos,
-    )
+    # 1) Gemini primero solo si el canal tiene modelo Gemini asignado
+    respuesta_gemini = None
+    usar_gemini_primero = modelo_canal.startswith("gemini-") and cliente_gemini
+    if usar_gemini_primero:
+        respuesta_gemini = _responder_con_gemini_primario(
+            pregunta=pregunta_para_ia or "",
+            usuario_id=usuario_id,
+            messages=messages,
+            adjuntos=adjuntos,
+            system_prompt=system_prompt_efectivo,
+            modelo_id=modelo_canal,
+        )
     if respuesta_gemini:
         final_messages = messages + [{"role": "assistant", "content": respuesta_gemini}]
         final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
         _historiales[usuario_id] = final_messages
         _guardar_historial_persistente(usuario_id, final_messages)
+        if es_web:
+            respuesta_gemini = _sanitizar_respuesta_web_chat(respuesta_gemini)
         return respuesta_gemini, final_messages
 
-    # 2) Fallback: Claude (tools/binarios), solo si está habilitado explícitamente.
-    if not _permitir_fallback_claude:
+    # 2) Claude (tools/binarios) — primario si el canal usa Claude; fallback si Gemini falló
+    claude_ok = (
+        _permitir_fallback_claude
+        or (es_web and _permitir_claude_web_chat)
+        or modelo_canal.startswith("claude-")
+    )
+    if modelo_canal.startswith("claude-") and not cliente_ia:
+        return "Veci, Claude no está configurado (ANTHROPIC_API_KEY). 🙏", []
+    if not modelo_canal.startswith(("claude-", "gemini-")):
+        return (
+            "Veci, este canal requiere Claude o Gemini con herramientas. "
+            "Cámbielo en Panel → Chat de Agentes → Canales activos. 🙏",
+            [],
+        )
+    if not claude_ok:
+        if es_web:
+            return (
+                "Veci, no pude procesar su mensaje en este momento. "
+                "Para precios y presentaciones revise el catálogo en la web "
+                "o escríbanos por WhatsApp 🙏",
+                [],
+            )
         return (
             "Veci, el servicio IA está en ajuste técnico temporal. "
             "Por favor intente de nuevo en un momento 🙏",
@@ -877,10 +1310,15 @@ def obtener_respuesta_ia(
 
             # ── Loop de herramientas ──────────────────────────────────────
             for _iter in range(MAX_TOOL_ITERS):
+                claude_model = (
+                    modelo_canal
+                    if modelo_canal.startswith("claude-")
+                    else "claude-sonnet-4-6"
+                )
                 response = cliente_ia.messages.create(
-                    model="claude-sonnet-4-6",
+                    model=claude_model,
                     max_tokens=4096,
-                    system=_system_prompt,
+                    system=system_prompt_efectivo,
                     tools=_tools_schema,
                     messages=current_messages,
                 )
@@ -903,12 +1341,24 @@ def obtener_respuesta_ia(
                         if block.type != "tool_use":
                             continue
 
-                        fn = _tools_map.get(block.name)
-                        print(f"🔧 Herramienta: {block.name}  args: {block.input}")
+                        tool_name = block.name
+                        tool_input = dict(block.input or {})
+                        if es_web and tool_name == "buscar_producto_completo":
+                            tool_name = "buscar_productos_combo_siigo"
+                            tool_input = {
+                                "consulta": (
+                                    tool_input.get("nombre_producto")
+                                    or tool_input.get("consulta")
+                                    or pregunta_visible
+                                    or ""
+                                )
+                            }
+                        fn = _tools_map.get(tool_name)
+                        print(f"🔧 Herramienta: {tool_name}  args: {tool_input}")
 
                         if fn:
                             try:
-                                result = fn(**block.input)
+                                result = fn(**tool_input)
                                 result_str = str(result)[:8192]
                                 log_json(
                                     "tool_ok",
@@ -978,10 +1428,10 @@ def obtener_respuesta_ia(
                     limpio = _persistir_historial(final_messages)
 
                     if not (pregunta or "").startswith("BOT_"):
-                        return (
-                            texto or "✅ Tarea ejecutada en segundo plano.",
-                            limpio,
-                        )
+                        salida = texto or "✅ Tarea ejecutada en segundo plano."
+                        if es_web:
+                            salida = _sanitizar_respuesta_web_chat(salida)
+                        return salida, limpio
                     else:
                         return "", limpio
 

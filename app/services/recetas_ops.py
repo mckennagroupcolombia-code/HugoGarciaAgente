@@ -676,6 +676,34 @@ def completar_proceso_corrida(corrida_id: int, usuario_id: int, proceso_id: int)
         return _corrida_dict(db, row), None
 
 
+def guardar_corrida(corrida_id: int, usuario_id: int) -> tuple[dict | None, str | None]:
+    """Persiste segundos acumulados sin finalizar; si está activa, reinicia el tramo."""
+    with _conn() as db:
+        row = db.execute(
+            "SELECT * FROM receta_corridas WHERE id=? AND usuario_id=?",
+            (corrida_id, usuario_id),
+        ).fetchone()
+        if not row:
+            return None, "Corrida no encontrada"
+        c = dict(row)
+        if c["estado"] == "finalizada":
+            return None, "La elaboración ya finalizó"
+        now = _now_iso()
+        if c["estado"] == "activa":
+            seg = _segundos_corrida(c)
+            db.execute(
+                """
+                UPDATE receta_corridas
+                SET segundos_acumulados=?, reanudada_en=?
+                WHERE id=?
+                """,
+                (seg, now, corrida_id),
+            )
+        db.commit()
+        row = db.execute("SELECT * FROM receta_corridas WHERE id=?", (corrida_id,)).fetchone()
+        return _corrida_dict(db, row), None
+
+
 def finalizar_corrida(corrida_id: int, usuario_id: int) -> tuple[dict | None, str | None]:
     with _conn() as db:
         row = db.execute(

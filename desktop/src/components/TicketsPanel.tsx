@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef, createContext, useContext, type CSSProperties } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext, type CSSProperties } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useQuestTheme } from "../stores/questTheme";
 import QuestThemeToggle from "./QuestThemeToggle";
 import RecetasPanel from "./RecetasPanel";
+import { CorridaCronometroBlock, fmtTiempo } from "./Cronometro";
 import {
   ESTADO_STYLES,
   PRIORIDAD_STYLES,
@@ -24,11 +25,12 @@ import {
 
 function tapi(path: string, token: string, options: RequestInit = {}) {
   const isForm = options.body instanceof FormData;
+  const hasJsonBody = options.body != null && options.body !== "" && !isForm;
   return fetch(`/api/tickets${path}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${token}`,
-      ...(!isForm ? { "Content-Type": "application/json" } : {}),
+      ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
     },
   }).then(async (r) => {
@@ -118,7 +120,23 @@ interface Ticket {
   comentarios?: Comentario[];
   tiempo_registrado?: TiempoEntry[];
   total_horas?: number;
+  segundos_trabajo?: number;
+  corrida?: TicketCorrida | null;
   historial?: LogEntry[];
+  frecuencia?: Frecuencia | null;
+  proxima_renovacion?: string | null;
+  pasos_total?: number;
+  pasos_completados?: number;
+}
+
+interface TicketCorrida {
+  id: number;
+  ticket_id: number;
+  estado: "activa" | "pausada" | "finalizada";
+  segundos_transcurridos: number;
+  segundos_acumulados: number;
+  iniciada_en: string;
+  finalizada_en?: string | null;
 }
 
 interface Participante {
@@ -142,16 +160,314 @@ interface EtapaMision {
   asignado_nombre?: string | null;
   ticket_bloqueado_por?: number | null;
   bloqueado_por_numero?: string | null;
+  ticket_segundos?: number;
+  ticket_horas?: number;
+  ticket_frecuencia?: Frecuencia | null;
+  ticket_proxima_renovacion?: string | null;
+  ticket_pasos_total?: number;
+  ticket_pasos_completados?: number;
   estado: "pendiente" | "activa" | "completada";
 }
 
-type Frecuencia = "diaria" | "semanal" | "quincenal" | "mensual" | "bimestral" | "trimestral" | "semestral";
+function etapaEjecucionPct(et: EtapaMision): number {
+  const total = et.ticket_pasos_total ?? 0;
+  const ok = et.ticket_pasos_completados ?? 0;
+  if (total > 0) return Math.round((ok / total) * 100);
+  if (et.ticket_estado === "resuelto") return 100;
+  return 0;
+}
+
+type Frecuencia =
+  | "diaria"
+  | "cada_2_dias"
+  | "cada_3_dias"
+  | "semanal"
+  | "quincenal"
+  | "mensual"
+  | "bimestral"
+  | "trimestral"
+  | "semestral";
+
+type PrerequisitoTipo = "mision" | "receta";
 
 interface Dependencia {
   id: number;
   titulo: string;
   estado: string;
   reino: string | null;
+  tipo?: PrerequisitoTipo;
+  categoria?: string | null;
+}
+
+interface PrerequisitoRef {
+  tipo: PrerequisitoTipo;
+  id: number;
+}
+
+interface RecetaPrereq {
+  id: number;
+  titulo: string;
+  categoria?: string;
+  reino_nombre?: string | null;
+}
+
+function prereqKey(p: PrerequisitoRef) {
+  return `${p.tipo}:${p.id}`;
+}
+
+function coincideBusquedaPrereq(q: string, ...partes: (string | null | undefined)[]) {
+  const n = q.trim().toLowerCase();
+  if (!n) return true;
+  return partes.some((p) => (p || "").toLowerCase().includes(n));
+}
+
+function estadoPrereqBadge(estado: string, tipo?: PrerequisitoTipo) {
+  if (estado === "completada") return "bg-green-100 text-green-700";
+  if (estado === "cancelada") return "bg-red-100 text-red-600";
+  if (tipo === "receta" && estado === "pendiente") return "bg-amber-100 text-amber-800";
+  return "bg-blue-100 text-blue-700";
+}
+
+function estadoPrereqLabel(estado: string, tipo?: PrerequisitoTipo) {
+  if (tipo === "receta") {
+    return estado === "completada" ? "elaborada" : "sin elaborar";
+  }
+  return estado;
+}
+
+function PrerequisitosBlock({
+  titulo = "Prerequisitos (opcional)",
+  descripcion = "Misiones completadas o recetas ya elaboradas antes de iniciar esta misión.",
+  readonly = false,
+  items,
+  onItemsChange,
+  dependenciasDisplay,
+  misionId,
+  token,
+  todasMisiones,
+  todasRecetas,
+  onMisionUpdated,
+}: {
+  titulo?: string;
+  descripcion?: string;
+  readonly?: boolean;
+  items: PrerequisitoRef[];
+  onItemsChange?: (items: PrerequisitoRef[]) => void;
+  dependenciasDisplay?: Dependencia[];
+  misionId?: number;
+  token?: string;
+  todasMisiones: Mision[];
+  todasRecetas: RecetaPrereq[];
+  onMisionUpdated?: (m: Mision) => void;
+}) {
+  const [busqueda, setBusqueda] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const itemKeys = new Set(items.map(prereqKey));
+  const depsFromItems: Dependencia[] = items.map((p) => {
+    if (p.tipo === "receta") {
+      const r = todasRecetas.find((x) => x.id === p.id);
+      return {
+        id: p.id,
+        tipo: "receta",
+        titulo: r?.titulo ?? `Receta #${p.id}`,
+        estado: "pendiente",
+        reino: r?.reino_nombre ?? null,
+        categoria: r?.categoria,
+      };
+    }
+    const m = todasMisiones.find((x) => x.id === p.id);
+    return {
+      id: p.id,
+      tipo: "mision",
+      titulo: m?.titulo ?? `Misión #${p.id}`,
+      estado: m?.estado ?? "activa",
+      reino: m?.reino ?? null,
+    };
+  });
+  const listDisplay = dependenciasDisplay ?? depsFromItems;
+
+  const opcionesMision = todasMisiones.filter(
+    (m) => misionId !== m.id && !itemKeys.has(prereqKey({ tipo: "mision", id: m.id })),
+  );
+  const opcionesReceta = todasRecetas.filter(
+    (r) => !itemKeys.has(prereqKey({ tipo: "receta", id: r.id })),
+  );
+  const hayOpciones = opcionesMision.length > 0 || opcionesReceta.length > 0;
+
+  const opcionesFlat = useMemo(() => {
+    const out: {
+      key: string;
+      ref: PrerequisitoRef;
+      icono: string;
+      label: string;
+      sub: string;
+      estado: string;
+    }[] = [];
+    for (const m of opcionesMision) {
+      out.push({
+        key: prereqKey({ tipo: "mision", id: m.id }),
+        ref: { tipo: "mision", id: m.id },
+        icono: "🎯",
+        label: m.titulo,
+        sub: [m.reino, m.estado].filter(Boolean).join(" · "),
+        estado: m.estado,
+      });
+    }
+    for (const r of opcionesReceta) {
+      out.push({
+        key: prereqKey({ tipo: "receta", id: r.id }),
+        ref: { tipo: "receta", id: r.id },
+        icono: "📖",
+        label: r.titulo,
+        sub: [r.reino_nombre, r.categoria].filter(Boolean).join(" · "),
+        estado: "receta",
+      });
+    }
+    return out.sort((a, b) => a.label.localeCompare(b.label, "es"));
+  }, [opcionesMision, opcionesReceta]);
+
+  const opcionesFiltradas = useMemo(() => {
+    return opcionesFlat.filter((o) =>
+      coincideBusquedaPrereq(busqueda, o.label, o.sub),
+    );
+  }, [opcionesFlat, busqueda]);
+
+  async function agregarRef(ref: PrerequisitoRef) {
+    if (itemKeys.has(prereqKey(ref))) return;
+
+    if (misionId && token && onMisionUpdated) {
+      setAdding(true);
+      try {
+        const updated = await tapi(`/misiones/${misionId}/dependencias`, token, {
+          method: "POST",
+          body: JSON.stringify({ tipo: ref.tipo, referencia_id: ref.id }),
+        });
+        onMisionUpdated(updated);
+        setBusqueda("");
+      } catch (e: unknown) {
+        alert(e instanceof Error ? e.message : "Error al agregar");
+      } finally {
+        setAdding(false);
+      }
+      return;
+    }
+    onItemsChange?.([...items, ref]);
+    setBusqueda("");
+  }
+
+  async function quitar(dep: PrerequisitoRef) {
+    if (misionId && token && onMisionUpdated) {
+      try {
+        const updated = await tapi(
+          `/misiones/${misionId}/dependencias/${dep.tipo}/${dep.id}`,
+          token,
+          { method: "DELETE" },
+        );
+        onMisionUpdated(updated);
+      } catch (e: unknown) {
+        alert(e instanceof Error ? e.message : "Error al quitar");
+      }
+      return;
+    }
+    onItemsChange?.(items.filter((p) => prereqKey(p) !== prereqKey(dep)));
+  }
+
+  return (
+    <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
+      <div>
+        <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">{titulo}</h3>
+        <p className="mt-1 text-xs text-muted">{descripcion}</p>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="text-xs text-muted">Sin prerequisitos — esta misión puede iniciarse en cualquier momento.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {listDisplay.map((dep) => (
+            <div key={`${dep.tipo ?? "mision"}-${dep.id}`}
+              className="flex items-center gap-2 rounded-paper border border-border bg-surface px-3 py-2">
+              <span className="text-sm shrink-0">{dep.tipo === "receta" ? "📖" : "🎯"}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink truncate">{dep.titulo}</p>
+                <p className="text-xs text-muted truncate">
+                  {dep.tipo === "receta"
+                    ? `Receta${dep.categoria ? ` · ${dep.categoria}` : ""}`
+                    : dep.reino || "Misión"}
+                </p>
+              </div>
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${estadoPrereqBadge(dep.estado, dep.tipo)}`}>
+                {estadoPrereqLabel(dep.estado, dep.tipo)}
+              </span>
+              {!readonly && (
+                <button type="button" onClick={() => quitar({ tipo: dep.tipo ?? "mision", id: dep.id })}
+                  className="text-muted hover:text-danger transition text-xs px-1 shrink-0">✕</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!readonly && hayOpciones && (
+        <div className="space-y-2">
+          <div className="relative">
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar misión o receta por nombre, reino, categoría…"
+              disabled={adding}
+              className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 pr-9 text-sm text-ink outline-none focus:border-accent disabled:opacity-60"
+              autoComplete="off"
+            />
+            {busqueda && (
+              <button
+                type="button"
+                onClick={() => setBusqueda("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink text-xs px-1"
+                aria-label="Limpiar búsqueda">
+                ✕
+              </button>
+            )}
+          </div>
+          <div className="max-h-48 overflow-y-auto rounded-paper border-2 border-border bg-surface-input shadow-paper-sm">
+            {opcionesFiltradas.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-muted text-center">
+                {busqueda.trim()
+                  ? "Sin resultados — prueba otro nombre"
+                  : "No hay más opciones disponibles"}
+              </p>
+            ) : (
+              opcionesFiltradas.map((o) => (
+                <button
+                  key={o.key}
+                  type="button"
+                  disabled={adding}
+                  onClick={() => agregarRef(o.ref)}
+                  className="flex w-full items-center gap-2 border-b border-border/60 px-3 py-2.5 text-left text-sm transition last:border-b-0 hover:bg-accent/10 disabled:opacity-50">
+                  <span className="shrink-0">{o.icono}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-ink truncate">{o.label}</p>
+                    {o.sub && <p className="text-xs text-muted truncate">{o.sub}</p>}
+                  </div>
+                  <span className="shrink-0 text-[10px] font-bold uppercase text-accent">+ Agregar</span>
+                </button>
+              ))
+            )}
+          </div>
+          <p className="text-[10px] text-muted">
+            {opcionesFiltradas.length} de {opcionesFlat.length} disponible{opcionesFlat.length !== 1 ? "s" : ""}
+            {busqueda.trim() ? ` · filtro: «${busqueda.trim()}»` : ""}
+          </p>
+        </div>
+      )}
+      {items.length > 0 && (
+        <p className="text-xs font-semibold text-accent">
+          {items.length} prerequisito{items.length > 1 ? "s" : ""} vinculado{items.length > 1 ? "s" : ""}
+        </p>
+      )}
+    </div>
+  );
 }
 
 interface Mision {
@@ -167,6 +483,8 @@ interface Mision {
   departamento_nombre?: string | null;
   departamento_id?: number | null;
   ubicacion_label?: string | null;
+  ubicacion_color?: string | null;
+  zona_color?: string | null;
   color: string;
   tipo: "secuencial" | "paralelo";
   categoria: string;
@@ -184,6 +502,45 @@ interface Mision {
   dependencias?: Dependencia[];
   producto_resultante_id?: number | null;
   producto_resultante?: { id: number; nombre: string; unidad: string; stock_actual: number } | null;
+  corrida?: MisionCorrida | null;
+  total_segundos_mision?: number;
+  total_horas_mision?: number;
+  /** Tickets de etapas con pasos_total (GET /misiones/?tablero=1). */
+  tickets_tablero?: TicketTableroResumen[];
+}
+
+/** Ticket embebido en listado de misiones para el tablero. */
+interface TicketTableroResumen {
+  id: number;
+  numero: string;
+  titulo: string;
+  estado: Ticket["estado"];
+  prioridad?: Ticket["prioridad"];
+  categoria?: string;
+  asignado_a?: number | null;
+  asignado_a_nombre?: string | null;
+  bloqueado_por?: number | null;
+  bloqueado_por_numero?: string | null;
+  mision_id: number;
+  etapa_id?: number | null;
+  mision_titulo?: string;
+  mision_color?: string;
+  mision_tipo?: string;
+  mision_reino?: string | null;
+  mision_zona_id?: number | null;
+  etapa_orden?: number;
+  pasos_total?: number;
+  pasos_completados?: number;
+}
+
+interface MisionCorrida {
+  id: number;
+  mision_id: number;
+  estado: "activa" | "pausada" | "finalizada";
+  segundos_transcurridos: number;
+  segundos_acumulados: number;
+  iniciada_en: string;
+  finalizada_en?: string | null;
 }
 
 interface Comentario {
@@ -260,14 +617,160 @@ const ESTADO_LABEL: Record<string, string> = {
 };
 
 const FRECUENCIA_LABEL: Record<string, string> = {
-  diaria:     "♻️ Diaria",
-  semanal:    "♻️ Semanal",
-  quincenal:  "♻️ Quincenal",
-  mensual:    "♻️ Mensual",
-  bimestral:  "♻️ Bimestral",
-  trimestral: "♻️ Trimestral",
-  semestral:  "♻️ Semestral",
+  diaria:      "♻️ Diaria",
+  cada_2_dias: "♻️ Cada 2 días",
+  cada_3_dias: "♻️ Cada 3 días",
+  semanal:     "♻️ Semanal",
+  quincenal:   "♻️ Quincenal",
+  mensual:     "♻️ Mensual",
+  bimestral:   "♻️ Bimestral",
+  trimestral:  "♻️ Trimestral",
+  semestral:   "♻️ Semestral",
 };
+
+function SelectFrecuencia({
+  value,
+  onChange,
+  className = "w-full rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  return (
+    <select className={className} value={value} onChange={(e) => onChange(e.target.value)}>
+      <option value="">Sin repetición</option>
+      <option value="diaria">♻️ Diaria</option>
+      <option value="cada_2_dias">♻️ Cada 2 días</option>
+      <option value="cada_3_dias">♻️ Cada 3 días</option>
+      <option value="semanal">♻️ Semanal</option>
+      <option value="quincenal">♻️ Quincenal</option>
+      <option value="mensual">♻️ Mensual</option>
+      <option value="bimestral">♻️ Bimestral</option>
+      <option value="trimestral">♻️ Trimestral</option>
+      <option value="semestral">♻️ Semestral</option>
+    </select>
+  );
+}
+
+function TicketRecurrenciaById({
+  ticketId,
+  token,
+  canEdit,
+  onRefresh,
+}: {
+  ticketId: number;
+  token: string;
+  canEdit: boolean;
+  onRefresh?: () => void;
+}) {
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  useEffect(() => {
+    tapi(`/${ticketId}`, token).then(setTicket).catch(() => setTicket(null));
+  }, [ticketId, token]);
+  if (!ticket) return null;
+  return (
+    <TicketRecurrenciaSection
+      ticket={ticket}
+      token={token}
+      canEdit={canEdit}
+      onTicket={(t) => {
+        setTicket(t);
+        onRefresh?.();
+      }}
+    />
+  );
+}
+
+function TicketRecurrenciaSection({
+  ticket,
+  token,
+  onTicket,
+  canEdit,
+}: {
+  ticket: Ticket;
+  token: string;
+  onTicket: (t: Ticket) => void;
+  canEdit: boolean;
+}) {
+  const [freq, setFreq] = useState(ticket.frecuencia || "");
+  const [saving, setSaving] = useState(false);
+  const [renewing, setRenewing] = useState(false);
+
+  useEffect(() => {
+    setFreq(ticket.frecuencia || "");
+  }, [ticket.id, ticket.frecuencia]);
+
+  async function saveFreq() {
+    setSaving(true);
+    try {
+      const updated = await tapi(`/${ticket.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ frecuencia: freq || null }),
+      });
+      onTicket(updated);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function renovar() {
+    if (!confirm(`¿Renovar el ticket ${ticket.numero}?\n\nSe desmarcarán los pasos y quedará listo para un nuevo ciclo.`)) return;
+    setRenewing(true);
+    try {
+      const updated = await tapi(`/${ticket.id}/renovar`, token, { method: "POST" });
+      onTicket(updated);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Error al renovar");
+    } finally {
+      setRenewing(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 p-4 space-y-3 dark:border-emerald-800 dark:bg-emerald-950/30">
+      <p className="text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
+        ♻️ Recurrencia del ticket
+      </p>
+      {canEdit ? (
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-[12rem] flex-1">
+            <SelectFrecuencia value={freq} onChange={setFreq} />
+          </div>
+          <button
+            type="button"
+            disabled={saving || freq === (ticket.frecuencia || "")}
+            onClick={saveFreq}
+            className="rounded-paper border-2 border-emerald-500 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-500 hover:text-white transition disabled:opacity-50"
+          >
+            {saving ? "..." : "Guardar"}
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm text-ink">
+          {ticket.frecuencia ? (FRECUENCIA_LABEL[ticket.frecuencia] ?? ticket.frecuencia) : "Sin repetición"}
+        </p>
+      )}
+      {ticket.frecuencia && ticket.proxima_renovacion && ticket.estado === "resuelto" && (
+        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+          ⏰ Próxima renovación automática: {fmtFecha(ticket.proxima_renovacion)}
+        </p>
+      )}
+      {canEdit && ticket.estado === "resuelto" && (
+        <button
+          type="button"
+          disabled={renewing}
+          onClick={renovar}
+          className="rounded-paper border-2 border-emerald-400 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition disabled:opacity-50"
+        >
+          {renewing ? "Renovando..." : "♻️ Renovar ticket"}
+        </button>
+      )}
+    </div>
+  );
+}
 
 function fmtFecha(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -381,10 +884,59 @@ interface ZonaTrabajo {
   nombre: string;
   parent_id?: number | null;
   parent_nombre?: string | null;
+  tipo?: CrearZonaTipo | string | null;
   color?: string;
   icono?: string;
   orden?: number;
   activo?: number;
+}
+
+/** Paleta para distinguir zonas cuando aún no tienen color propio. */
+const ZONA_COLOR_PALETTE = [
+  "#0c6069", "#2563eb", "#7c3aed", "#db2777", "#ea580c",
+  "#16a34a", "#0d9488", "#ca8a04", "#dc2626", "#4f46e5",
+  "#0891b2", "#65a30d", "#c026d3", "#f59e0b",
+];
+
+function zonaColor(z: ZonaTrabajo | undefined | null, fallbackId = 0): string {
+  if (!z) return ZONA_COLOR_PALETTE[Math.abs(fallbackId) % ZONA_COLOR_PALETTE.length];
+  const c = (z.color || "").trim();
+  return c || ZONA_COLOR_PALETTE[z.id % ZONA_COLOR_PALETTE.length];
+}
+
+function zonaById(zonas: ZonaTrabajo[], id: number | null | undefined): ZonaTrabajo | undefined {
+  if (id == null) return undefined;
+  return zonas.find((x) => x.id === id);
+}
+
+function colorPorDefectoNuevaZona(
+  zonas: ZonaTrabajo[],
+  parentId: number | "",
+  tipo: CrearZonaTipo,
+): string {
+  const hermanos = zonas.filter((z) =>
+    tipo === "reino" ? !z.parent_id : z.parent_id === parentId,
+  );
+  return ZONA_COLOR_PALETTE[hermanos.length % ZONA_COLOR_PALETTE.length];
+}
+
+function ZonaColorDot({
+  color,
+  size = "md",
+  title,
+}: {
+  color: string;
+  size?: "sm" | "md";
+  title?: string;
+}) {
+  const dim = size === "sm" ? "h-3 w-3" : "h-4 w-4";
+  return (
+    <span
+      title={title}
+      className={`${dim} shrink-0 rounded-full border-2 border-white shadow-sm ring-1 ring-black/10`}
+      style={{ background: color }}
+    />
+  );
 }
 
 interface TableroReinoSection {
@@ -426,13 +978,14 @@ function buildTableroReinoSections(
   };
 
   for (const g of misionGroups.values()) {
-    if (g.reino_id) {
-      const key = `id:${g.reino_id}`;
-      const label = (g.reino || g.ubicacion_label || "").trim() || "Sin reino asignado";
+    const eg = enrichMisionGroupUbicacion(g, reinosCatalog);
+    if (eg.reino_id) {
+      const key = `id:${eg.reino_id}`;
+      const label = (eg.reino || eg.ubicacion_label || "").trim() || "Sin reino asignado";
       if (!buckets.has(key)) buckets.set(key, { label, groups: [], standalone: [] });
-      buckets.get(key)!.groups.push(g);
+      buckets.get(key)!.groups.push(eg);
     } else {
-      bucketFor(g.reino).groups.push(g);
+      bucketFor(eg.reino).groups.push(eg);
     }
   }
   for (const t of standalone) bucketFor(t.mision_reino).standalone.push(t);
@@ -482,7 +1035,7 @@ function buildTableroReinoSections(
       key: `reino-${z.id}`,
       reinoId: z.id,
       nombre: z.nombre,
-      color: z.color || "#0c6069",
+      color: zonaColor(z, z.id),
       icono: z.icono || null,
       groups,
       standalone: st,
@@ -542,9 +1095,9 @@ const QUEST_NAV_VIEWS: View[] = ["list", "detail", "create", "mision_detail", "c
 
 type NavScope =
   | { kind: "all" }
-  | { kind: "reino"; id: number; nombre: string }
-  | { kind: "zona"; id: number; nombre: string; reinoNombre: string }
-  | { kind: "subzona"; id: number; nombre: string; reinoNombre: string; zonaNombre: string }
+  | { kind: "reino"; id: number; nombre: string; color: string }
+  | { kind: "zona"; id: number; nombre: string; reinoNombre: string; color: string }
+  | { kind: "subzona"; id: number; nombre: string; reinoNombre: string; zonaNombre: string; color: string }
   | {
     kind: "departamento";
     id: number;
@@ -552,6 +1105,7 @@ type NavScope =
     reinoNombre: string;
     zonaNombre: string;
     subzonaNombre: string;
+    color: string;
   };
 
 type ReinoNavNode = {
@@ -724,10 +1278,19 @@ function navScopeActivo(navScope: NavScope, s: NavScope): boolean {
 type CrearZonaTipo = "reino" | "zona" | "subzona" | "departamento";
 
 function nivelZona(z: ZonaTrabajo, zonas: ZonaTrabajo[]): CrearZonaTipo {
+  const t = (z.tipo || "").toLowerCase();
+  if (t === "reino" || t === "zona" || t === "subzona" || t === "departamento") return t;
   const d = zonaProfundidad(z, zonas);
   if (d === 0) return "reino";
   if (d === 1) return "zona";
-  if (d === 2) return "subzona";
+  if (d === 2) {
+    const hijos = zonas.filter((x) => x.parent_id === z.id);
+    if (hijos.some((h) => nivelZona(h, zonas) === "departamento" || zonaProfundidad(h, zonas) >= 3)) {
+      return "subzona";
+    }
+    if (hijos.length > 0) return "subzona";
+    return "departamento";
+  }
   return "departamento";
 }
 
@@ -741,6 +1304,22 @@ function subzonasDeZona(zonas: ZonaTrabajo[], zonaId: number): ZonaTrabajo[] {
 
 function departamentosDePadre(zonas: ZonaTrabajo[], parentId: number): ZonaTrabajo[] {
   return zonas.filter((z) => z.parent_id === parentId && nivelZona(z, zonas) === "departamento");
+}
+
+function zonasSinSubzona(zonas: ZonaTrabajo[]): ZonaTrabajo[] {
+  return zonas.filter(
+    (z) => zonaProfundidad(z, zonas) === 1 && subzonasDeZona(zonas, z.id).length === 0,
+  );
+}
+
+function departamentoPadreValido(zonas: ZonaTrabajo[], parentId: number | ""): boolean {
+  if (parentId === "" || parentId == null) return false;
+  const z = zonas.find((x) => x.id === parentId);
+  if (!z) return false;
+  const niv = nivelZona(z, zonas);
+  if (niv === "subzona") return true;
+  if (niv === "zona") return subzonasDeZona(zonas, z.id).length === 0;
+  return false;
 }
 
 /** Padre para labores: subzona si hay; si no, la zona (Hogar Dulce Hogar). */
@@ -799,10 +1378,12 @@ function ReinosView({
   const [actionMsg, setActionMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [editId, setEditId] = useState<number | null>(null);
   const [editNombre, setEditNombre] = useState("");
+  const [editColor, setEditColor] = useState("#0c6069");
   const [crear, setCrear] = useState<{
     tipo: CrearZonaTipo;
     parentId: number | "";
     nombre: string;
+    color: string;
   } | null>(null);
 
   const reload = useCallback(() => {
@@ -819,6 +1400,8 @@ function ReinosView({
   const todosIds = zonas.map((z) => z.id);
   const zonasParaSub = zonas.filter((z) => zonaProfundidad(z, zonas) === 1);
   const subzonasParaDept = listarSubzonas(zonas);
+  const zonasDirectasParaDept = zonasSinSubzona(zonas);
+  const hayPadresDepartamento = zonasDirectasParaDept.length > 0 || subzonasParaDept.length > 0;
 
   function toggleSelect(id: number) {
     setSelectedIds((prev) => {
@@ -849,7 +1432,12 @@ function ReinosView({
     if ((pid === "" || pid == null) && tipo === "departamento" && navScope.kind === "zona") {
       pid = navScope.id;
     }
-    setCrear({ tipo, parentId: pid, nombre: "" });
+    setCrear({
+      tipo,
+      parentId: pid,
+      nombre: "",
+      color: colorPorDefectoNuevaZona(zonas, pid, tipo),
+    });
     setActionMsg(null);
   }
 
@@ -868,21 +1456,22 @@ function ReinosView({
       });
       return;
     }
-    if (crear.tipo === "departamento" && (crear.parentId === "" || crear.parentId == null)) {
+    if (crear.tipo === "departamento" && !departamentoPadreValido(zonas, crear.parentId)) {
       setActionMsg({
         type: "err",
-        text: subzonasParaDept.length === 0
-          ? "Elige la zona padre (ej. Cocina, Jardín en Hogar Dulce Hogar)."
-          : "Elige la subzona padre.",
+        text: !hayPadresDepartamento
+          ? "Crea primero una zona bajo un reino (ej. Cocina en Hogar Dulce Hogar)."
+          : "Elige la zona (sin subzona) o la subzona padre.",
       });
       return;
     }
     setSaving(true);
     setActionMsg(null);
     try {
-      const body: { nombre: string; nivel: CrearZonaTipo; parent_id?: number } = {
+      const body: { nombre: string; nivel: CrearZonaTipo; parent_id?: number; color: string } = {
         nombre: crear.nombre.trim(),
         nivel: crear.tipo,
+        color: crear.color,
       };
       if (crear.tipo !== "reino") body.parent_id = Number(crear.parentId);
       await tapi("/zonas-trabajo", token, { method: "POST", body: JSON.stringify(body) });
@@ -900,6 +1489,7 @@ function ReinosView({
     setCrear(null);
     setEditId(z.id);
     setEditNombre(z.nombre);
+    setEditColor(zonaColor(z, z.id));
   }
 
   async function guardarEdicion() {
@@ -909,10 +1499,11 @@ function ReinosView({
     try {
       await tapi(`/zonas-trabajo/${editId}`, token, {
         method: "PUT",
-        body: JSON.stringify({ nombre: editNombre.trim() }),
+        body: JSON.stringify({ nombre: editNombre.trim(), color: editColor }),
       });
       setEditId(null);
       setEditNombre("");
+      setEditColor("#0c6069");
       setActionMsg({ type: "ok", text: "Nombre actualizado." });
       await reload();
     } catch (e: any) {
@@ -966,15 +1557,18 @@ function ReinosView({
     subzonaNombre?: string,
   ) {
     const niv = nivelZona(z, zonas);
-    if (niv === "reino") onNavScope({ kind: "reino", id: z.id, nombre: z.nombre });
-    else if (niv === "zona") onNavScope({ kind: "zona", id: z.id, nombre: z.nombre, reinoNombre });
-    else if (niv === "subzona") {
+    const c = zonaColor(z, z.id);
+    if (niv === "reino") onNavScope({ kind: "reino", id: z.id, nombre: z.nombre, color: c });
+    else if (niv === "zona") {
+      onNavScope({ kind: "zona", id: z.id, nombre: z.nombre, reinoNombre, color: c });
+    } else if (niv === "subzona") {
       onNavScope({
         kind: "subzona",
         id: z.id,
         nombre: z.nombre,
         reinoNombre,
         zonaNombre: zonaNombre || z.parent_nombre || "",
+        color: c,
       });
     } else {
       onNavScope({
@@ -984,6 +1578,7 @@ function ReinosView({
         reinoNombre,
         zonaNombre: zonaNombre || "",
         subzonaNombre: subzonaNombre || z.parent_nombre || "",
+        color: c,
       });
     }
   }
@@ -998,6 +1593,7 @@ function ReinosView({
     },
   ) => {
     const niv = nivelZona(z, zonas);
+    const zColor = zonaColor(z, z.id);
     const icono = niv === "reino" ? "🏰" : niv === "zona" ? "📍" : niv === "subzona" ? "↳" : "🏢";
     const editando = editId === z.id;
     const seleccionado = selectedIds.has(z.id);
@@ -1015,15 +1611,29 @@ function ReinosView({
 
     if (editando && canManage) {
       return (
-        <div key={z.id} className={`rounded-lg border-2 border-accent bg-surface p-2 ${indentCls}`}>
+        <div
+          key={z.id}
+          className={`rounded-lg border-2 border-accent bg-surface p-2 ${indentCls}`}
+          style={{ borderLeftWidth: 4, borderLeftColor: editColor }}
+        >
           <input
             className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm font-bold outline-none focus:border-accent"
             value={editNombre}
             onChange={(e) => setEditNombre(e.target.value)}
             autoFocus
           />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <label className="text-[10px] font-bold uppercase text-muted">Color</label>
+            <input
+              type="color"
+              value={editColor}
+              onChange={(e) => setEditColor(e.target.value)}
+              className="h-8 w-12 cursor-pointer rounded border border-border p-0.5"
+            />
+            <span className="font-mono text-[10px] text-muted">{editColor}</span>
+          </div>
           <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={() => { setEditId(null); setEditNombre(""); }}
+            <button type="button" onClick={() => { setEditId(null); setEditNombre(""); setEditColor("#0c6069"); }}
               className="text-xs font-bold text-muted hover:text-ink">Cancelar</button>
             <button type="button" onClick={guardarEdicion} disabled={saving || !editNombre.trim()}
               className="text-xs font-bold text-accent hover:underline disabled:opacity-50">Guardar</button>
@@ -1038,6 +1648,7 @@ function ReinosView({
         className={`flex flex-wrap items-center gap-2 rounded-lg border-2 px-2 py-1.5 ${
           seleccionado ? "border-accent/50 bg-accent/5" : filtroActivo ? "border-accent/30 bg-accent/5" : "border-transparent hover:bg-surface-hover"
         } ${indentCls}`}
+        style={{ borderLeftWidth: 4, borderLeftColor: zColor }}
       >
         {canManage && (
           <input
@@ -1047,6 +1658,7 @@ function ReinosView({
             onChange={() => toggleSelect(z.id)}
           />
         )}
+        <ZonaColorDot color={zColor} title={`Color de ${z.nombre}`} />
         <button
           type="button"
           onClick={() => aplicarFiltro(z, opts.reinoNombre, opts.zonaNombre, opts.subzonaNombre)}
@@ -1109,7 +1721,7 @@ function ReinosView({
         <div>
           <h2 className="text-xl font-extrabold text-ink">🏰 Reinos</h2>
           <p className="mt-1 text-xs text-muted">
-            Reino → zona → subzona → departamento (labor). Clic en el nombre para filtrar tablero e inventario.
+            Reino → zona → subzona → departamento (labor). Cada nivel tiene un color; clic en el nombre para filtrar tablero e inventario.
           </p>
         </div>
         {canManage && (
@@ -1134,12 +1746,13 @@ function ReinosView({
             <button
               type="button"
               onClick={() => iniciarCrear("departamento")}
+              disabled={!hayPadresDepartamento}
               title={
-                subzonasParaDept.length === 0
-                  ? "Labor bajo una zona (Cocina, Jardín…) — sin subzona"
-                  : "Nuevo departamento (labor) bajo una subzona"
+                !hayPadresDepartamento
+                  ? "Crea primero una zona bajo un reino"
+                  : "Labor bajo una zona sin subzona (Hogar…) o bajo una subzona (oficinas)"
               }
-              className="rounded-xl border-2 border-accent bg-accent px-3 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover active:translate-y-0.5 active:shadow-none"
+              className="rounded-xl border-2 border-accent bg-accent px-3 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-40"
             >
               + Departamento
             </button>
@@ -1148,8 +1761,17 @@ function ReinosView({
       </div>
 
       {navScope.kind !== "all" && (
-        <div className="flex flex-wrap items-center gap-2 rounded-paper border-2 border-accent/40 bg-accent/10 px-4 py-3">
-          <span className="text-sm font-semibold text-accent">Filtro: {navScopeLabel(navScope)}</span>
+        <div
+          className="flex flex-wrap items-center gap-2 rounded-paper border-2 px-4 py-3"
+          style={{
+            borderColor: `${navScope.color}88`,
+            background: `${navScope.color}18`,
+          }}
+        >
+          <ZonaColorDot color={navScope.color} />
+          <span className="text-sm font-semibold" style={{ color: navScope.color }}>
+            Filtro: {navScopeLabel(navScope)}
+          </span>
           <button type="button" onClick={onIrTablero}
             className="rounded-paper border-2 border-accent bg-accent px-3 py-1 text-xs font-bold text-white hover:bg-accent-hover">
             Ver en tablero
@@ -1192,42 +1814,36 @@ function ReinosView({
           )}
           {crear.tipo === "departamento" && (
             <div>
-              <label className="mb-1 block text-xs font-bold text-muted">
-                {subzonasParaDept.length === 0 ? "Zona padre *" : "Subzona padre *"}
-              </label>
-              {subzonasParaDept.length === 0 ? (
-                zonasParaSub.length === 0 ? (
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    No hay zonas en el catálogo. Crea primero una <strong>zona</strong> bajo el reino (ej. Cocina).
-                  </p>
-                ) : (
-                  <select
-                    className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                    value={crear.parentId === "" ? "" : String(crear.parentId)}
-                    onChange={(e) => setCrear((c) => c && { ...c, parentId: e.target.value ? parseInt(e.target.value, 10) : "" })}
-                  >
-                    <option value="">— Elegir zona —</option>
-                    {zonasParaSub.map((z) => (
-                      <option key={z.id} value={z.id}>{zonaRutaLabel(z, zonas)}</option>
-                    ))}
-                  </select>
-                )
+              <label className="mb-1 block text-xs font-bold text-muted">Ubicación padre *</label>
+              {!hayPadresDepartamento ? (
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  No hay zonas en el catálogo. Crea primero una <strong>zona</strong> bajo el reino (ej. Cocina).
+                </p>
               ) : (
                 <select
                   className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
                   value={crear.parentId === "" ? "" : String(crear.parentId)}
                   onChange={(e) => setCrear((c) => c && { ...c, parentId: e.target.value ? parseInt(e.target.value, 10) : "" })}
                 >
-                  <option value="">— Elegir subzona —</option>
-                  {subzonasParaDept.map((s) => (
-                    <option key={s.id} value={s.id}>{subzonaRutaLabel(s, zonas)}</option>
-                  ))}
+                  <option value="">— Elegir ubicación —</option>
+                  {zonasDirectasParaDept.length > 0 && (
+                    <optgroup label="Zona directa (sin subzona)">
+                      {zonasDirectasParaDept.map((z) => (
+                        <option key={z.id} value={z.id}>{zonaRutaLabel(z, zonas)}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {subzonasParaDept.length > 0 && (
+                    <optgroup label="Subzona">
+                      {subzonasParaDept.map((s) => (
+                        <option key={s.id} value={s.id}>{subzonaRutaLabel(s, zonas)}</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               )}
               <p className="mt-1 text-[10px] text-muted">
-                {subzonasParaDept.length === 0
-                  ? "Hogar y reinos simples: reino → zona (Cocina) → departamento (labor). Subzona es opcional en oficinas."
-                  : "Oficinas: reino → zona → subzona → departamento (Contabilidad)."}
+                Hogar Dulce Hogar: reino → zona (Cocina) → departamento. Oficinas: reino → zona → subzona → departamento.
               </p>
             </div>
           )}
@@ -1263,6 +1879,17 @@ function ReinosView({
               autoFocus
             />
           </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-xs font-bold text-muted">Color identificador</label>
+            <input
+              type="color"
+              value={crear.color}
+              onChange={(e) => setCrear((c) => c && { ...c, color: e.target.value })}
+              className="h-9 w-14 cursor-pointer rounded border-2 border-border p-0.5"
+            />
+            <ZonaColorDot color={crear.color} size="md" />
+            <span className="font-mono text-[10px] text-muted">{crear.color}</span>
+          </div>
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setCrear(null)}
               className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:bg-surface-hover">
@@ -1274,7 +1901,9 @@ function ReinosView({
               disabled={
                 saving
                 || !crear.nombre.trim()
-                || (crear.tipo === "departamento" && subzonasParaDept.length > 0 && (crear.parentId === "" || crear.parentId == null))
+                || (crear.tipo === "zona" && (crear.parentId === "" || crear.parentId == null))
+                || (crear.tipo === "subzona" && (crear.parentId === "" || crear.parentId == null))
+                || (crear.tipo === "departamento" && !departamentoPadreValido(zonas, crear.parentId))
               }
               className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white disabled:opacity-50"
             >
@@ -1501,7 +2130,17 @@ interface MisionGroup {
   reino_id?: number | null;
   zona_id?: number | null;
   ubicacion_label?: string | null;
+  ubicacion_color?: string | null;
   tickets: Ticket[];
+}
+
+function enrichMisionGroupUbicacion(
+  g: MisionGroup,
+  zonas: ZonaTrabajo[],
+): MisionGroup {
+  if (!g.zona_id) return g;
+  const leaf = zonaById(zonas, g.zona_id);
+  return { ...g, ubicacion_color: zonaColor(leaf, g.zona_id) };
 }
 
 function ubicacionFromZonaId(
@@ -1651,6 +2290,24 @@ function QuickCrearDepartamento({
   );
 }
 
+function ubicacionColorEfectiva(
+  zonas: ZonaTrabajo[],
+  reinoId: number | "",
+  zonaId: number | "",
+  subzonaId: number | "",
+  departamentoId: number | "",
+): string {
+  const eff =
+    departamentoId !== "" ? departamentoId
+    : subzonaId !== "" ? subzonaId
+    : zonaId !== "" ? zonaId
+    : reinoId !== "" ? reinoId
+    : null;
+  if (eff == null) return ZONA_COLOR_PALETTE[0];
+  const id = typeof eff === "number" ? eff : Number(eff);
+  return zonaColor(zonaById(zonas, id), id);
+}
+
 function MisionUbicacionPicker({
   zonas,
   reinoId,
@@ -1679,7 +2336,10 @@ function MisionUbicacionPicker({
   onZonaCreada?: (z: ZonaTrabajo) => void;
 }) {
   const reinos = zonas.filter((z) => !z.parent_id);
-  const zonasDelReino = reinoId !== "" ? zonas.filter((z) => z.parent_id === reinoId) : [];
+  const zonasDelReino =
+    reinoId !== ""
+      ? zonas.filter((z) => z.parent_id === reinoId && nivelZona(z, zonas) === "zona")
+      : [];
   const subzonas = zonaId !== "" ? subzonasDeZona(zonas, zonaId) : [];
   const omitirSubzona = zonaId !== "" && subzonas.length === 0;
   const padreDept = padreIdParaDepartamentos(zonas, zonaId, subzonaId);
@@ -1750,7 +2410,14 @@ function MisionUbicacionPicker({
             disabled={reinoId === "" || zonasDelReino.length === 0}
               onChange={(e) => {
               const id = e.target.value ? Number(e.target.value) : "";
-              onChange({ reinoId, zonaId: id, subzonaId: "", departamentoId: "" });
+              const z = typeof id === "number" ? zonasDelReino.find((x) => x.id === id) : undefined;
+              onChange({
+                reinoId,
+                zonaId: id,
+                subzonaId: "",
+                departamentoId: "",
+                color: z ? zonaColor(z, z.id) : undefined,
+              });
             }}
           >
             <option value="">
@@ -1771,7 +2438,14 @@ function MisionUbicacionPicker({
             disabled={zonaId === "" || omitirSubzona}
             onChange={(e) => {
               const id = e.target.value ? Number(e.target.value) : "";
-              onChange({ reinoId, zonaId, subzonaId: id, departamentoId: "" });
+              const s = typeof id === "number" ? subzonas.find((x) => x.id === id) : undefined;
+              onChange({
+                reinoId,
+                zonaId,
+                subzonaId: id,
+                departamentoId: "",
+                color: s ? zonaColor(s, s.id) : zonaSel ? zonaColor(zonaSel, zonaSel.id) : undefined,
+              });
             }}
           >
             <option value="">
@@ -1793,16 +2467,29 @@ function MisionUbicacionPicker({
           <select
             className={selCls}
             value={departamentoId === "" ? "" : String(departamentoId)}
-            disabled={subzonaId === ""}
+            disabled={padreDept === ""}
             onChange={(e) => {
               const id = e.target.value ? Number(e.target.value) : "";
-              onChange({ reinoId, zonaId, subzonaId, departamentoId: id });
+              const d = typeof id === "number" ? departamentos.find((x) => x.id === id) : undefined;
+              onChange({
+                reinoId,
+                zonaId,
+                subzonaId,
+                departamentoId: id,
+                color: d ? zonaColor(d, d.id) : subzonaSel
+                  ? zonaColor(subzonaSel, subzonaSel.id)
+                  : zonaSel
+                    ? zonaColor(zonaSel, zonaSel.id)
+                    : undefined,
+              });
             }}
             required={departamentos.length > 0}
           >
             <option value="">
-              {subzonaId === ""
-                ? "Primero la subzona"
+              {padreDept === ""
+                ? omitirSubzona
+                  ? "Primero la zona"
+                  : "Primero la subzona"
                 : departamentos.length === 0
                   ? "Sin departamentos — créalo abajo"
                   : "— Elegir labor —"}
@@ -1825,10 +2512,47 @@ function MisionUbicacionPicker({
         />
       )}
       {labelEfectivo && (
-        <p className="text-[11px] font-semibold text-accent">
-          Se asignará a: {labelEfectivo}
+        <p className="flex items-center gap-2 text-[11px] font-semibold text-accent">
+          <ZonaColorDot
+            color={ubicacionColorEfectiva(zonas, reinoId, zonaId, subzonaId, departamentoId)}
+            size="sm"
+          />
+          <span>
+            Se asignará a: {labelEfectivo}
+          </span>
         </p>
       )}
+    </div>
+  );
+}
+
+function TicketStickyProgress({ t, accent }: { t: Ticket; accent: string }) {
+  const dark = useQuestTheme((s) => s.dark);
+  const prog = ticketEjecucionPct(t);
+  if (prog.total <= 0 && prog.pct === 0) return null;
+  const barColor = prog.pct === 100 ? "#16a34a" : accent;
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="flex items-center justify-between gap-2 text-[10px] font-bold">
+        <span className="text-muted">Checklist</span>
+        <span className="tabular-nums" style={{ color: barColor }}>
+          {prog.pct}%
+          {prog.total > 0 && (
+            <span className="ml-1 font-semibold text-muted">
+              {prog.completados}/{prog.total}
+            </span>
+          )}
+        </span>
+      </div>
+      <div
+        className="h-1.5 w-full overflow-hidden rounded-full border border-black/5 dark:border-white/10"
+        style={{ background: dark ? `${accent}18` : `${accent}12` }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-300"
+          style={{ width: `${prog.pct}%`, background: barColor }}
+        />
+      </div>
     </div>
   );
 }
@@ -1861,7 +2585,7 @@ function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
     >
       <span className="quest-sticky-tape" aria-hidden />
       <div className="flex items-start gap-2">
-        <StatusOrb estado={t.estado} />
+        <StatusOrb estado={estadoOrbEnTablero(t)} />
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm font-extrabold leading-snug text-ink">{t.titulo}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -1871,6 +2595,7 @@ function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
         </div>
         <PrioridadDot p={t.prioridad} />
       </div>
+      <TicketStickyProgress t={t} accent={accent} />
       <div className="flex items-center justify-between gap-2 border-t border-black/5 pt-2 dark:border-white/10">
         <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: accent }}>
           {estadoLabel}
@@ -1880,6 +2605,221 @@ function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
         )}
       </div>
     </button>
+  );
+}
+
+function ticketPasosCounts(t: Ticket | { pasos_total?: unknown; pasos_completados?: unknown }): {
+  total: number;
+  completados: number;
+} {
+  const totalRaw = Number(t.pasos_total);
+  const okRaw = Number(t.pasos_completados);
+  const total = Number.isFinite(totalRaw) ? Math.max(0, Math.floor(totalRaw)) : 0;
+  let completados = Number.isFinite(okRaw) ? Math.max(0, Math.floor(okRaw)) : 0;
+  if (total > 0) completados = Math.min(completados, total);
+  return { total, completados };
+}
+
+function normalizeTicketForList(raw: unknown): Ticket {
+  const t = raw as Ticket;
+  const { total, completados } = ticketPasosCounts(t);
+  return {
+    ...t,
+    pasos_total: total,
+    pasos_completados: completados,
+  };
+}
+
+function ticketFromTableroResumen(row: TicketTableroResumen, m: Mision): Ticket {
+  return normalizeTicketForList({
+    id: row.id,
+    numero: row.numero,
+    titulo: row.titulo,
+    categoria: (row.categoria || m.categoria || "logistica") as Ticket["categoria"],
+    descripcion: row.titulo,
+    estado: row.estado,
+    prioridad: row.prioridad || "media",
+    creado_por: m.creado_por,
+    asignado_a: row.asignado_a ?? null,
+    asignado_a_nombre: row.asignado_a_nombre ?? null,
+    soporte_archivo: null,
+    creado_en: m.creado_en,
+    actualizado_en: m.creado_en,
+    resuelto_en: null,
+    mision_id: m.id,
+    etapa_id: row.etapa_id ?? null,
+    bloqueado_por: row.bloqueado_por ?? null,
+    bloqueado_por_numero: row.bloqueado_por_numero ?? null,
+    mision_titulo: row.mision_titulo || m.titulo,
+    mision_color: row.mision_color || m.color,
+    mision_tipo: row.mision_tipo || m.tipo,
+    mision_reino: row.mision_reino ?? m.reino ?? null,
+    mision_zona_id: row.mision_zona_id ?? m.zona_id ?? null,
+    pasos_total: row.pasos_total,
+    pasos_completados: row.pasos_completados,
+  });
+}
+
+/** Mezcla tickets del listado con resumen por etapa (si el GET / no trajo alguno). */
+function mergeMisionGroupsWithTablero(
+  misionGroups: Map<number, MisionGroup>,
+  misionesActivas: Mision[],
+  zonasReinos: ZonaTrabajo[],
+) {
+  for (const m of misionesActivas) {
+    const tablero = m.tickets_tablero;
+    if (!tablero?.length) continue;
+
+    let g = misionGroups.get(m.id);
+    if (!g) {
+      g = {
+        mision_id: m.id,
+        mision_titulo: m.titulo,
+        mision_color: m.color || "#0c6069",
+        mision_tipo: m.tipo || "secuencial",
+        reino: m.reino || m.reino_nombre || null,
+        reino_id: m.zona_id ? zonaRaizId(zonasReinos, m.zona_id) : null,
+        zona_id: m.zona_id ?? null,
+        ubicacion_label: m.ubicacion_label ?? null,
+        tickets: [],
+      };
+      misionGroups.set(m.id, g);
+    }
+
+    const byId = new Map(g.tickets.map((t) => [t.id, t]));
+    for (const row of tablero) {
+      const normalized = ticketFromTableroResumen(row, m);
+      const prev = byId.get(normalized.id);
+      if (prev) {
+        prev.pasos_total = normalized.pasos_total;
+        prev.pasos_completados = normalized.pasos_completados;
+        prev.estado = normalized.estado;
+      } else {
+        g.tickets.push(normalized);
+        byId.set(normalized.id, normalized);
+      }
+    }
+    g.tickets.sort(
+      (a, b) =>
+        (tablero.find((x) => x.id === a.id)?.etapa_orden ?? 0)
+        - (tablero.find((x) => x.id === b.id)?.etapa_orden ?? 0),
+    );
+  }
+}
+
+function misionGrupoEjecucionPct(group: MisionGroup): {
+  pct: number;
+  completados: number;
+  total: number;
+} {
+  let totalPasos = 0;
+  let okPasos = 0;
+  for (const t of group.tickets) {
+    const { total, completados } = ticketPasosCounts(t);
+    totalPasos += total;
+    okPasos += completados;
+  }
+  if (totalPasos > 0) {
+    return {
+      pct: Math.round((okPasos / totalPasos) * 100),
+      completados: okPasos,
+      total: totalPasos,
+    };
+  }
+  return { pct: 0, completados: 0, total: 0 };
+}
+
+/** Avisar al tablero que cambió el checklist de un ticket (misma pestaña). */
+function emitTicketPasosProgress(ticketId: number, completados: number, total: number) {
+  window.dispatchEvent(
+    new CustomEvent("mckenna-ticket-pasos-updated", {
+      detail: { ticketId, pasos_completados: completados, pasos_total: total },
+    }),
+  );
+}
+
+/** Progreso de ejecución por ticket (checklist), no por etapas resueltas de la misión. */
+function ticketEjecucionPct(t: Ticket): { pct: number; completados: number; total: number } {
+  const { total, completados } = ticketPasosCounts(t);
+  if (total > 0) {
+    return {
+      pct: Math.round((completados / total) * 100),
+      completados,
+      total,
+    };
+  }
+  if (t.estado === "resuelto") return { pct: 100, completados: 0, total: 0 };
+  return { pct: 0, completados: 0, total: 0 };
+}
+
+function ticketEjecucionCompleto(t: Ticket): boolean {
+  const { pct, total } = ticketEjecucionPct(t);
+  if (total > 0) return pct === 100;
+  return t.estado === "resuelto";
+}
+
+/** Estado visual en tablero: checklist manda sobre el dot cuando hay pasos. */
+function estadoOrbEnTablero(t: Ticket): Ticket["estado"] {
+  const { total, pct } = ticketEjecucionPct(t);
+  if (total > 0) {
+    if (pct === 100) return "resuelto";
+    if (pct > 0) return "en_proceso";
+    return "pendiente";
+  }
+  return t.estado;
+}
+
+function etiquetaChecklistTablero(t: Ticket): string | null {
+  const { total, completados, pct } = ticketEjecucionPct(t);
+  if (total <= 0) return null;
+  return `${pct}% · ${completados}/${total} pasos`;
+}
+
+function MisionUbicacionResumen({
+  mision,
+  zonas,
+}: {
+  mision: Mision;
+  zonas?: ZonaTrabajo[];
+}) {
+  const accent =
+    mision.ubicacion_color
+    ?? (mision.zona_id && zonas ? zonaColor(zonaById(zonas, mision.zona_id), mision.zona_id) : null);
+
+  const filas: { label: string; valor: string; color?: string }[] = [];
+  if (mision.reino_nombre || mision.reino) {
+    filas.push({ label: "Reino", valor: mision.reino_nombre || mision.reino || "" });
+  }
+  if (mision.zona_nombre) {
+    filas.push({
+      label: "Zona",
+      valor: mision.zona_nombre,
+      color: mision.zona_color ?? undefined,
+    });
+  }
+  if (mision.subzona_nombre) filas.push({ label: "Subzona", valor: mision.subzona_nombre });
+  if (mision.departamento_nombre) filas.push({ label: "Depto", valor: mision.departamento_nombre });
+  if (filas.length === 0) {
+    const fallback = mision.ubicacion_label || mision.reino;
+    if (!fallback) return null;
+    return (
+      <p className="mt-1 flex items-center gap-2 text-xs font-semibold text-muted">
+        {accent && <ZonaColorDot color={accent} size="sm" />}
+        <span>📍 {fallback}</span>
+      </p>
+    );
+  }
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+      {accent && <ZonaColorDot color={accent} title="Ubicación" />}
+      {filas.map((f) => (
+        <span key={f.label} className="inline-flex items-center gap-1 text-xs text-muted">
+          {f.color && <ZonaColorDot color={f.color} size="sm" title={f.label} />}
+          <span className="font-bold uppercase tracking-wide text-[10px] text-muted/80">{f.label}</span>{" "}
+          <span className="font-semibold text-ink">{f.valor}</span>
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -1896,16 +2836,15 @@ function MisionGroupCard({
   const dark = useQuestTheme((s) => s.dark);
   const isSeq = group.mision_tipo === "secuencial";
   const done = ["resuelto", "rechazado"];
-  const resolved = group.tickets.filter((t) => t.estado === "resuelto").length;
   const total = group.tickets.length;
-  const pct = total > 0 ? Math.round((resolved / total) * 100) : 0;
-  const isComplete = resolved === total && total > 0;
+  const isComplete = total > 0 && group.tickets.every(ticketEjecucionCompleto);
+  const progMision = misionGrupoEjecucionPct(group);
   const c = group.mision_color;
   const rot = stickyRotation(group.mision_id);
 
-  const visible = isSeq
-    ? group.tickets.filter((t) => !t.bloqueado_por && !done.includes(t.estado))
-    : group.tickets.filter((t) => !done.includes(t.estado));
+  const ticketsEnSticky = [...group.tickets].sort((a, b) => a.id - b.id);
+  const compact = ticketsEnSticky.length <= 2;
+  const progColor = progMision.pct === 100 ? "#16a34a" : c;
 
   const stickyStyle: CSSProperties = {
     transform: `rotate(${rot}deg)`,
@@ -1921,7 +2860,7 @@ function MisionGroupCard({
 
   return (
     <article
-      className="quest-sticky quest-sticky-mission"
+      className={`quest-sticky quest-sticky-mission ${compact ? "quest-sticky-mission--compact" : ""}`}
       style={stickyStyle}
       onMouseEnter={onStickyEnter}
       onMouseLeave={onStickyLeave}
@@ -1944,9 +2883,9 @@ function MisionGroupCard({
         </button>
       )}
 
-      <div className={`mb-2 flex items-start gap-2 pr-6 ${QUEST_MISION_CHROME}`}>
+      <div className={`quest-sticky-mission-head ${QUEST_MISION_CHROME}`}>
         <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-sm font-black text-white shadow-sm dark:opacity-85"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-xs font-black text-white shadow-sm sm:h-8 sm:w-8"
           style={{ background: c }}
         >
           {isSeq ? "🔗" : "⚡"}
@@ -1954,96 +2893,104 @@ function MisionGroupCard({
         <button
           type="button"
           onClick={() => onEditMision(group.mision_id)}
-          className="min-w-0 flex-1 text-left transition hover:opacity-90"
+          className="quest-sticky-mission-meta text-left transition hover:opacity-90"
           title="Editar misión"
         >
-          <h4 className="line-clamp-2 text-[15px] font-extrabold leading-tight tracking-tight" style={{ color: c }}>
+          <h4 className="line-clamp-2 text-sm font-extrabold leading-tight sm:text-[15px]" style={{ color: c }}>
             {group.mision_titulo}
           </h4>
-          <p className="mt-0.5 text-[10px] font-semibold text-muted">
-            {isSeq ? "Secuencial" : "Paralelo"} · {total} etapa{total !== 1 ? "s" : ""}
+          <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] font-semibold text-muted">
+            <span>{isSeq ? "Sec." : "Par."}</span>
+            <span>·</span>
+            <span>{total} etapa{total !== 1 ? "s" : ""}</span>
             {(group.ubicacion_label || group.reino) && (
-              <span className="block truncate text-[9px] font-medium text-accent/90">
-                📍 {group.ubicacion_label || group.reino}
-              </span>
+              <>
+                <span>·</span>
+                <span className="inline-flex max-w-full items-center gap-0.5 truncate">
+                  {group.ubicacion_color && <ZonaColorDot color={group.ubicacion_color} size="sm" />}
+                  <span className="truncate" style={{ color: group.ubicacion_color || undefined }}>
+                    {group.ubicacion_label || group.reino}
+                  </span>
+                </span>
+              </>
             )}
-            {isComplete && (
-              <span className="ml-1.5 font-bold text-green-700 dark:text-green-500/70">✓ lista</span>
-            )}
+            {isComplete && <span className="font-bold text-green-700 dark:text-green-500/70">✓</span>}
           </p>
         </button>
-        <div className="shrink-0 text-right">
-          <div className="text-xl font-black leading-none" style={{ color: c }}>
-            {pct}<span className="text-xs font-bold">%</span>
+        {progMision.total > 0 && (
+          <div className="quest-sticky-mission-pct">
+            <span className="text-lg font-black tabular-nums sm:text-xl" style={{ color: progColor }}>
+              {progMision.pct}%
+            </span>
+            <span className="block text-[9px] font-bold text-muted">
+              {progMision.completados}/{progMision.total}
+            </span>
           </div>
-          <span className="text-[9px] font-bold text-muted">{resolved}/{total}</span>
-        </div>
+        )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => onEditMision(group.mision_id)}
-        className="mb-3 w-full"
-        title="Progreso de la misión"
-      >
+      {progMision.total > 0 && (
         <div
-          className="h-2 overflow-hidden rounded-full border border-black/5 dark:border-white/10"
-          style={{ background: dark ? `${c}22` : `${c}18` }}
+          className="h-1 w-full overflow-hidden rounded-full border border-black/5 dark:border-white/10"
+          style={{ background: dark ? `${c}18` : `${c}12` }}
         >
           <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${pct}%`,
-              background: dark ? `${c}bb` : `linear-gradient(90deg, ${c}cc, ${c})`,
-            }}
+            className="h-full rounded-full transition-all duration-300"
+            style={{ width: `${progMision.pct}%`, background: progColor }}
           />
         </div>
-      </button>
+      )}
 
-      {visible.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          {visible.map((t) => {
-            const taskRot = stickyRotation(t.id) * 0.35;
+      {ticketsEnSticky.length > 0 ? (
+        <div className={`quest-sticky-tasks ${ticketsEnSticky.length > 2 ? "quest-sticky-tasks--grid" : ""}`}>
+          {ticketsEnSticky.map((t) => {
+            const taskRot = compact ? 0 : stickyRotation(t.id) * 0.35;
+            const prog = ticketEjecucionPct(t);
+            const barColor = prog.pct === 100 ? "#16a34a" : c;
+            const checklistLbl = etiquetaChecklistTablero(t);
+            const cerrado = done.includes(t.estado);
             return (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => onSelect(t.id)}
-                className="quest-sticky-task"
-                style={{ transform: `rotate(${taskRot}deg)` }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "rotate(0deg)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = `rotate(${taskRot}deg)`; }}
+                className={`quest-sticky-task ${cerrado ? "opacity-70" : ""}`}
+                style={taskRot ? { transform: `rotate(${taskRot}deg)` } : undefined}
+                onMouseEnter={taskRot ? (e) => { e.currentTarget.style.transform = "rotate(0deg)"; } : undefined}
+                onMouseLeave={taskRot ? (e) => { e.currentTarget.style.transform = `rotate(${taskRot}deg)`; } : undefined}
               >
-                <StatusOrb estado={t.estado} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-bold text-ink">{t.titulo}</p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                    <span className="font-mono text-[9px] text-muted">{t.numero}</span>
-                    {isSeq && total > 1 && (
-                      <span className="text-[9px] font-semibold text-muted">
-                        Etapa {group.tickets.findIndex((x) => x.id === t.id) + 1}/{total}
-                      </span>
-                    )}
+                <div className="flex w-full items-center gap-1.5">
+                  <StatusOrb estado={estadoOrbEnTablero(t)} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-bold leading-tight text-ink sm:text-xs">
+                      {t.titulo}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1 text-[9px] text-muted">
+                      <span className="font-mono">{t.numero}</span>
+                      {isSeq && ticketsEnSticky.length > 1 && (
+                        <span>#{ticketsEnSticky.findIndex((x) => x.id === t.id) + 1}</span>
+                      )}
+                    </div>
                   </div>
+                  {checklistLbl ? (
+                    <span
+                      className="shrink-0 text-[10px] font-black tabular-nums"
+                      style={{ color: barColor }}
+                    >
+                      {prog.pct}%
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-[10px] font-bold text-muted">—</span>
+                  )}
+                  <PrioridadDot p={t.prioridad} />
                 </div>
-                <PrioridadDot p={t.prioridad} />
               </button>
             );
           })}
         </div>
       ) : (
-        <p className="py-1 text-center text-[11px] font-medium text-muted">
-          {isComplete ? "✅ Todas las etapas completadas" : "Sin etapas activas"}
-        </p>
+        <p className="py-0.5 text-center text-[10px] font-medium text-muted">Sin tickets</p>
       )}
-
-      <button
-        type="button"
-        onClick={() => onEditMision(group.mision_id)}
-        className="mt-3 w-full rounded-md border border-dashed border-black/10 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent dark:border-white/15"
-      >
-        ✏️ Editar misión
-      </button>
     </article>
   );
 }
@@ -2079,19 +3026,19 @@ function ReinoBoardSectionBlock({
           background: `linear-gradient(90deg, ${section.color}22 0%, transparent 72%)`,
         }}
       >
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-base shadow-sm"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm shadow-sm"
             style={{ background: section.color, color: "#fff" }}
           >
             {section.icono || "🏰"}
           </span>
           <div className="min-w-0">
-            <h3 className="truncate text-sm font-extrabold uppercase tracking-wide text-ink">
+            <h3 className="truncate text-xs font-extrabold uppercase tracking-wide text-ink sm:text-sm">
               {section.nombre}
             </h3>
-            <p className="text-[10px] font-semibold text-muted">
-              {totalMisiones} misión{totalMisiones !== 1 ? "es" : ""}
+            <p className="text-[9px] font-semibold text-muted">
+              {totalMisiones} mis.{totalMisiones !== 1 ? "es" : ""}
               {totalQuests > 0 && (
                 <span> · {totalQuests} quest{totalQuests !== 1 ? "s" : ""}</span>
               )}
@@ -2099,7 +3046,7 @@ function ReinoBoardSectionBlock({
           </div>
         </div>
       </header>
-      <div className="quest-board-cork quest-board-cork--nested p-4 sm:p-5">
+      <div className="quest-board-cork quest-board-cork--nested p-2.5 sm:p-3">
         {totalMisiones === 0 && section.standalone.length === 0 ? (
           <p className="py-6 text-center text-xs font-medium text-muted">
             Sin misiones activas en este reino
@@ -2136,12 +3083,13 @@ function navScopeLabel(scope: NavScope): string {
 }
 
 function TicketListView({
-  token, user, onSelect, onEditMision, navScope,
+  token, user, onSelect, onEditMision, navScope, refreshKey = 0,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
   onEditMision: (id: number) => void;
   navScope: NavScope;
+  refreshKey?: number;
 }) {
   const questDark = useQuestTheme((s) => s.dark);
   const { cats: categorias } = useContext(CategoriasCtx);
@@ -2164,16 +3112,23 @@ function TicketListView({
       const params = new URLSearchParams();
       if (filtroEstado) params.set("estado", filtroEstado);
       if (filtroCategoria) params.set("categoria", filtroCategoria);
-      const [data, zonas, misiones] = await Promise.all([
+      const [data, zonas] = await Promise.all([
         tapi(`/?${params}`, token),
         tapi("/zonas-trabajo", token),
-        tapi("/misiones/", token),
       ]);
-      setTickets(data);
+      let misiones: Mision[] = [];
+      try {
+        misiones = await tapi("/misiones/?tablero=1", token);
+      } catch {
+        misiones = await tapi("/misiones/", token);
+      }
+      const list = Array.isArray(data) ? data.map((row) => normalizeTicketForList(row)) : [];
+      setTickets(list);
       setZonasReinos(zonas);
-      setMisionesActivas(
-        (misiones as Mision[]).filter((m) => m.estado === "activa" || m.estado === "borrador"),
+      const activas = (misiones as Mision[]).filter(
+        (m) => m.estado === "activa" || m.estado === "borrador",
       );
+      setMisionesActivas(activas);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -2181,7 +3136,48 @@ function TicketListView({
     }
   }, [token, filtroEstado, filtroCategoria]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, refreshKey]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => { void load(); }, 15000);
+    return () => window.clearInterval(id);
+  }, [load]);
+
+  useEffect(() => {
+    const onPasosUpdated = (ev: Event) => {
+      const d = (ev as CustomEvent<{
+        ticketId: number;
+        pasos_total: number;
+        pasos_completados: number;
+      }>).detail;
+      if (!d?.ticketId) return;
+      const patch = {
+        pasos_total: d.pasos_total,
+        pasos_completados: d.pasos_completados,
+      };
+      setTickets((prev) =>
+        prev.map((t) => (t.id === d.ticketId ? { ...t, ...patch } : t)),
+      );
+      setMisionesActivas((prev) =>
+        prev.map((m) => ({
+          ...m,
+          tickets_tablero: m.tickets_tablero?.map((row) =>
+            row.id === d.ticketId ? { ...row, ...patch } : row,
+          ),
+        })),
+      );
+    };
+    window.addEventListener("mckenna-ticket-pasos-updated", onPasosUpdated);
+    return () => window.removeEventListener("mckenna-ticket-pasos-updated", onPasosUpdated);
+  }, []);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [load]);
 
   const scopeActivo = navScope.kind !== "all";
   const ticketsVisibles = tickets.filter(
@@ -2246,6 +3242,9 @@ function TicketListView({
         });
       }
     }
+    if (vistaAgrupada) {
+      mergeMisionGroupsWithTablero(misionGroups, misionesActivas, zonasReinos);
+    }
   }
 
   const reinoSections = vistaAgrupada
@@ -2278,67 +3277,81 @@ function TicketListView({
   };
 
   return (
-    <div className="space-y-5">
-      {/* ── Daily Quest header ── */}
-      <div className="quest-board-banner mb-1">
-        <h2 className="text-2xl font-extrabold tracking-tight text-ink">📌 Tablero de Quests</h2>
-        <p className="text-sm text-muted mt-0.5">
-          Misiones agrupadas por reino en notas adhesivas — pasa el cursor para enderezarlas.
-        </p>
-        <p className="text-xs text-muted/80 mt-1">
-          {user.nombre} · <span className="font-bold text-accent quest-board-accent-count">{ticketsVisibles.length}</span> quest{ticketsVisibles.length !== 1 ? "s" : ""} activa{ticketsVisibles.length !== 1 ? "s" : ""}
-          {scopeActivo && (
-            <span className="ml-2 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
-              {navScopeLabel(navScope)}
-            </span>
-          )}
-        </p>
-      </div>
-      {/* ── Quest Log stats ── */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {QUEST_STAT_ITEMS.map((s) => {
-          const val = stats[s.key];
-          const valueColor = questTone(s.color, s.colorDark, questDark);
-          const borderColor = questDark ? s.borderDark : s.color + "55";
-          return (
-            <div key={s.label} className="quest-stat-card rounded-xl border-2 p-3 text-center bg-surface-panel shadow-sm"
-              style={{ borderColor }}>
-              <div className="quest-stat-value text-2xl font-black" style={{ color: valueColor }}>{val}</div>
-              <div className="text-[11px] font-bold text-muted mt-0.5">{s.label}</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Filters ── */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}
-          className="rounded-xl border-2 border-border bg-surface-input px-3 py-1.5 text-sm text-ink outline-none focus:border-accent">
-          <option value="">Todos los estados</option>
-          <option value="pendiente">⏳ Pendiente</option>
-          <option value="en_proceso">⚔️ En proceso</option>
-          <option value="esperando_aprobacion">🔔 Esperando revisión</option>
-          <option value="resuelto">✅ Resuelto</option>
-          <option value="rechazado">❌ Rechazado</option>
-        </select>
-        <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}
-          className="rounded-xl border-2 border-border bg-surface-input px-3 py-1.5 text-sm text-ink outline-none focus:border-accent">
-          <option value="">Todas las categorías</option>
-          {categorias.map((c) => (
-            <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
-          ))}
-        </select>
-        <button onClick={load}
-          className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
-          title="Actualizar">
-          ↻
-        </button>
-        {hasFilters && (
-          <button onClick={() => { setFiltroEstado(""); setFiltroCategoria(""); }}
-            className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-danger hover:text-danger">
-            ✕ Limpiar
+    <div className="space-y-3">
+      <div className="quest-board-toolbar">
+        <div className="quest-board-toolbar-title min-w-0">
+          <h2 className="text-lg font-extrabold tracking-tight text-ink sm:text-xl">📌 Tablero</h2>
+          <p className="text-[11px] text-muted leading-snug">
+            {user.nombre}
+            <span className="mx-1 text-muted/50">·</span>
+            <span className="font-bold text-accent quest-board-accent-count">{ticketsVisibles.length}</span>
+            {" "}quest{ticketsVisibles.length !== 1 ? "s" : ""}
+            {scopeActivo && (
+              <span className="ml-1.5 rounded-full border border-accent/40 bg-accent/10 px-1.5 py-px text-[9px] font-bold text-accent">
+                {navScopeLabel(navScope)}
+              </span>
+            )}
+          </p>
+        </div>
+        <div className="quest-board-toolbar-stats">
+          {QUEST_STAT_ITEMS.map((s) => {
+            const val = stats[s.key];
+            const valueColor = questTone(s.color, s.colorDark, questDark);
+            const borderColor = questDark ? s.borderDark : `${s.color}44`;
+            return (
+              <span
+                key={s.label}
+                className="quest-board-stat-pill bg-surface-panel"
+                style={{ borderColor, color: valueColor }}
+                title={s.label}
+              >
+                <span className="opacity-70">{s.label.split(" ")[0]}</span>
+                <span>{val}</span>
+              </span>
+            );
+          })}
+        </div>
+        <div className="quest-board-toolbar-filters">
+          <select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value)}
+            className="rounded-lg border-2 border-border bg-surface-input px-2 py-1 text-xs text-ink outline-none focus:border-accent sm:text-sm"
+          >
+            <option value="">Estado</option>
+            <option value="pendiente">⏳ Pendiente</option>
+            <option value="en_proceso">⚔️ En proceso</option>
+            <option value="esperando_aprobacion">🔔 Revisión</option>
+            <option value="resuelto">✅ Resuelto</option>
+            <option value="rechazado">❌ Rechazado</option>
+          </select>
+          <select
+            value={filtroCategoria}
+            onChange={(e) => setFiltroCategoria(e.target.value)}
+            className="rounded-lg border-2 border-border bg-surface-input px-2 py-1 text-xs text-ink outline-none focus:border-accent sm:text-sm"
+          >
+            <option value="">Categoría</option>
+            {categorias.map((c) => (
+              <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={load}
+            className="rounded-lg border-2 border-border px-2 py-1 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+            title="Actualizar"
+          >
+            ↻
           </button>
-        )}
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={() => { setFiltroEstado(""); setFiltroCategoria(""); }}
+              className="rounded-lg border-2 border-border px-2 py-1 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* List */}
@@ -2357,7 +3370,7 @@ function TicketListView({
             : "No hay misiones en el tablero. Crea reinos en 🏰 Reinos y vincula la ubicación al crear la misión."}
         </div>
       ) : (
-        <div className="quest-board-by-reinos space-y-6">
+        <div className="quest-board-by-reinos">
           {reinoSections.map((section) => (
             <ReinoBoardSectionBlock
               key={section.key}
@@ -2436,7 +3449,7 @@ function CreateTicketView({
       <div className="flex items-center gap-3">
         <button onClick={onBack}
           className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-          ← Volver
+          ←
         </button>
         <h2 className="text-xl font-extrabold text-ink">Nuevo Ticket</h2>
       </div>
@@ -2553,9 +3566,264 @@ function CreateTicketView({
   );
 }
 
-// Ticket detail — read-only board view (execution only: step timers + checkboxes)
+/** Cronómetro persistido por ticket (pausa / guardar en bitácora). */
+function TicketCronometroSection({
+  ticket,
+  token,
+  onTicket,
+}: {
+  ticket: Ticket;
+  token: string;
+  onTicket: (t: Ticket) => void;
+}) {
+  const [guardando, setGuardando] = useState(false);
+  const corrida = ticket.corrida;
+  const corridaId = corrida?.id;
+  const corridaActiva = corrida?.estado === "activa";
+  const cerrado = !ticketPermiteMarcarPasos(ticket);
+
+  const refresh = useCallback(async () => {
+    onTicket(await tapi(`/${ticket.id}`, token));
+  }, [ticket.id, token, onTicket]);
+
+  useEffect(() => {
+    if (!corridaId || !corridaActiva) return;
+    const iv = setInterval(() => { refresh().catch(() => {}); }, 2000);
+    return () => clearInterval(iv);
+  }, [corridaId, corridaActiva, refresh]);
+
+  const segDisplay =
+    corrida?.segundos_transcurridos ??
+    corrida?.segundos_acumulados ??
+    ticket.segundos_trabajo ??
+    Math.round((ticket.total_horas ?? 0) * 3600);
+
+  async function iniciar() {
+    try {
+      onTicket(await tapi(`/${ticket.id}/corridas/iniciar`, token, {
+        method: "POST",
+        body: JSON.stringify({ segundos_previos: 0 }),
+      }));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Error al iniciar cronómetro");
+    }
+  }
+
+  async function pausar() {
+    if (!corridaId) return;
+    try {
+      onTicket(await tapi(`/corridas/${corridaId}/pausar`, token, { method: "POST" }));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Error al pausar");
+    }
+  }
+
+  async function reanudar() {
+    if (!corridaId) return;
+    try {
+      onTicket(await tapi(`/corridas/${corridaId}/reanudar`, token, { method: "POST" }));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Error al reanudar");
+    }
+  }
+
+  async function guardar() {
+    if (!corridaId) return;
+    setGuardando(true);
+    try {
+      const t = await tapi(`/corridas/${corridaId}/guardar`, token, { method: "POST" });
+      onTicket(t);
+      alert(`Tramo guardado en bitácora — acumulado ticket: ${fmtTiempo(t.segundos_trabajo ?? 0)}`);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Error al guardar tiempo");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function finalizar() {
+    if (!corridaId) return;
+    try {
+      onTicket(await tapi(`/corridas/${corridaId}/finalizar`, token, { method: "POST" }));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Error al finalizar");
+    }
+  }
+
+  const estadoUi: "activa" | "pausada" | "finalizada" | null =
+    cerrado
+      ? corrida?.estado === "activa" || corrida?.estado === "pausada"
+        ? (corrida.estado as "activa" | "pausada")
+        : null
+      : corrida?.estado === "activa" || corrida?.estado === "pausada"
+        ? (corrida.estado as "activa" | "pausada")
+        : null;
+
+  return (
+    <div className="rounded-xl border-2 border-accent/40 bg-accent/5 p-4 shadow-paper">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">
+        ⏱ Cronómetro del ticket
+      </p>
+      {cerrado && (
+        <p className="mb-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+          Ticket cerrado — solo lectura del tiempo acumulado.
+        </p>
+      )}
+      <p className="mb-2 text-xs text-muted">
+        Acumulado:{" "}
+        <strong className="font-mono text-ink">{fmtTiempo(ticket.segundos_trabajo ?? segDisplay)}</strong>
+      </p>
+      {cerrado && !estadoUi ? (
+        <p className="text-sm font-mono font-bold text-ink">{fmtTiempo(segDisplay)}</p>
+      ) : (
+        <CorridaCronometroBlock
+          compact
+          etiqueta={ticket.numero}
+          segundos={segDisplay}
+          estado={estadoUi}
+          guardando={guardando}
+          onIniciar={iniciar}
+          onPausar={pausar}
+          onReanudar={reanudar}
+          onGuardar={guardar}
+          onFinalizar={finalizar}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Barra inferior: guardar cronómetro en bitácora y refrescar ticket. */
+function TicketBarraGuardado({
+  ticket,
+  token,
+  onRefresh,
+  compact = false,
+}: {
+  ticket: Ticket;
+  token: string;
+  onRefresh: () => void | Promise<void>;
+  compact?: boolean;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const corrida = ticket.corrida;
+  const puedeGuardarTiempo =
+    corrida && (corrida.estado === "activa" || corrida.estado === "pausada");
+
+  async function guardar() {
+    setSaving(true);
+    setMsg(null);
+    try {
+      if (puedeGuardarTiempo && corrida?.id) {
+        await tapi(`/corridas/${corrida.id}/guardar`, token, { method: "POST" });
+      }
+      await onRefresh();
+      setMsg(
+        puedeGuardarTiempo
+          ? "Tiempo y progreso guardados"
+          : "Progreso actualizado",
+      );
+      window.setTimeout(() => setMsg(null), 3500);
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className={`flex flex-wrap items-center gap-2 rounded-xl border-2 border-border bg-surface-panel shadow-paper
+        ${compact ? "p-2" : "sticky bottom-2 z-20 p-3"}`}
+    >
+      <button
+        type="button"
+        onClick={() => void guardar()}
+        disabled={saving}
+        className="rounded-paper border-2 border-sky-600 bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-[0_2px_0_#0369a1] transition hover:bg-sky-700 disabled:opacity-50"
+      >
+        {saving ? "Guardando…" : "💾 Guardar"}
+      </button>
+      {puedeGuardarTiempo && (
+        <span className="text-[10px] text-muted">Incluye el tramo del cronómetro en la bitácora</span>
+      )}
+      {msg && (
+        <span
+          className={`text-xs font-semibold ${msg.includes("Error") ? "text-danger" : "text-green-700"}`}
+        >
+          {msg}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function TicketBarraGuardadoById({
+  ticketId,
+  token,
+  onRefresh,
+  compact = false,
+}: {
+  ticketId: number;
+  token: string;
+  onRefresh?: () => void | Promise<void>;
+  compact?: boolean;
+}) {
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+
+  const load = useCallback(async () => {
+    const t = await tapi(`/${ticketId}`, token);
+    setTicket(t);
+    return t;
+  }, [ticketId, token]);
+
+  useEffect(() => { void load(); }, [load]);
+
+  if (!ticket) return null;
+
+  return (
+    <TicketBarraGuardado
+      compact={compact}
+      ticket={ticket}
+      token={token}
+      onRefresh={async () => {
+        await load();
+        await onRefresh?.();
+      }}
+    />
+  );
+}
+
+/** Carga el ticket y muestra el cronómetro (misión inline o vistas sin estado previo). */
+function TicketCronometroById({ ticketId, token }: { ticketId: number; token: string }) {
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [err, setErr] = useState("");
+
+  const load = useCallback(() => {
+    tapi(`/${ticketId}`, token)
+      .then((t) => { setTicket(t); setErr(""); })
+      .catch((e: unknown) => setErr(e instanceof Error ? e.message : "Error al cargar"));
+  }, [ticketId, token]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (err) {
+    return (
+      <p className="text-xs text-danger rounded-lg border border-danger/30 bg-danger/10 px-2 py-1.5">
+        Cronómetro: {err}
+      </p>
+    );
+  }
+  if (!ticket) {
+    return <p className="text-xs text-muted py-1">Cargando cronómetro…</p>;
+  }
+  return <TicketCronometroSection ticket={ticket} token={token} onTicket={setTicket} />;
+}
+
+// Ticket detail — ejecución: cronómetro del ticket + checklist de pasos
 function TicketDetailView({
-  token, ticketId, onBack,
+  token, user, ticketId, onBack,
 }: {
   token: string; user: TicketsUser; ticketId: number; onBack: () => void;
 }) {
@@ -2581,13 +3849,10 @@ function TicketDetailView({
   async function handleAllPasosComplete() {
     setCompletandoTicket(true);
     try {
-      await tapi(`/${ticketId}/estado`, token, {
-        method: "PUT",
-        body: JSON.stringify({ estado: "resuelto" }),
-      });
       await reload();
-    } catch { /* estado incorrecto u otro error — ignorar silenciosamente */ }
-    finally { setCompletandoTicket(false); }
+    } finally {
+      setCompletandoTicket(false);
+    }
   }
 
   if (loading) return <div className="py-16 text-center text-sm text-muted">Cargando quest...</div>;
@@ -2615,10 +3880,19 @@ function TicketDetailView({
             ⏱ {fmtHoras(ticket.total_horas!)}
           </span>
         )}
-        <span className="ml-auto rounded-full bg-surface-hover border border-border px-2.5 py-0.5 text-[10px] font-bold text-muted">
-          👁 Solo visualización
+        <span className="ml-auto rounded-full bg-accent/10 border border-accent/30 px-2.5 py-0.5 text-[10px] font-bold text-accent">
+          ▶ Ejecución
         </span>
       </div>
+
+      <TicketCronometroSection ticket={ticket} token={token} onTicket={setTicket} />
+
+      <TicketRecurrenciaSection
+        ticket={ticket}
+        token={token}
+        onTicket={setTicket}
+        canEdit={(user?.rol?.nivel ?? 1) >= 2}
+      />
 
       {/* Quest info card — read only */}
       <div className="rounded-xl border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
@@ -2653,17 +3927,29 @@ function TicketDetailView({
         </div>
       </div>
 
-      {/* Pasos — ejecución: timer + checkbox activos, sin edición */}
+      {/* Pasos — checklist */}
       {completandoTicket && (
         <div className="rounded-xl border-2 border-green-400 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-          ✅ Todos los pasos completados — marcando ticket como resuelto...
+          ✅ Todos los pasos completados — ticket marcado como resuelto
+        </div>
+      )}
+      {ticket.estado === "resuelto" && (
+        <div className="rounded-xl border-2 border-green-400 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+          ✅ Ticket completado — todos los pasos del procedimiento están marcados
         </div>
       )}
       <PasosSection
         ticketId={ticket.id}
         token={token}
         editMode={false}
-        onAllComplete={ticket.estado === "en_proceso" ? handleAllPasosComplete : undefined}
+        allowCheck={ticketPermiteMarcarPasos(ticket)}
+        checkHint={
+          !ticketPermiteMarcarPasos(ticket)
+            ? "Este ticket ya está cerrado — no se pueden marcar pasos."
+            : undefined
+        }
+        onAllComplete={ticketPermiteMarcarPasos(ticket) ? handleAllPasosComplete : undefined}
+        onGuardarExtra={reload}
       />
 
       {/* Materiales — solo referencia */}
@@ -2684,6 +3970,8 @@ function TicketDetailView({
           </div>
         </div>
       )}
+
+      <TicketBarraGuardado ticket={ticket} token={token} onRefresh={reload} />
 
       {/* Comentarios — solo lectura */}
       {ticket.comentarios && ticket.comentarios.length > 0 && (
@@ -2833,7 +4121,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">← Volver</button>
+        <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">←</button>
         <h2 className="text-xl font-extrabold text-ink">Administración</h2>
       </div>
 
@@ -3194,70 +4482,241 @@ function ParticipantesSection({
 
 // ── PASOS ─────────────────────────────────────────────────────────────────────
 
-interface Paso {
-  id: number; ticket_id: number; orden: number; descripcion: string;
-  completado: number; completado_en: string | null; completado_por_nombre: string | null;
+interface EtapaDraft {
+  titulo: string;
+  descripcion: string;
+  pasos: string[];
+  frecuencia?: string;
 }
 
-function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
+/** Casilla de paso: sin atributo HTML disabled (evita cursor ⊘); solo readOnly + clic explícito. */
+function PasoChecklistInput({
+  pasoId,
+  checked,
+  canCheck,
+  busy,
+  title,
+  onBlocked,
+  onCheckedChange,
+}: {
+  pasoId: number;
+  checked: boolean;
+  canCheck: boolean;
+  busy?: boolean;
+  title?: string;
+  onBlocked?: () => void;
+  onCheckedChange: (checked: boolean) => void;
+}) {
+  const inputId = `paso-check-${pasoId}`;
+  const cursor =
+    busy ? "wait" : canCheck ? "pointer" : "not-allowed";
+
+  return (
+    <input
+      id={inputId}
+      type="checkbox"
+      checked={checked}
+      readOnly
+      title={title}
+      aria-checked={checked}
+      aria-busy={busy || undefined}
+      aria-disabled={!canCheck || undefined}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (busy) return;
+        if (!canCheck) {
+          onBlocked?.();
+          return;
+        }
+        onCheckedChange(!checked);
+      }}
+      onChange={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
+      className="paso-checklist-input shrink-0"
+      style={{ cursor }}
+    />
+  );
+}
+
+function normalizePasosResponse(res: unknown, fallback: Paso[]): Paso[] {
+  if (Array.isArray(res)) return res as Paso[];
+  if (res && typeof res === "object" && Array.isArray((res as { pasos?: unknown }).pasos)) {
+    return (res as { pasos: Paso[] }).pasos;
+  }
+  return fallback;
+}
+
+function metaPasosResponse(res: unknown): {
+  autoResuelto?: boolean;
+  estado?: string;
+  pasosTotal?: number;
+  pasosCompletados?: number;
+} {
+  if (!res || typeof res !== "object" || Array.isArray(res)) return {};
+  const o = res as {
+    auto_resuelto?: boolean;
+    estado?: string;
+    pasos_total?: unknown;
+    pasos_completados?: unknown;
+  };
+  const { total, completados } = ticketPasosCounts({
+    pasos_total: o.pasos_total,
+    pasos_completados: o.pasos_completados,
+  } as Ticket);
+  return {
+    autoResuelto: o.auto_resuelto,
+    estado: o.estado,
+    pasosTotal: total,
+    pasosCompletados: completados,
+  };
+}
+
+function syncPasosProgressFromResponse(ticketId: number, res: unknown, lista?: Paso[]) {
+  const meta = metaPasosResponse(res);
+  let total = meta.pasosTotal ?? 0;
+  let completados = meta.pasosCompletados ?? 0;
+  if (total <= 0 && lista && lista.length > 0) {
+    total = lista.length;
+    completados = lista.filter((p) => pasoEstaCompletado(p)).length;
+  }
+  if (total > 0 || completados > 0) {
+    emitTicketPasosProgress(ticketId, completados, total);
+  }
+}
+
+function PasosDraftEditor({
+  pasos,
+  onChange,
+}: {
+  pasos: string[];
+  onChange: (pasos: string[]) => void;
+}) {
+  const [nuevo, setNuevo] = useState("");
+
+  function agregarPaso() {
+    const t = nuevo.trim();
+    if (!t) return;
+    onChange([...pasos, t]);
+    setNuevo("");
+  }
+
+  return (
+    <div className="space-y-2 border-t border-border/50 pt-3 lg:col-span-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+          Pasos del ticket
+        </p>
+        {pasos.length > 0 && (
+          <span className="text-[10px] font-bold text-accent">{pasos.length} paso{pasos.length > 1 ? "s" : ""}</span>
+        )}
+      </div>
+      <p className="text-[10px] text-muted">
+        Vista previa — las casillas se activan al abrir el ticket en el tablero.
+      </p>
+      {pasos.length === 0 ? (
+        <p className="text-xs text-muted">Sin pasos — agrega el procedimiento abajo.</p>
+      ) : (
+        <ul className="max-h-40 space-y-1.5 overflow-y-auto lg:max-h-52">
+          {pasos.map((p, i) => (
+            <li key={i} className="flex items-center gap-2 rounded-paper border border-border bg-surface-input px-2 py-1.5">
+              <span className="w-5 shrink-0 text-center text-xs font-bold text-muted">{i + 1}.</span>
+              <input
+                type="text"
+                value={p}
+                onChange={(e) => onChange(pasos.map((x, idx) => (idx === i ? e.target.value : x)))}
+                className="min-w-0 flex-1 border-0 bg-transparent py-0.5 text-sm text-ink outline-none focus:ring-0"
+              />
+              <button
+                type="button"
+                onClick={() => onChange(pasos.filter((_, idx) => idx !== i))}
+                className="shrink-0 text-xs text-muted hover:text-danger px-0.5"
+                aria-label="Quitar paso">
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          className="min-w-0 flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+          placeholder="Nuevo paso…"
+          value={nuevo}
+          onChange={(e) => setNuevo(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              agregarPaso();
+            }
+          }}
+        />
+        <button
+          type="button"
+          onClick={agregarPaso}
+          disabled={!nuevo.trim()}
+          className="shrink-0 rounded-paper border-2 border-accent px-2.5 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40">
+          + Paso
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface Paso {
+  id: number; ticket_id: number; orden: number; descripcion: string;
+  completado: number | boolean; completado_en: string | null; completado_por_nombre: string | null;
+}
+
+function pasoEstaCompletado(p: Paso): boolean {
+  const v = p.completado;
+  if (v === true || v === 1) return true;
+  if (v === false || v === 0 || v == null) return false;
+  return Number(v) === 1;
+}
+
+/** El checklist de pasos se puede marcar salvo tickets cerrados. */
+function ticketPermiteMarcarPasos(ticket: Ticket): boolean {
+  const e = String(ticket.estado || "").trim().toLowerCase();
+  return e !== "resuelto" && e !== "rechazado";
+}
+
+function PasosSection({
+  ticketId,
+  token,
+  editMode = true,
+  allowCheck = true,
+  checkHint,
+  onAllComplete,
+  onGuardarExtra,
+}: {
   ticketId: number; token: string; editMode?: boolean;
+  allowCheck?: boolean;
+  checkHint?: string;
   onAllComplete?: () => Promise<void>;
+  /** Tras guardar pasos (p. ej. refrescar ticket padre). */
+  onGuardarExtra?: () => void | Promise<void>;
 }) {
   const [pasos, setPasos] = useState<Paso[]>([]);
   const [nuevo, setNuevo] = useState("");
   const [saving, setSaving] = useState(false);
+  const [guardarMsg, setGuardarMsg] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   const dragIdx = useRef<number | null>(null);
+  const toggleLock = useRef<Set<number>>(new Set());
   const [dragOver, setDragOver] = useState<number | null>(null);
 
-  // Cronómetro por paso
-  const [timerPasoId, setTimerPasoId] = useState<number | null>(null);
-  const [timerElapsed, setTimerElapsed] = useState(0);
-  const timerStartRef = useRef<number | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    tapi(`/${ticketId}/pasos`, token).then(setPasos).catch(() => {});
+  const reloadPasos = useCallback(() => {
+    return tapi(`/${ticketId}/pasos`, token)
+      .then((data) => setPasos(normalizePasosResponse(data, [])))
+      .catch(() => {});
   }, [ticketId, token]);
 
-  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
-
-  function fmtTimer(secs: number) {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return h > 0
-      ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
-      : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-
-  function startTimer(pasoId: number) {
-    if (timerRef.current) clearInterval(timerRef.current);
-    const start = Date.now();
-    timerStartRef.current = start;
-    setTimerPasoId(pasoId);
-    setTimerElapsed(0);
-    timerRef.current = setInterval(() => {
-      setTimerElapsed(Math.floor((Date.now() - start) / 1000));
-    }, 1000);
-  }
-
-  async function stopTimer(pasoId: number, capturedElapsed?: number) {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    const elapsed = capturedElapsed ?? timerElapsed;
-    const pasoDesc = pasos.find((p) => p.id === pasoId)?.descripcion ?? "";
-    setTimerPasoId(null);
-    timerStartRef.current = null;
-    setTimerElapsed(0);
-    if (elapsed >= 1) {
-      const horas = elapsed / 3600;
-      try {
-        await tapi(`/${ticketId}/tiempo`, token, {
-          method: "POST",
-          body: JSON.stringify({ horas, notas: `Paso: ${pasoDesc.slice(0, 60)}` }),
-        });
-      } catch { /* silent — tiempo guardado en segundo plano */ }
-    }
-  }
+  useEffect(() => {
+    void reloadPasos();
+  }, [reloadPasos]);
 
   async function add() {
     if (!nuevo.trim()) return;
@@ -3266,25 +4725,98 @@ function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
       const res = await tapi(`/${ticketId}/pasos`, token, {
         method: "POST", body: JSON.stringify({ descripcion: nuevo }),
       });
-      setPasos(res); setNuevo("");
+      setPasos(normalizePasosResponse(res, pasos)); setNuevo("");
     } finally { setSaving(false); }
   }
 
-  async function toggle(id: number) {
-    // Auto-stop timer for this paso before completing so the time is saved
-    if (timerPasoId === id) {
-      await stopTimer(id, Math.floor((Date.now() - (timerStartRef.current ?? Date.now())) / 1000));
+  async function guardarPasos() {
+    setSaving(true);
+    setGuardarMsg(null);
+    try {
+      if (editMode && nuevo.trim()) {
+        const res = await tapi(`/${ticketId}/pasos`, token, {
+          method: "POST",
+          body: JSON.stringify({ descripcion: nuevo }),
+        });
+        setPasos(normalizePasosResponse(res, pasos));
+        setNuevo("");
+      } else {
+        await reloadPasos();
+      }
+      const lista = await tapi(`/${ticketId}/pasos`, token).catch(() => []);
+      const pasosLista = normalizePasosResponse(lista, []);
+      setPasos(pasosLista);
+      syncPasosProgressFromResponse(ticketId, lista, pasosLista);
+      await onGuardarExtra?.();
+      setGuardarMsg("Pasos guardados");
+      window.setTimeout(() => setGuardarMsg(null), 3000);
+    } catch (e: unknown) {
+      setGuardarMsg(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setSaving(false);
     }
-    const res: Paso[] = await tapi(`/pasos/${id}/completar`, token, { method: "POST" });
-    setPasos(res);
-    if (onAllComplete && res.length > 0 && res.every((p) => p.completado)) {
-      await onAllComplete();
+  }
+
+  async function setPasoCompletado(id: number, marcar: boolean) {
+    if (!allowCheck) {
+      if (checkHint) alert(checkHint);
+      return;
+    }
+    if (toggleLock.current.has(id)) return;
+    toggleLock.current.add(id);
+    setTogglingId(id);
+
+    try {
+      const paso = pasos.find((p) => p.id === id);
+      if (!paso) return;
+      if (pasoEstaCompletado(paso) === marcar) return;
+
+      setPasos((list) =>
+        list.map((p) => (p.id === id ? { ...p, completado: marcar ? 1 : 0 } : p)),
+      );
+
+      let res: unknown;
+      try {
+        res = await tapi(`/${ticketId}/pasos/${id}`, token, {
+          method: "PUT",
+          body: JSON.stringify({ completado: marcar ? 1 : 0 }),
+        });
+      } catch (putErr: unknown) {
+        const msg = putErr instanceof Error ? putErr.message : "";
+        if (!msg.includes("405") && !msg.includes("404")) throw putErr;
+        res = await tapi(`/${ticketId}/pasos/${id}/completar`, token, {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+      }
+
+      const meta = metaPasosResponse(res);
+      let lista: Paso[] = [];
+      setPasos((cur) => {
+        lista = normalizePasosResponse(res, cur);
+        return lista;
+      });
+      syncPasosProgressFromResponse(ticketId, res, lista);
+      if (meta.autoResuelto) {
+        emitTicketPasosProgress(ticketId, meta.pasosCompletados ?? 0, meta.pasosTotal ?? 0);
+      }
+      const todosHechos =
+        lista.length > 0 && lista.every((p) => pasoEstaCompletado(p));
+      if (onAllComplete && (meta.autoResuelto || todosHechos)) {
+        await onAllComplete();
+      }
+    } catch (e: unknown) {
+      await reloadPasos();
+      alert(e instanceof Error ? e.message : "No se pudo actualizar el paso");
+    } finally {
+      toggleLock.current.delete(id);
+      setTogglingId(null);
     }
   }
 
   async function del(id: number) {
     const res = await tapi(`/pasos/${id}`, token, { method: "DELETE" });
-    setPasos(res);
+    setPasos(normalizePasosResponse(res, pasos));
   }
 
   async function drop(toIdx: number) {
@@ -3298,10 +4830,10 @@ function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
     const res = await tapi(`/${ticketId}/pasos/orden`, token, {
       method: "PUT", body: JSON.stringify({ paso_ids: reordered.map((p) => p.id) }),
     });
-    setPasos(res);
+    setPasos(normalizePasosResponse(res, reordered));
   }
 
-  const completados = pasos.filter((p) => p.completado).length;
+  const completados = pasos.filter((p) => pasoEstaCompletado(p)).length;
   const pct = pasos.length > 0 ? Math.round((completados / pasos.length) * 100) : 0;
 
   return (
@@ -3314,6 +4846,11 @@ function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
           </span>
         )}
       </div>
+      {!allowCheck && checkHint && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          {checkHint}
+        </p>
+      )}
       {pasos.length > 0 && (
         <div className="h-2 rounded-full bg-surface-hover overflow-hidden">
           <div className="h-full rounded-full transition-all"
@@ -3321,69 +4858,62 @@ function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
         </div>
       )}
       <div className="space-y-2">
-        {pasos.map((p, i) => {
-          const isRunning = timerPasoId === p.id;
-          return (
+        {pasos.map((p, i) => (
             <div key={p.id}
-              draggable={editMode}
-              onDragStart={editMode ? () => { dragIdx.current = i; } : undefined}
               onDragOver={editMode ? (e) => { e.preventDefault(); setDragOver(i); } : undefined}
               onDragLeave={editMode ? () => setDragOver(null) : undefined}
               onDrop={editMode ? () => drop(i) : undefined}
-              onDragEnd={editMode ? () => { dragIdx.current = null; setDragOver(null); } : undefined}
               className={`flex items-center gap-2 rounded-paper border px-3 py-2.5 transition
-                ${p.completado ? "border-green-200 bg-green-50"
-                  : isRunning ? "border-blue-300 bg-blue-50"
+                ${pasoEstaCompletado(p) ? "border-green-200 bg-green-50"
                   : "border-border bg-surface"}
                 ${editMode && dragOver === i ? "opacity-50 border-dashed border-accent" : ""}`}
             >
               {editMode && (
-                <span className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none shrink-0">⠿</span>
+                <span
+                  draggable
+                  onDragStart={() => { dragIdx.current = i; }}
+                  onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+                  className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none shrink-0 touch-none"
+                  title="Arrastrar para reordenar">
+                  ⠿
+                </span>
               )}
-              <button onClick={() => toggle(p.id)}
-                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition
-                  ${p.completado ? "border-green-500 bg-green-500 text-white" : "border-border bg-white hover:border-accent"}`}>
-                {p.completado && (
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-              <span className={`flex-1 text-sm ${p.completado ? "line-through text-muted" : "text-ink"}`}>
-                {p.descripcion}
-              </span>
+              <div className="relative z-10 flex flex-1 min-w-0 items-center gap-2.5">
+                <PasoChecklistInput
+                  pasoId={p.id}
+                  checked={pasoEstaCompletado(p)}
+                  canCheck={allowCheck}
+                  busy={togglingId === p.id}
+                  title={
+                    allowCheck
+                      ? pasoEstaCompletado(p)
+                        ? "Desmarcar paso"
+                        : "Marcar paso completado"
+                      : checkHint || "No se puede marcar este paso"
+                  }
+                  onBlocked={() => {
+                    if (checkHint) alert(checkHint);
+                  }}
+                  onCheckedChange={(marcar) => void setPasoCompletado(p.id, marcar)}
+                />
+                <label
+                  htmlFor={`paso-check-${p.id}`}
+                  className={`min-w-0 flex-1 text-sm select-none
+                    ${pasoEstaCompletado(p) ? "line-through text-muted" : "text-ink"}
+                    ${allowCheck && togglingId !== p.id ? "cursor-pointer" : "cursor-default"}
+                    ${!allowCheck ? "opacity-80" : ""}`}
+                >
+                  {p.descripcion}
+                </label>
+              </div>
               {p.completado_por_nombre && (
                 <span className="text-xs text-muted shrink-0">👤 {p.completado_por_nombre}</span>
-              )}
-              {/* Cronómetro por paso */}
-              {!p.completado && (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {isRunning && (
-                    <span className="font-mono text-xs font-bold text-blue-600 min-w-[46px] text-right">
-                      {fmtTimer(timerElapsed)}
-                    </span>
-                  )}
-                  <button
-                    onClick={() => isRunning ? stopTimer(p.id) : startTimer(p.id)}
-                    title={isRunning ? "Detener — guarda el tiempo automáticamente" : "Iniciar cronómetro"}
-                    disabled={timerPasoId !== null && !isRunning}
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold transition
-                      ${isRunning
-                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                        : timerPasoId !== null
-                          ? "bg-gray-100 text-gray-300 cursor-not-allowed"
-                          : "border border-border bg-surface text-muted hover:border-accent hover:text-accent"}`}
-                  >
-                    {isRunning ? "⏹" : "▶"}
-                  </button>
-                </div>
               )}
               {editMode && (
                 <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0 px-0.5">✕</button>
               )}
             </div>
-          );
-        })}
+        ))}
       </div>
       {pasos.length === 0 && (
         <p className="py-2 text-center text-xs text-muted">
@@ -3396,12 +4926,27 @@ function PasosSection({ ticketId, token, editMode = true, onAllComplete }: {
             placeholder="Agregar paso..." value={nuevo}
             onChange={(e) => setNuevo(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && add()} />
-          <button onClick={add} disabled={saving || !nuevo.trim()}
+          <button type="button" onClick={() => void add()} disabled={saving || !nuevo.trim()}
             className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
             + Añadir
           </button>
         </div>
       )}
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 pt-3">
+        <button
+          type="button"
+          onClick={() => void guardarPasos()}
+          disabled={saving}
+          className="rounded-paper border-2 border-sky-600 bg-sky-600 px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#0369a1] transition hover:bg-sky-700 disabled:opacity-50"
+        >
+          {saving ? "Guardando…" : "💾 Guardar pasos"}
+        </button>
+        {guardarMsg && (
+          <span className={`text-xs font-semibold ${guardarMsg.includes("Error") ? "text-danger" : "text-green-700"}`}>
+            {guardarMsg}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -3939,6 +5484,126 @@ function MaterialesSection({
 
 // ── INVENTARIO ────────────────────────────────────────────────────────────────
 
+type InventarioUbicacionGrupo = {
+  id: number;
+  nivel: "departamento" | "subzona" | "zona" | "reino" | "general";
+  nombre: string;
+  color: string;
+  ruta: string;
+  materiales: Material[];
+};
+
+const INVENTARIO_NIVEL_LABEL: Record<InventarioUbicacionGrupo["nivel"], string> = {
+  departamento: "Departamento / labor",
+  subzona: "Subzona",
+  zona: "Zona",
+  reino: "Reino",
+  general: "General",
+};
+
+function rutaZonaTrabajo(z: ZonaTrabajo, zonas: ZonaTrabajo[]): string {
+  const byId = new Map(zonas.map((x) => [x.id, x]));
+  const parts: string[] = [z.nombre];
+  let cur: ZonaTrabajo | undefined = z;
+  while (cur?.parent_id) {
+    const p = byId.get(cur.parent_id);
+    if (!p) break;
+    parts.unshift(p.nombre);
+    cur = p;
+  }
+  return parts.join(" › ");
+}
+
+function zidsMaterial(m: Material): number[] {
+  return (m.zonas || []).map((z) => z.id);
+}
+
+function agruparInventarioPorUbicacion(materiales: Material[], zonas: ZonaTrabajo[]): InventarioUbicacionGrupo[] {
+  if (!materiales.length) return [];
+
+  const grupos: InventarioUbicacionGrupo[] = [];
+  const tree = buildReinoNavTree(zonas);
+
+  function pushGrupo(z: ZonaTrabajo, nivel: InventarioUbicacionGrupo["nivel"], mats: Material[]) {
+    if (!mats.length) return;
+    grupos.push({
+      id: z.id,
+      nivel,
+      nombre: z.nombre,
+      color: z.color || "#0c6069",
+      ruta: rutaZonaTrabajo(z, zonas),
+      materiales: [...mats].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    });
+  }
+
+  for (const { reino, zonas: zonasReino } of tree) {
+    const idsBajoReino: number[] = [reino.id];
+    for (const { zona, subzonas, departamentosDirectos } of zonasReino) {
+      const idsBajoZona: number[] = [zona.id];
+      for (const { subzona, departamentos } of subzonas) {
+        idsBajoZona.push(subzona.id);
+        for (const depto of departamentos) {
+          idsBajoZona.push(depto.id);
+          pushGrupo(
+            depto,
+            "departamento",
+            materiales.filter((m) => zidsMaterial(m).includes(depto.id)),
+          );
+        }
+        const deptoIds = departamentos.map((d) => d.id);
+        pushGrupo(
+          subzona,
+          "subzona",
+          materiales.filter((m) => {
+            const zids = zidsMaterial(m);
+            return zids.includes(subzona.id) && !zids.some((id) => deptoIds.includes(id));
+          }),
+        );
+      }
+      for (const depto of departamentosDirectos) {
+        idsBajoZona.push(depto.id);
+        pushGrupo(
+          depto,
+          "departamento",
+          materiales.filter((m) => zidsMaterial(m).includes(depto.id)),
+        );
+      }
+      pushGrupo(
+        zona,
+        "zona",
+        materiales.filter((m) => {
+          const zids = zidsMaterial(m);
+          return zids.includes(zona.id) && !zids.some((id) => idsBajoZona.includes(id));
+        }),
+      );
+      idsBajoReino.push(...idsBajoZona);
+    }
+    pushGrupo(
+      reino,
+      "reino",
+      materiales.filter((m) => {
+        const zids = zidsMaterial(m);
+        return zids.includes(reino.id) && !zids.some((id) => idsBajoReino.includes(id));
+      }),
+    );
+  }
+
+  const ubicados = new Set<number>();
+  for (const g of grupos) for (const m of g.materiales) ubicados.add(m.id);
+  const sinUb = materiales.filter((m) => !ubicados.has(m.id));
+  if (sinUb.length) {
+    grupos.push({
+      id: 0,
+      nivel: "general",
+      nombre: "Sin ubicación asignada",
+      color: "#94a3b8",
+      ruta: "Catálogo general",
+      materiales: [...sinUb].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+    });
+  }
+  return grupos;
+}
+
 function InventarioView({ token, user, navScope }: { token: string; user: TicketsUser; navScope: NavScope; onBack?: () => void }) {
   const [materiales, setMateriales] = useState<Material[]>([]);
   const [zonas, setZonas] = useState<ZonaTrabajo[]>([]);
@@ -4036,14 +5701,6 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
     });
   }
 
-  function toggleSelectAllStock() {
-    if (selectedIds.size === materiales.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(materiales.map((m) => m.id)));
-    }
-  }
-
   async function ejecutarEliminacion() {
     const ids = [...selectedIds];
     if (ids.length === 0) return;
@@ -4100,6 +5757,21 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
   const materialesVisibles = zonaIdsFiltro
     ? materiales.filter((m) => (m.zonas || []).some((z) => zonaIdsFiltro.includes(z.id)))
     : materiales;
+
+  const gruposInventario = useMemo(() => {
+    if (!zonas.length) {
+      if (!materialesVisibles.length) return [];
+      return [{
+        id: 0,
+        nivel: "general" as const,
+        nombre: "Catálogo",
+        color: "#94a3b8",
+        ruta: navScope.kind !== "all" ? navScopeLabel(navScope) : "Todos los materiales",
+        materiales: [...materialesVisibles].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+      }];
+    }
+    return agruparInventarioPorUbicacion(materialesVisibles, zonas);
+  }, [materialesVisibles, zonas, navScope]);
 
   const formNuevoMaterial = (
     <div className="rounded-paper border-2 border-accent/50 bg-surface-panel p-5 space-y-4">
@@ -4183,6 +5855,9 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
           <h2 className="text-xl font-extrabold text-ink">Inventario</h2>
           <p className="text-xs text-muted">
             {materialesVisibles.length} material{materialesVisibles.length !== 1 ? "es" : ""} e insumo{materialesVisibles.length !== 1 ? "s" : ""}
+            {gruposInventario.length > 0 && gruposInventario.length !== 1 && (
+              <span className="ml-1">· {gruposInventario.length} ubicaciones</span>
+            )}
             {navScope.kind !== "all" && (
               <span className="ml-2 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
                 {navScopeLabel(navScope)}
@@ -4281,7 +5956,28 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
             <p className="py-8 text-center text-sm text-muted">
               {navScope.kind !== "all" ? `No hay materiales en ${navScopeLabel(navScope)}.` : "No hay materiales en el catálogo aún."}
             </p>
-          ) : materialesVisibles.map((m) => {
+          ) : gruposInventario.map((grupo) => (
+            <section
+              key={`${grupo.nivel}-${grupo.id}`}
+              className="quest-inventario-grupo"
+              style={{ "--inv-accent": grupo.color } as CSSProperties}
+            >
+              <header className="quest-inventario-grupo-header">
+                <ZonaColorDot color={grupo.color} size="md" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-extrabold text-ink">{grupo.nombre}</h3>
+                  <p className="truncate text-[10px] text-muted">
+                    {grupo.ruta}
+                    <span className="mx-1 opacity-40">·</span>
+                    {INVENTARIO_NIVEL_LABEL[grupo.nivel]}
+                  </p>
+                </div>
+                <span className="quest-inventario-grupo-count shrink-0 tabular-nums">
+                  {grupo.materiales.length}
+                </span>
+              </header>
+              <div className="quest-inventario-grupo-items space-y-2">
+                {grupo.materiales.map((m) => {
             const pct = m.stock_minimo > 0 ? Math.min(100, Math.round((m.stock_actual / m.stock_minimo) * 100)) : 100;
             const bajo = m.stock_minimo > 0 && m.stock_actual < m.stock_minimo;
             const editando = editId === m.id;
@@ -4425,7 +6121,10 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
                 )}
               </div>
             );
-          })}
+                })}
+              </div>
+            </section>
+          ))}
       </div>
     </div>
   );
@@ -4443,7 +6142,7 @@ function CreateMisionView({
   const { cats: categorias } = useContext(CategoriasCtx);
   const [form, setForm] = useState({
     titulo: "", descripcion: "",
-    tipo: "secuencial", color: "#0c6069", frecuencia: "",
+    tipo: "secuencial", color: "#0c6069",
   });
   const [ubicacion, setUbicacion] = useState<{
     reinoId: number | "";
@@ -4451,20 +6150,43 @@ function CreateMisionView({
     subzonaId: number | "";
     departamentoId: number | "";
   }>({ reinoId: "", zonaId: "", subzonaId: "", departamentoId: "" });
-  const [etapas, setEtapas] = useState([{ titulo: "", descripcion: "" }]);
+  const [etapas, setEtapas] = useState<EtapaDraft[]>([{ titulo: "", descripcion: "", pasos: [], frecuencia: "" }]);
   const [asignaciones, setAsignaciones] = useState<Record<number, string>>({});
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [todasMisiones, setTodasMisiones] = useState<Mision[]>([]);
   const [zonasCat, setZonasCat] = useState<ZonaTrabajo[]>([]);
-  const [depIds, setDepIds] = useState<number[]>([]);
+  const [depPrereqs, setDepPrereqs] = useState<PrerequisitoRef[]>([]);
+  const [todasRecetas, setTodasRecetas] = useState<RecetaPrereq[]>([]);
   const canManageZonas = (user.rol?.nivel ?? 1) >= 2;
+  const [infoMsg, setInfoMsg] = useState("");
+
+  const MISION_DRAFT_KEY = "mckenna-mision-draft";
 
   useEffect(() => {
     tapi("/usuarios", token).then(setUsuarios).catch(() => {});
     tapi("/misiones/", token).then(setTodasMisiones).catch(() => {});
+    tapi("/recetas", token).then(setTodasRecetas).catch(() => {});
     tapi("/zonas-trabajo", token).then(setZonasCat).catch(() => {});
+    try {
+      const raw = sessionStorage.getItem(MISION_DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw) as {
+        form?: typeof form;
+        ubicacion?: typeof ubicacion;
+        etapas?: EtapaDraft[];
+        asignaciones?: Record<number, string>;
+        depPrereqs?: PrerequisitoRef[];
+      };
+      if (d.form) setForm(d.form);
+      if (d.ubicacion) setUbicacion(d.ubicacion);
+      if (d.etapas?.length) setEtapas(d.etapas);
+      if (d.asignaciones) setAsignaciones(d.asignaciones);
+      if (d.depPrereqs) setDepPrereqs(d.depPrereqs);
+    } catch {
+      /* borrador corrupto */
+    }
   }, [token]);
 
   const zonaIdEfectivo =
@@ -4486,7 +6208,12 @@ function CreateMisionView({
       setForm((f) => ({ ...f, [k]: e.target.value }));
   }
 
-  function addEtapa() { setEtapas((e) => [...e, { titulo: "", descripcion: "" }]); }
+  function addEtapa() {
+    setEtapas((e) => [...e, { titulo: "", descripcion: "", pasos: [], frecuencia: "" }]);
+  }
+  function setEtapaFrecuencia(i: number, v: string) {
+    setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, frecuencia: v } : et));
+  }
   function removeEtapa(i: number) {
     setEtapas((e) => e.filter((_, idx) => idx !== i));
     setAsignaciones((a) => {
@@ -4501,6 +6228,29 @@ function CreateMisionView({
   }
   function setEtapa(i: number, k: "titulo" | "descripcion", v: string) {
     setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, [k]: v } : et));
+  }
+  function setEtapaPasos(i: number, pasos: string[]) {
+    setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, pasos } : et));
+  }
+
+  function guardarBorrador() {
+    setError("");
+    try {
+      sessionStorage.setItem(
+        MISION_DRAFT_KEY,
+        JSON.stringify({
+          form,
+          ubicacion,
+          etapas,
+          asignaciones,
+          depPrereqs,
+        }),
+      );
+      setInfoMsg("Borrador guardado");
+      window.setTimeout(() => setInfoMsg(""), 4000);
+    } catch {
+      setError("No se pudo guardar el borrador en este navegador");
+    }
   }
 
   async function handleSubmit(ev: React.FormEvent) {
@@ -4533,18 +6283,23 @@ function CreateMisionView({
         body: JSON.stringify({
           ...form,
           zona_id: zonaIdEfectivo,
-          frecuencia: form.frecuencia || null,
-          etapas,
+          etapas: etapas.map((e) => ({
+            titulo: e.titulo,
+            descripcion: e.descripcion,
+            pasos: e.pasos,
+            frecuencia: e.frecuencia || null,
+          })),
           asignaciones: asignacionesPorOrden,
         }),
       });
       // Add prerequisites sequentially
-      for (const depId of depIds) {
+      for (const dep of depPrereqs) {
         await tapi(`/misiones/${m.id}/dependencias`, token, {
           method: "POST",
-          body: JSON.stringify({ depende_de_id: depId }),
+          body: JSON.stringify({ tipo: dep.tipo, referencia_id: dep.id }),
         }).catch(() => {});
       }
+      sessionStorage.removeItem(MISION_DRAFT_KEY);
       onCreated(m.id);
     } catch (e: any) {
       setError(e.message);
@@ -4556,227 +6311,239 @@ function CreateMisionView({
   const isSecuencial = form.tipo === "secuencial";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack}
-          className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-          ← Volver
-        </button>
-        <h2 className="text-xl font-extrabold text-ink">Nueva Misión</h2>
+    <div className="mx-auto w-full max-w-[1600px] space-y-4 pb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Volver"
+            title="Volver"
+            className="shrink-0 rounded-paper border-2 border-border px-2.5 py-1.5 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+          >
+            ←
+          </button>
+          <h2 className="shrink-0 text-xl font-extrabold text-ink">Nueva Misión</h2>
+          <p className="text-xs text-muted">
+            El cronómetro se usa en cada ticket al ejecutar la misión
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <span className="rounded-full border border-border bg-surface-panel px-2.5 py-1 text-xs font-semibold text-muted">
+            {etapas.length} ticket{etapas.length !== 1 ? "s" : ""}
+          </span>
+          <span className="rounded-full border border-border bg-surface-panel px-2.5 py-1 text-xs font-semibold text-muted">
+            {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
+          </span>
+          {infoMsg && (
+            <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+              {infoMsg}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={guardarBorrador}
+            className="rounded-paper border-2 border-border bg-surface-panel px-4 py-2 text-sm font-bold text-ink transition hover:border-accent hover:text-accent"
+          >
+            Guardar cambios
+          </button>
+          <button
+            type="submit"
+            form="form-nueva-mision"
+            disabled={loading}
+            className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+          >
+            {loading ? "Creando..." : "Crear misión"}
+          </button>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-4">
-          <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Información general</h3>
+      <form id="form-nueva-mision" onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
+          {/* Columna izquierda: datos de la misión */}
+          <div className="space-y-4 xl:col-span-4 xl:sticky xl:top-4">
+            <div className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper space-y-3">
+              <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Información general</h3>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Título *</label>
-            <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
-              placeholder="Nombre de la misión" value={form.titulo} onChange={setF("titulo")} maxLength={150} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Tipo de flujo</label>
-              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
-                value={form.tipo} onChange={setF("tipo")}>
-                <option value="secuencial">🔗 Secuencial — etapas en orden</option>
-                <option value="paralelo">⚡ Asíncrono — etapas simultáneas</option>
-              </select>
-              <p className="mt-1 text-xs text-muted">
-                {isSecuencial
-                  ? "Cada ticket se desbloquea al completar el anterior."
-                  : "Todos los tickets se activan a la vez, sin dependencias."}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Descripción (opcional)</label>
-            <textarea className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent resize-none"
-              rows={2} placeholder="Objetivo general de la misión..."
-              value={form.descripcion} onChange={setF("descripcion")} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {zonasCat.length > 0 ? (
-              <MisionUbicacionPicker
-                zonas={zonasCat}
-                reinoId={ubicacion.reinoId}
-                zonaId={ubicacion.zonaId}
-                subzonaId={ubicacion.subzonaId}
-                departamentoId={ubicacion.departamentoId}
-                token={token}
-                canManageZonas={canManageZonas}
-                onZonaCreada={(nueva) => setZonasCat((prev) => [...prev, nueva])}
-                onChange={(v) => {
-                  setUbicacion({
-                    reinoId: v.reinoId,
-                    zonaId: v.zonaId,
-                    subzonaId: v.subzonaId,
-                    departamentoId: v.departamentoId,
-                  });
-                  if (v.color) setForm((f) => ({ ...f, color: v.color! }));
-                }}
-              />
-            ) : (
-              <div className="col-span-2 rounded-lg border-2 border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                Crea primero reinos y zonas en <strong>🏰 Reinos</strong> para vincular la misión.
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Título *</label>
+                <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder="Nombre de la misión" value={form.titulo} onChange={setF("titulo")} maxLength={150} />
               </div>
-            )}
-            <div>
-              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Color</label>
-              <div className="flex items-center gap-3">
-                <input type="color" value={form.color} onChange={setF("color")}
-                  className="h-10 w-16 cursor-pointer rounded-paper border-2 border-border p-0.5" />
-                <span className="text-sm font-mono text-muted">{form.color}</span>
-              </div>
-            </div>
-          </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Recurrencia</label>
-            <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent"
-              value={form.frecuencia} onChange={setF("frecuencia")}>
-              <option value="">Una sola vez (sin repetición)</option>
-              <option value="diaria">♻️ Diaria — se renueva cada día</option>
-              <option value="semanal">♻️ Semanal — se renueva cada semana</option>
-              <option value="quincenal">♻️ Quincenal — se renueva cada 15 días</option>
-              <option value="mensual">♻️ Mensual — se renueva cada mes</option>
-              <option value="bimestral">♻️ Bimestral — se renueva cada 2 meses</option>
-              <option value="trimestral">♻️ Trimestral — se renueva cada 3 meses</option>
-              <option value="semestral">♻️ Semestral — se renueva cada 6 meses</option>
-            </select>
-            {form.frecuencia && (
-              <p className="mt-1 text-xs text-muted">
-                Al completarse todos los tickets, la misión se reiniciará automáticamente.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Etapas + asignaciones */}
-        <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">
-                Tickets a generar ({etapas.length})
-              </h3>
-              <p className="mt-0.5 text-xs text-muted">
-                {isSecuencial
-                  ? "🔗 Flujo secuencial: cada ticket depende del anterior"
-                  : "⚡ Flujo asíncrono: todos los tickets se crean activos simultáneamente"}
-              </p>
-            </div>
-            <button type="button" onClick={addEtapa}
-              className="rounded-paper border-2 border-accent px-3 py-1 text-xs font-bold text-accent transition hover:bg-surface-hover">
-              + Agregar
-            </button>
-          </div>
-
-          {etapas.map((et, i) => (
-            <div key={i}>
-              <div className="rounded-paper border-2 border-border bg-surface p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-                      style={{ background: form.color }}>
-                      {i + 1}
-                    </span>
-                    {isSecuencial && i > 0 && (
-                      <span className="text-xs font-semibold text-muted">🔒 Bloqueado hasta completar #{i}</span>
-                    )}
-                    {!isSecuencial && (
-                      <span className="text-xs font-semibold text-muted">⚡ Activo desde el inicio</span>
-                    )}
-                  </div>
-                  {etapas.length > 1 && (
-                    <button type="button" onClick={() => removeEtapa(i)}
-                      className="text-xs font-bold text-muted hover:text-danger transition">
-                      Eliminar
-                    </button>
-                  )}
-                </div>
-                <input
-                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                  placeholder={`Título del ticket ${i + 1} *`}
-                  value={et.titulo} onChange={(e) => setEtapa(i, "titulo", e.target.value)} />
-                <input
-                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                  placeholder="Descripción (opcional)"
-                  value={et.descripcion} onChange={(e) => setEtapa(i, "descripcion", e.target.value)} />
-                <div className="flex items-center gap-2">
-                  <svg className="h-4 w-4 shrink-0 text-muted" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                  </svg>
-                  <select
-                    value={asignaciones[i + 1] || ""}
-                    onChange={(e) => setAsignaciones((a) => ({ ...a, [i + 1]: e.target.value }))}
-                    className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent">
-                    <option value="">Sin asignar</option>
-                    {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Flujo</label>
+                  <select className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-2 text-sm text-ink outline-none focus:border-accent"
+                    value={form.tipo} onChange={setF("tipo")}>
+                    <option value="secuencial">🔗 Secuencial</option>
+                    <option value="paralelo">⚡ Paralelo</option>
                   </select>
                 </div>
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Color</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={form.color} onChange={setF("color")}
+                      className="h-9 w-12 cursor-pointer rounded-paper border-2 border-border p-0.5" />
+                    <span className="truncate text-[10px] font-mono text-muted">{form.color}</span>
+                  </div>
+                </div>
               </div>
-              {isSecuencial && i < etapas.length - 1 && (
-                <div className="flex justify-center my-0.5">
-                  <div className="h-4 w-0.5 rounded-full opacity-30" style={{ background: form.color }} />
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Descripción</label>
+                <textarea className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent resize-none"
+                  rows={2} placeholder="Objetivo general..."
+                  value={form.descripcion} onChange={setF("descripcion")} />
+              </div>
+
+              {zonasCat.length > 0 ? (
+                <MisionUbicacionPicker
+                  zonas={zonasCat}
+                  reinoId={ubicacion.reinoId}
+                  zonaId={ubicacion.zonaId}
+                  subzonaId={ubicacion.subzonaId}
+                  departamentoId={ubicacion.departamentoId}
+                  token={token}
+                  canManageZonas={canManageZonas}
+                  onZonaCreada={(nueva) => setZonasCat((prev) => [...prev, nueva])}
+                  onChange={(v) => {
+                    setUbicacion({
+                      reinoId: v.reinoId,
+                      zonaId: v.zonaId,
+                      subzonaId: v.subzonaId,
+                      departamentoId: v.departamentoId,
+                    });
+                    if (v.color) setForm((f) => ({ ...f, color: v.color! }));
+                  }}
+                />
+              ) : (
+                <div className="rounded-lg border-2 border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                  Crea reinos en <strong>🏰 Reinos</strong> primero.
                 </div>
               )}
-            </div>
-          ))}
-        </div>
 
-        {/* Misiones prerequisito */}
-        {todasMisiones.length > 0 && (
-          <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
-            <div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Misiones prerequisito (opcional)</h3>
-              <p className="mt-1 text-xs text-muted">
-                Misiones que deben haberse completado antes de iniciar esta. Solo se muestran misiones existentes.
-              </p>
             </div>
-            <div className="space-y-1.5">
-              {todasMisiones.map((m) => {
-                const checked = depIds.includes(m.id);
-                return (
-                  <label key={m.id} className="flex items-center gap-2.5 cursor-pointer rounded-paper border border-border bg-surface px-3 py-2 hover:border-accent transition">
-                    <input type="checkbox" checked={checked}
-                      onChange={() => setDepIds((ids) => checked ? ids.filter((x) => x !== m.id) : [...ids, m.id])}
-                      className="accent-accent" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-ink truncate">{m.titulo}</p>
-                      {m.reino && <p className="text-xs text-muted">{m.reino}</p>}
-                    </div>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      m.estado === "completada" ? "bg-green-100 text-green-700"
-                      : m.estado === "cancelada" ? "bg-red-100 text-red-600"
-                      : "bg-blue-100 text-blue-700"
-                    }`}>{m.estado}</span>
-                  </label>
-                );
-              })}
-            </div>
-            {depIds.length > 0 && (
-              <p className="text-xs font-semibold text-accent">
-                {depIds.length} misión{depIds.length > 1 ? "es" : ""} seleccionada{depIds.length > 1 ? "s" : ""} como prerequisito
-              </p>
+
+            {(todasMisiones.length > 0 || todasRecetas.length > 0) && (
+              <PrerequisitosBlock
+                items={depPrereqs}
+                onItemsChange={setDepPrereqs}
+                todasMisiones={todasMisiones}
+                todasRecetas={todasRecetas}
+              />
             )}
           </div>
-        )}
 
-        {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
+          {/* Columna derecha: tickets */}
+          <div className="space-y-3 xl:col-span-8">
+            <div className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">
+                    Tickets a generar
+                  </h3>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {isSecuencial
+                      ? "En columna: cada uno desbloquea el siguiente"
+                      : "En grilla: todos activos al mismo tiempo"}
+                  </p>
+                </div>
+                <button type="button" onClick={addEtapa}
+                  className="rounded-paper border-2 border-accent px-3 py-1.5 text-xs font-bold text-accent transition hover:bg-accent hover:text-white">
+                  + Ticket
+                </button>
+              </div>
 
-        <div className="flex gap-3 justify-end">
-          <button type="button" onClick={onBack}
-            className="rounded-paper border-2 border-border px-4 py-2 text-sm font-bold text-muted transition hover:bg-surface-hover">
-            Cancelar
-          </button>
-          <button type="submit" disabled={loading}
-            className="rounded-paper border-2 border-accent bg-accent px-6 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50">
-            {loading ? "Creando tickets..." : "✅ Crear Misión y Generar Tickets"}
-          </button>
+              <div
+                className={
+                  isSecuencial
+                    ? "space-y-2"
+                    : "grid gap-3 sm:grid-cols-2 2xl:grid-cols-3"
+                }
+              >
+                {etapas.map((et, i) => (
+                  <div key={i} className={isSecuencial ? "relative" : ""}>
+                    <div
+                      className="rounded-paper border-2 border-border bg-surface p-3 h-full"
+                      style={!isSecuencial ? { borderTopColor: form.color, borderTopWidth: 3 } : undefined}
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
+                            style={{ background: form.color }}
+                          >
+                            {i + 1}
+                          </span>
+                          {isSecuencial && i > 0 && (
+                            <span className="text-[10px] font-semibold text-muted">🔒 tras #{i}</span>
+                          )}
+                          {!isSecuencial && (
+                            <span className="text-[10px] font-semibold text-muted">⚡ activo</span>
+                          )}
+                        </div>
+                        {etapas.length > 1 && (
+                          <button type="button" onClick={() => removeEtapa(i)}
+                            className="text-[10px] font-bold text-muted hover:text-danger shrink-0">
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid gap-2 lg:grid-cols-2">
+                        <input
+                          className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent lg:col-span-2"
+                          placeholder={`Título ticket ${i + 1} *`}
+                          value={et.titulo}
+                          onChange={(e) => setEtapa(i, "titulo", e.target.value)}
+                        />
+                        <input
+                          className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                          placeholder="Descripción (opc.)"
+                          value={et.descripcion}
+                          onChange={(e) => setEtapa(i, "descripcion", e.target.value)}
+                        />
+                        <select
+                          value={asignaciones[i + 1] || ""}
+                          onChange={(e) => setAsignaciones((a) => ({ ...a, [i + 1]: e.target.value }))}
+                          className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
+                        >
+                          <option value="">👤 Sin asignar</option>
+                          {usuarios.map((u) => (
+                            <option key={u.id} value={u.id}>{u.nombre}</option>
+                          ))}
+                        </select>
+                        <PasosDraftEditor
+                          pasos={et.pasos}
+                          onChange={(pasos) => setEtapaPasos(i, pasos)}
+                        />
+                        <div className="lg:col-span-2">
+                          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
+                            Recurrencia de este ticket
+                          </label>
+                          <SelectFrecuencia
+                            value={et.frecuencia || ""}
+                            onChange={(v) => setEtapaFrecuencia(i, v)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {isSecuencial && i < etapas.length - 1 && (
+                      <div className="flex justify-center py-0.5">
+                        <div className="h-3 w-0.5 rounded-full opacity-40" style={{ background: form.color }} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
+
+        {error && (
+          <div className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>
+        )}
       </form>
     </div>
   );
@@ -4798,7 +6565,7 @@ function MisionDetailView({
 
   // Edit metadata panel
   const [editingMeta, setEditingMeta] = useState(false);
-  const [metaForm, setMetaForm] = useState({ titulo: "", descripcion: "", color: "", frecuencia: "", estado: "" });
+  const [metaForm, setMetaForm] = useState({ titulo: "", descripcion: "", color: "", estado: "" });
   const [metaUbicacion, setMetaUbicacion] = useState<{
     reinoId: number | "";
     zonaId: number | "";
@@ -4810,8 +6577,7 @@ function MisionDetailView({
 
   // Dependencies
   const [todasMisiones, setTodasMisiones] = useState<Mision[]>([]);
-  const [depAddId, setDepAddId] = useState("");
-  const [depAdding, setDepAdding] = useState(false);
+  const [todasRecetas, setTodasRecetas] = useState<RecetaPrereq[]>([]);
 
   // Producto resultante
   const [catalogoMateriales, setCatalogoMateriales] = useState<Material[]>([]);
@@ -4823,7 +6589,9 @@ function MisionDetailView({
 
   // Add-ticket inline form
   const [showAddEtapa, setShowAddEtapa] = useState(false);
-  const [addForm, setAddForm] = useState({ titulo: "", descripcion: "", asignado_a: "" });
+  const [addForm, setAddForm] = useState({
+    titulo: "", descripcion: "", asignado_a: "", pasos: [] as string[], frecuencia: "",
+  });
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
@@ -4853,6 +6621,7 @@ function MisionDetailView({
   useEffect(() => {
     tapi("/usuarios", token).then(setUsuarios).catch(() => {});
     tapi("/misiones/", token).then(setTodasMisiones).catch(() => {});
+    tapi("/recetas", token).then(setTodasRecetas).catch(() => {});
     tapi("/materiales?todos=1", token).then(setCatalogoMateriales).catch(() => {});
     tapi("/zonas-trabajo", token).then(setZonasCat).catch(() => {});
   }, [token]);
@@ -4862,7 +6631,6 @@ function MisionDetailView({
         titulo: mision.titulo,
         descripcion: mision.descripcion || "",
         color: mision.color || "#0c6069",
-        frecuencia: mision.frecuencia || "",
         estado: mision.estado,
       });
       setMetaUbicacion(ubicacionFromZonaId(zonasCat, mision.zona_id));
@@ -4890,7 +6658,6 @@ function MisionDetailView({
         body: JSON.stringify({
           ...metaForm,
           zona_id: metaZonaIdEfectivo,
-          frecuencia: metaForm.frecuencia || null,
         }),
       });
       setMision(updated);
@@ -4907,12 +6674,19 @@ function MisionDetailView({
     if (!addForm.titulo.trim()) { setAddError("Título requerido"); return; }
     setAddSaving(true);
     try {
+      const pasos = addForm.pasos.map((p) => p.trim()).filter(Boolean);
       const updated = await tapi(`/misiones/${misionId}/etapas`, token, {
         method: "POST",
-        body: JSON.stringify({ ...addForm, asignado_a: addForm.asignado_a || null }),
+        body: JSON.stringify({
+          titulo: addForm.titulo,
+          descripcion: addForm.descripcion,
+          asignado_a: addForm.asignado_a || null,
+          pasos,
+          frecuencia: addForm.frecuencia || null,
+        }),
       });
       setMision(updated);
-      setAddForm({ titulo: "", descripcion: "", asignado_a: "" });
+      setAddForm({ titulo: "", descripcion: "", asignado_a: "", pasos: [], frecuencia: "" });
       setShowAddEtapa(false);
     } catch (e: any) {
       setAddError(e.message);
@@ -4968,15 +6742,19 @@ function MisionDetailView({
     rechazado: "bg-red-500",
   };
 
+  useEffect(() => {
+    const iv = setInterval(() => { reload().catch(() => {}); }, 4000);
+    return () => clearInterval(iv);
+  }, [reload]);
+
   if (loading) return <div className="py-16 text-center text-sm text-muted">Cargando misión...</div>;
   if (error || !mision) return (
     <div className="space-y-3">
-      <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition">← Volver</button>
+      <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition">←</button>
       <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error || "Misión no encontrada"}</div>
     </div>
   );
 
-  const pct = mision.total_etapas > 0 ? Math.round((mision.etapas_completadas / mision.total_etapas) * 100) : 0;
   const etapas = mision.etapas || [];
   const isSecuencial = mision.tipo === "secuencial";
 
@@ -4985,7 +6763,7 @@ function MisionDetailView({
       <div className="flex flex-wrap items-center gap-3">
         <button onClick={onBack}
           className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-          ← Volver
+          ←
         </button>
         {(mision.departamento_nombre || mision.ubicacion_label) && (
           <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
@@ -4995,11 +6773,6 @@ function MisionDetailView({
         <span className="inline-flex items-center rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-semibold text-muted">
           {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
         </span>
-        {mision.frecuencia && (
-          <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold">
-            {FRECUENCIA_LABEL[mision.frecuencia] ?? mision.frecuencia}
-          </span>
-        )}
         {mision.estado === "completada" && (
           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-800 border border-green-300 px-2.5 py-0.5 text-xs font-bold">
             ✅ Completada
@@ -5029,7 +6802,7 @@ function MisionDetailView({
                 <button
                   disabled={renewing}
                   onClick={async () => {
-                    if (!confirm(`¿Renovar la misión "${mision.titulo}"?\n\nSe eliminarán los tickets actuales y se crearán nuevos. La misión quedará activa.`)) return;
+                    if (!confirm(`¿Renovar todos los tickets resueltos de "${mision.titulo}"?\n\nCada ticket reiniciará su checklist (sin borrar números ni historial).`)) return;
                     setRenewing(true);
                     try {
                       const res = await tapi(`/misiones/${misionId}/renovar`, token, { method: "POST" });
@@ -5041,7 +6814,7 @@ function MisionDetailView({
                     }
                   }}
                   className="rounded-paper border-2 border-emerald-400 px-3 py-1.5 text-sm font-bold text-emerald-600 transition hover:bg-emerald-500 hover:border-emerald-500 hover:text-white disabled:opacity-50">
-                  {renewing ? "Renovando..." : "♻️ Renovar"}
+                  {renewing ? "Renovando..." : "♻️ Renovar tickets"}
                 </button>
               )}
               {nivel >= 3 && (
@@ -5077,30 +6850,14 @@ function MisionDetailView({
             <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               value={metaForm.titulo} onChange={(e) => setMetaForm((f) => ({ ...f, titulo: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Recurrencia</label>
-              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                value={metaForm.frecuencia} onChange={(e) => setMetaForm((f) => ({ ...f, frecuencia: e.target.value }))}>
-                <option value="">Sin repetición</option>
-                <option value="diaria">♻️ Diaria</option>
-                <option value="semanal">♻️ Semanal</option>
-                <option value="quincenal">♻️ Quincenal</option>
-                <option value="mensual">♻️ Mensual</option>
-                <option value="bimestral">♻️ Bimestral</option>
-                <option value="trimestral">♻️ Trimestral</option>
-                <option value="semestral">♻️ Semestral</option>
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Estado</label>
-              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                value={metaForm.estado} onChange={(e) => setMetaForm((f) => ({ ...f, estado: e.target.value }))}>
-                <option value="activa">🟢 Activa</option>
-                <option value="completada">✅ Completada</option>
-                <option value="cancelada">❌ Cancelada</option>
-              </select>
-            </div>
+          <div>
+            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Estado</label>
+            <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              value={metaForm.estado} onChange={(e) => setMetaForm((f) => ({ ...f, estado: e.target.value }))}>
+              <option value="activa">🟢 Activa</option>
+              <option value="completada">✅ Completada</option>
+              <option value="cancelada">❌ Cancelada</option>
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Descripción</label>
@@ -5151,103 +6908,68 @@ function MisionDetailView({
         </div>
       )}
 
-      {/* Header card */}
+      {/* Cabecera: datos de la misión (sin barra de progreso — el % va por ticket) */}
       <div className="rounded-paper border-2 p-5 shadow-paper" style={{ borderColor: mision.color + "66", background: mision.color + "11" }}>
-        <h2 className="text-xl font-extrabold text-ink mb-1">{mision.titulo}</h2>
-        {(mision.ubicacion_label || mision.reino) && (
-          <p className="text-xs font-semibold text-muted mb-2">
-            📍 {mision.ubicacion_label || mision.reino}
-          </p>
-        )}
-        {mision.descripcion && <p className="text-sm text-ink mb-3">{mision.descripcion}</p>}
-        {mision.frecuencia && mision.proxima_renovacion && (
-          <p className="mb-3 text-xs font-semibold" style={{ color: mision.color }}>
-            {mision.estado === "completada"
-              ? `⏰ Próxima renovación automática: ${fmtFecha(mision.proxima_renovacion)}`
-              : `♻️ Se renovará el ${fmtFecha(mision.proxima_renovacion)} al completarse`}
-          </p>
-        )}
-        <div className="h-2 rounded-full bg-white/60 dark:bg-ink/20 overflow-hidden">
-          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: mision.color }} />
-        </div>
-        <div className="mt-1.5 flex justify-between text-xs" style={{ color: mision.color }}>
-          <span>{mision.etapas_completadas} de {mision.total_etapas} etapas completadas</span>
-          <span className="font-bold">{pct}%</span>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-extrabold text-ink mb-1">{mision.titulo}</h2>
+            <MisionUbicacionResumen mision={mision} zonas={zonasCat} />
+            {mision.descripcion && <p className="mt-2 text-sm text-ink">{mision.descripcion}</p>}
+            <p className="mt-2 text-xs font-semibold text-muted">
+              {mision.total_etapas} ticket{mision.total_etapas !== 1 ? "s" : ""} · progreso en cada ticket abajo
+            </p>
+          </div>
+          <div className="w-full shrink-0 lg:w-80">
+            <div className="rounded-paper border-2 border-accent/40 bg-accent/5 px-4 py-3 shadow-paper-sm">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+                Tiempo total de la misión
+              </p>
+              <p className="font-mono text-3xl font-black tabular-nums text-accent">
+                {fmtTiempo(mision.total_segundos_mision ?? 0)}
+              </p>
+              <p className="mt-1 text-[10px] text-muted">
+                Suma de los cronómetros de cada ticket
+              </p>
+              {(mision.etapas?.length ?? 0) > 0 && (
+                <ul className="mt-3 max-h-36 space-y-1 overflow-y-auto border-t border-border/60 pt-2">
+                  {(mision.etapas ?? []).map((et) =>
+                    et.ticket_id ? (
+                      <li key={et.id} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="min-w-0 truncate text-ink">
+                          {et.titulo}
+                          {et.ticket_numero && (
+                            <span className="ml-1 font-mono text-muted">{et.ticket_numero}</span>
+                          )}
+                        </span>
+                        <span className="shrink-0 font-mono font-bold text-accent">
+                          {fmtTiempo(et.ticket_segundos ?? 0)}
+                        </span>
+                      </li>
+                    ) : null,
+                  )}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Misiones prerequisito */}
-      {(() => {
-        const deps = mision.dependencias ?? [];
-        const disponibles = todasMisiones.filter(
-          (m) => m.id !== misionId && !deps.find((d) => d.id === m.id)
-        );
-        return (
-          <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
-            <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">🔗 Misiones prerequisito</h3>
-            {deps.length === 0 ? (
-              <p className="text-xs text-muted">Sin prerequisitos — esta misión puede iniciarse en cualquier momento.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {deps.map((dep) => (
-                  <div key={dep.id} className="flex items-center gap-2 rounded-paper border border-border bg-surface px-3 py-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-ink truncate">{dep.titulo}</p>
-                      {dep.reino && <p className="text-xs text-muted">{dep.reino}</p>}
-                    </div>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                      dep.estado === "completada" ? "bg-green-100 text-green-700"
-                      : dep.estado === "cancelada" ? "bg-red-100 text-red-600"
-                      : "bg-blue-100 text-blue-700"
-                    }`}>{dep.estado}</span>
-                    {!readonly && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const updated = await tapi(`/misiones/${misionId}/dependencias/${dep.id}`, token, { method: "DELETE" });
-                            setMision(updated);
-                          } catch (e: any) { alert(e.message); }
-                        }}
-                        className="text-muted hover:text-danger transition text-xs px-1">✕</button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            {!readonly && disponibles.length > 0 && (
-              <div className="flex gap-2">
-                <select
-                  value={depAddId}
-                  onChange={(e) => setDepAddId(e.target.value)}
-                  className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent">
-                  <option value="">Agregar prerequisito...</option>
-                  {disponibles.map((m) => (
-                    <option key={m.id} value={m.id}>{m.titulo}{m.reino ? ` — ${m.reino}` : ""}</option>
-                  ))}
-                </select>
-                <button
-                  disabled={!depAddId || depAdding}
-                  onClick={async () => {
-                    if (!depAddId) return;
-                    setDepAdding(true);
-                    try {
-                      const updated = await tapi(`/misiones/${misionId}/dependencias`, token, {
-                        method: "POST",
-                        body: JSON.stringify({ depende_de_id: parseInt(depAddId) }),
-                      });
-                      setMision(updated);
-                      setDepAddId("");
-                    } catch (e: any) { alert(e.message); }
-                    finally { setDepAdding(false); }
-                  }}
-                  className="rounded-paper border-2 border-accent px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-white transition disabled:opacity-50">
-                  {depAdding ? "..." : "+ Agregar"}
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {(todasMisiones.length > 0 || todasRecetas.length > 0) && (
+        <PrerequisitosBlock
+          titulo="🔗 Prerequisitos"
+          readonly={readonly}
+          items={(mision.dependencias ?? []).map((d) => ({
+            tipo: (d.tipo ?? "mision") as PrerequisitoTipo,
+            id: d.id,
+          }))}
+          dependenciasDisplay={mision.dependencias}
+          misionId={misionId}
+          token={token}
+          todasMisiones={todasMisiones}
+          todasRecetas={todasRecetas}
+          onMisionUpdated={setMision}
+        />
+      )}
 
       {/* Producto resultante */}
       {(() => {
@@ -5407,16 +7129,34 @@ function MisionDetailView({
                       {et.asignado_nombre && (
                         <p className="text-xs opacity-75 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>
                       )}
+                      {et.ticket_frecuencia && (
+                        <p className="text-[10px] font-semibold text-emerald-700">
+                          {FRECUENCIA_LABEL[et.ticket_frecuencia] ?? et.ticket_frecuencia}
+                          {et.ticket_proxima_renovacion && et.ticket_estado === "resuelto" && (
+                            <span className="text-muted"> · {fmtFecha(et.ticket_proxima_renovacion)}</span>
+                          )}
+                        </p>
+                      )}
                       {etapaLocked && <p className="text-xs opacity-60">Esperando ticket anterior</p>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                      {et.ticket_id && (
+                        <span
+                          className="text-xs font-black tabular-nums"
+                          style={{ color: etapaEjecucionPct(et) === 100 ? "#16a34a" : mision.color }}
+                          title="Ejecución del ticket (pasos del checklist)"
+                        >
+                          {etapaEjecucionPct(et)}%
+                        </span>
+                      )}
                       {et.ticket_id && et.ticket_numero && (
                         <div className="flex items-center gap-1.5">
                           {et.ticket_estado && (
                             <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
                           )}
                           <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
-                            className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
+                            className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition"
+                            title="Abrir ejecución (cronómetro + pasos)">
                             {et.ticket_numero}
                           </button>
                         </div>
@@ -5444,7 +7184,25 @@ function MisionDetailView({
                       <p className="text-xs font-extrabold uppercase tracking-wide text-accent">
                         ⚙️ Configurar: {et.titulo}
                       </p>
-                      <PasosSection ticketId={et.ticket_id} token={token} editMode={true} />
+                      <TicketCronometroById ticketId={et.ticket_id} token={token} />
+                      <TicketRecurrenciaById
+                        ticketId={et.ticket_id}
+                        token={token}
+                        canEdit={nivel >= 2}
+                        onRefresh={reload}
+                      />
+                      <PasosSection
+                        ticketId={et.ticket_id}
+                        token={token}
+                        editMode={true}
+                        onGuardarExtra={reload}
+                      />
+                      <TicketBarraGuardadoById
+                        ticketId={et.ticket_id}
+                        token={token}
+                        compact
+                        onRefresh={reload}
+                      />
                       <MaterialesSection ticketId={et.ticket_id} token={token} user={user} readonly={false} zonaSugerida={mision.reino} />
                     </div>
                   )}
@@ -5486,13 +7244,22 @@ function MisionDetailView({
                       <span className="text-xs font-semibold text-muted">⚡ Activo</span>
                     </div>
                     <div className="flex items-center gap-2">
+                      {et.ticket_id && (
+                        <span
+                          className="text-xs font-black tabular-nums"
+                          style={{ color: etapaEjecucionPct(et) === 100 ? "#16a34a" : mision.color }}
+                        >
+                          {etapaEjecucionPct(et)}%
+                        </span>
+                      )}
                       {et.ticket_id && et.ticket_numero && (
                         <div className="flex items-center gap-1.5">
                           {et.ticket_estado && (
                             <span className={`h-2.5 w-2.5 rounded-full ring-2 ring-white ${TICKET_DOT[et.ticket_estado] || "bg-gray-400"}`} />
                           )}
                           <button onClick={() => et.ticket_id && onTicket(et.ticket_id)}
-                            className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition">
+                            className="text-xs font-mono font-bold underline underline-offset-2 hover:opacity-70 transition"
+                            title="Abrir ejecución (cronómetro + pasos)">
                             {et.ticket_numero}
                           </button>
                         </div>
@@ -5516,12 +7283,35 @@ function MisionDetailView({
                   </div>
                   <p className="font-semibold text-sm">{et.titulo}</p>
                   {et.descripcion && <p className="text-xs opacity-75 mt-0.5">{et.descripcion}</p>}
+                  {et.ticket_frecuencia && (
+                    <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">
+                      {FRECUENCIA_LABEL[et.ticket_frecuencia] ?? et.ticket_frecuencia}
+                    </p>
+                  )}
                   {et.asignado_nombre && <p className="text-xs opacity-75 mt-1 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>}
                   {/* Panel de configuración inline — solo en modo edición */}
                   {!readonly && configurandoTicketId === et.ticket_id && et.ticket_id && (
                     <div className="mt-3 pt-3 border-t border-border space-y-3">
                       <p className="text-xs font-extrabold uppercase tracking-wide text-accent">⚙️ Configurar</p>
-                      <PasosSection ticketId={et.ticket_id} token={token} editMode={true} />
+                      <TicketCronometroById ticketId={et.ticket_id} token={token} />
+                      <TicketRecurrenciaById
+                        ticketId={et.ticket_id}
+                        token={token}
+                        canEdit={nivel >= 2}
+                        onRefresh={reload}
+                      />
+                      <PasosSection
+                        ticketId={et.ticket_id}
+                        token={token}
+                        editMode={true}
+                        onGuardarExtra={reload}
+                      />
+                      <TicketBarraGuardadoById
+                        ticketId={et.ticket_id}
+                        token={token}
+                        compact
+                        onRefresh={reload}
+                      />
                       <MaterialesSection ticketId={et.ticket_id} token={token} user={user} readonly={false} zonaSugerida={mision.reino} />
                     </div>
                   )}
@@ -5561,6 +7351,19 @@ function MisionDetailView({
                     <option value="">Sin asignar</option>
                     {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
                   </select>
+                </div>
+                <PasosDraftEditor
+                  pasos={addForm.pasos}
+                  onChange={(pasos) => setAddForm((f) => ({ ...f, pasos }))}
+                />
+                <div>
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
+                    Recurrencia del ticket
+                  </label>
+                  <SelectFrecuencia
+                    value={addForm.frecuencia}
+                    onChange={(v) => setAddForm((f) => ({ ...f, frecuencia: v }))}
+                  />
                 </div>
                 {addError && <p className="text-xs text-red-600">{addError}</p>}
                 <div className="flex gap-2 justify-end">
@@ -5603,7 +7406,7 @@ function WorkloadView({ token, onBack }: { token: string; onBack: () => void }) 
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">← Volver</button>
+        <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">←</button>
         <h2 className="text-xl font-extrabold text-ink">Aliados</h2>
       </div>
       {loading ? (
@@ -5757,7 +7560,7 @@ function PerfilView({
       <div className="flex items-center gap-3">
         <button type="button" onClick={onBack}
           className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-          ← Volver
+          ←
         </button>
         <h2 className="text-xl font-extrabold text-ink">👤 Mi perfil</h2>
       </div>
@@ -5893,6 +7696,7 @@ export default function TicketsPanel() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [bajoStockCount, setBajoStockCount] = useState(0);
   const [navScope, setNavScope] = useState<NavScope>({ kind: "all" });
+  const [boardRefreshKey, setBoardRefreshKey] = useState(0);
 
   const reloadCats = useCallback(() => {
     if (!token) return;
@@ -5926,9 +7730,20 @@ export default function TicketsPanel() {
   const nivel = user.rol?.nivel ?? 1;
 
   function goDetail(id: number) { setSelectedId(id); setView("detail"); }
-  function goBack() { setView("list"); setSelectedId(null); setSelectedMisionId(null); }
+  function goBack() {
+    setBoardRefreshKey((k) => k + 1);
+    setView("list");
+    setSelectedId(null);
+    setSelectedMisionId(null);
+  }
   function goMisionDetail(id: number) { setSelectedMisionId(id); setView("mision_detail"); }
-  function goTablero() { setNavScope({ kind: "all" }); goBack(); }
+  function goTablero() {
+    setNavScope({ kind: "all" });
+    setBoardRefreshKey((k) => k + 1);
+    setView("list");
+    setSelectedId(null);
+    setSelectedMisionId(null);
+  }
   function goInventario() { setView("inventario"); }
   function goReinos() { setView("reinos"); }
   function goWorkload() { setView("workload"); }
@@ -5936,7 +7751,10 @@ export default function TicketsPanel() {
   function goRecetas() { setView("recetas"); }
   function goCreateMision() { setView("crear_mision"); }
   function handleNavScope(scope: NavScope) { setNavScope(scope); }
-  function goIrTableroConFiltro() { setView("list"); }
+  function goIrTableroConFiltro() {
+    setBoardRefreshKey((k) => k + 1);
+    setView("list");
+  }
   function goIrInventarioConFiltro() { setView("inventario"); }
 
   return (
@@ -5983,6 +7801,7 @@ export default function TicketsPanel() {
             onSelect={goDetail}
             onEditMision={goMisionDetail}
             navScope={navScope}
+            refreshKey={boardRefreshKey}
           />
         )}
         {view === "create" && (

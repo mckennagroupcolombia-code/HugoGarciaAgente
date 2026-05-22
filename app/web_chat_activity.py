@@ -129,6 +129,20 @@ def record_interaction(
             data["sessions"] = sessions[:_MAX_SESSIONS]
         _save(data)
 
+    try:
+        from app.services.web_chat_notify import notificar_interaccion_web_chat_grupo
+
+        notificar_interaccion_web_chat_grupo(
+            session_id=session_id,
+            user_message=turn["user_message"],
+            agent_reply=turn["agent_reply"],
+            source=turn["source"],
+            page_url=page_url,
+            upstream_error=turn["upstream_error"],
+        )
+    except Exception:
+        pass
+
 
 def get_summary() -> dict[str, int]:
     with _LOCK:

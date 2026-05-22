@@ -1,6 +1,7 @@
 import { useAppStore, type Panel } from "../stores/app";
 import { useAuthStore } from "../stores/auth";
 import { usePreventa } from "../hooks/usePreventa";
+import { useWebChat } from "../hooks/useWebChat";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 
@@ -8,6 +9,7 @@ const NAV: { id: Panel; label: string; icon: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4" },
   { id: "chat", label: "Chat IA", icon: "M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" },
   { id: "voz", label: "Voz IA", icon: "M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" },
+  { id: "webchat", label: "Chat web", icon: "M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" },
   { id: "preventa", label: "Preventa MeLi", icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01" },
   { id: "sync", label: "Sincronización", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" },
   { id: "stock", label: "Stock", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
@@ -24,6 +26,8 @@ export default function Sidebar() {
   const logout = useAuthStore((s) => s.clear);
   const { data } = usePreventa();
   const pendientes = data?.total ?? 0;
+  const { data: webChat } = useWebChat(true);
+  const webChatPendientes = webChat?.summary?.unreviewed_count ?? 0;
   const { data: facturaData } = useQuery({
     queryKey: ["facturas-pendientes"],
     queryFn: () => api.get<{ total: number }>("/api/facturas/pendientes"),
@@ -74,6 +78,11 @@ export default function Sidebar() {
                 {item.id === "preventa" && pendientes > 0 && (
                   <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
                     {pendientes}
+                  </span>
+                )}
+                {item.id === "webchat" && webChatPendientes > 0 && (
+                  <span className="shrink-0 rounded-full bg-warning px-2 py-0.5 text-[11px] font-bold text-black">
+                    {webChatPendientes}
                   </span>
                 )}
                 {item.id === "facturas" && facturasPendientes > 0 && (

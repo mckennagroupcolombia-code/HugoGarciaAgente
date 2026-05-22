@@ -395,14 +395,265 @@ def _migrate_mision_zona_id():
         db.close()
 
 
+def _zona_profundidad_arbol(db, zona_id: int) -> int:
+    """Profundidad por parent_id: 0=reino, 1=zona, 2=subzona o depto directo, 3=depto bajo subzona."""
+    row = db.execute(
+        "SELECT parent_id FROM zonas_trabajo WHERE id=? AND activo=1", (zona_id,)
+    ).fetchone()
+    if not row:
+        return -1
+    n = 0
+    pid = row["parent_id"]
+    while pid is not None and n < 8:
+        n += 1
+        pr = db.execute(
+            "SELECT parent_id FROM zonas_trabajo WHERE id=?", (pid,)
+        ).fetchone()
+        if not pr:
+            return -1
+        pid = pr["parent_id"]
+    return n
+
+
+def _inferir_tipo_zona(db, zona_id: int) -> str:
+    depth = _zona_profundidad_arbol(db, zona_id)
+    if depth == 0:
+        return "reino"
+    if depth == 1:
+        return "zona"
+    if depth == 2:
+        hijo = db.execute(
+            "SELECT 1 FROM zonas_trabajo WHERE parent_id=? AND activo=1 LIMIT 1",
+            (zona_id,),
+        ).fetchone()
+        return "subzona" if hijo else "departamento"
+    return "departamento"
+
+
+def _zona_tipo(db, zona_id: int) -> str:
+    row = db.execute(
+        "SELECT tipo FROM zonas_trabajo WHERE id=? AND activo=1", (zona_id,)
+    ).fetchone()
+    if not row:
+        return ""
+    t = (row["tipo"] or "").strip().lower()
+    if t in ("reino", "zona", "subzona", "departamento"):
+        return t
+    return _inferir_tipo_zona(db, zona_id)
+
+
+def _migrate_zonas_tipo():
+    """Columna tipo explícita: evita confundir subzona con departamento directo bajo zona."""
+    with _conn() as db:
+        _add_col(db, "zonas_trabajo", "tipo", "TEXT")
+        rows = db.execute(
+            "SELECT id FROM zonas_trabajo WHERE tipo IS NULL OR TRIM(tipo)=''"
+        ).fetchall()
+        for row in rows:
+            db.execute(
+                "UPDATE zonas_trabajo SET tipo=? WHERE id=?",
+                (_inferir_tipo_zona(db, row["id"]), row["id"]),
+            )
+        db.commit()
+
+
+def _migrate_dependencias_prerequisitos():
+    """Amplía prerequisitos: misiones + recetas (tipo + referencia_id)."""
+    if not os.path.isfile(DB_PATH):
+        return
+    db = sqlite3.connect(DB_PATH)
+    db.row_factory = sqlite3.Row
+    try:
+        if not db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='dependencias_misiones'"
+        ).fetchone():
+            return
+        row = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='dependencias_misiones'"
+        ).fetchone()
+        sql = (row["sql"] or "") if row else ""
+        if "referencia_id" in sql and "tipo" in sql:
+            return
+
+        db.execute("PRAGMA foreign_keys=OFF")
+        db.execute("BEGIN EXCLUSIVE")
+        db.execute("""
+            CREATE TABLE dependencias_misiones_new (
+                mision_id       INTEGER NOT NULL REFERENCES misiones(id) ON DELETE CASCADE,
+                tipo            TEXT NOT NULL DEFAULT 'mision'
+                                    CHECK(tipo IN ('mision','receta')),
+                referencia_id   INTEGER NOT NULL,
+                PRIMARY KEY (mision_id, tipo, referencia_id)
+            )
+        """)
+        db.execute("""
+            INSERT INTO dependencias_misiones_new (mision_id, tipo, referencia_id)
+            SELECT mision_id, 'mision', depende_de_id FROM dependencias_misiones
+        """)
+        db.execute("DROP TABLE dependencias_misiones")
+        db.execute("ALTER TABLE dependencias_misiones_new RENAME TO dependencias_misiones")
+        db.execute("COMMIT")
+    except Exception as exc:
+        try:
+            db.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise RuntimeError(f"_migrate_dependencias_prerequisitos failed: {exc}") from exc
+    finally:
+        db.close()
+
+
+def _fetch_dependencias_mision(db, mision_id: int) -> list:
+    """Prerequisitos unificados: misión (estado real) o receta (elaboración finalizada)."""
+    out = []
+    for row in db.execute("""
+        SELECT dm.tipo, dm.referencia_id AS id, m.titulo, m.estado, m.reino
+        FROM dependencias_misiones dm
+        JOIN misiones m ON m.id = dm.referencia_id
+        WHERE dm.mision_id = ? AND dm.tipo = 'mision'
+        ORDER BY m.titulo
+    """, (mision_id,)):
+        d = dict(row)
+        d["tipo"] = "mision"
+        out.append(d)
+    for row in db.execute("""
+        SELECT dm.tipo, dm.referencia_id AS id, r.titulo,
+               CASE WHEN EXISTS (
+                   SELECT 1 FROM receta_corridas rc
+                   WHERE rc.receta_id = r.id AND rc.estado = 'finalizada'
+               ) THEN 'completada' ELSE 'pendiente' END AS estado,
+               NULL AS reino,
+               r.categoria
+        FROM dependencias_misiones dm
+        JOIN recetas_ops r ON r.id = dm.referencia_id AND r.activo = 1
+        WHERE dm.mision_id = ? AND dm.tipo = 'receta'
+        ORDER BY r.titulo
+    """, (mision_id,)):
+        d = dict(row)
+        d["tipo"] = "receta"
+        out.append(d)
+    out.sort(key=lambda x: (0 if x.get("tipo") == "mision" else 1, (x.get("titulo") or "").lower()))
+    return out
+
+
+def _migrate_mision_frecuencia():
+    """Amplía CHECK de frecuencia (cada_2_dias, cada_3_dias)."""
+    if not os.path.isfile(DB_PATH):
+        return
+    db = sqlite3.connect(DB_PATH)
+    db.row_factory = sqlite3.Row
+    try:
+        if not db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='misiones'"
+        ).fetchone():
+            return
+        if "frecuencia" not in {
+            r[1] for r in db.execute("PRAGMA table_info(misiones)").fetchall()
+        }:
+            return
+        row = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='misiones'"
+        ).fetchone()
+        sql = (row["sql"] or "") if row else ""
+        if "'cada_2_dias'" in sql:
+            return
+
+        db.execute("PRAGMA foreign_keys=OFF")
+        db.execute("BEGIN EXCLUSIVE")
+        db.execute("""
+            CREATE TABLE misiones_new (
+                id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo                 TEXT NOT NULL,
+                descripcion            TEXT,
+                reino                  TEXT,
+                zona_id                INTEGER REFERENCES zonas_trabajo(id),
+                color                  TEXT DEFAULT '#0c6069',
+                tipo                   TEXT NOT NULL DEFAULT 'secuencial'
+                                           CHECK(tipo IN ('secuencial','paralelo')),
+                categoria              TEXT DEFAULT 'logistica',
+                estado                 TEXT NOT NULL DEFAULT 'activa'
+                                           CHECK(estado IN ('borrador','activa','completada','cancelada')),
+                total_etapas           INTEGER DEFAULT 0,
+                etapas_completadas     INTEGER DEFAULT 0,
+                creado_por             INTEGER REFERENCES usuarios(id),
+                creado_en              TEXT DEFAULT (datetime('now')),
+                completada_en          TEXT,
+                frecuencia             TEXT CHECK(frecuencia IN (
+                    'diaria','cada_2_dias','cada_3_dias',
+                    'semanal','quincenal','mensual','bimestral','trimestral','semestral'
+                )),
+                proxima_renovacion     TEXT,
+                producto_resultante_id INTEGER REFERENCES materiales_catalogo(id)
+            )
+        """)
+        db.execute("""
+            INSERT INTO misiones_new (
+                id, titulo, descripcion, reino, zona_id, color, tipo, categoria, estado,
+                total_etapas, etapas_completadas, creado_por, creado_en, completada_en,
+                frecuencia, proxima_renovacion, producto_resultante_id
+            )
+            SELECT
+                id, titulo, descripcion, reino, zona_id, color, tipo, categoria, estado,
+                total_etapas, etapas_completadas, creado_por, creado_en, completada_en,
+                frecuencia, proxima_renovacion, producto_resultante_id
+            FROM misiones
+        """)
+        db.execute("DROP TABLE misiones")
+        db.execute("ALTER TABLE misiones_new RENAME TO misiones")
+        db.execute("COMMIT")
+    except Exception as exc:
+        try:
+            db.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise RuntimeError(f"_migrate_mision_frecuencia failed: {exc}") from exc
+    finally:
+        db.close()
+
+
+def _migrate_ticket_frecuencia():
+    """Recurrencia por ticket (frecuencia / proxima_renovacion). Migra datos legacy de misiones."""
+    with _conn() as db:
+        _add_col(
+            db, "tickets", "frecuencia",
+            "TEXT CHECK(frecuencia IN ('diaria','cada_2_dias','cada_3_dias','semanal',"
+            "'quincenal','mensual','bimestral','trimestral','semestral'))",
+        )
+        _add_col(db, "tickets", "proxima_renovacion", "TEXT")
+        db.execute("""
+            UPDATE tickets
+            SET frecuencia = (
+                SELECT m.frecuencia FROM misiones m WHERE m.id = tickets.mision_id
+            ),
+            proxima_renovacion = (
+                SELECT m.proxima_renovacion FROM misiones m WHERE m.id = tickets.mision_id
+            )
+            WHERE mision_id IS NOT NULL
+              AND frecuencia IS NULL
+              AND EXISTS (
+                SELECT 1 FROM misiones m
+                WHERE m.id = tickets.mision_id AND m.frecuencia IS NOT NULL
+              )
+        """)
+        db.commit()
+
+
 def init_db():
     _repair_broken_fk()
     _migrate_categorias()
     _migrate_materiales_tipo()
     _migrate_zonas_subareas()
     _migrate_mision_zona_id()
+    _migrate_zonas_tipo()
+    _migrate_mision_frecuencia()
+    _migrate_ticket_frecuencia()
+    from app.services.misiones_timing import _migrate_mision_corridas
+    from app.services.ticket_timing import _migrate_ticket_corridas
     from app.services.recetas_ops import _migrate_recetas_ops
+    _migrate_mision_corridas()
+    _migrate_ticket_corridas()
     _migrate_recetas_ops()
+    _migrate_dependencias_prerequisitos()
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -587,8 +838,10 @@ def init_db():
             );
             CREATE TABLE IF NOT EXISTS dependencias_misiones (
                 mision_id       INTEGER NOT NULL REFERENCES misiones(id) ON DELETE CASCADE,
-                depende_de_id   INTEGER NOT NULL REFERENCES misiones(id) ON DELETE CASCADE,
-                PRIMARY KEY (mision_id, depende_de_id)
+                tipo            TEXT NOT NULL DEFAULT 'mision'
+                                    CHECK(tipo IN ('mision','receta')),
+                referencia_id   INTEGER NOT NULL,
+                PRIMARY KEY (mision_id, tipo, referencia_id)
             );
         """)
 
@@ -599,7 +852,7 @@ def init_db():
 
         # Migrate misiones table with recurrence columns
         _add_col(db, "misiones", "frecuencia",
-                 "TEXT CHECK(frecuencia IN ('diaria','semanal','quincenal','mensual','bimestral','trimestral','semestral'))")
+                 "TEXT CHECK(frecuencia IN ('diaria','cada_2_dias','cada_3_dias','semanal','quincenal','mensual','bimestral','trimestral','semestral'))")
         _add_col(db, "misiones", "proxima_renovacion", "TEXT")
         # Producto elaborado resultante de la misión
         _add_col(db, "misiones", "producto_resultante_id", "INTEGER REFERENCES materiales_catalogo(id)")
@@ -967,13 +1220,19 @@ def _zona_jerarquia(db, zona_id: int) -> dict | None:
     elif len(chain) == 3:
         out["departamento_nombre"] = None
         out["departamento_id"] = None
+    leaf = chain[-1]
+    leaf_color = (leaf.get("color") or "").strip()
+    out["ubicacion_color"] = leaf_color or None
+    if len(chain) >= 2:
+        zc = (chain[1].get("color") or "").strip()
+        if zc:
+            out["zona_color"] = zc
     return out
 
 
 def _categoria_desde_zona(db, zona_id: int) -> str:
-    """Slug de categoría para tickets: labor = departamento (nivel 3) o genérico."""
-    niv = _zona_nivel(db, zona_id)
-    if niv >= 3:
+    """Slug de categoría para tickets: labor = departamento o genérico."""
+    if _zona_tipo(db, zona_id) == "departamento":
         row = db.execute(
             "SELECT nombre FROM zonas_trabajo WHERE id=? AND activo=1", (zona_id,)
         ).fetchone()
@@ -1012,10 +1271,10 @@ def _resolver_zona_mision(db, data: dict) -> tuple[dict | None, str | None]:
         jer = _zona_jerarquia(db, zona_id)
         if not jer:
             return None, "Ubicación no encontrada en el catálogo"
-        niv = _zona_nivel(db, zona_id)
-        if niv < 1:
+        tipo = _zona_tipo(db, zona_id)
+        if tipo == "reino":
             return None, "La misión debe ubicarse al menos en una zona del catálogo"
-        if niv == 1:
+        if tipo == "zona":
             if _zona_tiene_subzonas_activas(db, zona_id):
                 return None, (
                     "Esta zona tiene subzonas: elige una subzona o un departamento bajo ella."
@@ -1024,12 +1283,12 @@ def _resolver_zona_mision(db, data: dict) -> tuple[dict | None, str | None]:
                 "SELECT id FROM zonas_trabajo WHERE parent_id=? AND activo=1",
                 (zona_id,),
             ).fetchall()
-            if any(_zona_nivel(db, h["id"]) >= 3 for h in hijos):
+            if any(_zona_tipo(db, h["id"]) == "departamento" for h in hijos):
                 return None, (
                     "Selecciona el departamento (labor) bajo esta zona "
                     "(ej. Cocina → Lavar platos). Créalo en 🏰 Reinos."
                 )
-        elif niv == 2:
+        elif tipo == "subzona":
             hijos = db.execute(
                 "SELECT 1 FROM zonas_trabajo WHERE parent_id=? AND activo=1 LIMIT 1",
                 (zona_id,),
@@ -1071,10 +1330,17 @@ def _mision_full(db, mision_id: int) -> dict | None:
         SELECT e.*,
                t.numero  AS ticket_numero,
                t.estado  AS ticket_estado,
+               t.frecuencia AS ticket_frecuencia,
+               t.proxima_renovacion AS ticket_proxima_renovacion,
                t.asignado_a,
                t.bloqueado_por AS ticket_bloqueado_por,
                ua.nombre AS asignado_nombre,
-               bt.numero AS bloqueado_por_numero
+               bt.numero AS bloqueado_por_numero,
+               (SELECT COUNT(*) FROM ticket_pasos tp WHERE tp.ticket_id = t.id)
+                   AS ticket_pasos_total,
+               (SELECT COUNT(*) FROM ticket_pasos tp
+                WHERE tp.ticket_id = t.id AND tp.completado = 1)
+                   AS ticket_pasos_completados
         FROM etapas_mision e
         LEFT JOIN tickets   t  ON t.id  = e.ticket_id
         LEFT JOIN usuarios  ua ON ua.id = t.asignado_a
@@ -1083,14 +1349,7 @@ def _mision_full(db, mision_id: int) -> dict | None:
         ORDER BY e.orden
     """, (mision_id,)).fetchall()
     d["etapas"] = [dict(e) for e in etapas]
-    deps = db.execute("""
-        SELECT dm.depende_de_id AS id, m.titulo, m.estado, m.reino
-        FROM dependencias_misiones dm
-        JOIN misiones m ON m.id = dm.depende_de_id
-        WHERE dm.mision_id = ?
-        ORDER BY m.titulo
-    """, (mision_id,)).fetchall()
-    d["dependencias"] = [dict(dep) for dep in deps]
+    d["dependencias"] = _fetch_dependencias_mision(db, mision_id)
     if m["producto_resultante_id"]:
         pr = db.execute(
             "SELECT id, nombre, unidad, stock_actual, tipo FROM materiales_catalogo WHERE id=?",
@@ -1099,7 +1358,9 @@ def _mision_full(db, mision_id: int) -> dict | None:
         d["producto_resultante"] = dict(pr) if pr else None
     else:
         d["producto_resultante"] = None
-    return _enriquecer_mision_zona(db, d)
+    d = _enriquecer_mision_zona(db, d)
+    from app.services.ticket_timing import enriquecer_tiempos_mision
+    return enriquecer_tiempos_mision(d)
 
 
 def crear_mision(data: dict, usuario_id: int) -> tuple:
@@ -1108,14 +1369,11 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
     etapas_raw   = data.get("etapas") or []
     asignaciones = data.get("asignaciones") or {}   # {"1": user_id, "2": user_id, ...}
     tipo         = data.get("tipo", "secuencial")
-    frecuencia   = data.get("frecuencia") or None    # None = one-time
 
     if not titulo:
         return None, "titulo requerido"
     if not etapas_raw:
         return None, "Se requiere al menos una etapa"
-
-    proxima = _calcular_proxima(frecuencia) if frecuencia else None
 
     with _conn() as db:
         ubic, err = _resolver_zona_mision(db, data)
@@ -1126,7 +1384,7 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
             INSERT INTO misiones
                 (titulo, descripcion, reino, zona_id, color, tipo, categoria, creado_por,
                  total_etapas, estado, frecuencia, proxima_renovacion)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,NULL,NULL)
         """, (
             titulo,
             data.get("descripcion", ""),
@@ -1138,8 +1396,6 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
             usuario_id,
             len(etapas_raw),
             "activa",
-            frecuencia,
-            proxima,
         ))
         mid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
 
@@ -1158,13 +1414,17 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
             asig     = int(asig_raw) if asig_raw else None
             numero   = _generar_numero(db)
             bloqueado_por  = prev_ticket_id if tipo == "secuencial" else None
-            estado_inicial = "en_proceso" if (not bloqueado_por and asig) else "pendiente"
+            estado_inicial = "pendiente" if bloqueado_por else "en_proceso"
+            etapa_freq = (etapa_raw.get("frecuencia") or "").strip() or None
+            if etapa_freq and etapa_freq not in _FRECUENCIA_DELTA:
+                return None, f"Frecuencia inválida en etapa {i}: {etapa_freq}"
 
             db.execute("""
                 INSERT INTO tickets
                     (numero, titulo, categoria, descripcion, prioridad,
-                     creado_por, asignado_a, mision_id, etapa_id, bloqueado_por, estado)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                     creado_por, asignado_a, mision_id, etapa_id, bloqueado_por, estado,
+                     frecuencia, proxima_renovacion)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NULL)
             """, (
                 numero,
                 etapa_titulo,
@@ -1177,8 +1437,10 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
                 etapa_id,
                 bloqueado_por,
                 estado_inicial,
+                etapa_freq,
             ))
             tid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
+            _insertar_pasos_ticket(db, tid, etapa_raw.get("pasos"))
 
             etapa_estado = "activa" if not bloqueado_por else "pendiente"
             db.execute(
@@ -1193,7 +1455,64 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
         return _mision_full(db, mid), None
 
 
-def listar_misiones() -> list:
+def _ticket_visibilidad_sql(usuario: dict | None, alias: str = "t") -> tuple[str, list]:
+    """Misma regla que listar_tickets para nivel < 2."""
+    if not usuario:
+        return "", []
+    nivel = (usuario.get("rol") or {}).get("nivel", 1)
+    if nivel >= 2:
+        return "", []
+    uid = usuario["id"]
+    clause = (
+        f" AND ({alias}.creado_por=? OR {alias}.asignado_a=? OR EXISTS("
+        f"SELECT 1 FROM ticket_participantes tp "
+        f"WHERE tp.ticket_id={alias}.id AND tp.usuario_id=?))"
+    )
+    return clause, [uid, uid, uid]
+
+
+def _tickets_tablero_mision(db, mision_id: int, usuario: dict) -> list:
+    """Tickets de etapas con conteo de pasos (checklist) para el tablero."""
+    vis_sql, vis_params = _ticket_visibilidad_sql(usuario, "t")
+    rows = db.execute(
+        f"""
+        SELECT t.id,
+               t.numero,
+               t.titulo,
+               t.estado,
+               t.prioridad,
+               t.categoria,
+               t.asignado_a,
+               ua.nombre AS asignado_a_nombre,
+               t.bloqueado_por,
+               bt.numero AS bloqueado_por_numero,
+               t.mision_id,
+               t.etapa_id,
+               m.titulo AS mision_titulo,
+               m.color AS mision_color,
+               m.tipo AS mision_tipo,
+               m.reino AS mision_reino,
+               m.zona_id AS mision_zona_id,
+               e.orden AS etapa_orden,
+               (SELECT COUNT(*) FROM ticket_pasos tp WHERE tp.ticket_id = t.id)
+                   AS pasos_total,
+               (SELECT COUNT(*) FROM ticket_pasos tp
+                WHERE tp.ticket_id = t.id AND tp.completado = 1)
+                   AS pasos_completados
+        FROM etapas_mision e
+        INNER JOIN tickets t ON t.id = e.ticket_id
+        INNER JOIN misiones m ON m.id = e.mision_id
+        LEFT JOIN usuarios ua ON ua.id = t.asignado_a
+        LEFT JOIN tickets bt ON bt.id = t.bloqueado_por
+        WHERE e.mision_id = ?{vis_sql}
+        ORDER BY e.orden
+        """,
+        [mision_id, *vis_params],
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def listar_misiones(usuario: dict | None = None, tablero: bool = False) -> list:
     with _conn() as db:
         rows = db.execute("""
             SELECT m.*,
@@ -1208,13 +1527,19 @@ def listar_misiones() -> list:
         """).fetchall()
         out = []
         for r in rows:
-            out.append(_enriquecer_mision_zona(db, dict(r)))
+            d = _enriquecer_mision_zona(db, dict(r))
+            if tablero and usuario and d.get("estado") in ("activa", "borrador"):
+                d["tickets_tablero"] = _tickets_tablero_mision(db, d["id"], usuario)
+            out.append(d)
         return out
 
 
-def get_mision(mision_id: int) -> dict | None:
+def get_mision(mision_id: int, usuario_id: int | None = None) -> dict | None:
     with _conn() as db:
-        return _mision_full(db, mision_id)
+        d = _mision_full(db, mision_id)
+        if d:
+            d["corrida"] = None
+        return d
 
 
 def reordenar_etapas_mision(mision_id: int, etapa_ids: list) -> tuple:
@@ -1270,7 +1595,9 @@ def reordenar_etapas_mision(mision_id: int, etapa_ids: list) -> tuple:
 
 
 def agregar_etapa_mision(mision_id: int, titulo: str, descripcion: str,
-                         asignado_a: int | None, usuario_id: int) -> tuple:
+                         asignado_a: int | None, usuario_id: int,
+                         pasos: list | None = None,
+                         frecuencia: str | None = None) -> tuple:
     """Añade una etapa+ticket a una misión activa."""
     titulo = titulo.strip()
     if not titulo:
@@ -1305,21 +1632,25 @@ def agregar_etapa_mision(mision_id: int, titulo: str, descripcion: str,
             if last:
                 bloqueado_por = last["id"]
 
-        estado_ticket = "en_proceso" if (not bloqueado_por and asignado_a) else "pendiente"
-        if bloqueado_por:
-            estado_ticket = "pendiente"
+        estado_ticket = "pendiente" if bloqueado_por else "en_proceso"
+        freq = (frecuencia or "").strip() or None
+        if freq and freq not in _FRECUENCIA_DELTA:
+            return None, f"Frecuencia inválida: {freq}"
 
         numero = _generar_numero(db)
         db.execute("""
             INSERT INTO tickets
                 (numero, titulo, categoria, descripcion, prioridad,
-                 creado_por, asignado_a, mision_id, etapa_id, bloqueado_por, estado)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                 creado_por, asignado_a, mision_id, etapa_id, bloqueado_por, estado,
+                 frecuencia, proxima_renovacion)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,NULL)
         """, (
             numero, titulo, m["categoria"], descripcion or titulo,
             "media", usuario_id, asignado_a, mision_id, etapa_id, bloqueado_por, estado_ticket,
+            freq,
         ))
         tid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        _insertar_pasos_ticket(db, tid, pasos)
         db.execute("UPDATE etapas_mision SET ticket_id=? WHERE id=?", (tid, etapa_id))
         db.execute(
             "UPDATE misiones SET total_etapas = total_etapas + 1 WHERE id=?",
@@ -1399,7 +1730,7 @@ def actualizar_mision(mision_id: int, data: dict) -> tuple:
             return None, "Misión no encontrada"
         campos = {k: v for k, v in data.items()
                   if k in ("titulo", "descripcion", "reino", "color", "tipo", "categoria",
-                            "frecuencia", "estado")
+                            "estado")
                   and v is not None}
         if "zona_id" in data:
             ubic, err = _resolver_zona_mision(db, data)
@@ -1428,35 +1759,46 @@ def actualizar_mision(mision_id: int, data: dict) -> tuple:
 
 def get_dependencias_mision(mision_id: int) -> list:
     with _conn() as db:
-        rows = db.execute("""
-            SELECT dm.depende_de_id AS id, m.titulo, m.estado, m.reino
-            FROM dependencias_misiones dm
-            JOIN misiones m ON m.id = dm.depende_de_id
-            WHERE dm.mision_id = ?
-            ORDER BY m.titulo
-        """, (mision_id,)).fetchall()
-        return [dict(r) for r in rows]
+        return _fetch_dependencias_mision(db, mision_id)
 
 
-def agregar_dependencia_mision(mision_id: int, depende_de_id: int) -> tuple:
-    if mision_id == depende_de_id:
+def agregar_dependencia_mision(
+    mision_id: int,
+    referencia_id: int,
+    tipo: str = "mision",
+) -> tuple:
+    tipo = (tipo or "mision").strip().lower()
+    if tipo not in ("mision", "receta"):
+        return None, "Tipo de prerequisito inválido (mision o receta)"
+    ref = int(referencia_id)
+    if tipo == "mision" and mision_id == ref:
         return None, "Una misión no puede depender de sí misma"
     with _conn() as db:
         if not db.execute("SELECT id FROM misiones WHERE id=?", (mision_id,)).fetchone():
             return None, "Misión no encontrada"
-        if not db.execute("SELECT id FROM misiones WHERE id=?", (depende_de_id,)).fetchone():
-            return None, "Misión prerequisito no encontrada"
-        # prevent circular: depende_de_id must not depend (directly or indirectly) on mision_id
-        # Simple one-level check is enough for the UI use case
-        if db.execute(
-            "SELECT 1 FROM dependencias_misiones WHERE mision_id=? AND depende_de_id=?",
-            (depende_de_id, mision_id)
-        ).fetchone():
-            return None, "Dependencia circular: la misión prerequisito ya depende de esta misión"
+        if tipo == "mision":
+            if not db.execute("SELECT id FROM misiones WHERE id=?", (ref,)).fetchone():
+                return None, "Misión prerequisito no encontrada"
+            if db.execute(
+                """
+                SELECT 1 FROM dependencias_misiones
+                WHERE mision_id=? AND tipo='mision' AND referencia_id=?
+                """,
+                (ref, mision_id),
+            ).fetchone():
+                return None, "Dependencia circular: la misión prerequisito ya depende de esta misión"
+        else:
+            if not db.execute(
+                "SELECT 1 FROM recetas_ops WHERE id=? AND activo=1", (ref,)
+            ).fetchone():
+                return None, "Receta prerequisito no encontrada"
         try:
             db.execute(
-                "INSERT OR IGNORE INTO dependencias_misiones (mision_id, depende_de_id) VALUES (?,?)",
-                (mision_id, depende_de_id)
+                """
+                INSERT OR IGNORE INTO dependencias_misiones (mision_id, tipo, referencia_id)
+                VALUES (?,?,?)
+                """,
+                (mision_id, tipo, ref),
             )
             db.commit()
         except Exception as e:
@@ -1464,11 +1806,19 @@ def agregar_dependencia_mision(mision_id: int, depende_de_id: int) -> tuple:
         return _mision_full(db, mision_id), None
 
 
-def eliminar_dependencia_mision(mision_id: int, depende_de_id: int) -> tuple:
+def eliminar_dependencia_mision(
+    mision_id: int,
+    referencia_id: int,
+    tipo: str = "mision",
+) -> tuple:
+    tipo = (tipo or "mision").strip().lower()
     with _conn() as db:
         db.execute(
-            "DELETE FROM dependencias_misiones WHERE mision_id=? AND depende_de_id=?",
-            (mision_id, depende_de_id)
+            """
+            DELETE FROM dependencias_misiones
+            WHERE mision_id=? AND tipo=? AND referencia_id=?
+            """,
+            (mision_id, tipo, int(referencia_id)),
         )
         db.commit()
         return _mision_full(db, mision_id), None
@@ -1520,9 +1870,7 @@ def lanzar_mision(mision_id: int, asignaciones: dict, usuario: dict) -> tuple:
             asig = int(asig_raw) if asig_raw else None
             numero = _generar_numero(db)
             bloqueado_por = prev_ticket_id if m["tipo"] == "secuencial" else None
-            estado_inicial = "pendiente"
-            if not bloqueado_por and asig:
-                estado_inicial = "en_proceso"
+            estado_inicial = "pendiente" if bloqueado_por else "en_proceso"
 
             db.execute("""
                 INSERT INTO tickets
@@ -1643,14 +1991,12 @@ def _actualizar_mision(db, mision_id: int):
         WHERE mision_id=? AND ticket_id IN (SELECT id FROM tickets WHERE estado='resuelto')
     """, (mision_id,))
     if completadas >= total > 0:
-        m = db.execute("SELECT frecuencia, estado FROM misiones WHERE id=?", (mision_id,)).fetchone()
-        frecuencia = m["frecuencia"] if m else None
-        proxima = _calcular_proxima(frecuencia) if frecuencia else None
+        m = db.execute("SELECT estado FROM misiones WHERE id=?", (mision_id,)).fetchone()
         already_done = m and m["estado"] == "completada"
         db.execute(
             "UPDATE misiones SET estado='completada', etapas_completadas=?, "
-            "completada_en=datetime('now'), proxima_renovacion=? WHERE id=?",
-            (completadas, proxima, mision_id),
+            "completada_en=datetime('now'), proxima_renovacion=NULL WHERE id=?",
+            (completadas, mision_id),
         )
         # Auto-deduct materials only the first time the mission completes
         if not already_done:
@@ -1712,6 +2058,8 @@ def eliminar_mision(mision_id: int, usuario: dict) -> tuple:
 
 _FRECUENCIA_DELTA = {
     "diaria":     timedelta(days=1),
+    "cada_2_dias": timedelta(days=2),
+    "cada_3_dias": timedelta(days=3),
     "semanal":    timedelta(weeks=1),
     "quincenal":  timedelta(days=15),
     "mensual":    timedelta(days=30),
@@ -1722,6 +2070,8 @@ _FRECUENCIA_DELTA = {
 
 _FRECUENCIA_LABEL = {
     "diaria":     "Diaria",
+    "cada_2_dias": "Cada 2 días",
+    "cada_3_dias": "Cada 3 días",
     "semanal":    "Semanal",
     "quincenal":  "Quincenal",
     "mensual":    "Mensual",
@@ -1738,186 +2088,152 @@ def _calcular_proxima(frecuencia: str) -> str:
     return (datetime.utcnow() + delta).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
-    """
-    Clona los tickets de la misión con las mismas asignaciones, resetea etapas
-    a pendiente/activa, cambia estado a 'activa' y calcula la próxima renovación.
-    Solo aplica a misiones con frecuencia definida.
-    """
-    with _conn() as db:
-        m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
-        if not m:
-            return False, "Misión no encontrada"
-        # frecuencia is optional — one-time missions can also be manually renewed
-
-        etapas = db.execute(
-            "SELECT * FROM etapas_mision WHERE mision_id=? ORDER BY orden", (mision_id,)
-        ).fetchall()
-
-        # Collect assignees and pasos from last cycle's tickets before wiping them
-        asig_por_orden: dict[int, int | None] = {}
-        pasos_por_etapa: dict[int, list[dict]] = {}
-        mats_por_etapa: dict[int, list[dict]] = {}
-        for etapa in etapas:
-            if etapa["ticket_id"]:
-                t = db.execute("SELECT asignado_a FROM tickets WHERE id=?", (etapa["ticket_id"],)).fetchone()
-                if t:
-                    asig_por_orden[etapa["orden"]] = t["asignado_a"]
-                pasos = db.execute(
-                    "SELECT descripcion, orden FROM ticket_pasos WHERE ticket_id=? ORDER BY orden",
-                    (etapa["ticket_id"],),
-                ).fetchall()
-                pasos_por_etapa[etapa["id"]] = [dict(p) for p in pasos]
-                mats = db.execute(
-                    "SELECT material_id, cantidad_requerida FROM ticket_materiales WHERE ticket_id=? ORDER BY id",
-                    (etapa["ticket_id"],),
-                ).fetchall()
-                mats_por_etapa[etapa["id"]] = [dict(m) for m in mats]
-
-        # ── Revertir consumos del ciclo anterior ─────────────────────────────
-        old_ticket_ids = [e["ticket_id"] for e in etapas if e["ticket_id"]]
-        # Buscar por notas (no por ticket_id, que puede estar nulleado de ciclos previos).
-        # Agrupa todos los registros de auto-consumo de ESTA misión y los revierte de una sola vez.
-        # Luego los elimina para que no acumulen en la próxima renovación.
-        nota_consumo = f"Auto-descontado al completar misión #{mision_id}"
-        consumos = db.execute(
-            "SELECT material_id, SUM(cantidad) AS total FROM consumo_materiales "
-            "WHERE tipo='consumo' AND notas=? GROUP BY material_id",
-            (nota_consumo,),
-        ).fetchall()
-        for c in consumos:
-            db.execute(
-                "UPDATE materiales_catalogo "
-                "SET stock_actual=stock_actual+?, actualizado_en=datetime('now') WHERE id=?",
-                (c["total"], c["material_id"]),
-            )
-            db.execute(
-                "INSERT INTO consumo_materiales (material_id, cantidad, tipo, notas) "
-                "VALUES (?,?,'ajuste_entrada',?)",
-                (c["material_id"], c["total"],
-                 f"Reversión por renovación de misión #{mision_id}"),
-            )
+def _programar_renovacion_ticket(db, ticket_id: int) -> None:
+    """Tras resolver un ticket recurrente, agenda la próxima renovación automática."""
+    t = db.execute("SELECT frecuencia FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+    if not t or not t["frecuencia"]:
+        return
+    proxima = _calcular_proxima(t["frecuencia"])
+    if proxima:
         db.execute(
-            "DELETE FROM consumo_materiales WHERE tipo='consumo' AND notas=?",
-            (nota_consumo,),
+            "UPDATE tickets SET proxima_renovacion=? WHERE id=?",
+            (proxima, ticket_id),
         )
 
-        # Revertir producto elaborado (todos los ciclos acumulados)
-        if m["producto_resultante_id"]:
-            entradas = db.execute(
-                "SELECT id, cantidad FROM consumo_materiales "
-                "WHERE material_id=? AND tipo='ajuste_entrada' AND ticket_id IS NULL "
-                "AND notas LIKE ?",
-                (m["producto_resultante_id"], f"%misión #{mision_id}%"),
-            ).fetchall()
-            if entradas:
-                total_revertir = sum(e["cantidad"] for e in entradas)
-                db.execute(
-                    "UPDATE materiales_catalogo "
-                    "SET stock_actual=MAX(0.0, stock_actual-?), actualizado_en=datetime('now') WHERE id=?",
-                    (total_revertir, m["producto_resultante_id"]),
-                )
-                db.execute(
-                    "INSERT INTO consumo_materiales (material_id, cantidad, tipo, notas) "
-                    "VALUES (?,?,'ajuste_salida',?)",
-                    (m["producto_resultante_id"], total_revertir,
-                     f"Reversión de producto elaborado por renovación de misión #{mision_id}"),
-                )
-                ids_ph = ",".join("?" * len(entradas))
-                db.execute(
-                    f"DELETE FROM consumo_materiales WHERE id IN ({ids_ph})",
-                    [e["id"] for e in entradas],
-                )
 
-        # ── Eliminar tickets del ciclo anterior ───────────────────────────────
-        for tid in old_ticket_ids:
-            db.execute("UPDATE tickets SET bloqueado_por=NULL WHERE bloqueado_por=?", (tid,))
-            db.execute("UPDATE etapas_mision SET ticket_id=NULL WHERE ticket_id=?", (tid,))
-            db.execute("DELETE FROM logs_auditoria WHERE ticket_id=?", (tid,))
-            db.execute("UPDATE consumo_materiales SET ticket_id=NULL WHERE ticket_id=?", (tid,))
-        if old_ticket_ids:
-            ph = ",".join("?" * len(old_ticket_ids))
-            db.execute(f"DELETE FROM tickets WHERE id IN ({ph})", old_ticket_ids)
+def _reset_ticket_ciclo(db, ticket_id: int, usuario_id: int | None, mision_id: int | None) -> None:
+    """Reinicia pasos y estado de un ticket para un nuevo ciclo (sin borrar el ticket)."""
+    t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+    if not t:
+        return
+    db.execute(
+        "UPDATE ticket_pasos SET completado=0, completado_en=NULL, completado_por=NULL "
+        "WHERE ticket_id=?",
+        (ticket_id,),
+    )
+    bloqueado = t["bloqueado_por"]
+    if bloqueado:
+        pred = db.execute("SELECT estado FROM tickets WHERE id=?", (bloqueado,)).fetchone()
+        nuevo_estado = (
+            "pendiente" if pred and pred["estado"] != "resuelto" else "en_proceso"
+        )
+    else:
+        nuevo_estado = "en_proceso"
+    db.execute(
+        "UPDATE tickets SET estado=?, resuelto_en=NULL, proxima_renovacion=NULL, "
+        "actualizado_en=datetime('now') WHERE id=?",
+        (nuevo_estado, ticket_id),
+    )
+    etapa_estado = "activa" if nuevo_estado != "pendiente" else "pendiente"
+    if t["etapa_id"]:
+        db.execute(
+            "UPDATE etapas_mision SET estado=? WHERE ticket_id=?",
+            (etapa_estado, ticket_id),
+        )
+    if mision_id:
+        db.execute(
+            "UPDATE misiones SET estado='activa', completada_en=NULL "
+            "WHERE id=? AND estado='completada'",
+            (mision_id,),
+        )
+        _actualizar_mision(db, mision_id)
+    uid = usuario_id or t["creado_por"]
+    _log(db, ticket_id, uid, "ticket_renovado", detalles="Nuevo ciclo de ejecución")
 
-        # Recreate tickets
-        creator = usuario_id or m["creado_por"]
-        prev_ticket_id = None
-        for etapa in etapas:
-            asig = asig_por_orden.get(etapa["orden"])
-            numero = _generar_numero(db)
-            bloqueado_por = prev_ticket_id if m["tipo"] == "secuencial" else None
-            estado_inicial = "en_proceso" if (not bloqueado_por and asig) else "pendiente"
 
-            db.execute("""
-                INSERT INTO tickets
-                    (numero, titulo, categoria, descripcion, prioridad,
-                     creado_por, asignado_a, mision_id, etapa_id, bloqueado_por, estado)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
-            """, (
-                numero,
-                etapa["titulo"],
-                m["categoria"],
-                etapa["descripcion"] or etapa["titulo"],
-                "media",
-                creator,
-                asig,
-                mision_id,
-                etapa["id"],
-                bloqueado_por,
-                estado_inicial,
-            ))
-            tid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
-
-            etapa_estado = "activa" if not bloqueado_por else "pendiente"
-            db.execute(
-                "UPDATE etapas_mision SET ticket_id=?, estado=? WHERE id=?",
-                (tid, etapa_estado, etapa["id"]),
-            )
-            # Restore pasos and materiales from the previous cycle
-            for paso in pasos_por_etapa.get(etapa["id"], []):
-                db.execute(
-                    "INSERT INTO ticket_pasos (ticket_id, orden, descripcion) VALUES (?,?,?)",
-                    (tid, paso["orden"], paso["descripcion"]),
-                )
-            for mat in mats_por_etapa.get(etapa["id"], []):
-                try:
-                    db.execute(
-                        "INSERT INTO ticket_materiales (ticket_id, material_id, cantidad_requerida) VALUES (?,?,?)",
-                        (tid, mat["material_id"], mat["cantidad_requerida"]),
-                    )
-                except Exception:
-                    pass  # duplicate guard
-            _log(db, tid, creator, "ticket_renovado",
-                 detalles=f"Renovación — misión '{m['titulo']}'; pasos y materiales restaurados")
-            prev_ticket_id = tid
-
-        proxima = _calcular_proxima(m["frecuencia"])
-        db.execute("""
-            UPDATE misiones
-            SET estado='activa', etapas_completadas=0, completada_en=NULL,
-                proxima_renovacion=?
-            WHERE id=?
-        """, (proxima, mision_id))
+def renovar_ticket(ticket_id: int, usuario_id: int | None = None) -> tuple:
+    """Reinicia un ticket resuelto (checklist en blanco) para el siguiente ciclo."""
+    with _conn() as db:
+        t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return False, "Ticket no encontrado"
+        if t["estado"] != "resuelto":
+            return False, "Solo se pueden renovar tickets resueltos"
+        from app.services.ticket_timing import finalizar_corridas_abiertas_ticket
+        finalizar_corridas_abiertas_ticket(ticket_id)
+        _reset_ticket_ciclo(db, ticket_id, usuario_id, t["mision_id"])
         db.commit()
-        return True, proxima
+    return True, None
+
+
+def actualizar_ticket(ticket_id: int, data: dict, usuario: dict) -> tuple:
+    """Actualiza metadatos del ticket (p. ej. recurrencia por ticket)."""
+    with _conn() as db:
+        t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return None, "Ticket no encontrado"
+        campos = {}
+        if "titulo" in data and data["titulo"] is not None:
+            campos["titulo"] = str(data["titulo"]).strip()
+        if "descripcion" in data and data["descripcion"] is not None:
+            campos["descripcion"] = str(data["descripcion"]).strip()
+        if "prioridad" in data and data["prioridad"] is not None:
+            if data["prioridad"] not in ("baja", "media", "alta", "urgente"):
+                return None, "Prioridad inválida"
+            campos["prioridad"] = data["prioridad"]
+        if "frecuencia" in data:
+            freq = (data.get("frecuencia") or "").strip() or None
+            if freq and freq not in _FRECUENCIA_DELTA:
+                return None, "Frecuencia inválida"
+            campos["frecuencia"] = freq
+            if not freq:
+                campos["proxima_renovacion"] = None
+            elif t["estado"] == "resuelto":
+                campos["proxima_renovacion"] = _calcular_proxima(freq)
+        if not campos:
+            return _ticket_full(db, ticket_id), None
+        set_clause = ", ".join(f"{k}=?" for k in campos)
+        db.execute(
+            f"UPDATE tickets SET {set_clause}, actualizado_en=datetime('now') WHERE id=?",
+            (*campos.values(), ticket_id),
+        )
+        db.commit()
+        return _ticket_full(db, ticket_id), None
+
+
+def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
+    """Renueva todos los tickets resueltos de la misión (reinicio in-place, sin borrar tickets)."""
+    with _conn() as db:
+        m = db.execute("SELECT id FROM misiones WHERE id=?", (mision_id,)).fetchone()
+        if not m:
+            return False, "Misión no encontrada"
+        etapas = db.execute(
+            "SELECT ticket_id FROM etapas_mision WHERE mision_id=? AND ticket_id IS NOT NULL",
+            (mision_id,),
+        ).fetchall()
+        renovados = 0
+        for et in etapas:
+            t = db.execute(
+                "SELECT estado FROM tickets WHERE id=?", (et["ticket_id"],),
+            ).fetchone()
+            if t and t["estado"] == "resuelto":
+                from app.services.ticket_timing import finalizar_corridas_abiertas_ticket
+                finalizar_corridas_abiertas_ticket(et["ticket_id"])
+                _reset_ticket_ciclo(db, et["ticket_id"], usuario_id, mision_id)
+                renovados += 1
+        if renovados == 0:
+            return False, "No hay tickets resueltos para renovar"
+        db.commit()
+    return True, None
 
 
 def procesar_renovaciones() -> list[int]:
-    """Check all recurring missions and renew those past their proxima_renovacion date."""
+    """Renueva tickets recurrentes cuya proxima_renovacion ya venció."""
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     renovadas = []
     with _conn() as db:
         pendientes = db.execute("""
-            SELECT id FROM misiones
+            SELECT id FROM tickets
             WHERE frecuencia IS NOT NULL
-              AND estado = 'completada'
+              AND estado = 'resuelto'
               AND proxima_renovacion IS NOT NULL
               AND proxima_renovacion <= ?
         """, (now,)).fetchall()
-    for row in pendientes:
-        ok, _ = renovar_mision(row["id"])
+        ids = [r["id"] for r in pendientes]
+    for tid in ids:
+        ok, _ = renovar_ticket(tid)
         if ok:
-            renovadas.append(row["id"])
+            renovadas.append(tid)
     return renovadas
 
 
@@ -1971,10 +2287,27 @@ def _ticket_full(db, ticket_id: int) -> dict | None:
     else:
         d["asignado_a_info"] = None
 
-    # Bloqueado por
-    if d.get("bloqueado_por"):
-        bt = db.execute("SELECT numero FROM tickets WHERE id=?", (d["bloqueado_por"],)).fetchone()
-        d["bloqueado_por_numero"] = bt["numero"] if bt else None
+    # Bloqueado por (y desbloqueo automático si el ticket anterior ya está resuelto)
+    bloqueado = d.get("bloqueado_por")
+    if bloqueado:
+        pred = db.execute(
+            "SELECT id, estado, numero FROM tickets WHERE id=?", (bloqueado,),
+        ).fetchone()
+        if pred and pred["estado"] == "resuelto":
+            db.execute(
+                "UPDATE tickets SET bloqueado_por=NULL, estado='en_proceso', "
+                "actualizado_en=datetime('now') WHERE id=?",
+                (ticket_id,),
+            )
+            db.execute(
+                "UPDATE etapas_mision SET estado='activa' WHERE ticket_id=?", (ticket_id,),
+            )
+            db.commit()
+            d["bloqueado_por"] = None
+            d["estado"] = "en_proceso"
+            d["bloqueado_por_numero"] = None
+        else:
+            d["bloqueado_por_numero"] = pred["numero"] if pred else None
     else:
         d["bloqueado_por_numero"] = None
 
@@ -2026,6 +2359,10 @@ def _ticket_full(db, ticket_id: int) -> dict | None:
         FROM logs_auditoria l LEFT JOIN usuarios u ON u.id = l.usuario_id
         WHERE l.ticket_id = ? ORDER BY l.creado_en ASC
     """, (ticket_id,)).fetchall()]
+
+    total, ok = _pasos_conteo_ticket(db, ticket_id)
+    d["pasos_total"] = total
+    d["pasos_completados"] = ok
     return d
 
 
@@ -2091,7 +2428,12 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                    m.tipo     AS mision_tipo,
                    m.reino    AS mision_reino,
                    m.zona_id  AS mision_zona_id,
-                   bt.numero  AS bloqueado_por_numero
+                   bt.numero  AS bloqueado_por_numero,
+                   (SELECT COUNT(*) FROM ticket_pasos tp WHERE tp.ticket_id = t.id)
+                       AS pasos_total,
+                   (SELECT COUNT(*) FROM ticket_pasos tp
+                    WHERE tp.ticket_id = t.id AND tp.completado = 1)
+                       AS pasos_completados
             FROM tickets t
             LEFT JOIN usuarios uc ON uc.id = t.creado_por
             LEFT JOIN usuarios ua ON ua.id = t.asignado_a
@@ -2121,7 +2463,11 @@ def get_ticket(ticket_id: int, usuario: dict) -> dict | None:
             ).fetchone()
             if not is_part and t["creado_por"] != usuario["id"] and t["asignado_a"] != usuario["id"]:
                 return None
-        return _ticket_full(db, ticket_id)
+        d = _ticket_full(db, ticket_id)
+        if not d:
+            return None
+        from app.services.ticket_timing import adjuntar_corrida_ticket
+        return adjuntar_corrida_ticket(d, usuario["id"])
 
 
 def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str = "") -> tuple:
@@ -2172,7 +2518,7 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
 
         # Unlock sequential dependents
         for dep in blocked_deps:
-            dep_state = "en_proceso" if dep["asignado_a"] else "pendiente"
+            dep_state = "en_proceso"
             db.execute(
                 "UPDATE tickets SET bloqueado_por=NULL, estado=?, actualizado_en=datetime('now') "
                 "WHERE id=?",
@@ -2187,8 +2533,13 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         # Update mission progress
         if t["mision_id"]:
             _actualizar_mision(db, t["mision_id"])
+        if nuevo_estado == "resuelto":
+            _programar_renovacion_ticket(db, ticket_id)
 
         db.commit()
+        if nuevo_estado == "resuelto":
+            from app.services.ticket_timing import finalizar_corridas_abiertas_ticket
+            finalizar_corridas_abiertas_ticket(ticket_id)
         return True, None
 
 
@@ -2264,6 +2615,27 @@ def dashboard_carga() -> list:
 
 # ── PASOS DE TICKET ───────────────────────────────────────────────────────────
 
+def _insertar_pasos_ticket(db, ticket_id: int, pasos_raw) -> None:
+    """Crea filas en ticket_pasos desde lista de strings o dicts con descripcion."""
+    if not pasos_raw:
+        return
+    orden = 0
+    for p in pasos_raw:
+        if isinstance(p, str):
+            desc = p.strip()
+        elif isinstance(p, dict):
+            desc = (p.get("descripcion") or p.get("texto") or "").strip()
+        else:
+            continue
+        if not desc:
+            continue
+        orden += 1
+        db.execute(
+            "INSERT INTO ticket_pasos (ticket_id, orden, descripcion) VALUES (?,?,?)",
+            (ticket_id, orden, desc),
+        )
+
+
 def listar_pasos(ticket_id: int) -> list:
     with _conn() as db:
         rows = db.execute("""
@@ -2294,19 +2666,166 @@ def agregar_paso(ticket_id: int, descripcion: str, usuario_id: int) -> tuple:
         return listar_pasos(ticket_id), None
 
 
+def _pasos_checklist_completo(db, ticket_id: int) -> bool:
+    row = db.execute(
+        """
+        SELECT COUNT(*) AS n, SUM(CASE WHEN completado=1 THEN 1 ELSE 0 END) AS ok
+        FROM ticket_pasos WHERE ticket_id=?
+        """,
+        (ticket_id,),
+    ).fetchone()
+    n = int(row["n"] or 0)
+    if n == 0:
+        return False
+    return int(row["ok"] or 0) >= n
+
+
+def _resolver_ticket_si_pasos_completos(db, ticket_id: int, usuario_id: int) -> bool:
+    """Si todos los pasos están marcados, cierra el ticket como resuelto."""
+    if not _pasos_checklist_completo(db, ticket_id):
+        return False
+    t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+    if not t or t["estado"] in ("resuelto", "rechazado"):
+        return False
+
+    prev = t["estado"]
+    blocked_deps = db.execute(
+        "SELECT id FROM tickets WHERE bloqueado_por=?", (ticket_id,),
+    ).fetchall()
+    db.execute(
+        "UPDATE tickets SET estado='resuelto', resuelto_en=datetime('now'), "
+        "actualizado_en=datetime('now') WHERE id=?",
+        (ticket_id,),
+    )
+    _log(
+        db, ticket_id, usuario_id, "estado_cambiado", prev, "resuelto",
+        "Checklist completado — cierre automático",
+    )
+    for dep in blocked_deps:
+        db.execute(
+            "UPDATE tickets SET bloqueado_por=NULL, estado='en_proceso', "
+            "actualizado_en=datetime('now') WHERE id=?",
+            (dep["id"],),
+        )
+        db.execute(
+            "UPDATE etapas_mision SET estado='activa' WHERE ticket_id=?", (dep["id"],),
+        )
+        _log(
+            db, dep["id"], usuario_id, "estado_cambiado", "bloqueado", "en_proceso",
+            "Desbloqueado al resolver la etapa anterior",
+        )
+    if t["mision_id"]:
+        _actualizar_mision(db, t["mision_id"])
+    _programar_renovacion_ticket(db, ticket_id)
+    return True
+
+
 def completar_paso(paso_id: int, usuario_id: int) -> tuple:
+    auto_resuelto = False
+    ticket_id = None
     with _conn() as db:
         p = db.execute("SELECT * FROM ticket_pasos WHERE id=?", (paso_id,)).fetchone()
         if not p:
-            return None, "Paso no encontrado"
-        nuevo = 0 if p["completado"] else 1
+            return None, "Paso no encontrado", False
+        ticket_id = p["ticket_id"]
+        actual = int(p["completado"] or 0)
+        nuevo = 0 if actual else 1
         db.execute(
             "UPDATE ticket_pasos SET completado=?, completado_en=?, completado_por=? WHERE id=?",
             (nuevo, datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") if nuevo else None,
              usuario_id if nuevo else None, paso_id)
         )
+        if nuevo == 1:
+            t = db.execute(
+                "SELECT estado, bloqueado_por FROM tickets WHERE id=?",
+                (ticket_id,),
+            ).fetchone()
+            if t and t["estado"] == "pendiente":
+                db.execute(
+                    "UPDATE tickets SET estado='en_proceso', actualizado_en=datetime('now') WHERE id=?",
+                    (ticket_id,),
+                )
+            auto_resuelto = _resolver_ticket_si_pasos_completos(db, ticket_id, usuario_id)
         db.commit()
-        return listar_pasos(p["ticket_id"]), None
+    if auto_resuelto and ticket_id:
+        from app.services.ticket_timing import finalizar_corridas_abiertas_ticket
+        finalizar_corridas_abiertas_ticket(ticket_id)
+    return listar_pasos(ticket_id), None, auto_resuelto
+
+
+def completar_paso_ticket(ticket_id: int, paso_id: int, usuario_id: int) -> tuple:
+    with _conn() as db:
+        row = db.execute(
+            "SELECT id FROM ticket_pasos WHERE id=? AND ticket_id=?",
+            (paso_id, ticket_id),
+        ).fetchone()
+        if not row:
+            return None, "Paso no encontrado en este ticket", False
+    return completar_paso(paso_id, usuario_id)
+
+
+def establecer_paso_completado(
+    ticket_id: int, paso_id: int, usuario_id: int, completado: int,
+) -> tuple:
+    """Marca o desmarca un paso (0/1) sin depender del toggle."""
+    nuevo = 1 if int(completado or 0) else 0
+    auto_resuelto = False
+    with _conn() as db:
+        row = db.execute(
+            "SELECT id, ticket_id FROM ticket_pasos WHERE id=? AND ticket_id=?",
+            (paso_id, ticket_id),
+        ).fetchone()
+        if not row:
+            return None, "Paso no encontrado en este ticket", False
+        db.execute(
+            "UPDATE ticket_pasos SET completado=?, completado_en=?, completado_por=? WHERE id=?",
+            (
+                nuevo,
+                datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") if nuevo else None,
+                usuario_id if nuevo else None,
+                paso_id,
+            ),
+        )
+        if nuevo == 1:
+            t = db.execute(
+                "SELECT estado FROM tickets WHERE id=?", (ticket_id,),
+            ).fetchone()
+            if t and t["estado"] == "pendiente":
+                db.execute(
+                    "UPDATE tickets SET estado='en_proceso', actualizado_en=datetime('now') WHERE id=?",
+                    (ticket_id,),
+                )
+            auto_resuelto = _resolver_ticket_si_pasos_completos(db, ticket_id, usuario_id)
+        db.commit()
+    if auto_resuelto:
+        from app.services.ticket_timing import finalizar_corridas_abiertas_ticket
+        finalizar_corridas_abiertas_ticket(ticket_id)
+    return listar_pasos(ticket_id), None, auto_resuelto
+
+
+def _pasos_conteo_ticket(db, ticket_id: int) -> tuple[int, int]:
+    row = db.execute(
+        """
+        SELECT COUNT(*) AS n,
+               SUM(CASE WHEN completado = 1 THEN 1 ELSE 0 END) AS ok
+        FROM ticket_pasos WHERE ticket_id=?
+        """,
+        (ticket_id,),
+    ).fetchone()
+    return int(row["n"] or 0), int(row["ok"] or 0)
+
+
+def pasos_ticket_json(ticket_id: int, pasos: list, auto_resuelto: bool = False) -> dict:
+    with _conn() as db:
+        row = db.execute("SELECT estado FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        total, ok = _pasos_conteo_ticket(db, ticket_id)
+    return {
+        "pasos": pasos,
+        "estado": row["estado"] if row else None,
+        "auto_resuelto": bool(auto_resuelto),
+        "pasos_total": total,
+        "pasos_completados": ok,
+    }
 
 
 def eliminar_paso(paso_id: int) -> tuple:
@@ -2395,33 +2914,43 @@ def _zonas_map_for_materials(db, material_ids: list[int]) -> dict[int, list]:
 
 
 def _zona_tiene_subzonas_activas(db, zona_id: int) -> bool:
-    """True si la zona tiene hijos de nivel subzona (no aplica modo Hogar: solo zonas + deptos)."""
-    for row in db.execute(
+    """True si la zona tiene hijos explícitamente marcados como subzona."""
+    row = db.execute(
+        """
+        SELECT 1 FROM zonas_trabajo
+        WHERE parent_id=? AND activo=1
+          AND LOWER(COALESCE(tipo,''))='subzona'
+        LIMIT 1
+        """,
+        (zona_id,),
+    ).fetchone()
+    if row:
+        return True
+    for r in db.execute(
         "SELECT id FROM zonas_trabajo WHERE parent_id=? AND activo=1", (zona_id,)
     ).fetchall():
-        if _zona_nivel(db, row["id"]) == 2:
+        if _zona_tipo(db, r["id"]) == "subzona":
             return True
     return False
 
 
 def _zona_nivel(db, zona_id: int) -> int:
-    """0 = reino, 1 = zona, 2 = subzona, 3 = departamento; -1 si no existe."""
-    row = db.execute(
-        "SELECT parent_id FROM zonas_trabajo WHERE id=? AND activo=1", (zona_id,)
-    ).fetchone()
-    if not row:
-        return -1
-    n = 0
-    pid = row["parent_id"]
-    while pid is not None and n < 8:
-        n += 1
-        pr = db.execute(
-            "SELECT parent_id FROM zonas_trabajo WHERE id=?", (pid,)
+    """Compatibilidad numérica: preferir _zona_tipo para reglas de negocio."""
+    tipo = _zona_tipo(db, zona_id)
+    if tipo == "reino":
+        return 0
+    if tipo == "zona":
+        return 1
+    if tipo == "subzona":
+        return 2
+    if tipo == "departamento":
+        row = db.execute(
+            "SELECT parent_id FROM zonas_trabajo WHERE id=?", (zona_id,)
         ).fetchone()
-        if not pr:
-            return -1
-        pid = pr["parent_id"]
-    return n
+        if row and row["parent_id"] and _zona_tipo(db, row["parent_id"]) == "zona":
+            return 2
+        return 3
+    return _zona_profundidad_arbol(db, zona_id)
 
 
 def _zona_profundidad(db, zona_id: int) -> int:
@@ -2506,7 +3035,7 @@ def crear_zona_trabajo(data: dict) -> tuple:
             ).fetchone()
             if not padre:
                 return None, "Reino padre no encontrado"
-            if _zona_nivel(db, parent_id) != 0:
+            if _zona_tipo(db, parent_id) != "reino":
                 return None, "La zona debe crearse bajo un reino (nivel raíz)"
         elif nivel == "subzona":
             if parent_id is None:
@@ -2516,33 +3045,35 @@ def crear_zona_trabajo(data: dict) -> tuple:
             ).fetchone()
             if not padre:
                 return None, "Zona padre no encontrada"
-            niv_padre = _zona_nivel(db, parent_id)
-            if niv_padre == 0:
+            tipo_padre = _zona_tipo(db, parent_id)
+            if tipo_padre == "reino":
                 return None, (
                     "La subzona no puede ir directo bajo el reino. "
                     "Primero crea una zona en ese reino y luego la subzona bajo esa zona."
                 )
-            if niv_padre >= 2:
-                return None, "No se pueden crear más niveles bajo una subzona"
+            if tipo_padre != "zona":
+                return None, "La subzona debe crearse bajo una zona"
         elif nivel == "departamento":
             if parent_id is None:
-                return None, "Indica la subzona padre"
+                return None, "Indica la zona o subzona padre"
             padre = db.execute(
                 "SELECT id FROM zonas_trabajo WHERE id=? AND activo=1", (parent_id,)
             ).fetchone()
             if not padre:
-                return None, "Subzona padre no encontrada"
-            niv_padre = _zona_nivel(db, parent_id)
-            if niv_padre == 1:
+                return None, "Zona o subzona padre no encontrada"
+            tipo_padre = _zona_tipo(db, parent_id)
+            if tipo_padre == "zona":
                 if _zona_tiene_subzonas_activas(db, parent_id):
                     return None, (
                         "Esta zona ya tiene subzonas: crea el departamento bajo la subzona. "
                         "Si no usas subzonas (ej. Hogar Dulce Hogar), crea labores directo bajo la zona."
                     )
-            elif niv_padre < 1:
+            elif tipo_padre == "subzona":
+                pass
+            elif tipo_padre in ("reino", "departamento"):
                 return None, "El departamento va bajo una zona o subzona"
-            elif niv_padre >= 3:
-                return None, "No se pueden crear más niveles bajo un departamento"
+            else:
+                return None, "El departamento va bajo una zona o subzona"
         elif parent_id is not None:
             padre = db.execute(
                 "SELECT id, parent_id FROM zonas_trabajo WHERE id=? AND activo=1", (parent_id,)
@@ -2556,22 +3087,40 @@ def crear_zona_trabajo(data: dict) -> tuple:
                 )
         if _zona_nombre_ocupado(db, nombre, parent_id):
             return None, "Ya existe una zona o subárea con ese nombre en el mismo nivel"
+        tipo_guardar = nivel if nivel in ("reino", "zona", "subzona", "departamento") else _inferir_tipo_zona(db, parent_id) if parent_id else "reino"
+        _PALETTE = (
+            "#0c6069", "#2563eb", "#7c3aed", "#db2777", "#ea580c",
+            "#16a34a", "#0d9488", "#ca8a04", "#dc2626", "#4f46e5",
+            "#0891b2", "#65a30d", "#c026d3", "#f59e0b",
+        )
+        color = (data.get("color") or "").strip()
+        if not color:
+            if parent_id is None:
+                n = db.execute(
+                    "SELECT COUNT(*) AS n FROM zonas_trabajo WHERE parent_id IS NULL AND activo=1"
+                ).fetchone()["n"]
+            else:
+                n = db.execute(
+                    "SELECT COUNT(*) AS n FROM zonas_trabajo WHERE parent_id=? AND activo=1",
+                    (parent_id,),
+                ).fetchone()["n"]
+            color = _PALETTE[int(n) % len(_PALETTE)]
         try:
             db.execute(
                 """
-                INSERT INTO zonas_trabajo (nombre, parent_id, descripcion, color, icono, orden)
-                VALUES (?,?,?,?,?,?)
+                INSERT INTO zonas_trabajo (nombre, parent_id, descripcion, color, icono, orden, tipo)
+                VALUES (?,?,?,?,?,?,?)
                 """,
-                (nombre, parent_id, "", "#4a9a6a", "🏭", int(data.get("orden") or 0)),
+                (nombre, parent_id, "", color, "🏭", int(data.get("orden") or 0), tipo_guardar),
             )
             zid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
             if nivel == "departamento":
                 slug = _slug_departamento(nombre)
-                color = (data.get("color") or "#0c6069").strip()
+                dept_color = (data.get("color") or color or "#0c6069").strip()
                 icono = (data.get("icono") or "🏢").strip()
                 db.execute(
                     "INSERT OR IGNORE INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
-                    (slug, nombre, color, icono),
+                    (slug, nombre, dept_color, icono),
                 )
             db.commit()
             return _get_zona_row(db, zid), None
