@@ -10,7 +10,7 @@ from app.services.tickets_db import (
     init_db, login_usuario, get_usuario_by_token, logout_usuario,
     listar_roles, crear_rol, actualizar_rol,
     listar_departamentos, crear_departamento, actualizar_departamento,
-    listar_usuarios, crear_usuario, actualizar_usuario,
+    listar_usuarios, crear_usuario, actualizar_usuario, desactivar_usuario,
     actualizar_foto_usuario, eliminar_foto_usuario,
     crear_ticket, listar_tickets, get_ticket, actualizar_ticket,
     cambiar_estado, asignar_ticket, agregar_comentario,
@@ -225,7 +225,7 @@ def register_tickets_routes(app):
 
     @app.route("/api/tickets/usuarios", methods=["POST"])
     @_auth
-    @_nivel_min(3)
+    @_nivel_min(2)
     def tickets_crear_usuario():
         data = request.get_json(force=True) or {}
         nombre   = (data.get("nombre") or "").strip()
@@ -245,6 +245,15 @@ def register_tickets_routes(app):
     @_nivel_min(3)
     def tickets_actualizar_usuario(user_id):
         ok, err = actualizar_usuario(user_id, request.get_json(force=True) or {})
+        if not ok:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/usuarios/<int:user_id>", methods=["DELETE"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_desactivar_usuario(user_id):
+        ok, err = desactivar_usuario(user_id, request.tickets_usuario["id"])
         if not ok:
             return jsonify({"error": err}), 400
         return jsonify({"ok": True}), 200

@@ -2,8 +2,16 @@ import { useState, useEffect, useCallback, useRef, useMemo, createContext, useCo
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useQuestTheme } from "../stores/questTheme";
 import QuestThemeToggle from "./QuestThemeToggle";
+import { QuestBoardTitle, QuestBoardNavLabel, QuestBoardBackLabel } from "./QuestBoardTitle";
+import { useQuestBoardTitle } from "../stores/questBoard";
 import RecetasPanel from "./RecetasPanel";
 import { CorridaCronometroBlock, fmtTiempo } from "./Cronometro";
+import {
+  InventarioCarritoBadge,
+  InventarioCarritoModal,
+  InventarioCarritoNavBtn,
+} from "./InventarioCarrito";
+import { useInventarioCarrito } from "../stores/inventarioCarrito";
 import {
   ESTADO_STYLES,
   PRIORIDAD_STYLES,
@@ -262,6 +270,7 @@ function PrerequisitosBlock({
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [adding, setAdding] = useState(false);
+  const [openGrupos, setOpenGrupos] = useState<Set<string>>(() => new Set(["vinculados", "prereq-misiones", "prereq-recetas"]));
 
   const itemKeys = new Set(items.map(prereqKey));
   const depsFromItems: Dependencia[] = items.map((p) => {
@@ -333,6 +342,99 @@ function PrerequisitosBlock({
     );
   }, [opcionesFlat, busqueda]);
 
+  const opcionesMisionFiltradas = useMemo(
+    () => opcionesFiltradas.filter((o) => o.ref.tipo === "mision"),
+    [opcionesFiltradas],
+  );
+  const opcionesRecetaFiltradas = useMemo(
+    () => opcionesFiltradas.filter((o) => o.ref.tipo === "receta"),
+    [opcionesFiltradas],
+  );
+
+  useEffect(() => {
+    setOpenGrupos((prev) => {
+      const next = new Set(prev);
+      if (items.length > 0) next.add("vinculados");
+      if (opcionesMision.length > 0) next.add("prereq-misiones");
+      if (opcionesReceta.length > 0) next.add("prereq-recetas");
+      return next;
+    });
+  }, [items.length, opcionesMision.length, opcionesReceta.length]);
+
+  function toggleGrupoPrereq(key: string) {
+    setOpenGrupos((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function renderOpcionPrereq(o: (typeof opcionesFlat)[number]) {
+    return (
+      <button
+        key={o.key}
+        type="button"
+        disabled={adding}
+        onClick={() => agregarRef(o.ref)}
+        className="flex w-full items-center gap-2 border-b border-border/60 px-3 py-2.5 text-left text-sm transition last:border-b-0 hover:bg-accent/10 disabled:opacity-50"
+      >
+        <span className="shrink-0">{o.icono}</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-ink truncate">{o.label}</p>
+          {o.sub && <p className="text-xs text-muted truncate">{o.sub}</p>}
+        </div>
+        <span className="shrink-0 text-[10px] font-bold uppercase text-accent">+ Agregar</span>
+      </button>
+    );
+  }
+
+  function renderGrupoAgregarPrereq(
+    grupoKey: string,
+    tituloGrupo: string,
+    subtitulo: string,
+    opciones: typeof opcionesFlat,
+    totalDisponibles: number,
+  ) {
+    if (totalDisponibles === 0) return null;
+    const abierto = openGrupos.has(grupoKey);
+    return (
+      <div
+        className={`quest-inventario-grupo quest-inventario-grupo--zona ${abierto ? "quest-inventario-grupo--open" : ""}`}
+        style={{ "--inv-accent": grupoKey === "prereq-recetas" ? "#d97706" : "#0c6069" } as CSSProperties}
+      >
+        <button
+          type="button"
+          onClick={() => toggleGrupoPrereq(grupoKey)}
+          className="quest-inventario-grupo-header w-full text-left"
+          aria-expanded={abierto}
+        >
+          <span className={`quest-inventario-grupo-chevron ${abierto ? "quest-inventario-grupo-chevron--open" : ""}`} aria-hidden>
+            ▼
+          </span>
+          <div className="min-w-0 flex-1">
+            <h4 className="truncate text-xs font-extrabold text-ink">{tituloGrupo}</h4>
+            <p className="truncate text-[10px] text-muted">{subtitulo}</p>
+          </div>
+          <span className="quest-inventario-grupo-count shrink-0 tabular-nums">
+            {busqueda.trim() ? `${opciones.length}/${totalDisponibles}` : totalDisponibles}
+          </span>
+        </button>
+        {abierto && (
+          <div className="quest-inventario-grupo-items p-0">
+            {opciones.length === 0 ? (
+              <p className="px-3 py-3 text-center text-xs text-muted">
+                {busqueda.trim() ? "Sin resultados con ese filtro" : "No hay más opciones"}
+              </p>
+            ) : (
+              opciones.map(renderOpcionPrereq)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   async function agregarRef(ref: PrerequisitoRef) {
     if (itemKeys.has(prereqKey(ref))) return;
 
@@ -383,39 +485,94 @@ function PrerequisitosBlock({
       {items.length === 0 ? (
         <p className="text-xs text-muted">Sin prerequisitos — esta misión puede iniciarse en cualquier momento.</p>
       ) : (
-        <div className="space-y-1.5">
-          {listDisplay.map((dep) => (
-            <div key={`${dep.tipo ?? "mision"}-${dep.id}`}
-              className="flex items-center gap-2 rounded-paper border border-border bg-surface px-3 py-2">
-              <span className="text-sm shrink-0">{dep.tipo === "receta" ? "📖" : "🎯"}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink truncate">{dep.titulo}</p>
-                <p className="text-xs text-muted truncate">
-                  {dep.tipo === "receta"
-                    ? `Receta${dep.categoria ? ` · ${dep.categoria}` : ""}`
-                    : dep.reino || "Misión"}
-                </p>
-              </div>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${estadoPrereqBadge(dep.estado, dep.tipo)}`}>
-                {estadoPrereqLabel(dep.estado, dep.tipo)}
-              </span>
-              {!readonly && (
-                <button type="button" onClick={() => quitar({ tipo: dep.tipo ?? "mision", id: dep.id })}
-                  className="text-muted hover:text-danger transition text-xs px-1 shrink-0">✕</button>
-              )}
+        <div
+          className={`quest-inventario-grupo ${openGrupos.has("vinculados") ? "quest-inventario-grupo--open" : ""}`}
+          style={{ "--inv-accent": "#6366f1" } as CSSProperties}
+        >
+          <button
+            type="button"
+            onClick={() => toggleGrupoPrereq("vinculados")}
+            className="quest-inventario-grupo-header w-full text-left"
+            aria-expanded={openGrupos.has("vinculados")}
+          >
+            <span
+              className={`quest-inventario-grupo-chevron ${openGrupos.has("vinculados") ? "quest-inventario-grupo-chevron--open" : ""}`}
+              aria-hidden
+            >
+              ▼
+            </span>
+            <div className="min-w-0 flex-1">
+              <h4 className="truncate text-xs font-extrabold text-ink">Vinculados</h4>
+              <p className="truncate text-[10px] text-muted">Deben cumplirse antes de iniciar</p>
             </div>
-          ))}
+            <span className="quest-inventario-grupo-count shrink-0 tabular-nums">{listDisplay.length}</span>
+          </button>
+          {openGrupos.has("vinculados") && (
+            <div className="quest-inventario-grupo-items space-y-1.5">
+              {listDisplay.map((dep) => (
+                <div
+                  key={`${dep.tipo ?? "mision"}-${dep.id}`}
+                  className="flex items-center gap-2 rounded-paper border border-border bg-surface px-3 py-2"
+                >
+                  <span className="text-sm shrink-0">{dep.tipo === "receta" ? "📖" : "🎯"}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink truncate">{dep.titulo}</p>
+                    <p className="text-xs text-muted truncate">
+                      {dep.tipo === "receta"
+                        ? `Receta${dep.categoria ? ` · ${dep.categoria}` : ""}`
+                        : dep.reino || "Misión"}
+                    </p>
+                  </div>
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${estadoPrereqBadge(dep.estado, dep.tipo)}`}
+                  >
+                    {estadoPrereqLabel(dep.estado, dep.tipo)}
+                  </span>
+                  {!readonly && (
+                    <button
+                      type="button"
+                      onClick={() => quitar({ tipo: dep.tipo ?? "mision", id: dep.id })}
+                      className="text-muted hover:text-danger transition text-xs px-1 shrink-0"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {!readonly && hayOpciones && (
-        <div className="space-y-2">
+        <div className="space-y-2 border-t border-border/60 pt-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Agregar prerequisito</p>
+            {(opcionesMision.length > 0 || opcionesReceta.length > 0) && (
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setOpenGrupos(new Set(["vinculados", "prereq-misiones", "prereq-recetas"]))}
+                  className="rounded-paper border border-border px-2 py-0.5 text-[10px] font-bold text-muted hover:border-accent hover:text-accent"
+                >
+                  Expandir
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenGrupos(new Set(items.length ? ["vinculados"] : []))}
+                  className="rounded-paper border border-border px-2 py-0.5 text-[10px] font-bold text-muted hover:border-accent hover:text-accent"
+                >
+                  Colapsar
+                </button>
+              </div>
+            )}
+          </div>
           <div className="relative">
             <input
               type="search"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar misión o receta por nombre, reino, categoría…"
+              placeholder="Buscar misión o receta por nombre, reino…"
               disabled={adding}
               className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 pr-9 text-sm text-ink outline-none focus:border-accent disabled:opacity-60"
               autoComplete="off"
@@ -425,39 +582,34 @@ function PrerequisitosBlock({
                 type="button"
                 onClick={() => setBusqueda("")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink text-xs px-1"
-                aria-label="Limpiar búsqueda">
+                aria-label="Limpiar búsqueda"
+              >
                 ✕
               </button>
             )}
           </div>
-          <div className="max-h-48 overflow-y-auto rounded-paper border-2 border-border bg-surface-input shadow-paper-sm">
-            {opcionesFiltradas.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-muted text-center">
-                {busqueda.trim()
-                  ? "Sin resultados — prueba otro nombre"
-                  : "No hay más opciones disponibles"}
-              </p>
-            ) : (
-              opcionesFiltradas.map((o) => (
-                <button
-                  key={o.key}
-                  type="button"
-                  disabled={adding}
-                  onClick={() => agregarRef(o.ref)}
-                  className="flex w-full items-center gap-2 border-b border-border/60 px-3 py-2.5 text-left text-sm transition last:border-b-0 hover:bg-accent/10 disabled:opacity-50">
-                  <span className="shrink-0">{o.icono}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-ink truncate">{o.label}</p>
-                    {o.sub && <p className="text-xs text-muted truncate">{o.sub}</p>}
-                  </div>
-                  <span className="shrink-0 text-[10px] font-bold uppercase text-accent">+ Agregar</span>
-                </button>
-              ))
+          <div className="space-y-2">
+            {renderGrupoAgregarPrereq(
+              "prereq-misiones",
+              "🎯 Misiones",
+              "Completar misión antes de iniciar",
+              opcionesMisionFiltradas,
+              opcionesMision.length,
+            )}
+            {renderGrupoAgregarPrereq(
+              "prereq-recetas",
+              "📖 Recetas",
+              "Receta elaborada previamente",
+              opcionesRecetaFiltradas,
+              opcionesReceta.length,
             )}
           </div>
+          {busqueda.trim() && opcionesFiltradas.length === 0 && (
+            <p className="text-center text-xs text-muted">Sin resultados — prueba otro nombre</p>
+          )}
           <p className="text-[10px] text-muted">
             {opcionesFiltradas.length} de {opcionesFlat.length} disponible{opcionesFlat.length !== 1 ? "s" : ""}
-            {busqueda.trim() ? ` · filtro: «${busqueda.trim()}»` : ""}
+            {busqueda.trim() ? ` · «${busqueda.trim()}»` : ""}
           </p>
         </div>
       )}
@@ -1153,6 +1305,49 @@ function buildReinoNavTree(zonas: ZonaTrabajo[]): ReinoNavNode[] {
   }));
 }
 
+function reinoTreeNodeKey(nivel: "reino" | "zona" | "subzona", id: number): string {
+  return `${nivel}-${id}`;
+}
+
+/** Nodos abiertos al cambiar filtro de navegación (reinos / tablero / inventario). */
+function openNodesForNavScope(
+  navScope: NavScope,
+  arbol: ReinoNavNode[],
+  zonas: ZonaTrabajo[],
+): Set<string> {
+  const open = new Set<string>();
+  if (!arbol.length) return open;
+
+  const findReinoForZona = (zonaId: number) =>
+    arbol.find((n) => n.zonas.some((z) => z.zona.id === zonaId));
+
+  if (navScope.kind === "reino") {
+    open.add(reinoTreeNodeKey("reino", navScope.id));
+  } else if (navScope.kind === "zona") {
+    const nodo = findReinoForZona(navScope.id);
+    if (nodo) {
+      open.add(reinoTreeNodeKey("reino", nodo.reino.id));
+      open.add(reinoTreeNodeKey("zona", navScope.id));
+    }
+  } else if (navScope.kind === "subzona" || navScope.kind === "departamento") {
+    const zid = zonaIdDesdeNavScope(navScope, zonas);
+    if (zid != null) {
+      const nodo = findReinoForZona(zid);
+      if (nodo) {
+        open.add(reinoTreeNodeKey("reino", nodo.reino.id));
+        open.add(reinoTreeNodeKey("zona", zid));
+      }
+    }
+    if (navScope.kind === "subzona") open.add(reinoTreeNodeKey("subzona", navScope.id));
+  } else if (arbol.length === 1) {
+    open.add(reinoTreeNodeKey("reino", arbol[0].reino.id));
+    if (arbol[0].zonas.length === 1) {
+      open.add(reinoTreeNodeKey("zona", arbol[0].zonas[0].zona.id));
+    }
+  }
+  return open;
+}
+
 function zonaIdsEnScope(zonas: ZonaTrabajo[], scope: NavScope): number[] | null {
   if (scope.kind === "all") return null;
   if (scope.kind === "reino") {
@@ -1205,62 +1400,87 @@ function QuestNavBar({
   view,
   nivel,
   bajoStockCount,
+  userNombre,
   onTablero,
   onInventario,
   onReinos,
   onRecetas,
+  onCarrito,
+  carritoOpen,
   onWorkload,
   onPerfil,
   onCreateMision,
+  onLogout,
 }: {
   view: View;
   nivel: number;
   bajoStockCount: number;
+  userNombre: string;
   onTablero: () => void;
   onInventario: () => void;
   onReinos: () => void;
   onRecetas: () => void;
+  onCarrito: () => void;
+  carritoOpen: boolean;
   onWorkload: () => void;
   onPerfil: () => void;
   onCreateMision: () => void;
+  onLogout: () => void;
 }) {
   return (
     <nav
-      className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 flex flex-wrap items-center gap-2 border-b-2 border-border px-4 py-3 backdrop-blur-md lg:-mx-10"
+      className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 flex flex-wrap items-center gap-x-2 gap-y-2 border-b-2 border-border px-4 py-2.5 backdrop-blur-md lg:-mx-10"
       aria-label="Navegación Centro de Mando"
     >
-      <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
-        📜 Tablero
-      </button>
-      <button
-        type="button"
-        onClick={onCreateMision}
-        className={questNavBtn(view === "crear_mision", "quest-nav-btn--cta")}
-      >
-        + Nueva misión
-      </button>
-      <button type="button" onClick={onInventario} className={`relative ${questNavBtn(view === "inventario")}`}>
-        🧪 Inventario
-        {bajoStockCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none shadow-sm">
-            {bajoStockCount}
-          </span>
-        )}
-      </button>
-      <button type="button" onClick={onReinos} className={questNavBtn(view === "reinos")}>
-        🏰 Reinos
-      </button>
-      <button type="button" onClick={onRecetas} className={questNavBtn(view === "recetas")}>
-        📖 Recetas
-      </button>
-      {nivel >= 2 && (
-        <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
-          🤝 Aliados
+      <div className="quest-nav-bar-main flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
+          <QuestBoardNavLabel />
         </button>
-      )}
-      <button type="button" onClick={onPerfil} className={questNavBtn(view === "perfil")}>
-        👤 Perfil
-      </button>
+        <button
+          type="button"
+          onClick={onCreateMision}
+          className={questNavBtn(view === "crear_mision", "quest-nav-btn--cta")}
+        >
+          + Nueva misión
+        </button>
+        <button type="button" onClick={onInventario} className={`relative ${questNavBtn(view === "inventario")}`}>
+          🧪 Inventario
+          {bajoStockCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none shadow-sm">
+              {bajoStockCount}
+            </span>
+          )}
+        </button>
+        <button type="button" onClick={onReinos} className={questNavBtn(view === "reinos")}>
+          🏰 Reinos
+        </button>
+        <button type="button" onClick={onRecetas} className={questNavBtn(view === "recetas")}>
+          📖 Recetas
+        </button>
+        <InventarioCarritoNavBtn active={carritoOpen} onOpen={onCarrito} />
+        {nivel >= 2 && (
+          <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
+            🤝 Aliados
+          </button>
+        )}
+        <button type="button" onClick={onPerfil} className={questNavBtn(view === "perfil")}>
+          👤 Perfil
+        </button>
+      </div>
+      <div className="quest-nav-bar-actions ml-auto flex shrink-0 items-center gap-2">
+        <QuestThemeToggle />
+        <button
+          type="button"
+          onClick={onLogout}
+          title={`Cerrar sesión (${userNombre})`}
+          className={`${questNavBtn(false, "quest-nav-btn--ghost-danger")} max-w-[12rem] truncate text-xs`}
+        >
+          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          <span className="truncate">Salir ({userNombre})</span>
+        </button>
+      </div>
     </nav>
   );
 }
@@ -1370,6 +1590,7 @@ function ReinosView({
 }) {
   const nivel = user.rol?.nivel ?? 1;
   const canManage = nivel >= 2;
+  const boardTitle = useQuestBoardTitle((s) => s.title);
   const [zonas, setZonas] = useState<ZonaTrabajo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1385,6 +1606,7 @@ function ReinosView({
     nombre: string;
     color: string;
   } | null>(null);
+  const [openNodes, setOpenNodes] = useState<Set<string>>(() => new Set());
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -1396,7 +1618,54 @@ function ReinosView({
 
   useEffect(() => { reload(); }, [reload]);
 
-  const arbol = buildReinoNavTree(zonas);
+  const arbol = useMemo(() => buildReinoNavTree(zonas), [zonas]);
+
+  const navScopeKey = useMemo(
+    () => (navScope.kind === "all" ? "all" : `${navScope.kind}:${navScope.id}`),
+    [navScope],
+  );
+
+  function todasClavesReinosTree(): string[] {
+    const keys: string[] = [];
+    for (const { reino, zonas: zonasHijas } of arbol) {
+      keys.push(reinoTreeNodeKey("reino", reino.id));
+      for (const { zona, subzonas } of zonasHijas) {
+        keys.push(reinoTreeNodeKey("zona", zona.id));
+        for (const { subzona } of subzonas) keys.push(reinoTreeNodeKey("subzona", subzona.id));
+      }
+    }
+    return keys;
+  }
+
+  function abrirAncestrosZona(z: ZonaTrabajo) {
+    const byId = new Map(zonas.map((x) => [x.id, x]));
+    const keys: string[] = [];
+    let cur: ZonaTrabajo | undefined = z;
+    while (cur) {
+      const niv = nivelZona(cur, zonas);
+      if (niv === "reino") keys.push(reinoTreeNodeKey("reino", cur.id));
+      else if (niv === "zona") keys.push(reinoTreeNodeKey("zona", cur.id));
+      else if (niv === "subzona") keys.push(reinoTreeNodeKey("subzona", cur.id));
+      cur = cur.parent_id != null ? byId.get(cur.parent_id) : undefined;
+    }
+    if (keys.length) {
+      setOpenNodes((prev) => new Set([...prev, ...keys]));
+    }
+  }
+
+  function toggleReinoNode(key: string) {
+    setOpenNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    setOpenNodes(openNodesForNavScope(navScope, arbol, zonas));
+  }, [navScopeKey, arbol.length, zonas.length]);
+
   const todosIds = zonas.map((z) => z.id);
   const zonasParaSub = zonas.filter((z) => zonaProfundidad(z, zonas) === 1);
   const subzonasParaDept = listarSubzonas(zonas);
@@ -1439,6 +1708,10 @@ function ReinosView({
       color: colorPorDefectoNuevaZona(zonas, pid, tipo),
     });
     setActionMsg(null);
+    if (pid !== "" && pid != null) {
+      const padre = zonas.find((z) => z.id === Number(pid));
+      if (padre) abrirAncestrosZona(padre);
+    }
   }
 
   async function guardarCrear() {
@@ -1490,6 +1763,7 @@ function ReinosView({
     setEditId(z.id);
     setEditNombre(z.nombre);
     setEditColor(zonaColor(z, z.id));
+    abrirAncestrosZona(z);
   }
 
   async function guardarEdicion() {
@@ -1721,7 +1995,7 @@ function ReinosView({
         <div>
           <h2 className="text-xl font-extrabold text-ink">🏰 Reinos</h2>
           <p className="mt-1 text-xs text-muted">
-            Reino → zona → subzona → departamento (labor). Cada nivel tiene un color; clic en el nombre para filtrar tablero e inventario.
+            Reino → zona → subzona → departamento (labor). Usa ▼ para desplegar cada nivel; clic en el nombre para filtrar tablero e inventario.
           </p>
         </div>
         {canManage && (
@@ -1774,7 +2048,7 @@ function ReinosView({
           </span>
           <button type="button" onClick={onIrTablero}
             className="rounded-paper border-2 border-accent bg-accent px-3 py-1 text-xs font-bold text-white hover:bg-accent-hover">
-            Ver en tablero
+            Ver en {boardTitle}
           </button>
           <button type="button" onClick={onIrInventario}
             className="rounded-paper border-2 border-border px-3 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent">
@@ -1980,69 +2254,194 @@ function ReinosView({
           )}
         </div>
       ) : (
-        <div className="space-y-4">
-          {arbol.map(({ reino, zonas: zonasHijas }) => (
-            <div key={reino.id} className="rounded-paper border-2 border-border bg-surface-panel p-3 shadow-paper-sm space-y-1">
-              {filaZona(reino, { reinoNombre: reino.nombre })}
-              {zonasHijas.map(({ zona, subzonas, departamentosDirectos }) => (
-                <div key={zona.id}>
-                  {filaZona(zona, { reinoNombre: reino.nombre, indent: "zona" })}
-                  {departamentosDirectos.map((dep) => (
-                    <div key={dep.id}>
-                      {filaZona(dep, {
-                        reinoNombre: reino.nombre,
-                        zonaNombre: zona.nombre,
-                        indent: "departamento",
-                      })}
-                    </div>
-                  ))}
-                  {departamentosDirectos.length === 0
-                    && subzonas.length === 0
-                    && canManage && (
-                    <div className="ml-4 py-1">
+        <div className="space-y-3">
+          {arbol.length > 1 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Árbol</span>
+              <button
+                type="button"
+                onClick={() => setOpenNodes(new Set(todasClavesReinosTree()))}
+                className="rounded-paper border border-border px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
+              >
+                Expandir todo
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenNodes(new Set())}
+                className="rounded-paper border border-border px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
+              >
+                Colapsar todo
+              </button>
+            </div>
+          )}
+          {arbol.map(({ reino, zonas: zonasHijas }) => {
+            const rKey = reinoTreeNodeKey("reino", reino.id);
+            const reinoAbierto = openNodes.has(rKey);
+            const reinoColor = zonaColor(reino, reino.id);
+            const hijosReino =
+              zonasHijas.reduce((n, z) => n + z.subzonas.length + z.departamentosDirectos.length, 0)
+              + zonasHijas.length;
+            return (
+              <div
+                key={reino.id}
+                className={`quest-reinos-grupo ${reinoAbierto ? "quest-reinos-grupo--open" : ""}`}
+                style={{ "--reino-accent": reinoColor } as CSSProperties}
+              >
+                <div className="quest-reinos-grupo-row p-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleReinoNode(rKey);
+                    }}
+                    className={`quest-reinos-grupo-chevron ${reinoAbierto ? "quest-reinos-grupo-chevron--open" : ""}`}
+                    aria-expanded={reinoAbierto}
+                    title={reinoAbierto ? "Colapsar reino" : "Expandir reino"}
+                  >
+                    ▼
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    {filaZona(reino, { reinoNombre: reino.nombre })}
+                  </div>
+                  <span className="shrink-0 pr-1 text-[10px] font-bold tabular-nums text-muted" title="Zonas en este reino">
+                    {hijosReino}
+                  </span>
+                </div>
+                {reinoAbierto && (
+                  <div className="quest-reinos-grupo-body">
+                    {zonasHijas.length === 0 && canManage && (
                       <button
                         type="button"
-                        onClick={() => iniciarCrear("departamento", zona.id)}
-                        className="rounded-lg border-2 border-dashed border-accent/60 bg-accent/5 px-3 py-2 text-xs font-bold text-accent hover:bg-accent/15"
+                        onClick={() => iniciarCrear("zona", reino.id)}
+                        className="w-full rounded-lg border-2 border-dashed border-accent/50 px-3 py-2 text-xs font-bold text-accent hover:bg-accent/10"
                       >
-                        + Crear labor en «{zona.nombre}» (sin subzona)
+                        + Crear primera zona en «{reino.nombre}»
                       </button>
-                    </div>
-                  )}
-                  {subzonas.map(({ subzona, departamentos }) => (
-                    <div key={subzona.id}>
-                      {filaZona(subzona, {
-                        reinoNombre: reino.nombre,
-                        zonaNombre: zona.nombre,
-                        indent: "subzona",
-                      })}
-                      {departamentos.map((dep) => (
-                        <div key={dep.id}>
-                          {filaZona(dep, {
-                            reinoNombre: reino.nombre,
-                            zonaNombre: zona.nombre,
-                            subzonaNombre: subzona.nombre,
-                            indent: "departamento",
-                          })}
+                    )}
+                    {zonasHijas.map(({ zona, subzonas, departamentosDirectos }) => {
+                      const zKey = reinoTreeNodeKey("zona", zona.id);
+                      const zonaAbierta = openNodes.has(zKey);
+                      const accentZ = zonaColor(zona, zona.id);
+                      return (
+                        <div
+                          key={zona.id}
+                          className={`quest-reinos-grupo quest-reinos-grupo--zona ${zonaAbierta ? "quest-reinos-grupo--open" : ""}`}
+                          style={{ "--reino-accent": accentZ } as CSSProperties}
+                        >
+                          <div className="quest-reinos-grupo-row p-0.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleReinoNode(zKey);
+                              }}
+                              className={`quest-reinos-grupo-chevron ${zonaAbierta ? "quest-reinos-grupo-chevron--open" : ""}`}
+                              aria-expanded={zonaAbierta}
+                            >
+                              ▼
+                            </button>
+                            <div className="min-w-0 flex-1">
+                              {filaZona(zona, { reinoNombre: reino.nombre, indent: "zona" })}
+                            </div>
+                          </div>
+                          {zonaAbierta && (
+                            <div className="quest-reinos-grupo-body">
+                              {departamentosDirectos.map((dep) => (
+                                <div key={dep.id}>
+                                  {filaZona(dep, {
+                                    reinoNombre: reino.nombre,
+                                    zonaNombre: zona.nombre,
+                                    indent: "departamento",
+                                  })}
+                                </div>
+                              ))}
+                              {departamentosDirectos.length === 0
+                                && subzonas.length === 0
+                                && canManage && (
+                                <div className="py-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenNodes((prev) => new Set([...prev, zKey]));
+                                      iniciarCrear("departamento", zona.id);
+                                    }}
+                                    className="rounded-lg border-2 border-dashed border-accent/60 bg-accent/5 px-3 py-2 text-xs font-bold text-accent hover:bg-accent/15"
+                                  >
+                                    + Crear labor en «{zona.nombre}» (sin subzona)
+                                  </button>
+                                </div>
+                              )}
+                              {subzonas.map(({ subzona, departamentos }) => {
+                                const sKey = reinoTreeNodeKey("subzona", subzona.id);
+                                const subAbierta = openNodes.has(sKey);
+                                const accentSub = zonaColor(subzona, subzona.id);
+                                return (
+                                  <div
+                                    key={subzona.id}
+                                    className={`quest-reinos-grupo quest-reinos-grupo--subzona ${subAbierta ? "quest-reinos-grupo--open" : ""}`}
+                                    style={{ "--reino-accent": accentSub } as CSSProperties}
+                                  >
+                                    <div className="quest-reinos-grupo-row p-0.5">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleReinoNode(sKey);
+                                        }}
+                                        className={`quest-reinos-grupo-chevron ${subAbierta ? "quest-reinos-grupo-chevron--open" : ""}`}
+                                        aria-expanded={subAbierta}
+                                      >
+                                        ▼
+                                      </button>
+                                      <div className="min-w-0 flex-1">
+                                        {filaZona(subzona, {
+                                          reinoNombre: reino.nombre,
+                                          zonaNombre: zona.nombre,
+                                          indent: "subzona",
+                                        })}
+                                      </div>
+                                    </div>
+                                    {subAbierta && (
+                                      <div className="quest-reinos-grupo-body">
+                                        {departamentos.map((dep) => (
+                                          <div key={dep.id}>
+                                            {filaZona(dep, {
+                                              reinoNombre: reino.nombre,
+                                              zonaNombre: zona.nombre,
+                                              subzonaNombre: subzona.nombre,
+                                              indent: "departamento",
+                                            })}
+                                          </div>
+                                        ))}
+                                        {departamentos.length === 0 && canManage && (
+                                          <div className="py-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setOpenNodes((prev) => new Set([...prev, rKey, zKey, sKey]));
+                                                iniciarCrear("departamento", subzona.id);
+                                              }}
+                                              className="rounded-lg border-2 border-dashed border-accent/60 bg-accent/5 px-3 py-2 text-xs font-bold text-accent hover:bg-accent/15"
+                                            >
+                                              + Crear departamento en «{subzona.nombre}»
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                      ))}
-                      {departamentos.length === 0 && canManage && (
-                        <div className="ml-8 py-1">
-                          <button
-                            type="button"
-                            onClick={() => iniciarCrear("departamento", subzona.id)}
-                            className="rounded-lg border-2 border-dashed border-accent/60 bg-accent/5 px-3 py-2 text-xs font-bold text-accent hover:bg-accent/15"
-                          >
-                            + Crear departamento en «{subzona.nombre}»
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ))}
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -2226,6 +2625,14 @@ function misionZonaEnScope(
   return false;
 }
 
+/** Quest/ticket visible según filtro del menú lateral (reino, zona, subzona, departamento). */
+function ticketEnNavScope(t: Ticket, zonas: ZonaTrabajo[], scope: NavScope): boolean {
+  if (scope.kind === "all") return true;
+  if (t.mision_zona_id != null) return misionZonaEnScope(t.mision_zona_id, zonas, scope);
+  if (t.mision_reino) return misionCoincideScope(t.mision_reino, scope);
+  return false;
+}
+
 function QuickCrearDepartamento({
   token,
   subzonaId,
@@ -2306,6 +2713,99 @@ function ubicacionColorEfectiva(
   if (eff == null) return ZONA_COLOR_PALETTE[0];
   const id = typeof eff === "number" ? eff : Number(eff);
   return zonaColor(zonaById(zonas, id), id);
+}
+
+/** Paleta rápida + input nativo para el color del papel del sticky (misión). */
+function StickyColorPicker({
+  color,
+  onSelect,
+  disabled,
+}: {
+  color: string;
+  onSelect: (hex: string) => void | Promise<void>;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  async function pick(hex: string) {
+    if (disabled || pending || hex === color) {
+      setOpen(false);
+      return;
+    }
+    setPending(true);
+    try {
+      await onSelect(hex);
+      setOpen(false);
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div ref={panelRef} className="quest-sticky-color relative shrink-0">
+      <button
+        type="button"
+        disabled={disabled || pending}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+        className="quest-sticky-color-trigger"
+        style={{ background: color }}
+        title="Color del sticky"
+        aria-label="Elegir color del sticky"
+        aria-expanded={open}
+      />
+      {open && (
+        <div
+          className="quest-sticky-color-panel"
+          role="dialog"
+          aria-label="Paleta de color"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-muted">Color</p>
+          <div className="quest-sticky-color-swatches">
+            {ZONA_COLOR_PALETTE.map((hex) => (
+              <button
+                key={hex}
+                type="button"
+                disabled={pending}
+                onClick={() => void pick(hex)}
+                className={`quest-sticky-color-swatch ${hex.toLowerCase() === color.toLowerCase() ? "quest-sticky-color-swatch--active" : ""}`}
+                style={{ background: hex }}
+                title={hex}
+                aria-label={`Color ${hex}`}
+              />
+            ))}
+          </div>
+          <label className="mt-2 flex items-center gap-2 text-[9px] font-bold text-muted">
+            <span>Otro</span>
+            <input
+              type="color"
+              value={color}
+              disabled={pending}
+              onChange={(e) => void pick(e.target.value)}
+              className="h-7 w-10 cursor-pointer rounded border border-border p-0.5"
+            />
+          </label>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function MisionUbicacionPicker({
@@ -2824,14 +3324,17 @@ function MisionUbicacionResumen({
 }
 
 function MisionGroupCard({
-  group, onSelect, onEditMision, onDeleteMision, canDelete, deleting,
+  group, onSelect, onEditMision, onDeleteMision, onColorChange, canDelete, canEditColor, deleting, token,
 }: {
   group: MisionGroup;
   onSelect: (id: number) => void;
   onEditMision: (id: number) => void;
   onDeleteMision?: (group: MisionGroup) => void;
+  onColorChange?: (misionId: number, color: string) => void | Promise<void>;
   canDelete?: boolean;
+  canEditColor?: boolean;
   deleting?: boolean;
+  token?: string;
 }) {
   const dark = useQuestTheme((s) => s.dark);
   const isSeq = group.mision_tipo === "secuencial";
@@ -2839,7 +3342,11 @@ function MisionGroupCard({
   const total = group.tickets.length;
   const isComplete = total > 0 && group.tickets.every(ticketEjecucionCompleto);
   const progMision = misionGrupoEjecucionPct(group);
-  const c = group.mision_color;
+  const [stickyColor, setStickyColor] = useState(group.mision_color || "#0c6069");
+  useEffect(() => {
+    setStickyColor(group.mision_color || "#0c6069");
+  }, [group.mision_color, group.mision_id]);
+  const c = stickyColor;
   const rot = stickyRotation(group.mision_id);
 
   const ticketsEnSticky = [...group.tickets].sort((a, b) => a.id - b.id);
@@ -2927,6 +3434,19 @@ function MisionGroupCard({
             </span>
           </div>
         )}
+        {canEditColor && token && onColorChange && (
+          <StickyColorPicker
+            color={c}
+            onSelect={async (hex) => {
+              setStickyColor(hex);
+              await tapi(`/misiones/${group.mision_id}`, token, {
+                method: "PUT",
+                body: JSON.stringify({ color: hex }),
+              });
+              await onColorChange(group.mision_id, hex);
+            }}
+          />
+        )}
       </div>
 
       {progMision.total > 0 && (
@@ -2997,18 +3517,28 @@ function MisionGroupCard({
 
 function ReinoBoardSectionBlock({
   section,
+  isOpen,
+  onToggle,
   onSelect,
   onEditMision,
   onDeleteMision,
+  onMisionColorChange,
   canDelete,
+  canEditColor,
   deletingMisionId,
+  token,
 }: {
   section: TableroReinoSection;
+  isOpen: boolean;
+  onToggle: () => void;
   onSelect: (id: number) => void;
   onEditMision: (id: number) => void;
   onDeleteMision?: (group: MisionGroup) => void;
+  onMisionColorChange?: (misionId: number, color: string) => void | Promise<void>;
   canDelete?: boolean;
+  canEditColor?: boolean;
   deletingMisionId?: number | null;
+  token?: string;
 }) {
   const totalQuests =
     section.groups.reduce((n, g) => n + g.tickets.length, 0) + section.standalone.length;
@@ -3016,36 +3546,44 @@ function ReinoBoardSectionBlock({
 
   return (
     <section
-      className="quest-board-reino"
+      className={`quest-board-reino ${isOpen ? "quest-board-reino--open" : ""}`}
       style={{ borderColor: `${section.color}55`, ["--reino-accent" as string]: section.color }}
     >
-      <header
-        className="quest-board-reino-header"
+      <button
+        type="button"
+        onClick={onToggle}
+        className="quest-board-reino-header flex w-full items-center gap-2 text-left transition-colors hover:bg-surface-hover/40"
         style={{
           borderLeftColor: section.color,
           background: `linear-gradient(90deg, ${section.color}22 0%, transparent 72%)`,
         }}
+        aria-expanded={isOpen}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm shadow-sm"
-            style={{ background: section.color, color: "#fff" }}
-          >
-            {section.icono || "🏰"}
-          </span>
-          <div className="min-w-0">
-            <h3 className="truncate text-xs font-extrabold uppercase tracking-wide text-ink sm:text-sm">
-              {section.nombre}
-            </h3>
-            <p className="text-[9px] font-semibold text-muted">
-              {totalMisiones} mis.{totalMisiones !== 1 ? "es" : ""}
-              {totalQuests > 0 && (
-                <span> · {totalQuests} quest{totalQuests !== 1 ? "s" : ""}</span>
-              )}
-            </p>
-          </div>
+        <span
+          className={`quest-inventario-grupo-chevron ${isOpen ? "quest-inventario-grupo-chevron--open" : ""}`}
+          aria-hidden
+        >
+          ▼
+        </span>
+        <span
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm shadow-sm"
+          style={{ background: section.color, color: "#fff" }}
+        >
+          {section.icono || "🏰"}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-xs font-extrabold uppercase tracking-wide text-ink sm:text-sm">
+            {section.nombre}
+          </h3>
+          <p className="text-[9px] font-semibold text-muted">
+            {totalMisiones} mis.{totalMisiones !== 1 ? "es" : ""}
+            {totalQuests > 0 && (
+              <span> · {totalQuests} quest{totalQuests !== 1 ? "s" : ""}</span>
+            )}
+          </p>
         </div>
-      </header>
+      </button>
+      {isOpen && (
       <div className="quest-board-cork quest-board-cork--nested p-2.5 sm:p-3">
         {totalMisiones === 0 && section.standalone.length === 0 ? (
           <p className="py-6 text-center text-xs font-medium text-muted">
@@ -3060,7 +3598,10 @@ function ReinoBoardSectionBlock({
                 onSelect={onSelect}
                 onEditMision={onEditMision}
                 onDeleteMision={onDeleteMision}
+                onColorChange={onMisionColorChange}
                 canDelete={canDelete}
+                canEditColor={canEditColor}
+                token={token}
                 deleting={deletingMisionId === group.mision_id}
               />
             ))}
@@ -3070,6 +3611,7 @@ function ReinoBoardSectionBlock({
           </div>
         )}
       </div>
+      )}
     </section>
   );
 }
@@ -3092,18 +3634,18 @@ function TicketListView({
   refreshKey?: number;
 }) {
   const questDark = useQuestTheme((s) => s.dark);
-  const { cats: categorias } = useContext(CategoriasCtx);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [zonasReinos, setZonasReinos] = useState<ZonaTrabajo[]>([]);
   const [misionesActivas, setMisionesActivas] = useState<Mision[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
-  const [filtroCategoria, setFiltroCategoria] = useState("");
   const [deletingMisionId, setDeletingMisionId] = useState<number | null>(null);
+  const [openTableroSections, setOpenTableroSections] = useState<Set<string>>(() => new Set());
 
   const nivel = user.rol?.nivel ?? 1;
   const canDeleteMision = nivel >= 3;
+  const canEditMisionColor = nivel >= 2;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -3111,7 +3653,6 @@ function TicketListView({
     try {
       const params = new URLSearchParams();
       if (filtroEstado) params.set("estado", filtroEstado);
-      if (filtroCategoria) params.set("categoria", filtroCategoria);
       const [data, zonas] = await Promise.all([
         tapi(`/?${params}`, token),
         tapi("/zonas-trabajo", token),
@@ -3134,7 +3675,7 @@ function TicketListView({
     } finally {
       setLoading(false);
     }
-  }, [token, filtroEstado, filtroCategoria]);
+  }, [token, filtroEstado]);
 
   useEffect(() => { load(); }, [load, refreshKey]);
 
@@ -3180,22 +3721,15 @@ function TicketListView({
   }, [load]);
 
   const scopeActivo = navScope.kind !== "all";
-  const ticketsVisibles = tickets.filter(
-    (t) => navScope.kind === "all" || !t.mision_id || (
-      t.mision_zona_id != null
-        ? misionZonaEnScope(t.mision_zona_id, zonasReinos, navScope)
-        : misionCoincideScope(t.mision_reino, navScope)
-    ),
-  );
+  const ticketsVisibles = tickets.filter((t) => ticketEnNavScope(t, zonasReinos, navScope));
   const ticketsFiltered = ticketsVisibles.filter((t) => {
     if (filtroEstado && t.estado !== filtroEstado) return false;
-    if (filtroCategoria && t.categoria !== filtroCategoria) return false;
     return true;
   });
-  const hasFilters = !!(filtroEstado || filtroCategoria || scopeActivo);
-  const vistaAgrupada = !filtroEstado && !filtroCategoria;
+  const hasFilters = !!(filtroEstado || scopeActivo);
+  const vistaAgrupada = !filtroEstado;
 
-  // Group tickets by mission when no estado/categoría filters
+  // Group tickets by mission when no estado filter
   const misionGroups = new Map<number, MisionGroup>();
   const standalone: Ticket[] = [];
 
@@ -3251,6 +3785,45 @@ function TicketListView({
     ? buildTableroReinoSections(misionGroups, standalone, zonasReinos, navScope)
     : groupTicketsFlatByReino(ticketsFiltered, zonasReinos, navScope);
 
+  const tableroNavKey = useMemo(
+    () => (navScope.kind === "all" ? "all" : `${navScope.kind}:${navScope.id}`),
+    [navScope],
+  );
+  useEffect(() => {
+    if (!reinoSections.length) {
+      setOpenTableroSections(new Set());
+      return;
+    }
+    const open = new Set<string>();
+    if (navScope.kind !== "all") {
+      for (const s of reinoSections) open.add(s.key);
+    } else if (reinoSections.length === 1) {
+      open.add(reinoSections[0].key);
+    } else {
+      open.add(reinoSections[0].key);
+    }
+    setOpenTableroSections(open);
+    // Solo al cambiar filtro del menú lateral; no resetear en cada recarga de quests.
+  }, [tableroNavKey, reinoSections.length]);
+
+  function toggleTableroSection(key: string) {
+    setOpenTableroSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  async function handleMisionColorChange(misionId: number, color: string) {
+    setMisionesActivas((prev) =>
+      prev.map((m) => (m.id === misionId ? { ...m, color } : m)),
+    );
+    setTickets((prev) =>
+      prev.map((t) => (t.mision_id === misionId ? { ...t, mision_color: color } : t)),
+    );
+  }
+
   async function handleDeleteMision(group: MisionGroup) {
     const n = group.tickets.length;
     const msg = n > 0
@@ -3279,20 +3852,21 @@ function TicketListView({
   return (
     <div className="space-y-3">
       <div className="quest-board-toolbar">
-        <div className="quest-board-toolbar-title min-w-0">
-          <h2 className="text-lg font-extrabold tracking-tight text-ink sm:text-xl">📌 Tablero</h2>
-          <p className="text-[11px] text-muted leading-snug">
+        <div className="quest-board-toolbar-brand">
+          <QuestBoardTitle editable />
+          <p className="quest-board-kimdom-sub">
             {user.nombre}
             <span className="mx-1 text-muted/50">·</span>
             <span className="font-bold text-accent quest-board-accent-count">{ticketsVisibles.length}</span>
             {" "}quest{ticketsVisibles.length !== 1 ? "s" : ""}
             {scopeActivo && (
-              <span className="ml-1.5 rounded-full border border-accent/40 bg-accent/10 px-1.5 py-px text-[9px] font-bold text-accent">
+              <span className="ml-1.5 inline-block rounded-full border border-accent/40 bg-accent/10 px-1.5 py-px text-[9px] font-bold text-accent">
                 {navScopeLabel(navScope)}
               </span>
             )}
           </p>
         </div>
+        <div className="quest-board-toolbar-row">
         <div className="quest-board-toolbar-stats">
           {QUEST_STAT_ITEMS.map((s) => {
             const val = stats[s.key];
@@ -3324,16 +3898,6 @@ function TicketListView({
             <option value="resuelto">✅ Resuelto</option>
             <option value="rechazado">❌ Rechazado</option>
           </select>
-          <select
-            value={filtroCategoria}
-            onChange={(e) => setFiltroCategoria(e.target.value)}
-            className="rounded-lg border-2 border-border bg-surface-input px-2 py-1 text-xs text-ink outline-none focus:border-accent sm:text-sm"
-          >
-            <option value="">Categoría</option>
-            {categorias.map((c) => (
-              <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
-            ))}
-          </select>
           <button
             type="button"
             onClick={load}
@@ -3345,12 +3909,13 @@ function TicketListView({
           {hasFilters && (
             <button
               type="button"
-              onClick={() => { setFiltroEstado(""); setFiltroCategoria(""); }}
+              onClick={() => setFiltroEstado("")}
               className="rounded-lg border-2 border-border px-2 py-1 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
             >
               ✕
             </button>
           )}
+        </div>
         </div>
       </div>
 
@@ -3371,14 +3936,37 @@ function TicketListView({
         </div>
       ) : (
         <div className="quest-board-by-reinos">
+          {reinoSections.length > 1 && (
+            <div className="flex flex-wrap justify-end gap-1.5">
+              <button
+                type="button"
+                onClick={() => setOpenTableroSections(new Set(reinoSections.map((s) => s.key)))}
+                className="rounded-lg border border-border px-2 py-0.5 text-[10px] font-bold text-muted hover:border-accent hover:text-accent"
+              >
+                Expandir todo
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenTableroSections(new Set())}
+                className="rounded-lg border border-border px-2 py-0.5 text-[10px] font-bold text-muted hover:border-accent hover:text-accent"
+              >
+                Colapsar todo
+              </button>
+            </div>
+          )}
           {reinoSections.map((section) => (
             <ReinoBoardSectionBlock
               key={section.key}
               section={section}
+              isOpen={openTableroSections.has(section.key)}
+              onToggle={() => toggleTableroSection(section.key)}
+              token={token}
               onSelect={onSelect}
               onEditMision={onEditMision}
               onDeleteMision={canDeleteMision ? handleDeleteMision : undefined}
+              onMisionColorChange={canEditMisionColor ? handleMisionColorChange : undefined}
               canDelete={canDeleteMision}
+              canEditColor={canEditMisionColor}
               deletingMisionId={deletingMisionId}
             />
           ))}
@@ -3858,7 +4446,7 @@ function TicketDetailView({
   if (loading) return <div className="py-16 text-center text-sm text-muted">Cargando quest...</div>;
   if (error || !ticket) return (
     <div className="space-y-3">
-      <button onClick={onBack} className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition">← Tablero</button>
+      <button onClick={onBack} className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"><QuestBoardBackLabel /></button>
       <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error || "No encontrado"}</div>
     </div>
   );
@@ -3869,7 +4457,7 @@ function TicketDetailView({
       <div className="flex flex-wrap items-center gap-2">
         <button onClick={onBack}
           className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-          ← Tablero
+          <QuestBoardBackLabel />
         </button>
         <span className="font-mono text-sm font-bold text-muted">{ticket.numero}</span>
         <CategoriaBadge cat={ticket.categoria} />
@@ -5484,130 +6072,156 @@ function MaterialesSection({
 
 // ── INVENTARIO ────────────────────────────────────────────────────────────────
 
-type InventarioUbicacionGrupo = {
+type InventarioZonaGrupo = {
   id: number;
-  nivel: "departamento" | "subzona" | "zona" | "reino" | "general";
   nombre: string;
   color: string;
-  ruta: string;
   materiales: Material[];
 };
 
-const INVENTARIO_NIVEL_LABEL: Record<InventarioUbicacionGrupo["nivel"], string> = {
-  departamento: "Departamento / labor",
-  subzona: "Subzona",
-  zona: "Zona",
-  reino: "Reino",
-  general: "General",
+type InventarioReinoGrupo = {
+  id: number;
+  nombre: string;
+  color: string;
+  /** Materiales vinculados solo al reino (sin zona concreta). */
+  materiales: Material[];
+  zonas: InventarioZonaGrupo[];
 };
 
-function rutaZonaTrabajo(z: ZonaTrabajo, zonas: ZonaTrabajo[]): string {
-  const byId = new Map(zonas.map((x) => [x.id, x]));
-  const parts: string[] = [z.nombre];
-  let cur: ZonaTrabajo | undefined = z;
-  while (cur?.parent_id) {
-    const p = byId.get(cur.parent_id);
-    if (!p) break;
-    parts.unshift(p.nombre);
-    cur = p;
-  }
-  return parts.join(" › ");
-}
+type InventarioArbol = {
+  reinos: InventarioReinoGrupo[];
+  sinUbicacion: Material[];
+};
 
 function zidsMaterial(m: Material): number[] {
   return (m.zonas || []).map((z) => z.id);
 }
 
-function agruparInventarioPorUbicacion(materiales: Material[], zonas: ZonaTrabajo[]): InventarioUbicacionGrupo[] {
-  if (!materiales.length) return [];
-
-  const grupos: InventarioUbicacionGrupo[] = [];
-  const tree = buildReinoNavTree(zonas);
-
-  function pushGrupo(z: ZonaTrabajo, nivel: InventarioUbicacionGrupo["nivel"], mats: Material[]) {
-    if (!mats.length) return;
-    grupos.push({
-      id: z.id,
-      nivel,
-      nombre: z.nombre,
-      color: z.color || "#0c6069",
-      ruta: rutaZonaTrabajo(z, zonas),
-      materiales: [...mats].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
-    });
-  }
-
-  for (const { reino, zonas: zonasReino } of tree) {
-    const idsBajoReino: number[] = [reino.id];
-    for (const { zona, subzonas, departamentosDirectos } of zonasReino) {
-      const idsBajoZona: number[] = [zona.id];
-      for (const { subzona, departamentos } of subzonas) {
-        idsBajoZona.push(subzona.id);
-        for (const depto of departamentos) {
-          idsBajoZona.push(depto.id);
-          pushGrupo(
-            depto,
-            "departamento",
-            materiales.filter((m) => zidsMaterial(m).includes(depto.id)),
-          );
-        }
-        const deptoIds = departamentos.map((d) => d.id);
-        pushGrupo(
-          subzona,
-          "subzona",
-          materiales.filter((m) => {
-            const zids = zidsMaterial(m);
-            return zids.includes(subzona.id) && !zids.some((id) => deptoIds.includes(id));
-          }),
-        );
-      }
-      for (const depto of departamentosDirectos) {
-        idsBajoZona.push(depto.id);
-        pushGrupo(
-          depto,
-          "departamento",
-          materiales.filter((m) => zidsMaterial(m).includes(depto.id)),
-        );
-      }
-      pushGrupo(
-        zona,
-        "zona",
-        materiales.filter((m) => {
-          const zids = zidsMaterial(m);
-          return zids.includes(zona.id) && !zids.some((id) => idsBajoZona.includes(id));
-        }),
-      );
-      idsBajoReino.push(...idsBajoZona);
-    }
-    pushGrupo(
-      reino,
-      "reino",
-      materiales.filter((m) => {
-        const zids = zidsMaterial(m);
-        return zids.includes(reino.id) && !zids.some((id) => idsBajoReino.includes(id));
-      }),
-    );
-  }
-
-  const ubicados = new Set<number>();
-  for (const g of grupos) for (const m of g.materiales) ubicados.add(m.id);
-  const sinUb = materiales.filter((m) => !ubicados.has(m.id));
-  if (sinUb.length) {
-    grupos.push({
-      id: 0,
-      nivel: "general",
-      nombre: "Sin ubicación asignada",
-      color: "#94a3b8",
-      ruta: "Catálogo general",
-      materiales: [...sinUb].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
-    });
-  }
-  return grupos;
+function sortMaterialesInventario(mats: Material[]): Material[] {
+  return [...mats].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-function InventarioView({ token, user, navScope }: { token: string; user: TicketsUser; navScope: NavScope; onBack?: () => void }) {
+/** Sube subzona/departamento hasta reino o zona para clasificar el material. */
+function anclaInventarioMaterial(m: Material, zonas: ZonaTrabajo[]): ZonaTrabajo | null {
+  const byId = new Map(zonas.map((x) => [x.id, x]));
+  let mejor: ZonaTrabajo | null = null;
+  let mejorDepth = -1;
+
+  for (const zid of zidsMaterial(m)) {
+    let cur = byId.get(zid);
+    while (cur) {
+      const niv = nivelZona(cur, zonas);
+      if (niv === "zona" || niv === "reino") {
+        const d = zonaProfundidad(cur, zonas);
+        if (d > mejorDepth) {
+          mejorDepth = d;
+          mejor = cur;
+        }
+        break;
+      }
+      cur = cur.parent_id != null ? byId.get(cur.parent_id) : undefined;
+    }
+  }
+  return mejor;
+}
+
+function agruparInventarioPorReinoYZona(materiales: Material[], zonas: ZonaTrabajo[]): InventarioArbol {
+  const porZona = new Map<number, Material[]>();
+  const porReino = new Map<number, Material[]>();
+  const sinUbicacion: Material[] = [];
+
+  for (const m of materiales) {
+    const ancla = anclaInventarioMaterial(m, zonas);
+    if (!ancla) {
+      sinUbicacion.push(m);
+      continue;
+    }
+    const niv = nivelZona(ancla, zonas);
+    if (niv === "zona") {
+      const arr = porZona.get(ancla.id) || [];
+      arr.push(m);
+      porZona.set(ancla.id, arr);
+    } else {
+      const arr = porReino.get(ancla.id) || [];
+      arr.push(m);
+      porReino.set(ancla.id, arr);
+    }
+  }
+
+  const reinos: InventarioReinoGrupo[] = [];
+  for (const { reino, zonas: zonasReino } of buildReinoNavTree(zonas)) {
+    const zonaGrupos: InventarioZonaGrupo[] = [];
+    for (const { zona } of zonasReino) {
+      const mats = porZona.get(zona.id);
+      if (mats?.length) {
+        zonaGrupos.push({
+          id: zona.id,
+          nombre: zona.nombre,
+          color: zona.color || reino.color || "#0c6069",
+          materiales: sortMaterialesInventario(mats),
+        });
+      }
+    }
+    const matsReino = porReino.get(reino.id);
+    const tieneAlgo = zonaGrupos.length > 0 || (matsReino?.length ?? 0) > 0;
+    if (!tieneAlgo) continue;
+    reinos.push({
+      id: reino.id,
+      nombre: reino.nombre,
+      color: reino.color || "#0c6069",
+      materiales: matsReino ? sortMaterialesInventario(matsReino) : [],
+      zonas: zonaGrupos,
+    });
+  }
+
+  return { reinos, sinUbicacion: sortMaterialesInventario(sinUbicacion) };
+}
+
+function inventarioReinoKey(id: number): string {
+  return `reino-${id}`;
+}
+
+function inventarioZonaKey(id: number): string {
+  return `zona-${id}`;
+}
+
+function zonaIdDesdeNavScope(scope: NavScope, zonas: ZonaTrabajo[]): number | null {
+  if (scope.kind === "zona") return scope.id;
+  if (scope.kind === "subzona" || scope.kind === "departamento") {
+    const byId = new Map(zonas.map((x) => [x.id, x]));
+    let cur = byId.get(scope.id);
+    while (cur) {
+      if (nivelZona(cur, zonas) === "zona") return cur.id;
+      cur = cur.parent_id != null ? byId.get(cur.parent_id) : undefined;
+    }
+  }
+  return null;
+}
+
+function todasClavesInventario(arbol: InventarioArbol): string[] {
+  const keys: string[] = [];
+  for (const r of arbol.reinos) {
+    keys.push(inventarioReinoKey(r.id));
+    for (const z of r.zonas) keys.push(inventarioZonaKey(z.id));
+  }
+  if (arbol.sinUbicacion.length) keys.push("general-0");
+  return keys;
+}
+
+function InventarioView({ token, user, navScope, onBack }: { token: string; user: TicketsUser; navScope: NavScope; onBack?: () => void }) {
   const [materiales, setMateriales] = useState<Material[]>([]);
   const [zonas, setZonas] = useState<ZonaTrabajo[]>([]);
   const [showNuevo, setShowNuevo] = useState(false);
+  const [cartFlash, setCartFlash] = useState<string | null>(null);
+  const setCarritoModalOpen = useInventarioCarrito((s) => s.setModalOpen);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const addAlCarrito = useInventarioCarrito((s) => s.addMaterial);
+  const carritoItems = useInventarioCarrito((s) => s.items);
+  const enCarrito = useCallback(
+    (id: number) => carritoItems.some((i) => i.materialId === id),
+    [carritoItems],
+  );
   const [form, setForm] = useState({ nombre: "", descripcion: "", unidad: "kg", stock_actual: "", stock_minimo: "", precio_unitario: "", proveedor: "", tipo: "materia_prima" });
   const [formZonaIds, setFormZonaIds] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
@@ -5620,19 +6234,46 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [openGrupos, setOpenGrupos] = useState<Set<string>>(() => new Set());
   const nivel = user.rol?.nivel ?? 1;
   const canManageStock = nivel >= 2;
 
   const reload = useCallback(async () => {
-    const [mats, zs] = await Promise.all([
-      tapi("/materiales", token),
-      tapi("/zonas-trabajo", token),
-    ]);
-    setMateriales(mats);
-    setZonas(zs);
+    setLoading(true);
+    setLoadError("");
+    try {
+      const [mats, zs] = await Promise.all([
+        tapi("/materiales", token),
+        tapi("/zonas-trabajo", token),
+      ]);
+      setMateriales(Array.isArray(mats) ? mats : []);
+      setZonas(Array.isArray(zs) ? zs : []);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Error al cargar inventario";
+      setLoadError(msg);
+      setMateriales([]);
+      setZonas([]);
+    } finally {
+      setLoading(false);
+    }
   }, [token]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { void reload(); }, [reload]);
+
+  useEffect(() => {
+    if (!cartFlash) return;
+    const t = window.setTimeout(() => setCartFlash(null), 2200);
+    return () => window.clearTimeout(t);
+  }, [cartFlash]);
+
+  function agregarMaterialAlCarrito(m: Material) {
+    addAlCarrito(m);
+    setCartFlash(m.nombre);
+  }
+
+  function abrirCarrito() {
+    setCarritoModalOpen(true);
+  }
 
   async function crearMaterial() {
     setSaving(true);
@@ -5754,24 +6395,247 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
 
   const bajoStockCount = materiales.filter((m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo).length;
   const zonaIdsFiltro = zonaIdsEnScope(zonas, navScope);
-  const materialesVisibles = zonaIdsFiltro
-    ? materiales.filter((m) => (m.zonas || []).some((z) => zonaIdsFiltro.includes(z.id)))
-    : materiales;
+  const materialesVisibles = useMemo(() => {
+    if (!zonaIdsFiltro) return materiales;
+    return materiales.filter((m) => (m.zonas || []).some((z) => zonaIdsFiltro.includes(z.id)));
+  }, [materiales, zonaIdsFiltro]);
 
-  const gruposInventario = useMemo(() => {
+  const arbolInventario = useMemo((): InventarioArbol => {
     if (!zonas.length) {
-      if (!materialesVisibles.length) return [];
-      return [{
-        id: 0,
-        nivel: "general" as const,
-        nombre: "Catálogo",
-        color: "#94a3b8",
-        ruta: navScope.kind !== "all" ? navScopeLabel(navScope) : "Todos los materiales",
-        materiales: [...materialesVisibles].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
-      }];
+      return {
+        reinos: materialesVisibles.length
+          ? [{
+            id: 0,
+            nombre: navScope.kind !== "all" ? navScopeLabel(navScope) : "Catálogo",
+            color: "#94a3b8",
+            materiales: sortMaterialesInventario(materialesVisibles),
+            zonas: [],
+          }]
+          : [],
+        sinUbicacion: [],
+      };
     }
-    return agruparInventarioPorUbicacion(materialesVisibles, zonas);
+    return agruparInventarioPorReinoYZona(materialesVisibles, zonas);
   }, [materialesVisibles, zonas, navScope]);
+
+  const totalZonasInventario = useMemo(
+    () => arbolInventario.reinos.reduce((n, r) => n + r.zonas.length, 0),
+    [arbolInventario],
+  );
+
+  const inventarioNavKey = useMemo(
+    () => (navScope.kind === "all" ? "all" : `${navScope.kind}:${navScope.id}`),
+    [navScope],
+  );
+
+  useEffect(() => {
+    const { reinos, sinUbicacion } = arbolInventario;
+    if (!reinos.length && !sinUbicacion.length) {
+      setOpenGrupos(new Set());
+      return;
+    }
+    const open = new Set<string>();
+    if (navScope.kind === "reino") {
+      open.add(inventarioReinoKey(navScope.id));
+    } else if (navScope.kind === "zona") {
+      const nodo = reinos.find((r) => r.zonas.some((z) => z.id === navScope.id));
+      if (nodo) {
+        open.add(inventarioReinoKey(nodo.id));
+        open.add(inventarioZonaKey(navScope.id));
+      }
+    } else if (navScope.kind === "subzona" || navScope.kind === "departamento") {
+      const zid = zonaIdDesdeNavScope(navScope, zonas);
+      if (zid != null) {
+        const nodo = reinos.find((r) => r.zonas.some((z) => z.id === zid));
+        if (nodo) {
+          open.add(inventarioReinoKey(nodo.id));
+          open.add(inventarioZonaKey(zid));
+        }
+      }
+    } else if (navScope.kind === "all") {
+      if (reinos.length === 1) {
+        open.add(inventarioReinoKey(reinos[0].id));
+        if (reinos[0].zonas.length === 1) open.add(inventarioZonaKey(reinos[0].zonas[0].id));
+      } else if (reinos.length > 0) {
+        open.add(inventarioReinoKey(reinos[0].id));
+      }
+      if (sinUbicacion.length > 0) open.add("general-0");
+    }
+    setOpenGrupos(open);
+    // Solo al cambiar filtro o estructura de reinos; no en cada recarga de materiales.
+  }, [inventarioNavKey, zonas.length, arbolInventario.reinos.length, arbolInventario.sinUbicacion.length]);
+
+  function toggleGrupoInventario(key: string) {
+    setOpenGrupos((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function renderInventarioMaterial(m: Material, openKey: string) {
+    const pct = m.stock_minimo > 0 ? Math.min(100, Math.round((m.stock_actual / m.stock_minimo) * 100)) : 100;
+    const bajo = m.stock_minimo > 0 && m.stock_actual < m.stock_minimo;
+    const editando = editId === m.id;
+
+    if (editando && nivel >= 2) {
+      return (
+        <div key={m.id} className="rounded-paper border-2 border-accent bg-surface-panel p-4 shadow-paper-sm space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-extrabold text-accent">✏️ Editar material</h3>
+            <button type="button" onClick={() => setEditId(null)}
+              className="text-xs font-bold text-muted hover:text-ink">Cancelar</button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="mb-1 block text-xs font-bold text-muted">Nombre *</label>
+              <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={editForm.nombre} onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted">Tipo</label>
+              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={editForm.tipo} onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value as MaterialTipo }))}>
+                <option value="materia_prima">🧱 Materia prima</option>
+                <option value="elaborado">✨ Producto elaborado</option>
+                <option value="consumibles">📦 Consumibles</option>
+                <option value="repuestos">🔩 Repuestos</option>
+                <option value="herramientas">🔧 Herramientas</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted">Unidad</label>
+              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={editForm.unidad} onChange={(e) => setEditForm((f) => ({ ...f, unidad: e.target.value }))}>
+                {["kg","g","mg","L","mL","unidad","m","cm","m²","m³","caja","bolsa","rollo","galón"].map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted">Stock actual</label>
+              <input type="number" min="0" step="any"
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={editForm.stock_actual} onChange={(e) => setEditForm((f) => ({ ...f, stock_actual: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted">Stock mínimo</label>
+              <input type="number" min="0" step="any"
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={editForm.stock_minimo} onChange={(e) => setEditForm((f) => ({ ...f, stock_minimo: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted">Precio unitario ($)</label>
+              <input type="number" min="0" step="any"
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={editForm.precio_unitario} onChange={(e) => setEditForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted">Proveedor</label>
+              <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+                value={editForm.proveedor} onChange={(e) => setEditForm((f) => ({ ...f, proveedor: e.target.value }))} />
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-xs font-bold text-muted">Descripción</label>
+              <textarea rows={2} className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent resize-none"
+                value={editForm.descripcion} onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))} />
+            </div>
+            <div className="col-span-2">
+              <label className="mb-1 block text-xs font-bold text-muted">Zonas de trabajo</label>
+              <ZonasPicker zonas={zonas} selected={editZonaIds} onChange={setEditZonaIds} />
+            </div>
+          </div>
+          {editForm.tipo === "elaborado" && (
+            <p className="text-xs text-purple-600">El stock también puede actualizarse al completar la misión vinculada.</p>
+          )}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setEditId(null)}
+              className="rounded-paper border-2 border-border px-4 py-2 text-xs font-bold text-muted hover:bg-surface-hover">
+              Cancelar
+            </button>
+            <button type="button" onClick={guardarEdicion} disabled={saving || !editForm.nombre.trim()}
+              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50">
+              {saving ? "Guardando..." : "✓ Guardar cambios"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const seleccionado = selectedIds.has(m.id);
+
+    return (
+      <div key={m.id} className={`rounded-paper border-2 bg-surface-panel p-4 shadow-paper-sm ${bajo ? "border-red-300" : seleccionado ? "border-accent/60 ring-1 ring-accent/30" : "border-border"}`}>
+        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+          {canManageStock && (
+            <label className="flex shrink-0 cursor-pointer items-center pt-0.5" title="Seleccionar para eliminar">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-border accent-accent"
+                checked={seleccionado}
+                onChange={() => toggleSelect(m.id)}
+              />
+            </label>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              {bajo && <span className="text-sm">{m.stock_actual <= 0 ? "🔴" : "🟡"}</span>}
+              <p className="font-bold text-sm text-ink">{m.nombre}</p>
+              <BadgeTipoMaterial tipo={m.tipo} />
+            </div>
+            <div className="mt-1"><BadgesZonas zonas={m.zonas} compact /></div>
+            {m.proveedor && <p className="text-xs text-muted">Proveedor: {m.proveedor}</p>}
+            {m.descripcion && <p className="text-xs text-muted line-clamp-2">{m.descripcion}</p>}
+            {m.tipo === "elaborado" && <p className="text-xs text-purple-600">Producido internamente</p>}
+          </div>
+          <div className="flex items-start gap-2 shrink-0">
+            <div className="text-right">
+              <p className={`text-lg font-black ${bajo ? "text-red-600" : "text-ink"}`}>
+                {m.stock_actual} <span className="text-sm font-normal text-muted">{m.unidad}</span>
+              </p>
+              {m.stock_minimo > 0 && <p className="text-xs text-muted">Mín: {m.stock_minimo} {m.unidad}</p>}
+            </div>
+            <button
+              type="button"
+              onClick={() => agregarMaterialAlCarrito(m)}
+              className={`rounded-paper border-2 px-2.5 py-1.5 text-xs font-bold transition ${
+                enCarrito(m.id)
+                  ? "border-amber-500/70 bg-amber-500/20 text-amber-900 dark:text-amber-200"
+                  : "border-border text-muted hover:border-amber-500/60 hover:text-amber-800 dark:hover:text-amber-200"
+              }`}
+              title={enCarrito(m.id) ? "Ya en el carrito — clic suma cantidad" : "Agregar al carrito de compras"}
+            >
+              🛒
+            </button>
+            {nivel >= 2 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenGrupos((prev) => new Set([...prev, openKey]));
+                  iniciarEdicion(m);
+                }}
+                className="rounded-paper border-2 border-border px-2.5 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+                title="Editar material">
+                ✏️
+              </button>
+            )}
+          </div>
+        </div>
+        {m.stock_minimo > 0 && (
+          <>
+            <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${m.stock_actual <= 0 ? "bg-red-600" : bajo ? "bg-orange-400" : "bg-accent"}`} style={{ width: `${pct}%` }} />
+            </div>
+            <div className="mt-1 flex justify-between text-xs text-muted">
+              <span>{pct}% del mínimo</span>
+              {m.precio_unitario > 0 && <span>${m.precio_unitario.toLocaleString("es-CO")} / {m.unidad}</span>}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   const formNuevoMaterial = (
     <div className="rounded-paper border-2 border-accent/50 bg-surface-panel p-5 space-y-4">
@@ -5851,12 +6715,27 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+            >
+              <QuestBoardBackLabel />
+            </button>
+          )}
+          <div>
           <h2 className="text-xl font-extrabold text-ink">Inventario</h2>
           <p className="text-xs text-muted">
             {materialesVisibles.length} material{materialesVisibles.length !== 1 ? "es" : ""} e insumo{materialesVisibles.length !== 1 ? "s" : ""}
-            {gruposInventario.length > 0 && gruposInventario.length !== 1 && (
-              <span className="ml-1">· {gruposInventario.length} ubicaciones</span>
+            {arbolInventario.reinos.length > 0 && (
+              <span className="ml-1">
+                · {arbolInventario.reinos.length} reino{arbolInventario.reinos.length !== 1 ? "s" : ""}
+                {totalZonasInventario > 0 && (
+                  <>, {totalZonasInventario} zona{totalZonasInventario !== 1 ? "s" : ""}</>
+                )}
+              </span>
             )}
             {navScope.kind !== "all" && (
               <span className="ml-2 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
@@ -5867,25 +6746,59 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
               <span className="ml-2 font-semibold text-red-600">· {bajoStockCount} bajo mínimo</span>
             )}
           </p>
+          </div>
         </div>
-        {canManageStock && (
+        <div className="flex flex-wrap items-center gap-2">
+          <InventarioCarritoBadge onOpen={abrirCarrito} />
+          {canManageStock && (
+            <button
+              type="button"
+              onClick={() => { setShowNuevo((v) => !v); if (!showNuevo) setEditId(null); }}
+              className={`rounded-xl border-2 px-4 py-2 text-sm font-bold transition shadow-[0_2px_0_#045159] active:translate-y-0.5 active:shadow-none ${
+                showNuevo
+                  ? "border-border bg-surface-hover text-ink"
+                  : "border-accent bg-accent text-white hover:bg-accent-hover"
+              }`}
+            >
+              {showNuevo ? "Cerrar" : "+ Nuevo material"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {cartFlash && (
+        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-900 dark:text-amber-200">
+          🛒 <span className="font-bold">{cartFlash}</span> agregado al carrito.
           <button
             type="button"
-            onClick={() => { setShowNuevo((v) => !v); if (!showNuevo) setEditId(null); }}
-            className={`rounded-xl border-2 px-4 py-2 text-sm font-bold transition shadow-[0_2px_0_#045159] active:translate-y-0.5 active:shadow-none ${
-              showNuevo
-                ? "border-border bg-surface-hover text-ink"
-                : "border-accent bg-accent text-white hover:bg-accent-hover"
-            }`}
+            onClick={abrirCarrito}
+            className="ml-2 font-bold underline hover:no-underline"
           >
-            {showNuevo ? "Cerrar" : "+ Nuevo material"}
+            Ver carrito
           </button>
-        )}
-      </div>
+        </p>
+      )}
 
       {showNuevo && canManageStock && formNuevoMaterial}
 
-      <div className="space-y-3">
+      {loading && (
+        <p className="py-8 text-center text-sm text-muted">Cargando inventario…</p>
+      )}
+
+      {loadError && !loading && (
+        <div className="rounded-paper border-2 border-red-400/70 bg-red-50 px-4 py-3 dark:bg-red-950/40 space-y-2">
+          <p className="text-sm font-semibold text-red-800 dark:text-red-200">{loadError}</p>
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
+      <div className={`space-y-3 ${loading ? "pointer-events-none opacity-40" : ""}`}>
           {nivel < 2 && (
             <p className="rounded-lg border border-border bg-surface-hover px-3 py-2 text-xs text-muted">
               Vista de solo lectura. Supervisor o administrador puede editar stock y datos del catálogo.
@@ -5952,179 +6865,153 @@ function InventarioView({ token, user, navScope }: { token: string; user: Ticket
               {actionMsg.text}
             </p>
           )}
+          {(arbolInventario.reinos.length > 1 || totalZonasInventario > 0) && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Reinos y zonas</span>
+              <button
+                type="button"
+                onClick={() => setOpenGrupos(new Set(todasClavesInventario(arbolInventario)))}
+                className="rounded-paper border border-border px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
+              >
+                Expandir todo
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenGrupos(new Set())}
+                className="rounded-paper border border-border px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
+              >
+                Colapsar todo
+              </button>
+            </div>
+          )}
           {materialesVisibles.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted">
               {navScope.kind !== "all" ? `No hay materiales en ${navScopeLabel(navScope)}.` : "No hay materiales en el catálogo aún."}
             </p>
-          ) : gruposInventario.map((grupo) => (
-            <section
-              key={`${grupo.nivel}-${grupo.id}`}
-              className="quest-inventario-grupo"
-              style={{ "--inv-accent": grupo.color } as CSSProperties}
-            >
-              <header className="quest-inventario-grupo-header">
-                <ZonaColorDot color={grupo.color} size="md" />
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-sm font-extrabold text-ink">{grupo.nombre}</h3>
-                  <p className="truncate text-[10px] text-muted">
-                    {grupo.ruta}
-                    <span className="mx-1 opacity-40">·</span>
-                    {INVENTARIO_NIVEL_LABEL[grupo.nivel]}
-                  </p>
-                </div>
-                <span className="quest-inventario-grupo-count shrink-0 tabular-nums">
-                  {grupo.materiales.length}
-                </span>
-              </header>
-              <div className="quest-inventario-grupo-items space-y-2">
-                {grupo.materiales.map((m) => {
-            const pct = m.stock_minimo > 0 ? Math.min(100, Math.round((m.stock_actual / m.stock_minimo) * 100)) : 100;
-            const bajo = m.stock_minimo > 0 && m.stock_actual < m.stock_minimo;
-            const editando = editId === m.id;
-
-            if (editando && nivel >= 2) {
-              return (
-                <div key={m.id} className="rounded-paper border-2 border-accent bg-surface-panel p-4 shadow-paper-sm space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-extrabold text-accent">✏️ Editar material</h3>
-                    <button type="button" onClick={() => setEditId(null)}
-                      className="text-xs font-bold text-muted hover:text-ink">Cancelar</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className="mb-1 block text-xs font-bold text-muted">Nombre *</label>
-                      <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                        value={editForm.nombre} onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-muted">Tipo</label>
-                      <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                        value={editForm.tipo} onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value as MaterialTipo }))}>
-                        <option value="materia_prima">🧱 Materia prima</option>
-                        <option value="elaborado">✨ Producto elaborado</option>
-                        <option value="consumibles">📦 Consumibles</option>
-                        <option value="repuestos">🔩 Repuestos</option>
-                        <option value="herramientas">🔧 Herramientas</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-muted">Unidad</label>
-                      <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                        value={editForm.unidad} onChange={(e) => setEditForm((f) => ({ ...f, unidad: e.target.value }))}>
-                        {["kg","g","mg","L","mL","unidad","m","cm","m²","m³","caja","bolsa","rollo","galón"].map((u) => (
-                          <option key={u} value={u}>{u}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-muted">Stock actual</label>
-                      <input type="number" min="0" step="any"
-                        className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                        value={editForm.stock_actual} onChange={(e) => setEditForm((f) => ({ ...f, stock_actual: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-muted">Stock mínimo</label>
-                      <input type="number" min="0" step="any"
-                        className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                        value={editForm.stock_minimo} onChange={(e) => setEditForm((f) => ({ ...f, stock_minimo: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-muted">Precio unitario ($)</label>
-                      <input type="number" min="0" step="any"
-                        className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                        value={editForm.precio_unitario} onChange={(e) => setEditForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-bold text-muted">Proveedor</label>
-                      <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-                        value={editForm.proveedor} onChange={(e) => setEditForm((f) => ({ ...f, proveedor: e.target.value }))} />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="mb-1 block text-xs font-bold text-muted">Descripción</label>
-                      <textarea rows={2} className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent resize-none"
-                        value={editForm.descripcion} onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))} />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="mb-1 block text-xs font-bold text-muted">Zonas de trabajo</label>
-                      <ZonasPicker zonas={zonas} selected={editZonaIds} onChange={setEditZonaIds} />
-                    </div>
-                  </div>
-                  {editForm.tipo === "elaborado" && (
-                    <p className="text-xs text-purple-600">El stock también puede actualizarse al completar la misión vinculada.</p>
-                  )}
-                  <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setEditId(null)}
-                      className="rounded-paper border-2 border-border px-4 py-2 text-xs font-bold text-muted hover:bg-surface-hover">
-                      Cancelar
+          ) : (
+            <>
+              {arbolInventario.reinos.map((reino) => {
+                const rKey = inventarioReinoKey(reino.id);
+                const reinoAbierto = openGrupos.has(rKey);
+                const totalReino =
+                  reino.materiales.length + reino.zonas.reduce((n, z) => n + z.materiales.length, 0);
+                const bajoReino = [...reino.materiales, ...reino.zonas.flatMap((z) => z.materiales)].some(
+                  (m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo,
+                );
+                return (
+                  <div
+                    key={rKey}
+                    className={`quest-inventario-grupo quest-inventario-grupo--reino ${reinoAbierto ? "quest-inventario-grupo--open" : ""}`}
+                    style={{ "--inv-accent": reino.color } as CSSProperties}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleGrupoInventario(rKey)}
+                      className="quest-inventario-grupo-header w-full text-left"
+                      aria-expanded={reinoAbierto}
+                    >
+                      <span className={`quest-inventario-grupo-chevron ${reinoAbierto ? "quest-inventario-grupo-chevron--open" : ""}`} aria-hidden>▼</span>
+                      <ZonaColorDot color={reino.color} size="md" />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm font-extrabold text-ink">{reino.nombre}</h3>
+                        <p className="truncate text-[10px] text-muted">
+                          Reino
+                          {reino.zonas.length > 0 && (
+                            <span> · {reino.zonas.length} zona{reino.zonas.length !== 1 ? "s" : ""}</span>
+                          )}
+                        </p>
+                      </div>
+                      {bajoReino && (
+                        <span className="shrink-0 text-[10px] font-bold text-red-600" title="Stock bajo mínimo">⚠</span>
+                      )}
+                      <span className="quest-inventario-grupo-count shrink-0 tabular-nums">{totalReino}</span>
                     </button>
-                    <button type="button" onClick={guardarEdicion} disabled={saving || !editForm.nombre.trim()}
-                      className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50">
-                      {saving ? "Guardando..." : "✓ Guardar cambios"}
-                    </button>
-                  </div>
-                </div>
-              );
-            }
-
-            const seleccionado = selectedIds.has(m.id);
-
-            return (
-              <div key={m.id} className={`rounded-paper border-2 bg-surface-panel p-4 shadow-paper-sm ${bajo ? "border-red-300" : seleccionado ? "border-accent/60 ring-1 ring-accent/30" : "border-border"}`}>
-                <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                  {canManageStock && (
-                    <label className="flex shrink-0 cursor-pointer items-center pt-0.5" title="Seleccionar para eliminar">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-border accent-accent"
-                        checked={seleccionado}
-                        onChange={() => toggleSelect(m.id)}
-                      />
-                    </label>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {bajo && <span className="text-sm">{m.stock_actual <= 0 ? "🔴" : "🟡"}</span>}
-                      <p className="font-bold text-sm text-ink">{m.nombre}</p>
-                      <BadgeTipoMaterial tipo={m.tipo} />
-                    </div>
-                    <div className="mt-1"><BadgesZonas zonas={m.zonas} compact /></div>
-                    {m.proveedor && <p className="text-xs text-muted">Proveedor: {m.proveedor}</p>}
-                    {m.descripcion && <p className="text-xs text-muted line-clamp-2">{m.descripcion}</p>}
-                    {m.tipo === "elaborado" && <p className="text-xs text-purple-600">Producido internamente</p>}
-                  </div>
-                  <div className="flex items-start gap-2 shrink-0">
-                    <div className="text-right">
-                      <p className={`text-lg font-black ${bajo ? "text-red-600" : "text-ink"}`}>
-                        {m.stock_actual} <span className="text-sm font-normal text-muted">{m.unidad}</span>
-                      </p>
-                      {m.stock_minimo > 0 && <p className="text-xs text-muted">Mín: {m.stock_minimo} {m.unidad}</p>}
-                    </div>
-                    {nivel >= 2 && (
-                      <button type="button" onClick={() => iniciarEdicion(m)}
-                        className="rounded-paper border-2 border-border px-2.5 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
-                        title="Editar material">
-                        ✏️
-                      </button>
+                    {reinoAbierto && (
+                      <div className="quest-inventario-grupo-body space-y-2">
+                        {reino.materiales.length > 0 && (
+                          <div className="quest-inventario-grupo-items space-y-2 border-b border-border/50 pb-2">
+                            <p className="px-1 text-[10px] font-bold uppercase tracking-wide text-muted">General del reino</p>
+                            {reino.materiales.map((m) => renderInventarioMaterial(m, rKey))}
+                          </div>
+                        )}
+                        {reino.zonas.map((zona) => {
+                          const zKey = inventarioZonaKey(zona.id);
+                          const zonaAbierta = openGrupos.has(zKey);
+                          const bajoZona = zona.materiales.some(
+                            (m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo,
+                          );
+                          return (
+                            <div
+                              key={zKey}
+                              className={`quest-inventario-grupo quest-inventario-grupo--zona ${zonaAbierta ? "quest-inventario-grupo--open" : ""}`}
+                              style={{ "--inv-accent": zona.color } as CSSProperties}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => toggleGrupoInventario(zKey)}
+                                className="quest-inventario-grupo-header quest-inventario-grupo-header--zona w-full text-left"
+                                aria-expanded={zonaAbierta}
+                              >
+                                <span className={`quest-inventario-grupo-chevron ${zonaAbierta ? "quest-inventario-grupo-chevron--open" : ""}`} aria-hidden>▼</span>
+                                <ZonaColorDot color={zona.color} size="sm" />
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="truncate text-xs font-extrabold text-ink">{zona.nombre}</h4>
+                                  <p className="truncate text-[10px] text-muted">Zona · {reino.nombre}</p>
+                                </div>
+                                {bajoZona && (
+                                  <span className="shrink-0 text-[10px] font-bold text-red-600" title="Stock bajo mínimo">⚠</span>
+                                )}
+                                <span className="quest-inventario-grupo-count shrink-0 tabular-nums">{zona.materiales.length}</span>
+                              </button>
+                              {zonaAbierta && (
+                                <div className="quest-inventario-grupo-items space-y-2">
+                                  {zona.materiales.map((m) => renderInventarioMaterial(m, zKey))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
-                </div>
-                {m.stock_minimo > 0 && (
-                  <>
-                    <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${m.stock_actual <= 0 ? "bg-red-600" : bajo ? "bg-orange-400" : "bg-accent"}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <div className="mt-1 flex justify-between text-xs text-muted">
-                      <span>{pct}% del mínimo</span>
-                      {m.precio_unitario > 0 && <span>${m.precio_unitario.toLocaleString("es-CO")} / {m.unidad}</span>}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-                })}
-              </div>
-            </section>
-          ))}
+                );
+              })}
+              {arbolInventario.sinUbicacion.length > 0 && (() => {
+                const gKey = "general-0";
+                const abierto = openGrupos.has(gKey);
+                const bajo = arbolInventario.sinUbicacion.some(
+                  (m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo,
+                );
+                return (
+                  <div
+                    className={`quest-inventario-grupo ${abierto ? "quest-inventario-grupo--open" : ""}`}
+                    style={{ "--inv-accent": "#94a3b8" } as CSSProperties}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleGrupoInventario(gKey)}
+                      className="quest-inventario-grupo-header w-full text-left"
+                      aria-expanded={abierto}
+                    >
+                      <span className={`quest-inventario-grupo-chevron ${abierto ? "quest-inventario-grupo-chevron--open" : ""}`} aria-hidden>▼</span>
+                      <ZonaColorDot color="#94a3b8" size="md" />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm font-extrabold text-ink">Sin ubicación asignada</h3>
+                        <p className="truncate text-[10px] text-muted">Catálogo general</p>
+                      </div>
+                      {bajo && <span className="shrink-0 text-[10px] font-bold text-red-600" title="Stock bajo mínimo">⚠</span>}
+                      <span className="quest-inventario-grupo-count shrink-0 tabular-nums">{arbolInventario.sinUbicacion.length}</span>
+                    </button>
+                    {abierto && (
+                      <div className="quest-inventario-grupo-items space-y-2">
+                        {arbolInventario.sinUbicacion.map((m) => renderInventarioMaterial(m, gKey))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </>
+          )}
       </div>
     </div>
   );
@@ -7392,25 +8279,209 @@ function MisionDetailView({
 }
 
 // Workload dashboard
-function WorkloadView({ token, onBack }: { token: string; onBack: () => void }) {
+function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUser; onBack: () => void }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showNuevo, setShowNuevo] = useState(false);
+  const [roles, setRoles] = useState<{ id: number; nombre: string; nivel: number }[]>([]);
+  const [depts, setDepts] = useState<{ id: number; nombre: string; color?: string }[]>([]);
+  const [form, setForm] = useState({
+    nombre: "",
+    username: "",
+    password: "",
+    rol_id: "" as string | number,
+    departamento_id: "" as string | number,
+  });
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const nivel = user.rol?.nivel ?? 1;
+  const canManageAliados = nivel >= 2;
 
-  useEffect(() => {
-    tapi("/dashboard/carga", token)
+  const reload = useCallback(() => {
+    setLoading(true);
+    return tapi("/dashboard/carga", token)
       .then(setData)
-      .catch(() => {})
+      .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [token]);
 
+  useEffect(() => { void reload(); }, [reload]);
+
+  useEffect(() => {
+    if (!showNuevo || !canManageAliados) return;
+    Promise.all([tapi("/roles", token), tapi("/departamentos", token)])
+      .then(([rs, ds]) => {
+        setRoles(rs);
+        setDepts(ds);
+      })
+      .catch(() => {});
+  }, [showNuevo, canManageAliados, token]);
+
+  async function eliminarAliado(u: { id: number; nombre: string; tickets_abiertos?: number }) {
+    if (u.id === user.id) {
+      alert("No puedes eliminar tu propia cuenta.");
+      return;
+    }
+    const aviso =
+      u.tickets_abiertos && u.tickets_abiertos > 0
+        ? `\n\nTiene ${u.tickets_abiertos} ticket(s) abiertos asignados; quedarán en el historial.`
+        : "";
+    if (!window.confirm(`¿Eliminar aliado "${u.nombre}" del equipo?${aviso}\n\nSe desactiva el acceso (no borra historial).`)) {
+      return;
+    }
+    setDeletingId(u.id);
+    try {
+      await tapi(`/usuarios/${u.id}`, token, { method: "DELETE" });
+      await reload();
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "No se pudo eliminar el aliado.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  function abrirNuevo() {
+    setForm({ nombre: "", username: "", password: "", rol_id: "", departamento_id: "" });
+    setFormError("");
+    setShowNuevo(true);
+  }
+
+  async function guardarAliado() {
+    if (!form.nombre.trim() || !form.username.trim() || !form.password || !form.rol_id || !form.departamento_id) {
+      setFormError("Completa nombre, usuario, contraseña, rol y departamento.");
+      return;
+    }
+    if (form.password.length < 6) {
+      setFormError("La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    setSaving(true);
+    setFormError("");
+    try {
+      await tapi("/usuarios", token, {
+        method: "POST",
+        body: JSON.stringify({
+          nombre: form.nombre.trim(),
+          username: form.username.trim(),
+          password: form.password,
+          rol_id: Number(form.rol_id),
+          departamento_id: Number(form.departamento_id),
+        }),
+      });
+      setShowNuevo(false);
+      await reload();
+    } catch (e: unknown) {
+      setFormError(e instanceof Error ? e.message : "No se pudo crear el aliado.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">←</button>
-        <h2 className="text-xl font-extrabold text-ink">Aliados</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">←</button>
+          <div>
+            <h2 className="text-xl font-extrabold text-ink">Aliados</h2>
+            <p className="text-xs text-muted">Carga de trabajo por persona del equipo</p>
+          </div>
+        </div>
+        {canManageAliados && (
+          <button
+            type="button"
+            onClick={abrirNuevo}
+            className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none"
+          >
+            + Agregar aliado
+          </button>
+        )}
       </div>
+
+      {showNuevo && canManageAliados && (
+        <div className="rounded-paper border-2 border-accent/50 bg-surface-panel p-5 shadow-paper-sm space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Nuevo aliado</h3>
+            <button
+              type="button"
+              onClick={() => setShowNuevo(false)}
+              className="text-xs font-bold text-muted hover:text-ink"
+            >
+              Cerrar
+            </button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nombre completo *" value={form.nombre} onChange={(v) => setForm((f) => ({ ...f, nombre: v }))} />
+            <Field label="Usuario (login) *" value={form.username} onChange={(v) => setForm((f) => ({ ...f, username: v }))} />
+            <Field label="Contraseña *" type="password" value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} />
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted">Rol *</label>
+              <select
+                value={form.rol_id}
+                onChange={(e) => setForm((f) => ({ ...f, rol_id: e.target.value }))}
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              >
+                <option value="">Seleccionar…</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>{r.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-bold text-muted">Departamento *</label>
+              <select
+                value={form.departamento_id}
+                onChange={(e) => setForm((f) => ({ ...f, departamento_id: e.target.value }))}
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              >
+                <option value="">Seleccionar…</option>
+                {depts.map((d) => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {formError && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 dark:bg-red-950/40 dark:text-red-300">
+              {formError}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowNuevo(false)}
+              className="rounded-paper border-2 border-border px-4 py-2 text-xs font-bold text-muted hover:bg-surface-hover"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void guardarAliado()}
+              disabled={saving}
+              className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving ? "Guardando…" : "Crear aliado"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="py-12 text-center text-sm text-muted">Cargando...</div>
+      ) : data.length === 0 ? (
+        <div className="py-12 text-center text-sm text-muted space-y-3">
+          <p>No hay aliados registrados aún.</p>
+          {canManageAliados && (
+            <button
+              type="button"
+              onClick={abrirNuevo}
+              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white"
+            >
+              + Agregar el primero
+            </button>
+          )}
+        </div>
       ) : (
         <div className="space-y-3">
           {data.map((u: any) => (
@@ -7428,19 +8499,32 @@ function WorkloadView({ token, onBack }: { token: string; onBack: () => void }) 
                     )}
                   </div>
                 </div>
-                <div className="flex gap-4 text-center">
-                  <div>
-                    <div className="text-xl font-black text-ink">{u.tickets_abiertos}</div>
-                    <div className="text-xs font-semibold text-muted">Abiertos</div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex gap-4 text-center">
+                    <div>
+                      <div className="text-xl font-black text-ink">{u.tickets_abiertos}</div>
+                      <div className="text-xs font-semibold text-muted">Abiertos</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-black text-green-700">{u.resueltos_semana}</div>
+                      <div className="text-xs font-semibold text-muted">Resueltos / sem.</div>
+                    </div>
+                    <div>
+                      <div className="text-xl font-black text-accent">{fmtHoras(u.total_horas)}</div>
+                      <div className="text-xs font-semibold text-muted">Tiempo total</div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xl font-black text-green-700">{u.resueltos_semana}</div>
-                    <div className="text-xs font-semibold text-muted">Resueltos / sem.</div>
-                  </div>
-                  <div>
-                    <div className="text-xl font-black text-accent">{fmtHoras(u.total_horas)}</div>
-                    <div className="text-xs font-semibold text-muted">Tiempo total</div>
-                  </div>
+                  {canManageAliados && u.id !== user.id && (
+                    <button
+                      type="button"
+                      onClick={() => void eliminarAliado(u)}
+                      disabled={deletingId === u.id}
+                      title="Eliminar aliado (desactivar acceso)"
+                      className="rounded-paper border-2 border-red-400/80 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-600 hover:text-white disabled:opacity-40 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-600"
+                    >
+                      {deletingId === u.id ? "Eliminando…" : "🗑 Eliminar"}
+                    </button>
+                  )}
                 </div>
               </div>
               {/* Load bar */}
@@ -7697,6 +8781,8 @@ export default function TicketsPanel() {
   const [bajoStockCount, setBajoStockCount] = useState(0);
   const [navScope, setNavScope] = useState<NavScope>({ kind: "all" });
   const [boardRefreshKey, setBoardRefreshKey] = useState(0);
+  const carritoOpen = useInventarioCarrito((s) => s.modalOpen);
+  const openCarrito = useInventarioCarrito((s) => s.setModalOpen);
 
   const reloadCats = useCallback(() => {
     if (!token) return;
@@ -7760,31 +8846,23 @@ export default function TicketsPanel() {
   return (
     <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
     <div className={`quest-canvas relative min-h-full transition-colors duration-200 ${questDark ? "dark" : ""}`}>
-      {/* Logout + tema */}
-      <div className="absolute right-0 top-0 z-30 flex items-center gap-2">
-        <QuestThemeToggle />
-        <button type="button" onClick={clear}
-          className={`${questNavBtn(false, "quest-nav-btn--ghost-danger")} text-xs`}>
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Salir ({user.nombre})
-        </button>
-      </div>
-
-      <div className="pt-8">
         <QuestNavBar
           view={view}
           nivel={nivel}
           bajoStockCount={bajoStockCount}
+          userNombre={user.nombre}
           onTablero={goTablero}
           onInventario={goInventario}
           onReinos={goReinos}
           onRecetas={goRecetas}
+          onCarrito={() => openCarrito(true)}
+          carritoOpen={carritoOpen}
           onWorkload={goWorkload}
           onPerfil={goPerfil}
           onCreateMision={goCreateMision}
+          onLogout={clear}
         />
+        <InventarioCarritoModal token={token} nivel={nivel} />
         {view === "reinos" && (
           <ReinosView
             token={token}
@@ -7833,7 +8911,7 @@ export default function TicketsPanel() {
           <RecetasPanel token={token} user={user} onBack={goBack} />
         )}
         {view === "workload" && nivel >= 2 && (
-          <WorkloadView token={token} onBack={goBack} />
+          <WorkloadView token={token} user={user} onBack={goBack} />
         )}
         {view === "crear_mision" && (
           <CreateMisionView
@@ -7858,7 +8936,6 @@ export default function TicketsPanel() {
             onBack={goBack}
           />
         )}
-      </div>
     </div>
     </CategoriasCtx.Provider>
   );
