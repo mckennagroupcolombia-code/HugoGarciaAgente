@@ -11,6 +11,7 @@ import StockPanel from "./components/StockPanel";
 import PedidosWebPanel from "./components/PedidosWebPanel";
 import FacturasCompraPanel from "./components/FacturasCompraPanel";
 import TicketsPanel from "./components/TicketsPanel";
+import WebChatPanel from "./components/WebChatPanel";
 import Settings from "./components/Settings";
 
 function PanelRouter() {
@@ -22,6 +23,8 @@ function PanelRouter() {
       return <Chat />;
     case "voz":
       return <VozIA />;
+    case "webchat":
+      return <WebChatPanel />;
     case "preventa":
       return <PreventaPanel />;
     case "sync":

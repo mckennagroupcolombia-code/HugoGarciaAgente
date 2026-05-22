@@ -912,40 +912,6 @@ def _panel_chat_gemini(modelo_id: str, historial: list, mensaje: str) -> str:
 # ── Voz IA: cola de notificaciones en memoria ─────────────────────────────
 _voz_notificaciones: list = []  # list[{id, texto, nivel, timestamp}]
 
-# ── Canales activos (asignación por canal) ────────────────────────────────
-_CANALES_DEFAULT = [
-    {
-        "id": "whatsapp", "nombre": "WhatsApp", "icono": "wa",
-        "modelo_id": "claude-sonnet-4-6", "modelo_nombre": "Claude Sonnet 4.6",
-        "proveedor": "Anthropic API", "modo": "tool-use",
-        "descripcion": "Atiende clientes con acceso a inventario, pagos y catálogo.",
-    },
-    {
-        "id": "meli_preventa", "nombre": "MeLi Preventa", "icono": "ml",
-        "modelo_id": "gemini-2.5-pro", "modelo_nombre": "Gemini 2.5 Pro",
-        "proveedor": "Google API", "modo": "ficha + delegación",
-        "descripcion": "Responde con ficha técnica. Sin ficha → delega al equipo.",
-    },
-    {
-        "id": "web_chat", "nombre": "Web Chat (burbuja)", "icono": "web",
-        "modelo_id": "claude-sonnet-4-6", "modelo_nombre": "Claude Sonnet 4.6",
-        "proveedor": "Anthropic API", "modo": "tool-use",
-        "descripcion": "Burbuja de chat en mckennagroup.co — mismo agente que WhatsApp.",
-    },
-    {
-        "id": "panel_chat", "nombre": "Panel Chat IA", "icono": "panel",
-        "modelo_id": "seleccionable", "modelo_nombre": "Seleccionable",
-        "proveedor": "Multi-proveedor", "modo": "conversacional",
-        "descripcion": "Panel de pruebas. Selecciona cualquier modelo.",
-    },
-    {
-        "id": "voz_ia", "nombre": "Voz IA", "icono": "mic",
-        "modelo_id": "seleccionable", "modelo_nombre": "Seleccionable + ElevenLabs TTS",
-        "proveedor": "Multi-proveedor", "modo": "voz + TTS",
-        "descripcion": "STT por navegador. TTS: ElevenLabs. Qwen3 TTS disponible tras instalación local.",
-    },
-]
-
 def _panel_chat_ollama(modelo_id: str, historial: list, mensaje: str) -> str:
     import requests as _req
 
@@ -2004,7 +1970,9 @@ def register_routes(app):
             )
 
         # --- Procesamiento del Mensaje por la IA ---
-        respuesta_ia, _ = obtener_respuesta_ia(message_text, sender_id)
+        respuesta_ia, _ = obtener_respuesta_ia(
+            message_text, sender_id, canal="whatsapp"
+        )
         respuesta_ia = _normalizar_respuesta_cliente(respuesta_ia)
 
         incertidumbre_ia = ["no tengo información", "no puedo", "no estoy seguro"]
@@ -2105,7 +2073,10 @@ def register_routes(app):
             )
         try:
             respuesta, _ = obtener_respuesta_ia(
-                mensaje, session_id, adjuntos_payload=adjuntos
+                mensaje,
+                session_id,
+                adjuntos_payload=adjuntos,
+                canal="web_chat" if es_web_chat else "",
             )
             if es_web_chat and respuesta:
                 try:
@@ -3145,17 +3116,45 @@ def register_routes(app):
     def api_sistema_canales():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
+        from app.services.canales_config import listar_canales
+
         eleven_key = os.getenv("ELEVENLABS_API_KEY", "").strip()
         from app.services.tts_qwen3 import qwen3_disponible
         qwen3_ok = qwen3_disponible()
         return jsonify({
-            "canales": _CANALES_DEFAULT,
+            "canales": listar_canales(),
             "tts_disponible": {
                 "elevenlabs": bool(eleven_key),
                 "qwen3_local": qwen3_ok,
                 "browser": True,
             },
         })
+
+    @app.route("/api/sistema/canales/<canal_id>", methods=["PUT"])
+    def api_sistema_canales_asignar(canal_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.canales_config import (
+            asignar_modelo_canal,
+            modelo_valido_para_canal,
+        )
+
+        body = request.get_json(silent=True) or {}
+        modelo_id = (body.get("modelo_id") or "").strip()
+        if not modelo_id:
+            return jsonify({"error": "modelo_id requerido"}), 400
+        if not modelo_valido_para_canal(canal_id, modelo_id):
+            return jsonify(
+                {
+                    "error": "Modelo no permitido para este canal",
+                    "canal_id": canal_id,
+                    "modelo_id": modelo_id,
+                }
+            ), 400
+        canal = asignar_modelo_canal(canal_id, modelo_id)
+        if not canal:
+            return jsonify({"error": "Canal no editable o desconocido"}), 404
+        return jsonify({"ok": True, "canal": canal})
 
     # ── Voz IA ───────────────────────────────────────────────────────────────
 

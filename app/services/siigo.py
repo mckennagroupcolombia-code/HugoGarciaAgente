@@ -1753,3 +1753,132 @@ def listar_productos_combo_siigo() -> list:
             break
 
     return out
+
+
+_MELI_COMMISSION_WEB = 0.165
+
+
+def _skus_excluidos_chat_web() -> set[str]:
+    raw = os.getenv("WEB_CHAT_EXCLUDE_COMBO_SKUS", "").strip()
+    if not raw:
+        return set()
+    return {s.strip().upper() for s in raw.split(",") if s.strip()}
+
+
+def _normalizar_texto_busqueda_combo(texto: str) -> str:
+    import unicodedata
+
+    t = (texto or "").strip().lower()
+    t = unicodedata.normalize("NFD", t)
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    t = re.sub(r"[^a-z0-9\s]", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _combo_item_desde_raw(raw: dict) -> dict:
+    code = (raw.get("code") or "").strip()
+    name = (raw.get("name") or "").strip()
+    lista = _precio_lista_siigo_producto(raw)
+    web = lista * (1 - _MELI_COMMISSION_WEB) if lista > 0 else 0.0
+    return {
+        "ref": code,
+        "name": name,
+        "precio_lista": lista,
+        "precio_web": web,
+        "activo": bool(raw.get("active", True)),
+    }
+
+
+def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple[list[dict], str]:
+    """
+    Busca combos SIIGO y devuelve lista estructurada + mensaje de estado.
+    """
+    consulta = (consulta or "").strip()
+    if len(consulta) < 2:
+        return [], "Consulta vacía."
+
+    consulta_norm = _normalizar_texto_busqueda_combo(consulta)
+    palabras = [w for w in consulta_norm.split() if len(w) >= 3]
+    if not palabras:
+        palabras = [w for w in consulta_norm.split() if len(w) >= 2]
+    if not palabras:
+        return [], f"No pude interpretar la búsqueda '{consulta}'."
+
+    combos_raw = listar_productos_combo_siigo()
+    if not combos_raw:
+        return [], "No hay combos SIIGO activos en este momento."
+
+    scored: list[tuple[int, dict]] = []
+    for raw in combos_raw:
+        code = (raw.get("code") or "").strip()
+        name = (raw.get("name") or "").strip()
+        if not code or not name:
+            continue
+        blob = _normalizar_texto_busqueda_combo(f"{name} {code}")
+        score = 0
+        for w in palabras:
+            if w in blob:
+                score += 3
+            elif len(w) >= 4 and w in _normalizar_texto_busqueda_combo(name):
+                score += 2
+        if consulta_norm in blob or blob in consulta_norm:
+            score += 5
+        if score > 0:
+            scored.append((score, raw))
+
+    if not scored:
+        return [], (
+            f"No encontré combo SIIGO activo para '{consulta}'. "
+            "Solo vendemos presentaciones tipo combo registradas en SIIGO."
+        )
+
+    scored.sort(key=lambda x: (-x[0], x[1].get("name", "")))
+    excl = _skus_excluidos_chat_web()
+    items = []
+    for _, raw in scored:
+        code = (raw.get("code") or "").strip().upper()
+        if excl and code in excl:
+            continue
+        items.append(_combo_item_desde_raw(raw))
+        if len(items) >= max_items:
+            break
+    if not items and scored and excl:
+        return [], (
+            f"No hay combo SIIGO publicado para '{consulta}' "
+            "(tras filtro de SKUs permitidos en chat web)."
+        )
+    return items, "ok"
+
+
+def buscar_productos_combo_siigo(consulta: str) -> str:
+    """
+    Busca presentaciones activas tipo Combo en SIIGO (catálogo comprable en la web).
+    Usar en chat web cuando el cliente pregunte precio, disponibilidad o presentaciones.
+    No inventar SKUs ni gramajes que no aparezcan aquí.
+    """
+    items, estado = buscar_combos_siigo_estructurado(consulta)
+    if not items:
+        return estado
+
+    lines = [
+        f"Combos SIIGO activos relacionados con '{consulta}' "
+        "(únicas presentaciones que puede ofrecer en chat web):",
+    ]
+    for it in items:
+        if it["precio_web"] > 0:
+            precio_txt = (
+                f"${it['precio_web']:,.0f} COP "
+                f"(lista SIIGO ${it['precio_lista']:,.0f})"
+            )
+        else:
+            precio_txt = "precio: consultar"
+        disp = "activo" if it["activo"] else "inactivo"
+        lines.append(
+            f"- {it['name']} | Ref/SKU: {it['ref']} | {precio_txt} | {disp}"
+        )
+
+    lines.append(
+        "IMPORTANTE: cite solo estas líneas al cliente. "
+        "No ofrezca presentaciones del catálogo histórico Sheets."
+    )
+    return "\n".join(lines)

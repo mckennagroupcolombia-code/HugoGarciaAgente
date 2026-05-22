@@ -283,20 +283,33 @@ REGLAS:
 
 Genera únicamente la respuesta para el cliente, sin comillas ni texto introductorio."""
 
-    for model_name in _GEMINI_MODELS:
+    try:
+        from app.services.canales_config import obtener_modelo_canal
+
+        preferido = obtener_modelo_canal("meli_preventa")
+        modelos_intento = []
+        if preferido and preferido.startswith("gemini-"):
+            modelos_intento.append(preferido)
+        for m in _GEMINI_MODELS:
+            if m not in modelos_intento:
+                modelos_intento.append(m)
+    except Exception:
+        modelos_intento = list(_GEMINI_MODELS)
+
+    for model_name in modelos_intento:
         try:
             resp = gemini_client.models.generate_content(model=model_name, contents=prompt)
             texto = (resp.text or "").strip()
             if not texto:
                 print(f"Preventa: {model_name} devolvió respuesta vacía, probando siguiente…")
                 continue
-            if model_name != _GEMINI_MODELS[0]:
+            if model_name != modelos_intento[0]:
                 print(f"ℹ️ Preventa: respuesta generada con fallback {model_name}")
             return texto[:1997] + "..." if len(texto) > 2000 else texto
         except Exception as e:
             err_str = str(e)
             is_overload = "503" in err_str or "UNAVAILABLE" in err_str or "overloaded" in err_str.lower()
-            if is_overload and model_name != _GEMINI_MODELS[-1]:
+            if is_overload and model_name != modelos_intento[-1]:
                 print(f"⚠️ Preventa: {model_name} → {err_str[:120]}. Probando siguiente modelo…")
                 continue
             print(f"❌ Preventa: error generando respuesta IA ({model_name}): {e}")

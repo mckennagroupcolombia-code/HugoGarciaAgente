@@ -5,6 +5,7 @@ export type Panel =
   | "dashboard"
   | "chat"
   | "voz"
+  | "webchat"
   | "preventa"
   | "sync"
   | "stock"
