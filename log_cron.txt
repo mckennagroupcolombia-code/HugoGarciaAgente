@@ -1550,3 +1550,24 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-05-20 23:00:05] ERROR en el push. Revisar credenciales o conflictos.
+[master 9f382e4] Auto-commit: actualizacion diaria 2026-05-21 23:00
+ 38 files changed, 6358 insertions(+), 1426 deletions(-)
+ create mode 100644 app/data/canales_modelos.json
+ create mode 100644 app/services/canales_config.py
+ create mode 100644 app/services/misiones_timing.py
+ create mode 100644 app/services/ticket_timing.py
+ create mode 100644 app/services/web_chat_notify.py
+ create mode 100644 desktop/src/components/Cronometro.tsx
+ create mode 100644 desktop/src/components/WebChatPanel.tsx
+ create mode 100644 desktop/src/hooks/useCanales.ts
+ create mode 100644 desktop/src/hooks/useWebChat.ts
+ delete mode 100644 uploads/tickets/avatar_2_0da953f8e86f.jpg
+ create mode 100644 uploads/tickets/avatar_2_711596a54a0b.jpg
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-05-21 23:00:03] ERROR en el push. Revisar credenciales o conflictos.

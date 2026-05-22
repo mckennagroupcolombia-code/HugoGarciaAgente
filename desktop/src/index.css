@@ -108,6 +108,12 @@
   .quest-canvas.dark .quest-nav-bar {
     background: rgb(var(--mck-surface) / 0.92);
   }
+  .quest-nav-bar-main {
+    @apply min-w-0;
+  }
+  .quest-nav-bar-actions {
+    @apply border-l-0 sm:border-l sm:border-border/60 sm:pl-2;
+  }
 
   /* AnimatiSS — shadow-drop-center (menú principal Centro de Mando) */
   @keyframes shadow-drop-center {
@@ -138,13 +144,13 @@
       background-color 0.15s ease;
   }
   .quest-nav-btn:hover {
-    animation: shadow-drop-center-accent 0.4s linear both;
     border-color: rgb(var(--mck-accent));
     color: rgb(var(--mck-accent));
     background: rgb(var(--mck-surface-hover) / 0.9);
+    box-shadow: 0 0 12px 0 rgb(var(--mck-accent) / 0.25);
   }
   .quest-canvas.dark .quest-nav-btn:hover {
-    animation: shadow-drop-center 0.4s linear both;
+    box-shadow: 0 0 12px 0 rgba(255, 255, 255, 0.2);
   }
   .quest-nav-btn--active {
     border-color: rgb(var(--mck-accent));
@@ -172,13 +178,16 @@
     color: rgb(var(--mck-danger));
   }
 
-  .quest-board-toolbar {
-    @apply flex flex-col gap-3 rounded-paper border-2 border-border bg-surface-panel/80 px-3 py-2.5 sm:px-4;
+  @font-face {
+    font-family: "History Wonder";
+    src: url("https://db.onlinewebfonts.com/t/24d2fb6a22541d115b0347b025c9792e.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
   }
-  @media (min-width: 1024px) {
-    .quest-board-toolbar {
-      @apply flex-row flex-wrap items-center justify-between gap-x-4 gap-y-2;
-    }
+
+  .quest-board-toolbar {
+    @apply flex flex-col gap-3 rounded-paper border-2 border-border bg-surface-panel/80 px-3 py-3 sm:px-4 sm:py-4;
   }
   .dark .quest-board-toolbar {
     background: linear-gradient(
@@ -187,6 +196,57 @@
       rgb(var(--mck-surface) / 0.95) 100%
     );
     border-color: rgb(var(--mck-border-strong) / 0.5);
+  }
+
+  .quest-board-toolbar-brand {
+    @apply w-full text-center;
+  }
+
+  .quest-board-kimdom-title {
+    font-family: "History Wonder", Georgia, "Times New Roman", serif;
+    font-size: clamp(2.75rem, 7vw, 4.25rem);
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    @apply text-ink;
+    text-transform: uppercase;
+  }
+  .quest-board-kimdom-title--editable {
+    @apply cursor-pointer transition-opacity;
+  }
+  .quest-board-kimdom-title--editable:hover {
+    @apply opacity-90;
+  }
+  .quest-board-kimdom-title--edit {
+    @apply w-full max-w-md border-b-2 border-accent bg-transparent text-center outline-none;
+    font-family: "History Wonder", Georgia, "Times New Roman", serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .quest-board-kimdom-edit-hint {
+    @apply ml-2 inline-block align-middle text-base opacity-0 transition-opacity;
+    font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+    text-transform: none;
+  }
+  .quest-board-kimdom-title--editable:hover .quest-board-kimdom-edit-hint,
+  .quest-board-kimdom-title--editable:focus-visible .quest-board-kimdom-edit-hint {
+    @apply opacity-55;
+  }
+  .quest-board-title-edit-wrap {
+    @apply w-full text-center;
+  }
+  .dark .quest-board-kimdom-title {
+    color: rgb(var(--mck-ink));
+    text-shadow: 0 2px 24px rgb(var(--mck-accent) / 0.25);
+  }
+
+  .quest-board-kimdom-sub {
+    @apply mt-2 text-[11px] leading-snug text-muted;
+  }
+
+  .quest-board-toolbar-row {
+    @apply flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between;
   }
 
   .quest-board-toolbar-title {
@@ -219,15 +279,80 @@
   }
 
   .quest-inventario-grupo-header {
-    @apply flex items-center gap-2 border-b border-border/80 bg-surface-hover/50 px-3 py-2;
+    @apply flex items-center gap-2 bg-surface-hover/50 px-3 py-2.5 transition-colors;
+  }
+  .quest-inventario-grupo-header:hover {
+    background: rgb(var(--mck-surface-hover) / 0.85);
+  }
+  .quest-inventario-grupo--open .quest-inventario-grupo-header {
+    @apply border-b border-border/80;
+  }
+
+  .quest-inventario-grupo-chevron {
+    @apply inline-flex h-6 w-6 shrink-0 items-center justify-center text-[10px] leading-none text-muted;
+    transform-origin: center center;
+    transition: transform 200ms ease, color 200ms ease;
+  }
+  .quest-inventario-grupo-chevron--open {
+    @apply rotate-180 text-accent;
   }
 
   .quest-inventario-grupo-count {
     @apply inline-flex min-w-[1.5rem] items-center justify-center rounded-full border border-border bg-surface-panel px-1.5 py-0.5 text-[10px] font-bold text-muted;
   }
 
+  .quest-inventario-grupo-body {
+    @apply border-t border-border/60 p-2 sm:p-3;
+  }
+
+  .quest-inventario-grupo--zona {
+    @apply ml-2 sm:ml-3 border-l-[3px];
+    border-left-color: var(--inv-accent, rgb(var(--mck-accent)));
+  }
+
+  .quest-inventario-grupo-header--zona {
+    @apply py-2 pl-2;
+  }
+
   .quest-inventario-grupo-items {
-    @apply p-2 sm:p-3;
+    @apply border-t border-border/60 p-2 sm:p-3;
+  }
+
+  /* Reinos: árbol colapsable (reino → zona → subzona) */
+  .quest-reinos-grupo {
+    @apply rounded-paper border-2 border-border bg-surface-panel/60 overflow-hidden;
+    border-left-width: 4px;
+    border-left-color: var(--reino-accent, rgb(var(--mck-accent)));
+  }
+  .dark .quest-reinos-grupo {
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--reino-accent, #0c6069) 10%, transparent) 0%,
+      rgb(var(--mck-surface-panel) / 0.55) 28%
+    );
+  }
+  .quest-reinos-grupo-row {
+    @apply flex items-center gap-1;
+  }
+  .quest-reinos-grupo-chevron {
+    @apply relative z-10 shrink-0 inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded border border-border bg-surface-hover text-[10px] leading-none text-muted;
+    transform-origin: center center;
+    transition: transform 200ms ease, border-color 200ms ease, color 200ms ease;
+  }
+  .quest-reinos-grupo-chevron:hover {
+    @apply border-accent text-accent;
+  }
+  .quest-reinos-grupo-chevron--open {
+    @apply rotate-180 border-accent/40 text-accent;
+  }
+  .quest-reinos-grupo-body {
+    @apply space-y-1 border-t border-border/60 p-2;
+  }
+  .quest-reinos-grupo--zona {
+    @apply ml-1 sm:ml-2;
+  }
+  .quest-reinos-grupo--subzona {
+    @apply ml-1 sm:ml-3;
   }
 
   .quest-board-banner {
@@ -305,9 +430,12 @@
   }
 
   .quest-board-reino-header {
-    @apply border-b border-border/60 px-3 py-2;
+    @apply border-b border-transparent px-3 py-2;
     border-left-width: 4px;
     border-left-style: solid;
+  }
+  .quest-board-reino--open .quest-board-reino-header {
+    @apply border-border/60;
   }
 
   .quest-board-cork--nested {
@@ -438,6 +566,29 @@
 
   .quest-sticky-mission-pct {
     @apply shrink-0 text-right leading-none;
+  }
+
+  .quest-sticky-color-trigger {
+    @apply h-6 w-6 rounded-md border-2 border-black/15 shadow-sm transition hover:scale-110;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.35);
+  }
+  .quest-canvas.dark .quest-sticky-color-trigger {
+    @apply border-white/20;
+  }
+
+  .quest-sticky-color-panel {
+    @apply absolute right-0 top-full z-30 mt-1 min-w-[10.5rem] rounded-lg border-2 border-border bg-surface-panel p-2 shadow-paper;
+  }
+
+  .quest-sticky-color-swatches {
+    @apply grid grid-cols-7 gap-1;
+  }
+
+  .quest-sticky-color-swatch {
+    @apply h-5 w-5 rounded border border-black/10 transition hover:scale-110;
+  }
+  .quest-sticky-color-swatch--active {
+    @apply ring-2 ring-accent ring-offset-1 ring-offset-surface-panel;
   }
 
   .quest-sticky-tasks {

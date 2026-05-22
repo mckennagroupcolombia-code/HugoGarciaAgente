@@ -1150,6 +1150,21 @@ def eliminar_foto_usuario(user_id: int) -> tuple:
     return True, None
 
 
+def desactivar_usuario(user_id: int, solicitante_id: int) -> tuple:
+    """Baja lógica de un aliado (activo=0); no borra filas."""
+    if user_id == solicitante_id:
+        return False, "No puedes eliminar tu propia cuenta"
+    with _conn() as db:
+        row = db.execute("SELECT id, activo FROM usuarios WHERE id=?", (user_id,)).fetchone()
+        if not row:
+            return False, "Usuario no encontrado"
+        if not row["activo"]:
+            return False, "El aliado ya está inactivo"
+        db.execute("UPDATE usuarios SET activo=0 WHERE id=?", (user_id,))
+        db.commit()
+    return True, None
+
+
 def actualizar_usuario(user_id: int, data: dict) -> tuple:
     campos = {k: v for k, v in data.items()
               if k in ("nombre", "username", "rol_id", "departamento_id", "activo")}

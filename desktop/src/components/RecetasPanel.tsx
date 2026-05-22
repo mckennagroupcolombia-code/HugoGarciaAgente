@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, type CSSProperties } from "react";
 import type { TicketsUser } from "../stores/ticketsAuth";
 import { ALERT_ERROR_SM } from "../lib/questStyles";
 import { CorridaCronometroBlock, CronometroPanel, fmtTiempo, useCronometro } from "./Cronometro";
@@ -201,7 +201,22 @@ export default function RecetasPanel({
   const [saving, setSaving] = useState(false);
   const [guardandoCronometro, setGuardandoCronometro] = useState(false);
   const [tick, setTick] = useState(0);
+  const [openGrupos, setOpenGrupos] = useState<Set<string>>(() => new Set());
   const cronometroNueva = useCronometro();
+
+  const filtroListaKey = useMemo(
+    () => `${filtroTipo}:${filtroReino}`,
+    [filtroTipo, filtroReino],
+  );
+
+  function toggleGrupoRecetas(key: string) {
+    setOpenGrupos((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const reloadLista = useCallback(() => {
     return tapi("/recetas", token).then(setLista).catch((e) => setError(e.message));
@@ -621,6 +636,28 @@ export default function RecetasPanel({
   const totalCatalogo = lista.filter(esRecetaCatalogo).length;
   const totalReinos = lista.filter(esRecetaDeReino).length;
 
+  function todasClavesGruposRecetas(): string[] {
+    const keys: string[] = [];
+    if (recetasCatalogo.length) keys.push("catalogo");
+    for (const { reino } of reinosAgrupados) keys.push(`reino-${reino.id}`);
+    if (reinosSinAsignar.length) keys.push("sin-reino");
+    return keys;
+  }
+
+  useEffect(() => {
+    const open = new Set<string>();
+    if (filtroTipo === "catalogo") {
+      open.add("catalogo");
+    } else if (filtroReino !== "") {
+      open.add(`reino-${filtroReino}`);
+    } else if (recetasCatalogo.length > 0 && recetasReinos.length === 0) {
+      open.add("catalogo");
+    } else if (reinosAgrupados.length === 1) {
+      open.add(`reino-${reinosAgrupados[0].reino.id}`);
+    }
+    setOpenGrupos(open);
+  }, [filtroListaKey, lista.length]);
+
   const todasVisiblesSeleccionadas =
     filtradas.length > 0 && filtradas.every((r) => selectedIds.has(r.id));
   const seleccionEditables = Array.from(selectedIds).filter((id) => {
@@ -714,23 +751,50 @@ export default function RecetasPanel({
     );
   }
 
-  function renderSeccion(
+  function renderGrupoRecetas(
+    grupoKey: string,
     titulo: string,
     subtitulo: string,
     items: RecetaLista[],
-    accentClass = "border-border",
+    accentColor: string,
   ) {
     if (!items.length) return null;
+    const abierto = openGrupos.has(grupoKey);
     return (
-      <section className="space-y-3">
-        <div className={`rounded-paper border-l-4 ${accentClass} bg-surface-panel/50 px-4 py-2`}>
-          <h3 className="text-sm font-extrabold text-ink">{titulo}</h3>
-          <p className="text-[10px] text-muted">{subtitulo} · {items.length} receta{items.length !== 1 ? "s" : ""}</p>
+      <div
+        className={`quest-reinos-grupo ${abierto ? "quest-reinos-grupo--open" : ""}`}
+        style={{ "--reino-accent": accentColor } as CSSProperties}
+      >
+        <div className="quest-reinos-grupo-row px-2 py-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleGrupoRecetas(grupoKey);
+            }}
+            className={`quest-reinos-grupo-chevron ${abierto ? "quest-reinos-grupo-chevron--open" : ""}`}
+            aria-expanded={abierto}
+          >
+            ▼
+          </button>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-extrabold text-ink">{titulo}</h3>
+            <p className="text-[10px] text-muted">
+              {subtitulo}
+              <span className="mx-1 opacity-40">·</span>
+              {items.length} receta{items.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <span className="quest-inventario-grupo-count shrink-0 tabular-nums">{items.length}</span>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map(renderTarjeta)}
-        </div>
-      </section>
+        {abierto && (
+          <div className="quest-reinos-grupo-body">
+            <div className="grid gap-3 p-2 sm:grid-cols-2 xl:grid-cols-3">
+              {items.map(renderTarjeta)}
+            </div>
+          </div>
+        )}
+      </div>
     );
   }
 
@@ -1365,46 +1429,55 @@ export default function RecetasPanel({
         </div>
       )}
 
-      <div className="space-y-8">
+      {!loading && filtradas.length > 0 && todasClavesGruposRecetas().length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Grupos</span>
+          <button
+            type="button"
+            onClick={() => setOpenGrupos(new Set(todasClavesGruposRecetas()))}
+            className="rounded-paper border border-border px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
+          >
+            Expandir todo
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenGrupos(new Set())}
+            className="rounded-paper border border-border px-2.5 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
+          >
+            Colapsar todo
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-3">
         {(filtroTipo === "" || filtroTipo === "catalogo") &&
-          renderSeccion(
+          renderGrupoRecetas(
+            "catalogo",
             "📚 Recetas del catálogo McKenna",
             "Importadas del sitio web · referencia y elaboración",
             recetasCatalogo,
-            "border-l-amber-500",
+            "#d97706",
           )}
 
         {(filtroTipo === "" || filtroTipo === "reinos") && recetasReinos.length > 0 && (
-          <>
-            <div className="rounded-paper border-l-4 border-l-emerald-500 bg-surface-panel/50 px-4 py-2">
-              <h3 className="text-sm font-extrabold text-ink">🏰 Recetas de los reinos</h3>
-              <p className="text-[10px] text-muted">
-                Creadas en el Centro de Mando · vinculadas a un reino · {recetasReinos.length} receta
-                {recetasReinos.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-            {reinosAgrupados.map(({ reino, items }) => (
-              <div key={reino.id} className="space-y-3 pl-0 sm:pl-2">
-                <p
-                  className="text-xs font-extrabold uppercase tracking-wide"
-                  style={{ color: reino.color || undefined }}
-                >
-                  {reino.icono || "🏰"} {reino.nombre}
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {items.map(renderTarjeta)}
-                </div>
-              </div>
-            ))}
-            {reinosSinAsignar.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-xs font-bold text-muted">Sin reino asignado</p>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {reinosSinAsignar.map(renderTarjeta)}
-                </div>
-              </div>
+          <div className="space-y-3">
+            {reinosAgrupados.map(({ reino, items }) =>
+              renderGrupoRecetas(
+                `reino-${reino.id}`,
+                `${reino.icono || "🏰"} ${reino.nombre}`,
+                "Recetas del reino · Centro de Mando",
+                items,
+                reino.color || "#16a34a",
+              ),
             )}
-          </>
+            {renderGrupoRecetas(
+              "sin-reino",
+              "Sin reino asignado",
+              "Recetas de reino sin vínculo",
+              reinosSinAsignar,
+              "#94a3b8",
+            )}
+          </div>
         )}
       </div>
     </div>
