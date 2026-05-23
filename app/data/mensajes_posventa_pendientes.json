@@ -1,15 +1,5 @@
 {
-  "pendientes": {
-    "3953": {
-      "pack_id": "2000013103113953",
-      "comprador": "Comprador 3417167841",
-      "from_id": "3417167841",
-      "texto": "hola, adicional a la factura electronica necesito la ficha tecnica del producto",
-      "msg_id": "019e528c8d4c78b09e7c1ccf515f96f4",
-      "productos": "",
-      "timestamp": "2026-05-22T20:56:50"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019e4f6f927e786eafdb25af33aaeb59",
     "019e4c1ae44770b58979d7aea5424589",
@@ -110,9 +100,10 @@
     "019e065bb38f73639c790382e4375cf6",
     "019e03f09d1a795f824867cbac1c4534",
     "019e528c8d4c78b09e7c1ccf515f96f4",
-    "019dc5afdfa872edb346ef0cd8c43729",
+    "019e5318cb117a4fbf8d9a4745812234",
     "019e427cb2657a54a8b63b805e00bf34",
     "019e0d46a02479688062c8e10fe2ab66",
+    "019dc5afdfa872edb346ef0cd8c43729",
     "019e1e6b13587ec3ad79a5fa690d5765",
     "019e065582d871eca1d99ff774479830",
     "019dea7998ca722c8c6ec34fdd87ba50",
