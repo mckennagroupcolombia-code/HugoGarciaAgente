@@ -1571,3 +1571,41 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-05-21 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
+[master 7afe161] Auto-commit: actualizacion diaria 2026-05-22 23:00
+ 46 files changed, 1399 insertions(+), 7362 deletions(-)
+ delete mode 100644 5S-plantilla-app/5S Integration.html
+ delete mode 100644 5S-plantilla-app/animals.jsx
+ delete mode 100644 5S-plantilla-app/app.jsx
+ delete mode 100644 5S-plantilla-app/daily_quest.html
+ delete mode 100644 5S-plantilla-app/data.jsx
+ delete mode 100644 5S-plantilla-app/panels.jsx
+ delete mode 100644 5S-plantilla-app/project_views.jsx
+ delete mode 100644 5S-plantilla-app/shell.jsx
+ delete mode 100644 5S-plantilla-app/styles.css
+ create mode 100644 app/data/contactos_supervisor.json.save
+ delete mode 100644 desktop/design/5S-Integration/5S-Integration.html
+ delete mode 100644 desktop/design/5S-Integration/README.md
+ delete mode 100644 desktop/public/daily-quest.html
+ create mode 100644 desktop/src/components/AppearanceButton.tsx
+ create mode 100644 desktop/src/components/AppearancePanel.tsx
+ delete mode 100644 desktop/src/components/CincoSExperiencePanel.tsx
+ delete mode 100644 desktop/src/components/CincoSGuidedFlow.tsx
+ delete mode 100644 desktop/src/components/CincoSMascots.tsx
+ delete mode 100644 desktop/src/components/CincoSPanel.tsx
+ delete mode 100644 desktop/src/components/CincoSTemplateManager.tsx
+ delete mode 100644 desktop/src/components/DailyQuestPanel.tsx
+ delete mode 100644 desktop/src/hooks/useCincoS.ts
+ delete mode 100644 desktop/src/lib/cincoSPrimerPaso.ts
+ create mode 100644 desktop/src/stores/panelTheme.ts
+ create mode 100644 desktop/src/theme/applyTheme.ts
+ create mode 100644 desktop/src/theme/fontLoader.ts
+ create mode 100644 desktop/src/theme/presets.ts
+ create mode 100644 desktop/src/theme/types.ts
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-05-22 23:00:02] ERROR en el push. Revisar credenciales o conflictos.

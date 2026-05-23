@@ -532,7 +532,7 @@
       "question_id": "13587567697",
       "titulo_producto": "Cera De Abejas Blanca 1 Kg",
       "pregunta": "Es pura o contiene parafina o derivados del petróleo?",
-      "timestamp": "2026-05-22T22:53:55.528897",
+      "timestamp": "2026-05-23T01:54:21.595492",
       "respondida": false
     },
     {
@@ -547,15 +547,16 @@
       "question_id": "13588614158",
       "titulo_producto": "Kit Reparador #2 Cosmético Todo Tipo De Piel",
       "pregunta": "Lo he comprado y quiero adicionarlo a mis cremas de rutina diaria de belleza. Agradezco me brindes los consejos de uso?",
-      "timestamp": "2026-05-22T22:53:55.528897",
-      "respondida": false
+      "timestamp": "2026-05-23T00:54:13.721874",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-05-23"
     },
     {
       "question_id": "13588663532",
       "titulo_producto": "Ácido Kojico Dpalmitato 5% 30ml",
       "pregunta": "Cuál es la diferencia entre los dos kojicos?",
-      "timestamp": "2026-05-22T22:52:58.409298",
-      "respondida": false
+      "timestamp": "2026-05-23T00:54:13.721874",
+      "respondida": true
     }
   ]
 }
