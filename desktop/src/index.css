@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    --mck-font-sans: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mck-radius-paper: 14px;
     --mck-surface: 232 250 251;
     --mck-surface-panel: 244 253 254;
     --mck-surface-input: 255 255 255;
@@ -68,6 +70,11 @@
   }
   body {
     margin: 0;
+    font-family: var(--mck-font-sans);
+  }
+
+  .rounded-paper {
+    border-radius: var(--mck-radius-paper);
   }
 
   ::-webkit-scrollbar {

@@ -527,6 +527,35 @@
       "pregunta": "Buenas tardes, quisiera saber si tienen aceite esencial de menta. gracias",
       "timestamp": "2026-05-21T16:17:42.876881",
       "respondida": true
+    },
+    {
+      "question_id": "13587567697",
+      "titulo_producto": "Cera De Abejas Blanca 1 Kg",
+      "pregunta": "Es pura o contiene parafina o derivados del petróleo?",
+      "timestamp": "2026-05-22T22:53:55.528897",
+      "respondida": false
+    },
+    {
+      "question_id": "13587601957",
+      "titulo_producto": "Citrato De Potasio 500 Gr ",
+      "pregunta": "Tiene por kilos en este del 99%?",
+      "timestamp": "2026-05-22T12:49:55.325582",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-05-22"
+    },
+    {
+      "question_id": "13588614158",
+      "titulo_producto": "Kit Reparador #2 Cosmético Todo Tipo De Piel",
+      "pregunta": "Lo he comprado y quiero adicionarlo a mis cremas de rutina diaria de belleza. Agradezco me brindes los consejos de uso?",
+      "timestamp": "2026-05-22T22:53:55.528897",
+      "respondida": false
+    },
+    {
+      "question_id": "13588663532",
+      "titulo_producto": "Ácido Kojico Dpalmitato 5% 30ml",
+      "pregunta": "Cuál es la diferencia entre los dos kojicos?",
+      "timestamp": "2026-05-22T22:52:58.409298",
+      "respondida": false
     }
   ]
 }

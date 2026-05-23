@@ -13,6 +13,9 @@ import FacturasCompraPanel from "./components/FacturasCompraPanel";
 import TicketsPanel from "./components/TicketsPanel";
 import WebChatPanel from "./components/WebChatPanel";
 import Settings from "./components/Settings";
+import AppearancePanel from "./components/AppearancePanel";
+import { usePanelTheme } from "./stores/panelTheme";
+import { useEffect } from "react";
 
 function PanelRouter() {
   const panel = useAppStore((s) => s.panel);
@@ -37,6 +40,8 @@ function PanelRouter() {
       return <FacturasCompraPanel />;
     case "tickets":
       return <TicketsPanel />;
+    case "appearance":
+      return <AppearancePanel />;
     case "settings":
       return <Settings />;
     default:
@@ -46,6 +51,11 @@ function PanelRouter() {
 
 export default function App() {
   const token = useAuthStore((s) => s.token);
+  const applyTheme = usePanelTheme((s) => s.apply);
+
+  useEffect(() => {
+    applyTheme();
+  }, [applyTheme]);
 
   if (!token) return <LoginGate />;
 

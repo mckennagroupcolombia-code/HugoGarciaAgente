@@ -4084,8 +4084,8 @@
           "precio_num": 18286.5,
           "lista_num": 21900.0,
           "ahorro": "$3.614",
-          "photo": "https://http2.mlstatic.com/D_919432-MCO71731068570_092023-O.jpg",
-          "meli_id": "MCO1912833896",
+          "photo": "https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg",
+          "meli_id": "MCO590695436",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -4094,8 +4094,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
+          "photo_match_type": "family",
+          "photo_match_score": 88.7,
           "family_slug": "c-ceraberefbla500g"
         },
         {
@@ -6245,8 +6245,8 @@
           "precio_num": 76820.0,
           "lista_num": 92000.0,
           "ahorro": "$15.180",
-          "photo": "https://http2.mlstatic.com/D_957414-MCO72606523332_112023-O.jpg",
-          "meli_id": "MCO595871200",
+          "photo": "https://http2.mlstatic.com/D_761845-MLA80395828842_112024-O.jpg",
+          "meli_id": "MCO1391874135",
           "cat": "Emulsionantes y Surfactantes",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -6255,8 +6255,8 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "family",
-          "photo_match_score": 95.0,
+          "photo_match_type": "sku_alias",
+          "photo_match_score": 98.0,
           "family_slug": "c-btms500g"
         },
         {
@@ -8486,8 +8486,8 @@
           "precio_num": 24131.5,
           "lista_num": 28900.0,
           "ahorro": "$4.768",
-          "photo": "https://http2.mlstatic.com/D_976857-MCO90553382667_082025-O.jpg",
-          "meli_id": "MCO1702310176",
+          "photo": "",
+          "meli_id": "",
           "cat": "Sales Minerales",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -8496,8 +8496,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-citzin500g"
         },
         {
@@ -13025,8 +13023,8 @@
           "precio_num": 9936.5,
           "lista_num": 11900.0,
           "ahorro": "$1.964",
-          "photo": "https://http2.mlstatic.com/D_727723-MCO93968267775_102025-O.jpg",
-          "meli_id": "MCO648703323",
+          "photo": "",
+          "meli_id": "",
           "cat": "Edulcorantes",
           "cat_color": "#4DB3A0",
           "desc": "",
@@ -13183,8 +13181,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-mal500g"
         }
       ]
@@ -17601,8 +17597,8 @@
       "precio_num": 76820.0,
       "lista_num": 92000.0,
       "ahorro": "$15.180",
-      "photo": "https://http2.mlstatic.com/D_957414-MCO72606523332_112023-O.jpg",
-      "meli_id": "MCO595871200",
+      "photo": "https://http2.mlstatic.com/D_761845-MLA80395828842_112024-O.jpg",
+      "meli_id": "MCO1391874135",
       "cat": "Emulsionantes y Surfactantes",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -17611,8 +17607,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "family",
-      "photo_match_score": 95.0,
+      "photo_match_type": "sku_alias",
+      "photo_match_score": 98.0,
       "family_slug": "c-btms500g"
     },
     {
@@ -18313,8 +18309,8 @@
       "precio_num": 24131.5,
       "lista_num": 28900.0,
       "ahorro": "$4.768",
-      "photo": "https://http2.mlstatic.com/D_976857-MCO90553382667_082025-O.jpg",
-      "meli_id": "MCO1702310176",
+      "photo": "",
+      "meli_id": "",
       "cat": "Sales Minerales",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -18323,8 +18319,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-citzin500g"
     },
     {
@@ -20358,8 +20352,8 @@
       "precio_num": 18286.5,
       "lista_num": 21900.0,
       "ahorro": "$3.614",
-      "photo": "https://http2.mlstatic.com/D_919432-MCO71731068570_092023-O.jpg",
-      "meli_id": "MCO1912833896",
+      "photo": "https://http2.mlstatic.com/D_687742-MCO71022994443_082023-O.jpg",
+      "meli_id": "MCO590695436",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -20368,8 +20362,8 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "family",
+      "photo_match_score": 88.7,
       "family_slug": "c-ceraberefbla500g"
     },
     {
@@ -26262,8 +26256,8 @@
       "precio_num": 9936.5,
       "lista_num": 11900.0,
       "ahorro": "$1.964",
-      "photo": "https://http2.mlstatic.com/D_727723-MCO93968267775_102025-O.jpg",
-      "meli_id": "MCO648703323",
+      "photo": "",
+      "meli_id": "",
       "cat": "Edulcorantes",
       "cat_color": "#4DB3A0",
       "desc": "",
@@ -26420,8 +26414,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-mal500g"
     },
     {

@@ -4,6 +4,7 @@ import { usePreventa } from "../hooks/usePreventa";
 import { useWebChat } from "../hooks/useWebChat";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
+import AppearanceButton from "./AppearanceButton";
 
 const NAV: { id: Panel; label: string; icon: string }[] = [
   { id: "dashboard", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4" },
@@ -48,10 +49,11 @@ export default function Sidebar() {
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-sun text-base font-black text-ink shadow-[0_3px_0_#e8a838]">
             M
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate text-base font-extrabold tracking-tight text-ink">McKenna</div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Panel operaciones</div>
           </div>
+          <AppearanceButton variant="compact" />
         </div>
 
         <p className="px-5 pb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Menu</p>
@@ -94,6 +96,10 @@ export default function Sidebar() {
             );
           })}
         </nav>
+
+        <div className="px-3 pb-2">
+          <AppearanceButton variant="nav" />
+        </div>
 
         <div className="mt-auto border-t border-border p-3">
           <button

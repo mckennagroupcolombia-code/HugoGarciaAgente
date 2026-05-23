@@ -196,6 +196,22 @@ type Frecuencia =
   | "trimestral"
   | "semestral";
 
+/** finita = un ciclo y puede completarse; infinita = se repite (renovar / nuevos ciclos). */
+type ModoCicloMision = "finita" | "infinita";
+
+const MODO_CICLO_OPTS: { value: ModoCicloMision; label: string; hint: string }[] = [
+  {
+    value: "finita",
+    label: "📌 Finita",
+    hint: "Un solo ciclo: al resolver todos los tickets la misión se completa.",
+  },
+  {
+    value: "infinita",
+    label: "♾️ Infinita",
+    hint: "Se repite: puedes renovar tickets y agregar más; no se cierra sola.",
+  },
+];
+
 type PrerequisitoTipo = "mision" | "receta";
 
 interface Dependencia {
@@ -221,6 +237,32 @@ interface RecetaPrereq {
 
 function prereqKey(p: PrerequisitoRef) {
   return `${p.tipo}:${p.id}`;
+}
+
+function prereqAccordionStorageKey(misionId?: number) {
+  return `mckenna-prereq-accordion:${misionId ?? "nueva"}`;
+}
+
+function loadPrereqOpenGrupos(misionId?: number): Set<string> {
+  try {
+    const raw = sessionStorage.getItem(prereqAccordionStorageKey(misionId));
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw) as unknown;
+    return new Set(Array.isArray(arr) ? (arr as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function savePrereqOpenGrupos(misionId: number | undefined, open: Set<string>) {
+  try {
+    sessionStorage.setItem(
+      prereqAccordionStorageKey(misionId),
+      JSON.stringify([...open]),
+    );
+  } catch {
+    /* quota / modo privado */
+  }
 }
 
 function coincideBusquedaPrereq(q: string, ...partes: (string | null | undefined)[]) {
@@ -270,7 +312,22 @@ function PrerequisitosBlock({
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [adding, setAdding] = useState(false);
-  const [openGrupos, setOpenGrupos] = useState<Set<string>>(() => new Set(["vinculados", "prereq-misiones", "prereq-recetas"]));
+  const [openGrupos, setOpenGrupos] = useState(() => loadPrereqOpenGrupos(misionId));
+
+  const setOpenGruposPersist = useCallback(
+    (updater: Set<string> | ((prev: Set<string>) => Set<string>)) => {
+      setOpenGrupos((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        savePrereqOpenGrupos(misionId, next);
+        return next;
+      });
+    },
+    [misionId],
+  );
+
+  useEffect(() => {
+    setOpenGrupos(loadPrereqOpenGrupos(misionId));
+  }, [misionId]);
 
   const itemKeys = new Set(items.map(prereqKey));
   const depsFromItems: Dependencia[] = items.map((p) => {
@@ -296,11 +353,17 @@ function PrerequisitosBlock({
   });
   const listDisplay = dependenciasDisplay ?? depsFromItems;
 
-  const opcionesMision = todasMisiones.filter(
-    (m) => misionId !== m.id && !itemKeys.has(prereqKey({ tipo: "mision", id: m.id })),
+  const opcionesMision = useMemo(
+    () => todasMisiones.filter(
+      (m) => misionId !== m.id && !itemKeys.has(prereqKey({ tipo: "mision", id: m.id })),
+    ),
+    [todasMisiones, misionId, items],
   );
-  const opcionesReceta = todasRecetas.filter(
-    (r) => !itemKeys.has(prereqKey({ tipo: "receta", id: r.id })),
+  const opcionesReceta = useMemo(
+    () => todasRecetas.filter(
+      (r) => !itemKeys.has(prereqKey({ tipo: "receta", id: r.id })),
+    ),
+    [todasRecetas, items],
   );
   const hayOpciones = opcionesMision.length > 0 || opcionesReceta.length > 0;
 
@@ -351,18 +414,8 @@ function PrerequisitosBlock({
     [opcionesFiltradas],
   );
 
-  useEffect(() => {
-    setOpenGrupos((prev) => {
-      const next = new Set(prev);
-      if (items.length > 0) next.add("vinculados");
-      if (opcionesMision.length > 0) next.add("prereq-misiones");
-      if (opcionesReceta.length > 0) next.add("prereq-recetas");
-      return next;
-    });
-  }, [items.length, opcionesMision.length, opcionesReceta.length]);
-
   function toggleGrupoPrereq(key: string) {
-    setOpenGrupos((prev) => {
+    setOpenGruposPersist((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -552,14 +605,20 @@ function PrerequisitosBlock({
               <div className="flex gap-1">
                 <button
                   type="button"
-                  onClick={() => setOpenGrupos(new Set(["vinculados", "prereq-misiones", "prereq-recetas"]))}
+                  onClick={() => {
+                    const open = new Set<string>();
+                    if (items.length > 0) open.add("vinculados");
+                    if (opcionesMision.length > 0) open.add("prereq-misiones");
+                    if (opcionesReceta.length > 0) open.add("prereq-recetas");
+                    setOpenGruposPersist(open);
+                  }}
                   className="rounded-paper border border-border px-2 py-0.5 text-[10px] font-bold text-muted hover:border-accent hover:text-accent"
                 >
                   Expandir
                 </button>
                 <button
                   type="button"
-                  onClick={() => setOpenGrupos(new Set(items.length ? ["vinculados"] : []))}
+                  onClick={() => setOpenGruposPersist(new Set())}
                   className="rounded-paper border border-border px-2 py-0.5 text-[10px] font-bold text-muted hover:border-accent hover:text-accent"
                 >
                   Colapsar
@@ -650,6 +709,7 @@ interface Mision {
   completada_en: string | null;
   frecuencia?: Frecuencia | null;
   proxima_renovacion?: string | null;
+  modo_ciclo?: ModoCicloMision | null;
   etapas?: EtapaMision[];
   dependencias?: Dependencia[];
   producto_resultante_id?: number | null;
@@ -2551,39 +2611,32 @@ function ubicacionFromZonaId(
   subzonaId: number | "";
   departamentoId: number | "";
 } {
-  if (zonaId == null) {
-    return { reinoId: "", zonaId: "", subzonaId: "", departamentoId: "" };
-  }
+  const vacio: {
+    reinoId: number | "";
+    zonaId: number | "";
+    subzonaId: number | "";
+    departamentoId: number | "";
+  } = { reinoId: "", zonaId: "", subzonaId: "", departamentoId: "" };
+  if (zonaId == null) return vacio;
+  const leaf = zonaById(zonas, zonaId);
+  if (!leaf) return vacio;
   const byId = new Map(zonas.map((z) => [z.id, z]));
   const chain: ZonaTrabajo[] = [];
-  let cur = byId.get(zonaId);
+  let cur: ZonaTrabajo | undefined = leaf;
   for (let i = 0; i < 8 && cur; i++) {
     chain.unshift(cur);
     cur = cur.parent_id ? byId.get(cur.parent_id) : undefined;
   }
-  if (chain.length === 0) {
-    return { reinoId: "", zonaId: "", subzonaId: "", departamentoId: "" };
+  const out = { ...vacio };
+  for (const z of chain) {
+    const niv = nivelZona(z, zonas);
+    if (niv === "reino") out.reinoId = z.id;
+    else if (niv === "zona") out.zonaId = z.id;
+    else if (niv === "subzona") out.subzonaId = z.id;
+    else if (niv === "departamento") out.departamentoId = z.id;
   }
-  if (chain.length === 1) {
-    return { reinoId: chain[0].id, zonaId: "", subzonaId: "", departamentoId: "" };
-  }
-  if (chain.length === 2) {
-    return { reinoId: chain[0].id, zonaId: chain[1].id, subzonaId: "", departamentoId: "" };
-  }
-  if (chain.length === 3) {
-    return {
-      reinoId: chain[0].id,
-      zonaId: chain[1].id,
-      subzonaId: chain[2].id,
-      departamentoId: "",
-    };
-  }
-  return {
-    reinoId: chain[0].id,
-    zonaId: chain[1].id,
-    subzonaId: chain[2].id,
-    departamentoId: chain[3].id,
-  };
+  if (out.reinoId === "" && chain[0]) out.reinoId = chain[0].id;
+  return out;
 }
 
 function zonaRaizId(zonas: ZonaTrabajo[], zonaId: number): number | null {
@@ -2892,7 +2945,6 @@ function MisionUbicacionPicker({
                 color: r?.color,
               });
             }}
-            required
           >
             <option value="">— Elegir —</option>
             {reinos.map((r) => (
@@ -2983,7 +3035,6 @@ function MisionUbicacionPicker({
                     : undefined,
               });
             }}
-            required={departamentos.length > 0}
           >
             <option value="">
               {padreDept === ""
@@ -5070,11 +5121,126 @@ function ParticipantesSection({
 
 // ── PASOS ─────────────────────────────────────────────────────────────────────
 
+type PasoDraft = { descripcion: string; notas?: string };
+
+function normalizePasoDraftList(raw: unknown): PasoDraft[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((p): PasoDraft => {
+      if (typeof p === "string") return { descripcion: p.trim() };
+      if (p && typeof p === "object") {
+        const o = p as { descripcion?: string; texto?: string; notas?: string };
+        const desc = (o.descripcion || o.texto || "").trim();
+        const n = (o.notas || "").trim();
+        return { descripcion: desc, notas: n || undefined };
+      }
+      return { descripcion: "" };
+    })
+    .filter((p) => p.descripcion);
+}
+
+function pasoDraftsToApi(pasos: PasoDraft[]): (string | { descripcion: string; notas: string })[] {
+  return pasos.map((p) => {
+    const d = p.descripcion.trim();
+    const n = p.notas?.trim();
+    return n ? { descripcion: d, notas: n } : d;
+  });
+}
+
 interface EtapaDraft {
   titulo: string;
   descripcion: string;
-  pasos: string[];
+  pasos: PasoDraft[];
   frecuencia?: string;
+}
+
+/** Botón post-it 📝 para notas opcionales en un paso. */
+function PasoNotaPostit({
+  titulo,
+  notas,
+  noteDraft,
+  onNoteDraftChange,
+  open,
+  onToggle,
+  onSave,
+  readonly = false,
+  saving = false,
+  popoverRef,
+}: {
+  titulo: string;
+  notas?: string;
+  noteDraft: string;
+  onNoteDraftChange: (v: string) => void;
+  open: boolean;
+  onToggle: () => void;
+  onSave?: () => void;
+  readonly?: boolean;
+  saving?: boolean;
+  popoverRef?: React.RefObject<HTMLDivElement | null>;
+}) {
+  const tieneNota = Boolean(notas?.trim());
+  return (
+    <div className="relative shrink-0" ref={open ? popoverRef : undefined}>
+      <button
+        type="button"
+        onClick={onToggle}
+        title={tieneNota ? "Ver nota post-it" : "Agregar nota post-it"}
+        className={`relative flex h-8 w-8 items-center justify-center rounded-sm border-2 border-amber-400/60 bg-amber-100 text-sm shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5 dark:border-amber-600/50 dark:bg-amber-950/90 dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${open ? "rotate-2 ring-2 ring-amber-500/40" : "-rotate-2"}`}
+      >
+        📝
+        {tieneNota && (
+          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-surface" />
+        )}
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-amber-400/70 bg-amber-50 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)] dark:border-amber-600/60 dark:bg-amber-950 dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
+          role="dialog"
+          aria-label={`Nota: ${titulo}`}
+        >
+          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-amber-900/80 dark:text-amber-200/90">
+            {titulo}
+          </p>
+          <textarea
+            readOnly={readonly}
+            rows={4}
+            autoFocus={!readonly}
+            className="w-full resize-y rounded border border-amber-300/80 bg-white/80 px-2 py-1.5 text-xs text-amber-950 placeholder:text-amber-800/40 outline-none focus:border-amber-500 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-50 dark:placeholder:text-amber-200/30"
+            placeholder="Detalle, tips o contexto del paso…"
+            value={noteDraft}
+            onChange={(e) => onNoteDraftChange(e.target.value)}
+          />
+          {!readonly && onSave ? (
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={onToggle}
+                className="text-[10px] font-bold uppercase text-amber-900/60 hover:text-amber-950 dark:text-amber-300/70"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={saving}
+                className="rounded border-2 border-amber-600/80 bg-amber-200/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-amber-950 hover:bg-amber-300/80 disabled:opacity-50 dark:border-amber-500 dark:bg-amber-800 dark:text-amber-50"
+              >
+                {saving ? "..." : "Guardar"}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onToggle}
+              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-amber-900/60 dark:text-amber-300/70"
+            >
+              Cerrar
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Casilla de paso: sin atributo HTML disabled (evita cursor ⊘); solo readOnly + clic explícito. */
@@ -5178,16 +5344,38 @@ function PasosDraftEditor({
   pasos,
   onChange,
 }: {
-  pasos: string[];
-  onChange: (pasos: string[]) => void;
+  pasos: PasoDraft[];
+  onChange: (pasos: PasoDraft[]) => void;
 }) {
   const [nuevo, setNuevo] = useState("");
+  const [openNoteIdx, setOpenNoteIdx] = useState<number | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
 
   function agregarPaso() {
     const t = nuevo.trim();
     if (!t) return;
-    onChange([...pasos, t]);
+    onChange([...pasos, { descripcion: t }]);
     setNuevo("");
+  }
+
+  function toggleDraftNote(i: number) {
+    if (openNoteIdx === i) {
+      setOpenNoteIdx(null);
+      setNoteDraft("");
+    } else {
+      setOpenNoteIdx(i);
+      setNoteDraft(pasos[i]?.notas || "");
+    }
+  }
+
+  function saveDraftNote(i: number) {
+    onChange(
+      pasos.map((p, idx) =>
+        idx === i ? { ...p, notas: noteDraft.trim() || undefined } : p,
+      ),
+    );
+    setOpenNoteIdx(null);
+    setNoteDraft("");
   }
 
   return (
@@ -5201,28 +5389,53 @@ function PasosDraftEditor({
         )}
       </div>
       <p className="text-[10px] text-muted">
-        Vista previa — las casillas se activan al abrir el ticket en el tablero.
+        Vista previa — las casillas se activan al abrir el ticket. Usa 📝 para notas post-it.
       </p>
       {pasos.length === 0 ? (
         <p className="text-xs text-muted">Sin pasos — agrega el procedimiento abajo.</p>
       ) : (
-        <ul className="max-h-40 space-y-1.5 overflow-y-auto lg:max-h-52">
+        <ul className="max-h-48 space-y-1.5 overflow-y-auto lg:max-h-56">
           {pasos.map((p, i) => (
-            <li key={i} className="flex items-center gap-2 rounded-paper border border-border bg-surface-input px-2 py-1.5">
-              <span className="w-5 shrink-0 text-center text-xs font-bold text-muted">{i + 1}.</span>
-              <input
-                type="text"
-                value={p}
-                onChange={(e) => onChange(pasos.map((x, idx) => (idx === i ? e.target.value : x)))}
-                className="min-w-0 flex-1 border-0 bg-transparent py-0.5 text-sm text-ink outline-none focus:ring-0"
-              />
-              <button
-                type="button"
-                onClick={() => onChange(pasos.filter((_, idx) => idx !== i))}
-                className="shrink-0 text-xs text-muted hover:text-danger px-0.5"
-                aria-label="Quitar paso">
-                ✕
-              </button>
+            <li key={i} className="rounded-paper border border-border bg-surface-input px-2 py-1.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 shrink-0 text-center text-xs font-bold text-muted">{i + 1}.</span>
+                <input
+                  type="text"
+                  value={p.descripcion}
+                  onChange={(e) =>
+                    onChange(
+                      pasos.map((x, idx) =>
+                        idx === i ? { ...x, descripcion: e.target.value } : x,
+                      ),
+                    )
+                  }
+                  className="min-w-0 flex-1 border-0 bg-transparent py-0.5 text-sm text-ink outline-none focus:ring-0"
+                />
+                <PasoNotaPostit
+                  titulo={p.descripcion || `Paso ${i + 1}`}
+                  notas={p.notas}
+                  noteDraft={openNoteIdx === i ? noteDraft : p.notas || ""}
+                  onNoteDraftChange={setNoteDraft}
+                  open={openNoteIdx === i}
+                  onToggle={() => toggleDraftNote(i)}
+                  onSave={() => saveDraftNote(i)}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (openNoteIdx === i) setOpenNoteIdx(null);
+                    onChange(pasos.filter((_, idx) => idx !== i));
+                  }}
+                  className="shrink-0 text-xs text-muted hover:text-danger px-0.5"
+                  aria-label="Quitar paso">
+                  ✕
+                </button>
+              </div>
+              {p.notas?.trim() && openNoteIdx !== i && (
+                <p className="mt-1.5 border-l-4 border-amber-400/80 bg-amber-100/60 px-2 py-1 text-[10px] italic text-amber-950/90 dark:border-amber-600/60 dark:bg-amber-950/50 dark:text-amber-100/90 line-clamp-2">
+                  {p.notas}
+                </p>
+              )}
             </li>
           ))}
         </ul>
@@ -5255,6 +5468,7 @@ function PasosDraftEditor({
 
 interface Paso {
   id: number; ticket_id: number; orden: number; descripcion: string;
+  notas?: string | null;
   completado: number | boolean; completado_en: string | null; completado_por_nombre: string | null;
 }
 
@@ -5295,6 +5509,9 @@ function PasosSection({
   const dragIdx = useRef<number | null>(null);
   const toggleLock = useRef<Set<number>>(new Set());
   const [dragOver, setDragOver] = useState<number | null>(null);
+  const [openNoteId, setOpenNoteId] = useState<number | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const notePopoverRef = useRef<HTMLDivElement>(null);
 
   const reloadPasos = useCallback(() => {
     return tapi(`/${ticketId}/pasos`, token)
@@ -5305,6 +5522,45 @@ function PasosSection({
   useEffect(() => {
     void reloadPasos();
   }, [reloadPasos]);
+
+  useEffect(() => {
+    if (openNoteId == null) return;
+    function onPointerDown(e: MouseEvent) {
+      if (notePopoverRef.current && !notePopoverRef.current.contains(e.target as Node)) {
+        const paso = pasos.find((p) => p.id === openNoteId);
+        setOpenNoteId(null);
+        setNoteDraft(paso?.notas || "");
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [openNoteId, pasos]);
+
+  function togglePasoNote(p: Paso) {
+    if (openNoteId === p.id) {
+      setOpenNoteId(null);
+      setNoteDraft(p.notas || "");
+    } else {
+      setOpenNoteId(p.id);
+      setNoteDraft(p.notas || "");
+    }
+  }
+
+  async function savePasoNote(pasoId: number) {
+    setSaving(true);
+    try {
+      const res = await tapi(`/${ticketId}/pasos/${pasoId}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ notas: noteDraft.trim() }),
+      });
+      setPasos(normalizePasosResponse(res, pasos));
+      setOpenNoteId(null);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "No se pudo guardar la nota");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function add() {
     if (!nuevo.trim()) return;
@@ -5446,62 +5702,89 @@ function PasosSection({
         </div>
       )}
       <div className="space-y-2">
-        {pasos.map((p, i) => (
+        {pasos.map((p, i) => {
+          const tieneNota = Boolean(p.notas?.trim());
+          const noteOpen = openNoteId === p.id;
+          return (
             <div key={p.id}
               onDragOver={editMode ? (e) => { e.preventDefault(); setDragOver(i); } : undefined}
               onDragLeave={editMode ? () => setDragOver(null) : undefined}
               onDrop={editMode ? () => drop(i) : undefined}
-              className={`flex items-center gap-2 rounded-paper border px-3 py-2.5 transition
+              className={`rounded-paper border px-3 py-2.5 transition
                 ${pasoEstaCompletado(p) ? "border-green-200 bg-green-50"
                   : "border-border bg-surface"}
                 ${editMode && dragOver === i ? "opacity-50 border-dashed border-accent" : ""}`}
             >
-              {editMode && (
-                <span
-                  draggable
-                  onDragStart={() => { dragIdx.current = i; }}
-                  onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
-                  className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none shrink-0 touch-none"
-                  title="Arrastrar para reordenar">
-                  ⠿
-                </span>
-              )}
-              <div className="relative z-10 flex flex-1 min-w-0 items-center gap-2.5">
-                <PasoChecklistInput
-                  pasoId={p.id}
-                  checked={pasoEstaCompletado(p)}
-                  canCheck={allowCheck}
-                  busy={togglingId === p.id}
-                  title={
-                    allowCheck
-                      ? pasoEstaCompletado(p)
-                        ? "Desmarcar paso"
-                        : "Marcar paso completado"
-                      : checkHint || "No se puede marcar este paso"
-                  }
-                  onBlocked={() => {
-                    if (checkHint) alert(checkHint);
-                  }}
-                  onCheckedChange={(marcar) => void setPasoCompletado(p.id, marcar)}
+              <div className="flex items-center gap-2">
+                {editMode && (
+                  <span
+                    draggable
+                    onDragStart={() => { dragIdx.current = i; }}
+                    onDragEnd={() => { dragIdx.current = null; setDragOver(null); }}
+                    className="cursor-grab text-muted opacity-40 hover:opacity-70 select-none shrink-0 touch-none"
+                    title="Arrastrar para reordenar">
+                    ⠿
+                  </span>
+                )}
+                <div className="relative z-10 flex flex-1 min-w-0 items-center gap-2.5">
+                  <PasoChecklistInput
+                    pasoId={p.id}
+                    checked={pasoEstaCompletado(p)}
+                    canCheck={allowCheck}
+                    busy={togglingId === p.id}
+                    title={
+                      allowCheck
+                        ? pasoEstaCompletado(p)
+                          ? "Desmarcar paso"
+                          : "Marcar paso completado"
+                        : checkHint || "No se puede marcar este paso"
+                    }
+                    onBlocked={() => {
+                      if (checkHint) alert(checkHint);
+                    }}
+                    onCheckedChange={(marcar) => void setPasoCompletado(p.id, marcar)}
+                  />
+                  <label
+                    htmlFor={`paso-check-${p.id}`}
+                    className={`min-w-0 flex-1 text-sm select-none
+                      ${pasoEstaCompletado(p) ? "line-through text-muted" : "text-ink"}
+                      ${allowCheck && togglingId !== p.id ? "cursor-pointer" : "cursor-default"}
+                      ${!allowCheck ? "opacity-80" : ""}`}
+                  >
+                    {p.descripcion}
+                  </label>
+                </div>
+                <PasoNotaPostit
+                  titulo={p.descripcion}
+                  notas={p.notas ?? undefined}
+                  noteDraft={noteDraft}
+                  onNoteDraftChange={setNoteDraft}
+                  open={noteOpen}
+                  onToggle={() => togglePasoNote(p)}
+                  onSave={() => void savePasoNote(p.id)}
+                  readonly={!editMode}
+                  saving={saving}
+                  popoverRef={notePopoverRef}
                 />
-                <label
-                  htmlFor={`paso-check-${p.id}`}
-                  className={`min-w-0 flex-1 text-sm select-none
-                    ${pasoEstaCompletado(p) ? "line-through text-muted" : "text-ink"}
-                    ${allowCheck && togglingId !== p.id ? "cursor-pointer" : "cursor-default"}
-                    ${!allowCheck ? "opacity-80" : ""}`}
-                >
-                  {p.descripcion}
-                </label>
+                {p.completado_por_nombre && (
+                  <span className="text-xs text-muted shrink-0">👤 {p.completado_por_nombre}</span>
+                )}
+                {editMode && (
+                  <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0 px-0.5">✕</button>
+                )}
               </div>
-              {p.completado_por_nombre && (
-                <span className="text-xs text-muted shrink-0">👤 {p.completado_por_nombre}</span>
-              )}
-              {editMode && (
-                <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0 px-0.5">✕</button>
+              {tieneNota && !noteOpen && (
+                <button
+                  type="button"
+                  onClick={() => togglePasoNote(p)}
+                  className="mt-2 w-full text-left rounded-sm border-l-4 border-amber-400/80 bg-amber-100/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-amber-950/90 transition hover:bg-amber-100 dark:border-amber-600/60 dark:bg-amber-950/50 dark:text-amber-100/90 dark:hover:bg-amber-950/70"
+                >
+                  {p.notas!.length > 180 ? `${p.notas!.slice(0, 180)}…` : p.notas}
+                </button>
               )}
             </div>
-        ))}
+          );
+        })}
       </div>
       {pasos.length === 0 && (
         <p className="py-2 text-center text-xs text-muted">
@@ -7030,6 +7313,7 @@ function CreateMisionView({
   const [form, setForm] = useState({
     titulo: "", descripcion: "",
     tipo: "secuencial", color: "#0c6069",
+    modo_ciclo: "finita" as ModoCicloMision,
   });
   const [ubicacion, setUbicacion] = useState<{
     reinoId: number | "";
@@ -7068,7 +7352,14 @@ function CreateMisionView({
       };
       if (d.form) setForm(d.form);
       if (d.ubicacion) setUbicacion(d.ubicacion);
-      if (d.etapas?.length) setEtapas(d.etapas);
+      if (d.etapas?.length) {
+        setEtapas(
+          d.etapas.map((e) => ({
+            ...e,
+            pasos: normalizePasoDraftList(e.pasos),
+          })),
+        );
+      }
       if (d.asignaciones) setAsignaciones(d.asignaciones);
       if (d.depPrereqs) setDepPrereqs(d.depPrereqs);
     } catch {
@@ -7116,7 +7407,7 @@ function CreateMisionView({
   function setEtapa(i: number, k: "titulo" | "descripcion", v: string) {
     setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, [k]: v } : et));
   }
-  function setEtapaPasos(i: number, pasos: string[]) {
+  function setEtapaPasos(i: number, pasos: PasoDraft[]) {
     setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, pasos } : et));
   }
 
@@ -7133,7 +7424,7 @@ function CreateMisionView({
           depPrereqs,
         }),
       );
-      setInfoMsg("Borrador guardado");
+      setInfoMsg("Borrador guardado en este navegador");
       window.setTimeout(() => setInfoMsg(""), 4000);
     } catch {
       setError("No se pudo guardar el borrador en este navegador");
@@ -7173,7 +7464,7 @@ function CreateMisionView({
           etapas: etapas.map((e) => ({
             titulo: e.titulo,
             descripcion: e.descripcion,
-            pasos: e.pasos,
+            pasos: pasoDraftsToApi(e.pasos),
             frecuencia: e.frecuencia || null,
           })),
           asignaciones: asignacionesPorOrden,
@@ -7219,6 +7510,13 @@ function CreateMisionView({
           <span className="rounded-full border border-border bg-surface-panel px-2.5 py-1 text-xs font-semibold text-muted">
             {etapas.length} ticket{etapas.length !== 1 ? "s" : ""}
           </span>
+          <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+            form.modo_ciclo === "infinita"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+              : "border-border bg-surface-panel text-muted"
+          }`}>
+            {form.modo_ciclo === "infinita" ? "♾️ Infinita" : "📌 Finita"}
+          </span>
           <span className="rounded-full border border-border bg-surface-panel px-2.5 py-1 text-xs font-semibold text-muted">
             {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
           </span>
@@ -7227,25 +7525,36 @@ function CreateMisionView({
               {infoMsg}
             </span>
           )}
+          {error && (
+            <span className="max-w-md rounded-lg border border-red-300 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+              {error}
+            </span>
+          )}
           <button
             type="button"
             onClick={guardarBorrador}
             className="rounded-paper border-2 border-border bg-surface-panel px-4 py-2 text-sm font-bold text-ink transition hover:border-accent hover:text-accent"
+            title="Guarda el formulario en este navegador (no crea la misión en el servidor)"
           >
-            Guardar cambios
+            Borrador local
           </button>
           <button
-            type="submit"
-            form="form-nueva-mision"
+            type="button"
             disabled={loading}
+            onClick={() => void handleSubmit({ preventDefault: () => {} } as React.FormEvent)}
             className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50"
           >
-            {loading ? "Creando..." : "Crear misión"}
+            {loading ? "Guardando..." : "Guardar misión"}
           </button>
         </div>
       </div>
 
-      <form id="form-nueva-mision" onSubmit={handleSubmit} className="space-y-4">
+      <form
+        id="form-nueva-mision"
+        noValidate
+        onSubmit={handleSubmit}
+        className="space-y-4"
+      >
         <div className="grid gap-4 xl:grid-cols-12 xl:items-start">
           {/* Columna izquierda: datos de la misión */}
           <div className="space-y-4 xl:col-span-4 xl:sticky xl:top-4">
@@ -7256,6 +7565,34 @@ function CreateMisionView({
                 <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Título *</label>
                 <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
                   placeholder="Nombre de la misión" value={form.titulo} onChange={setF("titulo")} maxLength={150} />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Tipo de misión *</label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {MODO_CICLO_OPTS.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className={`flex cursor-pointer gap-2 rounded-paper border-2 px-3 py-2.5 transition ${
+                        form.modo_ciclo === opt.value
+                          ? "border-accent bg-accent/10"
+                          : "border-border bg-surface-input hover:border-accent/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="modo_ciclo_nueva"
+                        className="mt-0.5 shrink-0 accent-accent"
+                        checked={form.modo_ciclo === opt.value}
+                        onChange={() => setForm((f) => ({ ...f, modo_ciclo: opt.value }))}
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold text-ink">{opt.label}</span>
+                        <span className="block text-[10px] leading-snug text-muted">{opt.hint}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -7405,15 +7742,17 @@ function CreateMisionView({
                           pasos={et.pasos}
                           onChange={(pasos) => setEtapaPasos(i, pasos)}
                         />
-                        <div className="lg:col-span-2">
-                          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
-                            Recurrencia de este ticket
-                          </label>
-                          <SelectFrecuencia
-                            value={et.frecuencia || ""}
-                            onChange={(v) => setEtapaFrecuencia(i, v)}
-                          />
-                        </div>
+                        {form.modo_ciclo === "infinita" && (
+                          <div className="lg:col-span-2">
+                            <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
+                              Cada cuánto se repite este ticket (opcional)
+                            </label>
+                            <SelectFrecuencia
+                              value={et.frecuencia || ""}
+                              onChange={(v) => setEtapaFrecuencia(i, v)}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                     {isSecuencial && i < etapas.length - 1 && (
@@ -7428,9 +7767,6 @@ function CreateMisionView({
           </div>
         </div>
 
-        {error && (
-          <div className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>
-        )}
       </form>
     </div>
   );
@@ -7452,7 +7788,9 @@ function MisionDetailView({
 
   // Edit metadata panel
   const [editingMeta, setEditingMeta] = useState(false);
-  const [metaForm, setMetaForm] = useState({ titulo: "", descripcion: "", color: "", estado: "" });
+  const [metaForm, setMetaForm] = useState({
+    titulo: "", descripcion: "", color: "", estado: "", modo_ciclo: "finita" as ModoCicloMision,
+  });
   const [metaUbicacion, setMetaUbicacion] = useState<{
     reinoId: number | "";
     zonaId: number | "";
@@ -7477,7 +7815,7 @@ function MisionDetailView({
   // Add-ticket inline form
   const [showAddEtapa, setShowAddEtapa] = useState(false);
   const [addForm, setAddForm] = useState({
-    titulo: "", descripcion: "", asignado_a: "", pasos: [] as string[], frecuencia: "",
+    titulo: "", descripcion: "", asignado_a: "", pasos: [] as PasoDraft[], frecuencia: "",
   });
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
@@ -7492,19 +7830,20 @@ function MisionDetailView({
 
   const nivel = user.rol?.nivel ?? 1;
 
-  const reload = useCallback(async () => {
-    setLoading(true);
+  const reload = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const m = await tapi(`/misiones/${misionId}`, token);
       setMision(m);
+      if (!silent) setError("");
     } catch (e: any) {
-      setError(e.message);
+      if (!silent) setError(e.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [token, misionId]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { void reload(false); }, [reload]);
   useEffect(() => {
     tapi("/usuarios", token).then(setUsuarios).catch(() => {});
     tapi("/misiones/", token).then(setTodasMisiones).catch(() => {});
@@ -7519,6 +7858,7 @@ function MisionDetailView({
         descripcion: mision.descripcion || "",
         color: mision.color || "#0c6069",
         estado: mision.estado,
+        modo_ciclo: (mision.modo_ciclo === "infinita" ? "infinita" : "finita") as ModoCicloMision,
       });
       setMetaUbicacion(ubicacionFromZonaId(zonasCat, mision.zona_id));
     }
@@ -7533,9 +7873,33 @@ function MisionDetailView({
     : metaUbicacion.zonaId !== "" ? metaUbicacion.zonaId
     : metaUbicacion.reinoId;
 
+  const padreDeptMeta = padreIdParaDepartamentos(
+    zonasCat,
+    metaUbicacion.zonaId,
+    metaUbicacion.subzonaId,
+  );
+  const deptHijosMeta =
+    padreDeptMeta !== "" ? departamentosDePadre(zonasCat, padreDeptMeta) : [];
+
   async function saveMeta() {
-    if (metaZonaIdEfectivo === "") {
-      alert("Selecciona al menos el reino.");
+    if (!metaForm.titulo.trim()) {
+      alert("Título de misión requerido");
+      return;
+    }
+    if (metaZonaIdEfectivo === "" || metaUbicacion.zonaId === "") {
+      alert("Selecciona reino y zona.");
+      return;
+    }
+    if (
+      typeof metaUbicacion.zonaId === "number"
+      && subzonasDeZona(zonasCat, metaUbicacion.zonaId).length > 0
+      && metaUbicacion.subzonaId === ""
+    ) {
+      alert("Esta zona tiene subzonas: selecciona una antes del departamento.");
+      return;
+    }
+    if (deptHijosMeta.length > 0 && metaUbicacion.departamentoId === "") {
+      alert("Selecciona el departamento (labor) de la misión.");
       return;
     }
     setMetaSaving(true);
@@ -7561,7 +7925,7 @@ function MisionDetailView({
     if (!addForm.titulo.trim()) { setAddError("Título requerido"); return; }
     setAddSaving(true);
     try {
-      const pasos = addForm.pasos.map((p) => p.trim()).filter(Boolean);
+      const pasos = pasoDraftsToApi(addForm.pasos);
       const updated = await tapi(`/misiones/${misionId}/etapas`, token, {
         method: "POST",
         body: JSON.stringify({
@@ -7630,11 +7994,11 @@ function MisionDetailView({
   };
 
   useEffect(() => {
-    const iv = setInterval(() => { reload().catch(() => {}); }, 4000);
+    const iv = setInterval(() => { reload(true).catch(() => {}); }, 4000);
     return () => clearInterval(iv);
   }, [reload]);
 
-  if (loading) return <div className="py-16 text-center text-sm text-muted">Cargando misión...</div>;
+  if (loading && !mision) return <div className="py-16 text-center text-sm text-muted">Cargando misión...</div>;
   if (error || !mision) return (
     <div className="space-y-3">
       <button onClick={onBack} className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition">←</button>
@@ -7644,6 +8008,7 @@ function MisionDetailView({
 
   const etapas = mision.etapas || [];
   const isSecuencial = mision.tipo === "secuencial";
+  const misionInfinita = mision.modo_ciclo === "infinita";
 
   return (
     <div className="space-y-5 pb-8">
@@ -7660,7 +8025,14 @@ function MisionDetailView({
         <span className="inline-flex items-center rounded-full bg-surface-hover px-2.5 py-0.5 text-xs font-semibold text-muted">
           {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
         </span>
-        {mision.estado === "completada" && (
+        <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${
+          misionInfinita
+            ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300"
+            : "bg-surface-hover text-muted border-border"
+        }`}>
+          {misionInfinita ? "♾️ Infinita" : "📌 Finita"}
+        </span>
+        {mision.estado === "completada" && !misionInfinita && (
           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-800 border border-green-300 px-2.5 py-0.5 text-xs font-bold">
             ✅ Completada
           </span>
@@ -7738,6 +8110,33 @@ function MisionDetailView({
               value={metaForm.titulo} onChange={(e) => setMetaForm((f) => ({ ...f, titulo: e.target.value }))} />
           </div>
           <div>
+            <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Tipo de misión *</label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {MODO_CICLO_OPTS.map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`flex cursor-pointer gap-2 rounded-paper border-2 px-3 py-2 transition ${
+                    metaForm.modo_ciclo === opt.value
+                      ? "border-accent bg-accent/10"
+                      : "border-border bg-surface-input"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="modo_ciclo_edit"
+                    className="mt-0.5 shrink-0 accent-accent"
+                    checked={metaForm.modo_ciclo === opt.value}
+                    onChange={() => setMetaForm((f) => ({ ...f, modo_ciclo: opt.value }))}
+                  />
+                  <span className="min-w-0 text-xs">
+                    <span className="block font-bold text-ink">{opt.label}</span>
+                    <span className="text-muted">{opt.hint}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div>
             <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Estado</label>
             <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               value={metaForm.estado} onChange={(e) => setMetaForm((f) => ({ ...f, estado: e.target.value }))}>
@@ -7787,9 +8186,13 @@ function MisionDetailView({
               className="rounded-paper border-2 border-border px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover transition">
               Cancelar
             </button>
-            <button onClick={saveMeta} disabled={metaSaving || !metaForm.titulo.trim()}
-              className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
-              {metaSaving ? "Guardando..." : "Guardar cambios"}
+            <button
+              type="button"
+              onClick={() => void saveMeta()}
+              disabled={metaSaving || !metaForm.titulo.trim()}
+              className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50"
+            >
+              {metaSaving ? "Guardando..." : "Guardar misión"}
             </button>
           </div>
         </div>
@@ -8211,6 +8614,11 @@ function MisionDetailView({
         {/* Add ticket inline form — solo en modo edición */}
         {!isLocked && !readonly && (
           <div className="mt-4">
+            {misionInfinita && (
+              <p className="mb-2 text-xs text-emerald-700 dark:text-emerald-400">
+                Misión infinita: agrega tickets o usa ♻️ Renovar tickets al cerrar cada ciclo.
+              </p>
+            )}
             {showAddEtapa ? (
               <div className="rounded-paper border-2 border-accent bg-surface p-4 space-y-3">
                 <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Nuevo ticket</p>
@@ -8243,15 +8651,17 @@ function MisionDetailView({
                   pasos={addForm.pasos}
                   onChange={(pasos) => setAddForm((f) => ({ ...f, pasos }))}
                 />
-                <div>
-                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
-                    Recurrencia del ticket
-                  </label>
-                  <SelectFrecuencia
-                    value={addForm.frecuencia}
-                    onChange={(v) => setAddForm((f) => ({ ...f, frecuencia: v }))}
-                  />
-                </div>
+                {misionInfinita && (
+                  <div>
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
+                      Cada cuánto se repite este ticket (opcional)
+                    </label>
+                    <SelectFrecuencia
+                      value={addForm.frecuencia}
+                      onChange={(v) => setAddForm((f) => ({ ...f, frecuencia: v }))}
+                    />
+                  </div>
+                )}
                 {addError && <p className="text-xs text-red-600">{addError}</p>}
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => { setShowAddEtapa(false); setAddError(""); }}

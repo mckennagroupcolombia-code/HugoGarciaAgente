@@ -23,7 +23,7 @@ from app.services.tickets_db import (
     renovar_mision,
     agregar_etapa_mision, actualizar_etapa_mision, eliminar_etapa_mision,
     reordenar_etapas_mision,
-    listar_pasos, agregar_paso, completar_paso, completar_paso_ticket,
+    listar_pasos, agregar_paso, actualizar_paso_notas, completar_paso, completar_paso_ticket,
     establecer_paso_completado,
     pasos_ticket_json,
     eliminar_paso, reordenar_pasos,
@@ -716,7 +716,12 @@ def register_tickets_routes(app):
     @_auth
     def tickets_agregar_paso(ticket_id):
         data = request.get_json(force=True) or {}
-        pasos, err = agregar_paso(ticket_id, data.get("descripcion", ""), request.tickets_usuario["id"])
+        pasos, err = agregar_paso(
+            ticket_id,
+            data.get("descripcion", ""),
+            request.tickets_usuario["id"],
+            notas=data.get("notas"),
+        )
         if err:
             return jsonify({"error": err}), 400
         return jsonify(pasos), 201
@@ -725,10 +730,17 @@ def register_tickets_routes(app):
     @_auth
     def tickets_establecer_paso(ticket_id, paso_id):
         data = request.get_json(force=True, silent=True) or {}
+        uid = request.tickets_usuario["id"]
+        if "notas" in data:
+            pasos, err = actualizar_paso_notas(ticket_id, paso_id, data.get("notas", ""))
+            if err:
+                return jsonify({"error": err}), 400
+            if "completado" not in data:
+                return jsonify(pasos), 200
         raw = data.get("completado", 0)
         completado = 1 if raw in (1, True, "1", "true") else 0
         pasos, err, auto = establecer_paso_completado(
-            ticket_id, paso_id, request.tickets_usuario["id"], completado,
+            ticket_id, paso_id, uid, completado,
         )
         if err:
             return jsonify({"error": err}), 400
