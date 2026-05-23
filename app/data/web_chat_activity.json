@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-21T16:17:00",
+  "updated_at": "2026-05-22T12:30:13",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -9,17 +9,101 @@
     "2026-05-18": 3,
     "2026-05-19": 12,
     "2026-05-20": 7,
-    "2026-05-21": 5
+    "2026-05-21": 5,
+    "2026-05-22": 4
   },
   "sessions": [
+    {
+      "session_id": "web-36adea7b-6844-4bb3-ba66-9301a2d12b48",
+      "started_at": "2026-05-22T12:30:13",
+      "last_at": "2026-05-22T12:30:13",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/guias/cafeina-anhidra",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "hola busco 58-08-2",
+      "last_agent_reply": "Ahora mismo no pude conectar con el asistente en línea. Para productos, precios y disponibilidad escríbenos por WhatsApp al +573195183596 o revisa el catálogo en la tienda. Si el problema continúa, avísanos por el mismo canal.",
+      "last_source": "offline",
+      "last_upstream_error": "upstream_http_401",
+      "recent_turns": [
+        {
+          "at": "2026-05-22T12:30:13",
+          "user_message": "hola busco 58-08-2",
+          "agent_reply": "Ahora mismo no pude conectar con el asistente en línea. Para productos, precios y disponibilidad escríbenos por WhatsApp al +573195183596 o revisa el catálogo en la tienda. Si el problema continúa, avísanos por el mismo canal.",
+          "attachments_count": 0,
+          "source": "offline",
+          "upstream_error": "upstream_http_401"
+        }
+      ]
+    },
+    {
+      "session_id": "web-96d47843-3a82-4353-b833-a614cd982681",
+      "started_at": "2026-05-22T08:51:18",
+      "last_at": "2026-05-22T08:51:18",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "buenos dias",
+      "last_agent_reply": "Ahora mismo no pude conectar con el asistente en línea. Para productos, precios y disponibilidad escríbenos por WhatsApp al +573195183596 o revisa el catálogo en la tienda. Si el problema continúa, avísanos por el mismo canal.",
+      "last_source": "offline",
+      "last_upstream_error": "upstream_http_401",
+      "recent_turns": [
+        {
+          "at": "2026-05-22T08:51:18",
+          "user_message": "buenos dias",
+          "agent_reply": "Ahora mismo no pude conectar con el asistente en línea. Para productos, precios y disponibilidad escríbenos por WhatsApp al +573195183596 o revisa el catálogo en la tienda. Si el problema continúa, avísanos por el mismo canal.",
+          "attachments_count": 0,
+          "source": "offline",
+          "upstream_error": "upstream_http_401"
+        }
+      ]
+    },
+    {
+      "session_id": "web-d2727f66-dfef-4e7f-a0ab-429f4a20c28b",
+      "started_at": "2026-05-22T08:39:05",
+      "last_at": "2026-05-22T08:39:14",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "citrato de zinc grado alimentucio",
+      "last_agent_reply": "Ahora mismo no pude conectar con el asistente en línea. Para productos, precios y disponibilidad escríbenos por WhatsApp al +573195183596 o revisa el catálogo en la tienda. Si el problema continúa, avísanos por el mismo canal.",
+      "last_source": "offline",
+      "last_upstream_error": "upstream_http_401",
+      "recent_turns": [
+        {
+          "at": "2026-05-22T08:39:05",
+          "user_message": "buen dia",
+          "agent_reply": "Ahora mismo no pude conectar con el asistente en línea. Para productos, precios y disponibilidad escríbenos por WhatsApp al +573195183596 o revisa el catálogo en la tienda. Si el problema continúa, avísanos por el mismo canal.",
+          "attachments_count": 0,
+          "source": "offline",
+          "upstream_error": "upstream_http_401"
+        },
+        {
+          "at": "2026-05-22T08:39:14",
+          "user_message": "citrato de zinc grado alimentucio",
+          "agent_reply": "Ahora mismo no pude conectar con el asistente en línea. Para productos, precios y disponibilidad escríbenos por WhatsApp al +573195183596 o revisa el catálogo en la tienda. Si el problema continúa, avísanos por el mismo canal.",
+          "attachments_count": 0,
+          "source": "offline",
+          "upstream_error": "upstream_http_401"
+        }
+      ]
+    },
     {
       "session_id": "web-30d0bc97-971c-47a1-b8c8-d377121e8340",
       "started_at": "2026-05-21T16:14:33",
       "last_at": "2026-05-21T16:17:00",
       "messages_count": 5,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-05-22T02:26:11",
       "page_url": "http://mckennagroup.co/catalogo/",
       "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_4_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/420.4.909430193 Mobile/15E148 Safari/604.1",
       "last_user_message": "Vale muchas gracias",

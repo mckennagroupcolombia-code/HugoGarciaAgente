@@ -3757,11 +3757,6 @@ def register_routes(app):
     def serve_spa_favicon():
         return send_from_directory(_SPA_DIR, "favicon.svg")
 
-    @app.route("/app/daily-quest.html")
-    def serve_daily_quest():
-        """Sirve la plantilla Daily Quest directamente (usada en iframe por DailyQuestPanel)."""
-        return send_from_directory(_SPA_DIR, "daily-quest.html")
-
     @app.route("/app", methods=["GET", "HEAD"])
     @app.route("/app/<path:path>", methods=["GET", "HEAD"])
     def serve_spa(path=""):

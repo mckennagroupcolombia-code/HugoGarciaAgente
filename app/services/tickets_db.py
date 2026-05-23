@@ -611,6 +611,29 @@ def _migrate_mision_frecuencia():
         db.close()
 
 
+def _migrate_mision_modo_ciclo():
+    """modo_ciclo: finita (un ciclo) | infinita (se repite)."""
+    with _conn() as db:
+        _add_col(db, "misiones", "modo_ciclo", "TEXT NOT NULL DEFAULT 'finita'")
+        db.execute("""
+            UPDATE misiones SET modo_ciclo='infinita'
+            WHERE (frecuencia IS NOT NULL AND TRIM(frecuencia) != '')
+               OR id IN (
+                   SELECT DISTINCT mision_id FROM tickets
+                   WHERE mision_id IS NOT NULL
+                     AND frecuencia IS NOT NULL AND TRIM(frecuencia) != ''
+               )
+        """)
+        db.commit()
+
+
+def _normalizar_modo_ciclo(raw) -> str:
+    v = (raw or "finita").strip().lower()
+    if v in ("infinita", "infinite", "recurrente", "recurrent", "ciclica"):
+        return "infinita"
+    return "finita"
+
+
 def _migrate_ticket_frecuencia():
     """Recurrencia por ticket (frecuencia / proxima_renovacion). Migra datos legacy de misiones."""
     with _conn() as db:
@@ -638,6 +661,13 @@ def _migrate_ticket_frecuencia():
         db.commit()
 
 
+def _migrate_ticket_paso_notas():
+    """Notas post-it opcionales por paso del checklist."""
+    with _conn() as db:
+        _add_col(db, "ticket_pasos", "notas", "TEXT")
+        db.commit()
+
+
 def init_db():
     _repair_broken_fk()
     _migrate_categorias()
@@ -646,7 +676,9 @@ def init_db():
     _migrate_mision_zona_id()
     _migrate_zonas_tipo()
     _migrate_mision_frecuencia()
+    _migrate_mision_modo_ciclo()
     _migrate_ticket_frecuencia()
+    _migrate_ticket_paso_notas()
     from app.services.misiones_timing import _migrate_mision_corridas
     from app.services.ticket_timing import _migrate_ticket_corridas
     from app.services.recetas_ops import _migrate_recetas_ops
@@ -1395,11 +1427,12 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
         if err:
             return None, err
         categoria = ubic.get("categoria") or "logistica"
+        modo_ciclo = _normalizar_modo_ciclo(data.get("modo_ciclo"))
         db.execute("""
             INSERT INTO misiones
                 (titulo, descripcion, reino, zona_id, color, tipo, categoria, creado_por,
-                 total_etapas, estado, frecuencia, proxima_renovacion)
-            VALUES (?,?,?,?,?,?,?,?,?,?,NULL,NULL)
+                 total_etapas, estado, modo_ciclo, frecuencia, proxima_renovacion)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,NULL,NULL)
         """, (
             titulo,
             data.get("descripcion", ""),
@@ -1411,6 +1444,7 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
             usuario_id,
             len(etapas_raw),
             "activa",
+            modo_ciclo,
         ))
         mid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
 
@@ -1567,8 +1601,10 @@ def reordenar_etapas_mision(mision_id: int, etapa_ids: list) -> tuple:
         m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
         if not m:
             return None, "Misión no encontrada"
-        if m["estado"] in ("completada", "cancelada"):
-            return None, f"La misión está {m['estado']} y no puede editarse"
+        ok, err = _mision_permite_gestion_etapas(db, mision_id)
+        if not ok:
+            return None, err
+        _reactivar_mision_si_completada_recurrencia(db, mision_id)
 
         existing_ids = {r["id"] for r in db.execute(
             "SELECT id FROM etapas_mision WHERE mision_id=?", (mision_id,)
@@ -1621,8 +1657,10 @@ def agregar_etapa_mision(mision_id: int, titulo: str, descripcion: str,
         m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
         if not m:
             return None, "Misión no encontrada"
-        if m["estado"] in ("completada", "cancelada"):
-            return None, f"La misión está {m['estado']} y no puede editarse"
+        ok, err = _mision_permite_gestion_etapas(db, mision_id)
+        if not ok:
+            return None, err
+        _reactivar_mision_si_completada_recurrencia(db, mision_id)
 
         orden = (db.execute(
             "SELECT COALESCE(MAX(orden), 0) + 1 AS n FROM etapas_mision WHERE mision_id=?",
@@ -1687,8 +1725,10 @@ def actualizar_etapa_mision(mision_id: int, etapa_id: int,
         m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
         if not m:
             return None, "Misión no encontrada"
-        if m["estado"] in ("completada", "cancelada"):
-            return None, f"La misión está {m['estado']} y no puede editarse"
+        ok, err = _mision_permite_gestion_etapas(db, mision_id)
+        if not ok:
+            return None, err
+        _reactivar_mision_si_completada_recurrencia(db, mision_id)
         etapa = db.execute(
             "SELECT * FROM etapas_mision WHERE id=? AND mision_id=?", (etapa_id, mision_id)
         ).fetchone()
@@ -1713,8 +1753,10 @@ def eliminar_etapa_mision(mision_id: int, etapa_id: int, usuario: dict) -> tuple
         m = db.execute("SELECT * FROM misiones WHERE id=?", (mision_id,)).fetchone()
         if not m:
             return None, "Misión no encontrada"
-        if m["estado"] in ("completada", "cancelada"):
-            return None, f"La misión está {m['estado']} y no puede editarse"
+        ok, err = _mision_permite_gestion_etapas(db, mision_id)
+        if not ok:
+            return None, err
+        _reactivar_mision_si_completada_recurrencia(db, mision_id)
         etapa = db.execute(
             "SELECT * FROM etapas_mision WHERE id=? AND mision_id=?", (etapa_id, mision_id)
         ).fetchone()
@@ -1745,8 +1787,10 @@ def actualizar_mision(mision_id: int, data: dict) -> tuple:
             return None, "Misión no encontrada"
         campos = {k: v for k, v in data.items()
                   if k in ("titulo", "descripcion", "reino", "color", "tipo", "categoria",
-                            "estado")
+                            "estado", "modo_ciclo")
                   and v is not None}
+        if "modo_ciclo" in data:
+            campos["modo_ciclo"] = _normalizar_modo_ciclo(data.get("modo_ciclo"))
         if "zona_id" in data:
             ubic, err = _resolver_zona_mision(db, data)
             if err:
@@ -2008,14 +2052,22 @@ def _actualizar_mision(db, mision_id: int):
     if completadas >= total > 0:
         m = db.execute("SELECT estado FROM misiones WHERE id=?", (mision_id,)).fetchone()
         already_done = m and m["estado"] == "completada"
-        db.execute(
-            "UPDATE misiones SET estado='completada', etapas_completadas=?, "
-            "completada_en=datetime('now'), proxima_renovacion=NULL WHERE id=?",
-            (completadas, mision_id),
-        )
-        # Auto-deduct materials only the first time the mission completes
-        if not already_done:
-            _deducir_materiales_mision(db, mision_id)
+        if _mision_ciclo_infinito(db, mision_id):
+            # Misión infinita: no cerrar la misión al resolver todos los tickets del ciclo
+            db.execute(
+                "UPDATE misiones SET etapas_completadas=?, estado='activa', completada_en=NULL "
+                "WHERE id=?",
+                (completadas, mision_id),
+            )
+        else:
+            db.execute(
+                "UPDATE misiones SET estado='completada', etapas_completadas=?, "
+                "completada_en=datetime('now'), proxima_renovacion=NULL WHERE id=?",
+                (completadas, mision_id),
+            )
+            # Auto-deduct materials only the first time the mission completes
+            if not already_done:
+                _deducir_materiales_mision(db, mision_id)
     else:
         db.execute(
             "UPDATE misiones SET etapas_completadas=? WHERE id=?",
@@ -2094,6 +2146,57 @@ _FRECUENCIA_LABEL = {
     "trimestral": "Trimestral",
     "semestral":  "Semestral",
 }
+
+
+def _mision_ciclo_infinito(db, mision_id: int) -> bool:
+    """True si la misión está configurada como infinita (se repite)."""
+    m = db.execute(
+        "SELECT modo_ciclo, frecuencia FROM misiones WHERE id=?", (mision_id,)
+    ).fetchone()
+    if not m:
+        return False
+    modo = (m["modo_ciclo"] or "finita").strip().lower()
+    if modo == "infinita":
+        return True
+    if modo == "finita":
+        return False
+    # Legacy sin modo_ciclo explícito
+    if (m["frecuencia"] or "").strip():
+        return True
+    return bool(db.execute(
+        """
+        SELECT 1 FROM tickets
+        WHERE mision_id=? AND frecuencia IS NOT NULL AND TRIM(frecuencia) != ''
+        LIMIT 1
+        """,
+        (mision_id,),
+    ).fetchone())
+
+
+def _mision_permite_gestion_etapas(db, mision_id: int) -> tuple[bool, str | None]:
+    """Permite añadir/reordenar/eliminar etapas (salvo misión cancelada)."""
+    m = db.execute("SELECT estado FROM misiones WHERE id=?", (mision_id,)).fetchone()
+    if not m:
+        return False, "Misión no encontrada"
+    if m["estado"] == "cancelada":
+        return False, "La misión está cancelada y no puede editarse"
+    if m["estado"] == "completada":
+        if _mision_ciclo_infinito(db, mision_id):
+            return True, None
+        return (
+            False,
+            "La misión finita está completada. Cámbiala a Activa en ✏️ Editar o crea una misión infinita.",
+        )
+    return True, None
+
+
+def _reactivar_mision_si_completada_recurrencia(db, mision_id: int) -> None:
+    if not _mision_ciclo_infinito(db, mision_id):
+        return
+    db.execute(
+        "UPDATE misiones SET estado='activa', completada_en=NULL WHERE id=? AND estado='completada'",
+        (mision_id,),
+    )
 
 
 def _calcular_proxima(frecuencia: str) -> str:
@@ -2636,18 +2739,21 @@ def _insertar_pasos_ticket(db, ticket_id: int, pasos_raw) -> None:
         return
     orden = 0
     for p in pasos_raw:
+        notas = None
         if isinstance(p, str):
             desc = p.strip()
         elif isinstance(p, dict):
             desc = (p.get("descripcion") or p.get("texto") or "").strip()
+            raw_n = (p.get("notas") or "").strip()
+            notas = raw_n or None
         else:
             continue
         if not desc:
             continue
         orden += 1
         db.execute(
-            "INSERT INTO ticket_pasos (ticket_id, orden, descripcion) VALUES (?,?,?)",
-            (ticket_id, orden, desc),
+            "INSERT INTO ticket_pasos (ticket_id, orden, descripcion, notas) VALUES (?,?,?,?)",
+            (ticket_id, orden, desc, notas),
         )
 
 
@@ -2662,10 +2768,11 @@ def listar_pasos(ticket_id: int) -> list:
         return [dict(r) for r in rows]
 
 
-def agregar_paso(ticket_id: int, descripcion: str, usuario_id: int) -> tuple:
+def agregar_paso(ticket_id: int, descripcion: str, usuario_id: int, notas: str = None) -> tuple:
     descripcion = descripcion.strip()
     if not descripcion:
         return None, "Descripción requerida"
+    notas_val = (notas or "").strip() or None
     with _conn() as db:
         t = db.execute("SELECT id FROM tickets WHERE id=?", (ticket_id,)).fetchone()
         if not t:
@@ -2674,11 +2781,25 @@ def agregar_paso(ticket_id: int, descripcion: str, usuario_id: int) -> tuple:
             "SELECT COALESCE(MAX(orden),0)+1 AS n FROM ticket_pasos WHERE ticket_id=?", (ticket_id,)
         ).fetchone()["n"]
         db.execute(
-            "INSERT INTO ticket_pasos (ticket_id, orden, descripcion) VALUES (?,?,?)",
-            (ticket_id, orden, descripcion)
+            "INSERT INTO ticket_pasos (ticket_id, orden, descripcion, notas) VALUES (?,?,?,?)",
+            (ticket_id, orden, descripcion, notas_val),
         )
         db.commit()
         return listar_pasos(ticket_id), None
+
+
+def actualizar_paso_notas(ticket_id: int, paso_id: int, notas: str) -> tuple:
+    notas_val = (notas or "").strip() or None
+    with _conn() as db:
+        row = db.execute(
+            "SELECT id FROM ticket_pasos WHERE id=? AND ticket_id=?",
+            (paso_id, ticket_id),
+        ).fetchone()
+        if not row:
+            return None, "Paso no encontrado en este ticket"
+        db.execute("UPDATE ticket_pasos SET notas=? WHERE id=?", (notas_val, paso_id))
+        db.commit()
+    return listar_pasos(ticket_id), None
 
 
 def _pasos_checklist_completo(db, ticket_id: int) -> bool:
