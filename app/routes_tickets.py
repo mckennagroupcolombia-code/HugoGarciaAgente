@@ -647,6 +647,7 @@ def register_tickets_routes(app):
             mision_id, titulo, descripcion, asignado_a, request.tickets_usuario["id"],
             pasos=data.get("pasos"),
             frecuencia=data.get("frecuencia"),
+            materiales=data.get("materiales"),
         )
         if err:
             return jsonify({"error": err}), 400

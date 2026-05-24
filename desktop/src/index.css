@@ -331,7 +331,7 @@
   }
 
   .quest-inventario-grupo-items {
-    @apply border-t border-border/60 p-2 sm:p-3;
+    @apply border-t border-border/60 p-1.5 sm:p-2;
   }
 
   /* Reinos: árbol colapsable (reino → zona → subzona) */

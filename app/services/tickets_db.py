@@ -1490,6 +1490,10 @@ def crear_mision(data: dict, usuario_id: int) -> tuple:
             ))
             tid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
             _insertar_pasos_ticket(db, tid, etapa_raw.get("pasos"))
+            mats = list(etapa_raw.get("materiales") or [])
+            if i == 1 and not mats and data.get("materiales"):
+                mats = list(data.get("materiales") or [])
+            _vincular_materiales_ticket(db, tid, mats)
 
             etapa_estado = "activa" if not bloqueado_por else "pendiente"
             db.execute(
@@ -1648,7 +1652,8 @@ def reordenar_etapas_mision(mision_id: int, etapa_ids: list) -> tuple:
 def agregar_etapa_mision(mision_id: int, titulo: str, descripcion: str,
                          asignado_a: int | None, usuario_id: int,
                          pasos: list | None = None,
-                         frecuencia: str | None = None) -> tuple:
+                         frecuencia: str | None = None,
+                         materiales: list | None = None) -> tuple:
     """Añade una etapa+ticket a una misión activa."""
     titulo = titulo.strip()
     if not titulo:
@@ -1704,6 +1709,7 @@ def agregar_etapa_mision(mision_id: int, titulo: str, descripcion: str,
         ))
         tid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
         _insertar_pasos_ticket(db, tid, pasos)
+        _vincular_materiales_ticket(db, tid, materiales)
         db.execute("UPDATE etapas_mision SET ticket_id=? WHERE id=?", (tid, etapa_id))
         db.execute(
             "UPDATE misiones SET total_etapas = total_etapas + 1 WHERE id=?",
@@ -2110,12 +2116,28 @@ def eliminar_mision(mision_id: int, usuario: dict) -> tuple:
         ).fetchall()]
         for tid in ticket_ids:
             db.execute("UPDATE tickets SET bloqueado_por=NULL WHERE bloqueado_por=?", (tid,))
-            db.execute("UPDATE etapas_mision SET ticket_id=NULL WHERE ticket_id=?", (tid,))
+            db.execute(
+                "UPDATE etapas_mision SET ticket_id=NULL, estado='pendiente' WHERE ticket_id=?",
+                (tid,),
+            )
             db.execute("DELETE FROM logs_auditoria WHERE ticket_id=?", (tid,))
+            db.execute(
+                "UPDATE consumo_materiales SET ticket_id=NULL WHERE ticket_id=?",
+                (tid,),
+            )
         if ticket_ids:
             placeholders = ",".join("?" * len(ticket_ids))
             db.execute(f"DELETE FROM tickets WHERE id IN ({placeholders})", ticket_ids)
-        # etapas_mision has ON DELETE CASCADE from misiones
+        # Materiales elaborados creados por la misión referencian misiones(id) sin CASCADE
+        db.execute(
+            "UPDATE materiales_catalogo SET mision_origen_id=NULL WHERE mision_origen_id=?",
+            (mision_id,),
+        )
+        db.execute(
+            "UPDATE misiones SET producto_resultante_id=NULL WHERE id=?",
+            (mision_id,),
+        )
+        db.execute("DELETE FROM etapas_mision WHERE mision_id=?", (mision_id,))
         db.execute("DELETE FROM misiones WHERE id=?", (mision_id,))
         db.commit()
         return True, None
@@ -2732,6 +2754,35 @@ def dashboard_carga() -> list:
 
 
 # ── PASOS DE TICKET ───────────────────────────────────────────────────────────
+
+def _vincular_materiales_ticket(db, ticket_id: int, materiales_raw) -> None:
+    """Vincula materiales del catálogo a un ticket (etapa de misión)."""
+    if not materiales_raw:
+        return
+    for mat in materiales_raw:
+        try:
+            mid_mat = int(mat.get("material_id") or 0)
+            cant = float(mat.get("cantidad") or 0)
+        except (TypeError, ValueError):
+            continue
+        if mid_mat <= 0 or cant <= 0:
+            continue
+        existe = db.execute(
+            "SELECT id FROM materiales_catalogo WHERE id=? AND activo=1",
+            (mid_mat,),
+        ).fetchone()
+        if not existe:
+            continue
+        notas_mat = (mat.get("notas") or "").strip() or None
+        try:
+            db.execute(
+                "INSERT INTO ticket_materiales "
+                "(ticket_id, material_id, cantidad_requerida, notas) VALUES (?,?,?,?)",
+                (ticket_id, mid_mat, cant, notas_mat),
+            )
+        except Exception:
+            pass
+
 
 def _insertar_pasos_ticket(db, ticket_id: int, pasos_raw) -> None:
     """Crea filas en ticket_pasos desde lista de strings o dicts con descripcion."""

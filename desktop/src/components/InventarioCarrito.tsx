@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { questNavBtn } from "../lib/questStyles";
 import { useInventarioCarrito, type CarritoMaterial } from "../stores/inventarioCarrito";
 
@@ -28,6 +28,65 @@ function textoListaCarrito(items: CarritoMaterial[]): string {
       `• ${i.nombre}: ${i.cantidad} ${i.unidad}${i.proveedor ? ` (${i.proveedor})` : ""}`,
   );
   return `Lista de compra — Centro de Mando\n${lines.join("\n")}`;
+}
+
+interface ZonaTrabajo {
+  id: number;
+  nombre: string;
+  parent_id: number | null;
+  tipo?: string | null;
+}
+
+interface UsuarioOpt {
+  id: number;
+  nombre: string;
+}
+
+function nivelZona(z: ZonaTrabajo, zonas: ZonaTrabajo[]): string {
+  const t = (z.tipo || "").trim().toLowerCase();
+  if (t) return t;
+  if (!z.parent_id) return "reino";
+  const p = zonas.find((x) => x.id === z.parent_id);
+  if (!p) return "zona";
+  if (!p.parent_id) return "zona";
+  const gp = zonas.find((x) => x.id === p.parent_id);
+  if (!gp?.parent_id) return "subzona";
+  return "departamento";
+}
+
+function labelJerarquia(z: ZonaTrabajo, zonas: ZonaTrabajo[]): string {
+  const parts: string[] = [];
+  let cur: ZonaTrabajo | undefined = z;
+  for (let i = 0; i < 6 && cur; i++) {
+    parts.unshift(cur.nombre);
+    cur = cur.parent_id ? zonas.find((x) => x.id === cur!.parent_id) : undefined;
+  }
+  return parts.join(" › ");
+}
+
+function ubicacionesValidasMision(zonas: ZonaTrabajo[]): { id: number; label: string }[] {
+  const out: { id: number; label: string }[] = [];
+  for (const z of zonas) {
+    const t = nivelZona(z, zonas);
+    if (t === "reino") continue;
+    const hijos = zonas.filter((x) => x.parent_id === z.id);
+    if (t === "departamento") {
+      out.push({ id: z.id, label: labelJerarquia(z, zonas) });
+      continue;
+    }
+    if (t === "subzona" && hijos.length === 0) {
+      out.push({ id: z.id, label: labelJerarquia(z, zonas) });
+      continue;
+    }
+    if (t === "zona") {
+      const tieneSub = hijos.some((h) => nivelZona(h, zonas) === "subzona");
+      const tieneDept = hijos.some((h) => nivelZona(h, zonas) === "departamento");
+      if (!tieneSub && !tieneDept) {
+        out.push({ id: z.id, label: labelJerarquia(z, zonas) });
+      }
+    }
+  }
+  return out.sort((a, b) => a.label.localeCompare(b.label, "es"));
 }
 
 /** Botón de navegación principal (junto a Recetas). */
@@ -81,13 +140,18 @@ export function InventarioCarritoBadge({
 export function InventarioCarritoModal({
   token,
   nivel,
+  onMisionCreated,
 }: {
   token: string;
   nivel: number;
+  onMisionCreated?: (misionId: number) => void;
 }) {
   const open = useInventarioCarrito((s) => s.modalOpen);
   const setModalOpen = useInventarioCarrito((s) => s.setModalOpen);
-  const onClose = () => setModalOpen(false);
+  const onClose = () => {
+    setShowMisionForm(false);
+    setModalOpen(false);
+  };
   const items = useInventarioCarrito((s) => s.items);
   const setCantidad = useInventarioCarrito((s) => s.setCantidad);
   const remove = useInventarioCarrito((s) => s.remove);
@@ -95,11 +159,34 @@ export function InventarioCarritoModal({
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [showMisionForm, setShowMisionForm] = useState(false);
+  const [usuarios, setUsuarios] = useState<UsuarioOpt[]>([]);
+  const [zonas, setZonas] = useState<ZonaTrabajo[]>([]);
+  const [asignadoId, setAsignadoId] = useState("");
+  const [zonaId, setZonaId] = useState("");
 
   const totalEstimado = useMemo(
     () => items.reduce((s, i) => s + i.cantidad * i.precio_unitario, 0),
     [items],
   );
+
+  const ubicaciones = useMemo(() => ubicacionesValidasMision(zonas), [zonas]);
+
+  useEffect(() => {
+    if (!open) return;
+    tapi("/usuarios", token)
+      .then((list: UsuarioOpt[]) => setUsuarios(list.filter((u) => u.id)))
+      .catch(() => {});
+    tapi("/zonas-trabajo", token)
+      .then(setZonas)
+      .catch(() => {});
+  }, [open, token]);
+
+  useEffect(() => {
+    if (!open || zonaId || ubicaciones.length === 0) return;
+    const bodega = ubicaciones.find((u) => /bodega/i.test(u.label));
+    setZonaId(String((bodega ?? ubicaciones[0]).id));
+  }, [open, ubicaciones, zonaId]);
 
   const puedeOrdenar = nivel >= 2;
 
@@ -151,6 +238,58 @@ export function InventarioCarritoModal({
     setSaving(false);
   }
 
+  async function enviarComoMision() {
+    if (!items.length || !asignadoId || !zonaId) return;
+    setSaving(true);
+    setMsg(null);
+    const fecha = new Date().toLocaleDateString("es-CO", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const descripcion = textoListaCarrito(items);
+    try {
+      const m = await tapi("/misiones/", token, {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: `Compra de materiales — ${fecha}`,
+          descripcion,
+          zona_id: parseInt(zonaId, 10),
+          tipo: "secuencial",
+          modo_ciclo: "finita",
+          color: "#4a9a6a",
+          etapas: [
+            {
+              titulo: "Comprar materiales",
+              descripcion: "Adquirir los materiales listados en esta misión.",
+              pasos: [],
+            },
+            {
+              titulo: "Recibir e ingresar stock",
+              descripcion: "Confirmar recepción y actualizar inventario.",
+              pasos: [],
+            },
+          ],
+          asignaciones: { "1": asignadoId, "2": asignadoId },
+          materiales: items.map((i) => ({
+            material_id: i.materialId,
+            cantidad: i.cantidad,
+            notas: i.proveedor ? `Proveedor: ${i.proveedor}` : undefined,
+          })),
+        }),
+      });
+      clear();
+      setShowMisionForm(false);
+      setModalOpen(false);
+      onMisionCreated?.(m.id);
+    } catch (e: unknown) {
+      const text = e instanceof Error ? e.message : "No se pudo crear la misión";
+      setMsg({ type: "err", text });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function copiarLista() {
     if (!items.length) return;
     void navigator.clipboard.writeText(textoListaCarrito(items));
@@ -168,7 +307,7 @@ export function InventarioCarritoModal({
       onClick={onClose}
     >
       <div
-        className="flex max-h-[min(90vh,640px)] w-full max-w-lg flex-col rounded-paper border-2 border-border bg-surface-panel shadow-paper-lg"
+        className="flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col rounded-paper border-2 border-border bg-surface-panel shadow-paper-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
@@ -235,6 +374,59 @@ export function InventarioCarritoModal({
               </div>
             ))
           )}
+
+          {showMisionForm && items.length > 0 && (
+            <div className="rounded-paper border-2 border-accent/40 bg-accent/5 p-3 space-y-3">
+              <p className="text-xs font-extrabold uppercase tracking-wide text-accent">
+                Enviar como misión al equipo
+              </p>
+              <p className="text-[11px] text-muted leading-relaxed">
+                Se crea una misión con los materiales del carrito. La persona asignada la verá en el tablero
+                con la lista de compra en la primera etapa.
+              </p>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-muted">Asignar a</label>
+                <select
+                  value={asignadoId}
+                  onChange={(e) => setAsignadoId(e.target.value)}
+                  className="w-full rounded-paper border border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+                >
+                  <option value="">— Elige quién compra —</option>
+                  {usuarios.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-muted">Ubicación</label>
+                <select
+                  value={zonaId}
+                  onChange={(e) => setZonaId(e.target.value)}
+                  className="w-full rounded-paper border border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+                >
+                  {ubicaciones.length === 0 ? (
+                    <option value="">Sin ubicaciones — créalas en Reinos</option>
+                  ) : (
+                    ubicaciones.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.label}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={() => void enviarComoMision()}
+                disabled={saving || !asignadoId || !zonaId}
+                className="w-full rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-40"
+              >
+                {saving ? "Creando misión…" : "Confirmar y enviar misión"}
+              </button>
+            </div>
+          )}
         </div>
 
         {items.length > 0 && (
@@ -253,7 +445,7 @@ export function InventarioCarritoModal({
             )}
             {!puedeOrdenar && (
               <p className="text-xs text-muted">
-                Rol supervisor o superior necesario para generar órdenes de compra. Puedes copiar la lista.
+                Rol supervisor o superior necesario para generar órdenes de compra en cola. Puedes enviar como misión o copiar la lista.
               </p>
             )}
             <div className="flex flex-wrap justify-end gap-2">
@@ -273,6 +465,19 @@ export function InventarioCarritoModal({
               >
                 Copiar lista
               </button>
+              {!showMisionForm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMsg(null);
+                    setShowMisionForm(true);
+                  }}
+                  disabled={saving}
+                  className="rounded-paper border-2 border-border px-4 py-1.5 text-xs font-bold text-ink hover:border-accent disabled:opacity-40"
+                >
+                  Enviar como misión
+                </button>
+              )}
               <button
                 type="button"
                 onClick={generarOrdenes}

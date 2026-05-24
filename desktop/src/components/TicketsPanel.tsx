@@ -18,6 +18,7 @@ import {
   InventarioCarritoModal,
   InventarioCarritoNavBtn,
 } from "./InventarioCarrito";
+import MaterialCalculadora from "./MaterialCalculadora";
 import { useInventarioCarrito } from "../stores/inventarioCarrito";
 import {
   ESTADO_STYLES,
@@ -4214,15 +4215,15 @@ function TicketListView({
         <div className="py-12 text-center text-sm text-muted">Cargando...</div>
       ) : error ? (
         <div className={ALERT_ERROR}>{error}</div>
-      ) : ticketsFiltered.length === 0 ? (
-        <div className="py-12 text-center text-sm text-muted">
-          {scopeActivo ? `No hay quests en ${navScopeLabel(navScope)}.` : "No hay tickets con estos filtros."}
-        </div>
-      ) : reinoSections.length === 0 ? (
+      ) : reinoSections.length === 0 && ticketsFiltered.length === 0 ? (
         <div className="py-12 text-center text-sm text-muted">
           {scopeActivo
             ? `No hay misiones en ${navScopeLabel(navScope)}.`
             : "No hay misiones en el tablero. Crea reinos en 🏰 Reinos y vincula la ubicación al crear la misión."}
+        </div>
+      ) : reinoSections.length === 0 ? (
+        <div className="py-12 text-center text-sm text-muted">
+          No hay misiones agrupadas. Revisa el filtro de estado o crea una misión en + Nueva misión.
         </div>
       ) : (
         <div className="quest-board-by-reinos">
@@ -4329,7 +4330,7 @@ function CreateTicketView({
         </div>
 
         {/* Categoría + Prioridad */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className={TICKET_FORM_GRID_2}>
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Categoría *</label>
             <select
@@ -5368,6 +5369,14 @@ function ParticipantesSection({
 
 type PasoDraft = { descripcion: string; notas?: string };
 
+type MaterialDraft = {
+  material_id: number;
+  nombre: string;
+  unidad: string;
+  cantidad: string;
+  notas?: string;
+};
+
 function normalizePasoDraftList(raw: unknown): PasoDraft[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -5392,11 +5401,22 @@ function pasoDraftsToApi(pasos: PasoDraft[]): (string | { descripcion: string; n
   });
 }
 
+function materialesDraftToApi(materiales: MaterialDraft[]) {
+  return materiales
+    .filter((m) => m.material_id > 0 && parseFloat(m.cantidad) > 0)
+    .map((m) => ({
+      material_id: m.material_id,
+      cantidad: parseFloat(m.cantidad),
+      ...(m.notas?.trim() ? { notas: m.notas.trim() } : {}),
+    }));
+}
+
 interface EtapaDraft {
   titulo: string;
   descripcion: string;
   pasos: PasoDraft[];
   frecuencia?: string;
+  materiales?: MaterialDraft[];
 }
 
 /** Botón post-it 📝 para notas opcionales en un paso. */
@@ -5708,6 +5728,136 @@ function PasosDraftEditor({
         </button>
       </div>
     </div>
+  );
+}
+
+const MISION_DRAFT_ETAPAS_SECTION = "mision-draft-etapas";
+
+function CreateMisionEtapaFrames({
+  etapas,
+  isSecuencial,
+  formColor,
+  modoCicloInfinita,
+  asignaciones,
+  usuarios,
+  onRemove,
+  onEtapaTitulo,
+  onEtapaDesc,
+  onAsignacion,
+  onEtapaPasos,
+  onEtapaFrecuencia,
+  onEtapaMateriales,
+  catalogoMateriales = [],
+  zonaSugerida = null,
+}: {
+  etapas: EtapaDraft[];
+  isSecuencial: boolean;
+  formColor: string;
+  modoCicloInfinita: boolean;
+  asignaciones: Record<number, string>;
+  usuarios: UserInfo[];
+  onRemove: (i: number) => void;
+  onEtapaTitulo: (i: number, v: string) => void;
+  onEtapaDesc: (i: number, v: string) => void;
+  onAsignacion: (orden: number, userId: string) => void;
+  onEtapaPasos: (i: number, pasos: PasoDraft[]) => void;
+  onEtapaFrecuencia: (i: number, v: string) => void;
+  onEtapaMateriales: (i: number, materiales: MaterialDraft[]) => void;
+  catalogoMateriales?: Material[];
+  zonaSugerida?: string | null;
+}) {
+  const canvasWidth = useBoardCanvasWidth();
+
+  return (
+    <>
+      {etapas.map((et, i) => (
+        <QuestBoardStickyFrame
+          key={i}
+          sectionKey={MISION_DRAFT_ETAPAS_SECTION}
+          cardKey={`etapa:${i}`}
+          index={i}
+          containerWidth={canvasWidth}
+          minAutoH={260}
+        >
+          <div
+            className="rounded-paper border-2 border-border bg-surface p-3 h-full"
+            style={!isSecuencial ? { borderTopColor: formColor, borderTopWidth: 3 } : undefined}
+          >
+            <div className="mb-2 flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
+                  style={{ background: formColor }}
+                >
+                  {i + 1}
+                </span>
+                {isSecuencial && i > 0 && (
+                  <span className="text-[10px] font-semibold text-muted">🔒 tras #{i}</span>
+                )}
+                {!isSecuencial && (
+                  <span className="text-[10px] font-semibold text-muted">⚡ activo</span>
+                )}
+              </div>
+              {etapas.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onRemove(i)}
+                  className="text-[10px] font-bold text-muted hover:text-danger shrink-0"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div className="grid gap-2 lg:grid-cols-2">
+              <input
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent lg:col-span-2"
+                placeholder={`Título ticket ${i + 1} *`}
+                value={et.titulo}
+                onChange={(e) => onEtapaTitulo(i, e.target.value)}
+              />
+              <input
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
+                placeholder="Descripción (opc.)"
+                value={et.descripcion}
+                onChange={(e) => onEtapaDesc(i, e.target.value)}
+              />
+              <select
+                value={asignaciones[i + 1] || ""}
+                onChange={(e) => onAsignacion(i + 1, e.target.value)}
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
+              >
+                <option value="">👤 Sin asignar</option>
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nombre}</option>
+                ))}
+              </select>
+              <PasosDraftEditor
+                pasos={et.pasos}
+                onChange={(pasos) => onEtapaPasos(i, pasos)}
+              />
+              <MaterialesDraftEditor
+                materiales={et.materiales || []}
+                onChange={(materiales) => onEtapaMateriales(i, materiales)}
+                catalogo={catalogoMateriales}
+                zonaSugerida={zonaSugerida}
+              />
+              {modoCicloInfinita && (
+                <div className="lg:col-span-2">
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
+                    Cada cuánto se repite este ticket (opcional)
+                  </label>
+                  <SelectFrecuencia
+                    value={et.frecuencia || ""}
+                    onChange={(v) => onEtapaFrecuencia(i, v)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </QuestBoardStickyFrame>
+      ))}
+    </>
   );
 }
 
@@ -6073,6 +6223,13 @@ type MaterialTipo = "materia_prima" | "elaborado" | "consumibles" | "repuestos" 
 
 const UNIDADES_MATERIAL = ["kg", "g", "mg", "L", "mL", "unidad", "m", "cm", "m²", "m³", "caja", "bolsa", "rollo", "galón"];
 
+const MATERIAL_FORM_LABEL = "mb-0.5 block text-[10px] font-bold uppercase tracking-wide text-muted";
+const MATERIAL_FORM_INPUT = "w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent";
+const MATERIAL_FORM_GRID = "grid grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-3 lg:grid-cols-4";
+const MATERIAL_FORM_GRID_FULL = "col-span-2 sm:col-span-3 lg:col-span-4";
+const TICKET_FORM_GRID_2 = "grid grid-cols-1 gap-3 sm:grid-cols-2";
+const INVENTARIO_MATERIALES_GRID = "grid gap-2 sm:grid-cols-2 xl:grid-cols-3";
+
 function emptyNuevoMaterialForm() {
   return { nombre: "", tipo: "consumibles" as MaterialTipo, unidad: "unidad", cantidad: "", stock_actual: "0", notas: "" };
 }
@@ -6132,11 +6289,13 @@ function ZonasPicker({
   selected,
   onChange,
   readonly = false,
+  compact = false,
 }: {
   zonas: ZonaTrabajo[];
   selected: number[];
   onChange: (ids: number[]) => void;
   readonly?: boolean;
+  compact?: boolean;
 }) {
   if (!zonas.length) {
     return <p className="text-xs text-muted">No hay zonas definidas en el catálogo de reinos.</p>;
@@ -6147,34 +6306,31 @@ function ZonasPicker({
     if (readonly) return;
     onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
   };
-  const chip = (z: ZonaTrabajo, indent?: boolean) => {
+  const chip = (z: ZonaTrabajo) => {
     const on = selected.includes(z.id);
     return (
       <label
         key={z.id}
-        className={`flex cursor-pointer items-center gap-1.5 rounded-paper border-2 px-2.5 py-1.5 text-xs font-semibold transition ${
+        className={`inline-flex max-w-full cursor-pointer items-center gap-1 rounded-paper border px-2 py-1 font-semibold transition ${
+          compact ? "text-[10px]" : "text-xs"
+        } ${
           on ? "border-accent bg-accent/10" : "border-border bg-surface hover:border-accent/50"
-        } ${indent ? "ml-4" : ""} ${readonly ? "cursor-default opacity-80" : ""}`}
+        } ${readonly ? "cursor-default opacity-80" : ""}`}
       >
         <input
           type="checkbox"
-          className="h-3.5 w-3.5 accent-accent"
+          className={`shrink-0 accent-accent ${compact ? "h-3 w-3" : "h-3.5 w-3.5"}`}
           checked={on}
           disabled={readonly}
           onChange={() => toggle(z.id)}
         />
-        <span className={on ? "text-accent" : "text-ink"}>{zonaLabel(z)}</span>
+        <span className={`truncate ${on ? "text-accent" : "text-ink"}`}>{zonaLabel(z)}</span>
       </label>
     );
   };
   return (
-    <div className="space-y-2">
-      {raices.map((z) => (
-        <div key={z.id} className="space-y-1.5">
-          {chip(z)}
-          {hijos(z.id).map((h) => chip(h, true))}
-        </div>
-      ))}
+    <div className="flex flex-wrap gap-1.5">
+      {raices.flatMap((z) => [chip(z), ...hijos(z.id).map((h) => chip(h))])}
     </div>
   );
 }
@@ -6200,6 +6356,128 @@ interface Material {
   proveedor?: string; tipo?: MaterialTipo; mision_origen_id?: number | null;
   zonas?: ZonaTrabajo[];
 }
+
+function MaterialesDraftEditor({
+  materiales,
+  onChange,
+  catalogo,
+  zonaSugerida = null,
+}: {
+  materiales: MaterialDraft[];
+  onChange: (materiales: MaterialDraft[]) => void;
+  catalogo: Material[];
+  zonaSugerida?: string | null;
+}) {
+  const [selMat, setSelMat] = useState("");
+  const [cantidad, setCantidad] = useState("");
+  const [notas, setNotas] = useState("");
+  const [soloZona, setSoloZona] = useState(Boolean(zonaSugerida?.trim()));
+
+  const usados = new Set(materiales.map((m) => m.material_id));
+  const disponiblesBase = catalogo.filter((m) => !usados.has(m.id));
+  const disponibles = soloZona && zonaSugerida?.trim()
+    ? disponiblesBase.filter((m) => materialEnZona(m, zonaSugerida))
+    : disponiblesBase;
+
+  function agregar() {
+    const mat = catalogo.find((m) => m.id === parseInt(selMat));
+    if (!mat || !cantidad || parseFloat(cantidad) <= 0) return;
+    onChange([
+      ...materiales,
+      {
+        material_id: mat.id,
+        nombre: mat.nombre,
+        unidad: mat.unidad,
+        cantidad,
+        notas: notas.trim() || undefined,
+      },
+    ]);
+    setSelMat("");
+    setCantidad("");
+    setNotas("");
+  }
+
+  return (
+    <div className="space-y-2 border-t border-border/50 pt-3 lg:col-span-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+          Materiales e insumos
+        </p>
+        {materiales.length > 0 && (
+          <span className="text-[10px] font-bold text-accent">
+            {materiales.length} material{materiales.length > 1 ? "es" : ""}
+          </span>
+        )}
+      </div>
+      {materiales.length === 0 ? (
+        <p className="text-xs text-muted">Sin materiales — agrega del inventario abajo.</p>
+      ) : (
+        <ul className="max-h-36 space-y-1.5 overflow-y-auto">
+          {materiales.map((m) => (
+            <li key={m.material_id} className="flex items-center gap-2 rounded-paper border border-border bg-surface-input px-2 py-1.5">
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">{m.nombre}</span>
+              <span className="shrink-0 text-xs font-bold text-muted">
+                {m.cantidad} {m.unidad}
+              </span>
+              <button
+                type="button"
+                onClick={() => onChange(materiales.filter((x) => x.material_id !== m.material_id))}
+                className="shrink-0 text-xs text-muted hover:text-danger"
+                aria-label="Quitar material">
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {disponibles.length > 0 ? (
+        <div className="space-y-2">
+          {zonaSugerida?.trim() && (
+            <label className="flex cursor-pointer items-center gap-2 text-[10px] text-muted">
+              <input
+                type="checkbox"
+                className="h-3 w-3 accent-accent"
+                checked={soloZona}
+                onChange={(e) => setSoloZona(e.target.checked)}
+              />
+              Solo zona <strong className="text-ink">{zonaSugerida}</strong>
+            </label>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <select
+              className="min-w-0 flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+              value={selMat}
+              onChange={(e) => setSelMat(e.target.value)}>
+              <option value="">Material del inventario...</option>
+              {disponibles.map((m) => (
+                <option key={m.id} value={m.id}>{m.nombre} ({m.unidad})</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min="0"
+              step="any"
+              className="w-20 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
+              placeholder="Cant."
+              value={cantidad}
+              onChange={(e) => setCantidad(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={agregar}
+              disabled={!selMat || !cantidad}
+              className="shrink-0 rounded-paper border-2 border-accent px-2.5 py-1.5 text-xs font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40">
+              + Material
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-[10px] text-muted">No hay más materiales disponibles en inventario.</p>
+      )}
+    </div>
+  );
+}
+
 interface TicketMaterial {
   id: number; ticket_id: number; material_id: number; nombre: string; unidad: string;
   cantidad_requerida: number; stock_actual: number; tipo?: MaterialTipo; notas?: string;
@@ -6518,9 +6796,11 @@ function MaterialesSection({
               {showNuevo && (
                 <div className="mt-2 rounded-paper border-2 border-accent/40 bg-surface p-3 space-y-3">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-accent">Nuevo en catálogo + esta etapa</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="col-span-2">
-                      <label className="mb-1 block text-[10px] font-bold text-muted">Nombre *</label>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start">
+                    <div className="min-w-0 flex-1 space-y-3">
+                  <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 sm:grid-cols-3">
+                    <div className="col-span-2 sm:col-span-3">
+                      <label className={MATERIAL_FORM_LABEL}>Nombre *</label>
                       <input
                         className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm outline-none focus:border-accent"
                         value={nuevoForm.nombre}
@@ -6593,6 +6873,14 @@ function MaterialesSection({
                       className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50">
                       {saving ? "Guardando..." : "✓ Crear y vincular"}
                     </button>
+                  </div>
+                    </div>
+                    <MaterialCalculadora
+                      compact
+                      unidad={nuevoForm.unidad}
+                      fields={["cantidad", "stock_actual"]}
+                      onApply={(field, value) => setNuevoForm((f) => ({ ...f, [field]: value }))}
+                    />
                   </div>
                 </div>
               )}
@@ -7019,21 +7307,23 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
 
     if (editando && nivel >= 2) {
       return (
-        <div key={m.id} className="rounded-paper border-2 border-accent bg-surface-panel p-4 shadow-paper-sm space-y-4">
+        <div key={m.id} className="rounded-paper border-2 border-accent bg-surface-panel p-3 shadow-paper-sm space-y-3 sm:col-span-2 xl:col-span-3">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-extrabold text-accent">✏️ Editar material</h3>
+            <h3 className="text-xs font-extrabold text-accent">✏️ Editar material</h3>
             <button type="button" onClick={() => setEditId(null)}
               className="text-xs font-bold text-muted hover:text-ink">Cancelar</button>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2">
-              <label className="mb-1 block text-xs font-bold text-muted">Nombre *</label>
-              <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+            <div className="min-w-0 flex-1 space-y-3">
+          <div className={MATERIAL_FORM_GRID}>
+            <div className={MATERIAL_FORM_GRID_FULL}>
+              <label className={MATERIAL_FORM_LABEL}>Nombre *</label>
+              <input className={MATERIAL_FORM_INPUT}
                 value={editForm.nombre} onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-muted">Tipo</label>
-              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+              <label className={MATERIAL_FORM_LABEL}>Tipo</label>
+              <select className={MATERIAL_FORM_INPUT}
                 value={editForm.tipo} onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value as MaterialTipo }))}>
                 <option value="materia_prima">🧱 Materia prima</option>
                 <option value="elaborado">✨ Producto elaborado</option>
@@ -7043,59 +7333,63 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-muted">Unidad</label>
-              <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+              <label className={MATERIAL_FORM_LABEL}>Unidad</label>
+              <select className={MATERIAL_FORM_INPUT}
                 value={editForm.unidad} onChange={(e) => setEditForm((f) => ({ ...f, unidad: e.target.value }))}>
-                {["kg","g","mg","L","mL","unidad","m","cm","m²","m³","caja","bolsa","rollo","galón"].map((u) => (
+                {UNIDADES_MATERIAL.map((u) => (
                   <option key={u} value={u}>{u}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-muted">Stock actual</label>
-              <input type="number" min="0" step="any"
-                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+              <label className={MATERIAL_FORM_LABEL}>Stock actual</label>
+              <input type="number" min="0" step="any" className={MATERIAL_FORM_INPUT}
                 value={editForm.stock_actual} onChange={(e) => setEditForm((f) => ({ ...f, stock_actual: e.target.value }))} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-muted">Stock mínimo</label>
-              <input type="number" min="0" step="any"
-                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+              <label className={MATERIAL_FORM_LABEL}>Stock mínimo</label>
+              <input type="number" min="0" step="any" className={MATERIAL_FORM_INPUT}
                 value={editForm.stock_minimo} onChange={(e) => setEditForm((f) => ({ ...f, stock_minimo: e.target.value }))} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-muted">Precio unitario ($)</label>
-              <input type="number" min="0" step="any"
-                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+              <label className={MATERIAL_FORM_LABEL}>Precio unit. ($)</label>
+              <input type="number" min="0" step="any" className={MATERIAL_FORM_INPUT}
                 value={editForm.precio_unitario} onChange={(e) => setEditForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-bold text-muted">Proveedor</label>
-              <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+              <label className={MATERIAL_FORM_LABEL}>Proveedor</label>
+              <input className={MATERIAL_FORM_INPUT}
                 value={editForm.proveedor} onChange={(e) => setEditForm((f) => ({ ...f, proveedor: e.target.value }))} />
             </div>
-            <div className="col-span-2">
-              <label className="mb-1 block text-xs font-bold text-muted">Descripción</label>
-              <textarea rows={2} className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent resize-none"
+            <div className={MATERIAL_FORM_GRID_FULL}>
+              <label className={MATERIAL_FORM_LABEL}>Descripción</label>
+              <textarea rows={1} className={`${MATERIAL_FORM_INPUT} resize-none`}
                 value={editForm.descripcion} onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))} />
             </div>
-            <div className="col-span-2">
-              <label className="mb-1 block text-xs font-bold text-muted">Zonas de trabajo</label>
-              <ZonasPicker zonas={zonas} selected={editZonaIds} onChange={setEditZonaIds} />
+            <div className={MATERIAL_FORM_GRID_FULL}>
+              <label className={MATERIAL_FORM_LABEL}>Zonas de trabajo</label>
+              <ZonasPicker compact zonas={zonas} selected={editZonaIds} onChange={setEditZonaIds} />
             </div>
           </div>
           {editForm.tipo === "elaborado" && (
-            <p className="text-xs text-purple-600">El stock también puede actualizarse al completar la misión vinculada.</p>
+            <p className="text-[10px] text-purple-600">El stock también puede actualizarse al completar la misión vinculada.</p>
           )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setEditId(null)}
-              className="rounded-paper border-2 border-border px-4 py-2 text-xs font-bold text-muted hover:bg-surface-hover">
+              className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:bg-surface-hover">
               Cancelar
             </button>
             <button type="button" onClick={guardarEdicion} disabled={saving || !editForm.nombre.trim()}
-              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50">
+              className="rounded-paper border-2 border-accent bg-accent px-4 py-1.5 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50">
               {saving ? "Guardando..." : "✓ Guardar cambios"}
             </button>
+          </div>
+            </div>
+            <MaterialCalculadora
+              compact
+              unidad={editForm.unidad}
+              onApply={(field, value) => setEditForm((f) => ({ ...f, [field]: value }))}
+            />
           </div>
         </div>
       );
@@ -7104,36 +7398,37 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
     const seleccionado = selectedIds.has(m.id);
 
     return (
-      <div key={m.id} className={`rounded-paper border-2 bg-surface-panel p-4 shadow-paper-sm ${bajo ? "border-red-300" : seleccionado ? "border-accent/60 ring-1 ring-accent/30" : "border-border"}`}>
-        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+      <div key={m.id} className={`rounded-paper border-2 bg-surface-panel p-2.5 sm:p-3 shadow-paper-sm ${bajo ? "border-red-300" : seleccionado ? "border-accent/60 ring-1 ring-accent/30" : "border-border"}`}>
+        <div className="flex items-start gap-2">
           {canManageStock && (
             <label className="flex shrink-0 cursor-pointer items-center pt-0.5" title="Seleccionar para eliminar">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded border-border accent-accent"
+                className="h-3.5 w-3.5 rounded border-border accent-accent"
                 checked={seleccionado}
                 onChange={() => toggleSelect(m.id)}
               />
             </label>
           )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              {bajo && <span className="text-sm">{m.stock_actual <= 0 ? "🔴" : "🟡"}</span>}
-              <p className="font-bold text-sm text-ink">{m.nombre}</p>
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              {bajo && <span className="text-xs">{m.stock_actual <= 0 ? "🔴" : "🟡"}</span>}
+              <p className="truncate text-sm font-bold text-ink">{m.nombre}</p>
               <BadgeTipoMaterial tipo={m.tipo} />
+              <span className={`ml-auto text-sm font-black tabular-nums ${bajo ? "text-red-600" : "text-ink"}`}>
+                {m.stock_actual} <span className="text-[10px] font-normal text-muted">{m.unidad}</span>
+              </span>
             </div>
-            <div className="mt-1"><BadgesZonas zonas={m.zonas} compact /></div>
-            {m.proveedor && <p className="text-xs text-muted">Proveedor: {m.proveedor}</p>}
-            {m.descripcion && <p className="text-xs text-muted line-clamp-2">{m.descripcion}</p>}
-            {m.tipo === "elaborado" && <p className="text-xs text-purple-600">Producido internamente</p>}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted">
+              <BadgesZonas zonas={m.zonas} compact />
+              {m.stock_minimo > 0 && <span>Mín: {m.stock_minimo}</span>}
+              {m.proveedor && <span className="max-w-[8rem] truncate">· {m.proveedor}</span>}
+              {m.precio_unitario > 0 && <span>${m.precio_unitario.toLocaleString("es-CO")}/{m.unidad}</span>}
+              {m.tipo === "elaborado" && <span className="text-purple-600">Elaborado</span>}
+            </div>
+            {m.descripcion && <p className="text-[10px] text-muted line-clamp-1">{m.descripcion}</p>}
           </div>
-          <div className="flex items-start gap-2 shrink-0">
-            <div className="text-right">
-              <p className={`text-lg font-black ${bajo ? "text-red-600" : "text-ink"}`}>
-                {m.stock_actual} <span className="text-sm font-normal text-muted">{m.unidad}</span>
-              </p>
-              {m.stock_minimo > 0 && <p className="text-xs text-muted">Mín: {m.stock_minimo} {m.unidad}</p>}
-            </div>
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
               onClick={() => agregarMaterialAlCarrito(m)}
@@ -7176,17 +7471,19 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
   }
 
   const formNuevoMaterial = (
-    <div className="rounded-paper border-2 border-accent/50 bg-surface-panel p-5 space-y-4">
-      <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Nuevo material o insumo</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Nombre *</label>
-          <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+    <div className="rounded-paper border-2 border-accent/50 bg-surface-panel p-3 sm:p-4">
+      <h3 className="mb-3 text-xs font-extrabold uppercase tracking-wide text-muted">Nuevo material o insumo</h3>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1 space-y-3">
+      <div className={MATERIAL_FORM_GRID}>
+        <div className={MATERIAL_FORM_GRID_FULL}>
+          <label className={MATERIAL_FORM_LABEL}>Nombre *</label>
+          <input className={MATERIAL_FORM_INPUT}
             value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} autoFocus />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Tipo</label>
-          <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+          <label className={MATERIAL_FORM_LABEL}>Tipo</label>
+          <select className={MATERIAL_FORM_INPUT}
             value={form.tipo} onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}>
             <option value="materia_prima">🧱 Materia prima</option>
             <option value="elaborado">✨ Producto elaborado</option>
@@ -7196,8 +7493,8 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Unidad</label>
-          <select className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+          <label className={MATERIAL_FORM_LABEL}>Unidad</label>
+          <select className={MATERIAL_FORM_INPUT}
             value={form.unidad} onChange={(e) => setForm((f) => ({ ...f, unidad: e.target.value }))}>
             {UNIDADES_MATERIAL.map((u) => (
               <option key={u} value={u}>{u}</option>
@@ -7205,36 +7502,36 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Stock inicial</label>
+          <label className={MATERIAL_FORM_LABEL}>Stock inicial</label>
           <input type="number" min="0" step="any"
-            className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+            className={MATERIAL_FORM_INPUT}
             value={form.stock_actual} onChange={(e) => setForm((f) => ({ ...f, stock_actual: e.target.value }))} />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Stock mínimo (alerta)</label>
+          <label className={MATERIAL_FORM_LABEL}>Stock mínimo</label>
           <input type="number" min="0" step="any"
-            className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+            className={MATERIAL_FORM_INPUT}
             value={form.stock_minimo} onChange={(e) => setForm((f) => ({ ...f, stock_minimo: e.target.value }))} />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Precio unitario ($)</label>
+          <label className={MATERIAL_FORM_LABEL}>Precio unit. ($)</label>
           <input type="number" min="0" step="any"
-            className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+            className={MATERIAL_FORM_INPUT}
             value={form.precio_unitario} onChange={(e) => setForm((f) => ({ ...f, precio_unitario: e.target.value }))} />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Proveedor</label>
-          <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
+          <label className={MATERIAL_FORM_LABEL}>Proveedor</label>
+          <input className={MATERIAL_FORM_INPUT}
             value={form.proveedor} onChange={(e) => setForm((f) => ({ ...f, proveedor: e.target.value }))} />
         </div>
-        <div className="col-span-2">
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Descripción</label>
-          <textarea rows={2} className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent resize-none"
+        <div className={MATERIAL_FORM_GRID_FULL}>
+          <label className={MATERIAL_FORM_LABEL}>Descripción</label>
+          <textarea rows={1} className={`${MATERIAL_FORM_INPUT} resize-none`}
             value={form.descripcion} onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))} />
         </div>
-        <div className="col-span-2">
-          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Zonas de trabajo</label>
-          <ZonasPicker zonas={zonas} selected={formZonaIds} onChange={setFormZonaIds} />
+        <div className={MATERIAL_FORM_GRID_FULL}>
+          <label className={MATERIAL_FORM_LABEL}>Zonas de trabajo</label>
+          <ZonasPicker compact zonas={zonas} selected={formZonaIds} onChange={setFormZonaIds} />
         </div>
       </div>
       <div className="flex justify-end gap-2">
@@ -7246,6 +7543,12 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
           className="rounded-paper border-2 border-accent bg-accent px-6 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover disabled:opacity-50">
           {saving ? "Guardando..." : "Crear material"}
         </button>
+      </div>
+        </div>
+        <MaterialCalculadora
+          unidad={form.unidad}
+          onApply={(field, value) => setForm((f) => ({ ...f, [field]: value }))}
+        />
       </div>
     </div>
   );
@@ -7467,7 +7770,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
                     {reinoAbierto && (
                       <div className="quest-inventario-grupo-body space-y-2">
                         {reino.materiales.length > 0 && (
-                          <div className="quest-inventario-grupo-items space-y-2 border-b border-border/50 pb-2">
+                          <div className="quest-inventario-grupo-items grid gap-2 sm:grid-cols-2 xl:grid-cols-3 border-b border-border/50 pb-2">
                             <p className="px-1 text-[10px] font-bold uppercase tracking-wide text-muted">General del reino</p>
                             {reino.materiales.map((m) => renderInventarioMaterial(m, rKey))}
                           </div>
@@ -7502,7 +7805,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
                                 <span className="quest-inventario-grupo-count shrink-0 tabular-nums">{zona.materiales.length}</span>
                               </button>
                               {zonaAbierta && (
-                                <div className="quest-inventario-grupo-items space-y-2">
+                                <div className="quest-inventario-grupo-items grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                                   {zona.materiales.map((m) => renderInventarioMaterial(m, zKey))}
                                 </div>
                               )}
@@ -7541,7 +7844,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
                       <span className="quest-inventario-grupo-count shrink-0 tabular-nums">{arbolInventario.sinUbicacion.length}</span>
                     </button>
                     {abierto && (
-                      <div className="quest-inventario-grupo-items space-y-2">
+                      <div className="quest-inventario-grupo-items grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                         {arbolInventario.sinUbicacion.map((m) => renderInventarioMaterial(m, gKey))}
                       </div>
                     )}
@@ -7576,9 +7879,10 @@ function CreateMisionView({
     subzonaId: number | "";
     departamentoId: number | "";
   }>({ reinoId: "", zonaId: "", subzonaId: "", departamentoId: "" });
-  const [etapas, setEtapas] = useState<EtapaDraft[]>([{ titulo: "", descripcion: "", pasos: [], frecuencia: "" }]);
+  const [etapas, setEtapas] = useState<EtapaDraft[]>([{ titulo: "", descripcion: "", pasos: [], frecuencia: "", materiales: [] }]);
   const [asignaciones, setAsignaciones] = useState<Record<number, string>>({});
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
+  const [catalogoMateriales, setCatalogoMateriales] = useState<Material[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [todasMisiones, setTodasMisiones] = useState<Mision[]>([]);
@@ -7595,6 +7899,7 @@ function CreateMisionView({
     tapi("/misiones/", token).then(setTodasMisiones).catch(() => {});
     tapi("/recetas", token).then(setTodasRecetas).catch(() => {});
     tapi("/zonas-trabajo", token).then(setZonasCat).catch(() => {});
+    tapi("/materiales", token).then(setCatalogoMateriales).catch(() => {});
     try {
       const raw = sessionStorage.getItem(MISION_DRAFT_KEY);
       if (!raw) return;
@@ -7642,7 +7947,7 @@ function CreateMisionView({
   }
 
   function addEtapa() {
-    setEtapas((e) => [...e, { titulo: "", descripcion: "", pasos: [], frecuencia: "" }]);
+    setEtapas((e) => [...e, { titulo: "", descripcion: "", pasos: [], frecuencia: "", materiales: [] }]);
   }
   function setEtapaFrecuencia(i: number, v: string) {
     setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, frecuencia: v } : et));
@@ -7664,6 +7969,9 @@ function CreateMisionView({
   }
   function setEtapaPasos(i: number, pasos: PasoDraft[]) {
     setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, pasos } : et));
+  }
+  function setEtapaMateriales(i: number, materiales: MaterialDraft[]) {
+    setEtapas((e) => e.map((et, idx) => idx === i ? { ...et, materiales } : et));
   }
 
   function guardarBorrador() {
@@ -7721,6 +8029,7 @@ function CreateMisionView({
             descripcion: e.descripcion,
             pasos: pasoDraftsToApi(e.pasos),
             frecuencia: e.frecuencia || null,
+            materiales: materialesDraftToApi(e.materiales || []),
           })),
           asignaciones: asignacionesPorOrden,
         }),
@@ -7924,8 +8233,10 @@ function CreateMisionView({
                   </h3>
                   <p className="mt-0.5 text-xs text-muted">
                     {isSecuencial
-                      ? "En columna: cada uno desbloquea el siguiente"
-                      : "En grilla: todos activos al mismo tiempo"}
+                      ? "Secuencial: cada ticket desbloquea el siguiente"
+                      : "Paralelo: todos activos al mismo tiempo"}
+                    {" · "}
+                    Arrastra con ⠿ y redimensiona desde la esquina.
                   </p>
                 </div>
                 <button type="button" onClick={addEtapa}
@@ -7934,90 +8245,34 @@ function CreateMisionView({
                 </button>
               </div>
 
-              <div
-                className={
-                  isSecuencial
-                    ? "space-y-2"
-                    : "grid gap-3 sm:grid-cols-2 2xl:grid-cols-3"
-                }
+              <QuestBoardStickyCanvas
+                sectionKey={MISION_DRAFT_ETAPAS_SECTION}
+                itemCount={etapas.length}
               >
-                {etapas.map((et, i) => (
-                  <div key={i} className={isSecuencial ? "relative" : ""}>
-                    <div
-                      className="rounded-paper border-2 border-border bg-surface p-3 h-full"
-                      style={!isSecuencial ? { borderTopColor: form.color, borderTopWidth: 3 } : undefined}
-                    >
-                      <div className="mb-2 flex items-start justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-                            style={{ background: form.color }}
-                          >
-                            {i + 1}
-                          </span>
-                          {isSecuencial && i > 0 && (
-                            <span className="text-[10px] font-semibold text-muted">🔒 tras #{i}</span>
-                          )}
-                          {!isSecuencial && (
-                            <span className="text-[10px] font-semibold text-muted">⚡ activo</span>
-                          )}
-                        </div>
-                        {etapas.length > 1 && (
-                          <button type="button" onClick={() => removeEtapa(i)}
-                            className="text-[10px] font-bold text-muted hover:text-danger shrink-0">
-                            ✕
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid gap-2 lg:grid-cols-2">
-                        <input
-                          className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent lg:col-span-2"
-                          placeholder={`Título ticket ${i + 1} *`}
-                          value={et.titulo}
-                          onChange={(e) => setEtapa(i, "titulo", e.target.value)}
-                        />
-                        <input
-                          className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
-                          placeholder="Descripción (opc.)"
-                          value={et.descripcion}
-                          onChange={(e) => setEtapa(i, "descripcion", e.target.value)}
-                        />
-                        <select
-                          value={asignaciones[i + 1] || ""}
-                          onChange={(e) => setAsignaciones((a) => ({ ...a, [i + 1]: e.target.value }))}
-                          className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-xs text-ink outline-none focus:border-accent"
-                        >
-                          <option value="">👤 Sin asignar</option>
-                          {usuarios.map((u) => (
-                            <option key={u.id} value={u.id}>{u.nombre}</option>
-                          ))}
-                        </select>
-                        <PasosDraftEditor
-                          pasos={et.pasos}
-                          onChange={(pasos) => setEtapaPasos(i, pasos)}
-                        />
-                        {form.modo_ciclo === "infinita" && (
-                          <div className="lg:col-span-2">
-                            <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
-                              Cada cuánto se repite este ticket (opcional)
-                            </label>
-                            <SelectFrecuencia
-                              value={et.frecuencia || ""}
-                              onChange={(v) => setEtapaFrecuencia(i, v)}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    {isSecuencial && i < etapas.length - 1 && (
-                      <div className="flex justify-center py-0.5">
-                        <div className="h-3 w-0.5 rounded-full opacity-40" style={{ background: form.color }} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                <CreateMisionEtapaFrames
+                  etapas={etapas}
+                  isSecuencial={isSecuencial}
+                  formColor={form.color}
+                  modoCicloInfinita={form.modo_ciclo === "infinita"}
+                  asignaciones={asignaciones}
+                  usuarios={usuarios}
+                  onRemove={removeEtapa}
+                  onEtapaTitulo={(i, v) => setEtapa(i, "titulo", v)}
+                  onEtapaDesc={(i, v) => setEtapa(i, "descripcion", v)}
+                  onAsignacion={(orden, userId) =>
+                    setAsignaciones((a) => ({ ...a, [orden]: userId }))
+                  }
+                  onEtapaPasos={(i, pasos) => setEtapaPasos(i, pasos)}
+                  onEtapaFrecuencia={(i, v) => setEtapaFrecuencia(i, v)}
+                  onEtapaMateriales={(i, materiales) => setEtapaMateriales(i, materiales)}
+                  catalogoMateriales={catalogoMateriales}
+                  zonaSugerida={
+                    ubicacion.reinoId !== ""
+                      ? zonasCat.find((z) => z.id === ubicacion.reinoId)?.nombre ?? null
+                      : null
+                  }
+                />
+              </QuestBoardStickyCanvas>
             </div>
           </div>
         </div>
@@ -8071,6 +8326,7 @@ function MisionDetailView({
   const [showAddEtapa, setShowAddEtapa] = useState(false);
   const [addForm, setAddForm] = useState({
     titulo: "", descripcion: "", asignado_a: "", pasos: [] as PasoDraft[], frecuencia: "",
+    materiales: [] as MaterialDraft[],
   });
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState("");
@@ -8189,10 +8445,11 @@ function MisionDetailView({
           asignado_a: addForm.asignado_a || null,
           pasos,
           frecuencia: addForm.frecuencia || null,
+          materiales: materialesDraftToApi(addForm.materiales),
         }),
       });
       setMision(updated);
-      setAddForm({ titulo: "", descripcion: "", asignado_a: "", pasos: [], frecuencia: "" });
+      setAddForm({ titulo: "", descripcion: "", asignado_a: "", pasos: [], frecuencia: "", materiales: [] });
       setShowAddEtapa(false);
     } catch (e: any) {
       setAddError(e.message);
@@ -8906,6 +9163,12 @@ function MisionDetailView({
                   pasos={addForm.pasos}
                   onChange={(pasos) => setAddForm((f) => ({ ...f, pasos }))}
                 />
+                <MaterialesDraftEditor
+                  materiales={addForm.materiales}
+                  onChange={(materiales) => setAddForm((f) => ({ ...f, materiales }))}
+                  catalogo={catalogoMateriales}
+                  zonaSugerida={mision.reino_nombre || mision.reino || null}
+                />
                 {misionInfinita && (
                   <div>
                     <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-muted">
@@ -9527,7 +9790,14 @@ export default function TicketsPanel() {
           onCreateMision={goCreateMision}
           onLogout={clear}
         />
-        <InventarioCarritoModal token={token} nivel={nivel} />
+        <InventarioCarritoModal
+          token={token}
+          nivel={nivel}
+          onMisionCreated={(id) => {
+            setBoardRefreshKey((k) => k + 1);
+            goMisionDetail(id);
+          }}
+        />
         {view === "reinos" && (
           <ReinosView
             token={token}
