@@ -1232,28 +1232,7 @@ def obtener_respuesta_ia(
             _guardar_historial_persistente(usuario_id, final_messages)
             return resp_cant, final_messages
 
-    # 1) Gemini primero solo si el canal tiene modelo Gemini asignado
-    respuesta_gemini = None
-    usar_gemini_primero = modelo_canal.startswith("gemini-") and cliente_gemini
-    if usar_gemini_primero:
-        respuesta_gemini = _responder_con_gemini_primario(
-            pregunta=pregunta_para_ia or "",
-            usuario_id=usuario_id,
-            messages=messages,
-            adjuntos=adjuntos,
-            system_prompt=system_prompt_efectivo,
-            modelo_id=modelo_canal,
-        )
-    if respuesta_gemini:
-        final_messages = messages + [{"role": "assistant", "content": respuesta_gemini}]
-        final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
-        _historiales[usuario_id] = final_messages
-        _guardar_historial_persistente(usuario_id, final_messages)
-        if es_web:
-            respuesta_gemini = _sanitizar_respuesta_web_chat(respuesta_gemini)
-        return respuesta_gemini, final_messages
-
-    # 2) Claude (tools/binarios) — primario si el canal usa Claude; fallback si Gemini falló
+    # ── Validaciones de proveedor requerido ──────────────────────────────────
     claude_ok = (
         _permitir_fallback_claude
         or (es_web and _permitir_claude_web_chat)
@@ -1267,7 +1246,7 @@ def obtener_respuesta_ia(
             "Cámbielo en Panel → Chat de Agentes → Canales activos. 🙏",
             [],
         )
-    if not claude_ok:
+    if not claude_ok and not modelo_canal.startswith("gemini-"):
         if es_web:
             return (
                 "Veci, no pude procesar su mensaje en este momento. "
@@ -1280,8 +1259,10 @@ def obtener_respuesta_ia(
             "Por favor intente de nuevo en un momento 🙏",
             [],
         )
-    if not cliente_ia:
-        return "Veci, estamos en mantenimiento temporal. Intente de nuevo en unos minutos 🙏", []
+
+    # ── Despacho vía AgentRun (sistema desacoplado con checkpointing) ────────
+    from app.agent.run import AgentRun
+    from app.agent.llm_router import LLMRouter
 
     log_json(
         "ia_turn_start",
@@ -1289,271 +1270,50 @@ def obtener_respuesta_ia(
         pregunta_chars=len(pregunta or ""),
         adjuntos_n=n_adj,
     )
+    print(f"🗣️  Usuario [{usuario_id}] pregunta: '{pregunta}'")
 
-    def _persistir_historial(msgs: list) -> list:
-        limpio = _sanitizar_turno_usuario_binario(
-            msgs, user_msg_index, usuario_id, (pregunta or "").strip(), n_adj
-        )
-        limpio = limpio[-_MAX_HISTORIAL_PERSISTENTE:]
-        _historiales[usuario_id] = limpio
-        _guardar_historial_persistente(usuario_id, limpio)
-        return limpio
+    router = LLMRouter(
+        canal=canal_efectivo,
+        claude_client=cliente_ia,
+        gemini_client=cliente_gemini,
+        claude_model=modelo_canal if modelo_canal.startswith("claude-") else "claude-sonnet-4-6",
+        gemini_model=modelo_canal if modelo_canal.startswith("gemini-") else "gemini-2.5-pro",
+    )
 
-    MAX_REINTENTOS = 3
+    agent_run = AgentRun(
+        usuario_id=usuario_id,
+        canal=canal_efectivo,
+        router=router,
+        tools_map=_tools_map,
+        tools_schema=_tools_schema,
+        system_prompt=system_prompt_efectivo,
+    )
 
-    MAX_TOOL_ITERS = 20  # evitar loops infinitos de herramientas
+    result = agent_run.execute(
+        pregunta=pregunta or "",
+        messages=messages,
+        adjuntos=adjuntos,
+        user_msg_index=user_msg_index,
+        n_adjuntos=n_adj,
+    )
 
-    for intento in range(MAX_REINTENTOS):
-        try:
-            print(f"🗣️  Usuario [{usuario_id}] pregunta: '{pregunta}'")
-            current_messages = list(messages)
+    # Actualizar caché en RAM y persistir historial
+    if result.messages:
+        _historiales[usuario_id] = result.messages
+        _guardar_historial_persistente(usuario_id, result.messages)
+    elif result.error and any(
+        x in (result.error or "").lower()
+        for x in ("badrequest", "bad_request", "malformed")
+    ):
+        # Historial corrupto — limpiar para evitar ciclos de error
+        _historiales.pop(usuario_id, None)
 
-            # ── Loop de herramientas ──────────────────────────────────────
-            for _iter in range(MAX_TOOL_ITERS):
-                claude_model = (
-                    modelo_canal
-                    if modelo_canal.startswith("claude-")
-                    else "claude-sonnet-4-6"
-                )
-                response = cliente_ia.messages.create(
-                    model=claude_model,
-                    max_tokens=4096,
-                    system=system_prompt_efectivo,
-                    tools=_tools_schema,
-                    messages=current_messages,
-                )
+    # Comando interno BOT_: no retornar texto al canal
+    if (pregunta or "").startswith("BOT_"):
+        return "", result.messages
 
-                print(
-                    f"💰 Tokens Claude — entrada: {response.usage.input_tokens}, "
-                    f"salida: {response.usage.output_tokens}"
-                )
+    salida = result.text or "✅ Tarea ejecutada."
+    if es_web:
+        salida = _sanitizar_respuesta_web_chat(salida)
 
-                if response.stop_reason == "tool_use":
-                    # 1. Guardar el turno del asistente (incluye texto + tool_use)
-                    asst_content = _serializar_content(response.content)
-                    current_messages.append(
-                        {"role": "assistant", "content": asst_content}
-                    )
-
-                    # 2. Ejecutar cada herramienta y recoger resultados
-                    tool_results = []
-                    for block in response.content:
-                        if block.type != "tool_use":
-                            continue
-
-                        tool_name = block.name
-                        tool_input = dict(block.input or {})
-                        if es_web and tool_name == "buscar_producto_completo":
-                            tool_name = "buscar_productos_combo_siigo"
-                            tool_input = {
-                                "consulta": (
-                                    tool_input.get("nombre_producto")
-                                    or tool_input.get("consulta")
-                                    or pregunta_visible
-                                    or ""
-                                )
-                            }
-                        fn = _tools_map.get(tool_name)
-                        print(f"🔧 Herramienta: {tool_name}  args: {tool_input}")
-
-                        if fn:
-                            try:
-                                result = fn(**tool_input)
-                                result_str = str(result)[:8192]
-                                log_json(
-                                    "tool_ok",
-                                    tool=block.name,
-                                    result_chars=len(result_str),
-                                    truncated=len(str(result)) > 8192,
-                                )
-                            except Exception as tool_exc:
-                                result_str = (
-                                    f"[TOOL_ERROR] La herramienta '{block.name}' falló: {tool_exc}. "
-                                    "No asumas que se ejecutó bien; corrige argumentos o informa al usuario."
-                                )
-                                spawn_thread(
-                                    manejar_incidente_autocorreccion,
-                                    kwargs={
-                                        "error": f"ToolError {block.name}: {tool_exc}",
-                                        "contexto": json.dumps(
-                                            block.input, ensure_ascii=False
-                                        )[:2000],
-                                        "origen": "tool_use",
-                                    },
-                                    daemon=True,
-                                )
-                                _log_error(
-                                    f"Tool {block.name} args={block.input}", tool_exc
-                                )
-                                log_json(
-                                    "tool_error",
-                                    tool=block.name,
-                                    error_type=type(tool_exc).__name__,
-                                    error=str(tool_exc)[:500],
-                                )
-                        else:
-                            result_str = (
-                                f"[TOOL_ERROR] Herramienta '{block.name}' no existe en el mapa. "
-                                "Elige otra acción."
-                            )
-                            log_json("tool_missing", tool=block.name)
-
-                        print(f"   ↳ {result_str[:120]}")
-                        tool_results.append(
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": block.id,
-                                "content": result_str,
-                            }
-                        )
-
-                    # 3. Devolver resultados a Claude y continuar
-                    current_messages.append({"role": "user", "content": tool_results})
-
-                elif response.stop_reason == "end_turn":
-                    # Extraer texto final
-                    texto = "".join(
-                        block.text
-                        for block in response.content
-                        if hasattr(block, "text")
-                    )
-
-                    # Actualizar historial persistente del usuario
-                    final_messages = current_messages + [
-                        {
-                            "role": "assistant",
-                            "content": _serializar_content(response.content),
-                        }
-                    ]
-                    limpio = _persistir_historial(final_messages)
-
-                    if not (pregunta or "").startswith("BOT_"):
-                        salida = texto or "✅ Tarea ejecutada en segundo plano."
-                        if es_web:
-                            salida = _sanitizar_respuesta_web_chat(salida)
-                        return salida, limpio
-                    else:
-                        return "", limpio
-
-                elif response.stop_reason == "max_tokens":
-                    # Respuesta cortada por límite de tokens — devolver lo que haya
-                    texto = "".join(
-                        block.text
-                        for block in response.content
-                        if hasattr(block, "text")
-                    )
-                    print(f"⚠️ Respuesta cortada por max_tokens")
-                    final_messages = current_messages + [
-                        {
-                            "role": "assistant",
-                            "content": _serializar_content(response.content),
-                        }
-                    ]
-                    limpio = _persistir_historial(final_messages)
-                    user_text = texto.strip() or (
-                        "Veci, la respuesta se cortó por tamaño. ¿Puede ser más específico? 🙏"
-                    )
-                    if texto.strip():
-                        user_text = (
-                            f"{user_text}\n\n(Ajuste: si falta detalle, pregunte una cosa puntual.)"
-                        )
-                    return user_text, limpio
-
-                else:
-                    print(f"⚠️ stop_reason inesperado: {response.stop_reason}")
-                    limpio = _persistir_historial(current_messages)
-                    return (
-                        "Veci, tuve un problema al completar la respuesta. "
-                        "¿Intenta de nuevo en un momentico? 🙏",
-                        limpio,
-                    )
-            else:
-                print(
-                    f"⚠️ Límite de {MAX_TOOL_ITERS} iteraciones de herramientas alcanzado"
-                )
-                limpio = _persistir_historial(current_messages)
-                return (
-                    "Veci, me quedé a medias usando las herramientas internas. "
-                    "¿Me escribe de nuevo una sola pregunta concreta? 🙏",
-                    limpio,
-                )
-
-        except anthropic.BadRequestError as e:
-            # Esquemas de herramientas inválidos o mensaje malformado
-            _log_error(
-                f"BadRequestError usuario={usuario_id} msg='{(pregunta or '')[:80]}'", e
-            )
-            spawn_thread(
-                manejar_incidente_autocorreccion,
-                kwargs={
-                    "error": f"AnthropicBadRequest: {e}",
-                    "contexto": f"usuario_id={usuario_id} pregunta={(pregunta or '')[:400]}",
-                    "origen": "core_badrequest",
-                },
-                daemon=True,
-            )
-            print(f"❌ Error de request Claude (BadRequest): {e}")
-            # Limpiar historial de este usuario para evitar reenviar mensajes corruptos
-            _historiales.pop(usuario_id, None)
-            return (_mensaje_amigable_badrequest(str(e)), [])
-
-        except anthropic.AuthenticationError as e:
-            _log_error("AuthenticationError — verificar ANTHROPIC_API_KEY", e)
-            spawn_thread(
-                manejar_incidente_autocorreccion,
-                kwargs={
-                    "error": f"AnthropicAuthError: {e}",
-                    "contexto": f"usuario_id={usuario_id}",
-                    "origen": "core_auth",
-                },
-                daemon=True,
-            )
-            print(f"❌ Error de autenticación Claude: {e}")
-            return "Veci, estamos en mantenimiento. Intente en unos minutos 🙏", []
-
-        except Exception as e:
-            error_str = str(e)
-            _log_error(f"Error IA intento={intento + 1} usuario={usuario_id}", e)
-            spawn_thread(
-                manejar_incidente_autocorreccion,
-                kwargs={
-                    "error": f"CoreException {type(e).__name__}: {error_str}",
-                    "contexto": f"usuario_id={usuario_id} pregunta={(pregunta or '')[:400]}",
-                    "origen": "core_general",
-                },
-                daemon=True,
-            )
-            print(
-                f"⚠️ Error IA (intento {intento + 1}/{MAX_REINTENTOS}): {type(e).__name__}: {error_str}"
-            )
-
-            if (
-                "overloaded" in error_str.lower()
-                or "529" in error_str
-                or "503" in error_str
-            ):
-                if intento < MAX_REINTENTOS - 1:
-                    espera = (intento + 1) * 5
-                    print(f"⚠️ Claude sobrecargado — reintento en {espera}s")
-                    _time.sleep(espera)
-                    continue
-                return (
-                    "Veci, tenemos alta demanda en este momento. "
-                    "Por favor escríbanos de nuevo en 2 minutos 🙏",
-                    [],
-                )
-
-            if "429" in error_str or "rate_limit" in error_str.lower():
-                return (
-                    "Veci, estamos atendiendo muchos clientes. "
-                    "Por favor espere un momento y escriba de nuevo 🙏",
-                    [],
-                )
-
-            print(f"❌ Error IA inesperado ({type(e).__name__}): {e}")
-            return (
-                "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
-                [],
-            )
-
-    return "Veci, intente de nuevo en un momento 🙏", []
+    return salida, result.messages
