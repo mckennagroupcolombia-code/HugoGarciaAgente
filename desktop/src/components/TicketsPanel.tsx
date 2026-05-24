@@ -1,9 +1,16 @@
-import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext, type CSSProperties } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useQuestTheme } from "../stores/questTheme";
 import QuestThemeToggle from "./QuestThemeToggle";
 import { QuestBoardTitle, QuestBoardNavLabel, QuestBoardBackLabel } from "./QuestBoardTitle";
 import { useQuestBoardTitle } from "../stores/questBoard";
+import {
+  QuestBoardStickyCanvas,
+  QuestBoardStickyFrame,
+  useBoardCanvasWidth,
+} from "./QuestBoardStickyFrame";
+import { useQuestBoardLayout, BOARD_ROOT_SECTION } from "../stores/questBoardLayout";
+import { Icon, TopicIcon, TopicIconLabel, TOPIC_ICON_PRESETS } from "../icons";
 import RecetasPanel from "./RecetasPanel";
 import { CorridaCronometroBlock, fmtTiempo } from "./Cronometro";
 import {
@@ -432,7 +439,7 @@ function PrerequisitosBlock({
         onClick={() => agregarRef(o.ref)}
         className="flex w-full items-center gap-2 border-b border-border/60 px-3 py-2.5 text-left text-sm transition last:border-b-0 hover:bg-accent/10 disabled:opacity-50"
       >
-        <span className="shrink-0">{o.icono}</span>
+        <TopicIcon value={o.icono} size={18} className="shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-ink truncate">{o.label}</p>
           {o.sub && <p className="text-xs text-muted truncate">{o.sub}</p>}
@@ -444,7 +451,7 @@ function PrerequisitosBlock({
 
   function renderGrupoAgregarPrereq(
     grupoKey: string,
-    tituloGrupo: string,
+    tituloGrupo: ReactNode,
     subtitulo: string,
     opciones: typeof opcionesFlat,
     totalDisponibles: number,
@@ -567,7 +574,7 @@ function PrerequisitosBlock({
                   key={`${dep.tipo ?? "mision"}-${dep.id}`}
                   className="flex items-center gap-2 rounded-paper border border-border bg-surface px-3 py-2"
                 >
-                  <span className="text-sm shrink-0">{dep.tipo === "receta" ? "📖" : "🎯"}</span>
+                  <TopicIcon value={dep.tipo === "receta" ? "📖" : "🎯"} size={16} className="shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-ink truncate">{dep.titulo}</p>
                     <p className="text-xs text-muted truncate">
@@ -650,14 +657,18 @@ function PrerequisitosBlock({
           <div className="space-y-2">
             {renderGrupoAgregarPrereq(
               "prereq-misiones",
-              "🎯 Misiones",
+            <TopicIconLabel value="🎯" size={14} weight="bold">
+              Misiones
+            </TopicIconLabel>,
               "Completar misión antes de iniciar",
               opcionesMisionFiltradas,
               opcionesMision.length,
             )}
             {renderGrupoAgregarPrereq(
               "prereq-recetas",
-              "📖 Recetas",
+              <TopicIconLabel value="📖" size={14} weight="bold">
+                Recetas
+              </TopicIconLabel>,
               "Receta elaborada previamente",
               opcionesRecetaFiltradas,
               opcionesReceta.length,
@@ -1017,7 +1028,8 @@ function CategoriaBadge({ cat }: { cat: string }) {
       <span
         className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
         style={{ background: info.color + "22", color: info.color }}>
-        {info.icono} {info.nombre}
+        <TopicIcon value={info.icono} size={14} className="shrink-0" />
+        {info.nombre}
       </span>
     );
   }
@@ -1499,12 +1511,13 @@ function QuestNavBar({
         <button
           type="button"
           onClick={onCreateMision}
-          className={questNavBtn(view === "crear_mision", "quest-nav-btn--cta")}
+          className={questNavBtn(view === "crear_mision")}
         >
           + Nueva misión
         </button>
         <button type="button" onClick={onInventario} className={`relative ${questNavBtn(view === "inventario")}`}>
-          🧪 Inventario
+          <TopicIcon value="🧪" size={14} weight="duotone" />
+          Inventario
           {bajoStockCount > 0 && (
             <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none shadow-sm">
               {bajoStockCount}
@@ -1512,19 +1525,23 @@ function QuestNavBar({
           )}
         </button>
         <button type="button" onClick={onReinos} className={questNavBtn(view === "reinos")}>
-          🏰 Reinos
+          <TopicIcon value="🏰" size={14} weight="duotone" />
+          Reinos
         </button>
         <button type="button" onClick={onRecetas} className={questNavBtn(view === "recetas")}>
-          📖 Recetas
+          <TopicIcon value="📖" size={14} weight="duotone" />
+          Recetas
         </button>
         <InventarioCarritoNavBtn active={carritoOpen} onOpen={onCarrito} />
         {nivel >= 2 && (
           <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
-            🤝 Aliados
+            <TopicIcon value="🤝" size={14} weight="duotone" />
+            Aliados
           </button>
         )}
         <button type="button" onClick={onPerfil} className={questNavBtn(view === "perfil")}>
-          👤 Perfil
+          <TopicIcon value="👤" size={14} weight="duotone" />
+          Perfil
         </button>
       </div>
       <div className="quest-nav-bar-actions ml-auto flex shrink-0 items-center gap-2">
@@ -1533,11 +1550,9 @@ function QuestNavBar({
           type="button"
           onClick={onLogout}
           title={`Cerrar sesión (${userNombre})`}
-          className={`${questNavBtn(false, "quest-nav-btn--ghost-danger")} max-w-[12rem] truncate text-xs`}
+          className={`${questNavBtn(false)} max-w-[12rem] truncate`}
         >
-          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
+          <Icon name="signOut" size={14} weight="bold" className="shrink-0" />
           <span className="truncate">Salir ({userNombre})</span>
         </button>
       </div>
@@ -1999,7 +2014,9 @@ function ReinosView({
           className="min-w-0 flex-1 text-left text-sm font-semibold text-ink hover:text-accent"
           title="Usar como filtro en tablero/inventario"
         >
-          {icono} {z.nombre}
+          <TopicIconLabel value={icono} size={14} className="font-semibold text-ink hover:text-accent">
+            {z.nombre}
+          </TopicIconLabel>
           <span className="ml-2 text-[10px] font-bold uppercase text-muted">
             {niv === "reino" ? "Reino" : niv === "zona" ? "Zona" : niv === "subzona" ? "Subzona" : "Depto"}
           </span>
@@ -2053,7 +2070,9 @@ function ReinosView({
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold text-ink">🏰 Reinos</h2>
+          <h2 className="text-xl font-extrabold text-ink">
+            <TopicIconLabel value="🏰" size={20} weight="duotone">Reinos</TopicIconLabel>
+          </h2>
           <p className="mt-1 text-xs text-muted">
             Reino → zona → subzona → departamento (labor). Usa ▼ para desplegar cada nivel; clic en el nombre para filtrar tablero e inventario.
           </p>
@@ -2949,7 +2968,9 @@ function MisionUbicacionPicker({
             <option value="">— Elegir —</option>
             {reinos.map((r) => (
               <option key={r.id} value={r.id}>
-                {r.icono || "🏰"} {r.nombre}
+                <TopicIconLabel value={r.icono} fallback="castle" size={14}>
+                  {r.nombre}
+                </TopicIconLabel>
               </option>
             ))}
           </select>
@@ -3124,12 +3145,12 @@ function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="quest-sticky quest-sticky-solo w-full"
+      className="quest-sticky quest-sticky-solo h-full w-full"
       style={{
         transform: `rotate(${rot}deg)`,
         background: dark
           ? `linear-gradient(168deg, ${accent}28 0%, rgb(32 40 42) 50%, rgb(28 36 38) 100%)`
-          : `linear-gradient(168deg, ${accent}32 0%, #fffef8 45%, #fff9e0 100%)`,
+          : `linear-gradient(168deg, ${accent}22 0%, rgb(var(--mck-surface-panel)) 45%, rgb(var(--mck-surface-input)) 100%)`,
       }}
       onMouseEnter={(e) => { e.currentTarget.style.transform = "rotate(0deg) scale(1.02)"; }}
       onMouseLeave={(e) => { e.currentTarget.style.transform = `rotate(${rot}deg)`; }}
@@ -3374,6 +3395,78 @@ function MisionUbicacionResumen({
   );
 }
 
+function MissionTaskStickyItems({
+  group,
+  tickets,
+  isSeq,
+  accent,
+  onSelect,
+}: {
+  group: MisionGroup;
+  tickets: Ticket[];
+  isSeq: boolean;
+  accent: string;
+  onSelect: (id: number) => void;
+}) {
+  const canvasWidth = useBoardCanvasWidth();
+  const sectionKey = `m-${group.mision_id}-tasks`;
+  const done = ["resuelto", "rechazado"];
+
+  return (
+    <>
+      {tickets.map((t, i) => {
+        const prog = ticketEjecucionPct(t);
+        const barColor = prog.pct === 100 ? "#16a34a" : accent;
+        const checklistLbl = etiquetaChecklistTablero(t);
+        const cerrado = done.includes(t.estado);
+        return (
+          <QuestBoardStickyFrame
+            key={t.id}
+            sectionKey={sectionKey}
+            cardKey={`t:${t.id}`}
+            index={i}
+            containerWidth={canvasWidth}
+            variant="task"
+            minAutoH={52}
+          >
+            <button
+              type="button"
+              onClick={() => onSelect(t.id)}
+              className={`quest-sticky-task quest-sticky-task--framed h-full w-full ${cerrado ? "opacity-70" : ""}`}
+            >
+              <div className="flex w-full items-center gap-1.5">
+                <StatusOrb estado={estadoOrbEnTablero(t)} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-bold leading-tight text-ink sm:text-xs">
+                    {t.titulo}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1 text-[9px] text-muted">
+                    <span className="font-mono">{t.numero}</span>
+                    {isSeq && tickets.length > 1 && (
+                      <span>#{tickets.findIndex((x) => x.id === t.id) + 1}</span>
+                    )}
+                  </div>
+                </div>
+                {checklistLbl ? (
+                  <span
+                    className="shrink-0 text-[10px] font-black tabular-nums"
+                    style={{ color: barColor }}
+                  >
+                    {prog.pct}%
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-[10px] font-bold text-muted">—</span>
+                )}
+                <PrioridadDot p={t.prioridad} />
+              </div>
+            </button>
+          </QuestBoardStickyFrame>
+        );
+      })}
+    </>
+  );
+}
+
 function MisionGroupCard({
   group, onSelect, onEditMision, onDeleteMision, onColorChange, canDelete, canEditColor, deleting, token,
 }: {
@@ -3418,7 +3511,7 @@ function MisionGroupCard({
 
   return (
     <article
-      className={`quest-sticky quest-sticky-mission ${compact ? "quest-sticky-mission--compact" : ""}`}
+      className={`quest-sticky quest-sticky-mission h-full w-full min-h-0 ${compact ? "quest-sticky-mission--compact" : ""}`}
       style={stickyStyle}
       onMouseEnter={onStickyEnter}
       onMouseLeave={onStickyLeave}
@@ -3446,7 +3539,7 @@ function MisionGroupCard({
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-xs font-black text-white shadow-sm sm:h-8 sm:w-8"
           style={{ background: c }}
         >
-          {isSeq ? "🔗" : "⚡"}
+          <TopicIcon value={isSeq ? "🔗" : "⚡"} size={14} weight="fill" className="text-white" />
         </div>
         <button
           type="button"
@@ -3513,56 +3606,154 @@ function MisionGroupCard({
       )}
 
       {ticketsEnSticky.length > 0 ? (
-        <div className={`quest-sticky-tasks ${ticketsEnSticky.length > 2 ? "quest-sticky-tasks--grid" : ""}`}>
-          {ticketsEnSticky.map((t) => {
-            const taskRot = compact ? 0 : stickyRotation(t.id) * 0.35;
-            const prog = ticketEjecucionPct(t);
-            const barColor = prog.pct === 100 ? "#16a34a" : c;
-            const checklistLbl = etiquetaChecklistTablero(t);
-            const cerrado = done.includes(t.estado);
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => onSelect(t.id)}
-                className={`quest-sticky-task ${cerrado ? "opacity-70" : ""}`}
-                style={taskRot ? { transform: `rotate(${taskRot}deg)` } : undefined}
-                onMouseEnter={taskRot ? (e) => { e.currentTarget.style.transform = "rotate(0deg)"; } : undefined}
-                onMouseLeave={taskRot ? (e) => { e.currentTarget.style.transform = `rotate(${taskRot}deg)`; } : undefined}
-              >
-                <div className="flex w-full items-center gap-1.5">
-                  <StatusOrb estado={estadoOrbEnTablero(t)} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-bold leading-tight text-ink sm:text-xs">
-                      {t.titulo}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-1 text-[9px] text-muted">
-                      <span className="font-mono">{t.numero}</span>
-                      {isSeq && ticketsEnSticky.length > 1 && (
-                        <span>#{ticketsEnSticky.findIndex((x) => x.id === t.id) + 1}</span>
-                      )}
-                    </div>
-                  </div>
-                  {checklistLbl ? (
-                    <span
-                      className="shrink-0 text-[10px] font-black tabular-nums"
-                      style={{ color: barColor }}
-                    >
-                      {prog.pct}%
-                    </span>
-                  ) : (
-                    <span className="shrink-0 text-[10px] font-bold text-muted">—</span>
-                  )}
-                  <PrioridadDot p={t.prioridad} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <QuestBoardStickyCanvas
+          sectionKey={`m-${group.mision_id}-tasks`}
+          itemCount={ticketsEnSticky.length}
+          variant="task"
+        >
+          <MissionTaskStickyItems
+            group={group}
+            tickets={ticketsEnSticky}
+            isSeq={isSeq}
+            accent={c}
+            onSelect={onSelect}
+          />
+        </QuestBoardStickyCanvas>
       ) : (
         <p className="py-0.5 text-center text-[10px] font-medium text-muted">Sin tickets</p>
       )}
     </article>
+  );
+}
+
+function ReinoBoardStickyItems({
+  section,
+  onSelect,
+  onEditMision,
+  onDeleteMision,
+  onMisionColorChange,
+  canDelete,
+  canEditColor,
+  deletingMisionId,
+  token,
+}: {
+  section: TableroReinoSection;
+  onSelect: (id: number) => void;
+  onEditMision: (id: number) => void;
+  onDeleteMision?: (group: MisionGroup) => void;
+  onMisionColorChange?: (misionId: number, color: string) => void | Promise<void>;
+  canDelete?: boolean;
+  canEditColor?: boolean;
+  deletingMisionId?: number | null;
+  token?: string;
+}) {
+  const canvasWidth = useBoardCanvasWidth();
+  let index = 0;
+
+  return (
+    <>
+      {section.groups.map((group) => {
+        const i = index;
+        index += 1;
+        return (
+          <QuestBoardStickyFrame
+            key={`m-${group.mision_id}`}
+            sectionKey={section.key}
+            cardKey={`m:${group.mision_id}`}
+            index={i}
+            containerWidth={canvasWidth}
+            minAutoH={140}
+          >
+            <MisionGroupCard
+              group={group}
+              onSelect={onSelect}
+              onEditMision={onEditMision}
+              onDeleteMision={onDeleteMision}
+              onColorChange={onMisionColorChange}
+              canDelete={canDelete}
+              canEditColor={canEditColor}
+              token={token}
+              deleting={deletingMisionId === group.mision_id}
+            />
+          </QuestBoardStickyFrame>
+        );
+      })}
+      {section.standalone.map((t) => {
+        const i = index;
+        index += 1;
+        return (
+          <QuestBoardStickyFrame
+            key={`t-${t.id}`}
+            sectionKey={section.key}
+            cardKey={`t:${t.id}`}
+            index={i}
+            containerWidth={canvasWidth}
+            minAutoH={120}
+          >
+            <TicketCard t={t} onClick={() => onSelect(t.id)} />
+          </QuestBoardStickyFrame>
+        );
+      })}
+    </>
+  );
+}
+
+function ReinoBoardRootItems({
+  sections,
+  openTableroSections,
+  onToggleSection,
+  onSelect,
+  onEditMision,
+  onDeleteMision,
+  onMisionColorChange,
+  canDelete,
+  canEditColor,
+  deletingMisionId,
+  token,
+}: {
+  sections: TableroReinoSection[];
+  openTableroSections: Set<string>;
+  onToggleSection: (key: string) => void;
+  onSelect: (id: number) => void;
+  onEditMision: (id: number) => void;
+  onDeleteMision?: (group: MisionGroup) => void;
+  onMisionColorChange?: (misionId: number, color: string) => void | Promise<void>;
+  canDelete?: boolean;
+  canEditColor?: boolean;
+  deletingMisionId?: number | null;
+  token?: string;
+}) {
+  const canvasWidth = useBoardCanvasWidth();
+
+  return (
+    <>
+      {sections.map((section, i) => (
+        <QuestBoardStickyFrame
+          key={section.key}
+          sectionKey={BOARD_ROOT_SECTION}
+          cardKey={`reino:${section.key}`}
+          index={i}
+          containerWidth={canvasWidth}
+          variant="section"
+          minAutoH={200}
+        >
+          <ReinoBoardSectionBlock
+            section={section}
+            isOpen={openTableroSections.has(section.key)}
+            onToggle={() => onToggleSection(section.key)}
+            onSelect={onSelect}
+            onEditMision={onEditMision}
+            onDeleteMision={onDeleteMision}
+            onMisionColorChange={onMisionColorChange}
+            canDelete={canDelete}
+            canEditColor={canEditColor}
+            deletingMisionId={deletingMisionId}
+            token={token}
+            framed
+          />
+        </QuestBoardStickyFrame>
+      ))}
+    </>
   );
 }
 
@@ -3578,6 +3769,7 @@ function ReinoBoardSectionBlock({
   canEditColor,
   deletingMisionId,
   token,
+  framed = false,
 }: {
   section: TableroReinoSection;
   isOpen: boolean;
@@ -3590,6 +3782,7 @@ function ReinoBoardSectionBlock({
   canEditColor?: boolean;
   deletingMisionId?: number | null;
   token?: string;
+  framed?: boolean;
 }) {
   const totalQuests =
     section.groups.reduce((n, g) => n + g.tickets.length, 0) + section.standalone.length;
@@ -3597,7 +3790,7 @@ function ReinoBoardSectionBlock({
 
   return (
     <section
-      className={`quest-board-reino ${isOpen ? "quest-board-reino--open" : ""}`}
+      className={`quest-board-reino ${isOpen ? "quest-board-reino--open" : ""} ${framed ? "quest-board-reino--framed h-full w-full" : ""}`}
       style={{ borderColor: `${section.color}55`, ["--reino-accent" as string]: section.color }}
     >
       <button
@@ -3620,7 +3813,7 @@ function ReinoBoardSectionBlock({
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm shadow-sm"
           style={{ background: section.color, color: "#fff" }}
         >
-          {section.icono || "🏰"}
+          <TopicIcon value={section.icono} fallback="castle" size={16} weight="duotone" />
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-xs font-extrabold uppercase tracking-wide text-ink sm:text-sm">
@@ -3641,25 +3834,22 @@ function ReinoBoardSectionBlock({
             Sin misiones activas en este reino
           </p>
         ) : (
-          <div className="quest-sticky-grid">
-            {section.groups.map((group) => (
-              <MisionGroupCard
-                key={group.mision_id}
-                group={group}
-                onSelect={onSelect}
-                onEditMision={onEditMision}
-                onDeleteMision={onDeleteMision}
-                onColorChange={onMisionColorChange}
-                canDelete={canDelete}
-                canEditColor={canEditColor}
-                token={token}
-                deleting={deletingMisionId === group.mision_id}
-              />
-            ))}
-            {section.standalone.map((t) => (
-              <TicketCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
-            ))}
-          </div>
+          <QuestBoardStickyCanvas
+            sectionKey={section.key}
+            itemCount={section.groups.length + section.standalone.length}
+          >
+            <ReinoBoardStickyItems
+              section={section}
+              onSelect={onSelect}
+              onEditMision={onEditMision}
+              onDeleteMision={onDeleteMision}
+              onMisionColorChange={onMisionColorChange}
+              canDelete={canDelete}
+              canEditColor={canEditColor}
+              deletingMisionId={deletingMisionId}
+              token={token}
+            />
+          </QuestBoardStickyCanvas>
         )}
       </div>
       )}
@@ -3685,6 +3875,7 @@ function TicketListView({
   refreshKey?: number;
 }) {
   const questDark = useQuestTheme((s) => s.dark);
+  const resetBoardLayout = useQuestBoardLayout((s) => s.resetAll);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [zonasReinos, setZonasReinos] = useState<ZonaTrabajo[]>([]);
   const [misionesActivas, setMisionesActivas] = useState<Mision[]>([]);
@@ -3911,7 +4102,7 @@ function TicketListView({
             <span className="font-bold text-accent quest-board-accent-count">{ticketsVisibles.length}</span>
             {" "}quest{ticketsVisibles.length !== 1 ? "s" : ""}
             {scopeActivo && (
-              <span className="ml-1.5 inline-block rounded-full border border-accent/40 bg-accent/10 px-1.5 py-px text-[9px] font-bold text-accent">
+              <span className="ml-1 inline-block rounded-full border border-accent/40 bg-accent/10 px-1 py-px text-[8px] font-bold text-accent">
                 {navScopeLabel(navScope)}
               </span>
             )}
@@ -3930,44 +4121,92 @@ function TicketListView({
                 style={{ borderColor, color: valueColor }}
                 title={s.label}
               >
-                <span className="opacity-70">{s.label.split(" ")[0]}</span>
+                <span className="opacity-70 inline-flex items-center gap-0.5">
+                  <Icon name={s.icon} size={11} weight="duotone" />
+                  {s.label.split(" ")[0]}
+                </span>
                 <span>{val}</span>
               </span>
             );
           })}
         </div>
-        <div className="quest-board-toolbar-filters">
-          <select
-            value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)}
-            className="rounded-lg border-2 border-border bg-surface-input px-2 py-1 text-xs text-ink outline-none focus:border-accent sm:text-sm"
-          >
+        <div className="quest-board-toolbar-actions">
+          {reinoSections.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setOpenTableroSections(new Set(reinoSections.map((s) => s.key)))}
+                className="quest-board-toolbar-btn inline-flex items-center gap-1"
+                title="Expandir todos los reinos"
+              >
+                <Icon name="expand" size={14} weight="bold" />
+                Expandir
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenTableroSections(new Set())}
+                className="quest-board-toolbar-btn inline-flex items-center gap-1"
+                title="Colapsar todos los reinos"
+              >
+                <Icon name="collapse" size={14} weight="bold" />
+                Colapsar
+              </button>
+            </>
+          )}
+          <label className="quest-board-toolbar-select-wrap inline-flex items-center gap-1">
+            <Icon name="funnel" size={14} weight="bold" className="shrink-0 text-muted" aria-hidden />
+            <select
+              value={filtroEstado}
+              onChange={(e) => setFiltroEstado(e.target.value)}
+              className="quest-board-toolbar-select border-0 bg-transparent p-0 focus:ring-0"
+              aria-label="Filtrar por estado"
+            >
             <option value="">Estado</option>
             <option value="pendiente">⏳ Pendiente</option>
             <option value="en_proceso">⚔️ En proceso</option>
             <option value="esperando_aprobacion">🔔 Revisión</option>
             <option value="resuelto">✅ Resuelto</option>
             <option value="rechazado">❌ Rechazado</option>
-          </select>
+            </select>
+          </label>
           <button
             type="button"
             onClick={load}
-            className="rounded-lg border-2 border-border px-2 py-1 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+            className="quest-board-toolbar-btn"
             title="Actualizar"
+            aria-label="Actualizar"
           >
-            ↻
+            <Icon name="refresh" size={14} weight="bold" />
           </button>
           {hasFilters && (
             <button
               type="button"
               onClick={() => setFiltroEstado("")}
-              className="rounded-lg border-2 border-border px-2 py-1 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
+              className="quest-board-toolbar-btn quest-board-toolbar-btn--danger"
+              title="Quitar filtro de estado"
+              aria-label="Quitar filtro"
             >
-              ✕
+              <Icon name="close" size={14} weight="bold" />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("¿Restablecer posición y tamaño de todos los tableros del tablero?")) {
+                resetBoardLayout();
+              }
+            }}
+            className="quest-board-toolbar-btn"
+            title="Volver a la disposición automática"
+            aria-label="Restablecer disposición"
+          >
+            <Icon name="gridReset" size={14} weight="bold" />
+          </button>
         </div>
         </div>
+        <p className="quest-board-toolbar-hint">
+          Arrastra con ⠿ y redimensiona desde la esquina: reinos, misiones y etapas. Se guarda en este navegador.
+        </p>
       </div>
 
       {/* List */}
@@ -3987,31 +4226,15 @@ function TicketListView({
         </div>
       ) : (
         <div className="quest-board-by-reinos">
-          {reinoSections.length > 1 && (
-            <div className="flex flex-wrap justify-end gap-1.5">
-              <button
-                type="button"
-                onClick={() => setOpenTableroSections(new Set(reinoSections.map((s) => s.key)))}
-                className="rounded-lg border border-border px-2 py-0.5 text-[10px] font-bold text-muted hover:border-accent hover:text-accent"
-              >
-                Expandir todo
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpenTableroSections(new Set())}
-                className="rounded-lg border border-border px-2 py-0.5 text-[10px] font-bold text-muted hover:border-accent hover:text-accent"
-              >
-                Colapsar todo
-              </button>
-            </div>
-          )}
-          {reinoSections.map((section) => (
-            <ReinoBoardSectionBlock
-              key={section.key}
-              section={section}
-              isOpen={openTableroSections.has(section.key)}
-              onToggle={() => toggleTableroSection(section.key)}
-              token={token}
+          <QuestBoardStickyCanvas
+            sectionKey={BOARD_ROOT_SECTION}
+            itemCount={reinoSections.length}
+            variant="section"
+          >
+            <ReinoBoardRootItems
+              sections={reinoSections}
+              openTableroSections={openTableroSections}
+              onToggleSection={toggleTableroSection}
               onSelect={onSelect}
               onEditMision={onEditMision}
               onDeleteMision={canDeleteMision ? handleDeleteMision : undefined}
@@ -4019,8 +4242,9 @@ function TicketListView({
               canDelete={canDeleteMision}
               canEditColor={canEditMisionColor}
               deletingMisionId={deletingMisionId}
+              token={token}
             />
-          ))}
+          </QuestBoardStickyCanvas>
         </div>
       )}
     </div>
@@ -4802,10 +5026,27 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-bold text-muted">Ícono (emoji)</label>
+                <label className="mb-1 block text-xs font-bold text-muted">Ícono</label>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {TOPIC_ICON_PRESETS.map((p) => (
+                    <button
+                      key={p.emoji}
+                      type="button"
+                      title={p.label}
+                      onClick={() => setCatForm((f) => ({ ...f, icono: p.emoji }))}
+                      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border-2 transition ${
+                        catForm.icono === p.emoji
+                          ? "border-accent bg-accent/15"
+                          : "border-border bg-surface-input hover:border-accent/50"
+                      }`}
+                    >
+                      <TopicIcon value={p.emoji} size={16} weight="duotone" />
+                    </button>
+                  ))}
+                </div>
                 <input
                   className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                  placeholder="ej: 🏭"
+                  placeholder="Emoji o ícono personalizado"
                   value={catForm.icono}
                   onChange={(e) => setCatForm((f) => ({ ...f, icono: e.target.value }))}
                   maxLength={4}
@@ -4821,7 +5062,8 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                   {catForm.slug && catForm.nombre && (
                     <span className="ml-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
                       style={{ background: catForm.color + "22", color: catForm.color }}>
-                      {catForm.icono} {catForm.nombre}
+                      <TopicIcon value={catForm.icono} size={14} className="shrink-0" />
+                      {catForm.nombre}
                     </span>
                   )}
                 </div>
@@ -4840,9 +5082,11 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
             {categorias.map((c) => (
               <div key={c.slug} className="flex items-center justify-between rounded-paper border-2 border-border bg-surface p-3">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
-                    style={{ background: c.color + "22" }}>
-                    {c.icono}
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                    style={{ background: c.color + "22", color: c.color }}
+                  >
+                    <TopicIcon value={c.icono} size={20} weight="duotone" />
                   </span>
                   <div>
                     <p className="text-sm font-bold text-ink">{c.nombre}</p>
@@ -4850,7 +5094,8 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
                     style={{ background: c.color + "22", color: c.color }}>
-                    {c.icono} {c.nombre}
+                    <TopicIcon value={c.icono} size={14} className="shrink-0" />
+                    {c.nombre}
                   </span>
                 </div>
                 {!["rrhh", "logistica", "mantenimiento"].includes(c.slug) && (
@@ -5832,12 +6077,18 @@ function emptyNuevoMaterialForm() {
   return { nombre: "", tipo: "consumibles" as MaterialTipo, unidad: "unidad", cantidad: "", stock_actual: "0", notas: "" };
 }
 
-function materialTipoPrefix(tipo?: string) {
-  if (tipo === "elaborado") return "✨ ";
-  if (tipo === "consumibles") return "📦 ";
-  if (tipo === "repuestos") return "🔩 ";
-  if (tipo === "herramientas") return "🔧 ";
-  return "";
+function materialTipoEmoji(tipo?: string): string | null {
+  if (tipo === "elaborado") return "✨";
+  if (tipo === "consumibles") return "📦";
+  if (tipo === "repuestos") return "🔩";
+  if (tipo === "herramientas") return "🔧";
+  return null;
+}
+
+function MaterialTipoIcon({ tipo, size = 12 }: { tipo?: string; size?: number }) {
+  const emoji = materialTipoEmoji(tipo);
+  if (!emoji) return null;
+  return <TopicIcon value={emoji} size={size} weight="duotone" className="shrink-0" />;
 }
 
 function BadgeTipoMaterial({ tipo }: { tipo?: string }) {
@@ -5845,7 +6096,8 @@ function BadgeTipoMaterial({ tipo }: { tipo?: string }) {
   const cfg = TIPO_MATERIAL_BADGE[tipo];
   if (!cfg) return null;
   return (
-    <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${cfg.className}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${cfg.className}`}>
+      <TopicIcon value={cfg.emoji} size={10} weight="duotone" />
       {cfg.label}
     </span>
   );
@@ -6233,7 +6485,10 @@ function MaterialesSection({
                   <option value="">Seleccionar material...</option>
                   {disponibles.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {materialTipoPrefix(m.tipo)}{m.nombre} ({m.unidad})
+                      <span className="inline-flex items-center gap-1">
+                        <MaterialTipoIcon tipo={m.tipo} />
+                        {m.nombre} ({m.unidad})
+                      </span>
                       {m.zonas?.length ? ` — ${m.zonas.map((z) => zonaLabel(z)).join(", ")}` : ""}
                     </option>
                   ))}
@@ -8331,7 +8586,7 @@ function MisionDetailView({
                     className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-purple-400 dark:focus:border-purple-400">
                     <option value="">Seleccionar producto del catálogo...</option>
                     {disponiblesProd.map((m) => (
-                      <option key={m.id} value={m.id}>{materialTipoPrefix(m.tipo)}{m.nombre} ({m.unidad})</option>
+                      <option key={m.id} value={m.id}>{m.nombre} ({m.unidad})</option>
                     ))}
                   </select>
                   <button

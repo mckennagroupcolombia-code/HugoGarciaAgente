@@ -143,12 +143,15 @@
   .quest-nav-btn {
     @apply inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-xs font-bold;
     border-color: rgb(var(--mck-border));
-    color: rgb(var(--mck-muted));
+    color: rgb(var(--mck-ink-secondary));
     background: rgb(var(--mck-surface-panel) / 0.75);
     transition:
       border-color 0.15s ease,
       color 0.15s ease,
       background-color 0.15s ease;
+  }
+  .quest-nav-btn svg {
+    color: inherit;
   }
   .quest-nav-btn:hover {
     border-color: rgb(var(--mck-accent));
@@ -162,39 +165,16 @@
   .quest-nav-btn--active {
     border-color: rgb(var(--mck-accent));
     color: rgb(var(--mck-accent));
-    background: rgb(var(--mck-accent) / 0.15);
-    box-shadow: 0 0 12px 0 rgb(var(--mck-accent) / 0.2);
+    background: rgb(var(--mck-accent) / 0.12);
+    box-shadow: 0 0 12px 0 rgb(var(--mck-accent) / 0.18);
   }
   .quest-nav-btn--active:hover {
-    background: rgb(var(--mck-accent) / 0.22);
-  }
-  .quest-nav-btn--cta {
-    border-color: rgb(var(--mck-accent));
-    background: rgb(var(--mck-accent));
-    color: #fff;
-  }
-  .quest-nav-btn--cta:hover {
-    background: rgb(var(--mck-accent-hover));
-    color: #fff;
-  }
-  .quest-nav-btn--cta.quest-nav-btn--active {
-    box-shadow: 0 0 16px 0 rgb(var(--mck-accent) / 0.45);
-  }
-  .quest-nav-btn--ghost-danger:hover {
-    border-color: rgb(var(--mck-danger));
-    color: rgb(var(--mck-danger));
-  }
-
-  @font-face {
-    font-family: "History Wonder";
-    src: url("https://db.onlinewebfonts.com/t/24d2fb6a22541d115b0347b025c9792e.woff2") format("woff2");
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
+    background: rgb(var(--mck-accent) / 0.18);
+    color: rgb(var(--mck-accent));
   }
 
   .quest-board-toolbar {
-    @apply flex flex-col gap-3 rounded-paper border-2 border-border bg-surface-panel/80 px-3 py-3 sm:px-4 sm:py-4;
+    @apply flex flex-col gap-2 rounded-paper border-2 border-border bg-surface-panel/80 px-2.5 py-2.5 sm:px-3 sm:py-3;
   }
   .dark .quest-board-toolbar {
     background: linear-gradient(
@@ -210,11 +190,11 @@
   }
 
   .quest-board-kimdom-title {
-    font-family: "History Wonder", Georgia, "Times New Roman", serif;
-    font-size: clamp(2.75rem, 7vw, 4.25rem);
-    font-weight: 400;
-    line-height: 1;
-    letter-spacing: 0.06em;
+    font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    font-size: clamp(1.65rem, 4vw, 2.35rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0.03em;
     @apply text-ink;
     text-transform: uppercase;
   }
@@ -225,14 +205,15 @@
     @apply opacity-90;
   }
   .quest-board-kimdom-title--edit {
-    @apply w-full max-w-md border-b-2 border-accent bg-transparent text-center outline-none;
-    font-family: "History Wonder", Georgia, "Times New Roman", serif;
-    font-size: clamp(2rem, 6vw, 3.5rem);
-    letter-spacing: 0.06em;
+    @apply w-full max-w-sm border-b-2 border-accent bg-transparent text-center outline-none;
+    font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    font-size: clamp(1.35rem, 3.5vw, 2rem);
+    font-weight: 700;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
   }
   .quest-board-kimdom-edit-hint {
-    @apply ml-2 inline-block align-middle text-base opacity-0 transition-opacity;
+    @apply ml-1.5 inline-block align-middle text-xs opacity-0 transition-opacity;
     font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
     text-transform: none;
   }
@@ -249,11 +230,11 @@
   }
 
   .quest-board-kimdom-sub {
-    @apply mt-2 text-[11px] leading-snug text-muted;
+    @apply mt-1 text-[10px] leading-snug text-muted;
   }
 
   .quest-board-toolbar-row {
-    @apply flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between;
+    @apply flex w-full flex-col gap-1.5 border-t border-border/50 pt-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between;
   }
 
   .quest-board-toolbar-title {
@@ -261,11 +242,39 @@
   }
 
   .quest-board-toolbar-stats {
-    @apply flex flex-wrap items-center gap-1.5;
+    @apply flex flex-wrap items-center gap-1;
   }
 
   .quest-board-stat-pill {
-    @apply inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold tabular-nums;
+    @apply inline-flex items-center gap-0.5 rounded-full border px-1.5 py-px text-[9px] font-bold tabular-nums;
+  }
+
+  .quest-board-toolbar-actions {
+    @apply flex flex-wrap items-center justify-center gap-1 sm:ml-auto sm:justify-end;
+  }
+
+  .quest-board-toolbar-btn {
+    @apply inline-flex items-center rounded-lg border-2 border-border bg-surface-input px-1.5 py-0.5 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent;
+  }
+
+  .quest-board-toolbar-btn--danger:hover {
+    @apply border-danger text-danger;
+  }
+
+  .quest-board-toolbar-select {
+    @apply min-w-0 text-[10px] font-bold text-ink outline-none focus:border-accent sm:text-xs;
+  }
+
+  .quest-board-toolbar-select-wrap {
+    @apply rounded-lg border-2 border-border bg-surface-input px-1.5 py-0.5;
+  }
+
+  .quest-board-toolbar-select-wrap:focus-within {
+    border-color: rgb(var(--mck-accent));
+  }
+
+  .quest-board-toolbar-hint {
+    @apply border-t border-border/40 pt-1.5 text-center text-[9px] leading-snug text-muted;
   }
 
   .quest-board-toolbar-filters {
@@ -459,13 +468,13 @@
   }
   .quest-board-cork {
     @apply rounded-2xl border-2 p-3 sm:p-4;
-    border-color: rgba(139, 119, 88, 0.4);
-    background-color: #d4c4a8;
+    border-color: rgb(var(--mck-border) / 0.55);
+    background-color: rgb(var(--mck-surface-panel));
     background-image:
-      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(255, 255, 255, 0.2), transparent),
-      radial-gradient(circle, rgba(60, 45, 30, 0.06) 1px, transparent 1px);
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgb(var(--mck-accent) / 0.08), transparent),
+      radial-gradient(circle, rgb(var(--mck-border) / 0.22) 1px, transparent 1px);
     background-size: 100% 100%, 22px 22px;
-    box-shadow: inset 0 2px 8px rgba(60, 45, 30, 0.12);
+    box-shadow: inset 0 1px 0 rgb(var(--mck-border) / 0.35);
   }
   .quest-canvas.dark .quest-board-cork {
     border-color: rgb(var(--mck-border) / 0.45);
@@ -497,6 +506,143 @@
       gap: 1rem;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     }
+  }
+
+  .quest-sticky-canvas {
+    position: relative;
+    width: 100%;
+    min-height: 280px;
+    touch-action: none;
+  }
+  .quest-sticky-canvas--section {
+    min-height: 360px;
+  }
+  .quest-sticky-canvas--task {
+    min-height: 120px;
+  }
+
+  .quest-sticky-frame {
+    position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+  }
+  .quest-sticky-frame--active {
+    z-index: 40;
+    outline: 2px solid rgb(var(--mck-accent) / 0.45);
+    outline-offset: 1px;
+  }
+
+  .quest-sticky-drag-handle {
+    position: absolute;
+    left: 0.35rem;
+    top: 0.35rem;
+    z-index: 30;
+    display: flex;
+    height: 1.5rem;
+    width: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    border: 1px solid rgb(var(--mck-border) / 0.7);
+    background: rgb(var(--mck-surface-panel) / 0.92);
+    color: rgb(var(--mck-muted));
+    cursor: grab;
+    opacity: 0.5;
+    transition: opacity 0.15s, background 0.15s;
+    padding: 0;
+  }
+  .quest-sticky-frame:hover .quest-sticky-drag-handle,
+  .quest-sticky-frame--active .quest-sticky-drag-handle {
+    opacity: 0.95;
+  }
+  .quest-sticky-drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .quest-sticky-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    width: 1.35rem;
+    height: 1.35rem;
+    cursor: nwse-resize;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    border: none;
+    padding: 0 1px 1px 0;
+    background: transparent;
+    color: rgb(var(--mck-accent));
+  }
+  .quest-sticky-resize-handle .quest-sticky-resize-icon {
+    pointer-events: none;
+  }
+  .quest-sticky-frame:hover .quest-sticky-resize-handle,
+  .quest-sticky-frame--active .quest-sticky-resize-handle {
+    opacity: 0.92;
+  }
+
+  .quest-sticky-frame-body {
+    min-height: inherit;
+  }
+  .quest-sticky-frame--sized .quest-sticky-frame-body {
+    height: 100%;
+    overflow: auto;
+  }
+  .quest-sticky-frame-body--dragging {
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .quest-sticky-frame--section .quest-sticky-drag-handle {
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+
+  .quest-sticky-frame--task .quest-sticky-drag-handle {
+    height: 1.25rem;
+    width: 1.25rem;
+    left: 0.2rem;
+    top: 0.2rem;
+    font-size: 0.65rem;
+  }
+  .quest-sticky-frame--task .quest-sticky-resize-handle {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .quest-board-reino--framed {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .quest-board-reino--framed .quest-board-cork--nested {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .quest-sticky-frame .quest-sticky {
+    height: 100%;
+    min-height: 0;
+  }
+  .quest-sticky-frame .quest-sticky-mission {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  .quest-sticky-frame .quest-sticky-mission .quest-sticky-canvas--task {
+    flex: 1;
+    min-height: 72px;
+  }
+  .quest-sticky-frame .quest-sticky-solo {
+    height: 100%;
+    min-height: 0;
   }
 
   .quest-sticky {
@@ -539,12 +685,12 @@
     top: -0.65rem;
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 235, 0.95) 0%,
-      rgba(250, 248, 210, 0.82) 100%
+      rgb(var(--mck-accent-sky) / 0.75) 0%,
+      rgb(var(--mck-accent) / 0.45) 100%
     );
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 1px 3px rgb(var(--mck-accent) / 0.2);
     transform: translateX(-50%) rotate(-2.5deg);
-    opacity: 0.92;
+    opacity: 0.88;
   }
   .quest-canvas.dark .quest-sticky-tape {
     background: linear-gradient(
@@ -657,9 +803,9 @@
 
   .quest-kingdom-pin {
     @apply inline-flex items-center gap-2 rounded-full border-2 px-3 py-1 text-[11px] font-extrabold uppercase tracking-widest shadow-sm;
-    border-color: rgba(139, 119, 88, 0.45);
-    background: rgba(255, 252, 240, 0.92);
-    color: rgb(80, 55, 35);
+    border-color: rgb(var(--mck-border) / 0.55);
+    background: rgb(var(--mck-surface-panel) / 0.95);
+    color: rgb(var(--mck-accent));
   }
   .quest-canvas.dark .quest-kingdom-pin {
     border-color: rgb(var(--mck-border) / 0.5);

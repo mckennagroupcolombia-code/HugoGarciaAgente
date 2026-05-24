@@ -13,7 +13,6 @@ import FacturasCompraPanel from "./components/FacturasCompraPanel";
 import TicketsPanel from "./components/TicketsPanel";
 import WebChatPanel from "./components/WebChatPanel";
 import Settings from "./components/Settings";
-import AppearancePanel from "./components/AppearancePanel";
 import { usePanelTheme } from "./stores/panelTheme";
 import { useEffect } from "react";
 
@@ -40,8 +39,6 @@ function PanelRouter() {
       return <FacturasCompraPanel />;
     case "tickets":
       return <TicketsPanel />;
-    case "appearance":
-      return <AppearancePanel />;
     case "settings":
       return <Settings />;
     default:

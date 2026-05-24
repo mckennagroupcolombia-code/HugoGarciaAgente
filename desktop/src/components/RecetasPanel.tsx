@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, type CSSProperties } from "react";
 import type { TicketsUser } from "../stores/ticketsAuth";
+import { Icon, TopicIcon, TopicIconLabel } from "../icons";
 import { ALERT_ERROR_SM } from "../lib/questStyles";
 import { CorridaCronometroBlock, CronometroPanel, fmtTiempo, useCronometro } from "./Cronometro";
 
@@ -683,7 +684,7 @@ export default function RecetasPanel({
       <option value="">— Elegir reino —</option>
       {reinos.map((r) => (
         <option key={r.id} value={r.id}>
-          {r.icono || "🏰"} {r.nombre}
+          <TopicIconLabel value={r.icono} fallback="castle" size={14}>{r.nombre}</TopicIconLabel>
         </option>
       ))}
     </select>
@@ -695,18 +696,20 @@ export default function RecetasPanel({
       : "rounded-full px-2 py-0.5 text-[10px] font-bold";
     if (esRecetaCatalogo(r)) {
       return (
-        <span className={`${cls} bg-amber-500/15 text-amber-800 dark:text-amber-200`}>
-          📚 Catálogo McKenna
+        <span className={`${cls} inline-flex items-center gap-1 bg-amber-500/15 text-amber-800 dark:text-amber-200`}>
+          <TopicIcon value="📚" size={12} weight="duotone" />
+          Catálogo McKenna
           {r.categoria ? ` · ${etiquetaCategoriaCatalogo(r.categoria)}` : ""}
         </span>
       );
     }
     return (
       <span
-        className={`${cls} bg-emerald-500/15 text-emerald-800 dark:text-emerald-300`}
+        className={`${cls} inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300`}
         style={r.reino_color ? { boxShadow: `inset 0 0 0 1px ${r.reino_color}44` } : undefined}
       >
-        🏰 {r.reino_nombre ? `Reino: ${r.reino_nombre}` : "Receta de reino"}
+        <TopicIcon value="🏰" size={12} weight="duotone" />
+        {r.reino_nombre ? `Reino: ${r.reino_nombre}` : "Receta de reino"}
       </span>
     );
   }
@@ -1295,9 +1298,15 @@ export default function RecetasPanel({
             ← Volver
           </button>
           <div>
-            <h2 className="text-xl font-extrabold text-ink">📖 Recetario</h2>
-            <p className="text-xs text-muted">
-              📚 Catálogo importado · 🏰 recetas por reino · cronómetro
+            <h2 className="text-xl font-extrabold text-ink">
+              <TopicIconLabel value="📖" size={20} weight="duotone">Recetario</TopicIconLabel>
+            </h2>
+            <p className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+              <span className="inline-flex items-center gap-1"><TopicIcon value="📚" size={12} /> Catálogo importado</span>
+              <span className="text-muted/40">·</span>
+              <span className="inline-flex items-center gap-1"><TopicIcon value="🏰" size={12} /> recetas por reino</span>
+              <span className="text-muted/40">·</span>
+              <span className="inline-flex items-center gap-1"><Icon name="clock" size={12} /> cronómetro</span>
             </p>
           </div>
         </div>
@@ -1335,7 +1344,7 @@ export default function RecetasPanel({
           <option value="">{filtroTipo === "catalogo" ? "— Solo catálogo —" : "Todos los reinos"}</option>
           {reinos.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.icono || "🏰"} {r.nombre}
+              <TopicIconLabel value={r.icono} fallback="castle" size={14}>{r.nombre}</TopicIconLabel>
             </option>
           ))}
         </select>
