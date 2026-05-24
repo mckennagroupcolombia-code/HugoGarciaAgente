@@ -6,10 +6,10 @@ export function questTone(light: string, dark: string, isDark: boolean): string 
 
 /** KPIs del tablero — versión apagada en oscuro */
 export const QUEST_STAT_ITEMS = [
-  { label: "⚔️ En campaña", key: "en_proceso" as const, color: "#3b82f6", colorDark: "#5a7f9e", borderDark: "rgba(90,127,158,0.32)" },
-  { label: "🔔 En revisión", key: "esperando" as const, color: "#f59e0b", colorDark: "#9a7d52", borderDark: "rgba(154,125,82,0.32)" },
-  { label: "⏳ Por iniciar", key: "pendientes" as const, color: "#9ca3af", colorDark: "#5c6b70", borderDark: "rgba(92,107,112,0.28)" },
-  { label: "✅ Completadas", key: "resueltos" as const, color: "#22c55e", colorDark: "#4d8a62", borderDark: "rgba(77,138,98,0.32)" },
+  { label: "En campaña", icon: "sword" as const, key: "en_proceso" as const, color: "#3b82f6", colorDark: "#5a7f9e", borderDark: "rgba(90,127,158,0.32)" },
+  { label: "En revisión", icon: "bell" as const, key: "esperando" as const, color: "#f59e0b", colorDark: "#9a7d52", borderDark: "rgba(154,125,82,0.32)" },
+  { label: "Por iniciar", icon: "hourglass" as const, key: "pendientes" as const, color: "#9ca3af", colorDark: "#5c6b70", borderDark: "rgba(92,107,112,0.28)" },
+  { label: "Completadas", icon: "check" as const, key: "resueltos" as const, color: "#22c55e", colorDark: "#4d8a62", borderDark: "rgba(77,138,98,0.32)" },
 ];
 
 export const ESTADO_DOT_COLOR = {
@@ -62,24 +62,28 @@ export const CATEGORIA_FALLBACK: Record<string, { label: string; cls: string }> 
   },
 };
 
-export const TIPO_MATERIAL_BADGE: Record<string, { label: string; className: string }> = {
+export const TIPO_MATERIAL_BADGE: Record<string, { emoji: string; label: string; className: string }> = {
   elaborado: {
-    label: "✨ elaborado",
+    emoji: "✨",
+    label: "elaborado",
     className:
       "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-200 dark:border-purple-500/30",
   },
   consumibles: {
-    label: "📦 consumibles",
+    emoji: "📦",
+    label: "consumibles",
     className:
       "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-500/15 dark:text-sky-200 dark:border-sky-400/30",
   },
   repuestos: {
-    label: "🔩 repuestos",
+    emoji: "🔩",
+    label: "repuestos",
     className:
       "bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-500/15 dark:text-slate-200 dark:border-slate-400/30",
   },
   herramientas: {
-    label: "🔧 herramientas",
+    emoji: "🔧",
+    label: "herramientas",
     className:
       "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-200 dark:border-amber-500/30",
   },
@@ -112,5 +116,5 @@ export function stickyPaperBackground(color: string, dark: boolean): string {
   if (dark) {
     return `linear-gradient(168deg, ${c}38 0%, rgb(32 40 42) 42%, rgb(24 32 34) 100%)`;
   }
-  return `linear-gradient(168deg, ${c}40 0%, #fffef8 42%, #fff9e0 100%)`;
+  return `linear-gradient(168deg, ${c}28 0%, rgb(var(--mck-surface-panel)) 42%, rgb(var(--mck-surface-input)) 100%)`;
 }

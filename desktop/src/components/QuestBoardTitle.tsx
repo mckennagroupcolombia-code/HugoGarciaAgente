@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { Icon } from "../icons";
 import { useQuestBoardTitle, QUEST_BOARD_TITLE_DEFAULT } from "../stores/questBoard";
 
-/** Título principal del tablero (History Wonder). Clic para editar si `editable`. */
+/** Título principal del tablero (Montserrat). Clic para editar si `editable`. */
 export function QuestBoardTitle({
   editable = false,
   className = "",
@@ -40,7 +41,7 @@ export function QuestBoardTitle({
         <input
           ref={inputRef}
           type="text"
-          className="quest-board-kimdom-title quest-board-kimdom-title--edit"
+          className="quest-board-kimdom-title quest-board-kimdom-title--edit font-sans"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -84,7 +85,7 @@ export function QuestBoardTitle({
 
   return (
     <h1
-      className={`quest-board-kimdom-title ${editable ? "quest-board-kimdom-title--editable" : ""} ${className}`.trim()}
+      className={`quest-board-kimdom-title font-sans ${editable ? "quest-board-kimdom-title--editable" : ""} ${className}`.trim()}
       onClick={editable ? () => setEditing(true) : undefined}
       onKeyDown={
         editable
@@ -102,8 +103,8 @@ export function QuestBoardTitle({
     >
       {title}
       {editable && (
-        <span className="quest-board-kimdom-edit-hint" aria-hidden>
-          ✏️
+        <span className="quest-board-kimdom-edit-hint inline-flex align-middle" aria-hidden>
+          <Icon name="pencil" size={14} weight="bold" />
         </span>
       )}
     </h1>
@@ -111,11 +112,11 @@ export function QuestBoardTitle({
 }
 
 /** Etiqueta corta para botones de navegación (📜 Nombre). */
-export function QuestBoardNavLabel({ prefix = "📜 " }: { prefix?: string }) {
+export function QuestBoardNavLabel({ prefix = true }: { prefix?: boolean }) {
   const title = useQuestBoardTitle((s) => s.title);
   return (
-    <span className="inline-block max-w-[10rem] truncate align-middle" title={title}>
-      {prefix}
+    <span className="inline-flex max-w-[10rem] items-center gap-1 truncate align-middle" title={title}>
+      {prefix ? <Icon name="scroll" size={14} weight="duotone" className="shrink-0" /> : null}
       {title}
     </span>
   );
