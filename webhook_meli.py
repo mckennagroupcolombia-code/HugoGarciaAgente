@@ -724,6 +724,11 @@ def proxy_api(path):
     return _proxy_to_agente(f"api/{path}")
 
 
+@app.route("/.well-known/<path:path>", methods=["GET", "HEAD"])
+def proxy_well_known(path):
+    return _proxy_to_agente(f".well-known/{path}")
+
+
 if __name__ == "__main__":
     # Este corre en el 8080. El agente_pro corre en el 8081.
     print("🚀 Webhook MeLi escuchando en puerto 8080...")

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useAppStore } from "./stores/app";
+import { useAppStore, type Panel } from "./stores/app";
 import { useTicketsAuth, type TicketsUser } from "./stores/ticketsAuth";
 import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
@@ -130,13 +130,37 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
   );
 }
 
+const NAV_ORDER: Panel[] = [
+  "dashboard", "chat", "voz", "webchat", "preventa",
+  "sync", "stock", "pedidos", "facturas", "tickets", "settings",
+];
+
+function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
+  if ((user.rol?.nivel ?? 0) >= 3) return true;
+  if (panel === "settings") return true;
+  const p = user.permisos_secciones;
+  if (!p) return panel === "tickets";
+  return Boolean(p[panel]);
+}
+
 export default function App() {
   const { user, token, setAuth } = useTicketsAuth();
   const applyTheme = usePanelTheme((s) => s.apply);
+  const panel = useAppStore((s) => s.panel);
+  const setPanel = useAppStore((s) => s.setPanel);
 
   useEffect(() => {
     applyTheme();
   }, [applyTheme]);
+
+  // Si el panel persistido no es visible para este usuario, ir al primero disponible
+  useEffect(() => {
+    if (!user) return;
+    if (!puedeVerPanel(user, panel)) {
+      const first = NAV_ORDER.find((p) => puedeVerPanel(user, p)) ?? "settings";
+      setPanel(first);
+    }
+  }, [user, panel, setPanel]);
 
   if (!user || !token) {
     return (

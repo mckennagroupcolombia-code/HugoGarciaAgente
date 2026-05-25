@@ -3499,6 +3499,135 @@ def register_routes(app):
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
 
+    # ── Build APK Android ─────────────────────────────────────────────────────
+
+    _TWA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "android-twa")
+    _APK_SRC  = os.path.join(_TWA_DIR, "app", "build", "outputs", "apk", "release", "app-release.apk")
+    _APK_DEST = os.path.join(_TWA_DIR, "McKenna_Group_latest.apk")
+
+    _apk_state: dict = {
+        "status":   "success" if os.path.exists(os.path.join(_TWA_DIR, "McKenna_Group_latest.apk")) else "idle",
+        "log":      [],
+        "version":  "1.0.0",
+        "error":    None,
+        "built_at": None,
+    }
+
+    def _apk_build_worker(version: str):
+        import subprocess as _sp
+        import json as _json
+        import shutil as _shutil
+        import time as _time
+
+        _apk_state["status"] = "building"
+        _apk_state["log"] = [f"▶ Iniciando build v{version}…"]
+        _apk_state["error"] = None
+
+        env = os.environ.copy()
+        env["ANDROID_HOME"] = os.path.expanduser("~/Android/Sdk")
+        env["JAVA_HOME"]    = "/usr/lib/jvm/java-21-openjdk-amd64"
+
+        # Actualizar versionName y versionCode en twa-manifest.json
+        try:
+            manifest_path = os.path.join(_TWA_DIR, "twa-manifest.json")
+            with open(manifest_path) as f:
+                mf = _json.load(f)
+            old_code = int(mf.get("appVersionCode", 1))
+            mf["appVersionName"] = version
+            mf["appVersion"]     = version
+            mf["appVersionCode"] = old_code + 1
+            with open(manifest_path, "w") as f:
+                _json.dump(mf, f, indent=2)
+            _apk_state["log"].append(f"📝 twa-manifest.json: versionCode={old_code + 1}")
+        except Exception as ex:
+            _apk_state["log"].append(f"⚠ No se pudo actualizar twa-manifest.json: {ex}")
+
+        cmd = [
+            os.path.join(_TWA_DIR, "gradlew"),
+            "assembleRelease",
+            f"-Pandroid.injected.signing.store.file={os.path.join(_TWA_DIR, 'mckenna.keystore')}",
+            "-Pandroid.injected.signing.store.password=mckenna2024",
+            "-Pandroid.injected.signing.key.alias=mckenna",
+            "-Pandroid.injected.signing.key.password=mckenna2024",
+            "--no-daemon",
+        ]
+        try:
+            proc = _sp.Popen(
+                cmd, cwd=_TWA_DIR, env=env,
+                stdout=_sp.PIPE, stderr=_sp.STDOUT, text=True, bufsize=1,
+            )
+            for line in proc.stdout:
+                stripped = line.rstrip()
+                if stripped:
+                    # Solo líneas relevantes de Gradle
+                    if any(k in stripped for k in ("> Task", "BUILD", "FAILED", "ERROR", "Warning", "error:")):
+                        _apk_state["log"].append(stripped)
+            proc.wait()
+            if proc.returncode != 0:
+                raise RuntimeError(f"Gradle exit code {proc.returncode}")
+        except Exception as ex:
+            _apk_state["status"] = "error"
+            _apk_state["error"] = str(ex)
+            _apk_state["log"].append(f"✖ Error: {ex}")
+            return
+
+        # Copiar APK a destino estable
+        try:
+            _shutil.copy2(_APK_SRC, _APK_DEST)
+            size_kb = os.path.getsize(_APK_DEST) // 1024
+            _apk_state["log"].append(f"✔ APK listo: {size_kb} KB")
+            _apk_state["status"] = "success"
+            _apk_state["version"] = version
+            _apk_state["built_at"] = _time.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as ex:
+            _apk_state["status"] = "error"
+            _apk_state["error"] = str(ex)
+            _apk_state["log"].append(f"✖ No se pudo copiar el APK: {ex}")
+
+    @app.route("/api/build-apk", methods=["POST"])
+    def api_build_apk_start():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if _apk_state["status"] == "building":
+            return jsonify({"error": "Ya hay un build en curso"}), 409
+        if not os.path.isdir(_TWA_DIR):
+            return jsonify({"error": f"Directorio TWA no encontrado: {_TWA_DIR}"}), 500
+        body = request.get_json(silent=True) or {}
+        version = str(body.get("version", "1.0.0")).strip() or "1.0.0"
+        import threading as _th
+        t = _th.Thread(target=_apk_build_worker, args=(version,), daemon=True)
+        t.start()
+        return jsonify({"ok": True, "version": version})
+
+    @app.route("/api/build-apk/status", methods=["GET"])
+    def api_build_apk_status():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        return jsonify({
+            "status":   _apk_state["status"],
+            "log":      _apk_state["log"][-80:],
+            "version":  _apk_state["version"],
+            "error":    _apk_state["error"],
+            "built_at": _apk_state["built_at"],
+            "apk_size_kb": (os.path.getsize(_APK_DEST) // 1024) if os.path.exists(_APK_DEST) else None,
+        })
+
+    @app.route("/api/build-apk/download", methods=["GET"])
+    def api_build_apk_download():
+        from app.api_auth import chat_api_token_expected, normalize_api_token
+        expected = chat_api_token_expected()
+        # Acepta Bearer header o ?token= query param (para window.location.href)
+        tok_query = normalize_api_token(request.args.get("token", ""))
+        from app.api_auth import bearer_token_from_request
+        if bearer_token_from_request() != expected and tok_query != expected:
+            return jsonify({"error": "No autorizado"}), 401
+        if not os.path.exists(_APK_DEST):
+            return jsonify({"error": "APK no disponible — genera uno primero"}), 404
+        from flask import send_file as _send_file
+        version = _apk_state.get("version") or "latest"
+        dl_name = f"McKenna_Group_v{version}.apk"
+        return _send_file(_APK_DEST, as_attachment=True, download_name=dl_name, mimetype="application/vnd.android.package-archive")
+
     # ── Acceso red ────────────────────────────────────────────────────────────
 
     @app.route("/api/sistema/acceso-red", methods=["GET"])

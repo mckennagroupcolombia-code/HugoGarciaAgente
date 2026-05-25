@@ -21,12 +21,14 @@ const NAV: { id: Panel; label: string }[] = [
   { id: "settings", label: "Ajustes" },
 ];
 
+const DEFAULT_SECCIONES = new Set(["tickets"]);
+
 function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
   if (!user) return false;
   if ((user.rol?.nivel ?? 0) >= 3) return true; // admin siempre ve todo
   if (seccion === "settings") return true; // todos ven ajustes
   const p = user.permisos_secciones;
-  if (!p) return false;
+  if (!p) return DEFAULT_SECCIONES.has(seccion); // sin permisos configurados: set por defecto
   return Boolean(p[seccion]);
 }
 

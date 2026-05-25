@@ -83,8 +83,13 @@ async function request<T>(
   }
 
   if (res.status === 401) {
+    // Solo limpiar ticketsAuth si el 401 viene de un endpoint de tickets (JWT).
+    // Los 401 de /api/metricas, /api/sync, etc. usan CHAT_API_TOKEN y no deben
+    // desloguear la sesión de tickets de operarios que no tienen ese token.
+    if (path.startsWith("/api/tickets/")) {
+      useTicketsAuth.getState().clear();
+    }
     useAuthStore.getState().clear();
-    useTicketsAuth.getState().clear();
     throw new Error("No autorizado");
   }
   if (!res.ok) {

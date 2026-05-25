@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePanelLogs, useClearPanelLogs } from "../hooks/usePanelLogs";
 
 export default function ActivityLog() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const { data, isFetching, isError, error } = usePanelLogs(open);
   const clear = useClearPanelLogs();
