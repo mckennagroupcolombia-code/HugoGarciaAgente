@@ -1,4 +1,5 @@
 import { useAppStore, type Panel } from "../stores/app";
+import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
 import { usePreventa } from "../hooks/usePreventa";
 import { useWebChat } from "../hooks/useWebChat";
@@ -20,11 +21,21 @@ const NAV: { id: Panel; label: string }[] = [
   { id: "settings", label: "Ajustes" },
 ];
 
+function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
+  if (!user) return false;
+  if ((user.rol?.nivel ?? 0) >= 3) return true; // admin siempre ve todo
+  if (seccion === "settings") return true; // todos ven ajustes
+  const p = user.permisos_secciones;
+  if (!p) return false;
+  return Boolean(p[seccion]);
+}
+
 export default function Sidebar() {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
-  const logout = useAuthStore((s) => s.clear);
+  const { user, clear: clearTickets } = useTicketsAuth();
+  const clearMain = useAuthStore((s) => s.clear);
   const { data } = usePreventa();
   const pendientes = data?.total ?? 0;
   const { data: webChat } = useWebChat(true);
@@ -35,6 +46,13 @@ export default function Sidebar() {
     refetchInterval: 15000,
   });
   const facturasPendientes = facturaData?.total ?? 0;
+
+  const visibleNav = NAV.filter((item) => puedeVerSeccion(user, item.id));
+
+  function logout() {
+    clearTickets();
+    clearMain();
+  }
 
   return (
     <aside
@@ -55,10 +73,19 @@ export default function Sidebar() {
           </div>
         </div>
 
+        {user && (
+          <div className="mx-3 mb-2 rounded-paper border border-border bg-surface px-3 py-2">
+            <p className="truncate text-xs font-semibold text-ink">{user.nombre}</p>
+            {user.email && (
+              <p className="truncate text-[10px] text-muted">{user.email}</p>
+            )}
+          </div>
+        )}
+
         <p className="px-5 pb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Menu</p>
 
-        <nav className="flex-1 space-y-1 px-3 pb-4">
-          {NAV.map((item) => {
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
+          {visibleNav.map((item) => {
             const active = panel === item.id;
             return (
               <button

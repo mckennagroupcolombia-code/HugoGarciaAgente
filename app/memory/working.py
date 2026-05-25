@@ -108,14 +108,90 @@ def evict_if_needed(
     else:
         summary_text = _summarize_turns(old)
 
-    summary_msg = {
-        "role": "user",
-        "content": (
-            f"[Resumen de {len(old)} turnos anteriores para ahorro de contexto]\n"
-            f"{summary_text}"
-        ),
-    }
+    prefix = (
+        f"[Resumen de {len(old)} turnos anteriores para ahorro de contexto]\n"
+        f"{summary_text}\n\n"
+    )
+    # Si el primer mensaje reciente ya es 'user', inyectamos el resumen
+    # en su contenido para evitar dos mensajes consecutivos del mismo rol.
+    if recent and recent[0].get("role") == "user":
+        first = copy.deepcopy(recent[0])
+        c = first.get("content", "")
+        if isinstance(c, str):
+            first["content"] = prefix + c
+        elif isinstance(c, list):
+            first["content"] = [{"type": "text", "text": prefix}] + c
+        else:
+            first["content"] = prefix + str(c)
+        return [first] + recent[1:]
+
+    summary_msg = {"role": "user", "content": prefix.strip()}
     return [summary_msg] + recent
+
+
+def sanitize_messages(messages: list[dict]) -> list[dict]:
+    """
+    Garantiza que la lista de mensajes sea válida para Anthropic:
+      - Primer mensaje debe ser 'user'
+      - No puede haber dos mensajes consecutivos del mismo rol
+      - No puede haber bloques 'tool_result' sin un 'tool_use' previo en el turno anterior
+    """
+    if not messages:
+        return messages
+
+    result: list[dict] = []
+    for msg in messages:
+        if not result:
+            if msg.get("role") != "user":
+                continue  # descartar mensajes iniciales que no sean 'user'
+            result.append(msg)
+            continue
+
+        prev_role = result[-1].get("role")
+        curr_role = msg.get("role")
+
+        if curr_role == prev_role:
+            # Fusionar contenido en vez de duplicar rol
+            merged = copy.deepcopy(result[-1])
+            prev_c = merged.get("content", "")
+            curr_c = msg.get("content", "")
+
+            # Normalizar a lista de bloques
+            def _to_blocks(c):
+                if isinstance(c, str):
+                    return [{"type": "text", "text": c}] if c else []
+                if isinstance(c, list):
+                    return c
+                return [{"type": "text", "text": str(c)}]
+
+            merged["content"] = _to_blocks(prev_c) + _to_blocks(curr_c)
+            result[-1] = merged
+            continue
+
+        # Verificar que 'tool_result' solo aparece después de un mensaje con 'tool_use'
+        if curr_role == "user":
+            c = msg.get("content", "")
+            has_tool_result = isinstance(c, list) and any(
+                isinstance(b, dict) and b.get("type") == "tool_result" for b in c
+            )
+            if has_tool_result:
+                prev_c = result[-1].get("content", "")
+                prev_has_tool_use = isinstance(prev_c, list) and any(
+                    isinstance(b, dict) and b.get("type") == "tool_use" for b in prev_c
+                )
+                if not prev_has_tool_use:
+                    # Descartar bloques tool_result huérfanos
+                    clean_blocks = [
+                        b for b in (c if isinstance(c, list) else [])
+                        if not (isinstance(b, dict) and b.get("type") == "tool_result")
+                    ]
+                    if not clean_blocks:
+                        continue  # mensaje completo inválido, descartar
+                    msg = {**msg, "content": clean_blocks}
+
+        result.append(msg)
+
+    return result
 
 
 def prepare_for_persist(

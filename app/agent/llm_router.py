@@ -199,11 +199,12 @@ class GeminiProvider:
 
 
 class OllamaProvider:
-    """Ollama local — fallback de bajo costo para texto sin tools."""
+    """Ollama local — usa REST API (mucho más rápido que subprocess CLI)."""
 
-    def __init__(self, model: str = "gemma4:26b", bin_path: str = "ollama"):
+    def __init__(self, model: str = "gemma3:1b", bin_path: str = "ollama"):
         self._model = model
         self._bin = bin_path
+        self._api_url = os.getenv("OLLAMA_API_URL", "http://localhost:11434")
 
     def complete(
         self,
@@ -213,29 +214,36 @@ class OllamaProvider:
         max_tokens: int = 2048,
         **_,
     ) -> LLMResponse:
-        import subprocess
-
-        if tools:
-            raise ProviderError("OllamaProvider no soporta tool-use")
-
+        # Ollama no soporta tool-use: ignora el schema y responde con texto.
         parts: list[str] = []
         if system:
             parts.append(system)
-        for m in messages[-6:]:
+        for m in messages[-8:]:
             c = m.get("content", "")
-            txt = c if isinstance(c, str) else str(c)[:400]
+            txt = c if isinstance(c, str) else str(c)[:600]
             if txt:
                 parts.append(txt)
 
-        prompt = "\n".join(parts)[:8000]
+        prompt = "\n".join(parts)[:10000]
         try:
-            proc = subprocess.run(
-                [self._bin, "run", self._model, prompt],
-                capture_output=True, text=True, timeout=300, check=False,
+            import urllib.request
+            import json as _json
+
+            payload = _json.dumps({
+                "model": self._model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_predict": max_tokens},
+            }).encode()
+            req = urllib.request.Request(
+                f"{self._api_url}/api/generate",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
             )
-            if proc.returncode != 0:
-                raise ProviderError(f"Ollama returncode={proc.returncode}: {proc.stderr[:200]}")
-            text = (proc.stdout or "").strip()
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = _json.loads(resp.read().decode())
+            text = (data.get("response") or "").strip()
             return LLMResponse(
                 text=text or "[Ollama: respuesta vacía]",
                 stop_reason="end_turn" if text else "error",
@@ -296,17 +304,26 @@ class LLMRouter:
         if model_id.startswith("claude-") and self._claude:
             self._claude._model_id = model_id
             return self._claude
+        # Ollama como primario cuando el canal asigna un modelo local
+        if model_id and not model_id.startswith(("claude-", "gemini-", "seleccionable")):
+            self._ollama._model = model_id
+            return self._ollama
         # Fallback: Claude si disponible, Gemini si no
         return self._claude or self._gemini
 
     def _build_fallback_chain(self) -> list:
         chain = []
-        # Si primario es Gemini, Claude es el primer fallback (tiene tools)
         if self._primary is self._gemini and self._claude:
             chain.append(self._claude)
         elif self._primary is self._claude and self._gemini:
             chain.append(self._gemini)
-        # Ollama siempre al final
+        elif self._primary is self._ollama:
+            # Ollama es primario: Claude primero (tiene tools), luego Gemini
+            if self._claude:
+                chain.append(self._claude)
+            if self._gemini:
+                chain.append(self._gemini)
+            return chain
         chain.append(self._ollama)
         return chain
 
@@ -328,6 +345,7 @@ class LLMRouter:
                 return provider.complete(messages, tools=tools, system=system, max_tokens=max_tokens)
 
         # Intentar primario
+        last_provider_error: str | None = None
         primary = self._primary
         if primary is not None:
             for attempt in range(self.MAX_PRIMARY_RETRIES):
@@ -336,6 +354,7 @@ class LLMRouter:
                         messages, tools=tools, system=system, max_tokens=max_tokens
                     )
                 except ProviderError as e:
+                    last_provider_error = str(e)
                     err = str(e).lower()
                     is_overload = any(x in err for x in ("overload", "529", "503", "rate"))
                     if is_overload and attempt < self.MAX_PRIMARY_RETRIES - 1:
@@ -353,11 +372,13 @@ class LLMRouter:
                 return fallback.complete(
                     messages, tools=tools, system=system, max_tokens=max_tokens
                 )
-            except ProviderError:
+            except ProviderError as e:
+                last_provider_error = str(e)
                 continue
 
         raise AllProvidersExhausted(
-            f"Canal '{self._canal}': todos los proveedores fallaron."
+            f"Canal '{self._canal}': todos los proveedores fallaron. "
+            f"Último error: {last_provider_error or 'desconocido'}"
         )
 
     def _get_by_name(self, name: str):

@@ -35,6 +35,7 @@ export type UiIconName =
   | "pin"
   | "infinity"
   | "lock"
+  | "unlock"
   | "user"
   | "users"
   | "tag"

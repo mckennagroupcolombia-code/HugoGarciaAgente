@@ -31,6 +31,17 @@ Resumen portable para otro dev/agente. Mantener corto; mover detalle a fichas o 
 - Engram es candidato para memoria persistente agent-agnostic; usar primero en dev y filtrar secretos antes de sync.
 - Guardian Angel/GGA puede servir como review AI pre-commit/PR, inicialmente solo modo reporte.
 
+### 2026-05-24 — Refactorización AgentRun + Tricap Memory
+
+- **`ANTHROPIC_API_KEY` ausente = "mantenimiento" inmediato.** `core.py` valida antes de instanciar `AgentRun`; si `cliente_ia = None` y el canal necesita Claude, retorna mantenimiento desde la línea de guard. No llega al orquestador.
+- **`LLMRouter` fallback automático.** Cadena: primario del canal → Claude → Gemini → Ollama. `GeminiProvider` y `OllamaProvider` lanzan `ProviderError` si se les pasan tools; el router los salta y escala.
+- **`_safe_migrate()` es el patrón para migraciones SQLite.** Envuelve cada función de migración en `try/except sqlite3.OperationalError`. Migraciones que asumen tablas existentes fallan en DB fresca; `_safe_migrate` lo silencia sin ocultar errores de lógica real.
+- **`monkeypatch.setattr(module, "DB_PATH", str(path))` en lugar de `setenv`.** Las constantes de módulo se fijan al importar; `os.environ` parchado después no las afecta. Usar `setattr` directamente sobre el atributo del módulo.
+- **Tests de posventa MeLi deben patchar `app.meli_postventa_notif`, no `webhook_meli`.** Las funciones viven en `meli_postventa_notif`; el webhook solo las llama. Patchar el módulo equivocado no intercepta nada.
+- **Respuesta de `/api/tickets/{id}/pasos/{paso_id}` es `{"pasos": [...], "auto_resuelto": bool}`.** No es lista plana. Tests deben hacer `data["pasos"] if isinstance(data, dict) else data`.
+- **`obtener_respuesta_ia` acepta `canal=` como kwarg.** Mocks en tests deben usar `lambda _msg, _sender, **_kw: (...)` para no romper con kwargs inesperados.
+- **Guard JID vacío en `routes.py`.** `"" == ""` es True, así que todos los grupos vacíos colisionaban con el primer grupo. Siempre envolver comparaciones de JID con `bool(jid) and remote_jid == jid`.
+
 ## Cómo Actualizar
 
 - Agregar solo hechos reutilizables.

@@ -261,6 +261,17 @@
     @apply border-danger text-danger;
   }
 
+  .quest-board-toolbar-btn--active {
+    @apply border-accent text-accent bg-accent/10;
+  }
+
+  /* Modo bloqueado: ocultar handles de arrastre y redimensión */
+  .quest-board--locked .quest-sticky-drag-handle,
+  .quest-board--locked .quest-sticky-resize-handle {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
   .quest-board-toolbar-select {
     @apply min-w-0 text-[10px] font-bold text-ink outline-none focus:border-accent sm:text-xs;
   }

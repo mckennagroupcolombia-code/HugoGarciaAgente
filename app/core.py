@@ -82,6 +82,11 @@ from app.tools.pipeline_contenido_facebook import publicar_contenido_redes_socia
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
 from app.observability import log_json, spawn_thread
 from app.tools.script_audit import auditar_scripts
+from app.tools.sede_sur import (
+    crear_ticket_sede_sur,
+    resolver_ticket_sede_sur,
+    listar_tickets_sede_sur,
+)
 
 
 def _resumen_disponibilidad_para_agente(stock_raw) -> str:
@@ -157,6 +162,39 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
    Responda la consulta técnica (usa buscar_productos_combo_siigo + contexto de ficha si aplica). Aclare que vendemos materia prima, no producto terminado.
 5. Si no hay presentación en catálogo, invite a revisar la tienda o WhatsApp sin tecnicismos internos.
 6. La referencia (Ref.) es el SKU oficial para pedido y cotización.
+"""
+
+
+def _prompt_sede_sur() -> str:
+    """System prompt dinámico para el canal MCKG SEDE SUR (equipo interno)."""
+    from datetime import datetime
+    hoy = datetime.now()
+    dias = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+    return f"""Eres el asistente operativo interno de McKenna Group para el equipo de SEDE SUR.
+Hoy es {dias[hoy.weekday()]} {hoy.strftime('%d/%m/%Y')}.
+
+ROL Y TONO:
+- Asistente interno del equipo, NO agente de ventas al cliente.
+- Directo, sin formalidades. Usa nombres propios del equipo.
+- Responde en español colombiano, conciso (máx 3 líneas salvo que pidan detalle).
+
+INTERPRETACIÓN DE MARCADORES (el sistema ya ejecutó la acción antes de pasarte el mensaje):
+- [TICKET CREADO: TKT-2026-XXXX asignado a Nombre | ...]
+  → Confirma: "✅ TKT-2026-XXXX creado para Nombre: <título>"
+- [TICKET RESUELTO: TKT-2026-XXXX — '<título>' — marcado como RESUELTO]
+  → Anuncia: "✅ Nombre resolvió TKT-2026-XXXX: <título>"
+- [ERROR al resolver ticket ...]  o  [NO SE PUDO CREAR TICKET ...]
+  → Explica el error en 1 línea y sugiere cómo corregirlo.
+
+EJEMPLOS DE INTERPRETACIÓN:
+  "[TICKET CREADO: TKT-2026-0017 asignado a Cynthia Ruiz | Prioridad: media | Categoría: ventas]\nMensaje: @Cynthia Revisar el grupo de postventa"
+  → ✅ TKT-2026-0017 creado para Cynthia Ruiz: Revisar el grupo de postventa
+
+  "[TICKET RESUELTO: TKT-2026-0017 — 'Revisar el grupo de postventa' — marcado como RESUELTO]\nMensaje: resuelto TKT-2026-0017"
+  → ✅ Cynthia resolvió TKT-2026-0017: Revisar el grupo de postventa
+
+  "Llegan 2 cajas de la USA entre mañana y el sábado"
+  → Responde con novedad. Si aplica, sugiere crear ticket de recepción.
 """
 
 
@@ -591,6 +629,9 @@ def configurar_ia(app):
             buscar_producto_completo,
             buscar_productos_combo_siigo,
             auditar_scripts,
+            crear_ticket_sede_sur,
+            resolver_ticket_sede_sur,
+            listar_tickets_sede_sur,
         ]
 
         _tools_map = {fn.__name__: fn for fn in todas_las_herramientas}
@@ -1158,9 +1199,12 @@ def obtener_respuesta_ia(
     es_web = _es_canal_web_chat(canal, usuario_id)
     canal_efectivo = "web_chat" if es_web else ((canal or "").strip() or "whatsapp")
     modelo_canal = obtener_modelo_canal(canal_efectivo)
-    system_prompt_efectivo = (
-        _system_prompt + INSTRUCCIONES_WEB_CHAT if es_web else _system_prompt
-    )
+    if canal_efectivo == "sede_sur":
+        system_prompt_efectivo = _prompt_sede_sur()
+    elif es_web:
+        system_prompt_efectivo = _system_prompt + INSTRUCCIONES_WEB_CHAT
+    else:
+        system_prompt_efectivo = _system_prompt
     if not cliente_gemini and not cliente_ia:
         return "Veci, estamos en mantenimiento. Intente en unos minutos 🙏", []
 
@@ -1233,14 +1277,17 @@ def obtener_respuesta_ia(
             return resp_cant, final_messages
 
     # ── Validaciones de proveedor requerido ──────────────────────────────────
+    from app.services.canales_config import canal_acepta_ollama as _canal_acepta_ollama
+    _es_canal_ollama = _canal_acepta_ollama(canal_efectivo) and not modelo_canal.startswith(("claude-", "gemini-"))
     claude_ok = (
         _permitir_fallback_claude
         or (es_web and _permitir_claude_web_chat)
         or modelo_canal.startswith("claude-")
+        or _es_canal_ollama  # Ollama escala a Claude si necesita tools
     )
     if modelo_canal.startswith("claude-") and not cliente_ia:
         return "Veci, Claude no está configurado (ANTHROPIC_API_KEY). 🙏", []
-    if not modelo_canal.startswith(("claude-", "gemini-")):
+    if not modelo_canal.startswith(("claude-", "gemini-")) and not _es_canal_ollama:
         return (
             "Veci, este canal requiere Claude o Gemini con herramientas. "
             "Cámbielo en Panel → Chat de Agentes → Canales activos. 🙏",

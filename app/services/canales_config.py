@@ -92,6 +92,16 @@ CANALES_DEFINICION: list[dict[str, Any]] = [
         "editable": False,
         "categorias_modelo": [],
     },
+    {
+        "id": "sede_sur",
+        "nombre": "MCKG SEDE SUR",
+        "icono": "bot",
+        "modelo_id": "gemma3:1b",
+        "modo": "conversacional (Ollama)",
+        "descripcion": "Equipo interno Sede Sur. Ollama local sin costo por token.",
+        "editable": True,
+        "categorias_modelo": ["ollama", "claude", "gemini"],
+    },
 ]
 
 CANALES_EDITABLES = {c["id"] for c in CANALES_DEFINICION if c.get("editable")}
@@ -205,6 +215,12 @@ def asignar_modelo_canal(canal_id: str, modelo_id: str) -> dict[str, Any] | None
         if c["id"] == canal_id:
             return c
     return None
+
+
+def canal_acepta_ollama(canal_id: str) -> bool:
+    """True si el canal permite modelos Ollama locales."""
+    base = next((c for c in CANALES_DEFINICION if c["id"] == canal_id), None)
+    return "ollama" in (base.get("categorias_modelo") or []) if base else False
 
 
 def modelo_valido_para_canal(canal_id: str, modelo_id: str) -> bool:

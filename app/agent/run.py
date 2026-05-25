@@ -145,6 +145,8 @@ class AgentRun:
 
                     # Evicción de contexto si se acerca al límite
                     current_messages = working.evict_if_needed(current_messages)
+                    # Garantiza secuencia user/assistant válida para la API
+                    current_messages = working.sanitize_messages(current_messages)
 
                     response: LLMResponse = self.router.complete(
                         messages=current_messages,

@@ -435,6 +435,13 @@ def tabla_contenidos(s: dict) -> list:
             'Skills bajo demanda',
             'Ecosistema Gentleman',
             'Contratos, smoke tests y CI backend']),
+        ('16', 'Refactorización Agéntica 2026-05-24: AgentRun + Tricap Memory', [
+            'AgentRun — máquina de estados determinista (reemplaza bucle monolítico)',
+            'LLMRouter — multi-proveedor Claude / Gemini / Ollama con fallback automático',
+            'ToolDispatcher — ejecución con registro episódico',
+            'CheckpointStore — checkpoints SQLite por iteración',
+            'Tricap Memory — Working + Episodic + Semantic + Compressor',
+            'Integración con core.py y validación (96/96 tests)']),
     ]
 
     for num, titulo, subs in toc:
@@ -1630,7 +1637,7 @@ def sec14_operabilidad(s: dict) -> list:
     elems.append(
         nota(
             "📧",
-            "Manual actualizado (v3.3). Regenerar PDF: "
+            "Manual actualizado (v3.4). Regenerar PDF: "
             "<b>python3 scripts/generar_manual.py</b> · enviar por correo: <b>--enviar</b>.",
             s,
             bg=colors.HexColor("#f0fdf4"),
@@ -1769,6 +1776,229 @@ def sec15_metodologia_agentica(s: dict) -> list:
 
 
 # ══════════════════════════════════════════════
+# SEC 16 — ORQUESTADOR AGÉNTICO (AgentRun + Tricap Memory)
+# ══════════════════════════════════════════════
+
+def sec16_orquestador_agentico(s: dict) -> list:
+    elems = []
+    elems += section_header(
+        'Sección 16',
+        'Refactorización Agéntica 2026-05-24: AgentRun + Tricap Memory',
+        s,
+        C_BLUE2,
+    )
+
+    elems.append(body(
+        'El 2026-05-24 se realizó la mayor refactorización técnica del agente desde su creación. '
+        'El bucle monolítico de tool-use que vivía directamente en <b>app/core.py</b> (unas 325 líneas) '
+        'fue descompuesto en un paquete dedicado: <b>app/agent/</b>. Al mismo tiempo se creó un sistema '
+        'de memoria de tres capas llamado <b>Tricap Memory</b> en <b>app/memory/</b>. '
+        'El resultado: 96 de 96 tests en verde, reintentos automáticos ante fallos del proveedor LLM, '
+        'checkpoints por iteración y un router multi-proveedor con fallback automático.',
+        s,
+    ))
+    elems.append(sp(0.2))
+    elems.append(nota('🎯',
+        '<b>Analogía:</b> Antes el agente era como un chef que cocinaba, servía, anotaba los pedidos '
+        'y atendía la caja al mismo tiempo. Ahora hay un jefe de sala (<b>AgentRun</b>) que coordina, '
+        'un proveedor de ingredientes intercambiable (<b>LLMRouter</b>), un despachador de platos '
+        '(<b>ToolDispatcher</b>) y una libreta de pedidos con historial (<b>Tricap Memory</b>). '
+        'Cada rol tiene responsabilidad única y puede cambiarse sin afectar al resto.',
+        s, bg=colors.HexColor('#eff6ff'), border=C_BLUE3))
+    elems.append(sp(0.3))
+
+    # ── 16.1 AgentRun
+    elems.append(subsection('16.1 AgentRun — La Máquina de Estados del Turno', s, C_BLUE2))
+    elems.append(body(
+        'Archivo: <b>app/agent/run.py</b>. Es el director de cada turno de conversación. '
+        'No conoce qué modelo ejecuta ni cómo se llaman las tools; solo orquesta el ciclo.',
+        s,
+    ))
+    elems.append(sp(0.15))
+    ciclo = [
+        ['Concepto', 'Valor', 'Qué significa'],
+        ['MAX_TOOL_ITERS', '20', 'Máximo de iteraciones de tool-use por intento antes de abortar con mensaje legible'],
+        ['MAX_REINTENTOS', '3', 'Intentos con proveedores distintos si uno falla o agota sus peticiones'],
+        ['Contexto episódico', 'En reintentos', 'Si ya hubo tools fallidas, las inyecta en el system prompt del reintento para que el modelo no repita el mismo error'],
+        ['Checkpoint', 'Después de cada tool', 'Guarda en SQLite el estado completo de mensajes antes de continuar, para poder auditar o recuperar'],
+        ['Cleanup', 'Siempre', 'Borra los checkpoints del turno al terminar (éxito, límite o error total)'],
+    ]
+    elems.append(tabla_comandos(ciclo, s,
+        col_widths=[3.5*cm, 2.2*cm, PAGE_W - 2*MARGEN - 5.9*cm]))
+    elems.append(sp(0.2))
+
+    flujo_ar = [
+        ['Paso', 'Acción'],
+        ['1. Inicio de turno', 'AgentRun recibe pregunta, mensajes de historial, adjuntos y mapa de tools'],
+        ['2. Bucle de reintentos (máx 3)', 'En cada intento, corre hasta 20 iteraciones de tool-use con el proveedor actual'],
+        ['3. LLM call', 'Llama a router.complete(messages, tools, system). El router decide qué proveedor usar'],
+        ['4. ¿Necesita tools?', 'Si sí: llama a ToolDispatcher, guarda checkpoint, añade resultado a mensajes y vuelve al paso 3'],
+        ['5. ¿Fin de turno?', 'Si no hay más tools: hace cleanup, retorna AgentResult(text, messages, provider, run_id, iterations)'],
+        ['6. Límite de iteraciones', 'Si llega a 20 sin terminar: retorna mensaje de error legible para el usuario'],
+        ['7. Todos los proveedores fallan', 'AllProvidersExhausted: retorna mensaje de mantenimiento/reintento'],
+    ]
+    elems.append(tabla_comandos(flujo_ar, s,
+        col_widths=[4.0*cm, PAGE_W - 2*MARGEN - 4.2*cm]))
+    elems.append(sp(0.3))
+
+    # ── 16.2 LLMRouter
+    elems.append(subsection('16.2 LLMRouter — Multi-Proveedor con Fallback Automático', s, C_BLUE2))
+    elems.append(body(
+        'Archivo: <b>app/agent/llm_router.py</b>. Abstrae el acceso a modelos de IA con una '
+        'interfaz uniforme. AgentRun nunca habla directamente con Anthropic, Google o Ollama; '
+        'siempre usa el router, que decide cuál proveedor intentar y cuándo escalar.',
+        s,
+    ))
+    elems.append(sp(0.15))
+    proveedores = [
+        ['Proveedor', 'Tool-use', 'Modelo típico', 'Cuándo se usa'],
+        ['ClaudeProvider', 'Completo', 'claude-sonnet-4-6', 'Primario para WhatsApp y /chat. Requiere ANTHROPIC_API_KEY.'],
+        ['GeminiProvider', 'No (solo texto)', 'gemini-2.5-pro', 'Canales que configuren Gemini o fallback sin tools. Requiere GOOGLE_API_KEY.'],
+        ['OllamaProvider', 'No (solo texto)', 'gemma4:latest', 'Último recurso local. Requiere ollama en PATH y modelo descargado.'],
+    ]
+    elems.append(tabla_comandos(proveedores, s,
+        col_widths=[3.2*cm, 2.2*cm, 3.8*cm, PAGE_W - 2*MARGEN - 9.4*cm]))
+    elems.append(sp(0.15))
+    elems.append(nota('⚠️',
+        '<b>Regla crítica:</b> Si <b>ANTHROPIC_API_KEY</b> no está en <b>.env</b>, '
+        '<b>cliente_ia = None</b> y <b>core.py devuelve "mantenimiento"</b> antes de llegar al router. '
+        'Sin esta clave no hay tool-use posible; GeminiProvider y OllamaProvider rechazan tools. '
+        'El bot responderá "estamos en mantenimiento" hasta que se configure la clave.',
+        s, bg=colors.HexColor('#fff1f2'), border=C_RED))
+    elems.append(sp(0.15))
+    fallback = [
+        ['Situación', 'Comportamiento del router'],
+        ['Proveedor primario falla 3 veces', 'Escala al siguiente en la cadena: Claude → Gemini → Ollama'],
+        ['Fallback no soporta tools y se necesitan tools', 'Salta ese proveedor, pasa al siguiente'],
+        ['Todos los proveedores fallan', 'Lanza AllProvidersExhausted → mensaje de mantenimiento'],
+    ]
+    elems.append(tabla_comandos(fallback, s,
+        col_widths=[6.0*cm, PAGE_W - 2*MARGEN - 6.2*cm]))
+    elems.append(sp(0.3))
+
+    # ── 16.3 ToolDispatcher
+    elems.append(subsection('16.3 ToolDispatcher — Ejecución con Registro Episódico', s, C_BLUE2))
+    elems.append(body(
+        'Archivo: <b>app/agent/tool_dispatcher.py</b>. Recibe la lista de tool calls que el LLM '
+        'quiere ejecutar y las despacha, manejando errores, límites de tamaño y registro de episodios.',
+        s,
+    ))
+    elems.append(sp(0.15))
+    dispatcher_props = [
+        ['Propiedad', 'Valor / Comportamiento'],
+        ['_MAX_RESULT_CHARS', '8 192 caracteres — si el resultado de una tool es más largo, se trunca antes de devolverlo al LLM'],
+        ['Registro episódico', 'Cada tool ejecutada se registra en memoria episódica (JSONL por run_id) con resultado y timestamp'],
+        ['Error en tool', 'Lanza compresión y almacenamiento en hilo paralelo (no bloquea el turno). El error se devuelve como texto al LLM'],
+        ['apply_web_overrides', 'Para el canal web_chat redirige buscar_producto_completo → buscar_productos_combo_siigo'],
+    ]
+    elems.append(tabla_comandos(dispatcher_props, s,
+        col_widths=[4.0*cm, PAGE_W - 2*MARGEN - 4.2*cm]))
+    elems.append(sp(0.3))
+
+    # ── 16.4 CheckpointStore
+    elems.append(subsection('16.4 CheckpointStore — Persistencia por Iteración', s, C_BLUE2))
+    elems.append(body(
+        'Archivo: <b>app/agent/checkpoint_store.py</b>. Guarda el estado completo de mensajes '
+        'en <b>app/data/agent_checkpoints.sqlite3</b> después de cada iteración de tools. '
+        'Si el proceso se mata a mitad de turno, los checkpoints quedan en la base de datos '
+        'para auditoría. Se limpian automáticamente: al terminar el turno (<b>delete_run</b>) '
+        'y los de más de 24 horas (<b>purge_old</b>).',
+        s,
+    ))
+    elems.append(sp(0.15))
+    cp_ops = [
+        ['Función', 'Cuándo se llama'],
+        ['save(checkpoint)', 'Después de cada iteración de tools exitosa, antes de la siguiente LLM call'],
+        ['load_latest(run_id)', 'Para auditoría o recuperación manual (no se usa en el flujo normal)'],
+        ['delete_run(run_id)', 'Al finalizar el turno (éxito, límite o AllProvidersExhausted)'],
+        ['purge_old(24h)', 'Al inicio de cada turno nuevo, limpia checkpoints huérfanos de runs anteriores'],
+    ]
+    elems.append(tabla_comandos(cp_ops, s,
+        col_widths=[5.0*cm, PAGE_W - 2*MARGEN - 5.2*cm]))
+    elems.append(sp(0.3))
+
+    # ── 16.5 Tricap Memory
+    elems.append(subsection('16.5 Tricap Memory — Sistema de Memoria de Tres Capas', s, C_BLUE2))
+    elems.append(body(
+        'Carpeta: <b>app/memory/</b>. El agente tiene tres tipos de memoria que trabajan '
+        'en paralelo durante cada turno, más un compresor que reduce el consumo de contexto.',
+        s,
+    ))
+    elems.append(sp(0.15))
+    tricap = [
+        ['Capa', 'Archivo', 'Qué almacena', 'Cuándo se usa'],
+        ['Working (trabajo)', 'working.py', 'Contexto activo del turno: historial de mensajes en memoria RAM. Tiene un límite de tokens; llama evict_if_needed() antes de cada LLM call para recortar mensajes viejos si el contexto está lleno.', 'Antes de cada llamada al LLM'],
+        ['Episodic (episódica)', 'episodic.py', 'Log JSONL de cada tool ejecutada en el turno: nombre, parámetros, resultado, timestamp. Un archivo por run_id. Permite saber qué hizo el agente en cada turno.', 'Al ejecutar y al fallar tools'],
+        ['Semantic (semántica)', 'semantic.py', 'ChromaDB con embeddings de casos aprendidos. Score híbrido: cosine_sim*(1-w) + recency*w con half_life_days=90. Recupera contexto relevante de turnos pasados similares.', 'Al inicio del turno para enriquecer el prompt'],
+        ['Compressor', 'compressor.py', 'Cuando una tool falla, comprime el episodio completo del error y lo guarda en memoria semántica para que futuros reintentos no repitan el mismo error.', 'Al detectar error en ToolDispatcher (hilo paralelo)'],
+    ]
+    elems.append(tabla_comandos(tricap, s,
+        col_widths=[2.5*cm, 2.5*cm, 6.5*cm, PAGE_W - 2*MARGEN - 11.7*cm]))
+    elems.append(sp(0.2))
+    elems.append(nota('💡',
+        '<b>Score híbrido semántico:</b> El sistema no solo recupera los casos más <i>similares</i> '
+        '(similitud coseno) sino también los más <i>recientes</i>. La fórmula es '
+        '<b>score = cosine * (1 - w) + recency * w</b>, con <b>half_life_days = 90</b> '
+        '(un caso de hace 3 meses tiene la mitad de peso de recencia que uno de hoy). '
+        'Esto evita que casos viejos desplacen a casos recientes más relevantes.',
+        s, bg=colors.HexColor('#f0fdf4'), border=C_GREEN))
+    elems.append(sp(0.3))
+
+    # ── 16.6 Integración con core.py
+    elems.append(subsection('16.6 Integración con core.py', s, C_BLUE2))
+    elems.append(body(
+        'La función <b>obtener_respuesta_ia()</b> en <b>app/core.py</b> conserva todas las '
+        'validaciones de seguridad (clientes nulos, modelo del canal, modo mantenimiento). '
+        'Solo al final, en lugar de correr el bucle monolítico, instancia el router y el run:',
+        s,
+    ))
+    elems.append(sp(0.1))
+    integracion = [
+        ['Paso en core.py', 'Responsabilidad'],
+        ['Validar cliente_ia (Claude) y cliente_gemini', 'Si ambos son None: retorna "mantenimiento" antes de llegar al orquestador'],
+        ['Si el canal requiere Claude y no hay API key', 'Retorna "error de configuración" al usuario'],
+        ['router = LLMRouter(canal, claude_client, ...)', 'Crea el router con el proveedor primario del canal'],
+        ['agent_run = AgentRun(usuario_id, canal, router, tools_map, ...)', 'Instancia el estado del turno con el mapa de todas las ~32 herramientas'],
+        ['result = agent_run.execute(pregunta, messages, adjuntos)', 'Delega completamente; core.py no toca ningún loop de tools'],
+        ['return result.text, result.messages', 'Devuelve el texto y el historial actualizado igual que antes'],
+    ]
+    elems.append(tabla_comandos(integracion, s,
+        col_widths=[5.5*cm, PAGE_W - 2*MARGEN - 5.7*cm]))
+    elems.append(sp(0.3))
+
+    # ── 16.7 Tests y validación
+    elems.append(subsection('16.7 Tests Corregidos y Validación (96/96)', s, C_BLUE2))
+    elems.append(body(
+        'La refactorización también corrigió 10 fallos de tests pre-existentes. '
+        'Se documentan aquí los patrones aprendidos para evitar que reaparezcan:',
+        s,
+    ))
+    elems.append(sp(0.15))
+    bugs_tests = [
+        ['Bug corregido', 'Causa raíz', 'Solución aplicada'],
+        ['JID vacío colisionaba con todos los grupos', '"" == "" es True → cualquier JID vacío en .env coincidía con cualquier remitente', 'Envolver con bool(jid) and remote_jid == jid en app/routes.py'],
+        ['Migraciones SQLite rompen en DB nueva', 'Funciones de migración asumen tablas que no existen en una base de datos recién creada', 'Patrón _safe_migrate(): envolver cada migración en try/except sqlite3.OperationalError en init_db()'],
+        ['_add_col falla en tabla inexistente', 'PRAGMA table_info devuelve vacío → el ALTER TABLE falla', 'Verificar existencia de la tabla antes de consultar sus columnas'],
+        ['Mocks de posventa parchaban módulo incorrecto', 'Las funciones viven en app.meli_postventa_notif, no en webhook_meli', 'Importar y parchear app.meli_postventa_notif directamente'],
+        ['DB_PATH no cambiaba con setenv', 'Es constante de módulo fijada al importar; os.environ parchado después no la afecta', 'monkeypatch.setattr(tickets_db, "DB_PATH", str(path))'],
+        ['PUT /pasos retorna dict, no lista', 'La respuesta cambió a {"pasos": [...], "auto_resuelto": bool}', 'data["pasos"] if isinstance(data, dict) else data en el test'],
+        ['obtener_respuesta_ia mock rechazaba canal=', 'La función ahora acepta canal= como kwarg; el mock no lo hacía', 'lambda _msg, _sender, **_kw: (...) en el mock'],
+    ]
+    elems.append(tabla_comandos(bugs_tests, s,
+        col_widths=[3.8*cm, 5.0*cm, PAGE_W - 2*MARGEN - 9.0*cm]))
+    elems.append(sp(0.2))
+    elems.append(nota('✔',
+        '<b>Comandos de validación:</b><br/>'
+        'source venv/bin/activate &amp;&amp; python3 -m pytest tests/ -q  → 96/96<br/>'
+        'python3 -c "from app.agent.run import AgentRun; print(\'OK\')"<br/>'
+        'AGENTE_AUDITORIA_SKIP_WA=1 python3 scripts/auditar_scripts_cron.py',
+        s, bg=colors.HexColor('#f0fdf4'), border=C_GREEN))
+
+    elems.append(PageBreak())
+    return elems
+
+
+# ══════════════════════════════════════════════
 # GENERADOR PRINCIPAL
 # ══════════════════════════════════════════════
 
@@ -1786,7 +2016,7 @@ def generar_pdf() -> str:
     )
 
     s   = estilos()
-    dec = PaginaDecoracion('v3.3')
+    dec = PaginaDecoracion('v3.4')
 
     elems = []
     elems += portada(s)
@@ -1806,6 +2036,7 @@ def generar_pdf() -> str:
     elems += sec13_skills(s)
     elems += sec14_operabilidad(s)
     elems += sec15_metodologia_agentica(s)
+    elems += sec16_orquestador_agentico(s)
 
     doc.build(elems, onFirstPage=dec, onLaterPages=dec)
     print(f'✅ PDF generado: {OUT_PDF}  ({os.path.getsize(OUT_PDF)//1024} KB)')
@@ -1833,7 +2064,7 @@ def enviar_por_correo(pdf_path: str):
     msg = MIMEMultipart()
     msg['From']    = remitente
     msg['To']      = dest
-    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.3 · McKenna Group · {hoy}'
+    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.4 · McKenna Group · {hoy}'
 
     cuerpo = f"""Hola,
 
@@ -1856,8 +2087,10 @@ El manual incluye:
   • Backup nocturno, push a GitHub opcional y grupo GRUPO_ALERTAS_SISTEMAS_WA
   • Metodología agentica McKenna: orquestador, subagentes, memoria local, skills lazy, contratos y CI backend
   • Ecosistema Gentleman: gentle-ai, Engram, Agent Teams Lite, Gentleman-Skills, Guardian Angel y Gentleman.Dots
+  • [NUEVO] AgentRun + Tricap Memory (2026-05-24): orquestador determinista, LLMRouter multi-proveedor,
+    ToolDispatcher con registro episódico, CheckpointStore SQLite y memoria Working/Episodic/Semantic/Compressor
 
-Versión: v3.3 · Generado el {hoy}
+Versión: v3.4 · Generado el {hoy}
 
 ---
 McKenna Group S.A.S. · Bogotá, Colombia

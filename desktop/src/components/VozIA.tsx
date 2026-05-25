@@ -2,6 +2,11 @@ import { useState, useRef, useEffect, useCallback, MutableRefObject } from "reac
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { useAuthStore } from "../stores/auth";
+import { useTicketsAuth } from "../stores/ticketsAuth";
+
+function _getApiToken(): string {
+  return useTicketsAuth.getState().apiToken || _getApiToken() || "";
+}
 import { useModelos, CATEGORIA_COLOR, type Modelo } from "../hooks/useModelos";
 import { usePanelChatMutation } from "../hooks/useChat";
 
@@ -103,7 +108,7 @@ function useTTS() {
     if (!texto.trim()) return;
     if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ""; }
     setPlaying(true);
-    const token = useAuthStore.getState().token;
+    const token = _getApiToken();
     try {
       const res = await fetch("/api/voz/sintetizar", {
         method: "POST",
@@ -157,7 +162,7 @@ function useRecorder(
   const transcribir = useCallback(async (blob: Blob) => {
     onTranscribingStart?.();
     setTranscribing(true);
-    const token = useAuthStore.getState().token;
+    const token = _getApiToken();
     try {
       const ext  = blob.type.split("/")[1]?.split(";")[0] || "webm";
       const form = new FormData();
@@ -390,7 +395,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
 
   const uploadMut = useMutation({
     mutationFn: ({ file, refText }: { file: File; refText: string }) => {
-      const token = useAuthStore.getState().token;
+      const token = _getApiToken();
       const form  = new FormData();
       form.append("audio", file);
       form.append("ref_text", refText);
@@ -405,7 +410,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
 
   const deleteMut = useMutation({
     mutationFn: () => {
-      const token = useAuthStore.getState().token;
+      const token = _getApiToken();
       return fetch("/api/voz/config/referencia", {
         method: "DELETE", headers: { Authorization: `Bearer ${token}` },
       }).then((r) => r.json());
@@ -415,7 +420,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
 
   const previewMut = useMutation({
     mutationFn: async () => {
-      const token = useAuthStore.getState().token;
+      const token = _getApiToken();
       const res = await fetch("/api/voz/config/referencia/preview", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -436,7 +441,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
 
   const subirMuestraMut = useMutation({
     mutationFn: ({ profileId, file, refText }: { profileId: string; file: File; refText: string }) => {
-      const token = useAuthStore.getState().token;
+      const token = _getApiToken();
       const form  = new FormData();
       form.append("audio", file);
       if (refText) form.append("ref_text", refText);

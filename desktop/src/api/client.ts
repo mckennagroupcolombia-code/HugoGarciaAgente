@@ -1,3 +1,4 @@
+import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
 
 /**
@@ -50,7 +51,7 @@ async function request<T>(
   path: string,
   opts: RequestInit = {},
 ): Promise<T> {
-  const token = useAuthStore.getState().token;
+  const token = useTicketsAuth.getState().apiToken || useAuthStore.getState().token;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -83,6 +84,7 @@ async function request<T>(
 
   if (res.status === 401) {
     useAuthStore.getState().clear();
+    useTicketsAuth.getState().clear();
     throw new Error("No autorizado");
   }
   if (!res.ok) {

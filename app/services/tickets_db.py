@@ -17,6 +17,9 @@ def _conn():
 
 
 def _add_col(db, table: str, col: str, defn: str):
+    tables = {r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+    if table not in tables:
+        return
     existing = {r[1] for r in db.execute(f"PRAGMA table_info({table})").fetchall()}
     if col not in existing:
         db.execute(f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
@@ -48,6 +51,9 @@ def _migrate_categorias():
             "SELECT name FROM sqlite_master WHERE type='table'"
         ).fetchall()}
         if "categorias" in tables:
+            return
+        # Fresh database — tables will be created by init_db's executescript; nothing to migrate
+        if "misiones" not in tables:
             return
 
         db.execute("PRAGMA foreign_keys=OFF")
@@ -668,24 +674,80 @@ def _migrate_ticket_paso_notas():
         db.commit()
 
 
+def _migrate_ticket_tipo():
+    """Columna tipo en tickets: 'ticket' (normal) o 'accion' (tarea simple sin etapas)."""
+    with _conn() as db:
+        _add_col(db, "tickets", "tipo", "TEXT NOT NULL DEFAULT 'ticket'")
+        db.commit()
+
+
+def _migrate_usuario_google():
+    """Columnas email y google_sub para autenticación OAuth de Google."""
+    with _conn() as db:
+        _add_col(db, "usuarios", "email", "TEXT")
+        _add_col(db, "usuarios", "google_sub", "TEXT")
+        db.commit()
+
+
+def _migrate_usuario_permisos():
+    """Columna permisos_secciones: JSON con accesos por sección del panel."""
+    with _conn() as db:
+        _add_col(db, "usuarios", "permisos_secciones", "TEXT DEFAULT NULL")
+        db.commit()
+
+
+def _migrate_usuario_departamentos():
+    """Junction table usuario_departamentos para pertenencia a múltiples departamentos."""
+    with _conn() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS usuario_departamentos (
+                usuario_id    INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                departamento_id INTEGER NOT NULL REFERENCES departamentos(id) ON DELETE CASCADE,
+                PRIMARY KEY (usuario_id, departamento_id)
+            )
+        """)
+        # Seed from existing departamento_id FK
+        rows = db.execute(
+            "SELECT id, departamento_id FROM usuarios WHERE departamento_id IS NOT NULL"
+        ).fetchall()
+        for r in rows:
+            db.execute(
+                "INSERT OR IGNORE INTO usuario_departamentos (usuario_id, departamento_id) VALUES (?,?)",
+                (r["id"], r["departamento_id"]),
+            )
+        db.commit()
+
+
+def _safe_migrate(fn):
+    """Run a migration silently skipping OperationalError (fresh-DB tables don't exist yet)."""
+    try:
+        fn()
+    except sqlite3.OperationalError:
+        pass
+
+
 def init_db():
-    _repair_broken_fk()
-    _migrate_categorias()
-    _migrate_materiales_tipo()
-    _migrate_zonas_subareas()
-    _migrate_mision_zona_id()
-    _migrate_zonas_tipo()
-    _migrate_mision_frecuencia()
-    _migrate_mision_modo_ciclo()
-    _migrate_ticket_frecuencia()
-    _migrate_ticket_paso_notas()
+    _safe_migrate(_repair_broken_fk)
+    _safe_migrate(_migrate_categorias)
+    _safe_migrate(_migrate_materiales_tipo)
+    _safe_migrate(_migrate_zonas_subareas)
+    _safe_migrate(_migrate_mision_zona_id)
+    _safe_migrate(_migrate_zonas_tipo)
+    _safe_migrate(_migrate_mision_frecuencia)
+    _safe_migrate(_migrate_mision_modo_ciclo)
+    _safe_migrate(_migrate_ticket_frecuencia)
+    _safe_migrate(_migrate_ticket_paso_notas)
     from app.services.misiones_timing import _migrate_mision_corridas
     from app.services.ticket_timing import _migrate_ticket_corridas
     from app.services.recetas_ops import _migrate_recetas_ops
-    _migrate_mision_corridas()
-    _migrate_ticket_corridas()
-    _migrate_recetas_ops()
-    _migrate_dependencias_prerequisitos()
+    _safe_migrate(_migrate_mision_corridas)
+    _safe_migrate(_migrate_ticket_corridas)
+    _safe_migrate(_migrate_recetas_ops)
+    _safe_migrate(_migrate_dependencias_prerequisitos)
+    _safe_migrate(_migrate_ticket_tipo)
+    _safe_migrate(_migrate_usuario_google)
+    _safe_migrate(_migrate_usuario_permisos)
+    _safe_migrate(_migrate_usuario_departamentos)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -983,8 +1045,10 @@ def init_db():
 # ── HELPERS ──────────────────────────────────────────────────────────────────
 
 def _usuario_full(db, user_id: int) -> dict | None:
+    import json as _json
     row = db.execute("""
-        SELECT u.id, u.nombre, u.username, u.activo, u.creado_en, u.foto,
+        SELECT u.id, u.nombre, u.username, u.email, u.activo, u.creado_en, u.foto,
+               u.permisos_secciones,
                r.id as rol_id, r.nombre as rol_nombre, r.nivel as rol_nivel,
                d.id as dept_id, d.nombre as dept_nombre, d.color as dept_color
         FROM usuarios u
@@ -994,17 +1058,37 @@ def _usuario_full(db, user_id: int) -> dict | None:
     """, (user_id,)).fetchone()
     if not row:
         return None
+    permisos = None
+    if row["permisos_secciones"]:
+        try:
+            permisos = _json.loads(row["permisos_secciones"])
+        except Exception:
+            pass
+    # Multi-department: query junction table
+    dept_rows = db.execute("""
+        SELECT d.id, d.nombre, d.color FROM departamentos d
+        JOIN usuario_departamentos ud ON ud.departamento_id = d.id
+        WHERE ud.usuario_id = ? ORDER BY d.nombre
+    """, (user_id,)).fetchall()
+    departamentos = [{"id": r["id"], "nombre": r["nombre"], "color": r["color"]} for r in dept_rows]
+    # Primary dept: first in junction table, or legacy departamento_id column
+    primary_dept = departamentos[0] if departamentos else (
+        {"id": row["dept_id"], "nombre": row["dept_nombre"], "color": row["dept_color"]}
+        if row["dept_id"] else None
+    )
     return {
         "id":       row["id"],
         "nombre":   row["nombre"],
         "username": row["username"],
+        "email":    row["email"],
         "activo":   row["activo"],
         "creado_en": row["creado_en"],
         "foto":     row["foto"],
+        "permisos_secciones": permisos,
         "rol": {"id": row["rol_id"], "nombre": row["rol_nombre"], "nivel": row["rol_nivel"]}
                if row["rol_id"] else None,
-        "departamento": {"id": row["dept_id"], "nombre": row["dept_nombre"], "color": row["dept_color"]}
-                        if row["dept_id"] else None,
+        "departamento": primary_dept,
+        "departamentos": departamentos,
     }
 
 
@@ -1029,6 +1113,36 @@ def login_usuario(username: str, password: str):
             return None, "Credenciales inválidas"
         token = secrets.token_urlsafe(32)
         expira = (datetime.utcnow() + timedelta(hours=8)).isoformat()
+        db.execute(
+            "INSERT INTO sesiones (usuario_id, token, expira_en) VALUES (?,?,?)",
+            (row["id"], token, expira),
+        )
+        db.commit()
+        return {"token": token, "usuario": _usuario_full(db, row["id"])}, None
+
+
+def login_usuario_google(email: str, sub: str) -> tuple:
+    """Crea o renueva sesión para un usuario autenticado con Google OAuth."""
+    email = email.strip().lower()
+    with _conn() as db:
+        # Buscar por email primero, luego por google_sub
+        row = db.execute(
+            "SELECT * FROM usuarios WHERE LOWER(email)=? AND activo=1", (email,)
+        ).fetchone()
+        if not row:
+            row = db.execute(
+                "SELECT * FROM usuarios WHERE google_sub=? AND activo=1", (sub,)
+            ).fetchone()
+        if not row:
+            return None, f"El correo {email} no tiene acceso al panel. Pide al administrador que lo vincule."
+        # Guardar/actualizar google_sub si cambió
+        if row["google_sub"] != sub or (row["email"] or "").lower() != email:
+            db.execute(
+                "UPDATE usuarios SET google_sub=?, email=? WHERE id=?",
+                (sub, email, row["id"]),
+            )
+        token = secrets.token_urlsafe(32)
+        expira = (datetime.utcnow() + timedelta(hours=12)).isoformat()
         db.execute(
             "INSERT INTO sesiones (usuario_id, token, expira_en) VALUES (?,?,?)",
             (row["id"], token, expira),
@@ -1131,18 +1245,42 @@ def listar_usuarios() -> list:
         return [_usuario_full(db, r["id"]) for r in rows]
 
 
-def crear_usuario(nombre: str, username: str, password: str,
-                  rol_id: int, departamento_id: int) -> tuple:
+def crear_usuario(
+    nombre: str,
+    username: str,
+    rol_id: int,
+    departamentos_ids: list[int] | None = None,
+    password: str | None = None,
+    email: str | None = None,
+    departamento_id: int | None = None,  # legacy single-dept fallback
+) -> tuple:
+    import secrets as _sec
+    pwd = password or _sec.token_urlsafe(16)  # auto-generate if not provided
+    # Collect dept ids (support both new multi and legacy single)
+    dept_ids: list[int] = []
+    if departamentos_ids:
+        dept_ids = [int(d) for d in departamentos_ids]
+    elif departamento_id:
+        dept_ids = [int(departamento_id)]
+    primary_dept = dept_ids[0] if dept_ids else None
     with _conn() as db:
         try:
             db.execute(
-                "INSERT INTO usuarios (nombre, username, password_hash, rol_id, departamento_id) "
-                "VALUES (?,?,?,?,?)",
-                (nombre, username, generate_password_hash(password), rol_id, departamento_id),
+                "INSERT INTO usuarios (nombre, username, password_hash, rol_id, departamento_id, email) "
+                "VALUES (?,?,?,?,?,?)",
+                (nombre, username, generate_password_hash(pwd), rol_id, primary_dept,
+                 email.strip().lower() if email else None),
             )
             db.commit()
             row = db.execute("SELECT id FROM usuarios WHERE username=?", (username,)).fetchone()
-            return _usuario_full(db, row["id"]), None
+            uid = row["id"]
+            for did in dept_ids:
+                db.execute(
+                    "INSERT OR IGNORE INTO usuario_departamentos (usuario_id, departamento_id) VALUES (?,?)",
+                    (uid, did),
+                )
+            db.commit()
+            return _usuario_full(db, uid), None
         except Exception as e:
             if "UNIQUE" in str(e):
                 return None, f"El username '{username}' ya existe"
@@ -1197,17 +1335,48 @@ def desactivar_usuario(user_id: int, solicitante_id: int) -> tuple:
     return True, None
 
 
+def actualizar_permisos_secciones(user_id: int, permisos: dict, admin_id: int) -> tuple[bool, str | None]:
+    import json as _json
+    with _conn() as db:
+        admin = _usuario_full(db, admin_id)
+        if not admin or (admin.get("rol") or {}).get("nivel", 0) < 3:
+            return False, "No autorizado"
+        db.execute(
+            "UPDATE usuarios SET permisos_secciones=? WHERE id=?",
+            (_json.dumps(permisos), user_id),
+        )
+        db.commit()
+    return True, None
+
+
 def actualizar_usuario(user_id: int, data: dict) -> tuple:
+    import json as _json
     campos = {k: v for k, v in data.items()
-              if k in ("nombre", "username", "rol_id", "departamento_id", "activo")}
+              if k in ("nombre", "username", "rol_id", "departamento_id", "activo", "email", "permisos_secciones")}
+    if "email" in campos and campos["email"]:
+        campos["email"] = campos["email"].strip().lower()
+    if "permisos_secciones" in campos:
+        val = campos["permisos_secciones"]
+        campos["permisos_secciones"] = _json.dumps(val) if isinstance(val, dict) else (val or None)
     if "password" in data and data["password"]:
         campos["password_hash"] = generate_password_hash(data["password"])
-    if not campos:
-        return False, "Sin datos para actualizar"
+    dept_ids: list[int] | None = None
+    if "departamentos_ids" in data and isinstance(data["departamentos_ids"], list):
+        dept_ids = [int(d) for d in data["departamentos_ids"] if d]
+        if dept_ids:
+            campos["departamento_id"] = dept_ids[0]  # keep primary FK in sync
     with _conn() as db:
         try:
-            set_clause = ", ".join(f"{k}=?" for k in campos)
-            db.execute(f"UPDATE usuarios SET {set_clause} WHERE id=?", (*campos.values(), user_id))
+            if campos:
+                set_clause = ", ".join(f"{k}=?" for k in campos)
+                db.execute(f"UPDATE usuarios SET {set_clause} WHERE id=?", (*campos.values(), user_id))
+            if dept_ids is not None:
+                db.execute("DELETE FROM usuario_departamentos WHERE usuario_id=?", (user_id,))
+                for did in dept_ids:
+                    db.execute(
+                        "INSERT OR IGNORE INTO usuario_departamentos (usuario_id, departamento_id) VALUES (?,?)",
+                        (user_id, did),
+                    )
             db.commit()
             return True, None
         except Exception as e:
@@ -2511,15 +2680,18 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
         numero = _generar_numero(db)
         try:
             asignado_a = int(data["asignado_a"]) if data.get("asignado_a") else None
+            tipo = data.get("tipo", "ticket")
+            if tipo not in ("ticket", "accion"):
+                tipo = "ticket"
             db.execute("""
                 INSERT INTO tickets
                     (numero, titulo, categoria, descripcion, prioridad,
-                     creado_por, asignado_a, soporte_archivo)
-                VALUES (?,?,?,?,?,?,?,?)
+                     creado_por, asignado_a, soporte_archivo, tipo)
+                VALUES (?,?,?,?,?,?,?,?,?)
             """, (
                 numero, data["titulo"], data["categoria"],
                 data["descripcion"], data.get("prioridad", "media"),
-                usuario_id, asignado_a, archivo_nombre,
+                usuario_id, asignado_a, archivo_nombre, tipo,
             ))
             tid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
             _log(db, tid, usuario_id, "ticket_creado", detalles=f"Ticket {numero} creado")
@@ -2548,7 +2720,7 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                          "SELECT 1 FROM ticket_participantes tp "
                          "WHERE tp.ticket_id=t.id AND tp.usuario_id=?))")
             params += [usuario["id"], usuario["id"], usuario["id"]]
-        for key in ("estado", "categoria", "prioridad"):
+        for key in ("estado", "categoria", "prioridad", "tipo"):
             if filtros.get(key):
                 conds.append(f"t.{key}=?")
                 params.append(filtros[key])
@@ -2558,6 +2730,8 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
         if filtros.get("mision_id"):
             conds.append("t.mision_id=?")
             params.append(filtros["mision_id"])
+        if filtros.get("sin_mision"):
+            conds.append("t.mision_id IS NULL")
         where = ("WHERE " + " AND ".join(conds)) if conds else ""
         rows = db.execute(f"""
             SELECT t.*,

@@ -244,6 +244,10 @@ const GRUPO_PEDIDOS_WEB  = envLimpio('GRUPO_PEDIDOS_WEB_WA', '120363391665421264
 /** MeLi — mismos defaults que app/utils.py (jid_grupo_*_wa). Sin esto, posventa/resp nunca llegan a Flask. */
 const GRUPO_PREVENTA_MELI = envLimpio('GRUPO_PREVENTA_WA', '120363393955474672@g.us');
 const GRUPO_POSTVENTA_MELI = envLimpio('GRUPO_POSTVENTA_WA', '120363406693905719@g.us');
+/** SEDE SUR: agente interno — reenvía todos los mensajes al agente (no solo comandos). */
+const GRUPO_SEDE_SUR = envLimpio('GRUPO_SEDE_SUR_WA', '120363023555909043@g.us');
+// IDs de mensajes enviados por el bot al grupo SEDE SUR (para evitar loop fromMe).
+const sedeSurBotSentIds = new Set();
 const GRUPOS_ADMIN       = [GRUPO_CONTABILIDAD, GRUPO_COMPRAS];
 /** Contabilidad/compras + pedidos web + preventa/postventa MeLi (comandos resp / posventa). */
 const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB, GRUPO_PREVENTA_MELI, GRUPO_POSTVENTA_MELI];
@@ -291,6 +295,66 @@ async function procesarComandoGrupo(msg, chatIdOverride) {
     }
 }
 
+// MCKG SEDE SUR: todos los mensajes (texto y media) van al agente sin filtro de comandos.
+async function procesarMensajeSedeSur(msg, chatId) {
+    const texto = msg.body || '';
+    if (!texto && !msg.hasMedia) return;
+
+    logActividad('ENTRANTE', { de: chatId, tipo: msg.type, texto: texto || '[media]', hasMedia: msg.hasMedia });
+    console.log(`🏢 SEDE SUR [${msg.from}]: ${texto.substring(0, 80)}`);
+
+    let hasMedia = false, mediaPath = '', mediaType = '';
+    if (msg.hasMedia) {
+        try {
+            const media = await msg.downloadMedia();
+            if (media) {
+                hasMedia = true;
+                if (media.mimetype.startsWith('audio/') || media.mimetype === 'application/ogg') {
+                    mediaType = 'audio';
+                    const ts = Date.now();
+                    mediaPath = path.join(DIR_COMPROBANTES, `sedeSur_${ts}.ogg`);
+                    fs.writeFileSync(mediaPath, media.data, 'base64');
+                } else if (media.mimetype.startsWith('image/')) {
+                    mediaType = 'image';
+                    const ext = media.mimetype.split('/')[1].split(';')[0];
+                    const ts = Date.now();
+                    mediaPath = path.join(DIR_COMPROBANTES, `sedeSur_${ts}.${ext}`);
+                    fs.writeFileSync(mediaPath, media.data, 'base64');
+                }
+            }
+        } catch (e) {
+            console.error('⚠️  SEDE SUR media download error:', e.message);
+        }
+    }
+
+    try {
+        const responseIA = await axios.post('http://localhost:8081/whatsapp', {
+            sender:               msg.from,
+            remoteJid:            chatId,
+            mensaje:              texto,
+            hasMedia,
+            mediaPath,
+            mediaType,
+            es_grupo_contabilidad: false,
+        });
+        if (responseIA.data && responseIA.data.respuesta) {
+            const sentResp = await client.sendMessage(chatId, responseIA.data.respuesta);
+            // Registrar ID para que message_create no procese la propia respuesta del bot
+            if (sentResp && sentResp.id) {
+                const sid = sentResp.id._serialized || sentResp.id.id || '';
+                if (sid) {
+                    sedeSurBotSentIds.add(sid);
+                    setTimeout(() => sedeSurBotSentIds.delete(sid), 30000);
+                }
+            }
+            logActividad('SALIENTE', { para: chatId, texto: responseIA.data.respuesta });
+        }
+    } catch (error) {
+        console.error('❌ Error procesando mensaje SEDE SUR:', error.message);
+        logActividad('ERROR', { texto: `SEDE SUR: ${error.message}`, de: chatId });
+    }
+}
+
 // message_create captura mensajes creados en WhatsApp Web. En algunos entornos
 // los mensajes de otros participantes llegan aquí antes que en `message`.
 // `comandoDuplicado` evita procesar dos veces si también llega el evento message.
@@ -299,6 +363,13 @@ client.on('message_create', async (msg) => {
     const chatId = await obtenerChatIdComandoAsync(msg);
     const textoProbe = normalizarComando(msg.body || '').toLowerCase();
     const enGrupoCmd = GRUPOS_COMANDO.includes(chatId);
+    // SEDE SUR: interceptar mensajes humanos (incluye fromMe si el admin usa el mismo teléfono)
+    if (chatId === GRUPO_SEDE_SUR) {
+        const sid = (msg.id && (msg.id._serialized || msg.id.id)) || '';
+        if (sedeSurBotSentIds.has(sid)) return; // respuesta del bot, evitar loop
+        await procesarMensajeSedeSur(msg, chatId);
+        return;
+    }
     if (!enGrupoCmd && !esComandoMeliOperativo(textoProbe)) return;
     await procesarComandoGrupo(msg, enGrupoCmd ? chatId : GRUPO_POSTVENTA_MELI);
 });
@@ -329,6 +400,15 @@ client.on('message', async (msg) => {
 
     // Filtro 2: ignorar mensajes del propio agente a clientes (salvo comandos MeLi)
     if (msg.fromMe && !esGrupoComando && !esCmdMeli) return;
+
+    // MCKG SEDE SUR: equipo interno — reenviar todos los mensajes al agente
+    if (chatIdComando === GRUPO_SEDE_SUR) {
+        const sid = (msg.id && (msg.id._serialized || msg.id.id)) || '';
+        if (!sedeSurBotSentIds.has(sid)) {
+            await procesarMensajeSedeSur(msg, chatIdComando);
+        }
+        return;
+    }
 
     // Filtro 3: ignorar grupos que no sean de admin
     if (chatIdComando.includes('@g.us') && !esGrupoComando) {
@@ -447,7 +527,15 @@ app.post('/enviar', async (req, res) => {
 
         const chatId = numero.includes('@') ? numero : (numero.length > 15 ? `${numero}@g.us` : `${numero}@c.us`);
 
-        await client.sendMessage(chatId, mensaje);
+        const sentMsg = await client.sendMessage(chatId, mensaje);
+        // Registrar ID para evitar loop en SEDE SUR (mensaje fromMe del propio bot)
+        if (chatId === GRUPO_SEDE_SUR && sentMsg && sentMsg.id) {
+            const sid = sentMsg.id._serialized || sentMsg.id.id || '';
+            if (sid) {
+                sedeSurBotSentIds.add(sid);
+                setTimeout(() => sedeSurBotSentIds.delete(sid), 30000);
+            }
+        }
         console.log(`📤 Reporte enviado a: ${chatId}`);
         logActividad('SALIENTE', { para: chatId, texto: mensaje, origen: 'API /enviar' });
         res.status(200).json({ status: "success" });
