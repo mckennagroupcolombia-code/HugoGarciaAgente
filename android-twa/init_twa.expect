@@ -1,0 +1,52 @@
+#!/usr/bin/expect -f
+set timeout 60
+
+cd /home/mckg/mi-agente/android-twa
+
+# Remove old twa-manifest so init runs fresh
+file delete -force twa-manifest.json
+file delete -force .bubblewrap
+
+spawn bubblewrap init --manifest https://bot.mckennagroup.co/app/manifest.json
+
+# Domain
+expect -re {Domain.*:} { send "\r" }
+# Start URL path
+expect -re {path.*:} { send "\r" }
+# App name
+expect -re {name.*:} { send "\r" }
+# Short name
+expect -re {short.*:} { send "\r" }
+# Package ID
+expect -re {package.*:} { send "co.mckennagroup.panel\r" }
+# Display mode
+expect -re {display.*:} { send "\r" }
+# Orientation
+expect -re {orient.*:} { send "\r" }
+# Theme/status bar color
+expect -re {color.*:} { send "#0c6069\r" }
+# Nav bar color
+expect -re {color.*:} { send "#0c6069\r" }
+# Nav divider color
+expect -re {color.*:} { send "#0c6069\r" }
+# Background color
+expect -re {back.*:} { send "#0f1117\r" }
+# Enable notifications
+expect -re {notif.*:} { send "\r" }
+# Version name
+expect -re {version.*name.*:} { send "\r" }
+# Version code
+expect -re {version.*code.*:} { send "\r" }
+# Signing key path
+expect -re {key.*path.*:} { send "./mckenna.keystore\r" }
+# Signing key alias
+expect -re {alias.*:} { send "mckenna\r" }
+
+# Any remaining prompts -> Enter
+expect {
+    -re {.*\?.*} { send "\r"; exp_continue }
+    eof { }
+    timeout { }
+}
+
+wait

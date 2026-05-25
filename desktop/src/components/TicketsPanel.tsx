@@ -1094,6 +1094,20 @@ function fmtDate(s: string) {
 
 // ── Sub-views ─────────────────────────────────────────────────────────────────
 
+/** Tabs que un usuario puede ver dentro del Centro de Mando.
+ *  Admin (nivel >= 3) ve siempre todo.
+ *  Sin permisos configurados (null) → solo acciones.
+ *  Con permisos → respeta la clave tickets_<tab>. */
+function puedeVerTab(
+  permisos: Record<string, boolean> | null | undefined,
+  nivel: number,
+  tab: string,
+): boolean {
+  if (nivel >= 3) return true;
+  if (!permisos) return tab === "acciones";
+  return Boolean(permisos[`tickets_${tab}`]);
+}
+
 type View =
   | "list"
   | "acciones"
@@ -1476,6 +1490,7 @@ function misionCoincideScope(reinoMision: string | null | undefined, scope: NavS
 function QuestNavBar({
   view,
   nivel,
+  permisos,
   bajoStockCount,
   userNombre,
   onTablero,
@@ -1492,6 +1507,7 @@ function QuestNavBar({
 }: {
   view: View;
   nivel: number;
+  permisos: Record<string, boolean> | null | undefined;
   bajoStockCount: number;
   userNombre: string;
   onTablero: () => void;
@@ -1506,54 +1522,69 @@ function QuestNavBar({
   onCreateMision: () => void;
   onLogout: () => void;
 }) {
+  const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
   return (
     <nav
       className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 flex flex-wrap items-center gap-x-2 gap-y-2 border-b-2 border-border px-4 py-2.5 backdrop-blur-md lg:-mx-10"
       aria-label="Navegación Centro de Mando"
     >
       <div className="quest-nav-bar-main flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
-          <QuestBoardNavLabel />
-        </button>
-        <button type="button" onClick={onAcciones} className={questNavBtn(view === "acciones")}>
-          <TopicIcon value="⚡" size={14} weight="duotone" />
-          Acciones
-        </button>
-        <button
-          type="button"
-          onClick={onCreateMision}
-          className={questNavBtn(view === "crear_mision")}
-        >
-          + Nueva misión
-        </button>
-        <button type="button" onClick={onInventario} className={`relative ${questNavBtn(view === "inventario")}`}>
-          <TopicIcon value="🧪" size={14} weight="duotone" />
-          Inventario
-          {bajoStockCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none shadow-sm">
-              {bajoStockCount}
-            </span>
-          )}
-        </button>
-        <button type="button" onClick={onReinos} className={questNavBtn(view === "reinos")}>
-          <TopicIcon value="🏰" size={14} weight="duotone" />
-          Reinos
-        </button>
-        <button type="button" onClick={onRecetas} className={questNavBtn(view === "recetas")}>
-          <TopicIcon value="📖" size={14} weight="duotone" />
-          Recetas
-        </button>
-        <InventarioCarritoNavBtn active={carritoOpen} onOpen={onCarrito} />
-        {nivel >= 2 && (
+        {pVer("tablero") && (
+          <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
+            <QuestBoardNavLabel />
+          </button>
+        )}
+        {pVer("acciones") && (
+          <button type="button" onClick={onAcciones} className={questNavBtn(view === "acciones")}>
+            <TopicIcon value="⚡" size={14} weight="duotone" />
+            Acciones
+          </button>
+        )}
+        {pVer("crear_mision") && (
+          <button
+            type="button"
+            onClick={onCreateMision}
+            className={questNavBtn(view === "crear_mision")}
+          >
+            + Nueva misión
+          </button>
+        )}
+        {pVer("inventario") && (
+          <button type="button" onClick={onInventario} className={`relative ${questNavBtn(view === "inventario")}`}>
+            <TopicIcon value="🧪" size={14} weight="duotone" />
+            Inventario
+            {bajoStockCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none shadow-sm">
+                {bajoStockCount}
+              </span>
+            )}
+          </button>
+        )}
+        {pVer("reinos") && (
+          <button type="button" onClick={onReinos} className={questNavBtn(view === "reinos")}>
+            <TopicIcon value="🏰" size={14} weight="duotone" />
+            Reinos
+          </button>
+        )}
+        {pVer("recetas") && (
+          <button type="button" onClick={onRecetas} className={questNavBtn(view === "recetas")}>
+            <TopicIcon value="📖" size={14} weight="duotone" />
+            Recetas
+          </button>
+        )}
+        {pVer("inventario") && <InventarioCarritoNavBtn active={carritoOpen} onOpen={onCarrito} />}
+        {nivel >= 2 && pVer("workload") && (
           <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
             <TopicIcon value="🤝" size={14} weight="duotone" />
             Aliados
           </button>
         )}
-        <button type="button" onClick={onPerfil} className={questNavBtn(view === "perfil")}>
-          <TopicIcon value="👤" size={14} weight="duotone" />
-          Perfil
-        </button>
+        {pVer("perfil") && (
+          <button type="button" onClick={onPerfil} className={questNavBtn(view === "perfil")}>
+            <TopicIcon value="👤" size={14} weight="duotone" />
+            Perfil
+          </button>
+        )}
       </div>
       <div className="quest-nav-bar-actions ml-auto flex shrink-0 items-center gap-2">
         <QuestThemeToggle />
@@ -10249,6 +10280,14 @@ export default function TicketsPanel() {
   if (!token || !user) return null;
 
   const nivel = user.rol?.nivel ?? 1;
+  const permisos = user.permisos_secciones;
+
+  // Si el usuario no puede ver el tablero, mostrar acciones por defecto
+  useEffect(() => {
+    if (!puedeVerTab(permisos, nivel, "tablero") && view === "list") {
+      if (puedeVerTab(permisos, nivel, "acciones")) setView("acciones");
+    }
+  }, [permisos, nivel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function goDetail(id: number) { setSelectedId(id); setView("detail"); }
   function goBack() {
@@ -10285,6 +10324,7 @@ export default function TicketsPanel() {
         <QuestNavBar
           view={view}
           nivel={nivel}
+          permisos={permisos}
           bajoStockCount={bajoStockCount}
           userNombre={user.nombre}
           onTablero={goTablero}

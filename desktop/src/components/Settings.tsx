@@ -88,6 +88,7 @@ function ServiceCard({
 export default function Settings() {
   const token = useAuthStore((s) => s.token);
   const { user: ticketsUser, clear: clearTickets } = useTicketsAuth();
+  const isAdmin = (ticketsUser?.rol?.nivel ?? 0) >= 3;
   const clearMain = useAuthStore((s) => s.clear);
   function logout() { clearTickets(); clearMain(); }
   const { data: status } = useStatus();
@@ -402,17 +403,173 @@ export default function Settings() {
       {/* ── Supervisor IA ── */}
       <SupervisorSection onMarkRunning={markRunning} />
 
+      {/* ── App Android ── */}
+      {isAdmin && <ApkBuilderSection />}
+
+      {/* ── Gestión de usuarios ── */}
+      {isAdmin && <UsuariosSection />}
+
       {/* ── Terminal ── */}
-      <section className="space-y-2">
-        <h3 className="text-sm font-semibold text-ink">Salida del Sistema</h3>
-        <TerminalLog
-          lines={logLines}
-          isRunning={isRunning}
-          onClear={clearLogs}
-          className="h-72"
-        />
-      </section>
+      {isAdmin && <TerminalSection logLines={logLines} isRunning={isRunning} onClear={clearLogs} />}
     </div>
+  );
+}
+
+// ── APK Builder section ────────────────────────────────────────────────────
+
+interface ApkStatus {
+  status: "idle" | "building" | "success" | "error";
+  log: string[];
+  version: string | null;
+  error: string | null;
+  built_at: string | null;
+  apk_size_kb: number | null;
+}
+
+function ApkBuilderSection() {
+  // apiToken = CHAT_API_TOKEN (devuelto desde /auth/me solo para admins)
+  // Es el que valida _api_token_valido() en el backend
+  const apiToken = useTicketsAuth((s) => s.apiToken) ?? useAuthStore.getState().token;
+  const [version, setVersion] = useState("1.0.0");
+  const [status, setStatus] = useState<ApkStatus | null>(null);
+  const [polling, setPolling] = useState(false);
+  const logEndRef = useRef<HTMLDivElement>(null);
+  const pollRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const d = await api.get<ApkStatus>("/api/build-apk/status");
+      setStatus(d);
+      if (d.status !== "building") {
+        setPolling(false);
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchStatus(); }, [fetchStatus]);
+
+  useEffect(() => {
+    if (polling && !pollRef.current) {
+      pollRef.current = setInterval(fetchStatus, 2000);
+    }
+    return () => { if (pollRef.current && !polling) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [polling, fetchStatus]);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [status?.log]);
+
+  async function startBuild() {
+    try {
+      await api.post("/api/build-apk", { version });
+      setPolling(true);
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(fetchStatus, 2000);
+      await fetchStatus();
+    } catch (e: any) {
+      alert(e.message ?? "Error al iniciar build");
+    }
+  }
+
+  function downloadApk() {
+    window.location.href = `/api/build-apk/download?token=${encodeURIComponent(apiToken ?? "")}`;
+  }
+
+  const building = status?.status === "building";
+  const ready    = status?.status === "success";
+  const failed   = status?.status === "error";
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+            <span>📱</span> App Android (TWA)
+          </h3>
+          <p className="text-xs text-muted mt-0.5">
+            Genera el APK firmado para distribuir a los colaboradores
+          </p>
+        </div>
+        {ready && (
+          <span className="shrink-0 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-0.5">
+            ✓ v{status!.version} listo
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] text-muted font-medium">Versión</label>
+          <input
+            className="rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-sm text-ink font-mono w-28 focus:outline-none focus:border-accent"
+            value={version}
+            onChange={(e) => setVersion(e.target.value)}
+            placeholder="1.0.0"
+            disabled={building}
+          />
+        </div>
+
+        <button
+          onClick={startBuild}
+          disabled={building}
+          className="rounded-lg bg-accent/15 px-4 py-2 text-sm font-semibold text-accent transition hover:bg-accent/25 disabled:opacity-40 flex items-center gap-2"
+        >
+          {building ? (
+            <>
+              <span className="inline-block w-3.5 h-3.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+              Compilando…
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+              </svg>
+              Generar APK
+            </>
+          )}
+        </button>
+
+        {ready && (
+          <button
+            onClick={downloadApk}
+            className="rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-4 py-2 text-sm font-semibold text-emerald-400 transition hover:bg-emerald-500/25 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Descargar APK
+            {status?.apk_size_kb && (
+              <span className="text-[11px] text-emerald-600 font-normal">({status.apk_size_kb} KB)</span>
+            )}
+          </button>
+        )}
+      </div>
+
+      {status && (status.log.length > 0 || failed) && (
+        <div className="rounded-lg border border-border bg-[#0a0d12] p-3 font-mono text-[11px] h-40 overflow-y-auto space-y-0.5">
+          {status.log.map((line, i) => {
+            const isErr = /error|failed|✖/i.test(line);
+            const isOk  = /✔|BUILD SUCCESS/.test(line);
+            return (
+              <div key={i} className={isErr ? "text-red-400" : isOk ? "text-emerald-400" : "text-gray-400"}>
+                {line}
+              </div>
+            );
+          })}
+          {failed && status.error && (
+            <div className="text-red-400 mt-1">✖ {status.error}</div>
+          )}
+          <div ref={logEndRef} />
+        </div>
+      )}
+
+      {ready && status?.built_at && (
+        <p className="text-[11px] text-muted">
+          Compilado el {status.built_at} · v{status.version} · {status.apk_size_kb} KB
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -485,6 +642,278 @@ function SupervisorSection({ onMarkRunning }: { onMarkRunning: () => void }) {
       {indexMutation.isSuccess && (
         <p className="text-xs text-emerald-400">Indexación iniciada en segundo plano — puede tomar ~30 s</p>
       )}
+    </section>
+  );
+}
+
+// ── Terminal colapsable (admin) ────────────────────────────────────────────
+
+function TerminalSection({
+  logLines,
+  isRunning,
+  onClear,
+}: {
+  logLines: string[];
+  isRunning: boolean;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-panel overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-5 py-3.5 text-left transition hover:bg-surface-hover"
+      >
+        <h3 className="text-sm font-semibold text-ink">Salida del Sistema</h3>
+        <svg
+          className={`h-4 w-4 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className="px-5 pb-5">
+          <TerminalLog
+            lines={logLines}
+            isRunning={isRunning}
+            onClear={onClear}
+            className="h-72"
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Gestión de usuarios (admin) ────────────────────────────────────────────
+
+interface UsuarioResumen {
+  id: number;
+  nombre: string;
+  username: string;
+  email: string | null;
+  activo: number;
+  rol: { id: number; nombre: string; nivel: number } | null;
+  permisos_secciones: Record<string, boolean> | null;
+}
+
+// Sidebar sections (top-level)
+const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
+  { id: "dashboard",  label: "Dashboard" },
+  { id: "chat",       label: "Chat IA" },
+  { id: "voz",        label: "Voz IA" },
+  { id: "webchat",    label: "Chat web" },
+  { id: "preventa",   label: "Preventa MeLi" },
+  { id: "sync",       label: "Sincronización" },
+  { id: "stock",      label: "Stock" },
+  { id: "pedidos",    label: "Pedidos Web" },
+  { id: "facturas",   label: "Facturas Compra" },
+  { id: "tickets",    label: "Centro de Mando" },
+];
+
+// Sub-tabs within Centro de Mando
+const TICKETS_TABS: { id: string; label: string }[] = [
+  { id: "tablero",      label: "Tablero" },
+  { id: "acciones",     label: "Acciones" },
+  { id: "inventario",   label: "Inventario" },
+  { id: "reinos",       label: "Reinos" },
+  { id: "recetas",      label: "Recetas" },
+  { id: "workload",     label: "Aliados" },
+  { id: "perfil",       label: "Perfil" },
+  { id: "crear_mision", label: "Crear misión" },
+];
+
+function PermisosEditor({
+  usuario,
+  onSaved,
+}: {
+  usuario: UsuarioResumen;
+  onSaved: () => void;
+}) {
+  const { token: ticketsToken } = useTicketsAuth();
+
+  // Initialize from current permisos, defaulting to null = empty
+  const [permisos, setPermisos] = useState<Record<string, boolean>>(() => {
+    return usuario.permisos_secciones ?? {};
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  function toggle(key: string) {
+    setPermisos((prev) => ({ ...prev, [key]: !prev[key] }));
+    setSaved(false);
+  }
+
+  // When tickets is toggled off, also clear sub-tabs
+  function toggleSeccion(id: string) {
+    if (id === "tickets") {
+      setPermisos((prev) => {
+        const next: Record<string, boolean> = { ...prev, tickets: !prev["tickets"] };
+        if (!next["tickets"]) {
+          TICKETS_TABS.forEach((t) => { next[`tickets_${t.id}`] = false; });
+        }
+        return next;
+      });
+    } else {
+      toggle(id);
+    }
+    setSaved(false);
+  }
+
+  async function guardar() {
+    setSaving(true);
+    try {
+      await fetch(`/api/tickets/usuarios/${usuario.id}/permisos`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${ticketsToken}`,
+        },
+        body: JSON.stringify(permisos),
+      });
+      setSaved(true);
+      onSaved();
+    } catch {
+      alert("Error al guardar permisos");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const ticketsHabilitado = Boolean(permisos["tickets"]);
+
+  return (
+    <div className="mt-3 space-y-4 rounded-lg border border-border bg-surface p-4">
+      <div className="space-y-2">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Secciones del panel</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+          {SIDEBAR_SECCIONES.map((s) => (
+            <label key={s.id} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={Boolean(permisos[s.id])}
+                onChange={() => toggleSeccion(s.id)}
+                className="h-3.5 w-3.5 rounded border-border accent-accent"
+              />
+              {s.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {ticketsHabilitado && (
+        <div className="space-y-2 rounded-lg border border-border bg-surface-hover px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Tabs — Centro de Mando</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+            {TICKETS_TABS.map((t) => (
+              <label key={t.id} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={Boolean(permisos[`tickets_${t.id}`])}
+                  onChange={() => toggle(`tickets_${t.id}`)}
+                  className="h-3.5 w-3.5 rounded border-border accent-accent"
+                />
+                {t.label}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3">
+        <button
+          onClick={guardar}
+          disabled={saving}
+          className="rounded-lg bg-accent/15 px-4 py-1.5 text-sm font-semibold text-accent transition hover:bg-accent/25 disabled:opacity-40"
+        >
+          {saving ? "Guardando…" : "Guardar permisos"}
+        </button>
+        {saved && <span className="text-xs text-emerald-400">✓ Guardado</span>}
+      </div>
+    </div>
+  );
+}
+
+function UsuariosSection() {
+  const { token: ticketsToken } = useTicketsAuth();
+  const { data, refetch } = useQuery<UsuarioResumen[]>({
+    queryKey: ["tickets-usuarios-admin"],
+    queryFn: () =>
+      fetch("/api/tickets/usuarios", {
+        headers: { Authorization: `Bearer ${ticketsToken ?? ""}` },
+      }).then((r) => r.json()),
+    enabled: Boolean(ticketsToken),
+    staleTime: 10_000,
+  });
+
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const usuarios = data ?? [];
+  // Excluir admins de la lista (no tiene sentido editar sus permisos)
+  const operarios = usuarios.filter((u) => (u.rol?.nivel ?? 0) < 3 && u.activo);
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-ink">Gestión de usuarios</h3>
+        <p className="text-xs text-muted mt-0.5">
+          Configura qué secciones puede ver cada colaborador
+        </p>
+      </div>
+
+      {operarios.length === 0 && (
+        <p className="text-sm text-muted">No hay colaboradores registrados.</p>
+      )}
+
+      <div className="space-y-2">
+        {operarios.map((u) => {
+          const isOpen = expanded === u.id;
+          const tienePermisos = u.permisos_secciones && Object.keys(u.permisos_secciones).length > 0;
+          return (
+            <div key={u.id} className="rounded-lg border border-border bg-surface overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setExpanded(isOpen ? null : u.id)}
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-surface-hover"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-ink truncate">{u.nombre}</p>
+                  <p className="text-[11px] text-muted truncate">{u.email ?? u.username}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className={`text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
+                    tienePermisos
+                      ? "bg-accent/10 text-accent border-accent/20"
+                      : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                  }`}>
+                    {tienePermisos ? "Configurado" : "Por defecto"}
+                  </span>
+                  <span className="text-muted text-xs">{u.rol?.nombre ?? "—"}</span>
+                  <svg
+                    className={`h-4 w-4 text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
+              {isOpen && (
+                <div className="border-t border-border px-4 pb-4">
+                  <PermisosEditor
+                    usuario={u}
+                    onSaved={() => {
+                      refetch();
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }

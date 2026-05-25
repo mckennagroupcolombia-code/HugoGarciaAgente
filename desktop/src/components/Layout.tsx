@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import ActivityLog from "./ActivityLog";
 import { useAppStore } from "../stores/app";
+import { useTicketsAuth } from "../stores/ticketsAuth";
 import { Icon } from "../icons";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggle = useAppStore((s) => s.toggleSidebar);
+  const isAdmin = (useTicketsAuth((s) => s.user)?.rol?.nivel ?? 0) >= 3;
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
@@ -35,9 +37,11 @@ export default function Layout({ children }: { children: ReactNode }) {
 
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="min-h-0 flex-1 overflow-auto px-4 py-5 lg:px-10 lg:py-8">{children}</div>
-          <div className="shrink-0 border-t border-border bg-surface-panel px-4 pb-3 pt-2 shadow-paper-sm lg:px-8">
-            <ActivityLog />
-          </div>
+          {isAdmin && (
+            <div className="shrink-0 border-t border-border bg-surface-panel px-4 pb-3 pt-2 shadow-paper-sm lg:px-8">
+              <ActivityLog />
+            </div>
+          )}
         </div>
       </main>
     </div>
