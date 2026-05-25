@@ -672,6 +672,57 @@ def agregar_caso():
 
 from app.monitor import incrementar_metrica
 
+# ── Proxy hacia agente_pro (puerto 8081) ──────────────────────────────────────
+# bot.mckennagroup.co enruta TODO a este proceso (8080).
+# Las rutas del panel React (/app, /api/*) viven en routes.py (8081), así que
+# las reenviamos aquí con un proxy liviano.
+
+_PROXY_TARGET = "http://127.0.0.1:8081"
+_HOP_BY_HOP = frozenset([
+    "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
+    "te", "trailers", "transfer-encoding", "upgrade",
+])
+
+
+def _proxy_to_agente(path: str):
+    import requests as _req
+    target_url = f"{_PROXY_TARGET}/{path}"
+    if request.query_string:
+        target_url += "?" + request.query_string.decode("utf-8", errors="replace")
+
+    headers = {
+        k: v for k, v in request.headers.items()
+        if k.lower() not in _HOP_BY_HOP and k.lower() != "host"
+    }
+    try:
+        upstream = _req.request(
+            method=request.method,
+            url=target_url,
+            headers=headers,
+            data=request.get_data(),
+            allow_redirects=False,
+            timeout=30,
+        )
+    except _req.exceptions.ConnectionError:
+        return jsonify({"error": "Agente no disponible"}), 503
+
+    resp_headers = {
+        k: v for k, v in upstream.headers.items()
+        if k.lower() not in _HOP_BY_HOP
+    }
+    return upstream.content, upstream.status_code, resp_headers
+
+
+@app.route("/app", methods=["GET", "HEAD"])
+@app.route("/app/<path:path>", methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+def proxy_spa(path=""):
+    return _proxy_to_agente(f"app/{path}" if path else "app")
+
+
+@app.route("/api/<path:path>", methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+def proxy_api(path):
+    return _proxy_to_agente(f"api/{path}")
+
 
 if __name__ == "__main__":
     # Este corre en el 8080. El agente_pro corre en el 8081.

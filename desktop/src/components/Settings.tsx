@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth";
+import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useStatus } from "../hooks/useStatus";
 import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
@@ -86,7 +87,9 @@ function ServiceCard({
 
 export default function Settings() {
   const token = useAuthStore((s) => s.token);
-  const logout = useAuthStore((s) => s.clear);
+  const { user: ticketsUser, clear: clearTickets } = useTicketsAuth();
+  const clearMain = useAuthStore((s) => s.clear);
+  function logout() { clearTickets(); clearMain(); }
   const { data: status } = useStatus();
   const qc = useQueryClient();
 

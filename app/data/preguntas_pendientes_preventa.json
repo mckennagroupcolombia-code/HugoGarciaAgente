@@ -557,6 +557,29 @@
       "pregunta": "Cuál es la diferencia entre los dos kojicos?",
       "timestamp": "2026-05-23T00:54:13.721874",
       "respondida": true
+    },
+    {
+      "question_id": "13589295788",
+      "titulo_producto": "Ácido Azelaico Polvo 10 G Todo Tipo De Piel",
+      "pregunta": "Buenos dias este producto en polvo como se usa? Solo diluir en agua y qieda listo para aplicar en la zona?",
+      "timestamp": "2026-05-24T11:47:15.966855",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-05-24"
+    },
+    {
+      "question_id": "13589295968",
+      "titulo_producto": "Ácido Azelaico Polvo 10 G Todo Tipo De Piel",
+      "pregunta": "Como se hace para que quede al 10%",
+      "timestamp": "2026-05-24T11:47:15.966855",
+      "respondida": true,
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-05-24"
+    },
+    {
+      "question_id": "13589441886",
+      "titulo_producto": "Proteína 80% Suero De Leche",
+      "pregunta": "Cuántos gramos de proteína, grasa y carbohidratos trae por porción de 30 gr",
+      "timestamp": "2026-05-24T16:33:47.970511",
+      "respondida": true
     }
   ]
 }

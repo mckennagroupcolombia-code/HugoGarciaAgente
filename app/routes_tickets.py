@@ -1,13 +1,17 @@
 import json
 import os
+import secrets
+import time
 import uuid
 from functools import wraps
 from pathlib import Path
-from flask import request, jsonify, send_from_directory
+from urllib.parse import urlencode
+import requests as _requests
+from flask import request, jsonify, send_from_directory, redirect
 from werkzeug.utils import secure_filename
 
 from app.services.tickets_db import (
-    init_db, login_usuario, get_usuario_by_token, logout_usuario,
+    init_db, login_usuario, login_usuario_google, get_usuario_by_token, logout_usuario,
     listar_roles, crear_rol, actualizar_rol,
     listar_departamentos, crear_departamento, actualizar_departamento,
     listar_usuarios, crear_usuario, actualizar_usuario, desactivar_usuario,
@@ -39,6 +43,113 @@ from app.services.tickets_db import (
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
 _AVATAR_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
+
+_GRUPO_SEDE_SUR_WA = os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
+
+_ESTADO_EMOJI = {
+    "resuelto":   "✅",
+    "en_proceso": "🔄",
+    "pendiente":  "⏳",
+    "rechazado":  "❌",
+}
+
+
+_GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
+
+# Estado OAuth en memoria: {state: expiry_epoch}
+_oauth_states: dict[str, float] = {}
+_OAUTH_STATE_TTL = 300  # 5 minutos
+
+
+def _panel_redirect_uri() -> str:
+    explicit = (os.getenv("PANEL_GOOGLE_REDIRECT_URI") or "").strip()
+    if explicit:
+        return explicit
+    return "https://bot.mckennagroup.co/app/auth/callback"
+
+
+def _google_oauth_configured() -> bool:
+    return bool(
+        (os.getenv("GOOGLE_OAUTH_CLIENT_ID") or "").strip()
+        and (os.getenv("GOOGLE_OAUTH_CLIENT_SECRET") or "").strip()
+    )
+
+
+def _build_google_url(state: str) -> str:
+    cid = (os.getenv("GOOGLE_OAUTH_CLIENT_ID") or "").strip()
+    params = {
+        "client_id": cid,
+        "redirect_uri": _panel_redirect_uri(),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "access_type": "online",
+        "prompt": "select_account",
+    }
+    return f"{_GOOGLE_AUTH_URL}?{urlencode(params)}"
+
+
+def _exchange_google_code(code: str) -> dict | None:
+    cid = (os.getenv("GOOGLE_OAUTH_CLIENT_ID") or "").strip()
+    csec = (os.getenv("GOOGLE_OAUTH_CLIENT_SECRET") or "").strip()
+    try:
+        res = _requests.post(
+            _GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": cid,
+                "client_secret": csec,
+                "redirect_uri": _panel_redirect_uri(),
+                "grant_type": "authorization_code",
+            },
+            timeout=15,
+        )
+        if res.status_code != 200:
+            return None
+        access = (res.json().get("access_token") or "").strip()
+        if not access:
+            return None
+        ui = _requests.get(
+            _GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access}"},
+            timeout=10,
+        )
+        if ui.status_code != 200:
+            return None
+        info = ui.json()
+        email = (info.get("email") or "").strip().lower()
+        sub = (info.get("sub") or "").strip()
+        if not email or not sub or not info.get("email_verified"):
+            return None
+        return {"email": email, "sub": sub, "nombre": info.get("name", ""), "picture": info.get("picture", "")}
+    except Exception:
+        return None
+
+
+def _notificar_estado_accion_wa(ticket: dict, nuevo_estado: str, quien: str) -> None:
+    """Envía notificación al grupo SEDE SUR cuando cambia el estado de una acción."""
+    import threading
+    from app.utils import enviar_whatsapp_reporte
+
+    emoji = _ESTADO_EMOJI.get(nuevo_estado, "📋")
+    asignado = ticket.get("asignado_a_nombre") or "Sin asignar"
+    numero = ticket.get("numero", "")
+    titulo = ticket.get("titulo", "")
+
+    if nuevo_estado == "resuelto":
+        texto = f"{emoji} *Acción completada*\n{numero} — {titulo}\n👤 Resuelto por {quien or asignado}"
+    elif nuevo_estado == "en_proceso":
+        texto = f"{emoji} *Acción iniciada*\n{numero} — {titulo}\n👤 Iniciado por {quien or asignado}"
+    else:
+        texto = f"{emoji} *Acción pausada*\n{numero} — {titulo}\n👤 {quien or asignado}"
+
+    threading.Thread(
+        target=enviar_whatsapp_reporte,
+        kwargs={"texto_mensaje": texto, "numero_destino": _GRUPO_SEDE_SUR_WA},
+        daemon=True,
+    ).start()
 
 
 def _ext_ok(filename: str) -> bool:
@@ -93,10 +204,59 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 401
         return jsonify(result), 200
 
+    # ── Google OAuth ─────────────────────────────────────────────────────────
+
+    @app.route("/app/auth/google/start", methods=["GET"])
+    def tickets_google_start():
+        if not _google_oauth_configured():
+            return "<p>Google OAuth no configurado. Agrega GOOGLE_OAUTH_CLIENT_ID y GOOGLE_OAUTH_CLIENT_SECRET al .env del agente.</p>", 503
+        state = secrets.token_urlsafe(32)
+        now = time.time()
+        # Limpiar estados expirados
+        expired = [k for k, v in _oauth_states.items() if now - v > _OAUTH_STATE_TTL]
+        for k in expired:
+            del _oauth_states[k]
+        _oauth_states[state] = now
+        return redirect(_build_google_url(state))
+
+    @app.route("/app/auth/callback", methods=["GET"])
+    def tickets_google_callback():
+        state = request.args.get("state", "")
+        code = request.args.get("code", "")
+        error = request.args.get("error", "")
+
+        if error:
+            return redirect(f"/app?auth_error={error}")
+
+        # Validar state (anti-CSRF)
+        stored_at = _oauth_states.pop(state, None)
+        if stored_at is None or (time.time() - stored_at) > _OAUTH_STATE_TTL:
+            return redirect("/app?auth_error=state_invalido")
+
+        if not code:
+            return redirect("/app?auth_error=sin_codigo")
+
+        profile = _exchange_google_code(code)
+        if not profile:
+            return redirect("/app?auth_error=oauth_fallido")
+
+        result, err = login_usuario_google(profile["email"], profile["sub"])
+        if err:
+            import urllib.parse
+            return redirect(f"/app?auth_error={urllib.parse.quote(err)}")
+
+        return redirect(f"/app?_token={result['token']}")
+
+    # ── AUTH ────────────────────────────────────────────────────────────────
+
     @app.route("/api/tickets/auth/me", methods=["GET"])
     @_auth
     def tickets_me():
-        return jsonify(request.tickets_usuario), 200
+        import os as _os
+        u = dict(request.tickets_usuario)
+        if (u.get("rol") or {}).get("nivel", 0) >= 3:
+            u["api_token"] = _os.environ.get("CHAT_API_TOKEN", "")
+        return jsonify(u), 200
 
     @app.route("/api/tickets/auth/me", methods=["PUT"])
     @_auth
@@ -230,12 +390,17 @@ def register_tickets_routes(app):
         data = request.get_json(force=True) or {}
         nombre   = (data.get("nombre") or "").strip()
         username = (data.get("username") or "").strip()
-        password = data.get("password") or ""
         rol_id   = data.get("rol_id")
-        dept_id  = data.get("departamento_id")
-        if not all([nombre, username, password, rol_id, dept_id]):
-            return jsonify({"error": "Todos los campos son requeridos"}), 400
-        usuario, err = crear_usuario(nombre, username, password, rol_id, dept_id)
+        if not all([nombre, username, rol_id]):
+            return jsonify({"error": "Nombre, alias y rol son requeridos"}), 400
+        usuario, err = crear_usuario(
+            nombre=nombre,
+            username=username,
+            rol_id=int(rol_id),
+            departamentos_ids=data.get("departamentos_ids") or [],
+            password=data.get("password") or None,
+            email=data.get("email") or None,
+        )
         if err:
             return jsonify({"error": err}), 409
         return jsonify(usuario), 201
@@ -247,6 +412,17 @@ def register_tickets_routes(app):
         ok, err = actualizar_usuario(user_id, request.get_json(force=True) or {})
         if not ok:
             return jsonify({"error": err}), 400
+        return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/usuarios/<int:user_id>/permisos", methods=["PUT"])
+    @_auth
+    @_nivel_min(3)
+    def tickets_actualizar_permisos(user_id):
+        from app.services.tickets_db import actualizar_permisos_secciones
+        permisos = request.get_json(force=True) or {}
+        ok, err = actualizar_permisos_secciones(user_id, permisos, request.tickets_usuario["id"])
+        if not ok:
+            return jsonify({"error": err}), 403
         return jsonify({"ok": True}), 200
 
     @app.route("/api/tickets/usuarios/<int:user_id>", methods=["DELETE"])
@@ -263,8 +439,10 @@ def register_tickets_routes(app):
     @app.route("/api/tickets/", methods=["GET"])
     @_auth
     def tickets_list():
-        filtros = {k: request.args.get(k) for k in ("estado", "categoria", "asignado_a", "prioridad")}
+        filtros = {k: request.args.get(k) for k in ("estado", "categoria", "asignado_a", "prioridad", "tipo")}
         filtros = {k: v for k, v in filtros.items() if v}
+        if request.args.get("sin_mision"):
+            filtros["sin_mision"] = True
         return jsonify(listar_tickets(request.tickets_usuario, filtros)), 200
 
     @app.route("/api/tickets/", methods=["POST"])
@@ -346,13 +524,17 @@ def register_tickets_routes(app):
     @_auth
     def tickets_cambiar_estado(ticket_id):
         data = request.get_json(force=True) or {}
+        nuevo_estado = data.get("estado", "")
         ok, err = cambiar_estado(
-            ticket_id, data.get("estado", ""),
+            ticket_id, nuevo_estado,
             request.tickets_usuario, data.get("motivo", ""),
         )
         if not ok:
             return jsonify({"error": err}), 400
-        return jsonify(get_ticket(ticket_id, request.tickets_usuario)), 200
+        ticket = get_ticket(ticket_id, request.tickets_usuario)
+        if ticket and ticket.get("tipo") == "accion" and nuevo_estado in ("resuelto", "en_proceso", "pendiente"):
+            _notificar_estado_accion_wa(ticket, nuevo_estado, request.tickets_usuario.get("nombre", ""))
+        return jsonify(ticket), 200
 
     @app.route("/api/tickets/<int:ticket_id>/asignar", methods=["PUT"])
     @_auth

@@ -94,6 +94,39 @@ Archivos:
 - `app/services/cinco_s.py`
 - `tests/test_smoke.py`
 
+## 2026-05-24 - Refactorización agéntica completa: AgentRun + Tricap Memory
+
+Contexto:
+
+`app/core.py` tenía un bucle monolítico de ~325 líneas (1235–1559) mezclando tool-use, reintentos, checkpointing y lógica de memoria. Los tests fallaban en 10 puntos por bugs estructurales acumulados (JID vacío, migraciones SQLite en DB fresca, mocks incompletos, formato de respuesta cambiado).
+
+Decision:
+
+1. Extraer el ciclo tool-use a `app/agent/` (AgentRun + LLMRouter + ToolDispatcher + CheckpointStore).
+2. Implementar Tricap Memory en `app/memory/` (working, episodic, semantic, compressor).
+3. Reducir `obtener_respuesta_ia()` a validaciones + instancia de router y run.
+4. Corregir los 10 fallos de test: guard JID vacío, `_safe_migrate()`, mocks de módulos correctos, fixture `monkeypatch.setattr` en lugar de `setenv`.
+
+Motivo:
+
+Desacoplar el modelo LLM del ciclo de control, añadir checkpointing real, habilitar fallback multi-proveedor sin cambiar lógica de negocio, y hacer los tests deterministas.
+
+Validacion:
+
+- `pytest tests/ -q` → 96/96 (antes 86/96).
+- Import check del paquete `app.agent` sin credenciales.
+- `scripts/auditar_scripts_cron.py` verde.
+
+Archivos:
+
+- `app/agent/__init__.py`, `run.py`, `llm_router.py`, `tool_dispatcher.py`, `checkpoint_store.py`
+- `app/memory/__init__.py`, `working.py`, `episodic.py`, `semantic.py`, `compressor.py`
+- `app/core.py` (líneas 1235–1559 reemplazadas)
+- `app/services/tickets_db.py` (guard `_safe_migrate`, `_add_col`, `_migrate_categorias`)
+- `app/routes.py` (guard JID vacío)
+- `tests/test_notificaciones_meli_grupos.py`, `test_web_pedidos_comandos.py`, `test_tickets_pasos.py`, `test_whatsapp_pago_y_media.py`
+- `docs/agentic/modules/agent-orchestrator.md` (ficha nueva)
+
 ## 2026-04-26 - Ecosistema Gentleman como referencia de superagentes
 
 Contexto:

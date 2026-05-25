@@ -12,7 +12,9 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 | --- | --- | --- | --- |
 | Webhook MeLi | `docs/agentic/modules/webhook-meli.md` | `webhook_meli.py`, `app/meli_webhook_topics.py`, `preventa_meli.py` | `pytest tests/test_smoke.py`, `python scripts/auditar_scripts_cron.py` |
 | WhatsApp/rutas | `docs/agentic/modules/whatsapp-routes.md` | `app/routes.py`, `modulo_posventa.py`, `app/utils.py` | tests de helpers + auditoria |
-| Tools Claude | `docs/agentic/modules/core-tools.md` | `app/core.py`, `app/tools/*`, `app/services/*` | import + tool registrado + auditoria |
+| Tools Claude / ciclo tool-use | `docs/agentic/modules/core-tools.md` | `app/core.py`, `app/agent/run.py`, `app/agent/tool_dispatcher.py` | import + tool registrado + auditoria |
+| Orquestador agente (AgentRun) | `docs/agentic/modules/agent-orchestrator.md` | `app/agent/run.py`, `app/agent/llm_router.py`, `app/agent/tool_dispatcher.py`, `app/agent/checkpoint_store.py` | `pytest tests/ -q` (96 tests) |
+| Memoria agente (Tricap) | `docs/agentic/modules/agent-orchestrator.md` | `app/memory/working.py`, `app/memory/episodic.py`, `app/memory/semantic.py`, `app/memory/compressor.py` | import + `pytest tests/ -q` |
 | Stock/facturas | `docs/agentic/modules/sync-stock.md` | `app/sync.py`, `app/services/meli.py`, `app/services/siigo.py` | tests puros/mocks + auditoria |
 | Panel React | `docs/agentic/modules/desktop-panel.md` | `desktop/src/api/client.ts`, hooks, panel afectado, `app/routes.py` | `cd desktop && npm run qa:full` |
 | Operacion/systemd | `docs/agentic/modules/ops-systemd.md` | `scripts/systemd/*`, `scripts/*.sh`, `start.sh` | diagnostico en maquina destino |
@@ -43,3 +45,6 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 - JSON persistente en `app/data/` necesita contrato de lector/escritor.
 - `agent-teams-lite` es referencia historica; preferir `gentle-ai` si se instala stack externo.
 - Engram/sync nunca debe guardar secretos ni credenciales.
+- Si `ANTHROPIC_API_KEY` falta en `.env`, `AgentRun` no puede usar tool-use; `core.py` devuelve "mantenimiento" antes de llegar al orquestador.
+- `GeminiProvider` y `OllamaProvider` no soportan tool-use; si se necesitan tools y no hay Claude, se lanza `AllProvidersExhausted`.
+- Migraciones SQLite nuevas deben envolverse en `_safe_migrate()` para no romper bases de datos recien creadas.

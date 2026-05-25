@@ -143,6 +143,7 @@ interface Ticket {
   proxima_renovacion?: string | null;
   pasos_total?: number;
   pasos_completados?: number;
+  tipo?: "ticket" | "accion";
 }
 
 interface TicketCorrida {
@@ -806,9 +807,11 @@ interface UserInfo {
   id: number;
   nombre: string;
   username: string;
+  email?: string | null;
   activo: number;
   rol: { id: number; nombre: string; nivel: number } | null;
   departamento: { id: number; nombre: string; color: string } | null;
+  departamentos: { id: number; nombre: string; color: string }[];
 }
 
 const CategoriasCtx = createContext<{ cats: Categoria[]; reload: () => void }>({
@@ -1093,6 +1096,7 @@ function fmtDate(s: string) {
 
 type View =
   | "list"
+  | "acciones"
   | "create"
   | "detail"
   | "admin"
@@ -1475,6 +1479,7 @@ function QuestNavBar({
   bajoStockCount,
   userNombre,
   onTablero,
+  onAcciones,
   onInventario,
   onReinos,
   onRecetas,
@@ -1490,6 +1495,7 @@ function QuestNavBar({
   bajoStockCount: number;
   userNombre: string;
   onTablero: () => void;
+  onAcciones: () => void;
   onInventario: () => void;
   onReinos: () => void;
   onRecetas: () => void;
@@ -1508,6 +1514,10 @@ function QuestNavBar({
       <div className="quest-nav-bar-main flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
           <QuestBoardNavLabel />
+        </button>
+        <button type="button" onClick={onAcciones} className={questNavBtn(view === "acciones")}>
+          <TopicIcon value="⚡" size={14} weight="duotone" />
+          Acciones
         </button>
         <button
           type="button"
@@ -2530,69 +2540,71 @@ function ReinosView({
 
 // Login
 function LoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser) => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [authError, setAuthError] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    return decodeURIComponent(p.get("auth_error") || "");
+  });
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/tickets/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error");
-      onLogin(data.token, data.usuario);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
+  // Consume ?_token=xxx from URL after Google OAuth redirect
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const token = p.get("_token");
+    const err = p.get("auth_error");
+    if (token || err) {
+      // Clean URL without reloading
+      const clean = window.location.pathname;
+      window.history.replaceState({}, "", clean);
     }
-  }
+    if (err) {
+      setAuthError(decodeURIComponent(err));
+      return;
+    }
+    if (!token) return;
+
+    // Validate token and load user
+    fetch("/api/tickets/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((user) => {
+        if (user?.id) onLogin(token, user as TicketsUser);
+        else setAuthError("Token inválido. Intenta de nuevo.");
+      })
+      .catch(() => setAuthError("Error al verificar sesión. Intenta de nuevo."));
+  }, [onLogin]);
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-full max-w-sm rounded-paper border-2 border-border bg-surface-panel p-8 shadow-paper">
-        <div className="mb-6 text-center">
+        <div className="mb-8 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white text-2xl font-black shadow-[0_4px_0_#045159]">
             🎫
           </div>
           <h2 className="text-xl font-extrabold text-ink">Centro de Mando</h2>
-          <p className="mt-1 text-sm text-muted">Ingresa con tus credenciales</p>
+          <p className="mt-1 text-sm text-muted">McKenna Group</p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Usuario</label>
-            <input
-              className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent"
-              value={username} onChange={(e) => setUsername(e.target.value)}
-              placeholder="username" autoFocus
-            />
+
+        {authError && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {authError}
           </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Contraseña</label>
-            <input
-              type="password"
-              className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent"
-              value={password} onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-            />
-          </div>
-          {error && <p className={ALERT_ERROR_SM}>{error}</p>}
-          <button
-            type="submit" disabled={loading}
-            className="w-full rounded-paper border-2 border-accent bg-accent py-2.5 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50"
-          >
-            {loading ? "Ingresando..." : "Ingresar"}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-xs text-muted">
-          Usuario por defecto: <code className="rounded bg-surface-hover px-1 font-mono">admin</code> / <code className="rounded bg-surface-hover px-1 font-mono">admin123</code>
+        )}
+
+        <a
+          href="/app/auth/google/start"
+          className="flex w-full items-center justify-center gap-3 rounded-paper border-2 border-border bg-surface py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-accent hover:bg-surface-hover active:translate-y-0.5"
+        >
+          <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+            <path d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.5-.4-3.5z" fill="#FFC107"/>
+            <path d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" fill="#FF3D00"/>
+            <path d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 35.3 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.1C9.5 35.6 16.2 44 24 44z" fill="#4CAF50"/>
+            <path d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 38.4 44 33 44 24c0-1.2-.1-2.5-.4-3.5z" fill="#1976D2"/>
+          </svg>
+          Ingresar con Google
+        </a>
+
+        <p className="mt-5 text-center text-xs text-muted">
+          Solo cuentas autorizadas por el administrador
         </p>
       </div>
     </div>
@@ -3519,21 +3531,7 @@ function MisionGroupCard({
     >
       <span className="quest-sticky-tape" aria-hidden />
 
-      {canDelete && onDeleteMision && (
-        <button
-          type="button"
-          disabled={deleting}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDeleteMision(group);
-          }}
-          title="Eliminar misión"
-          aria-label="Eliminar misión"
-          className="quest-sticky-close"
-        >
-          {deleting ? "…" : "×"}
-        </button>
-      )}
+      {/* Botón eliminar misión removido del tablero para evitar eliminaciones accidentales */}
 
       <div className={`quest-sticky-mission-head ${QUEST_MISION_CHROME}`}>
         <div
@@ -3885,14 +3883,14 @@ function TicketListView({
   const [filtroEstado, setFiltroEstado] = useState("");
   const [deletingMisionId, setDeletingMisionId] = useState<number | null>(null);
   const [openTableroSections, setOpenTableroSections] = useState<Set<string>>(() => new Set());
+  const [boardLocked, setBoardLocked] = useState(true);
 
   const nivel = user.rol?.nivel ?? 1;
   const canDeleteMision = nivel >= 3;
   const canEditMisionColor = nivel >= 2;
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  const load = useCallback(async (silent = false) => {
+    if (!silent) { setLoading(true); setError(""); }
     try {
       const params = new URLSearchParams();
       if (filtroEstado) params.set("estado", filtroEstado);
@@ -3907,23 +3905,35 @@ function TicketListView({
         misiones = await tapi("/misiones/", token);
       }
       const list = Array.isArray(data) ? data.map((row) => normalizeTicketForList(row)) : [];
-      setTickets(list);
-      setZonasReinos(zonas);
+      setTickets((prev) => {
+        const nextStr = JSON.stringify(list.map((t) => ({ id: t.id, estado: t.estado, titulo: t.titulo })));
+        const prevStr = JSON.stringify(prev.map((t) => ({ id: t.id, estado: t.estado, titulo: t.titulo })));
+        return nextStr === prevStr ? prev : list;
+      });
+      setZonasReinos((prev) => {
+        const nextStr = JSON.stringify(zonas);
+        return JSON.stringify(prev) === nextStr ? prev : zonas;
+      });
       const activas = (misiones as Mision[]).filter(
         (m) => m.estado === "activa" || m.estado === "borrador",
       );
-      setMisionesActivas(activas);
+      setMisionesActivas((prev) => {
+        const nextStr = JSON.stringify(activas.map((m) => m.id));
+        const prevStr = JSON.stringify(prev.map((m) => m.id));
+        return nextStr === prevStr ? prev : activas;
+      });
+      if (!silent) setError("");
     } catch (e: any) {
-      setError(e.message);
+      if (!silent) setError(e.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [token, filtroEstado]);
 
-  useEffect(() => { load(); }, [load, refreshKey]);
+  useEffect(() => { load(false); }, [load, refreshKey]);
 
   useEffect(() => {
-    const id = window.setInterval(() => { void load(); }, 15000);
+    const id = window.setInterval(() => { void load(true); }, 60000);
     return () => window.clearInterval(id);
   }, [load]);
 
@@ -4037,16 +4047,9 @@ function TicketListView({
       setOpenTableroSections(new Set());
       return;
     }
-    const open = new Set<string>();
-    if (navScope.kind !== "all") {
-      for (const s of reinoSections) open.add(s.key);
-    } else if (reinoSections.length === 1) {
-      open.add(reinoSections[0].key);
-    } else {
-      open.add(reinoSections[0].key);
-    }
+    // Abrir TODOS los reinos por defecto para que las misiones sean visibles
+    const open = new Set<string>(reinoSections.map((s) => s.key));
     setOpenTableroSections(open);
-    // Solo al cambiar filtro del menú lateral; no resetear en cada recarga de quests.
   }, [tableroNavKey, reinoSections.length]);
 
   function toggleTableroSection(key: string) {
@@ -4172,7 +4175,7 @@ function TicketListView({
           </label>
           <button
             type="button"
-            onClick={load}
+            onClick={() => load(false)}
             className="quest-board-toolbar-btn"
             title="Actualizar"
             aria-label="Actualizar"
@@ -4192,21 +4195,34 @@ function TicketListView({
           )}
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm("¿Restablecer posición y tamaño de todos los tableros del tablero?")) {
-                resetBoardLayout();
-              }
-            }}
-            className="quest-board-toolbar-btn"
-            title="Volver a la disposición automática"
-            aria-label="Restablecer disposición"
+            onClick={() => setBoardLocked((v) => !v)}
+            className={`quest-board-toolbar-btn ${boardLocked ? "" : "quest-board-toolbar-btn--active"}`}
+            title={boardLocked ? "Tablero bloqueado — clic para editar posición y tamaño" : "Modo edición activo — clic para bloquear"}
+            aria-label={boardLocked ? "Desbloquear tablero" : "Bloquear tablero"}
           >
-            <Icon name="gridReset" size={14} weight="bold" />
+            <Icon name={boardLocked ? "lock" : "unlock"} size={14} weight="bold" />
           </button>
+          {!boardLocked && (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm("¿Restablecer posición y tamaño de todos los tableros?")) {
+                  resetBoardLayout();
+                }
+              }}
+              className="quest-board-toolbar-btn"
+              title="Volver a la disposición automática"
+              aria-label="Restablecer disposición"
+            >
+              <Icon name="gridReset" size={14} weight="bold" />
+            </button>
+          )}
         </div>
         </div>
         <p className="quest-board-toolbar-hint">
-          Arrastra con ⠿ y redimensiona desde la esquina: reinos, misiones y etapas. Se guarda en este navegador.
+          {boardLocked
+            ? "Tablero bloqueado. Usa 🔒 para editar posición y tamaño."
+            : "Modo edición: arrastra con ⠿ y redimensiona desde la esquina. Se guarda en este navegador."}
         </p>
       </div>
 
@@ -4226,7 +4242,7 @@ function TicketListView({
           No hay misiones agrupadas. Revisa el filtro de estado o crea una misión en + Nueva misión.
         </div>
       ) : (
-        <div className="quest-board-by-reinos">
+        <div className={`quest-board-by-reinos${boardLocked ? " quest-board--locked" : ""}`}>
           <QuestBoardStickyCanvas
             sectionKey={BOARD_ROOT_SECTION}
             itemCount={reinoSections.length}
@@ -4696,6 +4712,9 @@ function TicketDetailView({
   const [error, setError] = useState("");
   const [showComentarios, setShowComentarios] = useState(false);
   const [completandoTicket, setCompletandoTicket] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const isAdmin = (user.rol?.nivel ?? 1) >= 3;
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -4716,6 +4735,19 @@ function TicketDetailView({
       await reload();
     } finally {
       setCompletandoTicket(false);
+    }
+  }
+
+  async function handleEliminarTicket() {
+    setDeleting(true);
+    try {
+      await tapi(`/${ticketId}`, token, { method: "DELETE" });
+      onBack();
+    } catch (e: any) {
+      setError(e.message || "No se pudo eliminar el ticket");
+      setConfirmDelete(false);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -4868,12 +4900,51 @@ function TicketDetailView({
           )}
         </div>
       )}
+
+      {/* Admin: eliminar ticket */}
+      {isAdmin && (
+        <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-red-700">Zona de peligro</p>
+          {!confirmDelete ? (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-1.5 rounded-lg border-2 border-red-500 px-4 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 transition"
+            >
+              <Icon name="trash" size={13} weight="bold" />
+              Eliminar ticket
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-semibold text-red-700">¿Eliminar permanentemente este ticket?</span>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleEliminarTicket}
+                className="rounded-lg bg-red-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? "Eliminando…" : "Sí, eliminar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="rounded-lg border-2 border-border px-4 py-1.5 text-xs font-bold text-muted hover:text-ink"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+          {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+        </div>
+      )}
     </div>
   );
 }
 
 // Admin: Users, Roles, Departments
 function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
+  const { user: currentUser } = useTicketsAuth();
+  const nivel = currentUser?.rol?.nivel ?? 1;
   const { cats: categorias, reload: reloadCats } = useContext(CategoriasCtx);
   const [tab, setTab] = useState<"usuarios" | "roles" | "departamentos" | "categorias">("usuarios");
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
@@ -4912,19 +4983,35 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
     setModal(type);
     setEditItem(item);
     setError("");
-    setForm(item ? { ...item, password: "" } : { activo: 1, color: "#0c6069", nivel: 1 });
+    if (type === "user") {
+      const deptIds = item ? (item.departamentos || []).map((d: any) => d.id) : [];
+      setForm(item
+        ? { ...item, departamentos_ids: deptIds }
+        : { activo: 1, departamentos_ids: [] });
+    } else {
+      setForm(item ? { ...item } : { activo: 1, color: "#0c6069", nivel: 1 });
+    }
   }
 
   async function saveUser() {
-    if (!form.nombre || !form.username || (!editItem && !form.password) || !form.rol_id || !form.departamento_id) {
-      setError("Todos los campos son requeridos"); return;
+    if (!form.nombre || !form.username || !form.rol_id) {
+      setError("Nombre completo, alias y rol son requeridos"); return;
     }
     setSaving(true);
+    const payload = {
+      nombre: form.nombre,
+      username: form.username,
+      email: form.email || null,
+      rol_id: form.rol_id,
+      activo: form.activo ?? 1,
+      departamentos_ids: form.departamentos_ids || [],
+      permisos_secciones: form.permisos_secciones || null,
+    };
     try {
       if (editItem) {
-        await tapi(`/usuarios/${editItem.id}`, token, { method: "PUT", body: JSON.stringify(form) });
+        await tapi(`/usuarios/${editItem.id}`, token, { method: "PUT", body: JSON.stringify(payload) });
       } else {
-        await tapi("/usuarios", token, { method: "POST", body: JSON.stringify(form) });
+        await tapi("/usuarios", token, { method: "POST", body: JSON.stringify(payload) });
       }
       setModal(null);
       await reload();
@@ -5200,11 +5287,14 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
 
             {modal === "user" && (
               <div className="space-y-3">
-                <Field label="Nombre completo" value={form.nombre || ""} onChange={(v) => setForm({ ...form, nombre: v })} />
-                <Field label="Username" value={form.username || ""} onChange={(v) => setForm({ ...form, username: v })} />
-                <Field label={editItem ? "Nueva contraseña (dejar vacío para no cambiar)" : "Contraseña"} type="password" value={form.password || ""} onChange={(v) => setForm({ ...form, password: v })} />
+                <Field label="Nombre completo *" value={form.nombre || ""} onChange={(v) => setForm({ ...form, nombre: v })} />
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-muted">Rol</label>
+                  <Field label="Alias del bot *" value={form.username || ""} onChange={(v) => setForm({ ...form, username: v })} />
+                  <p className="mt-0.5 text-[10px] text-muted">Nombre corto con el que el bot identifica a este usuario en @menciones</p>
+                </div>
+                <Field label="Correo Google (para login)" type="email" value={form.email || ""} onChange={(v) => setForm({ ...form, email: v })} />
+                <div>
+                  <label className="mb-1 block text-xs font-bold text-muted">Rol *</label>
                   <select value={form.rol_id || ""} onChange={(e) => setForm({ ...form, rol_id: parseInt(e.target.value) })}
                     className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent">
                     <option value="">Seleccionar...</option>
@@ -5212,12 +5302,26 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-bold text-muted">Departamento</label>
-                  <select value={form.departamento_id || ""} onChange={(e) => setForm({ ...form, departamento_id: parseInt(e.target.value) })}
-                    className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent">
-                    <option value="">Seleccionar...</option>
-                    {depts.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
-                  </select>
+                  <label className="mb-1 block text-xs font-bold text-muted">Departamentos</label>
+                  <div className="rounded-paper border border-border p-2 max-h-36 overflow-y-auto space-y-1">
+                    {depts.length === 0 && <p className="text-xs text-muted px-1">Sin departamentos registrados</p>}
+                    {depts.map((d) => {
+                      const selected = (form.departamentos_ids || []).includes(d.id);
+                      return (
+                        <label key={d.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs font-medium text-ink hover:bg-surface-hover">
+                          <input type="checkbox" checked={selected}
+                            onChange={() => {
+                              const ids: number[] = form.departamentos_ids || [];
+                              setForm({ ...form, departamentos_ids: selected ? ids.filter((x: number) => x !== d.id) : [...ids, d.id] });
+                            }}
+                            className="h-3.5 w-3.5 accent-accent"
+                          />
+                          <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
+                          {d.nombre}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
                 {editItem && (
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -5225,6 +5329,45 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     <span className="font-semibold text-ink">Usuario activo</span>
                   </label>
                 )}
+                {/* Accesos al panel — solo admin editando otro usuario */}
+                {editItem && nivel >= 3 && (() => {
+                  const SECCIONES: { id: string; label: string }[] = [
+                    { id: "dashboard", label: "Dashboard" },
+                    { id: "chat",      label: "Chat IA" },
+                    { id: "voz",       label: "Voz IA" },
+                    { id: "webchat",   label: "Chat web" },
+                    { id: "preventa",  label: "Preventa MeLi" },
+                    { id: "sync",      label: "Sincronización" },
+                    { id: "stock",     label: "Stock" },
+                    { id: "pedidos",   label: "Pedidos Web" },
+                    { id: "facturas",  label: "Facturas Compra" },
+                    { id: "tickets",   label: "Centro de Mando" },
+                  ];
+                  const permisos: Record<string, boolean> = form.permisos_secciones || {};
+                  const editRolNivel = roles.find((r) => r.id === form.rol_id)?.nivel ?? 1;
+                  if (editRolNivel >= 3) return null; // admin siempre tiene todo
+                  function toggleSeccion(id: string) {
+                    setForm({ ...form, permisos_secciones: { ...permisos, [id]: !permisos[id] } });
+                  }
+                  return (
+                    <div className="rounded-paper border border-border p-3">
+                      <p className="mb-2 text-xs font-bold text-muted uppercase tracking-wide">Accesos al panel</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {SECCIONES.map((s) => (
+                          <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs font-medium text-ink hover:bg-surface-hover">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(permisos[s.id])}
+                              onChange={() => toggleSeccion(s.id)}
+                              className="h-3.5 w-3.5 accent-accent"
+                            />
+                            {s.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -8345,7 +8488,16 @@ function MisionDetailView({
     if (!silent) setLoading(true);
     try {
       const m = await tapi(`/misiones/${misionId}`, token);
-      setMision(m);
+      if (silent) {
+        setMision((prev) => {
+          if (!prev) return m;
+          const prevStr = JSON.stringify({ id: prev.id, etapas: prev.etapas?.map((e) => ({ id: e.id, estado: e.estado })) });
+          const nextStr = JSON.stringify({ id: m.id, etapas: m.etapas?.map((e: EtapaMision) => ({ id: e.id, estado: e.estado })) });
+          return prevStr === nextStr ? prev : m;
+        });
+      } else {
+        setMision(m);
+      }
       if (!silent) setError("");
     } catch (e: any) {
       if (!silent) setError(e.message);
@@ -8506,7 +8658,7 @@ function MisionDetailView({
   };
 
   useEffect(() => {
-    const iv = setInterval(() => { reload(true).catch(() => {}); }, 4000);
+    const iv = setInterval(() => { reload(true).catch(() => {}); }, 30000);
     return () => clearInterval(iv);
   }, [reload]);
 
@@ -9216,9 +9368,9 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
   const [form, setForm] = useState({
     nombre: "",
     username: "",
-    password: "",
+    email: "",
     rol_id: "" as string | number,
-    departamento_id: "" as string | number,
+    departamentos_ids: [] as number[],
   });
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -9270,18 +9422,14 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
   }
 
   function abrirNuevo() {
-    setForm({ nombre: "", username: "", password: "", rol_id: "", departamento_id: "" });
+    setForm({ nombre: "", username: "", email: "", rol_id: "", departamentos_ids: [] });
     setFormError("");
     setShowNuevo(true);
   }
 
   async function guardarAliado() {
-    if (!form.nombre.trim() || !form.username.trim() || !form.password || !form.rol_id || !form.departamento_id) {
-      setFormError("Completa nombre, usuario, contraseña, rol y departamento.");
-      return;
-    }
-    if (form.password.length < 6) {
-      setFormError("La contraseña debe tener al menos 6 caracteres.");
+    if (!form.nombre.trim() || !form.username.trim() || !form.rol_id) {
+      setFormError("Completa nombre completo, alias y rol.");
       return;
     }
     setSaving(true);
@@ -9292,9 +9440,9 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
         body: JSON.stringify({
           nombre: form.nombre.trim(),
           username: form.username.trim(),
-          password: form.password,
+          email: form.email.trim() || null,
           rol_id: Number(form.rol_id),
-          departamento_id: Number(form.departamento_id),
+          departamentos_ids: form.departamentos_ids,
         }),
       });
       setShowNuevo(false);
@@ -9341,8 +9489,11 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Nombre completo *" value={form.nombre} onChange={(v) => setForm((f) => ({ ...f, nombre: v }))} />
-            <Field label="Usuario (login) *" value={form.username} onChange={(v) => setForm((f) => ({ ...f, username: v }))} />
-            <Field label="Contraseña *" type="password" value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} />
+            <div>
+              <Field label="Alias del bot *" value={form.username} onChange={(v) => setForm((f) => ({ ...f, username: v }))} />
+              <p className="mt-0.5 text-[10px] text-muted">Nombre corto para @menciones</p>
+            </div>
+            <Field label="Correo Google" type="email" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} />
             <div>
               <label className="mb-1 block text-xs font-bold text-muted">Rol *</label>
               <select
@@ -9357,17 +9508,28 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-bold text-muted">Departamento *</label>
-              <select
-                value={form.departamento_id}
-                onChange={(e) => setForm((f) => ({ ...f, departamento_id: e.target.value }))}
-                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-              >
-                <option value="">Seleccionar…</option>
-                {depts.map((d) => (
-                  <option key={d.id} value={d.id}>{d.nombre}</option>
-                ))}
-              </select>
+              <label className="mb-1 block text-xs font-bold text-muted">Departamentos</label>
+              <div className="rounded-paper border border-border p-2 max-h-32 overflow-y-auto grid grid-cols-2 gap-1">
+                {depts.length === 0 && <p className="col-span-2 text-xs text-muted px-1">Sin departamentos</p>}
+                {depts.map((d) => {
+                  const selected = form.departamentos_ids.includes(d.id);
+                  return (
+                    <label key={d.id} className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-xs font-medium text-ink hover:bg-surface-hover">
+                      <input type="checkbox" checked={selected}
+                        onChange={() => setForm((f) => ({
+                          ...f,
+                          departamentos_ids: selected
+                            ? f.departamentos_ids.filter((x: number) => x !== d.id)
+                            : [...f.departamentos_ids, d.id],
+                        }))}
+                        className="h-3.5 w-3.5 accent-accent"
+                      />
+                      <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
+                      {d.nombre}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
           {formError && (
@@ -9583,6 +9745,17 @@ function PerfilView({
           <div>
             <p className="font-extrabold text-ink">{user.nombre}</p>
             <p className="text-sm text-muted">@{user.username}</p>
+            {user.email && (
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
+                <svg width="12" height="12" viewBox="0 0 48 48" fill="none" className="shrink-0">
+                  <path d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.5-.4-3.5z" fill="#FFC107"/>
+                  <path d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" fill="#FF3D00"/>
+                  <path d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 35.3 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.1C9.5 35.6 16.2 44 24 44z" fill="#4CAF50"/>
+                  <path d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 38.4 44 33 44 24c0-1.2-.1-2.5-.4-3.5z" fill="#1976D2"/>
+                </svg>
+                {user.email}
+              </p>
+            )}
             <div className="mt-1 flex flex-wrap gap-2">
               {user.rol && (
                 <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[10px] font-bold text-muted">
@@ -9697,6 +9870,350 @@ function PerfilView({
   );
 }
 
+// ── Acciones View ─────────────────────────────────────────────────────────────
+
+const PRIORIDAD_COLOR: Record<string, string> = {
+  urgente: "bg-red-500 text-white",
+  alta: "bg-orange-400 text-white",
+  media: "bg-yellow-400 text-gray-900",
+  baja: "bg-gray-300 text-gray-700",
+};
+
+function AccionCard({
+  ticket, token, onSelect, onChanged, isAdmin,
+}: {
+  ticket: Ticket; token: string;
+  onSelect: (id: number) => void;
+  onChanged: () => void;
+  isAdmin?: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  async function resolver() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+      onChanged();
+    } catch { /* ignore */ }
+    finally { setBusy(false); }
+  }
+
+  async function iniciarPausar() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const nuevoEstado = ticket.estado === "en_proceso" ? "pendiente" : "en_proceso";
+      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: nuevoEstado }) });
+      onChanged();
+    } catch { /* ignore */ }
+    finally { setBusy(false); }
+  }
+
+  async function eliminar() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await tapi(`/${ticket.id}`, token, { method: "DELETE" });
+      onChanged();
+    } catch { /* ignore */ }
+    finally { setBusy(false); setConfirmDelete(false); }
+  }
+
+  const resuelta = ticket.estado === "resuelto" || ticket.estado === "rechazado";
+
+  return (
+    <div
+      className={`flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
+    >
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left text-sm font-medium text-ink hover:text-accent"
+          onClick={() => onSelect(ticket.id)}
+        >
+          {ticket.titulo}
+        </button>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
+          {ticket.prioridad ?? "media"}
+        </span>
+        {isAdmin && !confirmDelete && (
+          <button
+            type="button"
+            title="Eliminar acción"
+            onClick={() => setConfirmDelete(true)}
+            className="shrink-0 rounded p-0.5 text-muted hover:text-red-600 transition-colors"
+          >
+            <Icon name="trash" size={13} />
+          </button>
+        )}
+        {isAdmin && confirmDelete && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={eliminar}
+              className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-700"
+            >
+              Sí
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-bold text-muted hover:text-ink"
+            >
+              No
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 text-xs text-muted">
+        <Icon name="user" size={12} />
+        <span>{ticket.asignado_a_nombre ?? "Sin asignar"}</span>
+        <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px]">
+          {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
+        </span>
+      </div>
+
+      {!resuelta && (
+        <div className="flex gap-2 pt-1">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={iniciarPausar}
+            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              ticket.estado === "en_proceso"
+                ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
+            }`}
+          >
+            <Icon name={ticket.estado === "en_proceso" ? "clock" : "lightning"} size={12} weight="bold" />
+            {ticket.estado === "en_proceso" ? "Pausar" : "Iniciar"}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={resolver}
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-green-500 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 transition-colors hover:bg-green-100"
+          >
+            <Icon name="check" size={12} weight="bold" />
+            Listo
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AccionesView({
+  token, user, onSelect,
+}: {
+  token: string; user: TicketsUser;
+  onSelect: (id: number) => void;
+}) {
+  const isAdmin = (user.rol?.nivel ?? 1) >= 3;
+  const [acciones, setAcciones] = useState<Ticket[]>([]);
+  const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filtroEstado, setFiltroEstado] = useState<"" | "pendiente" | "en_proceso" | "resuelto">(""); // "" = activas
+  const [form, setForm] = useState({ titulo: "", asignado_a: "", prioridad: "media", categoria: "logistica" });
+  const [creando, setCreando] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const params = new URLSearchParams({ tipo: "accion" });
+      if (filtroEstado) params.set("estado", filtroEstado);
+      const [data, usrs] = await Promise.all([
+        tapi(`/?${params}`, token),
+        tapi("/usuarios", token),
+      ]);
+      const list: Ticket[] = Array.isArray(data) ? data.map(normalizeTicketForList) : [];
+      setAcciones((prev) => {
+        const ns = JSON.stringify(list.map((t) => t.id + t.estado));
+        const ps = JSON.stringify(prev.map((t) => t.id + t.estado));
+        return ns === ps ? prev : list;
+      });
+      setUsuarios(Array.isArray(usrs) ? usrs : []);
+    } catch { /* ignore */ }
+    finally { if (!silent) setLoading(false); }
+  }, [token, filtroEstado]);
+
+  useEffect(() => { void load(false); }, [load]);
+  useEffect(() => {
+    const iv = setInterval(() => { void load(true); }, 30000);
+    return () => clearInterval(iv);
+  }, [load]);
+
+  async function crear() {
+    if (!form.titulo.trim()) return;
+    setCreando(true);
+    setMsg("");
+    try {
+      await tapi("/", token, { method: "POST", body: JSON.stringify({ ...form, tipo: "accion", descripcion: form.titulo }) });
+      setForm({ titulo: "", asignado_a: "", prioridad: "media", categoria: "logistica" });
+      setShowForm(false);
+      await load(false);
+      setMsg("Acción creada");
+      setTimeout(() => setMsg(""), 2500);
+    } catch (e: any) {
+      setMsg(e.message ?? "Error al crear");
+    } finally {
+      setCreando(false);
+    }
+  }
+
+  // Agrupar por asignado
+  const porAsignado = useMemo(() => {
+    const map = new Map<string, Ticket[]>();
+    for (const t of acciones) {
+      const key = t.asignado_a_nombre ?? "Sin asignar";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(t);
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [acciones]);
+
+  const sinResolver = acciones.filter((t) => t.estado !== "resuelto" && t.estado !== "rechazado").length;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex-1">
+          <h2 className="text-xl font-extrabold text-ink flex items-center gap-2">
+            <TopicIcon value="⚡" size={18} />
+            Acciones
+            {sinResolver > 0 && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{sinResolver}</span>
+            )}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted">Tareas rápidas asignadas a miembros del equipo</p>
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={filtroEstado}
+            onChange={(e) => setFiltroEstado(e.target.value as typeof filtroEstado)}
+            className="quest-input py-1.5 text-xs"
+          >
+            <option value="">Activas</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="resuelto">Resueltas</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
+          >
+            <Icon name="plus" size={14} weight="bold" />
+            Nueva acción
+          </button>
+        </div>
+      </div>
+
+      {/* Form rápido */}
+      {showForm && (
+        <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-3">
+          <p className="text-xs font-bold text-accent uppercase tracking-wide">Nueva acción</p>
+          <input
+            className="quest-input w-full"
+            placeholder="¿Qué debe hacer?"
+            value={form.titulo}
+            onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+            onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
+          />
+          <div className="flex flex-wrap gap-2">
+            <select
+              className="quest-input flex-1 min-w-[140px]"
+              value={form.asignado_a}
+              onChange={(e) => setForm((f) => ({ ...f, asignado_a: e.target.value }))}
+            >
+              <option value="">Sin asignar</option>
+              {usuarios.map((u) => (
+                <option key={u.id} value={u.id}>{u.nombre}</option>
+              ))}
+            </select>
+            <select
+              className="quest-input w-36"
+              value={form.prioridad}
+              onChange={(e) => setForm((f) => ({ ...f, prioridad: e.target.value }))}
+            >
+              <option value="baja">Baja</option>
+              <option value="media">Media</option>
+              <option value="alta">Alta</option>
+              <option value="urgente">Urgente</option>
+            </select>
+            <select
+              className="quest-input w-36"
+              value={form.categoria}
+              onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
+            >
+              <option value="logistica">Logística</option>
+              <option value="ventas">Ventas</option>
+              <option value="rrhh">RRHH</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="contabilidad">Contabilidad</option>
+              <option value="compras">Compras</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={creando || !form.titulo.trim()}
+              onClick={crear}
+              className="quest-btn-primary px-4 py-1.5 text-sm"
+            >
+              {creando ? "Creando…" : "Crear acción"}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="text-xs text-muted hover:text-ink">
+              Cancelar
+            </button>
+            {msg && <span className="text-xs text-accent">{msg}</span>}
+          </div>
+        </div>
+      )}
+
+      {loading && (
+        <div className="py-8 text-center text-sm text-muted">Cargando acciones…</div>
+      )}
+
+      {!loading && acciones.length === 0 && (
+        <div className="py-12 text-center text-sm text-muted">
+          No hay acciones {filtroEstado ? `con estado "${filtroEstado}"` : "activas"}.
+        </div>
+      )}
+
+      {/* Tarjetas agrupadas por asignado */}
+      {!loading && porAsignado.map(([nombre, items]) => (
+        <div key={nombre}>
+          <div className="mb-2 flex items-center gap-2">
+            <Icon name="user" size={13} className="text-muted" />
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">{nombre}</span>
+            <span className="rounded-full bg-surface border border-border px-1.5 py-0.5 text-[10px] text-muted">{items.length}</span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((t) => (
+              <AccionCard
+                key={t.id}
+                ticket={t}
+                token={token}
+                onSelect={onSelect}
+                onChanged={() => void load(false)}
+                isAdmin={isAdmin}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 export default function TicketsPanel() {
@@ -9728,18 +10245,8 @@ export default function TicketsPanel() {
       .catch(() => {});
   }, [token, view]);
 
-  if (!token || !user) {
-    return (
-      <div className={`quest-canvas min-h-[60vh] transition-colors duration-200 ${questDark ? "dark" : ""}`}>
-        <div className="mb-4 flex justify-end">
-          <QuestThemeToggle />
-        </div>
-        <LoginView
-          onLogin={(t, u) => { setAuth(t, u as TicketsUser); setView("list"); }}
-        />
-      </div>
-    );
-  }
+  // Auth is handled at App level; if somehow null here, bail early
+  if (!token || !user) return null;
 
   const nivel = user.rol?.nivel ?? 1;
 
@@ -9758,6 +10265,7 @@ export default function TicketsPanel() {
     setSelectedId(null);
     setSelectedMisionId(null);
   }
+  function goAcciones() { setView("acciones"); }
   function goInventario() { setView("inventario"); }
   function goReinos() { setView("reinos"); }
   function goWorkload() { setView("workload"); }
@@ -9780,6 +10288,7 @@ export default function TicketsPanel() {
           bajoStockCount={bajoStockCount}
           userNombre={user.nombre}
           onTablero={goTablero}
+          onAcciones={goAcciones}
           onInventario={goInventario}
           onReinos={goReinos}
           onRecetas={goRecetas}
@@ -9815,6 +10324,13 @@ export default function TicketsPanel() {
             onEditMision={goMisionDetail}
             navScope={navScope}
             refreshKey={boardRefreshKey}
+          />
+        )}
+        {view === "acciones" && (
+          <AccionesView
+            token={token}
+            user={user}
+            onSelect={goDetail}
           />
         )}
         {view === "create" && (

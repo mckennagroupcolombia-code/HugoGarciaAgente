@@ -143,21 +143,21 @@ button { cursor: pointer; font-family: 'Montserrat', sans-serif; }
 
 .header-search { position: relative; }
 .header-search input {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(12,96,105,0.06);
+  border: 1px solid var(--green);
   border-radius: 4px;
-  color: #fff;
+  color: var(--text-soft);
   padding: 9px 16px 9px 34px;
   font-size: 0.75rem;
   font-family: 'Montserrat', sans-serif;
   width: 190px;
   transition: all .25s;
 }
-.header-search input::placeholder { color: rgba(255,255,255,0.4); }
+.header-search input::placeholder { color: var(--green-light); }
 .header-search input:focus {
   outline: none;
-  background: rgba(255,255,255,0.13);
-  border-color: var(--green-light);
+  background: rgba(12,96,105,0.1);
+  border-color: var(--green);
   width: 230px;
 }
 .header-search .search-icon {
@@ -165,7 +165,7 @@ button { cursor: pointer; font-family: 'Montserrat', sans-serif; }
   left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255,255,255,0.4);
+  color: var(--text-soft);
   font-size: 0.9rem;
   pointer-events: none;
 }
@@ -1763,8 +1763,8 @@ button { cursor: pointer; font-family: 'Montserrat', sans-serif; }
 
 /* Carrito en header */
 .cart-icon-wrap { position: relative; display: flex; align-items: center; }
-.cart-icon-link { color: rgba(255,255,255,0.75); font-size: 1.4rem; transition: color .2s; display: flex; align-items: center; padding: 6px; }
-.cart-icon-link:hover { color: #fff; }
+.cart-icon-link { color: var(--text-soft); font-size: 1.4rem; transition: color .2s; display: flex; align-items: center; padding: 6px; }
+.cart-icon-link:hover { color: var(--green-dark); }
 .cart-count { position: absolute; top: -2px; right: -4px; background: var(--green); color: #fff; font-size: 9px; font-weight: 700; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
 
 /* ══════════════════════════════════════════════════════════

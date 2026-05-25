@@ -1375,12 +1375,17 @@ def register_routes(app):
         grupo_preventa_norm = _jid_limpio(grupo_preventa)
         grupo_posventa_norm = _jid_limpio(grupo_posventa)
 
-        es_grupo_compras = es_grupo_contabilidad or remote_jid == grupo_compras_norm
-        es_grupo_preventa_cmd = remote_jid == grupo_preventa_norm
-        es_grupo_posventa_cmd = remote_jid == grupo_posventa_norm
+        es_grupo_compras = es_grupo_contabilidad or (bool(grupo_compras_norm) and remote_jid == grupo_compras_norm)
+        es_grupo_preventa_cmd = bool(grupo_preventa_norm) and remote_jid == grupo_preventa_norm
+        es_grupo_posventa_cmd = bool(grupo_posventa_norm) and remote_jid == grupo_posventa_norm
         es_any_grupo_admin = (
             es_grupo_compras or es_grupo_preventa_cmd or es_grupo_posventa_cmd
         )
+
+        grupo_sede_sur = _jid_limpio(
+            os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
+        )
+        es_grupo_sede_sur = bool(grupo_sede_sur) and remote_jid == grupo_sede_sur
 
         # Alias para compatibilidad con código existente
         grupo_contabilidad = grupo_compras
@@ -1746,7 +1751,7 @@ def register_routes(app):
                 return jsonify({"status": "bot_loop_paused", "respuesta": None})
 
         # --- SWITCH IA/HUMANO ---
-        if not es_any_grupo_admin:
+        if not es_any_grupo_admin and not es_grupo_sede_sur:
             modos = cargar_modos_atencion()
             if sender_id in modos["numeros_en_humano"]:
                 # Reenviar al grupo de compras (atención general) y no procesar IA
@@ -1790,6 +1795,44 @@ def register_routes(app):
                         "respuesta": "Veci, recibí tu nota de voz pero no pude escucharla bien. ¿Puedes escribirme tu consulta? 🙏",
                     }
                 )
+
+        # --- MCKG SEDE SUR: equipo interno con Ollama local ---
+        if es_grupo_sede_sur and message_text:
+            from app.tools.sede_sur import procesar_accion_sede_sur
+            texto_agente, accion, activar_ia = procesar_accion_sede_sur(message_text)
+
+            respuesta_inmediata = None
+
+            if accion is not None:
+                # Confirmación de ticket: síncrona, sin Ollama
+                if accion.get("ok") and "ticket_numero" in accion:
+                    respuesta_inmediata = (
+                        f"✅ {accion['ticket_numero']} creado para {accion['asignado_a']}: "
+                        f"{accion['titulo']} "
+                        f"(Prioridad: {accion['prioridad']}, categoria: {accion['categoria']})"
+                    )
+                elif accion.get("ok") and "resuelto_por" in accion:
+                    quién = accion.get("resuelto_por", "equipo")
+                    sufijo = f" por {quién}" if quién != "equipo" else ""
+                    respuesta_inmediata = (
+                        f"✅ {accion['ticket_numero']} resuelto{sufijo}: {accion.get('titulo', '')}"
+                    )
+                elif not accion.get("ok"):
+                    respuesta_inmediata = f"⚠️ {accion.get('error', 'Error desconocido')}"
+
+            elif activar_ia:
+                # Pregunta libre: Ollama en background
+                def _responder_sede_sur(texto: str, sid: str, destino: str) -> None:
+                    respuesta, _ = obtener_respuesta_ia(texto, sid, canal="sede_sur")
+                    enviar_whatsapp_reporte(respuesta, numero_destino=destino)
+
+                spawn_thread(
+                    _responder_sede_sur,
+                    args=(texto_agente, sender_id, remote_jid),
+                    daemon=True,
+                )
+
+            return jsonify({"status": "ok", "respuesta": respuesta_inmediata})
 
         # --- Detección de Comprobantes de Pago ---
         is_payment_keyword_sin_img = _mensaje_sugiere_pago(message_text)
@@ -3756,6 +3799,33 @@ def register_routes(app):
     @app.route("/app/favicon.svg")
     def serve_spa_favicon():
         return send_from_directory(_SPA_DIR, "favicon.svg")
+
+    @app.route("/app/manifest.json")
+    def serve_spa_manifest():
+        return send_from_directory(_SPA_DIR, "manifest.json")
+
+    @app.route("/app/icon-<int:size>.png")
+    def serve_spa_icon(size):
+        return send_from_directory(_SPA_DIR, f"icon-{size}.png")
+
+    @app.route("/.well-known/assetlinks.json")
+    def serve_assetlinks():
+        """Digital Asset Links — requerido para TWA Android."""
+        sha256 = os.environ.get("TWA_SHA256_CERT_FINGERPRINT", "PLACEHOLDER")
+        payload = [
+            {
+                "relation": ["delegate_permission/common.handle_all_urls"],
+                "target": {
+                    "namespace": "android_app",
+                    "package_name": "co.mckennagroup.panel",
+                    "sha256_cert_fingerprints": [sha256],
+                },
+            }
+        ]
+        resp = make_response(json.dumps(payload))
+        resp.headers["Content-Type"] = "application/json"
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
 
     @app.route("/app", methods=["GET", "HEAD"])
     @app.route("/app/<path:path>", methods=["GET", "HEAD"])

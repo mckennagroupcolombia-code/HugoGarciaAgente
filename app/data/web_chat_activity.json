@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-22T12:30:13",
+  "updated_at": "2026-05-24T18:05:37",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -10,17 +10,125 @@
     "2026-05-19": 12,
     "2026-05-20": 7,
     "2026-05-21": 5,
-    "2026-05-22": 4
+    "2026-05-22": 4,
+    "2026-05-24": 7
   },
   "sessions": [
+    {
+      "session_id": "web-ebbab6a4-6505-4d89-bcdd-e8a55c77aca3",
+      "started_at": "2026-05-24T14:26:02",
+      "last_at": "2026-05-24T14:28:09",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-05-24T18:05:37",
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Precio agar",
+      "last_agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-24T14:26:02",
+          "user_message": "Buenas tardes.. para pedir agar agar",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-24T14:26:12",
+          "user_message": "Agar agar",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-24T14:27:55",
+          "user_message": "Agar agar?",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-24T14:28:09",
+          "user_message": "Precio agar",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "test-debug-001",
+      "started_at": "2026-05-24T04:15:22",
+      "last_at": "2026-05-24T04:15:22",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-05-24T04:47:32",
+      "page_url": "",
+      "user_agent": "curl/8.5.0",
+      "last_user_message": "hola",
+      "last_agent_reply": "Veci, estamos en mantenimiento. Intente en unos minutos 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-24T04:15:22",
+          "user_message": "hola",
+          "agent_reply": "Veci, estamos en mantenimiento. Intente en unos minutos 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-1fe1ba5a-d271-4470-af60-63cf86ad00ce",
+      "started_at": "2026-05-24T04:11:35",
+      "last_at": "2026-05-24T04:55:40",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-05-24T04:47:32",
+      "page_url": "https://mckennagroup.co/recetario",
+      "user_agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+      "last_user_message": "Buenos dias, tienen manteca de karite?",
+      "last_agent_reply": "Claro, veci. Manejamos materia prima; estas son las presentaciones disponibles en catálogo:\n- MANTECA KARITE AMARILLA 125g: $26,636 COP (Ref. C-MANTKARAMA125g)\n- MANTECA KARITE AMARILLA 250g: $51,686 COP (Ref. C-MANKARAMA250g)\n- MANTECA KARITE AMARILLA 500g: $99,365 COP (Ref. C-MANKARAMA500g)\n- MANTECA KARITE AMARILLA Kg: $155,310 COP (Ref. C-MANKARAMAKg)\n- MANTECA KARITE BLANCA 125g: $26,636 COP (Ref. C-MANKARBLA125g)\n- MANTECA KARITE BLANCA 500g: $99,365 COP (Ref. C-MANKARBLA500g)\n- MANTECA KARITE BLANCA Kg: $157,815 COP (Ref. C-MANKARBLAKg)\n- MANTECA CACAO REFINADA 500g: $14,112 COP (Ref. C-MANCACREF500g)\n¿Cuál presentación le sirve?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-24T04:11:35",
+          "user_message": "Hola",
+          "agent_reply": "Veci, estamos en mantenimiento. Intente en unos minutos 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-24T04:55:40",
+          "user_message": "Buenos dias, tienen manteca de karite?",
+          "agent_reply": "Claro, veci. Manejamos materia prima; estas son las presentaciones disponibles en catálogo:\n- MANTECA KARITE AMARILLA 125g: $26,636 COP (Ref. C-MANTKARAMA125g)\n- MANTECA KARITE AMARILLA 250g: $51,686 COP (Ref. C-MANKARAMA250g)\n- MANTECA KARITE AMARILLA 500g: $99,365 COP (Ref. C-MANKARAMA500g)\n- MANTECA KARITE AMARILLA Kg: $155,310 COP (Ref. C-MANKARAMAKg)\n- MANTECA KARITE BLANCA 125g: $26,636 COP (Ref. C-MANKARBLA125g)\n- MANTECA KARITE BLANCA 500g: $99,365 COP (Ref. C-MANKARBLA500g)\n- MANTECA KARITE BLANCA Kg: $157,815 COP (Ref. C-MANKARBLAKg)\n- MANTECA CACAO REFINADA 500g: $14,112 COP (Ref. C-MANCACREF500g)\n¿Cuál presentación le sirve?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-36adea7b-6844-4bb3-ba66-9301a2d12b48",
       "started_at": "2026-05-22T12:30:13",
       "last_at": "2026-05-22T12:30:13",
       "messages_count": 1,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-05-24T03:30:13",
       "page_url": "https://www.mckennagroup.co/guias/cafeina-anhidra",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
       "last_user_message": "hola busco 58-08-2",
@@ -44,8 +152,8 @@
       "last_at": "2026-05-22T08:51:18",
       "messages_count": 1,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-05-24T03:30:13",
       "page_url": "https://mckennagroup.co/",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
       "last_user_message": "buenos dias",
@@ -69,8 +177,8 @@
       "last_at": "2026-05-22T08:39:14",
       "messages_count": 2,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-05-24T03:30:13",
       "page_url": "https://mckennagroup.co/catalogo/",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
       "last_user_message": "citrato de zinc grado alimentucio",

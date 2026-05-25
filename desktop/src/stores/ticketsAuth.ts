@@ -17,16 +17,20 @@ export interface TicketsUser {
   id: number;
   nombre: string;
   username: string;
+  email?: string | null;
   activo: number;
   foto?: string | null;
   rol: TicketsRol | null;
   departamento: TicketsDept | null;
+  permisos_secciones?: Record<string, boolean> | null;
 }
 
 interface TicketsAuthState {
   token: string | null;
   user: TicketsUser | null;
-  setAuth: (token: string, user: TicketsUser) => void;
+  /** CHAT_API_TOKEN del servidor — solo para usuarios admin (nivel >= 3). */
+  apiToken: string | null;
+  setAuth: (token: string, user: TicketsUser, apiToken?: string | null) => void;
   clear: () => void;
 }
 
@@ -35,8 +39,9 @@ export const useTicketsAuth = create<TicketsAuthState>()(
     (set) => ({
       token: null,
       user: null,
-      setAuth: (token, user) => set({ token, user }),
-      clear: () => set({ token: null, user: null }),
+      apiToken: null,
+      setAuth: (token, user, apiToken = null) => set({ token, user, apiToken }),
+      clear: () => set({ token: null, user: null, apiToken: null }),
     }),
     { name: "mckenna-tickets-auth" },
   ),
