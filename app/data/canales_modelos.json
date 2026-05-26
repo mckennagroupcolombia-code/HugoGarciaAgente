@@ -1,7 +1,7 @@
 {
-  "updated_at": "2026-05-21T16:06:34",
+  "updated_at": "2026-05-26T00:51:52",
   "asignaciones": {
-    "web_chat": "gemini-2.5-pro",
+    "web_chat": "gemini-2.5-flash",
     "whatsapp": "gemini-2.5-pro"
   }
 }

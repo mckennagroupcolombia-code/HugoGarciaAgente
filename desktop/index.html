@@ -15,7 +15,13 @@
     />
   </head>
   <body class="bg-surface font-sans font-medium text-ink antialiased [-webkit-font-smoothing:antialiased] [letter-spacing:-0.01em]">
-    <div id="root"></div>
+    <div id="root">
+      <!-- Splash pre-JS: React lo reemplaza al montar. Evita la pantalla en blanco mientras carga el bundle. -->
+      <div style="display:flex;min-height:100vh;align-items:center;justify-content:center;background:#E8FAFB;flex-direction:column;gap:12px">
+        <div style="font-size:40px;font-weight:900;color:#0C6069;line-height:1">M</div>
+        <div style="font-size:12px;color:#2D7E86;font-family:system-ui,sans-serif;font-weight:600;letter-spacing:0.05em;text-transform:uppercase">Cargando panel…</div>
+      </div>
+    </div>
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
