@@ -9910,6 +9910,129 @@ const PRIORIDAD_COLOR: Record<string, string> = {
   baja: "bg-gray-300 text-gray-700",
 };
 
+/**
+ * AudioContext desbloqueado por gesto del usuario.
+ * En Android Chrome, el AudioContext debe crearse/resumirse durante un toque
+ * para que pueda reproducir audio posterior sin gesto (como las alarmas a los 5 min).
+ */
+let _unlockedCtx: AudioContext | null = null;
+
+function unlockAudioContext() {
+  if (_unlockedCtx && _unlockedCtx.state !== "closed") return;
+  try {
+    _unlockedCtx = new AudioContext();
+    // Reproducir buffer vacío de 1 muestra para desbloquear el contexto
+    const buf = _unlockedCtx.createBuffer(1, 1, 22050);
+    const src = _unlockedCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(_unlockedCtx.destination);
+    src.start(0);
+  } catch { _unlockedCtx = null; }
+}
+
+/** Reproduce un recordatorio de voz corto. Primero intenta el TTS del servidor;
+ *  si no responde en 1.5 s, usa SpeechSynthesis del navegador (funciona offline/Android).
+ *  El AudioContext debe estar desbloqueado previamente por gesto del usuario. */
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  return new Uint8Array([...raw].map((c) => c.charCodeAt(0)));
+}
+
+// Parsea timestamps UTC de SQLite: formato "YYYY-MM-DD HH:MM:SS" (espacio, sin Z).
+// Pasos: reemplazar espacio→T para ISO 8601, agregar Z si no hay zona horaria, NaN→now.
+function parseUtcTs(s: string): number {
+  if (!s) return Date.now();
+  const iso = s.replace(" ", "T");                              // "2026-05-25T21:45:00"
+  const withTz = /Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + "Z"; // agregar Z si falta
+  const ts = new Date(withTz).getTime();
+  if (isNaN(ts)) return Date.now();
+  return ts > Date.now() ? Date.now() : ts;                    // nunca futuro
+}
+
+// ── Caché de audio de alarma ──────────────────────────────────────────────────
+// El audio TTS se genera una sola vez y se reutiliza en todas las alarmas del día.
+// Evita latencia de ~5 s de Voicebox en cada disparo.
+let _alarmCache: { buffer: ArrayBuffer; type: string } | null = null;
+let _alarmCacheExpiry = 0;
+
+async function _playBlobBuffer(buffer: ArrayBuffer, type: string): Promise<void> {
+  const blob = new Blob([buffer], { type });
+  const url = URL.createObjectURL(blob);
+  const audio = new Audio(url);
+  audio.volume = 1;
+  return new Promise((resolve, reject) => {
+    audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
+    audio.onerror = () => { URL.revokeObjectURL(url); reject(new Error("playback error")); };
+    audio.play().catch(reject);
+  });
+}
+
+/** Genera y cachea el audio de alarma. Llámalo al activar la alarma para pre-calentar. */
+async function warmAlarmCache(apiToken: string): Promise<boolean> {
+  if (_alarmCache && Date.now() < _alarmCacheExpiry) return true;
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 12_000);
+    const res = await fetch("/api/voz/sintetizar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+      body: JSON.stringify({ texto: "Recuerda: tienes una tarea en proceso.", motor: "voicebox", voicebox_engine: "qwen3" }),
+      signal: ctrl.signal,
+    });
+    clearTimeout(tid);
+    if (!res.ok) return false;
+    const buffer = await res.arrayBuffer();
+    const type = res.headers.get("content-type") || "audio/wav";
+    _alarmCache = { buffer, type };
+    _alarmCacheExpiry = Date.now() + 12 * 60 * 60 * 1000; // caché 12 horas
+    return true;
+  } catch { return false; }
+}
+
+async function playAlarmAudio(apiToken?: string) {
+  // Intento 1: audio cacheado (generado previamente, sin latencia)
+  if (_alarmCache && Date.now() < _alarmCacheExpiry) {
+    try { await _playBlobBuffer(_alarmCache.buffer, _alarmCache.type); return; } catch {}
+  }
+
+  // Intento 2: generar TTS y cachear (primera vez o caché expirada)
+  if (apiToken) {
+    try {
+      if (await warmAlarmCache(apiToken) && _alarmCache) {
+        await _playBlobBuffer(_alarmCache.buffer, _alarmCache.type);
+        return;
+      }
+    } catch {}
+  }
+
+  // Intento 3: SpeechSynthesis del navegador (sin servidor, Android Chrome lo soporta)
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance("Recuerda: tienes una tarea en proceso.");
+    utt.lang = "es-CO"; utt.rate = 0.92; utt.volume = 1;
+    window.speechSynthesis.speak(utt);
+    return;
+  }
+
+  // Fallback: chime Web Audio API
+  try {
+    const ctx = _unlockedCtx ?? new AudioContext();
+    const now = ctx.currentTime;
+    [[0, 880], [0.32, 1100], [0.64, 660]].forEach(([delay, freq]) => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = "sine"; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, now + delay);
+      gain.gain.linearRampToValueAtTime(0.3, now + delay + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.4);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now + delay); osc.stop(now + delay + 0.42);
+    });
+    setTimeout(() => ctx.close().catch(() => {}), 2500);
+  } catch { /* AudioContext no disponible */ }
+}
+
 function AccionCard({
   ticket, token, onSelect, onChanged, isAdmin,
 }: {
@@ -9920,24 +10043,120 @@ function AccionCard({
 }) {
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [corridaId, setCorridaId] = useState<number | null>(ticket.corrida?.id ?? null);
+  const [corridaActiva, setCorridaActiva] = useState(ticket.corrida?.estado === "activa");
 
-  async function resolver() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
-      onChanged();
-    } catch { /* ignore */ }
-    finally { setBusy(false); }
-  }
+  // segBase = solo segundos acumulados de segmentos anteriores (sin incluir la corrida activa)
+  const [segBase, setSegBase] = useState<number>(
+    ticket.corrida?.segundos_acumulados ?? ticket.segundos_trabajo ?? 0
+  );
+  const [segLive, setSegLive] = useState(0);
+
+  // inicioRef: marca de tiempo (ms) desde cuando corre el tramo actual.
+  // null = detenido. No-null = corriendo. El intervalo solo mira este ref.
+  // Inicializado desde el servidor si la corrida ya estaba activa al montar.
+  const inicioRef = useRef<number | null>(
+    ticket.corrida?.estado === "activa" && ticket.corrida?.iniciada_en
+      ? parseUtcTs(ticket.corrida.iniciada_en)
+      : null
+  );
+  const [resolucionInfo, setResolucionInfo] = useState<{ duracion: number; horario: string } | null>(null);
+
+  // Limpiar segLive cuando corridaActiva cambia a false (para display)
+  useEffect(() => {
+    if (!corridaActiva) setSegLive(0);
+  }, [corridaActiva]);
+
+  // Intervalo PERMANENTE montado UNA SOLA VEZ.
+  // Solo comprueba inicioRef.current — asignado SINCRÓNICAMENTE en iniciarPausar
+  // antes de cualquier await, así nunca hay race condition con React batching.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (inicioRef.current == null) return;
+      const s = Math.floor((Date.now() - inicioRef.current) / 1000);
+      setSegLive((p) => (p === s ? p : s));
+    }, 250);
+    return () => clearInterval(iv);
+  }, []);
+
+  const segDisplay = segBase + segLive;
 
   async function iniciarPausar() {
     if (busy) return;
     setBusy(true);
     try {
       const nuevoEstado = ticket.estado === "en_proceso" ? "pendiente" : "en_proceso";
-      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: nuevoEstado }) });
+      if (nuevoEstado === "en_proceso") {
+        // ── ARRANCAR TIMER INMEDIATAMENTE (antes del round-trip al servidor) ──
+        // El intervalo permanente ya está corriendo; solo necesita inicioRef != null.
+        const t0 = Date.now();
+        inicioRef.current = t0;
+        setCorridaActiva(true);
+        setSegLive(0);
+
+        // Registrar la corrida en servidor (sin bloquear la UI)
+        try {
+          const data: Ticket = await tapi(`/${ticket.id}/corridas/iniciar`, token, {
+            method: "POST", body: JSON.stringify({ segundos_previos: segBase }),
+          });
+          if (data.corrida) {
+            setCorridaId(data.corrida.id);
+            setSegBase(data.corrida.segundos_acumulados ?? 0);
+            // Si el servidor reporta un inicio anterior al click local, sincronizar
+            if (data.corrida.iniciada_en) {
+              const srvTs = parseUtcTs(data.corrida.iniciada_en);
+              if (srvTs < t0 && t0 - srvTs < 30_000) inicioRef.current = srvTs;
+            }
+          }
+        } catch { /* timer ya corriendo desde t0 */ }
+
+        try {
+          await tapi(`/${ticket.id}/estado`, token, {
+            method: "PUT", body: JSON.stringify({ estado: "en_proceso" }),
+          });
+        } catch {}
+      } else {
+        // ── PAUSAR: capturar segLive ANTES de resetear ──
+        const segTotal = segBase + segLive;
+        setCorridaActiva(false);   // corridaActivaRef se sincroniza en useEffect
+        inicioRef.current = null;  // detiene el intervalo permanente
+
+        if (corridaId) {
+          try {
+            const data: Ticket = await tapi(`/corridas/${corridaId}/pausar`, token, { method: "POST" });
+            setSegBase(data.corrida?.segundos_acumulados ?? segTotal);
+          } catch { setSegBase(segTotal); }
+        } else {
+          setSegBase(segTotal);
+        }
+
+        try {
+          await tapi(`/${ticket.id}/estado`, token, {
+            method: "PUT", body: JSON.stringify({ estado: "pendiente" }),
+          });
+        } catch {}
+      }
       onChanged();
+    } catch { /* ignore */ }
+    finally { setBusy(false); }
+  }
+
+  async function resolver() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (corridaId) {
+        try { await tapi(`/corridas/${corridaId}/finalizar`, token, { method: "POST" }); } catch {}
+      }
+      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+      const duracion = segDisplay;
+      const horario = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+      setResolucionInfo({ duracion, horario });
+      setCorridaActiva(false);
+      inicioRef.current = null;
+      setSegLive(0);
+      setTimeout(() => onChanged(), 2200);
     } catch { /* ignore */ }
     finally { setBusy(false); }
   }
@@ -9953,19 +10172,16 @@ function AccionCard({
   }
 
   const resuelta = ticket.estado === "resuelto" || ticket.estado === "rechazado";
+  const enProceso = ticket.estado === "en_proceso";
 
   return (
     <div
       className={`flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
     >
       <div className="flex items-start gap-2">
-        <button
-          type="button"
-          className="min-w-0 flex-1 text-left text-sm font-medium text-ink hover:text-accent"
-          onClick={() => onSelect(ticket.id)}
-        >
+        <span className="min-w-0 flex-1 text-sm font-medium text-ink">
           {ticket.titulo}
-        </button>
+        </span>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
           {ticket.prioridad ?? "media"}
         </span>
@@ -10008,28 +10224,46 @@ function AccionCard({
         </span>
       </div>
 
-      {!resuelta && (
+      {/* Cronómetro live */}
+      {!resuelta && (enProceso || segBase > 0 || corridaActiva) && (
+        <div className={`flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-mono ${
+          corridaActiva ? "bg-accent/10 text-accent" : "bg-surface-hover text-muted"
+        }`}>
+          <span>{fmtTiempo(segDisplay)}</span>
+          {corridaActiva && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
+          {!corridaActiva && segBase > 0 && <span className="text-[10px]">en pausa</span>}
+        </div>
+      )}
+
+      {/* Resumen al completar */}
+      {resolucionInfo && (
+        <div className="rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1.5 text-xs text-emerald-800 dark:text-emerald-300">
+          ✓ Completada a las <strong>{resolucionInfo.horario}</strong> · {fmtTiempo(resolucionInfo.duracion)} de trabajo
+        </div>
+      )}
+
+      {!resuelta && !resolucionInfo && (
         <div className="flex gap-2 pt-1">
           <button
             type="button"
             disabled={busy}
             onClick={iniciarPausar}
-            className={`flex flex-1 items-center justify-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-              ticket.estado === "en_proceso"
-                ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
+              enProceso
+                ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
                 : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
             }`}
           >
-            <Icon name={ticket.estado === "en_proceso" ? "clock" : "lightning"} size={12} weight="bold" />
-            {ticket.estado === "en_proceso" ? "Pausar" : "Iniciar"}
+            <Icon name={enProceso ? "clock" : "lightning"} size={15} weight="bold" />
+            {enProceso ? "Pausar" : segBase > 0 ? "Reanudar" : "Iniciar"}
           </button>
           <button
             type="button"
             disabled={busy}
             onClick={resolver}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-green-500 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 transition-colors hover:bg-green-100"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-500 bg-green-50 px-3 py-2.5 text-sm font-bold text-green-700 min-h-[44px] transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
           >
-            <Icon name="check" size={12} weight="bold" />
+            <Icon name="check" size={15} weight="bold" />
             Listo
           </button>
         </div>
@@ -10045,6 +10279,8 @@ function AccionesView({
   onSelect: (id: number) => void;
 }) {
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
+  // apiToken = CHAT_API_TOKEN que usa /api/voz/transcribir (distinto del JWT de tickets)
+  const { apiToken: chatApiToken } = useTicketsAuth();
   const [acciones, setAcciones] = useState<Ticket[]>([]);
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -10053,6 +10289,235 @@ function AccionesView({
   const [creando, setCreando] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState("");
+
+  // ── STT (voz → título de acción) ─────────────────────────────────────────
+  const [sttGrabando, setSttGrabando] = useState(false);
+  const [sttTranscribiendo, setSttTranscribiendo] = useState(false);
+  const [sttError, setSttError] = useState("");
+  const [sttSegundos, setSttSegundos] = useState(0);
+  const sttMrRef = useRef<MediaRecorder | null>(null);
+  const sttChunksRef = useRef<Blob[]>([]);
+  const sttTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sttStartRef = useRef<number>(0);
+
+  async function iniciarGrabacion() {
+    setSttError("");
+    setSttSegundos(0);
+    unlockAudioContext(); // desbloquear AudioContext con este gesto
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      sttChunksRef.current = [];
+      const mr = new MediaRecorder(stream);
+      mr.ondataavailable = (e) => { if (e.data.size > 0) sttChunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        if (sttTimerRef.current) clearInterval(sttTimerRef.current);
+        stream.getTracks().forEach((t) => t.stop());
+        const durSeg = Math.round((Date.now() - sttStartRef.current) / 1000);
+        const blob = new Blob(sttChunksRef.current, { type: mr.mimeType });
+        if (blob.size === 0 || durSeg < 1) {
+          setSttError("Grabación muy corta. Habla al menos 1 segundo.");
+          setSttGrabando(false);
+          return;
+        }
+        setSttTranscribiendo(true);
+        try {
+          const ext = blob.type.split("/")[1]?.split(";")[0] || "webm";
+          const fd = new FormData();
+          fd.append("audio", blob, `audio.${ext}`);
+          const res = await fetch("/api/voz/transcribir", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${chatApiToken ?? token}` },
+            body: fd,
+          });
+          if (!res.ok) {
+            setSttError(`Error del servidor (${res.status}). ¿Está activo Whisper?`);
+          } else {
+            const data = await res.json();
+            const texto = (data.texto ?? "").trim();
+            if (texto) {
+              setForm((f) => ({ ...f, titulo: texto }));
+              setShowForm(true);
+              setSttError("");
+            } else {
+              setSttError("Whisper no detectó palabras. Habla más cerca del micrófono e intenta de nuevo.");
+            }
+          }
+        } catch {
+          setSttError("Sin conexión con el servidor. Verifica que agente-pro esté activo.");
+        }
+        setSttTranscribiendo(false);
+        setSttGrabando(false);
+        setSttSegundos(0);
+      };
+      sttMrRef.current = mr;
+      sttStartRef.current = Date.now();
+      mr.start(250);
+      setSttGrabando(true);
+      sttTimerRef.current = setInterval(() => setSttSegundos((s) => s + 1), 1000);
+    } catch (e: any) {
+      if (e.name === "NotAllowedError") {
+        setSttError("Permiso de micrófono denegado. En Android: Ajustes → Aplicaciones → McKenna → Permisos → Micrófono.");
+      } else if (e.name === "NotFoundError") {
+        setSttError("No se encontró micrófono en este dispositivo.");
+      } else {
+        setSttError(`Error al acceder al micrófono: ${e.message}`);
+      }
+    }
+  }
+
+  function detenerGrabacion() {
+    if (sttTimerRef.current) { clearInterval(sttTimerRef.current); sttTimerRef.current = null; }
+    const mr = sttMrRef.current;
+    if (mr && (mr.state === "recording" || mr.state === "paused")) {
+      mr.stop();
+    } else {
+      // MediaRecorder ya estaba detenido (e.g. timeout) — forzar estado limpio
+      setSttGrabando(false);
+      setSttTranscribiendo(false);
+    }
+  }
+
+  // Desbloquear AudioContext en el primer toque (requisito Android Chrome)
+  useEffect(() => {
+    const handler = () => unlockAudioContext();
+    document.addEventListener("touchstart", handler, { once: true });
+    document.addEventListener("click", handler, { once: true });
+    return () => {
+      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("click", handler);
+    };
+  }, []);
+
+  // ── Alarma: voz periódica configurable ────────────────────────────────────
+  const [alarmaActiva, setAlarmaActiva] = useState(true);
+  const [alarmaMinutos, setAlarmaMinutos] = useState(5); // 1-60 min
+  const [countdown, setCountdown]  = useState(0);        // segundos para próxima alarma
+  const alarmaRef    = useRef(alarmaActiva);
+  const minRef       = useRef(alarmaMinutos);
+  const accionesRef  = useRef(acciones);
+  const tokenRef     = useRef(chatApiToken ?? token);
+  const ultimaAlarmaRef = useRef(Date.now());
+  useEffect(() => { alarmaRef.current = alarmaActiva; }, [alarmaActiva]);
+  useEffect(() => { minRef.current = alarmaMinutos; }, [alarmaMinutos]);
+  useEffect(() => { accionesRef.current = acciones; }, [acciones]);
+  useEffect(() => { tokenRef.current = chatApiToken ?? token; }, [chatApiToken, token]);
+
+  // Notificar a la alarma nativa Android via deep link (Intent URL).
+  // Funciona en TWA/APK; en browser web se ignora silenciosamente.
+  // Intent URL format: intent://host?params#Intent;scheme=mckennaapp;package=co.mckennagroup.panel;end
+  const sincronizarAlarmaAndroid = useCallback((activa: boolean, minutos: number) => {
+    try {
+      const url = `intent://alarma?activa=${activa}&intervalo=${minutos}#Intent;scheme=mckennaapp;package=co.mckennagroup.panel;S.browser_fallback_url=about%3Ablank;end`;
+      const a = document.createElement("a");
+      a.href = url; a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => a.remove(), 500);
+    } catch { /* ignorar si no es TWA/Android */ }
+  }, []);
+
+  // ── Service Worker + Web Push (pantalla bloqueada) ───────────────────────
+  const pushSubRef = useRef<PushSubscription | null>(null);
+
+  const registrarPush = useCallback(async (reg: ServiceWorkerRegistration, minutos: number, activa: boolean) => {
+    if (!("PushManager" in window)) return;
+    try {
+      // Obtener clave VAPID pública del servidor
+      const kr = await fetch("/api/voz/push/vapid-key");
+      const { publicKey, disponible } = await kr.json() as { publicKey: string; disponible: boolean };
+      if (!disponible || !publicKey) return;
+
+      // Suscribir (reutiliza suscripción existente si ya existe)
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as BufferSource,
+      });
+      pushSubRef.current = sub;
+
+      // Registrar programación en el servidor
+      await fetch("/api/voz/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenRef.current}` },
+        body: JSON.stringify({ subscription: sub.toJSON(), minutes: minutos, active: activa }),
+      });
+    } catch { /* push opcional — fallback al canal de SW message */ }
+  }, []);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const init = async () => {
+      let perm = Notification.permission;
+      if (perm === "default") {
+        perm = await Notification.requestPermission();
+      }
+      if (perm !== "granted") return;
+
+      const reg = await navigator.serviceWorker.register("/app/sw-alarm.js", { scope: "/app/" });
+      // Esperar a que el SW esté activo
+      await navigator.serviceWorker.ready;
+      await registrarPush(reg, alarmaMinutos, alarmaActiva);
+    };
+    init().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-registrar push cuando cambia intervalo o estado de alarma
+  useEffect(() => {
+    if (!("serviceWorker" in navigator) || Notification.permission !== "granted") return;
+    navigator.serviceWorker.ready.then((reg) => registrarPush(reg, alarmaMinutos, alarmaActiva)).catch(() => {});
+  }, [alarmaMinutos, alarmaActiva, registrarPush]);
+
+  // Pre-calentar caché de audio cuando la alarma está activa (primera vez)
+  useEffect(() => {
+    if (!alarmaActiva || !chatApiToken) return;
+    const tok = chatApiToken;
+    // Retrasar 3 s para no competir con la carga inicial
+    const tid = setTimeout(() => { void warmAlarmCache(tok); }, 3000);
+    return () => clearTimeout(tid);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alarmaActiva]);
+
+  // Dispara la alarma: audio si foreground, notificación + push si background
+  const dispararAlarma = useCallback(async (forzar = false) => {
+    const hayTarea = accionesRef.current.some((t) => t.estado === "en_proceso");
+    if (!forzar && (!alarmaRef.current || !hayTarea)) return;
+    ultimaAlarmaRef.current = Date.now();
+    if (!document.hidden) {
+      await playAlarmAudio(tokenRef.current);
+    } else {
+      // Background / pantalla bloqueada:
+      // Canal A — SW message (app en background, pantalla encendida)
+      const ctrl = navigator.serviceWorker?.controller;
+      if (ctrl && Notification.permission === "granted") {
+        ctrl.postMessage({ type: "alarm-notification" });
+      }
+      // Canal B — push server-side (pantalla bloqueada) ya programado vía registrarPush.
+      // El servidor dispara automáticamente al intervalo configurado.
+    }
+  }, []);
+
+  // Bucle principal: polling 10 s + visibilitychange para resistir throttling
+  useEffect(() => {
+    const check = () => {
+      const ms = minRef.current * 60 * 1000;
+      if (Date.now() - ultimaAlarmaRef.current >= ms) void dispararAlarma();
+    };
+    const iv = setInterval(check, 10_000);
+    const onVisible = () => { if (!document.hidden) check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVisible); };
+  }, [dispararAlarma]);
+
+  // Countdown: actualizar cada segundo para mostrar tiempo restante
+  useEffect(() => {
+    if (!alarmaActiva) { setCountdown(0); return; }
+    const iv = setInterval(() => {
+      const ms = minRef.current * 60 * 1000;
+      const restante = Math.max(0, Math.ceil((ms - (Date.now() - ultimaAlarmaRef.current)) / 1000));
+      setCountdown(restante);
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [alarmaActiva]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -10110,6 +10575,13 @@ function AccionesView({
   }, [acciones]);
 
   const sinResolver = acciones.filter((t) => t.estado !== "resuelto" && t.estado !== "rechazado").length;
+  const hayEnProceso = acciones.some((t) => t.estado === "en_proceso");
+
+  // Sincronizar alarma nativa cuando cambia si hay tareas en proceso
+  useEffect(() => {
+    sincronizarAlarmaAndroid(hayEnProceso && alarmaActiva, alarmaMinutos);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hayEnProceso]);
 
   return (
     <div className="space-y-4">
@@ -10125,7 +10597,68 @@ function AccionesView({
           </h2>
           <p className="mt-0.5 text-xs text-muted">Tareas rápidas asignadas a miembros del equipo</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {/* Alarma: toggle + selector de intervalo + countdown + botón probar */}
+          {hayEnProceso && (
+            <div className="flex items-center gap-1 flex-wrap">
+              {/* Toggle on/off */}
+              <button
+                type="button"
+                title={alarmaActiva ? "Silenciar alarma" : "Activar alarma de voz periódica"}
+                onClick={() => {
+                  const next = !alarmaActiva;
+                  setAlarmaActiva(next);
+                  sincronizarAlarmaAndroid(next, minRef.current);
+                  if (next) { ultimaAlarmaRef.current = Date.now(); void dispararAlarma(true); }
+                }}
+                className={`flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors ${
+                  alarmaActiva
+                    ? "border-orange-400 bg-orange-500/10 text-orange-500"
+                    : "border-border text-muted hover:text-ink"
+                }`}
+              >
+                {alarmaActiva ? "🔔" : "🔕"}
+              </button>
+
+              {/* Selector de intervalo */}
+              <select
+                value={alarmaMinutos}
+                onChange={(e) => {
+                  const m = Number(e.target.value);
+                  setAlarmaMinutos(m);
+                  sincronizarAlarmaAndroid(alarmaRef.current, m);
+                  ultimaAlarmaRef.current = Date.now(); // reiniciar countdown
+                  setCountdown(m * 60);
+                }}
+                className="quest-input py-1 text-xs"
+                title="Intervalo de notificación"
+              >
+                {[1, 2, 3, 5, 10, 15, 20, 30, 45, 60].map((m) => (
+                  <option key={m} value={m}>{m} min</option>
+                ))}
+              </select>
+
+              {/* Countdown hasta próxima alarma */}
+              {alarmaActiva && countdown > 0 && (
+                <span className="text-[10px] font-mono text-muted tabular-nums min-w-[36px] text-center">
+                  {String(Math.floor(countdown / 60)).padStart(2, "0")}:{String(countdown % 60).padStart(2, "0")}
+                </span>
+              )}
+
+              {/* Botón probar ahora */}
+              <button
+                type="button"
+                title="Reproducir notificación de voz ahora"
+                onClick={() => { ultimaAlarmaRef.current = Date.now() - minRef.current * 60 * 1000; void dispararAlarma(true); }}
+                className="flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:border-accent hover:text-accent transition-colors"
+              >
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Probar
+              </button>
+            </div>
+          )}
           <select
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value as typeof filtroEstado)}
@@ -10136,6 +10669,30 @@ function AccionesView({
             <option value="en_proceso">En proceso</option>
             <option value="resuelto">Resueltas</option>
           </select>
+          {/* Botón voz (STT) — solo visible cuando no está grabando */}
+          {!sttGrabando && (
+            <button
+              type="button"
+              onClick={() => void iniciarGrabacion()}
+              disabled={sttTranscribiendo}
+              title="Describir acción por voz (Whisper STT)"
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold min-h-[40px] transition-colors disabled:opacity-50 ${
+                sttTranscribiendo
+                  ? "border-border text-muted"
+                  : "border-border text-muted hover:border-accent hover:text-accent"
+              }`}
+            >
+              {sttTranscribiendo ? (
+                <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+                </svg>
+              )}
+              {sttTranscribiendo ? "Transcribiendo…" : "Voz"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
@@ -10147,17 +10704,74 @@ function AccionesView({
         </div>
       </div>
 
+      {/* STT status — banner de grabación con botón DETENER grande */}
+      {sttGrabando && (
+        <div className="flex items-center gap-3 rounded-xl border-2 border-red-400/60 bg-red-500/10 px-4 py-3">
+          <span className="h-3 w-3 shrink-0 rounded-full bg-red-400 animate-pulse" />
+          <span className="font-mono text-sm font-bold text-red-400 tabular-nums">
+            {String(Math.floor(sttSegundos / 60)).padStart(2,"0")}:{String(sttSegundos % 60).padStart(2,"0")}
+          </span>
+          <span className="flex-1 text-sm text-red-400">Grabando…</span>
+          <button
+            type="button"
+            onClick={detenerGrabacion}
+            className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white min-h-[44px] shadow-md active:bg-red-700 hover:bg-red-600 transition-colors"
+          >
+            <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="5" y="5" width="14" height="14" rx="2" />
+            </svg>
+            Detener grabación
+          </button>
+        </div>
+      )}
+      {sttError && !sttGrabando && (
+        <p className="text-sm text-red-400">{sttError}</p>
+      )}
+
       {/* Form rápido */}
       {showForm && (
         <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-3">
           <p className="text-xs font-bold text-accent uppercase tracking-wide">Nueva acción</p>
-          <input
-            className="quest-input w-full"
-            placeholder="¿Qué debe hacer?"
-            value={form.titulo}
-            onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-            onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
-          />
+          <div className="flex gap-2">
+            <input
+              className="quest-input flex-1"
+              placeholder="¿Qué debe hacer? (escribe o usa el botón Voz)"
+              value={form.titulo}
+              onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+              onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
+            />
+            {/* Mic inline en el formulario */}
+            {sttGrabando ? (
+              <button
+                type="button"
+                onClick={detenerGrabacion}
+                title="Detener grabación"
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-red-500 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] min-w-[80px] shadow active:bg-red-700 hover:bg-red-600 transition-colors"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="5" y="5" width="14" height="14" rx="2" />
+                </svg>
+                Stop
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void iniciarGrabacion()}
+                disabled={sttTranscribiendo}
+                title="Describir por voz"
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2.5 text-sm min-h-[44px] text-muted hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+              >
+                {sttTranscribiendo ? (
+                  <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                ) : (
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+                  </svg>
+                )}
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             <select
               className="quest-input flex-1 min-w-[140px]"
@@ -10234,7 +10848,7 @@ function AccionesView({
                 ticket={t}
                 token={token}
                 onSelect={onSelect}
-                onChanged={() => void load(false)}
+                onChanged={() => void load(true)}
                 isAdmin={isAdmin}
               />
             ))}

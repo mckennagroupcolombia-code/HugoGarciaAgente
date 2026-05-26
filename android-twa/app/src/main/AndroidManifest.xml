@@ -22,7 +22,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="co.mckennagroup.panel">
 
-    
+    <!-- Micrófono (STT / grabación de voz) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Notificaciones push (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Audio / media (Android 13+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <!-- Almacenamiento externo (Android ≤ 12 — para audio) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <!-- Cámara (subida de fotos / QR futuros) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Internet -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Alarma nativa (sonido con pantalla bloqueada) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- API 33+: USE_EXACT_ALARM no requiere aprobación del usuario -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
 
     
 
@@ -61,6 +81,7 @@
 
         <activity android:name="LauncherActivity"
             android:alwaysRetainTaskState="true"
+            android:launchMode="singleTop"
             android:label="@string/launcherName"
             android:exported="true">
             <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL"
@@ -139,10 +160,29 @@
                 />
             </intent-filter>
 
-            
+            <!-- Deep link para configurar alarma nativa desde la web app:
+                 window.open('mckennaapp://alarma?activa=true&intervalo=5') -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="mckennaapp" android:host="alarma"/>
+            </intent-filter>
 
-            
+
+
+
         </activity>
+
+        <!-- Receptor de alarma nativa: dispara notificación con sonido del sistema -->
+        <receiver android:name=".AlarmaReceiver"
+            android:exported="false">
+            <intent-filter>
+                <!-- Re-programar alarma tras reinicio del dispositivo -->
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            </intent-filter>
+        </receiver>
 
         <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
 

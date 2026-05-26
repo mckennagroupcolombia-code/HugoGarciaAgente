@@ -841,3 +841,29 @@
     opacity: 0.45;
   }
 }
+
+/* ── TWA / PWA standalone: fuente y botones más grandes para usuarios con baja visión ── */
+@media (display-mode: standalone) {
+  body {
+    font-size: 16px;
+  }
+
+  /* Botones deben tener mínimo 44 × 44 px (guía de accesibilidad Android/iOS) */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Texto base de la app un poco más grande */
+  .text-xs   { font-size: 0.8rem  !important; }
+  .text-sm   { font-size: 0.9rem  !important; }
+
+  /* Opciones de select más legibles */
+  select { font-size: 0.9rem; min-height: 44px; }
+
+  /* Inputs más altos */
+  input[type="text"], input[type="search"], .quest-input {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+}
