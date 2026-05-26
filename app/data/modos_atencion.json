@@ -6,7 +6,7 @@
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
-    "108207892635657@lid": 1779765509.2872944,
+    "108207892635657@lid": 1779775242.0178692,
     "120363023555909043@g.us": 1779678961.296777
   },
   "bot_auto_pausados": {
@@ -16,9 +16,9 @@
       "ultimo_mensaje": "hola"
     },
     "108207892635657@lid": {
-      "timestamp": 1779765509.2872946,
-      "razon": "r\u00e1faga de 11 mensajes en 120s",
-      "ultimo_mensaje": "\ud83d\udd04 *Acci\u00f3n iniciada*\nTKT-2026-0026 \u2014 sacar la basura\n\ud83d\udc64 Iniciado por Armando Garcia"
+      "timestamp": 1779775242.0178695,
+      "razon": "r\u00e1faga de 10 mensajes en 120s",
+      "ultimo_mensaje": "\ud83d\udd04 *Acci\u00f3n iniciada*\nTKT-2026-0027 \u2014 Sacar la basura\n\ud83d\udc64 Iniciado por Armando Garcia"
     },
     "120363023555909043@g.us": {
       "timestamp": 1779678961.2967772,

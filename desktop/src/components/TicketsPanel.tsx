@@ -1728,7 +1728,7 @@ function ReinosView({
   const reload = useCallback(() => {
     setLoading(true);
     return tapi("/zonas-trabajo", token)
-      .then(setZonas)
+      .then((d) => setZonas(Array.isArray(d) ? d : []))
       .catch(() => setZonas([]))
       .finally(() => setLoading(false));
   }, [token]);
@@ -3931,9 +3931,13 @@ function TicketListView({
       ]);
       let misiones: Mision[] = [];
       try {
-        misiones = await tapi("/misiones/?tablero=1", token);
+        const raw = await tapi("/misiones/?tablero=1", token);
+        misiones = Array.isArray(raw) ? raw : [];
       } catch {
-        misiones = await tapi("/misiones/", token);
+        try {
+          const raw = await tapi("/misiones/", token);
+          misiones = Array.isArray(raw) ? raw : [];
+        } catch { misiones = []; }
       }
       const list = Array.isArray(data) ? data.map((row) => normalizeTicketForList(row)) : [];
       setTickets((prev) => {
@@ -3941,11 +3945,12 @@ function TicketListView({
         const prevStr = JSON.stringify(prev.map((t) => ({ id: t.id, estado: t.estado, titulo: t.titulo })));
         return nextStr === prevStr ? prev : list;
       });
+      const nextZonas = Array.isArray(zonas) ? zonas : [];
       setZonasReinos((prev) => {
-        const nextStr = JSON.stringify(zonas);
-        return JSON.stringify(prev) === nextStr ? prev : zonas;
+        const nextStr = JSON.stringify(nextZonas);
+        return JSON.stringify(prev) === nextStr ? prev : nextZonas;
       });
-      const activas = (misiones as Mision[]).filter(
+      const activas = misiones.filter(
         (m) => m.estado === "activa" || m.estado === "borrador",
       );
       setMisionesActivas((prev) => {
@@ -5000,9 +5005,9 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
         tapi("/roles", token),
         tapi("/departamentos", token),
       ]);
-      setUsuarios(us);
-      setRoles(rs);
-      setDepts(ds);
+      setUsuarios(Array.isArray(us) ? us : []);
+      setRoles(Array.isArray(rs) ? rs : []);
+      setDepts(Array.isArray(ds) ? ds : []);
     } finally {
       setLoading(false);
     }
@@ -8069,11 +8074,11 @@ function CreateMisionView({
   const MISION_DRAFT_KEY = "mckenna-mision-draft";
 
   useEffect(() => {
-    tapi("/usuarios", token).then(setUsuarios).catch(() => {});
-    tapi("/misiones/", token).then(setTodasMisiones).catch(() => {});
-    tapi("/recetas", token).then(setTodasRecetas).catch(() => {});
-    tapi("/zonas-trabajo", token).then(setZonasCat).catch(() => {});
-    tapi("/materiales", token).then(setCatalogoMateriales).catch(() => {});
+    tapi("/usuarios", token).then((d) => setUsuarios(Array.isArray(d) ? d : [])).catch(() => {});
+    tapi("/misiones/", token).then((d) => setTodasMisiones(Array.isArray(d) ? d : [])).catch(() => {});
+    tapi("/recetas", token).then((d) => setTodasRecetas(Array.isArray(d) ? d : [])).catch(() => {});
+    tapi("/zonas-trabajo", token).then((d) => setZonasCat(Array.isArray(d) ? d : [])).catch(() => {});
+    tapi("/materiales", token).then((d) => setCatalogoMateriales(Array.isArray(d) ? d : [])).catch(() => {});
     try {
       const raw = sessionStorage.getItem(MISION_DRAFT_KEY);
       if (!raw) return;
@@ -9412,7 +9417,7 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
   const reload = useCallback(() => {
     setLoading(true);
     return tapi("/dashboard/carga", token)
-      .then(setData)
+      .then((d) => setData(Array.isArray(d) ? d : []))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [token]);
@@ -9423,8 +9428,8 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
     if (!showNuevo || !canManageAliados) return;
     Promise.all([tapi("/roles", token), tapi("/departamentos", token)])
       .then(([rs, ds]) => {
-        setRoles(rs);
-        setDepts(ds);
+        setRoles(Array.isArray(rs) ? rs : []);
+        setDepts(Array.isArray(ds) ? ds : []);
       })
       .catch(() => {});
   }, [showNuevo, canManageAliados, token]);
@@ -10033,6 +10038,9 @@ async function playAlarmAudio(apiToken?: string) {
   } catch { /* AudioContext no disponible */ }
 }
 
+// Persists timer start time across React remounts (ticket moves between column groups).
+const _timerStore = new Map<number, number>();
+
 function AccionCard({
   ticket, token, onSelect, onChanged, isAdmin,
 }: {
@@ -10056,9 +10064,10 @@ function AccionCard({
   // null = detenido. No-null = corriendo. El intervalo solo mira este ref.
   // Inicializado desde el servidor si la corrida ya estaba activa al montar.
   const inicioRef = useRef<number | null>(
-    ticket.corrida?.estado === "activa" && ticket.corrida?.iniciada_en
+    _timerStore.get(ticket.id) ??
+    (ticket.corrida?.estado === "activa" && ticket.corrida?.iniciada_en
       ? parseUtcTs(ticket.corrida.iniciada_en)
-      : null
+      : null)
   );
   const [resolucionInfo, setResolucionInfo] = useState<{ duracion: number; horario: string } | null>(null);
 
@@ -10092,6 +10101,7 @@ function AccionCard({
         // El intervalo permanente ya está corriendo; solo necesita inicioRef != null.
         const t0 = Date.now();
         inicioRef.current = t0;
+        _timerStore.set(ticket.id, t0);
         setCorridaActiva(true);
         setSegLive(0);
 
@@ -10106,7 +10116,7 @@ function AccionCard({
             // Si el servidor reporta un inicio anterior al click local, sincronizar
             if (data.corrida.iniciada_en) {
               const srvTs = parseUtcTs(data.corrida.iniciada_en);
-              if (srvTs < t0 && t0 - srvTs < 30_000) inicioRef.current = srvTs;
+              if (srvTs < t0 && t0 - srvTs < 30_000) { inicioRef.current = srvTs; _timerStore.set(ticket.id, srvTs); }
             }
           }
         } catch { /* timer ya corriendo desde t0 */ }
@@ -10121,6 +10131,7 @@ function AccionCard({
         const segTotal = segBase + segLive;
         setCorridaActiva(false);   // corridaActivaRef se sincroniza en useEffect
         inicioRef.current = null;  // detiene el intervalo permanente
+        _timerStore.delete(ticket.id);
 
         if (corridaId) {
           try {
@@ -10155,6 +10166,7 @@ function AccionCard({
       setResolucionInfo({ duracion, horario });
       setCorridaActiva(false);
       inicioRef.current = null;
+      _timerStore.delete(ticket.id);
       setSegLive(0);
       setTimeout(() => onChanged(), 2200);
     } catch { /* ignore */ }
@@ -10394,6 +10406,7 @@ function AccionesView({
   const [countdown, setCountdown]  = useState(0);        // segundos para próxima alarma
   const alarmaRef    = useRef(alarmaActiva);
   const minRef       = useRef(alarmaMinutos);
+  const androidAlarmDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const accionesRef  = useRef(acciones);
   const tokenRef     = useRef(chatApiToken ?? token);
   const ultimaAlarmaRef = useRef(Date.now());
@@ -10577,11 +10590,10 @@ function AccionesView({
   const sinResolver = acciones.filter((t) => t.estado !== "resuelto" && t.estado !== "rechazado").length;
   const hayEnProceso = acciones.some((t) => t.estado === "en_proceso");
 
-  // Sincronizar alarma nativa cuando cambia si hay tareas en proceso
-  useEffect(() => {
-    sincronizarAlarmaAndroid(hayEnProceso && alarmaActiva, alarmaMinutos);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hayEnProceso]);
+  // La alarma nativa la controla el usuario vía el toggle/intervalo.
+  // NO sincronizar automáticamente desde hayEnProceso: dispararía un
+  // intent mckennaapp:// cada vez que carga la web app causando un loop
+  // de LauncherActivity en el TWA.
 
   return (
     <div className="space-y-4">
@@ -10626,7 +10638,8 @@ function AccionesView({
                 onChange={(e) => {
                   const m = Number(e.target.value);
                   setAlarmaMinutos(m);
-                  sincronizarAlarmaAndroid(alarmaRef.current, m);
+                  if (androidAlarmDebounceRef.current) clearTimeout(androidAlarmDebounceRef.current);
+                  androidAlarmDebounceRef.current = setTimeout(() => { sincronizarAlarmaAndroid(alarmaRef.current, m); androidAlarmDebounceRef.current = null; }, 1500);
                   ultimaAlarmaRef.current = Date.now(); // reiniciar countdown
                   setCountdown(m * 60);
                 }}

@@ -10,47 +10,52 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 
 import androidx.core.app.NotificationCompat;
 
+import java.util.Locale;
+
 /**
  * Receptor de alarma nativa Android.
- * Dispara una notificación con sonido del sistema incluso con pantalla bloqueada,
+ * Dispara una notificación visual + voz TTS incluso con pantalla bloqueada,
  * Chrome suspendido o la app en segundo plano.
  * Se auto-reprograma en cada disparo para mantener el ciclo.
  */
 public class AlarmaReceiver extends BroadcastReceiver {
 
-    static final String CHANNEL_ID     = "mckenna_tareas_v2";
-    static final int    NOTIF_ID       = 2001;
-    static final String PREFS_NAME     = "mckenna_alarma";
-    static final String KEY_INTERVAL   = "intervalo_ms";
-    static final String KEY_ACTIVA     = "activa";
+    static final String CHANNEL_ID          = "mckenna_tareas_v2";
+    static final int    NOTIF_ID            = 2001;
+    static final String PREFS_NAME          = "mckenna_alarma";
+    static final String KEY_INTERVAL        = "intervalo_ms";
+    static final String KEY_ACTIVA          = "activa";
     static final long   DEFAULT_INTERVAL_MS = 5 * 60_000L; // 5 minutos
 
     @Override
     public void onReceive(Context context, Intent intent) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        boolean activa = prefs.getBoolean(KEY_ACTIVA, true);
-        long intervalMs = prefs.getLong(KEY_INTERVAL, DEFAULT_INTERVAL_MS);
+        boolean activa    = prefs.getBoolean(KEY_ACTIVA, true);
+        long    intervalMs = prefs.getLong(KEY_INTERVAL, DEFAULT_INTERVAL_MS);
 
         if (activa) {
             mostrarNotificacion(context);
-            // Auto-reprogramar para el siguiente disparo
+            hablarTexto(context, "McKenna, tienes una tarea en progreso");
             programar(context, intervalMs, true);
         }
     }
 
-    /** Muestra la notificación de recordatorio de tarea. */
+    /** Muestra la notificación visual de recordatorio. */
     static void mostrarNotificacion(Context context) {
         NotificationManager nm =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         crearCanal(nm);
 
-        // Intento abrir la app al tocar la notificación
         Intent launchIntent = context.getPackageManager()
                 .getLaunchIntentForPackage(context.getPackageName());
         if (launchIntent != null) launchIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -76,6 +81,45 @@ public class AlarmaReceiver extends BroadcastReceiver {
                 .build();
 
         nm.notify(NOTIF_ID, notif);
+    }
+
+    /**
+     * Lee en voz alta el texto usando TTS del sistema.
+     * Usa STREAM_ALARM para sonar incluso en modo silencio.
+     * onReceive ya corre en el hilo principal, necesario para init TTS.
+     */
+    @SuppressWarnings("deprecation")
+    static void hablarTexto(final Context context, final String texto) {
+        final TextToSpeech[] holder = {null};
+        holder[0] = new TextToSpeech(context.getApplicationContext(), status -> {
+            if (status != TextToSpeech.SUCCESS || holder[0] == null) return;
+
+            int langResult = holder[0].setLanguage(new Locale("es", "CO"));
+            if (langResult == TextToSpeech.LANG_MISSING_DATA
+                    || langResult == TextToSpeech.LANG_NOT_SUPPORTED) {
+                holder[0].setLanguage(new Locale("es"));
+            }
+
+            holder[0].setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                @Override public void onStart(String id) {}
+                @Override public void onDone(String id)  { holder[0].shutdown(); }
+                @Override public void onError(String id) { holder[0].shutdown(); }
+            });
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Bundle params = new Bundle();
+                params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM);
+                params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f);
+                holder[0].speak(texto, TextToSpeech.QUEUE_FLUSH, params, "mckenna_tts");
+            } else {
+                // API < 21: usar HashMap deprecated
+                java.util.HashMap<String, String> params = new java.util.HashMap<>();
+                params.put(TextToSpeech.Engine.KEY_PARAM_STREAM,
+                        String.valueOf(AudioManager.STREAM_ALARM));
+                params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "mckenna_tts");
+                holder[0].speak(texto, TextToSpeech.QUEUE_FLUSH, params);
+            }
+        });
     }
 
     /** Crea el canal de notificación (solo necesario en Android 8+). */
@@ -110,21 +154,19 @@ public class AlarmaReceiver extends BroadcastReceiver {
                 ctx, 0, i,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        // Guardar configuración para que el receptor pueda releer tras reinicio
         ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
            .edit()
            .putLong(KEY_INTERVAL, intervalMs)
            .putBoolean(KEY_ACTIVA, activa)
            .apply();
 
-        am.cancel(pi); // cancelar alarma anterior si existe
+        am.cancel(pi);
 
         if (!activa || intervalMs <= 0) return;
 
         long triggerAt = System.currentTimeMillis() + intervalMs;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // Disponible desde API 23 — no requiere permiso especial
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi);
         } else {
             am.set(AlarmManager.RTC_WAKEUP, triggerAt, pi);

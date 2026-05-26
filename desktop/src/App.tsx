@@ -50,7 +50,8 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
     const p = new URLSearchParams(window.location.search);
     return decodeURIComponent(p.get("auth_error") || "");
   });
-  const [loading, setLoading] = useState(false);
+  // Empieza en loading=true si hay _token en la URL para evitar el flash del formulario
+  const [loading, setLoading] = useState(() => !!new URLSearchParams(window.location.search).get("_token"));
 
   const consumeToken = useCallback((token: string) => {
     setLoading(true);

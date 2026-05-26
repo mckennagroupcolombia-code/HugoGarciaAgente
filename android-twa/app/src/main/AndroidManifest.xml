@@ -40,8 +40,6 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- API 33+: USE_EXACT_ALARM no requiere aprobación del usuario -->
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
 
     
@@ -176,7 +174,7 @@
 
         <!-- Receptor de alarma nativa: dispara notificación con sonido del sistema -->
         <receiver android:name=".AlarmaReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <!-- Re-programar alarma tras reinicio del dispositivo -->
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>

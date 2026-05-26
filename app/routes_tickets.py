@@ -532,7 +532,7 @@ def register_tickets_routes(app):
         if not ok:
             return jsonify({"error": err}), 400
         ticket = get_ticket(ticket_id, request.tickets_usuario)
-        if ticket and ticket.get("tipo") == "accion" and nuevo_estado in ("resuelto", "en_proceso", "pendiente"):
+        if ticket and ticket.get("tipo") == "accion" and nuevo_estado in ("resuelto", "en_proceso"):
             _notificar_estado_accion_wa(ticket, nuevo_estado, request.tickets_usuario.get("nombre", ""))
         return jsonify(ticket), 200
 

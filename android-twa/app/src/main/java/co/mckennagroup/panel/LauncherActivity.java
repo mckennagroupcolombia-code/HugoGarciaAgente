@@ -7,6 +7,9 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -14,65 +17,83 @@ import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Solicita todos los permisos necesarios al lanzar la app por primera vez.
- * Al arrancar también programa la alarma nativa periódica (sonido del sistema
- * incluso con pantalla bloqueada y Chrome suspendido).
- *
- * La alarma se puede configurar desde la web app mediante deep links:
- *   mckennaapp://alarma?activa=true&intervalo=5
- * Estos llegan como intents a onNewIntent() cuando la app ya está en foreground.
- */
 public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
 
-    private static final int    PERM_REQUEST_CODE     = 1001;
-    private static final String SCHEME_ALARMA         = "mckennaapp";
-    private static final String HOST_ALARMA           = "alarma";
+    private static final String TAG               = "McKennaLauncher";
+    private static final int    PERM_REQUEST_CODE = 1001;
+    private static final String SCHEME_ALARMA     = "mckennaapp";
+    private static final String HOST_ALARMA       = "alarma";
 
-    // true mientras el diálogo de permisos está visible → bloquea onStart()
-    private boolean _aguardandoPermisos = false;
+    private boolean _postLaunchRan = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // El padre lanza Chrome en onStart(). NO hacer nada que pueda
+        // lanzar excepciones aquí; sólo setRequestedOrientation es seguro.
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+    }
 
-        // Programar alarma nativa con la configuración guardada (o default 5 min)
-        long intervaloMs = getSharedPreferences(AlarmaReceiver.PREFS_NAME, MODE_PRIVATE)
-                .getLong(AlarmaReceiver.KEY_INTERVAL, AlarmaReceiver.DEFAULT_INTERVAL_MS);
-        boolean activa = getSharedPreferences(AlarmaReceiver.PREFS_NAME, MODE_PRIVATE)
-                .getBoolean(AlarmaReceiver.KEY_ACTIVA, true);
-        AlarmaReceiver.programar(this, intervaloMs, activa);
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-        // Manejar posible deep link de configuración en el intent inicial
-        procesarIntentAlarma(getIntent());
-
-        List<String> faltantes = calcularPermisosFaltantes();
-        if (!faltantes.isEmpty()) {
-            _aguardandoPermisos = true;
-            ActivityCompat.requestPermissions(
-                    this,
-                    faltantes.toArray(new String[0]),
-                    PERM_REQUEST_CODE
-            );
+        // Ejecutar sólo la primera vez, 2 s después de que la actividad
+        // está visible → Chrome ya arrancó y la web app está cargando.
+        if (!_postLaunchRan) {
+            _postLaunchRan = true;
+            new Handler(Looper.getMainLooper()).postDelayed(this::postLaunchSetup, 2000);
         }
     }
 
-    /**
-     * Recibe deep links mientras la app está en foreground.
-     * La web app puede llamar: window.open('mckennaapp://alarma?activa=true&intervalo=5')
-     */
+    /** Toda la lógica auxiliar (alarma + permisos) corre aquí, fuera del
+     *  ciclo de vida crítico del TWA. */
+    private void postLaunchSetup() {
+        // Programar alarma nativa
+        try {
+            long intervaloMs = getSharedPreferences(AlarmaReceiver.PREFS_NAME, MODE_PRIVATE)
+                    .getLong(AlarmaReceiver.KEY_INTERVAL, AlarmaReceiver.DEFAULT_INTERVAL_MS);
+            boolean activa = getSharedPreferences(AlarmaReceiver.PREFS_NAME, MODE_PRIVATE)
+                    .getBoolean(AlarmaReceiver.KEY_ACTIVA, true);
+            AlarmaReceiver.programar(this, intervaloMs, activa);
+        } catch (Exception e) {
+            Log.e(TAG, "Error programando alarma", e);
+        }
+
+        // Solicitar permisos faltantes
+        try {
+            List<String> faltantes = calcularPermisosFaltantes();
+            if (!faltantes.isEmpty()) {
+                ActivityCompat.requestPermissions(
+                        this,
+                        faltantes.toArray(new String[0]),
+                        PERM_REQUEST_CODE
+                );
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error solicitando permisos", e);
+        }
+
+        // Procesar deep link si la app fue abierta por uno
+        try {
+            procesarIntentAlarma(getIntent());
+        } catch (Exception e) {
+            Log.e(TAG, "Error procesando intent", e);
+        }
+    }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        procesarIntentAlarma(intent);
+        setIntent(intent);
+        try {
+            procesarIntentAlarma(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Error en onNewIntent", e);
+        }
     }
 
-    /**
-     * Interpreta mckennaapp://alarma?activa=true|false&intervalo=<minutos>
-     * y re-programa la alarma nativa en consecuencia.
-     */
     private void procesarIntentAlarma(Intent intent) {
         if (intent == null) return;
         Uri data = intent.getData();
@@ -80,7 +101,7 @@ public class LauncherActivity
         if (!SCHEME_ALARMA.equals(data.getScheme())) return;
         if (!HOST_ALARMA.equals(data.getHost())) return;
 
-        String activaStr   = data.getQueryParameter("activa");
+        String activaStr    = data.getQueryParameter("activa");
         String intervaloStr = data.getQueryParameter("intervalo");
 
         boolean activa = !"false".equalsIgnoreCase(activaStr);
@@ -93,37 +114,17 @@ public class LauncherActivity
         AlarmaReceiver.programar(this, intervaloMs, activa);
     }
 
-    /**
-     * Bloquea el lanzamiento del TWA (Chrome) mientras el diálogo de permisos
-     * esté activo. Una vez respondido el diálogo, onRequestPermissionsResult
-     * llama a onStart() manualmente para disparar el lanzamiento.
-     */
-    @Override
-    protected void onStart() {
-        if (!_aguardandoPermisos) {
-            super.onStart();
-        }
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String[] permissions,
                                            int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERM_REQUEST_CODE) {
-            _aguardandoPermisos = false;
-            // Lanzar el TWA ahora que el usuario respondió todos los permisos.
-            onStart();
-        }
     }
 
     private List<String> calcularPermisosFaltantes() {
         List<String> faltantes = new ArrayList<>();
-
         agregarSiFalta(faltantes, Manifest.permission.RECORD_AUDIO);
-        agregarSiFalta(faltantes, Manifest.permission.MODIFY_AUDIO_SETTINGS);
         agregarSiFalta(faltantes, Manifest.permission.CAMERA);
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             agregarSiFalta(faltantes, Manifest.permission.POST_NOTIFICATIONS);
             agregarSiFalta(faltantes, Manifest.permission.READ_MEDIA_AUDIO);
