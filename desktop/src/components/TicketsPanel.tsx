@@ -10401,6 +10401,10 @@ function AccionesView({
   }, []);
 
   // ── Alarma: voz periódica configurable ────────────────────────────────────
+  const hayEnProceso = useMemo(
+    () => acciones.some((t) => t.estado === "en_proceso"),
+    [acciones],
+  );
   const [alarmaActiva, setAlarmaActiva] = useState(true);
   const [alarmaMinutos, setAlarmaMinutos] = useState(5); // 1-60 min
   const [countdown, setCountdown]  = useState(0);        // segundos para próxima alarma
@@ -10410,24 +10414,64 @@ function AccionesView({
   const accionesRef  = useRef(acciones);
   const tokenRef     = useRef(chatApiToken ?? token);
   const ultimaAlarmaRef = useRef(Date.now());
+  const prevHayEnProcesoRef = useRef<boolean | null>(null);
   useEffect(() => { alarmaRef.current = alarmaActiva; }, [alarmaActiva]);
   useEffect(() => { minRef.current = alarmaMinutos; }, [alarmaMinutos]);
   useEffect(() => { accionesRef.current = acciones; }, [acciones]);
   useEffect(() => { tokenRef.current = chatApiToken ?? token; }, [chatApiToken, token]);
 
-  // Notificar a la alarma nativa Android via deep link (Intent URL).
-  // Funciona en TWA/APK; en browser web se ignora silenciosamente.
-  // Intent URL format: intent://host?params#Intent;scheme=mckennaapp;package=co.mckennagroup.panel;end
-  const sincronizarAlarmaAndroid = useCallback((activa: boolean, minutos: number) => {
+  const ANDROID_PANEL_PKG = "co.mckennagroup.panel";
+
+  const fireAndroidIntent = useCallback((path: string) => {
     try {
-      const url = `intent://alarma?activa=${activa}&intervalo=${minutos}#Intent;scheme=mckennaapp;package=co.mckennagroup.panel;S.browser_fallback_url=about%3Ablank;end`;
+      const url = `intent://${path}#Intent;scheme=mckennaapp;package=${ANDROID_PANEL_PKG};S.browser_fallback_url=about%3Ablank;end`;
       const a = document.createElement("a");
-      a.href = url; a.style.display = "none";
+      a.href = url;
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       setTimeout(() => a.remove(), 500);
     } catch { /* ignorar si no es TWA/Android */ }
   }, []);
+
+  /** Guarda CHAT_API_TOKEN en la app para que descargue el WAV de Voicebox en nativo. */
+  const sincronizarTokenAndroid = useCallback((apiToken: string) => {
+    if (!apiToken) return;
+    fireAndroidIntent(`token?t=${encodeURIComponent(apiToken)}`);
+  }, [fireAndroidIntent]);
+
+  /** Configura AlarmManager nativo + opcional precache del WAV (precache=1). */
+  const sincronizarAlarmaAndroid = useCallback((
+    activa: boolean,
+    minutos: number,
+    hayTarea: boolean,
+    precache = false,
+  ) => {
+    fireAndroidIntent(
+      `alarma?activa=${activa}&intervalo=${minutos}&hay_tarea=${hayTarea}&precache=${precache ? "1" : "0"}`,
+    );
+  }, [fireAndroidIntent]);
+
+  useEffect(() => {
+    const tok = chatApiToken ?? token;
+    if (!tok) return;
+    const tid = setTimeout(() => sincronizarTokenAndroid(tok), 2000);
+    return () => clearTimeout(tid);
+  }, [chatApiToken, token, sincronizarTokenAndroid]);
+
+  useEffect(() => {
+    if (prevHayEnProcesoRef.current === null) {
+      prevHayEnProcesoRef.current = hayEnProceso;
+      return;
+    }
+    if (prevHayEnProcesoRef.current === hayEnProceso) return;
+    prevHayEnProcesoRef.current = hayEnProceso;
+    const tid = setTimeout(
+      () => sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, hayEnProceso, false),
+      600,
+    );
+    return () => clearTimeout(tid);
+  }, [hayEnProceso, sincronizarAlarmaAndroid]);
 
   // ── Service Worker + Web Push (pantalla bloqueada) ───────────────────────
   const pushSubRef = useRef<PushSubscription | null>(null);
@@ -10480,15 +10524,19 @@ function AccionesView({
     navigator.serviceWorker.ready.then((reg) => registrarPush(reg, alarmaMinutos, alarmaActiva)).catch(() => {});
   }, [alarmaMinutos, alarmaActiva, registrarPush]);
 
-  // Pre-calentar caché de audio cuando la alarma está activa (primera vez)
+  // Pre-calentar caché web + nativo (WAV Voicebox) cuando la alarma está activa
   useEffect(() => {
     if (!alarmaActiva || !chatApiToken) return;
     const tok = chatApiToken;
-    // Retrasar 3 s para no competir con la carga inicial
-    const tid = setTimeout(() => { void warmAlarmCache(tok); }, 3000);
+    const tid = setTimeout(() => {
+      void (async () => {
+        await warmAlarmCache(tok);
+        sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, accionesRef.current.some((t) => t.estado === "en_proceso"), true);
+      })();
+    }, 3000);
     return () => clearTimeout(tid);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alarmaActiva]);
+  }, [alarmaActiva, chatApiToken, sincronizarAlarmaAndroid]);
 
   // Dispara la alarma: audio si foreground, notificación + push si background
   const dispararAlarma = useCallback(async (forzar = false) => {
@@ -10588,12 +10636,6 @@ function AccionesView({
   }, [acciones]);
 
   const sinResolver = acciones.filter((t) => t.estado !== "resuelto" && t.estado !== "rechazado").length;
-  const hayEnProceso = acciones.some((t) => t.estado === "en_proceso");
-
-  // La alarma nativa la controla el usuario vía el toggle/intervalo.
-  // NO sincronizar automáticamente desde hayEnProceso: dispararía un
-  // intent mckennaapp:// cada vez que carga la web app causando un loop
-  // de LauncherActivity en el TWA.
 
   return (
     <div className="space-y-4">
@@ -10620,7 +10662,7 @@ function AccionesView({
                 onClick={() => {
                   const next = !alarmaActiva;
                   setAlarmaActiva(next);
-                  sincronizarAlarmaAndroid(next, minRef.current);
+                  sincronizarAlarmaAndroid(next, minRef.current, hayEnProceso, next);
                   if (next) { ultimaAlarmaRef.current = Date.now(); void dispararAlarma(true); }
                 }}
                 className={`flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors ${
@@ -10639,7 +10681,7 @@ function AccionesView({
                   const m = Number(e.target.value);
                   setAlarmaMinutos(m);
                   if (androidAlarmDebounceRef.current) clearTimeout(androidAlarmDebounceRef.current);
-                  androidAlarmDebounceRef.current = setTimeout(() => { sincronizarAlarmaAndroid(alarmaRef.current, m); androidAlarmDebounceRef.current = null; }, 1500);
+                  androidAlarmDebounceRef.current = setTimeout(() => { sincronizarAlarmaAndroid(alarmaRef.current, m, hayEnProceso, false); androidAlarmDebounceRef.current = null; }, 1500);
                   ultimaAlarmaRef.current = Date.now(); // reiniciar countdown
                   setCountdown(m * 60);
                 }}
@@ -10662,7 +10704,11 @@ function AccionesView({
               <button
                 type="button"
                 title="Reproducir notificación de voz ahora"
-                onClick={() => { ultimaAlarmaRef.current = Date.now() - minRef.current * 60 * 1000; void dispararAlarma(true); }}
+                onClick={() => {
+                  sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, true, true);
+                  ultimaAlarmaRef.current = Date.now() - minRef.current * 60 * 1000;
+                  void dispararAlarma(true);
+                }}
                 className="flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:border-accent hover:text-accent transition-colors"
               >
                 <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
