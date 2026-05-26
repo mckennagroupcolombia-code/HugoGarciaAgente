@@ -175,10 +175,10 @@ export function InventarioCarritoModal({
   useEffect(() => {
     if (!open) return;
     tapi("/usuarios", token)
-      .then((list: UsuarioOpt[]) => setUsuarios(list.filter((u) => u.id)))
+      .then((list) => setUsuarios(Array.isArray(list) ? list.filter((u: UsuarioOpt) => u.id) : []))
       .catch(() => {});
     tapi("/zonas-trabajo", token)
-      .then(setZonas)
+      .then((d) => setZonas(Array.isArray(d) ? d : []))
       .catch(() => {});
   }, [open, token]);
 

@@ -10889,7 +10889,7 @@ export default function TicketsPanel() {
 
   const reloadCats = useCallback(() => {
     if (!token) return;
-    tapi("/categorias/", token).then(setCategorias).catch(() => {});
+    tapi("/categorias/", token).then((d) => setCategorias(Array.isArray(d) ? d : [])).catch(() => {});
   }, [token]);
 
   useEffect(() => { reloadCats(); }, [reloadCats]);
@@ -10897,9 +10897,9 @@ export default function TicketsPanel() {
   useEffect(() => {
     if (!token) return;
     tapi("/materiales", token)
-      .then((mats: Material[]) =>
-        setBajoStockCount(mats.filter((m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo).length),
-      )
+      .then((mats) => {
+        if (Array.isArray(mats)) setBajoStockCount(mats.filter((m) => m.stock_minimo > 0 && m.stock_actual < m.stock_minimo).length);
+      })
       .catch(() => {});
   }, [token, view]);
 

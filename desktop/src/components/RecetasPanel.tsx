@@ -220,7 +220,7 @@ export default function RecetasPanel({
   }
 
   const reloadLista = useCallback(() => {
-    return tapi("/recetas", token).then(setLista).catch((e) => setError(e.message));
+    return tapi("/recetas", token).then((d) => setLista(Array.isArray(d) ? d : [])).catch((e) => setError(e.message));
   }, [token]);
 
   const loadReceta = useCallback(
@@ -253,8 +253,8 @@ export default function RecetasPanel({
     setLoading(true);
     Promise.all([
       reloadLista(),
-      tapi("/materiales", token).then(setMateriales).catch(() => []),
-      tapi("/zonas-trabajo", token).then(setZonas).catch(() => []),
+      tapi("/materiales", token).then((d) => setMateriales(Array.isArray(d) ? d : [])).catch(() => {}),
+      tapi("/zonas-trabajo", token).then((d) => setZonas(Array.isArray(d) ? d : [])).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, [reloadLista, token]);
 
