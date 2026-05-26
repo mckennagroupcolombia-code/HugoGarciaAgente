@@ -3322,7 +3322,16 @@ def register_routes(app):
 
     @app.route("/api/voz/sintetizar", methods=["POST"])
     def api_voz_sintetizar():
-        if not _api_token_valido():
+        autenticado = _api_token_valido()
+        if not autenticado:
+            try:
+                from app.api_auth import bearer_token_from_request as _btfr
+                from app.services.tickets_db import get_usuario_by_token as _get_tu
+                _tok = _btfr()
+                autenticado = bool(_tok and _get_tu(_tok))
+            except Exception:
+                pass
+        if not autenticado:
             return jsonify({"error": "No autorizado"}), 401
         body = request.get_json(force=True, silent=True) or {}
         texto = (body.get("texto") or "").strip()[:1200]
@@ -3480,9 +3489,47 @@ def register_routes(app):
         from app.services.voz_notif import leer_notificaciones
         return jsonify({"ok": True, "eliminadas": eliminadas, "restantes": len(leer_notificaciones())})
 
+    # ── Web Push (VAPID) — alarma con pantalla bloqueada ──────────────────────
+
+    def _voz_auth_ok():
+        """Acepta CHAT_API_TOKEN O JWT de tickets válido."""
+        if _api_token_valido():
+            return True
+        try:
+            from app.api_auth import bearer_token_from_request as _btfr
+            from app.services.tickets_db import get_usuario_by_token as _gtu
+            tok = _btfr()
+            return bool(tok and _gtu(tok))
+        except Exception:
+            return False
+
+    @app.route("/api/voz/push/vapid-key", methods=["GET"])
+    def api_push_vapid_key():
+        from app.services.push_scheduler import get_vapid_public_key, push_disponible
+        return jsonify({
+            "publicKey":   get_vapid_public_key(),
+            "disponible":  push_disponible(),
+        })
+
+    @app.route("/api/voz/push/subscribe", methods=["POST"])
+    def api_push_subscribe():
+        if not _voz_auth_ok():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.push_scheduler import set_schedule, push_disponible
+        if not push_disponible():
+            return jsonify({"error": "VAPID no configurado"}), 503
+        body = request.get_json(silent=True) or {}
+        subscription = body.get("subscription")
+        minutes      = max(1, min(60, int(body.get("minutes", 5))))
+        active       = bool(body.get("active", True))
+        if not subscription or not subscription.get("endpoint"):
+            return jsonify({"error": "subscription requerida"}), 400
+        set_schedule(subscription["endpoint"], subscription, minutes, active)
+        return jsonify({"ok": True, "minutes": minutes, "active": active})
+
     @app.route("/api/voz/transcribir", methods=["POST"])
     def api_voz_transcribir():
-        if not _api_token_valido():
+        if not _voz_auth_ok():
             return jsonify({"error": "No autorizado"}), 401
         from app.services.whisper_stt import whisper_disponible, transcribir as _transcribir
         if not whisper_disponible():
@@ -3936,6 +3983,15 @@ def register_routes(app):
     @app.route("/app/icon-<int:size>.png")
     def serve_spa_icon(size):
         return send_from_directory(_SPA_DIR, f"icon-{size}.png")
+
+    @app.route("/app/sw-alarm.js")
+    def serve_sw_alarm():
+        """Service Worker para notificaciones nativas de alarma de tareas."""
+        resp = send_from_directory(_SPA_DIR, "sw-alarm.js")
+        resp.headers["Service-Worker-Allowed"] = "/app/"
+        resp.headers["Cache-Control"] = "no-cache, no-store"
+        resp.headers["Content-Type"] = "application/javascript"
+        return resp
 
     @app.route("/.well-known/assetlinks.json")
     def serve_assetlinks():
