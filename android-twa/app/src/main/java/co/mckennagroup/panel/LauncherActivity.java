@@ -22,35 +22,30 @@ public class LauncherActivity
 
     private static final String TAG               = "McKennaLauncher";
     private static final int    PERM_REQUEST_CODE = 1001;
-    private static final String SCHEME_ALARMA     = "mckennaapp";
+    private static final String SCHEME            = "mckennaapp";
     private static final String HOST_ALARMA       = "alarma";
+    private static final String HOST_TOKEN        = "token";
 
     private boolean _postLaunchRan = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // El padre lanza Chrome en onStart(). NO hacer nada que pueda
-        // lanzar excepciones aquí; sólo setRequestedOrientation es seguro.
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        procesarDeepLink(getIntent());
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        // Ejecutar sólo la primera vez, 2 s después de que la actividad
-        // está visible → Chrome ya arrancó y la web app está cargando.
         if (!_postLaunchRan) {
             _postLaunchRan = true;
             new Handler(Looper.getMainLooper()).postDelayed(this::postLaunchSetup, 2000);
         }
     }
 
-    /** Toda la lógica auxiliar (alarma + permisos) corre aquí, fuera del
-     *  ciclo de vida crítico del TWA. */
     private void postLaunchSetup() {
-        // Programar alarma nativa
         try {
             long intervaloMs = getSharedPreferences(AlarmaReceiver.PREFS_NAME, MODE_PRIVATE)
                     .getLong(AlarmaReceiver.KEY_INTERVAL, AlarmaReceiver.DEFAULT_INTERVAL_MS);
@@ -61,7 +56,6 @@ public class LauncherActivity
             Log.e(TAG, "Error programando alarma", e);
         }
 
-        // Solicitar permisos faltantes
         try {
             List<String> faltantes = calcularPermisosFaltantes();
             if (!faltantes.isEmpty()) {
@@ -74,13 +68,6 @@ public class LauncherActivity
         } catch (Exception e) {
             Log.e(TAG, "Error solicitando permisos", e);
         }
-
-        // Procesar deep link si la app fue abierta por uno
-        try {
-            procesarIntentAlarma(getIntent());
-        } catch (Exception e) {
-            Log.e(TAG, "Error procesando intent", e);
-        }
     }
 
     @Override
@@ -88,21 +75,37 @@ public class LauncherActivity
         super.onNewIntent(intent);
         setIntent(intent);
         try {
-            procesarIntentAlarma(intent);
+            procesarDeepLink(intent);
         } catch (Exception e) {
             Log.e(TAG, "Error en onNewIntent", e);
         }
     }
 
-    private void procesarIntentAlarma(Intent intent) {
+    private void procesarDeepLink(Intent intent) {
         if (intent == null) return;
         Uri data = intent.getData();
-        if (data == null) return;
-        if (!SCHEME_ALARMA.equals(data.getScheme())) return;
-        if (!HOST_ALARMA.equals(data.getHost())) return;
+        if (data == null || !SCHEME.equals(data.getScheme())) return;
 
-        String activaStr    = data.getQueryParameter("activa");
-        String intervaloStr = data.getQueryParameter("intervalo");
+        String host = data.getHost();
+        if (HOST_TOKEN.equals(host)) {
+            String token = data.getQueryParameter("t");
+            if (token != null && !token.isEmpty()) {
+                AlarmAudioCache.saveApiToken(this, token);
+                Log.i(TAG, "API token sincronizado para WAV nativo");
+            }
+            return;
+        }
+
+        if (HOST_ALARMA.equals(host)) {
+            aplicarIntentAlarma(data);
+        }
+    }
+
+    private void aplicarIntentAlarma(Uri data) {
+        String activaStr     = data.getQueryParameter("activa");
+        String intervaloStr  = data.getQueryParameter("intervalo");
+        String hayTareaStr   = data.getQueryParameter("hay_tarea");
+        String precacheStr   = data.getQueryParameter("precache");
 
         boolean activa = !"false".equalsIgnoreCase(activaStr);
         long intervaloMs = AlarmaReceiver.DEFAULT_INTERVAL_MS;
@@ -111,7 +114,18 @@ public class LauncherActivity
             intervaloMs = Math.max(1, Math.min(60, min)) * 60_000L;
         } catch (NumberFormatException ignored) {}
 
-        AlarmaReceiver.programar(this, intervaloMs, activa);
+        boolean hayTarea = !"false".equalsIgnoreCase(hayTareaStr);
+        boolean precache = "1".equals(precacheStr) || "true".equalsIgnoreCase(precacheStr);
+
+        AlarmaReceiver.aplicarConfig(this, intervaloMs, activa, hayTarea);
+
+        if (precache) {
+            if (AlarmAudioCache.isCacheValid(this)) {
+                Log.i(TAG, "WAV alarma ya en caché");
+            } else {
+                AlarmAudioCache.downloadAsync(this, null);
+            }
+        }
     }
 
     @Override

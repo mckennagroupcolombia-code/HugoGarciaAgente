@@ -19,7 +19,7 @@
     "path": "./mckenna.keystore",
     "alias": "mckenna"
   },
-  "appVersionCode": 19,
+  "appVersionCode": 20,
   "appVersion": "1.0.0",
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",

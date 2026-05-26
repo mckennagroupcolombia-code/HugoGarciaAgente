@@ -158,13 +158,22 @@
                 />
             </intent-filter>
 
-            <!-- Deep link para configurar alarma nativa desde la web app:
-                 window.open('mckennaapp://alarma?activa=true&intervalo=5') -->
+            <!-- Deep links desde la web (Intent URLs):
+                 mckennaapp://token?t=...  → guarda API token para descargar WAV
+                 mckennaapp://alarma?activa=&intervalo=&hay_tarea=&precache= -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="mckennaapp" android:host="alarma"/>
+            </intent-filter>
+
+            <!-- Sincronizar token API (CHAT) para descargar WAV de alarma en nativo -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="mckennaapp" android:host="token"/>
             </intent-filter>
 
 
