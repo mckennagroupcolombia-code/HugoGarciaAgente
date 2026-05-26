@@ -844,14 +844,14 @@ function UsuariosSection() {
     queryFn: () =>
       fetch("/api/tickets/usuarios", {
         headers: { Authorization: `Bearer ${ticketsToken ?? ""}` },
-      }).then((r) => r.json()),
+      }).then((r) => r.json().then((d) => { if (!r.ok) throw new Error(d?.error || `Error ${r.status}`); return d; })),
     enabled: Boolean(ticketsToken),
     staleTime: 10_000,
   });
 
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  const usuarios = data ?? [];
+  const usuarios = Array.isArray(data) ? data : [];
   // Excluir admins de la lista (no tiene sentido editar sus permisos)
   const operarios = usuarios.filter((u) => (u.rol?.nivel ?? 0) < 3 && u.activo);
 
