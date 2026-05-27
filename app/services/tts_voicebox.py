@@ -94,7 +94,8 @@ def sintetizar_voicebox(
     Con profile_id: POST /generate con engine=qwen (clonación desde muestras del perfil).
     Sin profile_id: POST /speak con voz base.
     """
-    lang = language[:2].lower()  # voicebox usa códigos ISO 2 letras
+    from app.services.voz_config import voicebox_language_code
+    lang = voicebox_language_code(language)
 
     if profile_id:
         # engine "qwen" es el correcto para clonación con perfiles.

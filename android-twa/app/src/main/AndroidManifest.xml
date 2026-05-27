@@ -158,32 +158,46 @@
                 />
             </intent-filter>
 
-            <!-- Deep links desde la web (Intent URLs):
-                 mckennaapp://token?t=...  → guarda API token para descargar WAV
-                 mckennaapp://alarma?activa=&intervalo=&hay_tarea=&precache= -->
+        </activity>
+
+        <activity
+            android:name=".McKennaWebViewActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.NoTitleBar" />
+
+        <!-- Deep links mckennaapp:// fuera del TWA (evita cierre al abrir la app) -->
+        <activity
+            android:name=".DeepLinkActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="mckennaapp" android:host="alarma"/>
             </intent-filter>
-
-            <!-- Sincronizar token API (CHAT) para descargar WAV de alarma en nativo -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="mckennaapp" android:host="token"/>
             </intent-filter>
-
-
-
-
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="mckennaapp" android:host="auth"/>
+            </intent-filter>
         </activity>
 
         <!-- Receptor de alarma nativa: dispara notificación con sonido del sistema -->
         <receiver android:name=".AlarmaReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <!-- Re-programar alarma tras reinicio del dispositivo -->
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>

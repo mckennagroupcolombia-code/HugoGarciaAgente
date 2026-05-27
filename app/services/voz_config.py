@@ -20,6 +20,39 @@ _CONFIG_FILE = os.path.join(_DATA_DIR, "voz_config.json")
 _CLONES_DIR  = os.path.join(_DATA_DIR, "voz_clones")
 _REF_WAV     = os.path.join(_CLONES_DIR, "referencia.wav")
 
+# Perfil Voicebox clonado de Hugo García (mismo ID que supervisor_actions / panel Voz IA)
+HUGO_GARCIA_VOICEBOX_PROFILE_ID = "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23"
+
+
+def resolver_voicebox_profile(body: dict | None = None, cfg: dict | None = None) -> str:
+    """Perfil activo: body > config guardada > Hugo García por defecto."""
+    body = body or {}
+    cfg = cfg if cfg is not None else leer_config()
+    p = (body.get("voicebox_profile") or cfg.get("voicebox_profile") or "").strip()
+    return p or HUGO_GARCIA_VOICEBOX_PROFILE_ID
+
+
+def voicebox_language_code(language: str | None) -> str:
+    """Código ISO-639-1 para la API de Voicebox (evita 'Sp' desde 'Spanish')."""
+    m = {
+        "spanish": "es",
+        "english": "en",
+        "chinese": "zh",
+        "japanese": "ja",
+        "korean": "ko",
+        "german": "de",
+        "french": "fr",
+        "italian": "it",
+        "russian": "ru",
+    }
+    raw = (language or "Spanish").strip().lower()
+    if raw in m:
+        return m[raw]
+    if len(raw) == 2:
+        return "es" if raw == "sp" else raw
+    return "es"
+
+
 _DEFAULTS: dict = {
     "engine":           "qwen3",
     "language":         "Spanish",

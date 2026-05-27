@@ -3350,19 +3350,37 @@ def register_routes(app):
         clone_on = cfg.get("clone_enabled", False)
         ref_text = cfg.get("ref_text", "")
 
-        voicebox_profile = cfg.get("voicebox_profile", "")
+        from app.services.voz_config import resolver_voicebox_profile, voicebox_language_code
+        voicebox_profile = resolver_voicebox_profile(body, cfg)
         voicebox_engine  = body.get("voicebox_engine") or cfg.get("voicebox_engine", "qwen3")
+        voz_lang = voicebox_language_code(body.get("language") or cfg.get("language"))
 
         # ── Motor 1: Voicebox (Qwen3-TTS-Base — mejor clonación) ──────────
         from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
-        if engine == "voicebox" and voicebox_disponible():
-            try:
-                audio = sintetizar_voicebox(texto, profile_id=voicebox_profile, engine=voicebox_engine)
-                motor_hdr = "voicebox-clone" if voicebox_profile else "voicebox"
-                return _R(audio, content_type="audio/wav",
-                          headers={"X-TTS-Motor": motor_hdr})
-            except Exception as exc:
-                print(f"[Voz] Voicebox falló: {exc}")
+        if engine == "voicebox":
+            if not voicebox_disponible():
+                if motor_forzado == "voicebox":
+                    return jsonify({"error": "Voicebox no disponible"}), 503
+            else:
+                try:
+                    audio = sintetizar_voicebox(
+                        texto,
+                        profile_id=voicebox_profile,
+                        engine=voicebox_engine,
+                        language=voz_lang,
+                    )
+                    return _R(
+                        audio,
+                        content_type="audio/wav",
+                        headers={
+                            "X-TTS-Motor": "voicebox-clone",
+                            "X-TTS-Profile": voicebox_profile,
+                        },
+                    )
+                except Exception as exc:
+                    print(f"[Voz] Voicebox falló ({voicebox_profile}): {exc}")
+                    if motor_forzado == "voicebox":
+                        return jsonify({"error": f"Voicebox: {exc}"}), 500
 
         # ── Motor 2: Qwen3 TTS local (GPU) ────────────────────────────────
         if engine in ("qwen3", "auto") and qwen3_disponible():

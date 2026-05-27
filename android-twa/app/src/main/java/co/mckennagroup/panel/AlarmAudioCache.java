@@ -29,12 +29,16 @@ import java.nio.charset.StandardCharsets;
 public final class AlarmAudioCache {
 
     private static final String TAG = "AlarmAudioCache";
-    static final String FILE_NAME = "alarm_voice.wav";
+    /** v2: WAV con perfil Voicebox Hugo García (antes alarm_voice.wav genérico). */
+    static final String FILE_NAME = "alarm_voice_hugo_v2.wav";
     static final String KEY_API_TOKEN = "api_token";
     static final String KEY_WAV_CACHED_AT = "wav_cached_at";
     static final long CACHE_TTL_MS = 12L * 60 * 60 * 1000;
     static final String ALARM_TEXT =
             "Recuerda: tienes una tarea en proceso.";
+    /** Perfil Voicebox clonado Hugo García (mismo que app/data/voz_config.json). */
+    static final String VOICEBOX_PROFILE_HUGO =
+            "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23";
 
     private AlarmAudioCache() {}
 
@@ -95,6 +99,8 @@ public final class AlarmAudioCache {
             body.put("texto", ALARM_TEXT);
             body.put("motor", "voicebox");
             body.put("voicebox_engine", "qwen3");
+            body.put("voicebox_profile", VOICEBOX_PROFILE_HUGO);
+            body.put("language", "Spanish");
             byte[] payload = body.toString().getBytes(StandardCharsets.UTF_8);
             conn.setFixedLengthStreamingMode(payload.length);
             try (OutputStream os = conn.getOutputStream()) {

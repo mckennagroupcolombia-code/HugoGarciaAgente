@@ -45,7 +45,8 @@ def twaManifest = [
     generatorApp: 'bubblewrap-cli', // Application that generated the Android Project
     // The fallback strategy for when Trusted Web Activity is not available. Possible values are
     // 'customtabs' and 'webview'.
-    fallbackType: 'customtabs',
+    // webview: más estable en Xiaomi si falla verificación TWA / Digital Asset Links
+    fallbackType: 'webview',
     enableSiteSettingsShortcut: 'false',
     orientation: 'default',
 ]
@@ -57,8 +58,8 @@ android {
         applicationId "co.mckennagroup.panel"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 13
-        versionName "1.2.2"
+        versionCode 20
+        versionName "1.2.9"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -152,7 +153,8 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled true
+            // Minify rompía el arranque del TWA (cierre ~1 s tras splash). Ofuscar solo si se valida con R8 completo.
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -208,7 +210,6 @@ repositories {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    
-        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
-    
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
+    implementation 'androidx.browser:browser:1.8.0'
 }

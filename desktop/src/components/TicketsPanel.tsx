@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
+import { isMcKennaAndroidApp, mckennaAndroidBridge, webNotificationsAvailable } from "../lib/androidApp";
 import { useQuestTheme } from "../stores/questTheme";
 import QuestThemeToggle from "./QuestThemeToggle";
 import { QuestBoardTitle, QuestBoardNavLabel, QuestBoardBackLabel } from "./QuestBoardTitle";
@@ -9983,7 +9984,13 @@ async function warmAlarmCache(apiToken: string): Promise<boolean> {
     const res = await fetch("/api/voz/sintetizar", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
-      body: JSON.stringify({ texto: "Recuerda: tienes una tarea en proceso.", motor: "voicebox", voicebox_engine: "qwen3" }),
+      body: JSON.stringify({
+        texto: "Recuerda: tienes una tarea en proceso.",
+        motor: "voicebox",
+        voicebox_engine: "qwen3",
+        voicebox_profile: "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
+        language: "Spanish",
+      }),
       signal: ctrl.signal,
     });
     clearTimeout(tid);
@@ -10423,6 +10430,7 @@ function AccionesView({
   const ANDROID_PANEL_PKG = "co.mckennagroup.panel";
 
   const fireAndroidIntent = useCallback((path: string) => {
+    if (isMcKennaAndroidApp() && mckennaAndroidBridge()) return;
     try {
       const url = `intent://${path}#Intent;scheme=mckennaapp;package=${ANDROID_PANEL_PKG};S.browser_fallback_url=about%3Ablank;end`;
       const a = document.createElement("a");
@@ -10431,12 +10439,17 @@ function AccionesView({
       document.body.appendChild(a);
       a.click();
       setTimeout(() => a.remove(), 500);
-    } catch { /* ignorar si no es TWA/Android */ }
+    } catch { /* ignorar si no es APK Android */ }
   }, []);
 
   /** Guarda CHAT_API_TOKEN en la app para que descargue el WAV de Voicebox en nativo. */
   const sincronizarTokenAndroid = useCallback((apiToken: string) => {
     if (!apiToken) return;
+    const bridge = mckennaAndroidBridge();
+    if (bridge?.saveApiToken) {
+      bridge.saveApiToken(apiToken);
+      return;
+    }
     fireAndroidIntent(`token?t=${encodeURIComponent(apiToken)}`);
   }, [fireAndroidIntent]);
 
@@ -10447,6 +10460,11 @@ function AccionesView({
     hayTarea: boolean,
     precache = false,
   ) => {
+    const bridge = mckennaAndroidBridge();
+    if (bridge?.syncAlarma) {
+      bridge.syncAlarma(activa, minutos, hayTarea, precache);
+      return;
+    }
     fireAndroidIntent(
       `alarma?activa=${activa}&intervalo=${minutos}&hay_tarea=${hayTarea}&precache=${precache ? "1" : "0"}`,
     );
@@ -10455,7 +10473,8 @@ function AccionesView({
   useEffect(() => {
     const tok = chatApiToken ?? token;
     if (!tok) return;
-    const tid = setTimeout(() => sincronizarTokenAndroid(tok), 2000);
+    // Esperar a que el TWA termine permisos + arranque de Chrome antes de lanzar intents
+    const tid = setTimeout(() => sincronizarTokenAndroid(tok), 12_000);
     return () => clearTimeout(tid);
   }, [chatApiToken, token, sincronizarTokenAndroid]);
 
@@ -10501,16 +10520,16 @@ function AccionesView({
   }, []);
 
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
+    if (isMcKennaAndroidApp() || !("serviceWorker" in navigator) || !webNotificationsAvailable()) return;
     const init = async () => {
-      let perm = Notification.permission;
+      const NotificationApi = globalThis.Notification;
+      let perm = NotificationApi.permission;
       if (perm === "default") {
-        perm = await Notification.requestPermission();
+        perm = await NotificationApi.requestPermission();
       }
       if (perm !== "granted") return;
 
       const reg = await navigator.serviceWorker.register("/app/sw-alarm.js", { scope: "/app/" });
-      // Esperar a que el SW esté activo
       await navigator.serviceWorker.ready;
       await registrarPush(reg, alarmaMinutos, alarmaActiva);
     };
@@ -10520,7 +10539,14 @@ function AccionesView({
 
   // Re-registrar push cuando cambia intervalo o estado de alarma
   useEffect(() => {
-    if (!("serviceWorker" in navigator) || Notification.permission !== "granted") return;
+    if (
+      isMcKennaAndroidApp() ||
+      !("serviceWorker" in navigator) ||
+      !webNotificationsAvailable() ||
+      globalThis.Notification.permission !== "granted"
+    ) {
+      return;
+    }
     navigator.serviceWorker.ready.then((reg) => registrarPush(reg, alarmaMinutos, alarmaActiva)).catch(() => {});
   }, [alarmaMinutos, alarmaActiva, registrarPush]);
 
@@ -10533,7 +10559,7 @@ function AccionesView({
         await warmAlarmCache(tok);
         sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, accionesRef.current.some((t) => t.estado === "en_proceso"), true);
       })();
-    }, 3000);
+    }, 14_000);
     return () => clearTimeout(tid);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alarmaActiva, chatApiToken, sincronizarAlarmaAndroid]);
@@ -10549,7 +10575,7 @@ function AccionesView({
       // Background / pantalla bloqueada:
       // Canal A — SW message (app en background, pantalla encendida)
       const ctrl = navigator.serviceWorker?.controller;
-      if (ctrl && Notification.permission === "granted") {
+      if (ctrl && webNotificationsAvailable() && globalThis.Notification.permission === "granted") {
         ctrl.postMessage({ type: "alarm-notification" });
       }
       // Canal B — push server-side (pantalla bloqueada) ya programado vía registrarPush.

@@ -6,8 +6,8 @@
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
-    "108207892635657@lid": 1779780001.4947884,
-    "120363023555909043@g.us": 1779678961.296777
+    "108207892635657@lid": 1779841391.5377417,
+    "120363023555909043@g.us": 1779841390.564376
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
@@ -16,14 +16,14 @@
       "ultimo_mensaje": "hola"
     },
     "108207892635657@lid": {
-      "timestamp": 1779780001.494789,
-      "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "\ud83d\udd04 *Acci\u00f3n iniciada*\nTKT-2026-0027 \u2014 Sacar la basura\n\ud83d\udc64 Iniciado por Armando Garcia"
+      "timestamp": 1779841391.5377421,
+      "razon": "mensaje repetido por posible bot",
+      "ultimo_mensaje": "Veci, tuve un problema t\u00e9cnico moment\u00e1neo. Por favor intente de nuevo \ud83d\ude4f"
     },
     "120363023555909043@g.us": {
-      "timestamp": 1779678961.2967772,
-      "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "Ya lo mando"
+      "timestamp": 1779841390.5643766,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": ""
     }
   }
 }

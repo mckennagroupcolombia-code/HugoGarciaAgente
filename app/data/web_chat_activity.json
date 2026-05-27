@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-26T00:51:19",
+  "updated_at": "2026-05-26T12:19:24",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -12,9 +12,118 @@
     "2026-05-21": 5,
     "2026-05-22": 4,
     "2026-05-24": 7,
-    "2026-05-25": 4
+    "2026-05-25": 4,
+    "2026-05-26": 5
   },
   "sessions": [
+    {
+      "session_id": "web-29e543e9-25ee-4f81-9251-d7772463c0ae",
+      "started_at": "2026-05-26T12:17:44",
+      "last_at": "2026-05-26T12:19:24",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
+      "last_user_message": "Hola",
+      "last_agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-26T12:17:44",
+          "user_message": "Hola hugo",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-26T12:19:24",
+          "user_message": "Hola",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-d744ea45-cdf4-4e7e-b8c9-a05072ed8dd9",
+      "started_at": "2026-05-26T10:11:44",
+      "last_at": "2026-05-26T10:11:44",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Hola buen dia estoy interésada en algunos de sus productos pero tengo varias dudas",
+      "last_agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-26T10:11:44",
+          "user_message": "Hola buen dia estoy interésada en algunos de sus productos pero tengo varias dudas",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-12cf46e4-d27c-4b5c-a363-32de785b2140",
+      "started_at": "2026-05-26T09:25:59",
+      "last_at": "2026-05-26T09:25:59",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/?utm_source=chatgpt.com",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Hola buenos días",
+      "last_agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-26T09:25:59",
+          "user_message": "Hola buenos días",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-1a38ded5-db37-4bc1-8c66-e428395570e3",
+      "started_at": "2026-05-26T05:38:34",
+      "last_at": "2026-05-26T05:38:34",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/contacto",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "Hugo, puedes darme el número de wa para hacer una consulta?",
+      "last_agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-26T05:38:34",
+          "user_message": "Hugo, puedes darme el número de wa para hacer una consulta?",
+          "agent_reply": "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-c5f845b0-4369-4023-a5d3-e9a56e52289d",
       "started_at": "2026-05-25T15:59:07",
