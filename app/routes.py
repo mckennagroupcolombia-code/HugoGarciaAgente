@@ -222,16 +222,17 @@ def _procesar_comando_posventa_wa(texto_cmd: str) -> None:
             timeout=10,
         )
         if r_m.status_code == 200:
+            from app.utils import meli_postventa_conversacion_cerrada
+
             conv = r_m.json().get("conversation_status") or {}
-            if (
-                conv.get("status") == "blocked"
-                and conv.get("substatus") == "blocked_by_cancelled_order"
-            ):
+            cerrada, motivo = meli_postventa_conversacion_cerrada(conv)
+            if cerrada:
                 _quitar_pendiente_postventa()
                 enviar_whatsapp_reporte(
-                    f"✅ *Postventa cerrada: orden cancelada*\n"
+                    f"✅ *Postventa cerrada en MeLi*\n"
                     f"📦 Pack: {pack_id}\n"
-                    f"🧹 MeLi bloqueó la conversación por cancelación; quité el pendiente local.",
+                    f"🧹 Conversación no admite más mensajes ({motivo}). "
+                    f"Si hay reclamo, gestiónalo en el panel de MeLi.",
                     numero_destino=grupo_posventa,
                 )
                 return
@@ -414,6 +415,7 @@ def cargar_modos_atencion():
     except FileNotFoundError:
         data = {}
     data.setdefault("numeros_en_humano", [])
+    data.setdefault("numeros_silenciados", [])
     data.setdefault("timestamps", {})
     data.setdefault("bot_auto_pausados", {})
     return data
@@ -421,10 +423,48 @@ def cargar_modos_atencion():
 
 def guardar_modos_atencion(data):
     data.setdefault("numeros_en_humano", [])
+    data.setdefault("numeros_silenciados", [])
     data.setdefault("timestamps", {})
     data.setdefault("bot_auto_pausados", {})
     with open("app/data/modos_atencion.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
+
+def _bot_debe_responder_global(modos=None) -> bool:
+    """False si el bot está pausado manualmente o fuera del horario configurado."""
+    from datetime import timedelta
+    if modos is None:
+        modos = cargar_modos_atencion()
+    if not modos.get("bot_global_activo", True):
+        return False
+    horario = modos.get("horario_bot", {})
+    if not horario.get("habilitado", False):
+        return True
+    # Colombia siempre UTC-5 (sin cambio de horario)
+    now_col = _dt.utcnow() - timedelta(hours=5)
+    iso_day = now_col.isoweekday()  # 1=Lun … 7=Dom
+    dias_activos = horario.get("dias", [1, 2, 3, 4, 5])
+    if iso_day not in dias_activos:
+        return False
+    hora_actual = now_col.strftime("%H:%M")
+    h_ini = horario.get("hora_inicio", "08:00")
+    h_fin = horario.get("hora_fin", "18:00")
+    return h_ini <= hora_actual < h_fin
+
+
+def _normalizar_numero_wa(numero: str) -> str | None:
+    """Convierte número colombiano a JID WhatsApp (573XXXXXXXXXX@c.us)."""
+    numero = numero.strip()
+    if numero.endswith("@c.us") or numero.endswith("@g.us"):
+        return numero
+    digits = re.sub(r"\D", "", numero)
+    if len(digits) == 10 and digits.startswith("3"):
+        return f"57{digits}@c.us"
+    if len(digits) == 12 and digits.startswith("573"):
+        return f"{digits}@c.us"
+    if len(digits) > 5:
+        return f"{digits}@c.us"
+    return None
 
 
 import time
@@ -513,6 +553,30 @@ def _detectar_rafaga_automatica(sender_id: str, texto: str) -> str | None:
     return None
 
 
+def _detectar_solicitud_humano(texto: str) -> str | None:
+    """
+    Detecta cuando el cliente pide explícitamente atención humana.
+    Retorna una razón corta o None.
+    """
+    t = (texto or "").strip().lower()
+    if not t:
+        return None
+    # Normalización suave
+    t = re.sub(r"\s+", " ", t)
+    patrones = [
+        r"\b(asesor|agente)\s+humano\b",
+        r"\bpersona\b",
+        r"\bhumano\b",
+        r"\bhablar\s+con\s+(un|una)\s+(asesor|agente|persona)\b",
+        r"\bquiero\s+hablar\s+con\s+(un|una)\s+(asesor|agente|persona)\b",
+        r"\b(atenci[oó]n|soporte)\s+humana\b",
+        r"\bme\s+atiende\s+(alguien|una\s+persona)\b",
+    ]
+    if any(re.search(p, t, re.IGNORECASE) for p in patrones):
+        return "cliente solicitó humano"
+    return None
+
+
 def _pausar_por_bot(sender_id: str, razon: str, texto: str, grupo_destino: str):
     modos = cargar_modos_atencion()
     modos.setdefault("numeros_en_humano", [])
@@ -527,6 +591,8 @@ def _pausar_por_bot(sender_id: str, razon: str, texto: str, grupo_destino: str):
         "ultimo_mensaje": (texto or "")[:500],
     }
     guardar_modos_atencion(modos)
+    from app.services.wa_logs import registrar as _wa_log
+    _wa_log("bot_pausado_auto", sender_id, razon)
 
     aviso = (
         "🛑 *Anti-loop WhatsApp activado*\n"
@@ -752,6 +818,7 @@ def procesar_confirmacion_pago_async(numero_cliente):
 import time
 from preventa_meli import procesar_nueva_pregunta
 from app.meli_postventa_notif import procesar_postventa_meli_desde_webhook
+from app.meli_reclamos import crear_accion_anular_factura_por_reclamo
 from app.meli_webhook_topics import meli_webhook_evaluar_despacho
 from app.utils import refrescar_token_meli
 
@@ -1299,6 +1366,14 @@ def register_routes(app):
                 f"⏭️ [POSVENTA] Sin action 'created' — omitida. "
                 f"actions={data.get('actions')!r}"
             )
+        elif t == "reclamo":
+            print(f"⚠️ [MELI-CLAIM] Reclamo/devolución topic={topic!r} resource={resource!r}")
+            spawn_thread(
+                crear_accion_anular_factura_por_reclamo,
+                args=(plan["resource"],),
+                kwargs={"topic": plan.get("topic")},
+                daemon=True,
+            )
         else:
             _noop_msgs = {
                 "preventa_sin_resource": "⚠️ [PREVENTA] resource vacío, ignorado.",
@@ -1309,6 +1384,7 @@ def register_routes(app):
                     f"actions={data.get('actions')!r}"
                 ),
                 "postventa_sin_resource": "⚠️ [POSVENTA] messages sin resource, ignorado.",
+                "reclamo_sin_resource": "⚠️ [MELI-CLAIM] Reclamo sin resource, ignorado.",
                 "topic_no_manejado": f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).",
             }
             print(_noop_msgs.get(t, f"ℹ️ [NOTIF] tipo plan={t!r}"))
@@ -1758,10 +1834,62 @@ def register_routes(app):
                 _pausar_por_bot(sender_id, razon_bot, message_text, grupo_contabilidad)
                 return jsonify({"status": "bot_loop_paused", "respuesta": None})
 
+        # --- Guardar mensaje entrante en historial de chats ---
+        if not es_any_grupo_admin and not es_grupo_sede_sur and (message_text or has_media):
+            try:
+                from app.services.wa_chats import guardar as _wa_chat_guardar
+                _tiene_media = bool(has_media) if "has_media" in dir() else False
+                _wa_chat_guardar(sender_id, "entrada", message_text or "", _tiene_media, "", "cliente")
+            except Exception:
+                pass
+
+        # --- Números silenciados (spam / no clientes) ---
+        if not es_any_grupo_admin and not es_grupo_sede_sur:
+            _modos_sil = cargar_modos_atencion()
+            if sender_id in _modos_sil.get("numeros_silenciados", []):
+                from app.services.wa_logs import registrar as _wa_log
+                _wa_log("silenciado_ignorado", sender_id, (message_text or "")[:200])
+                return jsonify({"status": "silenciado", "respuesta": None})
+
+        # --- Solicitud explícita de humano ---
+        if not es_any_grupo_admin and not es_grupo_sede_sur:
+            razon_h = _detectar_solicitud_humano(message_text)
+            if razon_h:
+                modos = cargar_modos_atencion()
+                if sender_id not in modos["numeros_en_humano"]:
+                    modos["numeros_en_humano"].append(sender_id)
+                modos["timestamps"][sender_id] = time.time()
+                modos["bot_auto_pausados"][sender_id] = {
+                    "timestamp": time.time(),
+                    "razon": razon_h,
+                    "ultimo_mensaje": (message_text or "")[:500],
+                }
+                guardar_modos_atencion(modos)
+                from app.services.wa_logs import registrar as _wa_log
+                _wa_log("handoff_humano", sender_id, razon_h)
+
+                # Avisar al cliente (una sola vez; luego queda en humano y se reenvía al grupo)
+                spawn_thread(
+                    enviar_whatsapp_reporte,
+                    args=(
+                        "Listo veci 🙏 A continuación sigue la conversación con un asesor humano.",
+                        sender_id,
+                    ),
+                    daemon=True,
+                )
+                spawn_thread(
+                    enviar_whatsapp_reporte,
+                    args=(f"🧑‍💼 *Handoff a humano*\nCliente {sender_id} pidió asesor.\nMensaje: {message_text[:700]}", grupo_compras),
+                    daemon=True,
+                )
+                return jsonify({"status": "human_handoff", "respuesta": None})
+
         # --- SWITCH IA/HUMANO ---
         if not es_any_grupo_admin and not es_grupo_sede_sur:
             modos = cargar_modos_atencion()
             if sender_id in modos["numeros_en_humano"]:
+                from app.services.wa_logs import registrar as _wa_log
+                _wa_log("modo_humano", sender_id, (message_text or "")[:200])
                 # Reenviar al grupo de compras (atención general) y no procesar IA
                 mensaje_reenvio = f"💬 CLIENTE {sender_id}: {message_text}"
                 spawn_thread(
@@ -1769,6 +1897,11 @@ def register_routes(app):
                     args=(mensaje_reenvio, grupo_compras),
                 )
                 return jsonify({"status": "human_mode", "respuesta": None})
+            # --- CONTROL GLOBAL DEL BOT (manual o por horario) ---
+            if not _bot_debe_responder_global(modos):
+                from app.services.wa_logs import registrar as _wa_log
+                _wa_log("bot_pausado_global", sender_id, (message_text or "")[:200])
+                return jsonify({"status": "bot_paused_global", "respuesta": None})
 
         # --- Flujo de Aprobación para Comprobantes de Pago (legacy) ---
         if message_text.lower().startswith("pago no"):
@@ -2064,6 +2197,11 @@ def register_routes(app):
             )
         else:
             # Si es un chat normal, respondemos directamente.
+            try:
+                from app.services.wa_chats import guardar as _wa_chat_g
+                _wa_chat_g(sender_id, "salida", respuesta_ia, False, "", "bot")
+            except Exception:
+                pass
             return jsonify({"status": "success", "respuesta": respuesta_ia})
 
     @app.route("/status", methods=["GET"])
@@ -2128,6 +2266,7 @@ def register_routes(app):
                 session_id,
                 adjuntos_payload=adjuntos,
                 canal="web_chat" if es_web_chat else "",
+                page_url=page_url,
             )
             if es_web_chat and respuesta:
                 try:
@@ -2621,7 +2760,34 @@ def register_routes(app):
 
             limit = request.args.get("limit", default=40, type=int) or 40
             only_unreviewed = request.args.get("only_unreviewed", default=0, type=int) == 1
-            return jsonify(get_panel_payload(limit=limit, only_unreviewed=only_unreviewed))
+            payload = get_panel_payload(limit=limit, only_unreviewed=only_unreviewed)
+            try:
+                from app.services.web_chat_notify import get_web_chat_notify_state
+
+                payload["notify_to_group"] = get_web_chat_notify_state()
+            except Exception:
+                payload["notify_to_group"] = {"enabled": True, "source": "unknown"}
+            return jsonify(payload)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/web-chat/notify", methods=["GET", "POST"])
+    def api_web_chat_notify():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.web_chat_notify import (
+                get_web_chat_notify_state,
+                set_web_chat_notify_enabled,
+            )
+
+            if request.method == "GET":
+                return jsonify(get_web_chat_notify_state())
+
+            body = request.get_json(silent=True) or {}
+            enabled_raw = body.get("enabled")
+            enabled = str(enabled_raw).strip().lower() in ("1", "true", "yes", "on")
+            return jsonify(set_web_chat_notify_enabled(enabled=enabled, updated_by="panel"))
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -3724,6 +3890,515 @@ def register_routes(app):
         ip_lan = _ip_lan_local()
         url = f"http://{ip_lan}:{puerto}/app" if (habilitado and ip_lan) else None
         return jsonify({"habilitado": habilitado, "ip_lan": ip_lan, "puerto": puerto, "url": url})
+
+    # ── Puente WhatsApp (Node :3000) — sesión / QR desde panel Agente WA ─────
+
+    def _whatsapp_bridge_base_url():
+        explicit = os.getenv("WHATSAPP_BRIDGE_URL", "").strip().rstrip("/")
+        if explicit:
+            return explicit
+        enviar = os.getenv("URL_API_WHATSAPP", "http://127.0.0.1:3000/enviar").strip()
+        if "/enviar" in enviar:
+            return enviar.rsplit("/", 1)[0]
+        return "http://127.0.0.1:3000"
+
+    def _whatsapp_bridge_headers():
+        tok = os.getenv("WHATSAPP_BRIDGE_INTERNAL_TOKEN", "").strip()
+        if tok:
+            return {"X-Bridge-Token": tok}
+        return {}
+
+    def _whatsapp_bridge_json(method: str, path: str, timeout=8):
+        import requests as _req
+
+        url = f"{_whatsapp_bridge_base_url()}{path}"
+        fn = getattr(_req, method.lower())
+        return fn(url, headers=_whatsapp_bridge_headers(), timeout=timeout)
+
+    def _wa_qr_raw_to_data_url(qr_text: str | None) -> str | None:
+        if not qr_text:
+            return None
+        try:
+            import base64
+            import io
+
+            import qrcode as qr_mod
+
+            img = qr_mod.make(str(qr_text), box_size=8, border=2)
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+            return f"data:image/png;base64,{b64}"
+        except Exception as ex:
+            print(f"⚠️ No se pudo generar imagen QR para panel: {ex}")
+            return None
+
+    def _systemctl_is_active(unit: str) -> str:
+        import subprocess as _sp
+
+        try:
+            r = _sp.run(
+                ["systemctl", "is-active", unit],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return (r.stdout or "").strip() or "unknown"
+        except Exception:
+            return "unknown"
+
+    def _bot_bridge_status_payload():
+        unit = "mckenna-whatsapp-bridge"
+        bridge_unit = _systemctl_is_active(unit)
+        sesion = {
+            "conectado": False,
+            "sistema_listo": False,
+            "numero": None,
+            "pushname": None,
+            "qr_pendiente": False,
+            "qr_data_url": None,
+            "qr_generado_en": None,
+            "sesion_reseteando": False,
+            "mensaje": "",
+            "bridge_responde": False,
+        }
+        try:
+            r = _whatsapp_bridge_json("get", "/session/status", timeout=6)
+            if r.status_code == 200:
+                d = r.json()
+                sesion["bridge_responde"] = True
+                sesion["conectado"] = bool(d.get("waSesionOperativa") or d.get("conectado"))
+                sesion["sistema_listo"] = bool(d.get("sistemaListo"))
+                sesion["numero"] = d.get("numero")
+                sesion["pushname"] = d.get("pushname")
+                sesion["qr_pendiente"] = bool(d.get("qrPendiente"))
+                sesion["sesion_reseteando"] = bool(d.get("sesionReseteando"))
+                sesion["qr_generado_en"] = d.get("qrGeneradoEn")
+                if sesion["conectado"]:
+                    sesion["mensaje"] = "Sesión WhatsApp activa."
+                elif sesion["qr_pendiente"]:
+                    sesion["mensaje"] = "Escanea el QR con el teléfono de la línea operativa."
+                elif sesion["sesion_reseteando"]:
+                    sesion["mensaje"] = "Cambiando cuenta…"
+                else:
+                    sesion["mensaje"] = "Puente en marcha; esperando vinculación."
+            else:
+                sesion["mensaje"] = f"Puente respondió HTTP {r.status_code}"
+        except Exception as e:
+            sesion["mensaje"] = f"Puente no responde ({e})"
+
+        if sesion.get("qr_pendiente") or (
+            not sesion.get("conectado") and bridge_unit in ("active", "activating")
+        ):
+            try:
+                rq = _whatsapp_bridge_json("get", "/session/qr", timeout=8)
+                if rq.status_code == 200:
+                    qd = rq.json()
+                    raw = qd.get("qrRaw")
+                    if raw:
+                        sesion["qr_data_url"] = _wa_qr_raw_to_data_url(raw)
+                        sesion["qr_pendiente"] = True
+                        sesion["qr_generado_en"] = qd.get("qrGeneradoEn")
+                    elif qd.get("qrDataUrl"):
+                        sesion["qr_data_url"] = qd["qrDataUrl"]
+                        sesion["qr_pendiente"] = True
+                        sesion["qr_generado_en"] = qd.get("qrGeneradoEn")
+            except Exception:
+                pass
+
+        return {
+            "bridge_unit": unit,
+            "bridge_estado": bridge_unit,
+            "bridge_activo": bridge_unit == "active",
+            "sesion": sesion,
+        }
+
+    @app.route("/api/bot/bridge/status", methods=["GET"])
+    def api_bot_bridge_status():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        return jsonify(_bot_bridge_status_payload())
+
+    @app.route("/api/bot/bridge/desvincular", methods=["POST"])
+    def api_bot_bridge_desvincular():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import shutil
+        import subprocess as _sp
+        from app.panel_activity import run_logged_job
+
+        auth_dir = os.path.normpath(
+            os.path.join(_ROUTES_DIR, "..", "bot-mckenna", ".wwebjs_auth_nueva")
+        )
+        unit = "mckenna-whatsapp-bridge"
+        bridge_ok = False
+        err_bridge = None
+
+        try:
+            r = _whatsapp_bridge_json("post", "/session/logout", timeout=12)
+            if r.status_code in (200, 409):
+                bridge_ok = True
+            else:
+                err_bridge = (r.text or "")[:200] or f"HTTP {r.status_code}"
+        except Exception as e:
+            err_bridge = str(e)
+
+        def _fallback_cleanup():
+            try:
+                if os.path.isdir(auth_dir):
+                    shutil.rmtree(auth_dir, ignore_errors=True)
+                    print("🧹 Sesión WA eliminada en disco (fallback panel).")
+            except Exception as ex:
+                print(f"⚠️ No se pudo borrar {auth_dir}: {ex}")
+            _sp.run(
+                ["sudo", "systemctl", "--no-block", "restart", unit],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+
+        if not bridge_ok:
+            spawn_thread(
+                lambda: run_logged_job("wa_bridge_desvincular_fallback", _fallback_cleanup),
+                daemon=True,
+            )
+            return jsonify({
+                "status": "iniciado",
+                "mensaje": (
+                    "El puente no respondió al logout; se borró la sesión local "
+                    "y se reinició el servicio. Espera el QR en 1–2 min."
+                ),
+                "detalle": err_bridge,
+            })
+
+        spawn_thread(
+            lambda: run_logged_job(
+                "wa_bridge_desvincular",
+                lambda: _sp.run(
+                    ["sudo", "systemctl", "--no-block", "restart", unit],
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                ),
+            ),
+            daemon=True,
+        )
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": (
+                "Sesión desvinculada. systemd reiniciará el puente; "
+                "abre esta pestaña para escanear el QR con el nuevo número."
+            ),
+        })
+
+    # ── Control global del bot WhatsApp ──────────────────────────────────────
+
+    _HORARIO_DEFAULT = {
+        "habilitado": False,
+        "hora_inicio": "08:00",
+        "hora_fin": "18:00",
+        "dias": [1, 2, 3, 4, 5],
+    }
+
+    @app.route("/api/bot/config", methods=["GET"])
+    def api_bot_config_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        modos = cargar_modos_atencion()
+        activo_ahora = _bot_debe_responder_global(modos)
+        return jsonify({
+            "bot_global_activo": modos.get("bot_global_activo", True),
+            "horario_bot": modos.get("horario_bot", _HORARIO_DEFAULT),
+            "activo_ahora": activo_ahora,
+        })
+
+    @app.route("/api/bot/config", methods=["POST"])
+    def api_bot_config_post():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        modos = cargar_modos_atencion()
+        if "bot_global_activo" in body:
+            modos["bot_global_activo"] = bool(body["bot_global_activo"])
+        if "horario_bot" in body:
+            h = body["horario_bot"]
+            modos["horario_bot"] = {
+                "habilitado": bool(h.get("habilitado", False)),
+                "hora_inicio": str(h.get("hora_inicio", "08:00"))[:5],
+                "hora_fin": str(h.get("hora_fin", "18:00"))[:5],
+                "dias": [int(d) for d in h.get("dias", [1, 2, 3, 4, 5]) if 1 <= int(d) <= 7],
+            }
+        guardar_modos_atencion(modos)
+        return jsonify({"ok": True, "activo_ahora": _bot_debe_responder_global(modos)})
+
+    # ── Gestión de números WhatsApp ───────────────────────────────────────────
+
+    @app.route("/api/bot/numeros", methods=["GET"])
+    def api_bot_numeros_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        modos = cargar_modos_atencion()
+        pausados = modos.get("bot_auto_pausados", {})
+        ts_map = modos.get("timestamps", {})
+
+        def _enriquecer(jid: str, lista: str) -> dict:
+            info = pausados.get(jid, {})
+            return {
+                "jid": jid,
+                "lista": lista,
+                "ts": info.get("timestamp") or ts_map.get(jid),
+                "razon": info.get("razon", "manual"),
+                "ultimo_mensaje": info.get("ultimo_mensaje", ""),
+            }
+
+        return jsonify({
+            "humano": [_enriquecer(j, "humano") for j in modos.get("numeros_en_humano", [])],
+            "silenciados": [
+                {"jid": j, "lista": "silenciado", "ts": ts_map.get(j), "razon": "manual", "ultimo_mensaje": ""}
+                for j in modos.get("numeros_silenciados", [])
+            ],
+        })
+
+    @app.route("/api/bot/numeros", methods=["POST"])
+    def api_bot_numeros_post():
+        """
+        Body: { "numero": "3001234567", "accion": "humano_agregar|humano_quitar|silenciar|activar", "razon": "..." }
+        """
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        numero_raw = str(body.get("numero", "")).strip()
+        accion = str(body.get("accion", "")).strip()
+        razon = str(body.get("razon", "operador desde panel"))[:200]
+
+        jid = _normalizar_numero_wa(numero_raw)
+        if not jid:
+            return jsonify({"error": "Número no reconocido. Usa formato 3XXXXXXXXX o 573XXXXXXXXX"}), 400
+        if accion not in ("humano_agregar", "humano_quitar", "silenciar", "activar"):
+            return jsonify({"error": "accion inválida"}), 400
+
+        from app.services.wa_logs import registrar as _wa_log
+        modos = cargar_modos_atencion()
+
+        if accion == "humano_agregar":
+            if jid not in modos["numeros_en_humano"]:
+                modos["numeros_en_humano"].append(jid)
+            modos["timestamps"][jid] = time.time()
+            modos.setdefault("bot_auto_pausados", {})[jid] = {
+                "timestamp": time.time(),
+                "razon": razon,
+                "ultimo_mensaje": "",
+            }
+            _wa_log("manual_humano", jid, razon)
+
+        elif accion == "humano_quitar":
+            modos["numeros_en_humano"] = [n for n in modos["numeros_en_humano"] if n != jid]
+            modos.get("bot_auto_pausados", {}).pop(jid, None)
+            modos.get("timestamps", {}).pop(jid, None)
+            _wa_log("handoff_bot", jid, razon)
+
+        elif accion == "silenciar":
+            modos.setdefault("numeros_silenciados", [])
+            if jid not in modos["numeros_silenciados"]:
+                modos["numeros_silenciados"].append(jid)
+            modos["timestamps"][jid] = time.time()
+            _wa_log("manual_silenciar", jid, razon)
+
+        elif accion == "activar":
+            modos["numeros_silenciados"] = [n for n in modos.get("numeros_silenciados", []) if n != jid]
+            modos["numeros_en_humano"] = [n for n in modos["numeros_en_humano"] if n != jid]
+            modos.get("bot_auto_pausados", {}).pop(jid, None)
+            modos.get("timestamps", {}).pop(jid, None)
+            _wa_log("manual_activar", jid, razon)
+
+        guardar_modos_atencion(modos)
+        return jsonify({"ok": True, "jid": jid})
+
+    # ── Log de interacciones WhatsApp ─────────────────────────────────────────
+
+    @app.route("/api/bot/interacciones", methods=["GET"])
+    def api_bot_interacciones_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_logs import listar as _wa_listar
+        limit = min(int(request.args.get("limit", 100)), 300)
+        sender = request.args.get("sender", "").strip() or None
+        eventos = _wa_listar(limit=limit, sender=sender)
+        return jsonify({"eventos": eventos, "total": len(eventos)})
+
+    # ── Chats WhatsApp (historial de conversaciones) ──────────────────────────
+
+    @app.route("/api/bot/chats", methods=["GET"])
+    def api_bot_chats_lista():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_chats import listar_conversaciones as _lc, total_no_leidos as _tnl
+        limit = min(int(request.args.get("limit", 60)), 200)
+        conversaciones = _lc(limit=limit)
+        modos = cargar_modos_atencion()
+        humanos = set(modos.get("numeros_en_humano", []))
+        silenciados = set(modos.get("numeros_silenciados", []))
+        for c in conversaciones:
+            jid = c.get("jid", "")
+            if jid in humanos:
+                c["modo"] = "humano"
+            elif jid in silenciados:
+                c["modo"] = "silenciado"
+            else:
+                c["modo"] = "bot"
+        return jsonify({"conversaciones": conversaciones, "no_leidos_total": _tnl()})
+
+    @app.route("/api/bot/chats/<path:jid>", methods=["GET"])
+    def api_bot_chats_mensajes(jid: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_chats import listar_mensajes as _lm, marcar_leido as _ml
+        limit = min(int(request.args.get("limit", 120)), 300)
+        mensajes = _lm(jid, limit=limit)
+        _ml(jid)
+        modos = cargar_modos_atencion()
+        humanos = set(modos.get("numeros_en_humano", []))
+        silenciados = set(modos.get("numeros_silenciados", []))
+        if jid in humanos:
+            modo = "humano"
+        elif jid in silenciados:
+            modo = "silenciado"
+        else:
+            modo = "bot"
+        return jsonify({"mensajes": mensajes, "modo": modo, "jid": jid})
+
+    @app.route("/api/bot/chats/<path:jid>/enviar", methods=["POST"])
+    def api_bot_chats_enviar(jid: str):
+        """El operador humano envía un mensaje a un cliente desde el panel."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        texto = str(body.get("texto", "")).strip()
+        if not texto:
+            return jsonify({"error": "texto requerido"}), 400
+        from app.utils import enviar_whatsapp_reporte
+        from app.services.wa_chats import guardar as _wag
+        ok = enviar_whatsapp_reporte(texto, numero_destino=jid)
+        if ok:
+            _wag(jid, "salida", texto, False, "", "humano")
+            return jsonify({"ok": True})
+        return jsonify({"error": "No se pudo enviar. Verifica que el bridge de WhatsApp esté activo."}), 503
+
+    @app.route("/api/bot/chats/<path:jid>/leer", methods=["POST"])
+    def api_bot_chats_leer(jid: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_chats import marcar_leido as _ml
+        _ml(jid)
+        return jsonify({"ok": True})
+
+    # ── Biblioteca de recursos rápidos ─────────────────────────────────────
+
+    @app.route("/api/bot/biblioteca", methods=["GET"])
+    def api_bot_biblioteca_listar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_biblioteca import listar as _blib
+        return jsonify({"items": _blib()})
+
+    @app.route("/api/bot/biblioteca", methods=["POST"])
+    def api_bot_biblioteca_crear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_biblioteca import agregar_texto, agregar_link, agregar_archivo
+        # Multipart (archivo)
+        if request.content_type and "multipart" in request.content_type:
+            titulo = request.form.get("titulo", "Archivo").strip()[:120]
+            categoria = request.form.get("categoria", "General").strip()
+            archivo = request.files.get("archivo")
+            if not archivo:
+                return jsonify({"error": "archivo requerido"}), 400
+            datos = archivo.read()
+            if len(datos) > 20 * 1024 * 1024:
+                return jsonify({"error": "Archivo demasiado grande (máx 20 MB)"}), 413
+            result = agregar_archivo(titulo, archivo.filename or "archivo", datos, archivo.mimetype or "", categoria)
+        else:
+            body = request.get_json(silent=True) or {}
+            tipo = str(body.get("tipo", "")).strip()
+            titulo = str(body.get("titulo", "")).strip()[:120]
+            categoria = str(body.get("categoria", "General")).strip()
+            if not titulo:
+                return jsonify({"error": "titulo requerido"}), 400
+            if tipo == "link":
+                url = str(body.get("url", "")).strip()
+                if not url:
+                    return jsonify({"error": "url requerida"}), 400
+                result = agregar_link(titulo, url, categoria)
+            else:
+                contenido = str(body.get("contenido", "")).strip()
+                if not contenido:
+                    return jsonify({"error": "contenido requerido"}), 400
+                result = agregar_texto(titulo, contenido, categoria)
+        if not result.get("ok"):
+            return jsonify({"error": result.get("error", "Error al crear")}), 500
+        return jsonify(result), 201
+
+    @app.route("/api/bot/biblioteca/<item_id>", methods=["DELETE"])
+    def api_bot_biblioteca_eliminar(item_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_biblioteca import eliminar as _belim
+        result = _belim(item_id)
+        if not result.get("ok"):
+            return jsonify({"error": result.get("error", "Error")}), 404
+        return jsonify({"ok": True})
+
+    @app.route("/api/bot/biblioteca/<item_id>/archivo", methods=["GET"])
+    def api_bot_biblioteca_archivo(item_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_biblioteca import ruta_archivo as _barch, obtener as _bget
+        ruta = _barch(item_id)
+        if not ruta:
+            return jsonify({"error": "archivo no encontrado"}), 404
+        item = _bget(item_id)
+        mime = item["mime_type"] if item else "application/octet-stream"
+        nombre = item["nombre_arch"] if item else os.path.basename(ruta)
+        from flask import send_file
+        return send_file(ruta, mimetype=mime, as_attachment=False,
+                         download_name=nombre)
+
+    @app.route("/api/bot/chats/<path:jid>/enviar-biblioteca/<item_id>", methods=["POST"])
+    def api_bot_chats_enviar_biblioteca(jid: str, item_id: str):
+        """Envía un ítem de la biblioteca directamente a un cliente de WhatsApp."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_biblioteca import obtener as _bget, ruta_archivo as _barch
+        from app.utils import enviar_whatsapp_reporte, enviar_whatsapp_archivo
+        from app.services.wa_chats import guardar as _wag
+        item = _bget(item_id)
+        if not item:
+            return jsonify({"error": "ítem no encontrado"}), 404
+        tipo = item["tipo"]
+        try:
+            if tipo == "texto":
+                ok = enviar_whatsapp_reporte(item["contenido"], numero_destino=jid)
+                if ok:
+                    _wag(jid, "salida", item["contenido"], False, "", "humano")
+            elif tipo == "link":
+                msg = f"{item['titulo']}\n{item['url']}" if item["titulo"] else item["url"]
+                ok = enviar_whatsapp_reporte(msg, numero_destino=jid)
+                if ok:
+                    _wag(jid, "salida", msg, False, "", "humano")
+            elif tipo == "archivo":
+                ruta = _barch(item_id)
+                if not ruta:
+                    return jsonify({"error": "archivo físico no encontrado"}), 404
+                ok = enviar_whatsapp_archivo(ruta, item.get("titulo", ""), item["nombre_arch"], jid)
+                if ok:
+                    _wag(jid, "salida", f"[Archivo: {item['nombre_arch']}]", True, item["nombre_arch"], "humano")
+            else:
+                return jsonify({"error": "tipo desconocido"}), 400
+            if ok:
+                return jsonify({"ok": True})
+            return jsonify({"error": "No se pudo enviar. Verifica que el bridge de WhatsApp esté activo."}), 503
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/app/api/5s/workspace", methods=["GET", "PUT"])
     @app.route("/api/5s/workspace", methods=["GET", "PUT"])

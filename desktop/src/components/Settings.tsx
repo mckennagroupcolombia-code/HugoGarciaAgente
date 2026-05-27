@@ -400,6 +400,12 @@ export default function Settings() {
         </button>
       </section>
 
+      {/* ── Control del Agente WhatsApp ── */}
+      <AgentScheduleSection />
+
+      {/* ── Notificaciones WhatsApp ── */}
+      {isAdmin && <NotifWaSection />}
+
       {/* ── Supervisor IA ── */}
       <SupervisorSection onMarkRunning={markRunning} />
 
@@ -706,6 +712,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "chat",       label: "Chat IA" },
   { id: "voz",        label: "Voz IA" },
   { id: "webchat",    label: "Chat web" },
+  { id: "whatsapp",   label: "Agente WA" },
   { id: "preventa",   label: "Preventa MeLi" },
   { id: "sync",       label: "Sincronización" },
   { id: "stock",      label: "Stock" },
@@ -718,6 +725,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
 const TICKETS_TABS: { id: string; label: string }[] = [
   { id: "tablero",      label: "Tablero" },
   { id: "acciones",     label: "Acciones" },
+  { id: "solicitudes",  label: "Solicitudes" },
   { id: "inventario",   label: "Inventario" },
   { id: "reinos",       label: "Reinos" },
   { id: "recetas",      label: "Recetas" },
@@ -913,6 +921,356 @@ function UsuariosSection() {
             </div>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+// ── Notificaciones WhatsApp (admin) ────────────────────────────────────────
+
+interface NotifWaConfig {
+  sede_sur_acciones: boolean;
+}
+
+function NotifWaSection() {
+  const { token: ticketsToken } = useTicketsAuth();
+  const [config, setConfig] = useState<NotifWaConfig | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!ticketsToken) return;
+    fetch("/api/tickets/config/notif-wa", {
+      headers: { Authorization: `Bearer ${ticketsToken}` },
+    })
+      .then((r) => r.json())
+      .then((d) => setConfig(d))
+      .catch(() => {});
+  }, [ticketsToken]);
+
+  async function toggle() {
+    if (!config || !ticketsToken) return;
+    setSaving(true);
+    setSaved(false);
+    const next = { ...config, sede_sur_acciones: !config.sede_sur_acciones };
+    try {
+      await fetch("/api/tickets/config/notif-wa", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${ticketsToken}`,
+        },
+        body: JSON.stringify(next),
+      });
+      setConfig(next);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      alert("Error al guardar la configuración");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const activo = config?.sede_sur_acciones ?? true;
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-ink">Notificaciones WhatsApp</h3>
+        <p className="text-xs text-muted mt-0.5">
+          Configura qué eventos se reportan automáticamente al grupo MCKG SEDE SUR
+        </p>
+      </div>
+
+      {config === null ? (
+        <p className="text-sm text-muted">Cargando configuración…</p>
+      ) : (
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-surface px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-ink">Acciones y solicitudes → MCKG SEDE SUR</p>
+            <p className="text-xs text-muted mt-0.5">
+              Envía un mensaje al grupo cuando alguien inicia o completa una acción/solicitud del Centro de Mando
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {saved && <span className="text-xs text-emerald-400">✓ Guardado</span>}
+            <button
+              onClick={toggle}
+              disabled={saving}
+              aria-label="Activar notificaciones de acciones en SEDE SUR"
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40 focus:outline-none ${
+                activo ? "bg-accent" : "bg-surface-hover border border-border"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  activo ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Control global del agente WhatsApp ────────────────────────────────────
+
+interface BotConfig {
+  bot_global_activo: boolean;
+  horario_bot: {
+    habilitado: boolean;
+    hora_inicio: string;
+    hora_fin: string;
+    dias: number[];
+  };
+  activo_ahora: boolean;
+}
+
+const DIAS_ISO = [
+  { iso: 1, label: "Lun" },
+  { iso: 2, label: "Mar" },
+  { iso: 3, label: "Mié" },
+  { iso: 4, label: "Jue" },
+  { iso: 5, label: "Vie" },
+  { iso: 6, label: "Sáb" },
+  { iso: 7, label: "Dom" },
+];
+
+function AgentScheduleSection() {
+  const [config, setConfig] = useState<BotConfig | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [draft, setDraft] = useState<BotConfig | null>(null);
+
+  useEffect(() => {
+    api
+      .get<BotConfig>("/api/bot/config")
+      .then((d) => {
+        setConfig(d);
+        setDraft(d);
+      })
+      .catch(() => {});
+  }, []);
+
+  async function save(patch: BotConfig) {
+    setSaving(true);
+    setSaved(false);
+    try {
+      const res = await api.post<{ ok: boolean; activo_ahora: boolean }>("/api/bot/config", {
+        bot_global_activo: patch.bot_global_activo,
+        horario_bot: patch.horario_bot,
+      });
+      const updated: BotConfig = { ...patch, activo_ahora: res.activo_ahora };
+      setConfig(updated);
+      setDraft(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch {
+      alert("Error al guardar la configuración del agente");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function toggleGlobal() {
+    if (!draft) return;
+    const next = { ...draft, bot_global_activo: !draft.bot_global_activo };
+    setDraft(next);
+    save(next);
+  }
+
+  function toggleSchedule() {
+    if (!draft) return;
+    const next = {
+      ...draft,
+      horario_bot: { ...draft.horario_bot, habilitado: !draft.horario_bot.habilitado },
+    };
+    setDraft(next);
+    save(next);
+  }
+
+  function toggleDia(iso: number) {
+    if (!draft) return;
+    const dias = draft.horario_bot.dias.includes(iso)
+      ? draft.horario_bot.dias.filter((d) => d !== iso)
+      : [...draft.horario_bot.dias, iso].sort((a, b) => a - b);
+    setDraft((p) => (p ? { ...p, horario_bot: { ...p.horario_bot, dias } } : p));
+  }
+
+  function saveScheduleFields() {
+    if (draft) save(draft);
+  }
+
+  if (!draft) {
+    return (
+      <section className="rounded-xl border border-border bg-surface-panel p-5">
+        <p className="text-sm text-muted">Cargando configuración del agente…</p>
+      </section>
+    );
+  }
+
+  const globalActivo = draft.bot_global_activo;
+  const scheduleHabilitado = draft.horario_bot.habilitado;
+  const activoAhora = config?.activo_ahora ?? false;
+
+  return (
+    <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+            <span>🤖</span> Agente WhatsApp
+          </h3>
+          <p className="text-xs text-muted mt-0.5">
+            Controla cuándo Hugo García responde automáticamente en WhatsApp
+          </p>
+        </div>
+        <span
+          className={`shrink-0 text-[11px] font-semibold rounded-full px-2.5 py-0.5 border ${
+            activoAhora
+              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+              : "bg-red-500/10 text-red-400 border-red-500/20"
+          }`}
+        >
+          {activoAhora ? "● Activo ahora" : "○ Pausado ahora"}
+        </span>
+      </div>
+
+      {/* Toggle global */}
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-surface px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-ink">Agente habilitado</p>
+          <p className="text-xs text-muted mt-0.5">
+            {globalActivo
+              ? "El agente responde automáticamente (sujeto al horario si está configurado)"
+              : "El agente está pausado — ningún chat recibirá respuesta automática"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {saved && <span className="text-xs text-emerald-400">✓</span>}
+          <button
+            onClick={toggleGlobal}
+            disabled={saving}
+            aria-label="Habilitar o pausar el agente globalmente"
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40 focus:outline-none ${
+              globalActivo ? "bg-accent" : "bg-surface-hover border border-border"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                globalActivo ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Horario */}
+      <div className="rounded-lg border border-border bg-surface overflow-hidden">
+        <button
+          type="button"
+          onClick={toggleSchedule}
+          disabled={saving}
+          className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-surface-hover disabled:opacity-40"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-ink">Horario de atención</p>
+            <p className="text-xs text-muted mt-0.5">
+              {scheduleHabilitado
+                ? `Activo ${draft.horario_bot.hora_inicio}–${draft.horario_bot.hora_fin} en los días seleccionados`
+                : "Sin horario — el agente responde siempre que esté habilitado"}
+            </p>
+          </div>
+          <span
+            className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              scheduleHabilitado ? "bg-accent" : "bg-surface-hover border border-border"
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                scheduleHabilitado ? "translate-x-6" : "translate-x-1"
+              }`}
+            />
+          </span>
+        </button>
+
+        {scheduleHabilitado && (
+          <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
+            {/* Horas */}
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] text-muted font-medium">Hora inicio</label>
+                <input
+                  type="time"
+                  value={draft.horario_bot.hora_inicio}
+                  onChange={(e) =>
+                    setDraft((p) =>
+                      p ? { ...p, horario_bot: { ...p.horario_bot, hora_inicio: e.target.value } } : p
+                    )
+                  }
+                  className="rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-sm text-ink font-mono w-32 focus:outline-none focus:border-accent"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] text-muted font-medium">Hora fin</label>
+                <input
+                  type="time"
+                  value={draft.horario_bot.hora_fin}
+                  onChange={(e) =>
+                    setDraft((p) =>
+                      p ? { ...p, horario_bot: { ...p.horario_bot, hora_fin: e.target.value } } : p
+                    )
+                  }
+                  className="rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-sm text-ink font-mono w-32 focus:outline-none focus:border-accent"
+                />
+              </div>
+              <button
+                onClick={saveScheduleFields}
+                disabled={saving}
+                className="rounded-lg bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/25 disabled:opacity-40"
+              >
+                {saving ? "Guardando…" : "Guardar horas"}
+              </button>
+            </div>
+
+            {/* Días */}
+            <div className="space-y-2">
+              <p className="text-[11px] text-muted font-medium uppercase tracking-wide">Días activos</p>
+              <div className="flex flex-wrap gap-2">
+                {DIAS_ISO.map(({ iso, label }) => {
+                  const on = draft.horario_bot.dias.includes(iso);
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      onClick={() => toggleDia(iso)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition ${
+                        on
+                          ? "bg-accent/15 text-accent border-accent/30"
+                          : "bg-surface-hover text-muted border-border hover:border-accent/30 hover:text-ink"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={saveScheduleFields}
+                disabled={saving}
+                className="text-xs text-accent hover:underline disabled:opacity-40 pt-1 block"
+              >
+                {saving ? "Guardando…" : "Guardar días"}
+              </button>
+            </div>
+
+            <p className="text-[11px] text-muted">
+              Zona horaria: Colombia (UTC−5). El agente se pausa automáticamente fuera del horario.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

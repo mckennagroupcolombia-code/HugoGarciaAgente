@@ -12,6 +12,7 @@ import PedidosWebPanel from "./components/PedidosWebPanel";
 import FacturasCompraPanel from "./components/FacturasCompraPanel";
 import TicketsPanel from "./components/TicketsPanel";
 import WebChatPanel from "./components/WebChatPanel";
+import WhatsAppPanel from "./components/WhatsAppPanel";
 import Settings from "./components/Settings";
 import { usePanelTheme } from "./stores/panelTheme";
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
@@ -27,6 +28,8 @@ function PanelRouter() {
       return <VozIA />;
     case "webchat":
       return <WebChatPanel />;
+    case "whatsapp":
+      return <WhatsAppPanel />;
     case "preventa":
       return <PreventaPanel />;
     case "sync":
@@ -133,7 +136,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 }
 
 const NAV_ORDER: Panel[] = [
-  "dashboard", "chat", "voz", "webchat", "preventa",
+  "dashboard", "chat", "voz", "webchat", "whatsapp", "preventa",
   "sync", "stock", "pedidos", "facturas", "tickets", "settings",
 ];
 

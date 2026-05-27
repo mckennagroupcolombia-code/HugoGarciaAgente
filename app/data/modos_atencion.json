@@ -2,12 +2,18 @@
   "numeros_en_humano": [
     "573009990001@c.us",
     "108207892635657@lid",
-    "120363023555909043@g.us"
+    "120363023555909043@g.us",
+    "web-test-handoff2",
+    "573013536788@c.us",
+    "573182432463@c.us"
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
     "108207892635657@lid": 1779841391.5377417,
-    "120363023555909043@g.us": 1779841390.564376
+    "120363023555909043@g.us": 1779902999.5390463,
+    "web-test-handoff2": 1779872652.3461308,
+    "573013536788@c.us": 1779890129.7563167,
+    "573182432463@c.us": 1779913854.8006766
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
@@ -21,9 +27,38 @@
       "ultimo_mensaje": "Veci, tuve un problema t\u00e9cnico moment\u00e1neo. Por favor intente de nuevo \ud83d\ude4f"
     },
     "120363023555909043@g.us": {
-      "timestamp": 1779841390.5643766,
-      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "timestamp": 1779902999.5390468,
+      "razon": "r\u00e1faga de 8 mensajes en 120s",
+      "ultimo_mensaje": "Ok"
+    },
+    "web-test-handoff2": {
+      "timestamp": 1779872652.346131,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "Quiero hablar con un asesor humano"
+    },
+    "573013536788@c.us": {
+      "timestamp": 1779890129.7563171,
+      "razon": "men\u00fa autom\u00e1tico",
+      "ultimo_mensaje": "Hola, Hugo, cerrar\u00e9 esta conversaci\u00f3n, no recib\u00ed tu respuesta.\n\n*\u00a1Tu tarjeta quedara activa!*\n\nRevisa si reconoces esa transacci\u00f3n o si necesitas algo m\u00e1s, ll\u00e1manos al *(604) 5109000*, opci\u00f3n 1-3. Si est\u00e1s en el exterior, al *+57 (601) 3430000*.\n\nSeguimos a tu lado en todo momento.\n\n_Toca un bot\u00f3n:_ \ud83d\udc47"
+    },
+    "573182432463@c.us": {
+      "timestamp": 1779913854.800677,
+      "razon": "agregado manualmente desde panel",
       "ultimo_mensaje": ""
     }
-  }
+  },
+  "bot_global_activo": true,
+  "horario_bot": {
+    "habilitado": false,
+    "hora_inicio": "08:00",
+    "hora_fin": "18:00",
+    "dias": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "numeros_silenciados": []
 }
