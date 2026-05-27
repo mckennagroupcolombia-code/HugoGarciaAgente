@@ -1,32 +1,5 @@
 {
   "pendientes": {
-    "5842": {
-      "pack_id": "2000016603065842",
-      "comprador": "Comprador 3426575220",
-      "from_id": "3426575220",
-      "texto": "hola buenos dias, solicito amablemente factura de compra, adjunto rut para fines pertinentes",
-      "msg_id": "019e653a9c747755911c1e437a66209c",
-      "productos": "  • Lecitina De Soya Polvo 500gr Lecitina",
-      "timestamp": "2026-05-26T12:00:07"
-    },
-    "0583": {
-      "pack_id": "2000013104140583",
-      "comprador": "Comprador 380852378",
-      "from_id": "380852378",
-      "texto": "Buenas tardes como estan podrias regalarme certificado de la materia prima somos laboratorios de alimentos y invima nos exige en las visitas \nQuedo atento muchas gracias",
-      "msg_id": "019e65a562a57cfa9f39ec62e26d1743",
-      "productos": "",
-      "timestamp": "2026-05-26T13:56:45"
-    },
-    "5793": {
-      "pack_id": "2000013172575793",
-      "comprador": "Comprador 486798496",
-      "from_id": "486798496",
-      "texto": "Buenas tardes quisiera saber por qué no me han notificado que el pago fue recibido",
-      "msg_id": "019e65da518e72eea858643eebd38d37",
-      "productos": "",
-      "timestamp": "2026-05-26T14:54:32"
-    },
     "3664": {
       "pack_id": "2000016621963664",
       "comprador": "Comprador 627012587",
@@ -122,6 +95,7 @@
     "019df4f04e967407be3b0d9c7c685963",
     "019e0d4564887394b60f4d70578ec5ad",
     "019e2be1380676c082f1d774617b6cce",
+    "019e6822cb1f77ff817c10014c16af6d",
     "019e4621022b71d69c62239dc40fda58",
     "019dc5afdfa872edb346ef0cd8c43729",
     "019e1e6b13587ec3ad79a5fa690d5765",

@@ -151,7 +151,15 @@ def _procesar_comando_posventa_wa(texto_cmd: str) -> None:
         if not entrada:
             sufijo_busqueda = sufijo.upper()
             for k, v in pendientes.items():
-                if k.endswith(sufijo_busqueda) or sufijo_busqueda.endswith(k):
+                cod = str(v.get("codigo", "")).upper()
+                pid = str(v.get("pack_id", ""))
+                if (
+                    k.endswith(sufijo_busqueda)
+                    or sufijo_busqueda.endswith(k)
+                    or cod == sufijo_busqueda
+                    or pid.endswith(sufijo)
+                    or pid == sufijo
+                ):
                     entrada = v
                     clave_pendiente = k
                     break

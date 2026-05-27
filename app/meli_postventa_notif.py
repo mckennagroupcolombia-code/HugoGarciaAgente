@@ -235,6 +235,35 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     f"📨 [POSVENTA] Nuevo mensaje de {nombre_comprador} en pack {pack_id}: {texto[:60]}"
                 )
 
+                # Respuesta automática FT/COA (Drive) antes de molestar al grupo.
+                try:
+                    from app.postventa_documentos import (
+                        intentar_respuesta_automatica_documentos,
+                    )
+
+                    if intentar_respuesta_automatica_documentos(
+                        pack_id, texto, comprador_id=from_id
+                    ):
+                        procesados.add(msg_id)
+                        state["pendientes"].pop(str(pack_id), None)
+                        state["pendientes"].pop(sufijo, None)
+                        notif_auto = (
+                            f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
+                            f"📦 Pack: `{pack_id}` _(código {sufijo})_\n"
+                            f"👤 {nombre_comprador}\n"
+                            f"🗣 Solicitud: {texto[:180]}{'…' if len(texto) > 180 else ''}\n\n"
+                            f"_Enlaces enviados al comprador en MeLi. Revisa el hilo si falta algún producto._"
+                        )
+                        enviar_whatsapp_reporte(notif_auto, numero_destino=GRUPO)
+                        try:
+                            incrementar_metrica("mensajes_posventa")
+                        except Exception:
+                            pass
+                        nuevos += 1
+                        continue
+                except Exception as e_auto:
+                    print(f"⚠️ [POSVENTA] Auto-docs falló pack {pack_id}: {e_auto}")
+
                 # Polling/reconciliación: si el vendedor ya contestó después de este mensaje,
                 # solo registrar como procesado; no revivir una alerta vieja.
                 if reconciliar_existentes:
@@ -302,8 +331,10 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                 except Exception:
                     pass
 
-                state["pendientes"][sufijo] = {
+                clave_pendiente = str(pack_id)
+                state["pendientes"][clave_pendiente] = {
                     "pack_id": pack_id,
+                    "codigo": sufijo,
                     "comprador": nombre_comprador,
                     "from_id": from_id,
                     "texto": texto,
@@ -311,7 +342,9 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     "productos": productos_str,
                     "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
                 }
-                procesados.add(msg_id)
+                # Compatibilidad: comando posventa 0583: sigue resolviendo por sufijo.
+                if sufijo and sufijo != clave_pendiente:
+                    state["pendientes"][sufijo] = state["pendientes"][clave_pendiente]
 
                 notif = (
                     f"💬 *MENSAJE POSTVENTA MELI*\n\n"
@@ -329,8 +362,11 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                 if not ok_wa:
                     print(
                         f"❌ [POSVENTA] WhatsApp NO entregó alerta (bridge :3000 / GRUPO). "
-                        f"pack={pack_id} msg_id={msg_id} grupo={GRUPO}"
+                        f"pack={pack_id} msg_id={msg_id} grupo={GRUPO} — NO se marca procesado (reintento)"
                     )
+                    state["pendientes"].pop(clave_pendiente, None)
+                    if sufijo:
+                        state["pendientes"].pop(sufijo, None)
                     try:
                         from app.meli_webhook_incidents import (
                             registrar_meli_webhook_incidente,
@@ -343,6 +379,9 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                         )
                     except Exception:
                         pass
+                    continue
+
+                procesados.add(msg_id)
                 try:
                     incrementar_metrica("mensajes_posventa")
                 except Exception:
