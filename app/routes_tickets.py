@@ -58,9 +58,26 @@ _GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 _GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 _GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
 
-# Estado OAuth en memoria: {state: expiry_epoch}
-_oauth_states: dict[str, float] = {}
+# Estado OAuth en memoria: {state: {"t": epoch, "android": bool}}
+_oauth_states: dict[str, dict] = {}
 _OAUTH_STATE_TTL = 300  # 5 minutos
+
+
+def _oauth_state_put(state: str, *, android: bool = False) -> None:
+    now = time.time()
+    expired = [k for k, v in _oauth_states.items() if now - float(v.get("t", 0)) > _OAUTH_STATE_TTL]
+    for k in expired:
+        del _oauth_states[k]
+    _oauth_states[state] = {"t": now, "android": android}
+
+
+def _oauth_state_pop(state: str) -> dict | None:
+    entry = _oauth_states.pop(state, None)
+    if entry is None:
+        return None
+    if isinstance(entry, (int, float)):
+        return {"t": float(entry), "android": False}
+    return entry
 
 
 def _panel_redirect_uri() -> str:
@@ -211,12 +228,8 @@ def register_tickets_routes(app):
         if not _google_oauth_configured():
             return "<p>Google OAuth no configurado. Agrega GOOGLE_OAUTH_CLIENT_ID y GOOGLE_OAUTH_CLIENT_SECRET al .env del agente.</p>", 503
         state = secrets.token_urlsafe(32)
-        now = time.time()
-        # Limpiar estados expirados
-        expired = [k for k, v in _oauth_states.items() if now - v > _OAUTH_STATE_TTL]
-        for k in expired:
-            del _oauth_states[k]
-        _oauth_states[state] = now
+        android = request.args.get("app", "").lower() in ("android", "1", "true")
+        _oauth_state_put(state, android=android)
         return redirect(_build_google_url(state))
 
     @app.route("/app/auth/callback", methods=["GET"])
@@ -228,9 +241,8 @@ def register_tickets_routes(app):
         if error:
             return redirect(f"/app?auth_error={error}")
 
-        # Validar state (anti-CSRF)
-        stored_at = _oauth_states.pop(state, None)
-        if stored_at is None or (time.time() - stored_at) > _OAUTH_STATE_TTL:
+        stored = _oauth_state_pop(state)
+        if stored is None or (time.time() - float(stored.get("t", 0))) > _OAUTH_STATE_TTL:
             return redirect("/app?auth_error=state_invalido")
 
         if not code:
@@ -245,7 +257,38 @@ def register_tickets_routes(app):
             import urllib.parse
             return redirect(f"/app?auth_error={urllib.parse.quote(err)}")
 
-        return redirect(f"/app?_token={result['token']}")
+        token = result["token"]
+        if stored.get("android"):
+            import urllib.parse
+            q = urllib.parse.quote(token, safe="")
+            # HTTPS primero: Custom Tab en MIUI a veces no abre mckennaapp:// directo;
+            # la página puente redirige al deep link y el WebView también intercepta la URL.
+            return redirect(f"/app/auth/android-return?token={q}")
+        return redirect(f"/app?_token={token}")
+
+    @app.route("/app/auth/android-return", methods=["GET"])
+    def tickets_android_auth_return():
+        """Puente post-Google OAuth para APK: intenta mckennaapp:// y ofrece enlace manual."""
+        import html
+        import json
+        import urllib.parse
+
+        token = (request.args.get("token") or "").strip()
+        if not token:
+            return redirect("/app?auth_error=sin_token")
+        deeplink = f"mckennaapp://auth?token={urllib.parse.quote(token, safe='')}"
+        href = html.escape(deeplink, quote=True)
+        js_url = json.dumps(deeplink)
+        return (
+            "<!DOCTYPE html><html><head><meta charset=utf-8>"
+            '<meta name=viewport content="width=device-width,initial-scale=1">'
+            f'<meta http-equiv="refresh" content="0;url={href}">'
+            f"<script>location.replace({js_url});</script>"
+            "</head><body style=\"font-family:sans-serif;text-align:center;padding:2rem\">"
+            "<p>Volviendo al panel McKenna…</p>"
+            f'<p><a href="{href}">Toca aquí si no regresa solo</a></p>'
+            "</body></html>"
+        )
 
     # ── AUTH ────────────────────────────────────────────────────────────────
 

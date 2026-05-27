@@ -580,6 +580,20 @@
       "pregunta": "Cuántos gramos de proteína, grasa y carbohidratos trae por porción de 30 gr",
       "timestamp": "2026-05-24T16:33:47.970511",
       "respondida": true
+    },
+    {
+      "question_id": "13589872617",
+      "titulo_producto": "Agua Destilada  250 Ml",
+      "pregunta": "Buen dia, tienen agua destilada en volúmenes mas grandes?",
+      "timestamp": "2026-05-26T11:11:51.737622",
+      "respondida": true
+    },
+    {
+      "question_id": "13590259821",
+      "titulo_producto": "Cera De Abejas Blanca 1 Kg",
+      "pregunta": "Desde donde envian la cera",
+      "timestamp": "2026-05-26T19:26:40.298242",
+      "respondida": true
     }
   ]
 }

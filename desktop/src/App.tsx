@@ -14,6 +14,7 @@ import TicketsPanel from "./components/TicketsPanel";
 import WebChatPanel from "./components/WebChatPanel";
 import Settings from "./components/Settings";
 import { usePanelTheme } from "./stores/panelTheme";
+import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 
 function PanelRouter() {
   const panel = useAppStore((s) => s.panel);
@@ -110,7 +111,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
           </div>
         ) : (
           <a
-            href="/app/auth/google/start"
+            href={googleAuthStartUrl()}
             className="flex w-full items-center justify-center gap-3 rounded-paper border-2 border-border bg-surface py-3 text-sm font-semibold text-ink shadow-sm transition hover:border-accent hover:bg-surface-hover active:translate-y-0.5"
           >
             <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
@@ -166,7 +167,10 @@ export default function App() {
   if (!user || !token) {
     return (
       <AppLoginView
-        onLogin={(t, u, apiToken) => setAuth(t, u, apiToken)}
+        onLogin={(t, u, apiToken) => {
+          setAuth(t, u, apiToken);
+          if (apiToken) mckennaAndroidBridge()?.saveApiToken?.(apiToken);
+        }}
       />
     );
   }

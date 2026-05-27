@@ -1,5 +1,6 @@
 package co.mckennagroup.panel;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -9,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -16,10 +18,10 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 /**
  * Alarma nativa: notificación + WAV de Voicebox (cacheado) o TTS de respaldo.
- * Funciona con pantalla bloqueada y Chrome suspendido.
  */
 public class AlarmaReceiver extends BroadcastReceiver {
 
@@ -35,27 +37,52 @@ public class AlarmaReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        boolean activa     = prefs.getBoolean(KEY_ACTIVA, true);
-        boolean hayTarea   = prefs.getBoolean(KEY_HAY_TAREA, true);
-        long    intervalMs = prefs.getLong(KEY_INTERVAL, DEFAULT_INTERVAL_MS);
+        try {
+            String action = intent != null ? intent.getAction() : null;
+            boolean bootOrUpdate = Intent.ACTION_BOOT_COMPLETED.equals(action)
+                    || Intent.ACTION_MY_PACKAGE_REPLACED.equals(action);
 
-        if (!activa || intervalMs <= 0) return;
+            SharedPreferences prefs =
+                    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            boolean activa     = prefs.getBoolean(KEY_ACTIVA, false);
+            boolean hayTarea   = prefs.getBoolean(KEY_HAY_TAREA, false);
+            long    intervalMs = prefs.getLong(KEY_INTERVAL, DEFAULT_INTERVAL_MS);
 
-        if (hayTarea) {
-            mostrarNotificacion(context);
-            if (!AlarmAudioCache.playCached(context)) {
-                Log.i(TAG, "WAV no disponible — TTS de respaldo");
-                hablarTexto(context, AlarmAudioCache.ALARM_TEXT);
+            // Tras instalar/actualizar o reinicio: solo reprogramar, sin sonido ni notif.
+            if (bootOrUpdate) {
+                if (activa && intervalMs > 0) {
+                    programar(context, intervalMs, true);
+                }
+                return;
             }
-        }
 
-        programar(context, intervalMs, activa);
+            if (!activa || intervalMs <= 0) return;
+
+            if (hayTarea) {
+                mostrarNotificacion(context);
+                if (!AlarmAudioCache.playCached(context)) {
+                    Log.i(TAG, "WAV no disponible — TTS de respaldo");
+                    hablarTexto(context, AlarmAudioCache.ALARM_TEXT);
+                }
+            }
+
+            programar(context, intervalMs, true);
+        } catch (Exception e) {
+            Log.e(TAG, "Error en onReceive", e);
+        }
     }
 
     static void mostrarNotificacion(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+        }
+
         NotificationManager nm =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
         crearCanal(nm);
 
         Intent launchIntent = context.getPackageManager()
@@ -151,6 +178,8 @@ public class AlarmaReceiver extends BroadcastReceiver {
 
     static void programar(Context ctx, long intervalMs, boolean activa) {
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+
         Intent i = new Intent(ctx, AlarmaReceiver.class);
         PendingIntent pi = PendingIntent.getBroadcast(
                 ctx, 0, i,
