@@ -12,6 +12,7 @@ export type Panel =
   | "pedidos"
   | "facturas"
   | "tickets"
+  | "whatsapp"
   | "settings";
 
 interface AppState {

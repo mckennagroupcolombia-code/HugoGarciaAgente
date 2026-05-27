@@ -12,6 +12,7 @@ const NAV: { id: Panel; label: string }[] = [
   { id: "chat", label: "Chat IA" },
   { id: "voz", label: "Voz IA" },
   { id: "webchat", label: "Chat web" },
+  { id: "whatsapp", label: "Agente WA" },
   { id: "preventa", label: "Preventa MeLi" },
   { id: "sync", label: "Sincronización" },
   { id: "stock", label: "Stock" },
