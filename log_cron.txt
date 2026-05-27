@@ -1669,3 +1669,21 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-05-25 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
+[master b7cac91] Auto-commit: actualizacion diaria 2026-05-26 23:00
+ 42 files changed, 1143 insertions(+), 29997 deletions(-)
+ create mode 100644 android-twa/app/src/main/java/co/mckennagroup/panel/DeepLinkActivity.java
+ create mode 100644 android-twa/app/src/main/java/co/mckennagroup/panel/McKennaBridge.java
+ create mode 100644 android-twa/app/src/main/java/co/mckennagroup/panel/McKennaJsBridge.java
+ create mode 100644 android-twa/app/src/main/java/co/mckennagroup/panel/McKennaWebViewActivity.java
+ create mode 100644 android-twa/scripts/INSTALAR_XIAOMI.md
+ create mode 100755 android-twa/scripts/firmar_apk.sh
+ create mode 100644 desktop/src/lib/androidApp.ts
+ create mode 100755 scripts/android_capturar_crash.sh
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-05-26 23:00:03] ERROR en el push. Revisar credenciales o conflictos.

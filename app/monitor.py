@@ -63,7 +63,7 @@ def _monitor_postventa_meli_polling():
     from app.utils import obtener_seller_id_meli, refrescar_token_meli
 
     intervalo = int(os.getenv("POSTVENTA_POLL_INTERVALO_SEG", "300"))
-    limite = int(os.getenv("POSTVENTA_POLL_ORDENES_LIMIT", "50"))
+    limite = int(os.getenv("POSTVENTA_POLL_ORDENES_LIMIT", "80"))
     time.sleep(45)
     while True:
         try:
@@ -977,6 +977,14 @@ def _supervisar_colas_meli():
                         json.dump(data_post, f, indent=2, ensure_ascii=False)
             except Exception as e_post:
                 print(f"⚠️ [SUPERVISOR] Error leyendo postventa pendientes: {e_post}")
+
+            # Hilos con mensaje del comprador no capturado (no depende de la cola JSON).
+            try:
+                from app.meli_postventa_huecos import escanear_hilos_postventa_sin_captura
+
+                escanear_hilos_postventa_sin_captura()
+            except Exception as e_huecos:
+                print(f"⚠️ [SUPERVISOR] Huecos postventa: {e_huecos}")
 
             # Alertas operativas
             if atascadas_preventa:
