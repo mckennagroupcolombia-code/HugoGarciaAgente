@@ -1,7 +1,12 @@
 package co.mckennagroup.panel;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 /**
  * Puente JS ↔ nativo (sin intents que reinician la actividad en MIUI).
@@ -34,5 +39,25 @@ public class McKennaJsBridge {
             }
         }
         Log.i(TAG, "Alarma sync JS activa=" + activa + " min=" + intervaloMin);
+    }
+
+    @JavascriptInterface
+    public boolean hasAudioPermission() {
+        return ContextCompat.checkSelfPermission(activity, Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @JavascriptInterface
+    public void requestAudioPermission() {
+        if (!hasAudioPermission()) {
+            ActivityCompat.requestPermissions(
+                    activity,
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    1001
+            );
+            Log.i(TAG, "requestAudioPermission: solicitando RECORD_AUDIO al SO");
+        } else {
+            Log.i(TAG, "requestAudioPermission: RECORD_AUDIO ya concedido");
+        }
     }
 }

@@ -108,7 +108,7 @@ interface Ticket {
   id: number;
   numero: string;
   titulo: string;
-  categoria: "rrhh" | "logistica" | "mantenimiento";
+  categoria: string;
   descripcion: string;
   estado: "pendiente" | "en_proceso" | "esperando_aprobacion" | "resuelto" | "rechazado";
   prioridad: "baja" | "media" | "alta" | "urgente";
@@ -144,7 +144,7 @@ interface Ticket {
   proxima_renovacion?: string | null;
   pasos_total?: number;
   pasos_completados?: number;
-  tipo?: "ticket" | "accion";
+  tipo?: "ticket" | "accion" | "solicitud";
 }
 
 interface TicketCorrida {
@@ -1105,13 +1105,14 @@ function puedeVerTab(
   tab: string,
 ): boolean {
   if (nivel >= 3) return true;
-  if (!permisos) return tab === "acciones";
+  if (!permisos) return tab === "acciones" || tab === "solicitudes";
   return Boolean(permisos[`tickets_${tab}`]);
 }
 
 type View =
   | "list"
   | "acciones"
+  | "solicitudes"
   | "create"
   | "detail"
   | "admin"
@@ -1496,6 +1497,7 @@ function QuestNavBar({
   userNombre,
   onTablero,
   onAcciones,
+  onSolicitudes,
   onInventario,
   onReinos,
   onRecetas,
@@ -1513,6 +1515,7 @@ function QuestNavBar({
   userNombre: string;
   onTablero: () => void;
   onAcciones: () => void;
+  onSolicitudes: () => void;
   onInventario: () => void;
   onReinos: () => void;
   onRecetas: () => void;
@@ -1526,10 +1529,10 @@ function QuestNavBar({
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
   return (
     <nav
-      className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 flex flex-wrap items-center gap-x-2 gap-y-2 border-b-2 border-border px-4 py-2.5 backdrop-blur-md lg:-mx-10"
+      className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 flex flex-col gap-y-2 border-b-2 border-border px-4 py-2.5 backdrop-blur-md sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 lg:-mx-10"
       aria-label="Navegación Centro de Mando"
     >
-      <div className="quest-nav-bar-main flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      <div className="quest-nav-bar-main flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
         {pVer("tablero") && (
           <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
             <QuestBoardNavLabel />
@@ -1539,6 +1542,12 @@ function QuestNavBar({
           <button type="button" onClick={onAcciones} className={questNavBtn(view === "acciones")}>
             <TopicIcon value="⚡" size={14} weight="duotone" />
             Acciones
+          </button>
+        )}
+        {pVer("solicitudes") && (
+          <button type="button" onClick={onSolicitudes} className={questNavBtn(view === "solicitudes")}>
+            <TopicIcon value="📋" size={14} weight="duotone" />
+            Solicitudes
           </button>
         )}
         {pVer("crear_mision") && (
@@ -1587,7 +1596,7 @@ function QuestNavBar({
           </button>
         )}
       </div>
-      <div className="quest-nav-bar-actions ml-auto flex shrink-0 items-center gap-2">
+      <div className="quest-nav-bar-actions flex shrink-0 items-center gap-2 sm:ml-auto">
         <QuestThemeToggle />
         <button
           type="button"
@@ -5376,6 +5385,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "preventa",  label: "Preventa MeLi" },
                     { id: "sync",      label: "Sincronización" },
                     { id: "stock",     label: "Stock" },
+                    { id: "fichas",    label: "Fichas técnicas" },
                     { id: "pedidos",   label: "Pedidos Web" },
                     { id: "facturas",  label: "Facturas Compra" },
                     { id: "tickets",   label: "Centro de Mando" },
@@ -9402,6 +9412,12 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
   const [showNuevo, setShowNuevo] = useState(false);
   const [roles, setRoles] = useState<{ id: number; nombre: string; nivel: number }[]>([]);
   const [depts, setDepts] = useState<{ id: number; nombre: string; color?: string }[]>([]);
+  const [tareas, setTareas] = useState<{ slug: string; nombre: string }[]>([]);
+  const [asignaciones, setAsignaciones] = useState<Record<string, { usuario_id: number | null }>>({});
+  const [savingAsign, setSavingAsign] = useState<string | null>(null);
+  const [deptForm, setDeptForm] = useState({ nombre: "", descripcion: "", color: "#0c6069" });
+  const [deptError, setDeptError] = useState("");
+  const [deptSaving, setDeptSaving] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
     username: "",
@@ -9414,6 +9430,7 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const nivel = user.rol?.nivel ?? 1;
   const canManageAliados = nivel >= 2;
+  const isAdmin = nivel >= 3;
 
   const reload = useCallback(() => {
     setLoading(true);
@@ -9426,14 +9443,30 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
   useEffect(() => { void reload(); }, [reload]);
 
   useEffect(() => {
-    if (!showNuevo || !canManageAliados) return;
+    if ((!showNuevo && !isAdmin) || !canManageAliados) return;
     Promise.all([tapi("/roles", token), tapi("/departamentos", token)])
       .then(([rs, ds]) => {
         setRoles(Array.isArray(rs) ? rs : []);
         setDepts(Array.isArray(ds) ? ds : []);
       })
       .catch(() => {});
-  }, [showNuevo, canManageAliados, token]);
+  }, [showNuevo, canManageAliados, isAdmin, token]);
+
+  useEffect(() => {
+    if (!canManageAliados) return;
+    tapi("/aliados/asignaciones", token)
+      .then((d) => {
+        setTareas(Array.isArray(d?.tareas) ? d.tareas : []);
+        const raw = d?.asignaciones && typeof d.asignaciones === "object" ? d.asignaciones : {};
+        const norm: Record<string, { usuario_id: number | null }> = {};
+        for (const k of Object.keys(raw)) {
+          const uid = raw[k]?.usuario_id;
+          norm[k] = { usuario_id: typeof uid === "number" ? uid : null };
+        }
+        setAsignaciones(norm);
+      })
+      .catch(() => {});
+  }, [canManageAliados, token]);
 
   async function eliminarAliado(u: { id: number; nombre: string; tickets_abiertos?: number }) {
     if (u.id === user.id) {
@@ -9488,6 +9521,51 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
       setFormError(e instanceof Error ? e.message : "No se pudo crear el aliado.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function guardarAsignacion(tarea_slug: string, usuario_id: number | null) {
+    if (!isAdmin) {
+      alert("Solo un Administrador puede cambiar asignaciones.");
+      return;
+    }
+    setSavingAsign(tarea_slug);
+    try {
+      await tapi("/aliados/asignaciones", token, {
+        method: "PUT",
+        body: JSON.stringify({ tarea_slug, usuario_id }),
+      });
+      setAsignaciones((a) => ({ ...a, [tarea_slug]: { usuario_id } }));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "No se pudo guardar la asignación.");
+    } finally {
+      setSavingAsign(null);
+    }
+  }
+
+  async function crearDepartamento() {
+    if (!isAdmin) return;
+    if (!deptForm.nombre.trim()) {
+      setDeptError("Nombre requerido.");
+      return;
+    }
+    setDeptSaving(true);
+    setDeptError("");
+    try {
+      const nuevo = await tapi("/departamentos", token, {
+        method: "POST",
+        body: JSON.stringify({
+          nombre: deptForm.nombre.trim(),
+          descripcion: deptForm.descripcion.trim(),
+          color: deptForm.color || "#0c6069",
+        }),
+      });
+      setDepts((ds) => [...ds, nuevo].sort((a, b) => String(a.nombre).localeCompare(String(b.nombre))));
+      setDeptForm({ nombre: "", descripcion: "", color: "#0c6069" });
+    } catch (e: unknown) {
+      setDeptError(e instanceof Error ? e.message : "No se pudo crear el departamento.");
+    } finally {
+      setDeptSaving(false);
     }
   }
 
@@ -9589,6 +9667,106 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
               className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50"
             >
               {saving ? "Guardando…" : "Crear aliado"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Asignación de labores ─────────────────────────────────────────── */}
+      {canManageAliados && (
+        <div className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-extrabold text-ink">Asignación de labores</h3>
+              <p className="text-[11px] text-muted">
+                Define a qué aliado se le asignan automáticamente ciertas acciones del sistema.
+              </p>
+            </div>
+            {!isAdmin && (
+              <span className="rounded-full bg-surface-hover px-2 py-1 text-[11px] font-bold text-muted">
+                Solo lectura (requiere admin)
+              </span>
+            )}
+          </div>
+          {tareas.length === 0 ? (
+            <p className="text-xs text-muted">No hay tareas configuradas.</p>
+          ) : (
+            <div className="grid gap-3">
+              {tareas.map((t) => {
+                const cur = asignaciones[t.slug]?.usuario_id ?? null;
+                return (
+                  <div key={t.slug} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-ink truncate">{t.nombre}</p>
+                      <p className="text-[10px] text-muted font-mono">{t.slug}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={cur ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          const next = v ? Number(v) : null;
+                          setAsignaciones((a) => ({ ...a, [t.slug]: { usuario_id: next } }));
+                        }}
+                        disabled={!isAdmin}
+                        className="min-w-[16rem] rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-xs font-semibold text-ink outline-none focus:border-accent disabled:opacity-60"
+                      >
+                        <option value="">Sin asignar</option>
+                        {data.map((u: any) => (
+                          <option key={u.id} value={u.id}>{u.nombre}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => void guardarAsignacion(t.slug, asignaciones[t.slug]?.usuario_id ?? null)}
+                        disabled={!isAdmin || savingAsign === t.slug}
+                        className="rounded-paper border-2 border-accent bg-accent px-3 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50"
+                      >
+                        {savingAsign === t.slug ? "Guardando…" : "Guardar"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Departamentos (admin) ─────────────────────────────────────────── */}
+      {isAdmin && (
+        <div className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-extrabold text-ink">Departamentos</h3>
+              <p className="text-[11px] text-muted">Crea departamentos nuevos para organizar aliados.</p>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Nombre del departamento *" value={deptForm.nombre} onChange={(v) => setDeptForm((f) => ({ ...f, nombre: v }))} />
+            <div>
+              <label className="mb-1 block text-xs font-bold text-muted">Color</label>
+              <input
+                type="color"
+                value={deptForm.color}
+                onChange={(e) => setDeptForm((f) => ({ ...f, color: e.target.value }))}
+                className="h-10 w-full rounded-paper border-2 border-border bg-surface-input px-2"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Descripción" value={deptForm.descripcion} onChange={(v) => setDeptForm((f) => ({ ...f, descripcion: v }))} />
+            </div>
+          </div>
+          {deptError && <p className="text-xs font-semibold text-red-600">{deptError}</p>}
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] text-muted">Existentes: {depts.length}</p>
+            <button
+              type="button"
+              onClick={() => void crearDepartamento()}
+              disabled={deptSaving}
+              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white shadow-[0_2px_0_#045159] hover:bg-accent-hover disabled:opacity-50"
+            >
+              {deptSaving ? "Creando…" : "+ Crear departamento"}
             </button>
           </div>
         </div>
@@ -10049,12 +10227,14 @@ async function playAlarmAudio(apiToken?: string) {
 const _timerStore = new Map<number, number>();
 
 function AccionCard({
-  ticket, token, onSelect, onChanged, isAdmin,
+  ticket, token, onSelect, onChanged, isAdmin, readOnly,
 }: {
   ticket: Ticket; token: string;
   onSelect: (id: number) => void;
   onChanged: () => void;
   isAdmin?: boolean;
+  /** Supervisión: sin iniciar/pausar/listo (p. ej. administrador). */
+  readOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -10198,9 +10378,12 @@ function AccionCard({
       className={`flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
     >
       <div className="flex items-start gap-2">
-        <span className="min-w-0 flex-1 text-sm font-medium text-ink">
-          {ticket.titulo}
-        </span>
+        <div className="min-w-0 flex-1">
+          <span className="text-sm font-medium text-ink">{ticket.titulo}</span>
+          {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
+            <p className="mt-0.5 text-xs text-muted line-clamp-2">{ticket.descripcion}</p>
+          )}
+        </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
           {ticket.prioridad ?? "media"}
         </span>
@@ -10261,7 +10444,7 @@ function AccionCard({
         </div>
       )}
 
-      {!resuelta && !resolucionInfo && (
+      {!resuelta && !resolucionInfo && !readOnly && (
         <div className="flex gap-2 pt-1">
           <button
             type="button"
@@ -10287,6 +10470,675 @@ function AccionCard({
           </button>
         </div>
       )}
+      {!resuelta && readOnly && (
+        <p className="text-[10px] text-center text-muted">Vista de supervisión — solo lectura</p>
+      )}
+    </div>
+  );
+}
+
+// ── SolicitudCard ─────────────────────────────────────────────────────────────
+
+function SolicitudCard({
+  ticket, token, user, onChanged, isAdmin, supervision,
+}: {
+  ticket: Ticket; token: string; user: TicketsUser;
+  onChanged: () => void;
+  isAdmin?: boolean;
+  /** Vista equipo/admin: estado visible, sin botones ni aviso de “solo el asignado”. */
+  supervision?: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [msg, setMsg] = useState("");
+  const esAsignado = ticket.asignado_a === user.id;
+  const esCreadoPorMi = ticket.creado_por === user.id;
+  const resuelta = ticket.estado === "resuelto" || ticket.estado === "rechazado";
+
+  async function resolver() {
+    if (!esAsignado || busy) return;
+    setBusy(true);
+    try {
+      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+      onChanged();
+    } catch (e: any) {
+      setMsg(e.message ?? "Error");
+      setTimeout(() => setMsg(""), 3000);
+    } finally { setBusy(false); }
+  }
+
+  async function iniciarPausar() {
+    if (!esAsignado || busy) return;
+    setBusy(true);
+    try {
+      const nuevoEstado = ticket.estado === "en_proceso" ? "pendiente" : "en_proceso";
+      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: nuevoEstado }) });
+      onChanged();
+    } catch { /* ignore */ } finally { setBusy(false); }
+  }
+
+  async function eliminar() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await tapi(`/${ticket.id}`, token, { method: "DELETE" });
+      onChanged();
+    } catch { /* ignore */ } finally { setBusy(false); setConfirmDelete(false); }
+  }
+
+  const FREC_SHORT: Record<string, string> = {
+    diaria: "Diaria", cada_2_dias: "Cada 2 días", cada_3_dias: "Cada 3 días",
+    semanal: "Semanal", quincenal: "Quincenal", mensual: "Mensual",
+    bimestral: "Bimestral", trimestral: "Trimestral", semestral: "Semestral",
+  };
+
+  return (
+    <div className={`flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}>
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="text-sm font-medium text-ink">{ticket.titulo}</span>
+          {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
+            <p className="mt-0.5 text-xs text-muted line-clamp-2">{ticket.descripcion}</p>
+          )}
+        </div>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
+          {ticket.prioridad ?? "media"}
+        </span>
+        {(isAdmin || esCreadoPorMi) && !confirmDelete && (
+          <button type="button" title="Eliminar" onClick={() => setConfirmDelete(true)}
+            className="shrink-0 rounded p-0.5 text-muted hover:text-red-600 transition-colors">
+            <Icon name="trash" size={13} />
+          </button>
+        )}
+        {(isAdmin || esCreadoPorMi) && confirmDelete && (
+          <div className="flex items-center gap-1">
+            <button type="button" disabled={busy} onClick={eliminar}
+              className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-700">Sí</button>
+            <button type="button" onClick={() => setConfirmDelete(false)}
+              className="rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-bold text-muted hover:text-ink">No</button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+        <span className="flex items-center gap-1">
+          <Icon name="user" size={11} />
+          {esCreadoPorMi ? "Solicitado por ti" : `Solicitado por ${ticket.creado_por_nombre ?? "?"}`}
+        </span>
+        <span className="flex items-center gap-1">
+          <Icon name="user" size={11} />
+          Para: <strong className="text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</strong>
+        </span>
+        {ticket.frecuencia && (
+          <span className="flex items-center gap-1">
+            ♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}
+          </span>
+        )}
+        <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px]">
+          {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
+        </span>
+      </div>
+
+      {msg && <p className="text-xs text-red-400">{msg}</p>}
+
+      {!resuelta && esAsignado && !supervision && (
+        <div className="flex gap-2 pt-1">
+          <button type="button" disabled={busy} onClick={iniciarPausar}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
+              ticket.estado === "en_proceso"
+                ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
+                : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
+            }`}
+          >
+            <Icon name={ticket.estado === "en_proceso" ? "clock" : "lightning"} size={15} weight="bold" />
+            {ticket.estado === "en_proceso" ? "Pausar" : "Iniciar"}
+          </button>
+          <button type="button" disabled={busy} onClick={resolver}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-500 bg-green-50 px-3 py-2.5 text-sm font-bold text-green-700 min-h-[44px] transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+          >
+            <Icon name="check" size={15} weight="bold" />
+            Listo
+          </button>
+        </div>
+      )}
+      {!resuelta && !esAsignado && !supervision && (
+        <div className="rounded-lg border border-border bg-surface-hover px-3 py-2 text-xs text-muted text-center">
+          Solo <strong>{ticket.asignado_a_nombre ?? "el asignado"}</strong> puede resolver esta solicitud
+        </div>
+      )}
+      {!resuelta && supervision && !isAdmin && (
+        <p className="text-[10px] text-center text-muted">Seguimiento del equipo — solo lectura</p>
+      )}
+    </div>
+  );
+}
+
+// ── useStt: hook voz → texto reutilizable ────────────────────────────────────
+
+function useStt(token: string, chatApiToken: string | null | undefined) {
+  const [grabando, setGrabando] = useState(false);
+  const [transcribiendo, setTranscribiendo] = useState(false);
+  const [error, setError] = useState("");
+  const [segundos, setSegundos] = useState(0);
+  const mrRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startRef = useRef<number>(0);
+  const onTextRef = useRef<((text: string) => void) | null>(null);
+
+  async function iniciar(onText: (text: string) => void) {
+    onTextRef.current = onText;
+    setError("");
+    setSegundos(0);
+    unlockAudioContext();
+    if (isMcKennaAndroidApp()) {
+      const bridge = mckennaAndroidBridge();
+      if (bridge?.hasAudioPermission && !bridge.hasAudioPermission()) {
+        bridge.requestAudioPermission?.();
+        setError("Concede el permiso de micrófono en el diálogo del sistema y toca el micrófono de nuevo.");
+        return;
+      }
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chunksRef.current = [];
+      const mr = new MediaRecorder(stream);
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        stream.getTracks().forEach((t) => t.stop());
+        const durSeg = Math.round((Date.now() - startRef.current) / 1000);
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType });
+        if (blob.size === 0 || durSeg < 1) {
+          setError("Grabación muy corta. Habla al menos 1 segundo.");
+          setGrabando(false);
+          return;
+        }
+        setTranscribiendo(true);
+        try {
+          const ext = blob.type.split("/")[1]?.split(";")[0] || "webm";
+          const fd = new FormData();
+          fd.append("audio", blob, `audio.${ext}`);
+          const res = await fetch("/api/voz/transcribir", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${chatApiToken ?? token}` },
+            body: fd,
+          });
+          if (!res.ok) {
+            setError(`Error del servidor (${res.status}). ¿Está activo Whisper?`);
+          } else {
+            const data = await res.json();
+            const texto = (data.texto ?? "").trim();
+            if (texto) {
+              onTextRef.current?.(texto);
+              setError("");
+            } else {
+              setError("Whisper no detectó palabras. Habla más cerca del micrófono e intenta de nuevo.");
+            }
+          }
+        } catch {
+          setError("Sin conexión con el servidor. Verifica que agente-pro esté activo.");
+        }
+        setTranscribiendo(false);
+        setGrabando(false);
+        setSegundos(0);
+      };
+      mrRef.current = mr;
+      startRef.current = Date.now();
+      mr.start(250);
+      setGrabando(true);
+      timerRef.current = setInterval(() => setSegundos((s) => s + 1), 1000);
+    } catch (e: any) {
+      if (e.name === "NotAllowedError") {
+        setError(
+          isMcKennaAndroidApp()
+            ? "Permiso denegado. Ve a Ajustes del teléfono → Aplicaciones → McKenna → Permisos → Micrófono y actívalo."
+            : "Permiso de micrófono denegado. Habilítalo en la configuración del navegador."
+        );
+      } else if (e.name === "NotFoundError") {
+        setError("No se encontró micrófono en este dispositivo.");
+      } else {
+        setError(`Error al acceder al micrófono: ${e.message}`);
+      }
+    }
+  }
+
+  function detener() {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    const mr = mrRef.current;
+    if (mr && (mr.state === "recording" || mr.state === "paused")) {
+      mr.stop();
+    } else {
+      setGrabando(false);
+      setTranscribiendo(false);
+    }
+  }
+
+  return { grabando, transcribiendo, error, setError, segundos, iniciar, detener };
+}
+
+const MIC_ICON = (
+  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+  </svg>
+);
+
+const STOP_ICON = (
+  <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+    <rect x="5" y="5" width="14" height="14" rx="2" />
+  </svg>
+);
+
+function SttBanner({ stt }: { stt: ReturnType<typeof useStt> }) {
+  if (!stt.grabando) return null;
+  return (
+    <div className="flex items-center gap-3 rounded-xl border-2 border-red-400/60 bg-red-500/10 px-4 py-3">
+      <span className="h-3 w-3 shrink-0 rounded-full bg-red-400 animate-pulse" />
+      <span className="font-mono text-sm font-bold text-red-400 tabular-nums">
+        {String(Math.floor(stt.segundos / 60)).padStart(2, "0")}:{String(stt.segundos % 60).padStart(2, "0")}
+      </span>
+      <span className="flex-1 text-sm text-red-400">Grabando…</span>
+      <button
+        type="button"
+        onClick={stt.detener}
+        className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white min-h-[44px] shadow-md active:bg-red-700 hover:bg-red-600 transition-colors"
+      >
+        {STOP_ICON}
+        Detener grabación
+      </button>
+    </div>
+  );
+}
+
+function SttInlineBtn({ stt, onStart, label = "Voz" }: {
+  stt: ReturnType<typeof useStt>;
+  onStart: () => void;
+  label?: string;
+}) {
+  if (stt.grabando) {
+    return (
+      <button
+        type="button"
+        onClick={stt.detener}
+        title="Detener grabación"
+        className="flex items-center justify-center gap-1.5 rounded-xl bg-red-500 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] min-w-[72px] shadow active:bg-red-700 hover:bg-red-600 transition-colors"
+      >
+        {STOP_ICON}
+        Stop
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onStart}
+      disabled={stt.transcribiendo}
+      title="Dictar por voz (Whisper STT)"
+      className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2.5 text-sm min-h-[44px] text-muted hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+    >
+      {stt.transcribiendo
+        ? <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+        : MIC_ICON
+      }
+      <span className="hidden sm:inline">{stt.transcribiendo ? "…" : label}</span>
+    </button>
+  );
+}
+
+// ── SolicitudesView ───────────────────────────────────────────────────────────
+
+const FRECUENCIA_OPTS: { value: Frecuencia; label: string }[] = [
+  { value: "diaria", label: "Diaria" },
+  { value: "cada_2_dias", label: "Cada 2 días" },
+  { value: "cada_3_dias", label: "Cada 3 días" },
+  { value: "semanal", label: "Semanal" },
+  { value: "quincenal", label: "Quincenal" },
+  { value: "mensual", label: "Mensual" },
+  { value: "bimestral", label: "Bimestral" },
+  { value: "trimestral", label: "Trimestral" },
+  { value: "semestral", label: "Semestral" },
+];
+
+function SolicitudesView({
+  token, user,
+}: {
+  token: string; user: TicketsUser;
+}) {
+  const isAdmin = (user.rol?.nivel ?? 1) >= 3;
+  const { apiToken: chatApiToken } = useTicketsAuth();
+  const stt = useStt(token, chatApiToken);
+  const [tab, setTab] = useState<"asignadas" | "creadas" | "equipo">("asignadas");
+  const [solicitudes, setSolicitudes] = useState<Ticket[]>([]);
+  const [solicitudesEquipo, setSolicitudesEquipo] = useState<Ticket[]>([]);
+  const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [creando, setCreando] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const [form, setForm] = useState({
+    titulo: "",
+    descripcion: "",
+    categoria: "logistica",
+    prioridad: "media",
+    modo: "unica" as "unica" | "periodica",
+    frecuencia: "semanal" as Frecuencia,
+    fecha_inicio: new Date().toISOString().slice(0, 10),
+    asignados: [] as number[],
+  });
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const [data, equipo, usrs] = await Promise.all([
+        tapi("/?tipo=solicitud", token),
+        tapi("/?tipo=solicitud&vista_equipo=1&activas=1", token),
+        tapi("/usuarios", token),
+      ]);
+      setSolicitudes(Array.isArray(data) ? data.map(normalizeTicketForList) : []);
+      setSolicitudesEquipo(Array.isArray(equipo) ? equipo.map(normalizeTicketForList) : []);
+      setUsuarios(Array.isArray(usrs) ? usrs : []);
+    } catch { /* ignore */ } finally { if (!silent) setLoading(false); }
+  }, [token]);
+
+  useEffect(() => { void load(false); }, [load]);
+  useEffect(() => {
+    const iv = setInterval(() => void load(true), 30000);
+    return () => clearInterval(iv);
+  }, [load]);
+
+  function toggleAsignado(uid: number) {
+    setForm((f) => ({
+      ...f,
+      asignados: f.asignados.includes(uid)
+        ? f.asignados.filter((id) => id !== uid)
+        : [...f.asignados, uid],
+    }));
+  }
+
+  async function crear() {
+    if (!form.titulo.trim() || form.asignados.length === 0) return;
+    setCreando(true);
+    setMsg("");
+    try {
+      await Promise.all(form.asignados.map((uid) =>
+        tapi("/", token, {
+          method: "POST",
+          body: JSON.stringify({
+            titulo: form.titulo,
+            descripcion: form.descripcion.trim() || form.titulo,
+            categoria: form.categoria,
+            prioridad: form.prioridad,
+            asignado_a: uid,
+            tipo: "solicitud",
+            frecuencia: form.modo === "periodica" ? form.frecuencia : null,
+            fecha_inicio: form.modo === "periodica" ? form.fecha_inicio : null,
+          }),
+        })
+      ));
+      setForm({
+        titulo: "", descripcion: "", categoria: "logistica", prioridad: "media",
+        modo: "unica", frecuencia: "semanal",
+        fecha_inicio: new Date().toISOString().slice(0, 10),
+        asignados: [],
+      });
+      setShowForm(false);
+      await load(false);
+      setMsg(`Solicitud${form.asignados.length > 1 ? "es" : ""} creada${form.asignados.length > 1 ? "s" : ""}`);
+      setTimeout(() => setMsg(""), 3000);
+    } catch (e: any) {
+      setMsg(e.message ?? "Error al crear");
+    } finally { setCreando(false); }
+  }
+
+  const asignadas = solicitudes.filter((t) => t.asignado_a === user.id && t.estado !== "resuelto" && t.estado !== "rechazado");
+  const creadas = solicitudes.filter((t) => t.creado_por === user.id && t.estado !== "resuelto" && t.estado !== "rechazado");
+  const enEquipo = solicitudesEquipo;
+  const lista = tab === "asignadas" ? asignadas : tab === "creadas" ? creadas : enEquipo;
+  const pendientes = asignadas.length;
+
+  const equipoPorAsignado = useMemo(() => {
+    const map = new Map<number, { nombre: string; items: Ticket[] }>();
+    for (const t of enEquipo) {
+      const uid = t.asignado_a ?? 0;
+      if (!map.has(uid)) map.set(uid, { nombre: t.asignado_a_nombre ?? "Sin asignar", items: [] });
+      map.get(uid)!.items.push(t);
+    }
+    return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [enEquipo]);
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex-1">
+          <h2 className="text-2xl font-extrabold text-ink flex items-center gap-2">
+            <TopicIcon value="📋" size={20} />
+            Solicitudes
+            {pendientes > 0 && (
+              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{pendientes}</span>
+            )}
+          </h2>
+          <p className="mt-0.5 text-sm text-muted">Tareas entre miembros del equipo · pestaña En curso para ver el estado de todas</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowForm((v) => !v)}
+          className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
+        >
+          <Icon name="plus" size={14} weight="bold" />
+          Nueva solicitud
+        </button>
+      </div>
+
+      {/* Formulario */}
+      {showForm && (
+        <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-3">
+          <p className="text-xs font-bold text-accent uppercase tracking-wide">Nueva solicitud</p>
+          <SttBanner stt={stt} />
+          {stt.error && !stt.grabando && (
+            <p className="text-sm text-red-400">{stt.error}</p>
+          )}
+          <div className="flex gap-2">
+            <input
+              className="quest-input flex-1"
+              placeholder="¿Qué se debe hacer? (escribe o usa el micrófono)"
+              value={form.titulo}
+              onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+            />
+            <SttInlineBtn
+              stt={stt}
+              label="Título"
+              onStart={() => void stt.iniciar((t) => {
+                setForm((f) => ({ ...f, titulo: t }));
+                setShowForm(true);
+              })}
+            />
+          </div>
+          <div className="flex gap-2">
+            <textarea
+              className="quest-input flex-1 resize-none text-sm"
+              rows={2}
+              placeholder="Descripción detallada (opcional, dicta por voz →)"
+              value={form.descripcion}
+              onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
+            />
+            <SttInlineBtn
+              stt={stt}
+              label="Desc."
+              onStart={() => void stt.iniciar((t) => {
+                setForm((f) => ({ ...f, descripcion: t }));
+              })}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <select className="quest-input w-36" value={form.prioridad}
+              onChange={(e) => setForm((f) => ({ ...f, prioridad: e.target.value }))}>
+              <option value="baja">Baja</option>
+              <option value="media">Media</option>
+              <option value="alta">Alta</option>
+              <option value="urgente">Urgente</option>
+            </select>
+            <select className="quest-input flex-1 min-w-[140px]" value={form.categoria}
+              onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}>
+              <option value="logistica">Logística</option>
+              <option value="ventas">Ventas</option>
+              <option value="rrhh">RRHH</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="contabilidad">Contabilidad</option>
+              <option value="compras">Compras</option>
+            </select>
+          </div>
+
+          {/* Única vs Periódica */}
+          <div className="flex gap-2">
+            {(["unica", "periodica"] as const).map((m) => (
+              <button key={m} type="button"
+                onClick={() => setForm((f) => ({ ...f, modo: m }))}
+                className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
+                  form.modo === m
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-muted hover:border-accent hover:text-accent"
+                }`}
+              >
+                {m === "unica" ? "Única vez" : "♻️ Periódica"}
+              </button>
+            ))}
+          </div>
+
+          {form.modo === "periodica" && (
+            <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
+                <label className="text-xs text-muted">Fecha de inicio</label>
+                <input type="date" className="quest-input" value={form.fecha_inicio}
+                  onChange={(e) => setForm((f) => ({ ...f, fecha_inicio: e.target.value }))} />
+              </div>
+              <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
+                <label className="text-xs text-muted">Periodicidad</label>
+                <select className="quest-input" value={form.frecuencia}
+                  onChange={(e) => setForm((f) => ({ ...f, frecuencia: e.target.value as Frecuencia }))}>
+                  {FRECUENCIA_OPTS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Selector de usuarios */}
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-ink">Asignar a (selecciona uno o varios):</p>
+            <div className="flex flex-wrap gap-2">
+              {usuarios.filter((u) => u.id !== user.id && u.activo).map((u) => (
+                <button key={u.id} type="button"
+                  onClick={() => toggleAsignado(u.id)}
+                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors ${
+                    form.asignados.includes(u.id)
+                      ? "border-accent bg-accent/10 text-accent font-semibold"
+                      : "border-border text-muted hover:border-accent hover:text-accent"
+                  }`}
+                >
+                  <span className="h-5 w-5 flex items-center justify-center rounded-full text-[10px] font-black text-white"
+                    style={{ background: u.departamento?.color || "#0c6069" }}>
+                    {u.nombre.charAt(0).toUpperCase()}
+                  </span>
+                  {u.nombre}
+                  {form.asignados.includes(u.id) && <Icon name="check" size={12} weight="bold" />}
+                </button>
+              ))}
+              {usuarios.filter((u) => u.id !== user.id && u.activo).length === 0 && (
+                <p className="text-xs text-muted">No hay otros usuarios disponibles</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button type="button"
+              disabled={creando || !form.titulo.trim() || form.asignados.length === 0}
+              onClick={crear}
+              className="quest-btn-primary px-4 py-1.5 text-sm"
+            >
+              {creando ? "Creando…" : `Crear solicitud${form.asignados.length > 1 ? ` (${form.asignados.length})` : ""}`}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="text-xs text-muted hover:text-ink">
+              Cancelar
+            </button>
+            {msg && <span className="text-xs text-accent">{msg}</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-xl border border-border bg-surface-hover p-1">
+        {([
+          { key: "asignadas", label: `Por resolver (${asignadas.length})` },
+          { key: "creadas",   label: `Enviadas por mí (${creadas.length})` },
+          { key: "equipo",    label: `En curso (${enEquipo.length})` },
+        ] as const).map(({ key, label }) => (
+          <button key={key} type="button" onClick={() => setTab(key)}
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+              tab === key ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {loading && <div className="py-8 text-center text-sm text-muted">Cargando solicitudes…</div>}
+
+      {!loading && lista.length === 0 && (
+        <div className="py-12 text-center text-sm text-muted">
+          {tab === "asignadas"
+            ? "No tienes solicitudes pendientes."
+            : tab === "creadas"
+              ? "No tienes solicitudes activas enviadas."
+              : "No hay solicitudes en curso en el equipo."}
+        </div>
+      )}
+
+      {tab === "equipo" && !loading && equipoPorAsignado.length > 0 && (
+        <div className="space-y-5">
+          {equipoPorAsignado.map(({ nombre, items }) => (
+            <div key={nombre}>
+              <div className="mb-2 flex items-center gap-2">
+                <Icon name="user" size={13} className="text-muted" />
+                <span className="text-xs font-bold uppercase tracking-wide text-muted">{nombre}</span>
+                <span className="rounded-full bg-surface border border-border px-1.5 py-0.5 text-[10px] text-muted">{items.length}</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((t) => (
+                  <SolicitudCard
+                    key={t.id}
+                    ticket={t}
+                    token={token}
+                    user={user}
+                    isAdmin={isAdmin}
+                    supervision
+                    onChanged={() => void load(true)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab !== "equipo" && (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {!loading && lista.map((t) => (
+            <SolicitudCard
+              key={t.id}
+              ticket={t}
+              token={token}
+              user={user}
+              isAdmin={isAdmin}
+              onChanged={() => void load(true)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -10304,108 +11156,13 @@ function AccionesView({
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<"" | "pendiente" | "en_proceso" | "resuelto">(""); // "" = activas
-  const [form, setForm] = useState({ titulo: "", asignado_a: "", prioridad: "media", categoria: "logistica" });
+  const [form, setForm] = useState({ titulo: "", descripcion: "", prioridad: "media", categoria: "logistica" });
   const [creando, setCreando] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState("");
 
   // ── STT (voz → título de acción) ─────────────────────────────────────────
-  const [sttGrabando, setSttGrabando] = useState(false);
-  const [sttTranscribiendo, setSttTranscribiendo] = useState(false);
-  const [sttError, setSttError] = useState("");
-  const [sttSegundos, setSttSegundos] = useState(0);
-  const sttMrRef = useRef<MediaRecorder | null>(null);
-  const sttChunksRef = useRef<Blob[]>([]);
-  const sttTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const sttStartRef = useRef<number>(0);
-
-  async function iniciarGrabacion() {
-    setSttError("");
-    setSttSegundos(0);
-    unlockAudioContext(); // desbloquear AudioContext con este gesto
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      sttChunksRef.current = [];
-      const mr = new MediaRecorder(stream);
-      mr.ondataavailable = (e) => { if (e.data.size > 0) sttChunksRef.current.push(e.data); };
-      mr.onstop = async () => {
-        if (sttTimerRef.current) clearInterval(sttTimerRef.current);
-        stream.getTracks().forEach((t) => t.stop());
-        const durSeg = Math.round((Date.now() - sttStartRef.current) / 1000);
-        const blob = new Blob(sttChunksRef.current, { type: mr.mimeType });
-        if (blob.size === 0 || durSeg < 1) {
-          setSttError("Grabación muy corta. Habla al menos 1 segundo.");
-          setSttGrabando(false);
-          return;
-        }
-        setSttTranscribiendo(true);
-        try {
-          const ext = blob.type.split("/")[1]?.split(";")[0] || "webm";
-          const fd = new FormData();
-          fd.append("audio", blob, `audio.${ext}`);
-          const res = await fetch("/api/voz/transcribir", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${chatApiToken ?? token}` },
-            body: fd,
-          });
-          if (!res.ok) {
-            setSttError(`Error del servidor (${res.status}). ¿Está activo Whisper?`);
-          } else {
-            const data = await res.json();
-            const texto = (data.texto ?? "").trim();
-            if (texto) {
-              setForm((f) => ({ ...f, titulo: texto }));
-              setShowForm(true);
-              setSttError("");
-            } else {
-              setSttError("Whisper no detectó palabras. Habla más cerca del micrófono e intenta de nuevo.");
-            }
-          }
-        } catch {
-          setSttError("Sin conexión con el servidor. Verifica que agente-pro esté activo.");
-        }
-        setSttTranscribiendo(false);
-        setSttGrabando(false);
-        setSttSegundos(0);
-      };
-      sttMrRef.current = mr;
-      sttStartRef.current = Date.now();
-      mr.start(250);
-      setSttGrabando(true);
-      sttTimerRef.current = setInterval(() => setSttSegundos((s) => s + 1), 1000);
-    } catch (e: any) {
-      if (e.name === "NotAllowedError") {
-        setSttError("Permiso de micrófono denegado. En Android: Ajustes → Aplicaciones → McKenna → Permisos → Micrófono.");
-      } else if (e.name === "NotFoundError") {
-        setSttError("No se encontró micrófono en este dispositivo.");
-      } else {
-        setSttError(`Error al acceder al micrófono: ${e.message}`);
-      }
-    }
-  }
-
-  function detenerGrabacion() {
-    if (sttTimerRef.current) { clearInterval(sttTimerRef.current); sttTimerRef.current = null; }
-    const mr = sttMrRef.current;
-    if (mr && (mr.state === "recording" || mr.state === "paused")) {
-      mr.stop();
-    } else {
-      // MediaRecorder ya estaba detenido (e.g. timeout) — forzar estado limpio
-      setSttGrabando(false);
-      setSttTranscribiendo(false);
-    }
-  }
-
-  // Desbloquear AudioContext en el primer toque (requisito Android Chrome)
-  useEffect(() => {
-    const handler = () => unlockAudioContext();
-    document.addEventListener("touchstart", handler, { once: true });
-    document.addEventListener("click", handler, { once: true });
-    return () => {
-      document.removeEventListener("touchstart", handler);
-      document.removeEventListener("click", handler);
-    };
-  }, []);
+  const stt = useStt(token, chatApiToken);
 
   // ── Alarma: voz periódica configurable ────────────────────────────────────
   const hayEnProceso = useMemo(
@@ -10609,13 +11366,27 @@ function AccionesView({
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const params = new URLSearchParams({ tipo: "accion" });
-      if (filtroEstado) params.set("estado", filtroEstado);
-      const [data, usrs] = await Promise.all([
-        tapi(`/?${params}`, token),
+      const paramsAccion = new URLSearchParams({ tipo: "accion" });
+      const paramsSol = new URLSearchParams({ tipo: "solicitud" });
+      if (filtroEstado) {
+        paramsAccion.set("estado", filtroEstado);
+        paramsSol.set("estado", filtroEstado);
+      } else {
+        paramsAccion.set("activas", "1");
+        paramsSol.set("activas", "1");
+      }
+      const fetches: [Promise<unknown>, Promise<unknown>?] = [
+        tapi(`/?${paramsAccion}`, token),
+        isAdmin ? tapi(`/?${paramsSol}`, token) : Promise.resolve([]),
+      ];
+      const [data, solData, usrs] = await Promise.all([
+        fetches[0],
+        fetches[1] ?? Promise.resolve([]),
         tapi("/usuarios", token),
       ]);
-      const list: Ticket[] = Array.isArray(data) ? data.map(normalizeTicketForList) : [];
+      const accList: Ticket[] = Array.isArray(data) ? data.map(normalizeTicketForList) : [];
+      const solList: Ticket[] = isAdmin && Array.isArray(solData) ? solData.map(normalizeTicketForList) : [];
+      const list = [...accList, ...solList];
       setAcciones((prev) => {
         const ns = JSON.stringify(list.map((t) => t.id + t.estado));
         const ps = JSON.stringify(prev.map((t) => t.id + t.estado));
@@ -10624,7 +11395,7 @@ function AccionesView({
       setUsuarios(Array.isArray(usrs) ? usrs : []);
     } catch { /* ignore */ }
     finally { if (!silent) setLoading(false); }
-  }, [token, filtroEstado]);
+  }, [token, filtroEstado, isAdmin]);
 
   useEffect(() => { void load(false); }, [load]);
   useEffect(() => {
@@ -10637,8 +11408,15 @@ function AccionesView({
     setCreando(true);
     setMsg("");
     try {
-      await tapi("/", token, { method: "POST", body: JSON.stringify({ ...form, tipo: "accion", descripcion: form.titulo }) });
-      setForm({ titulo: "", asignado_a: "", prioridad: "media", categoria: "logistica" });
+      await tapi("/", token, { method: "POST", body: JSON.stringify({
+        titulo: form.titulo,
+        descripcion: form.descripcion.trim() || form.titulo,
+        prioridad: form.prioridad,
+        categoria: form.categoria,
+        asignado_a: user.id,
+        tipo: "accion",
+      }) });
+      setForm({ titulo: "", descripcion: "", prioridad: "media", categoria: "logistica" });
       setShowForm(false);
       await load(false);
       setMsg("Acción creada");
@@ -10650,15 +11428,19 @@ function AccionesView({
     }
   }
 
-  // Agrupar por asignado
+  // Agrupar por usuario asignado (estable por id)
   const porAsignado = useMemo(() => {
-    const map = new Map<string, Ticket[]>();
+    const map = new Map<number, { nombre: string; acciones: Ticket[]; solicitudes: Ticket[] }>();
     for (const t of acciones) {
-      const key = t.asignado_a_nombre ?? "Sin asignar";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(t);
+      const uid = t.asignado_a ?? 0;
+      if (!map.has(uid)) {
+        map.set(uid, { nombre: t.asignado_a_nombre ?? "Sin asignar", acciones: [], solicitudes: [] });
+      }
+      const g = map.get(uid)!;
+      if (t.tipo === "solicitud") g.solicitudes.push(t);
+      else g.acciones.push(t);
     }
-    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [acciones]);
 
   const sinResolver = acciones.filter((t) => t.estado !== "resuelto" && t.estado !== "rechazado").length;
@@ -10668,14 +11450,18 @@ function AccionesView({
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1">
-          <h2 className="text-xl font-extrabold text-ink flex items-center gap-2">
-            <TopicIcon value="⚡" size={18} />
+          <h2 className="text-2xl font-extrabold text-ink flex items-center gap-2">
+            <TopicIcon value="⚡" size={20} />
             Acciones
             {sinResolver > 0 && (
               <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{sinResolver}</span>
             )}
           </h2>
-          <p className="mt-0.5 text-xs text-muted">Tareas rápidas asignadas a miembros del equipo</p>
+          <p className="mt-0.5 text-sm text-muted">
+            {isAdmin
+              ? "Supervisión: acciones y solicitudes del equipo (solo ver o eliminar)"
+              : "Tareas rápidas asignadas a miembros del equipo"}
+          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {/* Alarma: toggle + selector de intervalo + countdown + botón probar */}
@@ -10754,120 +11540,73 @@ function AccionesView({
             <option value="en_proceso">En proceso</option>
             <option value="resuelto">Resueltas</option>
           </select>
-          {/* Botón voz (STT) — solo visible cuando no está grabando */}
-          {!sttGrabando && (
+          {/* Botón voz (STT) — solo quien puede crear acciones */}
+          {!isAdmin && (
+            <SttInlineBtn
+              stt={stt}
+              label="Voz"
+              onStart={() => void stt.iniciar((t) => {
+                setForm((f) => ({ ...f, titulo: t }));
+                setShowForm(true);
+              })}
+            />
+          )}
+          {!isAdmin && (
             <button
               type="button"
-              onClick={() => void iniciarGrabacion()}
-              disabled={sttTranscribiendo}
-              title="Describir acción por voz (Whisper STT)"
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-semibold min-h-[40px] transition-colors disabled:opacity-50 ${
-                sttTranscribiendo
-                  ? "border-border text-muted"
-                  : "border-border text-muted hover:border-accent hover:text-accent"
-              }`}
+              onClick={() => setShowForm((v) => !v)}
+              className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
             >
-              {sttTranscribiendo ? (
-                <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-              ) : (
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
-                </svg>
-              )}
-              {sttTranscribiendo ? "Transcribiendo…" : "Voz"}
+              <Icon name="plus" size={14} weight="bold" />
+              Nueva acción
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
-          >
-            <Icon name="plus" size={14} weight="bold" />
-            Nueva acción
-          </button>
         </div>
       </div>
 
-      {/* STT status — banner de grabación con botón DETENER grande */}
-      {sttGrabando && (
-        <div className="flex items-center gap-3 rounded-xl border-2 border-red-400/60 bg-red-500/10 px-4 py-3">
-          <span className="h-3 w-3 shrink-0 rounded-full bg-red-400 animate-pulse" />
-          <span className="font-mono text-sm font-bold text-red-400 tabular-nums">
-            {String(Math.floor(sttSegundos / 60)).padStart(2,"0")}:{String(sttSegundos % 60).padStart(2,"0")}
-          </span>
-          <span className="flex-1 text-sm text-red-400">Grabando…</span>
-          <button
-            type="button"
-            onClick={detenerGrabacion}
-            className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white min-h-[44px] shadow-md active:bg-red-700 hover:bg-red-600 transition-colors"
-          >
-            <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="5" y="5" width="14" height="14" rx="2" />
-            </svg>
-            Detener grabación
-          </button>
-        </div>
-      )}
-      {sttError && !sttGrabando && (
-        <p className="text-sm text-red-400">{sttError}</p>
+      <SttBanner stt={stt} />
+      {stt.error && !stt.grabando && (
+        <p className="text-sm text-red-400">{stt.error}</p>
       )}
 
-      {/* Form rápido */}
-      {showForm && (
+      {/* Form rápido — colaboradores; admin no crea acciones aquí */}
+      {showForm && !isAdmin && (
         <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-3">
           <p className="text-xs font-bold text-accent uppercase tracking-wide">Nueva acción</p>
+          <p className="text-xs text-muted">Esta acción se asignará a ti mismo.</p>
           <div className="flex gap-2">
             <input
               className="quest-input flex-1"
-              placeholder="¿Qué debe hacer? (escribe o usa el botón Voz)"
+              placeholder="¿Qué debes hacer? (escribe o usa el botón Voz)"
               value={form.titulo}
               onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
               onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
             />
-            {/* Mic inline en el formulario */}
-            {sttGrabando ? (
-              <button
-                type="button"
-                onClick={detenerGrabacion}
-                title="Detener grabación"
-                className="flex items-center justify-center gap-1.5 rounded-xl bg-red-500 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] min-w-[80px] shadow active:bg-red-700 hover:bg-red-600 transition-colors"
-              >
-                <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-                  <rect x="5" y="5" width="14" height="14" rx="2" />
-                </svg>
-                Stop
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void iniciarGrabacion()}
-                disabled={sttTranscribiendo}
-                title="Describir por voz"
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-border px-3 py-2.5 text-sm min-h-[44px] text-muted hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
-              >
-                {sttTranscribiendo ? (
-                  <span className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                ) : (
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
-                  </svg>
-                )}
-              </button>
-            )}
+            <SttInlineBtn
+              stt={stt}
+              onStart={() => void stt.iniciar((t) => {
+                setForm((f) => ({ ...f, titulo: t }));
+                setShowForm(true);
+              })}
+            />
+          </div>
+          <div className="flex gap-2">
+            <textarea
+              className="quest-input flex-1 resize-none text-sm"
+              rows={2}
+              placeholder="Descripción detallada (opcional, dicta por voz →)"
+              value={form.descripcion}
+              onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
+            />
+            <SttInlineBtn
+              stt={stt}
+              label="Desc."
+              onStart={() => void stt.iniciar((t) => {
+                setForm((f) => ({ ...f, descripcion: t }));
+              })}
+            />
           </div>
           <div className="flex flex-wrap gap-2">
-            <select
-              className="quest-input flex-1 min-w-[140px]"
-              value={form.asignado_a}
-              onChange={(e) => setForm((f) => ({ ...f, asignado_a: e.target.value }))}
-            >
-              <option value="">Sin asignar</option>
-              {usuarios.map((u) => (
-                <option key={u.id} value={u.id}>{u.nombre}</option>
-              ))}
-            </select>
             <select
               className="quest-input w-36"
               value={form.prioridad}
@@ -10918,28 +11657,49 @@ function AccionesView({
         </div>
       )}
 
-      {/* Tarjetas agrupadas por asignado */}
-      {!loading && porAsignado.map(([nombre, items]) => (
-        <div key={nombre}>
-          <div className="mb-2 flex items-center gap-2">
-            <Icon name="user" size={13} className="text-muted" />
-            <span className="text-xs font-bold uppercase tracking-wide text-muted">{nombre}</span>
-            <span className="rounded-full bg-surface border border-border px-1.5 py-0.5 text-[10px] text-muted">{items.length}</span>
+      {/* Tarjetas agrupadas por usuario asignado */}
+      {!loading && porAsignado.map(({ nombre, acciones: accGrupo, solicitudes: solGrupo }) => {
+        const total = accGrupo.length + solGrupo.length;
+        return (
+          <div key={nombre}>
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <Icon name="user" size={13} className="text-muted" />
+              <span className="text-xs font-bold uppercase tracking-wide text-muted">{nombre}</span>
+              <span className="rounded-full bg-surface border border-border px-1.5 py-0.5 text-[10px] text-muted">{total}</span>
+              {accGrupo.length > 0 && (
+                <span className="text-[10px] text-muted">⚡ {accGrupo.length} acción{accGrupo.length !== 1 ? "es" : ""}</span>
+              )}
+              {solGrupo.length > 0 && (
+                <span className="text-[10px] text-muted">📋 {solGrupo.length} solicitud{solGrupo.length !== 1 ? "es" : ""}</span>
+              )}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {accGrupo.map((t) => (
+                <AccionCard
+                  key={t.id}
+                  ticket={t}
+                  token={token}
+                  onSelect={onSelect}
+                  onChanged={() => void load(true)}
+                  isAdmin={isAdmin}
+                  readOnly={isAdmin}
+                />
+              ))}
+              {solGrupo.map((t) => (
+                <SolicitudCard
+                  key={t.id}
+                  ticket={t}
+                  token={token}
+                  user={user}
+                  isAdmin={isAdmin}
+                  supervision
+                  onChanged={() => void load(true)}
+                />
+              ))}
+            </div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((t) => (
-              <AccionCard
-                key={t.id}
-                ticket={t}
-                token={token}
-                onSelect={onSelect}
-                onChanged={() => void load(true)}
-                isAdmin={isAdmin}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -10981,10 +11741,11 @@ export default function TicketsPanel() {
   const nivel = user.rol?.nivel ?? 1;
   const permisos = user.permisos_secciones;
 
-  // Si el usuario no puede ver el tablero, mostrar acciones por defecto
+  // Si el usuario no puede ver el tablero, mostrar acciones o solicitudes por defecto
   useEffect(() => {
     if (!puedeVerTab(permisos, nivel, "tablero") && view === "list") {
       if (puedeVerTab(permisos, nivel, "acciones")) setView("acciones");
+      else if (puedeVerTab(permisos, nivel, "solicitudes")) setView("solicitudes");
     }
   }, [permisos, nivel]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -11004,6 +11765,7 @@ export default function TicketsPanel() {
     setSelectedMisionId(null);
   }
   function goAcciones() { setView("acciones"); }
+  function goSolicitudes() { setView("solicitudes"); }
   function goInventario() { setView("inventario"); }
   function goReinos() { setView("reinos"); }
   function goWorkload() { setView("workload"); }
@@ -11028,6 +11790,7 @@ export default function TicketsPanel() {
           userNombre={user.nombre}
           onTablero={goTablero}
           onAcciones={goAcciones}
+          onSolicitudes={goSolicitudes}
           onInventario={goInventario}
           onReinos={goReinos}
           onRecetas={goRecetas}
@@ -11070,6 +11833,12 @@ export default function TicketsPanel() {
             token={token}
             user={user}
             onSelect={goDetail}
+          />
+        )}
+        {view === "solicitudes" && (
+          <SolicitudesView
+            token={token}
+            user={user}
           />
         )}
         {view === "create" && (

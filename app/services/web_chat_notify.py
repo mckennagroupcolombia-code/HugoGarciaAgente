@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
+import threading
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -11,13 +13,70 @@ from app.observability import log_json, spawn_thread
 from app.utils import enviar_whatsapp_reporte
 
 
-def _notify_enabled() -> bool:
+_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "web_chat_notify.json")
+_CONFIG_LOCK = threading.Lock()
+
+
+def _coerce_bool(value: object, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    s = str(value).strip().lower()
+    if s in ("1", "true", "yes", "on"):
+        return True
+    if s in ("0", "false", "no", "off"):
+        return False
+    return default
+
+
+def _env_default_enabled() -> bool:
     return os.getenv("AGENTE_WEB_CHAT_NOTIFY_WA", "1").strip() not in (
         "0",
         "false",
         "no",
         "off",
     )
+
+
+def get_web_chat_notify_state() -> dict:
+    """
+    Lee el estado persistido (si existe) o cae al default por env.
+    Retorna dict: {enabled: bool, source: str}
+    """
+    default_enabled = _env_default_enabled()
+    with _CONFIG_LOCK:
+        try:
+            with open(_CONFIG_PATH, encoding="utf-8") as f:
+                data = json.load(f) or {}
+        except Exception:
+            data = {}
+    enabled = _coerce_bool(data.get("enabled"), default_enabled)
+    source = "config" if "enabled" in (data or {}) else "env"
+    return {"enabled": enabled, "source": source}
+
+
+def set_web_chat_notify_enabled(*, enabled: bool, updated_by: str = "panel") -> dict:
+    state = {
+        "enabled": bool(enabled),
+        "updated_at": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+        "updated_by": (updated_by or "panel")[:64],
+    }
+    with _CONFIG_LOCK:
+        os.makedirs(os.path.dirname(_CONFIG_PATH), exist_ok=True)
+        with open(_CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(state, f, indent=2, ensure_ascii=False)
+    log_json(
+        "web_chat_notify_config_set",
+        enabled=state["enabled"],
+        updated_by=state["updated_by"],
+    )
+    # Siempre reporta la fuente como config tras set.
+    return {"enabled": state["enabled"], "source": "config"}
+
+
+def _notify_enabled() -> bool:
+    return bool(get_web_chat_notify_state().get("enabled"))
 
 
 def jid_grupo_pedidos_web_wa() -> str:

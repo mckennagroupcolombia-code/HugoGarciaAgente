@@ -289,11 +289,15 @@ _TRIGGERS_EXPLÍCITOS = re.compile(
 # Respuestas sociales que el bot debe ignorar (mensajes cortos de conversación)
 _IGNORAR_PATRON = re.compile(
     r'^[\s🙏👍👌✅🤝😊🙌💪🫡🫶]+$'  # solo emojis
-    r'|^(r|ok|okay|dale|listo|gracias|claro|sí|si|no|buenas|hola|hola!|'
-    r'buenos días|buenas tardes|buenas noches|perfecto|entendido|recibido|'
-    r'copy|roger|ya|voy|vamos|espera|ahí voy|ahí te cuento|'
+    r'|^[¡!¿?]*\s*(r|ok|okay|dale|listo|gracias|claro|sí|si|no|'
+    r'buenas|hola|hola equipo|hola a todos|hola team|hola gente|'
+    r'buenos días|buenas tardes|buenas noches|buen día|buenas|'
+    r'perfecto|entendido|recibido|copy|roger|ya|voy|vamos|espera|'
+    r'ahí voy|ahí te cuento|llegué|voy saliendo|ya llegué|ya voy|'
     r'jeje|jaja|aja|ah|oh|uy|oye|oiga|bien|genial|excelente|'
-    r'np|np!|👋|oki|okis|de una|va|listo pues|claro que sí)[.!?\s]*$',
+    r'np|np!|👋|oki|okis|de una|va|listo pues|claro que sí|'
+    r'con gusto|con mucho gusto|claro que sí|cómo están|cómo estamos|'
+    r'qué tal|qué más|qué hubo)[.!?\s😊🙏]*$',
     re.IGNORECASE,
 )
 
@@ -303,14 +307,15 @@ def _debe_activar_bot(texto: str) -> bool:
     True solo si el mensaje requiere respuesta del agente en SEDE SUR.
     El bot NO responde a conversación social normal del equipo.
     """
-    t = texto.strip()
+    # Normalizar: quitar puntuación de apertura (¡, ¿) para el match de patrones
+    t = texto.strip().lstrip('¡¿')
     if not t or len(t) < 3:
         return False
     # Ignorar las propias confirmaciones del bot (evitar loop)
-    if t.startswith(('✅', '⚠️')):
+    if texto.strip().startswith(('✅', '⚠️')):
         return False
-    # Siempre ignorar respuestas sociales cortas
-    if _IGNORAR_PATRON.match(t):
+    # Siempre ignorar respuestas sociales
+    if _IGNORAR_PATRON.match(texto.strip()):
         return False
     # Siempre activar si hay @mención o número de ticket
     if _RE_MENCION.search(t) or _RE_TICKET_NUM.search(t):
@@ -318,8 +323,8 @@ def _debe_activar_bot(texto: str) -> bool:
     # Activar si hay trigger explícito
     if _TRIGGERS_EXPLÍCITOS.search(t):
         return True
-    # Activar si es una pregunta
-    if '?' in t:
+    # Activar si es una pregunta real (no solo "¿Qué tal?")
+    if '?' in t and len(t) > 15:
         return True
     return False
 

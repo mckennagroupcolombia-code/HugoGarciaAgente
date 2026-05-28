@@ -2,6 +2,7 @@ import { useAppStore, type Panel } from "../stores/app";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
 import { usePreventa } from "../hooks/usePreventa";
+import { usePostventa } from "../hooks/usePostventa";
 import { useWebChat } from "../hooks/useWebChat";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -14,8 +15,10 @@ const NAV: { id: Panel; label: string }[] = [
   { id: "webchat", label: "Chat web" },
   { id: "whatsapp", label: "Agente WA" },
   { id: "preventa", label: "Preventa MeLi" },
+  { id: "postventa", label: "Postventa MeLi" },
   { id: "sync", label: "Sincronización" },
   { id: "stock", label: "Stock" },
+  { id: "fichas", label: "Fichas técnicas" },
   { id: "pedidos", label: "Pedidos Web" },
   { id: "facturas", label: "Facturas Compra" },
   { id: "tickets", label: "Centro de Mando" },
@@ -30,6 +33,7 @@ function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
   if (seccion === "settings") return true; // todos ven ajustes
   const p = user.permisos_secciones;
   if (!p) return DEFAULT_SECCIONES.has(seccion); // sin permisos configurados: set por defecto
+  if (seccion === "postventa" && p.preventa) return true;
   return Boolean(p[seccion]);
 }
 
@@ -41,6 +45,8 @@ export default function Sidebar() {
   const clearMain = useAuthStore((s) => s.clear);
   const { data } = usePreventa();
   const pendientes = data?.total ?? 0;
+  const { data: postventaData } = usePostventa();
+  const postventaPendientes = postventaData?.total ?? 0;
   const { data: webChat } = useWebChat(true);
   const webChatPendientes = webChat?.summary?.unreviewed_count ?? 0;
   const { data: facturaData } = useQuery({
@@ -112,6 +118,11 @@ export default function Sidebar() {
                 {item.id === "preventa" && pendientes > 0 && (
                   <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
                     {pendientes}
+                  </span>
+                )}
+                {item.id === "postventa" && postventaPendientes > 0 && (
+                  <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
+                    {postventaPendientes}
                   </span>
                 )}
                 {item.id === "webchat" && webChatPendientes > 0 && (

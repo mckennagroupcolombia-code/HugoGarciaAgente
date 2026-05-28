@@ -21,6 +21,8 @@ export function googleAuthStartUrl(): string {
 type McKennaAndroidBridge = {
   saveApiToken?: (token: string) => void;
   syncAlarma?: (activa: boolean, intervaloMin: number, hayTarea: boolean, precache: boolean) => void;
+  hasAudioPermission?: () => boolean;
+  requestAudioPermission?: () => void;
 };
 
 export function mckennaAndroidBridge(): McKennaAndroidBridge | null {

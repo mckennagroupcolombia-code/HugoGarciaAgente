@@ -1,8 +1,10 @@
 package co.mckennagroup.panel;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -10,6 +12,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -17,6 +20,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import androidx.browser.customtabs.CustomTabsIntent;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 /**
  * Panel en WebView con OAuth Google vía Chrome Custom Tab y retorno por mckennaapp://auth.
@@ -25,9 +30,11 @@ public class McKennaWebViewActivity extends Activity {
 
     private static final String TAG = "McKennaWebView";
     public static final String EXTRA_URL = "panel_url";
-    private static final String UA_SUFFIX = " McKennaPanelAndroid/1.2.8";
+    private static final String UA_SUFFIX = " McKennaPanelAndroid/1.3.0";
+    private static final int REQ_AUDIO = 1001;
 
     private WebView webView;
+    private PermissionRequest pendingPermissionRequest;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -59,7 +66,33 @@ public class McKennaWebViewActivity extends Activity {
         }
 
         webView.addJavascriptInterface(new McKennaJsBridge(this), "McKennaAndroid");
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(PermissionRequest request) {
+                String origin = request.getOrigin() != null ? request.getOrigin().toString() : "";
+                boolean trusted = origin.contains("mckennagroup.co")
+                        || origin.startsWith("http://localhost")
+                        || origin.startsWith("https://localhost");
+                if (!trusted) {
+                    Log.w(TAG, "onPermissionRequest: origen no confiable: " + origin);
+                    request.deny();
+                    return;
+                }
+                if (ContextCompat.checkSelfPermission(McKennaWebViewActivity.this, Manifest.permission.RECORD_AUDIO)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    Log.i(TAG, "onPermissionRequest: RECORD_AUDIO concedido → grant");
+                    request.grant(request.getResources());
+                } else {
+                    Log.i(TAG, "onPermissionRequest: pidiendo RECORD_AUDIO al SO");
+                    pendingPermissionRequest = request;
+                    ActivityCompat.requestPermissions(
+                            McKennaWebViewActivity.this,
+                            new String[]{Manifest.permission.RECORD_AUDIO},
+                            REQ_AUDIO
+                    );
+                }
+            }
+        });
         webView.setWebViewClient(new PanelWebViewClient());
 
         String url = getIntent().getStringExtra(EXTRA_URL);
@@ -78,6 +111,24 @@ public class McKennaWebViewActivity extends Activity {
         if (url != null && !url.isEmpty() && webView != null) {
             Log.i(TAG, "Recargando tras deep link: " + url);
             webView.loadUrl(url);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == REQ_AUDIO) {
+            if (pendingPermissionRequest != null) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.i(TAG, "RECORD_AUDIO concedido por usuario → grant web permission");
+                    pendingPermissionRequest.grant(pendingPermissionRequest.getResources());
+                } else {
+                    Log.w(TAG, "RECORD_AUDIO denegado por usuario → deny web permission");
+                    pendingPermissionRequest.deny();
+                }
+                pendingPermissionRequest = null;
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
 

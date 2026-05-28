@@ -411,6 +411,37 @@ def meli_postventa_id_mensaje(msg: dict) -> str:
     return str(msg.get("id") or msg.get("message_id") or "").strip()
 
 
+def meli_postventa_conversacion_cerrada(
+    conversation_status: dict | None,
+    *,
+    order_json: dict | None = None,
+) -> tuple[bool, str]:
+    """
+    True si el chat postventa ya no admite respuesta por mensajes (reclamo, cancelación, etc.).
+    MeLi suele devolver status=blocked y substatus=blocked_by_claim tras abrir un reclamo.
+    """
+    conv = conversation_status if isinstance(conversation_status, dict) else {}
+    status = str(conv.get("status") or "").strip().lower()
+    sub = str(conv.get("substatus") or "").strip().lower()
+
+    if status == "blocked":
+        if sub:
+            return True, sub
+        if conv.get("claim_ids"):
+            return True, "blocked_with_claim_ids"
+        return True, "blocked"
+
+    if conv.get("claim_ids"):
+        return True, "claim_ids"
+
+    if isinstance(order_json, dict):
+        meds = order_json.get("mediations") or []
+        if isinstance(meds, list) and len(meds) > 0:
+            return True, "order_has_mediations"
+
+    return False, ""
+
+
 def meli_postventa_remitente_user_id(msg: dict) -> str:
     """
     user_id del remitente en mensajes postventa (API /messages/packs/... puede variar forma de `from`).

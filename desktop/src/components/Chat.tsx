@@ -157,6 +157,13 @@ function CanalModeloSelector({
   );
 }
 
+const FLUJO_BADGE: Record<string, string> = {
+  cliente_texto:
+    "text-emerald-300 border-emerald-500/40 bg-emerald-500/10",
+  operaciones: "text-amber-300 border-amber-500/40 bg-amber-500/10",
+  interno: "text-violet-300 border-violet-500/40 bg-violet-500/10",
+};
+
 function CanalesPanel({
   modeloId,
   onLoadModel,
@@ -178,7 +185,7 @@ function CanalesPanel({
         className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-surface-hover transition-colors"
       >
         <span className="text-xs font-semibold text-muted uppercase tracking-wider">
-          Canales activos — modelo por canal
+          Chat de Agentes — modelo por canal
         </span>
         <svg
           className={`w-3.5 h-3.5 text-muted transition-transform ${open ? "rotate-180" : ""}`}
@@ -192,7 +199,15 @@ function CanalesPanel({
       </button>
 
       {open && (
-        <div className="border-t border-border divide-y divide-border">
+        <div className="border-t border-border">
+          <p className="px-4 py-2.5 text-[11px] text-muted leading-snug border-b border-border bg-surface-hover/40">
+            <strong className="text-ink">WhatsApp y Web</strong> usan flujo{" "}
+            <span className="text-emerald-400">cliente</span>: catálogo y fichas se
+            consultan en el servidor (Python); el modelo asignado solo redacta la
+            respuesta (Ollama local o Gemini Flash). No consumen Claude ni las ~36
+            herramientas del agente operativo.
+          </p>
+          <div className="divide-y divide-border">
           {isLoading && (
             <p className="px-4 py-3 text-xs text-muted">Cargando canales…</p>
           )}
@@ -224,6 +239,17 @@ function CanalesPanel({
                       <span className="text-[10px] text-muted border border-border rounded px-1.5 py-0.5 font-mono">
                         {c.modo}
                       </span>
+                      {c.flujo && (
+                        <span
+                          className={`text-[10px] border rounded px-1.5 py-0.5 font-medium ${
+                            FLUJO_BADGE[c.flujo] ??
+                            "text-muted border-border"
+                          }`}
+                          title={c.flujo_label ?? c.flujo}
+                        >
+                          {c.es_cliente ? "Cliente" : c.flujo_label ?? c.flujo}
+                        </span>
+                      )}
                     </div>
                     <p className={`text-[11px] font-medium mt-0.5 ${catColor.split(" ")[0]}`}>
                       {c.modelo_nombre}
@@ -251,9 +277,16 @@ function CanalesPanel({
                     Modelo elegido en este panel (selector superior).
                   </p>
                 )}
+                {c.es_cliente && (
+                  <p className="text-[10px] text-emerald-400/90 pl-7 leading-snug">
+                    Solo modelos Local (Ollama) o Google (Gemini). Catálogo combo
+                    (web) o Sheets (WA) + ficha técnica vía preflight automático.
+                  </p>
+                )}
               </div>
             );
           })}
+          </div>
         </div>
       )}
     </div>

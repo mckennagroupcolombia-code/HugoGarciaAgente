@@ -1,5 +1,8 @@
 import re
 import os
+import json
+import sqlite3
+from typing import Any
 import gspread
 import requests
 from datetime import datetime, timedelta
@@ -15,6 +18,111 @@ from app.services.siigo import (
 from app.services.meli import subir_factura_meli
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte, jid_grupo_inventario_wa
 from app.tools.system_tools import enviar_reporte_controlado
+from app.services.tickets_db import (
+    init_db as tickets_init_db,
+    crear_ticket,
+    DB_PATH as TICKETS_DB_PATH,
+    get_aliados_asignaciones,
+    TAREA_SYNC_FACTURAS_FALTANTES_SIIGO,
+)
+
+
+TITULO_SYNC_FACTURAS_FALTANTES_SIIGO = "Sync facturas faltantes MeLi↔Siigo"
+
+
+def _get_admin_creator_id() -> int | None:
+    """
+    Para tickets que crea el sistema desde tareas backend (sync),
+    elegimos el usuario 'admin' si existe; si no, el primero activo.
+    """
+    try:
+        tickets_init_db()
+        with sqlite3.connect(TICKETS_DB_PATH) as db:
+            db.row_factory = sqlite3.Row
+            db.execute("PRAGMA foreign_keys = ON")
+            row = db.execute("SELECT id FROM usuarios WHERE username='admin'").fetchone()
+            if row and row["id"]:
+                return int(row["id"])
+            row = db.execute(
+                "SELECT id FROM usuarios WHERE activo=1 ORDER BY id ASC LIMIT 1"
+            ).fetchone()
+            if row and row["id"]:
+                return int(row["id"])
+    except Exception:
+        return None
+    return None
+
+
+def _hay_accion_abierta_sync_facturas_faltantes() -> bool:
+    try:
+        tickets_init_db()
+        with sqlite3.connect(TICKETS_DB_PATH) as db:
+            db.row_factory = sqlite3.Row
+            row = db.execute(
+                """
+                SELECT id
+                FROM tickets
+                WHERE tipo='accion'
+                  AND titulo=?
+                  AND estado IN ('pendiente','en_proceso','esperando_aprobacion')
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (TITULO_SYNC_FACTURAS_FALTANTES_SIIGO,),
+            ).fetchone()
+            return bool(row)
+    except Exception:
+        return False
+    return False
+
+
+def _crear_accion_sync_facturas_faltantes_siigo(faltantes: list[str]) -> dict | None:
+    """
+    Crea una acción en el Centro de mando para que un colaborador ejecute la sincronización
+    manual de los Pack IDs faltantes.
+    """
+    if not faltantes:
+        return None
+    if _hay_accion_abierta_sync_facturas_faltantes():
+        return None
+
+    creador_id = _get_admin_creator_id()
+    if not creador_id:
+        return None
+
+    asignado_a = None
+    try:
+        asignado_a = (
+            (get_aliados_asignaciones().get(TAREA_SYNC_FACTURAS_FALTANTES_SIIGO) or {}).get("usuario_id")
+            or None
+        )
+    except Exception:
+        asignado_a = None
+
+    marker_line = f"SYS_SYNC_FALTANTES_PACKS_JSON: {json.dumps(faltantes, ensure_ascii=False)}"
+    # Reporte legible: mostramos máximo 30; el marker conserva todos.
+    lista_legible = "\n".join([f"- {p}" for p in faltantes[:30]])
+    descripcion = (
+        "Se detectaron órdenes de MeLi sin factura fiscal en el cruce MeLi↔Siigo.\n\n"
+        "Acción requerida: sincronizar la(s) factura(s) en SIIGO para los Pack IDs faltantes "
+        "(y re-subir a MeLi) y luego marcar la acción como Resuelto.\n\n"
+        f"Pack IDs (vistos):\n{lista_legible}\n\n"
+        + marker_line
+    )
+
+    data = {
+        "tipo": "accion",
+        "titulo": TITULO_SYNC_FACTURAS_FALTANTES_SIIGO,
+        "categoria": "contabilidad",
+        "descripcion": descripcion,
+        "prioridad": "alta",
+        "asignado_a": asignado_a,
+    }
+
+    ticket, err = crear_ticket(data, creador_id, None)
+    if err or not ticket:
+        return None
+    return ticket
 
 # ========================================================
 #  CONFIGURACIÓN TEMPORAL
@@ -193,6 +301,84 @@ def sincronizar_manual_por_id(pack_id: str):
         return f"❌ Error crítico en sync manual: {e}"
 
 
+def sincronizar_manual_por_packs(pack_ids: list[str]) -> dict[str, Any]:
+    """
+    Versión multi-pack del sync manual para evitar múltiples listados/paginaciones.
+    Retorna un resumen para bitácora / comentarios de tickets.
+    """
+    pack_norm = [str(p).strip() for p in (pack_ids or []) if str(p).strip()]
+    pack_norm = list(dict.fromkeys(pack_norm))  # dedup preserving order
+    if not pack_norm:
+        return {"ok": True, "pack_ids": [], "exitosas": [], "fallidas": [], "faltantes": []}
+
+    fecha_inicio = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")
+
+    try:
+        facturas_siigo = obtener_facturas_siigo_paginadas(fecha_inicio)
+        # Mapear primero: pack_id -> factura Siigo encontrada por búsqueda en observations/purchase_order.
+        pack_set = set(pack_norm)
+        fac_match: dict[str, dict] = {}
+        for fac in facturas_siigo:
+            obs = (
+                str(fac.get("observations", ""))
+                + " "
+                + str(fac.get("purchase_order", ""))
+            )
+            for p in list(pack_set):
+                if p in obs:
+                    fac_match[p] = fac
+                    pack_set.discard(p)
+            if not pack_set:
+                break
+
+        exitosas: list[str] = []
+        fallidas: list[str] = []
+        faltantes: list[str] = []
+        cache_doc: dict[str, tuple[str, str]] = {}  # siigo_factura_id -> (doc, fmt)
+
+        for p_id in pack_norm:
+            fac = fac_match.get(p_id)
+            if not fac:
+                faltantes.append(p_id)
+                continue
+
+            if siigo_omitir_pdf_mientras_timbrado(fac):
+                fallidas.append(p_id)
+                continue
+
+            sid = str(fac.get("id") or "").strip()
+            if not sid:
+                fallidas.append(p_id)
+                continue
+
+            if sid in cache_doc:
+                doc, fmt = cache_doc[sid]
+            else:
+                doc, fmt = obtener_documento_fiscal_siigo_para_meli(sid)
+                cache_doc[sid] = (doc, fmt)
+
+            if not doc:
+                fallidas.append(p_id)
+                continue
+
+            res = subir_factura_meli(p_id, doc, formato=fmt)
+            if isinstance(res, str) and "✅" in res:
+                exitosas.append(p_id)
+            else:
+                fallidas.append(p_id)
+
+        return {
+            "ok": True,
+            "pack_ids": pack_norm,
+            "exitosas": exitosas,
+            "fallidas": fallidas,
+            "faltantes": faltantes,
+            "facturas_siigo_leidas": len(facturas_siigo),
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e), "pack_ids": pack_norm}
+
+
 def sincronizar_inteligente():
     """Busca órdenes en MeLi sin factura y las cruza con facturas de Siigo."""
     print(
@@ -273,6 +459,9 @@ def sincronizar_inteligente():
             reporte = f"{resumen}\n\n**IDs sin factura:**\n{lista_ids}"
             if len(faltantes) > 20:
                 reporte += f"\n... y {len(faltantes) - 20} más."
+            ticket = _crear_accion_sync_facturas_faltantes_siigo(faltantes)
+            if ticket and ticket.get("numero"):
+                reporte += f"\n\n🏢 Centro de mando: acción #{ticket.get('numero')}"
             enviar_reporte_controlado(reporte)
             return f"Sync terminada. Subidas: {len(exitosas)}. Faltantes: {len(faltantes)}. Reporte enviado."
 

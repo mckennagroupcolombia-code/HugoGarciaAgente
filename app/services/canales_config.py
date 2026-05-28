@@ -46,18 +46,23 @@ CANALES_DEFINICION: list[dict[str, Any]] = [
         "id": "whatsapp",
         "nombre": "WhatsApp",
         "icono": "wa",
-        "modelo_id": "claude-sonnet-4-6",
-        "modo": "tool-use",
-        "descripcion": "Atiende clientes con acceso a inventario, pagos y catálogo.",
+        "modelo_id": "gemma4:e4b",
+        "modo": "Cliente · catálogo + texto",
+        "flujo": "cliente_texto",
+        "descripcion": (
+            "Ventas a clientes: catálogo Sheets y ficha técnica se cargan en Python; "
+            "el LLM (Ollama gemma4:e4b por defecto) solo redacta. Sin tool-use API ni Claude."
+        ),
         "editable": True,
-        "categorias_modelo": ["claude", "gemini"],
+        "categorias_modelo": ["ollama", "gemini"],
     },
     {
         "id": "meli_preventa",
         "nombre": "MeLi Preventa",
         "icono": "ml",
         "modelo_id": "gemini-2.5-pro",
-        "modo": "ficha + delegación",
+        "modo": "Operaciones · ficha MeLi",
+        "flujo": "operaciones",
         "descripcion": "Responde con ficha técnica. Sin ficha → delega al equipo.",
         "editable": True,
         "categorias_modelo": ["gemini"],
@@ -66,11 +71,15 @@ CANALES_DEFINICION: list[dict[str, Any]] = [
         "id": "web_chat",
         "nombre": "Web Chat (burbuja)",
         "icono": "web",
-        "modelo_id": "claude-sonnet-4-6",
-        "modo": "tool-use + combos SIIGO",
-        "descripcion": "Burbuja en mckennagroup.co. Use Claude para herramientas y catálogo combo.",
+        "modelo_id": "gemma4:e4b",
+        "modo": "Cliente · combo SIIGO + texto",
+        "flujo": "cliente_texto",
+        "descripcion": (
+            "Burbuja mckennagroup.co: combos SIIGO y fichas en preflight; "
+            "LLM local (gemma4:e4b) o Gemini Flash solo texto. Sin Claude ni 36 tools."
+        ),
         "editable": True,
-        "categorias_modelo": ["claude", "gemini"],
+        "categorias_modelo": ["ollama", "gemini"],
     },
     {
         "id": "panel_chat",
@@ -97,12 +106,20 @@ CANALES_DEFINICION: list[dict[str, Any]] = [
         "nombre": "MCKG SEDE SUR",
         "icono": "bot",
         "modelo_id": "gemma3:1b",
-        "modo": "conversacional (Ollama)",
+        "modo": "Interno · Ollama",
+        "flujo": "interno",
         "descripcion": "Equipo interno Sede Sur. Ollama local sin costo por token.",
         "editable": True,
         "categorias_modelo": ["ollama", "claude", "gemini"],
     },
 ]
+
+FLOJOS_LABEL: dict[str, str] = {
+    "cliente_texto": "Cliente (catálogo en Python + LLM texto)",
+    "operaciones": "Operaciones (API dedicada)",
+    "interno": "Equipo interno",
+    "panel": "Panel / pruebas",
+}
 
 CANALES_EDITABLES = {c["id"] for c in CANALES_DEFINICION if c.get("editable")}
 
@@ -188,6 +205,12 @@ def obtener_modelo_canal(canal_id: str) -> str:
     return "claude-sonnet-4-6"
 
 
+def es_canal_cliente(canal_id: str) -> bool:
+    """True para WhatsApp y web: flujo texto + preflight catálogo (sin AgentRun tools)."""
+    base = next((c for c in CANALES_DEFINICION if c["id"] == (canal_id or "").strip()), None)
+    return bool(base and base.get("flujo") == "cliente_texto")
+
+
 def listar_canales() -> list[dict[str, Any]]:
     with _LOCK:
         overrides = _load_overrides()
@@ -196,7 +219,15 @@ def listar_canales() -> list[dict[str, Any]]:
         cid = base["id"]
         modelo_id = overrides.get(cid, base["modelo_id"])
         meta = _resolver_meta_modelo(modelo_id)
-        out.append({**base, **meta})
+        flujo = base.get("flujo") or ""
+        out.append(
+            {
+                **base,
+                **meta,
+                "flujo_label": FLOJOS_LABEL.get(flujo, flujo or "—"),
+                "es_cliente": flujo == "cliente_texto",
+            }
+        )
     return out
 
 

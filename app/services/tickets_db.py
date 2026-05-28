@@ -1,4 +1,5 @@
 import os
+import json
 import sqlite3
 import secrets
 from datetime import datetime, timedelta
@@ -74,6 +75,7 @@ def _migrate_categorias():
             ("rrhh",          "Recursos Humanos", "#e8a838", "👥"),
             ("logistica",     "Logística",        "#4a9a6a", "🚚"),
             ("mantenimiento", "Mantenimiento",    "#a68bc8", "🔧"),
+            ("contabilidad",  "Contabilidad",     "#0c6069", "🧾"),
         ]:
             db.execute(
                 "INSERT INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
@@ -675,9 +677,16 @@ def _migrate_ticket_paso_notas():
 
 
 def _migrate_ticket_tipo():
-    """Columna tipo en tickets: 'ticket' (normal) o 'accion' (tarea simple sin etapas)."""
+    """Columna tipo en tickets: 'ticket' (normal), 'accion' o 'solicitud'."""
     with _conn() as db:
         _add_col(db, "tickets", "tipo", "TEXT NOT NULL DEFAULT 'ticket'")
+        db.commit()
+
+
+def _migrate_ticket_fecha_inicio():
+    """Columna fecha_inicio para solicitudes periódicas (YYYY-MM-DD)."""
+    with _conn() as db:
+        _add_col(db, "tickets", "fecha_inicio", "TEXT")
         db.commit()
 
 
@@ -745,6 +754,7 @@ def init_db():
     _safe_migrate(_migrate_recetas_ops)
     _safe_migrate(_migrate_dependencias_prerequisitos)
     _safe_migrate(_migrate_ticket_tipo)
+    _safe_migrate(_migrate_ticket_fecha_inicio)
     _safe_migrate(_migrate_usuario_google)
     _safe_migrate(_migrate_usuario_permisos)
     _safe_migrate(_migrate_usuario_departamentos)
@@ -785,6 +795,14 @@ def init_db():
                 departamento_id INTEGER REFERENCES departamentos(id),
                 activo          INTEGER DEFAULT 1,
                 creado_en       TEXT DEFAULT (datetime('now'))
+            );
+            -- Asignaciones de labores operativas a "aliados" (usuarios).
+            -- Ejemplo: reclamos MeLi → anular factura / nota crédito SIIGO.
+            CREATE TABLE IF NOT EXISTS aliados_asignaciones (
+                tarea_slug      TEXT PRIMARY KEY,
+                usuario_id      INTEGER REFERENCES usuarios(id),
+                actualizado_por INTEGER REFERENCES usuarios(id),
+                actualizado_en  TEXT DEFAULT (datetime('now'))
             );
             CREATE TABLE IF NOT EXISTS sesiones (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -997,6 +1015,7 @@ def init_db():
             ("rrhh",          "Recursos Humanos", "#e8a838", "👥"),
             ("logistica",     "Logística",        "#4a9a6a", "🚚"),
             ("mantenimiento", "Mantenimiento",    "#a68bc8", "🔧"),
+            ("contabilidad",  "Contabilidad",     "#0c6069", "🧾"),
         ]:
             db.execute(
                 "INSERT OR IGNORE INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
@@ -1235,6 +1254,59 @@ def actualizar_departamento(dept_id: int, data: dict) -> bool:
         db.execute(f"UPDATE departamentos SET {set_clause} WHERE id=?", (*campos.values(), dept_id))
         db.commit()
         return True
+
+
+# ── ALIADOS: ASIGNACIONES DE LABORES ───────────────────────────────────────────
+
+TAREA_RECLAMO_MELI_ANULAR_FACTURA = "meli_reclamo_anular_factura_siigo"
+TAREA_SYNC_FACTURAS_FALTANTES_SIIGO = "meli_sync_facturas_faltantes_siigo"
+
+# Marker line embedded in ticket.descripcion for automated re-sync on resolution.
+# Example:
+# SYS_SYNC_FALTANTES_PACKS_JSON: ["123","456"]
+SYS_SYNC_FALTANTES_PACKS_JSON_PREFIX = "SYS_SYNC_FALTANTES_PACKS_JSON:"
+
+
+def get_aliados_asignaciones() -> dict:
+    """Devuelve mapa {tarea_slug: {usuario_id, actualizado_en}}."""
+    with _conn() as db:
+        rows = db.execute(
+            "SELECT tarea_slug, usuario_id, actualizado_en FROM aliados_asignaciones"
+        ).fetchall()
+        return {
+            r["tarea_slug"]: {
+                "usuario_id": r["usuario_id"],
+                "actualizado_en": r["actualizado_en"],
+            }
+            for r in rows
+        }
+
+
+def set_aliado_asignacion(
+    tarea_slug: str,
+    usuario_id: int | None,
+    *,
+    actualizado_por: int | None = None,
+) -> dict:
+    """Crea/actualiza la asignación de una tarea a un usuario (aliado)."""
+    tarea_slug = (tarea_slug or "").strip()
+    if not tarea_slug:
+        raise ValueError("tarea_slug requerido")
+    uid = int(usuario_id) if usuario_id else None
+    with _conn() as db:
+        db.execute(
+            """
+            INSERT INTO aliados_asignaciones (tarea_slug, usuario_id, actualizado_por, actualizado_en)
+            VALUES (?,?,?,datetime('now'))
+            ON CONFLICT(tarea_slug) DO UPDATE SET
+                usuario_id=excluded.usuario_id,
+                actualizado_por=excluded.actualizado_por,
+                actualizado_en=datetime('now')
+            """,
+            (tarea_slug, uid, int(actualizado_por) if actualizado_por else None),
+        )
+        db.commit()
+    return {"tarea_slug": tarea_slug, "usuario_id": uid}
 
 
 # ── USUARIOS ──────────────────────────────────────────────────────────────────
@@ -2681,21 +2753,27 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
         try:
             asignado_a = int(data["asignado_a"]) if data.get("asignado_a") else None
             tipo = data.get("tipo", "ticket")
-            if tipo not in ("ticket", "accion"):
+            if tipo not in ("ticket", "accion", "solicitud"):
                 tipo = "ticket"
+            frecuencia = data.get("frecuencia") or None
+            fecha_inicio = data.get("fecha_inicio") or None
             db.execute("""
                 INSERT INTO tickets
                     (numero, titulo, categoria, descripcion, prioridad,
-                     creado_por, asignado_a, soporte_archivo, tipo)
-                VALUES (?,?,?,?,?,?,?,?,?)
+                     creado_por, asignado_a, soporte_archivo, tipo,
+                     frecuencia, fecha_inicio)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 numero, data["titulo"], data["categoria"],
-                data["descripcion"], data.get("prioridad", "media"),
+                data.get("descripcion") or data["titulo"],
+                data.get("prioridad", "media"),
                 usuario_id, asignado_a, archivo_nombre, tipo,
+                frecuencia, fecha_inicio,
             ))
             tid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
             _log(db, tid, usuario_id, "ticket_creado", detalles=f"Ticket {numero} creado")
-            if asignado_a:
+            # Las solicitudes quedan en pendiente al crearse (el asignado debe aceptarlas)
+            if asignado_a and tipo != "solicitud":
                 _log(db, tid, usuario_id, "asignado",
                      val_new=str(asignado_a), detalles="Asignado al crear")
                 db.execute(
@@ -2704,6 +2782,9 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
                 )
                 _log(db, tid, usuario_id, "estado_cambiado", "pendiente", "en_proceso",
                      "Asignado al crear → en proceso")
+            elif asignado_a and tipo == "solicitud":
+                _log(db, tid, usuario_id, "asignado",
+                     val_new=str(asignado_a), detalles="Solicitud asignada al crear")
             db.commit()
             return _ticket_full(db, tid), None
         except Exception as e:
@@ -2715,11 +2796,16 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
     with _conn() as db:
         nivel = (usuario.get("rol") or {}).get("nivel", 1)
         conds, params = [], []
-        if nivel < 2:
+        tipo_filtro = filtros.get("tipo")
+        vista_equipo = bool(filtros.get("vista_equipo"))
+        equipo_tipos = tipo_filtro in ("solicitud", "accion")
+        if nivel < 2 and not (vista_equipo and equipo_tipos):
             conds.append("(t.creado_por=? OR t.asignado_a=? OR EXISTS("
                          "SELECT 1 FROM ticket_participantes tp "
                          "WHERE tp.ticket_id=t.id AND tp.usuario_id=?))")
             params += [usuario["id"], usuario["id"], usuario["id"]]
+        if filtros.get("activas"):
+            conds.append("t.estado NOT IN ('resuelto', 'rechazado')")
         for key in ("estado", "categoria", "prioridad", "tipo"):
             if filtros.get(key):
                 conds.append(f"t.{key}=?")
@@ -2798,6 +2884,9 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         if nuevo_estado == "resuelto":
             if t["categoria"] == "rrhh" and nivel < 3:
                 return False, "Solo Administración puede aprobar tickets de RR.HH."
+            # Las solicitudes solo pueden resolverlas el usuario asignado
+            if t["tipo"] == "solicitud" and t["asignado_a"] != uid:
+                return False, "Solo el usuario asignado puede resolver esta solicitud"
             is_authorized = (nivel >= 2 or t["creado_por"] == uid or t["asignado_a"] == uid)
             if not is_authorized:
                 return False, "Sin autorización"
@@ -2854,6 +2943,69 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         if nuevo_estado == "resuelto":
             from app.services.ticket_timing import finalizar_corridas_abiertas_ticket
             finalizar_corridas_abiertas_ticket(ticket_id)
+
+            # ── Hook automático: sincronizar facturas faltantes ─────────────
+            # Cuando una acción de "contabilidad" se resuelve, y la descripción del ticket
+            # contiene el marker SYS_SYNC_FALTANTES_PACKS_JSON, ejecutamos el re-sync
+            # solo para los Pack IDs faltantes.
+            if t.get("tipo") == "accion" and t.get("categoria") == "contabilidad":
+                try:
+                    descripcion = t.get("descripcion") or ""
+                    packs: list[str] = []
+                    for line in str(descripcion).splitlines():
+                        if line.strip().startswith(SYS_SYNC_FALTANTES_PACKS_JSON_PREFIX):
+                            payload = line.split(":", 1)[1].strip()
+                            decoded = json.loads(payload) if payload else []
+                            if isinstance(decoded, list):
+                                packs = [str(x).strip() for x in decoded if str(x).strip()]
+                            break
+
+                    if packs:
+                        from app.observability import spawn_thread, log_json
+
+                        def _runner() -> None:
+                            try:
+                                from app.sync import sincronizar_manual_por_packs
+
+                                resumen = sincronizar_manual_por_packs(packs)
+                                agregar_comentario(
+                                    ticket_id,
+                                    uid,
+                                    f"[SYS_SYNC] Resync ejecutado desde acción #{ticket_id}. "
+                                    f"Exitosas: {len(resumen.get('exitosas', []) or [])}. "
+                                    f"Fallidas: {len(resumen.get('fallidas', []) or [])}. "
+                                    f"Faltantes: {len(resumen.get('faltantes', []) or [])}.",
+                                    es_interno=True,
+                                )
+                                log_json(
+                                    "sys_sync_faltantes_done",
+                                    ticket_id=ticket_id,
+                                    pack_ids=len(packs),
+                                    resumen=resumen,
+                                )
+                            except Exception as e:
+                                try:
+                                    agregar_comentario(
+                                        ticket_id,
+                                        uid,
+                                        f"[SYS_SYNC] Error en resync automático: {e}",
+                                        es_interno=True,
+                                    )
+                                except Exception:
+                                    pass
+                                try:
+                                    log_json(
+                                        "sys_sync_faltantes_error",
+                                        ticket_id=ticket_id,
+                                        pack_ids=len(packs),
+                                        error=str(e),
+                                    )
+                                except Exception:
+                                    pass
+
+                        spawn_thread(_runner, daemon=True)
+                except Exception:
+                    pass
         return True, None
 
 

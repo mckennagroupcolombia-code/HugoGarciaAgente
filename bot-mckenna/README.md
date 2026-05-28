@@ -44,6 +44,12 @@ Servicio **Node.js** (`whatsapp-web.js`) en el **puerto 3000**: recibe mensajes,
 
 Monitor: `http://localhost:3000/monitor` · Grupos (JSON): `http://localhost:3000/grupos`
 
+**Vincular otro número desde el panel** (`/app` → Agente WA → pestaña **Cuenta WA**): desvincula la sesión, reinicia el puente y muestra el QR. Endpoints internos (solo localhost, proxy Flask con Bearer):
+
+- `GET /session/status` · `GET /session/qr` · `POST /session/logout`
+
+Opcional en `.env`: `WHATSAPP_BRIDGE_INTERNAL_TOKEN` (cabecera `X-Bridge-Token` desde Flask) y `WHATSAPP_BRIDGE_URL` (base, default `http://127.0.0.1:3000`).
+
 ---
 
 ## Sobre los mensajes de `npm` que viste

@@ -5,7 +5,11 @@
     "120363023555909043@g.us",
     "web-test-handoff2",
     "573013536788@c.us",
-    "573182432463@c.us"
+    "73031707820119@lid",
+    "49976306606124@lid",
+    "71262147764245@lid",
+    "259502091821270@lid",
+    "57259502091821270@c.us"
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
@@ -13,7 +17,11 @@
     "120363023555909043@g.us": 1779902999.5390463,
     "web-test-handoff2": 1779872652.3461308,
     "573013536788@c.us": 1779890129.7563167,
-    "573182432463@c.us": 1779913854.8006766
+    "73031707820119@lid": 1779916294.9625864,
+    "49976306606124@lid": 1779917580.1837876,
+    "71262147764245@lid": 1779917739.2717392,
+    "259502091821270@lid": 1779923371.8995585,
+    "57259502091821270@c.us": 1779923371.8995585
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
@@ -41,13 +49,33 @@
       "razon": "men\u00fa autom\u00e1tico",
       "ultimo_mensaje": "Hola, Hugo, cerrar\u00e9 esta conversaci\u00f3n, no recib\u00ed tu respuesta.\n\n*\u00a1Tu tarjeta quedara activa!*\n\nRevisa si reconoces esa transacci\u00f3n o si necesitas algo m\u00e1s, ll\u00e1manos al *(604) 5109000*, opci\u00f3n 1-3. Si est\u00e1s en el exterior, al *+57 (601) 3430000*.\n\nSeguimos a tu lado en todo momento.\n\n_Toca un bot\u00f3n:_ \ud83d\udc47"
     },
-    "573182432463@c.us": {
-      "timestamp": 1779913854.800677,
-      "razon": "agregado manualmente desde panel",
+    "73031707820119@lid": {
+      "timestamp": 1779916294.9625869,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "QUISIERA HABLAR CON UN AGENTE HUMANO"
+    },
+    "49976306606124@lid": {
+      "timestamp": 1779917580.1837876,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "71262147764245@lid": {
+      "timestamp": 1779917739.2717392,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "259502091821270@lid": {
+      "timestamp": 1779923371.8995585,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "57259502091821270@c.us": {
+      "timestamp": 1779923371.8995585,
+      "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     }
   },
-  "bot_global_activo": true,
+  "bot_global_activo": false,
   "horario_bot": {
     "habilitado": false,
     "hora_inicio": "08:00",

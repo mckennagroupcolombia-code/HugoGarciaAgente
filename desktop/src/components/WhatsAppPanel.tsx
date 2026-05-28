@@ -38,7 +38,7 @@ interface Evento {
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function formatJid(jid: string): string {
-  const num = jid.replace(/@[cg]\.us$/, "");
+  const num = jid.replace(/@(c|g|lid)\.us$/, "").replace(/@lid$/, "");
   if (num.startsWith("57") && num.length === 12) {
     const local = num.slice(2);
     return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
@@ -46,7 +46,14 @@ function formatJid(jid: string): string {
   if (num.length === 10 && num.startsWith("3")) {
     return `${num.slice(0, 3)} ${num.slice(3, 6)} ${num.slice(6)}`;
   }
+  if (jid.includes("@lid")) {
+    return `WA ${num.slice(0, 6)}…`;
+  }
   return num;
+}
+
+function etiquetaConversacion(conv: { jid: string; display?: string }): string {
+  return conv.display?.trim() || formatJid(conv.jid);
 }
 
 function tiempoRelativo(ts: number | null): string {
@@ -1036,6 +1043,8 @@ function TabInteracciones() {
 
 interface Conversacion {
   jid: string;
+  display?: string;
+  jid_raw?: string;
   ts: number;
   texto: string | null;
   direccion: "entrada" | "salida";
@@ -1357,6 +1366,9 @@ function TabChats() {
   const [errorEnvio, setErrorEnvio]         = useState("");
   const [vistaMovil, setVistaMovil]         = useState<"lista" | "chat">("lista");
   const [bibliotecaAbierta, setBibliotecaAbierta] = useState(false);
+  const [cambiandoModo, setCambiandoModo] = useState(false);
+  const [sincronizando, setSincronizando] = useState(false);
+  const [displayActivo, setDisplayActivo] = useState("");
   const bottomRef  = useRef<HTMLDivElement>(null);
   const pollMsgRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollLstRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1380,27 +1392,47 @@ function TabChats() {
   // ── Cargar mensajes de la conversación activa ─────────────────────────────
   const cargarMensajes = useCallback(async (jid: string) => {
     try {
-      const d = await api.get<{ mensajes: Mensaje[]; modo: string }>(`/api/bot/chats/${encodeURIComponent(jid)}`);
+      const d = await api.get<{ mensajes: Mensaje[]; modo: string; display?: string }>(
+        `/api/bot/chats/${encodeURIComponent(jid)}`,
+      );
       setMensajes(d.mensajes ?? []);
       setModoActivo(d.modo ?? "bot");
+      if (d.display) setDisplayActivo(d.display);
     } catch { /* silencioso */ }
   }, []);
 
+  const sincronizarDesdeWa = useCallback(async (jid: string, silencioso = false) => {
+    if (!silencioso) setSincronizando(true);
+    try {
+      await api.post(`/api/bot/chats/${encodeURIComponent(jid)}/sincronizar`, { limit: 60 });
+      await cargarMensajes(jid);
+      await cargarLista();
+    } catch (e: any) {
+      if (!silencioso) {
+        alert(e.message ?? "No se pudo sincronizar con WhatsApp");
+      }
+    } finally {
+      if (!silencioso) setSincronizando(false);
+    }
+  }, [cargarMensajes, cargarLista]);
+
   useEffect(() => {
     if (!jidActivo) return;
+    void sincronizarDesdeWa(jidActivo, true);
     cargarMensajes(jidActivo);
     if (pollMsgRef.current) clearInterval(pollMsgRef.current);
     pollMsgRef.current = setInterval(() => cargarMensajes(jidActivo), 3_000);
     return () => { if (pollMsgRef.current) clearInterval(pollMsgRef.current); };
-  }, [jidActivo, cargarMensajes]);
+  }, [jidActivo, cargarMensajes, sincronizarDesdeWa]);
 
   // Scroll al fondo cuando llegan nuevos mensajes
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [mensajes.length]);
 
-  function abrirChat(jid: string) {
-    setJidActivo(jid);
+  function abrirChat(conv: Conversacion) {
+    setJidActivo(conv.jid);
+    setDisplayActivo(etiquetaConversacion(conv));
     setTexto("");
     setErrorEnvio("");
     setVistaMovil("chat");
@@ -1428,13 +1460,20 @@ function TabChats() {
   }
 
   async function cambiarModo(accion: string) {
-    if (!jidActivo) return;
+    if (!jidActivo || cambiandoModo) return;
+    setCambiandoModo(true);
     try {
-      await api.post("/api/bot/numeros", { numero: jidActivo, accion, razon: "operador desde panel de chats" });
+      await api.post("/api/bot/numeros", {
+        numero: jidActivo,
+        accion,
+        razon: "operador desde panel de chats",
+      });
       await cargarMensajes(jidActivo);
       await cargarLista();
     } catch (e: any) {
       alert(e.message ?? "Error al cambiar modo");
+    } finally {
+      setCambiandoModo(false);
     }
   }
 
@@ -1459,18 +1498,18 @@ function TabChats() {
             conversaciones.map((conv) => (
               <button
                 key={conv.jid}
-                onClick={() => abrirChat(conv.jid)}
+                onClick={() => abrirChat(conv)}
                 className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-left border-b border-border/50 transition hover:bg-surface-hover ${
                   jidActivo === conv.jid ? "bg-surface-hover border-l-2 border-l-accent" : ""
                 }`}
               >
                 {/* Avatar */}
                 <div className="shrink-0 w-9 h-9 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
-                  {formatJid(conv.jid).slice(0, 1)}
+                  {etiquetaConversacion(conv).slice(0, 1)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1 flex-wrap">
-                    <span className="text-xs font-semibold text-ink truncate">{formatJid(conv.jid)}</span>
+                    <span className="text-xs font-semibold text-ink truncate">{etiquetaConversacion(conv)}</span>
                     {modoBadge(conv.modo ?? "bot")}
                   </div>
                   <p className="text-[11px] text-muted truncate mt-0.5">
@@ -1506,27 +1545,41 @@ function TabChats() {
             <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface-panel shrink-0">
               <button onClick={volverALista} className="md:hidden text-muted hover:text-ink transition text-lg leading-none">‹</button>
               <div className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold shrink-0">
-                {formatJid(jidActivo).slice(0, 1)}
+                {(displayActivo || formatJid(jidActivo)).slice(0, 1)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-ink truncate">{formatJid(jidActivo)}</p>
+                <p className="text-sm font-semibold text-ink truncate">{displayActivo || formatJid(jidActivo)}</p>
+                {jidActivo.includes("@lid") && (
+                  <p className="text-[10px] text-muted font-mono truncate">{jidActivo}</p>
+                )}
                 <div className="flex items-center gap-1.5 mt-0.5">{modoBadge(modoActivo)}</div>
               </div>
               {/* Acciones rápidas de modo */}
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                <button
+                  type="button"
+                  onClick={() => jidActivo && sincronizarDesdeWa(jidActivo)}
+                  disabled={sincronizando}
+                  title="Traer mensajes recientes desde WhatsApp (incluye los enviados desde el celular)"
+                  className="rounded-lg border border-border px-2.5 py-1 text-[11px] font-semibold text-muted transition hover:text-ink hover:border-accent disabled:opacity-40"
+                >
+                  {sincronizando ? "Sincronizando…" : "↻ Actualizar"}
+                </button>
                 {modoActivo === "bot" ? (
                   <button
                     onClick={() => cambiarModo("humano_agregar")}
-                    className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-400 transition hover:bg-amber-500/20"
+                    disabled={cambiandoModo}
+                    className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-[11px] font-semibold text-amber-400 transition hover:bg-amber-500/20 disabled:opacity-40"
                   >
-                    Tomar conversación
+                    {cambiandoModo ? "Aplicando…" : "Tomar conversación"}
                   </button>
                 ) : modoActivo === "humano" ? (
                   <button
                     onClick={() => cambiarModo("humano_quitar")}
-                    className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
+                    disabled={cambiandoModo}
+                    className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-40"
                   >
-                    Devolver al bot
+                    {cambiandoModo ? "Aplicando…" : "Devolver al bot"}
                   </button>
                 ) : null}
               </div>

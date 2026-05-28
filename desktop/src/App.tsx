@@ -6,8 +6,10 @@ import Dashboard from "./components/Dashboard";
 import Chat from "./components/Chat";
 import VozIA from "./components/VozIA";
 import PreventaPanel from "./components/PreventaPanel";
+import PostventaPanel from "./components/PostventaPanel";
 import SyncPanel from "./components/SyncPanel";
 import StockPanel from "./components/StockPanel";
+import FichasTecnicasPanel from "./components/FichasTecnicasPanel";
 import PedidosWebPanel from "./components/PedidosWebPanel";
 import FacturasCompraPanel from "./components/FacturasCompraPanel";
 import TicketsPanel from "./components/TicketsPanel";
@@ -32,10 +34,14 @@ function PanelRouter() {
       return <WhatsAppPanel />;
     case "preventa":
       return <PreventaPanel />;
+    case "postventa":
+      return <PostventaPanel />;
     case "sync":
       return <SyncPanel />;
     case "stock":
       return <StockPanel />;
+    case "fichas":
+      return <FichasTecnicasPanel />;
     case "pedidos":
       return <PedidosWebPanel />;
     case "facturas":
@@ -136,15 +142,16 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 }
 
 const NAV_ORDER: Panel[] = [
-  "dashboard", "chat", "voz", "webchat", "whatsapp", "preventa",
-  "sync", "stock", "pedidos", "facturas", "tickets", "settings",
+  "dashboard", "chat", "voz", "webchat", "whatsapp", "preventa", "postventa",
+  "sync", "stock", "fichas", "pedidos", "facturas", "tickets", "settings",
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   if ((user.rol?.nivel ?? 0) >= 3) return true;
-  if (panel === "settings") return true;
   const p = user.permisos_secciones;
-  if (!p) return panel === "tickets";
+  // Sin permisos personalizados: acceso a tickets + ajustes por defecto
+  if (!p) return panel === "tickets" || panel === "settings";
+  if (panel === "postventa" && p.preventa) return true;
   return Boolean(p[panel]);
 }
 

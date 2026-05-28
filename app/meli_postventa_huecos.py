@@ -19,6 +19,7 @@ from app.meli_postventa_notif import (
     procesar_postventa_meli_desde_webhook,
 )
 from app.utils import (
+    meli_postventa_conversacion_cerrada,
     meli_postventa_id_mensaje,
     meli_postventa_remitente_user_id,
     meli_postventa_texto_para_notif,
@@ -114,10 +115,7 @@ def escanear_hilos_postventa_sin_captura() -> int:
 
             data_m = r_m.json()
             conv = data_m.get("conversation_status") or {}
-            if (
-                conv.get("status") == "blocked"
-                and conv.get("substatus") == "blocked_by_cancelled_order"
-            ):
+            if meli_postventa_conversacion_cerrada(conv)[0]:
                 continue
 
             msgs = sorted(

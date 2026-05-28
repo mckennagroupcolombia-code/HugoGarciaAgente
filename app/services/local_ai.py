@@ -4,7 +4,7 @@ import shlex
 import subprocess
 
 
-_OLLAMA_MODEL = os.getenv("LOCAL_AI_MODEL", "gemma4:26b").strip() or "gemma4:26b"
+_OLLAMA_MODEL = os.getenv("LOCAL_AI_MODEL", "gemma4:e4b").strip() or "gemma4:e4b"
 _OLLAMA_BIN = os.getenv("OLLAMA_BIN", "ollama").strip() or "ollama"
 
 
@@ -29,14 +29,29 @@ def _listar_modelos_ollama() -> list[str]:
         return []
 
 
-def _resolver_modelo_ollama() -> str:
+def _resolver_modelo_ollama(preferido: str | None = None) -> str:
     """
-    Prioridad: LOCAL_AI_MODEL si existe; si no, primer modelo instalado.
+    Prioridad: preferido (p. ej. canal) → LOCAL_AI_MODEL → AGENTE_OLLAMA_MODEL → primer instalado.
     """
     modelos = _listar_modelos_ollama()
-    if _OLLAMA_MODEL in modelos:
-        return _OLLAMA_MODEL
-    return modelos[0] if modelos else _OLLAMA_MODEL
+    candidatos: list[str] = []
+    for raw in (preferido, os.getenv("AGENTE_OLLAMA_MODEL", "").strip(), _OLLAMA_MODEL):
+        mid = (raw or "").strip()
+        if mid and mid not in candidatos:
+            candidatos.append(mid)
+    for mid in candidatos:
+        if mid in modelos:
+            return mid
+        base = mid.split(":")[0] if ":" in mid else ""
+        for inst in modelos:
+            if inst == mid or (base and inst.startswith(base + ":")):
+                return inst
+    return modelos[0] if modelos else (_OLLAMA_MODEL or "gemma4:e4b")
+
+
+def resolver_modelo_ollama(preferido: str | None = None) -> str:
+    """API pública para chat cliente y otros módulos."""
+    return _resolver_modelo_ollama(preferido)
 
 
 def estado_local_ai() -> dict:

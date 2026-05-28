@@ -282,13 +282,16 @@ class LLMRouter:
         gemini_client=None,
         claude_model: str = "claude-sonnet-4-6",
         gemini_model: str = "gemini-2.5-pro",
-        ollama_model: str = "gemma4:26b",
+        ollama_model: str | None = None,
     ):
         self._canal = canal
         self._claude = ClaudeProvider(claude_client, claude_model) if claude_client else None
         self._gemini = GeminiProvider(gemini_client, gemini_model) if gemini_client else None
+        from app.services.local_ai import resolver_modelo_ollama
+
+        _ollama_id = (ollama_model or os.getenv("LOCAL_AI_MODEL", "gemma4:e4b")).strip()
         self._ollama = OllamaProvider(
-            model=ollama_model,
+            model=resolver_modelo_ollama(_ollama_id),
             bin_path=os.getenv("OLLAMA_BIN", "ollama"),
         )
 

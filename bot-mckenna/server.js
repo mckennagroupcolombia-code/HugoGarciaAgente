@@ -152,6 +152,31 @@ const client = new Client({
 });
 
 let sistemaListo = false;
+let ultimoQr = null;
+let ultimoQrTs = 0;
+let sesionReseteando = false;
+
+function bridgeAuthOk(req) {
+    const expected = (process.env.WHATSAPP_BRIDGE_INTERNAL_TOKEN || '').trim();
+    if (!expected) return true;
+    return req.get('X-Bridge-Token') === expected;
+}
+
+function borrarCarpetaAuthWhatsapp() {
+    const authDir = path.join(__dirname, '.wwebjs_auth_nueva');
+    if (!fs.existsSync(authDir)) return;
+    fs.rmSync(authDir, { recursive: true, force: true });
+    console.log('🧹 Carpeta de sesión WhatsApp eliminada (.wwebjs_auth_nueva)');
+    logActividad('SISTEMA', { texto: 'Sesión local eliminada; requiere nuevo QR.' });
+}
+
+function infoNumeroConectado() {
+    const wid = client && client.info && client.info.wid;
+    if (!wid) return { numero: null, pushname: null };
+    const user = wid.user || (typeof wid === 'string' ? wid.split('@')[0] : null);
+    const pushname = (client.info.pushname && String(client.info.pushname).trim()) || null;
+    return { numero: user || null, pushname };
+}
 
 async function promoverSistemaListoSiSesionFunciona(origen = 'watchdog') {
     if (sistemaListo || !client.info || !client.info.wid) return false;
@@ -175,6 +200,15 @@ setInterval(() => {
 client.on('qr', qr => {
     console.log('📱 QR DETECTADO: Escanee para iniciar sesión.');
     qrcode.generate(qr, { small: true });
+    ultimoQr = qr;
+    ultimoQrTs = Date.now();
+    logActividad('SISTEMA', { texto: 'QR de vinculación generado (panel o terminal).' });
+});
+
+client.on('authenticated', () => {
+    ultimoQr = null;
+    ultimoQrTs = 0;
+    logActividad('SISTEMA', { texto: 'WhatsApp autenticado.' });
 });
 
 client.on('ready', () => {
@@ -363,6 +397,26 @@ client.on('message_create', async (msg) => {
     const chatId = await obtenerChatIdComandoAsync(msg);
     const textoProbe = normalizarComando(msg.body || '').toLowerCase();
     const enGrupoCmd = GRUPOS_COMANDO.includes(chatId);
+
+    // Mensajes enviados desde el celular (fromMe) a clientes → historial del panel, sin IA
+    if (msg.fromMe && !enGrupoCmd && !esComandoMeliOperativo(textoProbe)) {
+        const payload = await mensajeAPayloadHistorial(msg);
+        if (payload) {
+            if (payload.revoke && payload.wa_id) {
+                try {
+                    await axios.post(
+                        PANEL_INGEST_URL.replace('/ingest', '/revoke'),
+                        { wa_id: payload.wa_id },
+                        { headers: panelAuthHeaders(), timeout: 8000 }
+                    );
+                } catch (_) { /* ignore */ }
+            } else if (!payload.revoke) {
+                await enviarHistorialPanel([payload]);
+            }
+        }
+        return;
+    }
+
     // SEDE SUR: interceptar mensajes humanos (incluye fromMe si el admin usa el mismo teléfono)
     if (chatId === GRUPO_SEDE_SUR) {
         const sid = (msg.id && (msg.id._serialized || msg.id.id)) || '';
@@ -372,6 +426,21 @@ client.on('message_create', async (msg) => {
     }
     if (!enGrupoCmd && !esComandoMeliOperativo(textoProbe)) return;
     await procesarComandoGrupo(msg, enGrupoCmd ? chatId : GRUPO_POSTVENTA_MELI);
+});
+
+client.on('message_revoke', async (msg) => {
+    const waId = serializarWaId(msg);
+    if (!waId) return;
+    try {
+        await axios.post(
+            PANEL_INGEST_URL.replace('/ingest', '/revoke'),
+            { wa_id: waId },
+            { headers: panelAuthHeaders(), timeout: 8000 }
+        );
+        logActividad('SISTEMA', { texto: `Mensaje eliminado en WA: ${waId}` });
+    } catch (e) {
+        console.warn('⚠️ Revoke no registrado en panel:', e.message);
+    }
 });
 
 client.on('message', async (msg) => {
@@ -491,8 +560,14 @@ client.on('message', async (msg) => {
             }
         }
 
+        const ident = await resolverIdentidadCliente(msg);
         const responseIA = await axios.post('http://localhost:8081/whatsapp', {
-            sender: msg.from,
+            sender: ident.sender,
+            sender_lid: ident.sender_lid,
+            sender_phone: ident.sender_phone,
+            reply_to: ident.replyTo,
+            wa_id: serializarWaId(msg),
+            ts: msg.timestamp,
             mensaje: msg.body,
             hasMedia: hasMedia,
             mediaPath: mediaPath,
@@ -501,9 +576,21 @@ client.on('message', async (msg) => {
         });
 
         if (responseIA.data && responseIA.data.respuesta) {
-            await client.sendMessage(msg.from, responseIA.data.respuesta);
+            const sent = await client.sendMessage(ident.replyTo, responseIA.data.respuesta);
             console.log(`📤 Respuesta de IA enviada a ${msg.from}`);
             logActividad('SALIENTE', { para: msg.from, texto: responseIA.data.respuesta });
+            const outPayload = {
+                wa_id: sent && sent.id ? (sent.id._serialized || sent.id.id || '') : '',
+                jid: ident.sender,
+                ts: Math.floor(Date.now() / 1000),
+                from_me: true,
+                texto: responseIA.data.respuesta,
+                tiene_media: false,
+                enviado_por: 'bot',
+            };
+            if (outPayload.wa_id) {
+                await enviarHistorialPanel([outPayload]);
+            }
         }
     } catch (error) {
         console.error("❌ Error de comunicación con el agente Python:", error.message);
@@ -621,6 +708,294 @@ client.initialize().catch((err) => {
 function waSesionOperativa() {
     return !!(client && client.info && client.info.wid);
 }
+
+const PANEL_INGEST_URL = (
+    process.env.PANEL_INGEST_URL || 'http://127.0.0.1:8081/api/bot/chats/ingest'
+).replace(/\/$/, '');
+const CHAT_API_TOKEN = (process.env.CHAT_API_TOKEN || '').split('#')[0].trim();
+
+function panelAuthHeaders() {
+    const h = { 'Content-Type': 'application/json' };
+    if (CHAT_API_TOKEN) {
+        h.Authorization = `Bearer ${CHAT_API_TOKEN}`;
+    }
+    return h;
+}
+
+function serializarWaId(msg) {
+    if (!msg || !msg.id) return '';
+    return msg.id._serialized || msg.id.id || '';
+}
+
+async function jidChatCliente(msg) {
+    if (msg.fromMe) {
+        try {
+            const chat = await msg.getChat();
+            if (chat && chat.id) {
+                return typeof chat.id === 'string' ? chat.id : chat.id._serialized;
+            }
+        } catch (_) { /* sync aún cargando */ }
+        if (msg.to) {
+            return typeof msg.to === 'string' ? msg.to : msg.to._serialized;
+        }
+        if (msg.id && msg.id.remote) {
+            return typeof msg.id.remote === 'string' ? msg.id.remote : msg.id.remote._serialized;
+        }
+    }
+    return msg.from || '';
+}
+
+/** WhatsApp @lid → teléfono @c.us cuando el contacto lo expone (evita chats duplicados en panel). */
+async function resolverIdentidadCliente(msg) {
+    const from = (msg && msg.from) ? String(msg.from) : '';
+    let phoneJid = '';
+    if (from.endsWith('@lid')) {
+        try {
+            const c = await msg.getContact();
+            let n = (c && c.number) ? String(c.number).replace(/\D/g, '') : '';
+            if (!n && c && c.id && c.id.user) {
+                n = String(c.id.user).replace(/\D/g, '');
+            }
+            if (n.length === 10 && n.startsWith('3')) {
+                phoneJid = `57${n}@c.us`;
+            } else if (n.length >= 11) {
+                phoneJid = n.startsWith('57') ? `${n}@c.us` : `57${n}@c.us`;
+            }
+            if (phoneJid) {
+                console.log(`📇 LID ${from} → ${phoneJid}`);
+            }
+        } catch (e) {
+            console.warn('⚠️ No se pudo resolver teléfono desde @lid:', e.message);
+        }
+    } else if (from.endsWith('@c.us')) {
+        phoneJid = from;
+    }
+    return {
+        replyTo: from,
+        sender: phoneJid || from,
+        sender_lid: from.endsWith('@lid') ? from : '',
+        sender_phone: phoneJid,
+    };
+}
+
+async function resolverIdentidadDesdeChat(chatJid, msg) {
+    const cj = String(chatJid || '').trim();
+    let phoneJid = '';
+    if (cj.endsWith('@c.us')) {
+        phoneJid = cj;
+    } else if (cj.endsWith('@lid') && msg) {
+        try {
+            const c = await msg.getContact();
+            let n = (c && c.number) ? String(c.number).replace(/\D/g, '') : '';
+            if (!n && c && c.id && c.id.user) {
+                n = String(c.id.user).replace(/\D/g, '');
+            }
+            if (n.length === 10 && n.startsWith('3')) {
+                phoneJid = `57${n}@c.us`;
+            } else if (n.length >= 11) {
+                phoneJid = n.startsWith('57') ? `${n}@c.us` : `57${n}@c.us`;
+            }
+        } catch (_) { /* ignore */ }
+    }
+    return {
+        canon: phoneJid || cj,
+        replyTo: cj,
+    };
+}
+
+async function mensajeAPayloadHistorial(msg) {
+    const chatJid = await jidChatCliente(msg);
+    if (!chatJid || chatJid.includes('@g.us') || chatJid === 'status@broadcast') {
+        return null;
+    }
+    const tipo = msg.type || '';
+    if (['revoked', 'e2e_notification', 'notification_template', 'call_log'].includes(tipo)) {
+        return { revoke: true, wa_id: serializarWaId(msg) };
+    }
+    const ident = await resolverIdentidadDesdeChat(chatJid, msg);
+    let texto = (msg.body || '').trim();
+    if (!texto && msg.hasMedia) {
+        texto = '[adjunto]';
+    }
+    if (!texto) {
+        return null;
+    }
+    return {
+        wa_id: serializarWaId(msg),
+        jid: ident.canon,
+        ts: msg.timestamp || Math.floor(Date.now() / 1000),
+        from_me: !!msg.fromMe,
+        texto,
+        tiene_media: !!msg.hasMedia,
+        type: tipo,
+        enviado_por: msg.fromMe ? 'humano' : 'cliente',
+    };
+}
+
+async function enviarHistorialPanel(items) {
+    const mensajes = (items || []).filter(Boolean);
+    if (!mensajes.length) return;
+    try {
+        await axios.post(
+            PANEL_INGEST_URL,
+            { mensajes },
+            { headers: panelAuthHeaders(), timeout: 12000 }
+        );
+    } catch (e) {
+        console.warn('⚠️ Historial panel no guardado:', e.message);
+    }
+}
+
+// ==========================================
+// Sesión WhatsApp (panel Agente WA vía Flask)
+// ==========================================
+app.post('/chats/sync', async (req, res) => {
+    if (!bridgeAuthOk(req)) {
+        return res.status(401).json({ error: 'No autorizado' });
+    }
+    const jid = String((req.body && req.body.jid) || '').trim();
+    const limit = Math.min(parseInt((req.body && req.body.limit) || '50', 10) || 50, 80);
+    if (!jid) {
+        return res.status(400).json({ error: 'jid requerido' });
+    }
+    if (!waSesionOperativa()) {
+        return res.status(503).json({ error: 'WhatsApp no conectado' });
+    }
+    try {
+        const chat = await client.getChatById(jid);
+        if (!chat) {
+            return res.status(404).json({ error: 'Chat no encontrado' });
+        }
+        const msgs = await chat.fetchMessages({ limit });
+        const batch = [];
+        const revocados = [];
+        for (const m of msgs) {
+            const payload = await mensajeAPayloadHistorial(m);
+            if (!payload) continue;
+            if (payload.revoke && payload.wa_id) {
+                revocados.push(payload.wa_id);
+            } else {
+                batch.push(payload);
+            }
+        }
+        if (revocados.length) {
+            try {
+                await axios.post(
+                    PANEL_INGEST_URL.replace('/ingest', '/revoke'),
+                    { wa_ids: revocados },
+                    { headers: panelAuthHeaders(), timeout: 12000 }
+                );
+            } catch (_) { /* ignore */ }
+        }
+        let ingest = { insertados: 0, actualizados: 0, omitidos: 0, total: 0 };
+        if (batch.length) {
+            const r = await axios.post(
+                PANEL_INGEST_URL,
+                { mensajes: batch },
+                { headers: panelAuthHeaders(), timeout: 30000 }
+            );
+            ingest = r.data || ingest;
+        }
+        return res.json({
+            ok: true,
+            jid,
+            sincronizados: batch.length,
+            revocados: revocados.length,
+            ingest,
+        });
+    } catch (e) {
+        console.error('❌ /chats/sync:', e.message);
+        return res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/session/status', (req, res) => {
+    if (!bridgeAuthOk(req)) {
+        return res.status(401).json({ error: 'No autorizado' });
+    }
+    res.set('Cache-Control', 'no-store');
+    const { numero, pushname } = infoNumeroConectado();
+    const conectado = waSesionOperativa();
+    const qrPendiente = !!(ultimoQr && !conectado);
+    res.json({
+        actualizado: new Date().toISOString(),
+        sesionReseteando,
+        sistemaListo,
+        waSesionOperativa: conectado,
+        conectado,
+        numero,
+        pushname,
+        qrPendiente,
+        qrGeneradoEn: ultimoQrTs ? new Date(ultimoQrTs).toISOString() : null,
+    });
+});
+
+app.get('/session/qr', (req, res) => {
+    if (!bridgeAuthOk(req)) {
+        return res.status(401).json({ error: 'No autorizado' });
+    }
+    res.set('Cache-Control', 'no-store');
+    if (waSesionOperativa()) {
+        return res.json({
+            qrPendiente: false,
+            qrRaw: null,
+            mensaje: 'Ya hay una sesión activa.',
+        });
+    }
+    if (!ultimoQr) {
+        return res.json({
+            qrPendiente: false,
+            qrRaw: null,
+            mensaje: sesionReseteando
+                ? 'Reiniciando sesión…'
+                : 'Sin QR aún. Espera unos segundos o reinicia el puente.',
+        });
+    }
+    return res.json({
+        qrPendiente: true,
+        qrRaw: ultimoQr,
+        qrGeneradoEn: ultimoQrTs ? new Date(ultimoQrTs).toISOString() : null,
+    });
+});
+
+app.post('/session/logout', (req, res) => {
+    if (!bridgeAuthOk(req)) {
+        return res.status(401).json({ error: 'No autorizado' });
+    }
+    if (sesionReseteando) {
+        return res.status(409).json({ error: 'Ya hay un cambio de cuenta en curso.' });
+    }
+    sesionReseteando = true;
+    sistemaListo = false;
+    ultimoQr = null;
+    res.json({
+        status: 'iniciado',
+        mensaje: 'Desvinculando sesión. El servicio se reiniciará; escanea el nuevo QR en 1–2 min.',
+    });
+    logActividad('SISTEMA', { texto: 'Desvinculación solicitada desde panel.' });
+
+    setImmediate(async () => {
+        try {
+            if (waSesionOperativa()) {
+                try {
+                    await client.logout();
+                } catch (e) {
+                    console.warn('⚠️ client.logout():', e.message);
+                }
+            }
+            try {
+                await Promise.race([
+                    client.destroy(),
+                    new Promise((r) => setTimeout(r, 8000)),
+                ]);
+            } catch (_) { /* ignore */ }
+            borrarCarpetaAuthWhatsapp();
+        } catch (e) {
+            console.error('❌ Error en logout de sesión:', e.message);
+        }
+        process.exit(0);
+    });
+});
 
 app.get('/grupos', async (req, res) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
