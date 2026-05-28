@@ -1,10 +1,17 @@
 import { useState } from "react";
 import {
   useWebChat,
+  useWebChatNotify,
+  useSetWebChatNotify,
   useMarkWebChatReviewed,
   useMarkAllWebChatReviewed,
+  useWebChatQuickReplies,
+  useAddWebChatQuickReply,
+  useDeleteWebChatQuickReply,
   type WebChatSession,
+  type QuickReply,
 } from "../hooks/useWebChat";
+import { useTicketsAuth } from "../stores/ticketsAuth";
 
 function sourceLabel(source?: string) {
   switch (source) {
@@ -65,10 +72,176 @@ function SessionCard({
   );
 }
 
+function RespuestasRapidasSection() {
+  const { user } = useTicketsAuth();
+  const isAdmin = (user?.rol?.nivel ?? 0) >= 3;
+  const { data, isLoading } = useWebChatQuickReplies();
+  const addReply = useAddWebChatQuickReply();
+  const deleteReply = useDeleteWebChatQuickReply();
+  const [abierto, setAbierto] = useState(true);
+  const [titulo, setTitulo] = useState("");
+  const [texto, setTexto] = useState("");
+  const [global, setGlobal] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [formAbierto, setFormAbierto] = useState(false);
+
+  async function copiar(item: QuickReply) {
+    try {
+      await navigator.clipboard.writeText(item.texto);
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      window.prompt("Copia el texto:", item.texto);
+    }
+  }
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!texto.trim()) return;
+    try {
+      await addReply.mutateAsync({
+        texto: texto.trim(),
+        titulo: titulo.trim(),
+        scope: global && isAdmin ? "global" : "mine",
+      });
+      setTitulo("");
+      setTexto("");
+      setFormAbierto(false);
+      setGlobal(false);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "No se pudo guardar");
+    }
+  }
+
+  const items: { item: QuickReply; scope: "mine" | "global" }[] = [
+    ...(data?.mine ?? []).map((item) => ({ item, scope: "mine" as const })),
+    ...(data?.global ?? []).map((item) => ({ item, scope: "global" as const })),
+  ];
+
+  return (
+    <section className="shrink-0 border-t border-border pt-3 mt-2">
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 text-left"
+      >
+        <span className="text-xs font-semibold text-ink">Respuestas rápidas</span>
+        <span className="text-[10px] text-muted">{abierto ? "▲" : "▼"}</span>
+      </button>
+      {abierto && (
+        <div className="mt-2 space-y-2">
+          <p className="text-[10px] text-muted leading-snug">
+            Toca una respuesta para copiarla al portapapeles y pegarla donde atiendas al cliente.
+          </p>
+
+          {isLoading && <p className="text-[11px] text-muted">Cargando…</p>}
+
+          {!isLoading && items.length === 0 && (
+            <p className="text-[11px] text-muted">Aún no hay respuestas guardadas.</p>
+          )}
+
+          <ul className="max-h-36 space-y-1 overflow-y-auto pr-0.5">
+            {items.map(({ item, scope }) => (
+              <li key={`${scope}-${item.id}`} className="group flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => copiar(item)}
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-surface-hover px-2.5 py-1.5 text-left transition hover:border-accent-sky/40 hover:bg-accent-sky/10"
+                  title={item.texto}
+                >
+                  <span className="block truncate text-[11px] font-semibold text-ink">
+                    {scope === "global" ? "🌐 " : ""}
+                    {item.titulo}
+                    {copiedId === item.id && (
+                      <span className="ml-1 text-emerald-400 font-normal">· copiado</span>
+                    )}
+                  </span>
+                  <span className="block truncate text-[10px] text-muted mt-0.5">
+                    {item.texto}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!window.confirm("¿Eliminar esta respuesta rápida?")) return;
+                    deleteReply.mutate({ id: item.id, scope });
+                  }}
+                  disabled={deleteReply.isPending}
+                  className="shrink-0 rounded-lg border border-transparent px-1.5 text-[10px] text-muted opacity-0 transition group-hover:opacity-100 hover:border-red-500/30 hover:text-red-400 disabled:opacity-40"
+                  aria-label="Eliminar"
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {formAbierto ? (
+            <form onSubmit={guardar} className="space-y-2 rounded-lg border border-border bg-surface p-2.5">
+              <input
+                type="text"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Nombre corto (ej: Saludo Jenniffer)"
+                className="w-full rounded-lg border border-border bg-surface-panel px-2 py-1.5 text-[11px] text-ink focus:outline-none focus:border-accent-sky"
+              />
+              <textarea
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                placeholder="Hola, buenas tardes. Soy Jenniffer, su asesora comercial…"
+                rows={3}
+                className="w-full resize-none rounded-lg border border-border bg-surface-panel px-2 py-1.5 text-[11px] text-ink focus:outline-none focus:border-accent-sky"
+                required
+              />
+              {isAdmin && (
+                <label className="flex items-center gap-2 text-[10px] text-muted cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={global}
+                    onChange={(e) => setGlobal(e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  Compartir con todo el equipo (global)
+                </label>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={addReply.isPending || !texto.trim()}
+                  className="flex-1 rounded-lg bg-accent-sky px-2 py-1.5 text-[11px] font-semibold text-white disabled:opacity-40"
+                >
+                  {addReply.isPending ? "Guardando…" : "Guardar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormAbierto(false)}
+                  className="rounded-lg border border-border px-2 py-1.5 text-[11px] text-muted hover:text-ink"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setFormAbierto(true)}
+              className="w-full rounded-lg border border-dashed border-border px-2 py-1.5 text-[11px] font-medium text-accent-sky hover:bg-accent-sky/10 transition"
+            >
+              + Agregar respuesta
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function WebChatPanel() {
   const [onlyUnreviewed, setOnlyUnreviewed] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data, isLoading, refetch } = useWebChat(onlyUnreviewed);
+  const { data, isLoading, isError, error, refetch } = useWebChat(onlyUnreviewed);
+  const { data: notifyState } = useWebChatNotify();
+  const setNotify = useSetWebChatNotify();
   const markOne = useMarkWebChatReviewed();
   const markAll = useMarkAllWebChatReviewed();
 
@@ -77,6 +250,8 @@ export default function WebChatPanel() {
     sessions.find((s) => s.session_id === selectedId) ?? sessions[0] ?? null;
 
   const summary = data?.summary;
+  const notifyEnabled =
+    notifyState?.enabled ?? data?.notify_to_group?.enabled ?? true;
 
   return (
     <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-6xl flex-col gap-4 lg:flex-row lg:h-[calc(100vh-6rem)]">
@@ -85,7 +260,10 @@ export default function WebChatPanel() {
           <div>
             <h2 className="text-lg font-semibold text-ink">Chat web</h2>
             <p className="text-[10px] text-muted mt-0.5">
-              Cada interacción también se notifica al grupo WhatsApp Guias_Envios (pedidos web).
+              Notificación a WhatsApp (Guias_Envios pagina web):{" "}
+              <span className={notifyEnabled ? "text-accent-sky" : "text-warning"}>
+                {notifyEnabled ? "ACTIVA" : "PAUSADA"}
+              </span>
             </p>
           </div>
           <button
@@ -95,6 +273,25 @@ export default function WebChatPanel() {
           >
             Actualizar
           </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={setNotify.isPending}
+            onClick={() => setNotify.mutate(!notifyEnabled)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${
+              notifyEnabled
+                ? "bg-accent-sky text-white"
+                : "border border-border bg-surface-panel text-muted hover:text-ink"
+            }`}
+            title="Activa/pausa el envío de notificaciones al grupo Guias_Envios pagina web"
+          >
+            {notifyEnabled ? "Deshabilitar notificación WA" : "Habilitar notificación WA"}
+          </button>
+          <p className="text-[10px] text-muted">
+            Aplica a nuevas interacciones del chat burbuja.
+          </p>
         </div>
 
         {summary && (
@@ -145,11 +342,18 @@ export default function WebChatPanel() {
           )}
         </div>
 
+        <RespuestasRapidasSection />
+
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
           {isLoading && (
             <p className="text-sm text-muted">Cargando conversaciones…</p>
           )}
-          {!isLoading && sessions.length === 0 && (
+          {isError && (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              {error instanceof Error ? error.message : "No se pudo cargar el chat web"}
+            </div>
+          )}
+          {!isLoading && !isError && sessions.length === 0 && (
             <div className="rounded-xl border border-border bg-surface-panel p-6 text-center">
               <p className="text-sm text-muted">
                 No hay conversaciones

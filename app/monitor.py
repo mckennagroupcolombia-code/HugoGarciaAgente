@@ -15,6 +15,7 @@ from app.utils import (
     jid_grupo_inventario_wa,
     jid_grupo_preventa_wa,
     jid_grupo_postventa_wa,
+    meli_postventa_conversacion_cerrada,
     meli_postventa_id_mensaje,
     meli_postventa_remitente_user_id,
 )
@@ -888,10 +889,19 @@ def _supervisar_colas_meli():
                 with open(path_postventa, "r", encoding="utf-8") as f:
                     data_post = json.load(f)
                 pendientes_post = (data_post.get("pendientes", {}) or {}).copy()
+                procesados_post = set(data_post.get("procesados", []) or [])
                 post_modificado = False
                 tok = _token()
                 sid = _seller()
                 for codigo, item in list((data_post.get("pendientes", {}) or {}).items()):
+                    pending_msg_id = str(item.get("msg_id", "")).strip()
+                    if pending_msg_id and pending_msg_id in procesados_post:
+                        pendientes_post.pop(str(codigo), None)
+                        pack_dup = str(item.get("pack_id", ""))
+                        if pack_dup:
+                            pendientes_post.pop(pack_dup, None)
+                        post_modificado = True
+                        continue
                     # Reconciliar estado del pack: si vendedor ya habló después del msg pendiente, cerrar cola.
                     # Ordenar por fecha: sin esto, enumerate(msgs) puede poner "último seller" mal y el supervisor
                     # re-alerta en bucle aunque MeLi ya tenga conversación al día.
@@ -906,14 +916,18 @@ def _supervisar_colas_meli():
                             if r_m.status_code == 200:
                                 data_m = r_m.json()
                                 conv = data_m.get("conversation_status") or {}
-                                if (
-                                    conv.get("status") == "blocked"
-                                    and conv.get("substatus") == "blocked_by_cancelled_order"
-                                ):
+                                cerrada, motivo = meli_postventa_conversacion_cerrada(
+                                    conv
+                                )
+                                if cerrada:
                                     pendientes_post.pop(str(codigo), None)
+                                    pendientes_post.pop(str(pack_id), None)
                                     post_modificado = True
+                                    if pending_msg_id:
+                                        procesados_post.add(pending_msg_id)
                                     print(
-                                        f"✅ [SUPERVISOR] Quitado postventa {codigo}: orden cancelada/bloqueada."
+                                        f"✅ [SUPERVISOR] Quitado postventa {codigo}: "
+                                        f"conversación cerrada ({motivo})."
                                     )
                                     continue
                                 raw = data_m.get("messages", []) or []
@@ -922,7 +936,6 @@ def _supervisar_colas_meli():
                                     key=_sort_key_meli_msg,
                                 )
                                 sid_s = str(sid)
-                                pending_msg_id = str(item.get("msg_id", "")).strip()
 
                                 if not msgs:
                                     if pending_msg_id:
@@ -973,6 +986,7 @@ def _supervisar_colas_meli():
                         )
                 if post_modificado:
                     data_post["pendientes"] = pendientes_post
+                    data_post["procesados"] = list(procesados_post)[-500:]
                     with open(path_postventa, "w", encoding="utf-8") as f:
                         json.dump(data_post, f, indent=2, ensure_ascii=False)
             except Exception as e_post:

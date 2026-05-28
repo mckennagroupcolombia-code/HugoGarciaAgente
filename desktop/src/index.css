@@ -119,7 +119,7 @@
     @apply min-w-0;
   }
   .quest-nav-bar-actions {
-    @apply border-l-0 sm:border-l sm:border-border/60 sm:pl-2;
+    @apply border-t border-border/40 pt-1 sm:border-t-0 sm:border-l sm:border-border/60 sm:pt-0 sm:pl-2;
   }
 
   /* AnimatiSS — shadow-drop-center (menú principal Centro de Mando) */
@@ -141,7 +141,7 @@
   }
 
   .quest-nav-btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-xs font-bold;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-sm font-bold;
     border-color: rgb(var(--mck-border));
     color: rgb(var(--mck-ink-secondary));
     background: rgb(var(--mck-surface-panel) / 0.75);

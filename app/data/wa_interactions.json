@@ -1,0 +1,850 @@
+{
+  "eventos": [
+    {
+      "ts": 1779912100.0268571,
+      "tipo": "manual_silenciar",
+      "sender": "573201234567@c.us",
+      "detalle": "número de prueba"
+    },
+    {
+      "ts": 1779912100.0696774,
+      "tipo": "manual_activar",
+      "sender": "573201234567@c.us",
+      "detalle": "era prueba"
+    },
+    {
+      "ts": 1779913854.8007064,
+      "tipo": "manual_humano",
+      "sender": "573182432463@c.us",
+      "detalle": "agregado manualmente desde panel"
+    },
+    {
+      "ts": 1779913939.1631327,
+      "tipo": "modo_humano",
+      "sender": "573182432463@c.us",
+      "detalle": "Voy"
+    },
+    {
+      "ts": 1779913979.9168572,
+      "tipo": "modo_humano",
+      "sender": "573182432463@c.us",
+      "detalle": "Wun moment"
+    },
+    {
+      "ts": 1779914039.6814456,
+      "tipo": "modo_humano",
+      "sender": "573182432463@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1779914055.8457646,
+      "tipo": "modo_humano",
+      "sender": "573182432463@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1779914130.1152558,
+      "tipo": "modo_humano",
+      "sender": "573182432463@c.us",
+      "detalle": "Tam raro"
+    },
+    {
+      "ts": 1779914147.0711596,
+      "tipo": "modo_humano",
+      "sender": "573182432463@c.us",
+      "detalle": "pere"
+    },
+    {
+      "ts": 1779914210.598664,
+      "tipo": "modo_humano",
+      "sender": "573182432463@c.us",
+      "detalle": "hay me sirve ya probe con mi mama"
+    },
+    {
+      "ts": 1779916157.0468462,
+      "tipo": "handoff_bot",
+      "sender": "573182432463@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916294.9628088,
+      "tipo": "handoff_humano",
+      "sender": "73031707820119@lid",
+      "detalle": "cliente solicitó humano"
+    },
+    {
+      "ts": 1779916484.2864082,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916487.7458441,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916491.694846,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916495.0002925,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916495.3910446,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916495.616813,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916501.7064998,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916502.248598,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916502.4793937,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916502.7056806,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916504.6648934,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916504.9162195,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916505.1304934,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916511.0747426,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916511.8475037,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916512.0514903,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916512.2488184,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916512.446745,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916512.6553419,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916514.8822062,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916515.054674,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916515.2483673,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916515.4466102,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916515.631769,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916517.3255284,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916517.5057738,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916517.7112658,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916518.5439384,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916518.751219,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916518.9433823,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916519.1351209,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916519.349562,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916520.8554864,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916521.272279,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916521.280594,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916521.5844767,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916540.886084,
+      "tipo": "modo_humano",
+      "sender": "73031707820119@lid",
+      "detalle": "TIENES  CITRATO DE MAGNESIO"
+    },
+    {
+      "ts": 1779916549.4561198,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916552.5328307,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916552.7723851,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916552.9882767,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916553.1931348,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916553.385434,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916553.585369,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916553.7771869,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916553.9674957,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916554.1831372,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916558.1412444,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916558.550168,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916558.740144,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916558.92678,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916559.1242814,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916562.0557508,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916570.6271899,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916577.8534844,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916578.3741794,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916578.5829134,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916906.9263148,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916908.6966655,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916911.8089802,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916912.5400374,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916913.9289014,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916914.1450016,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916914.347951,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916914.5491202,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916915.313968,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916915.548433,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916915.7973475,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916916.438499,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916916.951677,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916917.3234575,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916917.5385175,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916917.7978153,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916920.5782564,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916920.7082844,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916920.9084795,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916921.1439996,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916971.6511445,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779916972.3408878,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917078.280859,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917078.973994,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917079.2715623,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917081.067094,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917081.2629647,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917081.4478703,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917081.6594794,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917086.7924402,
+      "tipo": "handoff_bot",
+      "sender": "73031707820119@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917088.923276,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917089.494059,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917089.6775181,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917089.8829086,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917178.2575774,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917181.9541888,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917238.295232,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917249.5359497,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917250.1810224,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917250.3656287,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917250.5697868,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917255.2438722,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917255.9172318,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917257.9797513,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917258.5835748,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917258.6641643,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917258.877942,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917259.084055,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917259.2919078,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917259.4947329,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917263.9550152,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917264.1580775,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917264.343155,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917264.536107,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917264.743415,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917264.9503129,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917265.1787093,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917266.9481623,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917267.130174,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917267.3269024,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917267.5337036,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917270.4103992,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917270.6249433,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917270.83967,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917291.6108742,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917548.2996132,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917580.1840305,
+      "tipo": "manual_humano",
+      "sender": "49976306606124@lid",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779917739.2731478,
+      "tipo": "manual_humano",
+      "sender": "71262147764245@lid",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779919970.5987165,
+      "tipo": "modo_humano",
+      "sender": "5749976306606124@c.us",
+      "detalle": "Perfecto muchas gracias"
+    },
+    {
+      "ts": 1779923371.899808,
+      "tipo": "manual_humano",
+      "sender": "57259502091821270@c.us",
+      "detalle": "operador desde panel de chats"
+    },
+    {
+      "ts": 1779930795.1669388,
+      "tipo": "bot_pausado_global",
+      "sender": "57104977657790477@c.us",
+      "detalle": "Buenos Dias! Estoy intersada en saber que contiene cada uno de los kits, necesito uno que tenga niacinamida, vitaminia c y acido hialuronico. Ya tengo el kit que contiene vitamita E, elastina, Aloe, A"
+    },
+    {
+      "ts": 1779932599.49737,
+      "tipo": "bot_pausado_global",
+      "sender": "5728608894611465@c.us",
+      "detalle": "Hola, busco una materia prima específica:\nSucralosa"
+    }
+  ]
+}

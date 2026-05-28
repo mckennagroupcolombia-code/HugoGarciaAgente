@@ -16,6 +16,26 @@ def meli_webhook_es_preventa(topic: str | None) -> bool:
     return t in ("questions", "marketplace_questions")
 
 
+def meli_webhook_es_reclamo_devolucion(topic: str | None) -> bool:
+    """
+    Reclamos / devoluciones (post-venta) en MeLi.
+
+    Nombres observados/posibles según integración:
+    - claims / marketplace_claims
+    - mediations / marketplace_mediations
+    - returns / marketplace_returns
+    """
+    t = (topic or "").strip().lower()
+    return t in (
+        "claims",
+        "marketplace_claims",
+        "mediations",
+        "marketplace_mediations",
+        "returns",
+        "marketplace_returns",
+    )
+
+
 def meli_webhook_es_mensajes_postventa(topic: str | None) -> bool:
     t = (topic or "").strip().lower()
     if not t:
@@ -119,6 +139,10 @@ def meli_webhook_evaluar_despacho(
                 "actions": data.get("actions"),
             }
         return {"tipo": "orden", "order_id": res.split("/")[-1], "topic": topic}
+    if meli_webhook_es_reclamo_devolucion(topic):
+        if not res:
+            return {"tipo": "reclamo_sin_resource", "topic": topic}
+        return {"tipo": "reclamo", "resource": res, "topic": topic}
     if meli_webhook_es_mensajes_postventa(topic):
         if meli_webhook_ignorar_messages_sin_created(data):
             return {

@@ -153,6 +153,34 @@ def buscar_productos_combo_siigo(consulta: str) -> str:
     return _buscar_productos_combo_siigo(consulta)
 
 
+def _wa_publico_display() -> str:
+    """Número WhatsApp público para clientes (web)."""
+    raw = (
+        os.getenv("MCKENNA_WA_PUBLIC")
+        or os.getenv("WEB_WA_NUMBER")
+        or "573195183596"
+    ).strip()
+    digits = re.sub(r"\D", "", raw)
+    if len(digits) == 12 and digits.startswith("57"):
+        return f"+{digits[:2]} {digits[2:5]} {digits[5:8]} {digits[8:]}"
+    return f"+{digits}" if digits else "+57 319 518 3596"
+
+
+def _nota_seguimiento_whatsapp_web() -> str:
+    """Recordatorio estándar: cotización/seguimiento por WhatsApp (web no identifica al visitante)."""
+    num = _wa_publico_display()
+    wa_digits = re.sub(
+        r"\D",
+        "",
+        os.getenv("MCKENNA_WA_PUBLIC") or os.getenv("WEB_WA_NUMBER") or "573195183596",
+    )
+    return (
+        f"\n\nPara seguimiento de cotización o pedido, continúe por WhatsApp al {num} "
+        f"(https://wa.me/{wa_digits}). "
+        "En la web el chat no queda ligado a su celular si abre otra pestaña o borra datos del navegador."
+    )
+
+
 INSTRUCCIONES_WEB_CHAT = """
 CANAL CHAT WEB (burbuja mckennagroup.co):
 1. SOLO ofrezca presentaciones y precios que devuelva buscar_productos_combo_siigo (catálogo interno).
@@ -162,6 +190,10 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
    Responda la consulta técnica (usa buscar_productos_combo_siigo + contexto de ficha si aplica). Aclare que vendemos materia prima, no producto terminado.
 5. Si no hay presentación en catálogo, invite a revisar la tienda o WhatsApp sin tecnicismos internos.
 6. La referencia (Ref.) es el SKU oficial para pedido y cotización.
+7. SEGUIMIENTO: Este chat web NO reemplaza WhatsApp para cotización formal ni seguimiento de pedido.
+   Si el cliente pide cotización, confirmación de compra o seguimiento, indíquele que continúe por WhatsApp
+   (mismo número de la tienda) para atarlo a su línea y retomar el hilo con un asesor humano.
+8. No prometa "le escribo después en este chat" ni que recordará su sesión si cierra el navegador.
 """
 
 
@@ -177,6 +209,12 @@ ROL Y TONO:
 - Asistente interno del equipo, NO agente de ventas al cliente.
 - Directo, sin formalidades. Usa nombres propios del equipo.
 - Responde en español colombiano, conciso (máx 3 líneas salvo que pidan detalle).
+
+REGLAS ESTRICTAS DE COMPORTAMIENTO:
+- NUNCA saludes espontáneamente. Prohibido iniciar respuestas con "¡Hola equipo!", "Buenos días", "Estoy listo para atender" ni variantes.
+- Si alguien solo saluda o manda un mensaje social (hola, buenas, etc.) SIN hacer una pregunta o asignar una tarea, NO respondas nada.
+- NO confirmes tu presencia ni disponibilidad si no te lo piden explícitamente.
+- NO uses emojis innecesarios salvo ✅ para confirmaciones de tickets.
 
 INTERPRETACIÓN DE MARCADORES (el sistema ya ejecutó la acción antes de pasarte el mensaje):
 - [TICKET CREADO: TKT-2026-XXXX asignado a Nombre | ...]
@@ -743,7 +781,14 @@ def _fmt_precio_cop(n: float) -> str:
     return f"${n:,.0f} COP"
 
 
-def resolver_cantidad_tras_oferta_producto(messages: list, pregunta: str) -> str | None:
+def _es_usuario_web_chat(usuario_id: str) -> bool:
+    uid = (usuario_id or "").strip().lower()
+    return uid.startswith("web-")
+
+
+def resolver_cantidad_tras_oferta_producto(
+    messages: list, pregunta: str, usuario_id: str = ""
+) -> str | None:
     """
     Si el asistente acaba de ofrecer producto con referencia y pidió cantidad,
     interpreta la respuesta del usuario como cantidad (p. ej. "1", "1 unidad", "120 ml")
@@ -769,11 +814,14 @@ def resolver_cantidad_tras_oferta_producto(messages: list, pregunta: str) -> str
     )
     subtotal = precio * cant
     qtxt = str(int(cant)) if abs(cant - round(cant)) < 1e-9 else str(cant)
-    return (
+    base = (
         f"Listo veci, te anoto {qtxt} unidad(es) de {nombre} (ref. {sku}).\n"
         f"Precio unitario: {_fmt_precio_cop(precio)} — subtotal: {_fmt_precio_cop(subtotal)}.\n"
         "¿Me comparte nombre o razón social y NIT o cédula para seguir con la cotización?"
     )
+    if _es_usuario_web_chat(usuario_id):
+        base += _nota_seguimiento_whatsapp_web()
+    return base
 
 
 def _historial_a_texto_simple(messages: list) -> str:
@@ -935,6 +983,19 @@ def _contexto_historial_web(messages: list) -> str:
 
 def _termino_busqueda_producto_web(pregunta: str, messages: list) -> str:
     pregunta = (pregunta or "").strip()
+    if _es_seleccion_presentacion_web(pregunta):
+        prod = _extraer_producto_reciente_historial_web(messages)
+        low = (pregunta or "").strip().lower()
+        # Alias comunes: "la grande/mediana/pequeña"
+        if re.search(r"\bgrande\b", low) and not re.search(r"\b(kg|kilo)\b", low):
+            pregunta = f"{pregunta} kg"
+        elif re.search(r"\bmediana\b", low) and not re.search(r"\b500\s*g\b|\b500g\b", low):
+            pregunta = f"{pregunta} 500g"
+        elif re.search(r"\bpeque(n|ñ)a\b", low) and not re.search(r"\b250\s*g\b|\b250g\b", low):
+            pregunta = f"{pregunta} 250g"
+        if prod:
+            return f"{prod} {pregunta}".strip()
+        return pregunta
     if _mensaje_parece_consulta_catalogo_web(pregunta):
         return pregunta
     if _mensaje_parece_consulta_tecnica_web(pregunta):
@@ -972,10 +1033,36 @@ def _filtrar_items_por_seleccion_cliente(
     if not low:
         return items
     palabras = [w for w in low.split() if len(w) >= 4]
+    # Sinónimos comunes en chat
+    if "kilo" in low or "kilito" in low:
+        palabras.extend(["kg"])
+    if "grande" in low:
+        palabras.extend(["kg"])
+    if "mediana" in low:
+        palabras.extend(["500g"])
+    if "pequena" in low or "pequeña" in low:
+        palabras.extend(["250g"])
+    if re.search(r"\b1\s*(kilo|kg)\b", low):
+        palabras.extend(["kg"])
     filtrados: list[tuple[int, dict]] = []
     for it in items:
         blob = _normalizar_busqueda_combo_web(f"{it.get('name', '')} {it.get('ref', '')}")
         score = sum(3 for w in palabras if w in blob)
+        # Priorización directa por gramaje/cantidad pedida
+        if "500g" in low and ("500g" in blob or " 500 g" in blob):
+            score += 10
+        if "250g" in low and ("250g" in blob or " 250 g" in blob):
+            score += 10
+        if "100g" in low and ("100g" in blob or " 100 g" in blob):
+            score += 10
+        if ("kilo" in low or "kg" in low) and (" kg" in f" {blob} " or blob.endswith("kg")):
+            score += 12
+        if "grande" in low and (" kg" in f" {blob} " or blob.endswith("kg")):
+            score += 8
+        if "mediana" in low and ("500g" in blob or " 500 g" in blob):
+            score += 8
+        if ("pequena" in low or "pequeña" in low) and ("250g" in blob or " 250 g" in blob):
+            score += 8
         if low in blob or all(w in blob for w in palabras[:3] if len(palabras) >= 2):
             score += 8
         if score > 0:
@@ -986,6 +1073,62 @@ def _filtrar_items_por_seleccion_cliente(
     if filtrados[0][0] >= 6:
         return [filtrados[0][1]]
     return items
+
+
+def _filtrar_items_por_consulta_web(items: list[dict], consulta: str) -> list[dict]:
+    """
+    Reduce 'falsos positivos' del catálogo web.
+
+    Ej: si el cliente pregunta "citrato de magnesio", no mostrar citrato de potasio/calcio.
+    Estrategia:
+      - Extraer tokens significativos de la consulta (>=4 chars, sin stopwords).
+      - Mantener solo items cuyo (name+ref) contenga TODOS los tokens.
+      - Si no hay match estricto, devolver items originales (no esconder todo).
+    """
+    if not items:
+        return items
+    q = _normalizar_busqueda_combo_web(consulta)
+    if len(q) < 4:
+        return items
+    stop = {
+        "de",
+        "del",
+        "la",
+        "el",
+        "los",
+        "las",
+        "para",
+        "por",
+        "con",
+        "sin",
+        "y",
+        "o",
+        "un",
+        "una",
+        "unos",
+        "unas",
+        "presentacion",
+        "presentaciones",
+        "precio",
+        "cuesta",
+        "vale",
+        "tienen",
+        "tiene",
+        "disponible",
+        "disponibilidad",
+        "stock",
+        "catalogo",
+        "catálogo",
+    }
+    tokens = [t for t in q.split() if len(t) >= 4 and t not in stop and not t.isdigit()]
+    if not tokens:
+        return items
+
+    def blob(it: dict) -> str:
+        return _normalizar_busqueda_combo_web(f"{it.get('name','')} {it.get('ref','')}")
+
+    strict = [it for it in items if all(tok in blob(it) for tok in tokens)]
+    return strict or items
 
 
 def _normalizar_busqueda_combo_web(texto: str) -> str:
@@ -1001,6 +1144,7 @@ def _normalizar_busqueda_combo_web(texto: str) -> str:
 def _formatear_respuesta_directa_combos_web(
     items: list[dict], consulta: str, pregunta_cliente: str = ""
 ) -> str:
+    items = _filtrar_items_por_consulta_web(items, consulta or pregunta_cliente or "")
     items = _filtrar_items_por_seleccion_cliente(items, pregunta_cliente or consulta)
     if not items:
         return (
@@ -1019,16 +1163,56 @@ def _formatear_respuesta_directa_combos_web(
             f"Presentación: {precio} — Ref. {it['ref']}. "
             "¿Cuántas unidades necesita?"
         )
-    lineas = [
-        "Claro, veci. Manejamos materia prima; estas son las presentaciones disponibles en catálogo:",
-    ]
-    for it in items:
+
+    pregunta_low = _normalizar_busqueda_combo_web(pregunta_cliente or consulta)
+    es_pregunta_disponibilidad = bool(
+        re.search(r"\b(tienen|tiene|hay|disponible|disponibilidad|stock)\b", pregunta_low)
+    )
+
+    # Prioriza presentaciones más comunes para respuestas cortas.
+    def _score_presentacion(it: dict) -> int:
+        name = _normalizar_busqueda_combo_web(str(it.get("name") or ""))
+        score = 0
+        if "250g" in name or " 250 g" in name:
+            score += 35
+        if "500g" in name or " 500 g" in name:
+            score += 30
+        if " kg" in f" {name} " or name.endswith("kg"):
+            score += 25
+        if "100g" in name or " 100 g" in name:
+            score += 15
+        # Favorece también referencias simples frente a combos largos.
+        score -= max(0, len(name) // 40)
+        return score
+
+    ordenados = sorted(items, key=_score_presentacion, reverse=True)
+    top = (ordenados[:3] if es_pregunta_disponibilidad else ordenados[:8])
+
+    # Formato más visual para chat web (sin tablas).
+    lineas = []
+    if es_pregunta_disponibilidad:
+        lineas.append("Sí, veci ✅ Tenemos disponibilidad.")
+        lineas.append("Le comparto las presentaciones más pedidas:")
+    else:
+        lineas.append("Listo veci. Estas son las presentaciones disponibles en catálogo:")
+    for i, it in enumerate(top, 1):
         precio = (
             f"${it['precio_web']:,.0f} COP"
             if it.get("precio_web", 0) > 0
             else "consultar precio"
         )
-        lineas.append(f"- {it['name']}: {precio} (Ref. {it['ref']})")
+        nombre = str(it.get("name") or "").strip()
+        ref = str(it.get("ref") or "").strip()
+        if nombre and len(nombre) > 90:
+            nombre = nombre[:88] + "…"
+        lineas.append(f"{i}) *{nombre}*")
+        lineas.append(f"   {precio} — Ref. {ref}")
+        lineas.append("")
+    if len(items) > len(top):
+        lineas.append(
+            f"(Mostrando {len(top)} opciones. Si me dice el gramaje exacto, le filtro la referencia ideal.)"
+        )
+        lineas.append("")
     lineas.append("¿Cuál presentación le sirve?")
     return "\n".join(lineas)
 
@@ -1130,6 +1314,43 @@ def _preflight_contexto_combos_web(pregunta: str, messages: list | None = None) 
     return datos
 
 
+def _preflight_contexto_whatsapp(pregunta: str, messages: list | None = None) -> str | None:
+    """Catálogo Sheets + ficha en columna I (sin tool-use API)."""
+    if _es_reconocimiento_corto_web(pregunta):
+        return None
+    if not _mensaje_parece_consulta_catalogo_web(pregunta):
+        return None
+    termino = _termino_busqueda_producto_web(pregunta, messages or [])
+    if len((termino or "").strip()) < 3:
+        return None
+    try:
+        datos = buscar_producto_completo(termino)
+    except Exception as e:
+        _log_error("preflight_catalogo_whatsapp", e)
+        return None
+    if not datos or "no encontrado" in (datos or "").lower():
+        return None
+    return datos
+
+
+def _preflight_ficha_tecnica(pregunta: str, messages: list | None = None) -> str | None:
+    if not _mensaje_parece_consulta_tecnica_web(pregunta):
+        return None
+    termino = _termino_busqueda_producto_web(pregunta, messages or [])
+    if len((termino or "").strip()) < 3:
+        return None
+    try:
+        from app.services.google_services import buscar_ficha_tecnica_producto
+
+        ficha = buscar_ficha_tecnica_producto(termino)
+    except Exception as e:
+        _log_error("preflight_ficha_tecnica", e)
+        return None
+    if not ficha:
+        return None
+    return str(ficha)[:3500]
+
+
 def _responder_con_gemini_primario(
     pregunta: str,
     usuario_id: str,
@@ -1186,6 +1407,7 @@ def obtener_respuesta_ia(
     historial: list = None,
     adjuntos_payload: list = None,
     canal: str = "",
+    page_url: str = "",
 ):
     """
     Usa Gemini 2.5 Pro como primera opción. Si falla o requiere binarios/tools,
@@ -1224,6 +1446,76 @@ def obtener_respuesta_ia(
             _historiales.get(usuario_id)
             or _cargar_historial_persistente(usuario_id)
         )
+
+    # ── Chat web: pago/pedido/cotización → WhatsApp (sin flujo comprobantes WA) ──
+    if es_web and pregunta_visible and not adjuntos:
+        from app.web_chat_intents import manejar_escalacion_web
+
+        escalada = manejar_escalacion_web(
+            session_id=usuario_id,
+            user_message=pregunta_visible,
+            historial=messages,
+            page_url=page_url or "",
+        )
+        if escalada:
+            escalada_out = _sanitizar_respuesta_web_chat(escalada)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [
+                {"role": "assistant", "content": escalada_out}
+            ]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return escalada_out, final_messages
+
+    # ── Handoff humano (solo WhatsApp; web usa web_chat_intents arriba) ─────
+    low0 = re.sub(r"\s+", " ", (pregunta_visible or "").strip().lower())
+    if not es_web and any(
+        k in low0
+        for k in (
+            "asesor humano",
+            "agente humano",
+            "hablar con un asesor",
+            "hablar con una asesora",
+            "hablar con una persona",
+            "me atiende una persona",
+            "quiero hablar con un asesor",
+            "soporte humano",
+            "atencion humana",
+        )
+    ):
+        try:
+            path = os.path.join("app", "data", "modos_atencion.json")
+            try:
+                data = json.load(open(path, encoding="utf-8"))
+            except FileNotFoundError:
+                data = {}
+            data.setdefault("numeros_en_humano", [])
+            data.setdefault("timestamps", {})
+            data.setdefault("bot_auto_pausados", {})
+            if usuario_id not in data["numeros_en_humano"]:
+                data["numeros_en_humano"].append(usuario_id)
+            data["timestamps"][usuario_id] = time.time()
+            data["bot_auto_pausados"][usuario_id] = {
+                "timestamp": time.time(),
+                "razon": "cliente solicitó humano",
+                "ultimo_mensaje": (pregunta_visible or "")[:500],
+            }
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+        msg = "Listo veci 🙏 A continuación sigue la conversación con un asesor humano."
+        user_msg_index = len(messages)
+        messages.append({"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"})
+        final_messages = messages + [{"role": "assistant", "content": msg}]
+        final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+        _historiales[usuario_id] = final_messages
+        _guardar_historial_persistente(usuario_id, final_messages)
+        return msg, final_messages
 
     if es_web and not adjuntos:
         directa = _respuesta_directa_web_si_combos(pregunta_visible, messages)
@@ -1268,7 +1560,9 @@ def obtener_respuesta_ia(
 
     # Respuesta a cantidad tras ofertar producto (evita que "1" o "1 unidad" disparen nueva búsqueda).
     if not adjuntos:
-        resp_cant = resolver_cantidad_tras_oferta_producto(messages, pregunta or "")
+        resp_cant = resolver_cantidad_tras_oferta_producto(
+            messages, pregunta or "", usuario_id=usuario_id
+        )
         if resp_cant:
             final_messages = messages + [{"role": "assistant", "content": resp_cant}]
             final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
@@ -1276,7 +1570,124 @@ def obtener_respuesta_ia(
             _guardar_historial_persistente(usuario_id, final_messages)
             return resp_cant, final_messages
 
-    # ── Validaciones de proveedor requerido ──────────────────────────────────
+    # ── Canales cliente (WA / web): catálogo en Python + LLM solo texto ───────
+    from app.services.canales_config import es_canal_cliente
+    from app.agent.cliente_chat import responder_canal_cliente
+
+    if es_canal_cliente(canal_efectivo) and not (pregunta or "").startswith("BOT_"):
+        # Handoff a humano (cliente lo pide): responder una vez y dejar chat en modo humano.
+        low = re.sub(r"\s+", " ", (pregunta_visible or "").strip().lower())
+        if any(
+            k in low
+            for k in (
+                "asesor humano",
+                "agente humano",
+                "hablar con un asesor",
+                "hablar con una asesora",
+                "hablar con una persona",
+                "me atiende una persona",
+                "quiero hablar con un asesor",
+                "soporte humano",
+                "atencion humana",
+            )
+        ):
+            try:
+                path = os.path.join("app", "data", "modos_atencion.json")
+                try:
+                    data = json.load(open(path, encoding="utf-8"))
+                except FileNotFoundError:
+                    data = {}
+                data.setdefault("numeros_en_humano", [])
+                data.setdefault("timestamps", {})
+                data.setdefault("bot_auto_pausados", {})
+                if usuario_id not in data["numeros_en_humano"]:
+                    data["numeros_en_humano"].append(usuario_id)
+                data["timestamps"][usuario_id] = time.time()
+                data["bot_auto_pausados"][usuario_id] = {
+                    "timestamp": time.time(),
+                    "razon": "cliente solicitó humano",
+                    "ultimo_mensaje": (pregunta_visible or "")[:500],
+                }
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
+
+            msg = "Listo veci 🙏 A continuación sigue la conversación con un asesor humano."
+            final_messages = messages + [{"role": "assistant", "content": msg}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return msg, final_messages
+
+        if adjuntos:
+            return (
+                "Veci, recibí su archivo. Un asesor lo revisará en breve. "
+                "Si es comprobante de pago, quedamos atentos ✅",
+                messages,
+            )
+
+        ctx_catalogo = contexto_combos
+        if not es_web:
+            ctx_catalogo = ctx_catalogo or _preflight_contexto_whatsapp(
+                pregunta_visible, messages
+            )
+        ctx_ficha = _preflight_ficha_tecnica(pregunta_visible, messages)
+        memoria_vec = _memoria_vectorial_para_chat(pregunta_visible)
+
+        # Si el cliente pregunta por algo específico pero no hay evidencia en catálogo/ficha,
+        # NO inventar: pedir precisión antes de llamar al LLM.
+        if (
+            not ctx_catalogo
+            and not ctx_ficha
+            and not memoria_vec
+            and _mensaje_parece_consulta_producto(pregunta_visible)
+        ):
+            if es_web:
+                aclarar = (
+                    "Veci, ¿me confirma cuál presentación está buscando (250g, 500g o kilo) "
+                    "y si es para consumo o para formulación? Así le respondo exacto."
+                )
+            else:
+                aclarar = (
+                    "Veci, ¿me confirma el nombre exacto del producto y la presentación (250g, 500g o kilo)? "
+                    "Así le confirmo disponibilidad y precio."
+                )
+            final_messages = messages + [{"role": "assistant", "content": aclarar}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return aclarar, final_messages
+
+        texto_cli, _prov = responder_canal_cliente(
+            pregunta=pregunta_para_ia,
+            usuario_id=usuario_id,
+            historial=messages[:-1],
+            system_prompt=system_prompt_efectivo,
+            canal=canal_efectivo,
+            modelo_id=modelo_canal,
+            es_web=es_web,
+            cliente_gemini=cliente_gemini,
+            memoria_vectorial=memoria_vec,
+            contexto_catalogo=ctx_catalogo,
+            contexto_ficha=ctx_ficha,
+            extraer_texto_visible=_extraer_texto_visible_mensaje,
+            sanitizar_web=_sanitizar_respuesta_web_chat if es_web else None,
+        )
+        if texto_cli:
+            final_messages = messages + [{"role": "assistant", "content": texto_cli}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            salida = _sanitizar_respuesta_web_chat(texto_cli) if es_web else texto_cli
+            return salida, final_messages
+
+        return (
+            "Veci, tuve un problema técnico momentáneo. Por favor intente de nuevo 🙏",
+            [],
+        )
+
+    # ── Validaciones de proveedor requerido (operaciones / CLI con tools) ───
     from app.services.canales_config import canal_acepta_ollama as _canal_acepta_ollama
     _es_canal_ollama = _canal_acepta_ollama(canal_efectivo) and not modelo_canal.startswith(("claude-", "gemini-"))
     claude_ok = (

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from flask import Flask
@@ -29,6 +30,20 @@ def test_file_tool_guard_restricts_mutations(monkeypatch) -> None:
 
     assert blocked is not None
     assert "Herramienta de archivos restringida" in blocked
+
+
+def test_canales_cliente_flujo_sin_tools_api() -> None:
+    from app.services.canales_config import es_canal_cliente, listar_canales
+
+    assert es_canal_cliente("whatsapp")
+    assert es_canal_cliente("web_chat")
+    assert not es_canal_cliente("meli_preventa")
+
+    by_id = {c["id"]: c for c in listar_canales()}
+    assert by_id["whatsapp"]["flujo"] == "cliente_texto"
+    assert by_id["whatsapp"]["es_cliente"] is True
+    assert "ollama" in (by_id["whatsapp"].get("categorias_modelo") or [])
+    assert by_id["web_chat"]["modelo_id"] == "gemma4:e4b"
 
 
 def test_meli_webhook_dispatch_contracts() -> None:
@@ -184,6 +199,206 @@ def test_panel_logs_get_and_clear(monkeypatch):
         assert c.delete("/api/panel/logs", headers=hdr).status_code == 200
         r2 = c.get("/api/panel/logs", headers=hdr)
         assert r2.get_json().get("lines") == []
+
+
+def test_web_chat_accepts_tickets_session_bearer(monkeypatch):
+    """Operarios con login Google usan JWT de tickets, no CHAT_API_TOKEN."""
+    monkeypatch.setenv("CHAT_API_TOKEN", "solo-admin-chat")
+    fake_user = {
+        "id": 99,
+        "nombre": "Operario Test",
+        "rol": {"nivel": 2},
+        "permisos_secciones": {"webchat": True, "pedidos": True},
+    }
+
+    def _fake_by_token(tok):
+        return fake_user if tok == "jwt-operario-test" else None
+
+    monkeypatch.setattr(
+        "app.services.tickets_db.get_usuario_by_token",
+        _fake_by_token,
+    )
+
+    def _fake_payload(limit=40, only_unreviewed=False):
+        return {
+            "summary": {
+                "today_interactions": 1,
+                "unreviewed_count": 0,
+                "active_last_24h": 1,
+            },
+            "sessions": [],
+            "total_sessions": 0,
+        }
+
+    monkeypatch.setattr(
+        "app.web_chat_activity.get_panel_payload",
+        _fake_payload,
+    )
+
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer jwt-operario-test"}
+    with app.test_client() as c:
+        r = c.get("/api/web-chat", headers=hdr)
+        assert r.status_code == 200
+        assert r.get_json().get("total_sessions") == 0
+        r_bad = c.get("/api/web-chat", headers={"Authorization": "Bearer invalido"})
+        assert r_bad.status_code == 401
+
+
+def test_wa_jid_lid_y_modo_relacionado() -> None:
+    from app.services import wa_jid as wj
+
+    wj.registrar_alias_lid("73031707820119@lid", "573182432463@c.us")
+    assert wj.jid_canonico("73031707820119@lid") == "573182432463@c.us"
+    assert "73031707820119@lid" in wj.jids_relacionados("573182432463@c.us")
+    modos = {
+        "numeros_en_humano": [],
+        "numeros_silenciados": [],
+        "timestamps": {},
+        "bot_auto_pausados": {},
+    }
+    wj.aplicar_modo_en_relacionados(modos, "73031707820119@lid", agregar_humano=True)
+    assert wj.en_lista_modo("573182432463@c.us", modos["numeros_en_humano"])
+    assert wj.modo_para_jid("73031707820119@lid", modos["numeros_en_humano"], []) == "humano"
+
+
+def test_normalizar_numero_wa_acepta_lid() -> None:
+    from app.routes import _normalizar_numero_wa
+
+    assert _normalizar_numero_wa("73031707820119@lid") == "73031707820119@lid"
+    assert _normalizar_numero_wa("3182432463") == "573182432463@c.us"
+
+
+def test_web_chat_respuestas_rapidas_crud(tmp_path, monkeypatch):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok-chat")
+    data_file = tmp_path / "web_chat_respuestas_rapidas.json"
+    monkeypatch.setattr(
+        "app.services.web_chat_respuestas_rapidas._DATA_PATH",
+        str(data_file),
+    )
+
+    fake_user = {
+        "id": 10,
+        "nombre": "Jenniffer Garcia",
+        "rol": {"nivel": 1},
+        "permisos_secciones": {"webchat": True},
+    }
+
+    def _fake_by_token(tok):
+        return fake_user if tok == "jwt-jenniffer" else None
+
+    monkeypatch.setattr(
+        "app.services.tickets_db.get_usuario_by_token",
+        _fake_by_token,
+    )
+
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer jwt-jenniffer", "Content-Type": "application/json"}
+
+    with app.test_client() as c:
+        r0 = c.get("/api/web-chat/respuestas-rapidas", headers=hdr)
+        assert r0.status_code == 200
+        assert r0.get_json()["mine"] == []
+
+        r1 = c.post(
+            "/api/web-chat/respuestas-rapidas",
+            headers=hdr,
+            json={
+                "titulo": "Saludo Jenniffer",
+                "texto": (
+                    "Hola Buenas tardes, Soy Jenniffer su asesora comercial. "
+                    "Cuente en que le puedo servir veci."
+                ),
+            },
+        )
+        assert r1.status_code == 200
+        item_id = r1.get_json()["item"]["id"]
+
+        r2 = c.get("/api/web-chat/respuestas-rapidas", headers=hdr)
+        assert len(r2.get_json()["mine"]) == 1
+
+        r3 = c.delete(
+            f"/api/web-chat/respuestas-rapidas/{item_id}",
+            headers=hdr,
+        )
+        assert r3.status_code == 200
+        assert c.get("/api/web-chat/respuestas-rapidas", headers=hdr).get_json()["mine"] == []
+
+
+def test_bot_bridge_endpoints_require_auth():
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    with app.test_client() as c:
+        assert c.get("/api/bot/bridge/status").status_code == 401
+        assert c.post("/api/bot/bridge/desvincular").status_code == 401
+
+
+def test_bot_bridge_status_with_mock_bridge(monkeypatch):
+    monkeypatch.setenv("CHAT_API_TOKEN", "tok_bridge")
+    import subprocess
+
+    def _fake_systemctl(cmd, **kwargs):
+        class _R:
+            stdout = "active\n"
+            returncode = 0
+
+        return _R()
+
+    monkeypatch.setattr(subprocess, "run", _fake_systemctl)
+
+    class _Resp:
+        def __init__(self, payload, code=200):
+            self.status_code = code
+            self._payload = payload
+
+        def json(self):
+            return self._payload
+
+    def _fake_get(url, **kwargs):
+        if url.endswith("/session/status"):
+            return _Resp(
+                {
+                    "waSesionOperativa": False,
+                    "sistemaListo": False,
+                    "qrPendiente": True,
+                    "numero": None,
+                    "pushname": None,
+                }
+            )
+        if url.endswith("/session/qr"):
+            return _Resp({"qrRaw": "2@TESTQR", "qrGeneradoEn": "2026-01-01T12:00:00"})
+        return _Resp({}, 404)
+
+    import requests as req_mod
+
+    monkeypatch.setattr(req_mod, "get", _fake_get)
+
+    from app.routes import register_routes
+
+    app = Flask(__name__)
+    register_routes(app)
+    app.config["TESTING"] = True
+    hdr = {"Authorization": "Bearer tok_bridge"}
+    with app.test_client() as c:
+        r = c.get("/api/bot/bridge/status", headers=hdr)
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["bridge_activo"] is True
+        assert data["sesion"]["qr_pendiente"] is True
+        assert data["sesion"]["qr_data_url"] and data["sesion"]["qr_data_url"].startswith(
+            "data:image/png;base64,"
+        )
 
 
 def test_auditar_scripts_runs():
@@ -763,3 +978,99 @@ def test_marcar_solicitud_facturacion_reintenta(monkeypatch, tmp_path):
     row = _siigo_invoice_row_for_test(db_path)
     assert row["invoice_requested_at"]
     assert row["siigo_invoice_error"] is None
+
+
+def test_web_chat_escalacion_pago_pedido(tmp_path, monkeypatch) -> None:
+    from app import web_chat_intents as wci
+
+    modos = tmp_path / "modos_atencion.json"
+    modos.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(wci, "_MODOS_PATH", str(modos))
+
+    assert wci.clasificar_escalacion_web("Necesito concluir el pago de un pedido") == "pago_pedido"
+    assert wci.clasificar_escalacion_web("¿Me envían el link de pago?") == "pago_pedido"
+    assert wci.clasificar_escalacion_web("Quiero hablar con un asesor humano") == "humano"
+    assert wci.clasificar_escalacion_web("¿Cuánto cuesta la urea 250g?") is None
+
+    msg = wci.manejar_escalacion_web(
+        session_id="web-test-escalacion",
+        user_message="Necesito los datos de cuenta para pagar",
+        historial=[],
+    )
+    assert msg is not None
+    assert "wa.me" in msg
+    assert "comprobante" in msg.lower()
+
+
+def test_postventa_pendientes_api_dedup(monkeypatch, tmp_path) -> None:
+    import app.routes as routes
+
+    state_path = tmp_path / "mensajes_posventa_pendientes.json"
+    entrada = {
+        "pack_id": "2000012345678901",
+        "codigo": "8901",
+        "comprador": "Juan Test",
+        "texto": "¿Cuándo llega mi pedido?",
+        "productos": "  • Jabón\n  • Urea",
+        "timestamp": "2026-05-27T10:00:00",
+        "msg_id": "msg-abc",
+    }
+    state_path.write_text(
+        json.dumps(
+            {
+                "pendientes": {
+                    "2000012345678901": entrada,
+                    "8901": entrada,
+                },
+                "procesados": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(routes, "_POSVENTA_STATE_PATH", str(state_path))
+    items = routes._listar_postventa_pendientes_api()
+    assert len(items) == 1
+    assert items[0]["codigo"] == "8901"
+    assert items[0]["pack_id"] == "2000012345678901"
+    assert items[0]["productos"] == ["Jabón", "Urea"]
+
+
+def test_wa_chats_ingest_y_revoke(tmp_path, monkeypatch) -> None:
+    db = tmp_path / "wa_chats.db"
+    monkeypatch.setenv("WA_CHATS_DB", str(db))
+    import importlib
+
+    import app.services.wa_chats as wc
+
+    importlib.reload(wc)
+
+    stats = wc.ingestar_desde_whatsapp(
+        [
+            {
+                "wa_id": "true_573001234567@c.us_ABC",
+                "jid": "573001234567@c.us",
+                "ts": 1_700_000_000,
+                "from_me": False,
+                "texto": "Hola desde cliente",
+            },
+            {
+                "wa_id": "true_573001234567@c.us_DEF",
+                "jid": "573001234567@c.us",
+                "ts": 1_700_000_100,
+                "from_me": True,
+                "texto": "Respuesta desde celular",
+                "enviado_por": "humano",
+            },
+        ]
+    )
+    assert stats["insertados"] == 2
+    msgs = wc.listar_mensajes("573001234567@c.us", limit=10)
+    assert len(msgs) == 2
+    assert msgs[1]["texto"] == "Respuesta desde celular"
+    assert msgs[1]["enviado_por"] == "humano"
+
+    n = wc.marcar_eliminado_por_wa_id("true_573001234567@c.us_ABC")
+    assert n == 1
+    msgs2 = wc.listar_mensajes("573001234567@c.us", limit=10)
+    assert len(msgs2) == 1
+    assert msgs2[0]["texto"] == "Respuesta desde celular"

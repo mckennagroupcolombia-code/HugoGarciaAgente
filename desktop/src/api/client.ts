@@ -47,11 +47,17 @@ export function alternateMutatingApiUrl(
   return null;
 }
 
+/** Bearer para /api/* del panel: admins pueden usar CHAT_API_TOKEN; operarios usan JWT de tickets. */
+function panelBearerToken(): string | null {
+  const tickets = useTicketsAuth.getState();
+  return tickets.apiToken || tickets.token || useAuthStore.getState().token || null;
+}
+
 async function request<T>(
   path: string,
   opts: RequestInit = {},
 ): Promise<T> {
-  const token = useTicketsAuth.getState().apiToken || useAuthStore.getState().token;
+  const token = panelBearerToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -83,14 +89,18 @@ async function request<T>(
   }
 
   if (res.status === 401) {
-    // Solo limpiar ticketsAuth si el 401 viene de un endpoint de tickets (JWT).
-    // Los 401 de /api/metricas, /api/sync, etc. usan CHAT_API_TOKEN y no deben
-    // desloguear la sesión de tickets de operarios que no tienen ese token.
+    const tickets = useTicketsAuth.getState();
     if (path.startsWith("/api/tickets/")) {
-      useTicketsAuth.getState().clear();
+      tickets.clear();
+    } else if (!tickets.token) {
+      // Login legacy solo con CHAT_API_TOKEN en authStore
+      useAuthStore.getState().clear();
     }
-    useAuthStore.getState().clear();
-    throw new Error("No autorizado");
+    throw new Error(
+      tickets.token
+        ? "No autorizado para esta acción. Si acabas de cambiar permisos, cierra sesión y vuelve a entrar."
+        : "No autorizado",
+    );
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

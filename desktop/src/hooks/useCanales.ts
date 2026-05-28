@@ -10,6 +10,10 @@ export interface CanalConfig {
   modelo_categoria?: string;
   proveedor: string;
   modo: string;
+  /** cliente_texto | operaciones | interno | panel */
+  flujo?: string;
+  flujo_label?: string;
+  es_cliente?: boolean;
   descripcion: string;
   editable: boolean;
   categorias_modelo?: string[];

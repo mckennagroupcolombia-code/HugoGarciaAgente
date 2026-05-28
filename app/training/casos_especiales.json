@@ -1,6 +1,32 @@
 {
   "casos": [
     {
+      "id": "web_seguimiento_whatsapp",
+      "trigger": [
+        "cotizacion",
+        "cotización",
+        "seguimiento",
+        "estado del pedido",
+        "mi pedido",
+        "confirmar compra"
+      ],
+      "contexto": "Chat burbuja web (sin teléfono del cliente)",
+      "instruccion": "Si piden cotización formal, seguimiento de pedido o continuar después, indique que deben escribir por WhatsApp (número de la tienda) para retomar el hilo con un asesor. No prometa continuar solo en este chat web si cierran el navegador."
+    },
+    {
+      "id": "handoff_humano",
+      "trigger": [
+        "asesor humano",
+        "agente humano",
+        "hablar con un asesor",
+        "hablar con una persona",
+        "soporte humano",
+        "atencion humana"
+      ],
+      "contexto": "Cliente pide atención humana",
+      "instruccion": "Si el cliente pide un asesor humano, CONFIRMA el traspaso con un mensaje corto y luego no insistas con IA. Frase sugerida: \"Listo veci 🙏 A continuación sigue la conversación con un asesor humano.\""
+    },
+    {
       "id": "comprobante_whatsapp",
       "trigger": ["comprobante", "soporte de pago", "foto del pago", "soporte", "comprobante de pago"],
       "instruccion": "El comprobante de pago SIEMPRE se envía por WhatsApp directamente en este chat. NUNCA pedir que lo envíen por correo electrónico. El sistema lo detecta automáticamente cuando llega la imagen."

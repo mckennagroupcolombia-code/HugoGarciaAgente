@@ -19,6 +19,7 @@ import requests as _requests_lib
 from app.utils import (
     enviar_whatsapp_reporte,
     jid_grupo_postventa_wa,
+    meli_postventa_conversacion_cerrada,
     meli_postventa_id_mensaje,
     meli_postventa_nombre_remitente,
     meli_postventa_remitente_user_id,
@@ -201,10 +202,22 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
 
         data_msg = res.json()
         conv = data_msg.get("conversation_status") or {}
-        if conv.get("status") == "blocked" and conv.get("substatus") == "blocked_by_cancelled_order":
+        cerrada, motivo_cierre = meli_postventa_conversacion_cerrada(conv)
+        if cerrada:
             print(
-                f"⏭️ [POSVENTA] Pack {pack_id} cancelado/bloqueado; no se alerta postventa."
+                f"⏭️ [POSVENTA] Pack {pack_id} conversación cerrada ({motivo_cierre}); "
+                f"no se alerta postventa."
             )
+            sufijo = _sufijo_pack(pack_id)
+            state["pendientes"].pop(str(pack_id), None)
+            if sufijo:
+                state["pendientes"].pop(sufijo, None)
+            for msg in data_msg.get("messages", []) or []:
+                mid = meli_postventa_id_mensaje(msg)
+                if mid:
+                    procesados.add(mid)
+            state["procesados"] = list(procesados)[-500:]
+            _guardar_state_posventa(state)
             return
 
         mensajes = data_msg.get("messages", [])

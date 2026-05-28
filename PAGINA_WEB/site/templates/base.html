@@ -340,6 +340,7 @@ fbq('track','PageView');
         <div class="chat-bubble">
           ¡Hola! Soy Hugo, asesor de McKenna Group 👋<br>
           ¿En qué te puedo ayudar hoy? Puedo orientarte sobre productos, precios, disponibilidad o formulación.<br>
+          <span class="chat-hint">Para seguimiento de cotización o pedido, continúe por <a href="https://wa.me/{{ WA_NUMBER }}" target="_blank" rel="noopener">WhatsApp</a> (mismo número de la tienda). Este chat web sirve para consultas rápidas; si cierra el navegador puede iniciar una conversación nueva.</span><br>
           <span class="chat-hint">Si vas a enviar comprobante de pago, usa el clip 📎 (foto o PDF).</span>
         </div>
         <div class="chat-time">Ahora</div>
@@ -467,6 +468,22 @@ fbq('track','PageView');
     } else if(!show && el){ el.remove(); }
   }
 
+  function chatSessionId(){
+    var key = 'mckenna_hugo_chat_session';
+    try {
+      var id = localStorage.getItem(key);
+      if (!id) {
+        id = (window.crypto && crypto.randomUUID)
+          ? ('web-' + crypto.randomUUID())
+          : ('web-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+        localStorage.setItem(key, id);
+      }
+      return id;
+    } catch (e) {
+      return 'web-' + Date.now();
+    }
+  }
+
   window.chatSend = async function(){
     const msg = input.value.trim();
     if(!msg && !pendingAttachments.length) return;
@@ -495,7 +512,7 @@ fbq('track','PageView');
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ message: msg, attachments: attPayload })
+        body: JSON.stringify({ message: msg, attachments: attPayload, session_id: chatSessionId() })
       });
       const data = await res.json();
       setTyping(false);

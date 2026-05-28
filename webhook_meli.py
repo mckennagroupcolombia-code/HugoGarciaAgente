@@ -117,6 +117,7 @@ def responder_en_mercado_libre(question_id, texto):
 
 from preventa_meli import procesar_nueva_pregunta
 from app.meli_postventa_notif import procesar_postventa_meli_desde_webhook
+from app.meli_reclamos import crear_accion_anular_factura_por_reclamo
 from app.meli_webhook_topics import meli_webhook_evaluar_despacho
 from app.sync import sincronizar_stock_todas_las_plataformas
 
@@ -292,6 +293,14 @@ def notifications():
             f"⏭️ [POSVENTA] Sin action 'created' — omitida. "
             f"actions={data.get('actions')!r}"
         )
+    elif t == "reclamo":
+        print(f"⚠️ [MELI-CLAIM] Reclamo/devolución topic={topic!r} resource={resource!r}")
+        spawn_thread(
+            crear_accion_anular_factura_por_reclamo,
+            args=(plan["resource"],),
+            kwargs={"topic": plan.get("topic")},
+            daemon=True,
+        )
     else:
         _noop_msgs = {
             "preventa_sin_resource": "⚠️ [PREVENTA] resource vacío, ignorado.",
@@ -302,6 +311,7 @@ def notifications():
                 f"actions={data.get('actions')!r}"
             ),
             "postventa_sin_resource": "⚠️ [POSVENTA] messages sin resource, ignorado.",
+            "reclamo_sin_resource": "⚠️ [MELI-CLAIM] Reclamo sin resource, ignorado.",
             "topic_no_manejado": f"ℹ️ [NOTIF] topic={topic!r} no manejado (se ignora).",
         }
         print(_noop_msgs.get(t, f"ℹ️ [NOTIF] tipo plan={t!r}"))

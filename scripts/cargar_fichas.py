@@ -8,8 +8,8 @@ from app.sync import GOOGLE_CREDS_PATH, SPREADSHEET_ID
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
-# NUEVO ID DE CARPETA (Actualizado según tu link)
-DRIVE_FOLDER_ID = "1hHwif79Rf9O6vgAQt5X0CCVML4LeAIz6"
+# Carpeta Drive de fichas técnicas (PDF). Override con TDS_FOLDER_ID en .env
+DRIVE_FOLDER_ID = os.getenv("TDS_FOLDER_ID", "1BTXM8bKCnWVYWTTEmKYxcpaQv1TOoZVs")
 
 def normalizar_texto(texto):
     if not texto: return ""

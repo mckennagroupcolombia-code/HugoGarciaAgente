@@ -39,12 +39,25 @@ from app.services.tickets_db import (
     listar_ordenes_compra, crear_orden_compra, actualizar_orden_compra,
     get_dependencias_mision, agregar_dependencia_mision, eliminar_dependencia_mision,
     set_producto_resultante,
+    get_aliados_asignaciones, set_aliado_asignacion, TAREA_RECLAMO_MELI_ANULAR_FACTURA, TAREA_SYNC_FACTURAS_FALTANTES_SIIGO,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
 _AVATAR_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
 
 _GRUPO_SEDE_SUR_WA = os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
+
+_NOTIF_CONFIG_PATH = Path(__file__).parent / "data" / "config_notif_wa.json"
+
+def _notif_config_load() -> dict:
+    try:
+        return json.loads(_NOTIF_CONFIG_PATH.read_text())
+    except Exception:
+        return {"sede_sur_acciones": True}
+
+def _notif_config_save(cfg: dict) -> None:
+    _NOTIF_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _NOTIF_CONFIG_PATH.write_text(json.dumps(cfg, ensure_ascii=False, indent=2))
 
 _ESTADO_EMOJI = {
     "resuelto":   "✅",
@@ -146,7 +159,9 @@ def _exchange_google_code(code: str) -> dict | None:
 
 
 def _notificar_estado_accion_wa(ticket: dict, nuevo_estado: str, quien: str) -> None:
-    """Envía notificación al grupo SEDE SUR cuando cambia el estado de una acción."""
+    """Envía notificación al grupo SEDE SUR cuando cambia el estado de una acción/solicitud."""
+    if not _notif_config_load().get("sede_sur_acciones", True):
+        return
     import threading
     from app.utils import enviar_whatsapp_reporte
 
@@ -419,6 +434,47 @@ def register_tickets_routes(app):
         actualizar_departamento(dept_id, request.get_json(force=True) or {})
         return jsonify({"ok": True}), 200
 
+    # ── ALIADOS: asignación de labores ───────────────────────────────────────
+
+    @app.route("/api/tickets/aliados/asignaciones", methods=["GET"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_get_aliados_asignaciones():
+        return jsonify(
+            {
+                "tareas": [
+                    {
+                        "slug": TAREA_RECLAMO_MELI_ANULAR_FACTURA,
+                        "nombre": "Reclamos/Devoluciones MeLi → Anular factura + Nota crédito (SIIGO)",
+                    },
+                    {
+                        "slug": TAREA_SYNC_FACTURAS_FALTANTES_SIIGO,
+                        "nombre": "Facturas faltantes MeLi↔Siigo → Sincronizar (SIIGO)",
+                    },
+                ],
+                "asignaciones": get_aliados_asignaciones(),
+            }
+        ), 200
+
+    @app.route("/api/tickets/aliados/asignaciones", methods=["PUT"])
+    @_auth
+    @_nivel_min(3)
+    def tickets_set_aliado_asignacion_route():
+        data = request.get_json(force=True) or {}
+        tarea = (data.get("tarea_slug") or "").strip()
+        usuario_id = data.get("usuario_id")
+        if not tarea:
+            return jsonify({"error": "tarea_slug requerido"}), 400
+        try:
+            res = set_aliado_asignacion(
+                tarea,
+                int(usuario_id) if usuario_id not in (None, "", 0) else None,
+                actualizado_por=request.tickets_usuario["id"],
+            )
+            return jsonify(res), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
     # ── USUARIOS ─────────────────────────────────────────────────────────────
 
     @app.route("/api/tickets/usuarios", methods=["GET"])
@@ -486,6 +542,10 @@ def register_tickets_routes(app):
         filtros = {k: v for k, v in filtros.items() if v}
         if request.args.get("sin_mision"):
             filtros["sin_mision"] = True
+        if request.args.get("vista_equipo") in ("1", "true", "yes"):
+            filtros["vista_equipo"] = True
+        if request.args.get("activas") in ("1", "true", "yes"):
+            filtros["activas"] = True
         return jsonify(listar_tickets(request.tickets_usuario, filtros)), 200
 
     @app.route("/api/tickets/", methods=["POST"])
@@ -504,7 +564,12 @@ def register_tickets_routes(app):
         else:
             data = request.get_json(force=True) or {}
 
-        if not data.get("titulo") or not data.get("categoria") or not data.get("descripcion"):
+        tipo_ticket = data.get("tipo", "ticket")
+        # Para acciones y solicitudes, descripcion es opcional
+        if tipo_ticket in ("accion", "solicitud"):
+            if not data.get("titulo") or not data.get("categoria"):
+                return jsonify({"error": "titulo y categoria son requeridos"}), 400
+        elif not data.get("titulo") or not data.get("categoria") or not data.get("descripcion"):
             return jsonify({"error": "titulo, categoria y descripcion son requeridos"}), 400
 
         archivo_nombre = None
@@ -575,7 +640,7 @@ def register_tickets_routes(app):
         if not ok:
             return jsonify({"error": err}), 400
         ticket = get_ticket(ticket_id, request.tickets_usuario)
-        if ticket and ticket.get("tipo") == "accion" and nuevo_estado in ("resuelto", "en_proceso"):
+        if ticket and ticket.get("tipo") in ("accion", "solicitud") and nuevo_estado in ("resuelto", "en_proceso"):
             _notificar_estado_accion_wa(ticket, nuevo_estado, request.tickets_usuario.get("nombre", ""))
         return jsonify(ticket), 200
 
@@ -1427,6 +1492,24 @@ def register_tickets_routes(app):
         if err:
             return jsonify({"error": err}), 400
         return jsonify(c), 200
+
+    # ── Config notificaciones WhatsApp ────────────────────────────────────────
+
+    @app.route("/api/tickets/config/notif-wa", methods=["GET"])
+    @_auth
+    def tickets_get_notif_config():
+        return jsonify(_notif_config_load()), 200
+
+    @app.route("/api/tickets/config/notif-wa", methods=["PUT"])
+    @_auth
+    @_nivel_min(3)
+    def tickets_set_notif_config():
+        data = request.get_json(force=True) or {}
+        cfg = _notif_config_load()
+        if "sede_sur_acciones" in data:
+            cfg["sede_sur_acciones"] = bool(data["sede_sur_acciones"])
+        _notif_config_save(cfg)
+        return jsonify(cfg), 200
 
     @app.route("/api/tickets/recetas/corridas/<int:corrida_id>/guardar", methods=["POST"])
     @_auth

@@ -33,11 +33,17 @@ export interface WebChatSummary {
   active_last_24h: number;
 }
 
+export interface WebChatNotifyState {
+  enabled: boolean;
+  source?: string;
+}
+
 export interface WebChatPayload {
   updated_at?: string;
   summary: WebChatSummary;
   sessions: WebChatSession[];
   total_sessions: number;
+  notify_to_group?: WebChatNotifyState;
 }
 
 export function useWebChat(onlyUnreviewed = false) {
@@ -71,6 +77,70 @@ export function useMarkAllWebChatReviewed() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["web-chat"] });
       qc.invalidateQueries({ queryKey: ["metricas"] });
+    },
+  });
+}
+
+export function useWebChatNotify() {
+  return useQuery<WebChatNotifyState>({
+    queryKey: ["web-chat-notify"],
+    queryFn: () => api.get("/api/web-chat/notify"),
+    refetchInterval: 30_000,
+  });
+}
+
+export interface QuickReply {
+  id: string;
+  titulo: string;
+  texto: string;
+}
+
+export interface QuickRepliesPayload {
+  global: QuickReply[];
+  mine: QuickReply[];
+  usuario_id: number | null;
+}
+
+export function useWebChatQuickReplies() {
+  return useQuery<QuickRepliesPayload>({
+    queryKey: ["web-chat-quick-replies"],
+    queryFn: () => api.get("/api/web-chat/respuestas-rapidas"),
+    staleTime: 30_000,
+  });
+}
+
+export function useAddWebChatQuickReply() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { texto: string; titulo?: string; scope?: "mine" | "global" }) =>
+      api.post<{ ok: boolean; item: QuickReply }>("/api/web-chat/respuestas-rapidas", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["web-chat-quick-replies"] });
+    },
+  });
+}
+
+export function useDeleteWebChatQuickReply() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, scope }: { id: string; scope?: "mine" | "global" }) =>
+      api.delete<{ ok: boolean }>(
+        `/api/web-chat/respuestas-rapidas/${encodeURIComponent(id)}?scope=${scope ?? "mine"}`,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["web-chat-quick-replies"] });
+    },
+  });
+}
+
+export function useSetWebChatNotify() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) =>
+      api.post<WebChatNotifyState>("/api/web-chat/notify", { enabled }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["web-chat"] });
+      qc.invalidateQueries({ queryKey: ["web-chat-notify"] });
     },
   });
 }

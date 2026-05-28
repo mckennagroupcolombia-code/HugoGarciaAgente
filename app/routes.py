@@ -112,6 +112,220 @@ _POSVENTA_STATE_PATH = os.path.join(
 )
 
 
+def _resolver_entrada_postventa(codigo: str):
+    """
+    Busca entrada pendiente por código corto, pack_id o clave en JSON.
+    Retorna (entrada dict|None, clave_pendiente str|None).
+    """
+    codigo = (codigo or "").strip()
+    if not codigo:
+        return None, None
+    try:
+        with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
+            _state = json.load(_f)
+        pendientes = _state.get("pendientes", {})
+        entrada = None
+        clave_pendiente = None
+        for candidato in (codigo, codigo.upper(), codigo.lower()):
+            entrada = pendientes.get(candidato)
+            if entrada:
+                clave_pendiente = candidato
+                break
+        if not entrada:
+            sufijo_busqueda = codigo.upper()
+            for k, v in pendientes.items():
+                if not isinstance(v, dict):
+                    continue
+                cod = str(v.get("codigo", "")).upper()
+                pid = str(v.get("pack_id", ""))
+                if (
+                    k.endswith(sufijo_busqueda)
+                    or sufijo_busqueda.endswith(k)
+                    or cod == sufijo_busqueda
+                    or pid.endswith(codigo)
+                    or pid == codigo
+                ):
+                    entrada = v
+                    clave_pendiente = k
+                    break
+        return entrada, clave_pendiente
+    except Exception as _e:
+        print(f"⚠️ [POSVENTA] Error leyendo state: {_e}")
+        return None, None
+
+
+def _quitar_pendiente_postventa(pack_id: str, clave_pendiente: str | None = None) -> None:
+    try:
+        with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
+            _state = json.load(_f)
+        pd = _state.get("pendientes", {})
+        if clave_pendiente and clave_pendiente in pd:
+            ref = pd.pop(clave_pendiente, None)
+            if isinstance(ref, dict):
+                cod = str(ref.get("codigo") or "")
+                if cod and cod in pd and pd.get(cod) is ref:
+                    pd.pop(cod, None)
+        for k, v in list(pd.items()):
+            if isinstance(v, dict) and str(v.get("pack_id")) == str(pack_id):
+                pd.pop(k, None)
+        with open(_POSVENTA_STATE_PATH, "w", encoding="utf-8") as _f:
+            json.dump(_state, _f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _listar_postventa_pendientes_api() -> list[dict]:
+    """Lista pendientes deduplicados por pack_id (el JSON guarda clave pack + sufijo)."""
+    try:
+        with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
+            pendientes = json.load(_f).get("pendientes", {})
+    except FileNotFoundError:
+        return []
+    except Exception as e:
+        print(f"⚠️ [POSVENTA-API] Error leyendo pendientes: {e}")
+        return []
+
+    vistos: set[str] = set()
+    items: list[dict] = []
+    for v in pendientes.values():
+        if not isinstance(v, dict):
+            continue
+        pack_id = str(v.get("pack_id") or "").strip()
+        if not pack_id or pack_id in vistos:
+            continue
+        vistos.add(pack_id)
+        codigo = str(v.get("codigo") or "").strip()
+        if not codigo:
+            digits = re.sub(r"\D", "", pack_id)
+            codigo = digits[-4:] if len(digits) >= 4 else pack_id
+        productos = v.get("productos") or ""
+        if isinstance(productos, str):
+            productos_lista = [
+                ln.strip().lstrip("•").strip()
+                for ln in productos.splitlines()
+                if ln.strip()
+            ]
+        else:
+            productos_lista = list(productos) if productos else []
+        items.append(
+            {
+                "codigo": codigo,
+                "pack_id": pack_id,
+                "comprador": v.get("comprador") or "",
+                "texto": v.get("texto") or "",
+                "productos": productos_lista,
+                "timestamp": v.get("timestamp") or "",
+                "msg_id": v.get("msg_id") or "",
+            }
+        )
+    items.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
+    return items
+
+
+def _ejecutar_respuesta_postventa(
+    codigo: str,
+    respuesta: str,
+    *,
+    notificar_grupo: bool = True,
+) -> dict:
+    """
+    Envía respuesta postventa a MeLi. Usado por WhatsApp (posventa …) y panel /api.
+    Retorna {ok, error?, pack_id?, comprador?, cerrada_en_meli?}.
+    """
+    from app.utils import (
+        refrescar_token_meli,
+        obtener_seller_id_meli,
+        meli_postventa_conversacion_cerrada,
+    )
+
+    grupo_posventa = jid_grupo_postventa_wa()
+    codigo = (codigo or "").strip()
+    respuesta = (respuesta or "").strip()
+    if not codigo or not respuesta:
+        err = "Faltan código o respuesta"
+        if notificar_grupo:
+            enviar_whatsapp_reporte(
+                "⚠️ Formato: *posventa <código>: tu respuesta*",
+                numero_destino=grupo_posventa,
+            )
+        return {"ok": False, "error": err}
+
+    entrada, clave_pendiente = _resolver_entrada_postventa(codigo)
+    pack_id = None
+    comprador = ""
+    comprador_id = None
+    if entrada:
+        pack_id = entrada.get("pack_id")
+        comprador = entrada.get("comprador", "")
+        comprador_id = entrada.get("from_id")
+
+    if not pack_id:
+        if codigo.isdigit() and len(codigo) > 8:
+            pack_id = codigo
+        else:
+            err = f"No hay mensaje postventa pendiente con código {codigo}"
+            if notificar_grupo:
+                enviar_whatsapp_reporte(
+                    f"⚠️ No encontré mensaje postventa pendiente con código *{codigo}*.\n"
+                    f"Verifica el código en la alerta original o responde directo en MeLi.",
+                    numero_destino=grupo_posventa,
+                )
+            return {"ok": False, "error": err}
+
+    exito = responder_mensaje_posventa(pack_id, respuesta, comprador_id)
+    if exito:
+        _quitar_pendiente_postventa(str(pack_id), clave_pendiente)
+        if notificar_grupo:
+            enviar_whatsapp_reporte(
+                f"✅ *Respuesta postventa enviada*\n"
+                f"👤 Comprador: {comprador or pack_id}\n"
+                f"📦 Pack: {pack_id}\n"
+                f"💬 Respuesta: {respuesta[:120]}{'…' if len(respuesta) > 120 else ''}",
+                numero_destino=grupo_posventa,
+            )
+        return {"ok": True, "pack_id": str(pack_id), "comprador": comprador}
+
+    try:
+        tok = refrescar_token_meli()
+        sid = obtener_seller_id_meli()
+        r_m = _requests_lib.get(
+            f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{sid}?tag=post_sale",
+            headers={"Authorization": f"Bearer {tok}", "x-version": "2"},
+            timeout=10,
+        )
+        if r_m.status_code == 200:
+            conv = r_m.json().get("conversation_status") or {}
+            cerrada, motivo = meli_postventa_conversacion_cerrada(conv)
+            if cerrada:
+                _quitar_pendiente_postventa(str(pack_id), clave_pendiente)
+                if notificar_grupo:
+                    enviar_whatsapp_reporte(
+                        f"✅ *Postventa cerrada en MeLi*\n"
+                        f"📦 Pack: {pack_id}\n"
+                        f"🧹 Conversación no admite más mensajes ({motivo}). "
+                        f"Si hay reclamo, gestiónalo en el panel de MeLi.",
+                        numero_destino=grupo_posventa,
+                    )
+                return {
+                    "ok": True,
+                    "pack_id": str(pack_id),
+                    "comprador": comprador,
+                    "cerrada_en_meli": True,
+                    "motivo": motivo,
+                }
+    except Exception as e_cancel:
+        print(f"⚠️ [POSVENTA] No pude verificar cancelación {pack_id}: {e_cancel}")
+
+    err = "Error enviando respuesta a MeLi"
+    if notificar_grupo:
+        enviar_whatsapp_reporte(
+            f"❌ *Error enviando respuesta postventa* al pack {pack_id}.\n"
+            f"Intenta responder directamente en MeLi.",
+            numero_destino=grupo_posventa,
+        )
+    return {"ok": False, "error": err, "pack_id": str(pack_id)}
+
+
 def _procesar_comando_posventa_wa(texto_cmd: str) -> None:
     """
     Envía respuesta postventa a MeLi por comando WhatsApp:
@@ -123,126 +337,17 @@ def _procesar_comando_posventa_wa(texto_cmd: str) -> None:
         texto_cmd.strip(),
         re.IGNORECASE | re.DOTALL,
     )
-    grupo_posventa = jid_grupo_postventa_wa()
     if not m:
         enviar_whatsapp_reporte(
             "⚠️ Formato: *posventa <código>: tu respuesta*\n"
             "Ejemplo: posventa 3240: Hola, su pedido ya fue despachado.",
-            numero_destino=grupo_posventa,
+            numero_destino=jid_grupo_postventa_wa(),
         )
         return
-
-    sufijo = m.group(1).strip()
-    respuesta = m.group(2).strip()
-    pack_id = None
-    comprador = ""
-    comprador_id = None
-    clave_pendiente = None
-    try:
-        with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
-            _state = json.load(_f)
-        pendientes = _state.get("pendientes", {})
-        entrada = None
-        for candidato in (sufijo, sufijo.upper(), sufijo.lower()):
-            entrada = pendientes.get(candidato)
-            if entrada:
-                clave_pendiente = candidato
-                break
-        if not entrada:
-            sufijo_busqueda = sufijo.upper()
-            for k, v in pendientes.items():
-                cod = str(v.get("codigo", "")).upper()
-                pid = str(v.get("pack_id", ""))
-                if (
-                    k.endswith(sufijo_busqueda)
-                    or sufijo_busqueda.endswith(k)
-                    or cod == sufijo_busqueda
-                    or pid.endswith(sufijo)
-                    or pid == sufijo
-                ):
-                    entrada = v
-                    clave_pendiente = k
-                    break
-        if entrada:
-            pack_id = entrada["pack_id"]
-            comprador = entrada.get("comprador", "")
-            comprador_id = entrada.get("from_id")
-    except Exception as _e:
-        print(f"⚠️ [POSVENTA-CMD] Error leyendo state: {_e}")
-
-    if not pack_id:
-        if sufijo.isdigit() and len(sufijo) > 8:
-            pack_id = sufijo
-        else:
-            enviar_whatsapp_reporte(
-                f"⚠️ No encontré mensaje postventa pendiente con código *{sufijo}*.\n"
-                f"Verifica el código en la alerta original o responde directo en MeLi.",
-                numero_destino=grupo_posventa,
-            )
-            return
-
-    exito = responder_mensaje_posventa(pack_id, respuesta, comprador_id)
-
-    def _quitar_pendiente_postventa():
-        try:
-            with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
-                _state = json.load(_f)
-            pd = _state.get("pendientes", {})
-            if clave_pendiente and clave_pendiente in pd:
-                pd.pop(clave_pendiente, None)
-            else:
-                for k, v in list(pd.items()):
-                    if str(v.get("pack_id")) == str(pack_id):
-                        pd.pop(k, None)
-                        break
-            with open(_POSVENTA_STATE_PATH, "w", encoding="utf-8") as _f:
-                json.dump(_state, _f, indent=2, ensure_ascii=False)
-        except Exception:
-            pass
-
-    if exito:
-        _quitar_pendiente_postventa()
-        enviar_whatsapp_reporte(
-            f"✅ *Respuesta postventa enviada*\n"
-            f"👤 Comprador: {comprador or pack_id}\n"
-            f"📦 Pack: {pack_id}\n"
-            f"💬 Respuesta: {respuesta[:120]}{'…' if len(respuesta) > 120 else ''}",
-            numero_destino=grupo_posventa,
-        )
-        return
-
-    try:
-        from app.utils import refrescar_token_meli, obtener_seller_id_meli
-
-        tok = refrescar_token_meli()
-        sid = obtener_seller_id_meli()
-        r_m = _requests_lib.get(
-            f"https://api.mercadolibre.com/messages/packs/{pack_id}/sellers/{sid}?tag=post_sale",
-            headers={"Authorization": f"Bearer {tok}", "x-version": "2"},
-            timeout=10,
-        )
-        if r_m.status_code == 200:
-            from app.utils import meli_postventa_conversacion_cerrada
-
-            conv = r_m.json().get("conversation_status") or {}
-            cerrada, motivo = meli_postventa_conversacion_cerrada(conv)
-            if cerrada:
-                _quitar_pendiente_postventa()
-                enviar_whatsapp_reporte(
-                    f"✅ *Postventa cerrada en MeLi*\n"
-                    f"📦 Pack: {pack_id}\n"
-                    f"🧹 Conversación no admite más mensajes ({motivo}). "
-                    f"Si hay reclamo, gestiónalo en el panel de MeLi.",
-                    numero_destino=grupo_posventa,
-                )
-                return
-    except Exception as e_cancel:
-        print(f"⚠️ [POSVENTA-CMD] No pude verificar cancelación {pack_id}: {e_cancel}")
-
-    enviar_whatsapp_reporte(
-        f"❌ *Error enviando respuesta postventa* al pack {pack_id}.\n"
-        f"Intenta responder directamente en MeLi.",
-        numero_destino=grupo_posventa,
+    _ejecutar_respuesta_postventa(
+        m.group(1).strip(),
+        m.group(2).strip(),
+        notificar_grupo=True,
     )
 
 
@@ -418,7 +523,27 @@ def cargar_modos_atencion():
     data.setdefault("numeros_silenciados", [])
     data.setdefault("timestamps", {})
     data.setdefault("bot_auto_pausados", {})
+    try:
+        from app.services.wa_jid import limpiar_jids_falsos_en_modos
+
+        if limpiar_jids_falsos_en_modos(data):
+            with open("app/data/modos_atencion.json", "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+    except Exception:
+        pass
     return data
+
+
+def _wa_en_modo_humano(modos: dict, jid: str) -> bool:
+    from app.services.wa_jid import en_lista_modo
+
+    return en_lista_modo(jid, modos.get("numeros_en_humano", []))
+
+
+def _wa_en_silenciado(modos: dict, jid: str) -> bool:
+    from app.services.wa_jid import en_lista_modo
+
+    return en_lista_modo(jid, modos.get("numeros_silenciados", []))
 
 
 def guardar_modos_atencion(data):
@@ -453,8 +578,10 @@ def _bot_debe_responder_global(modos=None) -> bool:
 
 
 def _normalizar_numero_wa(numero: str) -> str | None:
-    """Convierte número colombiano a JID WhatsApp (573XXXXXXXXXX@c.us)."""
+    """Convierte número colombiano a JID WhatsApp (573XXXXXXXXXX@c.us). Acepta @lid tal cual."""
     numero = numero.strip()
+    if numero.endswith("@lid"):
+        return numero
     if numero.endswith("@c.us") or numero.endswith("@g.us"):
         return numero
     digits = re.sub(r"\D", "", numero)
@@ -578,18 +705,19 @@ def _detectar_solicitud_humano(texto: str) -> str | None:
 
 
 def _pausar_por_bot(sender_id: str, razon: str, texto: str, grupo_destino: str):
+    from app.services.wa_jid import aplicar_modo_en_relacionados
+
     modos = cargar_modos_atencion()
-    modos.setdefault("numeros_en_humano", [])
-    modos.setdefault("timestamps", {})
-    modos.setdefault("bot_auto_pausados", {})
-    if sender_id not in modos["numeros_en_humano"]:
-        modos["numeros_en_humano"].append(sender_id)
-    modos["timestamps"][sender_id] = time.time()
-    modos["bot_auto_pausados"][sender_id] = {
-        "timestamp": time.time(),
-        "razon": razon,
-        "ultimo_mensaje": (texto or "")[:500],
-    }
+    aplicar_modo_en_relacionados(
+        modos,
+        sender_id,
+        agregar_humano=True,
+        razon=razon,
+        ts=time.time(),
+    )
+    for j in list(modos.get("bot_auto_pausados", {})):
+        if j in modos.get("numeros_en_humano", []):
+            modos["bot_auto_pausados"][j]["ultimo_mensaje"] = (texto or "")[:500]
     guardar_modos_atencion(modos)
     from app.services.wa_logs import registrar as _wa_log
     _wa_log("bot_pausado_auto", sender_id, razon)
@@ -1431,7 +1559,18 @@ def register_routes(app):
         except Exception:
             pass
 
-        sender_id = data.get("sender", "desconocido")
+        sender_raw = str(data.get("sender", "desconocido") or "").strip()
+        sender_lid = str(data.get("sender_lid") or "").strip()
+        sender_phone = str(data.get("sender_phone") or "").strip()
+        try:
+            from app.services.wa_jid import jid_canonico, registrar_alias_lid
+
+            if sender_lid and sender_phone:
+                registrar_alias_lid(sender_lid, sender_phone)
+            sender_id = jid_canonico(sender_raw) if sender_raw else sender_raw
+        except Exception:
+            sender_id = sender_raw
+        reply_to_wa = str(data.get("reply_to") or sender_raw or sender_id).strip()
         message_text = data.get("mensaje", "").strip()
         is_after_sale = data.get("es_postventa", False)
         order_id = data.get("order_id", sender_id)
@@ -1839,14 +1978,30 @@ def register_routes(app):
             try:
                 from app.services.wa_chats import guardar as _wa_chat_guardar
                 _tiene_media = bool(has_media) if "has_media" in dir() else False
-                _wa_chat_guardar(sender_id, "entrada", message_text or "", _tiene_media, "", "cliente")
+                _wa_ts = data.get("ts")
+                try:
+                    _wa_ts = float(_wa_ts) if _wa_ts is not None else None
+                except (TypeError, ValueError):
+                    _wa_ts = None
+                _wa_chat_guardar(
+                    sender_id,
+                    "entrada",
+                    message_text or "",
+                    _tiene_media,
+                    "",
+                    "cliente",
+                    wa_id=str(data.get("wa_id") or "").strip() or None,
+                    ts=_wa_ts,
+                )
             except Exception:
                 pass
 
         # --- Números silenciados (spam / no clientes) ---
         if not es_any_grupo_admin and not es_grupo_sede_sur:
             _modos_sil = cargar_modos_atencion()
-            if sender_id in _modos_sil.get("numeros_silenciados", []):
+            if _wa_en_silenciado(_modos_sil, sender_id) or (
+                sender_lid and _wa_en_silenciado(_modos_sil, sender_lid)
+            ):
                 from app.services.wa_logs import registrar as _wa_log
                 _wa_log("silenciado_ignorado", sender_id, (message_text or "")[:200])
                 return jsonify({"status": "silenciado", "respuesta": None})
@@ -1855,15 +2010,21 @@ def register_routes(app):
         if not es_any_grupo_admin and not es_grupo_sede_sur:
             razon_h = _detectar_solicitud_humano(message_text)
             if razon_h:
+                from app.services.wa_jid import aplicar_modo_en_relacionados
+
                 modos = cargar_modos_atencion()
-                if sender_id not in modos["numeros_en_humano"]:
-                    modos["numeros_en_humano"].append(sender_id)
-                modos["timestamps"][sender_id] = time.time()
-                modos["bot_auto_pausados"][sender_id] = {
-                    "timestamp": time.time(),
-                    "razon": razon_h,
-                    "ultimo_mensaje": (message_text or "")[:500],
-                }
+                aplicar_modo_en_relacionados(
+                    modos,
+                    sender_id,
+                    agregar_humano=True,
+                    razon=razon_h,
+                    ts=time.time(),
+                )
+                for j in modos.get("bot_auto_pausados", {}):
+                    if j in modos.get("numeros_en_humano", []):
+                        modos["bot_auto_pausados"][j]["ultimo_mensaje"] = (
+                            message_text or ""
+                        )[:500]
                 guardar_modos_atencion(modos)
                 from app.services.wa_logs import registrar as _wa_log
                 _wa_log("handoff_humano", sender_id, razon_h)
@@ -1873,7 +2034,7 @@ def register_routes(app):
                     enviar_whatsapp_reporte,
                     args=(
                         "Listo veci 🙏 A continuación sigue la conversación con un asesor humano.",
-                        sender_id,
+                        reply_to_wa,
                     ),
                     daemon=True,
                 )
@@ -1887,11 +2048,16 @@ def register_routes(app):
         # --- SWITCH IA/HUMANO ---
         if not es_any_grupo_admin and not es_grupo_sede_sur:
             modos = cargar_modos_atencion()
-            if sender_id in modos["numeros_en_humano"]:
+            if _wa_en_modo_humano(modos, sender_id) or (
+                sender_lid and _wa_en_modo_humano(modos, sender_lid)
+            ):
                 from app.services.wa_logs import registrar as _wa_log
+                from app.services.wa_jid import formato_display
+
                 _wa_log("modo_humano", sender_id, (message_text or "")[:200])
                 # Reenviar al grupo de compras (atención general) y no procesar IA
-                mensaje_reenvio = f"💬 CLIENTE {sender_id}: {message_text}"
+                etiqueta = formato_display(sender_id)
+                mensaje_reenvio = f"💬 CLIENTE {etiqueta} ({sender_id}): {message_text}"
                 spawn_thread(
                     enviar_whatsapp_reporte,
                     args=(mensaje_reenvio, grupo_compras),
@@ -2196,12 +2362,7 @@ def register_routes(app):
                 }
             )
         else:
-            # Si es un chat normal, respondemos directamente.
-            try:
-                from app.services.wa_chats import guardar as _wa_chat_g
-                _wa_chat_g(sender_id, "salida", respuesta_ia, False, "", "bot")
-            except Exception:
-                pass
+            # Historial salida del bot: lo registra el bridge al enviar (wa_id único).
             return jsonify({"status": "success", "respuesta": respuesta_ia})
 
     @app.route("/status", methods=["GET"])
@@ -2475,7 +2636,33 @@ def register_routes(app):
     # ══════════════════════════════════════════════════════════════════════════
 
     def _api_token_valido():
-        return chat_api_token_matches_request()
+        if chat_api_token_matches_request():
+            return True
+        # Acepta también el JWT de sesión de tickets (operadores con login Google)
+        try:
+            from app.services.tickets_db import get_usuario_by_token as _gut
+            from app.api_auth import bearer_token_from_request as _btr
+            tok = _btr()
+            if tok:
+                return _gut(tok) is not None
+        except Exception:
+            pass
+        return False
+
+    def _panel_tickets_usuario():
+        """Usuario de tickets asociado al Bearer (None si solo CHAT_API_TOKEN)."""
+        if chat_api_token_matches_request():
+            return None
+        try:
+            from app.services.tickets_db import get_usuario_by_token as _gut
+            from app.api_auth import bearer_token_from_request as _btr
+
+            tok = _btr()
+            if tok:
+                return _gut(tok)
+        except Exception:
+            pass
+        return None
 
     def _api_lanzar_en_hilo(fn, *args, job: str | None = None):
         """Ejecuta fn(*args) en hilo daemon y registra resultado en panel_activity."""
@@ -2549,6 +2736,29 @@ def register_routes(app):
             return jsonify({"casos": casos[-50:], "total": len(casos)})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/postventa/pendientes")
+    def api_postventa_pendientes():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        mensajes = _listar_postventa_pendientes_api()
+        return jsonify({"mensajes": mensajes, "total": len(mensajes)})
+
+    @app.route("/api/responder-postventa", methods=["POST"])
+    def api_responder_postventa():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        codigo = str(data.get("codigo") or data.get("pack_id") or "").strip()
+        respuesta = str(data.get("respuesta") or "").strip()
+        if not codigo or not respuesta:
+            return jsonify({"ok": False, "error": "Faltan campos"}), 400
+        resultado = _ejecutar_respuesta_postventa(
+            codigo,
+            respuesta,
+            notificar_grupo=True,
+        )
+        return jsonify(resultado)
 
     @app.route("/api/sync/hoy", methods=["POST"])
     def api_sync_hoy():
@@ -2751,6 +2961,114 @@ def register_routes(app):
         lines, count = get_lines_with_count(limit)
         return jsonify({"lines": lines, "count": count})
 
+    # ── Fichas técnicas (generación DOCX/PDF + Drive) ─────────────────────────
+
+    @app.route("/api/fichas/config", methods=["GET"])
+    def api_fichas_config():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import configuracion_drive, PLANTILLA_DEFAULT
+
+        cfg = configuracion_drive()
+        cfg["plantilla_ok"] = PLANTILLA_DEFAULT.is_file()
+        cfg["plantilla"] = str(PLANTILLA_DEFAULT)
+        return jsonify(cfg)
+
+    @app.route("/api/fichas/datos", methods=["GET"])
+    def api_fichas_datos_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import listar_yaml_datos
+
+        return jsonify({"items": listar_yaml_datos()})
+
+    @app.route("/api/fichas/datos/<slug>", methods=["GET"])
+    def api_fichas_datos_get(slug: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import DATOS_DIR, cargar_datos_desde_archivo
+        import yaml
+
+        slug_safe = re.sub(r"[^a-zA-Z0-9_-]", "", slug)
+        for ext in (".yaml", ".yml"):
+            path = DATOS_DIR / f"{slug_safe}{ext}"
+            if path.is_file():
+                datos = cargar_datos_desde_archivo(path)
+                return jsonify({
+                    "id": slug_safe,
+                    "archivo": path.name,
+                    "datos": datos,
+                    "yaml": yaml.dump(datos, allow_unicode=True, sort_keys=False),
+                })
+        return jsonify({"error": "No encontrado"}), 404
+
+    @app.route("/api/fichas/plantilla", methods=["GET"])
+    def api_fichas_plantilla():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import plantilla_datos_ejemplo
+        import yaml
+
+        datos = plantilla_datos_ejemplo()
+        return jsonify({
+            "datos": datos,
+            "yaml": yaml.dump(datos, allow_unicode=True, sort_keys=False),
+        })
+
+    @app.route("/api/fichas/generar", methods=["POST"])
+    def api_fichas_generar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import yaml as _yaml
+
+        body = request.get_json(silent=True) or {}
+        datos = body.get("datos")
+        yaml_raw = body.get("yaml")
+        if yaml_raw and isinstance(yaml_raw, str):
+            try:
+                datos = _yaml.safe_load(yaml_raw) or {}
+            except Exception as exc:
+                return jsonify({"error": f"YAML inválido: {exc}"}), 400
+        if not isinstance(datos, dict) or not (datos.get("titulo") or "").strip():
+            return jsonify({"error": "Se requiere 'datos' o 'yaml' con al menos 'titulo'"}), 400
+        generar_pdf = bool(body.get("generar_pdf", True))
+        subir_drive = bool(body.get("subir_drive", False))
+        guardar_yaml = body.get("guardar_yaml")
+        slug_yaml = body.get("slug_yaml")
+        try:
+            from app.panel_activity import log_line
+            from app.services.ficha_tecnica import generar_desde_datos
+
+            titulo = (datos.get("titulo") or "").strip()
+            log_line(f"HTTP fichas/generar: {titulo[:80]!r} pdf={generar_pdf} drive={subir_drive}")
+            resultado = generar_desde_datos(
+                datos,
+                generar_pdf=generar_pdf,
+                subir_drive=subir_drive,
+                guardar_yaml=slug_yaml if guardar_yaml else None,
+            )
+            log_line(f"✔ ficha generada: {resultado.get('docx_nombre')}")
+            return jsonify(resultado)
+        except Exception as e:
+            from app.panel_activity import log_line
+
+            log_line(f"✖ fichas/generar: {e!r}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/fichas/descargar")
+    def api_fichas_descargar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import ruta_descarga_segura
+
+        nombre = request.args.get("archivo", "").strip()
+        path = ruta_descarga_segura(nombre)
+        if not path:
+            return jsonify({"error": "Archivo no permitido"}), 404
+        from flask import send_file
+
+        return send_file(path, as_attachment=True, download_name=path.name)
+
     @app.route("/api/web-chat")
     def api_web_chat():
         if not _api_token_valido():
@@ -2814,6 +3132,60 @@ def register_routes(app):
             return jsonify({"ok": True, "reviewed": reviewed, "summary": get_summary()})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/web-chat/respuestas-rapidas", methods=["GET"])
+    def api_web_chat_respuestas_rapidas_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.web_chat_respuestas_rapidas import listar_para_usuario
+
+        u = _panel_tickets_usuario()
+        uid = int(u["id"]) if u else None
+        payload = listar_para_usuario(uid)
+        return jsonify({**payload, "usuario_id": uid})
+
+    @app.route("/api/web-chat/respuestas-rapidas", methods=["POST"])
+    def api_web_chat_respuestas_rapidas_post():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.web_chat_respuestas_rapidas import agregar
+
+        body = request.get_json(silent=True) or {}
+        u = _panel_tickets_usuario()
+        uid = int(u["id"]) if u else None
+        nivel = int((u.get("rol") or {}).get("nivel") or 0) if u else 0
+        scope = str(body.get("scope") or "mine").strip().lower()
+        if scope == "global" and nivel < 3:
+            return jsonify({"error": "Solo administradores pueden crear respuestas globales"}), 403
+        item, err = agregar(
+            usuario_id=uid,
+            texto=str(body.get("texto") or ""),
+            titulo=str(body.get("titulo") or ""),
+            scope=scope,
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": True, "item": item})
+
+    @app.route("/api/web-chat/respuestas-rapidas/<item_id>", methods=["DELETE"])
+    def api_web_chat_respuestas_rapidas_delete(item_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.web_chat_respuestas_rapidas import eliminar
+
+        u = _panel_tickets_usuario()
+        uid = int(u["id"]) if u else None
+        nivel = int((u.get("rol") or {}).get("nivel") or 0) if u else 0
+        scope = str(request.args.get("scope") or "mine").strip().lower()
+        ok, err = eliminar(
+            item_id=item_id,
+            usuario_id=uid,
+            scope=scope,
+            es_admin=nivel >= 3 or chat_api_token_matches_request(),
+        )
+        if err:
+            return jsonify({"error": err}), 400 if "Solo" in err or "Sesión" in err else 404
+        return jsonify({"ok": ok})
 
     # ── Facturas de compra (clasificación desde panel) ─────────────────────
 
@@ -3908,12 +4280,12 @@ def register_routes(app):
             return {"X-Bridge-Token": tok}
         return {}
 
-    def _whatsapp_bridge_json(method: str, path: str, timeout=8):
+    def _whatsapp_bridge_json(method: str, path: str, timeout=8, **kwargs):
         import requests as _req
 
         url = f"{_whatsapp_bridge_base_url()}{path}"
         fn = getattr(_req, method.lower())
-        return fn(url, headers=_whatsapp_bridge_headers(), timeout=timeout)
+        return fn(url, headers=_whatsapp_bridge_headers(), timeout=timeout, **kwargs)
 
     def _wa_qr_raw_to_data_url(qr_text: str | None) -> str | None:
         if not qr_text:
@@ -4177,38 +4549,28 @@ def register_routes(app):
         if accion not in ("humano_agregar", "humano_quitar", "silenciar", "activar"):
             return jsonify({"error": "accion inválida"}), 400
 
+        from app.services.wa_jid import aplicar_modo_en_relacionados
         from app.services.wa_logs import registrar as _wa_log
+
         modos = cargar_modos_atencion()
+        ts = time.time()
 
         if accion == "humano_agregar":
-            if jid not in modos["numeros_en_humano"]:
-                modos["numeros_en_humano"].append(jid)
-            modos["timestamps"][jid] = time.time()
-            modos.setdefault("bot_auto_pausados", {})[jid] = {
-                "timestamp": time.time(),
-                "razon": razon,
-                "ultimo_mensaje": "",
-            }
+            aplicar_modo_en_relacionados(
+                modos, jid, agregar_humano=True, razon=razon, ts=ts
+            )
             _wa_log("manual_humano", jid, razon)
 
         elif accion == "humano_quitar":
-            modos["numeros_en_humano"] = [n for n in modos["numeros_en_humano"] if n != jid]
-            modos.get("bot_auto_pausados", {}).pop(jid, None)
-            modos.get("timestamps", {}).pop(jid, None)
+            aplicar_modo_en_relacionados(modos, jid, quitar_humano=True, razon=razon, ts=ts)
             _wa_log("handoff_bot", jid, razon)
 
         elif accion == "silenciar":
-            modos.setdefault("numeros_silenciados", [])
-            if jid not in modos["numeros_silenciados"]:
-                modos["numeros_silenciados"].append(jid)
-            modos["timestamps"][jid] = time.time()
+            aplicar_modo_en_relacionados(modos, jid, silenciar=True, razon=razon, ts=ts)
             _wa_log("manual_silenciar", jid, razon)
 
         elif accion == "activar":
-            modos["numeros_silenciados"] = [n for n in modos.get("numeros_silenciados", []) if n != jid]
-            modos["numeros_en_humano"] = [n for n in modos["numeros_en_humano"] if n != jid]
-            modos.get("bot_auto_pausados", {}).pop(jid, None)
-            modos.get("timestamps", {}).pop(jid, None)
+            aplicar_modo_en_relacionados(modos, jid, activar=True, razon=razon, ts=ts)
             _wa_log("manual_activar", jid, razon)
 
         guardar_modos_atencion(modos)
@@ -4234,18 +4596,17 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.wa_chats import listar_conversaciones as _lc, total_no_leidos as _tnl
         limit = min(int(request.args.get("limit", 60)), 200)
+        from app.services.wa_jid import formato_display, modo_para_jid
+
         conversaciones = _lc(limit=limit)
         modos = cargar_modos_atencion()
-        humanos = set(modos.get("numeros_en_humano", []))
-        silenciados = set(modos.get("numeros_silenciados", []))
+        humanos = modos.get("numeros_en_humano", [])
+        silenciados = modos.get("numeros_silenciados", [])
         for c in conversaciones:
             jid = c.get("jid", "")
-            if jid in humanos:
-                c["modo"] = "humano"
-            elif jid in silenciados:
-                c["modo"] = "silenciado"
-            else:
-                c["modo"] = "bot"
+            c["modo"] = modo_para_jid(jid, humanos, silenciados)
+            c["display"] = formato_display(jid)
+            c["jid_raw"] = jid
         return jsonify({"conversaciones": conversaciones, "no_leidos_total": _tnl()})
 
     @app.route("/api/bot/chats/<path:jid>", methods=["GET"])
@@ -4254,18 +4615,20 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.wa_chats import listar_mensajes as _lm, marcar_leido as _ml
         limit = min(int(request.args.get("limit", 120)), 300)
+        from app.services.wa_jid import formato_display, modo_para_jid
+
         mensajes = _lm(jid, limit=limit)
         _ml(jid)
         modos = cargar_modos_atencion()
-        humanos = set(modos.get("numeros_en_humano", []))
-        silenciados = set(modos.get("numeros_silenciados", []))
-        if jid in humanos:
-            modo = "humano"
-        elif jid in silenciados:
-            modo = "silenciado"
-        else:
-            modo = "bot"
-        return jsonify({"mensajes": mensajes, "modo": modo, "jid": jid})
+        humanos = modos.get("numeros_en_humano", [])
+        silenciados = modos.get("numeros_silenciados", [])
+        modo = modo_para_jid(jid, humanos, silenciados)
+        return jsonify({
+            "mensajes": mensajes,
+            "modo": modo,
+            "jid": jid,
+            "display": formato_display(jid),
+        })
 
     @app.route("/api/bot/chats/<path:jid>/enviar", methods=["POST"])
     def api_bot_chats_enviar(jid: str):
@@ -4276,9 +4639,15 @@ def register_routes(app):
         texto = str(body.get("texto", "")).strip()
         if not texto:
             return jsonify({"error": "texto requerido"}), 400
+        from app.services.wa_jid import jids_relacionados
         from app.utils import enviar_whatsapp_reporte
         from app.services.wa_chats import guardar as _wag
-        ok = enviar_whatsapp_reporte(texto, numero_destino=jid)
+
+        destinos = list(jids_relacionados(jid))
+        destino_envio = next((d for d in destinos if d.endswith("@lid")), None)
+        if not destino_envio:
+            destino_envio = next((d for d in destinos if d.endswith("@c.us")), jid)
+        ok = enviar_whatsapp_reporte(texto, numero_destino=destino_envio)
         if ok:
             _wag(jid, "salida", texto, False, "", "humano")
             return jsonify({"ok": True})
@@ -4291,6 +4660,67 @@ def register_routes(app):
         from app.services.wa_chats import marcar_leido as _ml
         _ml(jid)
         return jsonify({"ok": True})
+
+    @app.route("/api/bot/chats/ingest", methods=["POST"])
+    def api_bot_chats_ingest():
+        """Lote desde el bridge (mensajes del celular, sync, respuestas del bot con wa_id)."""
+        if not chat_api_token_matches_request():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        from app.services.wa_chats import ingestar_desde_whatsapp as _ing
+
+        stats = _ing(body.get("mensajes") or [])
+        return jsonify({"ok": True, **stats})
+
+    @app.route("/api/bot/chats/revoke", methods=["POST"])
+    def api_bot_chats_revoke():
+        """Marca mensajes eliminados en WhatsApp (borrado en el celular)."""
+        if not chat_api_token_matches_request():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        from app.services.wa_chats import marcar_eliminado_por_wa_id, marcar_eliminados
+
+        wa_ids = body.get("wa_ids") or []
+        wa_id = str(body.get("wa_id") or "").strip()
+        if wa_id:
+            wa_ids = list(wa_ids) + [wa_id]
+        n = marcar_eliminados([str(x).strip() for x in wa_ids if str(x).strip()])
+        return jsonify({"ok": True, "marcados": n})
+
+    @app.route("/api/bot/chats/<path:jid>/sincronizar", methods=["POST"])
+    def api_bot_chats_sincronizar(jid: str):
+        """Trae historial reciente desde WhatsApp Web y reconcilia SQLite."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        limit = min(int(body.get("limit", 60)), 80)
+        from app.services.wa_jid import jids_relacionados
+
+        candidatos = sorted(
+            list(jids_relacionados(jid)),
+            key=lambda j: (0 if j.endswith("@lid") else 1, j),
+        )
+        if not candidatos:
+            candidatos = [jid]
+        ultimo_err = "Chat no encontrado en WhatsApp"
+        for dest in candidatos:
+            try:
+                r = _whatsapp_bridge_json(
+                    "post",
+                    "/chats/sync",
+                    timeout=50,
+                    json={"jid": dest, "limit": limit},
+                )
+            except Exception as e:
+                ultimo_err = str(e)
+                continue
+            if r.status_code == 200:
+                payload = r.json() if r.content else {}
+                payload["jid_panel"] = jid
+                payload["jid_sync"] = dest
+                return jsonify(payload)
+            ultimo_err = (r.text or "")[:300] or f"HTTP {r.status_code}"
+        return jsonify({"error": ultimo_err}), 503
 
     # ── Biblioteca de recursos rápidos ─────────────────────────────────────
 

@@ -714,11 +714,14 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "webchat",    label: "Chat web" },
   { id: "whatsapp",   label: "Agente WA" },
   { id: "preventa",   label: "Preventa MeLi" },
+  { id: "postventa",  label: "Postventa MeLi" },
   { id: "sync",       label: "Sincronización" },
   { id: "stock",      label: "Stock" },
+  { id: "fichas",     label: "Fichas técnicas" },
   { id: "pedidos",    label: "Pedidos Web" },
   { id: "facturas",   label: "Facturas Compra" },
   { id: "tickets",    label: "Centro de Mando" },
+  { id: "settings",   label: "Ajustes" },
 ];
 
 // Sub-tabs within Centro de Mando
