@@ -1687,3 +1687,33 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-05-26 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
+[master 72f68f4] Auto-commit: actualizacion diaria 2026-05-27 23:00
+ 82 files changed, 7964 insertions(+), 703 deletions(-)
+ create mode 100644 app/agent/cliente_chat.py
+ create mode 100644 app/data/config_notif_wa.json
+ create mode 100644 app/data/wa_biblioteca.db
+ create mode 100644 app/data/wa_biblioteca_files/573aa11c-a87.jpeg
+ create mode 100644 app/data/wa_chats.db
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/data/wa_interactions.json
+ create mode 100644 app/data/wa_lid_aliases.json
+ create mode 100644 app/data/web_chat_notify.json
+ create mode 100644 app/data/web_chat_respuestas_rapidas.json
+ create mode 100644 app/meli_reclamos.py
+ create mode 100644 app/services/ficha_tecnica.py
+ create mode 100644 app/services/wa_jid.py
+ create mode 100644 app/services/web_chat_respuestas_rapidas.py
+ create mode 100644 app/web_chat_intents.py
+ create mode 100644 desktop/src/components/FichasTecnicasPanel.tsx
+ create mode 100644 desktop/src/components/PostventaPanel.tsx
+ create mode 100644 desktop/src/hooks/usePostventa.ts
+ create mode 100644 scripts/generar_ficha_tecnica.py
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-05-27 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
