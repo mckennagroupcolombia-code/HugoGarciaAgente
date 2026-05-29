@@ -102,6 +102,31 @@ function UserAvatar({
   );
 }
 
+// ── InfoTooltip: botón ⓘ discreto con ayuda contextual ───────────────────────
+function InfoTooltip({ text, className = "" }: { text: string; className?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className={`relative inline-flex ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="Ayuda"
+        className="h-4 w-4 rounded-full border border-muted/40 text-[9px] font-bold text-muted hover:border-accent hover:text-accent transition-colors flex items-center justify-center leading-none select-none"
+      >
+        i
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-5 z-50 w-72 rounded-xl border border-border bg-surface p-3 shadow-xl text-xs text-muted leading-relaxed">
+            {text}
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Ticket {
@@ -126,6 +151,10 @@ interface Ticket {
   etapa_id?: number | null;
   bloqueado_por?: number | null;
   bloqueado_por_numero?: string | null;
+  ticket_padre_id?: number | null;
+  ticket_padre_numero?: string | null;
+  ticket_padre_titulo?: string | null;
+  ticket_padre_solicitante?: string | null;
   mision_titulo?: string | null;
   mision_color?: string | null;
   mision_tipo?: string | null;
@@ -145,6 +174,7 @@ interface Ticket {
   pasos_total?: number;
   pasos_completados?: number;
   tipo?: "ticket" | "accion" | "solicitud";
+  tiene_datos_sensibles?: boolean;
 }
 
 interface TicketCorrida {
@@ -6054,7 +6084,11 @@ function CreateMisionEtapaFrames({
 interface Paso {
   id: number; ticket_id: number; orden: number; descripcion: string;
   notas?: string | null;
-  completado: number | boolean; completado_en: string | null; completado_por_nombre: string | null;
+  completado: number | boolean; completado_en: string | null;
+  completado_por?: number | null; completado_por_nombre: string | null;
+  intervencion_pendiente_numero?: string | null;
+  intervencion_asignado_nombre?: string | null;
+  respuesta_intervencion?: string | null;
 }
 
 function pasoEstaCompletado(p: Paso): boolean {
@@ -10342,6 +10376,7 @@ function AccionCard({
 
   async function resolver() {
     if (busy) return;
+    if (!confirm(`¿Marcar "${ticket.titulo}" como terminada?\n\nEsta acción no se puede deshacer.`)) return;
     setBusy(true);
     try {
       if (corridaId) {
@@ -10477,6 +10512,59 @@ function AccionCard({
   );
 }
 
+// ── tipos lista de compras ────────────────────────────────────────────────────
+interface Adjunto {
+  id: number;
+  ticket_id: number;
+  nombre_archivo: string;
+  nombre_original: string;
+  mime?: string | null;
+  creado_por_nombre?: string | null;
+  creado_en: string;
+}
+
+interface ProtocoloPaso {
+  descripcion: string;
+  notas?: string | null;
+}
+
+interface Protocolo {
+  id: number;
+  titulo: string;
+  descripcion?: string | null;
+  categoria?: string | null;
+  pasos: ProtocoloPaso[];
+  ticket_origen?: number | null;
+  ticket_origen_numero?: string | null;
+  ticket_origen_titulo?: string | null;
+  creado_por_nombre?: string | null;
+  creado_en: string;
+}
+
+interface ItemCompra {
+  id: number;
+  ticket_id: number;
+  nombre: string;
+  sku: string | null;
+  material_id: number | null;
+  cantidad: number;
+  unidad: string;
+  precio_estimado: number | null;
+  comprado: number;
+  notas: string | null;
+  creado_por_nombre: string | null;
+  material_nombre: string | null;
+  material_unidad: string | null;
+}
+
+interface ProductoCatalogo {
+  id: number;
+  nombre: string;
+  codigo: string | null;
+  unidad_medida: string | null;
+  tipo: string;
+}
+
 // ── SolicitudCard ─────────────────────────────────────────────────────────────
 
 function SolicitudCard({
@@ -10485,21 +10573,267 @@ function SolicitudCard({
   ticket: Ticket; token: string; user: TicketsUser;
   onChanged: () => void;
   isAdmin?: boolean;
-  /** Vista equipo/admin: estado visible, sin botones ni aviso de “solo el asignado”. */
+  /** Vista equipo/admin: estado visible, sin botones ni aviso de "solo el asignado". */
   supervision?: boolean;
 }) {
+  const nivel = (user.rol?.nivel ?? 1);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [msg, setMsg] = useState("");
   const esAsignado = ticket.asignado_a === user.id;
   const esCreadoPorMi = ticket.creado_por === user.id;
+  const esParticipante = ticket.participantes?.some((p) => p.usuario_id === user.id) ?? false;
+  const esIntervencion = !!ticket.ticket_padre_id;
+  const puedeVerSensible = nivel >= 2 || esAsignado || esCreadoPorMi || esParticipante;
   const resuelta = ticket.estado === "resuelto" || ticket.estado === "rechazado";
+
+  // Pasos/checklist
+  const [pasos, setPasos] = useState<Paso[]>([]);
+  const [loadingPasos, setLoadingPasos] = useState(false);
+  const [showPasos, setShowPasos] = useState(false);
+  const [editandoPasoId, setEditandoPasoId] = useState<number | null>(null);
+  const [editPasoDesc, setEditPasoDesc] = useState("");
+  const [editPasoNotas, setEditPasoNotas] = useState("");
+  const [nuevoPasoDesc, setNuevoPasoDesc] = useState("");
+  const [agregandoPaso, setAgregandoPaso] = useState(false);
+  const [showAddPaso, setShowAddPaso] = useState(false);
+
+  // Lista de compras
+  const [showCompras, setShowCompras] = useState(false);
+  const [compras, setCompras] = useState<ItemCompra[]>([]);
+  const [loadingCompras, setLoadingCompras] = useState(false);
+  const [nuevoProducto, setNuevoProducto] = useState({ nombre: "", sku: "", cantidad: "1", unidad: "und", precio: "" });
+  const [busqProducto, setBusqProducto] = useState("");
+  const [resultadosBusq, setResultadosBusq] = useState<ProductoCatalogo[]>([]);
+  const [agregandoCompra, setAgregandoCompra] = useState(false);
+
+  // Intervención (blocker)
+  const [showIntervencion, setShowIntervencion] = useState(false);
+  const [interForm, setInterForm] = useState({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 });
+  const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
+  const [creandoInter, setCreandoInter] = useState(false);
+
+  // Resolución de intervención
+  const [resolucionInter, setResolucionInter] = useState("");
+
+  // Comentarios (respuestas de intervención)
+  const [comentarios, setComentarios] = useState<Comentario[]>([]);
+  const [showComentarios, setShowComentarios] = useState(false);
+  const [loadingComentarios, setLoadingComentarios] = useState(false);
+
+  // Adjuntos
+  const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
+  const [loadingAdjuntos, setLoadingAdjuntos] = useState(false);
+  const [showAdjuntos, setShowAdjuntos] = useState(false);
+  const [eliminandoAdj, setEliminandoAdj] = useState<number | null>(null);
+
+  // Guardar como protocolo
+  const [showProtocoloForm, setShowProtocoloForm] = useState(false);
+  const [protocoloForm, setProtocoloForm] = useState({ titulo: "", descripcion: "", categoria: "" });
+  const [guardandoProtocolo, setGuardandoProtocolo] = useState(false);
+  const [protocoloMsg, setProtocoloMsg] = useState("");
+
+  // Datos sensibles
+  const [showSensible, setShowSensible] = useState(false);
+  const [sensibleTexto, setSensibleTexto] = useState("");
+  const [editandoSensible, setEditandoSensible] = useState(false);
+  const [sensibleDraft, setSensibleDraft] = useState("");
+  const [loadingSensible, setLoadingSensible] = useState(false);
+  const [sensibleMsg, setSensibleMsg] = useState("");
+
+  // Cargar pasos al iniciar (siempre que esté en proceso) o al hacer clic
+  useEffect(() => {
+    if (ticket.estado === "en_proceso") {
+      void cargarPasos();
+      setShowPasos(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket.id, ticket.estado]);
+
+  async function cargarPasos() {
+    setLoadingPasos(true);
+    try {
+      const data = await tapi(`/${ticket.id}/pasos`, token);
+      setPasos(Array.isArray(data) ? data : []);
+    } catch { /* ignore */ } finally { setLoadingPasos(false); }
+  }
+
+  async function togglePaso(paso: Paso) {
+    try {
+      const data = await tapi(`/${ticket.id}/pasos/${paso.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ completado: paso.completado ? 0 : 1 }),
+      });
+      if (data.pasos) setPasos(data.pasos);
+      else if (Array.isArray(data)) setPasos(data);
+      onChanged();
+    } catch { /* ignore */ }
+  }
+
+  function iniciarEditPaso(p: Paso) {
+    setEditandoPasoId(p.id);
+    setEditPasoDesc(p.descripcion);
+    setEditPasoNotas((p.notas as string | null) ?? "");
+  }
+
+  async function guardarEditPaso(paso: Paso) {
+    if (!editPasoDesc.trim()) return;
+    try {
+      const data = await tapi(`/${ticket.id}/pasos/${paso.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ descripcion: editPasoDesc, notas: editPasoNotas }),
+      });
+      setPasos(Array.isArray(data) ? data : data.pasos ?? pasos);
+    } catch { /* ignore */ } finally {
+      setEditandoPasoId(null);
+    }
+  }
+
+  async function agregarPasoInline() {
+    if (!nuevoPasoDesc.trim()) return;
+    setAgregandoPaso(true);
+    try {
+      const data = await tapi(`/${ticket.id}/pasos`, token, {
+        method: "POST",
+        body: JSON.stringify({ descripcion: nuevoPasoDesc }),
+      });
+      setPasos(Array.isArray(data) ? data : pasos);
+      setNuevoPasoDesc("");
+      setShowAddPaso(false);
+      onChanged();
+    } catch { /* ignore */ } finally { setAgregandoPaso(false); }
+  }
+
+  async function eliminarPasoInline(pasoId: number) {
+    try {
+      const data = await tapi(`/pasos/${pasoId}`, token, { method: "DELETE" });
+      setPasos(Array.isArray(data) ? data : pasos);
+      onChanged();
+    } catch { /* ignore */ }
+  }
+
+  async function cargarCompras() {
+    setLoadingCompras(true);
+    try {
+      const data = await tapi(`/${ticket.id}/lista-compras`, token);
+      setCompras(Array.isArray(data) ? data : []);
+    } catch { /* ignore */ } finally { setLoadingCompras(false); }
+  }
+
+  async function buscarProducto(q: string) {
+    setBusqProducto(q);
+    setNuevoProducto((p) => ({ ...p, nombre: q }));
+    if (q.length < 2) { setResultadosBusq([]); return; }
+    try {
+      const data = await tapi(`/productos/buscar?q=${encodeURIComponent(q)}`, token);
+      setResultadosBusq(Array.isArray(data) ? data : []);
+    } catch { setResultadosBusq([]); }
+  }
+
+  function seleccionarProductoCatalogo(prod: ProductoCatalogo) {
+    setNuevoProducto((p) => ({
+      ...p,
+      nombre: prod.nombre,
+      sku: prod.codigo ?? "",
+      unidad: prod.unidad_medida ?? "und",
+    }));
+    setBusqProducto(prod.nombre);
+    setResultadosBusq([]);
+  }
+
+  async function agregarCompra() {
+    if (!nuevoProducto.nombre.trim()) return;
+    setAgregandoCompra(true);
+    try {
+      const data = await tapi(`/${ticket.id}/lista-compras`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          nombre: nuevoProducto.nombre,
+          sku: nuevoProducto.sku || undefined,
+          cantidad: parseFloat(nuevoProducto.cantidad) || 1,
+          unidad: nuevoProducto.unidad,
+          precio_estimado: nuevoProducto.precio ? parseFloat(nuevoProducto.precio) : undefined,
+        }),
+      });
+      setCompras(Array.isArray(data) ? data : compras);
+      setNuevoProducto({ nombre: "", sku: "", cantidad: "1", unidad: "und", precio: "" });
+      setBusqProducto("");
+    } catch { /* ignore */ } finally { setAgregandoCompra(false); }
+  }
+
+  async function toggleComprado(item: ItemCompra) {
+    try {
+      const data = await tapi(`/lista-compras/${item.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ comprado: item.comprado ? 0 : 1 }),
+      });
+      setCompras(Array.isArray(data) ? data : compras);
+    } catch { /* ignore */ }
+  }
+
+  async function eliminarCompra(itemId: number) {
+    try {
+      const data = await tapi(`/lista-compras/${itemId}`, token, { method: "DELETE" });
+      setCompras(Array.isArray(data) ? data : compras);
+    } catch { /* ignore */ }
+  }
+
+  function abrirIntervencionDesdePaso(paso: Paso) {
+    void abrirIntervencion();
+    setInterForm((f) => ({
+      ...f,
+      titulo: `Paso ${paso.orden}: ${paso.descripcion}`,
+      descripcion: "",
+      paso_ref: `Paso ${paso.orden}: ${paso.descripcion}`,
+      paso_id: paso.id,
+    }));
+  }
 
   async function resolver() {
     if (!esAsignado || busy) return;
+    // Validación previa en el cliente usando contadores del ticket
+    const total = ticket.pasos_total ?? 0;
+    const hechos = ticket.pasos_completados ?? 0;
+    if (total > 0 && hechos < total) {
+      setMsg(`Faltan ${total - hechos} paso(s) por completar antes de marcar como lista.`);
+      setTimeout(() => setMsg(""), 4000);
+      return;
+    }
+    // Validación adicional con pasos cargados en memoria
+    const pasosPendientes = pasos.filter((p) => !pasoEstaCompletado(p));
+    if (pasos.length > 0 && pasosPendientes.length > 0) {
+      setMsg(`Faltan ${pasosPendientes.length} paso(s) por completar antes de marcar como lista.`);
+      setTimeout(() => setMsg(""), 4000);
+      return;
+    }
+    if (!confirm(`¿Marcar "${ticket.titulo}" como lista?\n\nEsta acción no se puede deshacer.`)) return;
     setBusy(true);
     try {
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+      onChanged();
+    } catch (e: any) {
+      setMsg(e.message ?? "Error");
+      setTimeout(() => setMsg(""), 4000);
+    } finally { setBusy(false); }
+  }
+
+  async function resolverIntervencion() {
+    if (!esAsignado || busy) return;
+    if (!resolucionInter.trim()) {
+      setMsg("Escribe tu respuesta antes de resolver la intervención.");
+      setTimeout(() => setMsg(""), 3000);
+      return;
+    }
+    setBusy(true);
+    try {
+      await tapi(`/${ticket.id}/comentarios`, token, {
+        method: "POST",
+        body: JSON.stringify({ texto: resolucionInter.trim() }),
+      });
+      await tapi(`/${ticket.id}/estado`, token, {
+        method: "PUT",
+        body: JSON.stringify({ estado: "resuelto" }),
+      });
       onChanged();
     } catch (e: any) {
       setMsg(e.message ?? "Error");
@@ -10513,6 +10847,11 @@ function SolicitudCard({
     try {
       const nuevoEstado = ticket.estado === "en_proceso" ? "pendiente" : "en_proceso";
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: nuevoEstado }) });
+      if (nuevoEstado === "en_proceso") {
+        await cargarPasos();
+        setShowPasos(true);
+        setShowAddPaso(true);
+      }
       onChanged();
     } catch { /* ignore */ } finally { setBusy(false); }
   }
@@ -10526,14 +10865,145 @@ function SolicitudCard({
     } catch { /* ignore */ } finally { setBusy(false); setConfirmDelete(false); }
   }
 
+  async function abrirIntervencion() {
+    if (usuarios.length === 0) {
+      try {
+        const data = await tapi("/usuarios", token);
+        setUsuarios(Array.isArray(data) ? data.filter((u: UserInfo) => u.id !== user.id && u.activo) : []);
+      } catch { /* ignore */ }
+    }
+    setShowIntervencion(true);
+  }
+
+  async function crearIntervencion() {
+    if (!interForm.titulo.trim() || !interForm.asignado_a) return;
+    setCreandoInter(true);
+    try {
+      const desc = interForm.paso_ref
+        ? `${interForm.descripcion}\n\n[Origen: ${interForm.paso_ref}]`
+        : interForm.descripcion;
+      await tapi(`/${ticket.id}/pedir-intervencion`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: interForm.titulo,
+          descripcion: desc,
+          asignado_a: Number(interForm.asignado_a),
+          paso_id: interForm.paso_id || undefined,
+        }),
+      });
+      setShowIntervencion(false);
+      setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 });
+      await cargarPasos();
+      onChanged();
+    } catch (e: any) {
+      setMsg(e.message ?? "Error al crear intervencion");
+      setTimeout(() => setMsg(""), 4000);
+    } finally { setCreandoInter(false); }
+  }
+
+  async function cargarComentarios() {
+    setLoadingComentarios(true);
+    try {
+      const data = await tapi(`/${ticket.id}/comentarios`, token);
+      const lista = Array.isArray(data) ? data : [];
+      setComentarios(lista);
+      if (lista.length > 0) setShowComentarios(true);
+    } catch { /* ignore */ } finally { setLoadingComentarios(false); }
+  }
+
+  // Auto-cargar comentarios al montar y cuando el ticket se desbloquea
+  useEffect(() => {
+    void cargarComentarios();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket.id]);
+
+  useEffect(() => {
+    if (!ticket.bloqueado_por) {
+      void cargarComentarios();
+      if (showPasos) void cargarPasos(); // recargar pasos para mostrar respuesta inline
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket.bloqueado_por]);
+
+  async function cargarAdjuntos() {
+    setLoadingAdjuntos(true);
+    try {
+      const data = await tapi(`/${ticket.id}/adjuntos`, token);
+      setAdjuntos(Array.isArray(data) ? data : []);
+    } catch { /* ignore */ } finally { setLoadingAdjuntos(false); }
+  }
+
+  async function eliminarAdjunto(adjId: number) {
+    if (!confirm("¿Eliminar este archivo adjunto?")) return;
+    setEliminandoAdj(adjId);
+    try {
+      await tapi(`/adjuntos/${adjId}`, token, { method: "DELETE" });
+      setAdjuntos((prev) => prev.filter((a) => a.id !== adjId));
+    } catch { /* ignore */ } finally { setEliminandoAdj(null); }
+  }
+
+  async function guardarComoProtocolo() {
+    if (!protocoloForm.titulo.trim()) return;
+    setGuardandoProtocolo(true);
+    try {
+      await tapi(`/${ticket.id}/guardar-como-protocolo`, token, {
+        method: "POST",
+        body: JSON.stringify(protocoloForm),
+      });
+      setProtocoloMsg("Protocolo guardado");
+      setShowProtocoloForm(false);
+      setProtocoloForm({ titulo: "", descripcion: "", categoria: "" });
+      setTimeout(() => setProtocoloMsg(""), 3000);
+    } catch (e: any) {
+      setProtocoloMsg(e.message ?? "Error al guardar protocolo");
+      setTimeout(() => setProtocoloMsg(""), 4000);
+    } finally { setGuardandoProtocolo(false); }
+  }
+
+  async function cargarSensible() {
+    if (!puedeVerSensible) {
+      setSensibleMsg("Sin permisos para ver datos sensibles");
+      return;
+    }
+    setLoadingSensible(true);
+    try {
+      const data = await tapi(`/${ticket.id}/sensible`, token);
+      setSensibleTexto(data.texto ?? "");
+      setSensibleDraft(data.texto ?? "");
+    } catch (e: any) {
+      setSensibleMsg(e.message ?? "Error");
+    } finally { setLoadingSensible(false); }
+  }
+
+  async function guardarSensible() {
+    setLoadingSensible(true);
+    try {
+      await tapi(`/${ticket.id}/sensible`, token, {
+        method: "PUT",
+        body: JSON.stringify({ texto: sensibleDraft }),
+      });
+      setSensibleTexto(sensibleDraft);
+      setEditandoSensible(false);
+      setSensibleMsg("Guardado");
+      setTimeout(() => setSensibleMsg(""), 2000);
+      onChanged();
+    } catch (e: any) {
+      setSensibleMsg(e.message ?? "Error");
+    } finally { setLoadingSensible(false); }
+  }
+
   const FREC_SHORT: Record<string, string> = {
     diaria: "Diaria", cada_2_dias: "Cada 2 días", cada_3_dias: "Cada 3 días",
     semanal: "Semanal", quincenal: "Quincenal", mensual: "Mensual",
     bimestral: "Bimestral", trimestral: "Trimestral", semestral: "Semestral",
   };
 
+  const pasosCompletados = pasos.filter((p) => p.completado).length;
+  const pasosTotal = pasos.length;
+
   return (
     <div className={`flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}>
+      {/* Encabezado */}
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <span className="text-sm font-medium text-ink">{ticket.titulo}</span>
@@ -10544,6 +11014,21 @@ function SolicitudCard({
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
           {ticket.prioridad ?? "media"}
         </span>
+        {/* Ícono de datos sensibles */}
+        <button
+          type="button"
+          title={ticket.tiene_datos_sensibles ? "Ver datos sensibles 🔒" : "Agregar datos sensibles 🔓"}
+          onClick={() => {
+            setShowSensible((v) => !v);
+            if (!showSensible) void cargarSensible();
+          }}
+          className={`shrink-0 rounded p-0.5 transition-colors ${ticket.tiene_datos_sensibles ? "text-yellow-500 hover:text-yellow-400" : "text-muted hover:text-accent"}`}
+        >
+          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </button>
         {(isAdmin || esCreadoPorMi) && !confirmDelete && (
           <button type="button" title="Eliminar" onClick={() => setConfirmDelete(true)}
             className="shrink-0 rounded p-0.5 text-muted hover:text-red-600 transition-colors">
@@ -10560,6 +11045,7 @@ function SolicitudCard({
         )}
       </div>
 
+      {/* Meta */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
         <span className="flex items-center gap-1">
           <Icon name="user" size={11} />
@@ -10574,33 +11060,535 @@ function SolicitudCard({
             ♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}
           </span>
         )}
+        {/* Progreso de pasos en header */}
+        {(ticket.pasos_total ?? 0) > 0 && !showPasos && (
+          <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
+            className="flex items-center gap-1 text-accent hover:underline">
+            ☑ {ticket.pasos_completados}/{ticket.pasos_total} pasos
+          </button>
+        )}
         <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px]">
           {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
         </span>
       </div>
 
-      {msg && <p className="text-xs text-red-400">{msg}</p>}
-
-      {!resuelta && esAsignado && !supervision && (
-        <div className="flex gap-2 pt-1">
-          <button type="button" disabled={busy} onClick={iniciarPausar}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
-              ticket.estado === "en_proceso"
-                ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
-                : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
-            }`}
-          >
-            <Icon name={ticket.estado === "en_proceso" ? "clock" : "lightning"} size={15} weight="bold" />
-            {ticket.estado === "en_proceso" ? "Pausar" : "Iniciar"}
-          </button>
-          <button type="button" disabled={busy} onClick={resolver}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-500 bg-green-50 px-3 py-2.5 text-sm font-bold text-green-700 min-h-[44px] transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
-          >
-            <Icon name="check" size={15} weight="bold" />
-            Listo
-          </button>
+      {/* Banner: esta solicitud ES una intervención que otro usuario necesita */}
+      {esIntervencion && (
+        <div className="rounded-lg border border-orange-400/60 bg-orange-50/60 dark:bg-orange-900/15 px-3 py-2.5 space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-orange-700 dark:text-orange-400">
+            <span>🛑</span>
+            <span>Intervención solicitada</span>
+          </div>
+          <p className="text-xs text-orange-700/80 dark:text-orange-300/80 leading-snug">
+            <strong>{ticket.creado_por_nombre ?? "Un compañero"}</strong> necesita tu ayuda
+            para continuar{ticket.ticket_padre_numero ? ` el ticket ${ticket.ticket_padre_numero}` : ""}.
+            {ticket.ticket_padre_titulo ? ` — ${ticket.ticket_padre_titulo}` : ""}
+          </p>
+          {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
+            <p className="text-xs text-orange-600/70 dark:text-orange-400/70 italic">
+              {ticket.descripcion}
+            </p>
+          )}
         </div>
       )}
+
+      {/* Bloqueado por intervención */}
+      {ticket.bloqueado_por && (
+        <div className="rounded-lg border border-yellow-400/40 bg-yellow-50/50 dark:bg-yellow-900/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400 flex items-center gap-2">
+          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          Esperando intervención <strong>{ticket.bloqueado_por_numero}</strong>
+        </div>
+      )}
+
+      {/* Datos sensibles */}
+      {showSensible && (
+        <div className="rounded-xl border border-yellow-400/50 bg-yellow-50/30 dark:bg-yellow-900/10 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-yellow-700 dark:text-yellow-400 flex items-center gap-1">
+              🔒 Datos sensibles / Protocolo privado
+              <InfoTooltip text="Visible solo para el asignado, quien creó la solicitud, participantes directos y supervisores. Aquí puedes guardar contraseñas, procedimientos internos o notas confidenciales de resolución. Solo supervisores pueden editar." />
+            </span>
+            <button type="button" onClick={() => setShowSensible(false)} className="text-muted hover:text-ink text-xs">✕</button>
+          </div>
+          {loadingSensible && <p className="text-xs text-muted">Cargando…</p>}
+          {sensibleMsg && <p className="text-xs text-accent">{sensibleMsg}</p>}
+          {!loadingSensible && !puedeVerSensible && (
+            <p className="text-xs text-muted">Sin permisos para ver datos sensibles.</p>
+          )}
+          {!loadingSensible && puedeVerSensible && !editandoSensible && (
+            <>
+              <p className="text-xs text-ink whitespace-pre-wrap min-h-[2rem]">
+                {sensibleTexto || <span className="text-muted italic">Sin datos sensibles aún.</span>}
+              </p>
+              {nivel >= 2 && (
+                <button type="button" onClick={() => { setEditandoSensible(true); setSensibleDraft(sensibleTexto); }}
+                  className="text-xs text-accent hover:underline">Editar</button>
+              )}
+            </>
+          )}
+          {!loadingSensible && puedeVerSensible && editandoSensible && (
+            <div className="space-y-2">
+              <textarea
+                className="quest-input w-full resize-none text-xs"
+                rows={4}
+                placeholder="Escribe aquí contraseñas, pasos de resolución, notas privadas…"
+                value={sensibleDraft}
+                onChange={(e) => setSensibleDraft(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button type="button" disabled={loadingSensible} onClick={guardarSensible}
+                  className="quest-btn-primary px-3 py-1 text-xs">Guardar</button>
+                <button type="button" onClick={() => setEditandoSensible(false)} className="text-xs text-muted hover:text-ink">Cancelar</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Comentarios / respuestas de intervención */}
+      {comentarios.length > 0 && (
+        <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-2">
+          <button type="button"
+            onClick={() => setShowComentarios((v) => !v)}
+            className="flex w-full items-center justify-between text-xs font-bold text-ink">
+            <span>
+              💬 Respuestas{comentarios.length > 0 && <span className="ml-1 font-normal text-muted">({comentarios.length})</span>}
+            </span>
+            <span className="text-muted">{showComentarios ? "▲" : "▼"}</span>
+          </button>
+          {showComentarios && (
+            <div className="space-y-2 pt-1">
+              {loadingComentarios && <p className="text-xs text-muted">Cargando…</p>}
+              {comentarios.map((c) => (
+                <div key={c.id} className={`rounded-lg px-3 py-2 text-xs ${c.es_interno ? "bg-surface border border-border/50" : "bg-accent/5 border border-accent/20"}`}>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-semibold text-ink">{c.autor_nombre}</span>
+                    <span className="text-muted shrink-0">{new Date(c.creado_en).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}</span>
+                  </div>
+                  <p className="whitespace-pre-wrap text-ink/90 leading-relaxed">{c.texto}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Adjuntos */}
+      {(adjuntos.length > 0 || showAdjuntos) && (
+        <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-ink">
+              📎 Adjuntos {adjuntos.length > 0 && <span className="font-normal text-muted">({adjuntos.length})</span>}
+            </span>
+            <button type="button" onClick={() => setShowAdjuntos(false)} className="text-muted hover:text-ink text-xs">▲</button>
+          </div>
+          {loadingAdjuntos && <p className="text-xs text-muted">Cargando…</p>}
+          {!loadingAdjuntos && adjuntos.length === 0 && (
+            <p className="text-xs text-muted italic">Sin archivos adjuntos.</p>
+          )}
+          <div className="space-y-1">
+            {adjuntos.map((a) => {
+              const esImagen = /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
+              const esPdf = /\.pdf$/i.test(a.nombre_original);
+              const icono = esImagen ? "🖼" : esPdf ? "📄" : "📁";
+              const url = ticketsUploadUrl(a.nombre_archivo, token);
+              return (
+                <div key={a.id} className="flex items-center gap-2 rounded-lg border border-border/50 bg-surface px-2 py-1.5">
+                  {esImagen ? (
+                    <a href={url} target="_blank" rel="noreferrer" className="shrink-0">
+                      <img src={url} alt={a.nombre_original} className="h-8 w-8 rounded object-cover border border-border" />
+                    </a>
+                  ) : (
+                    <span className="text-base shrink-0">{icono}</span>
+                  )}
+                  <a href={url} target="_blank" rel="noreferrer"
+                    className="min-w-0 flex-1 text-xs text-accent hover:underline truncate">
+                    {a.nombre_original}
+                  </a>
+                  {a.creado_por_nombre && (
+                    <span className="text-[10px] text-muted shrink-0 hidden sm:inline">{a.creado_por_nombre}</span>
+                  )}
+                  {(nivel >= 2 || ticket.creado_por === user.id) && (
+                    <button type="button" disabled={eliminandoAdj === a.id}
+                      onClick={() => void eliminarAdjunto(a.id)}
+                      className="shrink-0 text-muted hover:text-red-500 transition-colors p-0.5">
+                      <Icon name="trash" size={12} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Checklist de pasos — con edición inline, agregar paso y botón de intervención por paso */}
+      {showPasos && (
+        <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-1.5">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-bold text-ink flex items-center gap-1">
+              Protocolo de pasos
+              <InfoTooltip text="Manual de operación: marca cada paso al completarlo. Puedes editar o agregar pasos en cualquier momento. Si un paso necesita que otro usuario haga algo, usa el botón 🛑 para pedir intervención en ese paso específico." />
+              {pasosTotal > 0 && <span className="text-muted font-normal">({pasosCompletados}/{pasosTotal})</span>}
+            </span>
+            <button type="button" onClick={() => setShowPasos(false)} className="text-muted hover:text-ink text-xs">▲</button>
+          </div>
+          {loadingPasos && <p className="text-xs text-muted">Cargando pasos…</p>}
+          {!loadingPasos && pasos.length === 0 && (
+            <p className="text-xs text-muted italic">Sin pasos definidos. Agrega el primero abajo.</p>
+          )}
+          <div className="space-y-1">
+            {pasos.map((p) => (
+              <div key={p.id} className={`rounded-lg border px-2 py-1.5 transition-colors ${p.completado ? "border-transparent opacity-60" : "border-border/50 hover:bg-surface"}`}>
+                {editandoPasoId === p.id ? (
+                  /* Modo edición inline */
+                  <div className="space-y-1.5">
+                    <input autoFocus className="quest-input w-full text-xs" value={editPasoDesc}
+                      onChange={(e) => setEditPasoDesc(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && void guardarEditPaso(p)} />
+                    <input className="quest-input w-full text-xs" placeholder="Notas (opcional)" value={editPasoNotas}
+                      onChange={(e) => setEditPasoNotas(e.target.value)} />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => void guardarEditPaso(p)}
+                        className="text-xs text-accent hover:underline">Guardar</button>
+                      <button type="button" onClick={() => setEditandoPasoId(null)}
+                        className="text-xs text-muted hover:text-ink">Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-start gap-2">
+                      <input type="checkbox"
+                        checked={pasoEstaCompletado(p)}
+                        onChange={() => esAsignado && !supervision && !p.intervencion_pendiente_numero && void togglePaso(p)}
+                        disabled={!esAsignado || supervision || !!p.intervencion_pendiente_numero}
+                        className="mt-0.5 h-4 w-4 rounded border-border accent-accent shrink-0 cursor-pointer disabled:cursor-not-allowed" />
+                      <div className="min-w-0 flex-1">
+                        <span className={`text-xs ${pasoEstaCompletado(p) ? "line-through text-muted" : "text-ink"}`}>
+                          <span className="text-muted mr-1">{p.orden}.</span>{p.descripcion}
+                        </span>
+                        {pasoEstaCompletado(p) && p.completado_por_nombre && (
+                          <p className="text-[10px] text-muted">✓ {p.completado_por_nombre}</p>
+                        )}
+                      </div>
+                      {/* Acciones del paso */}
+                      {esAsignado && !supervision && !pasoEstaCompletado(p) && !p.intervencion_pendiente_numero && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button type="button" title="Editar paso" onClick={() => iniciarEditPaso(p)}
+                            className="text-muted hover:text-accent transition-colors p-0.5">
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                          {ticket.estado === "en_proceso" && !ticket.bloqueado_por && (
+                            <button type="button" title="Necesito ayuda en este paso"
+                              onClick={() => abrirIntervencionDesdePaso(p)}
+                              className="text-muted hover:text-orange-500 transition-colors p-0.5 text-[10px]">
+                              🛑
+                            </button>
+                          )}
+                          <button type="button" title="Eliminar paso" onClick={() => void eliminarPasoInline(p.id)}
+                            className="text-muted hover:text-red-500 transition-colors p-0.5">
+                            <Icon name="trash" size={11} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {/* Intervención pendiente en este paso */}
+                    {p.intervencion_pendiente_numero && (
+                      <div className="ml-6 rounded-lg border border-orange-300/60 bg-orange-50/60 dark:bg-orange-900/15 px-2.5 py-1.5 text-[11px]">
+                        <span className="font-semibold text-orange-700 dark:text-orange-400">
+                          🛑 Esperando intervención {p.intervencion_pendiente_numero}
+                        </span>
+                        {p.intervencion_asignado_nombre && (
+                          <span className="text-orange-600/70 dark:text-orange-400/70"> — asignada a <strong>{p.intervencion_asignado_nombre}</strong></span>
+                        )}
+                      </div>
+                    )}
+                    {/* Respuesta de la intervención resuelta */}
+                    {p.respuesta_intervencion && !p.intervencion_pendiente_numero && (
+                      <div className="ml-6 rounded-lg border border-green-300/60 bg-green-50/60 dark:bg-green-900/15 px-2.5 py-1.5 text-[11px] space-y-0.5">
+                        <p className="font-semibold text-green-700 dark:text-green-400">✅ Intervención resuelta</p>
+                        <p className="text-green-700/80 dark:text-green-300/80 whitespace-pre-wrap leading-relaxed">{p.respuesta_intervencion}</p>
+                      </div>
+                    )}
+                    {/* Notas del paso (si no son respuesta de intervención) */}
+                    {p.notas && !p.respuesta_intervencion && (
+                      <p className="ml-6 text-[10px] text-muted">{p.notas}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          {/* Barra de progreso */}
+          {pasosTotal > 0 && (
+            <div className="h-1 rounded-full bg-border overflow-hidden">
+              <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(pasosCompletados / pasosTotal) * 100}%` }} />
+            </div>
+          )}
+          {/* Agregar paso inline */}
+          {esAsignado && !supervision && (
+            showAddPaso ? (
+              <div className="flex gap-2 pt-1">
+                <input autoFocus className="quest-input flex-1 text-xs" placeholder="Descripción del nuevo paso…"
+                  value={nuevoPasoDesc} onChange={(e) => setNuevoPasoDesc(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && void agregarPasoInline()} />
+                <button type="button" disabled={agregandoPaso || !nuevoPasoDesc.trim()} onClick={() => void agregarPasoInline()}
+                  className="shrink-0 quest-btn-primary px-2 py-1 text-xs">
+                  {agregandoPaso ? "…" : "Agregar"}
+                </button>
+                <button type="button" onClick={() => { setShowAddPaso(false); setNuevoPasoDesc(""); }}
+                  className="shrink-0 text-muted hover:text-ink text-xs px-1">✕</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setShowAddPaso(true)}
+                className="flex items-center gap-1 text-xs text-accent hover:underline pt-0.5">
+                <Icon name="plus" size={11} weight="bold" /> Agregar paso
+              </button>
+            )
+          )}
+        </div>
+      )}
+
+      {/* Modal: Pedir intervención */}
+      {showIntervencion && (
+        <div className="rounded-xl border border-orange-400/50 bg-orange-50/30 dark:bg-orange-900/10 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1">
+              🛑 Pedir intervención
+              <InfoTooltip text="Crea una sub-solicitud para otro usuario. Esta solicitud quedará PAUSADA hasta que el otro usuario resuelva su tarea. Cuando termine, la solicitud se reactiva sola y puedes continuar donde quedaste." />
+            </span>
+            <button type="button" onClick={() => { setShowIntervencion(false); setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 }); }} className="text-muted hover:text-ink text-xs">✕</button>
+          </div>
+          {interForm.paso_ref && (
+            <p className="text-[10px] text-orange-600/80 bg-orange-100/50 dark:bg-orange-900/20 rounded px-2 py-1">
+              Origen: {interForm.paso_ref}
+            </p>
+          )}
+          <input
+            className="quest-input w-full text-sm"
+            placeholder="¿Qué necesita hacer el otro usuario?"
+            value={interForm.titulo}
+            onChange={(e) => setInterForm((f) => ({ ...f, titulo: e.target.value }))}
+          />
+          <textarea
+            className="quest-input w-full text-xs resize-none"
+            rows={2}
+            placeholder="Contexto adicional — ¿por qué se necesita esta intervención?"
+            value={interForm.descripcion}
+            onChange={(e) => setInterForm((f) => ({ ...f, descripcion: e.target.value }))}
+          />
+          <select
+            className="quest-input w-full text-sm"
+            value={interForm.asignado_a}
+            onChange={(e) => setInterForm((f) => ({ ...f, asignado_a: e.target.value }))}
+          >
+            <option value="">Selecciona a quién necesitas…</option>
+            {usuarios.map((u) => (
+              <option key={u.id} value={u.id}>{u.nombre}</option>
+            ))}
+          </select>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={creandoInter || !interForm.titulo.trim() || !interForm.asignado_a}
+              onClick={crearIntervencion}
+              className="quest-btn-primary px-3 py-1.5 text-xs"
+            >
+              {creandoInter ? "Creando…" : "Solicitar intervención — pausar esta solicitud"}
+            </button>
+            <button type="button" onClick={() => { setShowIntervencion(false); setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 }); }} className="text-xs text-muted hover:text-ink">Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Lista de compras */}
+      {showCompras && (
+        <div className="rounded-xl border border-blue-400/40 bg-blue-50/20 dark:bg-blue-900/10 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1">
+              🛒 Lista de compras
+              <InfoTooltip text="Agrega los productos que se deben comprar para esta solicitud. Puedes buscarlos en el catálogo de materiales o escribir uno nuevo. Marca los que ya se compraron." />
+            </span>
+            <button type="button" onClick={() => setShowCompras(false)} className="text-muted hover:text-ink text-xs">▲</button>
+          </div>
+          {loadingCompras && <p className="text-xs text-muted">Cargando…</p>}
+          {/* Items existentes */}
+          {compras.length > 0 && (
+            <div className="space-y-1">
+              {compras.map((item) => (
+                <div key={item.id} className={`flex items-center gap-2 rounded-lg border border-border/40 px-2 py-1.5 text-xs ${item.comprado ? "opacity-50" : ""}`}>
+                  <input type="checkbox" checked={!!item.comprado}
+                    onChange={() => !supervision && void toggleComprado(item)}
+                    className="h-3.5 w-3.5 accent-blue-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className={item.comprado ? "line-through text-muted" : "text-ink"}>{item.nombre}</span>
+                    {item.sku && <span className="ml-1 text-muted text-[10px]">({item.sku})</span>}
+                    <span className="ml-1 text-muted">{item.cantidad} {item.unidad}</span>
+                    {item.precio_estimado && <span className="ml-1 text-muted">${item.precio_estimado.toLocaleString("es-CO")}</span>}
+                    {item.notas && <p className="text-[10px] text-muted">{item.notas}</p>}
+                  </div>
+                  {!supervision && (
+                    <button type="button" onClick={() => void eliminarCompra(item.id)}
+                      className="text-muted hover:text-red-500 shrink-0">
+                      <Icon name="trash" size={11} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {/* Total estimado */}
+              {compras.some((i) => i.precio_estimado) && (
+                <p className="text-[10px] text-right text-muted pt-0.5">
+                  Total estimado: <strong className="text-ink">
+                    ${compras.reduce((sum, i) => sum + (i.precio_estimado ?? 0) * i.cantidad, 0).toLocaleString("es-CO")}
+                  </strong>
+                </p>
+              )}
+            </div>
+          )}
+          {!loadingCompras && compras.length === 0 && (
+            <p className="text-xs text-muted italic">Sin productos en la lista.</p>
+          )}
+          {/* Agregar producto */}
+          {!supervision && (
+            <div className="space-y-1.5 pt-1 border-t border-border/30">
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-wide">Agregar producto</p>
+              <div className="relative">
+                <input className="quest-input w-full text-xs"
+                  placeholder="Buscar en catálogo o escribir nombre…"
+                  value={busqProducto}
+                  onChange={(e) => void buscarProducto(e.target.value)} />
+                {resultadosBusq.length > 0 && (
+                  <div className="absolute top-full left-0 z-50 w-full rounded-xl border border-border bg-surface shadow-xl mt-1 max-h-40 overflow-y-auto">
+                    {resultadosBusq.map((prod) => (
+                      <button key={prod.id} type="button"
+                        onClick={() => seleccionarProductoCatalogo(prod)}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-accent/10 border-b border-border/30 last:border-0">
+                        <span className="font-medium text-ink">{prod.nombre}</span>
+                        {prod.codigo && <span className="ml-1 text-muted">[{prod.codigo}]</span>}
+                        <span className="ml-1 text-muted">{prod.unidad_medida}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-1.5">
+                <input className="quest-input w-16 text-xs" placeholder="Cant." type="number" min="0.01" step="0.01"
+                  value={nuevoProducto.cantidad} onChange={(e) => setNuevoProducto((p) => ({ ...p, cantidad: e.target.value }))} />
+                <input className="quest-input w-16 text-xs" placeholder="Unid."
+                  value={nuevoProducto.unidad} onChange={(e) => setNuevoProducto((p) => ({ ...p, unidad: e.target.value }))} />
+                <input className="quest-input flex-1 text-xs" placeholder="$ Precio est."
+                  value={nuevoProducto.precio} onChange={(e) => setNuevoProducto((p) => ({ ...p, precio: e.target.value }))} />
+                <button type="button" disabled={agregandoCompra || !nuevoProducto.nombre.trim()} onClick={() => void agregarCompra()}
+                  className="shrink-0 quest-btn-primary px-2 py-1 text-xs">
+                  {agregandoCompra ? "…" : "Agregar"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Intervención: interfaz dedicada ── */}
+      {!resuelta && esAsignado && !supervision && esIntervencion && (
+        <div className="space-y-2 pt-1">
+          {msg && <p className="text-xs text-red-400">{msg}</p>}
+          <textarea
+            className="quest-input w-full resize-none text-sm"
+            rows={3}
+            placeholder="Escribe tu respuesta o resolución aquí…"
+            value={resolucionInter}
+            onChange={(e) => setResolucionInter(e.target.value)}
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busy || !resolucionInter.trim()}
+              onClick={() => void resolverIntervencion()}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-orange-500 bg-orange-500 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] transition-colors hover:bg-orange-600 disabled:opacity-50"
+            >
+              <Icon name="check" size={15} weight="bold" />
+              {busy ? "Resolviendo…" : "Resolver intervención"}
+            </button>
+            <button type="button"
+              onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
+              className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
+              📎
+            </button>
+          </div>
+          <p className="text-[10px] text-muted text-center">
+            Tu respuesta quedará registrada y desbloqueará al compañero que la solicitó
+          </p>
+        </div>
+      )}
+
+      {/* ── Solicitud normal: interfaz estándar ── */}
+      {!resuelta && esAsignado && !supervision && !esIntervencion && (
+        <div className="space-y-2 pt-1">
+          {msg && <p className="text-xs text-red-400">{msg}</p>}
+          <div className="flex gap-2">
+            <button type="button" disabled={busy} onClick={iniciarPausar}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
+                ticket.estado === "en_proceso"
+                  ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
+                  : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
+              }`}
+            >
+              <Icon name={ticket.estado === "en_proceso" ? "clock" : "lightning"} size={15} weight="bold" />
+              {ticket.estado === "en_proceso" ? "Pausar" : "Iniciar"}
+            </button>
+            {(() => {
+              const total = ticket.pasos_total ?? 0;
+              const hechos = ticket.pasos_completados ?? 0;
+              const pasosFaltantes = total > 0 ? total - hechos : 0;
+              return (
+                <button type="button" disabled={busy} onClick={resolver}
+                  title={pasosFaltantes > 0 ? `Faltan ${pasosFaltantes} paso(s) por completar` : undefined}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
+                    pasosFaltantes > 0
+                      ? "border-border bg-surface-hover text-muted cursor-not-allowed"
+                      : "border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+                  }`}
+                >
+                  <Icon name="check" size={15} weight="bold" />
+                  {pasosFaltantes > 0 ? `Listo (${hechos}/${total} pasos)` : "Listo"}
+                </button>
+              );
+            })()}
+          </div>
+          {/* Botones secundarios */}
+          <div className="flex flex-wrap gap-1.5">
+            <button type="button"
+              onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
+              className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
+              📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
+            </button>
+            {(ticket.pasos_total ?? 0) > 0 && !showPasos && (
+              <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
+                className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
+                ☑ Ver pasos
+              </button>
+            )}
+            {ticket.estado === "en_proceso" && !ticket.bloqueado_por && showPasos && (
+              <button type="button" onClick={() => setShowAddPaso(true)}
+                className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
+                + Paso
+              </button>
+            )}
+            <button type="button"
+              onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
+              className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-blue-400 text-blue-600" : "border-border text-muted hover:text-blue-500 hover:border-blue-400"}`}>
+              🛒 Compras{compras.length > 0 ? ` (${compras.length})` : ""}
+            </button>
+            {/* Intervención solo disponible por paso — botón general eliminado */}
+          </div>
+        </div>
+      )}
+
       {!resuelta && !esAsignado && !supervision && (
         <div className="rounded-lg border border-border bg-surface-hover px-3 py-2 text-xs text-muted text-center">
           Solo <strong>{ticket.asignado_a_nombre ?? "el asignado"}</strong> puede resolver esta solicitud
@@ -10608,6 +11596,66 @@ function SolicitudCard({
       )}
       {!resuelta && supervision && !isAdmin && (
         <p className="text-[10px] text-center text-muted">Seguimiento del equipo — solo lectura</p>
+      )}
+
+      {/* Botón: guardar como protocolo (solo para tickets resueltos, nivel supervisor+) */}
+      {resuelta && nivel >= 2 && (
+        <div className="pt-1 space-y-2">
+          {protocoloMsg && (
+            <p className="text-xs text-accent">{protocoloMsg}</p>
+          )}
+          {!showProtocoloForm ? (
+            <button
+              type="button"
+              onClick={() => {
+                setProtocoloForm({ titulo: ticket.titulo, descripcion: ticket.descripcion ?? "", categoria: ticket.categoria ?? "" });
+                setShowProtocoloForm(true);
+              }}
+              className="flex items-center gap-1.5 text-xs text-muted hover:text-accent border border-dashed border-border hover:border-accent rounded-lg px-3 py-1.5 w-full justify-center transition-colors"
+            >
+              📋 Guardar como protocolo estándar
+            </button>
+          ) : (
+            <div className="rounded-xl border border-accent/40 bg-accent/5 p-3 space-y-2">
+              <p className="text-xs font-bold text-accent flex items-center gap-1">
+                📋 Guardar como protocolo
+                <InfoTooltip text="Crea un protocolo reutilizable a partir de esta solicitud resuelta. El protocolo guardará todos los pasos ejecutados y servirá como plantilla para nuevas solicitudes del mismo tipo." />
+              </p>
+              <input
+                className="quest-input w-full text-sm"
+                placeholder="Nombre del protocolo (ej: Pago a proveedor)"
+                value={protocoloForm.titulo}
+                onChange={(e) => setProtocoloForm((f) => ({ ...f, titulo: e.target.value }))}
+              />
+              <input
+                className="quest-input w-full text-sm"
+                placeholder="Categoría (ej: pagos, compras, logística)"
+                value={protocoloForm.categoria}
+                onChange={(e) => setProtocoloForm((f) => ({ ...f, categoria: e.target.value }))}
+              />
+              <textarea
+                className="quest-input w-full text-xs resize-none"
+                rows={2}
+                placeholder="Descripción breve (opcional)"
+                value={protocoloForm.descripcion}
+                onChange={(e) => setProtocoloForm((f) => ({ ...f, descripcion: e.target.value }))}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={guardandoProtocolo || !protocoloForm.titulo.trim()}
+                  onClick={() => void guardarComoProtocolo()}
+                  className="quest-btn-primary px-3 py-1 text-xs"
+                >
+                  {guardandoProtocolo ? "Guardando…" : "Guardar protocolo"}
+                </button>
+                <button type="button" onClick={() => setShowProtocoloForm(false)} className="text-xs text-muted hover:text-ink">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -10786,6 +11834,229 @@ function SttInlineBtn({ stt, onStart, label = "Voz" }: {
   );
 }
 
+// ── ProtocolosView ────────────────────────────────────────────────────────────
+
+function ProtocolosView({
+  token, user, protocolos, loading, onRecargar, onUsarProtocolo,
+}: {
+  token: string;
+  user: TicketsUser;
+  protocolos: Protocolo[];
+  loading: boolean;
+  onRecargar: () => void;
+  onUsarProtocolo: (p: Protocolo) => void;
+}) {
+  const nivel = user.rol?.nivel ?? 1;
+  const [expandido, setExpandido] = useState<number | null>(null);
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ titulo: "", descripcion: "", categoria: "", pasos: [] as ProtocoloPaso[] });
+  const [guardando, setGuardando] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null);
+  const [msg, setMsg] = useState("");
+
+  function iniciarEdicion(p: Protocolo) {
+    setEditandoId(p.id);
+    setEditForm({ titulo: p.titulo, descripcion: p.descripcion ?? "", categoria: p.categoria ?? "", pasos: [...p.pasos] });
+    setExpandido(p.id);
+  }
+
+  async function guardarEdicion(protocoloId: number) {
+    setGuardando(true);
+    try {
+      await tapi(`/protocolos/${protocoloId}`, token, {
+        method: "PUT",
+        body: JSON.stringify(editForm),
+      });
+      setEditandoId(null);
+      setMsg("Protocolo actualizado");
+      setTimeout(() => setMsg(""), 3000);
+      onRecargar();
+    } catch (e: any) {
+      setMsg(e.message ?? "Error al guardar");
+    } finally { setGuardando(false); }
+  }
+
+  async function eliminar(protocoloId: number) {
+    if (!confirm("¿Eliminar este protocolo? No se puede deshacer.")) return;
+    setEliminandoId(protocoloId);
+    try {
+      await tapi(`/protocolos/${protocoloId}`, token, { method: "DELETE" });
+      setMsg("Protocolo eliminado");
+      setTimeout(() => setMsg(""), 3000);
+      onRecargar();
+    } catch (e: any) {
+      setMsg(e.message ?? "Error al eliminar");
+    } finally { setEliminandoId(null); }
+  }
+
+  function actualizarPasoEdit(idx: number, campo: "descripcion" | "notas", val: string) {
+    setEditForm((f) => ({
+      ...f,
+      pasos: f.pasos.map((p, i) => i === idx ? { ...p, [campo]: val } : p),
+    }));
+  }
+
+  function agregarPasoEdit() {
+    setEditForm((f) => ({ ...f, pasos: [...f.pasos, { descripcion: "", notas: "" }] }));
+  }
+
+  function eliminarPasoEdit(idx: number) {
+    setEditForm((f) => ({ ...f, pasos: f.pasos.filter((_, i) => i !== idx) }));
+  }
+
+  if (loading) return <div className="py-8 text-center text-sm text-muted">Cargando protocolos…</div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-ink flex items-center gap-1">
+            📋 Protocolos estándar
+            <InfoTooltip text="Los protocolos son procedimientos reutilizables creados a partir de solicitudes resueltas. Al crear una nueva solicitud, puedes aplicar un protocolo para pre-llenar los pasos automáticamente." />
+          </p>
+          <p className="text-xs text-muted mt-0.5">
+            Plantillas de pasos para acciones recurrentes · Solo supervisores pueden crear y editar
+          </p>
+        </div>
+        <button type="button" onClick={onRecargar} className="text-xs text-muted hover:text-accent transition-colors">
+          ↻ Actualizar
+        </button>
+      </div>
+      {msg && <p className="text-xs text-accent">{msg}</p>}
+
+      {protocolos.length === 0 && (
+        <div className="py-12 text-center space-y-2">
+          <p className="text-3xl">📋</p>
+          <p className="text-sm text-muted">Aún no hay protocolos guardados.</p>
+          <p className="text-xs text-muted">Ve al Historial de solicitudes y marca como protocolo las que quieras reutilizar.</p>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {protocolos.map((p) => (
+          <div key={p.id} className="rounded-xl border border-border bg-surface shadow-sm">
+            {/* Cabecera del protocolo */}
+            <div className="flex items-start gap-2 p-3">
+              <button
+                type="button"
+                onClick={() => setExpandido(expandido === p.id ? null : p.id)}
+                className="min-w-0 flex-1 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📋</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-ink truncate">{p.titulo}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+                      {p.categoria && (
+                        <span className="text-[10px] bg-accent/10 text-accent rounded-full px-2 py-0.5 font-medium">
+                          {p.categoria}
+                        </span>
+                      )}
+                      <span className="text-[10px] text-muted">{p.pasos.length} paso{p.pasos.length !== 1 ? "s" : ""}</span>
+                      {p.ticket_origen_numero && (
+                        <span className="text-[10px] text-muted">Origen: {p.ticket_origen_numero}</span>
+                      )}
+                      {p.creado_por_nombre && (
+                        <span className="text-[10px] text-muted">por {p.creado_por_nombre}</span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-muted text-xs shrink-0">{expandido === p.id ? "▲" : "▼"}</span>
+                </div>
+              </button>
+              {/* Acciones */}
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onUsarProtocolo(p)}
+                  title="Usar como plantilla en nueva solicitud"
+                  className="rounded-lg border border-accent/40 px-2 py-1 text-xs text-accent hover:bg-accent/10 transition-colors"
+                >
+                  Usar
+                </button>
+                {nivel >= 2 && (
+                  <>
+                    <button type="button" onClick={() => iniciarEdicion(p)}
+                      className="rounded-lg border border-border px-2 py-1 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
+                      Editar
+                    </button>
+                    <button type="button" disabled={eliminandoId === p.id} onClick={() => void eliminar(p.id)}
+                      className="rounded-lg border border-border px-1.5 py-1 text-xs text-muted hover:text-red-500 hover:border-red-400 transition-colors">
+                      <Icon name="trash" size={12} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Detalle expandido */}
+            {expandido === p.id && (
+              <div className="border-t border-border px-3 pb-3 pt-2 space-y-2">
+                {editandoId === p.id ? (
+                  /* Modo edición */
+                  <div className="space-y-2">
+                    <input className="quest-input w-full text-sm" placeholder="Nombre del protocolo"
+                      value={editForm.titulo} onChange={(e) => setEditForm((f) => ({ ...f, titulo: e.target.value }))} />
+                    <div className="flex gap-2">
+                      <input className="quest-input flex-1 text-sm" placeholder="Categoría (ej: pagos, compras)"
+                        value={editForm.categoria} onChange={(e) => setEditForm((f) => ({ ...f, categoria: e.target.value }))} />
+                      <textarea className="quest-input flex-1 text-xs resize-none" rows={1} placeholder="Descripción"
+                        value={editForm.descripcion} onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-muted">Pasos:</p>
+                      {editForm.pasos.map((paso, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <span className="text-xs text-muted w-5 text-right shrink-0">{idx + 1}.</span>
+                          <input className="quest-input flex-1 text-xs" placeholder="Descripción del paso"
+                            value={paso.descripcion}
+                            onChange={(e) => actualizarPasoEdit(idx, "descripcion", e.target.value)} />
+                          <input className="quest-input w-28 text-xs" placeholder="Notas"
+                            value={paso.notas ?? ""}
+                            onChange={(e) => actualizarPasoEdit(idx, "notas", e.target.value)} />
+                          <button type="button" onClick={() => eliminarPasoEdit(idx)} className="text-muted hover:text-red-500 px-1">
+                            <Icon name="trash" size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={agregarPasoEdit}
+                        className="flex items-center gap-1 text-xs text-accent hover:underline">
+                        <Icon name="plus" size={11} weight="bold" /> Agregar paso
+                      </button>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button type="button" disabled={guardando || !editForm.titulo.trim()} onClick={() => void guardarEdicion(p.id)}
+                        className="quest-btn-primary px-3 py-1 text-xs">
+                        {guardando ? "Guardando…" : "Guardar"}
+                      </button>
+                      <button type="button" onClick={() => setEditandoId(null)} className="text-xs text-muted hover:text-ink">Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Modo vista */
+                  <div className="space-y-1.5">
+                    {p.descripcion && <p className="text-xs text-muted italic">{p.descripcion}</p>}
+                    {p.pasos.length === 0 && <p className="text-xs text-muted">Sin pasos definidos.</p>}
+                    {p.pasos.map((paso, idx) => (
+                      <div key={idx} className="flex gap-2 items-start">
+                        <span className="text-xs text-muted shrink-0 w-5 text-right">{idx + 1}.</span>
+                        <div>
+                          <p className="text-xs text-ink">{paso.descripcion}</p>
+                          {paso.notas && <p className="text-[10px] text-muted">{paso.notas}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── SolicitudesView ───────────────────────────────────────────────────────────
 
 const FRECUENCIA_OPTS: { value: Frecuencia; label: string }[] = [
@@ -10808,7 +12079,7 @@ function SolicitudesView({
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   const { apiToken: chatApiToken } = useTicketsAuth();
   const stt = useStt(token, chatApiToken);
-  const [tab, setTab] = useState<"asignadas" | "creadas" | "equipo">("asignadas");
+  const [tab, setTab] = useState<"asignadas" | "creadas" | "equipo" | "historial" | "protocolos">("asignadas");
   const [solicitudes, setSolicitudes] = useState<Ticket[]>([]);
   const [solicitudesEquipo, setSolicitudesEquipo] = useState<Ticket[]>([]);
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
@@ -10816,6 +12087,13 @@ function SolicitudesView({
   const [showForm, setShowForm] = useState(false);
   const [creando, setCreando] = useState(false);
   const [msg, setMsg] = useState("");
+  const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
+  const [loadingProtocolos, setLoadingProtocolos] = useState(false);
+  const [protocoloSeleccionado, setProtocoloSeleccionado] = useState<Protocolo | null>(null);
+
+  // Pasos del formulario de nueva solicitud
+  const [formPasos, setFormPasos] = useState<string[]>([]);
+  const [formFiles, setFormFiles] = useState<File[]>([]);
 
   const [form, setForm] = useState({
     titulo: "",
@@ -10848,6 +12126,25 @@ function SolicitudesView({
     return () => clearInterval(iv);
   }, [load]);
 
+  async function cargarProtocolos() {
+    setLoadingProtocolos(true);
+    try {
+      const data = await tapi("/protocolos", token);
+      setProtocolos(Array.isArray(data) ? data : []);
+    } catch { /* ignore */ } finally { setLoadingProtocolos(false); }
+  }
+
+  useEffect(() => {
+    if (tab === "protocolos") void cargarProtocolos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  function aplicarProtocolo(p: Protocolo) {
+    setFormPasos(p.pasos.map((paso) => paso.descripcion));
+    setProtocoloSeleccionado(p);
+    setShowForm(true);
+  }
+
   function toggleAsignado(uid: number) {
     setForm((f) => ({
       ...f,
@@ -10857,12 +12154,25 @@ function SolicitudesView({
     }));
   }
 
+  function agregarPaso() {
+    setFormPasos((p) => [...p, ""]);
+  }
+
+  function actualizarPaso(idx: number, val: string) {
+    setFormPasos((p) => p.map((v, i) => (i === idx ? val : v)));
+  }
+
+  function eliminarPaso(idx: number) {
+    setFormPasos((p) => p.filter((_, i) => i !== idx));
+  }
+
   async function crear() {
     if (!form.titulo.trim() || form.asignados.length === 0) return;
     setCreando(true);
     setMsg("");
+    const pasosLimpios = formPasos.map((p) => p.trim()).filter(Boolean).map((desc) => ({ descripcion: desc }));
     try {
-      await Promise.all(form.asignados.map((uid) =>
+      const tickets: { id: number }[] = await Promise.all(form.asignados.map((uid) =>
         tapi("/", token, {
           method: "POST",
           body: JSON.stringify({
@@ -10874,15 +12184,29 @@ function SolicitudesView({
             tipo: "solicitud",
             frecuencia: form.modo === "periodica" ? form.frecuencia : null,
             fecha_inicio: form.modo === "periodica" ? form.fecha_inicio : null,
+            pasos: pasosLimpios.length > 0 ? pasosLimpios : undefined,
           }),
         })
       ));
+      // Subir adjuntos a cada ticket creado
+      if (formFiles.length > 0) {
+        await Promise.all(tickets.flatMap((t) =>
+          formFiles.map((file) => {
+            const fd = new FormData();
+            fd.append("archivo", file);
+            return tapi(`/${t.id}/adjuntos`, token, { method: "POST", body: fd });
+          })
+        ));
+      }
       setForm({
         titulo: "", descripcion: "", categoria: "logistica", prioridad: "media",
         modo: "unica", frecuencia: "semanal",
         fecha_inicio: new Date().toISOString().slice(0, 10),
         asignados: [],
       });
+      setFormPasos([]);
+      setFormFiles([]);
+      setProtocoloSeleccionado(null);
       setShowForm(false);
       await load(false);
       setMsg(`Solicitud${form.asignados.length > 1 ? "es" : ""} creada${form.asignados.length > 1 ? "s" : ""}`);
@@ -10895,7 +12219,11 @@ function SolicitudesView({
   const asignadas = solicitudes.filter((t) => t.asignado_a === user.id && t.estado !== "resuelto" && t.estado !== "rechazado");
   const creadas = solicitudes.filter((t) => t.creado_por === user.id && t.estado !== "resuelto" && t.estado !== "rechazado");
   const enEquipo = solicitudesEquipo;
-  const lista = tab === "asignadas" ? asignadas : tab === "creadas" ? creadas : enEquipo;
+  const historial = solicitudes.filter((t) =>
+    (t.asignado_a === user.id || t.creado_por === user.id) &&
+    (t.estado === "resuelto" || t.estado === "rechazado")
+  );
+  const lista = tab === "asignadas" ? asignadas : tab === "creadas" ? creadas : tab === "historial" ? historial : enEquipo;
   const pendientes = asignadas.length;
 
   const equipoPorAsignado = useMemo(() => {
@@ -10919,8 +12247,9 @@ function SolicitudesView({
             {pendientes > 0 && (
               <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{pendientes}</span>
             )}
+            <InfoTooltip text="Las solicitudes son tareas que un usuario asigna a otro. El operador ve las suyas en 'Por resolver', puede iniciarlas (activa el protocolo de pasos si lo tiene), pausarlas, pedir intervención si hay un bloqueo, o marcarlas como Listo. El historial muestra las ya resueltas." />
           </h2>
-          <p className="mt-0.5 text-sm text-muted">Tareas entre miembros del equipo · pestaña En curso para ver el estado de todas</p>
+          <p className="mt-0.5 text-sm text-muted">Tareas entre miembros del equipo · pestaña Historial para ver solicitudes resueltas</p>
         </div>
         <button
           type="button"
@@ -10935,7 +12264,15 @@ function SolicitudesView({
       {/* Formulario */}
       {showForm && (
         <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-3">
-          <p className="text-xs font-bold text-accent uppercase tracking-wide">Nueva solicitud</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-accent uppercase tracking-wide">Nueva solicitud</p>
+            {protocoloSeleccionado && (
+              <span className="flex items-center gap-1 text-xs text-accent bg-accent/10 rounded-lg px-2 py-1">
+                📋 {protocoloSeleccionado.titulo}
+                <button type="button" onClick={() => { setProtocoloSeleccionado(null); setFormPasos([]); }} className="ml-1 text-muted hover:text-ink">✕</button>
+              </span>
+            )}
+          </div>
           <SttBanner stt={stt} />
           {stt.error && !stt.grabando && (
             <p className="text-sm text-red-400">{stt.error}</p>
@@ -11026,9 +12363,45 @@ function SolicitudesView({
             </div>
           )}
 
+          {/* Protocolo de pasos opcionales */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-semibold text-ink flex items-center gap-1">
+                Protocolo de pasos
+                <InfoTooltip text="Define los pasos que el operador debe seguir para resolver esta solicitud. Cuando haga clic en Iniciar, verá este checklist en su tarjeta." />
+              </p>
+              <span className="text-xs text-muted">(opcional)</span>
+            </div>
+            <div className="space-y-1">
+              {formPasos.map((paso, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <span className="text-xs text-muted w-5 text-right shrink-0">{idx + 1}.</span>
+                  <input
+                    className="quest-input flex-1 text-sm"
+                    placeholder={`Paso ${idx + 1}…`}
+                    value={paso}
+                    onChange={(e) => actualizarPaso(idx, e.target.value)}
+                  />
+                  <button type="button" onClick={() => eliminarPaso(idx)}
+                    className="shrink-0 text-muted hover:text-red-500 transition-colors px-1">
+                    <Icon name="trash" size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={agregarPaso}
+              className="flex items-center gap-1 text-xs text-accent hover:underline">
+              <Icon name="plus" size={12} weight="bold" />
+              Agregar paso
+            </button>
+          </div>
+
           {/* Selector de usuarios */}
           <div>
-            <p className="mb-1.5 text-xs font-semibold text-ink">Asignar a (selecciona uno o varios):</p>
+            <p className="mb-1.5 text-xs font-semibold text-ink flex items-center gap-1">
+              Asignar a (selecciona uno o varios):
+              <InfoTooltip text="Si seleccionas varios usuarios, se creará una solicitud independiente para cada uno." />
+            </p>
             <div className="flex flex-wrap gap-2">
               {usuarios.filter((u) => u.id !== user.id && u.activo).map((u) => (
                 <button key={u.id} type="button"
@@ -11053,6 +12426,46 @@ function SolicitudesView({
             </div>
           </div>
 
+          {/* Adjuntos al crear */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-ink flex items-center gap-1">
+              📎 Adjuntos
+              <span className="text-xs font-normal text-muted">(opcional · PDF, imágenes, Word, Excel)</span>
+            </p>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2 text-xs text-muted hover:border-accent hover:text-accent transition-colors">
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Seleccionar archivos
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
+                className="sr-only"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  setFormFiles((prev) => [...prev, ...files]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {formFiles.length > 0 && (
+              <div className="space-y-1">
+                {formFiles.map((f, idx) => (
+                  <div key={idx} className="flex items-center gap-2 rounded-lg border border-border/50 bg-surface px-2 py-1">
+                    <span className="text-sm">{/\.(jpg|jpeg|png|gif|webp)$/i.test(f.name) ? "🖼" : /\.pdf$/i.test(f.name) ? "📄" : "📁"}</span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-ink">{f.name}</span>
+                    <span className="text-[10px] text-muted shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                    <button type="button" onClick={() => setFormFiles((prev) => prev.filter((_, i) => i !== idx))}
+                      className="shrink-0 text-muted hover:text-red-500 transition-colors">
+                      <Icon name="trash" size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             <button type="button"
               disabled={creando || !form.titulo.trim() || form.asignados.length === 0}
@@ -11061,7 +12474,7 @@ function SolicitudesView({
             >
               {creando ? "Creando…" : `Crear solicitud${form.asignados.length > 1 ? ` (${form.asignados.length})` : ""}`}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="text-xs text-muted hover:text-ink">
+            <button type="button" onClick={() => { setShowForm(false); setFormPasos([]); setFormFiles([]); }} className="text-xs text-muted hover:text-ink">
               Cancelar
             </button>
             {msg && <span className="text-xs text-accent">{msg}</span>}
@@ -11070,14 +12483,16 @@ function SolicitudesView({
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-border bg-surface-hover p-1">
+      <div className="flex gap-1 rounded-xl border border-border bg-surface-hover p-1 flex-wrap">
         {([
           { key: "asignadas", label: `Por resolver (${asignadas.length})` },
-          { key: "creadas",   label: `Enviadas por mí (${creadas.length})` },
+          { key: "creadas",   label: `Enviadas (${creadas.length})` },
           { key: "equipo",    label: `En curso (${enEquipo.length})` },
+          { key: "historial", label: `Historial (${historial.length})` },
+          { key: "protocolos", label: `📋 Protocolos` },
         ] as const).map(({ key, label }) => (
           <button key={key} type="button" onClick={() => setTab(key)}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors ${
+            className={`flex-1 min-w-[80px] rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors ${
               tab === key ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
             }`}
           >
@@ -11094,7 +12509,29 @@ function SolicitudesView({
             ? "No tienes solicitudes pendientes."
             : tab === "creadas"
               ? "No tienes solicitudes activas enviadas."
-              : "No hay solicitudes en curso en el equipo."}
+              : tab === "historial"
+                ? "No hay solicitudes resueltas en tu historial."
+                : "No hay solicitudes en curso en el equipo."}
+        </div>
+      )}
+
+      {/* Vista historial: cards más compactas con protocolo expandible */}
+      {tab === "historial" && !loading && historial.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted flex items-center gap-1">
+            Solicitudes completadas o rechazadas
+            <InfoTooltip text="Aquí puedes revisar el historial completo de solicitudes resueltas, incluyendo sus protocolos de pasos. Haz clic en una solicitud para ver sus detalles y pasos ejecutados." />
+          </p>
+          {historial.map((t) => (
+            <SolicitudCard
+              key={t.id}
+              ticket={t}
+              token={token}
+              user={user}
+              isAdmin={isAdmin}
+              onChanged={() => void load(true)}
+            />
+          ))}
         </div>
       )}
 
@@ -11125,7 +12562,7 @@ function SolicitudesView({
         </div>
       )}
 
-      {tab !== "equipo" && (
+      {tab !== "equipo" && tab !== "historial" && tab !== "protocolos" && (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {!loading && lista.map((t) => (
             <SolicitudCard
@@ -11138,6 +12575,18 @@ function SolicitudesView({
             />
           ))}
         </div>
+      )}
+
+      {/* Vista protocolos */}
+      {tab === "protocolos" && (
+        <ProtocolosView
+          token={token}
+          user={user}
+          protocolos={protocolos}
+          loading={loadingProtocolos}
+          onRecargar={() => void cargarProtocolos()}
+          onUsarProtocolo={(p) => { aplicarProtocolo(p); setTab("asignadas"); }}
+        />
       )}
     </div>
   );

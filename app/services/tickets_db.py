@@ -1057,6 +1057,50 @@ def init_db():
                 )
 
         _add_col(db, "usuarios", "foto", "TEXT")
+        _add_col(db, "tickets", "datos_sensibles_enc", "TEXT")
+        _add_col(db, "ticket_pasos", "bloqueado_por", "INTEGER REFERENCES tickets(id)")
+        _add_col(db, "tickets", "ticket_padre_id", "INTEGER REFERENCES tickets(id)")
+        _add_col(db, "tickets", "paso_origen_id",  "INTEGER REFERENCES ticket_pasos(id)")
+
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS lista_compras_ticket (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id       INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                nombre          TEXT NOT NULL,
+                sku             TEXT,
+                material_id     INTEGER REFERENCES materiales_catalogo(id),
+                cantidad        REAL DEFAULT 1,
+                unidad          TEXT DEFAULT 'und',
+                precio_estimado REAL,
+                comprado        INTEGER DEFAULT 0,
+                notas           TEXT,
+                creado_por      INTEGER REFERENCES usuarios(id),
+                creado_en       TEXT DEFAULT (datetime('now')),
+                actualizado_en  TEXT DEFAULT (datetime('now'))
+            );
+        """)
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS ticket_adjuntos (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id       INTEGER NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+                nombre_archivo  TEXT NOT NULL,
+                nombre_original TEXT NOT NULL,
+                mime            TEXT,
+                creado_por      INTEGER REFERENCES usuarios(id),
+                creado_en       TEXT DEFAULT (datetime('now'))
+            );
+            CREATE TABLE IF NOT EXISTS protocolos (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo          TEXT NOT NULL,
+                descripcion     TEXT,
+                categoria       TEXT,
+                pasos           TEXT NOT NULL DEFAULT '[]',
+                ticket_origen   INTEGER REFERENCES tickets(id) ON DELETE SET NULL,
+                creado_por      INTEGER REFERENCES usuarios(id),
+                creado_en       TEXT DEFAULT (datetime('now')),
+                activo          INTEGER DEFAULT 1
+            );
+        """)
         db.commit()
     print("✅ Centro de Mando (tickets DB) inicializado")
 
@@ -2744,7 +2788,129 @@ def _ticket_full(db, ticket_id: int) -> dict | None:
     total, ok = _pasos_conteo_ticket(db, ticket_id)
     d["pasos_total"] = total
     d["pasos_completados"] = ok
+    # Indica si hay datos sensibles sin exponer el contenido
+    d["tiene_datos_sensibles"] = bool(d.get("datos_sensibles_enc"))
+    d.pop("datos_sensibles_enc", None)
     return d
+
+
+# ── DATOS SENSIBLES (cifrado Fernet) ─────────────────────────────────────────
+
+def _get_fernet():
+    import hashlib, base64
+    from cryptography.fernet import Fernet
+    raw = (os.getenv("TICKETS_SECRET_KEY") or "").strip()
+    if not raw:
+        return None
+    key_bytes = hashlib.sha256(raw.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(key_bytes))
+
+
+def _encrypt_sensible(text: str) -> str:
+    f = _get_fernet()
+    if not f:
+        return "plain:" + text
+    return f.encrypt(text.encode()).decode()
+
+
+def _decrypt_sensible(enc: str) -> str:
+    if not enc:
+        return ""
+    if enc.startswith("plain:"):
+        return enc[6:]
+    f = _get_fernet()
+    if not f:
+        return enc
+    try:
+        return f.decrypt(enc.encode()).decode()
+    except Exception:
+        return "(error al descifrar — clave incorrecta o datos corruptos)"
+
+
+def get_datos_sensibles(ticket_id: int, usuario: dict) -> tuple:
+    nivel = (usuario.get("rol") or {}).get("nivel", 1)
+    uid = usuario.get("id")
+    with _conn() as db:
+        t = db.execute(
+            "SELECT datos_sensibles_enc, asignado_a, creado_por FROM tickets WHERE id=?",
+            (ticket_id,),
+        ).fetchone()
+        if not t:
+            return None, "Ticket no encontrado"
+        es_participante = db.execute(
+            "SELECT 1 FROM ticket_participantes WHERE ticket_id=? AND usuario_id=?",
+            (ticket_id, uid),
+        ).fetchone() is not None
+        puede_ver = nivel >= 2 or t["asignado_a"] == uid or t["creado_por"] == uid or es_participante
+        if not puede_ver:
+            return None, "Sin permisos para ver datos sensibles"
+        enc = t["datos_sensibles_enc"]
+        if not enc:
+            return "", None
+        return _decrypt_sensible(enc), None
+
+
+def set_datos_sensibles(ticket_id: int, texto: str, usuario: dict) -> tuple:
+    nivel = (usuario.get("rol") or {}).get("nivel", 1)
+    if nivel < 2:
+        return False, "Sin permisos para editar datos sensibles"
+    enc = _encrypt_sensible(texto.strip()) if (texto or "").strip() else None
+    with _conn() as db:
+        t = db.execute("SELECT id FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return False, "Ticket no encontrado"
+        db.execute(
+            "UPDATE tickets SET datos_sensibles_enc=?, actualizado_en=datetime('now') WHERE id=?",
+            (enc, ticket_id),
+        )
+        _log(db, ticket_id, usuario["id"], "datos_sensibles_actualizado",
+             detalles="Datos sensibles actualizados")
+        db.commit()
+        return True, None
+
+
+# ── INTERVENCIÓN (sub-solicitud que bloquea el ticket padre) ─────────────────
+
+def pedir_intervencion(ticket_id: int, titulo: str, asignado_a: int,
+                       descripcion: str, usuario_id: int, paso_id: int | None = None) -> tuple:
+    with _conn() as db:
+        t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return None, "Ticket no encontrado"
+        if t["estado"] not in ("en_proceso", "pendiente"):
+            return None, "Solo se puede pedir intervención en tickets activos"
+
+        numero = _generar_numero(db)
+        db.execute("""
+            INSERT INTO tickets (numero, titulo, categoria, descripcion, prioridad,
+                                 creado_por, asignado_a, tipo, ticket_padre_id, paso_origen_id)
+            VALUES (?,?,?,?,?,?,?,'solicitud',?,?)
+        """, (
+            numero,
+            titulo.strip(),
+            t["categoria"],
+            (descripcion or "").strip() or f"Intervención requerida para {t['numero']}",
+            "alta",
+            usuario_id,
+            asignado_a,
+            ticket_id,
+            paso_id,
+        ))
+        nueva_id = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
+        _log(db, nueva_id, usuario_id, "ticket_creado",
+             detalles=f"Solicitud de intervención para ticket {t['numero']}")
+
+        # Bloquear el ticket original hasta que la intervención se resuelva
+        db.execute(
+            "UPDATE tickets SET bloqueado_por=?, estado='pendiente', "
+            "actualizado_en=datetime('now') WHERE id=?",
+            (nueva_id, ticket_id),
+        )
+        _log(db, ticket_id, usuario_id, "estado_cambiado", t["estado"], "pendiente",
+             f"Bloqueado — esperando intervención {numero}")
+        db.commit()
+
+    return get_ticket(ticket_id, {"id": usuario_id, "rol": {"nivel": 3}}), None
 
 
 def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None) -> tuple:
@@ -2785,6 +2951,8 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
             elif asignado_a and tipo == "solicitud":
                 _log(db, tid, usuario_id, "asignado",
                      val_new=str(asignado_a), detalles="Solicitud asignada al crear")
+            # Pasos/protocolo opcionales al crear el ticket
+            _insertar_pasos_ticket(db, tid, data.get("pasos"))
             db.commit()
             return _ticket_full(db, tid), None
         except Exception as e:
@@ -2829,16 +2997,21 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                    m.reino    AS mision_reino,
                    m.zona_id  AS mision_zona_id,
                    bt.numero  AS bloqueado_por_numero,
-                   (SELECT COUNT(*) FROM ticket_pasos tp WHERE tp.ticket_id = t.id)
+                   tp.numero  AS ticket_padre_numero,
+                   tp.titulo  AS ticket_padre_titulo,
+                   ucp.nombre AS ticket_padre_solicitante,
+                   (SELECT COUNT(*) FROM ticket_pasos tps WHERE tps.ticket_id = t.id)
                        AS pasos_total,
-                   (SELECT COUNT(*) FROM ticket_pasos tp
-                    WHERE tp.ticket_id = t.id AND tp.completado = 1)
+                   (SELECT COUNT(*) FROM ticket_pasos tps
+                    WHERE tps.ticket_id = t.id AND tps.completado = 1)
                        AS pasos_completados
             FROM tickets t
-            LEFT JOIN usuarios uc ON uc.id = t.creado_por
-            LEFT JOIN usuarios ua ON ua.id = t.asignado_a
-            LEFT JOIN misiones m  ON m.id  = t.mision_id
-            LEFT JOIN tickets  bt ON bt.id = t.bloqueado_por
+            LEFT JOIN usuarios uc  ON uc.id  = t.creado_por
+            LEFT JOIN usuarios ua  ON ua.id  = t.asignado_a
+            LEFT JOIN misiones m   ON m.id   = t.mision_id
+            LEFT JOIN tickets  bt  ON bt.id  = t.bloqueado_por
+            LEFT JOIN tickets  tp  ON tp.id  = t.ticket_padre_id
+            LEFT JOIN usuarios ucp ON ucp.id = tp.creado_por
             {where}
             ORDER BY
                 CASE t.prioridad
@@ -2875,9 +3048,10 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
     if nuevo_estado not in valid:
         return False, "Estado inválido"
     with _conn() as db:
-        t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
-        if not t:
+        _row = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not _row:
             return False, "Ticket no encontrado"
+        t = dict(_row)
         nivel = (usuario.get("rol") or {}).get("nivel", 1)
         uid   = usuario["id"]
 
@@ -2890,6 +3064,17 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
             is_authorized = (nivel >= 2 or t["creado_por"] == uid or t["asignado_a"] == uid)
             if not is_authorized:
                 return False, "Sin autorización"
+            # Solicitudes con pasos: todos deben estar completados antes de resolver
+            if t["tipo"] == "solicitud" and _pasos_checklist_completo is not None:
+                total = db.execute(
+                    "SELECT COUNT(*) AS n FROM ticket_pasos WHERE ticket_id=?", (ticket_id,)
+                ).fetchone()["n"]
+                if total > 0 and not _pasos_checklist_completo(db, ticket_id):
+                    pendientes = db.execute(
+                        "SELECT COUNT(*) AS n FROM ticket_pasos WHERE ticket_id=? AND completado=0",
+                        (ticket_id,),
+                    ).fetchone()["n"]
+                    return False, f"Faltan {pendientes} paso(s) por completar antes de marcar como lista"
         if nuevo_estado == "rechazado" and nivel < 2:
             return False, "Sin autorización para rechazar tickets"
         if nuevo_estado == "esperando_aprobacion":
@@ -2932,6 +3117,43 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
             )
             _log(db, dep["id"], uid, "estado_cambiado", "bloqueado", dep_state,
                  "Desbloqueado al resolver la etapa anterior")
+
+        # Si este ticket era una intervención, propagar la respuesta al ticket padre
+        padre_id = t.get("ticket_padre_id")
+        if nuevo_estado == "resuelto" and padre_id:
+            # Recuperar el último comentario del interventor (la respuesta que escribió)
+            ultimo_com = db.execute(
+                "SELECT texto FROM comentarios_tickets "
+                "WHERE ticket_id=? AND usuario_id=? "
+                "ORDER BY creado_en DESC LIMIT 1",
+                (ticket_id, uid),
+            ).fetchone()
+            if ultimo_com:
+                resp_texto = ultimo_com["texto"]
+            else:
+                resp_texto = t.get("titulo") or "Intervención resuelta"
+            u_nombre = db.execute(
+                "SELECT nombre FROM usuarios WHERE id=?", (uid,)
+            ).fetchone()
+            nombre = u_nombre["nombre"] if u_nombre else "Interventor"
+            inter_num = t.get("numero", "")
+            msg_padre = (
+                f"✅ Intervención {inter_num} resuelta por {nombre}:\n\n{resp_texto}"
+            )
+            db.execute(
+                "INSERT INTO comentarios_tickets (ticket_id, usuario_id, texto, es_interno) "
+                "VALUES (?,?,?,0)",
+                (padre_id, uid, msg_padre),
+            )
+            _log(db, padre_id, uid, "intervencion_resuelta",
+                 detalles=f"Respuesta de intervención {inter_num} agregada")
+            # Registrar la respuesta en las notas del paso que originó la intervención
+            paso_origen = t.get("paso_origen_id")
+            if paso_origen:
+                db.execute(
+                    "UPDATE ticket_pasos SET notas=? WHERE id=? AND ticket_id=?",
+                    (f"💬 Respuesta ({nombre}): {resp_texto}", paso_origen, padre_id),
+                )
 
         # Update mission progress
         if t["mision_id"]:
@@ -3030,6 +3252,19 @@ def asignar_ticket(ticket_id: int, asignado_a: int | None, usuario: dict) -> tup
         _log(db, ticket_id, usuario["id"], "estado_cambiado", t["estado"], "en_proceso")
         db.commit()
         return True, None
+
+
+def listar_comentarios(ticket_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT c.id, c.texto, c.es_interno, c.creado_en,
+                   u.nombre AS autor_nombre
+            FROM comentarios_tickets c
+            LEFT JOIN usuarios u ON u.id = c.usuario_id
+            WHERE c.ticket_id = ?
+            ORDER BY c.creado_en ASC
+        """, (ticket_id,)).fetchall()
+        return [dict(r) for r in rows]
 
 
 def agregar_comentario(ticket_id: int, usuario_id: int,
@@ -3137,7 +3372,26 @@ def _insertar_pasos_ticket(db, ticket_id: int, pasos_raw) -> None:
 def listar_pasos(ticket_id: int) -> list:
     with _conn() as db:
         rows = db.execute("""
-            SELECT p.*, u.nombre AS completado_por_nombre
+            SELECT p.*,
+                   u.nombre AS completado_por_nombre,
+                   (SELECT ti.numero FROM tickets ti
+                    WHERE ti.paso_origen_id = p.id
+                      AND ti.estado NOT IN ('resuelto','rechazado')
+                    LIMIT 1) AS intervencion_pendiente_numero,
+                   (SELECT ti.asignado_a FROM tickets ti
+                    WHERE ti.paso_origen_id = p.id
+                      AND ti.estado NOT IN ('resuelto','rechazado')
+                    LIMIT 1) AS intervencion_asignado_id,
+                   (SELECT ua.nombre FROM tickets ti
+                    JOIN usuarios ua ON ua.id = ti.asignado_a
+                    WHERE ti.paso_origen_id = p.id
+                      AND ti.estado NOT IN ('resuelto','rechazado')
+                    LIMIT 1) AS intervencion_asignado_nombre,
+                   (SELECT c.texto FROM comentarios_tickets c
+                    JOIN tickets ti ON ti.id = c.ticket_id
+                    WHERE ti.paso_origen_id = p.id
+                      AND ti.estado = 'resuelto'
+                    ORDER BY c.creado_en DESC LIMIT 1) AS respuesta_intervencion
             FROM ticket_pasos p
             LEFT JOIN usuarios u ON u.id = p.completado_por
             WHERE p.ticket_id = ? ORDER BY p.orden
@@ -3179,6 +3433,135 @@ def actualizar_paso_notas(ticket_id: int, paso_id: int, notas: str) -> tuple:
     return listar_pasos(ticket_id), None
 
 
+def actualizar_paso_descripcion(ticket_id: int, paso_id: int, descripcion: str, notas: str | None = None) -> tuple:
+    """Permite editar el texto de un paso (y opcionalmente sus notas)."""
+    desc = (descripcion or "").strip()
+    if not desc:
+        return None, "La descripcion no puede estar vacia"
+    with _conn() as db:
+        row = db.execute(
+            "SELECT id FROM ticket_pasos WHERE id=? AND ticket_id=?",
+            (paso_id, ticket_id),
+        ).fetchone()
+        if not row:
+            return None, "Paso no encontrado en este ticket"
+        if notas is not None:
+            notas_val = notas.strip() or None
+            db.execute(
+                "UPDATE ticket_pasos SET descripcion=?, notas=? WHERE id=?",
+                (desc, notas_val, paso_id),
+            )
+        else:
+            db.execute("UPDATE ticket_pasos SET descripcion=? WHERE id=?", (desc, paso_id))
+        db.commit()
+    return listar_pasos(ticket_id), None
+
+
+# ── LISTA DE COMPRAS POR TICKET ───────────────────────────────────────────────
+
+def listar_compras_ticket(ticket_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT lc.*, u.nombre AS creado_por_nombre,
+                   mc.nombre AS material_nombre, mc.unidad_medida AS material_unidad
+            FROM lista_compras_ticket lc
+            LEFT JOIN usuarios u ON u.id = lc.creado_por
+            LEFT JOIN materiales_catalogo mc ON mc.id = lc.material_id
+            WHERE lc.ticket_id = ? ORDER BY lc.id
+        """, (ticket_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def agregar_compra_ticket(ticket_id: int, data: dict, usuario_id: int) -> tuple:
+    nombre = (data.get("nombre") or "").strip()
+    if not nombre:
+        return None, "nombre requerido"
+    with _conn() as db:
+        t = db.execute("SELECT id FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+        if not t:
+            return None, "Ticket no encontrado"
+        material_id = data.get("material_id") or None
+        if material_id:
+            material_id = int(material_id)
+        db.execute("""
+            INSERT INTO lista_compras_ticket
+                (ticket_id, nombre, sku, material_id, cantidad, unidad, precio_estimado, notas, creado_por)
+            VALUES (?,?,?,?,?,?,?,?,?)
+        """, (
+            ticket_id, nombre,
+            (data.get("sku") or "").strip() or None,
+            material_id,
+            float(data.get("cantidad") or 1),
+            (data.get("unidad") or "und").strip(),
+            float(data.get("precio_estimado")) if data.get("precio_estimado") not in (None, "", 0) else None,
+            (data.get("notas") or "").strip() or None,
+            usuario_id,
+        ))
+        db.commit()
+    return listar_compras_ticket(ticket_id), None
+
+
+def actualizar_compra_ticket(item_id: int, data: dict) -> tuple:
+    with _conn() as db:
+        row = db.execute("SELECT ticket_id FROM lista_compras_ticket WHERE id=?", (item_id,)).fetchone()
+        if not row:
+            return None, "Item no encontrado"
+        tid = row["ticket_id"]
+        campos = {}
+        if "nombre" in data and (data["nombre"] or "").strip():
+            campos["nombre"] = data["nombre"].strip()
+        if "sku" in data:
+            campos["sku"] = (data["sku"] or "").strip() or None
+        if "cantidad" in data and data["cantidad"] is not None:
+            campos["cantidad"] = float(data["cantidad"])
+        if "unidad" in data and data["unidad"]:
+            campos["unidad"] = data["unidad"].strip()
+        if "precio_estimado" in data:
+            campos["precio_estimado"] = float(data["precio_estimado"]) if data["precio_estimado"] not in (None, "", 0) else None
+        if "notas" in data:
+            campos["notas"] = (data["notas"] or "").strip() or None
+        if "comprado" in data:
+            campos["comprado"] = 1 if data["comprado"] in (1, True, "1", "true") else 0
+        if "material_id" in data:
+            campos["material_id"] = int(data["material_id"]) if data["material_id"] else None
+        if not campos:
+            return listar_compras_ticket(tid), None
+        set_sql = ", ".join(f"{k}=?" for k in campos)
+        db.execute(
+            f"UPDATE lista_compras_ticket SET {set_sql}, actualizado_en=datetime('now') WHERE id=?",
+            [*campos.values(), item_id],
+        )
+        db.commit()
+    return listar_compras_ticket(tid), None
+
+
+def eliminar_compra_ticket(item_id: int) -> tuple:
+    with _conn() as db:
+        row = db.execute("SELECT ticket_id FROM lista_compras_ticket WHERE id=?", (item_id,)).fetchone()
+        if not row:
+            return None, "Item no encontrado"
+        tid = row["ticket_id"]
+        db.execute("DELETE FROM lista_compras_ticket WHERE id=?", (item_id,))
+        db.commit()
+    return listar_compras_ticket(tid), None
+
+
+def buscar_productos_para_compra(q: str, limite: int = 15) -> list:
+    """Busca en materiales_catalogo por nombre o codigo para autocompletar lista de compras."""
+    q = (q or "").strip()
+    if not q:
+        return []
+    pattern = f"%{q}%"
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT id, nombre, codigo, unidad_medida, tipo
+            FROM materiales_catalogo
+            WHERE activo=1 AND (nombre LIKE ? OR codigo LIKE ?)
+            ORDER BY nombre LIMIT ?
+        """, (pattern, pattern, limite)).fetchall()
+        return [dict(r) for r in rows]
+
+
 def _pasos_checklist_completo(db, ticket_id: int) -> bool:
     row = db.execute(
         """
@@ -3194,11 +3577,14 @@ def _pasos_checklist_completo(db, ticket_id: int) -> bool:
 
 
 def _resolver_ticket_si_pasos_completos(db, ticket_id: int, usuario_id: int) -> bool:
-    """Si todos los pasos están marcados, cierra el ticket como resuelto."""
+    """Si todos los pasos están marcados, cierra el ticket como resuelto.
+    Las solicitudes NO se auto-cierran — solo el botón Listo puede hacerlo."""
     if not _pasos_checklist_completo(db, ticket_id):
         return False
     t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
     if not t or t["estado"] in ("resuelto", "rechazado"):
+        return False
+    if t["tipo"] == "solicitud":
         return False
 
     prev = t["estado"]
@@ -4097,3 +4483,135 @@ def eliminar_categoria(slug: str) -> tuple:
         db.execute("DELETE FROM categorias WHERE slug=?", (slug,))
         db.commit()
         return True, None
+
+
+# ── PROTOCOLOS ────────────────────────────────────────────────────────────────
+
+def listar_protocolos() -> list:
+    import json
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT p.*, u.nombre AS creado_por_nombre,
+                   t.numero AS ticket_origen_numero, t.titulo AS ticket_origen_titulo
+            FROM protocolos p
+            LEFT JOIN usuarios u ON u.id = p.creado_por
+            LEFT JOIN tickets t ON t.id = p.ticket_origen
+            WHERE p.activo = 1
+            ORDER BY p.creado_en DESC
+        """).fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            try:
+                d["pasos"] = json.loads(d["pasos"]) if d["pasos"] else []
+            except Exception:
+                d["pasos"] = []
+            result.append(d)
+        return result
+
+
+def crear_protocolo_desde_ticket(ticket_id: int, titulo: str, descripcion: str,
+                                  categoria: str, usuario_id: int) -> tuple:
+    import json
+    titulo = titulo.strip()
+    if not titulo:
+        return None, "El título es requerido"
+    with _conn() as db:
+        t = db.execute(
+            "SELECT id, estado FROM tickets WHERE id=?", (ticket_id,)
+        ).fetchone()
+        if not t:
+            return None, "Ticket no encontrado"
+        pasos_rows = db.execute(
+            "SELECT descripcion, notas FROM ticket_pasos WHERE ticket_id=? ORDER BY orden",
+            (ticket_id,),
+        ).fetchall()
+        pasos = [{"descripcion": r["descripcion"], "notas": r["notas"]} for r in pasos_rows]
+        db.execute(
+            """INSERT INTO protocolos (titulo, descripcion, categoria, pasos, ticket_origen, creado_por)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (titulo, descripcion or None, categoria or None,
+             json.dumps(pasos, ensure_ascii=False), ticket_id, usuario_id),
+        )
+        protocolo_id = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        _log(db, ticket_id, usuario_id, "protocolo_creado",
+             detalles=f"Protocolo '{titulo}' creado desde este ticket")
+        db.commit()
+        return {"id": protocolo_id, "titulo": titulo, "pasos": pasos}, None
+
+
+def actualizar_protocolo(protocolo_id: int, titulo: str, descripcion: str,
+                          categoria: str, pasos: list, usuario_id: int) -> tuple:
+    import json
+    titulo = titulo.strip()
+    if not titulo:
+        return None, "El título es requerido"
+    with _conn() as db:
+        p = db.execute("SELECT id FROM protocolos WHERE id=? AND activo=1", (protocolo_id,)).fetchone()
+        if not p:
+            return None, "Protocolo no encontrado"
+        db.execute(
+            """UPDATE protocolos SET titulo=?, descripcion=?, categoria=?, pasos=?
+               WHERE id=?""",
+            (titulo, descripcion or None, categoria or None,
+             json.dumps(pasos or [], ensure_ascii=False), protocolo_id),
+        )
+        db.commit()
+        return {"id": protocolo_id, "titulo": titulo}, None
+
+
+def eliminar_protocolo(protocolo_id: int, usuario_id: int) -> tuple:
+    with _conn() as db:
+        p = db.execute("SELECT id FROM protocolos WHERE id=? AND activo=1", (protocolo_id,)).fetchone()
+        if not p:
+            return False, "Protocolo no encontrado"
+        db.execute("UPDATE protocolos SET activo=0 WHERE id=?", (protocolo_id,))
+        db.commit()
+        return True, None
+
+
+# ── ADJUNTOS POR TICKET ───────────────────────────────────────────────────────
+
+def listar_adjuntos(ticket_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT a.*, u.nombre AS creado_por_nombre
+            FROM ticket_adjuntos a
+            LEFT JOIN usuarios u ON u.id = a.creado_por
+            WHERE a.ticket_id = ?
+            ORDER BY a.creado_en
+        """, (ticket_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def registrar_adjunto(ticket_id: int, nombre_archivo: str,
+                      nombre_original: str, mime: str | None,
+                      usuario_id: int) -> dict:
+    with _conn() as db:
+        db.execute(
+            """INSERT INTO ticket_adjuntos
+               (ticket_id, nombre_archivo, nombre_original, mime, creado_por)
+               VALUES (?,?,?,?,?)""",
+            (ticket_id, nombre_archivo, nombre_original, mime, usuario_id),
+        )
+        adj_id = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
+        _log(db, ticket_id, usuario_id, "adjunto_agregado",
+             detalles=f"Archivo: {nombre_original}")
+        db.commit()
+        return {"id": adj_id, "nombre_archivo": nombre_archivo,
+                "nombre_original": nombre_original, "mime": mime}
+
+
+def eliminar_adjunto(adjunto_id: int, usuario_id: int) -> tuple:
+    with _conn() as db:
+        row = db.execute(
+            "SELECT nombre_archivo, ticket_id FROM ticket_adjuntos WHERE id=?",
+            (adjunto_id,),
+        ).fetchone()
+        if not row:
+            return None, "Adjunto no encontrado"
+        db.execute("DELETE FROM ticket_adjuntos WHERE id=?", (adjunto_id,))
+        _log(db, row["ticket_id"], usuario_id, "adjunto_eliminado",
+             detalles=f"Adjunto #{adjunto_id} eliminado")
+        db.commit()
+        return row["nombre_archivo"], None
