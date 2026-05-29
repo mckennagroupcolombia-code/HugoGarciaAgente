@@ -9,7 +9,14 @@
     "49976306606124@lid",
     "71262147764245@lid",
     "259502091821270@lid",
-    "57259502091821270@c.us"
+    "57259502091821270@c.us",
+    "web-a76f5496-4d30-4ccc-aa10-d230bdae18b3",
+    "130975447179480@lid",
+    "57130975447179480@c.us",
+    "266855042285583@lid",
+    "57266855042285583@c.us",
+    "110213222891737@lid",
+    "57110213222891737@c.us"
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
@@ -21,56 +28,98 @@
     "49976306606124@lid": 1779917580.1837876,
     "71262147764245@lid": 1779917739.2717392,
     "259502091821270@lid": 1779923371.8995585,
-    "57259502091821270@c.us": 1779923371.8995585
+    "57259502091821270@c.us": 1779923371.8995585,
+    "web-a76f5496-4d30-4ccc-aa10-d230bdae18b3": 1779972323.971843,
+    "130975447179480@lid": 1779996112.5039656,
+    "57130975447179480@c.us": 1779996112.5039656,
+    "266855042285583@lid": 1779998033.7324655,
+    "57266855042285583@c.us": 1779998033.7324655,
+    "110213222891737@lid": 1779998050.9782407,
+    "57110213222891737@c.us": 1779998050.9782407
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1779607073.685289,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "hola"
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "108207892635657@lid": {
       "timestamp": 1779841391.5377421,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Veci, tuve un problema t\u00e9cnico moment\u00e1neo. Por favor intente de nuevo \ud83d\ude4f"
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "120363023555909043@g.us": {
       "timestamp": 1779902999.5390468,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "Ok"
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "web-test-handoff2": {
       "timestamp": 1779872652.346131,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Quiero hablar con un asesor humano"
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "573013536788@c.us": {
       "timestamp": 1779890129.7563171,
       "razon": "men\u00fa autom\u00e1tico",
-      "ultimo_mensaje": "Hola, Hugo, cerrar\u00e9 esta conversaci\u00f3n, no recib\u00ed tu respuesta.\n\n*\u00a1Tu tarjeta quedara activa!*\n\nRevisa si reconoces esa transacci\u00f3n o si necesitas algo m\u00e1s, ll\u00e1manos al *(604) 5109000*, opci\u00f3n 1-3. Si est\u00e1s en el exterior, al *+57 (601) 3430000*.\n\nSeguimos a tu lado en todo momento.\n\n_Toca un bot\u00f3n:_ \ud83d\udc47"
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "73031707820119@lid": {
       "timestamp": 1779916294.9625869,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "QUISIERA HABLAR CON UN AGENTE HUMANO"
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "49976306606124@lid": {
       "timestamp": 1779917580.1837876,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "71262147764245@lid": {
       "timestamp": 1779917739.2717392,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "259502091821270@lid": {
       "timestamp": 1779923371.8995585,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": ""
+      "ultimo_mensaje": "Cogua Cundinamarca"
     },
     "57259502091821270@c.us": {
       "timestamp": 1779923371.8995585,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": "Cogua Cundinamarca"
+    },
+    "web-a76f5496-4d30-4ccc-aa10-d230bdae18b3": {
+      "timestamp": 1779972323.9718435,
+      "razon": "web_pago_pedido",
+      "ultimo_mensaje": "Cogua Cundinamarca"
+    },
+    "130975447179480@lid": {
+      "timestamp": 1779996112.5039656,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Cogua Cundinamarca"
+    },
+    "57130975447179480@c.us": {
+      "timestamp": 1779996112.5039656,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Cogua Cundinamarca"
+    },
+    "266855042285583@lid": {
+      "timestamp": 1779998033.7324655,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "57266855042285583@c.us": {
+      "timestamp": 1779998033.7324655,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "110213222891737@lid": {
+      "timestamp": 1779998050.9782407,
+      "razon": "operador desde panel de chats",
+      "ultimo_mensaje": ""
+    },
+    "57110213222891737@c.us": {
+      "timestamp": 1779998050.9782407,
       "razon": "operador desde panel de chats",
       "ultimo_mensaje": ""
     }

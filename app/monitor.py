@@ -894,14 +894,6 @@ def _supervisar_colas_meli():
                 tok = _token()
                 sid = _seller()
                 for codigo, item in list((data_post.get("pendientes", {}) or {}).items()):
-                    pending_msg_id = str(item.get("msg_id", "")).strip()
-                    if pending_msg_id and pending_msg_id in procesados_post:
-                        pendientes_post.pop(str(codigo), None)
-                        pack_dup = str(item.get("pack_id", ""))
-                        if pack_dup:
-                            pendientes_post.pop(pack_dup, None)
-                        post_modificado = True
-                        continue
                     # Reconciliar estado del pack: si vendedor ya habló después del msg pendiente, cerrar cola.
                     # Ordenar por fecha: sin esto, enumerate(msgs) puede poner "último seller" mal y el supervisor
                     # re-alerta en bucle aunque MeLi ya tenga conversación al día.

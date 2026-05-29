@@ -112,6 +112,53 @@ _POSVENTA_STATE_PATH = os.path.join(
 )
 
 
+def _resolver_pack_por_sufijo_en_meli(codigo: str) -> dict | None:
+    """
+    Último recurso si la cola JSON quedó vacía: busca pack reciente por sufijo (ej. 2174).
+    """
+    digits = re.sub(r"\D", "", (codigo or "").strip())
+    if len(digits) < 3:
+        return None
+    try:
+        from app.utils import refrescar_token_meli, obtener_seller_id_meli
+
+        token = refrescar_token_meli()
+        seller_id = obtener_seller_id_meli()
+        if not token or not seller_id:
+            return None
+        limite = min(51, int(os.getenv("POSTVENTA_SUFIJO_ORDENES_LIMIT", "51")))
+        r = _requests_lib.get(
+            f"https://api.mercadolibre.com/orders/search?seller={seller_id}&sort=date_desc&limit={limite}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=12,
+        )
+        if r.status_code != 200:
+            return None
+        codigo_stripped = (codigo or "").strip()
+        for orden in r.json().get("results", []) or []:
+            pack_id = str(orden.get("pack_id") or orden.get("id") or "").strip()
+            if not pack_id:
+                continue
+            pack_digits = re.sub(r"\D", "", pack_id)
+            sufijo = pack_digits[-4:] if len(pack_digits) >= 4 else pack_digits
+            if (
+                pack_id == codigo_stripped
+                or pack_id.endswith(digits)
+                or sufijo == digits
+            ):
+                buyer = orden.get("buyer") or {}
+                comprador = str(buyer.get("nickname") or buyer.get("first_name") or "")
+                return {
+                    "pack_id": pack_id,
+                    "codigo": sufijo,
+                    "comprador": comprador,
+                    "from_id": str(buyer.get("id") or "") or None,
+                }
+    except Exception as _e:
+        print(f"⚠️ [POSVENTA] Error buscando pack por sufijo {codigo}: {_e}")
+    return None
+
+
 def _resolver_entrada_postventa(codigo: str):
     """
     Busca entrada pendiente por código corto, pack_id o clave en JSON.
@@ -148,6 +195,10 @@ def _resolver_entrada_postventa(codigo: str):
                     entrada = v
                     clave_pendiente = k
                     break
+        if not entrada:
+            entrada = _resolver_pack_por_sufijo_en_meli(codigo)
+            if entrada:
+                clave_pendiente = str(entrada.get("pack_id") or codigo)
         return entrada, clave_pendiente
     except Exception as _e:
         print(f"⚠️ [POSVENTA] Error leyendo state: {_e}")

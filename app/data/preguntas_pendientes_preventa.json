@@ -601,6 +601,20 @@
       "pregunta": "Buenas tardes, sirve para la cara?, es decir puedo utilizarla en humificadores faciales?",
       "timestamp": "2026-05-27T18:53:00.420210",
       "respondida": true
+    },
+    {
+      "question_id": "13591432367",
+      "titulo_producto": "Disco De Corte De Diamante Para Mármol, Vidrio, Porcelanato Verde",
+      "pregunta": "De cuantas pulgadas es?",
+      "timestamp": "2026-05-28T13:14:33.478756",
+      "respondida": true
+    },
+    {
+      "question_id": "13591665767",
+      "titulo_producto": "Agua Destilada  250 Ml",
+      "pregunta": "Cual es la conductividad del agua en ms/cm",
+      "timestamp": "2026-05-28T16:46:55.792839",
+      "respondida": true
     }
   ]
 }

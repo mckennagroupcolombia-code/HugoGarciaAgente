@@ -27,7 +27,8 @@ from app.services.tickets_db import (
     renovar_mision,
     agregar_etapa_mision, actualizar_etapa_mision, eliminar_etapa_mision,
     reordenar_etapas_mision,
-    listar_pasos, agregar_paso, actualizar_paso_notas, completar_paso, completar_paso_ticket,
+    listar_pasos, agregar_paso, actualizar_paso_notas, actualizar_paso_descripcion,
+    completar_paso, completar_paso_ticket,
     establecer_paso_completado,
     pasos_ticket_json,
     eliminar_paso, reordenar_pasos,
@@ -40,10 +41,13 @@ from app.services.tickets_db import (
     get_dependencias_mision, agregar_dependencia_mision, eliminar_dependencia_mision,
     set_producto_resultante,
     get_aliados_asignaciones, set_aliado_asignacion, TAREA_RECLAMO_MELI_ANULAR_FACTURA, TAREA_SYNC_FACTURAS_FALTANTES_SIIGO,
+    listar_compras_ticket, agregar_compra_ticket, actualizar_compra_ticket, eliminar_compra_ticket,
+    buscar_productos_para_compra,
 )
 
-_ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp"}
+_ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx"}
 _AVATAR_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
+_ALLOWED_LABEL = "PDF, JPG, PNG, GIF, WEBP, DOC, DOCX, XLS, XLSX"
 
 _GRUPO_SEDE_SUR_WA = os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
 
@@ -653,6 +657,12 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 400
         return jsonify(get_ticket(ticket_id, request.tickets_usuario)), 200
 
+    @app.route("/api/tickets/<int:ticket_id>/comentarios", methods=["GET"])
+    @_auth
+    def tickets_listar_comentarios(ticket_id):
+        from app.services.tickets_db import listar_comentarios
+        return jsonify(listar_comentarios(ticket_id)), 200
+
     @app.route("/api/tickets/<int:ticket_id>/comentarios", methods=["POST"])
     @_auth
     def tickets_comentar(ticket_id):
@@ -1022,7 +1032,18 @@ def register_tickets_routes(app):
     def tickets_establecer_paso(ticket_id, paso_id):
         data = request.get_json(force=True, silent=True) or {}
         uid = request.tickets_usuario["id"]
-        if "notas" in data:
+        # Editar descripción del paso
+        if "descripcion" in data:
+            pasos, err = actualizar_paso_descripcion(
+                ticket_id, paso_id,
+                data["descripcion"],
+                data.get("notas"),
+            )
+            if err:
+                return jsonify({"error": err}), 400
+            if "completado" not in data:
+                return jsonify(pasos), 200
+        elif "notas" in data:
             pasos, err = actualizar_paso_notas(ticket_id, paso_id, data.get("notas", ""))
             if err:
                 return jsonify({"error": err}), 400
@@ -1528,3 +1549,188 @@ def register_tickets_routes(app):
         if err:
             return jsonify({"error": err}), 400
         return jsonify(c), 200
+
+    # ── DATOS SENSIBLES ───────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/<int:ticket_id>/sensible", methods=["GET"])
+    @_auth
+    def tickets_get_sensible(ticket_id):
+        from app.services.tickets_db import get_datos_sensibles
+        texto, err = get_datos_sensibles(ticket_id, request.tickets_usuario)
+        if err:
+            return jsonify({"error": err}), 403
+        return jsonify({"texto": texto or ""}), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/sensible", methods=["PUT"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_set_sensible(ticket_id):
+        from app.services.tickets_db import set_datos_sensibles
+        data = request.get_json(force=True) or {}
+        ok, err = set_datos_sensibles(ticket_id, data.get("texto", ""), request.tickets_usuario)
+        if not ok:
+            return jsonify({"error": err}), 400
+        return jsonify({"ok": True}), 200
+
+    # ── INTERVENCIÓN ──────────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/<int:ticket_id>/pedir-intervencion", methods=["POST"])
+    @_auth
+    def tickets_pedir_intervencion(ticket_id):
+        from app.services.tickets_db import pedir_intervencion
+        data = request.get_json(force=True) or {}
+        titulo = (data.get("titulo") or "").strip()
+        asignado_a = data.get("asignado_a")
+        if not titulo or not asignado_a:
+            return jsonify({"error": "titulo y asignado_a son requeridos"}), 400
+        paso_id = data.get("paso_id")
+        ticket, err = pedir_intervencion(
+            ticket_id,
+            titulo,
+            int(asignado_a),
+            data.get("descripcion", ""),
+            request.tickets_usuario["id"],
+            int(paso_id) if paso_id else None,
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(ticket), 200
+
+    # ── LISTA DE COMPRAS ──────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/<int:ticket_id>/lista-compras", methods=["GET"])
+    @_auth
+    def tickets_listar_compras(ticket_id):
+        return jsonify(listar_compras_ticket(ticket_id)), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/lista-compras", methods=["POST"])
+    @_auth
+    def tickets_agregar_compra(ticket_id):
+        data = request.get_json(force=True) or {}
+        items, err = agregar_compra_ticket(ticket_id, data, request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(items), 201
+
+    @app.route("/api/tickets/lista-compras/<int:item_id>", methods=["PUT"])
+    @_auth
+    def tickets_actualizar_compra(item_id):
+        data = request.get_json(force=True) or {}
+        items, err = actualizar_compra_ticket(item_id, data)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(items), 200
+
+    @app.route("/api/tickets/lista-compras/<int:item_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_compra(item_id):
+        items, err = eliminar_compra_ticket(item_id)
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(items), 200
+
+    @app.route("/api/tickets/productos/buscar", methods=["GET"])
+    @_auth
+    def tickets_buscar_productos():
+        q = (request.args.get("q") or "").strip()
+        if len(q) < 2:
+            return jsonify([]), 200
+        return jsonify(buscar_productos_para_compra(q)), 200
+
+    # ── PROTOCOLOS ────────────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/protocolos", methods=["GET"])
+    @_auth
+    def tickets_listar_protocolos():
+        from app.services.tickets_db import listar_protocolos
+        return jsonify(listar_protocolos()), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/guardar-como-protocolo", methods=["POST"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_guardar_protocolo(ticket_id):
+        from app.services.tickets_db import crear_protocolo_desde_ticket
+        data = request.get_json(force=True) or {}
+        titulo = (data.get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"error": "El título es requerido"}), 400
+        protocolo, err = crear_protocolo_desde_ticket(
+            ticket_id,
+            titulo,
+            data.get("descripcion", ""),
+            data.get("categoria", ""),
+            request.tickets_usuario["id"],
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(protocolo), 201
+
+    @app.route("/api/tickets/protocolos/<int:protocolo_id>", methods=["PUT"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_actualizar_protocolo(protocolo_id):
+        from app.services.tickets_db import actualizar_protocolo
+        data = request.get_json(force=True) or {}
+        protocolo, err = actualizar_protocolo(
+            protocolo_id,
+            data.get("titulo", ""),
+            data.get("descripcion", ""),
+            data.get("categoria", ""),
+            data.get("pasos", []),
+            request.tickets_usuario["id"],
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(protocolo), 200
+
+    @app.route("/api/tickets/protocolos/<int:protocolo_id>", methods=["DELETE"])
+    @_auth
+    @_nivel_min(2)
+    def tickets_eliminar_protocolo(protocolo_id):
+        from app.services.tickets_db import eliminar_protocolo
+        ok, err = eliminar_protocolo(protocolo_id, request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 404
+        return jsonify({"ok": True}), 200
+
+    # ── ADJUNTOS ──────────────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/<int:ticket_id>/adjuntos", methods=["GET"])
+    @_auth
+    def tickets_listar_adjuntos(ticket_id):
+        from app.services.tickets_db import listar_adjuntos
+        return jsonify(listar_adjuntos(ticket_id)), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/adjuntos", methods=["POST"])
+    @_auth
+    def tickets_subir_adjunto(ticket_id):
+        from app.services.tickets_db import registrar_adjunto
+        f = request.files.get("archivo")
+        if not f or not f.filename:
+            return jsonify({"error": "No se recibió ningún archivo"}), 400
+        if not _ext_ok(f.filename):
+            return jsonify({"error": f"Tipo no permitido ({_ALLOWED_LABEL})"}), 400
+        ext = f.filename.rsplit(".", 1)[1].lower()
+        nombre_archivo = f"{uuid.uuid4().hex}.{ext}"
+        f.save(os.path.join(UPLOADS_DIR, nombre_archivo))
+        adj = registrar_adjunto(
+            ticket_id, nombre_archivo,
+            f.filename, f.content_type,
+            request.tickets_usuario["id"],
+        )
+        return jsonify(adj), 201
+
+    @app.route("/api/tickets/adjuntos/<int:adjunto_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_adjunto(adjunto_id):
+        from app.services.tickets_db import eliminar_adjunto
+        nombre_archivo, err = eliminar_adjunto(adjunto_id, request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 404
+        try:
+            ruta = os.path.join(UPLOADS_DIR, nombre_archivo)
+            if os.path.exists(ruta):
+                os.remove(ruta)
+        except Exception:
+            pass
+        return jsonify({"ok": True}), 200

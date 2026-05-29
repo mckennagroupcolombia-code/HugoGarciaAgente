@@ -1035,6 +1035,63 @@ def test_postventa_pendientes_api_dedup(monkeypatch, tmp_path) -> None:
     assert items[0]["productos"] == ["Jabón", "Urea"]
 
 
+def test_postventa_pendiente_visible_aunque_msg_en_procesados(
+    monkeypatch, tmp_path
+) -> None:
+    """Tras alertar WA el msg_id va a procesados; la cola debe seguir resolviendo el código."""
+    import app.routes as routes
+
+    state_path = tmp_path / "mensajes_posventa_pendientes.json"
+    entrada = {
+        "pack_id": "2000016648492174",
+        "codigo": "2174",
+        "comprador": "Comprador Test",
+        "texto": "¿Cuándo llega?",
+        "msg_id": "msg-postventa-1",
+        "timestamp": "2026-05-28T16:53:00",
+    }
+    state_path.write_text(
+        json.dumps(
+            {
+                "pendientes": {"2174": entrada, "2000016648492174": entrada},
+                "procesados": ["msg-postventa-1"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(routes, "_POSVENTA_STATE_PATH", str(state_path))
+    found, clave = routes._resolver_entrada_postventa("2174")
+    assert found is not None
+    assert found["pack_id"] == "2000016648492174"
+    assert clave in ("2174", "2000016648492174")
+
+
+def test_postventa_resolver_sufijo_meli_fallback(monkeypatch, tmp_path) -> None:
+    import app.routes as routes
+
+    state_path = tmp_path / "mensajes_posventa_pendientes.json"
+    state_path.write_text(
+        json.dumps({"pendientes": {}, "procesados": []}),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(routes, "_POSVENTA_STATE_PATH", str(state_path))
+    monkeypatch.setattr(
+        routes,
+        "_resolver_pack_por_sufijo_en_meli",
+        lambda c: {
+            "pack_id": "2000016648492174",
+            "codigo": "2174",
+            "comprador": "Comprador Test",
+            "from_id": "324970252",
+        }
+        if c == "2174"
+        else None,
+    )
+    found, _ = routes._resolver_entrada_postventa("2174")
+    assert found is not None
+    assert found["pack_id"] == "2000016648492174"
+
+
 def test_wa_chats_ingest_y_revoke(tmp_path, monkeypatch) -> None:
     db = tmp_path / "wa_chats.db"
     monkeypatch.setenv("WA_CHATS_DB", str(db))

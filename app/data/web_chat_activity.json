@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-27T20:25:35",
+  "updated_at": "2026-05-28T19:21:00",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -14,9 +14,149 @@
     "2026-05-24": 7,
     "2026-05-25": 4,
     "2026-05-26": 5,
-    "2026-05-27": 32
+    "2026-05-27": 32,
+    "2026-05-28": 11
   },
   "sessions": [
+    {
+      "session_id": "web-7de4fbac-d8f5-4a23-a060-1182e7519242",
+      "started_at": "2026-05-28T19:17:53",
+      "last_at": "2026-05-28T19:21:00",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-tau250g",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Buenas noches, podria por favor facilitarme el certificado COA y la ficha de seguridad de la taurina e inulina que estan manejando actualmente. Muchas gracias",
+      "last_agent_reply": "Listo veci. Estas son las presentaciones disponibles en catálogo:\n1) *INULINA 250g* $18,788 COP — Ref. C-INU250g 2) *TAURINA 250g* $40,832 COP — Ref. C-TAU250g 3) *INULINA 500g* $32,148 COP — Ref. C-INU500g 4) *INULINA Kg* $57,532 COP — Ref. C-INUKg 5) *COCOAMIDA PROPIL BETAINA 500mL* $16,116 COP — Ref. C-COCPROBET500mL ¿Cuál presentación le sirve?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-28T19:17:53",
+          "user_message": "Buenas noches, podrian facilitarme certificado coay la ficha de seguridad de la taurina que estan manejando actualmente. Gracias",
+          "agent_reply": "Claro, veci. Tenemos *TAURINA 250g* como materia prima. Presentación: $40,832 COP — Ref. C-TAU250g. ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-28T19:21:00",
+          "user_message": "Buenas noches, podria por favor facilitarme el certificado COA y la ficha de seguridad de la taurina e inulina que estan manejando actualmente. Muchas gracias",
+          "agent_reply": "Listo veci. Estas son las presentaciones disponibles en catálogo:\n1) *INULINA 250g* $18,788 COP — Ref. C-INU250g 2) *TAURINA 250g* $40,832 COP — Ref. C-TAU250g 3) *INULINA 500g* $32,148 COP — Ref. C-INU500g 4) *INULINA Kg* $57,532 COP — Ref. C-INUKg 5) *COCOAMIDA PROPIL BETAINA 500mL* $16,116 COP — Ref. C-COCPROBET500mL ¿Cuál presentación le sirve?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-56228972-898a-4f8b-81f7-eb8a7688b758",
+      "started_at": "2026-05-28T11:06:48",
+      "last_at": "2026-05-28T11:12:06",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "a que numero de whatsapp",
+      "last_agent_reply": "Por favor, escríbanos por el número de WhatsApp de la tienda. Así podemos atarlo a su línea y un asesor humano le va a dar la información de la crema lanolina, veci.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-28T11:06:48",
+          "user_message": "Buenos días quisiera saber si tienes crema lanolina",
+          "agent_reply": "Buenos días. Para poder revisar la disponibilidad y las presentaciones de lanolina, por favor, continúe la conversación por WhatsApp. Así podemos atarlo a su línea y un asesor humano le va a dar la información más precisa, veci.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-28T11:09:06",
+          "user_message": "buenos días tienes CREMA LANOLINA",
+          "agent_reply": "Para poder revisar la disponibilidad y las presentaciones de crema lanolina, por favor, continúe la conversación por WhatsApp. Así podemos atarlo a su línea y un asesor humano le va a dar la información más precisa, veci.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-28T11:10:46",
+          "user_message": "VALE",
+          "agent_reply": "Listo, veci. Recuerde que para cotizaciones, seguimiento de pedidos o cualquier consulta específica, por favor, continúe la conversación por WhatsApp. Así lo atamos a su línea y un asesor humano le ayuda con lo que necesita.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-28T11:12:06",
+          "user_message": "a que numero de whatsapp",
+          "agent_reply": "Por favor, escríbanos por el número de WhatsApp de la tienda. Así podemos atarlo a su línea y un asesor humano le va a dar la información de la crema lanolina, veci.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-a76f5496-4d30-4ccc-aa10-d230bdae18b3",
+      "started_at": "2026-05-28T07:33:28",
+      "last_at": "2026-05-28T07:45:23",
+      "messages_count": 5,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "pues me interesaria la cotización de cada uno de ellos por presentación de 1kg ya que por lo general siempre evaluamos el producto para ver si nos es útil ya que trabajamos con productos con alto grado de pureza",
+      "last_agent_reply": "Veci, entiendo que necesita **cerrar un pago** o el **seguimiento de su pedido/cotización**. En la burbuja de la web resolvemos dudas de **productos y precios**. Los **datos de pago, link, facturación y comprobantes** los gestiona el equipo por **WhatsApp**, donde queda su conversación con un asesor. Escríbanos al +57 319 518 3596:\nhttps://wa.me/573195183596 Si ya realizó el pago, envíe el comprobante **por ese WhatsApp** (no por aquí), con su nombre y la referencia del pedido. En breve le responden 🙏",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-28T07:33:28",
+          "user_message": "Buen dia",
+          "agent_reply": "Hola Soy hugo Garcia de mckenna Group S.A.S, cuenteme en que le puedo servir veci!",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-28T07:37:59",
+          "user_message": "Te escribe Ronald Sánchez de Inversiones HyA, empresa dedicada al área de investigación y desarrollo. Escribo porque me gustaria solicitar la ficha técnica de varios productos que me interesaron para ser empleados para la formulación de varios de nuestros productos",
+          "agent_reply": "Hola Ronald, bienvenido. Entendido, estamos aquí para ayudarte con la parte técnica. Nosotros vendemos la **materia prima** para que ustedes puedan formular sus productos, no el producto terminado. Para poder enviarte las fichas técnicas que necesitas, por favor, indícame cuáles son los productos o ingredientes específicos que te interesan. Si tienes el nombre oficial o el SKU, mejor. Así te doy la información técnica detallada que necesitas para tu formulación.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-28T07:39:22",
+          "user_message": "Perfecto, ya te los envío",
+          "agent_reply": "Listo, quedo atento a la lista de productos. Cuando me los envíes, reviso la información técnica de cada uno y te hago llegar las fichas que necesitas para tu formulación.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-28T07:43:02",
+          "user_message": "ácido tranexamico, ácido mandelico, aceite de argán, l-arginina, l-prolina, l-glutamina, taurina, cefeina, extracto de te verde, niacinamida, papaina, inulina, alantoina y ornitina",
+          "agent_reply": "Gracias, Ronald. Ya tengo la lista de ingredientes: Ácido Tranexámico, Ácido Mandélico, Aceite de Argán, L-Arginina, L-Prolina, L-Glutamina, Taurina, Cafeína, Extracto de Té Verde, Niacinamida, Papaina, Inulina, Alantoína y Ornitina. Voy a compilar las fichas técnicas detalladas de cada materia prima. Estas fichas incluyen información sobre su función, usos recomendados en formulación y especificaciones técnicas. Te las envío en un momento. Mientras tanto, ¿hay alguna presentación o rango de concentración en particular que te interese revisar para empezar a cotizar?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-28T07:45:23",
+          "user_message": "pues me interesaria la cotización de cada uno de ellos por presentación de 1kg ya que por lo general siempre evaluamos el producto para ver si nos es útil ya que trabajamos con productos con alto grado de pureza",
+          "agent_reply": "Veci, entiendo que necesita **cerrar un pago** o el **seguimiento de su pedido/cotización**. En la burbuja de la web resolvemos dudas de **productos y precios**. Los **datos de pago, link, facturación y comprobantes** los gestiona el equipo por **WhatsApp**, donde queda su conversación con un asesor. Escríbanos al +57 319 518 3596:\nhttps://wa.me/573195183596 Si ya realizó el pago, envíe el comprobante **por ese WhatsApp** (no por aquí), con su nombre y la referencia del pedido. En breve le responden 🙏",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-500f8084-77e9-4266-8853-76b9bfe7504f",
       "started_at": "2026-05-27T18:37:42",
