@@ -2027,23 +2027,43 @@ def register_routes(app):
         # --- Guardar mensaje entrante en historial de chats ---
         if not es_any_grupo_admin and not es_grupo_sede_sur and (message_text or has_media):
             try:
-                from app.services.wa_chats import guardar as _wa_chat_guardar
-                _tiene_media = bool(has_media) if "has_media" in dir() else False
-                _wa_ts = data.get("ts")
-                try:
-                    _wa_ts = float(_wa_ts) if _wa_ts is not None else None
-                except (TypeError, ValueError):
-                    _wa_ts = None
-                _wa_chat_guardar(
-                    sender_id,
-                    "entrada",
-                    message_text or "",
-                    _tiene_media,
-                    "",
-                    "cliente",
-                    wa_id=str(data.get("wa_id") or "").strip() or None,
-                    ts=_wa_ts,
+                from app.services.wa_chats import (
+                    existe_wa_id,
+                    guardar as _wa_chat_guardar,
+                    normalizar_media_path_panel,
                 )
+
+                _wa_key = str(data.get("wa_id") or "").strip() or None
+                if _wa_key and existe_wa_id(_wa_key):
+                    pass
+                else:
+                    _tiene_media = bool(has_media)
+                    _wa_ts = data.get("ts")
+                    try:
+                        _wa_ts = float(_wa_ts) if _wa_ts is not None else None
+                    except (TypeError, ValueError):
+                        _wa_ts = None
+                    _mrel = normalizar_media_path_panel(media_path)
+                    _mmime = ""
+                    if media_type == "image":
+                        _mmime = "image/jpeg"
+                    elif media_type == "document":
+                        _mmime = "application/pdf"
+                    _texto_chat = (message_text or "").strip()
+                    if not _texto_chat and _tiene_media:
+                        _texto_chat = "[adjunto]"
+                    _wa_chat_guardar(
+                        sender_id,
+                        "entrada",
+                        _texto_chat,
+                        _tiene_media,
+                        os.path.basename(_mrel) if _mrel else "",
+                        "cliente",
+                        wa_id=_wa_key,
+                        ts=_wa_ts,
+                        media_path=_mrel,
+                        media_mime=_mmime,
+                    )
             except Exception:
                 pass
 
@@ -3099,12 +3119,38 @@ def register_routes(app):
                 guardar_yaml=slug_yaml if guardar_yaml else None,
             )
             log_line(f"✔ ficha generada: {resultado.get('docx_nombre')}")
+            ref = (
+                (datos.get("referencia") or "")
+                or body.get("producto_ref")
+                or ""
+            ).strip()
+            if subir_drive and ref:
+                from app.services.documentos_catalogo import registrar_documento_generado
+
+                for up in resultado.get("drive_uploads") or []:
+                    if up.get("webViewLink") and up.get("tipo") == "pdf":
+                        registrar_documento_generado(
+                            ref,
+                            "ft",
+                            up,
+                            nombre_producto=titulo,
+                        )
             return jsonify(resultado)
         except Exception as e:
             from app.panel_activity import log_line
 
             log_line(f"✖ fichas/generar: {e!r}")
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/fichas/preview", methods=["POST"])
+    def api_fichas_preview():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        datos, err = _api_doc_body_datos(body)
+        if err:
+            return err
+        return _api_doc_preview("fichas", datos)
 
     @app.route("/api/fichas/descargar")
     def api_fichas_descargar():
@@ -3113,12 +3159,422 @@ def register_routes(app):
         from app.services.ficha_tecnica import ruta_descarga_segura
 
         nombre = request.args.get("archivo", "").strip()
+        inline = request.args.get("inline", "").lower() in ("1", "true", "yes")
         path = ruta_descarga_segura(nombre)
         if not path:
             return jsonify({"error": "Archivo no permitido"}), 404
+
+        return _send_archivo_doc(path, inline=inline)
+
+    def _send_archivo_doc(path, inline: bool = False):
         from flask import send_file
 
+        if inline and path.suffix.lower() == ".pdf":
+            return send_file(
+                path,
+                mimetype="application/pdf",
+                as_attachment=False,
+                download_name=path.name,
+            )
         return send_file(path, as_attachment=True, download_name=path.name)
+
+    def _api_doc_preview(modulo: str, datos: dict) -> tuple:
+        try:
+            from app.panel_activity import log_line
+
+            if modulo == "fichas":
+                from app.services.ficha_tecnica import generar_desde_datos as generar
+            elif modulo == "coa":
+                from app.services.coa import generar_desde_datos as generar
+            else:
+                from app.services.sds import generar_desde_datos as generar
+
+            titulo = (datos.get("titulo") or "").strip()
+            log_line(f"HTTP {modulo}/preview: {titulo[:80]!r}")
+            resultado = generar(
+                datos,
+                generar_pdf=True,
+                subir_drive=False,
+                guardar_yaml=None,
+            )
+            pdf = resultado.get("pdf_nombre")
+            docx = resultado.get("docx_nombre")
+            if pdf:
+                resultado["preview_pdf"] = f"/api/{modulo}/descargar?archivo={pdf}&inline=1"
+            if docx:
+                resultado["preview_docx"] = f"/api/{modulo}/descargar?archivo={docx}"
+            return jsonify(resultado), 200
+        except Exception as e:
+            from app.panel_activity import log_line
+
+            log_line(f"✖ {modulo}/preview: {e!r}")
+            return jsonify({"error": str(e)}), 500
+
+    def _api_doc_body_datos(body: dict) -> tuple[dict | None, tuple | None]:
+        import yaml as _yaml
+
+        datos = body.get("datos")
+        yaml_raw = body.get("yaml")
+        if yaml_raw and isinstance(yaml_raw, str):
+            try:
+                datos = _yaml.safe_load(yaml_raw) or {}
+            except Exception as exc:
+                return None, (jsonify({"error": f"YAML inválido: {exc}"}), 400)
+        if not isinstance(datos, dict) or not (datos.get("titulo") or "").strip():
+            return None, (jsonify({"error": "Se requiere 'datos' o 'yaml' con al menos 'titulo'"}), 400)
+        return datos, None
+
+    # ── Catálogo documentación por producto (combos SIIGO) ────────────────────
+
+    @app.route("/app/api/documentos/productos", methods=["GET"])
+    @app.route("/api/documentos/productos", methods=["GET"])
+    def api_documentos_productos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.documentos_catalogo import listar_productos_documentacion
+
+        buscar = request.args.get("buscar", "").strip()
+        solo_faltantes = request.args.get("solo_faltantes", "").lower() in ("1", "true", "yes")
+        tipo_faltante = request.args.get("tipo_faltante", "").strip().lower() or None
+        limite = request.args.get("limit", default=500, type=int) or 500
+        refrescar_drive = request.args.get("refrescar_drive", "").lower() in ("1", "true", "yes")
+        incluir_sheets = request.args.get("incluir_sheets", "1").lower() not in ("0", "false", "no")
+        try:
+            return jsonify(
+                listar_productos_documentacion(
+                    buscar=buscar,
+                    solo_faltantes=solo_faltantes,
+                    tipo_faltante=tipo_faltante,
+                    limite=min(limite, 1000),
+                    incluir_sheets=incluir_sheets,
+                    refrescar_drive=refrescar_drive,
+                )
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/documentos/asociar", methods=["POST"])
+    @app.route("/api/documentos/asociar", methods=["POST"])
+    def api_documentos_asociar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        try:
+            from app.services.documentos_catalogo import asociar_documento
+
+            entry = asociar_documento(
+                body.get("ref", ""),
+                body.get("tipo", ""),
+                drive_id=body.get("drive_id"),
+                web_view_link=body.get("webViewLink") or body.get("web_view_link"),
+                nombre_archivo=body.get("nombre_archivo"),
+                nombre_producto=body.get("nombre"),
+            )
+            return jsonify({"ok": True, "asociacion": entry})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/app/api/documentos/buscar-drive", methods=["GET"])
+    @app.route("/api/documentos/buscar-drive", methods=["GET"])
+    def api_documentos_buscar_drive():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        nombre = request.args.get("nombre", "").strip()
+        ref = request.args.get("ref", "").strip()
+        if not nombre:
+            return jsonify({"error": "Se requiere nombre"}), 400
+        from app.services.documentos_catalogo import buscar_archivos_drive_para_producto
+
+        return jsonify(buscar_archivos_drive_para_producto(nombre, ref))
+
+    def _api_doc_generar(modulo: str, datos: dict, body: dict) -> tuple:
+        """Helper COA/SDS: generar DOCX/PDF (+ Drive opcional)."""
+        import yaml as _yaml
+
+        generar_pdf = bool(body.get("generar_pdf", True))
+        subir_drive = bool(body.get("subir_drive", False))
+        guardar_yaml = body.get("guardar_yaml")
+        slug_yaml = body.get("slug_yaml")
+        try:
+            from app.panel_activity import log_line
+
+            if modulo == "coa":
+                from app.services.coa import generar_desde_datos as generar
+            else:
+                from app.services.sds import generar_desde_datos as generar
+
+            titulo = (datos.get("titulo") or "").strip()
+            log_line(
+                f"HTTP {modulo}/generar: {titulo[:80]!r} pdf={generar_pdf} drive={subir_drive}"
+            )
+            resultado = generar(
+                datos,
+                generar_pdf=generar_pdf,
+                subir_drive=subir_drive,
+                guardar_yaml=slug_yaml if guardar_yaml else None,
+            )
+            log_line(f"✔ {modulo} generado: {resultado.get('docx_nombre')}")
+            ref = (
+                (datos.get("referencia") or "")
+                or ((datos.get("identificacion") or {}).get("referencia_interna"))
+                or body.get("producto_ref")
+                or ""
+            ).strip()
+            tipo_map = {"fichas": "ft", "coa": "coa", "sds": "sds"}
+            if subir_drive and ref:
+                from app.services.documentos_catalogo import registrar_documento_generado
+
+                for up in resultado.get("drive_uploads") or []:
+                    if up.get("webViewLink") and up.get("tipo") == "pdf":
+                        registrar_documento_generado(
+                            ref,
+                            tipo_map.get(modulo, modulo),
+                            up,
+                            nombre_producto=(datos.get("titulo") or "").strip(),
+                        )
+            return jsonify(resultado), 200
+        except Exception as e:
+            from app.panel_activity import log_line
+
+            log_line(f"✖ {modulo}/generar: {e!r}")
+            return jsonify({"error": str(e)}), 500
+
+    # ── COA (certificado de análisis) ─────────────────────────────────────────
+
+    @app.route("/api/coa/config", methods=["GET"])
+    def api_coa_config():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa import PLANTILLA_DEFAULT, configuracion_drive
+
+        cfg = configuracion_drive()
+        cfg["plantilla_ok"] = PLANTILLA_DEFAULT.is_file()
+        cfg["plantilla"] = str(PLANTILLA_DEFAULT)
+        return jsonify(cfg)
+
+    @app.route("/api/coa/datos", methods=["GET"])
+    def api_coa_datos_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa import listar_yaml_datos
+
+        return jsonify({"items": listar_yaml_datos()})
+
+    @app.route("/api/coa/datos/<slug>", methods=["GET"])
+    def api_coa_datos_get(slug: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa import DATOS_DIR, cargar_datos_desde_archivo
+        import yaml
+
+        slug_safe = re.sub(r"[^a-zA-Z0-9_-]", "", slug)
+        for ext in (".yaml", ".yml"):
+            path = DATOS_DIR / f"{slug_safe}{ext}"
+            if path.is_file():
+                datos = cargar_datos_desde_archivo(path)
+                return jsonify({
+                    "id": slug_safe,
+                    "archivo": path.name,
+                    "datos": datos,
+                    "yaml": yaml.dump(datos, allow_unicode=True, sort_keys=False),
+                })
+        return jsonify({"error": "No encontrado"}), 404
+
+    @app.route("/api/coa/plantilla", methods=["GET"])
+    def api_coa_plantilla():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa import plantilla_datos_ejemplo
+        import yaml
+
+        datos = plantilla_datos_ejemplo()
+        return jsonify({
+            "datos": datos,
+            "yaml": yaml.dump(datos, allow_unicode=True, sort_keys=False),
+        })
+
+    @app.route("/api/coa/generar", methods=["POST"])
+    def api_coa_generar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import yaml as _yaml
+
+        body = request.get_json(silent=True) or {}
+        datos = body.get("datos")
+        yaml_raw = body.get("yaml")
+        if yaml_raw and isinstance(yaml_raw, str):
+            try:
+                datos = _yaml.safe_load(yaml_raw) or {}
+            except Exception as exc:
+                return jsonify({"error": f"YAML inválido: {exc}"}), 400
+        if not isinstance(datos, dict) or not (datos.get("titulo") or "").strip():
+            return jsonify({"error": "Se requiere 'datos' o 'yaml' con al menos 'titulo'"}), 400
+        return _api_doc_generar("coa", datos, body)
+
+    @app.route("/api/coa/preview", methods=["POST"])
+    def api_coa_preview():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        datos, err = _api_doc_body_datos(body)
+        if err:
+            return err
+        return _api_doc_preview("coa", datos)
+
+    @app.route("/api/coa/descargar")
+    def api_coa_descargar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.coa import ruta_descarga_segura
+
+        nombre = request.args.get("archivo", "").strip()
+        inline = request.args.get("inline", "").lower() in ("1", "true", "yes")
+        path = ruta_descarga_segura(nombre)
+        if not path:
+            return jsonify({"error": "Archivo no permitido"}), 404
+
+        return _send_archivo_doc(path, inline=inline)
+
+    # ── SDS (hoja de datos de seguridad) ──────────────────────────────────────
+
+    @app.route("/api/sds/config", methods=["GET"])
+    def api_sds_config():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.sds import PLANTILLA_DEFAULT, configuracion_drive
+
+        cfg = configuracion_drive()
+        cfg["plantilla_ok"] = PLANTILLA_DEFAULT.is_file()
+        cfg["plantilla"] = str(PLANTILLA_DEFAULT)
+        return jsonify(cfg)
+
+    @app.route("/api/sds/datos", methods=["GET"])
+    def api_sds_datos_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.sds import listar_yaml_datos
+
+        return jsonify({"items": listar_yaml_datos()})
+
+    @app.route("/api/sds/datos/<slug>", methods=["GET"])
+    def api_sds_datos_get(slug: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.sds import DATOS_DIR, cargar_datos_desde_archivo
+        import yaml
+
+        slug_safe = re.sub(r"[^a-zA-Z0-9_-]", "", slug)
+        for ext in (".yaml", ".yml"):
+            path = DATOS_DIR / f"{slug_safe}{ext}"
+            if path.is_file():
+                datos = cargar_datos_desde_archivo(path)
+                return jsonify({
+                    "id": slug_safe,
+                    "archivo": path.name,
+                    "datos": datos,
+                    "yaml": yaml.dump(datos, allow_unicode=True, sort_keys=False),
+                })
+        return jsonify({"error": "No encontrado"}), 404
+
+    @app.route("/api/sds/plantilla", methods=["GET"])
+    def api_sds_plantilla():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.sds import plantilla_datos_ejemplo
+        import yaml
+
+        datos = plantilla_datos_ejemplo()
+        return jsonify({
+            "datos": datos,
+            "yaml": yaml.dump(datos, allow_unicode=True, sort_keys=False),
+        })
+
+    @app.route("/api/sds/generar", methods=["POST"])
+    def api_sds_generar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import yaml as _yaml
+
+        body = request.get_json(silent=True) or {}
+        datos = body.get("datos")
+        yaml_raw = body.get("yaml")
+        if yaml_raw and isinstance(yaml_raw, str):
+            try:
+                datos = _yaml.safe_load(yaml_raw) or {}
+            except Exception as exc:
+                return jsonify({"error": f"YAML inválido: {exc}"}), 400
+        if not isinstance(datos, dict) or not (datos.get("titulo") or "").strip():
+            return jsonify({"error": "Se requiere 'datos' o 'yaml' con al menos 'titulo'"}), 400
+        return _api_doc_generar("sds", datos, body)
+
+    @app.route("/api/sds/preview", methods=["POST"])
+    def api_sds_preview():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        datos, err = _api_doc_body_datos(body)
+        if err:
+            return err
+        return _api_doc_preview("sds", datos)
+
+    @app.route("/api/sds/descargar")
+    def api_sds_descargar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.sds import ruta_descarga_segura
+
+        nombre = request.args.get("archivo", "").strip()
+        inline = request.args.get("inline", "").lower() in ("1", "true", "yes")
+        path = ruta_descarga_segura(nombre)
+        if not path:
+            return jsonify({"error": "Archivo no permitido"}), 404
+
+        return _send_archivo_doc(path, inline=inline)
+
+    @app.route("/api/sds/completar", methods=["POST"])
+    def api_sds_completar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        titulo = (body.get("titulo") or (body.get("datos") or {}).get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"error": "Se requiere titulo"}), 400
+        try:
+            from app.services.documento_cientifico import completar_datos_documento
+
+            return jsonify(completar_datos_documento("sds", titulo, body.get("datos")))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/coa/completar", methods=["POST"])
+    def api_coa_completar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        titulo = (body.get("titulo") or (body.get("datos") or {}).get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"error": "Se requiere titulo"}), 400
+        try:
+            from app.services.documento_cientifico import completar_datos_documento
+
+            return jsonify(completar_datos_documento("coa", titulo, body.get("datos")))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/fichas/completar", methods=["POST"])
+    def api_fichas_completar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        titulo = (body.get("titulo") or (body.get("datos") or {}).get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"error": "Se requiere titulo"}), 400
+        try:
+            from app.services.documento_cientifico import completar_datos_documento
+
+            return jsonify(completar_datos_documento("fichas", titulo, body.get("datos")))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/api/web-chat")
     def api_web_chat():
@@ -4161,6 +4617,78 @@ def register_routes(app):
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
 
+    @app.route("/api/voz/enviar-supervisor", methods=["POST"])
+    def api_voz_enviar_supervisor():
+        """Sintetiza texto y lo envía como nota de voz PTT vía el bridge supervisor (:3001).
+
+        Body JSON: { "texto": "...", "numero": "573001234567" }
+        """
+        if not _voz_auth_ok():
+            return jsonify({"error": "No autorizado"}), 401
+        body   = request.get_json(force=True, silent=True) or {}
+        texto  = (body.get("texto") or "").strip()[:1200]
+        numero = (body.get("numero") or "").strip()
+        if not texto:
+            return jsonify({"error": "texto requerido"}), 400
+        if not numero:
+            return jsonify({"error": "numero requerido"}), 400
+
+        # Sintetizar audio reutilizando la lógica de /api/voz/sintetizar
+        from app.services.voz_config import leer_config
+        cfg    = leer_config()
+        engine = cfg.get("engine", "auto")
+
+        audio_bytes = None
+        mime_type   = "audio/wav"
+
+        from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
+        from app.services.tts_qwen3    import qwen3_disponible, sintetizar_qwen3
+
+        if engine == "voicebox" and voicebox_disponible():
+            try:
+                from app.services.voz_config import resolver_voicebox_profile, voicebox_language_code
+                profile  = resolver_voicebox_profile({}, cfg)
+                voz_lang = voicebox_language_code(cfg.get("language"))
+                audio_bytes = sintetizar_voicebox(texto, profile_id=profile, language=voz_lang)
+            except Exception as exc:
+                print(f"[voz-supervisor] Voicebox falló: {exc}")
+
+        if audio_bytes is None and qwen3_disponible():
+            try:
+                audio_bytes = sintetizar_qwen3(texto,
+                                               speaker=cfg.get("speaker"),
+                                               language=cfg.get("language"))
+            except Exception as exc:
+                print(f"[voz-supervisor] Qwen3 falló: {exc}")
+
+        if audio_bytes is None:
+            eleven_key   = os.getenv("ELEVENLABS_API_KEY", "").strip()
+            eleven_voice = os.getenv("ELEVENLABS_VOICE_ID", "cgSgspJ2msm6clMCkdW9").strip()
+            if eleven_key:
+                import requests as _req
+                try:
+                    r = _req.post(
+                        f"https://api.elevenlabs.io/v1/text-to-speech/{eleven_voice}",
+                        headers={"xi-api-key": eleven_key, "Content-Type": "application/json"},
+                        json={"text": texto, "model_id": "eleven_multilingual_v2",
+                              "voice_settings": {"stability": 0.45, "similarity_boost": 0.80}},
+                        timeout=30,
+                    )
+                    r.raise_for_status()
+                    audio_bytes = r.content
+                    mime_type   = "audio/mpeg"
+                except Exception as exc:
+                    print(f"[voz-supervisor] ElevenLabs falló: {exc}")
+
+        if audio_bytes is None:
+            return jsonify({"error": "Sin motor TTS disponible"}), 503
+
+        from app.utils import enviar_voz_supervisor
+        ok = enviar_voz_supervisor(numero, audio_bytes, mime_type)
+        if ok:
+            return jsonify({"status": "enviado", "numero": numero, "bytes": len(audio_bytes)})
+        return jsonify({"error": "El bridge supervisor no está disponible (puerto 3001)"}), 503
+
     # ── Build APK Android ─────────────────────────────────────────────────────
 
     _TWA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "android-twa")
@@ -4514,6 +5042,303 @@ def register_routes(app):
             ),
         })
 
+    # ── Bridge supervisor (puerto 3001) ──────────────────────────────────────
+
+    def _supervisor_bridge_url():
+        base = os.getenv("SUPERVISOR_BRIDGE_URL", "").strip().rstrip("/")
+        return base or f"http://127.0.0.1:{os.getenv('SUPERVISOR_PORT', '3001')}"
+
+    def _supervisor_bridge_headers():
+        tok = os.getenv("WHATSAPP_SUPERVISOR_TOKEN", "").strip()
+        return {"X-Bridge-Token": tok} if tok else {}
+
+    def _supervisor_bridge_get(path: str, timeout: int = 6):
+        import requests as _req
+        url = f"{_supervisor_bridge_url()}{path}"
+        return _req.get(url, headers=_supervisor_bridge_headers(), timeout=timeout)
+
+    def _supervisor_bridge_post(path: str, json_body=None, timeout: int = 8):
+        import requests as _req
+        url = f"{_supervisor_bridge_url()}{path}"
+        return _req.post(url, headers=_supervisor_bridge_headers(), json=json_body or {}, timeout=timeout)
+
+    def _audio_a_ogg_opus(audio_bytes: bytes) -> bytes:
+        """Convierte audio (WAV/MP3/cualquier formato ffmpeg) a OGG Opus para PTT de WhatsApp."""
+        import subprocess
+        result = subprocess.run(
+            [
+                "ffmpeg", "-y",
+                "-i", "pipe:0",
+                "-c:a", "libopus",
+                "-b:a", "32k",
+                "-vbr", "on",
+                "-ar", "24000",
+                "-ac", "1",
+                "-f", "ogg",
+                "pipe:1",
+            ],
+            input=audio_bytes,
+            capture_output=True,
+            timeout=30,
+        )
+        if result.returncode != 0 or not result.stdout:
+            raise RuntimeError(
+                f"ffmpeg falló al convertir a OGG: {result.stderr.decode(errors='replace')[:300]}"
+            )
+        return result.stdout
+
+    def _supervisor_status_payload():
+        unit = "mckenna-whatsapp-supervisor"
+        bridge_unit = _systemctl_is_active(unit)
+        result = {
+            "bridge_unit": unit,
+            "bridge_estado": bridge_unit,
+            "bridge_activo": bridge_unit == "active",
+            "listo": False,
+            "numero": None,
+            "pushname": None,
+            "qr_data_url": None,
+            "qr_pendiente": False,
+            "bridge_responde": False,
+            "gemma_model": os.getenv("SUPERVISOR_GEMMA_MODEL", "gemma4:27b"),
+            "mensaje": "",
+        }
+        try:
+            r = _supervisor_bridge_get("/status", timeout=5)
+            if r.status_code == 200:
+                d = r.json()
+                result["bridge_responde"] = True
+                result["listo"]       = bool(d.get("listo"))
+                result["numero"]      = d.get("numero")
+                result["pushname"]    = d.get("pushname")
+                result["gemma_model"] = d.get("gemma_model") or result["gemma_model"]
+                qr_raw = d.get("ultimoQr")
+                if qr_raw == "pendiente":
+                    result["qr_pendiente"] = True
+                if result["listo"]:
+                    result["mensaje"] = "Supervisor conectado."
+                elif result["qr_pendiente"]:
+                    result["mensaje"] = "Escanea el QR con tu número personal."
+                else:
+                    result["mensaje"] = "Puente supervisor en marcha; sin sesión aún."
+            else:
+                result["mensaje"] = f"Puente respondió HTTP {r.status_code}"
+        except Exception as e:
+            result["mensaje"] = f"Bridge supervisor no responde ({e})"
+
+        if result.get("qr_pendiente"):
+            try:
+                rq = _supervisor_bridge_get("/qr", timeout=6)
+                if rq.status_code == 200:
+                    qd = rq.json()
+                    raw = qd.get("qr")
+                    if raw:
+                        result["qr_data_url"] = _wa_qr_raw_to_data_url(raw)
+            except Exception:
+                pass
+
+        return result
+
+    @app.route("/api/supervisor/bridge/status", methods=["GET"])
+    @app.route("/app/api/supervisor/bridge/status", methods=["GET"])
+    def api_supervisor_bridge_status():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        return jsonify(_supervisor_status_payload())
+
+    @app.route("/api/supervisor/bridge/monitor", methods=["GET"])
+    @app.route("/app/api/supervisor/bridge/monitor", methods=["GET"])
+    def api_supervisor_bridge_monitor():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            r = _supervisor_bridge_get("/monitor", timeout=5)
+            return jsonify(r.json() if r.status_code == 200 else {"actividad": []})
+        except Exception as e:
+            return jsonify({"actividad": [], "error": str(e)})
+
+    @app.route("/api/supervisor/bridge/contactos", methods=["GET"])
+    @app.route("/app/api/supervisor/bridge/contactos", methods=["GET"])
+    def api_supervisor_contactos_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            r = _supervisor_bridge_get("/contactos", timeout=5)
+            return jsonify(r.json() if r.status_code == 200 else {})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 503
+
+    @app.route("/api/supervisor/bridge/contactos", methods=["POST"])
+    @app.route("/app/api/supervisor/bridge/contactos", methods=["POST"])
+    def api_supervisor_contactos_post():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or "").strip()
+        numero = (body.get("numero") or "").strip()
+        if not nombre or not numero:
+            return jsonify({"error": "nombre y numero requeridos"}), 400
+        try:
+            r = _supervisor_bridge_post("/contactos", {"nombre": nombre, "numero": numero}, timeout=5)
+            if r.status_code == 200:
+                return jsonify(r.json())
+            return jsonify({"error": r.text[:200]}), r.status_code
+        except Exception as e:
+            return jsonify({"error": str(e)}), 503
+
+    @app.route("/api/supervisor/bridge/desvincular", methods=["POST"])
+    @app.route("/app/api/supervisor/bridge/desvincular", methods=["POST"])
+    def api_supervisor_bridge_desvincular():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+
+        unit = "mckenna-whatsapp-supervisor"
+        import shutil
+        import subprocess as _sp2
+
+        # Intenta pedir al bridge que se desconecte limpiamente
+        bridge_ok = False
+        err_bridge = None
+        try:
+            r = _supervisor_bridge_post("/session/logout", {}, timeout=15)
+            if r.status_code == 200:
+                bridge_ok = True
+            else:
+                err_bridge = (r.text or "")[:200] or f"HTTP {r.status_code}"
+        except Exception as e:
+            err_bridge = str(e)
+
+        if not bridge_ok:
+            # Fallback: borrar sesión en disco + reiniciar servicio systemd
+            auth_dir = os.path.normpath(
+                os.path.join(_ROUTES_DIR, "..", "bot-supervisor", ".wwebjs_auth_supervisor")
+            )
+            def _fallback():
+                try:
+                    if os.path.isdir(auth_dir):
+                        shutil.rmtree(auth_dir, ignore_errors=True)
+                        print("🧹 [supervisor] Sesión borrada en disco (fallback panel).")
+                except Exception as ex:
+                    print(f"⚠️ [supervisor] No se pudo borrar {auth_dir}: {ex}")
+                _sp2.run(
+                    ["sudo", "systemctl", "--no-block", "restart", unit],
+                    capture_output=True, text=True, timeout=15,
+                )
+            spawn_thread(_fallback, daemon=True)
+            return jsonify({
+                "status": "iniciado",
+                "mensaje": (
+                    "El bridge no respondió; sesión local borrada y servicio reiniciado. "
+                    "El QR aparecerá en ~1 min."
+                ),
+                "detalle": err_bridge,
+            })
+
+        # Bridge respondió OK → solo reiniciar el servicio para que genere nuevo QR
+        spawn_thread(
+            lambda: _sp2.run(
+                ["sudo", "systemctl", "--no-block", "restart", unit],
+                capture_output=True, text=True, timeout=15,
+            ),
+            daemon=True,
+        )
+        return jsonify({
+            "status": "iniciado",
+            "mensaje": (
+                "Sesión desvinculada. El bridge genera un QR nuevo; "
+                "ábrelo en esta pestaña para escanear con tu número personal."
+            ),
+        })
+
+    @app.route("/api/supervisor/bridge/enviar-voz", methods=["POST"])
+    @app.route("/app/api/supervisor/bridge/enviar-voz", methods=["POST"])
+    def api_supervisor_enviar_voz():
+        """Sintetiza texto con TTS y lo envía como PTT vía el bridge supervisor (:3001)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body   = request.get_json(force=True, silent=True) or {}
+        texto  = (body.get("texto") or "").strip()[:1200]
+        numero = (body.get("numero") or "").strip()
+        if not texto:
+            return jsonify({"error": "texto requerido"}), 400
+        if not numero:
+            return jsonify({"error": "numero requerido"}), 400
+
+        # Sintetizar audio
+        from app.services.voz_config import leer_config
+        cfg    = leer_config()
+        engine = cfg.get("engine", "auto")
+        audio_bytes = None
+        mime_type   = "audio/wav"
+
+        from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
+        from app.services.tts_qwen3    import qwen3_disponible, sintetizar_qwen3
+
+        if engine == "voicebox" and voicebox_disponible():
+            try:
+                from app.services.voz_config import resolver_voicebox_profile, voicebox_language_code
+                profile  = resolver_voicebox_profile({}, cfg)
+                voz_lang = voicebox_language_code(cfg.get("language"))
+                audio_bytes = sintetizar_voicebox(texto, profile_id=profile, language=voz_lang)
+            except Exception as exc:
+                print(f"[sup-voz] Voicebox: {exc}")
+
+        if audio_bytes is None and qwen3_disponible():
+            try:
+                audio_bytes = sintetizar_qwen3(texto, speaker=cfg.get("speaker"), language=cfg.get("language"))
+            except Exception as exc:
+                print(f"[sup-voz] Qwen3: {exc}")
+
+        if audio_bytes is None:
+            eleven_key   = os.getenv("ELEVENLABS_API_KEY", "").strip()
+            eleven_voice = os.getenv("ELEVENLABS_VOICE_ID", "cgSgspJ2msm6clMCkdW9").strip()
+            if eleven_key:
+                import requests as _req
+                try:
+                    r = _req.post(
+                        f"https://api.elevenlabs.io/v1/text-to-speech/{eleven_voice}",
+                        headers={"xi-api-key": eleven_key, "Content-Type": "application/json"},
+                        json={"text": texto, "model_id": "eleven_multilingual_v2",
+                              "voice_settings": {"stability": 0.45, "similarity_boost": 0.80}},
+                        timeout=30,
+                    )
+                    r.raise_for_status()
+                    audio_bytes = r.content
+                    mime_type   = "audio/mpeg"
+                except Exception as exc:
+                    print(f"[sup-voz] ElevenLabs: {exc}")
+
+        if audio_bytes is None:
+            return jsonify({"error": "Sin motor TTS disponible"}), 503
+
+        # WhatsApp solo acepta OGG Opus para notas de voz.
+        # WAV y otros formatos causan el error silencioso "t" en el bridge.
+        try:
+            audio_bytes = _audio_a_ogg_opus(audio_bytes)
+            mime_type   = "audio/ogg; codecs=opus"
+        except Exception as exc:
+            print(f"[sup-voz] Conversión OGG falló: {exc}")
+            return jsonify({"error": f"No se pudo convertir el audio a OGG: {exc}"}), 500
+
+        import base64 as _b64
+        payload = {
+            "numero":      numero,
+            "audioBase64": _b64.b64encode(audio_bytes).decode(),
+            "mimeType":    mime_type,
+        }
+        try:
+            r = _supervisor_bridge_post("/enviar-ptt", payload, timeout=30)
+            if r.status_code == 200:
+                return jsonify({"status": "enviado", "numero": numero, "bytes": len(audio_bytes)})
+            try:
+                err_msg = r.json().get("error", f"Error HTTP {r.status_code} del bridge")
+            except Exception:
+                err_msg = f"Error HTTP {r.status_code} del bridge"
+            http_code = r.status_code if r.status_code in (400, 401, 503) else 502
+            return jsonify({"error": err_msg}), http_code
+        except Exception as e:
+            return jsonify({"error": f"Bridge supervisor no disponible: {e}"}), 503
+
     # ── Control global del bot WhatsApp ──────────────────────────────────────
 
     _HORARIO_DEFAULT = {
@@ -4772,6 +5597,69 @@ def register_routes(app):
                 return jsonify(payload)
             ultimo_err = (r.text or "")[:300] or f"HTTP {r.status_code}"
         return jsonify({"error": ultimo_err}), 503
+
+    @app.route("/api/bot/chats/sincronizar-recientes", methods=["POST"])
+    def api_bot_chats_sincronizar_recientes():
+        """Reconcilia chats con mensajes no leídos (respuestas desde el celular)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        max_chats = min(int(body.get("max_chats", 12)), 20)
+        per_chat = min(int(body.get("limit", 40)), 60)
+        from app.services.wa_chats import listar_conversaciones as _lc
+
+        candidatos = [
+            c for c in _lc(limit=80) if int(c.get("no_leidos") or 0) > 0
+        ][:max_chats]
+        if not candidatos:
+            candidatos = _lc(limit=max_chats)
+        resultados = []
+        errores = []
+        for conv in candidatos:
+            jid = conv.get("jid") or ""
+            if not jid:
+                continue
+            try:
+                r = _whatsapp_bridge_json(
+                    "post",
+                    "/chats/sync",
+                    timeout=50,
+                    json={"jid": jid, "limit": per_chat},
+                )
+                if r.status_code == 200:
+                    payload = r.json() if r.content else {}
+                    resultados.append(
+                        {
+                            "jid": jid,
+                            "sincronizados": payload.get("sincronizados", 0),
+                        }
+                    )
+                else:
+                    errores.append({"jid": jid, "error": (r.text or "")[:120]})
+            except Exception as e:
+                errores.append({"jid": jid, "error": str(e)[:120]})
+        return jsonify(
+            {
+                "ok": True,
+                "chats": len(resultados),
+                "resultados": resultados,
+                "errores": errores,
+            }
+        )
+
+    @app.route("/api/bot/media", methods=["GET"])
+    def api_bot_media():
+        """Sirve adjuntos guardados en comprobantes/ (panel Agente WA)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_chats import resolver_media_absoluto
+        from flask import send_file
+
+        rel = (request.args.get("path") or "").strip()
+        abs_path = resolver_media_absoluto(rel)
+        if not abs_path:
+            return jsonify({"error": "Archivo no encontrado"}), 404
+        return send_file(abs_path, conditional=True)
 
     # ── Biblioteca de recursos rápidos ─────────────────────────────────────
 
@@ -5193,6 +6081,544 @@ def register_routes(app):
         resp.headers["Content-Type"] = "application/json"
         resp.headers["Cache-Control"] = "no-cache"
         return resp
+
+    # ── Etiquetas Epson CW-C4000u ──────────────────────────────────────────────
+
+    _ELPU_PATH = "/opt/epson/epson-label-printer-utility/elpu"
+    _PRINTER_NAME = "CW-C4000u"
+    _PDF_DIR = os.path.expanduser("~/Documentos")
+    _REPO_EPSON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "epson")
+
+    _ETIQUETAS = {
+        "30 mL": (102, 38), "5 mL": (66, 22), "125 g": (70, 70),
+        "250 g": (76, 66), "1 Lt": (108, 76), "10 g": (58, 54),
+        "100 g": (69, 51), "Lactato": (140, 38), "Circular": (55, 55),
+        "Circular 70": (70, 70), "5 g": (50, 42),
+    }
+    _MAPEO_FORMA = {
+        "Diecut_Gap": "Diecut_Gap",
+        "Diecut_Blackmark": "Diecut_Blackmark",
+        "Contlabel_no_detection": "Contlabel_no_detection",
+    }
+    _MAPEO_ROTACION = {"0": "3", "90": "4", "180": "6", "270": "5"}
+    _MAPEO_CALIDAD = {
+        "MaxSpeed": "MaxSpeed", "Speed": "Speed", "Normal": "Normal",
+        "Quality": "Quality", "MaxQuality": "MaxQuality",
+    }
+
+    # Raíz permitida para el navegador de archivos (no se puede ir más arriba)
+    _FILE_BROWSER_ROOT = os.path.expanduser("~")
+
+    @app.route("/api/etiquetas/navegar", methods=["GET"])
+    def api_etiquetas_navegar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        ruta = request.args.get("ruta", _FILE_BROWSER_ROOT)
+        ruta = os.path.realpath(ruta)
+        root_real = os.path.realpath(_FILE_BROWSER_ROOT)
+        # Seguridad: no salir de la raíz permitida
+        if not ruta.startswith(root_real):
+            ruta = root_real
+        if not os.path.isdir(ruta):
+            return jsonify({"error": "Directorio no encontrado"}), 404
+        try:
+            carpetas, pdfs = [], []
+            for nombre in sorted(os.listdir(ruta), key=str.lower):
+                ruta_item = os.path.join(ruta, nombre)
+                if nombre.startswith("."):
+                    continue
+                if os.path.isdir(ruta_item):
+                    carpetas.append(nombre)
+                elif nombre.lower().endswith(".pdf"):
+                    pdfs.append({
+                        "nombre": nombre,
+                        "ruta_completa": ruta_item,
+                        "tamano_kb": round(os.path.getsize(ruta_item) / 1024, 1),
+                    })
+            padre = os.path.dirname(ruta) if ruta != root_real else None
+            return jsonify({
+                "ruta_actual": ruta,
+                "padre": padre,
+                "carpetas": carpetas,
+                "pdfs": pdfs,
+            })
+        except PermissionError:
+            return jsonify({"error": "Sin permiso para leer este directorio"}), 403
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/diagnostico", methods=["GET"])
+    def api_etiquetas_diagnostico():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+        import shutil as _shutil
+
+        checks = []
+
+        def chk(nombre, ok, detalle=""):
+            checks.append({"nombre": nombre, "ok": ok, "detalle": detalle})
+
+        # 1. CUPS instalado
+        cups_bin = _shutil.which("lp") or _shutil.which("lpadmin")
+        chk("CUPS instalado", bool(cups_bin), cups_bin or "No encontrado")
+
+        # 2. CUPS activo
+        try:
+            r = _sp.run(["systemctl", "is-active", "cups"], capture_output=True, text=True, timeout=5)
+            cups_activo = r.stdout.strip() == "active"
+            chk("Servicio CUPS activo", cups_activo, r.stdout.strip())
+        except Exception as e:
+            chk("Servicio CUPS activo", False, str(e))
+
+        # 3. Impresora registrada
+        try:
+            r = _sp.run(["lpstat", "-p", _PRINTER_NAME], capture_output=True, text=True, timeout=5)
+            registrada = r.returncode == 0
+            estado_imp = r.stdout.strip() or r.stderr.strip()
+            chk(f"Impresora {_PRINTER_NAME} registrada", registrada, estado_imp)
+        except Exception as e:
+            chk(f"Impresora {_PRINTER_NAME} registrada", False, str(e))
+
+        # 4. Impresora habilitada (no disabled)
+        try:
+            r = _sp.run(["lpstat", "-p", _PRINTER_NAME], capture_output=True, text=True, timeout=5)
+            habilitada = r.returncode == 0 and "deshabilitad" not in r.stdout.lower() and "disabled" not in r.stdout.lower()
+            chk(f"Impresora habilitada", habilitada, r.stdout.strip()[:120])
+        except Exception as e:
+            chk("Impresora habilitada", False, str(e))
+
+        # 5. PPD disponible
+        ppd_cups = f"/etc/cups/ppd/{_PRINTER_NAME}.ppd"
+        ppd_repo = os.path.join(_REPO_EPSON_DIR, "CW-C4000u.ppd")
+        ppd_ok = os.path.isfile(ppd_cups)
+        ppd_src = ppd_cups if ppd_ok else (ppd_repo if os.path.isfile(ppd_repo) else "No encontrado")
+        chk("PPD / driver Epson", ppd_ok or os.path.isfile(ppd_repo), ppd_src)
+
+        # 6. ELPU instalado
+        elpu_ok = os.path.isfile(_ELPU_PATH) or bool(_shutil.which("elpu"))
+        elpu_path = _ELPU_PATH if os.path.isfile(_ELPU_PATH) else (_shutil.which("elpu") or "No encontrado")
+        chk("ELPU (Epson Label Printer Utility)", elpu_ok, elpu_path)
+
+        # 7. Sudoers para elpu — usar sudo -n para verificar sin contraseña
+        sudoers_ok = False
+        sudoers_detalle = "No configurado"
+        try:
+            elpu_check = _ELPU_PATH if os.path.isfile(_ELPU_PATH) else (_shutil.which("elpu") or _ELPU_PATH)
+            r_sudo = _sp.run(
+                ["sudo", "-n", elpu_check, "--help"],
+                capture_output=True, text=True, timeout=5,
+            )
+            # Si no pide contraseña (returncode != 1 por "sudo: a password is required")
+            sudoers_ok = "password" not in r_sudo.stderr.lower() and "contraseña" not in r_sudo.stderr.lower()
+            if not sudoers_ok:
+                # Verificar via sudo -n -l
+                r_l = _sp.run(["sudo", "-n", "-l"], capture_output=True, text=True, timeout=5)
+                sudoers_ok = ("elpu" in r_l.stdout and "NOPASSWD" in r_l.stdout) or \
+                             ("(ALL) NOPASSWD: ALL" in r_l.stdout)
+            sudoers_detalle = "Configurado" if sudoers_ok else "Falta regla NOPASSWD para elpu"
+        except Exception as e:
+            sudoers_detalle = str(e)
+        chk("Sudo sin contraseña para elpu", sudoers_ok, sudoers_detalle)
+
+        # Detectar USB de la impresora
+        try:
+            r = _sp.run(["lpinfo", "-v"], capture_output=True, text=True, timeout=10)
+            usb_uri = next(
+                (line.split()[1] for line in r.stdout.splitlines()
+                 if "usb" in line.lower() and ("epson" in line.lower() or "c4000" in line.lower())),
+                None,
+            )
+        except Exception:
+            usb_uri = None
+
+        todo_ok = all(c["ok"] for c in checks)
+        return jsonify({"checks": checks, "todo_ok": todo_ok, "usb_detectado": usb_uri})
+
+    @app.route("/api/etiquetas/instalar", methods=["POST"])
+    def api_etiquetas_instalar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+        import shutil as _shutil
+
+        log = []
+        errores = []
+
+        def run(desc, cmd, **kwargs):
+            log.append(f"▶ {desc}")
+            try:
+                r = _sp.run(cmd, capture_output=True, text=True, timeout=30, **kwargs)
+                out = (r.stdout + r.stderr).strip()
+                if out:
+                    log.append(f"  {out[:300]}")
+                if r.returncode != 0:
+                    errores.append(f"{desc}: código {r.returncode}")
+                    log.append(f"  ⚠ código de salida {r.returncode}")
+                    return False
+                return True
+            except Exception as e:
+                errores.append(f"{desc}: {e}")
+                log.append(f"  ✗ Error: {e}")
+                return False
+
+        # 1. Activar CUPS
+        run("Activar CUPS", ["sudo", "systemctl", "enable", "--now", "cups"])
+
+        # 2. Determinar PPD
+        ppd_cups = f"/etc/cups/ppd/{_PRINTER_NAME}.ppd"
+        ppd_repo = os.path.join(_REPO_EPSON_DIR, "CW-C4000u.ppd")
+        if os.path.isfile(ppd_cups):
+            ppd_usar = ppd_cups
+            log.append(f"▶ PPD existente: {ppd_cups}")
+        elif os.path.isfile(ppd_repo):
+            ppd_usar = ppd_repo
+            log.append(f"▶ Usando PPD del repositorio: {ppd_repo}")
+        else:
+            ppd_usar = None
+            log.append("⚠ PPD no encontrado — instala el driver Epson manualmente")
+            errores.append("PPD no disponible")
+
+        # 3. Determinar URI USB
+        try:
+            r = _sp.run(["lpinfo", "-v"], capture_output=True, text=True, timeout=10)
+            usb_uri = next(
+                (line.split()[1] for line in r.stdout.splitlines()
+                 if "usb" in line.lower() and ("epson" in line.lower() or "c4000" in line.lower())),
+                "usb://EPSON/ColorWorks%20CW-C4000u",
+            )
+        except Exception:
+            usb_uri = "usb://EPSON/ColorWorks%20CW-C4000u"
+        log.append(f"▶ URI impresora: {usb_uri}")
+
+        # 4. Registrar impresora
+        r_check = _sp.run(["lpstat", "-p", _PRINTER_NAME], capture_output=True, text=True, timeout=5)
+        if r_check.returncode == 0:
+            log.append(f"▶ Impresora {_PRINTER_NAME} ya registrada — omitiendo lpadmin")
+        elif ppd_usar:
+            run(
+                f"Registrar impresora {_PRINTER_NAME}",
+                ["sudo", "lpadmin", "-p", _PRINTER_NAME, "-E", "-v", usb_uri, "-P", ppd_usar],
+            )
+
+        # 5. Habilitar y aceptar impresora
+        run(f"Habilitar {_PRINTER_NAME}", ["sudo", "cupsenable", _PRINTER_NAME])
+        run(f"Aceptar trabajos {_PRINTER_NAME}", ["sudo", "cupsaccept", _PRINTER_NAME])
+
+        # 6. Instalar ELPU si falta
+        elpu_local = os.path.join(_REPO_EPSON_DIR, "elpu")
+        if not os.path.isfile(_ELPU_PATH) and not _shutil.which("elpu"):
+            if os.path.isfile(elpu_local):
+                run("Crear directorio ELPU", ["sudo", "mkdir", "-p", os.path.dirname(_ELPU_PATH)])
+                run("Instalar elpu", ["sudo", "install", "-m", "755", elpu_local, _ELPU_PATH])
+                run("Enlace simbólico elpu", ["sudo", "ln", "-sf", _ELPU_PATH, "/usr/local/bin/elpu"])
+            else:
+                log.append("⚠ elpu no está en el repositorio — coloca el binario en scripts/epson/elpu")
+                errores.append("elpu no disponible")
+        else:
+            log.append(f"▶ elpu ya instalado")
+
+        # 7. Sudoers para elpu
+        elpu_real = _ELPU_PATH if os.path.isfile(_ELPU_PATH) else (_shutil.which("elpu") or _ELPU_PATH)
+        sudoers_file = "/etc/sudoers.d/mckg-elpu"
+        sudoers_ok = False
+        try:
+            txt = open(sudoers_file).read() if os.path.isfile(sudoers_file) else ""
+            sudoers_ok = "elpu" in txt and "NOPASSWD" in txt
+        except Exception:
+            pass
+        if not sudoers_ok:
+            try:
+                import getpass as _gp
+                usuario = _gp.getuser()
+                contenido = (
+                    f"# MCKG Suite — elpu sin contraseña\n"
+                    f"%lpadmin ALL=(ALL) NOPASSWD: {elpu_real}\n"
+                    f"{usuario} ALL=(ALL) NOPASSWD: {elpu_real}\n"
+                )
+                tmp = f"/tmp/mckg-elpu-sudoers"
+                with open(tmp, "w") as f:
+                    f.write(contenido)
+                run("Instalar sudoers para elpu", ["sudo", "install", "-m", "440", "-o", "root", "-g", "root", tmp, sudoers_file])
+                os.unlink(tmp)
+            except Exception as e:
+                log.append(f"  ⚠ Sudoers no configurado: {e}")
+                errores.append(f"Sudoers: {e}")
+        else:
+            log.append("▶ Sudoers para elpu ya configurado")
+
+        ok = len(errores) == 0
+        return jsonify({"ok": ok, "log": log, "errores": errores})
+
+    @app.route("/api/etiquetas/pdfs", methods=["GET"])
+    def api_etiquetas_pdfs():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            pdfs = []
+            if os.path.isdir(_PDF_DIR):
+                for dirpath, _, files in os.walk(_PDF_DIR):
+                    for f in sorted(files):
+                        if f.lower().endswith(".pdf"):
+                            full = os.path.join(dirpath, f)
+                            rel = os.path.relpath(full, _PDF_DIR)
+                            pdfs.append({"nombre": f, "ruta": rel, "ruta_completa": full})
+            pdfs.sort(key=lambda x: x["nombre"].lower())
+            return jsonify({"pdfs": pdfs, "total": len(pdfs)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/impresora", methods=["GET"])
+    def api_etiquetas_impresora():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+        try:
+            r = _sp.run(
+                ["lpstat", "-p", _PRINTER_NAME],
+                capture_output=True, text=True, timeout=5,
+            )
+            estado = r.stdout.strip() or r.stderr.strip()
+            lista = _sp.run(["lpstat", "-p"], capture_output=True, text=True, timeout=5)
+            return jsonify({
+                "impresora": _PRINTER_NAME,
+                "estado": estado,
+                "impresoras_disponibles": lista.stdout.strip(),
+            })
+        except Exception as e:
+            return jsonify({"impresora": _PRINTER_NAME, "estado": f"Error: {e}"}), 200
+
+    def _pdf_a_imagen(ruta_pdf: str, dpi: int = 180) -> str:
+        """Convierte la primera página del PDF a PNG (tmp). Retorna ruta al PNG."""
+        import subprocess as _sp, tempfile as _tmp
+        td = _tmp.mkdtemp(prefix="mckg_prev_")
+        out_base = os.path.join(td, "page")
+        _sp.run(
+            ["pdftoppm", "-r", str(dpi), "-png", "-singlefile", ruta_pdf, out_base],
+            check=True, capture_output=True, timeout=15,
+        )
+        return out_base + ".png"
+
+    def _pdf_con_overlay(ruta_pdf: str, lote: str, vencimiento: str,
+                         pos: str, font_size: int) -> str:
+        """Genera un PDF temporal con lote/vencimiento superpuesto. Retorna la ruta al tmp."""
+        import io as _io
+        import tempfile as _tmp
+        import PyPDF2
+        from reportlab.pdfgen import canvas as _rl_canvas
+        from reportlab.lib.units import mm as _mm
+
+        reader = PyPDF2.PdfReader(ruta_pdf)
+        writer = PyPDF2.PdfWriter()
+
+        for page in reader.pages:
+            mb = page.mediabox
+            w_pt = float(mb.width)
+            h_pt = float(mb.height)
+
+            # Crear overlay con las dimensiones exactas de esta página
+            buf = _io.BytesIO()
+            c = _rl_canvas.Canvas(buf, pagesize=(w_pt, h_pt))
+            c.setFont("Helvetica-Bold", font_size)
+
+            margen = 3 * _mm
+            linea = font_size * 1.35  # interlineado en pts
+
+            # Texto a imprimir
+            lineas = []
+            if lote:
+                lineas.append(f"Lote: {lote}")
+            if vencimiento:
+                lineas.append(f"Vence: {vencimiento}")
+
+            if pos == "bottom-left":
+                x = margen
+                y_base = margen + linea * (len(lineas) - 1)
+            elif pos == "bottom-right":
+                # Medir el texto más ancho para alinear a la derecha
+                max_w = max((c.stringWidth(l, "Helvetica-Bold", font_size) for l in lineas), default=0)
+                x = w_pt - max_w - margen
+                y_base = margen + linea * (len(lineas) - 1)
+            elif pos == "top-left":
+                x = margen
+                y_base = h_pt - margen - font_size
+            else:  # top-right
+                max_w = max((c.stringWidth(l, "Helvetica-Bold", font_size) for l in lineas), default=0)
+                x = w_pt - max_w - margen
+                y_base = h_pt - margen - font_size
+
+            for i, texto in enumerate(lineas):
+                c.drawString(x, y_base - i * linea, texto)
+
+            c.save()
+            buf.seek(0)
+
+            overlay_page = PyPDF2.PdfReader(buf).pages[0]
+            page.merge_page(overlay_page)
+            writer.add_page(page)
+
+        tmp_fd, tmp_path = _tmp.mkstemp(suffix=".pdf", prefix="mckg_lote_")
+        with os.fdopen(tmp_fd, "wb") as f:
+            writer.write(f)
+        return tmp_path
+
+    @app.route("/api/etiquetas/preview", methods=["POST"])
+    def api_etiquetas_preview():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import base64 as _b64
+        import shutil as _sh
+        data = request.get_json(silent=True) or {}
+
+        ruta_pdf = data.get("ruta_pdf", "")
+        lote = (data.get("lote") or "").strip()
+        vencimiento = (data.get("vencimiento") or "").strip()
+        lote_pos = data.get("lote_pos", "bottom-left")
+        lote_font = max(5, min(20, int(data.get("lote_font", 7))))
+
+        if not ruta_pdf:
+            return jsonify({"error": "Falta ruta_pdf"}), 400
+
+        if not os.path.isabs(ruta_pdf):
+            ruta_pdf = os.path.join(_PDF_DIR, ruta_pdf)
+        ruta_pdf = os.path.realpath(ruta_pdf)
+        home_real = os.path.realpath(os.path.expanduser("~"))
+        if not ruta_pdf.startswith(home_real):
+            return jsonify({"error": "Ruta no permitida"}), 400
+        if not os.path.isfile(ruta_pdf):
+            return jsonify({"error": "Archivo no encontrado"}), 404
+
+        tmp_pdf = None
+        tmp_dir = None
+        try:
+            pdf_para_preview = ruta_pdf
+            if lote or vencimiento:
+                pos_val = lote_pos if lote_pos in ("bottom-left", "bottom-right", "top-left", "top-right") else "bottom-left"
+                tmp_pdf = _pdf_con_overlay(ruta_pdf, lote, vencimiento, pos_val, lote_font)
+                pdf_para_preview = tmp_pdf
+
+            png_path = _pdf_a_imagen(pdf_para_preview, dpi=180)
+            tmp_dir = os.path.dirname(png_path)
+            img_bytes = open(png_path, "rb").read()
+            return jsonify({
+                "imagen": _b64.b64encode(img_bytes).decode(),
+                "mime": "image/png",
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        finally:
+            if tmp_pdf and os.path.isfile(tmp_pdf):
+                try:
+                    os.unlink(tmp_pdf)
+                except Exception:
+                    pass
+            if tmp_dir and os.path.isdir(tmp_dir):
+                try:
+                    import shutil as _sh2
+                    _sh2.rmtree(tmp_dir, ignore_errors=True)
+                except Exception:
+                    pass
+
+    @app.route("/api/etiquetas/imprimir", methods=["POST"])
+    def api_etiquetas_imprimir():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import subprocess as _sp
+        data = request.get_json(silent=True) or {}
+
+        producto = data.get("producto", "")
+        forma = data.get("forma", "Diecut_Gap")
+        calidad = data.get("calidad", "Normal")
+        rotacion = str(data.get("rotacion", "0"))
+        cantidad = data.get("cantidad", 1)
+        offset_v = float(data.get("offset_v", 0.0))
+        offset_h = float(data.get("offset_h", 0.0))
+        ruta_pdf = data.get("ruta_pdf", "")
+        lote = (data.get("lote") or "").strip()
+        vencimiento = (data.get("vencimiento") or "").strip()
+        lote_pos = data.get("lote_pos", "bottom-left")
+        lote_font = int(data.get("lote_font", 7))
+
+        if producto not in _ETIQUETAS:
+            return jsonify({"error": f"Producto desconocido: {producto}"}), 400
+        if forma not in _MAPEO_FORMA:
+            return jsonify({"error": f"Forma no válida: {forma}"}), 400
+        if calidad not in _MAPEO_CALIDAD:
+            return jsonify({"error": f"Calidad no válida: {calidad}"}), 400
+        if rotacion not in _MAPEO_ROTACION:
+            return jsonify({"error": f"Rotación no válida: {rotacion}"}), 400
+        if not isinstance(cantidad, int) or cantidad < 1 or cantidad > 999:
+            return jsonify({"error": "Cantidad debe ser un entero entre 1 y 999"}), 400
+        if not ruta_pdf:
+            return jsonify({"error": "Debe especificar ruta_pdf"}), 400
+
+        # Validar ruta: debe estar dentro del home del usuario
+        if not os.path.isabs(ruta_pdf):
+            ruta_pdf = os.path.join(_PDF_DIR, ruta_pdf)
+        ruta_pdf = os.path.realpath(ruta_pdf)
+        home_real = os.path.realpath(os.path.expanduser("~"))
+        if not ruta_pdf.startswith(home_real):
+            return jsonify({"error": "Ruta PDF no permitida"}), 400
+        if not os.path.isfile(ruta_pdf):
+            return jsonify({"error": "Archivo PDF no encontrado"}), 404
+
+        ancho, alto = _ETIQUETAS[producto]
+        orientacion = _MAPEO_ROTACION[rotacion]
+        calidad_val = _MAPEO_CALIDAD[calidad]
+        forma_val = _MAPEO_FORMA[forma]
+        m_top = round(offset_v * 2.83465, 2)
+        m_left = round(offset_h * 2.83465, 2)
+
+        log_lines = []
+        tmp_pdf = None
+        try:
+            # Overlay de lote/vencimiento si se especificaron
+            pdf_a_imprimir = ruta_pdf
+            if lote or vencimiento:
+                lote_pos_val = lote_pos if lote_pos in ("bottom-left", "bottom-right", "top-left", "top-right") else "bottom-left"
+                lote_font_val = max(5, min(20, lote_font))
+                tmp_pdf = _pdf_con_overlay(ruta_pdf, lote, vencimiento, lote_pos_val, lote_font_val)
+                pdf_a_imprimir = tmp_pdf
+                log_lines.append(f"Overlay lote/vence aplicado ({lote_pos_val}, {lote_font_val}pt)")
+
+            # 1. Ajuste físico de posición
+            r_elpu = _sp.run(
+                ["sudo", _ELPU_PATH, "-p", _PRINTER_NAME, "-o", f"printPositionV={offset_v}"],
+                capture_output=True, text=True, timeout=15,
+            )
+            log_lines.append(f"elpu: {(r_elpu.stdout + r_elpu.stderr).strip() or 'OK'}")
+
+            # 2. Imprimir con lp
+            cmd = [
+                "lp", "-d", _PRINTER_NAME,
+                "-n", str(cantidad),
+                "-o", f"PageSize=Custom.{ancho}x{alto}mm",
+                "-o", f"MediaForm={forma_val}",
+                "-o", f"PrintQuality={calidad_val}",
+                "-o", f"page-top={m_top}",
+                "-o", f"page-left={m_left}",
+                "-o", f"orientation-requested={orientacion}",
+                "-o", "fit-to-page",
+                pdf_a_imprimir,
+            ]
+            r_lp = _sp.run(cmd, capture_output=True, text=True, timeout=30)
+            log_lines.append(f"lp: {(r_lp.stdout + r_lp.stderr).strip() or 'OK'}")
+
+            if r_lp.returncode != 0:
+                return jsonify({"ok": False, "log": log_lines}), 500
+
+            return jsonify({"ok": True, "log": log_lines})
+        except Exception as e:
+            log_lines.append(f"Excepción: {e}")
+            return jsonify({"ok": False, "log": log_lines}), 500
+        finally:
+            if tmp_pdf and os.path.isfile(tmp_pdf):
+                try:
+                    os.unlink(tmp_pdf)
+                except Exception:
+                    pass
+
+    # ── SPA React ─────────────────────────────────────────────────────────────
 
     @app.route("/app", methods=["GET", "HEAD"])
     @app.route("/app/<path:path>", methods=["GET", "HEAD"])

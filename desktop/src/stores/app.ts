@@ -6,6 +6,8 @@ export type Panel =
   | "chat"
   | "voz"
   | "webchat"
+  | "whatsapp"
+  | "supervisor"
   | "preventa"
   | "postventa"
   | "sync"
@@ -14,7 +16,7 @@ export type Panel =
   | "pedidos"
   | "facturas"
   | "tickets"
-  | "whatsapp"
+  | "etiquetas"
   | "settings";
 
 interface AppState {

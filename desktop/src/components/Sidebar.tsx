@@ -9,20 +9,22 @@ import { api } from "../api/client";
 import { Icon } from "../icons";
 
 const NAV: { id: Panel; label: string }[] = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "chat", label: "Chat IA" },
-  { id: "voz", label: "Voz IA" },
-  { id: "webchat", label: "Chat web" },
-  { id: "whatsapp", label: "Agente WA" },
-  { id: "preventa", label: "Preventa MeLi" },
-  { id: "postventa", label: "Postventa MeLi" },
-  { id: "sync", label: "Sincronización" },
-  { id: "stock", label: "Stock" },
-  { id: "fichas", label: "Fichas técnicas" },
-  { id: "pedidos", label: "Pedidos Web" },
-  { id: "facturas", label: "Facturas Compra" },
-  { id: "tickets", label: "Centro de Mando" },
-  { id: "settings", label: "Ajustes" },
+  { id: "dashboard",  label: "Dashboard" },
+  { id: "chat",       label: "Chat IA" },
+  { id: "voz",        label: "Voz IA" },
+  { id: "webchat",    label: "Chat web" },
+  { id: "whatsapp",   label: "Agente WA" },
+  { id: "supervisor", label: "Supervisor WA" },
+  { id: "preventa",   label: "Preventa MeLi" },
+  { id: "postventa",  label: "Postventa MeLi" },
+  { id: "sync",       label: "Sincronización" },
+  { id: "stock",      label: "Stock" },
+  { id: "fichas",     label: "Docs técnicos" },
+  { id: "pedidos",    label: "Pedidos Web" },
+  { id: "facturas",   label: "Facturas Compra" },
+  { id: "tickets",    label: "Centro de Mando" },
+  { id: "etiquetas",  label: "Etiquetas" },
+  { id: "settings",   label: "Ajustes" },
 ];
 
 const DEFAULT_SECCIONES = new Set(["tickets"]);
