@@ -15,6 +15,8 @@ import FacturasCompraPanel from "./components/FacturasCompraPanel";
 import TicketsPanel from "./components/TicketsPanel";
 import WebChatPanel from "./components/WebChatPanel";
 import WhatsAppPanel from "./components/WhatsAppPanel";
+import SupervisorPanel from "./components/SupervisorPanel";
+import EtiquetasPanel from "./components/EtiquetasPanel";
 import Settings from "./components/Settings";
 import { usePanelTheme } from "./stores/panelTheme";
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
@@ -32,6 +34,8 @@ function PanelRouter() {
       return <WebChatPanel />;
     case "whatsapp":
       return <WhatsAppPanel />;
+    case "supervisor":
+      return <SupervisorPanel />;
     case "preventa":
       return <PreventaPanel />;
     case "postventa":
@@ -48,6 +52,8 @@ function PanelRouter() {
       return <FacturasCompraPanel />;
     case "tickets":
       return <TicketsPanel />;
+    case "etiquetas":
+      return <EtiquetasPanel />;
     case "settings":
       return <Settings />;
     default:
@@ -142,8 +148,8 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 }
 
 const NAV_ORDER: Panel[] = [
-  "dashboard", "chat", "voz", "webchat", "whatsapp", "preventa", "postventa",
-  "sync", "stock", "fichas", "pedidos", "facturas", "tickets", "settings",
+  "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
+  "sync", "stock", "fichas", "pedidos", "facturas", "tickets", "etiquetas", "settings",
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {

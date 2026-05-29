@@ -1,5 +1,6 @@
 import {
   ArrowBendDownRight,
+  Printer,
   ArrowClockwise,
   ArrowsInSimple,
   ArrowsOutSimple,
@@ -19,6 +20,7 @@ import {
   ClipboardText,
   Clock,
   CornersOut,
+  DeviceMobile,
   DotsSixVertical,
   Ear,
   Envelope,
@@ -81,6 +83,7 @@ export const PANEL_ICON: Record<Panel, PhosphorIcon> = {
   voz: Microphone,
   webchat: GlobeHemisphereWest,
   whatsapp: PhoneCall,
+  supervisor: DeviceMobile,
   preventa: Question,
   postventa: ChatsCircle,
   sync: ArrowClockwise,
@@ -89,6 +92,7 @@ export const PANEL_ICON: Record<Panel, PhosphorIcon> = {
   pedidos: ShoppingCart,
   facturas: Receipt,
   tickets: ClipboardText,
+  etiquetas: Printer,
   settings: Gear,
 };
 
