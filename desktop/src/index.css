@@ -909,3 +909,42 @@
 .mck-slide-up    { animation: mck-slide-up       0.28s cubic-bezier(.25,.46,.45,.94) both; }
 .mck-bounce-in   { animation: mck-bounce-in      0.5s  cubic-bezier(.25,.46,.45,.94) both; }
 .mck-celebrate   { animation: mck-celebrate-pop  0.45s cubic-bezier(.25,.46,.45,.94) both; }
+
+/* ── Tablero responsive: en móvil los frames se apilan en flujo normal ── */
+@media (max-width: 639px) {
+  /* El canvas deja de ser el contenedor relativo de posicionamiento absoluto */
+  .quest-sticky-canvas {
+    position: static !important;
+    min-height: 0 !important;
+    height: auto !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  /* Cada frame vuelve a flujo normal, ocupa el 100% del ancho */
+  .quest-sticky-frame {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    transform: none !important;
+    left: auto !important;
+    top: auto !important;
+  }
+  /* El cuerpo del frame también se adapta */
+  .quest-sticky-frame-body {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+  /* Ocultar handles de drag/resize en móvil (no sirven sin posicionamiento abs) */
+  .quest-sticky-drag-handle,
+  .quest-sticky-resize-handle {
+    display: none !important;
+  }
+  /* Las misiones en el canvas de sección también apiladas */
+  .quest-sticky-canvas--section,
+  .quest-sticky-canvas--task {
+    min-height: 0 !important;
+  }
+}
