@@ -1729,3 +1729,27 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-05-28 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
+[master 29edbd9] Auto-commit: actualizacion diaria 2026-05-29 23:00
+ 46 files changed, 6994 insertions(+), 1034 deletions(-)
+ create mode 100644 app/services/coa.py
+ create mode 100644 app/services/documento_cientifico.py
+ create mode 100644 app/services/documentos_catalogo.py
+ create mode 100644 app/services/sds.py
+ create mode 100644 app/web_chat_documentos.py
+ create mode 100644 bot-supervisor/.gitignore
+ create mode 100644 bot-supervisor/contactos.json
+ create mode 100755 bot-supervisor/instalar_systemd.sh
+ create mode 100644 bot-supervisor/package.json
+ create mode 100644 bot-supervisor/server.js
+ create mode 100644 desktop/src/components/SupervisorPanel.tsx
+ create mode 100644 desktop/src/components/documentos/DocumentoGeneradorTab.tsx
+ create mode 100644 desktop/src/components/documentos/DocumentosCatalogoTab.tsx
+ create mode 100644 scripts/crear_plantilla_sds_ghs.py
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-05-29 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
