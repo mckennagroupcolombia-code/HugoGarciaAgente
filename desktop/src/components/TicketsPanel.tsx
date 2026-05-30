@@ -1574,87 +1574,178 @@ function QuestNavBar({
   onLogout: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const cerrar = () => setMenuOpen(false);
+
+  // Etiqueta de la sección activa (para la cabecera móvil)
+  const viewLabels: Partial<Record<View, string>> = {
+    list: "Tablero", acciones: "Acciones", solicitudes: "Solicitudes",
+    crear_mision: "Nueva misión", inventario: "Inventario", reinos: "Reinos",
+    recetas: "Recetas", workload: "Aliados", perfil: "Perfil",
+    mision_detail: "Misión", detail: "Ticket", create: "Nuevo ticket",
+  };
+  const activeLabel = viewLabels[view] ?? "Menú";
+
   return (
     <nav
-      className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 flex flex-col gap-y-2 border-b-2 border-border px-4 py-2.5 backdrop-blur-md sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2 lg:-mx-10"
+      className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 border-b-2 border-border px-4 py-2.5 backdrop-blur-md lg:-mx-10"
       aria-label="Navegación Centro de Mando"
     >
-      <div className="quest-nav-bar-main flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
-        {pVer("tablero") && (
-          <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
-            <QuestBoardNavLabel />
+      {/* ── Cabecera única (siempre visible) ───────────────────────────── */}
+      <div className="flex items-center gap-2">
+        {/* Sección activa — mobile */}
+        <span className="flex-1 truncate text-sm font-extrabold text-ink sm:hidden">
+          {activeLabel}
+        </span>
+
+        {/* Items — desktop (siempre visibles desde sm) */}
+        <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex">
+          {pVer("tablero") && (
+            <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
+              <QuestBoardNavLabel />
+            </button>
+          )}
+          {pVer("acciones") && (
+            <button type="button" onClick={onAcciones} className={questNavBtn(view === "acciones")}>
+              <TopicIcon value="⚡" size={14} weight="duotone" />Acciones
+            </button>
+          )}
+          {pVer("solicitudes") && (
+            <button type="button" onClick={onSolicitudes} className={questNavBtn(view === "solicitudes")}>
+              <TopicIcon value="📋" size={14} weight="duotone" />Solicitudes
+            </button>
+          )}
+          {pVer("crear_mision") && (
+            <button type="button" onClick={onCreateMision} className={questNavBtn(view === "crear_mision")}>
+              + Nueva misión
+            </button>
+          )}
+          {pVer("inventario") && (
+            <button type="button" onClick={onInventario} className={`relative ${questNavBtn(view === "inventario")}`}>
+              <TopicIcon value="🧪" size={14} weight="duotone" />Inventario
+              {bajoStockCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none shadow-sm">
+                  {bajoStockCount}
+                </span>
+              )}
+            </button>
+          )}
+          {pVer("reinos") && (
+            <button type="button" onClick={onReinos} className={questNavBtn(view === "reinos")}>
+              <TopicIcon value="🏰" size={14} weight="duotone" />Reinos
+            </button>
+          )}
+          {pVer("recetas") && (
+            <button type="button" onClick={onRecetas} className={questNavBtn(view === "recetas")}>
+              <TopicIcon value="📖" size={14} weight="duotone" />Recetas
+            </button>
+          )}
+          {pVer("inventario") && <InventarioCarritoNavBtn active={carritoOpen} onOpen={onCarrito} />}
+          {nivel >= 2 && pVer("workload") && (
+            <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
+              <TopicIcon value="🤝" size={14} weight="duotone" />Aliados
+            </button>
+          )}
+          {pVer("perfil") && (
+            <button type="button" onClick={onPerfil} className={questNavBtn(view === "perfil")}>
+              <TopicIcon value="👤" size={14} weight="duotone" />Perfil
+            </button>
+          )}
+        </div>
+
+        {/* Acciones siempre visibles */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:ml-auto">
+          <QuestThemeToggle />
+          {/* Logout — desktop */}
+          <button
+            type="button" onClick={onLogout}
+            title={`Cerrar sesión (${userNombre})`}
+            className={`hidden sm:flex ${questNavBtn(false)} max-w-[12rem] truncate`}
+          >
+            <Icon name="signOut" size={14} weight="bold" className="shrink-0" />
+            <span className="truncate">Salir</span>
           </button>
-        )}
-        {pVer("acciones") && (
-          <button type="button" onClick={onAcciones} className={questNavBtn(view === "acciones")}>
-            <TopicIcon value="⚡" size={14} weight="duotone" />
-            Acciones
-          </button>
-        )}
-        {pVer("solicitudes") && (
-          <button type="button" onClick={onSolicitudes} className={questNavBtn(view === "solicitudes")}>
-            <TopicIcon value="📋" size={14} weight="duotone" />
-            Solicitudes
-          </button>
-        )}
-        {pVer("crear_mision") && (
+          {/* Hamburguesa — solo mobile */}
           <button
             type="button"
-            onClick={onCreateMision}
-            className={questNavBtn(view === "crear_mision")}
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-border text-base font-bold text-muted transition hover:border-accent hover:text-accent sm:hidden"
+            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
           >
-            + Nueva misión
+            {menuOpen ? "✕" : "☰"}
           </button>
-        )}
-        {pVer("inventario") && (
-          <button type="button" onClick={onInventario} className={`relative ${questNavBtn(view === "inventario")}`}>
-            <TopicIcon value="🧪" size={14} weight="duotone" />
-            Inventario
-            {bajoStockCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none shadow-sm">
-                {bajoStockCount}
-              </span>
-            )}
-          </button>
-        )}
-        {pVer("reinos") && (
-          <button type="button" onClick={onReinos} className={questNavBtn(view === "reinos")}>
-            <TopicIcon value="🏰" size={14} weight="duotone" />
-            Reinos
-          </button>
-        )}
-        {pVer("recetas") && (
-          <button type="button" onClick={onRecetas} className={questNavBtn(view === "recetas")}>
-            <TopicIcon value="📖" size={14} weight="duotone" />
-            Recetas
-          </button>
-        )}
-        {pVer("inventario") && <InventarioCarritoNavBtn active={carritoOpen} onOpen={onCarrito} />}
-        {nivel >= 2 && pVer("workload") && (
-          <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
-            <TopicIcon value="🤝" size={14} weight="duotone" />
-            Aliados
-          </button>
-        )}
-        {pVer("perfil") && (
-          <button type="button" onClick={onPerfil} className={questNavBtn(view === "perfil")}>
-            <TopicIcon value="👤" size={14} weight="duotone" />
-            Perfil
-          </button>
-        )}
+        </div>
       </div>
-      <div className="quest-nav-bar-actions flex shrink-0 items-center gap-2 sm:ml-auto">
-        <QuestThemeToggle />
-        <button
-          type="button"
-          onClick={onLogout}
-          title={`Cerrar sesión (${userNombre})`}
-          className={`${questNavBtn(false)} max-w-[12rem] truncate`}
-        >
-          <Icon name="signOut" size={14} weight="bold" className="shrink-0" />
-          <span className="truncate">Salir ({userNombre})</span>
-        </button>
-      </div>
+
+      {/* ── Menú desplegable — solo mobile, solo cuando está abierto ────── */}
+      {menuOpen && (
+        <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-2.5 sm:hidden">
+          {pVer("tablero") && (
+            <button type="button" onClick={() => { onTablero(); cerrar(); }}
+              className={`${questNavBtn(view === "list")} w-full justify-start text-left`}>
+              <QuestBoardNavLabel />
+            </button>
+          )}
+          {pVer("acciones") && (
+            <button type="button" onClick={() => { onAcciones(); cerrar(); }}
+              className={`${questNavBtn(view === "acciones")} w-full justify-start text-left`}>
+              <TopicIcon value="⚡" size={14} weight="duotone" />Acciones
+            </button>
+          )}
+          {pVer("solicitudes") && (
+            <button type="button" onClick={() => { onSolicitudes(); cerrar(); }}
+              className={`${questNavBtn(view === "solicitudes")} w-full justify-start text-left`}>
+              <TopicIcon value="📋" size={14} weight="duotone" />Solicitudes
+            </button>
+          )}
+          {pVer("crear_mision") && (
+            <button type="button" onClick={() => { onCreateMision(); cerrar(); }}
+              className={`${questNavBtn(view === "crear_mision")} w-full justify-start text-left`}>
+              + Nueva misión
+            </button>
+          )}
+          {pVer("inventario") && (
+            <button type="button" onClick={() => { onInventario(); cerrar(); }}
+              className={`relative ${questNavBtn(view === "inventario")} w-full justify-start text-left`}>
+              <TopicIcon value="🧪" size={14} weight="duotone" />Inventario
+              {bajoStockCount > 0 && (
+                <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white">
+                  {bajoStockCount}
+                </span>
+              )}
+            </button>
+          )}
+          {pVer("reinos") && (
+            <button type="button" onClick={() => { onReinos(); cerrar(); }}
+              className={`${questNavBtn(view === "reinos")} w-full justify-start text-left`}>
+              <TopicIcon value="🏰" size={14} weight="duotone" />Reinos
+            </button>
+          )}
+          {pVer("recetas") && (
+            <button type="button" onClick={() => { onRecetas(); cerrar(); }}
+              className={`${questNavBtn(view === "recetas")} w-full justify-start text-left`}>
+              <TopicIcon value="📖" size={14} weight="duotone" />Recetas
+            </button>
+          )}
+          {nivel >= 2 && pVer("workload") && (
+            <button type="button" onClick={() => { onWorkload(); cerrar(); }}
+              className={`${questNavBtn(view === "workload")} w-full justify-start text-left`}>
+              <TopicIcon value="🤝" size={14} weight="duotone" />Aliados
+            </button>
+          )}
+          {pVer("perfil") && (
+            <button type="button" onClick={() => { onPerfil(); cerrar(); }}
+              className={`${questNavBtn(view === "perfil")} w-full justify-start text-left`}>
+              <TopicIcon value="👤" size={14} weight="duotone" />Perfil
+            </button>
+          )}
+          <button type="button" onClick={onLogout}
+            className={`${questNavBtn(false)} w-full justify-start border-t border-border pt-2 text-left`}>
+            <Icon name="signOut" size={14} weight="bold" className="shrink-0" />
+            Salir ({userNombre})
+          </button>
+        </div>
+      )}
     </nav>
   );
 }
