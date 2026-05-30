@@ -179,12 +179,19 @@ def responder_canal_cliente(
     mensaje_llm = f"{extra}Mensaje del cliente:\n{pregunta}".strip()
     hist_plano = _historial_plano(historial, extraer_texto_visible)
 
+    extra_web = ""
+    if es_web:
+        extra_web = (
+            " CANAL WEB: Responda productos y precios con el contexto; COA/ficha con enlaces del contexto "
+            "o pida correo si faltan. No redirija a WhatsApp salvo pago, pedido o cotización formal a cerrar."
+        )
     sys = (
         f"{system_prompt}\n\n"
         "MODO CLIENTE: Responde en español colombiano (veci). "
         "Use SOLO datos del contexto inyectado para precios, stock y uso. "
         "No invente presentaciones ni precios. "
         "No mencione SIIGO, combo, ERP ni herramientas internas."
+        f"{extra_web}"
     )
 
     texto: str | None = None

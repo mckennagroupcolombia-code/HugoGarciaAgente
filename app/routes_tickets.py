@@ -223,6 +223,19 @@ def _nivel_min(n: int):
     return decorator
 
 
+def _puede_crear_protocolos():
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            from app.services.tickets_db import puede_crear_protocolos
+            usuario = getattr(request, "tickets_usuario", None)
+            if not puede_crear_protocolos(usuario):
+                return jsonify({"error": "Sin permisos para crear protocolos"}), 403
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 def register_tickets_routes(app):
     init_db()
 
@@ -861,13 +874,27 @@ def register_tickets_routes(app):
 
     @app.route("/api/tickets/misiones/<int:mision_id>/renovar", methods=["POST"])
     @_auth
-    @_nivel_min(2)
+    @_nivel_min(1)
     def tickets_renovar_mision(mision_id):
-        uid = request.tickets_usuario["id"]
-        ok, result = renovar_mision(mision_id, uid)
+        u = request.tickets_usuario
+        username = (u.get("username") or "").lower()
+        email = (u.get("email") or "").lower()
+        if username == "admin" or "mckenna.group.colombia" in email:
+            return jsonify({"error": "La cuenta orquestadora no puede iniciar misiones"}), 403
+        uid = u["id"]
+        # forzar=True: resetea tickets en cualquier estado (no solo resueltos)
+        ok, result = renovar_mision(mision_id, uid, forzar=True)
         if not ok:
             return jsonify({"error": result}), 400
-        return jsonify({"ok": True, "proxima_renovacion": result, "mision": get_mision(mision_id, usuario_id=uid)}), 200
+        # Iniciar corrida de tiempo automáticamente
+        from app.services.misiones_timing import iniciar_corrida_mision, finalizar_corridas_abiertas_mision
+        finalizar_corridas_abiertas_mision(mision_id)
+        corrida, _ = iniciar_corrida_mision(mision_id, uid)
+        return jsonify({
+            "ok": True,
+            "mision": get_mision(mision_id, usuario_id=uid),
+            "corrida": corrida,
+        }), 200
 
     from app.services.misiones_timing import (
         iniciar_corrida_mision,
@@ -1645,9 +1672,29 @@ def register_tickets_routes(app):
         from app.services.tickets_db import listar_protocolos
         return jsonify(listar_protocolos()), 200
 
+    @app.route("/api/tickets/protocolos", methods=["POST"])
+    @_auth
+    @_puede_crear_protocolos()
+    def tickets_crear_protocolo():
+        from app.services.tickets_db import crear_protocolo
+        data = request.get_json(force=True) or {}
+        titulo = (data.get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"error": "El título es requerido"}), 400
+        protocolo, err = crear_protocolo(
+            titulo,
+            data.get("descripcion", ""),
+            data.get("categoria", ""),
+            data.get("pasos", []),
+            request.tickets_usuario["id"],
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(protocolo), 201
+
     @app.route("/api/tickets/<int:ticket_id>/guardar-como-protocolo", methods=["POST"])
     @_auth
-    @_nivel_min(2)
+    @_puede_crear_protocolos()
     def tickets_guardar_protocolo(ticket_id):
         from app.services.tickets_db import crear_protocolo_desde_ticket
         data = request.get_json(force=True) or {}
@@ -1692,6 +1739,32 @@ def register_tickets_routes(app):
         if err:
             return jsonify({"error": err}), 404
         return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/vincular-protocolo", methods=["POST"])
+    @_auth
+    def tickets_vincular_protocolo(ticket_id):
+        from app.services.tickets_db import vincular_protocolo_a_ticket
+        data = request.get_json(force=True) or {}
+        protocolo_id = data.get("protocolo_id")
+        if not protocolo_id:
+            return jsonify({"error": "protocolo_id es requerido"}), 400
+        try:
+            protocolo_id = int(protocolo_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "protocolo_id inválido"}), 400
+        usuario = request.tickets_usuario
+        nivel = (usuario.get("rol") or {}).get("nivel", 1)
+        ticket, err = vincular_protocolo_a_ticket(
+            ticket_id,
+            protocolo_id,
+            usuario["id"],
+            nivel,
+            bool(data.get("reemplazar_pasos")),
+        )
+        if err:
+            code = 403 if "permisos" in err.lower() else 400
+            return jsonify({"error": err}), code
+        return jsonify(ticket), 200
 
     # ── ADJUNTOS ──────────────────────────────────────────────────────────────
 

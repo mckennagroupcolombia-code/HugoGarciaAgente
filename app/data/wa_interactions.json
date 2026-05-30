@@ -1,426 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1779916157.0468462,
-      "tipo": "handoff_bot",
-      "sender": "573182432463@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916294.9628088,
-      "tipo": "handoff_humano",
-      "sender": "73031707820119@lid",
-      "detalle": "cliente solicitó humano"
-    },
-    {
-      "ts": 1779916484.2864082,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916487.7458441,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916491.694846,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916495.0002925,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916495.3910446,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916495.616813,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916501.7064998,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916502.248598,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916502.4793937,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916502.7056806,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916504.6648934,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916504.9162195,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916505.1304934,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916511.0747426,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916511.8475037,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916512.0514903,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916512.2488184,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916512.446745,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916512.6553419,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916514.8822062,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916515.054674,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916515.2483673,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916515.4466102,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916515.631769,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916517.3255284,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916517.5057738,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916517.7112658,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916518.5439384,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916518.751219,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916518.9433823,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916519.1351209,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916519.349562,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916520.8554864,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916521.272279,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916521.280594,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916521.5844767,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916540.886084,
-      "tipo": "modo_humano",
-      "sender": "73031707820119@lid",
-      "detalle": "TIENES  CITRATO DE MAGNESIO"
-    },
-    {
-      "ts": 1779916549.4561198,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916552.5328307,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916552.7723851,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916552.9882767,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916553.1931348,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916553.385434,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916553.585369,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916553.7771869,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916553.9674957,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916554.1831372,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916558.1412444,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916558.550168,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916558.740144,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916558.92678,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916559.1242814,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916562.0557508,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916570.6271899,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916577.8534844,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916578.3741794,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916578.5829134,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916906.9263148,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916908.6966655,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916911.8089802,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916912.5400374,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916913.9289014,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916914.1450016,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916914.347951,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916914.5491202,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916915.313968,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916915.548433,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916915.7973475,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
       "ts": 1779916916.438499,
       "tipo": "manual_humano",
       "sender": "49976306606124@c.us",
@@ -1799,6 +1379,426 @@
       "tipo": "bot_pausado_global",
       "sender": "5777747565154452@c.us",
       "detalle": "50 ml de Ambroxan.\n50 ml de Iso E Super.\n30 ml de Hedione.\n30 ml de Cashmeran.\n30 ml de Galaxolide."
+    },
+    {
+      "ts": 1780057284.3840578,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Hola buen día"
+    },
+    {
+      "ts": 1780057292.378613,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Para comprar por favor un kilo de SCI"
+    },
+    {
+      "ts": 1780057390.0707283,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "De inulina que es la mínima cantidad y de urea?"
+    },
+    {
+      "ts": 1780057447.0152795,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Y Btms"
+    },
+    {
+      "ts": 1780060771.5484865,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Tienes menos cantidad de Urea y de Inulina?"
+    },
+    {
+      "ts": 1780062305.006966,
+      "tipo": "bot_pausado_global",
+      "sender": "57233208285270162@c.us",
+      "detalle": "Hola Jenniffer, buenos días cómo estás?"
+    },
+    {
+      "ts": 1780062645.7383118,
+      "tipo": "bot_pausado_global",
+      "sender": "574874821472451@c.us",
+      "detalle": "Buenos Dias"
+    },
+    {
+      "ts": 1780062688.112281,
+      "tipo": "bot_pausado_global",
+      "sender": "574874821472451@c.us",
+      "detalle": "Quisiera saber la disponibilidad de 100 frascos goteros de color ambar de 10 ml"
+    },
+    {
+      "ts": 1780062700.6757274,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "tiene alantoina?"
+    },
+    {
+      "ts": 1780062713.4598143,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Y Btms"
+    },
+    {
+      "ts": 1780062997.8446147,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Escualano Vegetal (Squalane)"
+    },
+    {
+      "ts": 1780063023.3297968,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Extracto de Sauce Blanco (Salix Alba Bark Extract)"
+    },
+    {
+      "ts": 1780063246.8466525,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Dame por favor el kilo de SCI, Btms"
+    },
+    {
+      "ts": 1780063379.49402,
+      "tipo": "bot_pausado_global",
+      "sender": "574874821472451@c.us",
+      "detalle": "gracias"
+    },
+    {
+      "ts": 1780063566.5670884,
+      "tipo": "bot_pausado_global",
+      "sender": "574874821472451@c.us",
+      "detalle": "podria llegar hoy mismo ?"
+    },
+    {
+      "ts": 1780063618.6753201,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "y la manteca de cacao?"
+    },
+    {
+      "ts": 1780063809.7491179,
+      "tipo": "bot_pausado_global",
+      "sender": "574874821472451@c.us",
+      "detalle": "perfecto"
+    },
+    {
+      "ts": 1780063826.8333416,
+      "tipo": "bot_pausado_global",
+      "sender": "574874821472451@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780063920.1586747,
+      "tipo": "bot_pausado_global",
+      "sender": "574874821472451@c.us",
+      "detalle": "Correcto"
+    },
+    {
+      "ts": 1780064308.5663247,
+      "tipo": "bot_pausado_global",
+      "sender": "57195696007360758@c.us",
+      "detalle": "Muchas gracias, en esta oportunidad no voy a continuar con la compra, sin embargo muchas gracias por la atención."
+    },
+    {
+      "ts": 1780069902.8089824,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Hola muy buenos días."
+    },
+    {
+      "ts": 1780070558.6775708,
+      "tipo": "bot_pausado_global",
+      "sender": "5773156362547407@c.us",
+      "detalle": "Buenos días\nUn Feliz día Viernes \nSi es tan amable me ayudar con la siguiente información.\nTienen Carbonato de Magnesio"
+    },
+    {
+      "ts": 1780071222.0800521,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Jennifer para consultarte si tienen disponible aceite esencial de Rosas."
+    },
+    {
+      "ts": 1780071308.961133,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Que cantidad tienes disponible?"
+    },
+    {
+      "ts": 1780071316.1585839,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "En qué tamaño?"
+    },
+    {
+      "ts": 1780071357.2301211,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Perfecto que valor ?"
+    },
+    {
+      "ts": 1780071361.4692452,
+      "tipo": "bot_pausado_global",
+      "sender": "57246827609772242@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780071370.8442197,
+      "tipo": "bot_pausado_global",
+      "sender": "57246827609772242@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780071409.4363625,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Me despachas 6 unidades"
+    },
+    {
+      "ts": 1780071417.8560598,
+      "tipo": "bot_pausado_global",
+      "sender": "57246827609772242@c.us",
+      "detalle": "Listo mi  estimada buen dia"
+    },
+    {
+      "ts": 1780071422.211125,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Por favor."
+    },
+    {
+      "ts": 1780071422.6867948,
+      "tipo": "bot_pausado_global",
+      "sender": "57246827609772242@c.us",
+      "detalle": "Si porfavor"
+    },
+    {
+      "ts": 1780071438.3140883,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Yeimer Trujillo \n1036393124\ninfyniabioactivos@gmail.com \nCalle 20a 34a33\nEl Carmen de Viboral , Antioquia \n3147513542"
+    },
+    {
+      "ts": 1780071438.9686313,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "rut actualizado1.pdf"
+    },
+    {
+      "ts": 1780071449.2954733,
+      "tipo": "bot_pausado_global",
+      "sender": "57246827609772242@c.us",
+      "detalle": "Para el día jueves al medio día retiramos"
+    },
+    {
+      "ts": 1780071458.0305574,
+      "tipo": "bot_pausado_auto",
+      "sender": "57246827609772242@c.us",
+      "detalle": "ráfaga de 6 mensajes en 120s"
+    },
+    {
+      "ts": 1780071461.5285745,
+      "tipo": "bot_pausado_auto",
+      "sender": "57246827609772242@c.us",
+      "detalle": "ráfaga de 7 mensajes en 120s"
+    },
+    {
+      "ts": 1780071470.952984,
+      "tipo": "bot_pausado_auto",
+      "sender": "57246827609772242@c.us",
+      "detalle": "ráfaga de 8 mensajes en 120s"
+    },
+    {
+      "ts": 1780071721.0077305,
+      "tipo": "bot_pausado_global",
+      "sender": "5773156362547407@c.us",
+      "detalle": "1 kilo"
+    },
+    {
+      "ts": 1780071723.9143887,
+      "tipo": "bot_pausado_global",
+      "sender": "5773156362547407@c.us",
+      "detalle": "Mil gracias"
+    },
+    {
+      "ts": 1780072211.9075956,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "WhatsApp Business"
+    },
+    {
+      "ts": 1780072215.8162796,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Muchas gracias"
+    },
+    {
+      "ts": 1780072220.4034953,
+      "tipo": "bot_pausado_global",
+      "sender": "5773156362547407@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780072301.99675,
+      "tipo": "bot_pausado_global",
+      "sender": "5761452828315787@c.us",
+      "detalle": "Perfecto!!"
+    },
+    {
+      "ts": 1780074793.2247555,
+      "tipo": "bot_pausado_global",
+      "sender": "5777747565154452@c.us",
+      "detalle": "Buenos días como está"
+    },
+    {
+      "ts": 1780076765.4660106,
+      "tipo": "bot_pausado_global",
+      "sender": "5787016121311420@c.us",
+      "detalle": "Hola buenas tardes, quisiera saber si tienen fructosa 500 gr ? No lo encontré en la página esta vez 🤔"
+    },
+    {
+      "ts": 1780078113.6353924,
+      "tipo": "bot_pausado_global",
+      "sender": "5777747565154452@c.us",
+      "detalle": "Buenas tardes quería saber si depronto manejas estos insumos para perfumeris"
+    },
+    {
+      "ts": 1780078120.0037427,
+      "tipo": "bot_pausado_global",
+      "sender": "5777747565154452@c.us",
+      "detalle": "50 ml de Ambroxan.\n50 ml de Iso E Super.\n30 ml de Hedione.\n30 ml de Cashmeran.\n30 ml de Galaxolide."
+    },
+    {
+      "ts": 1780078496.206836,
+      "tipo": "modo_humano",
+      "sender": "57130975447179480@c.us",
+      "detalle": "Hola, buenas tardes como estás?"
+    },
+    {
+      "ts": 1780082715.878466,
+      "tipo": "modo_humano",
+      "sender": "5773031707820119@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780082716.426527,
+      "tipo": "modo_humano",
+      "sender": "5773031707820119@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780082716.8338614,
+      "tipo": "modo_humano",
+      "sender": "5773031707820119@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780082717.1273556,
+      "tipo": "modo_humano",
+      "sender": "5773031707820119@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780084942.3989913,
+      "tipo": "bot_pausado_global",
+      "sender": "57104977657790477@c.us",
+      "detalle": "Listo!"
+    },
+    {
+      "ts": 1780086579.6110187,
+      "tipo": "bot_pausado_global",
+      "sender": "57265841396469895@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1780086595.1725886,
+      "tipo": "bot_pausado_global",
+      "sender": "57265841396469895@c.us",
+      "detalle": "Me regalas el precio de la vitamina c"
+    },
+    {
+      "ts": 1780087247.294622,
+      "tipo": "bot_pausado_global",
+      "sender": "57265841396469895@c.us",
+      "detalle": "Cosmética"
+    },
+    {
+      "ts": 1780087298.9560893,
+      "tipo": "bot_pausado_global",
+      "sender": "57265841396469895@c.us",
+      "detalle": "Me regalas 2 por favor"
+    },
+    {
+      "ts": 1780090366.160343,
+      "tipo": "bot_pausado_global",
+      "sender": "57104977657790477@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780090485.351048,
+      "tipo": "bot_pausado_global",
+      "sender": "57104977657790477@c.us",
+      "detalle": "Hola! Me confirmas que has recibido el pago y si sabes más o menos cuando podría estar llegando."
+    },
+    {
+      "ts": 1780090627.9640539,
+      "tipo": "bot_pausado_global",
+      "sender": "57104977657790477@c.us",
+      "detalle": "Mi dirección y nombre:\nConstanza Romero\nCr 26 9-49s\nBarrio La Fraguita\nCelular 3212542906\nEs necesario confirmar por teléfono, no hay timbre."
+    },
+    {
+      "ts": 1780092184.9368007,
+      "tipo": "bot_pausado_global",
+      "sender": "57265841396469895@c.us",
+      "detalle": "Bogotá"
+    },
+    {
+      "ts": 1780093995.6744623,
+      "tipo": "bot_pausado_global",
+      "sender": "57265841396469895@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780094019.098451,
+      "tipo": "bot_pausado_global",
+      "sender": "57104977657790477@c.us",
+      "detalle": "Gracias!"
+    },
+    {
+      "ts": 1780094585.552373,
+      "tipo": "bot_pausado_global",
+      "sender": "57104977657790477@c.us",
+      "detalle": "Tienes acido H de bajo peso molecular?"
+    },
+    {
+      "ts": 1780094653.7871757,
+      "tipo": "bot_pausado_global",
+      "sender": "5771769020977395@c.us",
+      "detalle": "Hola, quiero una cotización"
+    },
+    {
+      "ts": 1780094707.2215362,
+      "tipo": "bot_pausado_global",
+      "sender": "5771769020977395@c.us",
+      "detalle": "Necesito aceite esencial de árbol de te, y aceite esencial se manzanilla,  cual es la presentación más grande que manejas?"
+    },
+    {
+      "ts": 1780094884.5190692,
+      "tipo": "bot_pausado_global",
+      "sender": "5771769020977395@c.us",
+      "detalle": "Me envías el catálogo con precios por favor"
+    },
+    {
+      "ts": 1780097047.1781273,
+      "tipo": "bot_pausado_global",
+      "sender": "57265841396469895@c.us",
+      "detalle": "Claudia Ximena Ramírez\n38879894\nCalle 63b No 78-33\nBogotá\n3123730584\nClauxime35@hormail.com"
+    },
+    {
+      "ts": 1780097067.0955489,
+      "tipo": "bot_pausado_global",
+      "sender": "57265841396469895@c.us",
+      "detalle": "Claudia Ximena Ramírez\n38879894\nCalle 63b No 78-33\nBogotá\n3123730584\nClauxime35@hotmail.com"
     }
   ]
 }

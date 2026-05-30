@@ -705,6 +705,13 @@ def _migrate_usuario_permisos():
         db.commit()
 
 
+def _migrate_ticket_protocolo_id():
+    """Vincula tickets/solicitudes con un protocolo estándar reutilizable."""
+    with _conn() as db:
+        _add_col(db, "tickets", "protocolo_id", "INTEGER")
+        db.commit()
+
+
 def _migrate_usuario_departamentos():
     """Junction table usuario_departamentos para pertenencia a múltiples departamentos."""
     with _conn() as db:
@@ -758,6 +765,7 @@ def init_db():
     _safe_migrate(_migrate_usuario_google)
     _safe_migrate(_migrate_usuario_permisos)
     _safe_migrate(_migrate_usuario_departamentos)
+    _safe_migrate(_migrate_ticket_protocolo_id)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -1876,7 +1884,11 @@ def get_mision(mision_id: int, usuario_id: int | None = None) -> dict | None:
     with _conn() as db:
         d = _mision_full(db, mision_id)
         if d:
-            d["corrida"] = None
+            if usuario_id:
+                from app.services.misiones_timing import adjuntar_corrida_mision
+                adjuntar_corrida_mision(d, usuario_id)
+            else:
+                d["corrida"] = None
         return d
 
 
@@ -2616,8 +2628,14 @@ def actualizar_ticket(ticket_id: int, data: dict, usuario: dict) -> tuple:
         return _ticket_full(db, ticket_id), None
 
 
-def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
-    """Renueva todos los tickets resueltos de la misión (reinicio in-place, sin borrar tickets)."""
+_ESTADOS_ACTIVOS = ("pendiente", "en_proceso", "esperando_aprobacion", "resuelto", "rechazado")
+
+def renovar_mision(mision_id: int, usuario_id: int | None = None, forzar: bool = False) -> tuple:
+    """Reinicia los tickets de la misión para un nuevo ciclo.
+
+    forzar=False (renovación clásica): solo resetea tickets en estado 'resuelto'.
+    forzar=True  (iniciar misión):     resetea todos los tickets sin importar estado.
+    """
     with _conn() as db:
         m = db.execute("SELECT id FROM misiones WHERE id=?", (mision_id,)).fetchone()
         if not m:
@@ -2626,15 +2644,25 @@ def renovar_mision(mision_id: int, usuario_id: int | None = None) -> tuple:
             "SELECT ticket_id FROM etapas_mision WHERE mision_id=? AND ticket_id IS NOT NULL",
             (mision_id,),
         ).fetchall()
+        if not etapas:
+            return False, "La misión no tiene tickets"
         renovados = 0
         for et in etapas:
             t = db.execute(
                 "SELECT estado FROM tickets WHERE id=?", (et["ticket_id"],),
             ).fetchone()
-            if t and t["estado"] == "resuelto":
+            if t and (forzar or t["estado"] == "resuelto"):
                 from app.services.ticket_timing import finalizar_corridas_abiertas_ticket
                 finalizar_corridas_abiertas_ticket(et["ticket_id"])
                 _reset_ticket_ciclo(db, et["ticket_id"], usuario_id, mision_id)
+                # Al iniciar forzado, el usuario que arranca la misión se vuelve participante
+                # del ticket para que nivel 1 tenga acceso durante la ejecución.
+                if forzar and usuario_id:
+                    db.execute(
+                        "INSERT OR IGNORE INTO ticket_participantes (ticket_id, usuario_id, rol) "
+                        "VALUES (?,?,'colaborador')",
+                        (et["ticket_id"], usuario_id),
+                    )
                 renovados += 1
         if renovados == 0:
             return False, "No hay tickets resueltos para renovar"
@@ -2788,6 +2816,13 @@ def _ticket_full(db, ticket_id: int) -> dict | None:
     total, ok = _pasos_conteo_ticket(db, ticket_id)
     d["pasos_total"] = total
     d["pasos_completados"] = ok
+    if d.get("protocolo_id"):
+        pr = db.execute(
+            "SELECT titulo FROM protocolos WHERE id=? AND activo=1", (d["protocolo_id"],),
+        ).fetchone()
+        d["protocolo_titulo"] = pr["titulo"] if pr else None
+    else:
+        d["protocolo_titulo"] = None
     # Indica si hay datos sensibles sin exponer el contenido
     d["tiene_datos_sensibles"] = bool(d.get("datos_sensibles_enc"))
     d.pop("datos_sensibles_enc", None)
@@ -2951,8 +2986,24 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
             elif asignado_a and tipo == "solicitud":
                 _log(db, tid, usuario_id, "asignado",
                      val_new=str(asignado_a), detalles="Solicitud asignada al crear")
-            # Pasos/protocolo opcionales al crear el ticket
-            _insertar_pasos_ticket(db, tid, data.get("pasos"))
+            protocolo_id = data.get("protocolo_id")
+            if protocolo_id:
+                try:
+                    protocolo_id = int(protocolo_id)
+                except (TypeError, ValueError):
+                    protocolo_id = None
+            if protocolo_id:
+                prot = db.execute(
+                    "SELECT id FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+                ).fetchone()
+                if prot:
+                    db.execute(
+                        "UPDATE tickets SET protocolo_id=? WHERE id=?", (protocolo_id, tid),
+                    )
+            pasos_raw = data.get("pasos")
+            if not pasos_raw and protocolo_id:
+                pasos_raw = _pasos_desde_protocolo(db, protocolo_id)
+            _insertar_pasos_ticket(db, tid, pasos_raw)
             db.commit()
             return _ticket_full(db, tid), None
         except Exception as e:
@@ -3004,7 +3055,8 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                        AS pasos_total,
                    (SELECT COUNT(*) FROM ticket_pasos tps
                     WHERE tps.ticket_id = t.id AND tps.completado = 1)
-                       AS pasos_completados
+                       AS pasos_completados,
+                   pr.titulo AS protocolo_titulo
             FROM tickets t
             LEFT JOIN usuarios uc  ON uc.id  = t.creado_por
             LEFT JOIN usuarios ua  ON ua.id  = t.asignado_a
@@ -3012,6 +3064,7 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
             LEFT JOIN tickets  bt  ON bt.id  = t.bloqueado_por
             LEFT JOIN tickets  tp  ON tp.id  = t.ticket_padre_id
             LEFT JOIN usuarios ucp ON ucp.id = tp.creado_por
+            LEFT JOIN protocolos pr ON pr.id = t.protocolo_id AND pr.activo = 1
             {where}
             ORDER BY
                 CASE t.prioridad
@@ -4487,6 +4540,38 @@ def eliminar_categoria(slug: str) -> tuple:
 
 # ── PROTOCOLOS ────────────────────────────────────────────────────────────────
 
+_PROTOCOLOS_CREAR_EMAILS = frozenset({
+    "cynthua0418@gmail.com",
+})
+
+
+def puede_crear_protocolos(usuario: dict | None) -> bool:
+    """Supervisor+, permiso tickets_protocolos_crear o correos autorizados."""
+    if not usuario:
+        return False
+    nivel = (usuario.get("rol") or {}).get("nivel") or 0
+    if nivel >= 2:
+        return True
+    email = (usuario.get("email") or "").strip().lower()
+    if email in _PROTOCOLOS_CREAR_EMAILS:
+        return True
+    permisos = usuario.get("permisos_secciones") or {}
+    return bool(permisos.get("tickets_protocolos_crear"))
+
+
+def _pasos_desde_protocolo(db, protocolo_id: int) -> list:
+    import json
+    row = db.execute(
+        "SELECT pasos FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+    ).fetchone()
+    if not row:
+        return []
+    try:
+        return json.loads(row["pasos"]) if row["pasos"] else []
+    except Exception:
+        return []
+
+
 def listar_protocolos() -> list:
     import json
     with _conn() as db:
@@ -4508,6 +4593,24 @@ def listar_protocolos() -> list:
                 d["pasos"] = []
             result.append(d)
         return result
+
+
+def crear_protocolo(titulo: str, descripcion: str, categoria: str,
+                    pasos: list, usuario_id: int) -> tuple:
+    import json
+    titulo = titulo.strip()
+    if not titulo:
+        return None, "El título es requerido"
+    with _conn() as db:
+        db.execute(
+            """INSERT INTO protocolos (titulo, descripcion, categoria, pasos, creado_por)
+               VALUES (?, ?, ?, ?, ?)""",
+            (titulo, descripcion or None, categoria or None,
+             json.dumps(pasos or [], ensure_ascii=False), usuario_id),
+        )
+        protocolo_id = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        db.commit()
+        return {"id": protocolo_id, "titulo": titulo, "pasos": pasos or []}, None
 
 
 def crear_protocolo_desde_ticket(ticket_id: int, titulo: str, descripcion: str,
@@ -4568,6 +4671,68 @@ def eliminar_protocolo(protocolo_id: int, usuario_id: int) -> tuple:
         db.execute("UPDATE protocolos SET activo=0 WHERE id=?", (protocolo_id,))
         db.commit()
         return True, None
+
+
+def _puede_vincular_protocolo_ticket(db, ticket_id: int, usuario_id: int, nivel: int) -> tuple:
+    t = db.execute("SELECT id, creado_por, asignado_a FROM tickets WHERE id=?", (ticket_id,)).fetchone()
+    if not t:
+        return None, "Ticket no encontrado"
+    if nivel >= 2:
+        return t, None
+    if t["creado_por"] == usuario_id or t["asignado_a"] == usuario_id:
+        return t, None
+    is_part = db.execute(
+        "SELECT 1 FROM ticket_participantes WHERE ticket_id=? AND usuario_id=?",
+        (ticket_id, usuario_id),
+    ).fetchone()
+    if is_part:
+        return t, None
+    return None, "Sin permisos para vincular protocolo"
+
+
+def vincular_protocolo_a_ticket(ticket_id: int, protocolo_id: int, usuario_id: int,
+                                 nivel: int = 1, reemplazar_pasos: bool = False) -> tuple:
+    with _conn() as db:
+        t, err = _puede_vincular_protocolo_ticket(db, ticket_id, usuario_id, nivel)
+        if err:
+            return None, err
+        p = db.execute(
+            "SELECT id, titulo FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+        ).fetchone()
+        if not p:
+            return None, "Protocolo no encontrado"
+        pasos_prot = _pasos_desde_protocolo(db, protocolo_id)
+        total = db.execute(
+            "SELECT COUNT(*) AS n FROM ticket_pasos WHERE ticket_id=?", (ticket_id,),
+        ).fetchone()["n"]
+        completados = db.execute(
+            "SELECT COUNT(*) AS n FROM ticket_pasos WHERE ticket_id=? AND completado=1",
+            (ticket_id,),
+        ).fetchone()["n"]
+        if total > 0 and not reemplazar_pasos:
+            db.execute(
+                "UPDATE tickets SET protocolo_id=?, actualizado_en=datetime('now') WHERE id=?",
+                (protocolo_id, ticket_id),
+            )
+            _log(db, ticket_id, usuario_id, "protocolo_vinculado",
+                 detalles=f"Protocolo '{p['titulo']}' vinculado (pasos existentes conservados)")
+            db.commit()
+            return _ticket_full(db, ticket_id), None
+        if completados > 0 and reemplazar_pasos:
+            return None, "No se pueden reemplazar pasos con progreso completado"
+        if reemplazar_pasos or total == 0:
+            db.execute("DELETE FROM ticket_pasos WHERE ticket_id=?", (ticket_id,))
+            _insertar_pasos_ticket(db, ticket_id, pasos_prot)
+        db.execute(
+            "UPDATE tickets SET protocolo_id=?, actualizado_en=datetime('now') WHERE id=?",
+            (protocolo_id, ticket_id),
+        )
+        det = f"Protocolo '{p['titulo']}' vinculado"
+        if reemplazar_pasos or total == 0:
+            det += f" con {len(pasos_prot)} paso(s)"
+        _log(db, ticket_id, usuario_id, "protocolo_vinculado", detalles=det)
+        db.commit()
+        return _ticket_full(db, ticket_id), None
 
 
 # ── ADJUNTOS POR TICKET ───────────────────────────────────────────────────────

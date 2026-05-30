@@ -1131,3 +1131,138 @@ def test_wa_chats_ingest_y_revoke(tmp_path, monkeypatch) -> None:
     msgs2 = wc.listar_mensajes("573001234567@c.us", limit=10)
     assert len(msgs2) == 1
     assert msgs2[0]["texto"] == "Respuesta desde celular"
+
+
+def test_web_chat_cotizacion_producto_no_escala_pago() -> None:
+    from app.web_chat_intents import clasificar_escalacion_web
+
+    msg = (
+        "me interesaria la cotización de cada uno de ellos por presentación de 1kg "
+        "ya que trabajamos con productos con alto grado de pureza"
+    )
+    assert clasificar_escalacion_web(msg) is None
+
+
+def test_web_chat_cotizacion_formal_si_escala() -> None:
+    from app.web_chat_intents import clasificar_escalacion_web
+
+    assert clasificar_escalacion_web("necesito el link de pago de mi cotización") == "pago_pedido"
+
+
+def test_web_chat_documentos_detecta_coa() -> None:
+    from app.web_chat_documentos import (
+        extraer_nombres_productos_documento,
+        mensaje_pide_documentacion_web,
+    )
+
+    msg = (
+        "Buenas noches, podria facilitarme el certificado COA y la ficha de seguridad "
+        "de la taurina e inulina"
+    )
+    assert mensaje_pide_documentacion_web(msg)
+    nombres = extraer_nombres_productos_documento(msg)
+    assert any("taurina" in n.lower() for n in nombres)
+    assert any("inulina" in n.lower() for n in nombres)
+
+
+def test_web_chat_numero_whatsapp_directo() -> None:
+    from app.web_chat_intents import manejar_pregunta_contacto_web
+
+    r = manejar_pregunta_contacto_web("a que numero de whatsapp")
+    assert r is not None
+    assert "wa.me" in r
+    assert "319" in r
+
+
+def test_wa_chats_media_path_y_humano_marca_leido(tmp_path, monkeypatch) -> None:
+    db = tmp_path / "wa_chats.db"
+    monkeypatch.setenv("WA_CHATS_DB", str(db))
+    import importlib
+    import app.services.wa_chats as wc
+
+    importlib.reload(wc)
+    wc.guardar(
+        "573001111111@c.us",
+        "entrada",
+        "hola",
+        enviado_por="cliente",
+        wa_id="in1",
+    )
+    assert wc.total_no_leidos() == 1
+    wc.guardar(
+        "573001111111@c.us",
+        "salida",
+        "respuesta operador",
+        enviado_por="humano",
+        wa_id="out1",
+    )
+    assert wc.total_no_leidos() == 0
+    rel = wc.normalizar_media_path_panel("/home/x/mi-agente/comprobantes/foto.jpg")
+    assert rel == "comprobantes/foto.jpg"
+
+
+def test_web_chat_lista_tras_pedir_fichas() -> None:
+    from app.web_chat_documentos import extraer_nombres_productos_documento, manejar_documentos_web
+
+    hist = "necesito la ficha técnica de varios productos para formulación"
+    lista = "taurina, inulina, niacinamida, papaina, alantoina y ornitina"
+    assert len(extraer_nombres_productos_documento(lista)) >= 3
+    # Drive puede no estar en CI; solo verificamos que el handler no devuelve None por clasificación
+    out = manejar_documentos_web(user_message=lista, historial_texto=hist)
+    assert out is not None
+    assert "correo" in out.lower() or "documentación" in out.lower() or "Ficha" in out
+
+
+def test_coa_generacion_docx() -> None:
+    from app.services.coa import PLANTILLA_DEFAULT, generar_desde_datos, plantilla_datos_ejemplo
+
+    assert PLANTILLA_DEFAULT.is_file()
+    datos = plantilla_datos_ejemplo()
+    datos["titulo"] = "SMOKE COA TEST"
+    res = generar_desde_datos(datos, generar_pdf=False, subir_drive=False)
+    assert res["ok"] is True
+    assert res["docx_nombre"].startswith("COA-")
+
+
+def test_sds_generacion_docx() -> None:
+    from app.services.sds import PLANTILLA_DEFAULT, PLANTILLA_REF_PDF, generar_desde_datos, plantilla_datos_ejemplo
+
+    assert PLANTILLA_DEFAULT.is_file()
+    assert PLANTILLA_REF_PDF.is_file()
+    datos = plantilla_datos_ejemplo()
+    datos["titulo"] = "SMOKE SDS TEST"
+    res = generar_desde_datos(datos, generar_pdf=False, subir_drive=False)
+    assert res["ok"] is True
+    assert res["docx_nombre"].startswith("SDS-")
+
+
+def test_documentos_catalogo_asociar_y_coincidencia(tmp_path, monkeypatch) -> None:
+    from app.services import documentos_catalogo as dc
+
+    map_path = tmp_path / "documentos_producto.json"
+    monkeypatch.setattr(dc, "MAP_PATH", map_path)
+
+    entry = dc.asociar_documento(
+        "C-TEST250",
+        "coa",
+        web_view_link="https://drive.google.com/file/d/abc123/view",
+        nombre_archivo="COA-TEST.pdf",
+        nombre_producto="Producto Test 250 g",
+    )
+    assert entry["webViewLink"].endswith("/view")
+    data = json.loads(map_path.read_text(encoding="utf-8"))
+    assert data["productos"]["C-TEST250"]["coa"]["nombre_archivo"] == "COA-TEST.pdf"
+
+    assert dc.nombre_base_producto("Urea Cosmética 250 g") == "Urea Cosmética"
+    assert dc._coincide_archivo("Urea Cosmética", "C-UREA250", "COA-UREA-COSMETICA.pdf")
+
+
+def test_documentos_preview_coa_docx() -> None:
+    from app.services.coa import generar_desde_datos, plantilla_datos_ejemplo
+
+    datos = plantilla_datos_ejemplo()
+    datos["titulo"] = "SMOKE PREVIEW COA"
+    res = generar_desde_datos(datos, generar_pdf=False, subir_drive=False)
+    assert res["ok"] is True
+    assert res["docx_nombre"].startswith("COA-")
+

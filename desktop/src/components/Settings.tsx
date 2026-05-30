@@ -717,7 +717,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "postventa",  label: "Postventa MeLi" },
   { id: "sync",       label: "Sincronización" },
   { id: "stock",      label: "Stock" },
-  { id: "fichas",     label: "Fichas técnicas" },
+  { id: "fichas",     label: "Docs técnicos" },
   { id: "pedidos",    label: "Pedidos Web" },
   { id: "facturas",   label: "Facturas Compra" },
   { id: "tickets",    label: "Centro de Mando" },
@@ -735,6 +735,7 @@ const TICKETS_TABS: { id: string; label: string }[] = [
   { id: "workload",     label: "Aliados" },
   { id: "perfil",       label: "Perfil" },
   { id: "crear_mision", label: "Crear misión" },
+  { id: "protocolos_crear", label: "Crear protocolos" },
 ];
 
 function PermisosEditor({

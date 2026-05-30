@@ -74,7 +74,15 @@ async function request<T>(
     headers,
     signal: opts.signal,
   };
-  let res = await fetch(url, fetchOpts);
+  let res: Response;
+  try {
+    res = await fetch(url, fetchOpts);
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("La solicitud tardó demasiado (timeout). Intente de nuevo.");
+    }
+    throw e;
+  }
   if (
     res.status === 405 &&
     typeof window !== "undefined" &&
@@ -121,7 +129,17 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
+  get: <T>(path: string, options?: { timeoutMs?: number }) => {
+    const ms = options?.timeoutMs;
+    if (ms && ms > 0) {
+      const ctrl = new AbortController();
+      const tid = window.setTimeout(() => ctrl.abort(), ms);
+      return request<T>(path, { signal: ctrl.signal }).finally(() =>
+        window.clearTimeout(tid),
+      );
+    }
+    return request<T>(path);
+  },
   post: <T>(path: string, body?: unknown, options?: { timeoutMs?: number }) => {
     const init: RequestInit = {
       method: "POST",
