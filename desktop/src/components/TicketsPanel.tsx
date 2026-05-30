@@ -9120,23 +9120,47 @@ function MisionFocusMode({
           const partes = actual.notas.split(/\n\n📦 Materiales:\n/);
           const descNota = partes[0]?.trim();
           const matsRaw = partes[1]?.trim();
+          const matItems = matsRaw
+            ? matsRaw.split("\n").filter(Boolean).map((l) => {
+                const idx = l.indexOf(": ");
+                return idx >= 0
+                  ? { n: l.slice(0, idx).trim(), c: l.slice(idx + 2).trim() }
+                  : { n: l.trim(), c: "—" };
+              })
+            : [];
           return (
-            <div className="mt-4 mb-6 space-y-3">
+            <div className="mt-5 mb-8 space-y-4">
               {descNota && (
                 <p className="text-base text-muted leading-relaxed">{descNota}</p>
               )}
-              {matsRaw && (
-                <div className="rounded-2xl border border-border bg-surface-panel px-4 py-3 space-y-1.5">
-                  <p className="text-xs font-bold uppercase tracking-widest text-accent/70">📦 Materiales</p>
-                  {matsRaw.split("\n").filter(Boolean).map((linea, li) => {
-                    const [mat, cant] = linea.split(": ");
-                    return (
-                      <div key={li} className="flex justify-between text-sm">
-                        <span className="font-semibold text-ink">{mat}</span>
-                        <span className="text-muted">{cant || "—"}</span>
-                      </div>
-                    );
-                  })}
+              {matItems.length > 0 && (
+                <div className="overflow-hidden rounded-2xl border-2 border-accent/25 bg-surface-panel">
+                  {/* Header */}
+                  <div className="flex items-center gap-2 border-b border-accent/20 bg-accent/8 px-5 py-3">
+                    <span className="text-lg">📦</span>
+                    <span className="text-xs font-extrabold uppercase tracking-widest text-accent">
+                      Materiales · {matItems.length} ítem{matItems.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  {/* Lista */}
+                  <ul className="divide-y divide-border">
+                    {matItems.map((m, li) => (
+                      <li key={li} className="flex items-center gap-4 px-5 py-4">
+                        {/* Número */}
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/10 text-xs font-extrabold text-accent">
+                          {li + 1}
+                        </span>
+                        {/* Nombre */}
+                        <span className="flex-1 text-base font-bold text-ink leading-tight">
+                          {m.n}
+                        </span>
+                        {/* Cantidad */}
+                        <span className="shrink-0 rounded-xl border-2 border-accent/30 bg-accent/8 px-3 py-1.5 text-sm font-extrabold text-accent tabular-nums">
+                          {m.c}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
             </div>
