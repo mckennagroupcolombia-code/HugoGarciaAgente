@@ -1064,6 +1064,8 @@ interface Mensaje {
   nombre_arch: string;
   enviado_por: string;
   leido: number;
+  media_path?: string;
+  media_mime?: string;
 }
 
 function modoBadge(modo: string) {
@@ -1077,6 +1079,50 @@ function modoBadge(modo: string) {
 function ChatBubble({ msg }: { msg: Mensaje }) {
   const esEntrada = msg.direccion === "entrada";
   const hora = new Date(msg.ts * 1000).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaErr, setMediaErr] = useState(false);
+  const mpath = (msg.media_path || "").trim();
+  const mmime = (msg.media_mime || "").toLowerCase();
+  const esImagen = !!mpath && (mmime.startsWith("image/") || /\.(jpe?g|png|gif|webp)$/i.test(mpath));
+  const esPdf = !!mpath && (mmime.includes("pdf") || mpath.toLowerCase().endsWith(".pdf"));
+
+  useEffect(() => {
+    if (!mpath || (!esImagen && !esPdf)) return;
+    let revoke: string | null = null;
+    (async () => {
+      try {
+        const { useTicketsAuth } = await import("../stores/ticketsAuth");
+        const { useAuthStore } = await import("../stores/auth");
+        const token =
+          useTicketsAuth.getState().apiToken ||
+          useTicketsAuth.getState().token ||
+          useAuthStore.getState().token ||
+          "";
+        const { resolvePanelApiUrl } = await import("../api/client");
+        const url = resolvePanelApiUrl(
+          `/api/bot/media?path=${encodeURIComponent(mpath)}`,
+          "GET",
+        );
+        const res = await fetch(url, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error("media");
+        const blob = await res.blob();
+        revoke = URL.createObjectURL(blob);
+        setMediaUrl(revoke);
+        setMediaErr(false);
+      } catch {
+        setMediaErr(true);
+      }
+    })();
+    return () => {
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
+  }, [mpath, esImagen, esPdf]);
+
+  const textoVisible =
+    msg.texto && msg.texto !== "[adjunto]" ? msg.texto : null;
+
   return (
     <div className={`flex ${esEntrada ? "justify-start" : "justify-end"}`}>
       <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-snug ${
@@ -1086,10 +1132,29 @@ function ChatBubble({ msg }: { msg: Mensaje }) {
             ? "bg-blue-600/80 text-white rounded-tr-sm"
             : "bg-accent/80 text-white rounded-tr-sm"
       }`}>
-        {msg.tiene_media && !msg.texto ? (
-          <span className="italic text-[11px] opacity-70">📎 {msg.nombre_arch || "Adjunto"}</span>
-        ) : (
-          <p className="whitespace-pre-wrap break-words">{msg.texto}</p>
+        {esImagen && mediaUrl && (
+          <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="block mb-1.5">
+            <img src={mediaUrl} alt={msg.nombre_arch || "Adjunto"} className="max-h-56 rounded-lg object-contain" />
+          </a>
+        )}
+        {esPdf && mediaUrl && (
+          <a
+            href={mediaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`block mb-1.5 text-[11px] underline ${esEntrada ? "text-accent" : "text-white/90"}`}
+          >
+            📄 {msg.nombre_arch || "Ver PDF"}
+          </a>
+        )}
+        {msg.tiene_media && !esImagen && !esPdf && (
+          <span className="italic text-[11px] opacity-70 block mb-1">
+            📎 {msg.nombre_arch || "Adjunto"}
+            {mediaErr && mpath ? " (no disponible en servidor)" : ""}
+          </span>
+        )}
+        {textoVisible && (
+          <p className="whitespace-pre-wrap break-words">{textoVisible}</p>
         )}
         <div className={`flex items-center gap-1 mt-0.5 ${esEntrada ? "justify-start" : "justify-end"}`}>
           <span className={`text-[10px] ${esEntrada ? "text-muted" : "text-white/60"}`}>{hora}</span>
@@ -1383,12 +1448,6 @@ function TabChats() {
     } catch { /* silencioso */ }
   }, []);
 
-  useEffect(() => {
-    cargarLista();
-    pollLstRef.current = setInterval(cargarLista, 8_000);
-    return () => { if (pollLstRef.current) clearInterval(pollLstRef.current); };
-  }, [cargarLista]);
-
   // ── Cargar mensajes de la conversación activa ─────────────────────────────
   const cargarMensajes = useCallback(async (jid: string) => {
     try {
@@ -1400,6 +1459,25 @@ function TabChats() {
       if (d.display) setDisplayActivo(d.display);
     } catch { /* silencioso */ }
   }, []);
+
+  const sincronizarRecientes = useCallback(async () => {
+    try {
+      await api.post("/api/bot/chats/sincronizar-recientes", { max_chats: 12, limit: 45 });
+      await cargarLista();
+      if (jidActivo) await cargarMensajes(jidActivo);
+    } catch { /* silencioso */ }
+  }, [cargarLista, cargarMensajes, jidActivo]);
+
+  useEffect(() => {
+    cargarLista();
+    void sincronizarRecientes();
+    pollLstRef.current = setInterval(cargarLista, 4_000);
+    const syncRec = setInterval(() => void sincronizarRecientes(), 20_000);
+    return () => {
+      if (pollLstRef.current) clearInterval(pollLstRef.current);
+      clearInterval(syncRec);
+    };
+  }, [cargarLista, sincronizarRecientes]);
 
   const sincronizarDesdeWa = useCallback(async (jid: string, silencioso = false) => {
     if (!silencioso) setSincronizando(true);
@@ -1421,8 +1499,12 @@ function TabChats() {
     void sincronizarDesdeWa(jidActivo, true);
     cargarMensajes(jidActivo);
     if (pollMsgRef.current) clearInterval(pollMsgRef.current);
-    pollMsgRef.current = setInterval(() => cargarMensajes(jidActivo), 3_000);
-    return () => { if (pollMsgRef.current) clearInterval(pollMsgRef.current); };
+    pollMsgRef.current = setInterval(() => cargarMensajes(jidActivo), 2_000);
+    const syncWa = setInterval(() => void sincronizarDesdeWa(jidActivo, true), 12_000);
+    return () => {
+      if (pollMsgRef.current) clearInterval(pollMsgRef.current);
+      clearInterval(syncWa);
+    };
   }, [jidActivo, cargarMensajes, sincronizarDesdeWa]);
 
   // Scroll al fondo cuando llegan nuevos mensajes
@@ -1483,10 +1565,18 @@ function TabChats() {
 
       {/* ── Lista de conversaciones ── */}
       <div className={`${vistaMovil === "chat" ? "hidden md:flex" : "flex"} w-full md:w-64 lg:w-72 shrink-0 flex-col border-r border-border bg-surface-panel`}>
-        <div className="px-3 py-2.5 border-b border-border">
+        <div className="px-3 py-2.5 border-b border-border flex items-center justify-between gap-2">
           <p className="text-xs font-bold uppercase tracking-wide text-muted">
             Conversaciones {noLeidos > 0 && <span className="text-red-400">({noLeidos} sin leer)</span>}
           </p>
+          <button
+            type="button"
+            onClick={() => void sincronizarRecientes()}
+            className="text-[10px] font-semibold text-accent hover:underline shrink-0"
+            title="Traer respuestas recientes desde WhatsApp (incluye celular del operador)"
+          >
+            ↻ Sync
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {conversaciones.length === 0 ? (
@@ -1665,7 +1755,7 @@ export default function WhatsAppPanel() {
       } catch { /* silencioso */ }
     }
     fetchUnread();
-    const t = setInterval(fetchUnread, 10_000);
+    const t = setInterval(fetchUnread, 5_000);
     return () => clearInterval(t);
   }, []);
 

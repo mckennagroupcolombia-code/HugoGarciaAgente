@@ -8,7 +8,39 @@ import os
 import threading
 
 _DB = os.getenv("WA_CHATS_DB", os.path.join("app", "data", "wa_chats.db"))
+_REPO_ROOT = os.path.abspath(
+    os.getenv("AGENTE_REPO_ROOT", os.path.join(os.path.dirname(__file__), "..", ".."))
+)
 _lock = threading.Lock()
+
+
+def normalizar_media_path_panel(path: str) -> str:
+    """Ruta relativa bajo comprobantes/ para servir en el panel."""
+    p = (path or "").strip().replace("\\", "/")
+    if not p:
+        return ""
+    if p.startswith("comprobantes/"):
+        return p[:500]
+    marker = "/comprobantes/"
+    if marker in p:
+        return ("comprobantes/" + p.split(marker, 1)[1])[:500]
+    base = os.path.basename(p)
+    if base:
+        return f"comprobantes/{base}"[:500]
+    return ""
+
+
+def resolver_media_absoluto(media_path: str) -> str | None:
+    rel = normalizar_media_path_panel(media_path)
+    if not rel or ".." in rel:
+        return None
+    abs_path = os.path.abspath(os.path.join(_REPO_ROOT, rel))
+    comp_dir = os.path.abspath(os.path.join(_REPO_ROOT, "comprobantes"))
+    if not abs_path.startswith(comp_dir + os.sep) and abs_path != comp_dir:
+        return None
+    if os.path.isfile(abs_path):
+        return abs_path
+    return None
 
 
 def _conn() -> sqlite3.Connection:
@@ -41,6 +73,10 @@ def _init() -> None:
             c.execute(
                 "ALTER TABLE mensajes ADD COLUMN eliminado INTEGER NOT NULL DEFAULT 0"
             )
+        if "media_path" not in cols:
+            c.execute("ALTER TABLE mensajes ADD COLUMN media_path TEXT")
+        if "media_mime" not in cols:
+            c.execute("ALTER TABLE mensajes ADD COLUMN media_mime TEXT")
         c.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_mensajes_wa_id "
             "ON mensajes(wa_id) WHERE wa_id IS NOT NULL"
@@ -59,6 +95,8 @@ def guardar(
     enviado_por: str = "bot",
     wa_id: str | None = None,
     ts: float | None = None,
+    media_path: str = "",
+    media_mime: str = "",
 ) -> None:
     """Guarda un mensaje (entrada del cliente o salida del bot/operador)."""
     if not jid or not direccion:
@@ -69,6 +107,11 @@ def guardar(
         canon = jid_canonico(jid)
         ts_val = float(ts if ts is not None else time.time())
         wa_key = (wa_id or "").strip() or None
+        mpath = (media_path or "").strip()[:500]
+        mmime = (media_mime or "").strip()[:120]
+        narch = (nombre_arch or "").strip()[:200]
+        if not narch and mpath:
+            narch = os.path.basename(mpath)
         with _lock, _conn() as c:
             if wa_key:
                 row = c.execute(
@@ -78,7 +121,8 @@ def guardar(
                     c.execute(
                         """UPDATE mensajes SET
                            ts=?, jid=?, direccion=?, texto=?, tiene_media=?,
-                           nombre_arch=?, enviado_por=?, eliminado=0
+                           nombre_arch=?, enviado_por=?, eliminado=0,
+                           media_path=?, media_mime=?
                            WHERE wa_id=?""",
                         (
                             ts_val,
@@ -86,8 +130,10 @@ def guardar(
                             direccion,
                             (texto or "")[:2000],
                             int(tiene_media),
-                            nombre_arch or "",
+                            narch,
                             enviado_por,
+                            mpath,
+                            mmime,
                             wa_key,
                         ),
                     )
@@ -95,36 +141,57 @@ def guardar(
                     c.execute(
                         """INSERT INTO mensajes
                            (ts, jid, direccion, texto, tiene_media, nombre_arch,
-                            enviado_por, wa_id, eliminado)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)""",
+                            enviado_por, wa_id, eliminado, media_path, media_mime)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)""",
                         (
                             ts_val,
                             canon,
                             direccion,
                             (texto or "")[:2000],
                             int(tiene_media),
-                            nombre_arch or "",
+                            narch,
                             enviado_por,
                             wa_key,
+                            mpath,
+                            mmime,
                         ),
                     )
             else:
                 c.execute(
                     """INSERT INTO mensajes
-                       (ts, jid, direccion, texto, tiene_media, nombre_arch, enviado_por, eliminado)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 0)""",
+                       (ts, jid, direccion, texto, tiene_media, nombre_arch,
+                        enviado_por, eliminado, media_path, media_mime)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)""",
                     (
                         ts_val,
                         canon,
                         direccion,
                         (texto or "")[:2000],
                         int(tiene_media),
-                        nombre_arch or "",
+                        narch,
                         enviado_por,
+                        mpath,
+                        mmime,
                     ),
                 )
+        if direccion == "salida" and enviado_por == "humano":
+            marcar_leido(canon)
     except Exception as e:
         print(f"[wa_chats] error al guardar: {e}")
+
+
+def existe_wa_id(wa_id: str) -> bool:
+    key = (wa_id or "").strip()
+    if not key:
+        return False
+    try:
+        with _lock, _conn() as c:
+            row = c.execute(
+                "SELECT 1 FROM mensajes WHERE wa_id=? LIMIT 1", (key,)
+            ).fetchone()
+            return row is not None
+    except Exception:
+        return False
 
 
 def marcar_eliminado_por_wa_id(wa_id: str) -> int:
@@ -195,6 +262,8 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
             enviado_por=enviado,
             wa_id=wa_id or None,
             ts=ts_val,
+            media_path=str(raw.get("media_path") or ""),
+            media_mime=str(raw.get("media_mime") or ""),
         )
         if antes:
             actualizados += 1
@@ -298,7 +367,7 @@ def listar_mensajes(jid: str, limit: int = 120) -> list[dict]:
         with _lock, _conn() as c:
             rows = c.execute(
                 f"""SELECT id, ts, jid, direccion, texto, tiene_media,
-                          nombre_arch, enviado_por, leido
+                          nombre_arch, enviado_por, leido, media_path, media_mime
                    FROM mensajes
                    WHERE jid IN ({placeholders}) AND eliminado=0
                    ORDER BY ts DESC LIMIT ?""",

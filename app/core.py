@@ -188,12 +188,16 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
 3. PROHIBIDO inventar presentaciones ni precios sin consultar buscar_productos_combo_siigo.
 4. Si preguntan USO, DOSIS, "cómo tomar", recomendación de consumo o formulación: NO liste precios otra vez.
    Responda la consulta técnica (usa buscar_productos_combo_siigo + contexto de ficha si aplica). Aclare que vendemos materia prima, no producto terminado.
-5. Si no hay presentación en catálogo, invite a revisar la tienda o WhatsApp sin tecnicismos internos.
-6. La referencia (Ref.) es el SKU oficial para pedido y cotización.
-7. SEGUIMIENTO: Este chat web NO reemplaza WhatsApp para cotización formal ni seguimiento de pedido.
-   Si el cliente pide cotización, confirmación de compra o seguimiento, indíquele que continúe por WhatsApp
-   (mismo número de la tienda) para atarlo a su línea y retomar el hilo con un asesor humano.
-8. No prometa "le escribo después en este chat" ni que recordará su sesión si cierra el navegador.
+5. DISPONIBILIDAD Y PRECIOS: Responda con el catálogo inyectado. Si no hay match, diga que no aparece en catálogo web ahora,
+   sugiera mckennagroup.co/tienda y ofrezca WhatsApp solo como canal para confirmar stock especial — no obligue a cambiar de canal para una simple consulta.
+6. DOCUMENTOS (COA, ficha técnica, ficha de seguridad/MSDS): Use los enlaces del contexto si vienen inyectados.
+   Si no hay PDF, pida correo electrónico para enviarlos; puede mencionar guías en mckennagroup.co/guias. No sustituya documentos por lista de precios.
+7. COTIZACIÓN DE PRECIOS por producto/presentación (ej. "cotización de 1 kg de cada uno"): responda con precios del catálogo en este chat.
+8. La referencia (Ref.) es el SKU oficial para pedido.
+9. WHATSAPP (explícito): Use WhatsApp solo para pago, link de pago, comprobante, facturación de pedido, seguimiento de pedido
+   o cotización formal que el cliente quiera cerrar con asesor. Indique número +57 319 518 3596 (wa.me/573195183596).
+   No redirija a WhatsApp por preguntas de producto, documentos o listas de ingredientes que puede resolver aquí.
+10. No prometa "le escribo después en este chat" ni que recordará su sesión si cierra el navegador.
 """
 
 
@@ -911,8 +915,16 @@ def _mensaje_parece_consulta_tecnica_web(texto: str) -> bool:
     return False
 
 
+def _mensaje_parece_solicitud_documentos_web(texto: str) -> bool:
+    from app.web_chat_documentos import mensaje_pide_documentacion_web
+
+    return mensaje_pide_documentacion_web(texto)
+
+
 def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
     """Precio, disponibilidad o nombre de producto — respuesta directa de catálogo."""
+    if _mensaje_parece_solicitud_documentos_web(texto):
+        return False
     if _mensaje_parece_consulta_tecnica_web(texto):
         return False
     low = re.sub(r"\s+", " ", (texto or "").strip().lower())
@@ -1242,9 +1254,11 @@ def _respuesta_directa_web_si_combos(
             items, termino, pregunta_cliente=pregunta
         )
     if estado and "No encontré combo" in estado:
+        display = _wa_publico_display()
         return (
-            "Veci, no encontré esa presentación en nuestro catálogo web en este momento. "
-            "Revise mckennagroup.co o escríbanos por WhatsApp y le ayudamos."
+            f"Veci, no encontré esa presentación en nuestro catálogo web en este momento. "
+            f"Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. "
+            f"Si prefiere hablar con un asesor: WhatsApp {display}."
         )
     return None
 
@@ -1447,9 +1461,44 @@ def obtener_respuesta_ia(
             or _cargar_historial_persistente(usuario_id)
         )
 
-    # ── Chat web: pago/pedido/cotización → WhatsApp (sin flujo comprobantes WA) ──
+    # ── Chat web: contacto, documentos, escalación pago/pedido ──
     if es_web and pregunta_visible and not adjuntos:
-        from app.web_chat_intents import manejar_escalacion_web
+        from app.web_chat_intents import (
+            manejar_escalacion_web,
+            manejar_pregunta_contacto_web,
+        )
+        from app.web_chat_documentos import manejar_documentos_web
+
+        hist_txt_web = _contexto_historial_web(messages)
+
+        contacto = manejar_pregunta_contacto_web(pregunta_visible)
+        if contacto:
+            contacto_out = _sanitizar_respuesta_web_chat(contacto)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [
+                {"role": "assistant", "content": contacto_out}
+            ]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return contacto_out, final_messages
+
+        docs = manejar_documentos_web(
+            user_message=pregunta_visible,
+            historial_texto=hist_txt_web,
+        )
+        if docs:
+            docs_out = _sanitizar_respuesta_web_chat(docs)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": docs_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return docs_out, final_messages
 
         escalada = manejar_escalacion_web(
             session_id=usuario_id,

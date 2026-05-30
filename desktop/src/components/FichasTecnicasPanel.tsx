@@ -1,95 +1,32 @@
-import { useCallback, useEffect, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import DocumentoGeneradorTab, {
+  Field,
+  filasDesdeTexto,
+  filasTresDesdeTexto,
+  listaDesdeTexto,
+  textoDesdeFilas,
+  textoDesdeFilasTres,
+} from "./documentos/DocumentoGeneradorTab";
+import DocumentosCatalogoTab, {
+  type ProductoDocumentacion,
+} from "./documentos/DocumentosCatalogoTab";
 
-interface FichaDatosItem {
-  id: string;
-  archivo: string;
-  titulo: string;
-}
+type TabDoc = "catalogo" | "ft" | "coa" | "sds";
 
-interface DriveConfig {
-  client_email: string | null;
-  creds_ok: boolean;
-  impersonate_email: string | null;
-  delegacion_configurada: boolean;
-  parent_folder_id: string;
-  folder_pdf_id: string | null;
-  folder_word_id: string | null;
-  folder_pdf_url: string | null;
-  folder_word_url: string | null;
-  parent_folder_url: string;
-  instrucciones: string;
-  ayuda_delegacion?: string;
-  plantilla_ok: boolean;
-}
+const TABS: { id: TabDoc; label: string }[] = [
+  { id: "catalogo", label: "Catálogo productos" },
+  { id: "ft", label: "Ficha técnica (TDS)" },
+  { id: "coa", label: "COA" },
+  { id: "sds", label: "SDS" },
+];
 
-interface GenerarResult {
-  ok: boolean;
-  titulo: string;
-  docx: string;
-  docx_nombre: string;
-  pdf?: string;
-  pdf_nombre?: string;
-  drive_uploads?: Array<{
-    tipo: string;
-    webViewLink?: string;
-    error?: string;
-    nombre?: string;
-  }>;
-}
-
-type ModoEditor = "formulario" | "yaml";
-
-function filasDesdeTexto(texto: string): [string, string][] {
-  return texto
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l) => {
-      const i = l.indexOf("|");
-      if (i === -1) return [l, ""] as [string, string];
-      return [l.slice(0, i).trim(), l.slice(i + 1).trim()];
-    });
-}
-
-function textoDesdeFilas(filas: unknown): string {
-  if (!Array.isArray(filas)) return "";
-  return filas
-    .map((f) => {
-      if (Array.isArray(f) && f.length >= 2) return `${f[0]}|${f[1]}`;
-      return "";
-    })
-    .filter(Boolean)
-    .join("\n");
-}
-
-function listaDesdeTexto(texto: string): string[] {
-  return texto.split("\n").map((l) => l.trim()).filter(Boolean);
-}
-
-function CopyBtn({ text }: { text: string }) {
-  const [ok, setOk] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        void navigator.clipboard.writeText(text);
-        setOk(true);
-        setTimeout(() => setOk(false), 1500);
-      }}
-      className="shrink-0 rounded border border-border px-2 py-0.5 text-[10px] font-medium text-muted hover:text-accent"
-    >
-      {ok ? "Copiado" : "Copiar"}
-    </button>
-  );
-}
-
-export default function FichasTecnicasPanel() {
-  const [modo, setModo] = useState<ModoEditor>("formulario");
-  const [slugSel, setSlugSel] = useState("");
-  const [yamlText, setYamlText] = useState("");
+function FichaTecnicaTabContent({
+  producto,
+}: {
+  producto: ProductoDocumentacion | null;
+}) {
   const [titulo, setTitulo] = useState("");
+  const [referencia, setReferencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [aplicaciones, setAplicaciones] = useState("");
   const [identidad, setIdentidad] = useState("");
@@ -97,23 +34,14 @@ export default function FichasTecnicasPanel() {
   const [microbiologia, setMicrobiologia] = useState("");
   const [notaMicro, setNotaMicro] = useState("");
   const [estabilidad, setEstabilidad] = useState("");
-  const [generarPdf, setGenerarPdf] = useState(true);
-  const [subirDrive, setSubirDrive] = useState(true);
-  const [guardarYaml, setGuardarYaml] = useState(true);
-  const [slugYaml, setSlugYaml] = useState("");
-  const [ultimo, setUltimo] = useState<GenerarResult | null>(null);
 
-  const { data: config } = useQuery({
-    queryKey: ["fichas-config"],
-    queryFn: () => api.get<DriveConfig>("/api/fichas/config"),
-  });
+  useEffect(() => {
+    if (!producto) return;
+    setTitulo(producto.nombre_base.toUpperCase());
+    setReferencia(producto.ref);
+  }, [producto?.ref, producto?.nombre_base]);
 
-  const { data: lista } = useQuery({
-    queryKey: ["fichas-datos"],
-    queryFn: () => api.get<{ items: FichaDatosItem[] }>("/api/fichas/datos"),
-  });
-
-  const cargarDatos = useCallback((datos: Record<string, unknown>, yaml?: string) => {
+  const loadDatos = useCallback((datos: Record<string, unknown>) => {
     setTitulo(String(datos.titulo || ""));
     setDescripcion(String(datos.descripcion || ""));
     setAplicaciones(
@@ -130,325 +58,379 @@ export default function FichasTecnicasPanel() {
         ? (datos.estabilidad as string[]).join("\n\n")
         : String(datos.estabilidad || ""),
     );
-    if (yaml) setYamlText(yaml);
   }, []);
 
+  const buildDatos = useCallback(
+    () => ({
+      titulo,
+      referencia,
+      descripcion,
+      aplicaciones: listaDesdeTexto(aplicaciones),
+      identidad: filasDesdeTexto(identidad),
+      propiedades: filasDesdeTexto(propiedades),
+      microbiologia: filasDesdeTexto(microbiologia),
+      nota_micro: notaMicro,
+      estabilidad: listaDesdeTexto(estabilidad),
+    }),
+    [titulo, referencia, descripcion, aplicaciones, identidad, propiedades, microbiologia, notaMicro, estabilidad],
+  );
+
+  return (
+    <DocumentoGeneradorTab
+      apiPrefix="/api/fichas"
+      queryKey="fichas"
+      tituloSeccion="Ficha técnica (TDS)"
+      descripcion="Genera DOCX y PDF con el formato McKenna y súbelos a Drive (carpetas TDS WORD y TDS PDF)."
+      botonGenerar="Generar ficha técnica"
+      carpetaDriveLabel="TDS"
+      loadDatos={loadDatos}
+      buildDatos={buildDatos}
+      showWordPdfFolders
+      productoRef={producto?.ref ?? ""}
+    >
+      <div className="space-y-3">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field value={titulo} onChange={setTitulo} placeholder="Título (ej. ARCILLA ROJA)" />
+          <Field label="Referencia SIIGO" value={referencia} onChange={setReferencia} placeholder="C-…" />
+        </div>
+        <Field value={descripcion} onChange={setDescripcion} rows={4} placeholder="Descripción" />
+        <Field value={aplicaciones} onChange={setAplicaciones} rows={4} placeholder="Aplicaciones (un párrafo por línea)" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="Identidad (campo|valor)" value={identidad} onChange={setIdentidad} rows={6} mono />
+          <Field label="Propiedades" value={propiedades} onChange={setPropiedades} rows={6} mono />
+          <Field label="Microbiología" value={microbiologia} onChange={setMicrobiologia} rows={6} mono />
+        </div>
+        <Field value={notaMicro} onChange={setNotaMicro} placeholder="Nota microbiológica" />
+        <Field value={estabilidad} onChange={setEstabilidad} rows={2} placeholder="Estabilidad y almacenamiento" />
+      </div>
+    </DocumentoGeneradorTab>
+  );
+}
+
+function CoaTabContent({
+  producto,
+}: {
+  producto: ProductoDocumentacion | null;
+}) {
+  const [titulo, setTitulo] = useState("");
+  const [nombreComercial, setNombreComercial] = useState("");
+  const [referencia, setReferencia] = useState("");
+  const [inci, setInci] = useState("");
+  const [cas, setCas] = useState("");
+  const [formula, setFormula] = useState("");
+  const [einces, setEinces] = useState("");
+  const [concentracion, setConcentracion] = useState("");
+  const [grado, setGrado] = useState("");
+  const [presentacion, setPresentacion] = useState("");
+  const [incluye, setIncluye] = useState("");
+  const [loteNum, setLoteNum] = useState("");
+  const [fab, setFab] = useState("");
+  const [venc, setVenc] = useState("");
+  const [vidaUtil, setVidaUtil] = useState("");
+  const [tamanoLote, setTamanoLote] = useState("");
+  const [pais, setPais] = useState("");
+  const [fechaAnalisis, setFechaAnalisis] = useState("");
+  const [fechaEmision, setFechaEmision] = useState("");
+  const [parametros, setParametros] = useState("");
+  const [empaque, setEmpaque] = useState("");
+  const [almacenamiento, setAlmacenamiento] = useState("");
+  const [precauciones, setPrecauciones] = useState("");
+  const [observaciones, setObservaciones] = useState("");
+  const [codigoVerif, setCodigoVerif] = useState("");
+
   useEffect(() => {
-    if (!slugSel) return;
-    api
-      .get<{ datos: Record<string, unknown>; yaml: string }>(`/api/fichas/datos/${slugSel}`)
-      .then((r) => {
-        cargarDatos(r.datos, r.yaml);
-        setSlugYaml(slugSel);
-      })
-      .catch(() => {});
-  }, [slugSel, cargarDatos]);
+    if (!producto) return;
+    setTitulo(producto.nombre_base.toUpperCase());
+    setNombreComercial(producto.nombre);
+    setReferencia(producto.ref);
+  }, [producto?.ref, producto?.nombre, producto?.nombre_base]);
 
-  const plantillaMut = useMutation({
-    mutationFn: () => api.get<{ datos: Record<string, unknown>; yaml: string }>("/api/fichas/plantilla"),
-    onSuccess: (r) => {
-      setSlugSel("");
-      cargarDatos(r.datos, r.yaml);
-    },
-  });
+  const loadDatos = useCallback((datos: Record<string, unknown>) => {
+    const ident = (datos.identificacion || {}) as Record<string, string>;
+    const lote = (datos.lote || {}) as Record<string, string>;
+    const emp = (datos.empaque || {}) as Record<string, string>;
+    setTitulo(String(datos.titulo || ""));
+    setNombreComercial(String(ident.nombre_comercial || ""));
+    setReferencia(String(ident.referencia_interna || ""));
+    setInci(String(ident.nombre_inci || ""));
+    setCas(String(ident.cas || ""));
+    setFormula(String(ident.formula_molecular || ""));
+    setEinces(String(ident.einces || ""));
+    setConcentracion(String(ident.concentracion || ""));
+    setGrado(String(ident.grado || ""));
+    setPresentacion(String(ident.presentacion || ""));
+    setIncluye(String(ident.incluye || ""));
+    setLoteNum(String(lote.numero || ""));
+    setFab(String(lote.fecha_fabricacion || ""));
+    setVenc(String(lote.fecha_vencimiento || ""));
+    setVidaUtil(String(lote.vida_util || ""));
+    setTamanoLote(String(lote.tamano_lote || ""));
+    setPais(String(lote.pais_origen || ""));
+    setFechaAnalisis(String(lote.fecha_analisis || ""));
+    setFechaEmision(String(lote.fecha_emision || ""));
+    setParametros(textoDesdeFilasTres(datos.parametros));
+    setEmpaque(String(emp.empaque_original || ""));
+    setAlmacenamiento(String(emp.almacenamiento || ""));
+    setPrecauciones(String(emp.precauciones || ""));
+    setObservaciones(String(emp.observaciones || ""));
+    setCodigoVerif(String(datos.codigo_verificacion || ""));
+  }, []);
 
-  const generarMut = useMutation({
-    mutationFn: () => {
-      if (modo === "yaml") {
-        return api.post<GenerarResult>(
-          "/api/fichas/generar",
-          {
-            yaml: yamlText,
-            generar_pdf: generarPdf,
-            subir_drive: subirDrive,
-            guardar_yaml: guardarYaml,
-            slug_yaml: guardarYaml ? slugYaml || slugSel || undefined : undefined,
-          },
-          { timeoutMs: 180000 },
-        );
-      }
-      return api.post<GenerarResult>(
-        "/api/fichas/generar",
-        {
-        datos: {
-          titulo,
-          descripcion,
-          aplicaciones: listaDesdeTexto(aplicaciones),
-          identidad: filasDesdeTexto(identidad),
-          propiedades: filasDesdeTexto(propiedades),
-          microbiologia: filasDesdeTexto(microbiologia),
-          nota_micro: notaMicro,
-          estabilidad: listaDesdeTexto(estabilidad),
-        },
-        generar_pdf: generarPdf,
-        subir_drive: subirDrive,
-        guardar_yaml: guardarYaml,
-        slug_yaml: guardarYaml ? slugYaml || slugSel || undefined : undefined,
-        },
-        { timeoutMs: 180000 },
-      );
-    },
-    onSuccess: (r) => setUltimo(r),
-  });
+  const buildDatos = useCallback(
+    () => ({
+      titulo,
+      identificacion: {
+        nombre_comercial: nombreComercial || titulo,
+        referencia_interna: referencia,
+        nombre_inci: inci,
+        cas,
+        formula_molecular: formula,
+        einces,
+        concentracion,
+        grado,
+        presentacion,
+        incluye,
+      },
+      lote: {
+        numero: loteNum,
+        fecha_fabricacion: fab,
+        fecha_vencimiento: venc,
+        vida_util: vidaUtil,
+        tamano_lote: tamanoLote,
+        pais_origen: pais,
+        fecha_analisis: fechaAnalisis,
+        fecha_emision: fechaEmision,
+      },
+      parametros: filasTresDesdeTexto(parametros),
+      empaque: {
+        empaque_original: empaque,
+        almacenamiento,
+        precauciones,
+        observaciones,
+      },
+      codigo_verificacion: codigoVerif,
+    }),
+    [
+      titulo, nombreComercial, referencia, inci, cas, formula, einces, concentracion, grado,
+      presentacion, incluye, loteNum, fab, venc, vidaUtil, tamanoLote, pais, fechaAnalisis,
+      fechaEmision, parametros, empaque, almacenamiento, precauciones, observaciones, codigoVerif,
+    ],
+  );
 
-  const descargar = async (nombre: string) => {
-    const { resolvePanelApiUrl } = await import("../api/client");
-    const { useTicketsAuth } = await import("../stores/ticketsAuth");
-    const { useAuthStore } = await import("../stores/auth");
-    const tickets = useTicketsAuth.getState();
-    const token = tickets.apiToken || tickets.token || useAuthStore.getState().token;
-    const path = `/api/fichas/descargar?archivo=${encodeURIComponent(nombre)}`;
-    const url = resolvePanelApiUrl(path, "GET");
-    const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-    if (!res.ok) throw new Error("No se pudo descargar");
-    const blob = await res.blob();
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = nombre;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  return (
+    <DocumentoGeneradorTab
+      apiPrefix="/api/coa"
+      queryKey="coa"
+      tituloSeccion="Certificado de análisis (COA)"
+      descripcion="Genera el COA desde la plantilla McKenna y súbelo a la carpeta COA en Drive."
+      botonGenerar="Generar COA"
+      carpetaDriveLabel="COA"
+      loadDatos={loadDatos}
+      buildDatos={buildDatos}
+      productoRef={producto?.ref ?? ""}
+    >
+      <div className="space-y-4">
+        <Field value={titulo} onChange={setTitulo} placeholder="Título del producto" />
+        <p className="text-xs font-medium text-muted">Identificación</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
+          <Field label="Referencia interna" value={referencia} onChange={setReferencia} />
+          <Field label="INCI / químico" value={inci} onChange={setInci} />
+          <Field label="CAS" value={cas} onChange={setCas} />
+          <Field label="Fórmula molecular" value={formula} onChange={setFormula} />
+          <Field label="EINECS" value={einces} onChange={setEinces} />
+          <Field label="Concentración" value={concentracion} onChange={setConcentracion} />
+          <Field label="Grado" value={grado} onChange={setGrado} />
+          <Field label="Presentación" value={presentacion} onChange={setPresentacion} />
+          <Field label="Incluye" value={incluye} onChange={setIncluye} />
+        </div>
+        <p className="text-xs font-medium text-muted">Lote</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field label="No. de lote" value={loteNum} onChange={setLoteNum} />
+          <Field label="Fecha fabricación" value={fab} onChange={setFab} placeholder="DD / MM / AAAA" />
+          <Field label="Fecha vencimiento" value={venc} onChange={setVenc} />
+          <Field label="Vida útil" value={vidaUtil} onChange={setVidaUtil} />
+          <Field label="Tamaño del lote" value={tamanoLote} onChange={setTamanoLote} />
+          <Field label="País de origen" value={pais} onChange={setPais} />
+          <Field label="Fecha análisis" value={fechaAnalisis} onChange={setFechaAnalisis} />
+          <Field label="Fecha emisión COA" value={fechaEmision} onChange={setFechaEmision} />
+        </div>
+        <Field
+          label="Parámetros (parámetro|especificación|resultado por línea)"
+          value={parametros}
+          onChange={setParametros}
+          rows={8}
+          mono
+        />
+        <p className="text-xs font-medium text-muted">Empaque y almacenamiento</p>
+        <Field label="Empaque original" value={empaque} onChange={setEmpaque} rows={2} />
+        <Field label="Almacenamiento" value={almacenamiento} onChange={setAlmacenamiento} rows={2} />
+        <Field label="Precauciones" value={precauciones} onChange={setPrecauciones} rows={2} />
+        <Field label="Observaciones" value={observaciones} onChange={setObservaciones} rows={2} />
+        <Field label="Código verificación (MKG-COA-…)" value={codigoVerif} onChange={setCodigoVerif} />
+      </div>
+    </DocumentoGeneradorTab>
+  );
+}
+
+function SdsTabContent({
+  producto,
+}: {
+  producto: ProductoDocumentacion | null;
+}) {
+  const [titulo, setTitulo] = useState("");
+  const [nombreComercial, setNombreComercial] = useState("");
+  const [referencia, setReferencia] = useState("");
+  const [inci, setInci] = useState("");
+  const [cas, setCas] = useState("");
+  const [formula, setFormula] = useState("");
+  const [usos, setUsos] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [clasificacion, setClasificacion] = useState("");
+  const [pictogramas, setPictogramas] = useState("");
+  const [composicion, setComposicion] = useState("");
+  const [primerosAuxilios, setPrimerosAuxilios] = useState("");
+  const [manipulacion, setManipulacion] = useState("");
+  const [almacenamiento, setAlmacenamiento] = useState("");
+  const [propiedades, setPropiedades] = useState("");
+  const [normativa, setNormativa] = useState("");
+  const [observaciones, setObservaciones] = useState("");
+
+  useEffect(() => {
+    if (!producto) return;
+    setTitulo(producto.nombre_base.toUpperCase());
+    setNombreComercial(producto.nombre);
+    setReferencia(producto.ref);
+  }, [producto?.ref, producto?.nombre, producto?.nombre_base]);
+
+  const loadDatos = useCallback((datos: Record<string, unknown>) => {
+    const ident = (datos.identificacion || {}) as Record<string, string>;
+    const pel = (datos.peligros || {}) as Record<string, string>;
+    const man = (datos.manipulacion || {}) as Record<string, string>;
+    const reg = (datos.regulatorio || {}) as Record<string, string>;
+    setTitulo(String(datos.titulo || ""));
+    setNombreComercial(String(ident.nombre_comercial || ""));
+    setReferencia(String(ident.referencia_interna || ""));
+    setInci(String(ident.nombre_inci || ""));
+    setCas(String(ident.cas || ""));
+    setFormula(String(ident.formula_molecular || ""));
+    setUsos(String(ident.usos || ""));
+    setTelefono(String(ident.telefono_emergencia || ""));
+    setClasificacion(String(pel.clasificacion || ""));
+    setPictogramas(String(pel.pictogramas || ""));
+    setComposicion(textoDesdeFilasTres(datos.composicion));
+    setPrimerosAuxilios(textoDesdeFilas(datos.primeros_auxilios));
+    setManipulacion(String(man.manipulacion || ""));
+    setAlmacenamiento(String(man.almacenamiento || ""));
+    setPropiedades(textoDesdeFilas(datos.propiedades));
+    setNormativa(String(reg.normativa || ""));
+    setObservaciones(String(reg.observaciones || ""));
+  }, []);
+
+  const buildDatos = useCallback(
+    () => ({
+      titulo,
+      identificacion: {
+        nombre_comercial: nombreComercial || titulo,
+        referencia_interna: referencia,
+        nombre_inci: inci,
+        cas,
+        formula_molecular: formula,
+        usos,
+        telefono_emergencia: telefono,
+      },
+      peligros: { clasificacion, pictogramas },
+      composicion: filasTresDesdeTexto(composicion),
+      primeros_auxilios: filasDesdeTexto(primerosAuxilios),
+      manipulacion: { manipulacion, almacenamiento },
+      propiedades: filasDesdeTexto(propiedades),
+      regulatorio: { normativa, observaciones },
+    }),
+    [
+      titulo, nombreComercial, referencia, inci, cas, formula, usos, telefono,
+      clasificacion, pictogramas, composicion, primerosAuxilios, manipulacion,
+      almacenamiento, propiedades, normativa, observaciones,
+    ],
+  );
+
+  return (
+    <DocumentoGeneradorTab
+      apiPrefix="/api/sds"
+      queryKey="sds"
+      tituloSeccion="Hoja de datos de seguridad (SDS)"
+      descripcion="Formato GHS estilo Ventós (referencia SDS ELEMI). Genera DOCX/PDF y súbelo a Drive. Use «Completar con literatura» para rellenar campos faltantes desde PubMed/PubChem."
+      botonGenerar="Generar SDS"
+      carpetaDriveLabel="SDS"
+      loadDatos={loadDatos}
+      buildDatos={buildDatos}
+      productoRef={producto?.ref ?? ""}
+    >
+      <div className="space-y-4">
+        <Field value={titulo} onChange={setTitulo} placeholder="Título del producto" />
+        <p className="text-xs font-medium text-muted">Identificación</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Field label="Nombre comercial" value={nombreComercial} onChange={setNombreComercial} />
+          <Field label="Referencia interna" value={referencia} onChange={setReferencia} />
+          <Field label="INCI / químico" value={inci} onChange={setInci} />
+          <Field label="CAS" value={cas} onChange={setCas} />
+          <Field label="Fórmula molecular" value={formula} onChange={setFormula} />
+          <Field label="Usos recomendados" value={usos} onChange={setUsos} />
+          <Field label="Teléfono emergencia" value={telefono} onChange={setTelefono} />
+        </div>
+        <p className="text-xs font-medium text-muted">Peligros</p>
+        <Field label="Clasificación GHS" value={clasificacion} onChange={setClasificacion} rows={2} />
+        <Field label="Pictogramas / frases H-P" value={pictogramas} onChange={setPictogramas} rows={2} />
+        <Field label="Composición (componente|CAS|conc.)" value={composicion} onChange={setComposicion} rows={4} mono />
+        <Field label="Primeros auxilios (caso|instrucción)" value={primerosAuxilios} onChange={setPrimerosAuxilios} rows={4} mono />
+        <Field label="Manipulación" value={manipulacion} onChange={setManipulacion} rows={2} />
+        <Field label="Almacenamiento" value={almacenamiento} onChange={setAlmacenamiento} rows={2} />
+        <Field label="Propiedades (nombre|valor)" value={propiedades} onChange={setPropiedades} rows={6} mono />
+        <Field label="Normativa" value={normativa} onChange={setNormativa} rows={2} />
+        <Field label="Observaciones" value={observaciones} onChange={setObservaciones} rows={2} />
+      </div>
+    </DocumentoGeneradorTab>
+  );
+}
+
+export default function FichasTecnicasPanel() {
+  const [tab, setTab] = useState<TabDoc>("catalogo");
+  const [producto, setProducto] = useState<ProductoDocumentacion | null>(null);
+
+  const abrirGenerador = (tipo: "ft" | "coa" | "sds", p: ProductoDocumentacion) => {
+    setProducto(p);
+    setTab(tipo);
   };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-8">
       <div>
-        <h2 className="text-lg font-semibold text-ink">Fichas técnicas</h2>
+        <h2 className="text-lg font-semibold text-ink">Documentos técnicos</h2>
         <p className="mt-1 text-sm text-muted">
-          Genera DOCX y PDF con el formato McKenna y súbelos a Drive (carpetas WORD y PDF).
+          Catálogo de combos SIIGO, estado FT/COA/SDS, vista previa antes de generar y subida a Drive.
         </p>
       </div>
 
-      {config && (
-        <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-3">
-          <h3 className="text-sm font-medium text-ink">Google Drive — cuenta de servicio</h3>
-          <p className="text-xs text-muted">{config.instrucciones}</p>
-          {config.client_email && (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg bg-surface px-3 py-2">
-              <span className="text-[10px] text-muted shrink-0">Cuenta servicio:</span>
-              <code className="text-xs text-ink break-all">{config.client_email}</code>
-              <CopyBtn text={config.client_email} />
-            </div>
-          )}
-          {config.delegacion_configurada ? (
-            <p className="text-xs text-emerald-600">
-              Subida delegada como <strong>{config.impersonate_email}</strong>
-            </p>
-          ) : (
-            <p className="text-xs text-amber-600">
-              Falta <code className="text-[11px]">TDS_DRIVE_IMPERSONATE</code> en .env (correo @mckennagroup.co
-              dueño de las carpetas). Sin eso Google rechaza la subida aunque la carpeta esté compartida.
-            </p>
-          )}
-          {config.ayuda_delegacion && !config.delegacion_configurada && (
-            <p className="text-[11px] text-muted">{config.ayuda_delegacion}</p>
-          )}
-          <div className="grid gap-2 text-xs sm:grid-cols-2">
-            <div>
-              <span className="text-muted">Carpeta WORD: </span>
-              {config.folder_word_url ? (
-                <a href={config.folder_word_url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                  Abrir
-                </a>
-              ) : (
-                <span className="text-amber-600">No detectada (crear subcarpeta WORD)</span>
-              )}
-            </div>
-            <div>
-              <span className="text-muted">Carpeta PDF: </span>
-              {config.folder_pdf_url ? (
-                <a href={config.folder_pdf_url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                  Abrir
-                </a>
-              ) : (
-                <span className="text-amber-600">No detectada (crear subcarpeta PDF)</span>
-              )}
-            </div>
-          </div>
-          {!config.plantilla_ok && (
-            <p className="text-xs text-danger">Falta plantilla DOCX en el servidor (FT CAOLIN COLOIDAL.docx).</p>
-          )}
-        </section>
-      )}
-
-      <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-4">
-        <div className="flex flex-wrap gap-2 items-center">
-          <label className="text-sm text-muted">Producto guardado:</label>
-          <select
-            value={slugSel}
-            onChange={(e) => setSlugSel(e.target.value)}
-            className="rounded-lg border border-border bg-surface-input px-3 py-2 text-sm text-ink"
-          >
-            <option value="">— Nuevo —</option>
-            {(lista?.items ?? []).map((it) => (
-              <option key={it.id} value={it.id}>
-                {it.titulo} ({it.archivo})
-              </option>
-            ))}
-          </select>
+      <div className="flex flex-wrap gap-1 border-b border-border">
+        {TABS.map((t) => (
           <button
+            key={t.id}
             type="button"
-            onClick={() => plantillaMut.mutate()}
-            disabled={plantillaMut.isPending}
-            className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-ink hover:border-accent"
+            onClick={() => setTab(t.id)}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              tab === t.id
+                ? "border-b-2 border-accent text-accent"
+                : "text-muted hover:text-ink"
+            }`}
           >
-            Plantilla vacía
+            {t.label}
           </button>
-        </div>
+        ))}
+      </div>
 
-        <div className="flex gap-2 border-b border-border pb-2">
-          <button
-            type="button"
-            onClick={() => setModo("formulario")}
-            className={`text-sm font-medium px-2 py-1 ${modo === "formulario" ? "text-accent border-b-2 border-accent" : "text-muted"}`}
-          >
-            Formulario
-          </button>
-          <button
-            type="button"
-            onClick={() => setModo("yaml")}
-            className={`text-sm font-medium px-2 py-1 ${modo === "yaml" ? "text-accent border-b-2 border-accent" : "text-muted"}`}
-          >
-            YAML
-          </button>
-        </div>
-
-        {modo === "formulario" ? (
-          <div className="space-y-3">
-            <input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Título (ej. ARCILLA ROJA)"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-            <textarea
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              rows={4}
-              placeholder="Descripción"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-            <textarea
-              value={aplicaciones}
-              onChange={(e) => setAplicaciones(e.target.value)}
-              rows={4}
-              placeholder="Aplicaciones (un párrafo por línea)"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <label className="text-xs text-muted">Identidad (campo|valor por línea)</label>
-                <textarea value={identidad} onChange={(e) => setIdentidad(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs font-mono" />
-              </div>
-              <div>
-                <label className="text-xs text-muted">Propiedades</label>
-                <textarea value={propiedades} onChange={(e) => setPropiedades(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs font-mono" />
-              </div>
-              <div>
-                <label className="text-xs text-muted">Microbiología</label>
-                <textarea value={microbiologia} onChange={(e) => setMicrobiologia(e.target.value)} rows={6} className="mt-1 w-full rounded-lg border border-border bg-surface-input px-2 py-1.5 text-xs font-mono" />
-              </div>
-            </div>
-            <input
-              value={notaMicro}
-              onChange={(e) => setNotaMicro(e.target.value)}
-              placeholder="Nota microbiológica"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-            <textarea
-              value={estabilidad}
-              onChange={(e) => setEstabilidad(e.target.value)}
-              rows={2}
-              placeholder="Estabilidad y almacenamiento"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-            />
-          </div>
-        ) : (
-          <textarea
-            value={yamlText}
-            onChange={(e) => setYamlText(e.target.value)}
-            rows={18}
-            className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-xs font-mono"
-            spellCheck={false}
-          />
-        )}
-
-        <div className="flex flex-wrap gap-4 text-sm">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={generarPdf} onChange={(e) => setGenerarPdf(e.target.checked)} />
-            Generar PDF
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={subirDrive} onChange={(e) => setSubirDrive(e.target.checked)} />
-            Subir a Drive
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={guardarYaml} onChange={(e) => setGuardarYaml(e.target.checked)} />
-            Guardar YAML en servidor
-          </label>
-        </div>
-        {guardarYaml && (
-          <input
-            value={slugYaml}
-            onChange={(e) => setSlugYaml(e.target.value)}
-            placeholder="Slug archivo datos (ej. arcilla_roja)"
-            className="w-full max-w-xs rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-          />
-        )}
-
-        <button
-          type="button"
-          onClick={() => generarMut.mutate()}
-          disabled={generarMut.isPending || !config?.plantilla_ok}
-          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-40"
-        >
-          {generarMut.isPending ? "Generando…" : "Generar ficha técnica"}
-        </button>
-        {generarMut.isError && (
-          <p className="text-sm text-danger">{generarMut.error.message}</p>
-        )}
-      </section>
-
-      {ultimo?.ok && (
-        <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
-          <h3 className="text-sm font-medium text-ink">Generado: {ultimo.titulo}</h3>
-          <ul className="text-sm space-y-1">
-            <li>
-              Word:{" "}
-              <button
-                type="button"
-                className="text-accent hover:underline"
-                onClick={() => void descargar(ultimo.docx_nombre)}
-              >
-                {ultimo.docx_nombre}
-              </button>
-            </li>
-            {ultimo.pdf_nombre && (
-              <li>
-                PDF:{" "}
-                <button
-                  type="button"
-                  className="text-accent hover:underline"
-                  onClick={() => void descargar(ultimo.pdf_nombre!)}
-                >
-                  {ultimo.pdf_nombre}
-                </button>
-              </li>
-            )}
-          </ul>
-          {(ultimo.drive_uploads ?? []).map((u) => (
-            <div key={u.tipo} className="text-xs">
-              Drive {u.tipo}:{" "}
-              {u.webViewLink ? (
-                <a href={u.webViewLink} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                  {u.nombre || "Ver archivo"}
-                </a>
-              ) : (
-                <span className="text-danger">{u.error}</span>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
+      {tab === "catalogo" && <DocumentosCatalogoTab onGenerar={abrirGenerador} />}
+      {tab === "ft" && <FichaTecnicaTabContent producto={producto} />}
+      {tab === "coa" && <CoaTabContent producto={producto} />}
+      {tab === "sds" && <SdsTabContent producto={producto} />}
     </div>
   );
 }

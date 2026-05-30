@@ -360,12 +360,40 @@ def obtener_seller_id_meli() -> int:
 # Las constantes de URL y teléfono se cargan desde variables de entorno.
 URL_API_WHATSAPP = os.getenv("URL_API_WHATSAPP", "http://127.0.0.1:3000/enviar")
 URL_API_WHATSAPP_ARCHIVO = os.getenv("URL_API_WHATSAPP_ARCHIVO", "http://127.0.0.1:3000/enviar-archivo")
-TELEFONO_GRUPO_REPORTE = os.getenv("TELEFONO_GRUPO_REPORTE", "120363407538342427@g.us")
+URL_API_SUPERVISOR_PTT  = os.getenv("URL_API_SUPERVISOR_PTT", "http://127.0.0.1:3001/enviar-ptt")
+TELEFONO_GRUPO_REPORTE  = os.getenv("TELEFONO_GRUPO_REPORTE", "120363407538342427@g.us")
 
 
 _JID_PREVENTA_DEFAULT = "120363393955474672@g.us"
 _JID_POSTVENTA_DEFAULT = "120363406693905719@g.us"
 _JID_ALERTAS_SISTEMAS_DEFAULT = "120363425113254825@g.us"
+
+
+def enviar_voz_supervisor(numero_destino: str, audio_bytes: bytes, mime_type: str = "audio/wav") -> bool:
+    """Envía una nota de voz (PTT) a través del bridge supervisor (puerto 3001).
+
+    Retorna True si el envío fue exitoso.
+    """
+    import base64 as _b64
+    import requests as _req
+
+    url = URL_API_SUPERVISOR_PTT
+    token = os.getenv("WHATSAPP_SUPERVISOR_TOKEN", "").strip()
+    headers = {"X-Bridge-Token": token} if token else {}
+    payload = {
+        "numero":      numero_destino,
+        "audioBase64": _b64.b64encode(audio_bytes).decode(),
+        "mimeType":    mime_type,
+    }
+    try:
+        r = _req.post(url, json=payload, headers=headers, timeout=30)
+        if r.status_code == 200:
+            return True
+        print(f"[enviar_voz_supervisor] Error {r.status_code}: {r.text[:200]}")
+        return False
+    except Exception as exc:
+        print(f"[enviar_voz_supervisor] Conexión fallida: {exc}")
+        return False
 
 
 def _wa_jid_env(name: str, default_jid: str) -> str:

@@ -30,7 +30,9 @@ _PATRONES_PAGO_PEDIDO: list[str] = [
     r"\bpagar\s+(el\s+)?pedido\b",
     r"\b(estado|seguimiento)\s+(de\s+)?(mi\s+)?pedido\b",
     r"\bmi\s+pedido\b",
-    r"\bcotizaci[oó]n\b",
+    r"\bcotizaci[oó]n\s+(formal|del\s+pedido|para\s+pagar|cerrada)\b",
+    r"\b(enviar|mandar|recibir)\s+.*\bcotizaci[oó]n\b",
+    r"\bcotizaci[oó]n\b.*\b(enviar|mandar|recibir|link|pago|pedido)\b",
     r"\b(factura|facturaci[oó]n)\s+(del\s+)?pedido\b",
     r"\bfacturar\s+(el\s+)?pedido\b",
     r"\bno\s+(me\s+)?(han\s+)?(enviado|enviaron|mandaron|lleg[oó])\b",
@@ -90,12 +92,57 @@ def _coincide(texto: str, patrones: list[str]) -> bool:
     return any(re.search(p, low, re.IGNORECASE) for p in patrones)
 
 
+def _es_cotizacion_precios_producto(texto: str) -> bool:
+    """Cotizar ingredientes/presentaciones — no escalar a flujo de pago."""
+    low = _normalizar(texto)
+    if not re.search(r"\bcotiz", low):
+        return False
+    if re.search(
+        r"\b(cada\s+uno|por\s+presentaci|1\s*kg|kilogramo|kilo|lista|productos?|"
+        r"ingredientes?|materias?\s+primas?|precio|cu[aá]nto|unidades?|gramos?|"
+        r"presentaci[oó]n|evaluar|formulaci[oó]n)\b",
+        low,
+    ):
+        return True
+    if re.search(r"\bcotizaci[oó]n\s+de\b", low):
+        return True
+    return False
+
+
+def manejar_pregunta_contacto_web(texto: str) -> str | None:
+    """Número o enlace de WhatsApp sin respuesta vaga."""
+    low = _normalizar(texto)
+    if not low:
+        return None
+    pide_wa = bool(re.search(r"\b(whatsapp|wa\.me)\b", low))
+    pide_num = bool(
+        re.search(
+            r"\b(numero|n[uú]mero|celular|tel[eé]fono|contacto|escribir|escr[ií]banos)\b",
+            low,
+        )
+        or re.search(r"\ba\s+que\b", low)
+    )
+    if not (pide_wa or (pide_num and "whatsapp" in low)):
+        if not re.search(r"\b(a\s+que|cu[aá]l)\s+(numero|n[uú]mero|whatsapp)\b", low):
+            return None
+    display, digits = wa_publico()
+    return (
+        f"Veci, nuestro WhatsApp de ventas es **{display}**:\n"
+        f"https://wa.me/{digits}\n\n"
+        "Ahí retoman cotizaciones formales, pedidos, comprobantes y envío de documentos "
+        "con su historial. En esta burbuja puede consultar **precios, disponibilidad** y "
+        "enlaces a COA/ficha cuando estén en archivo."
+    )
+
+
 def clasificar_escalacion_web(texto: str, historial_texto: str = "") -> str | None:
     """
     Retorna: 'humano' | 'pago_pedido' | 'frustracion_pago' | None
     """
     low = _normalizar(texto)
     ctx = _normalizar(historial_texto)
+    if _es_cotizacion_precios_producto(low):
+        return None
     if _coincide(low, _PATRONES_HUMANO):
         return "humano"
     if _coincide(low, _PATRONES_PAGO_PEDIDO):
@@ -151,13 +198,13 @@ def sesion_web_en_pausa(session_id: str) -> dict | None:
 def mensaje_escalacion_pago_pedido() -> str:
     display, digits = wa_publico()
     return (
-        "Veci, entiendo que necesita **cerrar un pago** o el **seguimiento de su pedido/cotización**.\n\n"
-        "En la burbuja de la web resolvemos dudas de **productos y precios**. "
-        "Los **datos de pago, link, facturación y comprobantes** los gestiona el equipo por **WhatsApp**, "
-        "donde queda su conversación con un asesor.\n\n"
+        "Veci, para **cerrar un pago**, **link de pago**, **facturación** o **seguimiento de pedido** "
+        "el canal indicado es **WhatsApp** (queda su hilo con un asesor).\n\n"
+        "En esta burbuja le ayudamos con **precios, disponibilidad, uso en formulación** y "
+        "**enlaces a COA/ficha técnica** cuando están en archivo.\n\n"
         f"Escríbanos al {display}:\n"
         f"https://wa.me/{digits}\n\n"
-        "Si ya realizó el pago, envíe el comprobante **por ese WhatsApp** (no por aquí), "
+        "Si ya pagó, envíe el comprobante **por ese WhatsApp** (no por aquí), "
         "con su nombre y la referencia del pedido. En breve le responden 🙏"
     )
 

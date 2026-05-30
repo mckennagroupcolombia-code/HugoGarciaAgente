@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 import unicodedata
 from functools import lru_cache
 from typing import Any
@@ -17,7 +18,10 @@ DRIVE_FT_FOLDER_ID = os.getenv(
     "DRIVE_FT_FOLDER_ID", "1hHwif79Rf9O6vgAQt5X0CCVML4LeAIz6"
 )
 DRIVE_COA_FOLDER_ID = os.getenv(
-    "DRIVE_COA_FOLDER_ID", "1Pad1fOM9X5IUH0MDLZf5e982SuvCJtZN"
+    "COA_DRIVE_FOLDER_ID", "1Pad1fOM9X5IUH0MDLZf5e982SuvCJtZN"
+)
+DRIVE_SDS_FOLDER_ID = os.getenv(
+    "SDS_DRIVE_FOLDER_ID", "1lbnrVKDIH4CPL6SRWQxAx27zMZqma5IU"
 )
 
 _IGNORAR = frozenset(
@@ -75,6 +79,55 @@ def _drive_service():
         scopes=["https://www.googleapis.com/auth/drive.readonly"],
     )
     return build("drive", "v3", credentials=creds, cache_discovery=False)
+
+
+_INDICE_PDF_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+_INDICE_PDF_TTL_SEC = int(os.getenv("DRIVE_PDF_INDEX_TTL_SEC", "600"))
+
+
+def listar_pdfs_en_carpeta(
+    folder_id: str,
+    *,
+    page_size: int = 200,
+    usar_cache: bool = True,
+) -> list[dict[str, Any]]:
+    """Lista PDFs en una carpeta Drive (paginado). Cache en memoria ~10 min."""
+    if usar_cache and folder_id in _INDICE_PDF_CACHE:
+        ts, cached = _INDICE_PDF_CACHE[folder_id]
+        if time.time() - ts < _INDICE_PDF_TTL_SEC:
+            return cached
+
+    service = _drive_service()
+    if not service or not folder_id:
+        return []
+    files: list[dict] = []
+    token: str | None = None
+    try:
+        while True:
+            res = (
+                service.files()
+                .list(
+                    q=(
+                        f"'{folder_id}' in parents and mimeType = 'application/pdf' "
+                        f"and trashed = false"
+                    ),
+                    fields="nextPageToken, files(id, name, webViewLink)",
+                    pageSize=page_size,
+                    pageToken=token,
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True,
+                )
+                .execute()
+            )
+            files.extend(res.get("files") or [])
+            token = res.get("nextPageToken")
+            if not token:
+                break
+    except Exception as e:
+        print(f"⚠️ [DRIVE-DOC] Error listando carpeta {folder_id}: {e}")
+    if usar_cache:
+        _INDICE_PDF_CACHE[folder_id] = (time.time(), files)
+    return files
 
 
 def buscar_pdf_en_carpeta_drive(
@@ -140,3 +193,13 @@ def buscar_coa_pdf(nombre_producto: str) -> str | None:
     if not hit:
         hit = buscar_pdf_en_carpeta_drive(nombre_producto, DRIVE_COA_FOLDER_ID)
     return (hit or {}).get("webViewLink")
+
+
+def buscar_sds_pdf(nombre_producto: str) -> str | None:
+    hit = buscar_pdf_en_carpeta_drive(
+        nombre_producto, DRIVE_SDS_FOLDER_ID, prefijo_nombre="SDS"
+    )
+    if not hit:
+        hit = buscar_pdf_en_carpeta_drive(nombre_producto, DRIVE_SDS_FOLDER_ID)
+    return (hit or {}).get("webViewLink")
+

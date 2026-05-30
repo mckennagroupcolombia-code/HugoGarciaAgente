@@ -547,7 +547,7 @@ client.on('message', async (msg) => {
                     extension = 'pdf';
                 }
 
-                if (mediaType === 'image') {
+                if (mediaType === 'image' || mediaType === 'document') {
                     const timestamp = Date.now();
                     const numero = msg.from.split('@')[0];
                     if (!fs.existsSync(DIR_COMPROBANTES)) {
@@ -561,6 +561,19 @@ client.on('message', async (msg) => {
         }
 
         const ident = await resolverIdentidadCliente(msg);
+        const histIn = await mensajeAPayloadHistorial(msg);
+        if (histIn && !histIn.revoke) {
+            if (mediaPath) {
+                const rel = mediaPath.includes('comprobantes')
+                    ? 'comprobantes/' + path.basename(mediaPath)
+                    : path.basename(mediaPath);
+                histIn.media_path = rel;
+                histIn.nombre_arch = path.basename(mediaPath);
+                if (mediaType === 'image') histIn.media_mime = 'image/jpeg';
+                else if (mediaType === 'document') histIn.media_mime = 'application/pdf';
+            }
+            await enviarHistorialPanel([histIn]);
+        }
         const responseIA = await axios.post('http://localhost:8081/whatsapp', {
             sender: ident.sender,
             sender_lid: ident.sender_lid,
@@ -827,6 +840,7 @@ async function mensajeAPayloadHistorial(msg) {
         from_me: !!msg.fromMe,
         texto,
         tiene_media: !!msg.hasMedia,
+        nombre_arch: '',
         type: tipo,
         enviado_por: msg.fromMe ? 'humano' : 'cliente',
     };

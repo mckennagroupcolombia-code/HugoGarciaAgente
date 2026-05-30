@@ -3,15 +3,30 @@
     {
       "id": "web_seguimiento_whatsapp",
       "trigger": [
-        "cotizacion",
-        "cotización",
+        "link de pago",
+        "datos de pago",
         "seguimiento",
         "estado del pedido",
         "mi pedido",
-        "confirmar compra"
+        "confirmar compra",
+        "comprobante de pago"
       ],
       "contexto": "Chat burbuja web (sin teléfono del cliente)",
-      "instruccion": "Si piden cotización formal, seguimiento de pedido o continuar después, indique que deben escribir por WhatsApp (número de la tienda) para retomar el hilo con un asesor. No prometa continuar solo en este chat web si cierran el navegador."
+      "instruccion": "Solo para pago, pedido o cotización formal a cerrar: indique WhatsApp +57 319 518 3596. Para cotización de precios por producto o lista de ingredientes, responda en el chat con el catálogo. No prometa continuar el hilo si cierran el navegador."
+    },
+    {
+      "id": "web_documentos_coa_ft",
+      "trigger": [
+        "coa",
+        "certificado",
+        "ficha tecnica",
+        "ficha técnica",
+        "ficha de seguridad",
+        "msds",
+        "hoja de seguridad"
+      ],
+      "contexto": "Chat burbuja web",
+      "instruccion": "Entregue enlaces COA/ficha técnica del contexto si existen. Si no hay PDF, pida correo electrónico y mencione mckennagroup.co/guias. No responda solo con precios. WhatsApp solo como opción para seguimiento, no obligatorio para documentos."
     },
     {
       "id": "handoff_humano",

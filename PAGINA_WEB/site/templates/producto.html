@@ -332,7 +332,11 @@
 
     <div class="warning-box" style="margin-top:32px;">
       <strong>¿Necesitas el certificado de análisis (CoA) o la ficha de seguridad (MSDS)?</strong><br>
-      Escríbenos por WhatsApp indicando la referencia del producto y te lo enviamos de inmediato.
+      Abre el <strong>chat</strong> (icono abajo a la derecha), indica la referencia <strong>{{ p.ref }}</strong>
+      y te compartimos enlaces si están en archivo; si no, déjanos tu correo en el mismo chat.
+      También puedes escribir por
+      <a href="https://wa.me/{{ WA_NUMBER }}?text={{ ('Hola, solicito COA y ficha de seguridad de ' ~ p.name ~ ' Ref ' ~ p.ref)|urlencode }}"
+         target="_blank" rel="noopener">WhatsApp</a> para seguimiento con un asesor.
     </div>
 
   </div>
@@ -341,7 +345,15 @@
 <div class="section">
   <div class="warning-box">
     <strong>¿Necesitas ficha técnica o certificado de análisis?</strong><br>
-    Escríbenos por WhatsApp indicando la referencia del producto y te lo enviamos de inmediato.
+    {% if p.ref %}
+    Usa el <strong>chat</strong> de la página (icono abajo a la derecha) con la referencia <strong>{{ p.ref }}</strong>
+    o escríbenos por
+    <a href="https://wa.me/{{ WA_NUMBER }}?text={{ ('Hola, solicito ficha técnica y COA Ref ' ~ p.ref)|urlencode }}"
+       target="_blank" rel="noopener">WhatsApp</a>.
+    {% else %}
+    Abre el <strong>chat</strong> (icono abajo a la derecha) con el nombre del producto, o escríbenos por
+    <a href="https://wa.me/{{ WA_NUMBER }}" target="_blank" rel="noopener">WhatsApp</a>.
+    {% endif %}
   </div>
 </div>
 {% endif %}

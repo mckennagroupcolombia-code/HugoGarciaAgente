@@ -867,3 +867,45 @@
     font-size: 0.9rem;
   }
 }
+
+/* ── Animaciones modo Duolingo ─────────────────────────────────────────── */
+@keyframes mck-slide-in-right {
+  from { opacity: 0; transform: translateX(48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes mck-slide-in-left {
+  from { opacity: 0; transform: translateX(-48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes mck-slide-up {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mck-bounce-in {
+  0%   { transform: scale(0.2) rotate(-12deg); opacity: 0; }
+  55%  { transform: scale(1.18) rotate(4deg);  opacity: 1; }
+  75%  { transform: scale(0.93) rotate(-2deg); }
+  100% { transform: scale(1)    rotate(0deg);  }
+}
+@keyframes mck-celebrate-pop {
+  0%   { transform: scale(0) rotate(-180deg); opacity: 0; }
+  50%  { transform: scale(1.25) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1)    rotate(0deg); opacity: 1; }
+}
+@keyframes mck-ring-pulse {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes mck-bar-fill {
+  from { width: 0%; }
+}
+@keyframes mck-check-draw {
+  from { stroke-dashoffset: 50; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.mck-slide-right { animation: mck-slide-in-right 0.28s cubic-bezier(.25,.46,.45,.94) both; }
+.mck-slide-left  { animation: mck-slide-in-left  0.28s cubic-bezier(.25,.46,.45,.94) both; }
+.mck-slide-up    { animation: mck-slide-up       0.28s cubic-bezier(.25,.46,.45,.94) both; }
+.mck-bounce-in   { animation: mck-bounce-in      0.5s  cubic-bezier(.25,.46,.45,.94) both; }
+.mck-celebrate   { animation: mck-celebrate-pop  0.45s cubic-bezier(.25,.46,.45,.94) both; }

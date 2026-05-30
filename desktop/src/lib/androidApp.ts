@@ -3,6 +3,16 @@ export function isMcKennaAndroidApp(): boolean {
   return /McKennaPanelAndroid/i.test(navigator.userAgent);
 }
 
+/**
+ * Chrome u otro navegador en teléfono Android (no el APK).
+ * Ahí sí tiene sentido intent:// para abrir co.mckennagroup.panel si está instalada.
+ */
+export function isAndroidMobileBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /Android/i.test(ua) && !/McKennaPanelAndroid/i.test(ua);
+}
+
 /** Web Push / Notification API (no disponible en WebView Android). */
 export function webNotificationsAvailable(): boolean {
   return (
