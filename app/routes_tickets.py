@@ -1954,9 +1954,10 @@ def register_tickets_routes(app):
         )
         data = request.get_json(force=True) or {}
         uid = request.tickets_usuario["id"]
-        guardar_procedimiento_desde_accion(
-            accion_id, uid, lista_compras=data.get("lista_compras"),
-        )
+        if data.get("guardar_como_procedimiento"):
+            guardar_procedimiento_desde_accion(
+                accion_id, uid, lista_compras=data.get("lista_compras"),
+            )
         ticket, err = completar_accion_y_reportar_solicitud(
             accion_id,
             uid,

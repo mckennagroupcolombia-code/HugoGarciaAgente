@@ -1753,3 +1753,35 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-05-29 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
+[master b99b759] Auto-commit: actualizacion diaria 2026-05-30 23:00
+ 49 files changed, 11790 insertions(+), 1270 deletions(-)
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACIAZE10g_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-ACIAZE10g_3.png
+ create mode 100644 app/data/etiquetas_datos.json
+ create mode 100644 app/data/publicaciones_overrides.json
+ create mode 100644 app/data/web_chat_consultas_pendientes.json
+ create mode 100644 app/services/panel_presencia.py
+ create mode 100644 app/services/publicaciones.py
+ create mode 100644 app/services/sync_scheduler.py
+ create mode 100644 app/services/tickets_notificaciones.py
+ create mode 100644 app/services/web_chat_consultas.py
+ create mode 100644 app/web_chat_escalacion.py
+ create mode 100644 desktop/src/components/PublicacionesPanel.tsx
+ create mode 100644 desktop/src/components/TelefonosOperadoresSection.tsx
+ create mode 100644 desktop/src/hooks/usePanelMetricas.ts
+ create mode 100644 desktop/src/hooks/usePanelSession.ts
+ create mode 100644 desktop/src/hooks/usePublicaciones.ts
+ create mode 100644 uploads/tickets/1da3b0d6c7504783a68c34c465e752fd.png
+ create mode 100644 uploads/tickets/49d227d205f645d496ef1f37501d9268.jpeg
+ create mode 100644 uploads/tickets/553fb348aa3e4d5c8880b7e0309292b3.jpeg
+ create mode 100644 uploads/tickets/99220250301f4a239cb21b0f85a944f3.png
+ create mode 100644 uploads/tickets/9ae565876d72472da4a6587176a8e288.png
+ create mode 100644 uploads/tickets/c9c36129ceba4931a2b51ab4001cad10.jpeg
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-05-30 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
