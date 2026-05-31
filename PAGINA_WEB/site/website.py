@@ -60,6 +60,7 @@ CACHE_FILE  = Path(__file__).parent / "data/cache.json"
 FICHAS_FILE = Path(__file__).parent / "data/fichas_tecnicas.json"
 FAMILIAS_FILE = Path(__file__).parent / "data/catalogo_familias.json"
 SIIGO_FOTOS_FILE = Path(__file__).parent / "data/siigo_fotos.json"
+PUB_OVERRIDES_FILE = ROOT / "app" / "data" / "publicaciones_overrides.json"
 CACHE_TTL   = 6 * 3600          # 6 horas
 CATALOG_CACHE_VERSION = 7       # v7 = evita cruces cuando falta foto SIIGO propia
 WA_NUMBER   = "573195183596"
@@ -2051,6 +2052,21 @@ def catalogo():
         cat_filter=cat_filter)
 
 
+def _fotos_de_producto(p: dict) -> list[str]:
+    """Devuelve la lista de URLs de imagen del producto usando overrides si existen."""
+    sku = (p.get("ref") or p.get("rep_sku") or "").strip()
+    try:
+        raw = json.loads(PUB_OVERRIDES_FILE.read_text(encoding="utf-8"))
+        ov = raw.get(sku) or raw.get(sku.upper()) or {}
+        imagenes = ov.get("imagenes_web", [])
+        if imagenes:
+            return [f"/imagenes-productos-catalogo/{fn}" for fn in imagenes]
+    except Exception:
+        pass
+    foto = p.get("photo", "")
+    return [foto] if foto else []
+
+
 @app.route("/producto/<slug>")
 def producto(slug):
     p = find_product(slug)
@@ -2064,8 +2080,10 @@ def producto(slug):
         for x in s["products"]
         if x.get("slug") != my_slug
     ][:4]
+    fotos = _fotos_de_producto(p)
     return render_template("producto.html",
         p=p,
+        fotos=fotos,
         relacionados=relacionados,
         wa=wa_link(p))
 
