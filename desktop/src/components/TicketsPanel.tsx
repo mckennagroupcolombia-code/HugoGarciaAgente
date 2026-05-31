@@ -13356,53 +13356,70 @@ function SolicitudCard({
       {!resuelta && esAsignado && !supervision && !esIntervencion && !esSolicitudCompraDelegada(ticket) && (
         <div className="space-y-2 pt-1">
           {msg && <p className="text-xs text-red-400">{msg}</p>}
-          <div className="flex gap-2">
-            <button type="button" disabled={busy} onClick={iniciarPausar}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
-                ticket.estado === "en_proceso"
-                  ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
-                  : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
-              }`}
-            >
-              <Icon name={ticket.estado === "en_proceso" ? "clock" : "lightning"} size={15} weight="bold" />
-              {ticket.estado === "en_proceso" ? "Pausar" : "Iniciar"}
-            </button>
-            {(() => {
-              const total = ticket.pasos_total ?? 0;
-              const hechos = ticket.pasos_completados ?? 0;
-              const pasosFaltantes = total > 0 ? total - hechos : 0;
-              return (
-                <button type="button" disabled={busy} onClick={resolver}
-                  title={pasosFaltantes > 0 ? `Faltan ${pasosFaltantes} paso(s) por completar` : undefined}
-                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
-                    pasosFaltantes > 0
-                      ? "border-border bg-surface-hover text-muted cursor-not-allowed"
-                      : "border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
-                  }`}
-                >
-                  <Icon name="check" size={15} weight="bold" />
-                  {pasosFaltantes > 0 ? `Listo (${hechos}/${total} pasos)` : "Listo"}
-                </button>
-              );
-            })()}
-          </div>
-          {/* Botones secundarios */}
-          <div className="flex flex-wrap gap-1.5">
-            {onRegistrarEjecucion && ticket.estado === "en_proceso" && (
+
+          {/* Solicitud con protocolo → botón único que abre el wizard */}
+          {onRegistrarEjecucion && ticket.protocolo_id ? (
+            <div className="space-y-1.5">
               <button
                 type="button"
+                disabled={busy}
                 onClick={() => onRegistrarEjecucion(ticket)}
-                className="rounded-lg border border-accent bg-accent/10 px-2 py-1.5 text-xs font-bold text-accent transition hover:bg-accent/20"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-3 py-3 text-sm font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
               >
-                ⚡ Registrar ejecución
+                <Icon name="lightning" size={15} weight="bold" />
+                {ticket.estado === "en_proceso" ? "Continuar ejecución" : "Ejecutar procedimiento"}
               </button>
-            )}
+              {ticket.estado === "en_proceso" && (
+                <button type="button" disabled={busy} onClick={iniciarPausar}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-yellow-400 bg-yellow-50 px-3 py-2 text-xs font-bold text-yellow-700 transition hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 disabled:opacity-40"
+                >
+                  <Icon name="clock" size={13} weight="bold" /> Pausar
+                </button>
+              )}
+            </div>
+          ) : (
+            /* Solicitud libre → Iniciar/Pausar + Listo */
+            <div className="flex gap-2">
+              <button type="button" disabled={busy} onClick={iniciarPausar}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
+                  ticket.estado === "en_proceso"
+                    ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
+                    : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
+                }`}
+              >
+                <Icon name={ticket.estado === "en_proceso" ? "clock" : "lightning"} size={15} weight="bold" />
+                {ticket.estado === "en_proceso" ? "Pausar" : "Iniciar"}
+              </button>
+              {(() => {
+                const total = ticket.pasos_total ?? 0;
+                const hechos = ticket.pasos_completados ?? 0;
+                const pasosFaltantes = total > 0 ? total - hechos : 0;
+                return (
+                  <button type="button" disabled={busy} onClick={resolver}
+                    title={pasosFaltantes > 0 ? `Faltan ${pasosFaltantes} paso(s) por completar` : undefined}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
+                      pasosFaltantes > 0
+                        ? "border-border bg-surface-hover text-muted cursor-not-allowed"
+                        : "border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+                    }`}
+                  >
+                    <Icon name="check" size={15} weight="bold" />
+                    {pasosFaltantes > 0 ? `Listo (${hechos}/${total} pasos)` : "Listo"}
+                  </button>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Botones secundarios */}
+          <div className="flex flex-wrap gap-1.5">
             <button type="button"
               onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
               className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
               📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
             </button>
-            {(ticket.pasos_total ?? 0) > 0 && !showPasos && (
+            {/* Ver pasos solo para solicitudes sin protocolo (las de protocolo usan el wizard) */}
+            {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
               <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
                 className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
                 ☑ Ver pasos
@@ -13833,6 +13850,7 @@ function NuevaAccionWizard({
   );
   const [pasosGuardados, setPasosGuardados] = useState<PasoAccionDraft[]>(plantillaEff?.pasos ?? []);
   const [reporteSolicitud, setReporteSolicitud] = useState("");
+  const [guardarComoProcedimiento, setGuardarComoProcedimiento] = useState(false);
   const [pasoNombre, setPasoNombre] = useState("");
   const [pasoDesc, setPasoDesc] = useState("");
   const [editandoPasoIdx, setEditandoPasoIdx] = useState<number | null>(null);
@@ -14261,6 +14279,7 @@ function NuevaAccionWizard({
       reporte: reporteSolicitud.trim(),
       lista_compras: itemsLista,
       cerrar_solicitud: !!solicitudPadreId,
+      guardar_como_procedimiento: guardarComoProcedimiento,
     };
     const res = await fetch(`/api/tickets/${tid}/completar-accion`, {
       method: "POST",
@@ -14980,8 +14999,8 @@ function NuevaAccionWizard({
             <h2 className="text-2xl font-extrabold text-ink leading-tight">Cerrar acción</h2>
             <p className="mt-2 text-sm text-muted">
               {solicitudPadreId
-                ? "Envía el reporte a quien solicitó la tarea. La acción quedará guardada como procedimiento reutilizable."
-                : "Los pasos quedaron registrados como procedimiento. Puedes adjuntar una foto opcional."}
+                ? "Envía el reporte a quien solicitó la tarea."
+                : "Revisa los pasos y cierra la acción."}
             </p>
             <p className="mt-3 rounded-2xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-base font-bold text-ink">
               {titulo.trim()}
@@ -15042,6 +15061,24 @@ function NuevaAccionWizard({
               />
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => setGuardarComoProcedimiento((v) => !v)}
+            className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition ${
+              guardarComoProcedimiento
+                ? "border-accent bg-accent/8 text-accent"
+                : "border-border text-muted hover:border-accent/60"
+            }`}
+          >
+            <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 text-xs font-black transition ${
+              guardarComoProcedimiento ? "border-accent bg-accent text-white" : "border-border"
+            }`}>{guardarComoProcedimiento ? "✓" : ""}</span>
+            <div>
+              <p className="text-sm font-semibold">Guardar como procedimiento</p>
+              <p className="text-xs text-muted">Quedará en «Mis procedimientos» para reutilizar o delegar</p>
+            </div>
+          </button>
 
           <button
             type="button"
@@ -15803,6 +15840,8 @@ function SolicitudesView({
   const { apiToken: chatApiToken } = useTicketsAuth();
   const stt = useStt(token, chatApiToken);
   const [showEjecWizard, setShowEjecWizard] = useState(false);
+  const [showRepetirEjecWizard, setShowRepetirEjecWizard] = useState(false);
+  const [plantillaRepetirEjec, setPlantillaRepetirEjec] = useState<PlantillaAccion | undefined>();
   const [showWizard, setShowWizard] = useState(false);
   const [plantillaEjec, setPlantillaEjec] = useState<PlantillaAccion | undefined>();
   const [solicitudEjecId, setSolicitudEjecId] = useState<number | undefined>();
@@ -15916,9 +15955,42 @@ function SolicitudesView({
         plantilla = plantillaDesdeProtocolo(p);
       } catch { /* usar título de solicitud */ }
     }
-    setPlantillaEjec(plantilla);
     setSolicitudEjecId(t.id);
-    setShowEjecWizard(true);
+    // Si el protocolo tiene ingredientes o pasos definidos, usar el flujo
+    // paso-a-paso (RepetirAccionWizard) en lugar del formulario editable.
+    const tieneContenido = plantilla.listaCompras.length > 0 || plantilla.pasos.length > 0;
+    if (tieneContenido) {
+      setPlantillaRepetirEjec(plantilla);
+      setShowRepetirEjecWizard(true);
+    } else {
+      setPlantillaEjec(plantilla);
+      setShowEjecWizard(true);
+    }
+  }
+
+  if (showRepetirEjecWizard && plantillaRepetirEjec) {
+    return (
+      <RepetirAccionWizard
+        token={token}
+        user={user}
+        chatApiToken={chatApiToken}
+        plantilla={plantillaRepetirEjec}
+        solicitudPadreId={solicitudEjecId}
+        onCancel={() => {
+          setShowRepetirEjecWizard(false);
+          setPlantillaRepetirEjec(undefined);
+          setSolicitudEjecId(undefined);
+        }}
+        onCreated={() => {
+          setShowRepetirEjecWizard(false);
+          setPlantillaRepetirEjec(undefined);
+          setSolicitudEjecId(undefined);
+          void load(false);
+          setMsg("Ejecución completada");
+          setTimeout(() => setMsg(""), 3000);
+        }}
+      />
+    );
   }
 
   if (showWizard) {
@@ -16149,12 +16221,21 @@ function SolicitudesView({
 
 type FaseRepetir = "iniciando" | "ingrediente" | "paso" | "cierre" | "completada";
 
+type ReanudarRepetirState = {
+  ticketId: number;
+  pasosIds: number[];
+  corridaId: number | null;
+  segundosBase: number;
+  startPasoIdx: number;
+};
+
 function RepetirAccionWizard({
   token,
   user,
   chatApiToken,
   plantilla,
   solicitudPadreId,
+  reanudar,
   onCancel,
   onCreated,
 }: {
@@ -16163,38 +16244,42 @@ function RepetirAccionWizard({
   chatApiToken: string | null | undefined;
   plantilla: PlantillaAccion;
   solicitudPadreId?: number;
+  reanudar?: ReanudarRepetirState;
   onCancel: () => void;
   onCreated: (ticketId: number) => void;
 }) {
   const stt = useStt(token, chatApiToken);
   const [fase, setFase] = useState<FaseRepetir>("iniciando");
   const [slideDir, setSlideDir] = useState<"right" | "left">("right");
-  const [ticketId, setTicketId] = useState<number | null>(null);
-  const [pasosIds, setPasosIds] = useState<number[]>([]);
+  const [ticketId, setTicketId] = useState<number | null>(reanudar?.ticketId ?? null);
+  const [pasosIds, setPasosIds] = useState<number[]>(reanudar?.pasosIds ?? []);
   const [ingIdx, setIngIdx] = useState(0);
-  const [pasoIdx, setPasoIdx] = useState(0);
+  const [pasoIdx, setPasoIdx] = useState(reanudar?.startPasoIdx ?? 0);
+  const [segBase] = useState(reanudar?.segundosBase ?? 0);
   const [reporteTexto, setReporteTexto] = useState("");
   const [completando, setCompletando] = useState(false);
   const [error, setError] = useState("");
 
   const inicioRef = useRef<number | null>(null);
-  const corridaIdRef = useRef<number | null>(null);
-  const [seg, setSeg] = useState(0);
+  const corridaIdRef = useRef<number | null>(reanudar?.corridaId ?? null);
+  const [seg, setSeg] = useState(reanudar?.segundosBase ?? 0);
   useEffect(() => {
     const iv = setInterval(() => {
       if (inicioRef.current == null) return;
-      setSeg(Math.floor((Date.now() - inicioRef.current) / 1000));
+      setSeg(segBase + Math.floor((Date.now() - inicioRef.current) / 1000));
     }, 500);
     return () => clearInterval(iv);
-  }, []);
+  }, [segBase]);
 
   const ingredientes = plantilla.listaCompras.filter((m) => m.n.trim());
   const pasos = plantilla.pasos;
+  // Al reanudar, los ingredientes ya se pasaron: el progreso empieza desde los pasos
+  const posBase = reanudar ? ingredientes.length : 0;
   const totalItems = ingredientes.length + pasos.length;
   const posActual = fase === "ingrediente"
     ? ingIdx
     : fase === "paso"
-      ? ingredientes.length + pasoIdx
+      ? posBase + pasoIdx
       : totalItems;
   const pct = totalItems > 0 ? Math.round((posActual / totalItems) * 100) : 0;
 
@@ -16208,6 +16293,27 @@ function RepetirAccionWizard({
   useEffect(() => { void init(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function init() {
+    // ── Reanudar acción existente ──
+    if (reanudar) {
+      try {
+        const cr = await tapi(`/${reanudar.ticketId}/corridas/iniciar`, token, {
+          method: "POST", body: JSON.stringify({ segundos_previos: reanudar.segundosBase }),
+        }) as Ticket;
+        corridaIdRef.current = cr.corrida?.id ?? reanudar.corridaId;
+      } catch { /* usa corridaId del reanudar */ }
+      inicioRef.current = Date.now();
+      // Ir directo al paso: saltar ingredientes al reanudar
+      if (reanudar.startPasoIdx >= pasos.length && pasos.length > 0) {
+        setFase("cierre");
+      } else if (pasos.length > 0) {
+        setFase("paso");
+      } else {
+        setFase("cierre");
+      }
+      return;
+    }
+
+    // ── Nueva acción ──
     try {
       const ticket = await tapi("/", token, {
         method: "POST",
@@ -16553,6 +16659,7 @@ function RepetirAccionWizard({
           ) : (
             <p className="text-sm text-muted">¿Todo listo? Marca la acción como completada.</p>
           )}
+
           <button
             type="button"
             disabled={completando || (!!solicitudPadreId && !reporteTexto.trim())}
@@ -16594,11 +16701,15 @@ function AccionesView({
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<"" | "pendiente" | "en_proceso" | "resuelto">(""); // "" = activas
   const [showWizard, setShowWizard] = useState(false);
+  const [showIniciarMenu, setShowIniciarMenu] = useState(false);
+  const [protocolosMenu, setProtocolosMenu] = useState<Protocolo[]>([]);
+  const [loadingMenu, setLoadingMenu] = useState(false);
   const [wizardTituloInicial, setWizardTituloInicial] = useState("");
   const [plantillaWizard, setPlantillaWizard] = useState<PlantillaAccion | undefined>();
   const [reanudarWizard, setReanudarWizard] = useState<ResumeAccionState | null>(null);
   const [showRepetirWizard, setShowRepetirWizard] = useState(false);
   const [plantillaRepetir, setPlantillaRepetir] = useState<PlantillaAccion | undefined>();
+  const [reanudarRepetir, setReanudarRepetir] = useState<ReanudarRepetirState | undefined>();
   const [tabAcciones, setTabAcciones] = useState<"activas" | "historial" | "procedimientos">("activas");
   const [historial, setHistorial] = useState<Ticket[]>([]);
   const [procedimientos, setProcedimientos] = useState<Protocolo[]>([]);
@@ -16897,6 +17008,42 @@ function AccionesView({
           resume.ticket = det;
         } catch { /* wizard sincroniza al abrir */ }
       }
+
+      // Detectar si este ticket fue creado por RepetirAccionWizard:
+      // Tiene pasos guardados, no hay compras pendientes y no hay bloqueos.
+      // En ese caso, retomar con la UI Duolingo paso-a-paso.
+      const esRepetir =
+        resume.faseInicial === "cierre" &&
+        resume.plantilla.pasos.length > 0 &&
+        !resume.bloqueoCompras &&
+        !resume.bloqueadoIntervencion &&
+        resume.plantilla.listaCompras.length === 0;
+
+      if (esRepetir) {
+        // Cargar IDs de pasos del servidor para poder marcarlos completados
+        let pasosIds: number[] = [];
+        let startPasoIdx = 0;
+        try {
+          const pasosRaw = await tapi(`/${t.id}/pasos`, token) as Paso[];
+          const reales = pasosRaw.filter((p) => p.descripcion !== "Ir de compras");
+          pasosIds = reales.map((p) => p.id);
+          const primerIncompleto = reales.findIndex((p) => !pasoEstaCompletado(p));
+          startPasoIdx = primerIncompleto >= 0 ? primerIncompleto : reales.length;
+        } catch { /* usamos idx 0 */ }
+
+        const segundosBase = resume.ticket.corrida?.segundos_acumulados ?? resume.ticket.segundos_trabajo ?? 0;
+        setPlantillaRepetir(resume.plantilla);
+        setReanudarRepetir({
+          ticketId: t.id,
+          pasosIds,
+          corridaId: resume.ticket.corrida?.id ?? null,
+          segundosBase,
+          startPasoIdx,
+        });
+        setShowRepetirWizard(true);
+        return;
+      }
+
       setReanudarWizard(resume);
       setPlantillaWizard(undefined);
       setWizardTituloInicial("");
@@ -16913,7 +17060,7 @@ function AccionesView({
     try {
       const [hist, proc] = await Promise.all([
         tapi("/acciones/historial", token),
-        tapi("/protocolos?alcance=personal", token),
+        tapi("/protocolos?alcance=mis", token),
       ]);
       setHistorial(Array.isArray(hist) ? hist.map(normalizeTicketForList) : []);
       setProcedimientos(Array.isArray(proc) ? proc : []);
@@ -17038,10 +17185,17 @@ function AccionesView({
         user={user}
         chatApiToken={chatApiToken}
         plantilla={plantillaRepetir}
-        onCancel={() => { setShowRepetirWizard(false); setPlantillaRepetir(undefined); void load(true); }}
+        reanudar={reanudarRepetir}
+        onCancel={() => {
+          setShowRepetirWizard(false);
+          setPlantillaRepetir(undefined);
+          setReanudarRepetir(undefined);
+          void load(true);
+        }}
         onCreated={(id) => {
           setShowRepetirWizard(false);
           setPlantillaRepetir(undefined);
+          setReanudarRepetir(undefined);
           void onAccionCreada(id);
         }}
       />
@@ -17175,15 +17329,78 @@ function AccionesView({
           {!isAdmin && (
             <button
               type="button"
-              onClick={() => abrirWizard()}
+              onClick={async () => {
+                setLoadingMenu(true);
+                setShowIniciarMenu(true);
+                try {
+                  const data = await tapi("/protocolos?alcance=global", token);
+                  setProtocolosMenu(Array.isArray(data) ? data : []);
+                } catch { setProtocolosMenu([]); } finally { setLoadingMenu(false); }
+              }}
               className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
             >
               <Icon name="plus" size={14} weight="bold" />
-              Nueva acción
+              Iniciar acción
             </button>
           )}
         </div>
       </div>
+
+      {/* ── Menú de inicio: libre o desde procedimiento ── */}
+      {showIniciarMenu && !isAdmin && (
+        <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold uppercase tracking-widest text-accent">¿Cómo quieres empezar?</p>
+            <button type="button" onClick={() => setShowIniciarMenu(false)} className="text-muted hover:text-ink text-sm">✕</button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => { setShowIniciarMenu(false); abrirWizard(); }}
+              className="text-left rounded-2xl border-2 border-border bg-surface px-4 py-4 transition hover:border-accent hover:bg-accent/5 group"
+            >
+              <p className="text-sm font-extrabold text-ink group-hover:text-accent transition-colors">✍️ Acción libre</p>
+              <p className="mt-1 text-xs text-muted">Describe con tus palabras qué vas a hacer.</p>
+            </button>
+            <div className="rounded-2xl border-2 border-border bg-surface px-4 py-4 space-y-2">
+              <p className="text-sm font-extrabold text-ink">📋 Desde procedimiento</p>
+              <p className="text-xs text-muted">Ejecuta un proceso ya definido del equipo.</p>
+              {loadingMenu && <p className="text-xs text-muted">Cargando…</p>}
+              {!loadingMenu && protocolosMenu.length === 0 && (
+                <p className="text-xs text-muted italic">No hay procedimientos disponibles.</p>
+              )}
+              {!loadingMenu && protocolosMenu.length > 0 && (
+                <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                  {protocolosMenu.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setShowIniciarMenu(false);
+                        const plantilla = plantillaDesdeProtocolo(p);
+                        const tieneContenido = plantilla.listaCompras.length > 0 || plantilla.pasos.length > 0;
+                        if (tieneContenido) {
+                          setPlantillaRepetir(plantilla);
+                          setReanudarRepetir(undefined);
+                          setShowRepetirWizard(true);
+                        } else {
+                          abrirWizard("", plantilla);
+                        }
+                      }}
+                      className="w-full text-left rounded-xl border border-border px-3 py-2 text-xs font-semibold text-ink hover:border-accent hover:bg-accent/5 transition"
+                    >
+                      <span className="block truncate">{p.titulo}</span>
+                      {(p.pasos?.length ?? 0) > 0 && (
+                        <span className="text-[10px] text-muted">{p.pasos.length} paso{p.pasos.length !== 1 ? "s" : ""}{(p.lista_compras?.length ?? 0) > 0 ? ` · ${p.lista_compras!.length} ingredientes` : ""}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {msg && !showWizard && (
         <p className="text-sm text-accent font-semibold">{msg}</p>
@@ -17232,80 +17449,158 @@ function AccionesView({
 
       {tabAcciones === "historial" && !isAdmin && (
         <div className="space-y-3">
-          <p className="text-sm text-muted">
-            Acciones terminadas. Usa <strong className="text-ink">Ejecutar de nuevo</strong> para una nueva corrida con los mismos pasos.
-          </p>
           {loadingExtra && <p className="text-sm text-muted">Cargando historial…</p>}
           {!loadingExtra && historial.length === 0 && (
             <p className="py-8 text-center text-sm text-muted">Aún no hay acciones en tu historial.</p>
           )}
-          <div className="grid gap-2 sm:grid-cols-2">
-            {historial.map((t) => (
-              <div key={t.id} className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
-                <p className="font-semibold text-ink">{t.titulo}</p>
-                <p className="text-xs text-muted font-mono">{t.numero}</p>
-                {(t.procedimiento_id ?? t.protocolo_id) && (
-                  <span className="inline-block rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
-                    Procedimiento guardado
-                  </span>
-                )}
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    disabled={loadingExtra}
-                    onClick={() => void repetirDesdeHistorial(t.id)}
-                    className="w-full rounded-xl border-2 border-accent/50 py-2 text-sm font-bold text-accent hover:bg-accent/10 disabled:opacity-40"
-                  >
-                    ↻ Ejecutar de nuevo
-                  </button>
-                  {!(t.procedimiento_id ?? t.protocolo_id) && (
-                    <button
-                      type="button"
-                      disabled={loadingExtra}
-                      onClick={() => void guardarProcedimientoHistorial(t.id)}
-                      className="w-full rounded-xl border border-border py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent disabled:opacity-40"
-                    >
-                      📌 Guardar como procedimiento
-                    </button>
-                  )}
-                  {(t.procedimiento_id ?? t.protocolo_id) && (
-                    <button
-                      type="button"
-                      disabled={loadingExtra}
-                      onClick={() => {
-                        const pid = t.procedimiento_id ?? t.protocolo_id;
-                        if (pid) void repetirProcedimiento(pid);
-                      }}
-                      className="w-full rounded-xl border border-border py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent"
-                    >
-                      ↻ Desde procedimiento guardado
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          {!loadingExtra && historial.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {historial.map((t) => {
+                const total = t.pasos_total ?? 0;
+                const ok = t.pasos_completados ?? 0;
+                const seg = t.segundos_trabajo ?? 0;
+                const tieneProcedimiento = !!(t.procedimiento_id ?? t.protocolo_id);
+
+                const estado =
+                  total === 0 ? "vacia"
+                  : ok === total ? "completa"
+                  : "incompleta";
+
+                const borderClass =
+                  estado === "completa" ? "border-green-400/50"
+                  : estado === "incompleta" ? "border-amber-400/50"
+                  : "border-border";
+
+                const badge =
+                  estado === "completa"
+                    ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-950/40 px-2 py-0.5 text-[10px] font-bold text-green-700 dark:text-green-400">✓ Completa</span>
+                  : estado === "incompleta"
+                    ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">⚠ Incompleta</span>
+                  : <span className="inline-flex items-center gap-1 rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] font-bold text-muted">Sin pasos</span>;
+
+                const tiempoStr = (() => {
+                  if (seg < 60) return seg > 0 ? `${seg}s` : null;
+                  const h = Math.floor(seg / 3600);
+                  const m = Math.floor((seg % 3600) / 60);
+                  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                })();
+
+                const fechaStr = (() => {
+                  const raw = t.actualizado_en ?? t.creado_en;
+                  if (!raw) return null;
+                  try {
+                    const d = new Date(raw.includes("T") || raw.includes("Z") ? raw : raw + "Z");
+                    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+                    if (diff === 0) return "hoy";
+                    if (diff === 1) return "ayer";
+                    if (diff < 30) return `hace ${diff}d`;
+                    return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+                  } catch { return null; }
+                })();
+
+                return (
+                  <div key={t.id} className={`rounded-xl border-2 ${borderClass} bg-surface-panel p-3 space-y-2.5`}>
+                    {/* Header: badge + fecha */}
+                    <div className="flex items-start justify-between gap-2">
+                      {badge}
+                      {fechaStr && <span className="text-[10px] text-muted shrink-0">{fechaStr}</span>}
+                    </div>
+
+                    {/* Título */}
+                    <p className="font-bold text-sm text-ink leading-snug">{t.titulo}</p>
+                    <p className="text-[10px] text-muted font-mono">{t.numero}</p>
+
+                    {/* Stats */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {total > 0 && (
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                          estado === "completa"
+                            ? "bg-green-50 dark:bg-green-950/30 border-green-400/40 text-green-700 dark:text-green-400"
+                            : "bg-amber-50 dark:bg-amber-950/30 border-amber-400/40 text-amber-700 dark:text-amber-400"
+                        }`}>
+                          {estado === "completa" ? "✓" : `${ok}/`}{estado !== "completa" && total} {total === 1 ? "paso" : "pasos"}
+                        </span>
+                      )}
+                      {tiempoStr && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] font-semibold text-muted">
+                          ⏱ {tiempoStr}
+                        </span>
+                      )}
+                      {t.categoria && (
+                        <span className="inline-flex items-center rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] text-muted">
+                          {t.categoria}
+                        </span>
+                      )}
+                      {tieneProcedimiento && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/30 px-2 py-0.5 text-[10px] font-bold text-accent">
+                          📋 Procedimiento
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="flex flex-col gap-1.5 pt-0.5">
+                      <button
+                        type="button"
+                        disabled={loadingExtra}
+                        onClick={() => void repetirDesdeHistorial(t.id)}
+                        className="w-full rounded-xl border-2 border-accent/50 py-2 text-sm font-bold text-accent hover:bg-accent/10 disabled:opacity-40 transition"
+                      >
+                        ↻ Ejecutar de nuevo
+                      </button>
+                      {!tieneProcedimiento && (
+                        <button
+                          type="button"
+                          disabled={loadingExtra}
+                          onClick={() => void guardarProcedimientoHistorial(t.id)}
+                          className="w-full rounded-xl border border-border py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-40 transition"
+                        >
+                          📌 Guardar como procedimiento
+                        </button>
+                      )}
+                      {tieneProcedimiento && (
+                        <button
+                          type="button"
+                          disabled={loadingExtra}
+                          onClick={() => { const pid = t.procedimiento_id ?? t.protocolo_id; if (pid) void repetirProcedimiento(pid); }}
+                          className="w-full rounded-xl border border-border py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent transition"
+                        >
+                          ↻ Desde procedimiento guardado
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
       {tabAcciones === "procedimientos" && !isAdmin && (
         <div className="space-y-3">
           <p className="text-sm text-muted">
-            Procedimientos personales (se crean al terminar una acción). Promueve a protocolo para delegarlos en solicitudes.
+            Procedimientos que creaste. Los marcados como "Equipo" pueden delegarse en solicitudes.
           </p>
           {loadingExtra && <p className="text-sm text-muted">Cargando…</p>}
           {!loadingExtra && procedimientos.length === 0 && (
             <p className="py-8 text-center text-sm text-muted">
-              Termina una acción en el asistente para guardar tu primer procedimiento.
+              Guarda una acción como procedimiento para verla aquí.
             </p>
           )}
           <div className="grid gap-2 sm:grid-cols-2">
             {procedimientos.map((p) => (
-              <div key={p.id} className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
-                <p className="font-semibold text-ink">{p.titulo}</p>
+              <div key={p.id} className={`rounded-xl border bg-surface-panel p-3 space-y-2 ${p.alcance === "personal" ? "border-border" : "border-accent/40"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold text-ink text-sm leading-snug">{p.titulo}</p>
+                  {p.alcance === "personal"
+                    ? <span className="shrink-0 rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] font-semibold text-muted">Personal</span>
+                    : <span className="shrink-0 rounded-full bg-accent/10 border border-accent/30 px-2 py-0.5 text-[10px] font-bold text-accent">Equipo</span>
+                  }
+                </div>
                 <p className="text-xs text-muted">
-                  {p.pasos?.length ?? 0} paso(s)
-                  {(p.lista_compras?.length ?? 0) > 0 && ` · ${p.lista_compras!.length} ítem(s) compra`}
+                  {p.pasos?.length ?? 0} paso{(p.pasos?.length ?? 0) !== 1 ? "s" : ""}
+                  {(p.lista_compras?.length ?? 0) > 0 && ` · ${p.lista_compras!.length} ingrediente${p.lista_compras!.length !== 1 ? "s" : ""}`}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -17315,12 +17610,12 @@ function AccionesView({
                   >
                     ↻ Ejecutar
                   </button>
-                  {nivel >= 2 && p.alcance === "personal" && (
+                  {p.alcance === "personal" && (
                     <button
                       type="button"
                       onClick={() => void promoverProtocolo(p.id)}
-                      className="rounded-xl border border-border px-2 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent"
-                      title="Hacer visible para solicitudes del equipo"
+                      className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+                      title="Hacer visible para todo el equipo y solicitudes"
                     >
                       📋 Delegar
                     </button>

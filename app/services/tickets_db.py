@@ -4708,6 +4708,11 @@ def listar_protocolos(usuario: dict | None = None, alcance: str | None = None) -
             if usuario:
                 conds.append("p.creado_por = ?")
                 params.append(usuario["id"])
+        elif alcance == "mis":
+            # Todos los protocolos creados por este usuario (personal + global propios)
+            if usuario:
+                conds.append("p.creado_por = ?")
+                params.append(usuario["id"])
         elif alcance == "global":
             conds.append("(p.alcance IS NULL OR p.alcance = 'global')")
         elif usuario:
@@ -4816,7 +4821,7 @@ def guardar_procedimiento_desde_accion(
         pasos_ejec, lista_parseada = _extraer_plantilla_desde_ticket(db, ticket_id)
         lista_final = lista_compras if lista_compras is not None else lista_parseada
         existente = db.execute(
-            "SELECT id FROM protocolos WHERE ticket_origen=? AND activo=1 AND alcance='personal'",
+            "SELECT id FROM protocolos WHERE ticket_origen=? AND activo=1",
             (ticket_id,),
         ).fetchone()
         pasos_json = json.dumps(pasos_ejec, ensure_ascii=False)
@@ -4825,7 +4830,7 @@ def guardar_procedimiento_desde_accion(
         if existente:
             db.execute(
                 """UPDATE protocolos SET titulo=?, descripcion=?, categoria=?,
-                   pasos=?, lista_compras=?, creado_en=datetime('now') WHERE id=?""",
+                   pasos=?, lista_compras=?, alcance='global', creado_en=datetime('now') WHERE id=?""",
                 (titulo, t["descripcion"], t["categoria"], pasos_json, lista_json, existente["id"]),
             )
             protocolo_id = existente["id"]
@@ -4834,7 +4839,7 @@ def guardar_procedimiento_desde_accion(
                 """INSERT INTO protocolos
                    (titulo, descripcion, categoria, pasos, lista_compras, ticket_origen,
                     creado_por, alcance)
-                   VALUES (?,?,?,?,?,?,?,'personal')""",
+                   VALUES (?,?,?,?,?,?,?,'global')""",
                 (titulo, t["descripcion"], t["categoria"], pasos_json, lista_json,
                  ticket_id, usuario_id),
             )
