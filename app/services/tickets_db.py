@@ -712,6 +712,28 @@ def _migrate_ticket_protocolo_id():
         db.commit()
 
 
+def _migrate_protocolos_alcance():
+    """Procedimientos personales vs protocolos delegables (global)."""
+    with _conn() as db:
+        _add_col(db, "protocolos", "alcance", "TEXT DEFAULT 'global'")
+        _add_col(db, "protocolos", "lista_compras", "TEXT DEFAULT '[]'")
+        db.commit()
+
+
+def _migrate_ticket_subtipo():
+    """subtipo en solicitudes: 'compra' = solo checklist de compras."""
+    with _conn() as db:
+        _add_col(db, "tickets", "subtipo", "TEXT")
+        db.commit()
+
+
+def _migrate_usuario_telefono():
+    """Teléfono WhatsApp del operador para notas de voz del supervisor."""
+    with _conn() as db:
+        _add_col(db, "usuarios", "telefono", "TEXT")
+        db.commit()
+
+
 def _migrate_usuario_departamentos():
     """Junction table usuario_departamentos para pertenencia a múltiples departamentos."""
     with _conn() as db:
@@ -765,7 +787,12 @@ def init_db():
     _safe_migrate(_migrate_usuario_google)
     _safe_migrate(_migrate_usuario_permisos)
     _safe_migrate(_migrate_usuario_departamentos)
+    _safe_migrate(_migrate_usuario_telefono)
     _safe_migrate(_migrate_ticket_protocolo_id)
+    _safe_migrate(_migrate_protocolos_alcance)
+    _safe_migrate(_migrate_ticket_subtipo)
+    from app.services.panel_presencia import _migrate_panel_presencia
+    _safe_migrate(_migrate_panel_presencia)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -1118,7 +1145,7 @@ def init_db():
 def _usuario_full(db, user_id: int) -> dict | None:
     import json as _json
     row = db.execute("""
-        SELECT u.id, u.nombre, u.username, u.email, u.activo, u.creado_en, u.foto,
+        SELECT u.id, u.nombre, u.username, u.email, u.telefono, u.activo, u.creado_en, u.foto,
                u.permisos_secciones,
                r.id as rol_id, r.nombre as rol_nombre, r.nivel as rol_nivel,
                d.id as dept_id, d.nombre as dept_nombre, d.color as dept_color
@@ -1152,6 +1179,7 @@ def _usuario_full(db, user_id: int) -> dict | None:
         "nombre":   row["nombre"],
         "username": row["username"],
         "email":    row["email"],
+        "telefono": row["telefono"],
         "activo":   row["activo"],
         "creado_en": row["creado_en"],
         "foto":     row["foto"],
@@ -1476,7 +1504,12 @@ def actualizar_permisos_secciones(user_id: int, permisos: dict, admin_id: int) -
 def actualizar_usuario(user_id: int, data: dict) -> tuple:
     import json as _json
     campos = {k: v for k, v in data.items()
-              if k in ("nombre", "username", "rol_id", "departamento_id", "activo", "email", "permisos_secciones")}
+              if k in ("nombre", "username", "rol_id", "departamento_id", "activo", "email",
+                       "telefono", "permisos_secciones")}
+    if "telefono" in campos:
+        from app.services.tickets_notificaciones import normalizar_telefono_wa
+        raw = campos.get("telefono")
+        campos["telefono"] = normalizar_telefono_wa(str(raw or "")) or None
     if "email" in campos and campos["email"]:
         campos["email"] = campos["email"].strip().lower()
     if "permisos_secciones" in campos:
@@ -2958,18 +2991,26 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
                 tipo = "ticket"
             frecuencia = data.get("frecuencia") or None
             fecha_inicio = data.get("fecha_inicio") or None
+            ticket_padre_id = data.get("ticket_padre_id")
+            try:
+                ticket_padre_id = int(ticket_padre_id) if ticket_padre_id else None
+            except (TypeError, ValueError):
+                ticket_padre_id = None
+            subtipo = (data.get("subtipo") or "").strip() or None
+            if subtipo and tipo != "solicitud":
+                subtipo = None
             db.execute("""
                 INSERT INTO tickets
                     (numero, titulo, categoria, descripcion, prioridad,
                      creado_por, asignado_a, soporte_archivo, tipo,
-                     frecuencia, fecha_inicio)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                     frecuencia, fecha_inicio, ticket_padre_id, subtipo)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 numero, data["titulo"], data["categoria"],
                 data.get("descripcion") or data["titulo"],
                 data.get("prioridad", "media"),
                 usuario_id, asignado_a, archivo_nombre, tipo,
-                frecuencia, fecha_inicio,
+                frecuencia, fecha_inicio, ticket_padre_id, subtipo,
             ))
             tid = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
             _log(db, tid, usuario_id, "ticket_creado", detalles=f"Ticket {numero} creado")
@@ -3005,6 +3046,12 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
                 pasos_raw = _pasos_desde_protocolo(db, protocolo_id)
             _insertar_pasos_ticket(db, tid, pasos_raw)
             db.commit()
+            try:
+                from app.services.tickets_notificaciones import notificar_ticket_creado
+                from app.observability import spawn_thread
+                spawn_thread(notificar_ticket_creado, (tid,), daemon=True)
+            except Exception:
+                pass
             return _ticket_full(db, tid), None
         except Exception as e:
             return None, str(e)
@@ -3037,6 +3084,25 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
             params.append(filtros["mision_id"])
         if filtros.get("sin_mision"):
             conds.append("t.mision_id IS NULL")
+        if filtros.get("subtipo"):
+            conds.append("TRIM(COALESCE(t.subtipo, ''))=?")
+            params.append(filtros["subtipo"].strip())
+        if filtros.get("mis_solicitudes"):
+            conds.append("t.asignado_a=?")
+            params.append(usuario["id"])
+        # Quien solo va de compras (solicitud hijo) no debe ver la acción padre en su lista de acciones
+        if tipo_filtro == "accion" and not vista_equipo:
+            conds.append("""
+                NOT EXISTS (
+                    SELECT 1 FROM tickets s
+                    WHERE s.ticket_padre_id = t.id
+                      AND s.tipo = 'solicitud'
+                      AND TRIM(COALESCE(s.subtipo, '')) = 'compra'
+                      AND s.asignado_a = ?
+                      AND s.estado NOT IN ('resuelto', 'rechazado')
+                )
+            """)
+            params.append(usuario["id"])
         where = ("WHERE " + " AND ".join(conds)) if conds else ""
         rows = db.execute(f"""
             SELECT t.*,
@@ -3073,6 +3139,41 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
                 END,
                 t.creado_en DESC
         """, params).fetchall()
+        return [dict(r) for r in rows]
+
+
+def _sql_compra_delegada_cond(alias: str = "t") -> str:
+    return (
+        f"{alias}.tipo = 'solicitud' AND ("
+        f"TRIM(COALESCE({alias}.subtipo, '')) = 'compra' OR "
+        f"(LOWER(TRIM({alias}.titulo)) LIKE 'compras:%' AND {alias}.ticket_padre_id IS NOT NULL)"
+        f")"
+    )
+
+
+def listar_compras_delegadas(usuario_id: int, solo_activas: bool = True) -> list:
+    """Solicitudes de compra asignadas al usuario (flujo ir de compras)."""
+    with _conn() as db:
+        cond = _sql_compra_delegada_cond("t")
+        extra = " AND t.estado NOT IN ('resuelto', 'rechazado')" if solo_activas else ""
+        rows = db.execute(f"""
+            SELECT t.*,
+                   uc.nombre  AS creado_por_nombre,
+                   ua.nombre  AS asignado_a_nombre,
+                   tp.numero  AS ticket_padre_numero,
+                   tp.titulo  AS ticket_padre_titulo
+            FROM tickets t
+            LEFT JOIN usuarios uc ON uc.id = t.creado_por
+            LEFT JOIN usuarios ua ON ua.id = t.asignado_a
+            LEFT JOIN tickets tp ON tp.id = t.ticket_padre_id
+            WHERE t.asignado_a = ? AND {cond}{extra}
+            ORDER BY
+                CASE t.prioridad
+                    WHEN 'urgente' THEN 0 WHEN 'alta' THEN 1
+                    WHEN 'media'   THEN 2 ELSE 3
+                END,
+                t.creado_en DESC
+        """, (usuario_id,)).fetchall()
         return [dict(r) for r in rows]
 
 
@@ -3117,8 +3218,16 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
             is_authorized = (nivel >= 2 or t["creado_por"] == uid or t["asignado_a"] == uid)
             if not is_authorized:
                 return False, "Sin autorización"
+            if (t.get("subtipo") or "").strip() == "compra":
+                pend = db.execute(
+                    "SELECT COUNT(*) AS n FROM lista_compras_ticket "
+                    "WHERE ticket_id=? AND comprado=0",
+                    (ticket_id,),
+                ).fetchone()["n"]
+                if pend:
+                    return False, f"Faltan {pend} producto(s) por marcar en la lista de compras"
             # Solicitudes con pasos: todos deben estar completados antes de resolver
-            if t["tipo"] == "solicitud" and _pasos_checklist_completo is not None:
+            elif t["tipo"] == "solicitud" and _pasos_checklist_completo is not None:
                 total = db.execute(
                     "SELECT COUNT(*) AS n FROM ticket_pasos WHERE ticket_id=?", (ticket_id,)
                 ).fetchone()["n"]
@@ -3216,6 +3325,14 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
 
         db.commit()
         if nuevo_estado == "resuelto":
+            try:
+                from app.services.tickets_notificaciones import notificar_ticket_resuelto
+                from app.observability import spawn_thread
+                spawn_thread(
+                    notificar_ticket_resuelto, (ticket_id, uid), daemon=True,
+                )
+            except Exception:
+                pass
             from app.services.ticket_timing import finalizar_corridas_abiertas_ticket
             finalizar_corridas_abiertas_ticket(ticket_id)
 
@@ -3304,6 +3421,15 @@ def asignar_ticket(ticket_id: int, asignado_a: int | None, usuario: dict) -> tup
              str(t["asignado_a"]), str(asignado_a), f"Asignado a {nombre}")
         _log(db, ticket_id, usuario["id"], "estado_cambiado", t["estado"], "en_proceso")
         db.commit()
+        if asignado_a:
+            try:
+                from app.services.tickets_notificaciones import notificar_ticket_reasignado
+                from app.observability import spawn_thread
+                spawn_thread(
+                    notificar_ticket_reasignado, (ticket_id, int(asignado_a)), daemon=True,
+                )
+            except Exception:
+                pass
         return True, None
 
 
@@ -3516,7 +3642,7 @@ def listar_compras_ticket(ticket_id: int) -> list:
     with _conn() as db:
         rows = db.execute("""
             SELECT lc.*, u.nombre AS creado_por_nombre,
-                   mc.nombre AS material_nombre, mc.unidad_medida AS material_unidad
+                   mc.nombre AS material_nombre, mc.unidad AS material_unidad
             FROM lista_compras_ticket lc
             LEFT JOIN usuarios u ON u.id = lc.creado_por
             LEFT JOIN materiales_catalogo mc ON mc.id = lc.material_id
@@ -3607,11 +3733,11 @@ def buscar_productos_para_compra(q: str, limite: int = 15) -> list:
     pattern = f"%{q}%"
     with _conn() as db:
         rows = db.execute("""
-            SELECT id, nombre, codigo, unidad_medida, tipo
+            SELECT id, nombre, unidad, tipo
             FROM materiales_catalogo
-            WHERE activo=1 AND (nombre LIKE ? OR codigo LIKE ?)
+            WHERE activo=1 AND nombre LIKE ?
             ORDER BY nombre LIMIT ?
-        """, (pattern, pattern, limite)).fetchall()
+        """, (pattern, limite)).fetchall()
         return [dict(r) for r in rows]
 
 
@@ -4572,18 +4698,34 @@ def _pasos_desde_protocolo(db, protocolo_id: int) -> list:
         return []
 
 
-def listar_protocolos() -> list:
+def listar_protocolos(usuario: dict | None = None, alcance: str | None = None) -> list:
     import json
     with _conn() as db:
-        rows = db.execute("""
+        conds = ["p.activo = 1"]
+        params: list = []
+        if alcance == "personal":
+            conds.append("p.alcance = 'personal'")
+            if usuario:
+                conds.append("p.creado_por = ?")
+                params.append(usuario["id"])
+        elif alcance == "global":
+            conds.append("(p.alcance IS NULL OR p.alcance = 'global')")
+        elif usuario:
+            conds.append(
+                "(p.alcance IS NULL OR p.alcance = 'global' OR "
+                "(p.alcance = 'personal' AND p.creado_por = ?))",
+            )
+            params.append(usuario["id"])
+        where = " AND ".join(conds)
+        rows = db.execute(f"""
             SELECT p.*, u.nombre AS creado_por_nombre,
                    t.numero AS ticket_origen_numero, t.titulo AS ticket_origen_titulo
             FROM protocolos p
             LEFT JOIN usuarios u ON u.id = p.creado_por
             LEFT JOIN tickets t ON t.id = p.ticket_origen
-            WHERE p.activo = 1
+            WHERE {where}
             ORDER BY p.creado_en DESC
-        """).fetchall()
+        """, params).fetchall()
         result = []
         for r in rows:
             d = dict(r)
@@ -4591,8 +4733,461 @@ def listar_protocolos() -> list:
                 d["pasos"] = json.loads(d["pasos"]) if d["pasos"] else []
             except Exception:
                 d["pasos"] = []
+            try:
+                d["lista_compras"] = json.loads(d.get("lista_compras") or "[]")
+            except Exception:
+                d["lista_compras"] = []
+            if not d.get("alcance"):
+                d["alcance"] = "global"
             result.append(d)
         return result
+
+
+def _notas_lista_compras_json(items: list) -> str:
+    lineas = ["📦 Lista de compras:"]
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        nombre = (it.get("n") or it.get("nombre") or "").strip()
+        if not nombre:
+            continue
+        cant = (it.get("cantidad") or it.get("c") or "").strip()
+        unidad = (it.get("unidad") or "g").strip()
+        suf = f"{cant} {unidad}" if cant else ""
+        lineas.append(f"• {nombre}" + (f" — {suf}" if suf else ""))
+    return "\n".join(lineas)
+
+
+def _extraer_plantilla_desde_ticket(db, ticket_id: int) -> tuple[list, list]:
+    """Separa pasos de ejecución y lista de compras desde ticket_pasos."""
+    import json
+    rows = db.execute(
+        "SELECT descripcion, notas FROM ticket_pasos WHERE ticket_id=? ORDER BY orden",
+        (ticket_id,),
+    ).fetchall()
+    pasos_ejec = []
+    lista_compras: list = []
+    for r in rows:
+        desc = (r["descripcion"] or "").strip()
+        notas = (r["notas"] or "").strip()
+        if desc == "Ir de compras":
+            for line in (notas or "").split("\n"):
+                line = line.strip()
+                if not line.startswith("•"):
+                    continue
+                body = line.lstrip("•").strip()
+                nombre, cantidad, unidad = body, "", "g"
+                if "—" in body:
+                    nombre, resto = body.split("—", 1)
+                    nombre = nombre.strip()
+                    partes = resto.strip().split()
+                    if len(partes) >= 2:
+                        cantidad, unidad = partes[0], partes[1]
+                    elif len(partes) == 1:
+                        cantidad = partes[0]
+                lista_compras.append({
+                    "n": nombre, "cantidad": cantidad, "unidad": unidad if unidad in ("g", "u") else "g",
+                    "comprado": False,
+                })
+        elif desc:
+            pasos_ejec.append({"descripcion": desc, "notas": notas or None})
+    return pasos_ejec, lista_compras
+
+
+def guardar_procedimiento_desde_accion(
+    ticket_id: int,
+    usuario_id: int,
+    lista_compras: list | None = None,
+) -> tuple:
+    """Guarda o actualiza un procedimiento personal a partir de una acción terminada."""
+    import json
+    with _conn() as db:
+        t = db.execute(
+            "SELECT id, titulo, descripcion, categoria, tipo, creado_por, asignado_a "
+            "FROM tickets WHERE id=?",
+            (ticket_id,),
+        ).fetchone()
+        if not t:
+            return None, "Acción no encontrada"
+        if t["tipo"] != "accion":
+            return None, "Solo aplica a acciones"
+        if t["creado_por"] != usuario_id and t["asignado_a"] != usuario_id:
+            return None, "Sin permiso para guardar este procedimiento"
+        pasos_ejec, lista_parseada = _extraer_plantilla_desde_ticket(db, ticket_id)
+        lista_final = lista_compras if lista_compras is not None else lista_parseada
+        existente = db.execute(
+            "SELECT id FROM protocolos WHERE ticket_origen=? AND activo=1 AND alcance='personal'",
+            (ticket_id,),
+        ).fetchone()
+        pasos_json = json.dumps(pasos_ejec, ensure_ascii=False)
+        lista_json = json.dumps(lista_final or [], ensure_ascii=False)
+        titulo = (t["titulo"] or "").strip()
+        if existente:
+            db.execute(
+                """UPDATE protocolos SET titulo=?, descripcion=?, categoria=?,
+                   pasos=?, lista_compras=?, creado_en=datetime('now') WHERE id=?""",
+                (titulo, t["descripcion"], t["categoria"], pasos_json, lista_json, existente["id"]),
+            )
+            protocolo_id = existente["id"]
+        else:
+            db.execute(
+                """INSERT INTO protocolos
+                   (titulo, descripcion, categoria, pasos, lista_compras, ticket_origen,
+                    creado_por, alcance)
+                   VALUES (?,?,?,?,?,?,?,'personal')""",
+                (titulo, t["descripcion"], t["categoria"], pasos_json, lista_json,
+                 ticket_id, usuario_id),
+            )
+            protocolo_id = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        db.execute(
+            "UPDATE tickets SET protocolo_id=?, actualizado_en=datetime('now') WHERE id=?",
+            (protocolo_id, ticket_id),
+        )
+        _log(db, ticket_id, usuario_id, "procedimiento_guardado",
+             detalles=f"Procedimiento personal #{protocolo_id}")
+        db.commit()
+        return {"id": protocolo_id, "titulo": titulo, "pasos": pasos_ejec, "lista_compras": lista_final}, None
+
+
+def crear_accion_desde_procedimiento(
+    protocolo_id: int,
+    usuario_id: int,
+    solicitud_padre_id: int | None = None,
+) -> tuple:
+    """Nueva ejecución de acción a partir de un procedimiento/protocolo guardado."""
+    import json
+    with _conn() as db:
+        p = db.execute(
+            "SELECT * FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+        ).fetchone()
+        if not p:
+            return None, "Procedimiento no encontrado"
+        alcance = (p["alcance"] or "global").strip()
+        if alcance == "personal" and p["creado_por"] != usuario_id:
+            return None, "Procedimiento personal de otro usuario"
+        if solicitud_padre_id:
+            sol = db.execute(
+                "SELECT id, tipo, asignado_a, titulo, descripcion, categoria, protocolo_id "
+                "FROM tickets WHERE id=?",
+                (solicitud_padre_id,),
+            ).fetchone()
+            if not sol or sol["tipo"] != "solicitud":
+                return None, "Solicitud padre no válida"
+            if sol["asignado_a"] != usuario_id:
+                return None, "Solo el asignado puede ejecutar esta solicitud"
+    try:
+        pasos_prot = json.loads(p["pasos"]) if p["pasos"] else []
+    except Exception:
+        pasos_prot = []
+    try:
+        lista = json.loads(p.get("lista_compras") or "[]")
+    except Exception:
+        lista = []
+    pasos_raw: list = []
+    if lista:
+        pasos_raw.append({
+            "descripcion": "Ir de compras",
+            "notas": _notas_lista_compras_json(lista),
+        })
+    pasos_raw.extend(pasos_prot)
+    data = {
+        "titulo": p["titulo"],
+        "descripcion": (p["descripcion"] or p["titulo"]),
+        "categoria": p["categoria"] or "logistica",
+        "prioridad": "media",
+        "asignado_a": usuario_id,
+        "tipo": "accion",
+        "pasos": pasos_raw,
+        "protocolo_id": protocolo_id,
+        "ticket_padre_id": solicitud_padre_id,
+    }
+    return crear_ticket(data, usuario_id)
+
+
+def listar_acciones_historial(usuario_id: int, limit: int = 80) -> list:
+    """Acciones resueltas del usuario (plantillas reutilizables)."""
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT t.*,
+                   pr.id AS procedimiento_id,
+                   pr.titulo AS procedimiento_titulo,
+                   pr.alcance AS procedimiento_alcance
+            FROM tickets t
+            LEFT JOIN protocolos pr ON pr.id = t.protocolo_id AND pr.activo = 1
+            WHERE t.tipo = 'accion'
+              AND t.estado = 'resuelto'
+              AND (t.creado_por = ? OR t.asignado_a = ?)
+            ORDER BY t.actualizado_en DESC
+            LIMIT ?
+        """, (usuario_id, usuario_id, limit)).fetchall()
+    usuario_stub = {"id": usuario_id, "rol": {"nivel": 3}}
+    out = []
+    for r in rows:
+        t = get_ticket(r["id"], usuario_stub)
+        if t:
+            t["procedimiento_id"] = r["procedimiento_id"]
+            t["procedimiento_titulo"] = r["procedimiento_titulo"]
+            t["procedimiento_alcance"] = r["procedimiento_alcance"]
+            out.append(t)
+    return out
+
+
+def obtener_protocolo(protocolo_id: int) -> dict | None:
+    import json
+    items = listar_protocolos()
+    for p in items:
+        if p.get("id") == protocolo_id:
+            return p
+    with _conn() as db:
+        row = db.execute(
+            "SELECT * FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+        ).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        try:
+            d["pasos"] = json.loads(d["pasos"]) if d["pasos"] else []
+        except Exception:
+            d["pasos"] = []
+        try:
+            d["lista_compras"] = json.loads(d.get("lista_compras") or "[]")
+        except Exception:
+            d["lista_compras"] = []
+        return d
+
+
+def completar_accion_y_reportar_solicitud(
+    accion_id: int,
+    usuario_id: int,
+    reporte_texto: str = "",
+    marcar_solicitud_resuelta: bool = True,
+) -> tuple:
+    """Cierra la acción y, si viene de una solicitud, publica reporte al solicitante."""
+    reporte = (reporte_texto or "").strip()
+    with _conn() as db:
+        a = db.execute("SELECT * FROM tickets WHERE id=?", (accion_id,)).fetchone()
+        if not a or a["tipo"] != "accion":
+            return None, "Acción no encontrada"
+        if a["asignado_a"] != usuario_id and a["creado_por"] != usuario_id:
+            return None, "Sin permiso"
+        padre_id = a["ticket_padre_id"]
+        if padre_id and reporte:
+            padre = db.execute("SELECT id, tipo, creado_por, numero FROM tickets WHERE id=?", (padre_id,)).fetchone()
+            if padre and padre["tipo"] == "solicitud":
+                u = db.execute("SELECT nombre FROM usuarios WHERE id=?", (usuario_id,)).fetchone()
+                nombre = u["nombre"] if u else "Operador"
+                msg = (
+                    f"📋 **Reporte de ejecución** — acción {a['numero']}\n"
+                    f"Por: {nombre}\n\n{reporte}"
+                )
+                db.execute(
+                    "INSERT INTO comentarios_tickets (ticket_id, usuario_id, texto, es_interno) "
+                    "VALUES (?,?,?,0)",
+                    (padre_id, usuario_id, msg),
+                )
+                _log(db, padre_id, usuario_id, "reporte_ejecucion",
+                     detalles=f"Desde acción {a['numero']}")
+                if marcar_solicitud_resuelta and padre["creado_por"]:
+                    db.execute(
+                        "UPDATE tickets SET estado='resuelto', actualizado_en=datetime('now') WHERE id=?",
+                        (padre_id,),
+                    )
+                    _log(db, padre_id, usuario_id, "estado_cambiado",
+                         val_ant="en_proceso", val_new="resuelto",
+                         detalles="Solicitud cerrada tras reporte de ejecución")
+        db.execute(
+            "UPDATE tickets SET estado='resuelto', actualizado_en=datetime('now') WHERE id=?",
+            (accion_id,),
+        )
+        _log(db, accion_id, usuario_id, "estado_cambiado",
+             val_ant=a["estado"], val_new="resuelto", detalles="Acción terminada")
+        db.commit()
+    usuario_stub = {"id": usuario_id, "rol": {"nivel": 3}}
+    return get_ticket(accion_id, usuario_stub), None
+
+
+def promover_procedimiento_a_protocolo(protocolo_id: int, usuario_id: int, nivel: int) -> tuple:
+    """Procedimiento personal → protocolo delegable (solicitudes)."""
+    if nivel < 2:
+        return None, "Requiere rol supervisor"
+    with _conn() as db:
+        p = db.execute(
+            "SELECT id, alcance FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+        ).fetchone()
+        if not p:
+            return None, "Procedimiento no encontrado"
+        db.execute(
+            "UPDATE protocolos SET alcance='global' WHERE id=?",
+            (protocolo_id,),
+        )
+        _log(db, protocolo_id, usuario_id, "protocolo_promovido",
+             detalles="Visible para delegación en solicitudes")
+        db.commit()
+        return {"id": protocolo_id, "alcance": "global"}, None
+
+
+def obtener_plantilla_accion(ticket_id: int, usuario_id: int) -> tuple:
+    """Plantilla reutilizable desde una acción (historial), con o sin procedimiento guardado."""
+    with _conn() as db:
+        t = db.execute(
+            "SELECT id, titulo, tipo, creado_por, asignado_a, protocolo_id, estado "
+            "FROM tickets WHERE id=?",
+            (ticket_id,),
+        ).fetchone()
+        if not t:
+            return None, "Acción no encontrada"
+        if t["tipo"] != "accion":
+            return None, "Solo aplica a acciones"
+        if t["creado_por"] != usuario_id and t["asignado_a"] != usuario_id:
+            return None, "Sin permiso"
+        pasos_ejec, lista_compras = _extraer_plantilla_desde_ticket(db, ticket_id)
+    return {
+        "titulo": (t["titulo"] or "").strip(),
+        "lista_compras": lista_compras,
+        "pasos": pasos_ejec,
+        "protocolo_id": t["protocolo_id"],
+    }, None
+
+
+def _unidad_item_compra_delegada(unidad: str) -> str:
+    u = (unidad or "g").strip().lower()
+    if u in ("u", "und", "un", "unidad", "unidades"):
+        return "und"
+    return "g"
+
+
+def crear_solicitud_compra_delegada(
+    accion_id: int,
+    asignado_a: int,
+    items: list,
+    usuario_id: int,
+) -> tuple:
+    """Crea solicitud tipo compra (solo checklist) para otro usuario."""
+    try:
+        asignado_a = int(asignado_a)
+    except (TypeError, ValueError):
+        return None, "Usuario asignado inválido"
+    if asignado_a == usuario_id:
+        return None, "Elige otro usuario para las compras"
+    items_ok = []
+    for it in items or []:
+        if not isinstance(it, dict):
+            continue
+        nombre = (it.get("n") or it.get("nombre") or "").strip()
+        if not nombre:
+            continue
+        cant = (it.get("cantidad") or it.get("c") or "1").strip() or "1"
+        try:
+            cant_f = float(str(cant).replace(",", "."))
+        except ValueError:
+            cant_f = 1.0
+        items_ok.append({
+            "nombre": nombre,
+            "cantidad": cant_f,
+            "unidad": _unidad_item_compra_delegada(it.get("unidad")),
+        })
+    if not items_ok:
+        return None, "La lista de compras está vacía"
+
+    with _conn() as db:
+        acc = db.execute(
+            "SELECT id, titulo, numero, tipo, creado_por, asignado_a FROM tickets WHERE id=?",
+            (accion_id,),
+        ).fetchone()
+        if not acc or acc["tipo"] != "accion":
+            return None, "Acción no encontrada"
+        if acc["creado_por"] != usuario_id and acc["asignado_a"] != usuario_id:
+            return None, "Sin permiso sobre esta acción"
+        u = db.execute("SELECT id, nombre FROM usuarios WHERE id=? AND activo=1", (asignado_a,)).fetchone()
+        if not u:
+            return None, "Usuario no encontrado"
+
+        numero = _generar_numero(db)
+        titulo_sol = f"Compras: {(acc['titulo'] or 'acción').strip()}"
+        desc = f"Lista de compras delegada desde acción {acc['numero']}."
+        db.execute("""
+            INSERT INTO tickets
+                (numero, titulo, categoria, descripcion, prioridad,
+                 creado_por, asignado_a, soporte_archivo, tipo,
+                 frecuencia, fecha_inicio, ticket_padre_id, subtipo)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            numero, titulo_sol, "logistica", desc, "media",
+            usuario_id, asignado_a, None, "solicitud",
+            None, None, accion_id, "compra",
+        ))
+        sol_id = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        _log(db, sol_id, usuario_id, "ticket_creado",
+             detalles=f"Solicitud de compra {numero} delegada desde {acc['numero']}")
+        _log(db, sol_id, usuario_id, "asignado", val_new=str(asignado_a),
+             detalles="Compras delegadas")
+
+        for it in items_ok:
+            db.execute("""
+                INSERT INTO lista_compras_ticket
+                    (ticket_id, nombre, cantidad, unidad, comprado, creado_por)
+                VALUES (?,?,?,?,0,?)
+            """, (sol_id, it["nombre"], it["cantidad"], it["unidad"], usuario_id))
+
+        acc_estado = db.execute("SELECT estado FROM tickets WHERE id=?", (accion_id,)).fetchone()
+        if acc_estado and acc_estado["estado"] not in ("resuelto", "rechazado"):
+            db.execute(
+                "UPDATE tickets SET bloqueado_por=?, actualizado_en=datetime('now') WHERE id=?",
+                (sol_id, accion_id),
+            )
+            if acc_estado["estado"] == "pendiente":
+                db.execute(
+                    "UPDATE tickets SET estado='en_proceso', actualizado_en=datetime('now') WHERE id=?",
+                    (accion_id,),
+                )
+            _log(db, accion_id, usuario_id, "estado_cambiado",
+                 val_ant=acc_estado["estado"], val_new="en_proceso",
+                 detalles=f"Bloqueado — esperando compras {numero} ({u['nombre']})")
+
+        _log(db, accion_id, usuario_id, "compras_delegadas",
+             detalles=f"Solicitud {numero} → {u['nombre']}")
+        db.commit()
+        try:
+            from app.services.tickets_notificaciones import notificar_compra_delegada
+            from app.observability import spawn_thread
+            spawn_thread(notificar_compra_delegada, (sol_id,), daemon=True)
+        except Exception:
+            pass
+
+    usuario_stub = {"id": usuario_id, "rol": {"nivel": 3}}
+    sol = get_ticket(sol_id, usuario_stub)
+    padre = get_ticket(accion_id, usuario_stub)
+    return {"solicitud": sol, "accion": padre}, None
+
+
+def estado_bloqueo_compras_accion(accion_id: int, usuario_id: int) -> dict | None:
+    """Si la acción espera una solicitud de compra delegada, devuelve datos del bloqueo."""
+    with _conn() as db:
+        acc = db.execute(
+            "SELECT id, bloqueado_por, creado_por, asignado_a FROM tickets WHERE id=?",
+            (accion_id,),
+        ).fetchone()
+        if not acc or acc["creado_por"] != usuario_id and acc["asignado_a"] != usuario_id:
+            return None
+        bid = acc["bloqueado_por"]
+        if not bid:
+            return None
+        sol = db.execute(
+            "SELECT id, numero, titulo, estado, subtipo, asignado_a FROM tickets WHERE id=?",
+            (bid,),
+        ).fetchone()
+        if not sol or (sol["subtipo"] or "").strip() != "compra":
+            return None
+        if sol["estado"] in ("resuelto", "rechazado"):
+            return None
+        ua = db.execute("SELECT nombre FROM usuarios WHERE id=?", (sol["asignado_a"],)).fetchone()
+        return {
+            "solicitud_id": sol["id"],
+            "numero": sol["numero"],
+            "titulo": sol["titulo"],
+            "estado": sol["estado"],
+            "asignado_nombre": ua["nombre"] if ua else None,
+        }
 
 
 def crear_protocolo(titulo: str, descripcion: str, categoria: str,

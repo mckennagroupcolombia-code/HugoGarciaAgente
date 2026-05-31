@@ -161,4 +161,25 @@ export const api = {
       body: body != null ? JSON.stringify(body) : undefined,
     }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+
+  /** Envía FormData (multipart). No pone Content-Type; el browser lo añade con el boundary correcto. */
+  upload: async <T>(path: string, form: FormData): Promise<T> => {
+    const token = panelBearerToken();
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    let url = resolvePanelApiUrl(path, "POST");
+    const headers: Record<string, string> = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
+    let res = await fetch(url, { method: "POST", headers, body: form });
+    if (res.status === 405 && origin && path.startsWith("/api/")) {
+      const alt = alternateMutatingApiUrl(url, path, "POST", origin);
+      if (alt) res = await fetch(alt, { method: "POST", headers, body: form });
+    }
+    if (res.status === 401) throw new Error("No autorizado");
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || body.mensaje || `HTTP ${res.status}`);
+    }
+    return res.json() as Promise<T>;
+  },
 };

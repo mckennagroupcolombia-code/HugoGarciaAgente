@@ -100,13 +100,12 @@ def _crear_accion_sync_facturas_faltantes_siigo(faltantes: list[str]) -> dict | 
         asignado_a = None
 
     marker_line = f"SYS_SYNC_FALTANTES_PACKS_JSON: {json.dumps(faltantes, ensure_ascii=False)}"
-    # Reporte legible: mostramos máximo 30; el marker conserva todos.
-    lista_legible = "\n".join([f"- {p}" for p in faltantes[:30]])
+    lista_legible = "\n".join([f"- {p}" for p in faltantes])
     descripcion = (
         "Se detectaron órdenes de MeLi sin factura fiscal en el cruce MeLi↔Siigo.\n\n"
-        "Acción requerida: sincronizar la(s) factura(s) en SIIGO para los Pack IDs faltantes "
-        "(y re-subir a MeLi) y luego marcar la acción como Resuelto.\n\n"
-        f"Pack IDs (vistos):\n{lista_legible}\n\n"
+        "Acción requerida: revisar cada orden en SIIGO, crear/subir la factura a MeLi y "
+        "dejar una nota del motivo. Usa el modo 'Resolver paso a paso' para ir orden por orden.\n\n"
+        f"Pack IDs faltantes ({len(faltantes)}):\n{lista_legible}\n\n"
         + marker_line
     )
 
@@ -117,11 +116,40 @@ def _crear_accion_sync_facturas_faltantes_siigo(faltantes: list[str]) -> dict | 
         "descripcion": descripcion,
         "prioridad": "alta",
         "asignado_a": asignado_a,
+        "pasos": [
+            {
+                "descripcion": f"Verificar y facturar orden MeLi: {p_id}",
+                "notas": "Revisar en SIIGO → crear o subir factura a MeLi → dejar nota del motivo si aplica.",
+            }
+            for p_id in faltantes
+        ],
     }
 
     ticket, err = crear_ticket(data, creador_id, None)
     if err or not ticket:
         return None
+
+    # Notificar al grupo SEDE SUR (misma lógica que _notificar_nueva_accion_wa en routes_tickets)
+    try:
+        import threading
+        _grupo_sede_sur = os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
+        numero = ticket.get("numero", "")
+        n = len(faltantes)
+        texto_notif = (
+            f"⚡ *Acción nueva* — Sistema\n"
+            f"{numero} — {TITULO_SYNC_FACTURAS_FALTANTES_SIIGO}\n"
+            f"👤 Asignado a: Sin asignar  ·  Prioridad: alta\n"
+            f"📋 {n} paso{'s' if n != 1 else ''} para resolver (1 por orden)\n"
+            f"🏢 Abre Centro de Mando → Acciones para resolverlo paso a paso."
+        )
+        threading.Thread(
+            target=enviar_whatsapp_reporte,
+            kwargs={"texto_mensaje": texto_notif, "numero_destino": _grupo_sede_sur},
+            daemon=True,
+        ).start()
+    except Exception:
+        pass
+
     return ticket
 
 # ========================================================
@@ -455,10 +483,8 @@ def sincronizar_inteligente():
 
         if faltantes:
             resumen = f"⚠️ *ALERTA DE FACTURACIÓN* ⚠️\nSe subieron {len(exitosas)} facturas, pero faltan las de {len(faltantes)} órdenes de MeLi."
-            lista_ids = "\n".join([f"- {f}" for f in faltantes[:20]])
-            reporte = f"{resumen}\n\n**IDs sin factura:**\n{lista_ids}"
-            if len(faltantes) > 20:
-                reporte += f"\n... y {len(faltantes) - 20} más."
+            lista_ids = "\n".join([f"- {f}" for f in faltantes])
+            reporte = f"{resumen}\n\n*IDs sin factura ({len(faltantes)}):*\n{lista_ids}"
             ticket = _crear_accion_sync_facturas_faltantes_siigo(faltantes)
             if ticket and ticket.get("numero"):
                 reporte += f"\n\n🏢 Centro de mando: acción #{ticket.get('numero')}"

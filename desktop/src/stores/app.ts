@@ -14,6 +14,7 @@ export type Panel =
   | "stock"
   | "fichas"
   | "pedidos"
+  | "publicaciones"
   | "facturas"
   | "tickets"
   | "etiquetas"

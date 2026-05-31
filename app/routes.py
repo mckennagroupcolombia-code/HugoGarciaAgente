@@ -1738,6 +1738,26 @@ def register_routes(app):
                 )
                 return jsonify({"status": "ok", "respuesta": None})
 
+            from app.services.web_chat_consultas import detectar_comando_respuesta_web
+
+            cod_wcq, resp_wcq = detectar_comando_respuesta_web(tn)
+            if cod_wcq and resp_wcq:
+
+                def _wa_web_consulta_resp(codigo: str, respuesta: str, destino: str):
+                    from app.services.web_chat_consultas import resolver_consulta
+
+                    ok, msg, _reg = resolver_consulta(
+                        codigo, respuesta, respondido_por="grupo_pedidos_web"
+                    )
+                    enviar_whatsapp_reporte(msg, numero_destino=destino)
+
+                spawn_thread(
+                    _wa_web_consulta_resp,
+                    args=(cod_wcq, resp_wcq, destino_grupo),
+                    daemon=True,
+                )
+                return jsonify({"status": "ok", "respuesta": None})
+
         # --- COMANDOS DE GRUPOS ADMIN ---
         if es_any_grupo_admin:
             modos = cargar_modos_atencion()
@@ -2638,6 +2658,16 @@ def register_routes(app):
         respuesta = data.get("respuesta", "").strip()
         if not question_id or not respuesta:
             return jsonify({"ok": False, "error": "Faltan campos"}), 400
+        usuario = _panel_tickets_usuario()
+        if usuario:
+            from app.services.panel_presencia import log_panel_tarea
+
+            log_panel_tarea(
+                usuario,
+                "preventa_respondida",
+                panel="preventa",
+                detalle={"question_id": question_id},
+            )
         spawn_thread(
             _procesar_respuesta_preventa,
             args=(question_id, respuesta),
@@ -2830,6 +2860,14 @@ def register_routes(app):
             notificar_grupo=True,
         )
         return jsonify(resultado)
+
+    @app.route("/api/sync/schedule")
+    def api_sync_schedule():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.sync_scheduler import get_schedule_status
+
+        return jsonify(get_schedule_status())
 
     @app.route("/api/sync/hoy", methods=["POST"])
     def api_sync_hoy():
@@ -6399,6 +6437,123 @@ def register_routes(app):
         )
         return out_base + ".png"
 
+    def _pdf_con_campos_texto(
+        ruta_pdf: str,
+        campos: list,
+        lote: str = "",
+        vencimiento: str = "",
+        lote_pos: str = "bottom-left",
+        lote_font: int = 7,
+    ) -> str:
+        """
+        Genera PDF temporal con:
+        - campos: lista de {texto, x_pct, y_pct, font_size, bold, align, fondo_blanco, color}
+          x_pct/y_pct: 0-100 porcentaje del tamaño de página, origen top-left.
+          Admite saltos de línea (\n) en texto.
+        - lote/vencimiento opcionales en esquina (comportamiento heredado).
+        """
+        import io as _io
+        import tempfile as _tmp
+        import PyPDF2
+        from reportlab.pdfgen import canvas as _rl_canvas
+        from reportlab.lib.units import mm as _mm
+        from reportlab.lib.colors import HexColor, black, white
+
+        reader = PyPDF2.PdfReader(ruta_pdf)
+        writer = PyPDF2.PdfWriter()
+
+        for page in reader.pages:
+            mb = page.mediabox
+            w_pt = float(mb.width)
+            h_pt = float(mb.height)
+
+            buf = _io.BytesIO()
+            c = _rl_canvas.Canvas(buf, pagesize=(w_pt, h_pt))
+
+            for campo in (campos or []):
+                texto = (campo.get("texto") or "").strip()
+                if not texto:
+                    continue
+                fs = max(4, min(72, int(campo.get("font_size", 8))))
+                bold = campo.get("bold", False)
+                align = campo.get("align", "left")
+                fondo = campo.get("fondo_blanco", False)
+                color_hex = (campo.get("color") or "#000000").strip()
+                x_pct = float(campo.get("x_pct", 5))
+                y_pct = float(campo.get("y_pct", 5))
+
+                font_name = "Helvetica-Bold" if bold else "Helvetica"
+                x_pt = w_pt * x_pct / 100.0
+                # PDF origen bottom-left; y_pct desde top-left
+                y_base_pt = h_pt * (1.0 - y_pct / 100.0) - fs
+
+                lineas = texto.split("\n")
+                lh = fs * 1.3
+
+                for i, linea in enumerate(lineas):
+                    y_l = y_base_pt - i * lh
+                    c.setFont(font_name, fs)
+                    try:
+                        c.setFillColor(HexColor(color_hex))
+                    except Exception:
+                        c.setFillColor(black)
+                    if fondo:
+                        tw = c.stringWidth(linea, font_name, fs)
+                        pad = 1.5
+                        c.setFillColor(white)
+                        c.rect(x_pt - pad, y_l - pad, tw + pad * 2, fs + pad * 2, fill=1, stroke=0)
+                        try:
+                            c.setFillColor(HexColor(color_hex))
+                        except Exception:
+                            c.setFillColor(black)
+                    if align == "center":
+                        tw = c.stringWidth(linea, font_name, fs)
+                        c.drawString(x_pt - tw / 2, y_l, linea)
+                    elif align == "right":
+                        c.drawRightString(x_pt, y_l, linea)
+                    else:
+                        c.drawString(x_pt, y_l, linea)
+
+            # Lote / vencimiento — comportamiento anterior preservado
+            if lote or vencimiento:
+                fn = "Helvetica-Bold"
+                c.setFont(fn, lote_font)
+                c.setFillColor(black)
+                margen = 3 * _mm
+                lh2 = lote_font * 1.35
+                lineas2 = []
+                if lote:
+                    lineas2.append(f"Lote: {lote}")
+                if vencimiento:
+                    lineas2.append(f"Vence: {vencimiento}")
+                if lote_pos == "bottom-left":
+                    xp = margen
+                    yb = margen + lh2 * (len(lineas2) - 1)
+                elif lote_pos == "bottom-right":
+                    mw = max((c.stringWidth(l, fn, lote_font) for l in lineas2), default=0)
+                    xp = w_pt - mw - margen
+                    yb = margen + lh2 * (len(lineas2) - 1)
+                elif lote_pos == "top-left":
+                    xp = margen
+                    yb = h_pt - margen - lote_font
+                else:
+                    mw = max((c.stringWidth(l, fn, lote_font) for l in lineas2), default=0)
+                    xp = w_pt - mw - margen
+                    yb = h_pt - margen - lote_font
+                for i2, txt2 in enumerate(lineas2):
+                    c.drawString(xp, yb - i2 * lh2, txt2)
+
+            c.save()
+            buf.seek(0)
+            overlay_page = PyPDF2.PdfReader(buf).pages[0]
+            page.merge_page(overlay_page)
+            writer.add_page(page)
+
+        tmp_fd, tmp_path = _tmp.mkstemp(suffix=".pdf", prefix="mckg_txt_")
+        with os.fdopen(tmp_fd, "wb") as f:
+            writer.write(f)
+        return tmp_path
+
     def _pdf_con_overlay(ruta_pdf: str, lote: str, vencimiento: str,
                          pos: str, font_size: int) -> str:
         """Genera un PDF temporal con lote/vencimiento superpuesto. Retorna la ruta al tmp."""
@@ -6467,7 +6622,6 @@ def register_routes(app):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         import base64 as _b64
-        import shutil as _sh
         data = request.get_json(silent=True) or {}
 
         ruta_pdf = data.get("ruta_pdf", "")
@@ -6475,6 +6629,7 @@ def register_routes(app):
         vencimiento = (data.get("vencimiento") or "").strip()
         lote_pos = data.get("lote_pos", "bottom-left")
         lote_font = max(5, min(20, int(data.get("lote_font", 7))))
+        campos_texto = data.get("campos_texto") or []
 
         if not ruta_pdf:
             return jsonify({"error": "Falta ruta_pdf"}), 400
@@ -6492,9 +6647,10 @@ def register_routes(app):
         tmp_dir = None
         try:
             pdf_para_preview = ruta_pdf
-            if lote or vencimiento:
+            tiene_contenido = lote or vencimiento or campos_texto
+            if tiene_contenido:
                 pos_val = lote_pos if lote_pos in ("bottom-left", "bottom-right", "top-left", "top-right") else "bottom-left"
-                tmp_pdf = _pdf_con_overlay(ruta_pdf, lote, vencimiento, pos_val, lote_font)
+                tmp_pdf = _pdf_con_campos_texto(ruta_pdf, campos_texto, lote, vencimiento, pos_val, lote_font)
                 pdf_para_preview = tmp_pdf
 
             png_path = _pdf_a_imagen(pdf_para_preview, dpi=180)
@@ -6538,6 +6694,7 @@ def register_routes(app):
         vencimiento = (data.get("vencimiento") or "").strip()
         lote_pos = data.get("lote_pos", "bottom-left")
         lote_font = int(data.get("lote_font", 7))
+        campos_texto = data.get("campos_texto") or []
 
         if producto not in _ETIQUETAS:
             return jsonify({"error": f"Producto desconocido: {producto}"}), 400
@@ -6572,14 +6729,19 @@ def register_routes(app):
         log_lines = []
         tmp_pdf = None
         try:
-            # Overlay de lote/vencimiento si se especificaron
+            # Overlay de campos de texto + lote/vencimiento
             pdf_a_imprimir = ruta_pdf
-            if lote or vencimiento:
+            if lote or vencimiento or campos_texto:
                 lote_pos_val = lote_pos if lote_pos in ("bottom-left", "bottom-right", "top-left", "top-right") else "bottom-left"
                 lote_font_val = max(5, min(20, lote_font))
-                tmp_pdf = _pdf_con_overlay(ruta_pdf, lote, vencimiento, lote_pos_val, lote_font_val)
+                tmp_pdf = _pdf_con_campos_texto(ruta_pdf, campos_texto, lote, vencimiento, lote_pos_val, lote_font_val)
                 pdf_a_imprimir = tmp_pdf
-                log_lines.append(f"Overlay lote/vence aplicado ({lote_pos_val}, {lote_font_val}pt)")
+                info = []
+                if campos_texto:
+                    info.append(f"{len(campos_texto)} campo(s) de texto")
+                if lote or vencimiento:
+                    info.append(f"lote/vence ({lote_pos_val})")
+                log_lines.append(f"Overlay aplicado: {', '.join(info)}")
 
             # 1. Ajuste físico de posición
             r_elpu = _sp.run(
@@ -6617,6 +6779,564 @@ def register_routes(app):
                     os.unlink(tmp_pdf)
                 except Exception:
                     pass
+
+    # ── Publicaciones (editor de catálogo) ────────────────────────────────────
+
+    @app.route("/api/publicaciones", methods=["GET"])
+    def api_publicaciones_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import listar_publicaciones
+        buscar = request.args.get("buscar", "").strip()
+        categoria = request.args.get("categoria", "").strip()
+        try:
+            return jsonify(listar_publicaciones(buscar=buscar, categoria=categoria))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>", methods=["GET"])
+    def api_publicacion_detalle(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import obtener_publicacion
+        live = request.args.get("live_meli", "0") == "1"
+        try:
+            item = obtener_publicacion(sku, live_meli=live)
+            if item is None:
+                return jsonify({"error": "Producto no encontrado"}), 404
+            return jsonify(item)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>", methods=["PUT"])
+    def api_publicacion_update(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import actualizar_publicacion
+        body = request.get_json(silent=True) or {}
+        try:
+            return jsonify(actualizar_publicacion(sku, body))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/sync-web", methods=["POST"])
+    def api_publicacion_sync_web(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import aplicar_overrides_a_cache, refrescar_web
+        try:
+            r_cache = aplicar_overrides_a_cache()
+            r_web = refrescar_web()
+            return jsonify({"ok": r_cache["ok"] or r_web["ok"], "cache": r_cache, "web": r_web})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/sync-web-all", methods=["POST"])
+    def api_publicaciones_sync_web_all():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import aplicar_overrides_a_cache, refrescar_web
+        try:
+            r_cache = aplicar_overrides_a_cache()
+            r_web = refrescar_web()
+            return jsonify({"ok": True, "cache": r_cache, "web": r_web})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/sync-meli", methods=["POST"])
+    def api_publicacion_sync_meli(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import sincronizar_meli_stock
+        body = request.get_json(silent=True) or {}
+        stock = body.get("stock")
+        if stock is None:
+            return jsonify({"error": "Campo 'stock' requerido"}), 400
+        try:
+            return jsonify(sincronizar_meli_stock(sku, int(stock)))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/refresh-web", methods=["POST"])
+    def api_publicaciones_refresh_web():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import refrescar_web
+        try:
+            return jsonify(refrescar_web())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/fotos", methods=["GET"])
+    def api_publicacion_fotos(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import obtener_fotos_actuales, obtener_publicacion
+        meli_item_id = request.args.get("meli_item_id", "").strip()
+        if not meli_item_id:
+            pub = obtener_publicacion(sku)
+            if pub:
+                meli_item_id = pub.get("meli_id_efectivo", "")
+        try:
+            return jsonify(obtener_fotos_actuales(sku, meli_item_id))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/imagen", methods=["POST"])
+    def api_publicacion_imagen(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import (
+            subir_imagen_web, subir_imagen_meli,
+            aplicar_overrides_a_cache, refrescar_web, obtener_publicacion,
+        )
+
+        targets_raw = request.form.get("targets") or request.args.get("targets") or "web"
+        targets = {t.strip() for t in targets_raw.split(",")}
+        meli_item_id = (request.form.get("meli_item_id") or "").strip()
+        if "meli" in targets and not meli_item_id:
+            pub = obtener_publicacion(sku)
+            if pub:
+                meli_item_id = pub.get("meli_id_efectivo", "")
+
+        # Acepta uno o varios archivos (campo "file" o "files[]")
+        files = request.files.getlist("files[]") or request.files.getlist("file")
+        if not files or not files[0].filename:
+            return jsonify({"error": "No se recibió archivo (campo 'file' o 'files[]' en multipart)"}), 400
+
+        all_results = []
+        web_updated = False
+        for f in files:
+            file_bytes = f.read()
+            content_type = f.content_type or "image/jpeg"
+            filename = f.filename or f"{sku}.jpg"
+            res_file: dict = {"filename": filename, "web": None, "meli": None}
+
+            if "web" in targets:
+                try:
+                    r = subir_imagen_web(sku, file_bytes, filename)
+                    res_file["web"] = r
+                    if r.get("ok"):
+                        web_updated = True
+                except Exception as e:
+                    res_file["web"] = {"ok": False, "error": str(e)}
+
+            if "meli" in targets:
+                if not meli_item_id:
+                    res_file["meli"] = {"ok": False, "error": "Sin ID MeLi vinculado"}
+                else:
+                    try:
+                        res_file["meli"] = subir_imagen_meli(meli_item_id, file_bytes, content_type)
+                    except Exception as e:
+                        res_file["meli"] = {"ok": False, "error": str(e)}
+
+            all_results.append(res_file)
+
+        if web_updated:
+            try:
+                aplicar_overrides_a_cache()
+                refrescar_web()
+            except Exception:
+                pass
+
+        ok = any(
+            (r.get("web", {}) or {}).get("ok") or (r.get("meli", {}) or {}).get("ok")
+            for r in all_results
+        )
+        return jsonify({"ok": ok, "sku": sku, "archivos": all_results})
+
+    @app.route("/api/publicaciones/<sku>/imagenes/web", methods=["PUT"])
+    def api_publicacion_imagenes_web_orden(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import reordenar_imagenes_web, aplicar_overrides_a_cache, refrescar_web
+        body = request.get_json(silent=True) or {}
+        orden = body.get("orden", [])
+        if not isinstance(orden, list):
+            return jsonify({"error": "'orden' debe ser lista de filenames"}), 400
+        try:
+            result = reordenar_imagenes_web(sku, orden)
+            if result.get("ok"):
+                try:
+                    aplicar_overrides_a_cache()
+                    refrescar_web()
+                except Exception:
+                    pass
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/imagenes/meli", methods=["PUT"])
+    def api_publicacion_imagenes_meli_orden(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import reordenar_imagenes_meli, obtener_publicacion
+        body = request.get_json(silent=True) or {}
+        picture_ids = body.get("picture_ids", [])
+        meli_item_id = (body.get("meli_item_id") or "").strip()
+        if not meli_item_id:
+            pub = obtener_publicacion(sku)
+            if pub:
+                meli_item_id = pub.get("meli_id_efectivo", "")
+        if not meli_item_id:
+            return jsonify({"error": "Sin ID de publicación MeLi"}), 400
+        try:
+            return jsonify(reordenar_imagenes_meli(meli_item_id, picture_ids))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/imagen/web", methods=["DELETE"])
+    def api_publicacion_eliminar_imagen_web(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import eliminar_imagen_web, aplicar_overrides_a_cache, refrescar_web
+        body = request.get_json(silent=True) or {}
+        filename = (body.get("filename") or "").strip()
+        if not filename:
+            return jsonify({"error": "Campo 'filename' requerido"}), 400
+        try:
+            result = eliminar_imagen_web(sku, filename)
+            if result.get("ok"):
+                try:
+                    aplicar_overrides_a_cache()
+                    refrescar_web()
+                except Exception:
+                    pass
+            return jsonify(result)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/publicaciones/<sku>/imagen/meli", methods=["DELETE"])
+    def api_publicacion_eliminar_imagen_meli(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.publicaciones import eliminar_imagen_meli, obtener_publicacion
+        body = request.get_json(silent=True) or {}
+        picture_id = (body.get("picture_id") or "").strip()
+        meli_item_id = (body.get("meli_item_id") or "").strip()
+        if not picture_id:
+            return jsonify({"error": "Campo 'picture_id' requerido"}), 400
+        if not meli_item_id:
+            pub = obtener_publicacion(sku)
+            if pub:
+                meli_item_id = pub.get("meli_id_efectivo", "")
+        if not meli_item_id:
+            return jsonify({"error": "Sin ID de publicación MeLi"}), 400
+        try:
+            return jsonify(eliminar_imagen_meli(meli_item_id, picture_id))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── Etiquetas: edición directa de texto en PDF ───────────────────────────
+
+    def _color_int_to_hex(color_int: int) -> str:
+        r = (color_int >> 16) & 0xFF
+        g = (color_int >> 8) & 0xFF
+        b = color_int & 0xFF
+        return f"#{r:02x}{g:02x}{b:02x}"
+
+    def _color_hex_to_rgb(hex_str: str) -> tuple:
+        h = (hex_str or "#000000").lstrip("#")
+        if len(h) != 6:
+            return (0.0, 0.0, 0.0)
+        return (int(h[0:2], 16) / 255, int(h[2:4], 16) / 255, int(h[4:6], 16) / 255)
+
+    # Busca el archivo de fuente en el sistema dado el nombre del font del PDF
+    _font_file_cache: dict[str, str | None] = {}
+
+    def _buscar_font_file(font_name: str) -> str | None:
+        key = font_name.lower()
+        if key in _font_file_cache:
+            return _font_file_cache[key]
+        import subprocess as _sp2, glob as _gl
+        # 1. Búsqueda directa por nombre en directorios de fuentes comunes
+        dirs = ["/usr/share/fonts", "/usr/local/share/fonts", os.path.expanduser("~/.fonts")]
+        safe = font_name.replace("-", "").replace(" ", "")
+        for d in dirs:
+            for ext in ("otf", "ttf", "OTF", "TTF"):
+                pattern = os.path.join(d, "**", f"{font_name}.{ext}")
+                matches = _gl.glob(pattern, recursive=True)
+                if matches:
+                    _font_file_cache[key] = matches[0]
+                    return matches[0]
+        # 2. fc-match como fallback
+        try:
+            r2 = _sp2.run(
+                ["fc-match", "--format=%{file}", font_name],
+                capture_output=True, text=True, timeout=5,
+            )
+            path = r2.stdout.strip()
+            # Solo aceptar si el nombre del archivo es razonablemente similar
+            fname_lower = os.path.basename(path).lower().replace("-", "").replace("_", "")
+            safe_lower = safe.lower()
+            if path and os.path.isfile(path) and (
+                safe_lower[:6] in fname_lower or fname_lower[:6] in safe_lower
+            ):
+                _font_file_cache[key] = path
+                return path
+        except Exception:
+            pass
+        _font_file_cache[key] = None
+        return None
+
+    @app.route("/api/etiquetas/extraer-texto", methods=["GET"])
+    def api_etiquetas_extraer_texto():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        ruta_pdf = request.args.get("ruta_pdf", "").strip()
+        if not ruta_pdf:
+            return jsonify({"error": "Falta ruta_pdf"}), 400
+        if not os.path.isabs(ruta_pdf):
+            ruta_pdf = os.path.join(_PDF_DIR, ruta_pdf)
+        ruta_pdf = os.path.realpath(ruta_pdf)
+        home_real = os.path.realpath(os.path.expanduser("~"))
+        if not ruta_pdf.startswith(home_real) or not os.path.isfile(ruta_pdf):
+            return jsonify({"error": "Archivo no encontrado o ruta no permitida"}), 404
+        try:
+            import fitz as _fitz
+            doc = _fitz.open(ruta_pdf)
+            spans = []
+            uid = 0
+            for pg_num, page in enumerate(doc):
+                data = page.get_text("dict", flags=_fitz.TEXT_PRESERVE_WHITESPACE)
+                for blk in data.get("blocks", []):
+                    if blk.get("type") != 0:
+                        continue
+                    for ln in blk.get("lines", []):
+                        for sp in ln.get("spans", []):
+                            txt = sp.get("text", "")
+                            if not txt.strip():
+                                continue
+                            origin = sp.get("origin", (0.0, 0.0))
+                            bbox = sp.get("bbox", [0, 0, 0, 0])
+                            color_int = sp.get("color", 0)
+                            font_name = sp.get("font", "")
+                            font_file = _buscar_font_file(font_name)
+                            spans.append({
+                                "id": f"s{pg_num}_{uid}",
+                                "pagina": pg_num,
+                                "texto_original": txt,
+                                "texto_editado": txt,
+                                "origin_x": round(origin[0], 2),
+                                "origin_y": round(origin[1], 2),
+                                "bbox": [round(x, 2) for x in bbox],
+                                "font_name": font_name,
+                                "font_file": font_file,
+                                "font_size": round(sp.get("size", 10), 2),
+                                "color_hex": _color_int_to_hex(color_int),
+                                "color_int": color_int,
+                                "flags": sp.get("flags", 0),
+                            })
+                            uid += 1
+            doc.close()
+            # Ordenar: primero por página, luego por Y, luego por X
+            spans.sort(key=lambda s: (s["pagina"], s["origin_y"], s["origin_x"]))
+            return jsonify({"spans": spans, "total": len(spans)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/guardar-pdf-editado", methods=["POST"])
+    def api_etiquetas_guardar_pdf_editado():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        ruta_pdf = (body.get("ruta_pdf") or "").strip()
+        spans_editados = body.get("spans") or []
+        modo = body.get("modo", "nuevo")  # "original" | "nuevo"
+
+        if not ruta_pdf:
+            return jsonify({"error": "Falta ruta_pdf"}), 400
+        if not os.path.isabs(ruta_pdf):
+            ruta_pdf = os.path.join(_PDF_DIR, ruta_pdf)
+        ruta_pdf = os.path.realpath(ruta_pdf)
+        home_real = os.path.realpath(os.path.expanduser("~"))
+        if not ruta_pdf.startswith(home_real) or not os.path.isfile(ruta_pdf):
+            return jsonify({"error": "Archivo no encontrado o ruta no permitida"}), 404
+
+        # Solo los spans que cambiaron
+        cambios = [
+            s for s in spans_editados
+            if s.get("texto_editado", "") != s.get("texto_original", "")
+        ]
+        if not cambios:
+            return jsonify({"ok": True, "mensaje": "Sin cambios que guardar", "ruta": ruta_pdf})
+
+        try:
+            import fitz as _fitz
+            import tempfile as _tmp2
+
+            doc = _fitz.open(ruta_pdf)
+
+            # Agrupar cambios por página
+            por_pagina: dict[int, list] = {}
+            for c in cambios:
+                pg = c.get("pagina", 0)
+                por_pagina.setdefault(pg, []).append(c)
+
+            for pg_num, lista in por_pagina.items():
+                if pg_num >= len(doc):
+                    continue
+                page = doc[pg_num]
+
+                # Paso 1: añadir todas las redacciones de esta página
+                for c in lista:
+                    rect = _fitz.Rect(c["bbox"])
+                    # expandir 1pt para cubrir bordes del glifo
+                    rect = rect + (-1, -1, 1, 1)
+                    annot = page.add_redact_annot(rect, fill=(1, 1, 1))
+
+                # Paso 2: aplicar redacciones (elimina texto original)
+                page.apply_redactions(images=_fitz.PDF_REDACT_IMAGE_NONE)
+
+                # Paso 3: insertar texto nuevo
+                for c in lista:
+                    texto_nuevo = c.get("texto_editado", "").strip()
+                    if not texto_nuevo:
+                        continue
+                    font_name = c.get("font_name", "helv")
+                    font_file = c.get("font_file") or None
+                    font_size = float(c.get("font_size", 10))
+                    color_rgb = _color_hex_to_rgb(c.get("color_hex", "#000000"))
+                    ox = float(c.get("origin_x", 0))
+                    oy = float(c.get("origin_y", 0))
+
+                    insert_kwargs: dict = {
+                        "point": _fitz.Point(ox, oy),
+                        "text": texto_nuevo,
+                        "fontsize": font_size,
+                        "color": color_rgb,
+                    }
+                    if font_file and os.path.isfile(font_file):
+                        insert_kwargs["fontname"] = font_name
+                        insert_kwargs["fontfile"] = font_file
+                    else:
+                        # Fallback: Helvetica estándar de PDF
+                        flags = c.get("flags", 0)
+                        bold = bool(flags & 16)
+                        italic = bool(flags & 2)
+                        if bold and italic:
+                            insert_kwargs["fontname"] = "helv-oi"
+                        elif bold:
+                            insert_kwargs["fontname"] = "helv-b"
+                        elif italic:
+                            insert_kwargs["fontname"] = "helv-o"
+                        else:
+                            insert_kwargs["fontname"] = "helv"
+
+                    page.insert_text(**insert_kwargs)
+
+            # Guardar
+            if modo == "original":
+                ruta_destino = ruta_pdf
+                # Guardar en tmp y reemplazar
+                tmp_fd, tmp_path = _tmp2.mkstemp(suffix=".pdf", prefix="mckg_edit_")
+                os.close(tmp_fd)
+                doc.save(tmp_path, garbage=4, deflate=True, incremental=False)
+                doc.close()
+                import shutil as _sh3
+                _sh3.move(tmp_path, ruta_destino)
+            else:
+                # Nuevo archivo con sufijo _v2, _v3, etc.
+                base, ext = os.path.splitext(ruta_pdf)
+                ruta_destino = f"{base}_editado{ext}"
+                n = 2
+                while os.path.exists(ruta_destino):
+                    ruta_destino = f"{base}_editado_{n}{ext}"
+                    n += 1
+                doc.save(ruta_destino, garbage=4, deflate=True)
+                doc.close()
+
+            return jsonify({
+                "ok": True,
+                "ruta": ruta_destino,
+                "nombre": os.path.basename(ruta_destino),
+                "cambios": len(cambios),
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── Etiquetas: datos de productos ────────────────────────────────────────
+
+    _ETIQUETAS_DATOS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_datos.json")
+
+    def _load_etiquetas_datos() -> dict:
+        if os.path.exists(_ETIQUETAS_DATOS_PATH):
+            try:
+                with open(_ETIQUETAS_DATOS_PATH, encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return {}
+
+    def _save_etiquetas_datos(data: dict) -> None:
+        os.makedirs(os.path.dirname(_ETIQUETAS_DATOS_PATH), exist_ok=True)
+        with open(_ETIQUETAS_DATOS_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    @app.route("/api/etiquetas/datos", methods=["GET"])
+    def api_etiquetas_datos_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        datos = _load_etiquetas_datos()
+        return jsonify({"datos": datos, "total": len(datos)})
+
+    @app.route("/api/etiquetas/datos/<path:sku>", methods=["GET", "POST", "DELETE"])
+    def api_etiquetas_datos_sku(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        datos = _load_etiquetas_datos()
+
+        if request.method == "GET":
+            return jsonify(datos.get(sku, {}))
+
+        if request.method == "DELETE":
+            if sku in datos:
+                del datos[sku]
+                _save_etiquetas_datos(datos)
+            return jsonify({"ok": True})
+
+        # POST — guardar/actualizar
+        body = request.get_json(silent=True) or {}
+        _allowed_etiqueta = {
+            "siigo_code", "siigo_name", "nombre_etiqueta", "presentacion",
+            "pdf_ruta", "pdf_nombre", "lote_defecto", "vencimiento_defecto",
+            "tipo_etiqueta", "forma", "calidad", "rotacion",
+            "lote_pos", "lote_font", "campos_texto",
+        }
+        entry = dict(datos.get(sku, {}))
+        for k, v in body.items():
+            if k in _allowed_etiqueta:
+                entry[k] = v
+        entry["updated_at"] = _dt.now().isoformat()
+        datos[sku] = entry
+        _save_etiquetas_datos(datos)
+        return jsonify({"ok": True, "sku": sku, "datos": entry})
+
+    @app.route("/api/etiquetas/combos-siigo", methods=["GET"])
+    def api_etiquetas_combos_siigo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        buscar = (request.args.get("q") or "").strip().lower()
+        try:
+            from app.services.siigo import listar_productos_combo_siigo, _precio_lista_siigo_producto
+            combos = listar_productos_combo_siigo()
+            if buscar:
+                combos = [
+                    c for c in combos
+                    if buscar in (c.get("name") or "").lower()
+                    or buscar in (c.get("code") or "").lower()
+                ]
+            resultado = [
+                {
+                    "code": c.get("code", ""),
+                    "name": c.get("name", ""),
+                    "precio_lista": _precio_lista_siigo_producto(c),
+                }
+                for c in combos[:200]
+            ]
+            return jsonify({"combos": resultado, "total": len(resultado)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     # ── SPA React ─────────────────────────────────────────────────────────────
 

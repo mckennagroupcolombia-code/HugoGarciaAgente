@@ -1,0 +1,19 @@
+{
+  "C-EXTALOVER30mL": {
+    "siigo_code": "C-EXTALOVER30mL",
+    "siigo_name": "EXTRACTO ALOE VERA 30mL",
+    "nombre_etiqueta": "EXTRACTO ALOE VERA 30mL",
+    "presentacion": "",
+    "pdf_ruta": "/home/mckg/Imágenes/ALOE VERA 30mL.pdf",
+    "pdf_nombre": "ALOE VERA 30mL.pdf",
+    "lote_defecto": "",
+    "vencimiento_defecto": "",
+    "tipo_etiqueta": "30 mL",
+    "forma": "Diecut_Gap",
+    "calidad": "Normal",
+    "rotacion": "0",
+    "lote_pos": "bottom-left",
+    "lote_font": 7,
+    "updated_at": "2026-05-30T17:31:13.487924"
+  }
+}

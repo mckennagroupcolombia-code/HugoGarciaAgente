@@ -56,6 +56,7 @@ import {
   Robot,
   Scroll,
   ShoppingCart,
+  Storefront,
   SignOut,
   SquaresFour,
   Sun,
@@ -93,6 +94,7 @@ export const PANEL_ICON: Record<Panel, PhosphorIcon> = {
   facturas: Receipt,
   tickets: ClipboardText,
   etiquetas: Printer,
+  publicaciones: Storefront,
   settings: Gear,
 };
 

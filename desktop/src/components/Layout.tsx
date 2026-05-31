@@ -3,9 +3,11 @@ import Sidebar from "./Sidebar";
 import ActivityLog from "./ActivityLog";
 import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import { usePanelSession } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
 
 export default function Layout({ children }: { children: ReactNode }) {
+  usePanelSession();
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggle = useAppStore((s) => s.toggleSidebar);
   const isAdmin = (useTicketsAuth((s) => s.user)?.rol?.nivel ?? 0) >= 3;

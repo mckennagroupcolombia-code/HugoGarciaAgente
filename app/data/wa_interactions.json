@@ -1,120 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1779916916.438499,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916916.951677,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916917.3234575,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916917.5385175,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916917.7978153,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916920.5782564,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916920.7082844,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916920.9084795,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916921.1439996,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916971.6511445,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779916972.3408878,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917078.280859,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917078.973994,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917079.2715623,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917081.067094,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917081.2629647,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917081.4478703,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917081.6594794,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917086.7924402,
-      "tipo": "handoff_bot",
-      "sender": "73031707820119@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
       "ts": 1779917088.923276,
       "tipo": "manual_humano",
       "sender": "49976306606124@c.us",
@@ -1799,6 +1685,120 @@
       "tipo": "bot_pausado_global",
       "sender": "57265841396469895@c.us",
       "detalle": "Claudia Ximena Ramírez\n38879894\nCalle 63b No 78-33\nBogotá\n3123730584\nClauxime35@hotmail.com"
+    },
+    {
+      "ts": 1780157604.492623,
+      "tipo": "bot_pausado_global",
+      "sender": "5723665420836895@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780157952.0647087,
+      "tipo": "bot_pausado_global",
+      "sender": "5723665420836895@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780160482.8024678,
+      "tipo": "bot_pausado_global",
+      "sender": "5794601033605121@c.us",
+      "detalle": "Hola"
+    },
+    {
+      "ts": 1780160502.3544044,
+      "tipo": "bot_pausado_global",
+      "sender": "5794601033605121@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780160515.3981829,
+      "tipo": "bot_pausado_global",
+      "sender": "5794601033605121@c.us",
+      "detalle": "Ya cancele"
+    },
+    {
+      "ts": 1780160636.8683958,
+      "tipo": "bot_pausado_global",
+      "sender": "5794601033605121@c.us",
+      "detalle": "Te envío los datos \nNora Meza Madrid \nCarrera 3E#10A31\nBarrio Jorge Arrieta \nMaicao guajira"
+    },
+    {
+      "ts": 1780160651.6215334,
+      "tipo": "bot_pausado_global",
+      "sender": "5794601033605121@c.us",
+      "detalle": "En cuanto llega"
+    },
+    {
+      "ts": 1780161111.1857038,
+      "tipo": "bot_pausado_global",
+      "sender": "5723665420836895@c.us",
+      "detalle": "2 de árbol de té \n6 de manzanilla \n1 de romero \n1 de menta"
+    },
+    {
+      "ts": 1780161556.4394495,
+      "tipo": "modo_humano",
+      "sender": "5773031707820119@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780162166.7387273,
+      "tipo": "modo_humano",
+      "sender": "5773031707820119@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780162765.758147,
+      "tipo": "bot_pausado_global",
+      "sender": "57104977657790477@c.us",
+      "detalle": "Gracias!"
+    },
+    {
+      "ts": 1780163377.4747882,
+      "tipo": "bot_pausado_global",
+      "sender": "57109951213113361@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780163396.0273278,
+      "tipo": "bot_pausado_global",
+      "sender": "57109951213113361@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1780163456.68534,
+      "tipo": "bot_pausado_global",
+      "sender": "57109951213113361@c.us",
+      "detalle": "Me llegó esta encomienda pero no es mía la dirección es la mía pero el destinatario no corresponde"
+    },
+    {
+      "ts": 1780163903.278684,
+      "tipo": "modo_humano",
+      "sender": "5773031707820119@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780163928.3866143,
+      "tipo": "bot_pausado_global",
+      "sender": "5723665420836895@c.us",
+      "detalle": "Para la Ceja Antioquia"
+    },
+    {
+      "ts": 1780165070.9028292,
+      "tipo": "bot_pausado_global",
+      "sender": "57109951213113361@c.us",
+      "detalle": "Si ests en la porteria"
+    },
+    {
+      "ts": 1780165111.8478732,
+      "tipo": "bot_pausado_global",
+      "sender": "57109951213113361@c.us",
+      "detalle": "Si me confirmas para avisar en la portería"
+    },
+    {
+      "ts": 1780165510.8756332,
+      "tipo": "bot_pausado_global",
+      "sender": "57109951213113361@c.us",
+      "detalle": "Con mucho gusto"
     }
   ]
 }
