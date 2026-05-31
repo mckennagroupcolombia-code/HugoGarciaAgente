@@ -16,7 +16,7 @@ from app.services.tickets_db import (
     listar_departamentos, crear_departamento, actualizar_departamento,
     listar_usuarios, crear_usuario, actualizar_usuario, desactivar_usuario,
     actualizar_foto_usuario, eliminar_foto_usuario,
-    crear_ticket, listar_tickets, get_ticket, actualizar_ticket,
+    crear_ticket, listar_tickets, listar_compras_delegadas, get_ticket, actualizar_ticket,
     cambiar_estado, asignar_ticket, agregar_comentario,
     renovar_ticket,
     registrar_tiempo, dashboard_carga, UPLOADS_DIR,
@@ -160,6 +160,39 @@ def _exchange_google_code(code: str) -> dict | None:
         return {"email": email, "sub": sub, "nombre": info.get("name", ""), "picture": info.get("picture", "")}
     except Exception:
         return None
+
+
+def _notificar_nueva_accion_wa(ticket: dict, quien: str) -> None:
+    """Envía notificación al grupo SEDE SUR cuando se crea una nueva acción o solicitud."""
+    if not _notif_config_load().get("sede_sur_acciones", True):
+        return
+    import threading
+    from app.utils import enviar_whatsapp_reporte
+
+    tipo = ticket.get("tipo", "accion")
+    emoji = "⚡" if tipo == "accion" else "📋"
+    tipo_label = "Acción nueva" if tipo == "accion" else "Solicitud nueva"
+    numero = ticket.get("numero", "")
+    titulo = ticket.get("titulo", "")
+    asignado = ticket.get("asignado_a_nombre") or "Sin asignar"
+    prioridad = ticket.get("prioridad", "media")
+    pasos_total = ticket.get("pasos_total") or 0
+
+    lineas = [
+        f"{emoji} *{tipo_label}*",
+        f"{numero} — {titulo}",
+        f"👤 Asignado a: {asignado}  ·  Prioridad: {prioridad}",
+    ]
+    if pasos_total:
+        lineas.append(f"📋 {pasos_total} paso{'s' if pasos_total != 1 else ''} para resolver")
+    if quien:
+        lineas.append(f"🏢 Creado por: {quien}")
+
+    threading.Thread(
+        target=enviar_whatsapp_reporte,
+        kwargs={"texto_mensaje": "\n".join(lineas), "numero_destino": _GRUPO_SEDE_SUR_WA},
+        daemon=True,
+    ).start()
 
 
 def _notificar_estado_accion_wa(ticket: dict, nuevo_estado: str, quien: str) -> None:
@@ -357,9 +390,111 @@ def register_tickets_routes(app):
     @app.route("/api/tickets/auth/logout", methods=["POST"])
     @_auth
     def tickets_logout():
+        from app.services.panel_presencia import cerrar_sesion_panel
+
+        data = request.get_json(silent=True) or {}
+        sid = (data.get("session_uuid") or "").strip()
+        if sid:
+            cerrar_sesion_panel(request.tickets_usuario["id"], sid)
         token = request.headers.get("Authorization", "")[7:].strip()
         logout_usuario(token)
         return jsonify({"ok": True}), 200
+
+    # ── Presencia / sesión panel ─────────────────────────────────────────────
+
+    @app.route("/api/tickets/panel/sesion/inicio", methods=["POST"])
+    @app.route("/app/api/tickets/panel/sesion/inicio", methods=["POST"])
+    @_auth
+    def panel_sesion_inicio():
+        from app.services.panel_presencia import iniciar_sesion_panel, registrar_evento_panel
+
+        data = request.get_json(force=True) or {}
+        sid = (data.get("session_uuid") or "").strip()
+        if not sid:
+            return jsonify({"error": "session_uuid requerido"}), 400
+        uid = request.tickets_usuario["id"]
+        ua = (request.headers.get("User-Agent") or "")[:500]
+        panel = (data.get("panel") or "").strip()[:64] or None
+        out = iniciar_sesion_panel(uid, sid, user_agent=ua, panel=panel)
+        if not out.get("ok"):
+            return jsonify(out), 400
+        registrar_evento_panel(uid, "sesion_inicio", panel=panel, session_uuid=sid)
+        return jsonify(out), 200
+
+    @app.route("/api/tickets/panel/sesion/ping", methods=["POST"])
+    @app.route("/app/api/tickets/panel/sesion/ping", methods=["POST"])
+    @_auth
+    def panel_sesion_ping():
+        from app.services.panel_presencia import ping_sesion_panel, iniciar_sesion_panel
+
+        data = request.get_json(force=True) or {}
+        sid = (data.get("session_uuid") or "").strip()
+        if not sid:
+            return jsonify({"error": "session_uuid requerido"}), 400
+        uid = request.tickets_usuario["id"]
+        panel = (data.get("panel") or "").strip()[:64] or None
+        out = ping_sesion_panel(uid, sid, panel=panel)
+        if out.get("reiniciar"):
+            ua = (request.headers.get("User-Agent") or "")[:500]
+            out = iniciar_sesion_panel(uid, sid, user_agent=ua, panel=panel)
+        if not out.get("ok"):
+            return jsonify(out), 400
+        return jsonify(out), 200
+
+    @app.route("/api/tickets/panel/sesion/fin", methods=["POST"])
+    @app.route("/app/api/tickets/panel/sesion/fin", methods=["POST"])
+    @_auth
+    def panel_sesion_fin():
+        from app.services.panel_presencia import cerrar_sesion_panel, registrar_evento_panel
+
+        data = request.get_json(force=True) or {}
+        sid = (data.get("session_uuid") or "").strip()
+        if not sid:
+            return jsonify({"error": "session_uuid requerido"}), 400
+        uid = request.tickets_usuario["id"]
+        registrar_evento_panel(uid, "sesion_fin", session_uuid=sid)
+        cerrar_sesion_panel(uid, sid)
+        return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/panel/evento", methods=["POST"])
+    @app.route("/app/api/tickets/panel/evento", methods=["POST"])
+    @_auth
+    def panel_evento():
+        from app.services.panel_presencia import registrar_evento_panel
+
+        data = request.get_json(force=True) or {}
+        tipo = (data.get("tipo") or "").strip()
+        if not tipo:
+            return jsonify({"error": "tipo requerido"}), 400
+        registrar_evento_panel(
+            request.tickets_usuario["id"],
+            tipo,
+            panel=(data.get("panel") or "").strip()[:64] or None,
+            detalle=data.get("detalle"),
+            session_uuid=(data.get("session_uuid") or "").strip() or None,
+        )
+        return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/panel/metricas", methods=["GET"])
+    @_auth
+    def panel_metricas_operadores():
+        from app.services.panel_presencia import metricas_panel_operadores
+
+        if (request.tickets_usuario.get("rol") or {}).get("nivel", 0) < 3:
+            return jsonify({"error": "Solo administradores"}), 403
+        fecha = (request.args.get("fecha") or "").strip()[:10] or None
+        return jsonify(metricas_panel_operadores(fecha)), 200
+
+    @app.route("/api/tickets/panel/mi-resumen", methods=["GET"])
+    @_auth
+    def panel_mi_resumen():
+        from app.services.panel_presencia import metricas_panel_operadores
+
+        fecha = (request.args.get("fecha") or "").strip()[:10] or None
+        uid = request.tickets_usuario["id"]
+        data = metricas_panel_operadores(fecha)
+        mine = next((o for o in data["operadores"] if o["usuario_id"] == uid), None)
+        return jsonify({"fecha": data["fecha"], "resumen": mine}), 200
 
     @app.route("/api/tickets/auth/me/foto", methods=["POST"])
     @_auth
@@ -555,8 +690,10 @@ def register_tickets_routes(app):
     @app.route("/api/tickets/", methods=["GET"])
     @_auth
     def tickets_list():
-        filtros = {k: request.args.get(k) for k in ("estado", "categoria", "asignado_a", "prioridad", "tipo")}
+        filtros = {k: request.args.get(k) for k in ("estado", "categoria", "asignado_a", "prioridad", "tipo", "subtipo")}
         filtros = {k: v for k, v in filtros.items() if v}
+        if request.args.get("mis_solicitudes") in ("1", "true", "yes"):
+            filtros["mis_solicitudes"] = True
         if request.args.get("sin_mision"):
             filtros["sin_mision"] = True
         if request.args.get("vista_equipo") in ("1", "true", "yes"):
@@ -564,6 +701,13 @@ def register_tickets_routes(app):
         if request.args.get("activas") in ("1", "true", "yes"):
             filtros["activas"] = True
         return jsonify(listar_tickets(request.tickets_usuario, filtros)), 200
+
+    @app.route("/api/tickets/compras-delegadas", methods=["GET"])
+    @_auth
+    def tickets_compras_delegadas():
+        solo_activas = request.args.get("activas", "1") in ("1", "true", "yes")
+        data = listar_compras_delegadas(request.tickets_usuario["id"], solo_activas=solo_activas)
+        return jsonify(data), 200
 
     @app.route("/api/tickets/", methods=["POST"])
     @_auth
@@ -606,6 +750,8 @@ def register_tickets_routes(app):
         ticket, err = crear_ticket(data, usuario["id"], archivo_nombre)
         if err:
             return jsonify({"error": err}), 500
+        if ticket and tipo_ticket in ("accion", "solicitud"):
+            _notificar_nueva_accion_wa(ticket, usuario.get("nombre", ""))
         return jsonify(ticket), 201
 
     @app.route("/api/tickets/<int:ticket_id>", methods=["DELETE"])
@@ -657,6 +803,16 @@ def register_tickets_routes(app):
         if not ok:
             return jsonify({"error": err}), 400
         ticket = get_ticket(ticket_id, request.tickets_usuario)
+        if nuevo_estado == "resuelto":
+            from app.services.panel_presencia import log_panel_tarea
+
+            tipo_evt = "solicitud_resuelta" if (ticket or {}).get("tipo") == "solicitud" else "ticket_resuelto"
+            log_panel_tarea(
+                request.tickets_usuario,
+                tipo_evt,
+                panel="tickets",
+                detalle={"ticket_id": ticket_id, "tipo": (ticket or {}).get("tipo")},
+            )
         if ticket and ticket.get("tipo") in ("accion", "solicitud") and nuevo_estado in ("resuelto", "en_proceso"):
             _notificar_estado_accion_wa(ticket, nuevo_estado, request.tickets_usuario.get("nombre", ""))
         return jsonify(ticket), 200
@@ -1093,6 +1249,14 @@ def register_tickets_routes(app):
         )
         if err:
             return jsonify({"error": err}), 400
+        from app.services.panel_presencia import log_panel_tarea
+
+        log_panel_tarea(
+            request.tickets_usuario,
+            "paso_completado",
+            panel="tickets",
+            detalle={"ticket_id": ticket_id, "paso_id": paso_id},
+        )
         return jsonify(pasos_ticket_json(ticket_id, pasos, auto)), 200
 
     @app.route("/api/tickets/pasos/<int:paso_id>/completar", methods=["POST"])
@@ -1101,7 +1265,15 @@ def register_tickets_routes(app):
         pasos, err, auto = completar_paso(paso_id, request.tickets_usuario["id"])
         if err:
             return jsonify({"error": err}), 400
+        from app.services.panel_presencia import log_panel_tarea
+
         tid = pasos[0]["ticket_id"] if pasos else None
+        log_panel_tarea(
+            request.tickets_usuario,
+            "paso_completado",
+            panel="tickets",
+            detalle={"ticket_id": tid, "paso_id": paso_id},
+        )
         body = pasos if tid is None else pasos_ticket_json(tid, pasos, auto)
         return jsonify(body), 200
 
@@ -1670,7 +1842,142 @@ def register_tickets_routes(app):
     @_auth
     def tickets_listar_protocolos():
         from app.services.tickets_db import listar_protocolos
-        return jsonify(listar_protocolos()), 200
+        alcance = request.args.get("alcance") or None
+        return jsonify(listar_protocolos(request.tickets_usuario, alcance=alcance)), 200
+
+    @app.route("/api/tickets/protocolos/<int:protocolo_id>", methods=["GET"])
+    @_auth
+    def tickets_obtener_protocolo(protocolo_id):
+        from app.services.tickets_db import obtener_protocolo
+        p = obtener_protocolo(protocolo_id)
+        if not p:
+            return jsonify({"error": "No encontrado"}), 404
+        uid = request.tickets_usuario["id"]
+        nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 1)
+        if p.get("alcance") == "personal" and p.get("creado_por") != uid and nivel < 2:
+            return jsonify({"error": "Sin acceso"}), 403
+        return jsonify(p), 200
+
+    @app.route("/api/tickets/acciones/historial", methods=["GET"])
+    @_auth
+    def tickets_acciones_historial():
+        from app.services.tickets_db import listar_acciones_historial
+        uid = request.tickets_usuario["id"]
+        return jsonify(listar_acciones_historial(uid)), 200
+
+    @app.route("/api/tickets/acciones/repetir", methods=["POST"])
+    @_auth
+    def tickets_acciones_repetir():
+        from app.services.tickets_db import crear_accion_desde_procedimiento
+        data = request.get_json(force=True) or {}
+        protocolo_id = data.get("protocolo_id")
+        if not protocolo_id:
+            return jsonify({"error": "protocolo_id requerido"}), 400
+        try:
+            protocolo_id = int(protocolo_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "protocolo_id inválido"}), 400
+        solicitud_id = data.get("solicitud_padre_id")
+        try:
+            solicitud_id = int(solicitud_id) if solicitud_id else None
+        except (TypeError, ValueError):
+            solicitud_id = None
+        ticket, err = crear_accion_desde_procedimiento(
+            protocolo_id, request.tickets_usuario["id"], solicitud_id,
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(ticket), 201
+
+    @app.route("/api/tickets/<int:ticket_id>/plantilla-accion", methods=["GET"])
+    @_auth
+    def tickets_plantilla_accion(ticket_id):
+        from app.services.tickets_db import obtener_plantilla_accion
+        plantilla, err = obtener_plantilla_accion(
+            ticket_id, request.tickets_usuario["id"],
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(plantilla), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/delegar-compras", methods=["POST"])
+    @_auth
+    def tickets_delegar_compras(ticket_id):
+        from app.services.tickets_db import crear_solicitud_compra_delegada
+        data = request.get_json(force=True) or {}
+        asignado = data.get("asignado_a")
+        if not asignado:
+            return jsonify({"error": "asignado_a requerido"}), 400
+        try:
+            asignado = int(asignado)
+        except (TypeError, ValueError):
+            return jsonify({"error": "asignado_a inválido"}), 400
+        result, err = crear_solicitud_compra_delegada(
+            ticket_id,
+            asignado,
+            data.get("items") or data.get("lista_compras") or [],
+            request.tickets_usuario["id"],
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(result), 201
+
+    @app.route("/api/tickets/<int:accion_id>/bloqueo-compras", methods=["GET"])
+    @_auth
+    def tickets_bloqueo_compras(accion_id):
+        from app.services.tickets_db import estado_bloqueo_compras_accion
+        bloqueo = estado_bloqueo_compras_accion(
+            accion_id, request.tickets_usuario["id"],
+        )
+        return jsonify({"bloqueo": bloqueo}), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/guardar-procedimiento", methods=["POST"])
+    @_auth
+    def tickets_guardar_procedimiento(ticket_id):
+        from app.services.tickets_db import guardar_procedimiento_desde_accion
+        data = request.get_json(force=True) or {}
+        proc, err = guardar_procedimiento_desde_accion(
+            ticket_id,
+            request.tickets_usuario["id"],
+            lista_compras=data.get("lista_compras"),
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(proc), 200
+
+    @app.route("/api/tickets/<int:accion_id>/completar-accion", methods=["POST"])
+    @_auth
+    def tickets_completar_accion(accion_id):
+        from app.services.tickets_db import (
+            completar_accion_y_reportar_solicitud,
+            guardar_procedimiento_desde_accion,
+        )
+        data = request.get_json(force=True) or {}
+        uid = request.tickets_usuario["id"]
+        guardar_procedimiento_desde_accion(
+            accion_id, uid, lista_compras=data.get("lista_compras"),
+        )
+        ticket, err = completar_accion_y_reportar_solicitud(
+            accion_id,
+            uid,
+            reporte_texto=data.get("reporte", ""),
+            marcar_solicitud_resuelta=bool(data.get("cerrar_solicitud", True)),
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(ticket), 200
+
+    @app.route("/api/tickets/protocolos/<int:protocolo_id>/promover", methods=["POST"])
+    @_auth
+    def tickets_promover_protocolo(protocolo_id):
+        from app.services.tickets_db import promover_procedimiento_a_protocolo
+        nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 1)
+        proc, err = promover_procedimiento_a_protocolo(
+            protocolo_id, request.tickets_usuario["id"], nivel,
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(proc), 200
 
     @app.route("/api/tickets/protocolos", methods=["POST"])
     @_auth

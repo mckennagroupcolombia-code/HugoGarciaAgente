@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-29T12:38:30",
+  "updated_at": "2026-05-30T18:58:57",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -15,9 +15,108 @@
     "2026-05-25": 4,
     "2026-05-26": 5,
     "2026-05-27": 32,
-    "2026-05-28": 11
+    "2026-05-28": 11,
+    "2026-05-30": 8
   },
   "sessions": [
+    {
+      "session_id": "web-343969e4-bcd8-4650-b485-51b7006488a0",
+      "started_at": "2026-05-30T12:07:43",
+      "last_at": "2026-05-30T12:09:39",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-05-30T18:58:57",
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "1",
+      "last_agent_reply": "**ELASTIN HYDROLYZATE**\n* **Concentración:** 1000 mg / 100 mL\n* **Precio:** $12.50 ¿Le gustaría conocer más detalles sobre este producto o prefiere revisar alguna otra opción de nuestra línea de ingredientes?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-30T12:07:43",
+          "user_message": "ficha tecnica de la elastina",
+          "agent_reply": "Veci, somos McKenna Group. Compartimos la documentación que tenemos disponible: *de la elastina*\n📄 Ficha técnica: https://drive.google.com/file/d/190rgGd0xZrqDbLQgLWVg-K20V9yVKVYX/view?usp=drivesdk También puede consultar guías en https://mckennagroup.co/guias. Para seguimiento de pedido o cotización formal con asesor: WhatsApp +57 319 518 3596 (https://wa.me/573195183596).",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-30T12:08:44",
+          "user_message": "densidad de la elastina",
+          "agent_reply": "Claro, veci. Tenemos *ELASTINA HIDROLIZADA 30mL* como materia prima. Presentación: $18,286 COP — Ref. C-ELAHID30mL. ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-30T12:09:18",
+          "user_message": "necesito saber la densidad para realizar un calculo del peso",
+          "agent_reply": "Listo veci. Estas son las presentaciones disponibles en catálogo:\n1) *ELASTINA HIDROLIZADA 30mL* $18,286 COP — Ref. C-ELAHID30mL 2) *ACIDO HIALURONICO ALTO PESO 30mL* $17,452 COP — Ref. C-ACIHIAALTPES85P30mL 3) *ACIDO HIALURONICO BAJO PESO 85% 30mL* $19,122 COP — Ref. C-ACDHIABAJPES85P30mL 4) *ACEITE ARBOL TE 30mL* $30,728 COP — Ref. C-ACETEATRE30mL 5) *ACEITE JOJOBA 30mL* $23,296 COP — Ref. C-ACEIJOJ30mL 6) *ACIDO GLICOLICO 50% 30mL* $20,792 COP — Ref. C-ACIGLI50P30mL 7) *ACIDO HIALURINICO BAJO PESO mL* consultar precio — Ref. FOR-ACIHIABAJPESmL 8) *ACIDO HIALURONICO ALTO PESO mL* consultar precio — Ref. FOR-ACIHIAALTPESmL ¿Cuál presentación le sirve?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-30T12:09:39",
+          "user_message": "1",
+          "agent_reply": "**ELASTIN HYDROLYZATE**\n* **Concentración:** 1000 mg / 100 mL\n* **Precio:** $12.50 ¿Le gustaría conocer más detalles sobre este producto o prefiere revisar alguna otra opción de nuestra línea de ingredientes?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-f01f4ee8-4a6d-4747-ad40-c79daf19ca5c",
+      "started_at": "2026-05-30T11:26:41",
+      "last_at": "2026-05-30T11:28:15",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-05-30T18:58:57",
+      "page_url": "https://mckennagroup.co/catalogo/?cat=Emulsionantes+y+Surfactantes",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "hola",
+      "last_agent_reply": "¡Hola! 😊 ¿En qué puedo ayudarte hoy? Si tienes alguna pregunta sobre nuestros productos o necesitas información, ¡solo dime! Estoy aquí para ayudarte.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-05-30T11:26:41",
+          "user_message": "hola buen dia",
+          "agent_reply": "Claro, veci. Tenemos *ACEITE ESENCIAL HIERBA BUENA 5mL* como materia prima. Presentación: $14,195 COP — Ref. C-ACEESEHIEBUE5mL. ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-30T11:26:54",
+          "user_message": "te confundiste",
+          "agent_reply": "Claro, veci. Tenemos *ACEITE ESENCIAL HIERBA BUENA 5mL* como materia prima. Presentación: $14,195 COP — Ref. C-ACEESEHIEBUE5mL. ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-30T11:28:03",
+          "user_message": "no es conmigo",
+          "agent_reply": "¿Hay algo en específico que no te interese o necesitas que te aclare sobre alguno de los productos? Si tienes alguna pregunta sobre las propiedades, usos o si buscas algún otro tipo de materia prima, ¡solo dime y con gusto te ayudo! 😊",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-05-30T11:28:15",
+          "user_message": "hola",
+          "agent_reply": "¡Hola! 😊 ¿En qué puedo ayudarte hoy? Si tienes alguna pregunta sobre nuestros productos o necesitas información, ¡solo dime! Estoy aquí para ayudarte.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-7de4fbac-d8f5-4a23-a060-1182e7519242",
       "started_at": "2026-05-28T19:17:53",

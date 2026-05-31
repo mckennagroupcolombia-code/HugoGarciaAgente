@@ -17,6 +17,7 @@ import WebChatPanel from "./components/WebChatPanel";
 import WhatsAppPanel from "./components/WhatsAppPanel";
 import SupervisorPanel from "./components/SupervisorPanel";
 import EtiquetasPanel from "./components/EtiquetasPanel";
+import PublicacionesPanel from "./components/PublicacionesPanel";
 import Settings from "./components/Settings";
 import { usePanelTheme } from "./stores/panelTheme";
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
@@ -54,6 +55,8 @@ function PanelRouter() {
       return <TicketsPanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
+    case "publicaciones":
+      return <PublicacionesPanel />;
     case "settings":
       return <Settings />;
     default:
@@ -149,7 +152,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 
 const NAV_ORDER: Panel[] = [
   "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
-  "sync", "stock", "fichas", "pedidos", "facturas", "tickets", "etiquetas", "settings",
+  "sync", "stock", "fichas", "pedidos", "publicaciones", "facturas", "tickets", "etiquetas", "settings",
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {

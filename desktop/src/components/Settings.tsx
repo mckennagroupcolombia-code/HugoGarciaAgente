@@ -5,6 +5,7 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useStatus } from "../hooks/useStatus";
 import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
+import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -207,7 +208,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <h2 className="text-lg font-semibold text-ink">Ajustes y Sistema</h2>
 
       {/* ── Sesión ── */}
@@ -411,6 +412,9 @@ export default function Settings() {
 
       {/* ── App Android ── */}
       {isAdmin && <ApkBuilderSection />}
+
+      {/* ── Teléfonos operadores (notas de voz supervisor) ── */}
+      {isAdmin && <TelefonosOperadoresSection />}
 
       {/* ── Gestión de usuarios ── */}
       {isAdmin && <UsuariosSection />}

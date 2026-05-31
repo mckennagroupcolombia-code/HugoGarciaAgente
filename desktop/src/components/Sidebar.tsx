@@ -6,6 +6,7 @@ import { usePostventa } from "../hooks/usePostventa";
 import { useWebChat } from "../hooks/useWebChat";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
 
 const NAV: { id: Panel; label: string }[] = [
@@ -20,8 +21,9 @@ const NAV: { id: Panel; label: string }[] = [
   { id: "sync",       label: "Sincronización" },
   { id: "stock",      label: "Stock" },
   { id: "fichas",     label: "Docs técnicos" },
-  { id: "pedidos",    label: "Pedidos Web" },
-  { id: "facturas",   label: "Facturas Compra" },
+  { id: "pedidos",       label: "Pedidos Web" },
+  { id: "publicaciones", label: "Publicaciones" },
+  { id: "facturas",      label: "Facturas Compra" },
   { id: "tickets",    label: "Centro de Mando" },
   { id: "etiquetas",  label: "Etiquetas" },
   { id: "settings",   label: "Ajustes" },
@@ -43,7 +45,7 @@ export default function Sidebar() {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
-  const { user, clear: clearTickets } = useTicketsAuth();
+  const { user, token, clear: clearTickets } = useTicketsAuth();
   const clearMain = useAuthStore((s) => s.clear);
   const { data } = usePreventa();
   const pendientes = data?.total ?? 0;
@@ -60,7 +62,21 @@ export default function Sidebar() {
 
   const visibleNav = NAV.filter((item) => puedeVerSeccion(user, item.id));
 
-  function logout() {
+  async function logout() {
+    if (token) {
+      let sid = "";
+      try {
+        sid = sessionStorage.getItem("mckenna-panel-session-uuid") ?? "";
+      } catch {
+        /* ignore */
+      }
+      await cerrarSesionPanel(token);
+      try {
+        await api.post("/api/tickets/auth/logout", { session_uuid: sid });
+      } catch {
+        /* ignore */
+      }
+    }
     clearTickets();
     clearMain();
   }

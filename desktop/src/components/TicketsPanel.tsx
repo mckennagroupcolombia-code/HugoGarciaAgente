@@ -18,6 +18,7 @@ import {
 import { useQuestBoardLayout, BOARD_ROOT_SECTION } from "../stores/questBoardLayout";
 import { Icon, TopicIcon, TopicIconLabel, TOPIC_ICON_PRESETS } from "../icons";
 import RecetasPanel from "./RecetasPanel";
+import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
 import { CorridaCronometroBlock, fmtTiempo } from "./Cronometro";
 import {
   InventarioCarritoBadge,
@@ -180,7 +181,11 @@ interface Ticket {
   pasos_completados?: number;
   protocolo_id?: number | null;
   protocolo_titulo?: string | null;
+  procedimiento_id?: number | null;
+  procedimiento_titulo?: string | null;
+  procedimiento_alcance?: "personal" | "global" | string | null;
   tipo?: "ticket" | "accion" | "solicitud";
+  subtipo?: string | null;
   tiene_datos_sensibles?: boolean;
 }
 
@@ -846,6 +851,7 @@ interface UserInfo {
   nombre: string;
   username: string;
   email?: string | null;
+  telefono?: string | null;
   activo: number;
   rol: { id: number; nombre: string; nivel: number } | null;
   departamento: { id: number; nombre: string; color: string } | null;
@@ -1163,6 +1169,7 @@ type View =
   | "create"
   | "detail"
   | "admin"
+  | "administracion"
   | "workload"
   | "crear_mision"
   | "mision_detail"
@@ -3394,6 +3401,28 @@ function normalizeTicketForList(raw: unknown): Ticket {
   };
 }
 
+/** Comparación segura de IDs (API a veces devuelve string). */
+function uidEq(a: number | null | undefined, b: number | null | undefined): boolean {
+  if (a == null || b == null) return false;
+  return Number(a) === Number(b);
+}
+
+/** Solicitud delegada solo para ir de compras (checklist); no va en pestaña Acciones. */
+function esSolicitudCompraDelegada(t: Ticket): boolean {
+  if ((t.subtipo || "").trim() === "compra") return true;
+  const tit = (t.titulo || "").trim().toLowerCase();
+  if (tit.startsWith("compras:") && (t.ticket_padre_id || (t.tipo || "") === "solicitud")) return true;
+  return false;
+}
+
+async function tapiSafe(path: string, token: string, options: RequestInit = {}): Promise<unknown> {
+  try {
+    return await tapi(path, token, options);
+  } catch {
+    return null;
+  }
+}
+
 function ticketFromTableroResumen(row: TicketTableroResumen, m: Mision): Ticket {
   return normalizeTicketForList({
     id: row.id,
@@ -4926,6 +4955,200 @@ function TicketCronometroById({ ticketId, token }: { ticketId: number; token: st
   return <TicketCronometroSection ticket={ticket} token={token} onTicket={setTicket} />;
 }
 
+// ── Resolver paso a paso (Duolingo-style) para un ticket con pasos ──────────────────────────
+function TicketPasoAPasoView({
+  token, ticket, onSalir, onCompletado,
+}: {
+  token: string; ticket: Ticket; onSalir: () => void; onCompletado: () => void;
+}) {
+  const [pasos, setPasos] = useState<Paso[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [pasoIdx, setPasoIdx] = useState(0);
+  const [fase, setFase] = useState<"cargando" | "paso" | "todo_ok">("cargando");
+  const [nota, setNota] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [slideDir, setSlideDir] = useState<"right" | "left">("right");
+
+  const t0 = useRef(Date.now());
+  const [seg, setSeg] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => setSeg(Math.floor((Date.now() - t0.current) / 1000)), 500);
+    return () => clearInterval(iv);
+  }, []);
+  function fmtCronPA(s: number) {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+      : `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+
+  useEffect(() => {
+    tapi(`/${ticket.id}/pasos`, token).then((d) => {
+      const ps: Paso[] = Array.isArray(d) ? d : (d as any).pasos ?? [];
+      setPasos(ps);
+      const first = ps.findIndex((p) => !pasoEstaCompletado(p));
+      setPasoIdx(first >= 0 ? first : 0);
+      setFase(ps.length === 0 ? "todo_ok" : "paso");
+      setCargando(false);
+    }).catch(() => { setCargando(false); setFase("paso"); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket.id]);
+
+  const total = pasos.length;
+  const hechos = pasos.filter((p) => pasoEstaCompletado(p)).length;
+  const pct = total > 0 ? Math.round((hechos / total) * 100) : 0;
+  const actual = pasos[pasoIdx];
+
+  async function marcarHecho() {
+    if (!actual || guardando || pasoEstaCompletado(actual)) return;
+    setGuardando(true);
+    try {
+      if (nota.trim()) {
+        await tapi(`/${ticket.id}/pasos/${actual.id}`, token, {
+          method: "PUT", body: JSON.stringify({ notas: nota.trim() }),
+        });
+      }
+      await tapi(`/${ticket.id}/pasos/${actual.id}`, token, {
+        method: "PUT", body: JSON.stringify({ completado: 1 }),
+      });
+      const notaGuardada = nota.trim();
+      setPasos((prev) => prev.map((p) =>
+        p.id === actual.id ? { ...p, completado: 1, notas: notaGuardada || p.notas } : p
+      ));
+      setNota("");
+      const nextIdx = pasoIdx + 1;
+      if (nextIdx >= total) {
+        try { await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) }); } catch {}
+        setFase("todo_ok");
+      } else {
+        setTimeout(() => { setSlideDir("right"); setPasoIdx(nextIdx); }, 300);
+      }
+    } catch {} finally { setGuardando(false); }
+  }
+
+  function saltar() {
+    setNota("");
+    const nextIdx = pasoIdx + 1;
+    if (nextIdx >= total) { setFase("todo_ok"); return; }
+    setSlideDir("right"); setPasoIdx(nextIdx);
+  }
+  function irAtras() {
+    if (pasoIdx === 0) return;
+    setNota(""); setSlideDir("left"); setPasoIdx(pasoIdx - 1);
+  }
+
+  if (cargando || fase === "cargando") return (
+    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4">
+      <div className="h-10 w-10 rounded-full border-4 border-border border-t-accent animate-spin" />
+      <p className="text-sm text-muted">Preparando revisión…</p>
+    </div>
+  );
+
+  if (fase === "todo_ok") return (
+    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center px-4">
+      <div className="relative">
+        <div className="mck-bounce-in text-8xl select-none">🏆</div>
+        <div className="absolute inset-0 rounded-full pointer-events-none"
+          style={{ animation: "mck-ring-pulse 1s ease-out 0.3s both", background: "radial-gradient(circle, rgba(244,196,77,0.4) 0%, transparent 70%)" }} />
+      </div>
+      <div className="mck-slide-up space-y-2" style={{ animationDelay: "0.2s" }}>
+        <h2 className="text-4xl font-extrabold text-ink">¡Órdenes revisadas!</h2>
+        <p className="text-lg text-muted">{total} orden{total !== 1 ? "es" : ""} procesada{total !== 1 ? "s" : ""}</p>
+        <div className="flex justify-center pt-1">
+          <div className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1">
+            <span className="text-sm">⏱</span>
+            <span className="font-mono text-sm font-extrabold text-amber-700 tabular-nums">{fmtCronPA(seg)}</span>
+          </div>
+        </div>
+      </div>
+      <button onClick={onCompletado}
+        className="mck-slide-up mt-4 rounded-2xl border-2 border-border px-8 py-3 text-base font-bold text-muted transition hover:border-accent hover:text-accent"
+        style={{ animationDelay: "0.4s" }}>
+        Ver ticket completo →
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="mx-auto w-full max-w-lg pb-8">
+      <div className="mb-5 flex items-center justify-between">
+        <button onClick={onSalir}
+          className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent">
+          ← Salir
+        </button>
+        <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/8 px-3 py-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+          <span className="font-mono text-sm font-extrabold text-accent tabular-nums">{fmtCronPA(seg)}</span>
+        </div>
+        <span className="text-xs font-bold text-muted">{pasoIdx + 1} / {total}</span>
+      </div>
+
+      <div className="mb-10 h-2.5 w-full overflow-hidden rounded-full bg-border">
+        <div className="h-full rounded-full bg-accent transition-all duration-700 ease-out"
+          style={{ width: `${Math.max(pct, 2)}%` }} />
+      </div>
+
+      <div key={`${pasoIdx}-${slideDir}`}
+        className={slideDir === "right" ? "mck-slide-right" : "mck-slide-left"}>
+
+        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-accent/70">
+          Verificación de factura MeLi
+        </p>
+
+        <h2 className="text-[2rem] font-extrabold leading-tight text-ink mb-6">
+          {actual?.descripcion || "Sin descripción"}
+        </h2>
+
+        {pasoEstaCompletado(actual) ? (
+          <div className="mb-6 rounded-2xl border-2 border-green-400 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+            ✅ Ya verificado{actual?.notas ? ` · ${actual.notas}` : ""}
+          </div>
+        ) : (
+          <div className="mb-6 space-y-2">
+            <label className="text-xs font-bold uppercase tracking-wide text-muted">
+              Nota del motivo <span className="normal-case font-normal">(opcional)</span>
+            </label>
+            <textarea
+              className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
+              placeholder="Ej: Factura pendiente en SIIGO, se creó manualmente y se subió a MeLi…"
+              rows={3}
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+            />
+          </div>
+        )}
+
+        <button
+          disabled={guardando || pasoEstaCompletado(actual)}
+          onClick={marcarHecho}
+          className={`w-full rounded-2xl py-5 text-xl font-extrabold shadow-lg transition active:scale-95
+            ${pasoEstaCompletado(actual)
+              ? "bg-accent/30 text-white/60 cursor-default"
+              : "bg-accent text-white hover:brightness-110"
+            } disabled:opacity-60`}
+        >
+          {guardando ? "…" : pasoEstaCompletado(actual) ? "✓ Ya verificado" : "✓  ¡Verificado!"}
+        </button>
+
+        <div className="mt-4 flex gap-3">
+          {pasoIdx > 0 && (
+            <button onClick={irAtras}
+              className="flex-1 rounded-xl border-2 border-border py-2.5 text-sm font-bold text-muted transition hover:border-accent/60 hover:text-accent">
+              ← Atrás
+            </button>
+          )}
+          {!pasoEstaCompletado(actual) && (
+            <button onClick={saltar}
+              className={`rounded-xl border-2 border-border py-2.5 text-sm font-bold text-muted/60 transition hover:border-accent/30 hover:text-muted ${pasoIdx > 0 ? "flex-1" : "w-full"}`}>
+              Saltar →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Ticket detail — ejecución: cronómetro del ticket + checklist de pasos
 function TicketDetailView({
   token, user, ticketId, onBack,
@@ -4939,6 +5162,7 @@ function TicketDetailView({
   const [completandoTicket, setCompletandoTicket] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [pasoAPaso, setPasoAPaso] = useState(false);
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
 
   const reload = useCallback(async () => {
@@ -4976,12 +5200,29 @@ function TicketDetailView({
     }
   }
 
+  // Auto-lanzar modo paso a paso (solo tickets que no son acciones del operador)
+  useEffect(() => {
+    if (!loading && ticket && _autoStartPasoAPaso.has(ticket.id)) {
+      _autoStartPasoAPaso.delete(ticket.id);
+      if (ticket.tipo !== "accion") setPasoAPaso(true);
+    }
+  }, [loading, ticket]);
+
   if (loading) return <div className="py-16 text-center text-sm text-muted">Cargando quest...</div>;
   if (error || !ticket) return (
     <div className="space-y-3">
       <button onClick={onBack} className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"><QuestBoardBackLabel /></button>
       <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error || "No encontrado"}</div>
     </div>
+  );
+
+  if (pasoAPaso) return (
+    <TicketPasoAPasoView
+      token={token}
+      ticket={ticket}
+      onSalir={() => setPasoAPaso(false)}
+      onCompletado={() => { setPasoAPaso(false); reload(); }}
+    />
   );
 
   return (
@@ -5058,6 +5299,17 @@ function TicketDetailView({
         <div className="rounded-xl border-2 border-green-400 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
           ✅ Ticket completado — todos los pasos del procedimiento están marcados
         </div>
+      )}
+      {(ticket.pasos_total ?? 0) > 0 && ticketPermiteMarcarPasos(ticket) && ticket.tipo !== "accion" && (
+        <button
+          onClick={() => setPasoAPaso(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-accent bg-accent/8 px-5 py-3.5 text-sm font-extrabold text-accent transition hover:bg-accent hover:text-white active:scale-95"
+        >
+          <span className="text-base">▶</span> Resolver paso a paso
+          <span className="ml-1 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-bold">
+            {ticket.pasos_completados ?? 0}/{ticket.pasos_total ?? 0}
+          </span>
+        </button>
       )}
       <PasosSection
         ticketId={ticket.id}
@@ -5171,7 +5423,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
   const { user: currentUser } = useTicketsAuth();
   const nivel = currentUser?.rol?.nivel ?? 1;
   const { cats: categorias, reload: reloadCats } = useContext(CategoriasCtx);
-  const [tab, setTab] = useState<"usuarios" | "roles" | "departamentos" | "categorias">("usuarios");
+  const [tab, setTab] = useState<"usuarios" | "telefonos" | "roles" | "departamentos" | "categorias">("usuarios");
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [depts, setDepts] = useState<Dept[]>([]);
@@ -5231,6 +5483,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
       activo: form.activo ?? 1,
       departamentos_ids: form.departamentos_ids || [],
       permisos_secciones: form.permisos_secciones || null,
+      telefono: (form.telefono || "").trim() || null,
     };
     try {
       if (editItem) {
@@ -5302,11 +5555,12 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
       </div>
 
       <div className="sticky top-[3.25rem] z-10 flex flex-wrap gap-2 border-b border-border bg-surface-panel/95 py-2 backdrop-blur-md">
-        {(["usuarios", "roles", "departamentos", "categorias"] as const).map((t) => (
+        {(["usuarios", "telefonos", "roles", "departamentos", "categorias"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`rounded-paper border-2 px-4 py-1.5 text-sm font-bold capitalize transition
               ${tab === t ? "border-accent bg-surface-hover text-ink" : "border-transparent text-muted hover:text-ink"}`}>
             {t === "usuarios" ? "👤 Usuarios"
+              : t === "telefonos" ? "📱 Teléfonos WA"
               : t === "roles" ? "🎭 Roles"
               : t === "departamentos" ? "🏢 Departamentos"
               : "🏷️ Categorías"}
@@ -5424,6 +5678,8 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
             ))}
           </div>
         </div>
+      ) : tab === "telefonos" ? (
+        <TelefonosOperadoresSection compact />
       ) : loading ? (
         <div className="py-10 text-center text-sm text-muted">Cargando...</div>
       ) : tab === "usuarios" ? (
@@ -5442,8 +5698,13 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                   <span className="font-mono text-xs text-muted">@{u.username}</span>
                   {!u.activo && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">Inactivo</span>}
                 </div>
-                <div className="mt-0.5 flex gap-2 text-xs text-muted">
+                <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-muted">
                   <span>{u.rol?.nombre}</span>·<span style={{ color: u.departamento?.color }}>{u.departamento?.nombre}</span>
+                  {u.telefono ? (
+                    <span className="font-mono text-emerald-600">📱 {u.telefono}</span>
+                  ) : (
+                    <span className="text-amber-600">Sin teléfono WA</span>
+                  )}
                 </div>
               </div>
               <button onClick={() => openModal("user", u)}
@@ -5518,6 +5779,16 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                   <p className="mt-0.5 text-[10px] text-muted">Nombre corto con el que el bot identifica a este usuario en @menciones</p>
                 </div>
                 <Field label="Correo Google (para login)" type="email" value={form.email || ""} onChange={(v) => setForm({ ...form, email: v })} />
+                <div>
+                  <Field
+                    label="WhatsApp (notas de voz)"
+                    value={form.telefono || ""}
+                    onChange={(v) => setForm({ ...form, telefono: v })}
+                  />
+                  <p className="mt-0.5 text-[10px] text-muted">
+                    Colombia: 10 dígitos o 57… — también en Ajustes → Teléfonos
+                  </p>
+                </div>
                 <div>
                   <label className="mb-1 block text-xs font-bold text-muted">Rol *</label>
                   <select value={form.rol_id || ""} onChange={(e) => setForm({ ...form, rol_id: parseInt(e.target.value) })}
@@ -10358,7 +10629,14 @@ function MisionDetailView({
 }
 
 // Workload dashboard
-function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUser; onBack: () => void }) {
+function WorkloadView({
+  token, user, onBack, onAdministracion,
+}: {
+  token: string;
+  user: TicketsUser;
+  onBack: () => void;
+  onAdministracion?: () => void;
+}) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNuevo, setShowNuevo] = useState(false);
@@ -10531,15 +10809,26 @@ function WorkloadView({ token, user, onBack }: { token: string; user: TicketsUse
             <p className="text-xs text-muted">Carga de trabajo por persona del equipo</p>
           </div>
         </div>
-        {canManageAliados && (
-          <button
-            type="button"
-            onClick={abrirNuevo}
-            className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none"
-          >
-            + Agregar aliado
-          </button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {onAdministracion && (
+            <button
+              type="button"
+              onClick={onAdministracion}
+              className="rounded-paper border-2 border-border px-4 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+            >
+              ⚙ Administración
+            </button>
+          )}
+          {canManageAliados && (
+            <button
+              type="button"
+              onClick={abrirNuevo}
+              className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none"
+            >
+              + Agregar aliado
+            </button>
+          )}
+        </div>
       </div>
 
       {showNuevo && canManageAliados && (
@@ -11178,14 +11467,51 @@ async function playAlarmAudio(apiToken?: string) {
 // Persists timer start time across React remounts (ticket moves between column groups).
 const _timerStore = new Map<number, number>();
 
-function AccionCard({
-  ticket, token, onSelect, onChanged, isAdmin, readOnly,
+/** IDs de acciones cuyo detail debe abrir el modo paso-a-paso automáticamente. */
+const _autoStartPasoAPaso = new Set<number>();
+
+function esTarjetaSoloCompras(ticket: Ticket, user?: TicketsUser): boolean {
+  return esSolicitudCompraDelegada(ticket) || (
+    !!user && uidEq(ticket.asignado_a, user.id)
+    && (ticket.titulo || "").trim().toLowerCase().startsWith("compras:")
+  );
+}
+
+function AccionCardAvisoCompras({ ticket }: { ticket: Ticket }) {
+  return (
+    <div className="rounded-xl border border-blue-400/50 bg-blue-50/50 dark:bg-blue-950/20 p-3 space-y-2">
+      <p className="text-sm font-bold text-ink">🛒 {ticket.titulo}</p>
+      <p className="text-xs text-muted font-mono">{ticket.numero}</p>
+      <p className="text-xs text-muted">
+        Esta tarea es solo la lista de compras. Ábrela en <strong className="text-ink">Solicitudes</strong>.
+      </p>
+    </div>
+  );
+}
+
+function AccionCard(props: {
+  ticket: Ticket; token: string;
+  user?: TicketsUser;
+  onSelect: (id: number) => void;
+  onChanged: () => void;
+  onContinuar?: (ticket: Ticket) => void;
+  isAdmin?: boolean;
+  readOnly?: boolean;
+}) {
+  if (esTarjetaSoloCompras(props.ticket, props.user)) {
+    return <AccionCardAvisoCompras ticket={props.ticket} />;
+  }
+  return <AccionCardOperativa {...props} />;
+}
+
+function AccionCardOperativa({
+  ticket, token, onSelect, onChanged, onContinuar, isAdmin, readOnly,
 }: {
   ticket: Ticket; token: string;
   onSelect: (id: number) => void;
   onChanged: () => void;
+  onContinuar?: (ticket: Ticket) => void;
   isAdmin?: boolean;
-  /** Supervisión: sin iniciar/pausar/listo (p. ej. administrador). */
   readOnly?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
@@ -11288,6 +11614,15 @@ function AccionCard({
         } catch {}
       }
       onChanged();
+      // Tickets operativos (no acciones): modo paso a paso MeLi al iniciar
+      if (
+        ticket.tipo !== "accion"
+        && nuevoEstado === "en_proceso"
+        && (ticket.pasos_total ?? 0) > 0
+      ) {
+        _autoStartPasoAPaso.add(ticket.id);
+        onSelect(ticket.id);
+      }
     } catch { /* ignore */ }
     finally { setBusy(false); }
   }
@@ -11398,29 +11733,41 @@ function AccionCard({
       )}
 
       {!resuelta && !resolucionInfo && !readOnly && (
-        <div className="flex gap-2 pt-1">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={iniciarPausar}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
-              enProceso
-                ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
-                : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
-            }`}
-          >
-            <Icon name={enProceso ? "clock" : "lightning"} size={15} weight="bold" />
-            {enProceso ? "Pausar" : segBase > 0 ? "Reanudar" : "Iniciar"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={resolver}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-500 bg-green-50 px-3 py-2.5 text-sm font-bold text-green-700 min-h-[44px] transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
-          >
-            <Icon name="check" size={15} weight="bold" />
-            Listo
-          </button>
+        <div className="flex flex-col gap-2 pt-1">
+          {onContinuar && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onContinuar(ticket)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent px-3 py-3 text-sm font-extrabold text-white min-h-[44px] transition hover:brightness-110"
+            >
+              📋 Continuar donde quedé
+            </button>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={iniciarPausar}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-bold min-h-[40px] transition-colors ${
+                enProceso
+                  ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
+                  : "border-border bg-surface-panel text-muted hover:border-accent hover:text-accent"
+              }`}
+            >
+              <Icon name={enProceso ? "clock" : "lightning"} size={14} weight="bold" />
+              {enProceso ? "Pausar cronómetro" : segBase > 0 ? "▶ Cronómetro" : "▶ Cronómetro"}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={resolver}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-500 bg-green-50 px-3 py-2.5 text-xs font-bold text-green-700 min-h-[40px] transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+            >
+              <Icon name="check" size={14} weight="bold" />
+              Listo
+            </button>
+          </div>
         </div>
       )}
       {!resuelta && readOnly && (
@@ -11452,11 +11799,456 @@ interface Protocolo {
   descripcion?: string | null;
   categoria?: string | null;
   pasos: ProtocoloPaso[];
+  lista_compras?: ItemCompraAccion[];
+  alcance?: "personal" | "global" | string;
   ticket_origen?: number | null;
   ticket_origen_numero?: string | null;
   ticket_origen_titulo?: string | null;
   creado_por_nombre?: string | null;
   creado_en: string;
+}
+
+/** Plantilla para re-ejecutar una acción sin volver a describirla. */
+interface PlantillaAccion {
+  titulo: string;
+  listaCompras: ItemCompraAccion[];
+  pasos: PasoAccionDraft[];
+  protocoloId?: number;
+}
+
+function plantillaDesdeProtocolo(p: Protocolo): PlantillaAccion {
+  const lista = Array.isArray(p.lista_compras) ? p.lista_compras : [];
+  return {
+    titulo: p.titulo,
+    protocoloId: p.id,
+    listaCompras: lista.map((it) => ({
+      n: it.n || "",
+      cantidad: it.cantidad || "",
+      unidad: (it.unidad === "u" ? "u" : "g") as UnidadCompra,
+      comprado: false,
+    })),
+    pasos: (p.pasos || []).map((paso) => ({
+      nombre: paso.descripcion,
+      desc: paso.notas || "",
+    })),
+  };
+}
+
+type PlantillaAccionApi = {
+  titulo: string;
+  lista_compras?: { n?: string; nombre?: string; cantidad?: string; unidad?: string }[];
+  pasos?: { descripcion: string; notas?: string | null }[];
+  protocolo_id?: number | null;
+};
+
+function plantillaDesdeApi(d: PlantillaAccionApi): PlantillaAccion {
+  const lista = Array.isArray(d.lista_compras) ? d.lista_compras : [];
+  return {
+    titulo: d.titulo || "",
+    protocoloId: d.protocolo_id ?? undefined,
+    listaCompras: lista.map((it) => ({
+      n: (it.n || it.nombre || "").trim(),
+      cantidad: String(it.cantidad ?? ""),
+      unidad: (it.unidad === "u" || it.unidad === "und" ? "u" : "g") as UnidadCompra,
+      comprado: false,
+    })),
+    pasos: (d.pasos || []).map((paso) => ({
+      nombre: paso.descripcion,
+      desc: paso.notas || "",
+    })),
+  };
+}
+
+function parseListaComprasDesdeNotas(notas: string): ItemCompraAccion[] {
+  const items: ItemCompraAccion[] = [];
+  for (const line of (notas || "").split("\n")) {
+    const t = line.trim();
+    if (!t.startsWith("•")) continue;
+    const body = t.replace(/^•\s*/, "").trim();
+    let nombre = body;
+    let cantidad = "";
+    let unidad: UnidadCompra = "g";
+    if (body.includes("—")) {
+      const [n, resto] = body.split("—", 2);
+      nombre = n.trim();
+      const partes = resto.trim().split(/\s+/);
+      if (partes.length >= 2) {
+        cantidad = partes[0];
+        unidad = partes[1] === "u" || partes[1] === "und" ? "u" : "g";
+      } else if (partes.length === 1) cantidad = partes[0];
+    }
+    if (nombre) items.push({ n: nombre, cantidad, unidad, comprado: false });
+  }
+  return items;
+}
+
+/** Pantalla de logro al completar una tarea (compras, pasos, etc.). */
+function PantallaLogro({
+  titulo,
+  subtitulo,
+  detalle,
+  emoji = "🏆",
+  variant = "gold",
+  botonLabel = "Continuar →",
+  onContinuar,
+}: {
+  titulo: string;
+  subtitulo?: string;
+  detalle?: string;
+  emoji?: string;
+  variant?: "gold" | "green";
+  botonLabel?: string;
+  onContinuar: () => void;
+}) {
+  const ringBg = variant === "green"
+    ? "radial-gradient(circle, rgba(74,154,106,0.35) 0%, transparent 70%)"
+    : "radial-gradient(circle, rgba(244,196,77,0.4) 0%, transparent 70%)";
+  const iconClass = variant === "green" ? "mck-celebrate text-7xl" : "mck-bounce-in text-8xl";
+  return (
+    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center px-4">
+      <div className="relative">
+        <div className={`${iconClass} select-none`}>{emoji}</div>
+        <div
+          className="absolute inset-0 rounded-full pointer-events-none"
+          style={{ animation: "mck-ring-pulse 1s ease-out 0.3s both", background: ringBg }}
+        />
+      </div>
+      <div className="mck-slide-up space-y-2" style={{ animationDelay: "0.2s" }}>
+        <h2 className="text-4xl font-extrabold text-ink">{titulo}</h2>
+        {subtitulo && <p className="text-lg text-muted">{subtitulo}</p>}
+        {detalle && <p className="text-sm text-muted">{detalle}</p>}
+      </div>
+      <button
+        type="button"
+        onClick={onContinuar}
+        className="mck-slide-up mt-4 rounded-2xl border-2 border-border px-8 py-3 text-base font-bold text-muted transition hover:border-accent hover:text-accent"
+        style={{ animationDelay: "0.4s" }}
+      >
+        {botonLabel}
+      </button>
+    </div>
+  );
+}
+
+/** Vista mínima: solo checklist de compras para solicitudes delegadas (subtipo=compra). */
+function SolicitudCompraChecklist({
+  ticket, token, user, onChanged, onTerminado, supervision, pantallaCompleta,
+}: {
+  ticket: Ticket; token: string; user: TicketsUser;
+  onChanged: () => void;
+  onTerminado?: () => void;
+  supervision?: boolean;
+  pantallaCompleta?: boolean;
+}) {
+  const [items, setItems] = useState<ItemCompra[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [facturaFile, setFacturaFile] = useState<File | null>(null);
+  const [estadoLocal, setEstadoLocal] = useState(ticket.estado);
+  const [faseLogro, setFaseLogro] = useState(false);
+  const esAsignado = uidEq(ticket.asignado_a, user.id);
+  const puedeOperar = esAsignado && !supervision;
+  const resuelta = estadoLocal === "resuelto" || estadoLocal === "rechazado";
+  const itemsActivos = items.filter((i) => i.nombre.trim());
+  const todosComprados = itemsActivos.length > 0 && itemsActivos.every((i) => !!i.comprado);
+  const enCompras = estadoLocal === "en_proceso";
+  const tieneProductos = itemsActivos.length > 0;
+  const mostrarChecklist = puedeOperar && !resuelta && enCompras && tieneProductos;
+
+  useEffect(() => { setEstadoLocal(ticket.estado); }, [ticket.id, ticket.estado]);
+
+  async function cargar() {
+    setLoading(true);
+    setMsg("");
+    try {
+      const data = await tapi(`/${ticket.id}/lista-compras`, token);
+      const raw = Array.isArray(data) ? data : [];
+      setItems(raw.map((row) => {
+        const r = row as ItemCompra & { material_nombre?: string };
+        return {
+          ...r,
+          nombre: (r.nombre || r.material_nombre || "").trim(),
+        };
+      }));
+    } catch (e: unknown) {
+      setItems([]);
+      setMsg(e instanceof Error ? e.message : "No se pudo cargar la lista de compras");
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { void cargar(); }, [ticket.id, token]);
+
+  async function toggleItem(item: ItemCompra) {
+    try {
+      const data = await tapi(`/lista-compras/${item.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ comprado: item.comprado ? 0 : 1 }),
+      });
+      setItems(Array.isArray(data) ? data : items);
+    } catch { /* ignore */ }
+  }
+
+  async function iniciar() {
+    setBusy(true);
+    setMsg("");
+    try {
+      await tapi(`/${ticket.id}/estado`, token, {
+        method: "PUT",
+        body: JSON.stringify({ estado: "en_proceso" }),
+      });
+      setEstadoLocal("en_proceso");
+      onChanged();
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Error al iniciar");
+    } finally { setBusy(false); }
+  }
+
+  async function terminarCompras() {
+    if (!todosComprados) {
+      setMsg("Marca todos los productos antes de terminar");
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      if (facturaFile) {
+        const fd = new FormData();
+        fd.append("archivo", facturaFile);
+        await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+      }
+      const nombre = user.nombre || "Operador";
+      await tapi(`/${ticket.id}/comentarios`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          texto: facturaFile
+            ? `✅ Compras terminadas por ${nombre} — factura adjunta.`
+            : `✅ Compras terminadas por ${nombre}.`,
+          es_interno: false,
+        }),
+      });
+      if (ticket.ticket_padre_id) {
+        await tapi(`/${ticket.ticket_padre_id}/comentarios`, token, {
+          method: "POST",
+          body: JSON.stringify({
+            texto: `🛒 **Compras delegadas listas** (${ticket.numero})\nPor: ${nombre}`,
+            es_interno: false,
+          }),
+        }).catch(() => {});
+      }
+      await tapi(`/${ticket.id}/estado`, token, {
+        method: "PUT",
+        body: JSON.stringify({ estado: "resuelto" }),
+      });
+      setEstadoLocal("resuelto");
+      onChanged();
+      if (pantallaCompleta) {
+        onTerminado?.();
+      } else {
+        setFaseLogro(true);
+      }
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Error al cerrar");
+    } finally { setBusy(false); }
+  }
+
+  function fmtItem(it: ItemCompra) {
+    const q = String(it.cantidad ?? "");
+    const u = (it.unidad || "und").toLowerCase();
+    if (!q) return "";
+    return u === "g" ? `${q} g` : `${q} u`;
+  }
+
+  const wrapClass = pantallaCompleta ? "space-y-4" : "space-y-3 pt-1";
+
+  if (faseLogro && !pantallaCompleta) {
+    const n = itemsActivos.length;
+    return (
+      <PantallaLogro
+        emoji="🛒"
+        variant="green"
+        titulo="¡Compras completadas!"
+        subtitulo={ticket.titulo}
+        detalle={
+          ticket.ticket_padre_titulo
+            ? `${n} producto${n !== 1 ? "s" : ""} · Para: ${ticket.ticket_padre_titulo}`
+            : `${n} producto${n !== 1 ? "s" : ""} marcados en la lista`
+        }
+        botonLabel="Listo →"
+        onContinuar={() => {
+          setFaseLogro(false);
+          onTerminado?.();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className={wrapClass}>
+      {pantallaCompleta && (
+        <p className="text-xs font-bold uppercase tracking-widest text-accent">Ir de compras</p>
+      )}
+      {ticket.ticket_padre_titulo && (
+        <p className={pantallaCompleta ? "text-sm text-muted" : "text-xs text-muted"}>
+          Para la acción: <strong className="text-ink">{ticket.ticket_padre_titulo}</strong>
+        </p>
+      )}
+      {loading && <p className="text-sm text-muted">Cargando lista…</p>}
+      {!loading && !tieneProductos && !msg && (
+        <p className="text-sm text-muted">Sin productos en la lista.</p>
+      )}
+      {!loading && !tieneProductos && msg && (
+        <div className="space-y-2">
+          <p className="text-sm text-red-500">{msg}</p>
+          <button
+            type="button"
+            onClick={() => void cargar()}
+            className="w-full rounded-xl border border-border py-2 text-xs font-bold text-accent hover:border-accent"
+          >
+            Reintentar cargar lista
+          </button>
+        </div>
+      )}
+      {!loading && tieneProductos && !enCompras && puedeOperar && (
+        <ul className="space-y-1 rounded-xl border border-border/60 bg-surface-panel/50 px-3 py-2">
+          {itemsActivos.map((it) => (
+            <li key={it.id} className="text-sm text-ink">
+              · {it.nombre}{fmtItem(it) ? ` (${fmtItem(it)})` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!loading && mostrarChecklist && itemsActivos.map((it) => (
+        <button
+          key={it.id}
+          type="button"
+          disabled={resuelta || !puedeOperar}
+          onClick={() => void toggleItem(it)}
+          className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition
+            ${it.comprado ? "border-accent bg-accent/10" : "border-border bg-surface-panel hover:border-accent/40"}
+            disabled:opacity-60`}
+        >
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 text-sm font-bold
+            ${it.comprado ? "border-accent bg-accent text-white" : "border-border text-muted"}`}>
+            {it.comprado ? "✓" : ""}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className={`text-sm font-bold ${it.comprado ? "text-accent line-through" : "text-ink"}`}>
+              {it.nombre}
+            </p>
+            {fmtItem(it) && <p className="text-xs text-muted">{fmtItem(it)}</p>}
+          </div>
+        </button>
+      ))}
+
+      {!resuelta && puedeOperar && tieneProductos && (
+        <>
+          {!enCompras && (
+            <button
+              type="button"
+              disabled={busy || loading}
+              onClick={() => void iniciar()}
+              className="w-full rounded-xl bg-accent py-3.5 text-sm font-extrabold text-white shadow-sm"
+            >
+              {busy ? "Iniciando…" : "Iniciar compras"}
+            </button>
+          )}
+          {mostrarChecklist && (
+            <>
+              <p className="text-xs font-bold text-accent">Lista de compras — marca cada producto</p>
+              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-4">
+                <span className="text-sm font-bold text-accent">
+                  {facturaFile ? facturaFile.name : "📷 Factura de caja (opcional)"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*,.pdf,application/pdf"
+                  className="sr-only"
+                  onChange={(e) => setFacturaFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              <button
+                type="button"
+                disabled={busy || !todosComprados}
+                onClick={() => void terminarCompras()}
+                className="w-full rounded-2xl bg-accent py-4 text-base font-extrabold text-white disabled:opacity-40"
+              >
+                {busy ? "Guardando…" : "Terminé las compras ✓"}
+              </button>
+              {!todosComprados && (
+                <p className="text-center text-xs text-muted">Marca los {itemsActivos.length} productos</p>
+              )}
+            </>
+          )}
+        </>
+      )}
+      {!resuelta && esAsignado && supervision && (
+        <p className="text-[10px] text-center text-muted">Vista de supervisión</p>
+      )}
+      {msg && <p className="text-xs text-accent font-semibold">{msg}</p>}
+    </div>
+  );
+}
+
+/** Pantalla dedicada: solo lista de compras (sin wizard de acción completa). */
+function PanelIrDeCompras({
+  ticket, token, user, onSalir, onTerminado,
+}: {
+  ticket: Ticket; token: string; user: TicketsUser;
+  onSalir: () => void;
+  onTerminado: () => void;
+}) {
+  const [faseLogro, setFaseLogro] = useState(false);
+
+  if (faseLogro) {
+    return (
+      <div className="mx-auto max-w-lg">
+        <PantallaLogro
+          emoji="🛒"
+          variant="green"
+          titulo="¡Compras completadas!"
+          subtitulo={ticket.titulo}
+          detalle={
+            ticket.ticket_padre_titulo
+              ? `Quien delegó puede continuar: ${ticket.ticket_padre_titulo}`
+              : "Tu solicitud de compras quedó cerrada"
+          }
+          botonLabel="Volver a solicitudes →"
+          onContinuar={onTerminado}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-lg space-y-4 pb-10">
+      <button
+        type="button"
+        onClick={onSalir}
+        className="rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+      >
+        ← Volver a solicitudes
+      </button>
+      <div>
+        <h2 className="text-2xl font-extrabold text-ink leading-tight">Ir de compras</h2>
+        <p className="mt-1 font-mono text-sm text-muted">{ticket.numero}</p>
+        <p className="mt-2 text-sm text-ink">{ticket.titulo}</p>
+      </div>
+      <div className="rounded-2xl border-2 border-blue-400/40 bg-surface p-4 shadow-sm">
+        <SolicitudCompraChecklist
+          ticket={ticket}
+          token={token}
+          user={user}
+          pantallaCompleta
+          onChanged={() => {}}
+          onTerminado={() => setFaseLogro(true)}
+        />
+      </div>
+      <p className="text-center text-xs text-muted">
+        Al terminar, tu tarea queda cerrada. Quien delegó la lista podrá seguir con la acción.
+      </p>
+    </div>
+  );
 }
 
 interface ItemCompra {
@@ -11487,6 +12279,7 @@ interface ProductoCatalogo {
 
 function SolicitudCard({
   ticket, token, user, onChanged, isAdmin, supervision, protocolos = [],
+  onRegistrarEjecucion,
 }: {
   ticket: Ticket; token: string; user: TicketsUser;
   onChanged: () => void;
@@ -11494,13 +12287,15 @@ function SolicitudCard({
   /** Vista equipo/admin: estado visible, sin botones ni aviso de "solo el asignado". */
   supervision?: boolean;
   protocolos?: Protocolo[];
+  /** Abre el asistente de acción vinculado a esta solicitud. */
+  onRegistrarEjecucion?: (ticket: Ticket) => void;
 }) {
   const nivel = (user.rol?.nivel ?? 1);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [msg, setMsg] = useState("");
-  const esAsignado = ticket.asignado_a === user.id;
-  const esCreadoPorMi = ticket.creado_por === user.id;
+  const esAsignado = uidEq(ticket.asignado_a, user.id);
+  const esCreadoPorMi = uidEq(ticket.creado_por, user.id);
   const esParticipante = ticket.participantes?.some((p) => p.usuario_id === user.id) ?? false;
   const esIntervencion = !!ticket.ticket_padre_id;
   const puedeVerSensible = nivel >= 2 || esAsignado || esCreadoPorMi || esParticipante;
@@ -11954,6 +12749,32 @@ function SolicitudCard({
 
   const pasosCompletados = pasos.filter((p) => p.completado).length;
   const pasosTotal = pasos.length;
+
+  if (esSolicitudCompraDelegada(ticket)) {
+    return (
+      <div className={`flex flex-col gap-2 rounded-xl border border-blue-400/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}>
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <span className="text-sm font-bold text-ink">🛒 {ticket.titulo}</span>
+            <p className="mt-0.5 text-xs text-muted font-mono">{ticket.numero}</p>
+          </div>
+          <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px]">
+            {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
+          </span>
+        </div>
+        <p className="text-xs text-muted">
+          {esCreadoPorMi ? "Delegaste esta lista" : `Te la asignó ${ticket.creado_por_nombre ?? "?"}`}
+        </p>
+        <SolicitudCompraChecklist
+          ticket={ticket}
+          token={token}
+          user={user}
+          onChanged={onChanged}
+          supervision={supervision}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}>
@@ -12532,7 +13353,7 @@ function SolicitudCard({
       )}
 
       {/* ── Solicitud normal: interfaz estándar ── */}
-      {!resuelta && esAsignado && !supervision && !esIntervencion && (
+      {!resuelta && esAsignado && !supervision && !esIntervencion && !esSolicitudCompraDelegada(ticket) && (
         <div className="space-y-2 pt-1">
           {msg && <p className="text-xs text-red-400">{msg}</p>}
           <div className="flex gap-2">
@@ -12567,6 +13388,15 @@ function SolicitudCard({
           </div>
           {/* Botones secundarios */}
           <div className="flex flex-wrap gap-1.5">
+            {onRegistrarEjecucion && ticket.estado === "en_proceso" && (
+              <button
+                type="button"
+                onClick={() => onRegistrarEjecucion(ticket)}
+                className="rounded-lg border border-accent bg-accent/10 px-2 py-1.5 text-xs font-bold text-accent transition hover:bg-accent/20"
+              >
+                ⚡ Registrar ejecución
+              </button>
+            )}
             <button type="button"
               onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
               className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
@@ -12843,6 +13673,1395 @@ function SttInlineBtn({ stt, onStart, label = "Voz" }: {
       }
       <span className="hidden sm:inline">{stt.transcribiendo ? "…" : label}</span>
     </button>
+  );
+}
+
+// ── Wizard: registrar nueva acción (estilo misión simple) ─────────────────────
+
+type UnidadCompra = "g" | "u";
+type ItemCompraAccion = { n: string; cantidad: string; unidad: UnidadCompra; comprado: boolean };
+type PasoAccionDraft = { nombre: string; desc: string };
+type FaseAccionWizard = "titulo" | "compras_lista" | "compras_tienda" | "pasos" | "cierre";
+
+function nuevoItemCompra(): ItemCompraAccion {
+  return { n: "", cantidad: "", unidad: "g", comprado: false };
+}
+
+function formatCantidadItem(m: ItemCompraAccion): string {
+  const q = m.cantidad.trim();
+  if (!q) return "";
+  return m.unidad === "g" ? `${q} g` : `${q} u`;
+}
+
+function notasListaCompras(items: ItemCompraAccion[]): string {
+  const ok = items.filter((m) => m.n.trim());
+  return "📦 Lista de compras:\n"
+    + ok.map((m) => {
+      const c = formatCantidadItem(m);
+      return `• ${m.n.trim()}${c ? ` — ${c}` : ""}`;
+    }).join("\n");
+}
+
+function indiceProgresoWizard(fase: FaseAccionWizard, conCompras: boolean): number {
+  if (fase === "titulo") return 1;
+  if (fase === "compras_lista") return 2;
+  if (fase === "compras_tienda") return 3;
+  if (fase === "pasos") return conCompras ? 4 : 3;
+  return conCompras ? 5 : 4;
+}
+
+/** Estado para reabrir el asistente donde el operador lo dejó. */
+type ResumeAccionState = {
+  ticketId: number;
+  faseInicial: FaseAccionWizard;
+  plantilla: PlantillaAccion;
+  subCompras: "idle" | "editando";
+  pasoComprasId: number | null;
+  bloqueoCompras: {
+    solicitud_id: number;
+    numero: string;
+    titulo: string;
+    asignado_nombre: string | null;
+    estado?: string;
+  } | null;
+  bloqueadoIntervencion?: string | null;
+  ticket: Ticket;
+};
+
+async function cargarEstadoReanudacion(ticketId: number, token: string): Promise<ResumeAccionState> {
+  const [det, pasosRaw, bloqueoResp] = await Promise.all([
+    tapi(`/${ticketId}`, token) as Promise<Ticket>,
+    tapi(`/${ticketId}/pasos`, token) as Promise<Paso[]>,
+    tapi(`/${ticketId}/bloqueo-compras`, token) as Promise<{ bloqueo: ResumeAccionState["bloqueoCompras"] }>,
+  ]);
+  const pasosArr = Array.isArray(pasosRaw) ? pasosRaw : [];
+  let listaCompras: ItemCompraAccion[] = [];
+  const pasosEj: PasoAccionDraft[] = [];
+  let pasoComprasId: number | null = null;
+  let pasoComprasHecho = false;
+
+  for (const p of pasosArr) {
+    if (p.descripcion === "Ir de compras") {
+      pasoComprasId = p.id;
+      pasoComprasHecho = pasoEstaCompletado(p);
+      listaCompras = parseListaComprasDesdeNotas((p.notas as string) || "");
+      if (pasoComprasHecho) {
+        listaCompras = listaCompras.map((it) => ({ ...it, comprado: true }));
+      }
+    } else if (p.descripcion) {
+      pasosEj.push({ nombre: p.descripcion, desc: (p.notas as string) || "" });
+    }
+  }
+
+  const bloqueo = bloqueoResp.bloqueo ?? null;
+  const conCompras = listaCompras.length > 0;
+  const pasosEnServidor = pasosArr.filter((p) => p.descripcion !== "Ir de compras").length > 0;
+
+  let fase: FaseAccionWizard = "compras_lista";
+  let subCompras: "idle" | "editando" = "idle";
+
+  if (bloqueo) {
+    fase = "compras_lista";
+    subCompras = "editando";
+  } else if (conCompras && !pasoComprasHecho) {
+    fase = "compras_tienda";
+    subCompras = "editando";
+  } else if (pasosEnServidor) {
+    fase = "cierre";
+  } else if (conCompras && pasoComprasHecho) {
+    fase = "pasos";
+    subCompras = "editando";
+  } else if (det.estado === "en_proceso" || (det.segundos_trabajo ?? 0) > 0) {
+    fase = "compras_lista";
+    subCompras = conCompras ? "editando" : "idle";
+  }
+
+  const plantilla: PlantillaAccion = {
+    titulo: det.titulo,
+    protocoloId: det.protocolo_id ?? undefined,
+    listaCompras,
+    pasos: pasosEj,
+  };
+
+  return {
+    ticketId,
+    faseInicial: fase,
+    plantilla,
+    subCompras,
+    pasoComprasId,
+    bloqueoCompras: bloqueo,
+    bloqueadoIntervencion: det.bloqueado_por ? (det.bloqueado_por_numero ?? `TCK-${det.bloqueado_por}`) : null,
+    ticket: det,
+  };
+}
+
+function NuevaAccionWizard({
+  token,
+  user,
+  chatApiToken,
+  tituloInicial = "",
+  plantilla,
+  reanudar,
+  solicitudPadreId,
+  onCancel,
+  onCreated,
+}: {
+  token: string;
+  user: TicketsUser;
+  chatApiToken: string | null | undefined;
+  tituloInicial?: string;
+  plantilla?: PlantillaAccion;
+  /** Reanudar acción en curso (misma UI, fase inferida del servidor). */
+  reanudar?: ResumeAccionState;
+  solicitudPadreId?: number;
+  onCancel: () => void;
+  onCreated: (ticketId: number) => void;
+}) {
+  const stt = useStt(token, chatApiToken);
+  const plantillaEff = reanudar?.plantilla ?? plantilla;
+  const [fase, setFase] = useState<FaseAccionWizard>(
+    reanudar?.faseInicial ?? (plantillaEff ? "compras_lista" : "titulo"),
+  );
+  const [wizardDir, setWizardDir] = useState<"right" | "left">("right");
+  const [titulo, setTitulo] = useState(plantillaEff?.titulo ?? tituloInicial);
+  const [conCompras, setConCompras] = useState((plantillaEff?.listaCompras?.length ?? 0) > 0);
+  const [subCompras, setSubCompras] = useState<"idle" | "editando">(
+    reanudar?.subCompras ?? ((plantillaEff?.listaCompras?.length ?? 0) > 0 ? "editando" : "idle"),
+  );
+  const [listaCompras, setListaCompras] = useState<ItemCompraAccion[]>(
+    plantillaEff?.listaCompras?.length ? plantillaEff.listaCompras : [],
+  );
+  const [pasosGuardados, setPasosGuardados] = useState<PasoAccionDraft[]>(plantillaEff?.pasos ?? []);
+  const [reporteSolicitud, setReporteSolicitud] = useState("");
+  const [pasoNombre, setPasoNombre] = useState("");
+  const [pasoDesc, setPasoDesc] = useState("");
+  const [editandoPasoIdx, setEditandoPasoIdx] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [ticketId, setTicketId] = useState<number | null>(reanudar?.ticketId ?? null);
+  const [pasoComprasId, setPasoComprasId] = useState<number | null>(reanudar?.pasoComprasId ?? null);
+  const [bloqueadoIntervencion, setBloqueadoIntervencion] = useState<string | null>(
+    reanudar?.bloqueadoIntervencion ?? null,
+  );
+  const [facturaFile, setFacturaFile] = useState<File | null>(null);
+  const [facturaPreview, setFacturaPreview] = useState<string | null>(null);
+  const [cierreArchivo, setCierreArchivo] = useState<File | null>(null);
+  const [cierrePreview, setCierrePreview] = useState<string | null>(null);
+  const [usuariosDelegar, setUsuariosDelegar] = useState<UserInfo[]>([]);
+  const [delegarAId, setDelegarAId] = useState<number | "">("");
+  const [delegacionMsg, setDelegacionMsg] = useState("");
+  const [bloqueoCompras, setBloqueoCompras] = useState<{
+    solicitud_id: number;
+    numero: string;
+    titulo: string;
+    asignado_nombre: string | null;
+    estado?: string;
+  } | null>(reanudar?.bloqueoCompras ?? null);
+  const [showInterPaso, setShowInterPaso] = useState(false);
+  const [interPasoIdx, setInterPasoIdx] = useState<number | null>(null);
+  const [interForm, setInterForm] = useState({ titulo: "", descripcion: "", asignado_a: "" });
+  const [creandoInter, setCreandoInter] = useState(false);
+
+  const inicioRef = useRef<number | null>(null);
+  const [segBase, setSegBase] = useState(0);
+  const [segLive, setSegLive] = useState(0);
+  const [cronometroActivo, setCronometroActivo] = useState(false);
+  const corridaIdRef = useRef<number | null>(null);
+
+  const maxProgreso = conCompras ? 5 : 4;
+  const progresoActual = indiceProgresoWizard(fase, conCompras);
+  const segDisplay = segBase + segLive;
+  const itemsCompraOk = listaCompras.filter((m) => m.n.trim());
+  const todosComprados = itemsCompraOk.length > 0 && itemsCompraOk.every((m) => m.comprado);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (inicioRef.current == null) return;
+      const s = Math.floor((Date.now() - inicioRef.current) / 1000);
+      setSegLive((p) => (p === s ? p : s));
+    }, 250);
+    return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (facturaPreview) URL.revokeObjectURL(facturaPreview);
+      if (cierrePreview) URL.revokeObjectURL(cierrePreview);
+    };
+  }, [facturaPreview, cierrePreview]);
+
+  useEffect(() => {
+    if (!["compras_lista", "pasos"].includes(fase) || usuariosDelegar.length > 0) return;
+    tapi("/usuarios", token)
+      .then((data) => setUsuariosDelegar(Array.isArray(data) ? data : []))
+      .catch(() => setUsuariosDelegar([]));
+  }, [fase, token, usuariosDelegar.length]);
+
+  const refrescarBloqueoCompras = useCallback(async (tid?: number) => {
+    const id = tid ?? ticketId;
+    if (!id) return;
+    try {
+      const data = await tapi(`/${id}/bloqueo-compras`, token) as {
+        bloqueo: typeof bloqueoCompras;
+      };
+      setBloqueoCompras(data.bloqueo ?? null);
+    } catch {
+      setBloqueoCompras(null);
+    }
+  }, [ticketId, token]);
+
+  useEffect(() => {
+    if (!ticketId) return;
+    void refrescarBloqueoCompras(ticketId);
+    const iv = setInterval(() => void refrescarBloqueoCompras(ticketId), 8000);
+    return () => clearInterval(iv);
+  }, [ticketId, refrescarBloqueoCompras]);
+
+  useEffect(() => {
+    if (!reanudar) return;
+    const t = reanudar.ticket;
+    setBloqueoCompras(reanudar.bloqueoCompras);
+    setBloqueadoIntervencion(reanudar.bloqueadoIntervencion ?? null);
+    if (t.corrida) {
+      corridaIdRef.current = t.corrida.id ?? null;
+      setSegBase(t.corrida.segundos_acumulados ?? t.segundos_trabajo ?? 0);
+      if (t.corrida.estado === "activa" && t.corrida.iniciada_en) {
+        const srvTs = parseUtcTs(t.corrida.iniciada_en);
+        inicioRef.current = srvTs;
+        _timerStore.set(reanudar.ticketId, srvTs);
+        setCronometroActivo(true);
+        setSegLive(Math.max(0, Math.floor((Date.now() - srvTs) / 1000)));
+      } else {
+        inicioRef.current = null;
+        _timerStore.delete(reanudar.ticketId);
+        setCronometroActivo(false);
+        setSegLive(0);
+      }
+    } else if ((t.segundos_trabajo ?? 0) > 0) {
+      setSegBase(t.segundos_trabajo ?? 0);
+    }
+    if (reanudar.bloqueoCompras) setConCompras(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function irFase(next: FaseAccionWizard) {
+    const orden: FaseAccionWizard[] = ["titulo", "compras_lista", "compras_tienda", "pasos", "cierre"];
+    const prev = orden.indexOf(fase);
+    const nxt = orden.indexOf(next);
+    setWizardDir(nxt >= prev ? "right" : "left");
+    setFase(next);
+    setError("");
+  }
+
+  async function asegurarTicketIniciado(): Promise<number> {
+    if (ticketId) return ticketId;
+    const ticket = await tapi("/", token, {
+      method: "POST",
+      body: JSON.stringify({
+        titulo: titulo.trim(),
+        descripcion: titulo.trim(),
+        prioridad: "media",
+        categoria: solicitudPadreId ? "logistica" : "logistica",
+        asignado_a: user.id,
+        tipo: "accion",
+        ticket_padre_id: solicitudPadreId ?? undefined,
+        protocolo_id: plantilla?.protocoloId,
+      }),
+    }) as Ticket;
+    const tid = ticket.id;
+    setTicketId(tid);
+    const t0 = Date.now();
+    inicioRef.current = t0;
+    setSegLive(0);
+    setCronometroActivo(true);
+    try {
+      const data = await tapi(`/${tid}/corridas/iniciar`, token, {
+        method: "POST",
+        body: JSON.stringify({ segundos_previos: 0 }),
+      }) as Ticket;
+      if (data.corrida) {
+        corridaIdRef.current = data.corrida.id ?? null;
+        setSegBase(data.corrida.segundos_acumulados ?? 0);
+        if (data.corrida.iniciada_en) {
+          const srvTs = parseUtcTs(data.corrida.iniciada_en);
+          if (srvTs < t0 && t0 - srvTs < 30_000) inicioRef.current = srvTs;
+        }
+      }
+    } catch { /* cronómetro local sigue */ }
+    return tid;
+  }
+
+  async function avanzarDesdeTitulo() {
+    if (!titulo.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      await asegurarTicketIniciado();
+      irFase("compras_lista");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se pudo iniciar la acción");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function delegarListaCompras() {
+    if (!delegarAId) {
+      setError("Elige quién irá de compras");
+      return;
+    }
+    const items = listaCompras.filter((m) => m.n.trim());
+    if (items.length === 0) {
+      setError("Agrega productos antes de delegar");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setDelegacionMsg("");
+    try {
+      const tid = await asegurarTicketIniciado();
+      const res = await tapi(`/${tid}/delegar-compras`, token, {
+        method: "POST",
+        body: JSON.stringify({ asignado_a: delegarAId, items }),
+      }) as { solicitud?: Ticket; accion?: Ticket };
+      const sol = res.solicitud;
+      const nombre = usuariosDelegar.find((u) => u.id === delegarAId)?.nombre ?? "compañero";
+      if (sol) {
+        setDelegacionMsg(`Solicitud ${sol.numero} creada para ${nombre}`);
+        setBloqueoCompras({
+          solicitud_id: sol.id,
+          numero: sol.numero,
+          titulo: sol.titulo,
+          asignado_nombre: nombre,
+          estado: sol.estado,
+        });
+      } else {
+        setDelegacionMsg(`Lista enviada a ${nombre}`);
+      }
+      setDelegarAId("");
+      void refrescarBloqueoCompras(tid);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se pudo delegar la lista");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function pantallaEsperaCompras() {
+    if (!bloqueoCompras) return null;
+    return (
+      <div className="rounded-2xl border-2 border-amber-400/60 bg-amber-50/80 dark:bg-amber-950/30 p-4 space-y-3">
+        <p className="text-sm font-extrabold text-amber-900 dark:text-amber-200">
+          Esperando compras delegadas
+        </p>
+        <p className="text-sm text-amber-800/90 dark:text-amber-100/90">
+          <strong>{bloqueoCompras.asignado_nombre ?? "Tu compañero"}</strong> está con la lista
+          ({bloqueoCompras.numero}). Cuando marque <em>Terminé las compras</em>, podrás continuar.
+        </p>
+        <p className="text-xs text-muted font-mono">{bloqueoCompras.titulo}</p>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void refrescarBloqueoCompras()}
+          className="w-full rounded-xl border border-amber-500/50 py-2 text-xs font-bold text-amber-800 dark:text-amber-200"
+        >
+          Actualizar estado
+        </button>
+      </div>
+    );
+  }
+
+  async function pedirIntervencionPaso() {
+    if (!interForm.titulo.trim() || !interForm.asignado_a) return;
+    const paso = interPasoIdx != null ? pasosGuardados[interPasoIdx] : null;
+    setCreandoInter(true);
+    setError("");
+    try {
+      const tid = ticketId ?? await asegurarTicketIniciado();
+      const desc = paso
+        ? `${interForm.descripcion}\n\n[Paso: ${paso.nombre}]`
+        : interForm.descripcion;
+      await tapi(`/${tid}/pedir-intervencion`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: interForm.titulo.trim(),
+          descripcion: desc.trim(),
+          asignado_a: Number(interForm.asignado_a),
+        }),
+      });
+      setShowInterPaso(false);
+      setInterForm({ titulo: "", descripcion: "", asignado_a: "" });
+      setInterPasoIdx(null);
+      await refrescarBloqueoCompras(tid);
+      setError("");
+      setDelegacionMsg("Intervención solicitada — la acción queda en pausa hasta que respondan");
+      setTimeout(() => setDelegacionMsg(""), 4000);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al pedir intervención");
+    } finally {
+      setCreandoInter(false);
+    }
+  }
+
+  async function terminarListaCompras() {
+    if (bloqueoCompras) {
+      setError("Hay compras delegadas pendientes. Espera a que terminen o continúa sin ir tú.");
+      return;
+    }
+    const items = listaCompras.filter((m) => m.n.trim());
+    if (items.length === 0) {
+      setError("Agrega al menos un producto a la lista");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const tid = await asegurarTicketIniciado();
+      const pasos = await tapi(`/${tid}/pasos`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          descripcion: "Ir de compras",
+          notas: notasListaCompras(items),
+        }),
+      }) as { id: number; descripcion: string }[];
+      const pasoCompras = Array.isArray(pasos)
+        ? pasos.find((p) => p.descripcion === "Ir de compras")
+        : null;
+      setPasoComprasId(pasoCompras?.id ?? (Array.isArray(pasos) && pasos.length ? pasos[pasos.length - 1].id : null));
+      setListaCompras(items.map((m) => ({ ...m, comprado: false })));
+      setConCompras(true);
+      irFase("compras_tienda");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al guardar la lista");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function termineCompras() {
+    if (!todosComprados) {
+      setError("Marca todos los productos de la lista antes de continuar");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const tid = ticketId ?? await asegurarTicketIniciado();
+      if (facturaFile) {
+        const fd = new FormData();
+        fd.append("archivo", facturaFile);
+        await tapi(`/${tid}/adjuntos`, token, { method: "POST", body: fd });
+      }
+      if (pasoComprasId) {
+        await tapi(`/${tid}/pasos/${pasoComprasId}`, token, {
+          method: "PUT",
+          body: JSON.stringify({ completado: 1 }),
+        });
+      }
+      await tapi(`/${tid}/comentarios`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          texto: facturaFile
+            ? "✅ Compras terminadas — factura adjunta."
+            : "✅ Compras terminadas.",
+          es_interno: false,
+        }),
+      }).catch(() => {});
+      irFase("pasos");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al cerrar compras");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saltarCompras() {
+    setLoading(true);
+    try {
+      await asegurarTicketIniciado();
+      irFase("pasos");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al continuar");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function iniciarEditarPaso(idx: number) {
+    const p = pasosGuardados[idx];
+    setPasoNombre(p.nombre);
+    setPasoDesc(p.desc);
+    setEditandoPasoIdx(idx);
+  }
+
+  function cancelarEdicionPaso() {
+    setPasoNombre("");
+    setPasoDesc("");
+    setEditandoPasoIdx(null);
+  }
+
+  function guardarPasoEnLista(soloGuardar: boolean) {
+    if (!pasoNombre.trim()) {
+      setError("Escribe o dicta qué harás en este paso");
+      return;
+    }
+    setError("");
+    const p: PasoAccionDraft = { nombre: pasoNombre.trim(), desc: pasoDesc.trim() };
+    if (editandoPasoIdx !== null) {
+      setPasosGuardados((ps) => ps.map((x, i) => (i === editandoPasoIdx ? p : x)));
+      cancelarEdicionPaso();
+    } else {
+      setPasosGuardados((ps) => [...ps, p]);
+      setPasoNombre("");
+      setPasoDesc("");
+    }
+    if (!soloGuardar) void finalizarConPasos(editandoPasoIdx !== null
+      ? pasosGuardados.map((x, i) => (i === editandoPasoIdx ? p : x))
+      : [...pasosGuardados, p]);
+  }
+
+  async function finalizarConPasos(pasosEjec?: PasoAccionDraft[]) {
+    setError("");
+    const ejec = (pasosEjec ?? pasosGuardados).filter((p) => p.nombre.trim());
+    if (ejec.length === 0) {
+      setError("Agrega al menos un paso de ejecución");
+      return;
+    }
+    setLoading(true);
+    try {
+      const tid = ticketId ?? await asegurarTicketIniciado();
+      const existentes = await tapi(`/${tid}/pasos`, token).catch(() => []) as Paso[];
+      const nombresExistentes = new Set(
+        (Array.isArray(existentes) ? existentes : [])
+          .filter((p) => p.descripcion !== "Ir de compras")
+          .map((p) => p.descripcion.trim()),
+      );
+      for (const p of ejec) {
+        const nombre = p.nombre.trim();
+        if (nombresExistentes.has(nombre)) continue;
+        await tapi(`/${tid}/pasos`, token, {
+          method: "POST",
+          body: JSON.stringify({
+            descripcion: nombre,
+            notas: p.desc.trim() || undefined,
+          }),
+        });
+        nombresExistentes.add(nombre);
+      }
+      irFase("cierre");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al registrar pasos");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function completarAccionEnServidor(tid: number, itemsLista: ItemCompraAccion[]) {
+    const payload = {
+      reporte: reporteSolicitud.trim(),
+      lista_compras: itemsLista,
+      cerrar_solicitud: !!solicitudPadreId,
+    };
+    const res = await fetch(`/api/tickets/${tid}/completar-accion`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 404) {
+      try {
+        await tapi(`/${tid}/guardar-procedimiento`, token, {
+          method: "POST",
+          body: JSON.stringify({ lista_compras: itemsLista }),
+        });
+      } catch { /* servidor antiguo sin procedimientos */ }
+      if (solicitudPadreId && reporteSolicitud.trim()) {
+        const nombre = user.nombre || "Operador";
+        await tapi(`/${solicitudPadreId}/comentarios`, token, {
+          method: "POST",
+          body: JSON.stringify({
+            texto: `📋 **Reporte de ejecución**\nPor: ${nombre}\n\n${reporteSolicitud.trim()}`,
+            es_interno: false,
+          }),
+        });
+      }
+      await tapi(`/${tid}/estado`, token, {
+        method: "PUT",
+        body: JSON.stringify({ estado: "resuelto" }),
+      });
+      if (solicitudPadreId) {
+        await tapi(`/${solicitudPadreId}/estado`, token, {
+          method: "PUT",
+          body: JSON.stringify({ estado: "resuelto" }),
+        });
+      }
+      return;
+    }
+    let data: { error?: string };
+    try {
+      data = await res.json();
+    } catch {
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      return;
+    }
+    if (!res.ok) throw new Error(data?.error || `Error ${res.status}`);
+  }
+
+  async function terminarAccion() {
+    if (solicitudPadreId && !reporteSolicitud.trim()) {
+      setError("Escribe el reporte para quien solicitó la acción");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const tid = ticketId ?? await asegurarTicketIniciado();
+      if (corridaIdRef.current) {
+        try {
+          await tapi(`/corridas/${corridaIdRef.current}/finalizar`, token, { method: "POST" });
+        } catch { /* ignore */ }
+      }
+      if (cierreArchivo) {
+        const fd = new FormData();
+        fd.append("archivo", cierreArchivo);
+        await tapi(`/${tid}/adjuntos`, token, { method: "POST", body: fd });
+      }
+      const itemsLista = listaCompras.filter((m) => m.n.trim());
+      await completarAccionEnServidor(tid, itemsLista);
+      onCreated(tid);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al terminar la acción");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!plantilla) return;
+    void asegurarTicketIniciado().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function finalizar() {
+    const extra = pasoNombre.trim()
+      ? [{ nombre: pasoNombre.trim(), desc: pasoDesc.trim() }]
+      : [];
+    await finalizarConPasos([...pasosGuardados, ...extra]);
+  }
+
+  async function cancelarWizard() {
+    if (ticketId && !confirm("¿Cancelar? La acción iniciada seguirá en tu tablero como borrador.")) return;
+    if (ticketId && corridaIdRef.current) {
+      try {
+        await tapi(`/corridas/${corridaIdRef.current}/pausar`, token, { method: "POST" });
+      } catch { /* ignore */ }
+    }
+    onCancel();
+  }
+
+  function onArchivoSeleccionado(
+    file: File | null,
+    setFile: (f: File | null) => void,
+    preview: string | null,
+    setPreview: (u: string | null) => void,
+  ) {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(file);
+    if (file && file.type.startsWith("image/")) {
+      setPreview(URL.createObjectURL(file));
+    } else {
+      setPreview(null);
+    }
+  }
+
+  const slide = wizardDir === "right" ? "mck-slide-right" : "mck-slide-left";
+  const cronometroVisible = fase !== "titulo" && (!!ticketId || cronometroActivo || segBase > 0);
+
+  return (
+    <div className="mx-auto w-full max-w-lg pb-10">
+      <div className="mb-6 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => void cancelarWizard()}
+          className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+        >
+          ← Cancelar
+        </button>
+        <span className="text-xs font-bold uppercase tracking-widest text-muted">
+          {reanudar ? "Continuar acción" : "Nueva acción"}
+        </span>
+      </div>
+
+      {bloqueadoIntervencion && !bloqueoCompras && (
+        <div className="mb-4 rounded-xl border border-orange-400/50 bg-orange-50/60 dark:bg-orange-950/25 px-4 py-3 text-sm text-orange-800 dark:text-orange-200">
+          Esperando intervención <strong>{bloqueadoIntervencion}</strong> antes de seguir.
+        </div>
+      )}
+
+      <div className="mb-4 flex items-center gap-2">
+        {Array.from({ length: maxProgreso }, (_, i) => i + 1).map((n) => (
+          <div
+            key={n}
+            className={`h-2 flex-1 rounded-full transition-all ${n <= progresoActual ? "bg-accent" : "bg-border"}`}
+          />
+        ))}
+      </div>
+
+      {cronometroVisible && (
+        <div className="mb-4 flex items-center justify-center gap-3 rounded-2xl border-2 border-accent/35 bg-accent/8 px-4 py-3">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">En proceso</span>
+          <span className="font-mono text-2xl font-extrabold tabular-nums text-accent">{fmtTiempo(segDisplay)}</span>
+        </div>
+      )}
+
+      <SttBanner stt={stt} />
+      {error && (
+        <p className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      {fase === "titulo" && (
+        <div key="acc-p1" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 1 de {maxProgreso}
+            </p>
+            <h2 className="text-3xl font-extrabold text-ink leading-tight">
+              ¿Qué vas<br />a hacer?
+            </h2>
+            <p className="mt-2 text-sm text-muted">Solo esta pregunta — escribe o usa el micrófono.</p>
+          </div>
+          <div className="flex gap-2">
+            <input
+              autoFocus
+              className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-xl font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/50"
+              placeholder="Ej: Preparar torta de zanahoria"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && titulo.trim() && !loading) void avanzarDesdeTitulo();
+              }}
+              maxLength={150}
+            />
+            <SttInlineBtn
+              stt={stt}
+              onStart={() => void stt.iniciar((t) => setTitulo(t))}
+            />
+          </div>
+          <button
+            type="button"
+            disabled={!titulo.trim() || loading}
+            onClick={() => void avanzarDesdeTitulo()}
+            className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            {loading ? "Iniciando…" : "Siguiente →"}
+          </button>
+        </div>
+      )}
+
+      {fase === "compras_lista" && (
+        <div key="acc-p2" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 2 de {maxProgreso}
+            </p>
+            <h2 className="text-2xl font-extrabold text-ink leading-tight">Tu acción<br />ha comenzado</h2>
+            <p className="mt-3 rounded-2xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-base font-bold text-ink">
+              {titulo.trim()}
+            </p>
+          </div>
+
+          {subCompras === "idle" && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted">¿Necesitas conseguir ingredientes o materiales antes?</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setConCompras(true);
+                  setSubCompras("editando");
+                  if (listaCompras.length === 0) setListaCompras([nuevoItemCompra()]);
+                }}
+                className="w-full flex items-center gap-4 rounded-2xl border-2 border-border bg-surface-panel px-5 py-4 text-left transition hover:border-accent/60"
+              >
+                <span className="text-3xl">🛒</span>
+                <div>
+                  <p className="text-base font-extrabold text-ink">Ir de compras</p>
+                  <p className="text-xs text-muted">Arma la lista con gramos o unidades</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void saltarCompras()}
+                className="w-full rounded-2xl border-2 border-border py-3.5 text-sm font-bold text-muted transition hover:border-accent hover:text-accent disabled:opacity-40"
+              >
+                Ya tengo todo · continuar →
+              </button>
+            </div>
+          )}
+
+          {subCompras === "editando" && (
+            <div className="space-y-4 mck-slide-up">
+              <p className="text-xs font-bold uppercase tracking-wide text-accent">Lista de compras</p>
+              {listaCompras.map((m, mi) => (
+                <div key={mi} className="flex flex-wrap gap-2 sm:flex-nowrap">
+                  <input
+                    className="min-w-0 flex-[2] rounded-xl border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/40"
+                    placeholder="Producto"
+                    value={m.n}
+                    onChange={(e) => setListaCompras((ms) => ms.map((x, j) => (j === mi ? { ...x, n: e.target.value } : x)))}
+                  />
+                  <input
+                    className="w-20 rounded-xl border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/40"
+                    placeholder="Cant."
+                    inputMode="decimal"
+                    value={m.cantidad}
+                    onChange={(e) => setListaCompras((ms) => ms.map((x, j) => (j === mi ? { ...x, cantidad: e.target.value } : x)))}
+                  />
+                  <select
+                    className="w-[5.5rem] rounded-xl border-2 border-border bg-surface-input px-2 py-2.5 text-sm font-bold text-ink outline-none focus:border-accent"
+                    value={m.unidad}
+                    onChange={(e) => setListaCompras((ms) => ms.map((x, j) => (
+                      j === mi ? { ...x, unidad: e.target.value as UnidadCompra } : x
+                    )))}
+                    aria-label="Unidad de medida"
+                  >
+                    <option value="g">g</option>
+                    <option value="u">u</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setListaCompras((ms) => ms.filter((_, j) => j !== mi))}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-border text-muted transition hover:border-danger hover:text-danger"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setListaCompras((ms) => [...ms, nuevoItemCompra()])}
+                className="flex items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+              >
+                + Agregar producto
+              </button>
+
+              <div className="rounded-2xl border border-blue-400/30 bg-blue-50/30 dark:bg-blue-900/10 p-3 space-y-2">
+                <p className="text-xs font-bold text-ink">¿Alguien más va de compras?</p>
+                <p className="text-[11px] text-muted">
+                  Se crea una solicitud solo con este checklist para esa persona.
+                </p>
+                <select
+                  className="quest-input w-full text-sm"
+                  value={delegarAId}
+                  onChange={(e) => setDelegarAId(e.target.value ? Number(e.target.value) : "")}
+                >
+                  <option value="">Elegir compañero…</option>
+                  {usuariosDelegar
+                    .filter((u) => u.id !== user.id && u.activo !== 0)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>{u.nombre}</option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={loading || !delegarAId || itemsCompraOk.length === 0}
+                  onClick={() => void delegarListaCompras()}
+                  className="w-full rounded-xl border-2 border-blue-500 py-2.5 text-sm font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-500/10 disabled:opacity-40"
+                >
+                  Enviar lista a compañero
+                </button>
+                {delegacionMsg && (
+                  <p className="text-xs font-semibold text-accent">{delegacionMsg}</p>
+                )}
+              </div>
+
+              {bloqueoCompras && pantallaEsperaCompras()}
+
+              {!bloqueoCompras && (
+                <button
+                  type="button"
+                  disabled={loading || itemsCompraOk.length === 0}
+                  onClick={() => void terminarListaCompras()}
+                  className="w-full rounded-2xl bg-accent py-4 text-base font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+                >
+                  {loading ? "Guardando…" : "Yo voy de compras →"}
+                </button>
+              )}
+              {bloqueoCompras && (
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      const tid = ticketId ?? await asegurarTicketIniciado();
+                      const data = await tapi(`/${tid}/bloqueo-compras`, token) as {
+                        bloqueo: typeof bloqueoCompras;
+                      };
+                      if (data.bloqueo) {
+                        setBloqueoCompras(data.bloqueo);
+                        setError("Aún esperando que terminen las compras delegadas");
+                      } else {
+                        setBloqueoCompras(null);
+                        irFase("pasos");
+                      }
+                    } catch (e: unknown) {
+                      setError(e instanceof Error ? e.message : "Error al verificar");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  className="w-full rounded-2xl border-2 border-amber-500 py-3.5 text-sm font-bold text-amber-800 dark:text-amber-200"
+                >
+                  Compras delegadas — verificar y continuar →
+                </button>
+              )}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (subCompras === "editando") setSubCompras("idle");
+              else irFase("titulo");
+            }}
+            className="w-full rounded-2xl border-2 border-border py-3 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+          >
+            ← Atrás
+          </button>
+        </div>
+      )}
+
+      {fase === "compras_tienda" && (
+        <div key="acc-p3-tienda" className={`space-y-5 ${slide}`}>
+          {bloqueoCompras ? (
+            <>
+              {pantallaEsperaCompras()}
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const tid = ticketId ?? await asegurarTicketIniciado();
+                    const data = await tapi(`/${tid}/bloqueo-compras`, token) as {
+                      bloqueo: typeof bloqueoCompras;
+                    };
+                    if (data.bloqueo) {
+                      setBloqueoCompras(data.bloqueo);
+                      setError("Aún esperando las compras delegadas");
+                    } else {
+                      setBloqueoCompras(null);
+                      irFase("pasos");
+                    }
+                  } catch (e: unknown) {
+                    setError(e instanceof Error ? e.message : "Error al verificar");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full rounded-2xl border-2 border-amber-500 py-3 text-sm font-bold text-amber-800 dark:text-amber-200"
+              >
+                Verificar si ya terminaron →
+              </button>
+            </>
+          ) : (
+          <>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 3 de {maxProgreso}
+            </p>
+            <h2 className="text-2xl font-extrabold text-ink leading-tight">En la tienda</h2>
+            <p className="mt-1 text-sm text-muted">Marca cada producto al conseguirlo.</p>
+          </div>
+
+          <div className="space-y-2">
+            {listaCompras.map((m, mi) => !m.n.trim() ? null : (
+              <button
+                key={mi}
+                type="button"
+                onClick={() => setListaCompras((ms) => ms.map((x, j) => (
+                  j === mi ? { ...x, comprado: !x.comprado } : x
+                )))}
+                className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3 text-left transition
+                  ${m.comprado ? "border-accent bg-accent/10" : "border-border bg-surface-panel hover:border-accent/40"}`}
+              >
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 text-sm font-bold
+                  ${m.comprado ? "border-accent bg-accent text-white" : "border-border text-muted"}`}>
+                  {m.comprado ? "✓" : ""}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-sm font-bold ${m.comprado ? "text-accent line-through decoration-accent/50" : "text-ink"}`}>
+                    {m.n.trim()}
+                  </p>
+                  {formatCantidadItem(m) && (
+                    <p className="text-xs text-muted">{formatCantidadItem(m)}</p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-2xl border-2 border-dashed border-border bg-surface-panel p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted">Factura de caja</p>
+            <p className="text-xs text-muted">Foto o PDF del ticket al pagar (opcional antes de salir).</p>
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-4 py-6 transition hover:border-accent">
+              <span className="text-2xl">📷</span>
+              <span className="text-sm font-bold text-accent">
+                {facturaFile ? facturaFile.name : "Subir captura de factura"}
+              </span>
+              <input
+                type="file"
+                accept="image/*,.pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => onArchivoSeleccionado(
+                  e.target.files?.[0] ?? null,
+                  setFacturaFile,
+                  facturaPreview,
+                  setFacturaPreview,
+                )}
+              />
+            </label>
+            {facturaPreview && (
+              <img src={facturaPreview} alt="Vista previa factura" className="max-h-40 w-full rounded-xl object-contain border border-border" />
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={loading || !todosComprados}
+            onClick={() => void termineCompras()}
+            className="w-full rounded-2xl bg-accent py-4 text-base font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            {loading ? "Guardando…" : "Terminé las compras →"}
+          </button>
+          {!todosComprados && itemsCompraOk.length > 0 && (
+            <p className="text-center text-xs text-muted">
+              Marca los {itemsCompraOk.length} productos de la lista
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => irFase("compras_lista")}
+            className="w-full rounded-2xl border-2 border-border py-3 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+          >
+            ← Editar lista
+          </button>
+          </>
+          )}
+        </div>
+      )}
+
+      {fase === "pasos" && (
+        <div key="acc-p3" className={`space-y-5 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso {progresoActual} de {maxProgreso}
+            </p>
+            <h2 className="text-2xl font-extrabold text-ink leading-tight">
+              Describe los pasos<br />de tu labor
+            </h2>
+            <p className="mt-1 text-sm text-muted">Texto o voz — uno a la vez. Puedes pedir verificación en un paso.</p>
+          </div>
+
+          {bloqueoCompras && pantallaEsperaCompras()}
+
+          {pasosGuardados.length > 0 && (
+            <div className="space-y-2">
+              {pasosGuardados.map((p, i) => (
+                <div
+                  key={i}
+                  className={`mck-slide-up flex items-center gap-3 rounded-2xl border-2 px-4 py-2.5 transition
+                    ${editandoPasoIdx === i ? "border-accent bg-accent/8" : "border-border bg-surface-panel"}`}
+                  style={{ animationDelay: `${i * 40}ms` }}
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-extrabold text-white">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-ink">{p.nombre}</p>
+                    {p.desc && (
+                      <p className="truncate text-xs text-muted">
+                        {p.desc.slice(0, 48)}{p.desc.length > 48 ? "…" : ""}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => iniciarEditarPaso(i)}
+                    className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] font-bold text-muted transition hover:border-accent hover:text-accent"
+                    title="Editar paso"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setInterPasoIdx(i);
+                      setInterForm({
+                        titulo: `Verificar: ${p.nombre}`,
+                        descripcion: p.desc || "",
+                        asignado_a: "",
+                      });
+                      setShowInterPaso(true);
+                    }}
+                    className="shrink-0 rounded-lg border border-orange-400/50 px-2 py-1 text-[10px] font-bold text-orange-600 transition hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                    title="Pedir verificación a otro usuario"
+                  >
+                    🛑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPasosGuardados((ps) => ps.filter((_, j) => j !== i));
+                      if (editandoPasoIdx === i) cancelarEdicionPaso();
+                    }}
+                    className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] font-bold text-muted transition hover:border-danger hover:text-danger"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showInterPaso && (
+            <div className="rounded-2xl border border-orange-400/50 bg-orange-50/50 dark:bg-orange-950/20 p-4 space-y-3">
+              <p className="text-sm font-bold text-orange-800 dark:text-orange-300">
+                Pedir verificación{interPasoIdx != null ? ` — paso ${interPasoIdx + 1}` : ""}
+              </p>
+              <input
+                className="quest-input w-full text-sm"
+                placeholder="Título de la intervención"
+                value={interForm.titulo}
+                onChange={(e) => setInterForm((f) => ({ ...f, titulo: e.target.value }))}
+              />
+              <textarea
+                className="quest-input w-full resize-none text-sm"
+                rows={2}
+                placeholder="Qué debe verificar o hacer…"
+                value={interForm.descripcion}
+                onChange={(e) => setInterForm((f) => ({ ...f, descripcion: e.target.value }))}
+              />
+              <select
+                className="quest-input w-full text-sm"
+                value={interForm.asignado_a}
+                onChange={(e) => setInterForm((f) => ({ ...f, asignado_a: e.target.value }))}
+              >
+                <option value="">Usuario que verifica…</option>
+                {usuariosDelegar
+                  .filter((u) => u.id !== user.id && u.activo !== 0)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>{u.nombre}</option>
+                  ))}
+              </select>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={creandoInter || !interForm.titulo.trim() || !interForm.asignado_a}
+                  onClick={() => void pedirIntervencionPaso()}
+                  className="flex-1 rounded-xl bg-orange-500 py-2 text-sm font-bold text-white disabled:opacity-40"
+                >
+                  {creandoInter ? "Enviando…" : "Solicitar intervención"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowInterPaso(false); setInterPasoIdx(null); }}
+                  className="rounded-xl border border-border px-3 py-2 text-sm text-muted"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-2xl border-2 border-accent/40 bg-surface-panel p-4 space-y-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-accent">
+              {editandoPasoIdx !== null
+                ? `Editando paso ${editandoPasoIdx + 1}`
+                : `Paso ${pasosGuardados.length + 1}`}
+            </p>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+                ¿Qué haces en este paso?
+              </label>
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  className="w-full flex-1 rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
+                  placeholder="Ej: Mezclar harina y zanahoria"
+                  value={pasoNombre}
+                  maxLength={120}
+                  onChange={(e) => setPasoNombre(e.target.value)}
+                />
+                <SttInlineBtn
+                  stt={stt}
+                  onStart={() => void stt.iniciar((t) => setPasoNombre(t))}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">
+                Detalle <span className="normal-case font-normal">(opcional)</span>
+              </label>
+              <div className="flex gap-2">
+                <textarea
+                  className="w-full flex-1 rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
+                  placeholder="Instrucciones, tiempos, temperatura…"
+                  rows={2}
+                  value={pasoDesc}
+                  onChange={(e) => setPasoDesc(e.target.value)}
+                />
+                <SttInlineBtn
+                  stt={stt}
+                  label="Det."
+                  onStart={() => void stt.iniciar((t) => setPasoDesc((d) => (d ? `${d} ${t}` : t)))}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              {editandoPasoIdx !== null && (
+                <button
+                  type="button"
+                  onClick={cancelarEdicionPaso}
+                  className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+                >
+                  Cancelar
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={!pasoNombre.trim()}
+                onClick={() => guardarPasoEnLista(true)}
+                className="flex-1 rounded-xl border-2 border-accent/60 py-2.5 text-sm font-extrabold text-accent transition hover:bg-accent/10 disabled:opacity-40"
+              >
+                {editandoPasoIdx !== null ? "✓ Guardar cambios" : "✓ Guardar · agregar otro"}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                cancelarEdicionPaso();
+                irFase(conCompras ? "compras_tienda" : "compras_lista");
+              }}
+              className="rounded-2xl border-2 border-border px-4 py-3 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+            >
+              ← Atrás
+            </button>
+            <button
+              type="button"
+              disabled={loading || (pasosGuardados.length === 0 && !pasoNombre.trim())}
+              onClick={() => void finalizar()}
+              className="flex-1 rounded-2xl bg-accent py-3 text-base font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+            >
+              {loading ? "Guardando…" : "Continuar →"}
+            </button>
+          </div>
+          {pasosGuardados.length === 0 && !pasoNombre.trim() && (
+            <p className="text-center text-xs text-muted">Guarda al menos un paso antes de continuar</p>
+          )}
+        </div>
+      )}
+
+      {fase === "cierre" && (
+        <div key="acc-cierre" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso {progresoActual} de {maxProgreso}
+            </p>
+            <h2 className="text-2xl font-extrabold text-ink leading-tight">Cerrar acción</h2>
+            <p className="mt-2 text-sm text-muted">
+              {solicitudPadreId
+                ? "Envía el reporte a quien solicitó la tarea. La acción quedará guardada como procedimiento reutilizable."
+                : "Los pasos quedaron registrados como procedimiento. Puedes adjuntar una foto opcional."}
+            </p>
+            <p className="mt-3 rounded-2xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-base font-bold text-ink">
+              {titulo.trim()}
+            </p>
+          </div>
+
+          {pasosGuardados.length > 0 && (
+            <div className="rounded-2xl border border-border bg-surface-panel px-4 py-3 space-y-1">
+              <p className="text-xs font-bold uppercase text-muted">Pasos registrados</p>
+              {pasosGuardados.map((p, i) => (
+                <p key={i} className="text-sm text-ink">
+                  <span className="text-muted">{i + 1}.</span> {p.nombre}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {solicitudPadreId && (
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wide text-accent">
+                Reporte para el solicitante
+              </label>
+              <textarea
+                className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent resize-none"
+                rows={4}
+                placeholder="Qué hiciste, resultados, observaciones…"
+                value={reporteSolicitud}
+                onChange={(e) => setReporteSolicitud(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="rounded-2xl border-2 border-dashed border-border bg-surface-panel p-4 space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted">Adjunto opcional</p>
+            <p className="text-xs text-muted">Foto o imagen de referencia (resultado, comprobante, etc.).</p>
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-4 py-6 transition hover:border-accent">
+              <span className="text-2xl">📎</span>
+              <span className="text-sm font-bold text-accent">
+                {cierreArchivo ? cierreArchivo.name : "Adjuntar captura o imagen"}
+              </span>
+              <input
+                type="file"
+                accept="image/*,.pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => onArchivoSeleccionado(
+                  e.target.files?.[0] ?? null,
+                  setCierreArchivo,
+                  cierrePreview,
+                  setCierrePreview,
+                )}
+              />
+            </label>
+            {cierrePreview && (
+              <img
+                src={cierrePreview}
+                alt="Vista previa adjunto"
+                className="max-h-40 w-full rounded-xl object-contain border border-border"
+              />
+            )}
+          </div>
+
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void terminarAccion()}
+            className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            {loading ? "Guardando…" : "Terminar acción"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => irFase("pasos")}
+            className="w-full rounded-2xl border-2 border-border py-3 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+          >
+            ← Atrás
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -13162,6 +15381,405 @@ function ProtocolosView({
   );
 }
 
+// ── NuevaSolicitudWizard ──────────────────────────────────────────────────────
+
+type FaseSolicWizard = "tipo" | "descripcion" | "elegir_proc" | "asignados" | "confirmar";
+type TipoSolicWizard = "nueva" | "protocolo";
+
+function NuevaSolicitudWizard({
+  token,
+  user,
+  protocolos,
+  usuarios,
+  onCancel,
+  onCreated,
+}: {
+  token: string;
+  user: TicketsUser;
+  protocolos: Protocolo[];
+  usuarios: UserInfo[];
+  onCancel: () => void;
+  onCreated: () => void;
+}) {
+  const { apiToken: chatApiToken } = useTicketsAuth();
+  const stt = useStt(token, chatApiToken);
+  const [fase, setFase] = useState<FaseSolicWizard>("tipo");
+  const [wizardDir, setWizardDir] = useState<"right" | "left">("right");
+  const [tipo, setTipo] = useState<TipoSolicWizard | null>(null);
+  const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [protocoloId, setProtocoloId] = useState<number | null>(null);
+  const [asignados, setAsignados] = useState<number[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const otrosUsuarios = usuarios.filter((u) => u.id !== user.id && u.activo);
+  const protDisp = protocolos.filter((p) => p.alcance === "global" || !p.alcance);
+  const protSel = protDisp.find((p) => p.id === protocoloId) ?? null;
+
+  const pasoActual = fase === "tipo" ? 1 : (fase === "descripcion" || fase === "elegir_proc") ? 2 : fase === "asignados" ? 3 : 4;
+  const totalPasos = 4;
+  const slide = wizardDir === "right" ? "mck-slide-right" : "mck-slide-left";
+
+  function irFase(next: FaseSolicWizard, dir: "right" | "left" = "right") {
+    setWizardDir(dir);
+    setFase(next);
+    setError("");
+  }
+
+  function elegirTipo(t: TipoSolicWizard) {
+    setTipo(t);
+    irFase(t === "nueva" ? "descripcion" : "elegir_proc");
+  }
+
+  function toggleAsignado(uid: number) {
+    setAsignados((prev) =>
+      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid],
+    );
+  }
+
+  async function crear() {
+    if (!titulo.trim() || asignados.length === 0) return;
+    setLoading(true);
+    setError("");
+    try {
+      await Promise.all(
+        asignados.map((uid) =>
+          tapi("/", token, {
+            method: "POST",
+            body: JSON.stringify({
+              titulo: titulo.trim(),
+              descripcion: descripcion.trim() || titulo.trim(),
+              categoria: "logistica",
+              prioridad: "media",
+              asignado_a: uid,
+              tipo: "solicitud",
+              pasos: undefined,
+              protocolo_id: protocoloId ?? undefined,
+            }),
+          }),
+        ),
+      );
+      onCreated();
+    } catch (e: any) {
+      setError(e.message ?? "Error al crear la solicitud");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-lg pb-10">
+      {/* Header */}
+      <div className="mb-6 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={fase === "tipo" ? onCancel : () => {
+            const prev: Record<FaseSolicWizard, FaseSolicWizard> = {
+              tipo: "tipo",
+              descripcion: "tipo",
+              elegir_proc: "tipo",
+              asignados: tipo === "nueva" ? "descripcion" : "elegir_proc",
+              confirmar: "asignados",
+            };
+            irFase(prev[fase], "left");
+          }}
+          className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+        >
+          {fase === "tipo" ? "✕ Cancelar" : "← Atrás"}
+        </button>
+        <span className="text-xs font-bold uppercase tracking-widest text-muted">
+          Nueva solicitud
+        </span>
+      </div>
+
+      {/* Barra de progreso */}
+      <div className="mb-6 flex items-center gap-2">
+        {Array.from({ length: totalPasos }, (_, i) => i + 1).map((n) => (
+          <div
+            key={n}
+            className={`h-2 flex-1 rounded-full transition-all ${n <= pasoActual ? "bg-accent" : "bg-border"}`}
+          />
+        ))}
+      </div>
+
+      <SttBanner stt={stt} />
+      {error && (
+        <p className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      {/* Paso 1: Tipo */}
+      {fase === "tipo" && (
+        <div key="sol-p1" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 1 de {totalPasos}
+            </p>
+            <h2 className="text-3xl font-extrabold text-ink leading-tight">
+              ¿Qué quieres<br />hacer?
+            </h2>
+            <p className="mt-2 text-sm text-muted">Elige cómo quieres enviar esta solicitud.</p>
+          </div>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => elegirTipo("nueva")}
+              className="w-full text-left rounded-2xl border-2 border-border bg-surface px-5 py-5 transition hover:border-accent hover:bg-accent/5 group"
+            >
+              <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
+                ✍️ Solicitud nueva
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                Describir con tus palabras qué necesitas que alguien haga.
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => elegirTipo("protocolo")}
+              className="w-full text-left rounded-2xl border-2 border-border bg-surface px-5 py-5 transition hover:border-accent hover:bg-accent/5 group"
+            >
+              <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
+                📋 Delegar un procedimiento
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                Pedirle a alguien que ejecute un proceso que ya está creado.
+              </p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Paso 2A: Descripción (solicitud nueva) */}
+      {fase === "descripcion" && (
+        <div key="sol-p2a" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 2 de {totalPasos}
+            </p>
+            <h2 className="text-3xl font-extrabold text-ink leading-tight">
+              ¿Qué quieres<br />que haga?
+            </h2>
+            <p className="mt-2 text-sm text-muted">Describe la tarea con tus propias palabras.</p>
+          </div>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-xl font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/50"
+                placeholder="Ej: Revisar el inventario de la bodega"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && titulo.trim()) irFase("asignados");
+                }}
+                maxLength={150}
+              />
+              <SttInlineBtn
+                stt={stt}
+                onStart={() => void stt.iniciar((t) => setTitulo(t))}
+              />
+            </div>
+            <div className="flex gap-2">
+              <textarea
+                className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-3 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/50 resize-none"
+                placeholder="Detalles adicionales (opcional)"
+                rows={2}
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+              />
+              <SttInlineBtn
+                stt={stt}
+                label="Desc."
+                onStart={() => void stt.iniciar((t) => setDescripcion(t))}
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={!titulo.trim()}
+            onClick={() => irFase("asignados")}
+            className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
+
+      {/* Paso 2B: Elegir procedimiento */}
+      {fase === "elegir_proc" && (
+        <div key="sol-p2b" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 2 de {totalPasos}
+            </p>
+            <h2 className="text-3xl font-extrabold text-ink leading-tight">
+              ¿Qué procedimiento<br />quieres delegar?
+            </h2>
+            <p className="mt-2 text-sm text-muted">Selecciona el proceso que el otro usuario debe ejecutar.</p>
+          </div>
+          {protDisp.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-border px-5 py-8 text-center text-sm text-muted">
+              No hay procedimientos disponibles.<br />
+              <button type="button" onClick={() => elegirTipo("nueva")} className="mt-2 text-accent hover:underline text-sm font-semibold">
+                Crear solicitud nueva en cambio →
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {protDisp.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setProtocoloId(p.id);
+                    setTitulo(p.titulo);
+                    setDescripcion(p.descripcion ?? "");
+                    irFase("asignados");
+                  }}
+                  className={`w-full text-left rounded-2xl border-2 px-4 py-4 transition ${
+                    protocoloId === p.id
+                      ? "border-accent bg-accent/10"
+                      : "border-border bg-surface hover:border-accent hover:bg-accent/5"
+                  }`}
+                >
+                  <p className="font-bold text-ink">{p.titulo}</p>
+                  {p.descripcion && (
+                    <p className="mt-0.5 text-xs text-muted line-clamp-2">{p.descripcion}</p>
+                  )}
+                  {p.pasos?.length > 0 && (
+                    <p className="mt-1 text-xs text-accent font-semibold">
+                      {p.pasos.length} paso{p.pasos.length !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Paso 3: Asignados */}
+      {fase === "asignados" && (
+        <div key="sol-p3" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 3 de {totalPasos}
+            </p>
+            <h2 className="text-3xl font-extrabold text-ink leading-tight">
+              ¿A quién se<br />lo asignas?
+            </h2>
+            <p className="mt-2 rounded-2xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-base font-bold text-ink">
+              {titulo.trim()}
+            </p>
+            {asignados.length > 1 && (
+              <p className="mt-2 text-xs text-muted">
+                Se creará una solicitud independiente para cada persona seleccionada.
+              </p>
+            )}
+          </div>
+          {otrosUsuarios.length === 0 ? (
+            <p className="text-sm text-muted">No hay otros usuarios disponibles.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {otrosUsuarios.map((u) => (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => toggleAsignado(u.id)}
+                  className={`flex items-center gap-2 rounded-2xl border-2 px-4 py-3 text-sm font-semibold transition ${
+                    asignados.includes(u.id)
+                      ? "border-accent bg-accent/10 text-accent"
+                      : "border-border text-muted hover:border-accent hover:text-accent"
+                  }`}
+                >
+                  <span
+                    className="h-6 w-6 flex items-center justify-center rounded-full text-[11px] font-black text-white shrink-0"
+                    style={{ background: u.departamento?.color || "#0c6069" }}
+                  >
+                    {u.nombre.charAt(0).toUpperCase()}
+                  </span>
+                  {u.nombre}
+                  {asignados.includes(u.id) && <Icon name="check" size={13} weight="bold" />}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            disabled={asignados.length === 0}
+            onClick={() => irFase("confirmar")}
+            className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
+
+      {/* Paso 4: Confirmar */}
+      {fase === "confirmar" && (
+        <div key="sol-p4" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 4 de {totalPasos}
+            </p>
+            <h2 className="text-3xl font-extrabold text-ink leading-tight">
+              Listo para<br />enviar
+            </h2>
+            <p className="mt-2 text-sm text-muted">Revisa antes de crear la solicitud.</p>
+          </div>
+          <div className="rounded-2xl border-2 border-border bg-surface px-5 py-5 space-y-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Tarea</p>
+              <p className="text-lg font-extrabold text-ink">{titulo.trim()}</p>
+              {descripcion.trim() && descripcion.trim() !== titulo.trim() && (
+                <p className="mt-1 text-sm text-muted">{descripcion.trim()}</p>
+              )}
+            </div>
+            {protSel && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Procedimiento</p>
+                <p className="text-sm font-semibold text-accent">📋 {protSel.titulo}</p>
+              </div>
+            )}
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-1">Para</p>
+              <div className="flex flex-wrap gap-1.5">
+                {asignados.map((uid) => {
+                  const u = otrosUsuarios.find((x) => x.id === uid);
+                  if (!u) return null;
+                  return (
+                    <span
+                      key={uid}
+                      className="flex items-center gap-1.5 rounded-xl border border-accent/40 bg-accent/8 px-3 py-1 text-sm font-semibold text-accent"
+                    >
+                      <span
+                        className="h-5 w-5 flex items-center justify-center rounded-full text-[10px] font-black text-white shrink-0"
+                        style={{ background: u.departamento?.color || "#0c6069" }}
+                      >
+                        {u.nombre.charAt(0).toUpperCase()}
+                      </span>
+                      {u.nombre}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void crear()}
+            className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            {loading ? "Creando…" : asignados.length > 1 ? `Crear ${asignados.length} solicitudes` : "Crear solicitud"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── SolicitudesView ───────────────────────────────────────────────────────────
 
 const FRECUENCIA_OPTS: { value: Frecuencia; label: string }[] = [
@@ -13184,45 +15802,46 @@ function SolicitudesView({
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   const { apiToken: chatApiToken } = useTicketsAuth();
   const stt = useStt(token, chatApiToken);
+  const [showEjecWizard, setShowEjecWizard] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [plantillaEjec, setPlantillaEjec] = useState<PlantillaAccion | undefined>();
+  const [solicitudEjecId, setSolicitudEjecId] = useState<number | undefined>();
   const [tab, setTab] = useState<"asignadas" | "creadas" | "equipo" | "historial" | "protocolos">("asignadas");
   const [solicitudes, setSolicitudes] = useState<Ticket[]>([]);
   const [solicitudesEquipo, setSolicitudesEquipo] = useState<Ticket[]>([]);
+  const [comprasDelegadas, setComprasDelegadas] = useState<Ticket[]>([]);
+  const [compraActiva, setCompraActiva] = useState<Ticket | null>(null);
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [creando, setCreando] = useState(false);
   const [msg, setMsg] = useState("");
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
   const [loadingProtocolos, setLoadingProtocolos] = useState(false);
-  const [protocoloSeleccionado, setProtocoloSeleccionado] = useState<Protocolo | null>(null);
-
-  // Pasos del formulario de nueva solicitud
-  const [formPasos, setFormPasos] = useState<string[]>([]);
-  const [formFiles, setFormFiles] = useState<File[]>([]);
-
-  const [form, setForm] = useState({
-    titulo: "",
-    descripcion: "",
-    categoria: "logistica",
-    prioridad: "media",
-    modo: "unica" as "unica" | "periodica",
-    frecuencia: "semanal" as Frecuencia,
-    fecha_inicio: new Date().toISOString().slice(0, 10),
-    asignados: [] as number[],
-  });
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
-    try {
-      const [data, equipo, usrs] = await Promise.all([
-        tapi("/?tipo=solicitud", token),
-        tapi("/?tipo=solicitud&vista_equipo=1&activas=1", token),
-        tapi("/usuarios", token),
-      ]);
-      setSolicitudes(Array.isArray(data) ? data.map(normalizeTicketForList) : []);
-      setSolicitudesEquipo(Array.isArray(equipo) ? equipo.map(normalizeTicketForList) : []);
-      setUsuarios(Array.isArray(usrs) ? usrs : []);
-    } catch { /* ignore */ } finally { if (!silent) setLoading(false); }
+    setMsg("");
+    const [solRes, equipoRes, usrsRes, comprasRes] = await Promise.allSettled([
+      tapi("/?tipo=solicitud&activas=1", token),
+      tapi("/?tipo=solicitud&vista_equipo=1&activas=1", token),
+      tapi("/usuarios", token),
+      tapiSafe("/compras-delegadas", token),
+    ]);
+    if (solRes.status === "fulfilled" && Array.isArray(solRes.value)) {
+      setSolicitudes(solRes.value.map(normalizeTicketForList));
+    } else if (!silent) {
+      setSolicitudes([]);
+      setMsg("No se pudieron cargar tus solicitudes");
+    }
+    if (equipoRes.status === "fulfilled" && Array.isArray(equipoRes.value)) {
+      setSolicitudesEquipo(equipoRes.value.map(normalizeTicketForList));
+    }
+    if (usrsRes.status === "fulfilled" && Array.isArray(usrsRes.value)) {
+      setUsuarios(usrsRes.value);
+    }
+    if (comprasRes.status === "fulfilled" && Array.isArray(comprasRes.value)) {
+      setComprasDelegadas(comprasRes.value.map(normalizeTicketForList));
+    }
+    if (!silent) setLoading(false);
   }, [token]);
 
   useEffect(() => { void load(false); }, [load]);
@@ -13234,7 +15853,7 @@ function SolicitudesView({
   async function cargarProtocolos() {
     setLoadingProtocolos(true);
     try {
-      const data = await tapi("/protocolos", token);
+      const data = await tapi("/protocolos?alcance=global", token);
       setProtocolos(Array.isArray(data) ? data : []);
     } catch { /* ignore */ } finally { setLoadingProtocolos(false); }
   }
@@ -13245,110 +15864,35 @@ function SolicitudesView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
-  function aplicarProtocolo(p: Protocolo) {
-    setFormPasos(p.pasos.map((paso) => paso.descripcion));
-    setProtocoloSeleccionado(p);
-    setForm((f) => ({
-      ...f,
-      titulo: f.titulo.trim() ? f.titulo : p.titulo,
-      descripcion: f.descripcion.trim() ? f.descripcion : (p.descripcion ?? p.titulo),
-      categoria: f.categoria || p.categoria || f.categoria,
-    }));
-    setShowForm(true);
-  }
-
-  function seleccionarProtocoloEnForm(protocoloId: number | "") {
-    if (!protocoloId) {
-      setProtocoloSeleccionado(null);
-      setFormPasos([]);
-      return;
-    }
-    const p = protocolos.find((x) => x.id === protocoloId);
-    if (!p) return;
-    aplicarProtocolo(p);
-  }
-
-  function toggleAsignado(uid: number) {
-    setForm((f) => ({
-      ...f,
-      asignados: f.asignados.includes(uid)
-        ? f.asignados.filter((id) => id !== uid)
-        : [...f.asignados, uid],
-    }));
-  }
-
-  function agregarPaso() {
-    setFormPasos((p) => [...p, ""]);
-  }
-
-  function actualizarPaso(idx: number, val: string) {
-    setFormPasos((p) => p.map((v, i) => (i === idx ? val : v)));
-  }
-
-  function eliminarPaso(idx: number) {
-    setFormPasos((p) => p.filter((_, i) => i !== idx));
-  }
-
-  async function crear() {
-    if (!form.titulo.trim() || form.asignados.length === 0) return;
-    setCreando(true);
-    setMsg("");
-    const pasosLimpios = formPasos.map((p) => p.trim()).filter(Boolean).map((desc) => ({ descripcion: desc }));
-    try {
-      const tickets: { id: number }[] = await Promise.all(form.asignados.map((uid) =>
-        tapi("/", token, {
-          method: "POST",
-          body: JSON.stringify({
-            titulo: form.titulo,
-            descripcion: form.descripcion.trim() || form.titulo,
-            categoria: form.categoria,
-            prioridad: form.prioridad,
-            asignado_a: uid,
-            tipo: "solicitud",
-            frecuencia: form.modo === "periodica" ? form.frecuencia : null,
-            fecha_inicio: form.modo === "periodica" ? form.fecha_inicio : null,
-            pasos: pasosLimpios.length > 0 ? pasosLimpios : undefined,
-            protocolo_id: protocoloSeleccionado?.id ?? undefined,
-          }),
-        })
-      ));
-      // Subir adjuntos a cada ticket creado
-      if (formFiles.length > 0) {
-        await Promise.all(tickets.flatMap((t) =>
-          formFiles.map((file) => {
-            const fd = new FormData();
-            fd.append("archivo", file);
-            return tapi(`/${t.id}/adjuntos`, token, { method: "POST", body: fd });
-          })
-        ));
-      }
-      setForm({
-        titulo: "", descripcion: "", categoria: "logistica", prioridad: "media",
-        modo: "unica", frecuencia: "semanal",
-        fecha_inicio: new Date().toISOString().slice(0, 10),
-        asignados: [],
-      });
-      setFormPasos([]);
-      setFormFiles([]);
-      setProtocoloSeleccionado(null);
-      setShowForm(false);
-      await load(false);
-      setMsg(`Solicitud${form.asignados.length > 1 ? "es" : ""} creada${form.asignados.length > 1 ? "s" : ""}`);
-      setTimeout(() => setMsg(""), 3000);
-    } catch (e: any) {
-      setMsg(e.message ?? "Error al crear");
-    } finally { setCreando(false); }
-  }
-
-  const asignadas = solicitudes.filter((t) => t.asignado_a === user.id && t.estado !== "resuelto" && t.estado !== "rechazado");
-  const creadas = solicitudes.filter((t) => t.creado_por === user.id && t.estado !== "resuelto" && t.estado !== "rechazado");
+  const asignadas = solicitudes.filter(
+    (t) => uidEq(t.asignado_a, user.id) && t.estado !== "resuelto" && t.estado !== "rechazado",
+  );
+  const comprasPendientes = comprasDelegadas.length > 0
+    ? comprasDelegadas
+    : asignadas.filter(esSolicitudCompraDelegada);
+  const otrasAsignadas = asignadas.filter((t) => !esSolicitudCompraDelegada(t));
+  const creadas = solicitudes.filter(
+    (t) => uidEq(t.creado_por, user.id) && t.estado !== "resuelto" && t.estado !== "rechazado",
+  );
   const enEquipo = solicitudesEquipo;
   const historial = solicitudes.filter((t) =>
-    (t.asignado_a === user.id || t.creado_por === user.id) &&
+    (uidEq(t.asignado_a, user.id) || uidEq(t.creado_por, user.id)) &&
     (t.estado === "resuelto" || t.estado === "rechazado")
   );
-  const lista = tab === "asignadas" ? asignadas : tab === "creadas" ? creadas : tab === "historial" ? historial : enEquipo;
-  const pendientes = asignadas.length;
+  const lista = tab === "asignadas"
+    ? otrasAsignadas
+    : tab === "creadas"
+      ? creadas
+      : tab === "historial"
+        ? historial
+        : enEquipo;
+  const pendientes = otrasAsignadas.length + comprasPendientes.length;
+
+  useEffect(() => {
+    if (compraActiva && !comprasPendientes.some((t) => t.id === compraActiva.id)) {
+      setCompraActiva(null);
+    }
+  }, [compraActiva, comprasPendientes]);
 
   const equipoPorAsignado = useMemo(() => {
     const map = new Map<number, { nombre: string; items: Ticket[] }>();
@@ -13359,6 +15903,78 @@ function SolicitudesView({
     }
     return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [enEquipo]);
+
+  async function iniciarEjecucionSolicitud(t: Ticket) {
+    let plantilla: PlantillaAccion = {
+      titulo: t.titulo,
+      listaCompras: [],
+      pasos: [],
+    };
+    if (t.protocolo_id) {
+      try {
+        const p = await tapi(`/protocolos/${t.protocolo_id}`, token) as Protocolo;
+        plantilla = plantillaDesdeProtocolo(p);
+      } catch { /* usar título de solicitud */ }
+    }
+    setPlantillaEjec(plantilla);
+    setSolicitudEjecId(t.id);
+    setShowEjecWizard(true);
+  }
+
+  if (showWizard) {
+    return (
+      <NuevaSolicitudWizard
+        token={token}
+        user={user}
+        protocolos={protocolos}
+        usuarios={usuarios}
+        onCancel={() => setShowWizard(false)}
+        onCreated={() => {
+          setShowWizard(false);
+          void load(false);
+          setMsg("Solicitud creada correctamente");
+          setTimeout(() => setMsg(""), 3000);
+        }}
+      />
+    );
+  }
+
+  if (showEjecWizard) {
+    return (
+      <NuevaAccionWizard
+        token={token}
+        user={user}
+        chatApiToken={chatApiToken}
+        plantilla={plantillaEjec}
+        solicitudPadreId={solicitudEjecId}
+        onCancel={() => { setShowEjecWizard(false); setSolicitudEjecId(undefined); }}
+        onCreated={() => {
+          setShowEjecWizard(false);
+          setSolicitudEjecId(undefined);
+          void load(false);
+          setMsg("Ejecución registrada y reporte enviado");
+          setTimeout(() => setMsg(""), 3000);
+        }}
+      />
+    );
+  }
+
+  if (compraActiva) {
+    return (
+      <PanelIrDeCompras
+        ticket={compraActiva}
+        token={token}
+        user={user}
+        onSalir={() => setCompraActiva(null)}
+        onTerminado={() => {
+          setCompraActiva(null);
+          void load(false);
+          setMsg("Compras terminadas");
+          setTimeout(() => setMsg(""), 2500);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -13377,7 +15993,7 @@ function SolicitudesView({
         </div>
         <button
           type="button"
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => setShowWizard(true)}
           className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
         >
           <Icon name="plus" size={14} weight="bold" />
@@ -13385,243 +16001,16 @@ function SolicitudesView({
         </button>
       </div>
 
-      {/* Formulario */}
-      {showForm && (
-        <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-accent uppercase tracking-wide">Nueva solicitud</p>
-            {protocoloSeleccionado && (
-              <span className="flex items-center gap-1 text-xs text-accent bg-accent/10 rounded-lg px-2 py-1">
-                📋 {protocoloSeleccionado.titulo}
-                <button type="button" onClick={() => { setProtocoloSeleccionado(null); setFormPasos([]); }} className="ml-1 text-muted hover:text-ink">✕</button>
-              </span>
-            )}
-          </div>
-          <SttBanner stt={stt} />
-          {stt.error && !stt.grabando && (
-            <p className="text-sm text-red-400">{stt.error}</p>
-          )}
-          <div className="flex gap-2">
-            <input
-              className="quest-input flex-1"
-              placeholder="¿Qué se debe hacer? (escribe o usa el micrófono)"
-              value={form.titulo}
-              onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-            />
-            <SttInlineBtn
-              stt={stt}
-              label="Título"
-              onStart={() => void stt.iniciar((t) => {
-                setForm((f) => ({ ...f, titulo: t }));
-                setShowForm(true);
-              })}
-            />
-          </div>
-          <div className="flex gap-2">
-            <textarea
-              className="quest-input flex-1 resize-none text-sm"
-              rows={2}
-              placeholder="Descripción detallada (opcional, dicta por voz →)"
-              value={form.descripcion}
-              onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-            />
-            <SttInlineBtn
-              stt={stt}
-              label="Desc."
-              onStart={() => void stt.iniciar((t) => {
-                setForm((f) => ({ ...f, descripcion: t }));
-              })}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <select className="quest-input w-36" value={form.prioridad}
-              onChange={(e) => setForm((f) => ({ ...f, prioridad: e.target.value }))}>
-              <option value="baja">Baja</option>
-              <option value="media">Media</option>
-              <option value="alta">Alta</option>
-              <option value="urgente">Urgente</option>
-            </select>
-            <select className="quest-input flex-1 min-w-[140px]" value={form.categoria}
-              onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}>
-              <option value="logistica">Logística</option>
-              <option value="ventas">Ventas</option>
-              <option value="rrhh">RRHH</option>
-              <option value="mantenimiento">Mantenimiento</option>
-              <option value="contabilidad">Contabilidad</option>
-              <option value="compras">Compras</option>
-            </select>
-          </div>
-
-          {/* Única vs Periódica */}
-          <div className="flex gap-2">
-            {(["unica", "periodica"] as const).map((m) => (
-              <button key={m} type="button"
-                onClick={() => setForm((f) => ({ ...f, modo: m }))}
-                className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
-                  form.modo === m
-                    ? "border-accent bg-accent/10 text-accent"
-                    : "border-border text-muted hover:border-accent hover:text-accent"
-                }`}
-              >
-                {m === "unica" ? "Única vez" : "♻️ Periódica"}
-              </button>
-            ))}
-          </div>
-
-          {form.modo === "periodica" && (
-            <div className="flex flex-wrap gap-2">
-              <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-                <label className="text-xs text-muted">Fecha de inicio</label>
-                <input type="date" className="quest-input" value={form.fecha_inicio}
-                  onChange={(e) => setForm((f) => ({ ...f, fecha_inicio: e.target.value }))} />
-              </div>
-              <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
-                <label className="text-xs text-muted">Periodicidad</label>
-                <select className="quest-input" value={form.frecuencia}
-                  onChange={(e) => setForm((f) => ({ ...f, frecuencia: e.target.value as Frecuencia }))}>
-                  {FRECUENCIA_OPTS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Protocolo de pasos opcionales */}
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xs font-semibold text-ink flex items-center gap-1">
-                Protocolo de pasos
-                <InfoTooltip text="Define los pasos que el operador debe seguir para resolver esta solicitud. Puedes elegir un protocolo guardado o escribir pasos a mano." />
-              </p>
-              <span className="text-xs text-muted">(opcional)</span>
-              {protocolos.length > 0 && (
-                <select
-                  className="quest-input text-xs ml-auto max-w-[220px]"
-                  value={protocoloSeleccionado?.id ?? ""}
-                  onChange={(e) => seleccionarProtocoloEnForm(e.target.value ? Number(e.target.value) : "")}
-                >
-                  <option value="">Aplicar protocolo guardado…</option>
-                  {protocolos.map((p) => (
-                    <option key={p.id} value={p.id}>{p.titulo}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-            <div className="space-y-1">
-              {formPasos.map((paso, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <span className="text-xs text-muted w-5 text-right shrink-0">{idx + 1}.</span>
-                  <input
-                    className="quest-input flex-1 text-sm"
-                    placeholder={`Paso ${idx + 1}…`}
-                    value={paso}
-                    onChange={(e) => actualizarPaso(idx, e.target.value)}
-                  />
-                  <button type="button" onClick={() => eliminarPaso(idx)}
-                    className="shrink-0 text-muted hover:text-red-500 transition-colors px-1">
-                    <Icon name="trash" size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button type="button" onClick={agregarPaso}
-              className="flex items-center gap-1 text-xs text-accent hover:underline">
-              <Icon name="plus" size={12} weight="bold" />
-              Agregar paso
-            </button>
-          </div>
-
-          {/* Selector de usuarios */}
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-ink flex items-center gap-1">
-              Asignar a (selecciona uno o varios):
-              <InfoTooltip text="Si seleccionas varios usuarios, se creará una solicitud independiente para cada uno." />
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {usuarios.filter((u) => u.id !== user.id && u.activo).map((u) => (
-                <button key={u.id} type="button"
-                  onClick={() => toggleAsignado(u.id)}
-                  className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm transition-colors ${
-                    form.asignados.includes(u.id)
-                      ? "border-accent bg-accent/10 text-accent font-semibold"
-                      : "border-border text-muted hover:border-accent hover:text-accent"
-                  }`}
-                >
-                  <span className="h-5 w-5 flex items-center justify-center rounded-full text-[10px] font-black text-white"
-                    style={{ background: u.departamento?.color || "#0c6069" }}>
-                    {u.nombre.charAt(0).toUpperCase()}
-                  </span>
-                  {u.nombre}
-                  {form.asignados.includes(u.id) && <Icon name="check" size={12} weight="bold" />}
-                </button>
-              ))}
-              {usuarios.filter((u) => u.id !== user.id && u.activo).length === 0 && (
-                <p className="text-xs text-muted">No hay otros usuarios disponibles</p>
-              )}
-            </div>
-          </div>
-
-          {/* Adjuntos al crear */}
-          <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-ink flex items-center gap-1">
-              📎 Adjuntos
-              <span className="text-xs font-normal text-muted">(opcional · PDF, imágenes, Word, Excel)</span>
-            </p>
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2 text-xs text-muted hover:border-accent hover:text-accent transition-colors">
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              Seleccionar archivos
-              <input
-                type="file"
-                multiple
-                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
-                className="sr-only"
-                onChange={(e) => {
-                  const files = Array.from(e.target.files ?? []);
-                  setFormFiles((prev) => [...prev, ...files]);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            {formFiles.length > 0 && (
-              <div className="space-y-1">
-                {formFiles.map((f, idx) => (
-                  <div key={idx} className="flex items-center gap-2 rounded-lg border border-border/50 bg-surface px-2 py-1">
-                    <span className="text-sm">{/\.(jpg|jpeg|png|gif|webp)$/i.test(f.name) ? "🖼" : /\.pdf$/i.test(f.name) ? "📄" : "📁"}</span>
-                    <span className="min-w-0 flex-1 truncate text-xs text-ink">{f.name}</span>
-                    <span className="text-[10px] text-muted shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
-                    <button type="button" onClick={() => setFormFiles((prev) => prev.filter((_, i) => i !== idx))}
-                      className="shrink-0 text-muted hover:text-red-500 transition-colors">
-                      <Icon name="trash" size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button type="button"
-              disabled={creando || !form.titulo.trim() || form.asignados.length === 0}
-              onClick={crear}
-              className="quest-btn-primary px-4 py-1.5 text-sm"
-            >
-              {creando ? "Creando…" : `Crear solicitud${form.asignados.length > 1 ? ` (${form.asignados.length})` : ""}`}
-            </button>
-            <button type="button" onClick={() => { setShowForm(false); setFormPasos([]); setFormFiles([]); }} className="text-xs text-muted hover:text-ink">
-              Cancelar
-            </button>
-            {msg && <span className="text-xs text-accent">{msg}</span>}
-          </div>
-        </div>
+      {msg && (
+        <p className="rounded-xl border border-accent/30 bg-accent/8 px-4 py-2 text-sm text-accent font-semibold">
+          {msg}
+        </p>
       )}
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl border border-border bg-surface-hover p-1 flex-wrap">
         {([
-          { key: "asignadas", label: `Por resolver (${asignadas.length})` },
+          { key: "asignadas", label: `Por resolver (${otrasAsignadas.length + comprasPendientes.length})` },
           { key: "creadas",   label: `Enviadas (${creadas.length})` },
           { key: "equipo",    label: `En curso (${enEquipo.length})` },
           { key: "historial", label: `Historial (${historial.length})` },
@@ -13639,7 +16028,28 @@ function SolicitudesView({
 
       {loading && <div className="py-8 text-center text-sm text-muted">Cargando solicitudes…</div>}
 
-      {!loading && lista.length === 0 && (
+      {tab === "asignadas" && !loading && comprasPendientes.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-accent">Ir de compras</p>
+          {comprasPendientes.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setCompraActiva(t)}
+              className="w-full rounded-xl border-2 border-blue-400/50 bg-blue-50/60 dark:bg-blue-950/30 px-4 py-3 text-left transition hover:border-accent"
+            >
+              <p className="text-sm font-bold text-ink">🛒 {t.titulo}</p>
+              <p className="text-xs text-muted font-mono">{t.numero}</p>
+              {t.ticket_padre_titulo && (
+                <p className="mt-1 text-xs text-muted">Para: {t.ticket_padre_titulo}</p>
+              )}
+              <p className="mt-2 text-xs font-bold text-accent">Toca para abrir → Iniciar compras</p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {!loading && lista.length === 0 && (tab !== "asignadas" || comprasPendientes.length === 0) && (
         <div className="py-12 text-center text-sm text-muted">
           {tab === "asignadas"
             ? "No tienes solicitudes pendientes."
@@ -13710,6 +16120,11 @@ function SolicitudesView({
               isAdmin={isAdmin}
               protocolos={protocolos}
               onChanged={() => void load(true)}
+              onRegistrarEjecucion={
+                esSolicitudCompraDelegada(t)
+                  ? undefined
+                  : (sol) => void iniciarEjecucionSolicitud(sol)
+              }
             />
           ))}
         </div>
@@ -13723,30 +16138,473 @@ function SolicitudesView({
           protocolos={protocolos}
           loading={loadingProtocolos}
           onRecargar={() => void cargarProtocolos()}
-          onUsarProtocolo={(p) => { aplicarProtocolo(p); setTab("asignadas"); }}
+          onUsarProtocolo={() => { setShowWizard(true); setTab("asignadas"); }}
         />
       )}
     </div>
   );
 }
 
+// ── RepetirAccionWizard ───────────────────────────────────────────────────────
+
+type FaseRepetir = "iniciando" | "ingrediente" | "paso" | "cierre" | "completada";
+
+function RepetirAccionWizard({
+  token,
+  user,
+  chatApiToken,
+  plantilla,
+  solicitudPadreId,
+  onCancel,
+  onCreated,
+}: {
+  token: string;
+  user: TicketsUser;
+  chatApiToken: string | null | undefined;
+  plantilla: PlantillaAccion;
+  solicitudPadreId?: number;
+  onCancel: () => void;
+  onCreated: (ticketId: number) => void;
+}) {
+  const stt = useStt(token, chatApiToken);
+  const [fase, setFase] = useState<FaseRepetir>("iniciando");
+  const [slideDir, setSlideDir] = useState<"right" | "left">("right");
+  const [ticketId, setTicketId] = useState<number | null>(null);
+  const [pasosIds, setPasosIds] = useState<number[]>([]);
+  const [ingIdx, setIngIdx] = useState(0);
+  const [pasoIdx, setPasoIdx] = useState(0);
+  const [reporteTexto, setReporteTexto] = useState("");
+  const [completando, setCompletando] = useState(false);
+  const [error, setError] = useState("");
+
+  const inicioRef = useRef<number | null>(null);
+  const corridaIdRef = useRef<number | null>(null);
+  const [seg, setSeg] = useState(0);
+  useEffect(() => {
+    const iv = setInterval(() => {
+      if (inicioRef.current == null) return;
+      setSeg(Math.floor((Date.now() - inicioRef.current) / 1000));
+    }, 500);
+    return () => clearInterval(iv);
+  }, []);
+
+  const ingredientes = plantilla.listaCompras.filter((m) => m.n.trim());
+  const pasos = plantilla.pasos;
+  const totalItems = ingredientes.length + pasos.length;
+  const posActual = fase === "ingrediente"
+    ? ingIdx
+    : fase === "paso"
+      ? ingredientes.length + pasoIdx
+      : totalItems;
+  const pct = totalItems > 0 ? Math.round((posActual / totalItems) * 100) : 0;
+
+  function fmtSeg(s: number) {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+      : `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+
+  useEffect(() => { void init(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function init() {
+    try {
+      const ticket = await tapi("/", token, {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: plantilla.titulo,
+          descripcion: plantilla.titulo,
+          prioridad: "media",
+          categoria: "logistica",
+          asignado_a: user.id,
+          tipo: "accion",
+          ticket_padre_id: solicitudPadreId ?? undefined,
+          protocolo_id: plantilla.protocoloId ?? undefined,
+        }),
+      }) as Ticket;
+      const tid = ticket.id;
+      setTicketId(tid);
+      try {
+        const cr = await tapi(`/${tid}/corridas/iniciar`, token, {
+          method: "POST", body: JSON.stringify({ segundos_previos: 0 }),
+        }) as Ticket;
+        corridaIdRef.current = cr.corrida?.id ?? null;
+      } catch { /* cronómetro local */ }
+      inicioRef.current = Date.now();
+      const ids: number[] = [];
+      for (const p of pasos) {
+        try {
+          const saved = await tapi(`/${tid}/pasos`, token, {
+            method: "POST",
+            body: JSON.stringify({ descripcion: p.nombre, notas: p.desc || "" }),
+          }) as { id: number };
+          ids.push(saved.id);
+        } catch { /* no crítico */ }
+      }
+      setPasosIds(ids);
+      if (ingredientes.length > 0) {
+        setFase("ingrediente");
+      } else if (pasos.length > 0) {
+        setFase("paso");
+      } else {
+        setFase("cierre");
+      }
+    } catch (e: any) {
+      setError(e.message ?? "No se pudo iniciar la acción");
+    }
+  }
+
+  function avanzarIngrediente() {
+    const next = ingIdx + 1;
+    setSlideDir("right");
+    if (next >= ingredientes.length) {
+      setFase(pasos.length > 0 ? "paso" : "cierre");
+    } else {
+      setIngIdx(next);
+    }
+  }
+
+  function retrocederIngrediente() {
+    setSlideDir("left");
+    if (ingIdx === 0) { onCancel(); return; }
+    setIngIdx(ingIdx - 1);
+  }
+
+  async function avanzarPaso() {
+    const pid = pasosIds[pasoIdx];
+    if (pid) {
+      try {
+        await tapi(`/${ticketId}/pasos/${pid}`, token, {
+          method: "PUT", body: JSON.stringify({ completado: 1 }),
+        });
+      } catch { /* no crítico */ }
+    }
+    const next = pasoIdx + 1;
+    setSlideDir("right");
+    if (next >= pasos.length) {
+      setFase("cierre");
+    } else {
+      setPasoIdx(next);
+    }
+  }
+
+  function retrocederPaso() {
+    setSlideDir("left");
+    if (pasoIdx === 0) {
+      if (ingredientes.length > 0) { setIngIdx(ingredientes.length - 1); setFase("ingrediente"); }
+      return;
+    }
+    setPasoIdx(pasoIdx - 1);
+  }
+
+  async function completar() {
+    if (solicitudPadreId && !reporteTexto.trim()) {
+      setError("Escribe el reporte para quien te hizo la solicitud");
+      return;
+    }
+    setCompletando(true);
+    setError("");
+    try {
+      const tid = ticketId!;
+      if (corridaIdRef.current) {
+        try { await tapi(`/corridas/${corridaIdRef.current}/finalizar`, token, { method: "POST" }); } catch { /* */ }
+      }
+      const res = await fetch(`/api/tickets/${tid}/completar-accion`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reporte: reporteTexto.trim(),
+          lista_compras: ingredientes,
+          cerrar_solicitud: !!solicitudPadreId,
+        }),
+      });
+      if (!res.ok && res.status !== 404) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error((d as any).error || `Error ${res.status}`);
+      }
+      if (res.status === 404) {
+        await tapi(`/${tid}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+        if (solicitudPadreId) {
+          await tapi(`/${solicitudPadreId}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+        }
+      }
+      setFase("completada");
+    } catch (e: any) {
+      setError(e.message ?? "Error al completar");
+    } finally {
+      setCompletando(false);
+    }
+  }
+
+  const slide = slideDir === "right" ? "mck-slide-right" : "mck-slide-left";
+
+  // ── Iniciando ──
+  if (fase === "iniciando") {
+    if (error) return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 text-center px-6">
+        <p className="text-4xl">⚠️</p>
+        <p className="text-base font-bold text-ink">{error}</p>
+        <button onClick={onCancel} className="rounded-2xl border-2 border-border px-6 py-3 text-sm font-bold text-muted hover:border-accent hover:text-accent transition">
+          Cancelar
+        </button>
+      </div>
+    );
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 text-center px-6">
+        <div className="h-12 w-12 rounded-full border-4 border-border border-t-accent animate-spin" />
+        <div className="space-y-1">
+          <p className="text-lg font-extrabold text-ink">{plantilla.titulo}</p>
+          <p className="text-sm text-muted">Preparando acción…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Completada 🏆 ──
+  if (fase === "completada") {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 text-center px-4">
+        <div className="relative">
+          <div className="mck-bounce-in text-8xl select-none">🏆</div>
+          <div className="absolute inset-0 rounded-full pointer-events-none"
+            style={{ animation: "mck-ring-pulse 1s ease-out 0.3s both", background: "radial-gradient(circle, rgba(244,196,77,0.4) 0%, transparent 70%)" }} />
+        </div>
+        <div className="mck-slide-up space-y-2" style={{ animationDelay: "0.2s" }}>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent">¡Acción completada!</p>
+          <h2 className="text-4xl font-extrabold text-ink">{plantilla.titulo}</h2>
+          {pasos.length > 0 && (
+            <p className="text-sm text-muted">{pasos.length} paso{pasos.length !== 1 ? "s" : ""} completado{pasos.length !== 1 ? "s" : ""}</p>
+          )}
+          <div className="flex justify-center pt-1">
+            <div className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-3 py-1">
+              <span className="text-sm">⏱</span>
+              <span className="font-mono text-sm font-extrabold text-amber-700 dark:text-amber-400 tabular-nums">{fmtSeg(seg)}</span>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => onCreated(ticketId!)}
+          className="mck-slide-up mt-4 rounded-2xl border-2 border-border px-8 py-3 text-base font-bold text-muted transition hover:border-accent hover:text-accent"
+          style={{ animationDelay: "0.4s" }}
+        >
+          Ver acción completa →
+        </button>
+      </div>
+    );
+  }
+
+  const ingActual = ingredientes[ingIdx];
+  const pasoActual = pasos[pasoIdx];
+
+  return (
+    <div className="mx-auto w-full max-w-lg pb-10">
+      {/* Header */}
+      <div className="mb-5 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={async () => {
+            if (!confirm("¿Cancelar? La acción iniciada seguirá en tu tablero como borrador.")) return;
+            if (ticketId && corridaIdRef.current) {
+              try { await tapi(`/corridas/${corridaIdRef.current}/pausar`, token, { method: "POST" }); } catch { /* */ }
+            }
+            onCancel();
+          }}
+          className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
+        >
+          ← Salir
+        </button>
+        {inicioRef.current != null && (
+          <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/8 px-3 py-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+            <span className="font-mono text-sm font-extrabold text-accent tabular-nums">{fmtSeg(seg)}</span>
+          </div>
+        )}
+        {fase !== "cierre" && totalItems > 0 && (
+          <span className="text-xs font-bold text-muted">{posActual + 1} / {totalItems}</span>
+        )}
+        {fase === "cierre" && <span />}
+      </div>
+
+      {/* Barra de progreso unificada */}
+      {totalItems > 0 && fase !== "cierre" && (
+        <div className="mb-8 h-2.5 w-full overflow-hidden rounded-full bg-border">
+          <div
+            className="h-full rounded-full bg-accent transition-all duration-700 ease-out"
+            style={{ width: `${Math.max(pct, 2)}%` }}
+          />
+        </div>
+      )}
+
+      {error && (
+        <p className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>
+      )}
+
+      {/* ── Ingrediente uno a uno ── */}
+      {fase === "ingrediente" && ingActual && (
+        <div key={`rep-ing-${ingIdx}`} className={`space-y-8 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-2">
+              🛒 Ingrediente {ingIdx + 1} de {ingredientes.length}
+            </p>
+            <h2 className="text-[2.4rem] font-extrabold leading-tight text-ink">
+              {ingActual.n}
+            </h2>
+            {(ingActual.cantidad || ingActual.unidad) && (
+              <p className="mt-3 text-xl font-semibold text-muted">
+                {[ingActual.cantidad, ingActual.unidad].filter(Boolean).join(" ")}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={avanzarIngrediente}
+            className="w-full rounded-2xl bg-accent py-5 text-xl font-extrabold text-white transition hover:brightness-110 active:scale-95 shadow-lg"
+          >
+            ✓ &nbsp;Tengo este
+          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={retrocederIngrediente}
+              className="flex-1 rounded-xl border-2 border-border py-2.5 text-sm font-bold text-muted transition hover:border-accent/60 hover:text-accent"
+            >
+              ← Atrás
+            </button>
+            <button
+              type="button"
+              onClick={avanzarIngrediente}
+              className="flex-1 rounded-xl border-2 border-border py-2.5 text-sm font-bold text-muted/60 transition hover:border-accent/30 hover:text-muted"
+            >
+              Saltar →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Paso uno a uno ── */}
+      {fase === "paso" && pasoActual && (
+        <div key={`rep-paso-${pasoIdx}`} className={`space-y-8 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent/70 mb-2">
+              {plantilla.titulo}
+            </p>
+            <h2 className="text-[2rem] font-extrabold leading-tight text-ink">
+              {pasoActual.nombre}
+            </h2>
+            {pasoActual.desc && (
+              <p className="mt-3 text-base text-muted">{pasoActual.desc}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => void avanzarPaso()}
+            className="w-full rounded-2xl bg-accent py-5 text-xl font-extrabold text-white transition hover:brightness-110 active:scale-95 shadow-lg"
+          >
+            ✓ &nbsp;Hecho
+          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={retrocederPaso}
+              className="flex-1 rounded-xl border-2 border-border py-2.5 text-sm font-bold text-muted transition hover:border-accent/60 hover:text-accent"
+            >
+              ← Atrás
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSlideDir("right"); const next = pasoIdx + 1; if (next >= pasos.length) setFase("cierre"); else setPasoIdx(next); }}
+              className="flex-1 rounded-xl border-2 border-border py-2.5 text-sm font-bold text-muted/60 transition hover:border-accent/30 hover:text-muted"
+            >
+              Saltar →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cierre / reporte ── */}
+      {fase === "cierre" && (
+        <div key="rep-cierre" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">Último paso</p>
+            <h2 className="text-3xl font-extrabold text-ink leading-tight">
+              {solicitudPadreId ? "Reporte final" : "¡Ya casi!"}
+            </h2>
+            <p className="mt-2 rounded-2xl border-2 border-accent/30 bg-accent/5 px-4 py-3 text-base font-bold text-ink">
+              {plantilla.titulo}
+            </p>
+          </div>
+          {solicitudPadreId ? (
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wide text-muted">
+                Reporte para quien te hizo la solicitud
+              </label>
+              <div className="flex gap-2">
+                <textarea
+                  autoFocus
+                  className="w-full rounded-2xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
+                  placeholder="Describe cómo quedó la tarea…"
+                  rows={4}
+                  value={reporteTexto}
+                  onChange={(e) => setReporteTexto(e.target.value)}
+                />
+                <SttInlineBtn stt={stt} onStart={() => void stt.iniciar((t) => setReporteTexto(t))} />
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted">¿Todo listo? Marca la acción como completada.</p>
+          )}
+          <button
+            type="button"
+            disabled={completando || (!!solicitudPadreId && !reporteTexto.trim())}
+            onClick={() => void completar()}
+            className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            {completando ? "Completando…" : "Completar acción →"}
+          </button>
+          {pasos.length > 0 && (
+            <button
+              type="button"
+              onClick={() => { setSlideDir("left"); setPasoIdx(pasos.length - 1); setFase("paso"); }}
+              className="w-full text-center text-sm text-muted hover:text-ink transition"
+            >
+              ← Ver pasos
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── AccionesView ──────────────────────────────────────────────────────────────
+
 function AccionesView({
-  token, user, onSelect,
+  token, user, onSelect, onIrCompras,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
+  onIrCompras?: () => void;
 }) {
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   // apiToken = CHAT_API_TOKEN que usa /api/voz/transcribir (distinto del JWT de tickets)
   const { apiToken: chatApiToken } = useTicketsAuth();
   const [acciones, setAcciones] = useState<Ticket[]>([]);
+  const [comprasDelegadas, setComprasDelegadas] = useState<Ticket[]>([]);
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState<"" | "pendiente" | "en_proceso" | "resuelto">(""); // "" = activas
-  const [form, setForm] = useState({ titulo: "", descripcion: "", prioridad: "media", categoria: "logistica" });
-  const [creando, setCreando] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [wizardTituloInicial, setWizardTituloInicial] = useState("");
+  const [plantillaWizard, setPlantillaWizard] = useState<PlantillaAccion | undefined>();
+  const [reanudarWizard, setReanudarWizard] = useState<ResumeAccionState | null>(null);
+  const [showRepetirWizard, setShowRepetirWizard] = useState(false);
+  const [plantillaRepetir, setPlantillaRepetir] = useState<PlantillaAccion | undefined>();
+  const [tabAcciones, setTabAcciones] = useState<"activas" | "historial" | "procedimientos">("activas");
+  const [historial, setHistorial] = useState<Ticket[]>([]);
+  const [procedimientos, setProcedimientos] = useState<Protocolo[]>([]);
+  const [loadingExtra, setLoadingExtra] = useState(false);
   const [msg, setMsg] = useState("");
+  const nivel = user.rol?.nivel ?? 1;
 
   // ── STT (voz → título de acción) ─────────────────────────────────────────
   const stt = useStt(token, chatApiToken);
@@ -13955,36 +16813,44 @@ function AccionesView({
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const paramsAccion = new URLSearchParams({ tipo: "accion" });
-      const paramsSol = new URLSearchParams({ tipo: "solicitud" });
+      const paramsAccion = new URLSearchParams({ tipo: "accion", ...(isAdmin ? { vista_equipo: "1" } : {}) });
       if (filtroEstado) {
         paramsAccion.set("estado", filtroEstado);
-        paramsSol.set("estado", filtroEstado);
       } else {
         paramsAccion.set("activas", "1");
-        paramsSol.set("activas", "1");
       }
-      const fetches: [Promise<unknown>, Promise<unknown>?] = [
+      const [data, usrs, compras] = await Promise.allSettled([
         tapi(`/?${paramsAccion}`, token),
-        isAdmin ? tapi(`/?${paramsSol}`, token) : Promise.resolve([]),
-      ];
-      const [data, solData, usrs] = await Promise.all([
-        fetches[0],
-        fetches[1] ?? Promise.resolve([]),
         tapi("/usuarios", token),
+        tapiSafe("/compras-delegadas", token),
       ]);
-      const accList: Ticket[] = Array.isArray(data) ? data.map(normalizeTicketForList) : [];
-      const solList: Ticket[] = isAdmin && Array.isArray(solData) ? solData.map(normalizeTicketForList) : [];
-      const list = [...accList, ...solList];
+      const accRaw = data.status === "fulfilled" && Array.isArray(data.value) ? data.value : [];
+      const comprasList = compras.status === "fulfilled" && Array.isArray(compras.value)
+        ? compras.value.map(normalizeTicketForList)
+        : [];
+      setComprasDelegadas(comprasList);
+      const padresCompra = new Set(
+        comprasList.map((c) => c.ticket_padre_id).filter((id): id is number => id != null),
+      );
+      const accList: Ticket[] = accRaw.map(normalizeTicketForList);
+      const list = accList.filter((t) => {
+        const tipo = (t.tipo || "").toLowerCase();
+        if (tipo !== "accion") return false;
+        if (esSolicitudCompraDelegada(t)) return false;
+        if (padresCompra.has(t.id)) return false;
+        return true;
+      });
       setAcciones((prev) => {
         const ns = JSON.stringify(list.map((t) => t.id + t.estado));
         const ps = JSON.stringify(prev.map((t) => t.id + t.estado));
         return ns === ps ? prev : list;
       });
-      setUsuarios(Array.isArray(usrs) ? usrs : []);
+      if (usrs.status === "fulfilled" && Array.isArray(usrs.value)) {
+        setUsuarios(usrs.value);
+      }
     } catch { /* ignore */ }
     finally { if (!silent) setLoading(false); }
-  }, [token, filtroEstado, isAdmin]);
+  }, [token, filtroEstado, isAdmin, user.id]);
 
   useEffect(() => { void load(false); }, [load]);
   useEffect(() => {
@@ -13992,47 +16858,216 @@ function AccionesView({
     return () => clearInterval(iv);
   }, [load]);
 
-  async function crear() {
-    if (!form.titulo.trim()) return;
-    setCreando(true);
+  function abrirWizard(tituloPrefill = "", plantilla?: PlantillaAccion) {
+    setReanudarWizard(null);
+    setWizardTituloInicial(tituloPrefill);
+    setPlantillaWizard(plantilla);
+    setShowWizard(true);
+    setMsg("");
+  }
+
+  async function continuarAccion(t: Ticket) {
+    const tipo = (t.tipo || "").toLowerCase();
+    if (tipo !== "accion" || esTarjetaSoloCompras(t, user) || esSolicitudCompraDelegada(t)) {
+      setMsg("Esta tarea es solo ir de compras — ábrela en Solicitudes.");
+      onIrCompras?.();
+      return;
+    }
+    if (comprasDelegadas.some((c) => c.ticket_padre_id === t.id)) {
+      setMsg("Las compras de esta acción las llevas en Solicitudes → Ir de compras.");
+      onIrCompras?.();
+      return;
+    }
+    setLoadingExtra(true);
     setMsg("");
     try {
-      await tapi("/", token, { method: "POST", body: JSON.stringify({
-        titulo: form.titulo,
-        descripcion: form.descripcion.trim() || form.titulo,
-        prioridad: form.prioridad,
-        categoria: form.categoria,
-        asignado_a: user.id,
-        tipo: "accion",
-      }) });
-      setForm({ titulo: "", descripcion: "", prioridad: "media", categoria: "logistica" });
-      setShowForm(false);
-      await load(false);
-      setMsg("Acción creada");
-      setTimeout(() => setMsg(""), 2500);
-    } catch (e: any) {
-      setMsg(e.message ?? "Error al crear");
+      const resume = await cargarEstadoReanudacion(t.id, token);
+      if (t.estado === "pendiente") {
+        try {
+          const segPrev = resume.ticket.corrida?.segundos_acumulados ?? resume.ticket.segundos_trabajo ?? 0;
+          await tapi(`/${t.id}/corridas/iniciar`, token, {
+            method: "POST",
+            body: JSON.stringify({ segundos_previos: segPrev }),
+          });
+          await tapi(`/${t.id}/estado`, token, {
+            method: "PUT",
+            body: JSON.stringify({ estado: "en_proceso" }),
+          });
+          const det = await tapi(`/${t.id}`, token) as Ticket;
+          resume.ticket = det;
+        } catch { /* wizard sincroniza al abrir */ }
+      }
+      setReanudarWizard(resume);
+      setPlantillaWizard(undefined);
+      setWizardTituloInicial("");
+      setShowWizard(true);
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "No se pudo abrir la acción");
     } finally {
-      setCreando(false);
+      setLoadingExtra(false);
     }
   }
 
-  // Agrupar por usuario asignado (estable por id)
+  const cargarHistorialYProcedimientos = useCallback(async () => {
+    setLoadingExtra(true);
+    try {
+      const [hist, proc] = await Promise.all([
+        tapi("/acciones/historial", token),
+        tapi("/protocolos?alcance=personal", token),
+      ]);
+      setHistorial(Array.isArray(hist) ? hist.map(normalizeTicketForList) : []);
+      setProcedimientos(Array.isArray(proc) ? proc : []);
+    } catch { /* ignore */ } finally {
+      setLoadingExtra(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (tabAcciones === "historial" || tabAcciones === "procedimientos") {
+      void cargarHistorialYProcedimientos();
+    }
+  }, [tabAcciones, cargarHistorialYProcedimientos]);
+
+  async function repetirProcedimiento(protocoloId: number) {
+    setLoadingExtra(true);
+    try {
+      const p = await tapi(`/protocolos/${protocoloId}`, token) as Protocolo;
+      abrirWizard("", plantillaDesdeProtocolo(p));
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "No se pudo cargar el procedimiento");
+    } finally {
+      setLoadingExtra(false);
+    }
+  }
+
+  async function repetirDesdeHistorial(accionId: number) {
+    setLoadingExtra(true);
+    try {
+      let plantilla: PlantillaAccion;
+      try {
+        const data = await tapi(`/${accionId}/plantilla-accion`, token) as PlantillaAccionApi;
+        plantilla = plantillaDesdeApi(data);
+      } catch {
+        const [det, pasosRaw] = await Promise.all([
+          tapi(`/${accionId}`, token) as Promise<Ticket>,
+          tapi(`/${accionId}/pasos`, token) as Promise<Paso[]>,
+        ]);
+        const pasosArr = Array.isArray(pasosRaw) ? pasosRaw : [];
+        let listaCompras: ItemCompraAccion[] = [];
+        const pasosEj: PasoAccionDraft[] = [];
+        for (const p of pasosArr) {
+          if (p.descripcion === "Ir de compras" && p.notas) {
+            listaCompras = parseListaComprasDesdeNotas(p.notas as string);
+          } else if (p.descripcion) {
+            pasosEj.push({ nombre: p.descripcion, desc: (p.notas as string) || "" });
+          }
+        }
+        plantilla = {
+          titulo: det.titulo,
+          protocoloId: det.protocolo_id ?? undefined,
+          listaCompras,
+          pasos: pasosEj,
+        };
+      }
+      setPlantillaRepetir(plantilla);
+      setShowRepetirWizard(true);
+      setMsg("");
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "No se pudo cargar la acción");
+    } finally {
+      setLoadingExtra(false);
+    }
+  }
+
+  async function guardarProcedimientoHistorial(accionId: number) {
+    setLoadingExtra(true);
+    try {
+      await tapi(`/${accionId}/guardar-procedimiento`, token, { method: "POST", body: "{}" });
+      setMsg("Procedimiento guardado en «Mis procedimientos»");
+      void cargarHistorialYProcedimientos();
+      setTimeout(() => setMsg(""), 3000);
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Error al guardar procedimiento");
+    } finally {
+      setLoadingExtra(false);
+    }
+  }
+
+  async function promoverProtocolo(protocoloId: number) {
+    try {
+      await tapi(`/protocolos/${protocoloId}/promover`, token, { method: "POST" });
+      setMsg("Procedimiento disponible para delegar en solicitudes");
+      void cargarHistorialYProcedimientos();
+      setTimeout(() => setMsg(""), 3000);
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Error al promover");
+    }
+  }
+
+  async function onAccionCreada(_ticketId: number) {
+    setShowWizard(false);
+    setWizardTituloInicial("");
+    setPlantillaWizard(undefined);
+    setReanudarWizard(null);
+    await load(false);
+    if (tabAcciones !== "activas") void cargarHistorialYProcedimientos();
+    setMsg("Acción registrada");
+    setTimeout(() => setMsg(""), 2500);
+  }
+
+  // Agrupar acciones por usuario asignado (las solicitudes van solo en pestaña Solicitudes)
   const porAsignado = useMemo(() => {
-    const map = new Map<number, { nombre: string; acciones: Ticket[]; solicitudes: Ticket[] }>();
+    const map = new Map<number, { nombre: string; acciones: Ticket[] }>();
     for (const t of acciones) {
+      if ((t.tipo || "") !== "accion" || esSolicitudCompraDelegada(t)) continue;
       const uid = t.asignado_a ?? 0;
       if (!map.has(uid)) {
-        map.set(uid, { nombre: t.asignado_a_nombre ?? "Sin asignar", acciones: [], solicitudes: [] });
+        map.set(uid, { nombre: t.asignado_a_nombre ?? "Sin asignar", acciones: [] });
       }
-      const g = map.get(uid)!;
-      if (t.tipo === "solicitud") g.solicitudes.push(t);
-      else g.acciones.push(t);
+      map.get(uid)!.acciones.push(t);
     }
     return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [acciones]);
 
   const sinResolver = acciones.filter((t) => t.estado !== "resuelto" && t.estado !== "rechazado").length;
+
+  if (showRepetirWizard && plantillaRepetir) {
+    return (
+      <RepetirAccionWizard
+        token={token}
+        user={user}
+        chatApiToken={chatApiToken}
+        plantilla={plantillaRepetir}
+        onCancel={() => { setShowRepetirWizard(false); setPlantillaRepetir(undefined); void load(true); }}
+        onCreated={(id) => {
+          setShowRepetirWizard(false);
+          setPlantillaRepetir(undefined);
+          void onAccionCreada(id);
+        }}
+      />
+    );
+  }
+
+  if (showWizard && !isAdmin) {
+    return (
+      <NuevaAccionWizard
+        token={token}
+        user={user}
+        chatApiToken={chatApiToken}
+        tituloInicial={wizardTituloInicial}
+        plantilla={plantillaWizard}
+        reanudar={reanudarWizard ?? undefined}
+        onCancel={() => {
+          setShowWizard(false);
+          setWizardTituloInicial("");
+          setPlantillaWizard(undefined);
+          setReanudarWizard(null);
+          void load(true);
+        }}
+        onCreated={(id) => void onAccionCreada(id)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -14048,8 +17083,8 @@ function AccionesView({
           </h2>
           <p className="mt-0.5 text-sm text-muted">
             {isAdmin
-              ? "Supervisión: acciones y solicitudes del equipo (solo ver o eliminar)"
-              : "Tareas rápidas asignadas a miembros del equipo"}
+              ? "Supervisión: acciones del equipo (solo ver o eliminar). Las solicitudes están en Solicitudes."
+              : "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes."}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -14134,16 +17169,13 @@ function AccionesView({
             <SttInlineBtn
               stt={stt}
               label="Voz"
-              onStart={() => void stt.iniciar((t) => {
-                setForm((f) => ({ ...f, titulo: t }));
-                setShowForm(true);
-              })}
+              onStart={() => void stt.iniciar((t) => abrirWizard(t))}
             />
           )}
           {!isAdmin && (
             <button
               type="button"
-              onClick={() => setShowForm((v) => !v)}
+              onClick={() => abrirWizard()}
               className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
             >
               <Icon name="plus" size={14} weight="bold" />
@@ -14153,142 +17185,197 @@ function AccionesView({
         </div>
       </div>
 
-      <SttBanner stt={stt} />
-      {stt.error && !stt.grabando && (
-        <p className="text-sm text-red-400">{stt.error}</p>
+      {msg && !showWizard && (
+        <p className="text-sm text-accent font-semibold">{msg}</p>
       )}
 
-      {/* Form rápido — colaboradores; admin no crea acciones aquí */}
-      {showForm && !isAdmin && (
-        <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-3">
-          <p className="text-xs font-bold text-accent uppercase tracking-wide">Nueva acción</p>
-          <p className="text-xs text-muted">Esta acción se asignará a ti mismo.</p>
-          <div className="flex gap-2">
-            <input
-              className="quest-input flex-1"
-              placeholder="¿Qué debes hacer? (escribe o usa el botón Voz)"
-              value={form.titulo}
-              onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-              onKeyDown={(e) => { if (e.key === "Enter") void crear(); }}
-            />
-            <SttInlineBtn
-              stt={stt}
-              onStart={() => void stt.iniciar((t) => {
-                setForm((f) => ({ ...f, titulo: t }));
-                setShowForm(true);
-              })}
-            />
-          </div>
-          <div className="flex gap-2">
-            <textarea
-              className="quest-input flex-1 resize-none text-sm"
-              rows={2}
-              placeholder="Descripción detallada (opcional, dicta por voz →)"
-              value={form.descripcion}
-              onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-            />
-            <SttInlineBtn
-              stt={stt}
-              label="Desc."
-              onStart={() => void stt.iniciar((t) => {
-                setForm((f) => ({ ...f, descripcion: t }));
-              })}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <select
-              className="quest-input w-36"
-              value={form.prioridad}
-              onChange={(e) => setForm((f) => ({ ...f, prioridad: e.target.value }))}
-            >
-              <option value="baja">Baja</option>
-              <option value="media">Media</option>
-              <option value="alta">Alta</option>
-              <option value="urgente">Urgente</option>
-            </select>
-            <select
-              className="quest-input w-36"
-              value={form.categoria}
-              onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}
-            >
-              <option value="logistica">Logística</option>
-              <option value="ventas">Ventas</option>
-              <option value="rrhh">RRHH</option>
-              <option value="mantenimiento">Mantenimiento</option>
-              <option value="contabilidad">Contabilidad</option>
-              <option value="compras">Compras</option>
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
+      {!isAdmin && comprasDelegadas.length > 0 && (
+        <div className="rounded-2xl border-2 border-blue-400/60 bg-blue-50/70 dark:bg-blue-950/30 p-4 space-y-2">
+          <p className="text-sm font-extrabold text-ink">
+            Tienes {comprasDelegadas.length} lista{comprasDelegadas.length !== 1 ? "s" : ""} de compras delegada{comprasDelegadas.length !== 1 ? "s" : ""}
+          </p>
+          <p className="text-xs text-muted">
+            No uses el asistente de acciones para eso. Abre <strong className="text-ink">Solicitudes → Ir de compras</strong>, marca los productos y pulsa Terminé las compras.
+          </p>
+          {onIrCompras && (
             <button
               type="button"
-              disabled={creando || !form.titulo.trim()}
-              onClick={crear}
-              className="quest-btn-primary px-4 py-1.5 text-sm"
+              onClick={onIrCompras}
+              className="w-full rounded-xl bg-accent py-3 text-sm font-extrabold text-white"
             >
-              {creando ? "Creando…" : "Crear acción"}
+              Ir a Solicitudes — compras
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className="text-xs text-muted hover:text-ink">
-              Cancelar
+          )}
+        </div>
+      )}
+
+      {!isAdmin && (
+        <div className="flex gap-1 rounded-xl border border-border bg-surface-panel p-1">
+          {([
+            { key: "activas", label: "En curso" },
+            { key: "historial", label: "Historial" },
+            { key: "procedimientos", label: "Mis procedimientos" },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTabAcciones(key)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                tabAcciones === key ? "bg-accent text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              {label}
             </button>
-            {msg && <span className="text-xs text-accent">{msg}</span>}
+          ))}
+        </div>
+      )}
+
+      {tabAcciones === "historial" && !isAdmin && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted">
+            Acciones terminadas. Usa <strong className="text-ink">Ejecutar de nuevo</strong> para una nueva corrida con los mismos pasos.
+          </p>
+          {loadingExtra && <p className="text-sm text-muted">Cargando historial…</p>}
+          {!loadingExtra && historial.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted">Aún no hay acciones en tu historial.</p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {historial.map((t) => (
+              <div key={t.id} className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
+                <p className="font-semibold text-ink">{t.titulo}</p>
+                <p className="text-xs text-muted font-mono">{t.numero}</p>
+                {(t.procedimiento_id ?? t.protocolo_id) && (
+                  <span className="inline-block rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                    Procedimiento guardado
+                  </span>
+                )}
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    disabled={loadingExtra}
+                    onClick={() => void repetirDesdeHistorial(t.id)}
+                    className="w-full rounded-xl border-2 border-accent/50 py-2 text-sm font-bold text-accent hover:bg-accent/10 disabled:opacity-40"
+                  >
+                    ↻ Ejecutar de nuevo
+                  </button>
+                  {!(t.procedimiento_id ?? t.protocolo_id) && (
+                    <button
+                      type="button"
+                      disabled={loadingExtra}
+                      onClick={() => void guardarProcedimientoHistorial(t.id)}
+                      className="w-full rounded-xl border border-border py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent disabled:opacity-40"
+                    >
+                      📌 Guardar como procedimiento
+                    </button>
+                  )}
+                  {(t.procedimiento_id ?? t.protocolo_id) && (
+                    <button
+                      type="button"
+                      disabled={loadingExtra}
+                      onClick={() => {
+                        const pid = t.procedimiento_id ?? t.protocolo_id;
+                        if (pid) void repetirProcedimiento(pid);
+                      }}
+                      className="w-full rounded-xl border border-border py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+                    >
+                      ↻ Desde procedimiento guardado
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {loading && (
+      {tabAcciones === "procedimientos" && !isAdmin && (
+        <div className="space-y-3">
+          <p className="text-sm text-muted">
+            Procedimientos personales (se crean al terminar una acción). Promueve a protocolo para delegarlos en solicitudes.
+          </p>
+          {loadingExtra && <p className="text-sm text-muted">Cargando…</p>}
+          {!loadingExtra && procedimientos.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted">
+              Termina una acción en el asistente para guardar tu primer procedimiento.
+            </p>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {procedimientos.map((p) => (
+              <div key={p.id} className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
+                <p className="font-semibold text-ink">{p.titulo}</p>
+                <p className="text-xs text-muted">
+                  {p.pasos?.length ?? 0} paso(s)
+                  {(p.lista_compras?.length ?? 0) > 0 && ` · ${p.lista_compras!.length} ítem(s) compra`}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => abrirWizard("", plantillaDesdeProtocolo(p))}
+                    className="flex-1 rounded-xl bg-accent py-2 text-xs font-bold text-white"
+                  >
+                    ↻ Ejecutar
+                  </button>
+                  {nivel >= 2 && p.alcance === "personal" && (
+                    <button
+                      type="button"
+                      onClick={() => void promoverProtocolo(p.id)}
+                      className="rounded-xl border border-border px-2 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+                      title="Hacer visible para solicitudes del equipo"
+                    >
+                      📋 Delegar
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tabAcciones === "activas" && loading && (
         <div className="py-8 text-center text-sm text-muted">Cargando acciones…</div>
       )}
 
-      {!loading && acciones.length === 0 && (
+      {tabAcciones === "activas" && !loading && acciones.length === 0 && (
         <div className="py-12 text-center text-sm text-muted">
           No hay acciones {filtroEstado ? `con estado "${filtroEstado}"` : "activas"}.
         </div>
       )}
 
       {/* Tarjetas agrupadas por usuario asignado */}
-      {!loading && porAsignado.map(({ nombre, acciones: accGrupo, solicitudes: solGrupo }) => {
-        const total = accGrupo.length + solGrupo.length;
-        return (
-          <div key={nombre}>
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Icon name="user" size={13} className="text-muted" />
-              <span className="text-xs font-bold uppercase tracking-wide text-muted">{nombre}</span>
-              <span className="rounded-full bg-surface border border-border px-1.5 py-0.5 text-[10px] text-muted">{total}</span>
-              {accGrupo.length > 0 && (
-                <span className="text-[10px] text-muted">⚡ {accGrupo.length} acción{accGrupo.length !== 1 ? "es" : ""}</span>
-              )}
-              {solGrupo.length > 0 && (
-                <span className="text-[10px] text-muted">📋 {solGrupo.length} solicitud{solGrupo.length !== 1 ? "es" : ""}</span>
-              )}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {accGrupo.map((t) => (
-                <AccionCard
-                  key={t.id}
-                  ticket={t}
-                  token={token}
-                  onSelect={onSelect}
-                  onChanged={() => void load(true)}
-                  isAdmin={isAdmin}
-                  readOnly={isAdmin}
-                />
-              ))}
-              {solGrupo.map((t) => (
-                <SolicitudCard
-                  key={t.id}
-                  ticket={t}
-                  token={token}
-                  user={user}
-                  isAdmin={isAdmin}
-                  supervision
-                  onChanged={() => void load(true)}
-                />
-              ))}
-            </div>
+      {tabAcciones === "activas" && !loading && porAsignado.map(({ nombre, acciones: accGrupo }) => (
+        <div key={nombre}>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Icon name="user" size={13} className="text-muted" />
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">{nombre}</span>
+            <span className="rounded-full bg-surface border border-border px-1.5 py-0.5 text-[10px] text-muted">
+              {accGrupo.length}
+            </span>
+            <span className="text-[10px] text-muted">
+              ⚡ {accGrupo.length} acción{accGrupo.length !== 1 ? "es" : ""}
+            </span>
           </div>
-        );
-      })}
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {accGrupo.map((t) => (
+              <AccionCard
+                key={t.id}
+                ticket={t}
+                token={token}
+                user={user}
+                onSelect={onSelect}
+                onChanged={() => void load(true)}
+                onContinuar={
+                  !isAdmin && !comprasDelegadas.some((c) => c.ticket_padre_id === t.id)
+                    ? (tk) => void continuarAccion(tk)
+                    : undefined
+                }
+                isAdmin={isAdmin}
+                readOnly={isAdmin}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -14422,6 +17509,7 @@ export default function TicketsPanel() {
             token={token}
             user={user}
             onSelect={goDetail}
+            onIrCompras={goSolicitudes}
           />
         )}
         {view === "solicitudes" && (
@@ -14459,7 +17547,15 @@ export default function TicketsPanel() {
           <RecetasPanel token={token} user={user} onBack={goBack} />
         )}
         {view === "workload" && nivel >= 2 && (
-          <WorkloadView token={token} user={user} onBack={goBack} />
+          <WorkloadView
+            token={token}
+            user={user}
+            onBack={goBack}
+            onAdministracion={nivel >= 3 ? () => setView("administracion") : undefined}
+          />
+        )}
+        {view === "administracion" && nivel >= 3 && (
+          <AdminView token={token} onBack={goBack} />
         )}
         {view === "crear_mision" && (
           <CreateMisionView

@@ -1,6 +1,8 @@
 import { useMetricas } from "../hooks/useMetricas";
 import { useStatus } from "../hooks/useStatus";
 import { usePreventa } from "../hooks/usePreventa";
+import { usePanelMetricas, usePanelMiResumen } from "../hooks/usePanelMetricas";
+import { useTicketsAuth } from "../stores/ticketsAuth";
 
 function StatCard({
   label,
@@ -35,6 +37,10 @@ export default function Dashboard() {
   const { data: m, isLoading: loadingM } = useMetricas();
   const { data: status } = useStatus();
   const { data: prev } = usePreventa();
+  const user = useTicketsAuth((s) => s.user);
+  const isAdmin = (user?.rol?.nivel ?? 0) >= 3;
+  const { data: panelOps } = usePanelMetricas(isAdmin);
+  const { data: miResumen } = usePanelMiResumen(!isAdmin && !!user);
 
   if (loadingM) {
     return (
@@ -52,6 +58,22 @@ export default function Dashboard() {
           <span className="text-xs text-muted">{m.fecha}</span>
         )}
       </div>
+
+      {!isAdmin && miResumen?.resumen && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <StatCard
+            label="Tu sesión hoy"
+            value={`${miResumen.resumen.minutos_sesion} min`}
+            sub={miResumen.resumen.en_linea ? "En línea ahora" : "Panel"}
+          />
+          <StatCard
+            label="Tareas completadas"
+            value={miResumen.resumen.tareas_completadas}
+            sub="hoy en el panel"
+            color="text-accent"
+          />
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -126,6 +148,69 @@ export default function Dashboard() {
           sub={status?.estado ?? ""}
         />
       </div>
+
+      {isAdmin && panelOps && panelOps.operadores.length > 0 && (
+        <section>
+          <h3 className="mb-3 text-sm font-medium text-muted">
+            Operadores en panel ({panelOps.fecha})
+          </h3>
+          <div className="overflow-x-auto rounded-paper border border-border bg-surface-panel shadow-paper-sm">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
+                  <th className="px-3 py-2 font-medium">Operador</th>
+                  <th className="px-3 py-2 font-medium">Estado</th>
+                  <th className="px-3 py-2 font-medium text-right">Min. sesión</th>
+                  <th className="px-3 py-2 font-medium text-right">Tareas</th>
+                  <th className="px-3 py-2 font-medium">Sección</th>
+                </tr>
+              </thead>
+              <tbody>
+                {panelOps.operadores.map((op) => (
+                  <tr
+                    key={op.usuario_id}
+                    className="border-b border-border/60 last:border-0"
+                  >
+                    <td className="px-3 py-2.5 font-medium text-ink">
+                      {op.nombre}
+                      <span className="ml-1 text-xs font-normal text-muted">
+                        @{op.username}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                          op.en_linea ? "text-success" : "text-muted"
+                        }`}
+                      >
+                        <span
+                          className={`h-2 w-2 rounded-full ${
+                            op.en_linea ? "bg-success" : "bg-border"
+                          }`}
+                        />
+                        {op.en_linea ? "En línea" : "Desconectado"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums text-ink">
+                      {op.minutos_sesion}
+                    </td>
+                    <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-accent">
+                      {op.tareas_completadas}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-muted">
+                      {op.panel_actual ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            Tareas: tickets/solicitudes resueltos, pasos completados, preventa MeLi, etc.
+            Tiempo de sesión solo cuenta pestaña activa (heartbeat cada minuto).
+          </p>
+        </section>
+      )}
     </div>
   );
 }

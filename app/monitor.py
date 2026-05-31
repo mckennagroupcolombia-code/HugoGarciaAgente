@@ -445,9 +445,14 @@ def monitor_loop():
                 threading.Thread(target=verificar_token_meli, daemon=True).start()
                 contadores["token_meli"] = 0
 
-            # A las 8 AM (una vez al día)
-            if ahora.hour == 8 and contadores["stock_dia"] != ahora.day:
-                threading.Thread(target=sync_stock_diario, daemon=True).start()
+            # Sincronizaciones programadas (5 AM): diaria + inteligente + completo; profunda cada 30 días
+            if ahora.hour == 5 and contadores["stock_dia"] != ahora.day:
+                try:
+                    from app.services.sync_scheduler import tick as sync_sched_tick
+
+                    sync_sched_tick(ahora)
+                except Exception as e_sync:
+                    print(f"❌ Monitor: error sync programada: {e_sync}")
                 contadores["stock_dia"] = ahora.day
 
             # A las 7 PM (una vez al día)

@@ -883,19 +883,86 @@ _SALUDOS_WEB = frozenset(
     }
 )
 
+_SALUDO_PURO_RE = re.compile(
+    r"^(?:"
+    r"hola|hey|hi|hello|buenas?|"
+    r"buenos?\s+d[ií]as?|buen\s+d[ií]a|"
+    r"buenas?\s+tardes|buenas?\s+noches|"
+    r"qu[eé]\s+tal"
+    r")(?:[\s,!.]+(?:"
+    r"hola|hey|hi|hello|buenas?|"
+    r"buenos?\s+d[ií]as?|buen\s+d[ií]a|"
+    r"buenas?\s+tardes|buenas?\s+noches|"
+    r"qu[eé]\s+tal"
+    r"))*$",
+    re.IGNORECASE,
+)
+
+_PATRONES_CORRECCION_WEB = (
+    r"\bte\s+confundiste\b",
+    r"\bno\s+es\s+conmigo\b",
+    r"\bno\s+te\s+ped[ií]\b",
+    r"\beso\s+no\s+es\b",
+    r"\bno\s+era\s+eso\b",
+    r"\bmal\s+entendiste\b",
+    r"\bno\s+entendiste\b",
+)
+
+
+def _normalizar_texto_web(texto: str) -> str:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    return re.sub(r"[!?.…,;:]+$", "", low).strip()
+
+
+def _es_saludo_puro_web(texto: str) -> bool:
+    low = _normalizar_texto_web(texto)
+    if not low:
+        return False
+    if low in _SALUDOS_WEB:
+        return True
+    return bool(_SALUDO_PURO_RE.match(low))
+
+
+def _mensaje_parece_correccion_cliente_web(texto: str) -> bool:
+    low = _normalizar_texto_web(texto)
+    if not low:
+        return False
+    return any(re.search(p, low) for p in _PATRONES_CORRECCION_WEB)
+
+
+def _respuesta_saludo_web() -> str:
+    return (
+        "Hola veci, soy Hugo García de McKenna Group S.A.S. "
+        "¿En qué le puedo servir? Puede consultarme precios, disponibilidad, "
+        "ficha técnica o uso de materias primas."
+    )
+
+
+def _respuesta_correccion_web() -> str:
+    return (
+        "Disculpe veci, me equivoqué 🙏 ¿Me indica qué producto o consulta necesita? "
+        "Así le respondo puntual."
+    )
+
 
 def _es_reconocimiento_corto_web(texto: str) -> bool:
-    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    low = _normalizar_texto_web(texto)
     if low in _SALUDOS_WEB:
+        return True
+    if _es_saludo_puro_web(texto):
         return True
     return bool(re.match(r"^(ok|entiendo|entendido|gracias|vale|listo|si|sí)\b", low))
 
 
 def _mensaje_parece_consulta_tecnica_web(texto: str) -> bool:
-    """Uso, dosis, cómo tomar — no es búsqueda de catálogo/precio."""
+    """Uso, dosis, propiedades físicas — no es búsqueda de catálogo/precio."""
+    from app.web_chat_escalacion import mensaje_pide_propiedad_fisica
+
     low = re.sub(r"\s+", " ", (texto or "").strip().lower())
     if len(low) < 4:
         return False
+    if mensaje_pide_propiedad_fisica(texto):
+        return True
     patrones = (
         r"\b(como|cómo)\s+(se\s+)?(toma|tomar|usa|usar|aplica|aplicar|prepara|preparar|debe)",
         r"\bdebe\s+tomar\b",
@@ -926,6 +993,10 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
     if _mensaje_parece_solicitud_documentos_web(texto):
         return False
     if _mensaje_parece_consulta_tecnica_web(texto):
+        return False
+    if _es_saludo_puro_web(texto):
+        return False
+    if _mensaje_parece_correccion_cliente_web(texto):
         return False
     low = re.sub(r"\s+", " ", (texto or "").strip().lower())
     if len(low) < 3:
@@ -969,6 +1040,10 @@ def _es_seleccion_presentacion_web(texto: str) -> bool:
     """Cliente elige variante corta (ej. 'concentrada suero de leche')."""
     low = (texto or "").strip().lower()
     if not low or len(low) > 70:
+        return False
+    if re.fullmatch(r"\d{1,2}", low):
+        return False
+    if _es_saludo_puro_web(texto):
         return False
     if _mensaje_parece_consulta_tecnica_web(texto):
         return False
@@ -1468,8 +1543,46 @@ def obtener_respuesta_ia(
             manejar_pregunta_contacto_web,
         )
         from app.web_chat_documentos import manejar_documentos_web
+        from app.web_chat_escalacion import (
+            manejar_escalacion_tecnica_web,
+            manejar_seguimiento_codigo_web,
+        )
 
         hist_txt_web = _contexto_historial_web(messages)
+
+        seguimiento = manejar_seguimiento_codigo_web(pregunta_visible)
+        if seguimiento:
+            seg_out = _sanitizar_respuesta_web_chat(seguimiento)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": seg_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return seg_out, final_messages
+
+        if _es_saludo_puro_web(pregunta_visible):
+            saludo_out = _sanitizar_respuesta_web_chat(_respuesta_saludo_web())
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": saludo_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return saludo_out, final_messages
+
+        if _mensaje_parece_correccion_cliente_web(pregunta_visible):
+            corr_out = _sanitizar_respuesta_web_chat(_respuesta_correccion_web())
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": corr_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return corr_out, final_messages
 
         contacto = manejar_pregunta_contacto_web(pregunta_visible)
         if contacto:
@@ -1518,6 +1631,36 @@ def obtener_respuesta_ia(
             _historiales[usuario_id] = final_messages
             _guardar_historial_persistente(usuario_id, final_messages)
             return escalada_out, final_messages
+
+        prod_ctx = _extraer_producto_reciente_historial_web(messages)
+        memoria_esc = _memoria_vectorial_para_chat(pregunta_visible)
+        ficha_esc: str | None = None
+        if prod_ctx or _mensaje_parece_consulta_tecnica_web(pregunta_visible):
+            try:
+                from app.services.google_services import buscar_ficha_tecnica_producto
+
+                term_ficha = prod_ctx or pregunta_visible
+                ficha_esc = buscar_ficha_tecnica_producto(term_ficha)
+            except Exception:
+                ficha_esc = None
+        escalada_tec = manejar_escalacion_tecnica_web(
+            pregunta=pregunta_visible,
+            session_id=usuario_id,
+            producto=prod_ctx,
+            page_url=page_url or "",
+            ficha=ficha_esc,
+            memoria_vec=memoria_esc,
+        )
+        if escalada_tec:
+            esc_out = _sanitizar_respuesta_web_chat(escalada_tec)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": esc_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return esc_out, final_messages
 
     # ── Handoff humano (solo WhatsApp; web usa web_chat_intents arriba) ─────
     low0 = re.sub(r"\s+", " ", (pregunta_visible or "").strip().lower())
