@@ -288,3 +288,26 @@ def notificar_ticket_reasignado(ticket_id: int, nuevo_asignado: int | None) -> N
             f"{_titulo_corto(t.get('titulo') or t.get('numero'))}."
         )
         _programar(nuevo_asignado, guion)
+
+
+def notificar_recordatorios_hoy(usuario_id: int) -> list[str]:
+    """Envía nota de voz por WhatsApp por cada recordatorio vencido o de hoy.
+
+    Retorna lista de títulos notificados.
+    """
+    from datetime import date as _date
+    hoy = _date.today().isoformat()
+    notificados: list[str] = []
+    with _conn_ctx() as db:
+        rows = db.execute(
+            """SELECT titulo FROM recordatorios
+               WHERE usuario_id=? AND activo=1 AND proxima_fecha<=?
+               ORDER BY proxima_fecha ASC""",
+            (usuario_id, hoy),
+        ).fetchall()
+    for row in rows:
+        titulo = _titulo_corto(row["titulo"], 60)
+        guion = f"Hola. Tienes un recordatorio para hoy: {titulo}."
+        _programar(usuario_id, guion)
+        notificados.append(row["titulo"])
+    return notificados

@@ -1163,6 +1163,7 @@ function puedeCrearProtocolos(user: TicketsUser): boolean {
 }
 
 type View =
+  | "home"
   | "list"
   | "acciones"
   | "solicitudes"
@@ -1586,7 +1587,7 @@ function QuestNavBar({
 
   // Etiqueta de la sección activa (para la cabecera móvil)
   const viewLabels: Partial<Record<View, string>> = {
-    list: "Tablero", acciones: "Acciones", solicitudes: "Solicitudes",
+    home: "Inicio", list: "Tablero", acciones: "Acciones", solicitudes: "Solicitudes",
     crear_mision: "Nueva misión", inventario: "Inventario", reinos: "Reinos",
     recetas: "Recetas", workload: "Aliados", perfil: "Perfil",
     mision_detail: "Misión", detail: "Ticket", create: "Nuevo ticket",
@@ -1608,46 +1609,10 @@ function QuestNavBar({
         {/* Items — desktop (siempre visibles desde sm) */}
         <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex">
           {pVer("tablero") && (
-            <button type="button" onClick={onTablero} className={questNavBtn(view === "list")}>
-              <QuestBoardNavLabel />
+            <button type="button" onClick={onTablero} className={questNavBtn(view === "home" || view === "list")}>
+              <TopicIcon value="🏠" size={14} weight="duotone" />Inicio
             </button>
           )}
-          {pVer("acciones") && (
-            <button type="button" onClick={onAcciones} className={questNavBtn(view === "acciones")}>
-              <TopicIcon value="⚡" size={14} weight="duotone" />Acciones
-            </button>
-          )}
-          {pVer("solicitudes") && (
-            <button type="button" onClick={onSolicitudes} className={questNavBtn(view === "solicitudes")}>
-              <TopicIcon value="📋" size={14} weight="duotone" />Solicitudes
-            </button>
-          )}
-          {pVer("crear_mision") && (
-            <button type="button" onClick={onCreateMision} className={questNavBtn(view === "crear_mision")}>
-              + Nueva misión
-            </button>
-          )}
-          {pVer("inventario") && (
-            <button type="button" onClick={onInventario} className={`relative ${questNavBtn(view === "inventario")}`}>
-              <TopicIcon value="🧪" size={14} weight="duotone" />Inventario
-              {bajoStockCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white leading-none shadow-sm">
-                  {bajoStockCount}
-                </span>
-              )}
-            </button>
-          )}
-          {pVer("reinos") && (
-            <button type="button" onClick={onReinos} className={questNavBtn(view === "reinos")}>
-              <TopicIcon value="🏰" size={14} weight="duotone" />Reinos
-            </button>
-          )}
-          {pVer("recetas") && (
-            <button type="button" onClick={onRecetas} className={questNavBtn(view === "recetas")}>
-              <TopicIcon value="📖" size={14} weight="duotone" />Recetas
-            </button>
-          )}
-          {pVer("inventario") && <InventarioCarritoNavBtn active={carritoOpen} onOpen={onCarrito} />}
           {nivel >= 2 && pVer("workload") && (
             <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
               <TopicIcon value="🤝" size={14} weight="duotone" />Aliados
@@ -1689,49 +1654,8 @@ function QuestNavBar({
         <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-2.5 sm:hidden">
           {pVer("tablero") && (
             <button type="button" onClick={() => { onTablero(); cerrar(); }}
-              className={`${questNavBtn(view === "list")} w-full justify-start text-left`}>
-              <QuestBoardNavLabel />
-            </button>
-          )}
-          {pVer("acciones") && (
-            <button type="button" onClick={() => { onAcciones(); cerrar(); }}
-              className={`${questNavBtn(view === "acciones")} w-full justify-start text-left`}>
-              <TopicIcon value="⚡" size={14} weight="duotone" />Acciones
-            </button>
-          )}
-          {pVer("solicitudes") && (
-            <button type="button" onClick={() => { onSolicitudes(); cerrar(); }}
-              className={`${questNavBtn(view === "solicitudes")} w-full justify-start text-left`}>
-              <TopicIcon value="📋" size={14} weight="duotone" />Solicitudes
-            </button>
-          )}
-          {pVer("crear_mision") && (
-            <button type="button" onClick={() => { onCreateMision(); cerrar(); }}
-              className={`${questNavBtn(view === "crear_mision")} w-full justify-start text-left`}>
-              + Nueva misión
-            </button>
-          )}
-          {pVer("inventario") && (
-            <button type="button" onClick={() => { onInventario(); cerrar(); }}
-              className={`relative ${questNavBtn(view === "inventario")} w-full justify-start text-left`}>
-              <TopicIcon value="🧪" size={14} weight="duotone" />Inventario
-              {bajoStockCount > 0 && (
-                <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white">
-                  {bajoStockCount}
-                </span>
-              )}
-            </button>
-          )}
-          {pVer("reinos") && (
-            <button type="button" onClick={() => { onReinos(); cerrar(); }}
-              className={`${questNavBtn(view === "reinos")} w-full justify-start text-left`}>
-              <TopicIcon value="🏰" size={14} weight="duotone" />Reinos
-            </button>
-          )}
-          {pVer("recetas") && (
-            <button type="button" onClick={() => { onRecetas(); cerrar(); }}
-              className={`${questNavBtn(view === "recetas")} w-full justify-start text-left`}>
-              <TopicIcon value="📖" size={14} weight="duotone" />Recetas
+              className={`${questNavBtn(view === "home" || view === "list")} w-full justify-start text-left`}>
+              <TopicIcon value="🏠" size={14} weight="duotone" />Inicio
             </button>
           )}
           {nivel >= 2 && pVer("workload") && (
@@ -4111,6 +4035,192 @@ function navScopeLabel(scope: NavScope): string {
   if (scope.kind === "zona") return `${scope.reinoNombre} › ${scope.nombre}`;
   if (scope.kind === "subzona") return `${scope.reinoNombre} › ${scope.zonaNombre} › ${scope.nombre}`;
   return `${scope.reinoNombre} › ${scope.zonaNombre} › ${scope.subzonaNombre} › ${scope.nombre}`;
+}
+
+// ── CentroMandoHome ───────────────────────────────────────────────────────────
+
+function CentroMandoHome({
+  token, user, nivel, permisos,
+  onAcciones, onSolicitudes, onTablero,
+  onAccionesFuturas, onRecordatorios, onProcedimientos,
+}: {
+  token: string;
+  user: TicketsUser;
+  nivel: number;
+  permisos: Record<string, boolean> | null | undefined;
+  onAcciones: () => void;
+  onSolicitudes: () => void;
+  onTablero: () => void;
+  onAccionesFuturas: () => void;
+  onRecordatorios: () => void;
+  onProcedimientos: () => void;
+}) {
+  const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
+
+  interface HomeStat { label: string; value: number | null }
+  const [stats, setStats] = useState<{
+    acciones: HomeStat;
+    solicitudes: HomeStat;
+    pendientes: HomeStat;
+    recordatorios: HomeStat;
+    recordatoriosHoy: number;
+    procedimientos: HomeStat;
+  }>({
+    acciones:       { label: "en curso", value: null },
+    solicitudes:    { label: "por resolver", value: null },
+    pendientes:     { label: "anotadas", value: null },
+    recordatorios:  { label: "programados", value: null },
+    recordatoriosHoy: 0,
+    procedimientos: { label: "guardados", value: null },
+  });
+
+  useEffect(() => {
+    const hoy = new Date().toISOString().slice(0, 10);
+    Promise.allSettled([
+      tapi("/?tipo=accion&activas=1", token),
+      tapi("/?tipo=solicitud&activas=1", token),
+      tapi("/pendientes", token),
+      tapi("/recordatorios", token),
+      tapi("/protocolos?alcance=mis", token),
+    ]).then(([acc, sol, pend, rec, proc]) => {
+      setStats({
+        acciones:      { label: "en curso",      value: acc.status  === "fulfilled" && Array.isArray(acc.value)  ? acc.value.length  : null },
+        solicitudes:   { label: "por resolver",  value: sol.status  === "fulfilled" && Array.isArray(sol.value)  ? (sol.value as any[]).filter((t: any) => t.asignado_a === user.id).length  : null },
+        pendientes:    { label: "anotadas",      value: pend.status === "fulfilled" && Array.isArray(pend.value) ? pend.value.length : null },
+        recordatorios: { label: "programados",   value: rec.status  === "fulfilled" && Array.isArray(rec.value)  ? rec.value.length  : null },
+        recordatoriosHoy: rec.status === "fulfilled" && Array.isArray(rec.value)
+          ? (rec.value as any[]).filter((r: any) => r.proxima_fecha <= hoy).length
+          : 0,
+        procedimientos:{ label: "guardados",     value: proc.status === "fulfilled" && Array.isArray(proc.value) ? proc.value.length : null },
+      });
+    });
+  }, [token, user.id]);
+
+  function Stat({ s }: { s: HomeStat }) {
+    if (s.value === null) return <span className="text-muted/40 dark:text-white/20 text-sm">—</span>;
+    return <>{s.value}</>;
+  }
+
+  // Base compartida
+  const cardBase = [
+    "group relative flex flex-col gap-5 rounded-3xl border p-6 text-left",
+    "shadow-[0_2px_14px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.11)]",
+    "transition-all duration-200 cursor-pointer active:scale-[0.97]",
+  ].join(" ");
+
+  // Paleta por sección — tonos más presentes en dark mode
+  const paleta = {
+    acciones:   { card: "bg-amber-50  dark:bg-amber-950/50  border-amber-200    dark:border-amber-700/60",  icon: "bg-amber-200/70  dark:bg-amber-800/60  text-amber-700  dark:text-amber-300" },
+    solicitudes:{ card: "bg-rose-50   dark:bg-rose-950/50   border-rose-200     dark:border-rose-700/60",   icon: "bg-rose-200/70   dark:bg-rose-800/60   text-rose-700   dark:text-rose-300"  },
+    futuras:    { card: "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-700/60", icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300" },
+    recordat:   { card: "bg-violet-50 dark:bg-violet-950/50 border-violet-200   dark:border-violet-700/60", icon: "bg-violet-200/70  dark:bg-violet-800/60  text-violet-700 dark:text-violet-300" },
+    proced:     { card: "bg-sky-50    dark:bg-sky-950/50    border-sky-200      dark:border-sky-700/60",    icon: "bg-sky-200/70    dark:bg-sky-800/60    text-sky-700    dark:text-sky-300"   },
+    tablero:    { card: "bg-stone-50  dark:bg-stone-900/60  border-stone-200    dark:border-stone-600/50",  icon: "bg-stone-200/70  dark:bg-stone-700/60  text-stone-600  dark:text-stone-300" },
+  };
+
+  function HomeCard({ onClick, p, emoji, titulo, stat, desc, badge }: {
+    onClick: () => void;
+    p: { card: string; icon: string };
+    emoji: string;
+    titulo: string;
+    stat: React.ReactNode;
+    desc: string;
+    badge?: React.ReactNode;
+  }) {
+    return (
+      <button type="button" onClick={onClick} className={`${cardBase} ${p.card}`}>
+        {/* Fila superior: ícono + número */}
+        <div className="flex items-center justify-between gap-3">
+          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl ${p.icon}`}>
+            {emoji}
+          </span>
+          <div className="text-right space-y-1">
+            <div className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{stat}</div>
+            {badge}
+          </div>
+        </div>
+        {/* Título — Montserrat ExtraBold */}
+        <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">{titulo}</p>
+        {/* Descripción — Montserrat Bold, mayor tamaño y contraste */}
+        <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">{desc}</p>
+      </button>
+    );
+  }
+
+  return (
+    <div className="space-y-8 pb-8">
+      {/* Saludo */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted/60 mb-1">McKenna Group</p>
+        <h2 className="text-3xl font-extrabold text-ink leading-tight">Centro de Mando</h2>
+        <p className="mt-1 text-sm text-muted">Bienvenido, {user.nombre.split(" ")[0]} 👋</p>
+      </div>
+
+      {/* Grid principal */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+        {pVer("acciones") && (
+          <HomeCard
+            onClick={onAcciones} p={paleta.acciones} emoji="⚡"
+            titulo="Acciones"
+            stat={<Stat s={stats.acciones} />}
+            desc="Arranca y registra tus labores del día. Graba lo que hiciste y no pierdas el hilo."
+          />
+        )}
+
+        {pVer("solicitudes") && (
+          <HomeCard
+            onClick={onSolicitudes} p={paleta.solicitudes} emoji="📋"
+            titulo="Solicitudes"
+            stat={<Stat s={stats.solicitudes} />}
+            desc="¿Alguien te pidió algo o tú le pediste a alguien del equipo? Acá están esas tareas."
+          />
+        )}
+
+        {pVer("acciones") && (
+          <HomeCard
+            onClick={onAccionesFuturas} p={paleta.futuras} emoji="🗓️"
+            titulo="Acciones futuras"
+            stat={<Stat s={stats.pendientes} />}
+            desc="Tareas que requieren tu atención pero todavía no arrancas. Anótalas y cuando estés listo, las conviertes en acción."
+          />
+        )}
+
+        {pVer("acciones") && (
+          <HomeCard
+            onClick={onRecordatorios} p={paleta.recordat} emoji="🔔"
+            titulo="Recordatorios"
+            stat={<Stat s={stats.recordatorios} />}
+            desc="Para cosas sencillas y recurrentes — pagar un recibo, llamar a alguien. Solo necesitas que te avisen."
+            badge={stats.recordatoriosHoy > 0 ? (
+              <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
+                {stats.recordatoriosHoy} para hoy
+              </span>
+            ) : undefined}
+          />
+        )}
+
+        {pVer("acciones") && (
+          <HomeCard
+            onClick={onProcedimientos} p={paleta.proced} emoji="🔒"
+            titulo="Procedimientos"
+            stat={<Stat s={stats.procedimientos} />}
+            desc="Los pasos que ya guardaste pa' no explicar lo mismo dos veces. Úsalos cuando quieras."
+          />
+        )}
+
+        {nivel >= 3 && (
+          <HomeCard
+            onClick={onTablero} p={paleta.tablero} emoji="📊"
+            titulo="Tablero completo"
+            stat={<span className="text-sm font-semibold text-muted">Admin</span>}
+            desc="Vista general de todas las tareas del equipo organizadas por zona de trabajo."
+          />
+        )}
+
+      </div>
+    </div>
+  );
 }
 
 function TicketListView({
@@ -11394,6 +11504,38 @@ async function _playBlobBuffer(buffer: ArrayBuffer, type: string): Promise<void>
   });
 }
 
+/** Reproduce alerta de voz para recordatorios vencidos usando la voz de Hugo García. */
+async function playRecordatorioAlerta(apiToken: string, count: number): Promise<void> {
+  const texto = count === 1
+    ? "Hola. Tienes un recordatorio pendiente para hoy."
+    : `Hola. Tienes ${count} recordatorios pendientes para hoy.`;
+  try {
+    const res = await fetch("/api/voz/sintetizar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+      body: JSON.stringify({
+        texto,
+        motor: "voicebox",
+        voicebox_engine: "qwen3",
+        voicebox_profile: "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
+        language: "Spanish",
+      }),
+    });
+    if (!res.ok) throw new Error("tts error");
+    const buffer = await res.arrayBuffer();
+    const type = res.headers.get("content-type") || "audio/wav";
+    await _playBlobBuffer(buffer, type);
+  } catch {
+    // Fallback: síntesis del navegador
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(texto);
+      utt.lang = "es-CO"; utt.rate = 0.92; utt.volume = 1;
+      window.speechSynthesis.speak(utt);
+    }
+  }
+}
+
 /** Genera y cachea el audio de alarma. Llámalo al activar la alarma para pre-calentar. */
 async function warmAlarmCache(apiToken: string): Promise<boolean> {
   if (_alarmCache && Date.now() < _alarmCacheExpiry) return true;
@@ -13851,6 +13993,7 @@ function NuevaAccionWizard({
   const [pasosGuardados, setPasosGuardados] = useState<PasoAccionDraft[]>(plantillaEff?.pasos ?? []);
   const [reporteSolicitud, setReporteSolicitud] = useState("");
   const [guardarComoProcedimiento, setGuardarComoProcedimiento] = useState(false);
+  const [alcanceProcedimiento, setAlcanceProcedimiento] = useState<"personal" | "global">("personal");
   const [pasoNombre, setPasoNombre] = useState("");
   const [pasoDesc, setPasoDesc] = useState("");
   const [pasoFoto, setPasoFoto] = useState<File | null>(null);
@@ -14299,6 +14442,7 @@ function NuevaAccionWizard({
       lista_compras: itemsLista,
       cerrar_solicitud: !!solicitudPadreId,
       guardar_como_procedimiento: guardarComoProcedimiento,
+      alcance_procedimiento: alcanceProcedimiento,
     };
     const res = await fetch(`/api/tickets/${tid}/completar-accion`, {
       method: "POST",
@@ -14312,7 +14456,7 @@ function NuevaAccionWizard({
       try {
         await tapi(`/${tid}/guardar-procedimiento`, token, {
           method: "POST",
-          body: JSON.stringify({ lista_compras: itemsLista }),
+          body: JSON.stringify({ lista_compras: itemsLista, alcance: alcanceProcedimiento }),
         });
       } catch { /* servidor antiguo sin procedimientos */ }
       if (solicitudPadreId && reporteSolicitud.trim()) {
@@ -15122,9 +15266,36 @@ function NuevaAccionWizard({
             }`}>{guardarComoProcedimiento ? "✓" : ""}</span>
             <div>
               <p className="text-sm font-semibold">Guardar como procedimiento</p>
-              <p className="text-xs text-muted">Quedará en «Mis procedimientos» para reutilizar o delegar</p>
+              <p className="text-xs text-muted">Quedará en «Mis procedimientos» para reutilizar</p>
             </div>
           </button>
+
+          {guardarComoProcedimiento && (
+            <div className="flex gap-2 rounded-2xl border-2 border-accent/30 bg-accent/5 p-1">
+              <button
+                type="button"
+                onClick={() => setAlcanceProcedimiento("personal")}
+                className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition ${
+                  alcanceProcedimiento === "personal"
+                    ? "bg-accent text-white shadow"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                🔒 Solo para mí
+              </button>
+              <button
+                type="button"
+                onClick={() => setAlcanceProcedimiento("global")}
+                className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition ${
+                  alcanceProcedimiento === "global"
+                    ? "bg-accent text-white shadow"
+                    : "text-muted hover:text-ink"
+                }`}
+              >
+                🌐 Compartir con el equipo
+              </button>
+            </div>
+          )}
 
           <button
             type="button"
@@ -15272,14 +15443,6 @@ function ProtocolosView({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {puedeCrear && (
-            <button type="button"
-              onClick={() => setShowNuevoForm((v) => !v)}
-              className="quest-btn-primary px-3 py-1 text-xs flex items-center gap-1">
-              <Icon name="plus" size={12} weight="bold" />
-              {showNuevoForm ? "Cancelar" : "Nuevo procedimiento"}
-            </button>
-          )}
           <button type="button" onClick={onRecargar} className="text-xs text-muted hover:text-accent transition-colors">
             ↻ Actualizar
           </button>
@@ -15287,55 +15450,11 @@ function ProtocolosView({
       </div>
       {msg && <p className="text-xs text-accent">{msg}</p>}
 
-      {showNuevoForm && puedeCrear && (
-        <div className="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-2">
-          <p className="text-xs font-bold text-accent uppercase tracking-wide">Crear procedimiento manual</p>
-          <input className="quest-input w-full text-sm" placeholder="Nombre del procedimiento"
-            value={nuevoForm.titulo} onChange={(e) => setNuevoForm((f) => ({ ...f, titulo: e.target.value }))} />
-          <div className="flex gap-2">
-            <input className="quest-input flex-1 text-sm" placeholder="Categoría (ej: pagos, compras)"
-              value={nuevoForm.categoria} onChange={(e) => setNuevoForm((f) => ({ ...f, categoria: e.target.value }))} />
-            <textarea className="quest-input flex-1 text-xs resize-none" rows={1} placeholder="Descripción"
-              value={nuevoForm.descripcion} onChange={(e) => setNuevoForm((f) => ({ ...f, descripcion: e.target.value }))} />
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted">Pasos:</p>
-            {nuevoForm.pasos.map((paso, idx) => (
-              <div key={idx} className="flex gap-2 items-center">
-                <span className="text-xs text-muted w-5 text-right shrink-0">{idx + 1}.</span>
-                <input className="quest-input flex-1 text-xs" placeholder="Descripción del paso"
-                  value={paso.descripcion}
-                  onChange={(e) => actualizarPasoNuevo(idx, "descripcion", e.target.value)} />
-                <input className="quest-input w-28 text-xs" placeholder="Notas"
-                  value={paso.notas ?? ""}
-                  onChange={(e) => actualizarPasoNuevo(idx, "notas", e.target.value)} />
-                <button type="button" onClick={() => eliminarPasoNuevo(idx)} className="text-muted hover:text-red-500 px-1">
-                  <Icon name="trash" size={12} />
-                </button>
-              </div>
-            ))}
-            <button type="button" onClick={agregarPasoNuevo}
-              className="flex items-center gap-1 text-xs text-accent hover:underline">
-              <Icon name="plus" size={11} weight="bold" /> Agregar paso
-            </button>
-          </div>
-          <button type="button" disabled={creando || !nuevoForm.titulo.trim()}
-            onClick={() => void crearNuevoProtocolo()}
-            className="quest-btn-primary px-4 py-1.5 text-xs">
-            {creando ? "Creando…" : "Crear procedimiento"}
-          </button>
-        </div>
-      )}
-
-      {protocolos.length === 0 && !showNuevoForm && (
+      {protocolos.length === 0 && (
         <div className="py-12 text-center space-y-2">
           <p className="text-3xl">📋</p>
           <p className="text-sm text-muted">Aún no hay procedimientos guardados.</p>
-          <p className="text-xs text-muted">
-            {puedeCrear
-              ? "Usa «Nuevo procedimiento» para crear uno manualmente, o guárdalo desde el historial de solicitudes resueltas."
-              : "Ve al Historial de solicitudes y pide a un supervisor que guarde como procedimiento las solicitudes resueltas."}
-          </p>
+          <p className="text-xs text-muted">Crea una acción, complétala y guárdala como procedimiento para que aparezca aquí.</p>
         </div>
       )}
 
@@ -15912,9 +16031,10 @@ const FRECUENCIA_OPTS: { value: Frecuencia; label: string }[] = [
 ];
 
 function SolicitudesView({
-  token, user,
+  token, user, onInicio,
 }: {
   token: string; user: TicketsUser;
+  onInicio?: () => void;
 }) {
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   const { apiToken: chatApiToken } = useTicketsAuth();
@@ -15925,7 +16045,7 @@ function SolicitudesView({
   const [showWizard, setShowWizard] = useState(false);
   const [plantillaEjec, setPlantillaEjec] = useState<PlantillaAccion | undefined>();
   const [solicitudEjecId, setSolicitudEjecId] = useState<number | undefined>();
-  const [tab, setTab] = useState<"asignadas" | "creadas" | "equipo" | "historial" | "protocolos">("asignadas");
+  const [tab, setTab] = useState<"subhome" | "asignadas" | "creadas" | "equipo" | "historial" | "protocolos">("subhome");
   const [solicitudes, setSolicitudes] = useState<Ticket[]>([]);
   const [solicitudesEquipo, setSolicitudesEquipo] = useState<Ticket[]>([]);
   const [comprasDelegadas, setComprasDelegadas] = useState<Ticket[]>([]);
@@ -15935,6 +16055,8 @@ function SolicitudesView({
   const [msg, setMsg] = useState("");
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
   const [loadingProtocolos, setLoadingProtocolos] = useState(false);
+  const [historialSol, setHistorialSol] = useState<Ticket[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -15963,6 +16085,17 @@ function SolicitudesView({
     if (!silent) setLoading(false);
   }, [token]);
 
+  const cargarHistorial = useCallback(async () => {
+    setLoadingHistorial(true);
+    try {
+      const data = await tapi("/?tipo=solicitud", token) as Ticket[];
+      const resueltas = (Array.isArray(data) ? data : [])
+        .map(normalizeTicketForList)
+        .filter((t) => t.estado === "resuelto" || t.estado === "rechazado");
+      setHistorialSol(resueltas);
+    } catch { /* ignore */ } finally { setLoadingHistorial(false); }
+  }, [token]);
+
   useEffect(() => { void load(false); }, [load]);
   useEffect(() => {
     const iv = setInterval(() => void load(true), 30000);
@@ -15979,7 +16112,8 @@ function SolicitudesView({
 
   useEffect(() => { void cargarProtocolos(); }, [token]);
   useEffect(() => {
-    if (tab === "protocolos") void cargarProtocolos();
+    if (tab === "protocolos" || tab === "subhome") void cargarProtocolos();
+    if (tab === "historial") void cargarHistorial();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -15994,10 +16128,7 @@ function SolicitudesView({
     (t) => uidEq(t.creado_por, user.id) && t.estado !== "resuelto" && t.estado !== "rechazado",
   );
   const enEquipo = solicitudesEquipo;
-  const historial = solicitudes.filter((t) =>
-    (uidEq(t.asignado_a, user.id) || uidEq(t.creado_por, user.id)) &&
-    (t.estado === "resuelto" || t.estado === "rechazado")
-  );
+  const historial = historialSol;
   const lista = tab === "asignadas"
     ? otrasAsignadas
     : tab === "creadas"
@@ -16131,27 +16262,78 @@ function SolicitudesView({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex-1">
-          <h2 className="text-2xl font-extrabold text-ink flex items-center gap-2">
-            <TopicIcon value="📋" size={20} />
-            Solicitudes
-            {pendientes > 0 && (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{pendientes}</span>
-            )}
-            <InfoTooltip text="Las solicitudes son tareas que un usuario asigna a otro. El operador ve las suyas en 'Por resolver', puede iniciarlas (activa el procedimiento de pasos si lo tiene), pausarlas, pedir intervención si hay un bloqueo, o marcarlas como Listo. El historial muestra las ya resueltas." />
-          </h2>
-          <p className="mt-0.5 text-sm text-muted">Tareas entre miembros del equipo · pestaña Historial para ver solicitudes resueltas</p>
+      {tab === "subhome" ? (
+        <div className="rounded-3xl border border-rose-200 dark:border-rose-700/60 bg-rose-50 dark:bg-rose-950/50 p-6 shadow-[0_2px_14px_rgba(0,0,0,0.06)] space-y-4">
+          <div className="flex items-start gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-200/70 dark:bg-rose-800/60 text-rose-700 dark:text-rose-300 text-2xl">📋</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-2xl font-extrabold text-ink">Solicitudes</h2>
+                {onInicio && (
+                  <button
+                    type="button"
+                    onClick={onInicio}
+                    className="ml-auto flex items-center gap-1 rounded-xl border-2 border-rose-300 dark:border-rose-600/70 px-3 py-1 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition"
+                    title="Volver al inicio"
+                  >
+                    🏠 Inicio
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-base font-bold text-ink/80 dark:text-white/90 leading-snug">
+                Tareas entre miembros del equipo. Recibe lo que te piden y delega lo que necesitas.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowWizard(true)}
+            className="w-full rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white font-extrabold text-lg py-4 flex items-center justify-center gap-2 transition-all shadow-[0_3px_0_#9f1239] active:shadow-none active:translate-y-0.5"
+          >
+            <Icon name="plus" size={18} weight="bold" />
+            Nueva solicitud
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowWizard(true)}
-          className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
-        >
-          <Icon name="plus" size={14} weight="bold" />
-          Nueva solicitud
-        </button>
-      </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          {onInicio && (
+            <button
+              type="button"
+              onClick={onInicio}
+              className="flex items-center gap-1 rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition shrink-0"
+              title="Volver al inicio"
+            >
+              🏠 Inicio
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setTab("subhome")}
+            className="flex items-center gap-1.5 rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+          >
+            ← Volver a Solicitudes
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowWizard(true)}
+            className="ml-auto quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3 shrink-0"
+          >
+            <Icon name="plus" size={14} weight="bold" />
+            Nueva solicitud
+          </button>
+        </div>
+      )}
+
+      {/* Título de la sub-sección activa */}
+      {tab !== "subhome" && (
+        <p className="text-base font-extrabold text-ink">
+          {tab === "asignadas" ? "📥 Por resolver"
+            : tab === "creadas" ? "📤 Enviadas"
+            : tab === "equipo" ? "👥 En curso — equipo"
+            : tab === "historial" ? "📜 Historial"
+            : "📋 Procedimientos"}
+        </p>
+      )}
 
       {msg && (
         <p className="rounded-xl border border-accent/30 bg-accent/8 px-4 py-2 text-sm text-accent font-semibold">
@@ -16159,26 +16341,74 @@ function SolicitudesView({
         </p>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 rounded-xl border border-border bg-surface-hover p-1 flex-wrap">
-        {([
-          { key: "asignadas", label: `Por resolver (${otrasAsignadas.length + comprasPendientes.length})` },
-          { key: "creadas",   label: `Enviadas (${creadas.length})` },
-          { key: "equipo",    label: `En curso (${enEquipo.length})` },
-          { key: "historial", label: `Historial (${historial.length})` },
-          { key: "protocolos", label: `📋 Procedimientos` },
-        ] as const).map(({ key, label }) => (
-          <button key={key} type="button" onClick={() => setTab(key)}
-            className={`flex-1 min-w-[80px] rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors ${
-              tab === key ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* ── Sub-home: cards de solicitudes ── */}
+      {tab === "subhome" && !loading && (() => {
+        const sc = [
+          "group flex flex-col gap-5 rounded-3xl border p-6 text-left w-full",
+          "shadow-[0_2px_14px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_22px_rgba(0,0,0,0.10)]",
+          "transition-all duration-200 cursor-pointer active:scale-[0.97]",
+        ].join(" ");
+        const total = otrasAsignadas.length + comprasPendientes.length;
+        return (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
-      {loading && <div className="py-8 text-center text-sm text-muted">Cargando solicitudes…</div>}
+            <button type="button" onClick={() => setTab("asignadas")}
+              className={`${sc} bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-700/60`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-200/70 dark:bg-rose-800/60 text-rose-700 dark:text-rose-300 text-2xl shrink-0">📥</span>
+                <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{total}</span>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Por resolver</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Solicitudes que te asignaron y te están esperando. Ábrelas, ejecútalas y márcalas como listas.</p>
+            </button>
+
+            <button type="button" onClick={() => setTab("creadas")}
+              className={`${sc} bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-700/60`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-200/70 dark:bg-orange-800/60 text-orange-700 dark:text-orange-300 text-2xl shrink-0">📤</span>
+                <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{creadas.length}</span>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Enviadas</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Lo que tú le pediste a alguien del equipo. Revisa cómo van las tareas que mandaste.</p>
+            </button>
+
+            <button type="button" onClick={() => setTab("equipo")}
+              className={`${sc} bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-700/60`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-200/70 dark:bg-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-2xl shrink-0">👥</span>
+                <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{enEquipo.length}</span>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">En curso — equipo</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Un vistazo general a lo que tiene todo el equipo activo en este momento.</p>
+            </button>
+
+            <button type="button" onClick={() => setTab("historial")}
+              className={`${sc} bg-stone-50 dark:bg-stone-900/60 border-stone-200 dark:border-stone-600/50`}>
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 text-2xl shrink-0">📜</span>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Historial</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Las solicitudes que ya se cerraron — resueltas o rechazadas. Pa' que quede el registro.</p>
+            </button>
+
+            <button type="button" onClick={() => setTab("protocolos")}
+              className={`${sc} bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-700/60`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-200/70 dark:bg-teal-800/60 text-teal-700 dark:text-teal-300 text-2xl shrink-0">📋</span>
+                <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{protocolos.length}</span>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Procedimientos</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Procesos del equipo listos pa' delegar. Asígnale uno a alguien sin explicar todo desde cero.</p>
+            </button>
+
+          </div>
+        );
+      })()}
+
+      {tab === "subhome" && loading && <div className="py-8 text-center text-sm text-muted">Cargando solicitudes…</div>}
+
+      {tab !== "subhome" && loading && <div className="py-8 text-center text-sm text-muted">Cargando solicitudes…</div>}
+      {tab === "historial" && loadingHistorial && <div className="py-8 text-center text-sm text-muted">Cargando historial…</div>}
 
       {tab === "asignadas" && !loading && comprasPendientes.length > 0 && (
         <div className="space-y-2">
@@ -16201,20 +16431,31 @@ function SolicitudesView({
         </div>
       )}
 
-      {!loading && lista.length === 0 && (tab !== "asignadas" || comprasPendientes.length === 0) && (
-        <div className="py-12 text-center text-sm text-muted">
-          {tab === "asignadas"
-            ? "No tienes solicitudes pendientes."
-            : tab === "creadas"
-              ? "No tienes solicitudes activas enviadas."
-              : tab === "historial"
-                ? "No hay solicitudes resueltas en tu historial."
-                : "No hay solicitudes en curso en el equipo."}
+      {tab !== "subhome" && !loading && !loadingHistorial && lista.length === 0 && (tab !== "asignadas" || comprasPendientes.length === 0) && (
+        <div className="py-12 text-center space-y-2">
+          <p className="text-sm text-muted">
+            {tab === "asignadas"
+              ? "No tienes solicitudes pendientes."
+              : tab === "creadas"
+                ? "No tienes solicitudes activas enviadas."
+                : tab === "historial"
+                  ? "No hay solicitudes resueltas en tu historial."
+                  : "No hay solicitudes en curso en el equipo."}
+          </p>
+          {tab === "historial" && (
+            <button
+              type="button"
+              onClick={() => void cargarHistorial()}
+              className="text-xs text-accent hover:underline"
+            >
+              ↻ Recargar historial
+            </button>
+          )}
         </div>
       )}
 
-      {/* Vista historial: cards más compactas con protocolo expandible */}
-      {tab === "historial" && !loading && historial.length > 0 && (
+      {/* Vista historial: cards más compactas con procedimiento expandible */}
+      {tab === "historial" && !loading && !loadingHistorial && historial.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs text-muted flex items-center gap-1">
             Solicitudes completadas o rechazadas
@@ -16953,14 +17194,656 @@ function RepetirAccionWizard({
   );
 }
 
+interface PendienteItem {
+  id: number;
+  titulo: string;
+  descripcion?: string | null;
+  fecha_recordatorio?: string | null;
+  estado: "pendiente" | "iniciado" | "descartado";
+  ticket_id?: number | null;
+  creado_en: string;
+}
+
+interface RecordatorioItem {
+  id: number;
+  titulo: string;
+  descripcion?: string | null;
+  tipo_rep: "una_vez" | "diario" | "semanal" | "mensual" | "cada_n_dias";
+  proxima_fecha: string;
+  cada_n_dias?: number | null;
+  dias_semana?: number[] | null;
+  dias_semana_parsed?: number[];
+  dias_mes?: number[] | null;
+  dias_mes_parsed?: number[];
+  activo: number;
+  creado_en: string;
+}
+
+// ── PendientesPanel ───────────────────────────────────────────────────────────
+
+function PendientesPanel({
+  token,
+  pendientes,
+  loading,
+  onRecargar,
+  onIniciarAccion,
+}: {
+  token: string;
+  pendientes: PendienteItem[];
+  loading: boolean;
+  onRecargar: () => void;
+  onIniciarAccion: (p: PendienteItem) => void;
+}) {
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editTitulo, setEditTitulo] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editFecha, setEditFecha] = useState("");
+  const [guardandoEdit, setGuardandoEdit] = useState(false);
+
+  function estadoFecha(f: string | null | undefined): "vencido" | "hoy" | "pronto" | "futuro" | null {
+    if (!f) return null;
+    if (f < hoy) return "vencido";
+    if (f === hoy) return "hoy";
+    const diff = Math.ceil((new Date(f).getTime() - new Date(hoy).getTime()) / 86400000);
+    return diff <= 3 ? "pronto" : "futuro";
+  }
+
+  function fmtFecha(f: string) {
+    try {
+      const d = new Date(f + "T12:00:00");
+      return d.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
+    } catch { return f; }
+  }
+
+  async function crear() {
+    if (!titulo.trim()) return;
+    setGuardando(true);
+    setError("");
+    try {
+      await tapi("/pendientes", token, {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: titulo.trim(),
+          descripcion: descripcion.trim() || undefined,
+          fecha_recordatorio: fecha || undefined,
+        }),
+      });
+      setTitulo("");
+      setDescripcion("");
+      setFecha("");
+      onRecargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al guardar");
+    } finally { setGuardando(false); }
+  }
+
+  async function descartar(id: number) {
+    try {
+      await tapi(`/pendientes/${id}`, token, { method: "DELETE" });
+      onRecargar();
+    } catch { /* ignore */ }
+  }
+
+  function abrirEditar(p: PendienteItem) {
+    setEditandoId(p.id);
+    setEditTitulo(p.titulo);
+    setEditDesc(p.descripcion ?? "");
+    setEditFecha(p.fecha_recordatorio ?? "");
+  }
+
+  async function guardarEdicion(id: number) {
+    if (!editTitulo.trim()) return;
+    setGuardandoEdit(true);
+    try {
+      await tapi(`/pendientes/${id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({
+          titulo: editTitulo.trim(),
+          descripcion: editDesc.trim() || null,
+          fecha_recordatorio: editFecha || null,
+        }),
+      });
+      setEditandoId(null);
+      onRecargar();
+    } catch { /* ignore */ } finally { setGuardandoEdit(false); }
+  }
+
+  const badgeClases = {
+    vencido: "bg-danger/15 text-danger border border-danger/30",
+    hoy:     "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-300/50",
+    pronto:  "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-300/40",
+    futuro:  "bg-surface border border-border text-muted",
+  };
+
+  const [showForm, setShowForm] = useState(false);
+
+  function resetForm() {
+    setTitulo(""); setDescripcion(""); setFecha(""); setError("");
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Encabezado con botón crear */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-ink">
+          {pendientes.length > 0 ? `${pendientes.length} acción${pendientes.length !== 1 ? "es" : ""} futura${pendientes.length !== 1 ? "s" : ""}` : "Acciones futuras"}
+        </p>
+        <button
+          type="button"
+          onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
+          className={`flex items-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
+            showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent text-accent hover:bg-accent/10"
+          }`}
+        >
+          {showForm ? "✕ Cancelar" : "+ Nueva acción futura"}
+        </button>
+      </div>
+
+      {/* Formulario colapsable */}
+      {showForm && (
+        <div className="rounded-2xl border-2 border-accent/30 bg-accent/5 p-4 space-y-3">
+          <input
+            autoFocus
+            className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
+            placeholder="Ej: Reparar el computador, revisar la cotización del proveedor…"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && titulo.trim()) void crear().then(() => setShowForm(false)); }}
+            maxLength={150}
+          />
+          <textarea
+            className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
+            placeholder="Detalle opcional…"
+            rows={2}
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+          />
+          {/* Fecha opcional */}
+          <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
+            <span className="text-base shrink-0">📅</span>
+            <span className="text-xs text-muted shrink-0">Fecha recordatorio</span>
+            <input
+              type="date"
+              className="flex-1 bg-transparent text-sm text-ink outline-none"
+              value={fecha}
+              min={hoy}
+              onChange={(e) => setFecha(e.target.value)}
+              aria-label="Fecha de recordatorio (opcional)"
+            />
+            {fecha && (
+              <button type="button" onClick={() => setFecha("")} className="shrink-0 text-xs text-muted hover:text-danger">✕</button>
+            )}
+          </div>
+          {!fecha && <p className="text-[11px] text-muted -mt-1">Sin fecha — aparecerá en la lista sin recordatorio</p>}
+          {error && <p className="text-xs text-danger">{error}</p>}
+          <button
+            type="button"
+            disabled={!titulo.trim() || guardando}
+            onClick={() => void crear().then(() => setShowForm(false))}
+            className="w-full rounded-xl bg-accent py-3 text-sm font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            {guardando ? "Guardando…" : "Guardar acción futura"}
+          </button>
+        </div>
+      )}
+
+      {/* Lista */}
+      {loading && <p className="py-6 text-center text-sm text-muted">Cargando…</p>}
+
+      {!loading && pendientes.length === 0 && !showForm && (
+        <div className="py-12 text-center space-y-2">
+          <p className="text-3xl">🗓️</p>
+          <p className="text-sm text-muted">Sin acciones futuras anotadas.</p>
+          <p className="text-xs text-muted">Úsala para tareas que requieren tu atención pero todavía no arrancas — como reparar algo, resolver un tema o empezar un proyecto. Cuando estés listo, la conviertes en acción.</p>
+        </div>
+      )}
+
+      {!loading && pendientes.length > 0 && (
+        <div className="space-y-2">
+          {pendientes.map((p) => {
+            const ef = estadoFecha(p.fecha_recordatorio);
+            const esEditando = editandoId === p.id;
+            return (
+              <div
+                key={p.id}
+                className={`rounded-2xl border-2 bg-surface-panel transition ${
+                  ef === "vencido" ? "border-danger/40" : ef === "hoy" ? "border-amber-400/50" : "border-border"
+                }`}
+              >
+                {esEditando ? (
+                  <div className="p-4 space-y-2">
+                    <input
+                      autoFocus
+                      className="w-full rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-accent"
+                      value={editTitulo}
+                      onChange={(e) => setEditTitulo(e.target.value)}
+                      maxLength={150}
+                    />
+                    <textarea
+                      className="w-full rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent resize-none"
+                      rows={2}
+                      placeholder="Detalle (opcional)"
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                    />
+                    <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
+                      <span className="text-sm shrink-0">📅</span>
+                      <span className="text-xs text-muted shrink-0">Fecha</span>
+                      <input
+                        type="date"
+                        className="flex-1 bg-transparent text-xs text-ink outline-none"
+                        value={editFecha}
+                        onChange={(e) => setEditFecha(e.target.value)}
+                      />
+                      {editFecha && (
+                        <button type="button" onClick={() => setEditFecha("")} className="text-xs text-muted hover:text-danger">✕</button>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={guardandoEdit || !editTitulo.trim()}
+                        onClick={() => void guardarEdicion(p.id)}
+                        className="flex-1 rounded-xl bg-accent py-2 text-xs font-bold text-white disabled:opacity-40"
+                      >
+                        {guardandoEdit ? "Guardando…" : "✓ Guardar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditandoId(null)}
+                        className="rounded-xl border-2 border-border px-4 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <p className="flex-1 font-semibold text-sm text-ink leading-snug">{p.titulo}</p>
+                      {ef && (
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeClases[ef]}`}>
+                          {ef === "vencido" ? "⚠ Vencido" : ef === "hoy" ? "🔔 Hoy" : `📅 ${fmtFecha(p.fecha_recordatorio!)}`}
+                        </span>
+                      )}
+                    </div>
+                    {p.descripcion && <p className="text-xs text-muted">{p.descripcion}</p>}
+                    <div className="flex gap-1.5 pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => onIniciarAccion(p)}
+                        className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98]"
+                      >
+                        ▶ Iniciar acción
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => abrirEditar(p)}
+                        className="rounded-xl border-2 border-border px-3 py-2 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+                        title="Editar"
+                      >✏️</button>
+                      <button
+                        type="button"
+                        onClick={() => void descartar(p.id)}
+                        className="rounded-xl border-2 border-border px-3 py-2 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
+                        title="Descartar"
+                      >✕</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── RecordatoriosPanel ────────────────────────────────────────────────────────
+
+const DIAS_SEMANA_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const TIPO_REP_LABELS: Record<string, string> = {
+  una_vez: "Una sola vez",
+  diario: "Todos los días",
+  semanal: "Semanal",
+  mensual: "Días del mes",
+  cada_n_dias: "Cada N días",
+};
+
+function descRepeticion(r: RecordatorioItem): string {
+  switch (r.tipo_rep) {
+    case "una_vez":   return "Una sola vez";
+    case "diario":    return "Todos los días";
+    case "cada_n_dias": return `Cada ${r.cada_n_dias ?? "?"} día${(r.cada_n_dias ?? 1) !== 1 ? "s" : ""}`;
+    case "semanal": {
+      const dias = (r.dias_semana_parsed ?? []).map((d) => DIAS_SEMANA_LABELS[d]).join(", ");
+      return dias ? `Cada semana: ${dias}` : "Semanal";
+    }
+    case "mensual": {
+      const dias = (r.dias_mes_parsed ?? []).join(", ");
+      return dias ? `Día${(r.dias_mes_parsed ?? []).length !== 1 ? "s" : ""} ${dias} de cada mes` : "Mensual";
+    }
+    default: return r.tipo_rep;
+  }
+}
+
+function RecordatoriosPanel({
+  token,
+  recordatorios,
+  loading,
+  onRecargar,
+}: {
+  token: string;
+  recordatorios: RecordatorioItem[];
+  loading: boolean;
+  onRecargar: () => void;
+}) {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [tipoRep, setTipoRep] = useState<RecordatorioItem["tipo_rep"]>("una_vez");
+  const [fechaInicio, setFechaInicio] = useState(hoy);
+  const [cadaN, setCadaN] = useState(1);
+  const [diasSemana, setDiasSemana] = useState<number[]>([]);
+  const [diasMes, setDiasMes] = useState<number[]>([]);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+
+  function toggleDiaSemana(d: number) {
+    setDiasSemana((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
+  }
+  function toggleDiaMes(d: number) {
+    setDiasMes((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort((a, b) => a - b));
+  }
+
+  async function crear() {
+    if (!titulo.trim()) return;
+    if (tipoRep === "semanal" && diasSemana.length === 0) { setError("Elige al menos un día de la semana"); return; }
+    if (tipoRep === "mensual" && diasMes.length === 0) { setError("Elige al menos un día del mes"); return; }
+    setGuardando(true); setError("");
+    try {
+      await tapi("/recordatorios", token, {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: titulo.trim(),
+          descripcion: descripcion.trim() || undefined,
+          tipo_rep: tipoRep,
+          fecha_inicio: fechaInicio || hoy,
+          cada_n_dias: tipoRep === "cada_n_dias" ? cadaN : undefined,
+          dias_semana: tipoRep === "semanal" ? diasSemana : undefined,
+          dias_mes: tipoRep === "mensual" ? diasMes : undefined,
+        }),
+      });
+      setTitulo(""); setDescripcion(""); setTipoRep("una_vez");
+      setFechaInicio(hoy); setCadaN(1); setDiasSemana([]); setDiasMes([]);
+      onRecargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al guardar");
+    } finally { setGuardando(false); }
+  }
+
+  async function marcarVisto(id: number) {
+    try {
+      await tapi(`/recordatorios/${id}/visto`, token, { method: "POST" });
+      onRecargar();
+    } catch { /* ignore */ }
+  }
+
+  async function eliminar(id: number) {
+    if (!confirm("¿Eliminar este recordatorio?")) return;
+    try {
+      await tapi(`/recordatorios/${id}`, token, { method: "DELETE" });
+      onRecargar();
+    } catch { /* ignore */ }
+  }
+
+  function fmtFecha(f: string) {
+    try {
+      return new Date(f + "T12:00:00").toLocaleDateString("es-CO", {
+        weekday: "short", day: "numeric", month: "short",
+      });
+    } catch { return f; }
+  }
+
+  const activos = recordatorios.filter((r) => r.proxima_fecha <= hoy);
+  const proximos = recordatorios.filter((r) => r.proxima_fecha > hoy);
+
+  return (
+    <div className="space-y-5">
+      {/* Formulario */}
+      <div className="rounded-2xl border-2 border-accent/30 bg-accent/5 p-4 space-y-3">
+        <p className="text-xs font-bold uppercase tracking-widest text-accent">Nuevo recordatorio</p>
+        <p className="text-xs text-muted">Para cosas simples del día a día — pagar un recibo, llamar a alguien, renovar algo. Solo necesitas que te avise en el momento.</p>
+
+        <input
+          className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
+          placeholder="Ej: Pagar recibo del celular, llamar al banco, renovar el seguro…"
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          maxLength={150}
+        />
+        <textarea
+          className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
+          placeholder="Detalle opcional…"
+          rows={2}
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+        />
+
+        {/* Tipo de repetición */}
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+          {(Object.entries(TIPO_REP_LABELS) as [RecordatorioItem["tipo_rep"], string][]).map(([k, lbl]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setTipoRep(k)}
+              className={`rounded-xl border-2 py-2 text-xs font-bold transition ${
+                tipoRep === k ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/60"
+              }`}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+
+        {/* Fecha de inicio */}
+        <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
+          <span className="text-base">📅</span>
+          <span className="text-xs text-muted shrink-0">
+            {tipoRep === "una_vez" ? "Fecha:" : "Empieza el:"}
+          </span>
+          <input
+            type="date"
+            className="flex-1 bg-transparent text-sm text-ink outline-none"
+            value={fechaInicio}
+            min={hoy}
+            onChange={(e) => setFechaInicio(e.target.value)}
+          />
+        </div>
+
+        {/* Cada N días */}
+        {tipoRep === "cada_n_dias" && (
+          <div className="flex items-center gap-3 rounded-xl border-2 border-border bg-surface-input px-4 py-2.5">
+            <span className="text-sm text-muted">Repetir cada</span>
+            <input
+              type="number"
+              min={1}
+              max={365}
+              className="w-20 bg-transparent text-center text-base font-bold text-ink outline-none"
+              value={cadaN}
+              onChange={(e) => setCadaN(Math.max(1, Number(e.target.value)))}
+            />
+            <span className="text-sm text-muted">día{cadaN !== 1 ? "s" : ""}</span>
+          </div>
+        )}
+
+        {/* Días de la semana */}
+        {tipoRep === "semanal" && (
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted font-semibold">Días de la semana:</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {DIAS_SEMANA_LABELS.map((lbl, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => toggleDiaSemana(i)}
+                  className={`rounded-lg border-2 px-3 py-1.5 text-xs font-bold transition ${
+                    diasSemana.includes(i) ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/60"
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Días del mes */}
+        {tipoRep === "mensual" && (
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted font-semibold">Días del mes:</p>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => toggleDiaMes(d)}
+                  className={`rounded-lg border py-1.5 text-xs font-bold transition ${
+                    diasMes.includes(d) ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/50"
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && <p className="text-xs text-danger">{error}</p>}
+
+        <button
+          type="button"
+          disabled={!titulo.trim() || guardando}
+          onClick={() => void crear()}
+          className="w-full rounded-xl bg-accent py-3 text-sm font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+        >
+          {guardando ? "Guardando…" : "Programar recordatorio"}
+        </button>
+      </div>
+
+      {loading && <p className="py-6 text-center text-sm text-muted">Cargando recordatorios…</p>}
+
+      {/* Activos hoy / vencidos */}
+      {!loading && activos.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-danger flex items-center gap-1.5">
+            🔔 Para hoy
+          </p>
+          {activos.map((r) => (
+            <div key={r.id} className={`rounded-2xl border-2 bg-surface-panel p-4 space-y-2 ${
+              r.proxima_fecha < hoy ? "border-danger/50" : "border-amber-400/60"
+            }`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-sm text-ink leading-snug">{r.titulo}</p>
+                  {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => eliminar(r.id)}
+                  className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger transition"
+                >✕</button>
+              </div>
+              <p className="text-[11px] text-muted">{descRepeticion(r)}</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void marcarVisto(r.id)}
+                  className="flex-1 rounded-xl bg-accent py-2 text-xs font-extrabold text-white transition hover:brightness-110"
+                >
+                  {r.tipo_rep === "una_vez" ? "✓ Listo, eliminar" : "✓ Visto · programar siguiente"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditandoId(editandoId === r.id ? null : r.id)}
+                  className="rounded-xl border-2 border-border px-3 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+                >✏️</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Próximos */}
+      {!loading && proximos.length > 0 && (
+        <div className="space-y-2">
+          {activos.length > 0 && <p className="text-xs font-bold uppercase tracking-wide text-muted">Próximos</p>}
+          {proximos.map((r) => (
+            <div key={r.id} className="rounded-2xl border-2 border-border bg-surface-panel p-4 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm text-ink leading-snug">{r.titulo}</p>
+                  {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => eliminar(r.id)}
+                  className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger transition"
+                >✕</button>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted">{descRepeticion(r)}</span>
+                <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-[11px] font-semibold text-ink">
+                  📅 {fmtFecha(r.proxima_fecha)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && recordatorios.length === 0 && (
+        <div className="py-12 text-center space-y-2">
+          <p className="text-3xl">🔔</p>
+          <p className="text-sm text-muted">Sin recordatorios programados.</p>
+          <p className="text-xs text-muted">Ideal para cosas simples y recurrentes — pagar recibos, llamadas pendientes, renovaciones. No necesitas describir pasos, solo que el sistema te avise a tiempo.</p>
+          <p className="text-xs text-muted">Programa una alerta que se repite automáticamente.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── AccionesView — paleta por subtab (nivel módulo, no depende de estado) ─────
+const ACCIONES_TAB_CFG = {
+  subhome:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_3px_0_#b45309]",   ctaBase: true  },
+  activas:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "En curso",          desc: "Las acciones que tienes activas ahorita mismo.",                                                     btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_3px_0_#b45309]",   ctaBase: true  },
+  pendientes:     { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Tareas que aún no arrancas. Anótalas y conviértelas en acción cuando estés listo.",                  btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_3px_0_#065f46]", ctaBase: false },
+  recordatorios:  { card: "border-violet-200 dark:border-violet-700/60 bg-violet-50 dark:bg-violet-950/50",          icon: "bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300",         emoji: "🔔", titulo: "Recordatorios",     desc: "Alertas simples para cosas cotidianas — sin pasos complejos.",                                       btnCtaCls: "bg-violet-600 hover:bg-violet-700 shadow-[0_3px_0_#4c1d95]",  ctaBase: false },
+  procedimientos: { card: "border-sky-200 dark:border-sky-700/60 bg-sky-50 dark:bg-sky-950/50",                      icon: "bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-sky-600 hover:bg-sky-700 shadow-[0_3px_0_#0c4a6e]",       ctaBase: false },
+  historial:      { card: "border-stone-200 dark:border-stone-600/50 bg-stone-50 dark:bg-stone-900/60",              icon: "bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300",             emoji: "📜", titulo: "Historial",         desc: "Todo lo que ya completaste. Pa' que no se pierda nada.",                                             btnCtaCls: "bg-stone-500 hover:bg-stone-600 shadow-[0_3px_0_#292524]",   ctaBase: false },
+} as const;
+type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
+
 // ── AccionesView ──────────────────────────────────────────────────────────────
 
 function AccionesView({
-  token, user, onSelect, onIrCompras,
+  token, user, onSelect, onIrCompras, initialTab, onInicio,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
   onIrCompras?: () => void;
+  initialTab?: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial";
+  onInicio?: () => void;
 }) {
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   // apiToken = CHAT_API_TOKEN que usa /api/voz/transcribir (distinto del JWT de tickets)
@@ -16980,9 +17863,13 @@ function AccionesView({
   const [showRepetirWizard, setShowRepetirWizard] = useState(false);
   const [plantillaRepetir, setPlantillaRepetir] = useState<PlantillaAccion | undefined>();
   const [reanudarRepetir, setReanudarRepetir] = useState<ReanudarRepetirState | undefined>();
-  const [tabAcciones, setTabAcciones] = useState<"activas" | "historial" | "procedimientos">("activas");
+  const [tabAcciones, setTabAcciones] = useState<"subhome" | "activas" | "historial" | "procedimientos" | "pendientes" | "recordatorios">(initialTab ?? "subhome");
   const [historial, setHistorial] = useState<Ticket[]>([]);
   const [procedimientos, setProcedimientos] = useState<Protocolo[]>([]);
+  const [pendientes, setPendientes] = useState<PendienteItem[]>([]);
+  const [recordatorios, setRecordatorios] = useState<RecordatorioItem[]>([]);
+  const [loadingPendientes, setLoadingPendientes] = useState(false);
+  const [loadingRecordatorios, setLoadingRecordatorios] = useState(false);
   const [loadingExtra, setLoadingExtra] = useState(false);
   const [msg, setMsg] = useState("");
   const nivel = user.rol?.nivel ?? 1;
@@ -17233,7 +18120,6 @@ function AccionesView({
     finally { if (!silent) setLoading(false); }
   }, [token, filtroEstado, isAdmin, user.id]);
 
-  useEffect(() => { void load(false); }, [load]);
   useEffect(() => {
     const iv = setInterval(() => { void load(true); }, 30000);
     return () => clearInterval(iv);
@@ -17339,11 +18225,50 @@ function AccionesView({
     }
   }, [token]);
 
+  const cargarPendientes = useCallback(async () => {
+    setLoadingPendientes(true);
+    try {
+      const data = await tapi("/pendientes", token);
+      setPendientes(Array.isArray(data) ? data : []);
+    } catch { /* ignore */ } finally { setLoadingPendientes(false); }
+  }, [token]);
+
+  const cargarRecordatorios = useCallback(async () => {
+    setLoadingRecordatorios(true);
+    try {
+      const data = await tapi("/recordatorios", token);
+      const lista = Array.isArray(data) ? data : [];
+      setRecordatorios(lista);
+      const hoy = new Date().toISOString().slice(0, 10);
+      const activos = lista.filter((r: RecordatorioItem) => r.proxima_fecha <= hoy);
+      const sessionKey = `mck-rec-notif-${hoy}`;
+      if (activos.length > 0 && !sessionStorage.getItem(sessionKey)) {
+        sessionStorage.setItem(sessionKey, "1");
+        // Notificación WhatsApp (voz Hugo García por WhatsApp)
+        fetch("/api/tickets/recordatorios/notificar-hoy", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
+        // Audio en el navegador (voz Hugo García)
+        const apiTok = chatApiToken ?? token;
+        if (apiTok) void playRecordatorioAlerta(apiTok, activos.length);
+      }
+    } catch { /* ignore */ } finally { setLoadingRecordatorios(false); }
+  }, [token, chatApiToken]);
+
+  useEffect(() => {
+    void load(false);
+    void cargarPendientes();
+    void cargarRecordatorios();
+  }, [load, cargarPendientes, cargarRecordatorios]);
+
   useEffect(() => {
     if (tabAcciones === "historial" || tabAcciones === "procedimientos") {
       void cargarHistorialYProcedimientos();
     }
-  }, [tabAcciones, cargarHistorialYProcedimientos]);
+    if (tabAcciones === "pendientes" || tabAcciones === "subhome") void cargarPendientes();
+    if (tabAcciones === "recordatorios" || tabAcciones === "subhome") void cargarRecordatorios();
+  }, [tabAcciones, cargarHistorialYProcedimientos, cargarPendientes, cargarRecordatorios]);
 
   async function repetirProcedimiento(protocoloId: number) {
     setLoadingExtra(true);
@@ -17396,11 +18321,16 @@ function AccionesView({
     }
   }
 
-  async function guardarProcedimientoHistorial(accionId: number) {
+  async function guardarProcedimientoHistorial(accionId: number, alcance: "personal" | "global") {
     setLoadingExtra(true);
     try {
-      await tapi(`/${accionId}/guardar-procedimiento`, token, { method: "POST", body: "{}" });
-      setMsg("Procedimiento guardado en «Mis procedimientos»");
+      await tapi(`/${accionId}/guardar-procedimiento`, token, {
+        method: "POST",
+        body: JSON.stringify({ alcance }),
+      });
+      setMsg(alcance === "global"
+        ? "Procedimiento compartido con el equipo"
+        : "Procedimiento guardado en «Mis procedimientos»");
       void cargarHistorialYProcedimientos();
       setTimeout(() => setMsg(""), 3000);
     } catch (e: unknown) {
@@ -17493,25 +18423,71 @@ function AccionesView({
     );
   }
 
+  const tc = ACCIONES_TAB_CFG[tabAcciones as AccionesTab] ?? ACCIONES_TAB_CFG.subhome;
+  const mostrarCta = tc.ctaBase && !isAdmin;
+
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex-1">
-          <h2 className="text-2xl font-extrabold text-ink flex items-center gap-2">
-            <TopicIcon value="⚡" size={20} />
-            Acciones
-            {sinResolver > 0 && (
-              <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{sinResolver}</span>
-            )}
-          </h2>
-          <p className="mt-0.5 text-sm text-muted">
-            {isAdmin
-              ? "Supervisión: acciones del equipo (solo ver o eliminar). Las solicitudes están en Solicitudes."
-              : "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes."}
-          </p>
+      {/* Header — hero card adaptativo al subtab activo */}
+      <div className={`rounded-3xl border ${tc.card} p-6 shadow-[0_2px_14px_rgba(0,0,0,0.06)] space-y-4`}>
+        {/* Fila: ícono + título + descripción + botones de navegación */}
+        <div className="flex items-start gap-4">
+          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${tc.icon} text-2xl`}>{tc.emoji}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-2xl font-extrabold text-ink flex items-center gap-2">
+                {tc.titulo}
+                {tabAcciones === "subhome" && sinResolver > 0 && (
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{sinResolver}</span>
+                )}
+              </h2>
+              {tabAcciones !== "subhome" && (
+                <button
+                  type="button"
+                  onClick={() => setTabAcciones("subhome")}
+                  className="ml-auto flex items-center gap-1.5 rounded-xl border-2 border-border px-3 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+                >
+                  ← Volver
+                </button>
+              )}
+              {tabAcciones === "subhome" && onInicio && (
+                <button
+                  type="button"
+                  onClick={onInicio}
+                  className="ml-auto flex items-center gap-1 rounded-xl border-2 border-border/60 px-3 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+                  title="Volver al inicio"
+                >
+                  🏠 Inicio
+                </button>
+              )}
+            </div>
+            <p className="mt-1 text-base font-bold text-ink/80 dark:text-white/90 leading-snug">
+              {isAdmin && tabAcciones === "subhome"
+                ? "Supervisión: acciones del equipo (solo ver o eliminar). Las solicitudes están en Solicitudes."
+                : tc.desc}
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        {/* CTA principal — solo en subhome y activas, nunca para admin */}
+        {mostrarCta && (
+          <button
+            type="button"
+            onClick={async () => {
+              setLoadingMenu(true);
+              setShowIniciarMenu(true);
+              try {
+                const data = await tapi("/protocolos?alcance=global", token);
+                setProtocolosMenu(Array.isArray(data) ? data : []);
+              } catch { setProtocolosMenu([]); } finally { setLoadingMenu(false); }
+            }}
+            className={`w-full rounded-2xl ${tc.btnCtaCls} active:scale-[0.98] text-white font-extrabold text-lg py-4 flex items-center justify-center gap-2 transition-all active:shadow-none active:translate-y-0.5`}
+          >
+            <Icon name="plus" size={18} weight="bold" />
+            Iniciar acción
+          </button>
+        )}
+        {/* Toolbar: alarma + filtro + STT */}
+        <div className="flex gap-2 flex-wrap items-center">
           {/* Alarma: toggle + selector de intervalo + countdown + botón probar */}
           {hayEnProceso && (
             <div className="flex items-center gap-1 flex-wrap">
@@ -17596,23 +18572,6 @@ function AccionesView({
               onStart={() => void stt.iniciar((t) => abrirWizard(t))}
             />
           )}
-          {!isAdmin && (
-            <button
-              type="button"
-              onClick={async () => {
-                setLoadingMenu(true);
-                setShowIniciarMenu(true);
-                try {
-                  const data = await tapi("/protocolos?alcance=global", token);
-                  setProtocolosMenu(Array.isArray(data) ? data : []);
-                } catch { setProtocolosMenu([]); } finally { setLoadingMenu(false); }
-              }}
-              className="quest-board-toolbar-btn quest-board-toolbar-btn--active flex items-center gap-1 px-3"
-            >
-              <Icon name="plus" size={14} weight="bold" />
-              Iniciar acción
-            </button>
-          )}
         </div>
       </div>
 
@@ -17696,25 +18655,101 @@ function AccionesView({
         </div>
       )}
 
-      {!isAdmin && (
-        <div className="flex gap-1 rounded-xl border border-border bg-surface-panel p-1">
-          {([
-            { key: "activas", label: "En curso" },
-            { key: "historial", label: "Historial" },
-            { key: "procedimientos", label: "Mis procedimientos" },
-          ] as const).map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTabAcciones(key)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                tabAcciones === key ? "bg-accent text-white" : "text-muted hover:text-ink"
-              }`}
-            >
-              {label}
+      {/* ── Sub-home de Acciones: cards por sección ── */}
+      {!isAdmin && tabAcciones === "subhome" && (() => {
+        const hoy = new Date().toISOString().slice(0, 10);
+        const recHoy = recordatorios.filter((r) => r.proxima_fecha <= hoy).length;
+        const pendHoy = pendientes.filter((p) => p.fecha_recordatorio && p.fecha_recordatorio <= hoy).length;
+        const activas = acciones.filter((t) => t.estado === "en_proceso").length;
+        const subCard = [
+          "group flex flex-col gap-5 rounded-3xl border p-6 text-left w-full",
+          "shadow-[0_2px_14px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_22px_rgba(0,0,0,0.10)]",
+          "transition-all duration-200 cursor-pointer active:scale-[0.97]",
+        ].join(" ");
+        return (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+            <button type="button" onClick={() => setTabAcciones("activas")}
+              className={`${subCard} bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-700/60`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300 text-2xl shrink-0">⚡</span>
+                <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{acciones.length}</span>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">En curso</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Las acciones que tienes activas ahorita mismo.</p>
             </button>
-          ))}
-        </div>
+
+            <button type="button" onClick={() => setTabAcciones("pendientes")}
+              className={`${subCard} bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-700/60`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-2xl shrink-0">🗓️</span>
+                <div className="text-right space-y-1">
+                  <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{pendientes.length}</span>
+                  {pendHoy > 0 && <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{pendHoy} para hoy</p>}
+                </div>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Acciones futuras</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Tareas que necesitan tu atención pero todavía no arrancas. Anótala y cuando estés listo la conviertes en acción.</p>
+            </button>
+
+            <button type="button" onClick={() => setTabAcciones("recordatorios")}
+              className={`${subCard} bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-700/60`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300 text-2xl shrink-0">🔔</span>
+                <div className="text-right space-y-1">
+                  <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{recordatorios.length}</span>
+                  {recHoy > 0 && <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{recHoy} para hoy</p>}
+                </div>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Recordatorios</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Alertas simples para cosas cotidianas — pagar recibos, llamadas — sin pasos complejos.</p>
+            </button>
+
+            <button type="button" onClick={() => setTabAcciones("historial")}
+              className={`${subCard} bg-stone-50 dark:bg-stone-900/60 border-stone-200 dark:border-stone-600/50`}>
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 text-2xl shrink-0">📜</span>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Historial</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Todo lo que ya completaste. Pa' que no se pierda nada de lo que hiciste.</p>
+            </button>
+
+            <button type="button" onClick={() => setTabAcciones("procedimientos")}
+              className={`${subCard} bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-700/60`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300 text-2xl shrink-0">🔒</span>
+                <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{procedimientos.length}</span>
+              </div>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Procedimientos</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Pasos que ya guardaste listos pa' reutilizar. Sin tener que explicar todo de nuevo.</p>
+            </button>
+
+          </div>
+        );
+      })()}
+
+
+      {tabAcciones === "pendientes" && !isAdmin && (
+        <PendientesPanel
+          token={token}
+          pendientes={pendientes}
+          loading={loadingPendientes}
+          onRecargar={() => void cargarPendientes()}
+          onIniciarAccion={(p) => {
+            abrirWizard(p.titulo);
+            void tapi(`/pendientes/${p.id}/iniciar`, token, { method: "POST", body: "{}" });
+            setPendientes((ps) => ps.filter((x) => x.id !== p.id));
+          }}
+        />
+      )}
+
+      {tabAcciones === "recordatorios" && !isAdmin && (
+        <RecordatoriosPanel
+          token={token}
+          recordatorios={recordatorios}
+          loading={loadingRecordatorios}
+          onRecargar={() => void cargarRecordatorios()}
+        />
       )}
 
       {tabAcciones === "historial" && !isAdmin && (
@@ -17819,14 +18854,26 @@ function AccionesView({
                         ↻ Ejecutar de nuevo
                       </button>
                       {!tieneProcedimiento && (
-                        <button
-                          type="button"
-                          disabled={loadingExtra}
-                          onClick={() => void guardarProcedimientoHistorial(t.id)}
-                          className="w-full rounded-xl border border-border py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-40 transition"
-                        >
-                          📌 Guardar como procedimiento
-                        </button>
+                        <div className="flex gap-1.5">
+                          <button
+                            type="button"
+                            disabled={loadingExtra}
+                            onClick={() => void guardarProcedimientoHistorial(t.id, "personal")}
+                            className="flex-1 rounded-xl border border-border py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-40 transition"
+                            title="Solo tú lo verás en Mis procedimientos"
+                          >
+                            🔒 Guardar personal
+                          </button>
+                          <button
+                            type="button"
+                            disabled={loadingExtra}
+                            onClick={() => void guardarProcedimientoHistorial(t.id, "global")}
+                            className="flex-1 rounded-xl border border-border py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-40 transition"
+                            title="Todo el equipo podrá usarlo y delegarlo"
+                          >
+                            🌐 Compartir
+                          </button>
+                        </div>
                       )}
                       {tieneProcedimiento && (
                         <button
@@ -17848,52 +18895,96 @@ function AccionesView({
       )}
 
       {tabAcciones === "procedimientos" && !isAdmin && (
-        <div className="space-y-3">
-          <p className="text-sm text-muted">
-            Procedimientos que creaste. Los marcados como "Equipo" pueden delegarse en solicitudes.
-          </p>
+        <div className="space-y-4">
           {loadingExtra && <p className="text-sm text-muted">Cargando…</p>}
           {!loadingExtra && procedimientos.length === 0 && (
             <p className="py-8 text-center text-sm text-muted">
               Guarda una acción como procedimiento para verla aquí.
             </p>
           )}
-          <div className="grid gap-2 sm:grid-cols-2">
-            {procedimientos.map((p) => (
-              <div key={p.id} className={`rounded-xl border bg-surface-panel p-3 space-y-2 ${p.alcance === "personal" ? "border-border" : "border-accent/40"}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-semibold text-ink text-sm leading-snug">{p.titulo}</p>
-                  {p.alcance === "personal"
-                    ? <span className="shrink-0 rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] font-semibold text-muted">Personal</span>
-                    : <span className="shrink-0 rounded-full bg-accent/10 border border-accent/30 px-2 py-0.5 text-[10px] font-bold text-accent">Equipo</span>
-                  }
-                </div>
-                <p className="text-xs text-muted">
-                  {p.pasos?.length ?? 0} paso{(p.pasos?.length ?? 0) !== 1 ? "s" : ""}
-                  {(p.lista_compras?.length ?? 0) > 0 && ` · ${p.lista_compras!.length} ingrediente${p.lista_compras!.length !== 1 ? "s" : ""}`}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => abrirWizard("", plantillaDesdeProtocolo(p))}
-                    className="flex-1 rounded-xl bg-accent py-2 text-xs font-bold text-white"
-                  >
-                    ↻ Ejecutar
-                  </button>
-                  {p.alcance === "personal" && (
-                    <button
-                      type="button"
-                      onClick={() => void promoverProtocolo(p.id)}
-                      className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
-                      title="Hacer visible para todo el equipo y solicitudes"
-                    >
-                      📋 Delegar
-                    </button>
-                  )}
-                </div>
+
+          {/* Personales */}
+          {procedimientos.filter((p) => (p.alcance ?? "personal") === "personal").length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted flex items-center gap-1.5">
+                🔒 Solo para mí
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {procedimientos.filter((p) => (p.alcance ?? "personal") === "personal").map((p) => (
+                  <div key={p.id} className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
+                    <p className="font-semibold text-ink text-sm leading-snug">{p.titulo}</p>
+                    <p className="text-xs text-muted">
+                      {p.pasos?.length ?? 0} paso{(p.pasos?.length ?? 0) !== 1 ? "s" : ""}
+                      {(p.lista_compras?.length ?? 0) > 0 && ` · ${p.lista_compras!.length} producto${p.lista_compras!.length !== 1 ? "s" : ""}`}
+                    </p>
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => abrirWizard("", plantillaDesdeProtocolo(p))}
+                        className="flex-1 rounded-xl bg-accent py-2 text-xs font-bold text-white"
+                      >
+                        ↻ Ejecutar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void promoverProtocolo(p.id)}
+                        className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+                        title="Compartir con todo el equipo"
+                      >
+                        🌐 Compartir
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Compartidos */}
+          {procedimientos.filter((p) => (p.alcance ?? "personal") === "global").length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted flex items-center gap-1.5">
+                🌐 Compartidos con el equipo
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {procedimientos.filter((p) => (p.alcance ?? "personal") === "global").map((p) => (
+                  <div key={p.id} className="rounded-xl border border-accent/40 bg-surface-panel p-3 space-y-2">
+                    <p className="font-semibold text-ink text-sm leading-snug">{p.titulo}</p>
+                    <p className="text-xs text-muted">
+                      {p.pasos?.length ?? 0} paso{(p.pasos?.length ?? 0) !== 1 ? "s" : ""}
+                      {(p.lista_compras?.length ?? 0) > 0 && ` · ${p.lista_compras!.length} producto${p.lista_compras!.length !== 1 ? "s" : ""}`}
+                    </p>
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => abrirWizard("", plantillaDesdeProtocolo(p))}
+                        className="flex-1 rounded-xl bg-accent py-2 text-xs font-bold text-white"
+                      >
+                        ↻ Ejecutar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await tapi(`/protocolos/${p.id}/hacer-personal`, token, { method: "POST" });
+                            setMsg("Procedimiento convertido a personal");
+                            void cargarHistorialYProcedimientos();
+                            setTimeout(() => setMsg(""), 3000);
+                          } catch (e: unknown) {
+                            setMsg(e instanceof Error ? e.message : "Error");
+                          }
+                        }}
+                        className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted hover:border-amber-400 hover:text-amber-600 transition"
+                        title="Dejar de compartir — pasará a ser solo tuyo"
+                      >
+                        🔒 Hacer privado
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -17950,7 +19041,8 @@ function AccionesView({
 export default function TicketsPanel() {
   const { token, user, setAuth, clear } = useTicketsAuth();
   const questDark = useQuestTheme((s) => s.dark);
-  const [view, setView] = useState<View>("list");
+  const [view, setView] = useState<View>("home");
+  const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial">("subhome");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -17984,7 +19076,7 @@ export default function TicketsPanel() {
 
   // Si el usuario no puede ver el tablero, mostrar acciones o solicitudes por defecto
   useEffect(() => {
-    if (!puedeVerTab(permisos, nivel, "tablero") && view === "list") {
+    if (!puedeVerTab(permisos, nivel, "tablero") && view === "home") {
       if (puedeVerTab(permisos, nivel, "acciones")) setView("acciones");
       else if (puedeVerTab(permisos, nivel, "solicitudes")) setView("solicitudes");
     }
@@ -17993,7 +19085,7 @@ export default function TicketsPanel() {
   function goDetail(id: number) { setSelectedId(id); setView("detail"); }
   function goBack() {
     setBoardRefreshKey((k) => k + 1);
-    setView("list");
+    setView("home");
     setSelectedId(null);
     setSelectedMisionId(null);
   }
@@ -18001,11 +19093,19 @@ export default function TicketsPanel() {
   function goTablero() {
     setNavScope({ kind: "all" });
     setBoardRefreshKey((k) => k + 1);
-    setView("list");
+    setView("home");
     setSelectedId(null);
     setSelectedMisionId(null);
   }
-  function goAcciones() { setView("acciones"); }
+  function goKingdom() {
+    setNavScope({ kind: "all" });
+    setBoardRefreshKey((k) => k + 1);
+    setView("list");
+  }
+  function goAcciones(tab: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" = "subhome") {
+    setAccionesInitialTab(tab);
+    setView("acciones");
+  }
   function goSolicitudes() { setView("solicitudes"); }
   function goInventario() { setView("inventario"); }
   function goReinos() { setView("reinos"); }
@@ -18060,6 +19160,20 @@ export default function TicketsPanel() {
             onIrInventario={goIrInventarioConFiltro}
           />
         )}
+        {view === "home" && (
+          <CentroMandoHome
+            token={token}
+            user={user}
+            nivel={nivel}
+            permisos={permisos}
+            onAcciones={goAcciones}
+            onSolicitudes={goSolicitudes}
+            onTablero={goKingdom}
+            onAccionesFuturas={() => goAcciones("pendientes")}
+            onRecordatorios={() => goAcciones("recordatorios")}
+            onProcedimientos={() => goAcciones("procedimientos")}
+          />
+        )}
         {view === "list" && (
           <TicketListView
             token={token} user={user}
@@ -18075,12 +19189,15 @@ export default function TicketsPanel() {
             user={user}
             onSelect={goDetail}
             onIrCompras={goSolicitudes}
+            initialTab={accionesInitialTab}
+            onInicio={goTablero}
           />
         )}
         {view === "solicitudes" && (
           <SolicitudesView
             token={token}
             user={user}
+            onInicio={goTablero}
           />
         )}
         {view === "create" && (
