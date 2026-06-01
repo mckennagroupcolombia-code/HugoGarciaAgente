@@ -6129,10 +6129,13 @@ def register_routes(app):
 
     _ETIQUETAS = {
         "30 mL": (102, 38), "5 mL": (66, 22), "125 g": (70, 70),
-        "250 g": (76, 66), "1 Lt": (108, 76), "10 g": (58, 54),
-        "100 g": (69, 51), "Lactato": (140, 38), "Circular": (55, 55),
-        "Circular 70": (70, 70), "5 g": (50, 42),
+        "250 g": (76, 66), "1 Lt": (108, 76),
+        "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55, 55),
+        "Circular 70": (70, 70), "5 g": (50, 42), "54mm": (54, 58),
     }
+    # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
+    _ETIQUETAS_ROTACION = {"Lactato": "90"}
+    _ETIQUETAS_MAX_MM = (108.0, 406.4)  # CW-C4000u: ancho × avance (PPD)
     _MAPEO_FORMA = {
         "Diecut_Gap": "Diecut_Gap",
         "Diecut_Blackmark": "Diecut_Blackmark",
@@ -6720,6 +6723,16 @@ def register_routes(app):
             return jsonify({"error": "Archivo PDF no encontrado"}), 404
 
         ancho, alto = _ETIQUETAS[producto]
+        max_ancho, max_alto = _ETIQUETAS_MAX_MM
+        if ancho > max_ancho or alto > max_alto:
+            return jsonify({
+                "error": (
+                    f"Tamaño {ancho}×{alto} mm fuera de rango de la impresora "
+                    f"(máx. {max_ancho:g}×{max_alto:g} mm)."
+                ),
+            }), 400
+        if producto in _ETIQUETAS_ROTACION and rotacion == "0":
+            rotacion = _ETIQUETAS_ROTACION[producto]
         orientacion = _MAPEO_ROTACION[rotacion]
         calidad_val = _MAPEO_CALIDAD[calidad]
         forma_val = _MAPEO_FORMA[forma]

@@ -1,24 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1779917088.923276,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917089.494059,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779917089.6775181,
-      "tipo": "manual_humano",
-      "sender": "49976306606124@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
       "ts": 1779917089.8829086,
       "tipo": "manual_humano",
       "sender": "49976306606124@c.us",
@@ -1799,6 +1781,24 @@
       "tipo": "bot_pausado_global",
       "sender": "57109951213113361@c.us",
       "detalle": "Con mucho gusto"
+    },
+    {
+      "ts": 1780243073.5074959,
+      "tipo": "bot_pausado_global",
+      "sender": "57122626232070294@c.us",
+      "detalle": "Hola, busco una materia prima específica"
+    },
+    {
+      "ts": 1780259858.3639512,
+      "tipo": "bot_pausado_global",
+      "sender": "57122626232070294@c.us",
+      "detalle": "Hola Jenifer soy Andrés gomez"
+    },
+    {
+      "ts": 1780259895.4551,
+      "tipo": "bot_pausado_global",
+      "sender": "57122626232070294@c.us",
+      "detalle": "Quería preguntarte por la glutamina tienes x kl"
     }
   ]
 }

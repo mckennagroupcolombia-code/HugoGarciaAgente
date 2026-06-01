@@ -1,0 +1,21 @@
+{
+  "last_daily_run": "2026-05-31T05:00:30",
+  "last_deep_run": "2026-05-31T05:00:30",
+  "last_daily_date": "2026-05-31",
+  "last_deep_date": "2026-05-31",
+  "history": [
+    {
+      "kind": "daily_batch",
+      "at": "2026-05-31T05:05:39",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "kind": "deep_sync",
+      "at": "2026-05-31T05:25:18",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "last_tick_date": "2026-05-31"
+}
