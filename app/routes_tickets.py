@@ -2115,3 +2115,29 @@ def register_tickets_routes(app):
         except Exception:
             pass
         return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/pasos/<int:paso_id>/adjuntos", methods=["GET"])
+    @_auth
+    def tickets_listar_adjuntos_paso(ticket_id, paso_id):
+        from app.services.tickets_db import listar_adjuntos_paso
+        return jsonify(listar_adjuntos_paso(paso_id)), 200
+
+    @app.route("/api/tickets/<int:ticket_id>/pasos/<int:paso_id>/adjuntos", methods=["POST"])
+    @_auth
+    def tickets_subir_adjunto_paso(ticket_id, paso_id):
+        from app.services.tickets_db import registrar_adjunto
+        f = request.files.get("archivo")
+        if not f or not f.filename:
+            return jsonify({"error": "No se recibió ningún archivo"}), 400
+        if not _ext_ok(f.filename):
+            return jsonify({"error": f"Tipo no permitido ({_ALLOWED_LABEL})"}), 400
+        ext = f.filename.rsplit(".", 1)[1].lower()
+        nombre_archivo = f"{uuid.uuid4().hex}.{ext}"
+        f.save(os.path.join(UPLOADS_DIR, nombre_archivo))
+        adj = registrar_adjunto(
+            ticket_id, nombre_archivo,
+            f.filename, f.content_type,
+            request.tickets_usuario["id"],
+            paso_id=paso_id,
+        )
+        return jsonify(adj), 201

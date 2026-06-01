@@ -734,6 +734,14 @@ def _migrate_usuario_telefono():
         db.commit()
 
 
+def _migrate_adjunto_paso_id():
+    """Columna paso_id opcional en ticket_adjuntos para adjuntos por paso."""
+    with _conn() as db:
+        _add_col(db, "ticket_adjuntos", "paso_id",
+                 "INTEGER REFERENCES ticket_pasos(id) ON DELETE CASCADE")
+        db.commit()
+
+
 def _migrate_usuario_departamentos():
     """Junction table usuario_departamentos para pertenencia a múltiples departamentos."""
     with _conn() as db:
@@ -793,6 +801,7 @@ def init_db():
     _safe_migrate(_migrate_ticket_subtipo)
     from app.services.panel_presencia import _migrate_panel_presencia
     _safe_migrate(_migrate_panel_presencia)
+    _safe_migrate(_migrate_adjunto_paso_id)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -5351,20 +5360,33 @@ def listar_adjuntos(ticket_id: int) -> list:
 
 def registrar_adjunto(ticket_id: int, nombre_archivo: str,
                       nombre_original: str, mime: str | None,
-                      usuario_id: int) -> dict:
+                      usuario_id: int, paso_id: int | None = None) -> dict:
     with _conn() as db:
         db.execute(
             """INSERT INTO ticket_adjuntos
-               (ticket_id, nombre_archivo, nombre_original, mime, creado_por)
-               VALUES (?,?,?,?,?)""",
-            (ticket_id, nombre_archivo, nombre_original, mime, usuario_id),
+               (ticket_id, nombre_archivo, nombre_original, mime, creado_por, paso_id)
+               VALUES (?,?,?,?,?,?)""",
+            (ticket_id, nombre_archivo, nombre_original, mime, usuario_id, paso_id),
         )
         adj_id = db.execute("SELECT last_insert_rowid() as id").fetchone()["id"]
         _log(db, ticket_id, usuario_id, "adjunto_agregado",
              detalles=f"Archivo: {nombre_original}")
         db.commit()
         return {"id": adj_id, "nombre_archivo": nombre_archivo,
-                "nombre_original": nombre_original, "mime": mime}
+                "nombre_original": nombre_original, "mime": mime,
+                "paso_id": paso_id}
+
+
+def listar_adjuntos_paso(paso_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT a.*, u.nombre AS creado_por_nombre
+            FROM ticket_adjuntos a
+            LEFT JOIN usuarios u ON u.id = a.creado_por
+            WHERE a.paso_id = ?
+            ORDER BY a.creado_en
+        """, (paso_id,)).fetchall()
+        return [dict(r) for r in rows]
 
 
 def eliminar_adjunto(adjunto_id: int, usuario_id: int) -> tuple:

@@ -739,7 +739,7 @@ const TICKETS_TABS: { id: string; label: string }[] = [
   { id: "workload",     label: "Aliados" },
   { id: "perfil",       label: "Perfil" },
   { id: "crear_mision", label: "Crear misión" },
-  { id: "protocolos_crear", label: "Crear protocolos" },
+  { id: "protocolos_crear", label: "Crear procedimientos" },
 ];
 
 function PermisosEditor({

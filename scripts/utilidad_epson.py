@@ -11,10 +11,13 @@ PDF_DIR = os.path.expanduser("~/Documentos")
 
 ETIQUETAS = {
     "30 mL": (102, 38), "5 mL": (66, 22), "125 g": (70, 70),
-    "250 g": (76, 66), "1 Lt": (108, 76), "10 g": (58, 54),
-    "100 g": (69, 51), "Lactato": (140, 38), "Circular": (55,55), "Circular 70": (70,70), 
-    "5 g": (50,42)
+    "250 g": (76, 66), "1 Lt": (108, 76),
+    "100 g": (69, 51), "Lactato": (38, 140), "Circular": (55,55), "Circular 70": (70,70), 
+    "5 g": (50,42), "54mm": (54, 58),
 }
+
+# Rotación por defecto (PDF apaisado sobre rollo estrecho)
+ETIQUETAS_ROTACION = {"Lactato": "Girar 90° (Derecha)"}
 
 MAPEO_FORMA = {
     "Etiqueta troquelada (separación)": "Diecut_Gap",
@@ -97,6 +100,12 @@ class AppEpsonProV8:
         except Exception as e:
             self.log(f"ERROR: {e}")
 
+    def _on_producto_change(self, _event=None):
+        prod = self.combo_productos.get()
+        rot = ETIQUETAS_ROTACION.get(prod)
+        if rot:
+            self.combo_rotar.set(rot)
+
     def crear_interfaz(self):
         tk.Label(self.root, text="SISTEMA DE ETIQUETADO MCKG", bg="#2c3e50", fg="white", font=("Arial", 14, "bold"), pady=15).pack(fill='x')
 
@@ -107,6 +116,7 @@ class AppEpsonProV8:
         tk.Label(f1, text="Producto:").pack(anchor='w')
         self.combo_productos = ttk.Combobox(f1, values=list(ETIQUETAS.keys()), state="readonly", font=("Arial", 11))
         self.combo_productos.set("30 mL"); self.combo_productos.pack(fill='x', pady=5)
+        self.combo_productos.bind("<<ComboboxSelected>>", self._on_producto_change)
 
         tk.Label(f1, text="Sensor de Papel:").pack(anchor='w')
         self.combo_forma = ttk.Combobox(f1, values=list(MAPEO_FORMA.keys()), state="readonly")

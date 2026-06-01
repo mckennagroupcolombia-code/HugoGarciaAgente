@@ -110,8 +110,17 @@ interface DatosEtiqueta {
 
 const ETIQUETAS_LISTA = [
   "30 mL", "5 mL", "125 g", "250 g", "1 Lt",
-  "10 g", "100 g", "Lactato", "Circular", "Circular 70", "5 g",
+  "100 g", "Lactato", "Circular", "Circular 70", "5 g", "54mm",
 ];
+
+/** Rotación por defecto al elegir formato (PDF apaisado → rollo estrecho). */
+const ETIQUETAS_ROTACION_DEFAULT: Record<string, string> = {
+  Lactato: "90",
+};
+
+function rotacionDefaultEtiqueta(tipo: string): string {
+  return ETIQUETAS_ROTACION_DEFAULT[tipo] ?? "0";
+}
 
 const FORMAS = [
   { label: "Troquelada — separación (gap)", value: "Diecut_Gap" },
@@ -811,7 +820,11 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="mb-1 block text-xs font-medium text-ink">Tipo etiqueta</label>
-                          <select value={form.tipo_etiqueta ?? ""} onChange={(e) => set("tipo_etiqueta", e.target.value)} className={sel}>
+                          <select value={form.tipo_etiqueta ?? ""} onChange={(e) => {
+                            const tipo = e.target.value;
+                            set("tipo_etiqueta", tipo);
+                            set("rotacion", rotacionDefaultEtiqueta(tipo));
+                          }} className={sel}>
                             {ETIQUETAS_LISTA.map((e) => <option key={e}>{e}</option>)}
                           </select>
                         </div>
@@ -1454,7 +1467,11 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
             <h3 className="text-xs font-bold uppercase tracking-wide text-muted">1 · Tipo de etiqueta</h3>
             <div>
               <label className="mb-1 block text-xs font-medium text-ink">Producto / Tamaño</label>
-              <select value={producto} onChange={(e) => setProducto(e.target.value)} className={sel_s}>
+              <select value={producto} onChange={(e) => {
+                const tipo = e.target.value;
+                setProducto(tipo);
+                setRotacion(rotacionDefaultEtiqueta(tipo));
+              }} className={sel_s}>
                 {ETIQUETAS_LISTA.map((e) => <option key={e}>{e}</option>)}
               </select>
             </div>
