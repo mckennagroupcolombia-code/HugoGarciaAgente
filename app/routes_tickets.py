@@ -1940,6 +1940,7 @@ def register_tickets_routes(app):
             ticket_id,
             request.tickets_usuario["id"],
             lista_compras=data.get("lista_compras"),
+            alcance=data.get("alcance", "personal"),
         )
         if err:
             return jsonify({"error": err}), 400
@@ -1956,7 +1957,9 @@ def register_tickets_routes(app):
         uid = request.tickets_usuario["id"]
         if data.get("guardar_como_procedimiento"):
             guardar_procedimiento_desde_accion(
-                accion_id, uid, lista_compras=data.get("lista_compras"),
+                accion_id, uid,
+                lista_compras=data.get("lista_compras"),
+                alcance=data.get("alcance_procedimiento", "personal"),
             )
         ticket, err = completar_accion_y_reportar_solicitud(
             accion_id,
@@ -1974,6 +1977,18 @@ def register_tickets_routes(app):
         from app.services.tickets_db import promover_procedimiento_a_protocolo
         nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 1)
         proc, err = promover_procedimiento_a_protocolo(
+            protocolo_id, request.tickets_usuario["id"], nivel,
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(proc), 200
+
+    @app.route("/api/tickets/protocolos/<int:protocolo_id>/hacer-personal", methods=["POST"])
+    @_auth
+    def tickets_hacer_personal_protocolo(protocolo_id):
+        from app.services.tickets_db import hacer_procedimiento_personal
+        nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 1)
+        proc, err = hacer_procedimiento_personal(
             protocolo_id, request.tickets_usuario["id"], nivel,
         )
         if err:
@@ -2141,3 +2156,146 @@ def register_tickets_routes(app):
             paso_id=paso_id,
         )
         return jsonify(adj), 201
+
+    # ── Pendientes ────────────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/pendientes", methods=["GET"])
+    @_auth
+    def tickets_listar_pendientes():
+        from app.services.tickets_db import listar_pendientes
+        return jsonify(listar_pendientes(request.tickets_usuario["id"])), 200
+
+    @app.route("/api/tickets/pendientes", methods=["POST"])
+    @_auth
+    def tickets_crear_pendiente():
+        from app.services.tickets_db import crear_pendiente
+        data = request.get_json(force=True) or {}
+        titulo = (data.get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"error": "El título es requerido"}), 400
+        try:
+            p = crear_pendiente(
+                request.tickets_usuario["id"],
+                titulo,
+                descripcion=data.get("descripcion"),
+                fecha_recordatorio=data.get("fecha_recordatorio"),
+            )
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify(p), 201
+
+    @app.route("/api/tickets/pendientes/<int:pendiente_id>", methods=["PUT"])
+    @_auth
+    def tickets_actualizar_pendiente(pendiente_id):
+        from app.services.tickets_db import actualizar_pendiente
+        data = request.get_json(force=True) or {}
+        p, err = actualizar_pendiente(
+            pendiente_id,
+            request.tickets_usuario["id"],
+            titulo=data.get("titulo"),
+            descripcion=data.get("descripcion"),
+            fecha_recordatorio=data.get("fecha_recordatorio"),
+        )
+        if err:
+            return jsonify({"error": err}), 404
+        return jsonify(p), 200
+
+    @app.route("/api/tickets/pendientes/<int:pendiente_id>", methods=["DELETE"])
+    @_auth
+    def tickets_descartar_pendiente(pendiente_id):
+        from app.services.tickets_db import descartar_pendiente
+        ok, err = descartar_pendiente(pendiente_id, request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 404
+        return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/pendientes/<int:pendiente_id>/iniciar", methods=["POST"])
+    @_auth
+    def tickets_iniciar_pendiente(pendiente_id):
+        from app.services.tickets_db import iniciar_pendiente
+        data = request.get_json(force=True) or {}
+        ok, err = iniciar_pendiente(
+            pendiente_id,
+            request.tickets_usuario["id"],
+            ticket_id=data.get("ticket_id"),
+        )
+        if err:
+            return jsonify({"error": err}), 404
+        return jsonify({"ok": True}), 200
+
+    # ── Recordatorios ─────────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/recordatorios", methods=["GET"])
+    @_auth
+    def tickets_listar_recordatorios():
+        from app.services.tickets_db import listar_recordatorios
+        return jsonify(listar_recordatorios(request.tickets_usuario["id"])), 200
+
+    @app.route("/api/tickets/recordatorios", methods=["POST"])
+    @_auth
+    def tickets_crear_recordatorio():
+        from app.services.tickets_db import crear_recordatorio
+        d = request.get_json(force=True) or {}
+        titulo = (d.get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"error": "El título es requerido"}), 400
+        fecha = (d.get("fecha_inicio") or "").strip()
+        if not fecha:
+            from datetime import date
+            fecha = date.today().isoformat()
+        try:
+            r = crear_recordatorio(
+                request.tickets_usuario["id"], titulo,
+                descripcion=d.get("descripcion"),
+                tipo=d.get("tipo_rep", "una_vez"),
+                fecha_inicio=fecha,
+                cada_n=d.get("cada_n_dias"),
+                dias_semana=d.get("dias_semana"),
+                dias_mes=d.get("dias_mes"),
+            )
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify(r), 201
+
+    @app.route("/api/tickets/recordatorios/<int:rec_id>", methods=["PUT"])
+    @_auth
+    def tickets_actualizar_recordatorio(rec_id):
+        from app.services.tickets_db import actualizar_recordatorio
+        d = request.get_json(force=True) or {}
+        r, err = actualizar_recordatorio(
+            rec_id, request.tickets_usuario["id"],
+            titulo=d.get("titulo"), descripcion=d.get("descripcion"),
+            tipo=d.get("tipo_rep"), fecha_inicio=d.get("fecha_inicio"),
+            cada_n=d.get("cada_n_dias"),
+            dias_semana=d.get("dias_semana"), dias_mes=d.get("dias_mes"),
+        )
+        if err:
+            return jsonify({"error": err}), 404
+        return jsonify(r), 200
+
+    @app.route("/api/tickets/recordatorios/<int:rec_id>/visto", methods=["POST"])
+    @_auth
+    def tickets_visto_recordatorio(rec_id):
+        from app.services.tickets_db import marcar_visto_recordatorio
+        r, err = marcar_visto_recordatorio(rec_id, request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 404
+        return jsonify(r), 200
+
+    @app.route("/api/tickets/recordatorios/<int:rec_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_recordatorio(rec_id):
+        from app.services.tickets_db import eliminar_recordatorio
+        ok, err = eliminar_recordatorio(rec_id, request.tickets_usuario["id"])
+        if err:
+            return jsonify({"error": err}), 404
+        return jsonify({"ok": True}), 200
+
+    @app.route("/api/tickets/recordatorios/notificar-hoy", methods=["POST"])
+    @_auth
+    def tickets_notificar_recordatorios_hoy():
+        """Envía nota de voz por cada recordatorio vencido del usuario autenticado."""
+        from app.services.tickets_notificaciones import notificar_recordatorios_hoy
+        uid = request.tickets_usuario["id"]
+        notificados = notificar_recordatorios_hoy(uid)
+        return jsonify({"notificados": notificados, "total": len(notificados)}), 200

@@ -734,6 +734,53 @@ def _migrate_usuario_telefono():
         db.commit()
 
 
+def _migrate_pendientes():
+    """Tabla de pendientes personales con recordatorio opcional."""
+    with _conn() as db:
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS pendientes (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id          INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                titulo              TEXT NOT NULL,
+                descripcion         TEXT,
+                fecha_recordatorio  TEXT,
+                estado              TEXT NOT NULL DEFAULT 'pendiente'
+                                        CHECK(estado IN ('pendiente','iniciado','descartado')),
+                ticket_id           INTEGER REFERENCES tickets(id) ON DELETE SET NULL,
+                creado_en           TEXT DEFAULT (datetime('now')),
+                actualizado_en      TEXT DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_pendientes_usuario ON pendientes(usuario_id);
+        """)
+        db.commit()
+
+
+def _migrate_recordatorios():
+    """Tabla de recordatorios con repetición configurable."""
+    with _conn() as db:
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS recordatorios (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id       INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                titulo           TEXT NOT NULL,
+                descripcion      TEXT,
+                tipo_rep         TEXT NOT NULL DEFAULT 'una_vez'
+                                     CHECK(tipo_rep IN
+                                       ('una_vez','diario','semanal','mensual','cada_n_dias')),
+                proxima_fecha    TEXT NOT NULL,
+                cada_n_dias      INTEGER,
+                dias_semana      TEXT,
+                dias_mes         TEXT,
+                activo           INTEGER DEFAULT 1,
+                creado_en        TEXT DEFAULT (datetime('now')),
+                actualizado_en   TEXT DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_recordatorios_usuario
+                ON recordatorios(usuario_id, activo);
+        """)
+        db.commit()
+
+
 def _migrate_adjunto_paso_id():
     """Columna paso_id opcional en ticket_adjuntos para adjuntos por paso."""
     with _conn() as db:
@@ -802,6 +849,8 @@ def init_db():
     from app.services.panel_presencia import _migrate_panel_presencia
     _safe_migrate(_migrate_panel_presencia)
     _safe_migrate(_migrate_adjunto_paso_id)
+    _safe_migrate(_migrate_pendientes)
+    _safe_migrate(_migrate_recordatorios)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -4812,8 +4861,9 @@ def guardar_procedimiento_desde_accion(
     ticket_id: int,
     usuario_id: int,
     lista_compras: list | None = None,
+    alcance: str = "personal",
 ) -> tuple:
-    """Guarda o actualiza un procedimiento personal a partir de una acción terminada."""
+    """Guarda o actualiza un procedimiento (personal o compartido) a partir de una acción terminada."""
     import json
     with _conn() as db:
         t = db.execute(
@@ -4836,11 +4886,13 @@ def guardar_procedimiento_desde_accion(
         pasos_json = json.dumps(pasos_ejec, ensure_ascii=False)
         lista_json = json.dumps(lista_final or [], ensure_ascii=False)
         titulo = (t["titulo"] or "").strip()
+        alcance_val = alcance if alcance in ("personal", "global") else "personal"
         if existente:
             db.execute(
                 """UPDATE protocolos SET titulo=?, descripcion=?, categoria=?,
-                   pasos=?, lista_compras=?, alcance='global', creado_en=datetime('now') WHERE id=?""",
-                (titulo, t["descripcion"], t["categoria"], pasos_json, lista_json, existente["id"]),
+                   pasos=?, lista_compras=?, alcance=?, creado_en=datetime('now') WHERE id=?""",
+                (titulo, t["descripcion"], t["categoria"], pasos_json, lista_json,
+                 alcance_val, existente["id"]),
             )
             protocolo_id = existente["id"]
         else:
@@ -4848,9 +4900,9 @@ def guardar_procedimiento_desde_accion(
                 """INSERT INTO protocolos
                    (titulo, descripcion, categoria, pasos, lista_compras, ticket_origen,
                     creado_por, alcance)
-                   VALUES (?,?,?,?,?,?,?,'global')""",
+                   VALUES (?,?,?,?,?,?,?,?)""",
                 (titulo, t["descripcion"], t["categoria"], pasos_json, lista_json,
-                 ticket_id, usuario_id),
+                 ticket_id, usuario_id, alcance_val),
             )
             protocolo_id = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
         db.execute(
@@ -5021,23 +5073,37 @@ def completar_accion_y_reportar_solicitud(
 
 
 def promover_procedimiento_a_protocolo(protocolo_id: int, usuario_id: int, nivel: int) -> tuple:
-    """Procedimiento personal → protocolo delegable (solicitudes)."""
-    if nivel < 2:
-        return None, "Requiere rol supervisor"
+    """Procedimiento personal → compartido con el equipo (cualquier usuario puede compartir el suyo)."""
     with _conn() as db:
         p = db.execute(
-            "SELECT id, alcance FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+            "SELECT id, alcance, creado_por FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
         ).fetchone()
         if not p:
             return None, "Procedimiento no encontrado"
-        db.execute(
-            "UPDATE protocolos SET alcance='global' WHERE id=?",
-            (protocolo_id,),
-        )
+        if p["creado_por"] != usuario_id and nivel < 2:
+            return None, "Solo el creador o un supervisor puede compartir este procedimiento"
+        db.execute("UPDATE protocolos SET alcance='global' WHERE id=?", (protocolo_id,))
         _log(db, protocolo_id, usuario_id, "protocolo_promovido",
-             detalles="Visible para delegación en solicitudes")
+             detalles="Compartido con el equipo")
         db.commit()
         return {"id": protocolo_id, "alcance": "global"}, None
+
+
+def hacer_procedimiento_personal(protocolo_id: int, usuario_id: int, nivel: int) -> tuple:
+    """Procedimiento compartido → privado (solo el creador o supervisor)."""
+    with _conn() as db:
+        p = db.execute(
+            "SELECT id, alcance, creado_por FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+        ).fetchone()
+        if not p:
+            return None, "Procedimiento no encontrado"
+        if p["creado_por"] != usuario_id and nivel < 2:
+            return None, "Solo el creador o un supervisor puede hacer privado este procedimiento"
+        db.execute("UPDATE protocolos SET alcance='personal' WHERE id=?", (protocolo_id,))
+        _log(db, protocolo_id, usuario_id, "protocolo_privatizado",
+             detalles="Convertido a procedimiento personal")
+        db.commit()
+        return {"id": protocolo_id, "alcance": "personal"}, None
 
 
 def obtener_plantilla_accion(ticket_id: int, usuario_id: int) -> tuple:
@@ -5389,6 +5455,96 @@ def listar_adjuntos_paso(paso_id: int) -> list:
         return [dict(r) for r in rows]
 
 
+# ── Pendientes ────────────────────────────────────────────────────────────────
+
+def listar_pendientes(usuario_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT * FROM pendientes
+            WHERE usuario_id = ? AND estado = 'pendiente'
+            ORDER BY
+                CASE WHEN fecha_recordatorio IS NULL THEN 1 ELSE 0 END,
+                fecha_recordatorio ASC,
+                creado_en ASC
+        """, (usuario_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+
+def crear_pendiente(usuario_id: int, titulo: str,
+                    descripcion: str | None = None,
+                    fecha_recordatorio: str | None = None) -> dict:
+    titulo = titulo.strip()
+    if not titulo:
+        raise ValueError("El título es requerido")
+    with _conn() as db:
+        db.execute(
+            """INSERT INTO pendientes (usuario_id, titulo, descripcion, fecha_recordatorio)
+               VALUES (?, ?, ?, ?)""",
+            (usuario_id, titulo, descripcion or None, fecha_recordatorio or None),
+        )
+        pid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        db.commit()
+        return dict(db.execute("SELECT * FROM pendientes WHERE id=?", (pid,)).fetchone())
+
+
+def actualizar_pendiente(pendiente_id: int, usuario_id: int,
+                         titulo: str | None = None,
+                         descripcion: str | None = None,
+                         fecha_recordatorio: str | None = None) -> tuple:
+    with _conn() as db:
+        row = db.execute(
+            "SELECT * FROM pendientes WHERE id=? AND usuario_id=?",
+            (pendiente_id, usuario_id),
+        ).fetchone()
+        if not row:
+            return None, "Pendiente no encontrado"
+        nuevo_titulo = (titulo or row["titulo"]).strip()
+        db.execute(
+            """UPDATE pendientes SET titulo=?, descripcion=?, fecha_recordatorio=?,
+               actualizado_en=datetime('now') WHERE id=?""",
+            (nuevo_titulo,
+             descripcion if descripcion is not None else row["descripcion"],
+             fecha_recordatorio if fecha_recordatorio is not None else row["fecha_recordatorio"],
+             pendiente_id),
+        )
+        db.commit()
+        return dict(db.execute("SELECT * FROM pendientes WHERE id=?", (pendiente_id,)).fetchone()), None
+
+
+def descartar_pendiente(pendiente_id: int, usuario_id: int) -> tuple:
+    with _conn() as db:
+        row = db.execute(
+            "SELECT id FROM pendientes WHERE id=? AND usuario_id=?",
+            (pendiente_id, usuario_id),
+        ).fetchone()
+        if not row:
+            return False, "Pendiente no encontrado"
+        db.execute(
+            "UPDATE pendientes SET estado='descartado', actualizado_en=datetime('now') WHERE id=?",
+            (pendiente_id,),
+        )
+        db.commit()
+        return True, None
+
+
+def iniciar_pendiente(pendiente_id: int, usuario_id: int, ticket_id: int | None = None) -> tuple:
+    """Marca el pendiente como iniciado, opcionalmente enlazándolo al ticket creado."""
+    with _conn() as db:
+        row = db.execute(
+            "SELECT id FROM pendientes WHERE id=? AND usuario_id=?",
+            (pendiente_id, usuario_id),
+        ).fetchone()
+        if not row:
+            return False, "Pendiente no encontrado"
+        db.execute(
+            """UPDATE pendientes SET estado='iniciado', ticket_id=?,
+               actualizado_en=datetime('now') WHERE id=?""",
+            (ticket_id, pendiente_id),
+        )
+        db.commit()
+        return True, None
+
+
 def eliminar_adjunto(adjunto_id: int, usuario_id: int) -> tuple:
     with _conn() as db:
         row = db.execute(
@@ -5402,3 +5558,178 @@ def eliminar_adjunto(adjunto_id: int, usuario_id: int) -> tuple:
              detalles=f"Adjunto #{adjunto_id} eliminado")
         db.commit()
         return row["nombre_archivo"], None
+
+
+# ── Recordatorios ─────────────────────────────────────────────────────────────
+
+from datetime import date, timedelta
+import json as _json
+
+
+def _proxima_fecha(tipo: str, desde: str, cada_n: int | None,
+                   dias_semana: list | None, dias_mes: list | None) -> str:
+    """Calcula la próxima fecha de disparo a partir de `desde` (YYYY-MM-DD inclusive)."""
+    base = date.fromisoformat(desde)
+    hoy = date.today()
+    inicio = base if base >= hoy else hoy
+
+    if tipo == "una_vez":
+        return base.isoformat()
+
+    if tipo == "diario":
+        return inicio.isoformat()
+
+    if tipo == "cada_n_dias":
+        n = max(1, cada_n or 1)
+        if base >= hoy:
+            return base.isoformat()
+        delta = (hoy - base).days
+        saltos = (delta // n) + (1 if delta % n else 0)
+        return (base + timedelta(days=saltos * n)).isoformat()
+
+    if tipo == "semanal":
+        dias = sorted(dias_semana or [])  # 0=Mon … 6=Sun (isoweekday-1)
+        if not dias:
+            return inicio.isoformat()
+        d = inicio
+        for _ in range(14):
+            if (d.isoweekday() - 1) in dias:
+                return d.isoformat()
+            d += timedelta(days=1)
+        return inicio.isoformat()
+
+    if tipo == "mensual":
+        dias = sorted(dias_mes or [])
+        if not dias:
+            return inicio.isoformat()
+        d = inicio
+        for _ in range(62):
+            if d.day in dias:
+                return d.isoformat()
+            d += timedelta(days=1)
+        return inicio.isoformat()
+
+    return inicio.isoformat()
+
+
+def _siguiente_tras_hoy(r: dict) -> str:
+    """Calcula la próxima fecha POSTERIOR a hoy para avanzar tras marcar visto."""
+    manana = (date.today() + timedelta(days=1)).isoformat()
+    return _proxima_fecha(
+        r["tipo_rep"], manana,
+        r.get("cada_n_dias"), r.get("dias_semana_parsed"), r.get("dias_mes_parsed"),
+    )
+
+
+def _parse_rec(row) -> dict:
+    d = dict(row)
+    for campo in ("dias_semana", "dias_mes"):
+        try:
+            d[campo + "_parsed"] = _json.loads(d[campo]) if d[campo] else []
+        except Exception:
+            d[campo + "_parsed"] = []
+    return d
+
+
+def listar_recordatorios(usuario_id: int) -> list:
+    with _conn() as db:
+        rows = db.execute("""
+            SELECT * FROM recordatorios
+            WHERE usuario_id=? AND activo=1
+            ORDER BY proxima_fecha ASC, creado_en ASC
+        """, (usuario_id,)).fetchall()
+        return [_parse_rec(r) for r in rows]
+
+
+def crear_recordatorio(usuario_id: int, titulo: str, descripcion: str | None,
+                       tipo: str, fecha_inicio: str,
+                       cada_n: int | None = None,
+                       dias_semana: list | None = None,
+                       dias_mes: list | None = None) -> dict:
+    proxima = _proxima_fecha(tipo, fecha_inicio, cada_n, dias_semana, dias_mes)
+    with _conn() as db:
+        db.execute(
+            """INSERT INTO recordatorios
+               (usuario_id, titulo, descripcion, tipo_rep, proxima_fecha,
+                cada_n_dias, dias_semana, dias_mes)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (usuario_id, titulo.strip(), descripcion or None, tipo, proxima,
+             cada_n, _json.dumps(dias_semana) if dias_semana else None,
+             _json.dumps(dias_mes) if dias_mes else None),
+        )
+        rid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
+        db.commit()
+        return _parse_rec(db.execute("SELECT * FROM recordatorios WHERE id=?", (rid,)).fetchone())
+
+
+def actualizar_recordatorio(rec_id: int, usuario_id: int,
+                            titulo: str | None = None,
+                            descripcion: str | None = None,
+                            tipo: str | None = None,
+                            fecha_inicio: str | None = None,
+                            cada_n: int | None = None,
+                            dias_semana: list | None = None,
+                            dias_mes: list | None = None) -> tuple:
+    with _conn() as db:
+        row = db.execute(
+            "SELECT * FROM recordatorios WHERE id=? AND usuario_id=? AND activo=1",
+            (rec_id, usuario_id),
+        ).fetchone()
+        if not row:
+            return None, "Recordatorio no encontrado"
+        r = _parse_rec(row)
+        nuevo_tipo = tipo or r["tipo_rep"]
+        nuevo_n = cada_n if cada_n is not None else r["cada_n_dias"]
+        nuevos_ds = dias_semana if dias_semana is not None else r["dias_semana_parsed"]
+        nuevos_dm = dias_mes if dias_mes is not None else r["dias_mes_parsed"]
+        nueva_fecha = fecha_inicio or r["proxima_fecha"]
+        proxima = _proxima_fecha(nuevo_tipo, nueva_fecha, nuevo_n, nuevos_ds, nuevos_dm)
+        db.execute(
+            """UPDATE recordatorios SET titulo=?, descripcion=?, tipo_rep=?,
+               proxima_fecha=?, cada_n_dias=?, dias_semana=?, dias_mes=?,
+               actualizado_en=datetime('now') WHERE id=?""",
+            (titulo.strip() if titulo else r["titulo"],
+             descripcion if descripcion is not None else r["descripcion"],
+             nuevo_tipo, proxima, nuevo_n,
+             _json.dumps(nuevos_ds) if nuevos_ds else None,
+             _json.dumps(nuevos_dm) if nuevos_dm else None,
+             rec_id),
+        )
+        db.commit()
+        return _parse_rec(db.execute("SELECT * FROM recordatorios WHERE id=?", (rec_id,)).fetchone()), None
+
+
+def marcar_visto_recordatorio(rec_id: int, usuario_id: int) -> tuple:
+    """Marca como visto y avanza a la próxima ocurrencia (o desactiva si es una_vez)."""
+    with _conn() as db:
+        row = db.execute(
+            "SELECT * FROM recordatorios WHERE id=? AND usuario_id=? AND activo=1",
+            (rec_id, usuario_id),
+        ).fetchone()
+        if not row:
+            return None, "Recordatorio no encontrado"
+        r = _parse_rec(row)
+        if r["tipo_rep"] == "una_vez":
+            db.execute("UPDATE recordatorios SET activo=0 WHERE id=?", (rec_id,))
+            db.commit()
+            return {"id": rec_id, "activo": 0}, None
+        proxima = _siguiente_tras_hoy(r)
+        db.execute(
+            "UPDATE recordatorios SET proxima_fecha=?, actualizado_en=datetime('now') WHERE id=?",
+            (proxima, rec_id),
+        )
+        db.commit()
+        return _parse_rec(db.execute("SELECT * FROM recordatorios WHERE id=?", (rec_id,)).fetchone()), None
+
+
+def eliminar_recordatorio(rec_id: int, usuario_id: int) -> tuple:
+    with _conn() as db:
+        row = db.execute(
+            "SELECT id FROM recordatorios WHERE id=? AND usuario_id=?",
+            (rec_id, usuario_id),
+        ).fetchone()
+        if not row:
+            return False, "Recordatorio no encontrado"
+        db.execute("UPDATE recordatorios SET activo=0 WHERE id=?", (rec_id,))
+        db.commit()
+        return True, None
