@@ -773,7 +773,6 @@ def register_tickets_routes(app):
 
     @app.route("/api/tickets/<int:ticket_id>", methods=["PUT"])
     @_auth
-    @_nivel_min(2)
     def tickets_actualizar(ticket_id):
         data = request.get_json(force=True) or {}
         t, err = actualizar_ticket(ticket_id, data, request.tickets_usuario)
@@ -815,6 +814,14 @@ def register_tickets_routes(app):
             )
         if ticket and ticket.get("tipo") in ("accion", "solicitud") and nuevo_estado in ("resuelto", "en_proceso"):
             _notificar_estado_accion_wa(ticket, nuevo_estado, request.tickets_usuario.get("nombre", ""))
+        if ticket and ticket.get("tipo") == "solicitud" and nuevo_estado == "esperando_aprobacion":
+            import threading
+            from app.services.tickets_notificaciones import notificar_revision_solicitada
+            threading.Thread(
+                target=notificar_revision_solicitada,
+                args=(ticket_id, request.tickets_usuario["id"]),
+                daemon=True,
+            ).start()
         return jsonify(ticket), 200
 
     @app.route("/api/tickets/<int:ticket_id>/asignar", methods=["PUT"])
@@ -1995,6 +2002,39 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 400
         return jsonify(proc), 200
 
+    @app.route("/api/tickets/protocolos/<int:protocolo_id>/visibilidad", methods=["POST"])
+    @_auth
+    def tickets_cambiar_visibilidad_protocolo(protocolo_id):
+        from app.services.tickets_db import cambiar_visibilidad_protocolo
+        nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 1)
+        data  = request.get_json(force=True) or {}
+        alcance     = data.get("alcance", "personal")
+        usuario_ids = data.get("usuario_ids", [])
+        proc, err = cambiar_visibilidad_protocolo(
+            protocolo_id, alcance, usuario_ids,
+            request.tickets_usuario["id"], nivel,
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        return jsonify(proc), 200
+
+    @app.route("/api/tickets/protocolos/upload-foto", methods=["POST"])
+    @_auth
+    def tickets_protocolo_upload_foto():
+        """Sube una foto para adjuntar a un paso de procedimiento (sin ticket_id)."""
+        f = request.files.get("archivo")
+        if not f or not f.filename:
+            return jsonify({"error": "No se recibió ningún archivo"}), 400
+        if not _ext_ok(f.filename):
+            return jsonify({"error": f"Tipo no permitido ({_ALLOWED_LABEL})"}), 400
+        ext = f.filename.rsplit(".", 1)[1].lower()
+        nombre_archivo = f"{uuid.uuid4().hex}.{ext}"
+        f.save(os.path.join(UPLOADS_DIR, nombre_archivo))
+        return jsonify({
+            "nombre_archivo": nombre_archivo,
+            "mime": f.content_type or f"image/{ext}",
+        }), 201
+
     @app.route("/api/tickets/protocolos", methods=["POST"])
     @_auth
     @_puede_crear_protocolos()
@@ -2037,10 +2077,10 @@ def register_tickets_routes(app):
 
     @app.route("/api/tickets/protocolos/<int:protocolo_id>", methods=["PUT"])
     @_auth
-    @_nivel_min(2)
     def tickets_actualizar_protocolo(protocolo_id):
         from app.services.tickets_db import actualizar_protocolo
         data = request.get_json(force=True) or {}
+        nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 0)
         protocolo, err = actualizar_protocolo(
             protocolo_id,
             data.get("titulo", ""),
@@ -2048,9 +2088,11 @@ def register_tickets_routes(app):
             data.get("categoria", ""),
             data.get("pasos", []),
             request.tickets_usuario["id"],
+            nivel=nivel,
         )
         if err:
-            return jsonify({"error": err}), 400
+            code = 403 if "permisos" in err.lower() or "creador" in err.lower() else 400
+            return jsonify({"error": err}), code
         return jsonify(protocolo), 200
 
     @app.route("/api/tickets/protocolos/<int:protocolo_id>", methods=["DELETE"])

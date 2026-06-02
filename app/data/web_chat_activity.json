@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-30T18:58:57",
+  "updated_at": "2026-06-01T21:55:48",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -16,9 +16,51 @@
     "2026-05-26": 5,
     "2026-05-27": 32,
     "2026-05-28": 11,
-    "2026-05-30": 8
+    "2026-05-30": 8,
+    "2026-06-01": 3
   },
   "sessions": [
+    {
+      "session_id": "web-911b66ff-4fad-49ab-bb3d-3f7d784b2110",
+      "started_at": "2026-06-01T21:52:23",
+      "last_at": "2026-06-01T21:55:48",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "Ah ok, es que recientemente la compre para un proyecto de la universidad y me genera duda en cuanto de solucion o si tiene una cantidad especifica para prepararla",
+      "last_agent_reply": "Sí, veci ✅ Tenemos disponibilidad.\nLe comparto las presentaciones más pedidas:\n1) *PARAFINA Kg* $21,042 COP — Ref. C-PARKg 2) *KIT REPARADOR COSMETICO 1* $65,882 COP — Ref. C-KITREPCOS1 3) *KIT REPARADOR COSMETICO 2* $65,882 COP — Ref. C-KITREPCOS2 (Mostrando 3 opciones. Si me dice el gramaje exacto, le filtro la referencia ideal.) ¿Cuál presentación le sirve?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-01T21:52:23",
+          "user_message": "Papaina",
+          "agent_reply": "Claro, veci. Tenemos *PAPAINA 100g* como materia prima. Presentación: $33,316 COP — Ref. C-PAP100g. ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-01T21:53:59",
+          "user_message": "Como se prepara esta?",
+          "agent_reply": "La Papaína es una enzima proteolítica, veci. Su función principal es degradar los enlaces peptídicos de las proteínas, lo que la hace extremadamente versátil. Como vendemos la materia prima, la forma de \"preparación\" depende totalmente de la aplicación que le quiera dar. Sin embargo, puedo indicarle los parámetros clave y las áreas de uso: **Usos Principales:** 1. **Industria Alimentaria:** Se usa como potenciador de sabor, estabilizante o agente en el tratamiento de harinas, cárnicos y salsas. Es común en galletas, productos cárnicos y clarificación de bebidas.\n2. **Cosmética:** Se utiliza en cremas y productos para su acción en la piel.\n3. **Otros:** También se utiliza en procesos industriales específicos. **Consideraciones Técnicas Importantes:** * **Condiciones Óptimas:** Para su mejor funcionamiento, debe considerarse el pH y la temperatura específicos del proceso.\n* **Estabilidad:** Es crucial saber que su estabilidad depende de los componentes de la matriz alimentaria o cosmética. **Recomendación:** Dado que la formulación final (sea alimentaria o cosmética) es muy específica, le recomiendo encarecidamente que consulte con un químico o tecnólogo alimentario/cosmético. Ellos podrán guiarle sobre la dosificación exacta y las condiciones de procesamiento para asegurar la máxima eficacia del producto. Si tiene dudas sobre la disponibilidad o la logística de la materia prima, estoy a su disposición.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-01T21:55:48",
+          "user_message": "Ah ok, es que recientemente la compre para un proyecto de la universidad y me genera duda en cuanto de solucion o si tiene una cantidad especifica para prepararla",
+          "agent_reply": "Sí, veci ✅ Tenemos disponibilidad.\nLe comparto las presentaciones más pedidas:\n1) *PARAFINA Kg* $21,042 COP — Ref. C-PARKg 2) *KIT REPARADOR COSMETICO 1* $65,882 COP — Ref. C-KITREPCOS1 3) *KIT REPARADOR COSMETICO 2* $65,882 COP — Ref. C-KITREPCOS2 (Mostrando 3 opciones. Si me dice el gramaje exacto, le filtro la referencia ideal.) ¿Cuál presentación le sirve?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-343969e4-bcd8-4650-b485-51b7006488a0",
       "started_at": "2026-05-30T12:07:43",

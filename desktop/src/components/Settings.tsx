@@ -728,18 +728,12 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "settings",   label: "Ajustes" },
 ];
 
-// Sub-tabs within Centro de Mando
+// Sub-tabs within Centro de Mando (solo los que tienen pVer gating en TicketsPanel)
 const TICKETS_TABS: { id: string; label: string }[] = [
-  { id: "tablero",      label: "Tablero" },
-  { id: "acciones",     label: "Acciones" },
-  { id: "solicitudes",  label: "Solicitudes" },
-  { id: "inventario",   label: "Inventario" },
-  { id: "reinos",       label: "Reinos" },
-  { id: "recetas",      label: "Recetas" },
-  { id: "workload",     label: "Aliados" },
-  { id: "perfil",       label: "Perfil" },
-  { id: "crear_mision", label: "Crear misión" },
-  { id: "protocolos_crear", label: "Crear procedimientos" },
+  { id: "acciones",    label: "Acciones (+ Recordatorios + Procedimientos)" },
+  { id: "solicitudes", label: "Solicitudes" },
+  { id: "workload",    label: "Aliados" },
+  { id: "perfil",      label: "Perfil" },
 ];
 
 function PermisosEditor({
