@@ -789,6 +789,21 @@ def _migrate_adjunto_paso_id():
         db.commit()
 
 
+def _migrate_protocolo_accesos():
+    """Tabla de accesos específicos por usuario para procedimientos con alcance 'seleccionado'."""
+    with _conn() as db:
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS protocolo_accesos (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                protocolo_id INTEGER NOT NULL REFERENCES protocolos(id) ON DELETE CASCADE,
+                usuario_id   INTEGER NOT NULL REFERENCES usuarios(id)   ON DELETE CASCADE,
+                creado_en    TEXT DEFAULT (datetime('now')),
+                UNIQUE(protocolo_id, usuario_id)
+            )
+        """)
+        db.commit()
+
+
 def _migrate_usuario_departamentos():
     """Junction table usuario_departamentos para pertenencia a múltiples departamentos."""
     with _conn() as db:
@@ -851,6 +866,7 @@ def init_db():
     _safe_migrate(_migrate_adjunto_paso_id)
     _safe_migrate(_migrate_pendientes)
     _safe_migrate(_migrate_recordatorios)
+    _safe_migrate(_migrate_protocolo_accesos)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
         db.executescript("""
@@ -2686,10 +2702,14 @@ def renovar_ticket(ticket_id: int, usuario_id: int | None = None) -> tuple:
 
 def actualizar_ticket(ticket_id: int, data: dict, usuario: dict) -> tuple:
     """Actualiza metadatos del ticket (p. ej. recurrencia por ticket)."""
+    uid = usuario.get("id")
+    nivel = (usuario.get("rol") or {}).get("nivel", 0)
     with _conn() as db:
         t = db.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
         if not t:
             return None, "Ticket no encontrado"
+        if nivel < 2 and t["creado_por"] != uid and t["asignado_a"] != uid:
+            return None, "Solo el creador o un supervisor puede editar este ticket"
         campos = {}
         if "titulo" in data and data["titulo"] is not None:
             campos["titulo"] = str(data["titulo"]).strip()
@@ -3270,9 +3290,14 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         if nuevo_estado == "resuelto":
             if t["categoria"] == "rrhh" and nivel < 3:
                 return False, "Solo Administración puede aprobar tickets de RR.HH."
-            # Las solicitudes solo pueden resolverlas el usuario asignado
+            # Las solicitudes solo pueden resolverlas el asignado,
+            # EXCEPTO cuando están en revisión: el creador puede aprobarlas.
             if t["tipo"] == "solicitud" and t["asignado_a"] != uid:
-                return False, "Solo el usuario asignado puede resolver esta solicitud"
+                aprobacion_por_creador = (
+                    t["estado"] == "esperando_aprobacion" and t["creado_por"] == uid
+                )
+                if not aprobacion_por_creador:
+                    return False, "Solo el usuario asignado puede resolver esta solicitud"
             is_authorized = (nivel >= 2 or t["creado_por"] == uid or t["asignado_a"] == uid)
             if not is_authorized:
                 return False, "Sin autorización"
@@ -3296,7 +3321,19 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
                     ).fetchone()["n"]
                     return False, f"Faltan {pendientes} paso(s) por completar antes de marcar como lista"
         if nuevo_estado == "rechazado" and nivel < 2:
-            return False, "Sin autorización para rechazar tickets"
+            # El creador puede rechazar una solicitud que espera su revisión
+            rechaza_creador = (
+                t.get("tipo") == "solicitud"
+                and t["estado"] == "esperando_aprobacion"
+                and t["creado_por"] == uid
+            )
+            # El asignado puede cancelar (rechazar) su propia acción
+            cancela_accion = (
+                t.get("tipo") == "accion"
+                and t.get("asignado_a") == uid
+            )
+            if not rechaza_creador and not cancela_accion:
+                return False, "Sin autorización para cancelar este ticket"
         if nuevo_estado == "esperando_aprobacion":
             if t["asignado_a"] != uid and nivel < 2:
                 return False, "Solo el responsable puede marcar como listo"
@@ -4767,18 +4804,30 @@ def listar_protocolos(usuario: dict | None = None, alcance: str | None = None) -
                 conds.append("p.creado_por = ?")
                 params.append(usuario["id"])
         elif alcance == "mis":
-            # Todos los protocolos creados por este usuario (personal + global propios)
+            # Todos los protocolos creados por este usuario + compartidos específicamente con él
             if usuario:
-                conds.append("p.creado_por = ?")
-                params.append(usuario["id"])
+                uid = usuario["id"]
+                conds.append(
+                    "(p.creado_por = ? OR (p.alcance = 'seleccionado' AND EXISTS("
+                    "  SELECT 1 FROM protocolo_accesos pa WHERE pa.protocolo_id = p.id AND pa.usuario_id = ?"
+                    ")))",
+                )
+                params.extend([uid, uid])
         elif alcance == "global":
             conds.append("(p.alcance IS NULL OR p.alcance = 'global')")
         elif usuario:
+            uid = usuario["id"]
             conds.append(
                 "(p.alcance IS NULL OR p.alcance = 'global' OR "
-                "(p.alcance = 'personal' AND p.creado_por = ?))",
+                " (p.alcance = 'personal' AND p.creado_por = ?) OR "
+                " (p.alcance = 'seleccionado' AND ("
+                "   p.creado_por = ? OR EXISTS("
+                "     SELECT 1 FROM protocolo_accesos pa"
+                "     WHERE pa.protocolo_id = p.id AND pa.usuario_id = ?"
+                "   )"
+                " )))",
             )
-            params.append(usuario["id"])
+            params.extend([uid, uid, uid])
         where = " AND ".join(conds)
         rows = db.execute(f"""
             SELECT p.*, u.nombre AS creado_por_nombre,
@@ -4802,6 +4851,16 @@ def listar_protocolos(usuario: dict | None = None, alcance: str | None = None) -
                 d["lista_compras"] = []
             if not d.get("alcance"):
                 d["alcance"] = "global"
+            if d["alcance"] == "seleccionado":
+                shared = db.execute(
+                    "SELECT u.id, u.nombre FROM usuarios u "
+                    "JOIN protocolo_accesos pa ON pa.usuario_id = u.id "
+                    "WHERE pa.protocolo_id = ?",
+                    (d["id"],),
+                ).fetchall()
+                d["usuarios_compartidos"] = [{"id": r["id"], "nombre": r["nombre"]} for r in shared]
+            else:
+                d["usuarios_compartidos"] = []
             result.append(d)
         return result
 
@@ -4822,10 +4881,14 @@ def _notas_lista_compras_json(items: list) -> str:
 
 
 def _extraer_plantilla_desde_ticket(db, ticket_id: int) -> tuple[list, list]:
-    """Separa pasos de ejecución y lista de compras desde ticket_pasos."""
+    """Separa pasos de ejecución y lista de compras desde ticket_pasos.
+
+    Incluye adjuntos_ref (imágenes/archivos subidos al paso) para que sirvan
+    como guía visual al repetir el protocolo.
+    """
     import json
     rows = db.execute(
-        "SELECT descripcion, notas FROM ticket_pasos WHERE ticket_id=? ORDER BY orden",
+        "SELECT id, descripcion, notas FROM ticket_pasos WHERE ticket_id=? ORDER BY orden",
         (ticket_id,),
     ).fetchall()
     pasos_ejec = []
@@ -4853,7 +4916,18 @@ def _extraer_plantilla_desde_ticket(db, ticket_id: int) -> tuple[list, list]:
                     "comprado": False,
                 })
         elif desc:
-            pasos_ejec.append({"descripcion": desc, "notas": notas or None})
+            adj_rows = db.execute(
+                "SELECT nombre_archivo, mime FROM ticket_adjuntos "
+                "WHERE paso_id=? ORDER BY creado_en LIMIT 5",
+                (r["id"],),
+            ).fetchall()
+            paso_dict: dict = {"descripcion": desc, "notas": notas or None}
+            if adj_rows:
+                paso_dict["adjuntos_ref"] = [
+                    {"nombre_archivo": a["nombre_archivo"], "mime": a["mime"] or ""}
+                    for a in adj_rows
+                ]
+            pasos_ejec.append(paso_dict)
     return pasos_ejec, lista_compras
 
 
@@ -5083,27 +5157,54 @@ def promover_procedimiento_a_protocolo(protocolo_id: int, usuario_id: int, nivel
         if p["creado_por"] != usuario_id and nivel < 2:
             return None, "Solo el creador o un supervisor puede compartir este procedimiento"
         db.execute("UPDATE protocolos SET alcance='global' WHERE id=?", (protocolo_id,))
-        _log(db, protocolo_id, usuario_id, "protocolo_promovido",
-             detalles="Compartido con el equipo")
         db.commit()
         return {"id": protocolo_id, "alcance": "global"}, None
 
 
 def hacer_procedimiento_personal(protocolo_id: int, usuario_id: int, nivel: int) -> tuple:
     """Procedimiento compartido → privado (solo el creador o supervisor)."""
+    return cambiar_visibilidad_protocolo(protocolo_id, "personal", [], usuario_id, nivel)
+
+
+def cambiar_visibilidad_protocolo(
+    protocolo_id: int,
+    alcance: str,
+    usuario_ids: list,
+    usuario_id: int,
+    nivel: int,
+) -> tuple:
+    """Cambia la visibilidad de un procedimiento: personal / global / seleccionado."""
+    if alcance not in ("personal", "global", "seleccionado"):
+        return None, "Alcance inválido"
+    if alcance == "seleccionado" and not usuario_ids:
+        return None, "Debes seleccionar al menos un usuario"
     with _conn() as db:
         p = db.execute(
-            "SELECT id, alcance, creado_por FROM protocolos WHERE id=? AND activo=1", (protocolo_id,),
+            "SELECT id, alcance, creado_por FROM protocolos WHERE id=? AND activo=1",
+            (protocolo_id,),
         ).fetchone()
         if not p:
             return None, "Procedimiento no encontrado"
         if p["creado_por"] != usuario_id and nivel < 2:
-            return None, "Solo el creador o un supervisor puede hacer privado este procedimiento"
-        db.execute("UPDATE protocolos SET alcance='personal' WHERE id=?", (protocolo_id,))
-        _log(db, protocolo_id, usuario_id, "protocolo_privatizado",
-             detalles="Convertido a procedimiento personal")
+            return None, "Solo el creador o un supervisor puede cambiar la visibilidad"
+        db.execute("UPDATE protocolos SET alcance=? WHERE id=?", (alcance, protocolo_id))
+        db.execute("DELETE FROM protocolo_accesos WHERE protocolo_id=?", (protocolo_id,))
+        shared: list = []
+        if alcance == "seleccionado":
+            for uid in set(int(u) for u in usuario_ids if u != usuario_id):
+                db.execute(
+                    "INSERT OR IGNORE INTO protocolo_accesos (protocolo_id, usuario_id) VALUES (?,?)",
+                    (protocolo_id, uid),
+                )
+            rows = db.execute(
+                "SELECT u.id, u.nombre FROM usuarios u "
+                "JOIN protocolo_accesos pa ON pa.usuario_id = u.id "
+                "WHERE pa.protocolo_id=?",
+                (protocolo_id,),
+            ).fetchall()
+            shared = [{"id": r["id"], "nombre": r["nombre"]} for r in rows]
         db.commit()
-        return {"id": protocolo_id, "alcance": "personal"}, None
+        return {"id": protocolo_id, "alcance": alcance, "usuarios_compartidos": shared}, None
 
 
 def obtener_plantilla_accion(ticket_id: int, usuario_id: int) -> tuple:
@@ -5301,10 +5402,23 @@ def crear_protocolo_desde_ticket(ticket_id: int, titulo: str, descripcion: str,
         if not t:
             return None, "Ticket no encontrado"
         pasos_rows = db.execute(
-            "SELECT descripcion, notas FROM ticket_pasos WHERE ticket_id=? ORDER BY orden",
+            "SELECT id, descripcion, notas FROM ticket_pasos WHERE ticket_id=? ORDER BY orden",
             (ticket_id,),
         ).fetchall()
-        pasos = [{"descripcion": r["descripcion"], "notas": r["notas"]} for r in pasos_rows]
+        pasos = []
+        for r in pasos_rows:
+            paso_dict = {"descripcion": r["descripcion"], "notas": r["notas"]}
+            adj_rows = db.execute(
+                "SELECT nombre_archivo, mime FROM ticket_adjuntos "
+                "WHERE paso_id=? ORDER BY creado_en LIMIT 5",
+                (r["id"],),
+            ).fetchall()
+            if adj_rows:
+                paso_dict["adjuntos_ref"] = [
+                    {"nombre_archivo": a["nombre_archivo"], "mime": a["mime"] or ""}
+                    for a in adj_rows
+                ]
+            pasos.append(paso_dict)
         db.execute(
             """INSERT INTO protocolos (titulo, descripcion, categoria, pasos, ticket_origen, creado_por)
                VALUES (?, ?, ?, ?, ?, ?)""",
@@ -5319,15 +5433,18 @@ def crear_protocolo_desde_ticket(ticket_id: int, titulo: str, descripcion: str,
 
 
 def actualizar_protocolo(protocolo_id: int, titulo: str, descripcion: str,
-                          categoria: str, pasos: list, usuario_id: int) -> tuple:
+                          categoria: str, pasos: list, usuario_id: int,
+                          nivel: int = 2) -> tuple:
     import json
     titulo = titulo.strip()
     if not titulo:
         return None, "El título es requerido"
     with _conn() as db:
-        p = db.execute("SELECT id FROM protocolos WHERE id=? AND activo=1", (protocolo_id,)).fetchone()
+        p = db.execute("SELECT id, creado_por FROM protocolos WHERE id=? AND activo=1", (protocolo_id,)).fetchone()
         if not p:
             return None, "Protocolo no encontrado"
+        if nivel < 2 and p["creado_por"] != usuario_id:
+            return None, "Solo el creador o un supervisor puede editar este procedimiento"
         db.execute(
             """UPDATE protocolos SET titulo=?, descripcion=?, categoria=?, pasos=?
                WHERE id=?""",

@@ -175,7 +175,7 @@ def _programar(usuario_id: int | None, guion: str) -> None:
 
 def _ticket_row(db, ticket_id: int) -> dict | None:
     row = db.execute(
-        "SELECT id, numero, titulo, tipo, subtipo, estado, creado_por, asignado_a, ticket_padre_id "
+        "SELECT id, numero, titulo, descripcion, tipo, subtipo, estado, creado_por, asignado_a, ticket_padre_id "
         "FROM tickets WHERE id=?",
         (ticket_id,),
     ).fetchone()
@@ -185,6 +185,15 @@ def _ticket_row(db, ticket_id: int) -> dict | None:
 def _titulo_corto(t: str, n: int = 48) -> str:
     t = (t or "").strip()
     return t if len(t) <= n else t[: n - 1] + "…"
+
+
+def _desc_corta(t: dict, n: int = 64) -> str:
+    """Devuelve la descripción del ticket truncada, o '' si es igual al título o está vacía."""
+    desc = (t.get("descripcion") or "").strip()
+    titulo = (t.get("titulo") or "").strip()
+    if not desc or desc.lower() == titulo.lower():
+        return ""
+    return desc if len(desc) <= n else desc[: n - 1] + "…"
 
 
 def notificar_ticket_creado(ticket_id: int) -> None:
@@ -198,10 +207,14 @@ def notificar_ticket_creado(ticket_id: int) -> None:
         tipo = "compras" if (t.get("subtipo") or "").strip() == "compra" else (
             "solicitud" if t["tipo"] == "solicitud" else "acción"
         )
+        titulo = (t.get("titulo") or "una tarea").strip()
+        descripcion = (t.get("descripcion") or "").strip()
+        desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
         guion = (
             f"Hola. Te asignaron una nueva {tipo} en el panel: "
-            f"{_titulo_corto(t.get('titulo') or t.get('numero'))}. "
-            "Revisa solicitudes o acciones cuando puedas."
+            f"{titulo}. "
+            + (f"{desc}. " if desc else "")
+            + "Revisa solicitudes o acciones cuando puedas."
         )
         _programar(asig, guion)
 
@@ -232,8 +245,9 @@ def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
         if not t:
             return
         resolvio = _nombre_usuario(db, resolvio_uid)
-        numero = t.get("numero") or ""
-        titulo = _titulo_corto(t.get("titulo") or numero)
+        titulo = (t.get("titulo") or "una tarea").strip()
+        descripcion = (t.get("descripcion") or "").strip()
+        desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
         subtipo = (t.get("subtipo") or "").strip()
 
         creador = t.get("creado_por")
@@ -241,22 +255,21 @@ def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
             if subtipo == "compra":
                 guion = (
                     f"Hola. {resolvio} ya terminó la lista de compras "
-                    f"de la solicitud {numero}. "
+                    f"de la solicitud {titulo}. "
                 )
                 if t.get("ticket_padre_id"):
                     p = _ticket_row(db, int(t["ticket_padre_id"]))
                     if p:
                         guion += (
                             f"Puedes continuar la acción "
-                            f"{_titulo_corto(p.get('titulo') or '')}."
+                            f"{_titulo_corto(p.get('titulo') or 'pendiente')}."
                         )
                 else:
                     guion += "Puedes continuar con tu acción en el panel."
             else:
-                guion = (
-                    f"Hola. {resolvio} ya resolvió tu solicitud {numero}: "
-                    f"{titulo}."
-                )
+                guion = f"Hola. {resolvio} ya resolvió tu solicitud: {titulo}."
+                if desc:
+                    guion += f" {desc}."
             _programar(creador, guion)
 
         if subtipo == "compra" and t.get("ticket_padre_id"):
@@ -270,10 +283,30 @@ def notificar_ticket_resuelto(ticket_id: int, resolvio_uid: int) -> None:
                         continue
                     guion = (
                         f"Hola. {resolvio} completó la lista de compras que esperabas "
-                        f"para la acción {_titulo_corto(padre.get('titulo') or numero)}. "
+                        f"para la acción {_titulo_corto(padre.get('titulo') or 'pendiente')}. "
                         "Ya puedes seguir en el panel."
                     )
                     _programar(uid, guion)
+
+
+def notificar_revision_solicitada(ticket_id: int, resolvio_uid: int) -> None:
+    """Avisa al creador de la solicitud que el ejecutor pide su revisión/aprobación."""
+    with _conn_ctx() as db:
+        t = _ticket_row(db, ticket_id)
+        if not t or t["tipo"] != "solicitud":
+            return
+        creador = t.get("creado_por")
+        if not creador or creador == resolvio_uid:
+            return
+        resolvio = _nombre_usuario(db, resolvio_uid)
+        titulo = (t.get("titulo") or "una tarea").strip()
+        descripcion = (t.get("descripcion") or "").strip()
+        desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
+        guion = (
+            f"Hola. {resolvio} completó la solicitud {titulo} y solicita que la revises y apruebes."
+            + (f" {desc}." if desc else "")
+        )
+        _programar(creador, guion)
 
 
 def notificar_ticket_reasignado(ticket_id: int, nuevo_asignado: int | None) -> None:
@@ -283,9 +316,12 @@ def notificar_ticket_reasignado(ticket_id: int, nuevo_asignado: int | None) -> N
         t = _ticket_row(db, ticket_id)
         if not t or t["tipo"] not in ("accion", "solicitud"):
             return
+        titulo = (t.get("titulo") or "una tarea").strip()
+        descripcion = (t.get("descripcion") or "").strip()
+        desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
         guion = (
-            f"Hola. Te reasignaron una tarea en el panel: "
-            f"{_titulo_corto(t.get('titulo') or t.get('numero'))}."
+            f"Hola. Te reasignaron una tarea en el panel: {titulo}."
+            + (f" {desc}." if desc else "")
         )
         _programar(nuevo_asignado, guion)
 
