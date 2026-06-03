@@ -135,10 +135,21 @@ def _crear_accion_sync_facturas_faltantes_siigo(faltantes: list[str]) -> dict | 
         _grupo_sede_sur = os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
         numero = ticket.get("numero", "")
         n = len(faltantes)
+        # Resolver nombre del asignado para la notificación
+        asignado_nombre = "Sin asignar"
+        if asignado_a:
+            try:
+                from app.services.tickets_db import _conn as _tdb_conn
+                with _tdb_conn() as _db:
+                    _row = _db.execute("SELECT nombre FROM usuarios WHERE id=?", (asignado_a,)).fetchone()
+                    if _row:
+                        asignado_nombre = _row["nombre"]
+            except Exception:
+                pass
         texto_notif = (
             f"⚡ *Acción nueva* — Sistema\n"
             f"{numero} — {TITULO_SYNC_FACTURAS_FALTANTES_SIIGO}\n"
-            f"👤 Asignado a: Sin asignar  ·  Prioridad: alta\n"
+            f"👤 Asignado a: {asignado_nombre}  ·  Prioridad: alta\n"
             f"📋 {n} paso{'s' if n != 1 else ''} para resolver (1 por orden)\n"
             f"🏢 Abre Centro de Mando → Acciones para resolverlo paso a paso."
         )

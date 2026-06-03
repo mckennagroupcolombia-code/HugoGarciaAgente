@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-01T21:55:48",
+  "updated_at": "2026-06-02T16:35:55",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -17,9 +17,60 @@
     "2026-05-27": 32,
     "2026-05-28": 11,
     "2026-05-30": 8,
-    "2026-06-01": 3
+    "2026-06-01": 3,
+    "2026-06-02": 2
   },
   "sessions": [
+    {
+      "session_id": "web-5dcc02c2-d06f-42ac-8bfe-6c1a66847b2e",
+      "started_at": "2026-06-02T16:35:55",
+      "last_at": "2026-06-02T16:35:55",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+      "last_user_message": "hola buen día",
+      "last_agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-02T16:35:55",
+          "user_message": "hola buen día",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-7dbac657-ffe8-4494-a9ee-80d274f8f530",
+      "started_at": "2026-06-02T13:48:36",
+      "last_at": "2026-06-02T13:48:36",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Holaa para preguntar cuando vence el conservante sharomix 705  de Lot. 042026",
+      "last_agent_reply": "Listo veci. Estas son las presentaciones disponibles en catálogo:\n1) *PARAFINA Kg* $21,042 COP — Ref. C-PARKg 2) *SHAROMIX 705 250 mL* $45,925 COP — Ref. C-SHA705250mL 3) *SHAROMIX 705 500mL* $90,932 COP — Ref. C-SHA705500mL 4) *SHAROMIX 705 50mL* $15,448 COP — Ref. C-SHA70550mL 5) *KIT REPARADOR COSMETICO 1* $65,882 COP — Ref. C-KITREPCOS1 6) *KIT REPARADOR COSMETICO 2* $65,882 COP — Ref. C-KITREPCOS2 7) *KIT REPARADOR COSMETICO 3* $66,716 COP — Ref. C-KITREPCOS3 ¿Cuál presentación le sirve?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-02T13:48:36",
+          "user_message": "Holaa para preguntar cuando vence el conservante sharomix 705  de Lot. 042026",
+          "agent_reply": "Listo veci. Estas son las presentaciones disponibles en catálogo:\n1) *PARAFINA Kg* $21,042 COP — Ref. C-PARKg 2) *SHAROMIX 705 250 mL* $45,925 COP — Ref. C-SHA705250mL 3) *SHAROMIX 705 500mL* $90,932 COP — Ref. C-SHA705500mL 4) *SHAROMIX 705 50mL* $15,448 COP — Ref. C-SHA70550mL 5) *KIT REPARADOR COSMETICO 1* $65,882 COP — Ref. C-KITREPCOS1 6) *KIT REPARADOR COSMETICO 2* $65,882 COP — Ref. C-KITREPCOS2 7) *KIT REPARADOR COSMETICO 3* $66,716 COP — Ref. C-KITREPCOS3 ¿Cuál presentación le sirve?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-911b66ff-4fad-49ab-bb3d-3f7d784b2110",
       "started_at": "2026-06-01T21:52:23",

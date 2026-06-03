@@ -3584,6 +3584,15 @@ def dashboard_carga() -> list:
                 "SELECT COALESCE(SUM(horas),0) as h FROM bitacora_tiempo WHERE usuario_id=?",
                 (uid,),
             ).fetchone()["h"]
+            rows = db.execute(
+                "SELECT numero, titulo, tipo, estado, prioridad, creado_en "
+                "FROM tickets WHERE asignado_a=? "
+                "AND estado NOT IN ('resuelto','rechazado') "
+                "ORDER BY CASE prioridad WHEN 'urgente' THEN 0 WHEN 'alta' THEN 1 "
+                "WHEN 'media' THEN 2 ELSE 3 END, creado_en DESC",
+                (uid,),
+            ).fetchall()
+            u["tickets_lista"] = [dict(r) for r in rows]
             result.append(u)
         return sorted(result, key=lambda x: x["tickets_abiertos"], reverse=True)
 
