@@ -4069,6 +4069,7 @@ function CentroMandoHome({
     recordatoriosHoy: 0,
     procedimientos: { label: "guardados", value: null },
   });
+  const [accionesActivas, setAccionesActivas] = useState<any[]>([]);
 
   useEffect(() => {
     const hoy = new Date().toISOString().slice(0, 10);
@@ -4079,8 +4080,10 @@ function CentroMandoHome({
       tapi("/recordatorios", token),
       tapi("/protocolos?alcance=mis", token),
     ]).then(([acc, sol, pend, rec, proc]) => {
+      const accList = acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value as any[] : [];
+      setAccionesActivas(accList);
       setStats({
-        acciones:      { label: "en curso",      value: acc.status  === "fulfilled" && Array.isArray(acc.value)  ? acc.value.length  : null },
+        acciones:      { label: "en curso",      value: accList.length },
         solicitudes:   { label: "por resolver",  value: sol.status  === "fulfilled" && Array.isArray(sol.value)  ? (sol.value as any[]).filter((t: any) => t.asignado_a === user.id).length  : null },
         pendientes:    { label: "anotadas",      value: pend.status === "fulfilled" && Array.isArray(pend.value) ? pend.value.length : null },
         recordatorios: { label: "programados",   value: rec.status  === "fulfilled" && Array.isArray(rec.value)  ? rec.value.length  : null },
@@ -4215,6 +4218,55 @@ function CentroMandoHome({
         )}
 
       </div>
+
+      {/* Panel de acciones activas asignadas */}
+      {pVer("acciones") && accionesActivas.length > 0 && (
+        <div className="rounded-3xl border border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base">⚡</span>
+            <p className="text-xs font-extrabold uppercase tracking-widest text-amber-700 dark:text-amber-300">
+              Tus acciones activas
+            </p>
+          </div>
+          <div className="space-y-2">
+            {accionesActivas.map((t: any) => {
+              const prioBg: Record<string, string> = {
+                urgente: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+                alta: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
+                media: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/60 dark:text-yellow-300",
+                baja: "bg-surface-hover text-muted",
+              };
+              const estadoBg: Record<string, string> = {
+                en_proceso: "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300",
+                pendiente: "bg-surface-hover text-muted",
+                esperando_aprobacion: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+              };
+              return (
+                <button
+                  key={t.id ?? t.numero}
+                  type="button"
+                  onClick={onAcciones}
+                  className="w-full flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-amber-200 dark:border-amber-700/40 bg-white dark:bg-amber-950/30 px-4 py-3 text-left transition-all hover:border-amber-400 hover:shadow-sm active:scale-[0.98]"
+                >
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className="font-mono text-[11px] font-bold text-accent">{t.numero}</span>
+                    <span className="text-sm font-semibold text-ink leading-tight">{t.titulo}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-0.5">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${estadoBg[t.estado] ?? "bg-surface-hover text-muted"}`}>
+                      {t.estado === "en_proceso" ? "▶ en proceso" : t.estado === "esperando_aprobacion" ? "🕐 esperando" : "⏸ pendiente"}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${prioBg[t.prioridad] ?? prioBg.baja}`}>
+                      {t.prioridad}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -10745,6 +10797,7 @@ function WorkloadView({
 }) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showNuevo, setShowNuevo] = useState(false);
   const [roles, setRoles] = useState<{ id: number; nombre: string; nivel: number }[]>([]);
   const [depts, setDepts] = useState<{ id: number; nombre: string; color?: string }[]>([]);
@@ -11136,68 +11189,123 @@ function WorkloadView({
         </div>
       ) : (
         <div className="space-y-3">
-          {data.map((u: any) => (
-            <div key={u.id} className="rounded-paper border-2 border-border bg-surface-panel p-4 shadow-paper-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-ink">{u.nombre}</span>
-                    {u.rol && <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-bold text-muted">{u.rol.nombre}</span>}
-                    {u.departamento && (
-                      <span className="rounded-full px-2 py-0.5 text-xs font-semibold"
-                        style={{ background: u.departamento.color + "22", color: u.departamento.color }}>
-                        {u.departamento.nombre}
-                      </span>
+          {data.map((u: any) => {
+            const isExpanded = expandedId === u.id;
+            const lista: any[] = Array.isArray(u.tickets_lista) ? u.tickets_lista : [];
+            const prioBadge: Record<string, string> = {
+              urgente: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
+              alta: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
+              media: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/60 dark:text-yellow-300",
+              baja: "bg-surface-hover text-muted",
+            };
+            const tipoBadge: Record<string, string> = {
+              accion: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
+              solicitud: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+              ticket: "bg-surface-hover text-muted",
+            };
+            return (
+            <div key={u.id} className="rounded-paper border-2 border-border bg-surface-panel shadow-paper-sm">
+              <div className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-ink">{u.nombre}</span>
+                      {u.rol && <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-bold text-muted">{u.rol.nombre}</span>}
+                      {u.departamento && (
+                        <span className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                          style={{ background: u.departamento.color + "22", color: u.departamento.color }}>
+                          {u.departamento.nombre}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex gap-4 text-center">
+                      <div>
+                        <div className="text-xl font-black text-ink">{u.tickets_abiertos}</div>
+                        <div className="text-xs font-semibold text-muted">Abiertos</div>
+                      </div>
+                      <div>
+                        <div className="text-xl font-black text-green-700">{u.resueltos_semana}</div>
+                        <div className="text-xs font-semibold text-muted">Resueltos / sem.</div>
+                      </div>
+                      <div>
+                        <div className="text-xl font-black text-accent">{fmtHoras(u.total_horas)}</div>
+                        <div className="text-xs font-semibold text-muted">Tiempo total</div>
+                      </div>
+                    </div>
+                    {canManageAliados && u.id !== user.id && (
+                      <button
+                        type="button"
+                        onClick={() => void eliminarAliado(u)}
+                        disabled={deletingId === u.id}
+                        title="Eliminar aliado (desactivar acceso)"
+                        className="rounded-paper border-2 border-red-400/80 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-600 hover:text-white disabled:opacity-40 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-600"
+                      >
+                        {deletingId === u.id ? "Eliminando…" : "🗑 Eliminar"}
+                      </button>
                     )}
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex gap-4 text-center">
-                    <div>
-                      <div className="text-xl font-black text-ink">{u.tickets_abiertos}</div>
-                      <div className="text-xs font-semibold text-muted">Abiertos</div>
-                    </div>
-                    <div>
-                      <div className="text-xl font-black text-green-700">{u.resueltos_semana}</div>
-                      <div className="text-xs font-semibold text-muted">Resueltos / sem.</div>
-                    </div>
-                    <div>
-                      <div className="text-xl font-black text-accent">{fmtHoras(u.total_horas)}</div>
-                      <div className="text-xs font-semibold text-muted">Tiempo total</div>
-                    </div>
-                  </div>
-                  {canManageAliados && u.id !== user.id && (
+                {/* Load bar + expand toggle */}
+                <div className="mt-3">
+                  <div className="mb-1 flex justify-between text-xs text-muted">
+                    <span>Carga actual</span>
                     <button
                       type="button"
-                      onClick={() => void eliminarAliado(u)}
-                      disabled={deletingId === u.id}
-                      title="Eliminar aliado (desactivar acceso)"
-                      className="rounded-paper border-2 border-red-400/80 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-600 hover:text-white disabled:opacity-40 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-600"
+                      onClick={() => setExpandedId(isExpanded ? null : u.id)}
+                      className="font-semibold text-accent hover:underline"
                     >
-                      {deletingId === u.id ? "Eliminando…" : "🗑 Eliminar"}
+                      {u.tickets_abiertos} tickets abiertos {isExpanded ? "▲" : "▼"}
                     </button>
+                  </div>
+                  <div className="h-2 rounded-full bg-surface-hover overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, (u.tickets_abiertos / 10) * 100)}%`,
+                        background: u.tickets_abiertos >= 8 ? "#c86a6a"
+                          : u.tickets_abiertos >= 5 ? "#e8a838" : "#0c6069",
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tickets list expandable */}
+              {isExpanded && (
+                <div className="border-t-2 border-border px-4 pb-4 pt-3">
+                  {lista.length === 0 ? (
+                    <p className="text-xs text-muted">Sin tickets activos asignados.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-muted mb-2">Asignaciones activas</p>
+                      {lista.map((t: any) => (
+                        <div key={t.numero} className="flex flex-wrap items-start justify-between gap-2 rounded-paper border border-border bg-surface px-3 py-2">
+                          <div className="flex flex-col gap-0.5 min-w-0">
+                            <span className="font-mono text-[11px] font-bold text-accent shrink-0">{t.numero}</span>
+                            <span className="text-xs font-semibold text-ink truncate max-w-xs">{t.titulo}</span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${tipoBadge[t.tipo] ?? tipoBadge.ticket}`}>
+                              {t.tipo === "accion" ? "⚡ acción" : t.tipo === "solicitud" ? "📋 solicitud" : "🎫 ticket"}
+                            </span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${prioBadge[t.prioridad] ?? prioBadge.baja}`}>
+                              {t.prioridad}
+                            </span>
+                            <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[10px] font-semibold text-muted">
+                              {t.estado}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
-              {/* Load bar */}
-              <div className="mt-3">
-                <div className="mb-1 flex justify-between text-xs text-muted">
-                  <span>Carga actual</span>
-                  <span>{u.tickets_abiertos} tickets abiertos</span>
-                </div>
-                <div className="h-2 rounded-full bg-surface-hover overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${Math.min(100, (u.tickets_abiertos / 10) * 100)}%`,
-                      background: u.tickets_abiertos >= 8 ? "#c86a6a"
-                        : u.tickets_abiertos >= 5 ? "#e8a838" : "#0c6069",
-                    }}
-                  />
-                </div>
-              </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

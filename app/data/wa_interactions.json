@@ -1,444 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1779986355.7165115,
-      "tipo": "bot_pausado_global",
-      "sender": "57262663456161814@c.us",
-      "detalle": "Ese que precio tiene x KL?"
-    },
-    {
-      "ts": 1779986391.308369,
-      "tipo": "bot_pausado_global",
-      "sender": "57262663456161814@c.us",
-      "detalle": "Listo muchas gracias 😊"
-    },
-    {
-      "ts": 1779986446.9719217,
-      "tipo": "bot_pausado_global",
-      "sender": "57186019462791352@c.us",
-      "detalle": "Me puede facturar una libra por favor"
-    },
-    {
-      "ts": 1779986465.9080813,
-      "tipo": "bot_pausado_global",
-      "sender": "57186019462791352@c.us",
-      "detalle": "Bogotá"
-    },
-    {
-      "ts": 1779986580.6811755,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1779986643.1440501,
-      "tipo": "bot_pausado_global",
-      "sender": "57186019462791352@c.us",
-      "detalle": "Cómo lo hago?"
-    },
-    {
-      "ts": 1779986663.5200953,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": "Citrato de magnesio"
-    },
-    {
-      "ts": 1779986726.0028477,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": "Cuanto da lo 2 con el envío se pagan cuando llegue"
-    },
-    {
-      "ts": 1779987060.3941352,
-      "tipo": "bot_pausado_global",
-      "sender": "5767474640867554@c.us",
-      "detalle": "Ok, gracias."
-    },
-    {
-      "ts": 1779987277.01659,
-      "tipo": "bot_pausado_global",
-      "sender": "57246827609772242@c.us",
-      "detalle": "Buenos días por favor hágame la cuenta de \n50 citrato de magnesio 250 g\n40 ácido ascórbico de 250 g\n3 citrato de zinc \n3 aceites esenciales de lavanda"
-    },
-    {
-      "ts": 1779987283.7133255,
-      "tipo": "bot_pausado_global",
-      "sender": "57246827609772242@c.us",
-      "detalle": "Hágame la cuenta"
-    },
-    {
-      "ts": 1779987449.6553874,
-      "tipo": "bot_pausado_global",
-      "sender": "57186019462791352@c.us",
-      "detalle": "TransferenciaExitosaBancolombia28May2026.pdf"
-    },
-    {
-      "ts": 1779987644.4141014,
-      "tipo": "bot_pausado_global",
-      "sender": "57186019462791352@c.us",
-      "detalle": "Eduardo Cala\n19.207.434\nCalle 72a 22 14 apto 404\nBogotá \n3002020523\necala99@hotmail.com"
-    },
-    {
-      "ts": 1779987678.9955952,
-      "tipo": "bot_pausado_global",
-      "sender": "57186019462791352@c.us",
-      "detalle": "Calle 72 A"
-    },
-    {
-      "ts": 1779987701.1153145,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": "Yo te puedo pagar el recibir"
-    },
-    {
-      "ts": 1779987714.8428502,
-      "tipo": "bot_pausado_global",
-      "sender": "57186019462791352@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1779987759.5157886,
-      "tipo": "bot_pausado_global",
-      "sender": "5767474640867554@c.us",
-      "detalle": "Hola, disculpa, ya fue  efectivo el pago en mercadolibre, no se ¿ alcance para los envios del medio día? Ó a que horas despachan para enviar a medellin?"
-    },
-    {
-      "ts": 1779987770.6938028,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": "Me confirmas para mandarte los datos y mi nueva dirección"
-    },
-    {
-      "ts": 1779987803.8112133,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": "Ok"
-    },
-    {
-      "ts": 1779987842.0401814,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": "Dame un nequi cuanto tengo que pagar"
-    },
-    {
-      "ts": 1779987875.459102,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": "Ok"
-    },
-    {
-      "ts": 1779987971.6265454,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1779987987.3148005,
-      "tipo": "bot_pausado_global",
-      "sender": "5794601033605121@c.us",
-      "detalle": "Eso 2"
-    },
-    {
-      "ts": 1779988378.5058827,
-      "tipo": "bot_pausado_global",
-      "sender": "5720396883587153@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1779988571.260324,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Sci 250gr"
-    },
-    {
-      "ts": 1779988579.221795,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Ibra estearico"
-    },
-    {
-      "ts": 1779988590.296771,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Btms250gr"
-    },
-    {
-      "ts": 1779988894.1951644,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Cogua Cundinamarca"
-    },
-    {
-      "ts": 1779989642.0476613,
-      "tipo": "bot_pausado_global",
-      "sender": "5767474640867554@c.us",
-      "detalle": "Ok, Dios le pague. Muchas gracias. Dios los bendiga. 🙏🏻"
-    },
-    {
-      "ts": 1779989704.7307024,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "Buenas tardes"
-    },
-    {
-      "ts": 1779989791.5114105,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "Deseo pedir lo siguiente:\nAceite de girasol de 1 litro\nAceite de pepita de uva 500 ml\nCuanto me costaría?"
-    },
-    {
-      "ts": 1779989916.1485472,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "Yopal-Casanare"
-    },
-    {
-      "ts": 1779989937.9878778,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "Pantenol del pequeño, también"
-    },
-    {
-      "ts": 1779989962.2694004,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "Ustedes manejan aceite de coco fraccionado?"
-    },
-    {
-      "ts": 1779990129.634717,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "El tensioactivo SCI Y SCS?"
-    },
-    {
-      "ts": 1779990207.2460952,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "De cuántos ml?"
-    },
-    {
-      "ts": 1779990221.2911875,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "Lactato de sodio?"
-    },
-    {
-      "ts": 1779990300.5561924,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "Cuántos ml?"
-    },
-    {
-      "ts": 1779990382.9343586,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Q espumante tienes para jabones artesanal natural?"
-    },
-    {
-      "ts": 1779990400.350919,
-      "tipo": "bot_pausado_global",
-      "sender": "5744719350530302@c.us",
-      "detalle": "Gracias, dame un momento"
-    },
-    {
-      "ts": 1779991316.895385,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Está es la betaina de coco?"
-    },
-    {
-      "ts": 1779991371.1904662,
-      "tipo": "bot_pausado_global",
-      "sender": "57246827609772242@c.us",
-      "detalle": "Para depositar mañana"
-    },
-    {
-      "ts": 1779991377.7973237,
-      "tipo": "bot_pausado_global",
-      "sender": "57246827609772242@c.us",
-      "detalle": "?"
-    },
-    {
-      "ts": 1779991592.2491465,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Hago jabones artesanales con leche de cabra y plantas medicinales, pero mis clientes dicen q quieren q haga espuma porq eso da sensación de limpieza"
-    },
-    {
-      "ts": 1779991612.935075,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Y quiero hago q no de alergia"
-    },
-    {
-      "ts": 1779991630.4727135,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Cual me recomiendas?"
-    },
-    {
-      "ts": 1779991877.5894716,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Dame una de estas porfa"
-    },
-    {
-      "ts": 1779992155.2706053,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Cogua Cundinamarca"
-    },
-    {
-      "ts": 1779992166.547144,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Vendes mica lipe-safe?"
-    },
-    {
-      "ts": 1779992198.8105073,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Aroma lipe-safe y oxido rojo?"
-    },
-    {
-      "ts": 1779992202.8232543,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Ok"
-    },
-    {
-      "ts": 1779992294.1663225,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Listo"
-    },
-    {
-      "ts": 1779992307.0365484,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Me ayudas a totalizar porfa"
-    },
-    {
-      "ts": 1779994194.3234794,
-      "tipo": "bot_pausado_global",
-      "sender": "57266855042285583@c.us",
-      "detalle": "Buenos tardes Por favor me indica los valores de los productos. Gracias"
-    },
-    {
-      "ts": 1779994764.2964442,
-      "tipo": "bot_pausado_global",
-      "sender": "57110213222891737@c.us",
-      "detalle": "Buenas Tardes"
-    },
-    {
-      "ts": 1779994797.7604256,
-      "tipo": "bot_pausado_global",
-      "sender": "57110213222891737@c.us",
-      "detalle": "Ustedes venden ácido acetico por galones?"
-    },
-    {
-      "ts": 1779995380.5991137,
-      "tipo": "bot_pausado_global",
-      "sender": "57266855042285583@c.us",
-      "detalle": "por favor modificar el pedido , quitar la manteca de karite y quisera cofirmar si es el aceite de menta el q esta en el pedido"
-    },
-    {
-      "ts": 1779996052.073494,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1779996057.0453165,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Listo"
-    },
-    {
-      "ts": 1779996091.6781678,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Amanda Julieth paez orozco"
-    },
-    {
-      "ts": 1779996097.5757437,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "53911376"
-    },
-    {
-      "ts": 1779996106.7513618,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Interrapidisimo oficina cogua"
-    },
-    {
-      "ts": 1779996112.5044477,
-      "tipo": "bot_pausado_auto",
-      "sender": "57130975447179480@c.us",
-      "detalle": "ráfaga de 6 mensajes en 120s"
-    },
-    {
-      "ts": 1779996127.7336946,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "3174923920"
-    },
-    {
-      "ts": 1779996135.897185,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "amandapaez2024@gmail.com"
-    },
-    {
-      "ts": 1779996178.684598,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1779997216.068715,
-      "tipo": "bot_pausado_global",
-      "sender": "57266855042285583@c.us",
-      "detalle": "aceite de menta por favor"
-    },
-    {
-      "ts": 1779997763.417517,
-      "tipo": "bot_pausado_global",
-      "sender": "57236524016791788@c.us",
-      "detalle": "Buenas tardes \nNecesito por favor 1 urea cosmetica de 500 ml"
-    },
-    {
-      "ts": 1779997893.3090034,
-      "tipo": "bot_pausado_global",
-      "sender": "57236524016791788@c.us",
-      "detalle": "Si"
-    },
-    {
-      "ts": 1779998033.732801,
-      "tipo": "manual_humano",
-      "sender": "57266855042285583@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779998050.978578,
-      "tipo": "manual_humano",
-      "sender": "57110213222891737@c.us",
-      "detalle": "operador desde panel de chats"
-    },
-    {
-      "ts": 1779998756.2666728,
-      "tipo": "bot_pausado_global",
-      "sender": "57236524016791788@c.us",
-      "detalle": "De ese tiene una bolsa de 1000 gr que de pronto sea más favorable comprar"
-    },
-    {
-      "ts": 1779998802.6441433,
-      "tipo": "bot_pausado_global",
-      "sender": "57236524016791788@c.us",
-      "detalle": "Ah bueno"
-    },
-    {
       "ts": 1779998989.2739189,
       "tipo": "bot_pausado_global",
       "sender": "57236524016791788@c.us",
@@ -1799,6 +1361,444 @@
       "tipo": "bot_pausado_global",
       "sender": "57163295394836728@c.us",
       "detalle": "Quedo atento, muchas gracias"
+    },
+    {
+      "ts": 1780405148.797128,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Hola buenos dias"
+    },
+    {
+      "ts": 1780405198.5481544,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Gracias"
+    },
+    {
+      "ts": 1780405293.862179,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Buenos dias"
+    },
+    {
+      "ts": 1780405352.13096,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Necesito  un combo de citrato de magnesio y potacio"
+    },
+    {
+      "ts": 1780405536.1513665,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": ",o"
+    },
+    {
+      "ts": 1780405570.0908918,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Me lo puede enviar contraentrega"
+    },
+    {
+      "ts": 1780405576.057268,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Me hace el favor"
+    },
+    {
+      "ts": 1780405642.4409611,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "?"
+    },
+    {
+      "ts": 1780406171.516792,
+      "tipo": "bot_pausado_global",
+      "sender": "57159043226206325@c.us",
+      "detalle": "Muy buenos días.\nHay disponibles Esencias de Ylang Ylang. ?"
+    },
+    {
+      "ts": 1780406358.2715979,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Pero es solo para pagar el envio"
+    },
+    {
+      "ts": 1780406372.850861,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Por  interrapidisimo"
+    },
+    {
+      "ts": 1780406516.502273,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Eso es lo q quiero"
+    },
+    {
+      "ts": 1780406526.8399608,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Solo pagar el envio"
+    },
+    {
+      "ts": 1780406554.5666895,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Ok"
+    },
+    {
+      "ts": 1780406581.0304873,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "En el combo viene 250 gramos de citrato de magnecio y 250 gr de potacio"
+    },
+    {
+      "ts": 1780406731.9123657,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780406734.5299256,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Listo"
+    },
+    {
+      "ts": 1780406765.010173,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Dario alejandro castro camacho"
+    },
+    {
+      "ts": 1780406765.1593626,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "1120500232"
+    },
+    {
+      "ts": 1780406765.3289034,
+      "tipo": "bot_pausado_global",
+      "sender": "57112145974988807@c.us",
+      "detalle": "Mz E casa 10 barrio san jose"
+    },
+    {
+      "ts": 1780406765.492174,
+      "tipo": "bot_pausado_auto",
+      "sender": "57112145974988807@c.us",
+      "detalle": "ráfaga de 6 mensajes en 120s"
+    },
+    {
+      "ts": 1780406765.6475105,
+      "tipo": "bot_pausado_auto",
+      "sender": "57112145974988807@c.us",
+      "detalle": "ráfaga de 7 mensajes en 120s"
+    },
+    {
+      "ts": 1780406765.8097432,
+      "tipo": "bot_pausado_auto",
+      "sender": "57112145974988807@c.us",
+      "detalle": "ráfaga de 8 mensajes en 120s"
+    },
+    {
+      "ts": 1780406805.200601,
+      "tipo": "bot_pausado_auto",
+      "sender": "57112145974988807@c.us",
+      "detalle": "ráfaga de 9 mensajes en 120s"
+    },
+    {
+      "ts": 1780407103.4571679,
+      "tipo": "bot_pausado_global",
+      "sender": "57214160122064945@c.us",
+      "detalle": "Buenas disculpa ya no tienen disponibles las botellas de 100ml de aceites escencisles?"
+    },
+    {
+      "ts": 1780410208.9005628,
+      "tipo": "bot_pausado_global",
+      "sender": "57163295394836728@c.us",
+      "detalle": "Buenos días, quedo atento"
+    },
+    {
+      "ts": 1780410717.88791,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Hola buenos días"
+    },
+    {
+      "ts": 1780410722.8720663,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Aún tienes la alfa arbutina"
+    },
+    {
+      "ts": 1780410727.8084815,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Para realizarte el pedido hoy"
+    },
+    {
+      "ts": 1780411779.3203998,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Qué datos te envío y a donde envío el dinero?"
+    },
+    {
+      "ts": 1780412407.8842373,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Hola, quiero información sobre sus productos"
+    },
+    {
+      "ts": 1780412467.0413187,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780412469.254085,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Quisiera saber si maneja el alfa arbutina en polvo es para realizar un producto cosmético"
+    },
+    {
+      "ts": 1780412570.9190116,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Camila Quiñones \n1233510382\nCra. 90c # 6 a 31 \nConjunto prados de Castilla etapa 5 casa 32 \nBogotá  tintal \n3013286384"
+    },
+    {
+      "ts": 1780412630.3497858,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Listo gracias"
+    },
+    {
+      "ts": 1780412710.9165125,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Disculpa tienen punto físico ?"
+    },
+    {
+      "ts": 1780413910.2688346,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Es pago contra entrega?"
+    },
+    {
+      "ts": 1780413927.1993341,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Y cuanto tiempo demora?"
+    },
+    {
+      "ts": 1780415518.543893,
+      "tipo": "bot_pausado_global",
+      "sender": "57126869089333335@c.us",
+      "detalle": "Buen día, es tan amable me envías \n2 Colageno s hidrolizados \n1 Citrato potasio y magnesio 250gr \n1 Citrato calcio"
+    },
+    {
+      "ts": 1780415525.4319975,
+      "tipo": "bot_pausado_global",
+      "sender": "57126869089333335@c.us",
+      "detalle": "Me confirmas el precio del envío por favor"
+    },
+    {
+      "ts": 1780416038.5307248,
+      "tipo": "bot_pausado_global",
+      "sender": "57126869089333335@c.us",
+      "detalle": "Y el número de pago, gracias 🙏"
+    },
+    {
+      "ts": 1780416480.7724009,
+      "tipo": "bot_pausado_global",
+      "sender": "57126869089333335@c.us",
+      "detalle": "Bogotá"
+    },
+    {
+      "ts": 1780416544.8701253,
+      "tipo": "bot_pausado_global",
+      "sender": "57126869089333335@c.us",
+      "detalle": "Joa Salcedo \nDiagonal 54a sur 81f 24 \nCasa de 4 pisos puertas negras, apto 101 girando la esquina \nCel 3157573874"
+    },
+    {
+      "ts": 1780417406.6949253,
+      "tipo": "bot_pausado_global",
+      "sender": "57256925128241220@c.us",
+      "detalle": "Hola"
+    },
+    {
+      "ts": 1780418815.1791816,
+      "tipo": "bot_pausado_global",
+      "sender": "57126869089333335@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780418867.497527,
+      "tipo": "bot_pausado_global",
+      "sender": "57126869089333335@c.us",
+      "detalle": "Muchas gracias 😊"
+    },
+    {
+      "ts": 1780420259.9376912,
+      "tipo": "bot_pausado_global",
+      "sender": "5755452624797852@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1780420302.914974,
+      "tipo": "bot_pausado_global",
+      "sender": "57159043226206325@c.us",
+      "detalle": "Pedido:\n9 - Esencias de ylang ylang"
+    },
+    {
+      "ts": 1780420375.33535,
+      "tipo": "bot_pausado_global",
+      "sender": "5755452624797852@c.us",
+      "detalle": "¿Qué precio tiene?"
+    },
+    {
+      "ts": 1780420389.4984295,
+      "tipo": "bot_pausado_global",
+      "sender": "5755452624797852@c.us",
+      "detalle": "¿Tiene en presentación de 500 gramos?"
+    },
+    {
+      "ts": 1780422924.0998042,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Hola buenas tarde \nMe haces el favor y me vendes el producto"
+    },
+    {
+      "ts": 1780423314.6223903,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Si señora"
+    },
+    {
+      "ts": 1780425279.4995813,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780425282.8957222,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Mira veci"
+    },
+    {
+      "ts": 1780425286.6680691,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Ya te envié el dinero"
+    },
+    {
+      "ts": 1780425389.976438,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Luna Acosta \n1014858976\nCalle 68 # 68 A 97\nBogotá \n3194307522\nCuanto demora el envío?"
+    },
+    {
+      "ts": 1780425437.9492793,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Vale graciass quedó al pendiente"
+    },
+    {
+      "ts": 1780426525.474519,
+      "tipo": "bot_pausado_global",
+      "sender": "57256925128241220@c.us",
+      "detalle": "Buen día"
+    },
+    {
+      "ts": 1780426538.2608728,
+      "tipo": "bot_pausado_global",
+      "sender": "57256925128241220@c.us",
+      "detalle": "Procedemos al pago por qr?"
+    },
+    {
+      "ts": 1780429498.4635582,
+      "tipo": "bot_pausado_global",
+      "sender": "57156689080815635@c.us",
+      "detalle": "buenas tardes"
+    },
+    {
+      "ts": 1780429507.201477,
+      "tipo": "bot_pausado_global",
+      "sender": "57156689080815635@c.us",
+      "detalle": "manejan materias primas a grado de alimentos"
+    },
+    {
+      "ts": 1780429511.3615973,
+      "tipo": "bot_pausado_global",
+      "sender": "57156689080815635@c.us",
+      "detalle": "sector nutraceutico"
+    },
+    {
+      "ts": 1780435138.5261502,
+      "tipo": "bot_pausado_global",
+      "sender": "57273812855779522@c.us",
+      "detalle": "Hola, quiero información sobre sus productos como estas ¡¡"
+    },
+    {
+      "ts": 1780435150.224236,
+      "tipo": "bot_pausado_global",
+      "sender": "57273812855779522@c.us",
+      "detalle": "Medidor Digital De Agua 4 En 1 Ph Metro Tds Ec Temperatura"
+    },
+    {
+      "ts": 1780435235.5647283,
+      "tipo": "bot_pausado_global",
+      "sender": "57273812855779522@c.us",
+      "detalle": "1 unidad ?"
+    },
+    {
+      "ts": 1780436094.3501437,
+      "tipo": "bot_pausado_global",
+      "sender": "57156689080815635@c.us",
+      "detalle": "estoy buscando las siguientes materias primas"
+    },
+    {
+      "ts": 1780436099.1702006,
+      "tipo": "bot_pausado_global",
+      "sender": "57156689080815635@c.us",
+      "detalle": "a ver si de algunas manejan"
+    },
+    {
+      "ts": 1780436510.8238227,
+      "tipo": "bot_pausado_global",
+      "sender": "57156689080815635@c.us",
+      "detalle": "MATERIA PRIMAS.xlsx"
+    },
+    {
+      "ts": 1780438508.1463773,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1780438513.0763626,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Más o menos a qué horas llega?"
+    },
+    {
+      "ts": 1780442256.5019684,
+      "tipo": "bot_pausado_global",
+      "sender": "57104101601915095@c.us",
+      "detalle": "Hola buenas tardes"
+    },
+    {
+      "ts": 1780449898.4581878,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "Buenas noches?"
+    },
+    {
+      "ts": 1780449912.8337014,
+      "tipo": "bot_pausado_global",
+      "sender": "57257534845792363@c.us",
+      "detalle": "????"
     }
   ]
 }
