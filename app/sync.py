@@ -15,7 +15,7 @@ from app.services.siigo import (
     siigo_omitir_pdf_mientras_timbrado,
     obtener_documento_fiscal_siigo_para_meli,
 )
-from app.services.meli import subir_factura_meli
+from app.services.meli import meli_pack_tiene_documento_fiscal, subir_factura_meli
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte, jid_grupo_inventario_wa
 from app.tools.system_tools import enviar_reporte_controlado
 from app.services.tickets_db import (
@@ -28,6 +28,230 @@ from app.services.tickets_db import (
 
 
 TITULO_SYNC_FACTURAS_FALTANTES_SIIGO = "Sync facturas faltantes MeLi↔Siigo"
+
+# Categorías del cruce MeLi↔Siigo (pack sin documento fiscal en MeLi aún).
+SYNC_FACTURA_CAT_SIN_CRUCE = "sin_cruce_siigo"
+SYNC_FACTURA_CAT_TIMBRADO = "esperando_timbrado"
+SYNC_FACTURA_CAT_SIN_DOC = "sin_documento_siigo"
+SYNC_FACTURA_CAT_FALLO_SUBIDA = "fallo_subida_meli"
+SYNC_FACTURA_CATEGORIAS_ORDEN = (
+    SYNC_FACTURA_CAT_SIN_CRUCE,
+    SYNC_FACTURA_CAT_TIMBRADO,
+    SYNC_FACTURA_CAT_SIN_DOC,
+    SYNC_FACTURA_CAT_FALLO_SUBIDA,
+)
+
+
+def _categorias_sync_facturas_vacias() -> dict[str, list[str]]:
+    return {k: [] for k in SYNC_FACTURA_CATEGORIAS_ORDEN}
+
+
+def _indexar_facturas_siigo_por_packs(
+    facturas_siigo: list, pack_ids: list[str]
+) -> dict[str, dict]:
+    """Mapea pack_id → factura Siigo (observations / purchase_order)."""
+    pack_set = {str(p).strip() for p in pack_ids if str(p).strip()}
+    fac_match: dict[str, dict] = {}
+    for fac in facturas_siigo:
+        obs = (
+            str(fac.get("observations", ""))
+            + " "
+            + str(fac.get("purchase_order", ""))
+        )
+        for p in list(pack_set):
+            if p in obs:
+                fac_match[p] = fac
+                pack_set.discard(p)
+        if not pack_set:
+            break
+    return fac_match
+
+
+def _intentar_sync_pack_desde_factura_siigo(
+    pack_id: str,
+    fac: dict,
+    cache_doc: dict[str, tuple[Any, str]],
+) -> tuple[str, str | None]:
+    """
+    Intenta obtener documento Siigo y subirlo a MeLi.
+    Retorna (categoría, detalle_opcional).
+    categoría: 'ok' | SYNC_FACTURA_CAT_* .
+    """
+    if siigo_omitir_pdf_mientras_timbrado(fac):
+        est = siigo_factura_estado_log(fac)
+        return (
+            SYNC_FACTURA_CAT_TIMBRADO,
+            f"estado Siigo: {est or 'pendiente timbrado DIAN'}",
+        )
+
+    sid = str(fac.get("id") or "").strip()
+    if not sid:
+        return (SYNC_FACTURA_CAT_SIN_DOC, "factura Siigo sin id")
+
+    if sid in cache_doc:
+        doc, fmt = cache_doc[sid]
+    else:
+        doc, fmt = obtener_documento_fiscal_siigo_para_meli(sid)
+        cache_doc[sid] = (doc, fmt)
+
+    if not doc:
+        return (
+            SYNC_FACTURA_CAT_SIN_DOC,
+            f"{siigo_factura_etiqueta_log(fac)} (est={siigo_factura_estado_log(fac)})",
+        )
+
+    res = subir_factura_meli(pack_id, doc, formato=fmt)
+    if isinstance(res, str) and "✅" in res:
+        return ("ok", None)
+
+    detalle = (res or "error desconocido")[:220]
+    return (SYNC_FACTURA_CAT_FALLO_SUBIDA, detalle)
+
+
+def _procesar_packs_sync_siigo(
+    pack_ids: list[str], facturas_siigo: list
+) -> dict[str, Any]:
+    """Cruza packs pendientes en MeLi con facturas Siigo y sube cuando es posible."""
+    categorias = _categorias_sync_facturas_vacias()
+    fallo_detalle: dict[str, str] = {}
+    exitosas: list[str] = []
+    cache_doc: dict[str, tuple[Any, str]] = {}
+    fac_match = _indexar_facturas_siigo_por_packs(facturas_siigo, pack_ids)
+
+    for p_id in pack_ids:
+        fac = fac_match.get(p_id)
+        if not fac:
+            categorias[SYNC_FACTURA_CAT_SIN_CRUCE].append(p_id)
+            print(f"   └──> ❓ Pack {p_id}: sin cruce en Siigo (observations/purchase_order)")
+            continue
+
+        cat, detalle = _intentar_sync_pack_desde_factura_siigo(p_id, fac, cache_doc)
+        if cat == "ok":
+            exitosas.append(p_id)
+            print(f"   └──> ✅ Sincronizada factura para Pack ID: {p_id}")
+            continue
+
+        categorias[cat].append(p_id)
+        if detalle:
+            fallo_detalle[p_id] = detalle
+        if cat == SYNC_FACTURA_CAT_TIMBRADO:
+            print(f"   └──> ⏭️ Pack {p_id}: esperando timbrado ({detalle})")
+        elif cat == SYNC_FACTURA_CAT_SIN_DOC:
+            print(f"   └──> ⚠️ Pack {p_id}: sin PDF/XML en Siigo ({detalle})")
+        else:
+            print(f"   └──> ❌ Pack {p_id}: fallo subida MeLi ({detalle})")
+
+    return {
+        "exitosas": exitosas,
+        "categorias": categorias,
+        "fallo_detalle": fallo_detalle,
+    }
+
+
+def _packs_accionables_sync(categorias: dict[str, list[str]]) -> list[str]:
+    """IDs que requieren intervención o seguimiento (incluye timbrado pendiente)."""
+    vistos: set[str] = set()
+    orden: list[str] = []
+    for cat in SYNC_FACTURA_CATEGORIAS_ORDEN:
+        for p in categorias.get(cat, []) or []:
+            if p not in vistos:
+                vistos.add(p)
+                orden.append(p)
+    return orden
+
+
+def _packs_criticos_sync(categorias: dict[str, list[str]]) -> list[str]:
+    """IDs sin factura en MeLi que no se explican solo por timbrado en curso."""
+    out: list[str] = []
+    vistos: set[str] = set()
+    for cat in (
+        SYNC_FACTURA_CAT_SIN_CRUCE,
+        SYNC_FACTURA_CAT_SIN_DOC,
+        SYNC_FACTURA_CAT_FALLO_SUBIDA,
+    ):
+        for p in categorias.get(cat, []) or []:
+            if p not in vistos:
+                vistos.add(p)
+                out.append(p)
+    return out
+
+
+def _formatear_lista_pack_ids(pack_ids: list[str], max_items: int = 15) -> str:
+    if not pack_ids:
+        return "_(ninguno)_"
+    lineas = [f"- {p}" for p in pack_ids[:max_items]]
+    if len(pack_ids) > max_items:
+        lineas.append(f"- … y {len(pack_ids) - max_items} más")
+    return "\n".join(lineas)
+
+
+def _formatear_reporte_sync_facturas(
+    exitosas: list[str],
+    categorias: dict[str, list[str]],
+    fallo_detalle: dict[str, str] | None = None,
+) -> str:
+    """Mensaje WhatsApp con secciones por tipo de pendiente."""
+    fallo_detalle = fallo_detalle or {}
+    criticos = _packs_criticos_sync(categorias)
+    timbrado = categorias.get(SYNC_FACTURA_CAT_TIMBRADO, [])
+    n_crit = len(criticos)
+    n_tim = len(timbrado)
+
+    if n_crit:
+        resumen = (
+            f"⚠️ *ALERTA DE FACTURACIÓN* ⚠️\n"
+            f"Subidas a MeLi: {len(exitosas)} · "
+            f"Pendientes críticos: {n_crit}"
+            + (f" · En timbrado Siigo: {n_tim}" if n_tim else "")
+        )
+    elif n_tim:
+        resumen = (
+            f"ℹ️ *Sync facturas MeLi↔Siigo*\n"
+            f"Subidas: {len(exitosas)} · "
+            f"{n_tim} pack(s) con factura en Siigo esperando timbrado DIAN (sin subir aún)."
+        )
+    else:
+        return ""
+
+    partes = [resumen]
+    secciones = (
+        (
+            SYNC_FACTURA_CAT_SIN_CRUCE,
+            "Sin cruce en Siigo",
+            "No aparece el Pack ID en observations/purchase_order de ninguna factura reciente.",
+        ),
+        (
+            SYNC_FACTURA_CAT_SIN_DOC,
+            "Factura en Siigo sin PDF/XML",
+            "Hay cruce en Siigo pero aún no hay documento descargable para MeLi.",
+        ),
+        (
+            SYNC_FACTURA_CAT_FALLO_SUBIDA,
+            "Fallo al subir a MeLi",
+            "Documento listo en Siigo pero la API de MeLi rechazó o falló la subida.",
+        ),
+        (
+            SYNC_FACTURA_CAT_TIMBRADO,
+            "Esperando timbrado DIAN",
+            "Factura en Siigo en borrador/envío; reintentar cuando esté timbrada.",
+        ),
+    )
+    for cat, titulo, ayuda in secciones:
+        ids = categorias.get(cat, [])
+        if not ids:
+            continue
+        bloque = f"\n*{titulo} ({len(ids)}):*\n{ayuda}\n{_formatear_lista_pack_ids(ids)}"
+        if cat == SYNC_FACTURA_CAT_FALLO_SUBIDA and fallo_detalle:
+            ejemplos = []
+            for p in ids[:5]:
+                d = fallo_detalle.get(p)
+                if d:
+                    ejemplos.append(f"  · {p}: {d[:120]}")
+            if ejemplos:
+                bloque += "\n_Detalle:_\n" + "\n".join(ejemplos)
+        partes.append(bloque)
+
+    return "\n".join(partes)
 
 
 def _get_admin_creator_id() -> int | None:
@@ -76,12 +300,17 @@ def _hay_accion_abierta_sync_facturas_faltantes() -> bool:
     return False
 
 
-def _crear_accion_sync_facturas_faltantes_siigo(faltantes: list[str]) -> dict | None:
+def _crear_accion_sync_facturas_faltantes_siigo(
+    categorias: dict[str, list[str]],
+    *,
+    fallo_detalle: dict[str, str] | None = None,
+) -> dict | None:
     """
-    Crea una acción en el Centro de mando para que un colaborador ejecute la sincronización
-    manual de los Pack IDs faltantes.
+    Crea una acción en el Centro de mando para packs sin documento fiscal en MeLi.
+    categorias: dict con claves SYNC_FACTURA_CAT_*.
     """
-    if not faltantes:
+    packs_ticket = _packs_accionables_sync(categorias)
+    if not packs_ticket:
         return None
     if _hay_accion_abierta_sync_facturas_faltantes():
         return None
@@ -99,30 +328,71 @@ def _crear_accion_sync_facturas_faltantes_siigo(faltantes: list[str]) -> dict | 
     except Exception:
         asignado_a = None
 
-    marker_line = f"SYS_SYNC_FALTANTES_PACKS_JSON: {json.dumps(faltantes, ensure_ascii=False)}"
-    lista_legible = "\n".join([f"- {p}" for p in faltantes])
-    descripcion = (
-        "Se detectaron órdenes de MeLi sin factura fiscal en el cruce MeLi↔Siigo.\n\n"
-        "Acción requerida: revisar cada orden en SIIGO, crear/subir la factura a MeLi y "
-        "dejar una nota del motivo. Usa el modo 'Resolver paso a paso' para ir orden por orden.\n\n"
-        f"Pack IDs faltantes ({len(faltantes)}):\n{lista_legible}\n\n"
-        + marker_line
+    fallo_detalle = fallo_detalle or {}
+    marker_packs = (
+        f"SYS_SYNC_FALTANTES_PACKS_JSON: "
+        f"{json.dumps(packs_ticket, ensure_ascii=False)}"
     )
+    marker_cats = (
+        f"SYS_SYNC_FALTANTES_CATEGORIAS_JSON: "
+        f"{json.dumps(categorias, ensure_ascii=False)}"
+    )
+
+    bloques_desc = [
+        "Se detectaron packs de MeLi sin documento fiscal subido, tras cruce con Siigo.\n",
+        "Resolver según categoría (ver abajo). Al cerrar la acción se reintenta el sync automático.\n",
+    ]
+    notas_por_cat = {
+        SYNC_FACTURA_CAT_SIN_CRUCE: (
+            "Buscar el Pack ID en Siigo (observations/purchase_order) o emitir factura "
+            "y volver a sincronizar."
+        ),
+        SYNC_FACTURA_CAT_TIMBRADO: (
+            "Factura en Siigo aún en timbrado; esperar estado timbrado y reintentar sync."
+        ),
+        SYNC_FACTURA_CAT_SIN_DOC: (
+            "Hay cruce en Siigo pero falta PDF/XML descargable; completar timbrado o "
+            "regenerar documento en Siigo."
+        ),
+        SYNC_FACTURA_CAT_FALLO_SUBIDA: (
+            "Subir manualmente a MeLi o corregir el documento; revisar detalle del error."
+        ),
+    }
+    for cat in SYNC_FACTURA_CATEGORIAS_ORDEN:
+        ids = categorias.get(cat, [])
+        if not ids:
+            continue
+        bloques_desc.append(
+            f"\n{cat} ({len(ids)}):\n{_formatear_lista_pack_ids(ids, max_items=30)}"
+        )
+
+    descripcion = "\n".join(bloques_desc) + f"\n\n{marker_packs}\n{marker_cats}"
+
+    def _paso_para_pack(p_id: str) -> dict:
+        for cat in SYNC_FACTURA_CATEGORIAS_ORDEN:
+            if p_id in (categorias.get(cat) or []):
+                notas = notas_por_cat.get(cat, "")
+                if cat == SYNC_FACTURA_CAT_FALLO_SUBIDA:
+                    err = fallo_detalle.get(p_id)
+                    if err:
+                        notas = f"{notas}\nError: {err[:300]}"
+                return {
+                    "descripcion": f"[{cat}] Pack MeLi: {p_id}",
+                    "notas": notas,
+                }
+        return {
+            "descripcion": f"Pack MeLi: {p_id}",
+            "notas": notas_por_cat[SYNC_FACTURA_CAT_SIN_CRUCE],
+        }
 
     data = {
         "tipo": "accion",
         "titulo": TITULO_SYNC_FACTURAS_FALTANTES_SIIGO,
         "categoria": "contabilidad",
         "descripcion": descripcion,
-        "prioridad": "alta",
+        "prioridad": "alta" if _packs_criticos_sync(categorias) else "media",
         "asignado_a": asignado_a,
-        "pasos": [
-            {
-                "descripcion": f"Verificar y facturar orden MeLi: {p_id}",
-                "notas": "Revisar en SIIGO → crear o subir factura a MeLi → dejar nota del motivo si aplica.",
-            }
-            for p_id in faltantes
-        ],
+        "pasos": [_paso_para_pack(p_id) for p_id in packs_ticket],
     }
 
     ticket, err = crear_ticket(data, creador_id, None)
@@ -134,7 +404,7 @@ def _crear_accion_sync_facturas_faltantes_siigo(faltantes: list[str]) -> dict | 
         import threading
         _grupo_sede_sur = os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
         numero = ticket.get("numero", "")
-        n = len(faltantes)
+        n = len(packs_ticket)
         # Resolver nombre del asignado para la notificación
         asignado_nombre = "Sin asignar"
         if asignado_a:
@@ -354,64 +624,19 @@ def sincronizar_manual_por_packs(pack_ids: list[str]) -> dict[str, Any]:
 
     try:
         facturas_siigo = obtener_facturas_siigo_paginadas(fecha_inicio)
-        # Mapear primero: pack_id -> factura Siigo encontrada por búsqueda en observations/purchase_order.
-        pack_set = set(pack_norm)
-        fac_match: dict[str, dict] = {}
-        for fac in facturas_siigo:
-            obs = (
-                str(fac.get("observations", ""))
-                + " "
-                + str(fac.get("purchase_order", ""))
-            )
-            for p in list(pack_set):
-                if p in obs:
-                    fac_match[p] = fac
-                    pack_set.discard(p)
-            if not pack_set:
-                break
-
-        exitosas: list[str] = []
-        fallidas: list[str] = []
-        faltantes: list[str] = []
-        cache_doc: dict[str, tuple[str, str]] = {}  # siigo_factura_id -> (doc, fmt)
-
-        for p_id in pack_norm:
-            fac = fac_match.get(p_id)
-            if not fac:
-                faltantes.append(p_id)
-                continue
-
-            if siigo_omitir_pdf_mientras_timbrado(fac):
-                fallidas.append(p_id)
-                continue
-
-            sid = str(fac.get("id") or "").strip()
-            if not sid:
-                fallidas.append(p_id)
-                continue
-
-            if sid in cache_doc:
-                doc, fmt = cache_doc[sid]
-            else:
-                doc, fmt = obtener_documento_fiscal_siigo_para_meli(sid)
-                cache_doc[sid] = (doc, fmt)
-
-            if not doc:
-                fallidas.append(p_id)
-                continue
-
-            res = subir_factura_meli(p_id, doc, formato=fmt)
-            if isinstance(res, str) and "✅" in res:
-                exitosas.append(p_id)
-            else:
-                fallidas.append(p_id)
+        resultado = _procesar_packs_sync_siigo(pack_norm, facturas_siigo)
+        categorias = resultado["categorias"]
+        fallidas = _packs_accionables_sync(categorias)
+        faltantes = categorias.get(SYNC_FACTURA_CAT_SIN_CRUCE, [])
 
         return {
             "ok": True,
             "pack_ids": pack_norm,
-            "exitosas": exitosas,
+            "exitosas": resultado["exitosas"],
             "fallidas": fallidas,
             "faltantes": faltantes,
+            "categorias": categorias,
+            "fallo_detalle": resultado.get("fallo_detalle") or {},
             "facturas_siigo_leidas": len(facturas_siigo),
         }
     except Exception as e:
@@ -433,17 +658,29 @@ def sincronizar_inteligente():
         fecha_hace_15 = (datetime.now() - timedelta(days=15)).strftime(
             "%Y-%m-%dT%H:%M:%S.000-00:00"
         )
-        url_meli = f"https://api.mercadolibre.com/orders/search?seller={seller_id}&order.date_created.from={fecha_hace_15}"
+        headers_meli = {"Authorization": f"Bearer {token_meli}", "x-version": "2"}
         pendientes = []
-        for ord in (
-            requests.get(url_meli, headers={"Authorization": f"Bearer {token_meli}"})
-            .json()
-            .get("results", [])
-        ):
-            if not ord.get("fiscal_documents"):
-                p_id = str(ord.get("pack_id") or ord.get("id"))
-                if p_id not in pendientes:
+        packs_revisados: set[str] = set()
+        offset, limit = 0, 50
+        while True:
+            url_meli = (
+                f"https://api.mercadolibre.com/orders/search?seller={seller_id}"
+                f"&order.date_created.from={fecha_hace_15}&limit={limit}&offset={offset}"
+            )
+            data = requests.get(url_meli, headers=headers_meli, timeout=30).json()
+            results = data.get("results", []) or []
+            for ord in results:
+                p_id = str(ord.get("pack_id") or ord.get("id") or "").strip()
+                if not p_id or p_id in packs_revisados:
+                    continue
+                packs_revisados.add(p_id)
+                if not meli_pack_tiene_documento_fiscal(p_id, token=token_meli):
                     pendientes.append(p_id)
+            paging = data.get("paging") or {}
+            total = int(paging.get("total") or 0)
+            offset += limit
+            if offset >= total or not results:
+                break
         if not pendientes:
             return (
                 "✅ ¡Excelente! Mercado Libre está al día. No hay facturas pendientes."
@@ -457,50 +694,29 @@ def sincronizar_inteligente():
             return f"⚠️ Alerta: MeLi tiene {len(pendientes)} pendientes pero no hay facturas en Siigo para cruzar."
         print(f"🔍 Obtenidas {len(facturas_siigo)} facturas de Siigo para comparar.")
 
-        exitosas, faltantes = [], []
-        for p_id in pendientes:
-            encontrada = False
-            for fac in facturas_siigo:
-                if (
-                    p_id
-                    in f"{fac.get('observations', '')} {fac.get('purchase_order', '')}"
-                ):
-                    encontrada = True
-                    if siigo_omitir_pdf_mientras_timbrado(fac):
-                        print(
-                            f"   └──> ⏭️ PDF omitido Pack {p_id} "
-                            f"(timbrado: {siigo_factura_estado_log(fac)}): "
-                            f"{siigo_factura_etiqueta_log(fac)}"
-                        )
-                        break
-                    doc, fmt = obtener_documento_fiscal_siigo_para_meli(fac.get("id"))
-                    if (
-                        doc
-                        and "✅" in subir_factura_meli(p_id, doc, formato=fmt)
-                    ):
-                        suf = " (XML DIAN)" if fmt == "xml" else ""
-                        print(f"   └──> ✅ Sincronizada factura para Pack ID: {p_id}{suf}")
-                        exitosas.append(p_id)
-                    elif not doc:
-                        print(
-                            f"   └──> ⚠️ Sin documento Siigo (PDF/XML) Pack {p_id} "
-                            f"({siigo_factura_etiqueta_log(fac)} est={siigo_factura_estado_log(fac)})"
-                        )
-                    break
-            if not encontrada:
-                faltantes.append(p_id)
-            elif p_id not in exitosas:
-                faltantes.append(p_id)
+        resultado = _procesar_packs_sync_siigo(pendientes, facturas_siigo)
+        exitosas = resultado["exitosas"]
+        categorias = resultado["categorias"]
+        fallo_detalle = resultado.get("fallo_detalle") or {}
+        pendientes_accion = _packs_accionables_sync(categorias)
 
-        if faltantes:
-            resumen = f"⚠️ *ALERTA DE FACTURACIÓN* ⚠️\nSe subieron {len(exitosas)} facturas, pero faltan las de {len(faltantes)} órdenes de MeLi."
-            lista_ids = "\n".join([f"- {f}" for f in faltantes])
-            reporte = f"{resumen}\n\n*IDs sin factura ({len(faltantes)}):*\n{lista_ids}"
-            ticket = _crear_accion_sync_facturas_faltantes_siigo(faltantes)
+        if pendientes_accion:
+            reporte = _formatear_reporte_sync_facturas(
+                exitosas, categorias, fallo_detalle
+            )
+            ticket = _crear_accion_sync_facturas_faltantes_siigo(
+                categorias, fallo_detalle=fallo_detalle
+            )
             if ticket and ticket.get("numero"):
                 reporte += f"\n\n🏢 Centro de mando: acción #{ticket.get('numero')}"
             enviar_reporte_controlado(reporte)
-            return f"Sync terminada. Subidas: {len(exitosas)}. Faltantes: {len(faltantes)}. Reporte enviado."
+            crit = len(_packs_criticos_sync(categorias))
+            tim = len(categorias.get(SYNC_FACTURA_CAT_TIMBRADO, []))
+            return (
+                f"Sync terminada. Subidas: {len(exitosas)}. "
+                f"Pendientes: {len(pendientes_accion)} "
+                f"(críticos: {crit}, timbrado: {tim}). Reporte enviado."
+            )
 
         return f"✅ ¡Sincronización Inteligente completada! Se subieron {len(exitosas)} facturas."
     except Exception as e:

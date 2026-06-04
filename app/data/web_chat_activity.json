@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-02T16:35:55",
+  "updated_at": "2026-06-03T15:43:37",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -18,9 +18,35 @@
     "2026-05-28": 11,
     "2026-05-30": 8,
     "2026-06-01": 3,
-    "2026-06-02": 2
+    "2026-06-02": 2,
+    "2026-06-03": 1
   },
   "sessions": [
+    {
+      "session_id": "web-88dd3b12-9577-4b1b-b227-bf460f276c6b",
+      "started_at": "2026-06-03T15:43:37",
+      "last_at": "2026-06-03T15:43:37",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/guias/dipropilenglicol",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Dpg",
+      "last_agent_reply": "Claro, veci. Tenemos *DIPROPILENGLICOL500mL* como materia prima. Presentación: $25,050 COP — Ref. C-DPG500mL. ¿Cuántas unidades necesita?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-03T15:43:37",
+          "user_message": "Dpg",
+          "agent_reply": "Claro, veci. Tenemos *DIPROPILENGLICOL500mL* como materia prima. Presentación: $25,050 COP — Ref. C-DPG500mL. ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-5dcc02c2-d06f-42ac-8bfe-6c1a66847b2e",
       "started_at": "2026-06-02T16:35:55",

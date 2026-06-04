@@ -3455,13 +3455,20 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
                                 from app.sync import sincronizar_manual_por_packs
 
                                 resumen = sincronizar_manual_por_packs(packs)
+                                cats = resumen.get("categorias") or {}
+                                detalle_cats = ", ".join(
+                                    f"{k}={len(v)}"
+                                    for k, v in cats.items()
+                                    if v
+                                ) or "ninguna"
                                 agregar_comentario(
                                     ticket_id,
                                     uid,
                                     f"[SYS_SYNC] Resync ejecutado desde acción #{ticket_id}. "
                                     f"Exitosas: {len(resumen.get('exitosas', []) or [])}. "
-                                    f"Fallidas: {len(resumen.get('fallidas', []) or [])}. "
-                                    f"Faltantes: {len(resumen.get('faltantes', []) or [])}.",
+                                    f"Sin cruce Siigo: {len(resumen.get('faltantes', []) or [])}. "
+                                    f"Pendientes total: {len(resumen.get('fallidas', []) or [])}. "
+                                    f"Por categoría: {detalle_cats}.",
                                     es_interno=True,
                                 )
                                 log_json(
