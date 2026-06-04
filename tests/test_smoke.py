@@ -1266,3 +1266,98 @@ def test_documentos_preview_coa_docx() -> None:
     assert res["ok"] is True
     assert res["docx_nombre"].startswith("COA-")
 
+
+def test_formatear_reporte_sync_facturas_secciones() -> None:
+    from app.sync import (
+        SYNC_FACTURA_CAT_FALLO_SUBIDA,
+        SYNC_FACTURA_CAT_SIN_CRUCE,
+        SYNC_FACTURA_CAT_TIMBRADO,
+        _formatear_reporte_sync_facturas,
+    )
+
+    categorias = {
+        SYNC_FACTURA_CAT_SIN_CRUCE: ["111"],
+        SYNC_FACTURA_CAT_TIMBRADO: ["222"],
+        SYNC_FACTURA_CAT_FALLO_SUBIDA: [],
+    }
+    reporte = _formatear_reporte_sync_facturas([], categorias)
+    assert "ALERTA DE FACTURACIÓN" in reporte
+    assert "Sin cruce en Siigo" in reporte
+    assert "Esperando timbrado DIAN" in reporte
+    assert "- 111" in reporte
+    assert "- 222" in reporte
+
+    solo_timbrado = {SYNC_FACTURA_CAT_TIMBRADO: ["333"]}
+    for k in categorias:
+        if k != SYNC_FACTURA_CAT_TIMBRADO:
+            solo_timbrado.setdefault(k, [])
+    reporte_info = _formatear_reporte_sync_facturas(["ok1"], solo_timbrado)
+    assert "ℹ️" in reporte_info
+    assert "timbrado" in reporte_info.lower()
+
+
+def test_procesar_packs_sync_siigo_categorias(monkeypatch) -> None:
+    from app.sync import (
+        SYNC_FACTURA_CAT_FALLO_SUBIDA,
+        SYNC_FACTURA_CAT_SIN_CRUCE,
+        SYNC_FACTURA_CAT_TIMBRADO,
+        _procesar_packs_sync_siigo,
+    )
+
+    facturas = [
+        {"id": "fac-t", "observations": "pack timbrado 100", "purchase_order": ""},
+        {"id": "fac-ok", "observations": "pack ok 200", "purchase_order": ""},
+    ]
+
+    def fake_timbrado(fac):
+        return str(fac.get("id")) == "fac-t"
+
+    def fake_doc(sid):
+        if sid == "fac-ok":
+            return ("BASE64DOC", "pdf")
+        return (None, "pdf")
+
+    def fake_subir(pack_id, doc, formato="pdf"):
+        if pack_id == "200":
+            return "✅"
+        return "❌ error MeLi"
+
+    monkeypatch.setattr("app.sync.siigo_omitir_pdf_mientras_timbrado", fake_timbrado)
+    monkeypatch.setattr(
+        "app.sync.obtener_documento_fiscal_siigo_para_meli", fake_doc
+    )
+    monkeypatch.setattr("app.sync.subir_factura_meli", fake_subir)
+
+    res = _procesar_packs_sync_siigo(
+        ["100", "200", "300"],
+        facturas,
+    )
+    cats = res["categorias"]
+    assert res["exitosas"] == ["200"]
+    assert "100" in cats[SYNC_FACTURA_CAT_TIMBRADO]
+    assert "300" in cats[SYNC_FACTURA_CAT_SIN_CRUCE]
+
+
+def test_meli_pack_tiene_documento_fiscal(monkeypatch) -> None:
+    from app.services import meli as meli_svc
+
+    class FakeResp:
+        def __init__(self, status_code: int, docs: list | None = None) -> None:
+            self.status_code = status_code
+            self._docs = docs
+
+        def json(self) -> dict:
+            return {"fiscal_documents": self._docs or []}
+
+    def fake_get(url, headers=None, timeout=None):
+        if "packs/111" in url:
+            return FakeResp(200, [{"id": "doc-1"}])
+        if "packs/222" in url:
+            return FakeResp(200, [])
+        return FakeResp(404)
+
+    monkeypatch.setattr(meli_svc.requests, "get", fake_get)
+    assert meli_svc.meli_pack_tiene_documento_fiscal("111", token="tok") is True
+    assert meli_svc.meli_pack_tiene_documento_fiscal("222", token="tok") is False
+    assert meli_svc.meli_pack_tiene_documento_fiscal("333", token="tok") is False
+

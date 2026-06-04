@@ -2333,6 +2333,60 @@ def register_tickets_routes(app):
             return jsonify({"error": err}), 404
         return jsonify({"ok": True}), 200
 
+    # ── Agente conversacional móvil ───────────────────────────────────────────
+
+    @app.route("/api/tickets/agente-chat", methods=["POST"])
+    @_auth
+    def tickets_agente_chat():
+        """
+        Chat agéntico para registro de acciones en móvil.
+        Usa Ollama/Gemma4 para NLG; la lógica de comandos está en agente_tickets_chat.py.
+        """
+        from app.services.agente_tickets_chat import obtener_contexto, generar_respuesta, ejecutar_cmd
+        data = request.get_json(force=True) or {}
+        usuario = request.tickets_usuario
+        nombre = (usuario.get("nombre") or "").split()[0]
+
+        mensaje = (data.get("mensaje") or "").strip()
+        historial = data.get("historial") or []
+        cmd = data.get("accion_cmd") or None
+        datos_cmd = data.get("accion_datos") or {}
+
+        # 1. Ejecutar comando si viene uno
+        resultado_cmd: dict | None = None
+        if cmd:
+            resultado_cmd = ejecutar_cmd(cmd, datos_cmd, usuario)
+
+        # 2. Contexto fresco (acciones activas + protocolos)
+        contexto = obtener_contexto(usuario)
+
+        # 3. Respuesta conversacional
+        respuesta = ""
+        if mensaje:
+            respuesta = generar_respuesta(mensaje, historial, contexto, usuario)
+
+        # Fallbacks sin LLM
+        if not respuesta:
+            if resultado_cmd and not resultado_cmd.get("error"):
+                if cmd == "crear_accion":
+                    respuesta = f"¡Listo {nombre}! Acción registrada. ¿Arrancamos?"
+                elif cmd == "completar_accion":
+                    respuesta = f"¡Buena {nombre}! Acción cerrada. ¿Qué más hacemos?"
+                elif cmd == "marcar_paso":
+                    respuesta = "Paso marcado. ¡Sigue así!"
+            elif resultado_cmd and resultado_cmd.get("error"):
+                respuesta = f"Tuve un problema: {resultado_cmd['error']}"
+            elif not mensaje:
+                respuesta = f"¿Qué vas a hacer hoy, {nombre}?"
+            else:
+                respuesta = "Entendido. ¿Cómo te ayudo?"
+
+        return jsonify({
+            "respuesta": respuesta,
+            "contexto": contexto,
+            "accion_resultado": resultado_cmd,
+        }), 200
+
     @app.route("/api/tickets/recordatorios/notificar-hoy", methods=["POST"])
     @_auth
     def tickets_notificar_recordatorios_hoy():

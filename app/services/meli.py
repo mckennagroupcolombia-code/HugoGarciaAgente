@@ -64,6 +64,32 @@ def consultar_detalle_venta_meli(pack_id: str):
     except requests.RequestException as e:
         return f"Error de red consultando detalle de venta en Meli: {e}"
 
+
+def meli_pack_tiene_documento_fiscal(pack_id: str, *, token: str | None = None) -> bool:
+    """
+    Indica si el pack ya tiene documento fiscal en MeLi.
+
+    orders/search y GET /orders/{id} no incluyen fiscal_documents (suelen venir None);
+    la fuente fiable es GET /packs/{pack_id}/fiscal_documents.
+    """
+    pack_id = str(pack_id or "").strip()
+    if not pack_id:
+        return False
+    token = token or refrescar_token_meli()
+    if not token:
+        return False
+    url = f"https://api.mercadolibre.com/packs/{pack_id}/fiscal_documents"
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        res = requests.get(url, headers=headers, timeout=15)
+        if res.status_code != 200:
+            return False
+        docs = res.json().get("fiscal_documents") or []
+        return bool(docs)
+    except requests.RequestException:
+        return False
+
+
 def subir_factura_meli(pack_id, documento_base64, formato: str = "pdf"):
     """
     Sube documento fiscal al pack en Mercado Libre (Colombia: PDF y/o XML DIAN).

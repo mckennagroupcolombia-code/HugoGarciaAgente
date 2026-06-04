@@ -410,6 +410,7 @@ def monitor_loop():
         "backup_dia": -1,
         "reporte_sem": -1,
         "informe_mes": -1,
+        "recordatorio_tickets_dia": -1,
     }
 
     # Esperar 60s al arrancar para que los servicios terminen de iniciar
@@ -496,6 +497,48 @@ def monitor_loop():
 
                 threading.Thread(target=_reporte, daemon=True).start()
                 contadores["reporte_sem"] = ahora.isocalendar()[1]
+
+            # REC-09: 9 AM diario — Recordatorio de voz a usuarios con acciones en_proceso
+            if ahora.hour == 9 and contadores["recordatorio_tickets_dia"] != ahora.day:
+                def _recordar_acciones():
+                    try:
+                        from app.services.tickets_db import _conn as _tdb
+                        from app.services.tickets_notificaciones import enviar_nota_voz_operador
+                        with _tdb() as _db:
+                            rows = _db.execute(
+                                "SELECT DISTINCT asignado_a FROM tickets "
+                                "WHERE tipo='accion' AND estado='en_proceso' AND asignado_a IS NOT NULL"
+                            ).fetchall()
+                        for row in rows:
+                            uid = row["asignado_a"]
+                            acciones = _db.execute(
+                                "SELECT numero, titulo FROM tickets "
+                                "WHERE tipo='accion' AND estado='en_proceso' AND asignado_a=?",
+                                (uid,),
+                            ).fetchall() if False else []
+                            with _tdb() as _db2:
+                                acciones = _db2.execute(
+                                    "SELECT numero, titulo FROM tickets "
+                                    "WHERE tipo='accion' AND estado='en_proceso' AND asignado_a=? "
+                                    "ORDER BY prioridad DESC LIMIT 3",
+                                    (uid,),
+                                ).fetchall()
+                            if not acciones:
+                                continue
+                            titulos = "; ".join(
+                                f"{a['numero']}: {(a['titulo'] or '')[:40]}" for a in acciones
+                            )
+                            n = len(acciones)
+                            guion = (
+                                f"Buenos días. Tienes {n} acción{'es' if n > 1 else ''} pendiente{'s' if n > 1 else ''} "
+                                f"en el Centro de Mando: {titulos}. "
+                                "Ábrelas en la pestaña Acciones y márcalas cuando termines."
+                            )
+                            enviar_nota_voz_operador(uid, guion)
+                    except Exception as _e:
+                        print(f"⚠️ Monitor recordatorio tickets: {_e}")
+                threading.Thread(target=_recordar_acciones, daemon=True).start()
+                contadores["recordatorio_tickets_dia"] = ahora.day
 
             # Informe mensual: día 1 de cada mes, 8 AM
             if (

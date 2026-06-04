@@ -1177,7 +1177,8 @@ type View =
   | "inventario"
   | "reinos"
   | "perfil"
-  | "recetas";
+  | "recetas"
+  | "agente";
 
 interface ZonaTrabajo {
   id: number;
@@ -4038,7 +4039,7 @@ function navScopeLabel(scope: NavScope): string {
 function CentroMandoHome({
   token, user, nivel, permisos,
   onAcciones, onSolicitudes, onTablero,
-  onAccionesFuturas, onRecordatorios, onProcedimientos,
+  onAccionesFuturas, onRecordatorios, onProcedimientos, onAgente,
 }: {
   token: string;
   user: TicketsUser;
@@ -4050,6 +4051,7 @@ function CentroMandoHome({
   onAccionesFuturas: () => void;
   onRecordatorios: () => void;
   onProcedimientos: () => void;
+  onAgente?: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
 
@@ -4093,6 +4095,33 @@ function CentroMandoHome({
         procedimientos:{ label: "guardados",     value: proc.status === "fulfilled" && Array.isArray(proc.value) ? proc.value.length : null },
       });
     });
+  }, [token, user.id]);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const hoy = new Date().toISOString().slice(0, 10);
+      Promise.allSettled([
+        tapi("/?tipo=accion&activas=1", token),
+        tapi("/?tipo=solicitud&activas=1", token),
+        tapi("/pendientes", token),
+        tapi("/recordatorios", token),
+        tapi("/protocolos?alcance=mis", token),
+      ]).then(([acc, sol, pend, rec, proc]) => {
+        const accList = acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value as any[] : [];
+        setAccionesActivas(accList);
+        setStats({
+          acciones:       { label: "en curso",     value: accList.length },
+          solicitudes:    { label: "por resolver",  value: sol.status  === "fulfilled" && Array.isArray(sol.value)  ? (sol.value as any[]).filter((t: any) => t.asignado_a === user.id).length  : null },
+          pendientes:     { label: "anotadas",      value: pend.status === "fulfilled" && Array.isArray(pend.value) ? pend.value.length : null },
+          recordatorios:  { label: "programados",   value: rec.status  === "fulfilled" && Array.isArray(rec.value)  ? rec.value.length  : null },
+          recordatoriosHoy: rec.status === "fulfilled" && Array.isArray(rec.value)
+            ? (rec.value as any[]).filter((r: any) => r.proxima_fecha <= hoy).length
+            : 0,
+          procedimientos: { label: "guardados",     value: proc.status === "fulfilled" && Array.isArray(proc.value) ? proc.value.length : null },
+        });
+      });
+    }, 30000);
+    return () => clearInterval(iv);
   }, [token, user.id]);
 
   function Stat({ s }: { s: HomeStat }) {
@@ -4264,6 +4293,26 @@ function CentroMandoHome({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Botón agente — visible solo en pantallas pequeñas (móvil) */}
+      {onAgente && (
+        <div className="sm:hidden">
+          <button
+            type="button"
+            onClick={onAgente}
+            className="w-full flex items-center gap-4 rounded-3xl border-2 border-accent bg-accent/10 px-6 py-4 text-left transition hover:bg-accent/20 active:scale-[0.98]"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-2xl text-white shadow">
+              🎙️
+            </span>
+            <div>
+              <p className="text-lg font-extrabold text-ink dark:text-white leading-tight">Hugo, registra</p>
+              <p className="text-sm font-semibold text-accent">Dictá o escribí lo que vas a hacer</p>
+            </div>
+            <span className="ml-auto text-accent text-xl">›</span>
+          </button>
         </div>
       )}
 
@@ -16783,6 +16832,11 @@ function SolicitudesView({
     const iv = setInterval(() => void load(true), 30000);
     return () => clearInterval(iv);
   }, [load]);
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === "visible") void load(true); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [load]);
 
   async function cargarProtocolos() {
     setLoadingProtocolos(true);
@@ -19247,6 +19301,11 @@ function AccionesView({
     const iv = setInterval(() => { void load(true); }, 30000);
     return () => clearInterval(iv);
   }, [load]);
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === "visible") void load(true); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [load]);
 
   function abrirWizard(tituloPrefill = "", plantilla?: PlantillaAccion) {
     setReanudarWizard(null);
@@ -20187,6 +20246,504 @@ function AccionesView({
   );
 }
 
+// ── AgenteMandoView ───────────────────────────────────────────────────────────
+
+type AgenteBurbuja = {
+  id: number;
+  rol: "agente" | "usuario";
+  texto: string;
+  chips?: AgentChip[];
+};
+
+type AgentChip = {
+  label: string;
+  cmd?: string;
+  datos?: Record<string, unknown>;
+  onTap?: () => void;
+};
+
+function AgenteMandoView({
+  token, user, onSalir, onGoSolicitudes,
+}: {
+  token: string;
+  user: TicketsUser;
+  onSalir: () => void;
+  onGoSolicitudes: () => void;
+}) {
+  const { apiToken: chatApiToken } = useTicketsAuth();
+  const stt = useStt(token, chatApiToken);
+  const nombre = user.nombre.split(" ")[0];
+
+  const [burbujas, setBurbujas] = useState<AgenteBurbuja[]>([]);
+  const [protocolos, setProtocolos] = useState<{ id: number; titulo: string }[]>([]);
+  const [accionActual, setAccionActual] = useState<{
+    id: number; titulo: string; pasos: any[];
+    pasos_total: number; pasos_completados: number;
+  } | null>(null);
+  const [pensando, setPensando] = useState(false);
+  const [input, setInput] = useState("");
+  const [ttsPlaying, setTtsPlaying] = useState<number | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const burbulaIdRef = useRef(0);
+
+  function nextId() { return ++burbulaIdRef.current; }
+
+  function agregarBurbuja(rol: "agente" | "usuario", texto: string, chips?: AgentChip[]) {
+    setBurbujas(prev => [...prev, { id: nextId(), rol, texto, chips }]);
+  }
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [burbujas, pensando]);
+
+  // Cargar contexto inicial
+  useEffect(() => {
+    void cargarContextoInicial();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function cargarContextoInicial() {
+    setPensando(true);
+    try {
+      const res = await tapi("/agente-chat", token, {
+        method: "POST",
+        body: JSON.stringify({ mensaje: "", historial: [] }),
+      });
+      const prots: { id: number; titulo: string }[] = res.contexto?.protocolos ?? [];
+      const accActivas: any[] = res.contexto?.acciones_activas ?? [];
+      setProtocolos(prots);
+
+      const mainChips = buildMainChips(prots, accActivas);
+      agregarBurbuja("agente", `¡Hola ${nombre}! ¿Qué vas a hacer?`, mainChips);
+
+      if (accActivas.length > 0) {
+        const chipsContinuar: AgentChip[] = accActivas.slice(0, 3).map((a: any) => ({
+          label: `⚡ Continuar: ${a.titulo}`,
+          onTap: () => continuarAccion(a),
+        }));
+        agregarBurbuja(
+          "agente",
+          `Tenés ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} en curso:`,
+          chipsContinuar,
+        );
+      }
+    } catch {
+      agregarBurbuja("agente", `¡Hola ${nombre}! ¿Qué vas a hacer hoy?`, [
+        { label: "⚡ Registrar acción", onTap: mostrarProcedimientos },
+        { label: "📋 Crear solicitud", onTap: onGoSolicitudes },
+      ]);
+    } finally {
+      setPensando(false);
+    }
+  }
+
+  function buildMainChips(prots: { id: number; titulo: string }[], accActivas: any[]): AgentChip[] {
+    const chips: AgentChip[] = [];
+    if (accActivas.length > 0) {
+      chips.push({ label: `📊 Ver mis ${accActivas.length} activa${accActivas.length > 1 ? "s" : ""}`, onTap: mostrarActivas });
+    }
+    chips.push({ label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
+    chips.push({ label: "📋 Crear solicitud", onTap: onGoSolicitudes });
+    return chips;
+  }
+
+  function mostrarProcedimientos() {
+    if (protocolos.length === 0) {
+      agregarBurbuja(
+        "agente",
+        "No tenés procedimientos guardados. ¿Qué acción vas a hacer?",
+        [{ label: "🆕 Acción libre", onTap: pedirTituloLibre }],
+      );
+      return;
+    }
+    const chips: AgentChip[] = protocolos.slice(0, 4).map(p => ({
+      label: p.titulo,
+      cmd: "crear_accion",
+      datos: { protocolo_id: p.id, titulo: p.titulo },
+    }));
+    chips.push({ label: "🆕 Acción libre (sin procedimiento)", onTap: pedirTituloLibre });
+    agregarBurbuja("agente", "¿Cuál procedimiento usamos?", chips);
+  }
+
+  function pedirTituloLibre() {
+    agregarBurbuja("agente", "Dale, ¿cómo se llama la acción?");
+    inputRef.current?.focus();
+  }
+
+  function mostrarActivas() {
+    agregarBurbuja("agente", "Aquí van tus acciones en curso. Tocá una para continuar.");
+  }
+
+  function continuarAccion(a: any) {
+    setAccionActual({
+      id: a.id, titulo: a.titulo, pasos: [],
+      pasos_total: a.pasos_total ?? 0,
+      pasos_completados: a.pasos_completados ?? 0,
+    });
+    void cargarPasosAccion(a.id, a.titulo);
+  }
+
+  async function cargarPasosAccion(id: number, titulo: string) {
+    setPensando(true);
+    try {
+      const t = await tapi(`/${id}`, token) as any;
+      const pasos: any[] = t.pasos ?? [];
+      const completados = pasos.filter((p: any) => p.completado).length;
+      const total = pasos.length;
+      setAccionActual({ id, titulo, pasos, pasos_total: total, pasos_completados: completados });
+
+      if (total === 0) {
+        agregarBurbuja("agente", `Acción "${titulo}" en curso. ¿Cerramos cuando termines?`, [
+          { label: "🏁 Cerrar acción", onTap: () => pedirCierre(id) },
+          { label: "← Volver", onTap: () => setAccionActual(null) },
+        ]);
+        return;
+      }
+
+      const pendientes = pasos.filter((p: any) => !p.completado);
+      if (pendientes.length === 0) {
+        agregarBurbuja("agente", `¡Todos los pasos listos! ¿Cerramos "${titulo}"?`, [
+          { label: "🏁 Sí, cerrar", onTap: () => pedirCierre(id) },
+          { label: "← Cancelar", onTap: () => setAccionActual(null) },
+        ]);
+        return;
+      }
+
+      const siguiente = pendientes[0];
+      agregarBurbuja(
+        "agente",
+        `Acción: "${titulo}" · Paso ${completados + 1}/${total}: ${siguiente.nombre}`,
+        [
+          { label: `✓ Listo: ${siguiente.nombre}`, cmd: "marcar_paso", datos: { ticket_id: id, paso_id: siguiente.id } },
+          { label: "🏁 Cerrar acción ya", onTap: () => pedirCierre(id) },
+        ],
+      );
+    } catch {
+      agregarBurbuja("agente", "No pude cargar los pasos. Intenta de nuevo.");
+    } finally {
+      setPensando(false);
+    }
+  }
+
+  function pedirCierre(id: number) {
+    agregarBurbuja("agente", "¿Querés dejar un reporte de cierre? (opcional, podés omitir)");
+    setAccionActual(prev => prev ? { ...prev, id } : prev);
+    inputRef.current?.focus();
+  }
+
+  async function enviar(texto: string, cmd?: string, datos?: Record<string, unknown>) {
+    if (pensando || (!texto.trim() && !cmd)) return;
+    if (texto.trim()) agregarBurbuja("usuario", texto.trim());
+    setInput("");
+    setPensando(true);
+
+    try {
+      const historialEnvio = burbujas.slice(-10).map(b => ({ rol: b.rol, texto: b.texto }));
+      const res = await tapi("/agente-chat", token, {
+        method: "POST",
+        body: JSON.stringify({
+          mensaje: texto.trim(),
+          historial: historialEnvio,
+          accion_cmd: cmd ?? null,
+          accion_datos: datos ?? null,
+        }),
+      });
+
+      // Actualizar protocolos si cambiaron
+      if (res.contexto?.protocolos) setProtocolos(res.contexto.protocolos);
+      const accActivas: any[] = res.contexto?.acciones_activas ?? [];
+
+      // Procesar resultado de comando
+      const resultado = res.accion_resultado as any;
+      if (resultado && !resultado.error) {
+        if (cmd === "crear_accion" && resultado.ticket_id) {
+          const pasos = resultado.pasos ?? [];
+          setAccionActual({
+            id: resultado.ticket_id,
+            titulo: resultado.titulo ?? texto,
+            pasos,
+            pasos_total: pasos.length,
+            pasos_completados: 0,
+          });
+          const chipsAccion: AgentChip[] = [];
+          if (pasos.length > 0) {
+            chipsAccion.push({
+              label: `▶ Primer paso: ${pasos[0].nombre}`,
+              cmd: "marcar_paso",
+              datos: { ticket_id: resultado.ticket_id, paso_id: pasos[0].id },
+            });
+          }
+          chipsAccion.push({ label: "🏁 Cerrar cuando termine", onTap: () => pedirCierre(resultado.ticket_id) });
+          agregarBurbuja("agente", res.respuesta, chipsAccion);
+          return;
+        }
+
+        if (cmd === "marcar_paso") {
+          const pasosAct = resultado.pasos ?? [];
+          const total = resultado.pasos_total ?? pasosAct.length;
+          const completados = resultado.pasos_completados ?? 0;
+          const pendientes = pasosAct.filter((p: any) => !p.completado);
+          setAccionActual(prev => prev ? { ...prev, pasos: pasosAct, pasos_total: total, pasos_completados: completados } : prev);
+
+          if (pendientes.length === 0) {
+            const chips: AgentChip[] = [
+              { label: "🏁 Cerrar acción", onTap: () => pedirCierre(datos?.ticket_id as number) },
+            ];
+            agregarBurbuja("agente", `${res.respuesta} ¡Todos los pasos completados!`, chips);
+          } else {
+            const sig = pendientes[0];
+            agregarBurbuja("agente", `${res.respuesta} Siguiente: ${sig.nombre}`, [
+              { label: `✓ Listo: ${sig.nombre}`, cmd: "marcar_paso", datos: { ticket_id: datos?.ticket_id, paso_id: sig.id } },
+              { label: "🏁 Cerrar acción", onTap: () => pedirCierre(datos?.ticket_id as number) },
+            ]);
+          }
+          return;
+        }
+
+        if (cmd === "completar_accion") {
+          setAccionActual(null);
+          agregarBurbuja("agente", res.respuesta, buildMainChips(res.contexto?.protocolos ?? protocolos, accActivas));
+          return;
+        }
+      }
+
+      // Respuesta general: decidir chips según contexto
+      const chips = buildChipsContextuales(accActivas, cmd);
+      agregarBurbuja("agente", res.respuesta || "¿Cómo te ayudo?", chips);
+    } catch {
+      agregarBurbuja("agente", "Sin conexión con el servidor. Intenta de nuevo.", [
+        { label: "🔄 Reintentar", onTap: () => void enviar(texto, cmd, datos) },
+      ]);
+    } finally {
+      setPensando(false);
+    }
+  }
+
+  function buildChipsContextuales(accActivas: any[], lastCmd?: string): AgentChip[] {
+    if (accionActual && !lastCmd) {
+      const pendientes = accionActual.pasos.filter((p: any) => !p.completado);
+      if (pendientes.length > 0) {
+        return [
+          { label: `✓ ${pendientes[0].nombre}`, cmd: "marcar_paso", datos: { ticket_id: accionActual.id, paso_id: pendientes[0].id } },
+          { label: "🏁 Cerrar acción", onTap: () => pedirCierre(accionActual.id) },
+        ];
+      }
+    }
+    return buildMainChips(protocolos, accActivas);
+  }
+
+  async function hablar(texto: string, burbulaId: number) {
+    if (ttsPlaying === burbulaId) return;
+    setTtsPlaying(burbulaId);
+    try {
+      const r = await fetch("/api/voz/sintetizar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(chatApiToken ? { Authorization: `Bearer ${chatApiToken}` } : {}),
+        },
+        body: JSON.stringify({ texto, motor: "auto" }),
+      });
+      if (!r.ok) throw new Error();
+      const blob = await r.blob();
+      const audio = new Audio(URL.createObjectURL(blob));
+      audio.onended = () => setTtsPlaying(null);
+      audio.onerror = () => setTtsPlaying(null);
+      await audio.play();
+    } catch {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(texto);
+        u.lang = "es-CO";
+        u.onend = () => setTtsPlaying(null);
+        window.speechSynthesis.speak(u);
+      } else {
+        setTtsPlaying(null);
+      }
+    }
+  }
+
+  function onChipTap(chip: AgentChip) {
+    if (chip.onTap) { chip.onTap(); return; }
+    if (chip.cmd) {
+      void enviar(chip.label, chip.cmd, chip.datos as Record<string, unknown>);
+    } else {
+      void enviar(chip.label);
+    }
+  }
+
+  const lastChips = burbujas.length > 0 ? burbujas[burbujas.length - 1].chips : undefined;
+
+  return (
+    <div className="flex flex-col h-full" style={{ background: "var(--color-surface, #0f111a)" }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 shrink-0">
+        <button
+          type="button"
+          onClick={onSalir}
+          className="flex items-center justify-center h-8 w-8 rounded-full bg-white/10 text-white/70 hover:bg-white/20 transition"
+          aria-label="Volver"
+        >
+          ‹
+        </button>
+        <div className="flex items-center justify-center h-9 w-9 rounded-full bg-accent text-white font-black text-base shadow">
+          H
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-extrabold text-white leading-tight">Hugo García</p>
+          <p className="text-xs text-white/40">Asistente de Operaciones</p>
+        </div>
+        {accionActual && (
+          <div className="text-right">
+            <p className="text-[10px] font-bold text-accent uppercase tracking-wide">En curso</p>
+            <p className="text-xs text-white/70 truncate max-w-[120px]">{accionActual.titulo}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Burbujas */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {burbujas.map((b) => (
+          <div key={b.id} className={`flex flex-col ${b.rol === "usuario" ? "items-end" : "items-start"} gap-1`}>
+            <div
+              className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                b.rol === "usuario"
+                  ? "bg-accent text-white rounded-br-sm"
+                  : "bg-white/10 text-white rounded-bl-sm"
+              }`}
+            >
+              <p>{b.texto}</p>
+              {b.rol === "agente" && (
+                <button
+                  type="button"
+                  onClick={() => void hablar(b.texto, b.id)}
+                  className={`mt-1.5 flex items-center gap-1 text-[10px] font-semibold transition ${
+                    ttsPlaying === b.id ? "text-accent animate-pulse" : "text-white/30 hover:text-white/60"
+                  }`}
+                  title="Escuchar"
+                >
+                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+                  </svg>
+                  {ttsPlaying === b.id ? "Escuchando…" : "Escuchar"}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {/* Chips del último mensaje */}
+        {lastChips && lastChips.length > 0 && !pensando && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {lastChips.map((chip, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onChipTap(chip)}
+                className="rounded-full border border-accent/60 bg-accent/10 px-3.5 py-1.5 text-xs font-bold text-accent hover:bg-accent/20 active:scale-95 transition"
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Indicador de "pensando" */}
+        {pensando && (
+          <div className="flex items-start gap-2">
+            <div className="bg-white/10 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="block h-2 w-2 rounded-full bg-white/40 animate-bounce"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Barra de progreso de acción activa */}
+        {accionActual && accionActual.pasos_total > 0 && (
+          <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 mt-2">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-[11px] font-bold text-white/60 uppercase tracking-wide">Progreso</p>
+              <p className="text-[11px] font-bold text-accent">
+                {accionActual.pasos_completados}/{accionActual.pasos_total} pasos
+              </p>
+            </div>
+            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-500"
+                style={{ width: `${Math.round((accionActual.pasos_completados / accionActual.pasos_total) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* STT feedback */}
+        {(stt.grabando || stt.transcribiendo) && (
+          <div className="flex justify-end">
+            <div className="bg-accent/20 border border-accent/40 rounded-2xl px-4 py-2 text-xs font-semibold text-accent">
+              {stt.grabando ? `🎙️ Grabando… ${stt.segundos}s` : "✨ Transcribiendo…"}
+            </div>
+          </div>
+        )}
+        {stt.error && (
+          <p className="text-center text-xs text-red-400 px-4">{stt.error}</p>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input area */}
+      <div className="shrink-0 border-t border-white/10 px-4 py-3 flex items-center gap-2">
+        <input
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviar(input); } }}
+          placeholder="Escribí o usá el micrófono…"
+          disabled={pensando}
+          className="flex-1 rounded-full bg-white/8 border border-white/15 px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-accent/60 transition disabled:opacity-50"
+        />
+        {input.trim() ? (
+          <button
+            type="button"
+            onClick={() => void enviar(input)}
+            disabled={pensando}
+            className="h-11 w-11 shrink-0 rounded-full bg-accent flex items-center justify-center text-white shadow disabled:opacity-50 hover:brightness-110 active:scale-95 transition"
+            aria-label="Enviar"
+          >
+            <svg className="h-5 w-5 rotate-90" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
+            </svg>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => stt.grabando ? stt.detener() : stt.iniciar((txt) => void enviar(txt))}
+            disabled={pensando || stt.transcribiendo}
+            className={`h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white shadow transition active:scale-95 ${
+              stt.grabando ? "bg-red-500 animate-pulse" : "bg-accent hover:brightness-110"
+            } disabled:opacity-50`}
+            aria-label={stt.grabando ? "Detener grabación" : "Grabar voz"}
+          >
+            {stt.grabando ? (
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            ) : (
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
+              </svg>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 export default function TicketsPanel() {
@@ -20253,6 +20810,7 @@ export default function TicketsPanel() {
     setView("acciones");
   }
   function goSolicitudes() { setView("solicitudes"); }
+  function goAgente() { setView("agente"); }
   function goInventario() { setView("inventario"); }
   function goReinos() { setView("reinos"); }
   function goWorkload() { setView("workload"); }
@@ -20318,6 +20876,15 @@ export default function TicketsPanel() {
             onAccionesFuturas={() => goAcciones("pendientes")}
             onRecordatorios={() => goAcciones("recordatorios")}
             onProcedimientos={() => goAcciones("procedimientos")}
+            onAgente={goAgente}
+          />
+        )}
+        {view === "agente" && (
+          <AgenteMandoView
+            token={token}
+            user={user}
+            onSalir={goTablero}
+            onGoSolicitudes={goSolicitudes}
           />
         )}
         {view === "list" && (
