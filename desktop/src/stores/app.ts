@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type Panel =
+  | "hugo"
   | "dashboard"
   | "chat"
   | "voz"
@@ -20,9 +21,29 @@ export type Panel =
   | "etiquetas"
   | "settings";
 
+/** Vista inicial del Centro de Mando al saltar desde Hugo u otro panel. */
+export type TicketsBootView =
+  | "home"
+  | "list"
+  | "acciones"
+  | "solicitudes"
+  | null;
+
+export type AccionesBootTab =
+  | "subhome"
+  | "activas"
+  | "pendientes"
+  | "recordatorios"
+  | "procedimientos"
+  | "historial";
+
 interface AppState {
   panel: Panel;
   setPanel: (p: Panel) => void;
+  ticketsBootView: TicketsBootView;
+  setTicketsBootView: (v: TicketsBootView) => void;
+  accionesBootTab: AccionesBootTab | null;
+  setAccionesBootTab: (v: AccionesBootTab | null) => void;
   sidebarOpen: boolean;
   toggleSidebar: () => void;
 }
@@ -30,8 +51,12 @@ interface AppState {
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      panel: "dashboard",
+      panel: "hugo",
       setPanel: (panel) => set({ panel, sidebarOpen: false }),
+      ticketsBootView: null,
+      setTicketsBootView: (ticketsBootView) => set({ ticketsBootView }),
+      accionesBootTab: null,
+      setAccionesBootTab: (accionesBootTab) => set({ accionesBootTab }),
       sidebarOpen: false,
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
     }),

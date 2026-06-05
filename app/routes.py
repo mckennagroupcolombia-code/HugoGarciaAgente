@@ -2715,6 +2715,9 @@ def register_routes(app):
             response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
             response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
             response.headers["Access-Control-Allow-Credentials"] = "true"
+        if request.method in ("GET", "HEAD") and request.path.startswith("/api/tickets"):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
         return response
 
     @app.before_request
@@ -7358,4 +7361,7 @@ def register_routes(app):
     def serve_spa(path=""):
         if not os.path.isdir(_SPA_DIR):
             return jsonify({"error": "SPA no compilada. Ejecutar: cd desktop && npm run build"}), 404
-        return send_from_directory(_SPA_DIR, "index.html")
+        resp = send_from_directory(_SPA_DIR, "index.html")
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        return resp

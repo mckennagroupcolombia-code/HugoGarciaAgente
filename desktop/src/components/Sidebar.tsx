@@ -10,7 +10,9 @@ import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
 
 const NAV: { id: Panel; label: string }[] = [
-  { id: "dashboard",  label: "Dashboard" },
+  { id: "hugo",       label: "Hugo" },
+  { id: "dashboard",  label: "Métricas" },
+  { id: "tickets",    label: "Centro de Mando" },
   { id: "chat",       label: "Chat IA" },
   { id: "voz",        label: "Voz IA" },
   { id: "webchat",    label: "Chat web" },
@@ -24,7 +26,6 @@ const NAV: { id: Panel; label: string }[] = [
   { id: "pedidos",       label: "Pedidos Web" },
   { id: "publicaciones", label: "Publicaciones" },
   { id: "facturas",      label: "Facturas Compra" },
-  { id: "tickets",    label: "Centro de Mando" },
   { id: "etiquetas",  label: "Etiquetas" },
   { id: "settings",   label: "Ajustes" },
 ];
@@ -33,10 +34,11 @@ const DEFAULT_SECCIONES = new Set(["tickets"]);
 
 function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
   if (!user) return false;
+  if (seccion === "hugo") return puedeVerSeccion(user, "tickets");
   if ((user.rol?.nivel ?? 0) >= 3) return true; // admin siempre ve todo
   if (seccion === "settings") return true; // todos ven ajustes
   const p = user.permisos_secciones;
-  if (!p) return DEFAULT_SECCIONES.has(seccion); // sin permisos configurados: set por defecto
+  if (!p) return DEFAULT_SECCIONES.has(seccion) || seccion === "hugo"; // sin permisos: Hugo + tickets
   if (seccion === "postventa" && p.preventa) return true;
   return Boolean(p[seccion]);
 }
@@ -44,6 +46,8 @@ function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
 export default function Sidebar() {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
+  const setTicketsBootView = useAppStore((s) => s.setTicketsBootView);
+  const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const { user, token, clear: clearTickets } = useTicketsAuth();
   const clearMain = useAuthStore((s) => s.clear);
@@ -117,7 +121,14 @@ export default function Sidebar() {
             return (
               <button
                 key={item.id}
-                onClick={() => setPanel(item.id)}
+                onClick={() => {
+                  if (item.id === "tickets") setTicketsBootView("home");
+                  if (item.id === "hugo") {
+                    setTicketsBootView(null);
+                    setAccionesBootTab(null);
+                  }
+                  setPanel(item.id);
+                }}
                 className={`
                   flex w-full items-center gap-3 rounded-paper border-2 px-3 py-2.5 text-left text-sm font-semibold transition
                   ${active

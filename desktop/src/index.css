@@ -948,3 +948,45 @@
     min-height: 0 !important;
   }
 }
+
+/* Hugo / chat fullscreen — safe areas en WebView Android e iOS */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+  }
+  .pt-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem));
+  }
+  .hugo-shell {
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Hugo — misma voz tipográfica que Centro de Mando (Montserrat bold/extrabold) */
+  .hugo-chat {
+    font-family: var(--mck-font-sans);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+  }
+  .hugo-chat .hugo-bubble {
+    font-size: 1.0625rem; /* ~17px — legible en móvil */
+    line-height: 1.45;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .hugo-chat .hugo-bubble--user {
+    font-weight: 800;
+  }
+  .hugo-chat .hugo-chip {
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .hugo-chat .hugo-input {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+}

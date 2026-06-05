@@ -21,10 +21,13 @@ import PublicacionesPanel from "./components/PublicacionesPanel";
 import Settings from "./components/Settings";
 import { usePanelTheme } from "./stores/panelTheme";
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
+import { onPanelResume } from "./lib/panelRefresh";
 
 function PanelRouter() {
   const panel = useAppStore((s) => s.panel);
   switch (panel) {
+    case "hugo":
+      return <TicketsPanel key="panel-hugo" agenteEsInicio />;
     case "dashboard":
       return <Dashboard />;
     case "chat":
@@ -52,7 +55,7 @@ function PanelRouter() {
     case "facturas":
       return <FacturasCompraPanel />;
     case "tickets":
-      return <TicketsPanel />;
+      return <TicketsPanel key="panel-tickets" />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "publicaciones":
@@ -151,21 +154,48 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 }
 
 const NAV_ORDER: Panel[] = [
-  "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
-  "sync", "stock", "fichas", "pedidos", "publicaciones", "facturas", "tickets", "etiquetas", "settings",
+  "hugo", "dashboard", "tickets", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
+  "sync", "stock", "fichas", "pedidos", "publicaciones", "facturas", "etiquetas", "settings",
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
+  if (panel === "hugo") return puedeVerPanel(user, "tickets");
   if ((user.rol?.nivel ?? 0) >= 3) return true;
   const p = user.permisos_secciones;
-  // Sin permisos personalizados: acceso a tickets + ajustes por defecto
+  // Sin permisos personalizados: Hugo (tickets) + ajustes por defecto
   if (!p) return panel === "tickets" || panel === "settings";
   if (panel === "postventa" && p.preventa) return true;
   return Boolean(p[panel]);
 }
 
+async function refreshTicketsSession(
+  token: string,
+  setAuth: (token: string, user: TicketsUser, apiToken?: string | null) => void,
+  clear: () => void,
+) {
+  try {
+    const res = await fetch(`/api/tickets/auth/me?_t=${Date.now()}`, {
+      headers: { Authorization: `Bearer ${token}`, Pragma: "no-cache" },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      clear();
+      return;
+    }
+    const u = await res.json();
+    if (u?.id) {
+      setAuth(token, u as TicketsUser, u.api_token ?? null);
+      if (u.api_token) mckennaAndroidBridge()?.saveApiToken?.(u.api_token);
+    } else {
+      clear();
+    }
+  } catch {
+    /* red sin conexión: conservar sesión local */
+  }
+}
+
 export default function App() {
-  const { user, token, setAuth } = useTicketsAuth();
+  const { user, token, setAuth, clear } = useTicketsAuth();
   const applyTheme = usePanelTheme((s) => s.apply);
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
@@ -173,6 +203,13 @@ export default function App() {
   useEffect(() => {
     applyTheme();
   }, [applyTheme]);
+
+  // Revalidar sesión al abrir y al volver a la app (evita user.id obsoleto en filtros del móvil)
+  useEffect(() => {
+    if (!token) return;
+    void refreshTicketsSession(token, setAuth, clear);
+    return onPanelResume(() => { void refreshTicketsSession(token, setAuth, clear); });
+  }, [token, setAuth, clear]);
 
   // Si el panel persistido no es visible para este usuario, ir al primero disponible
   useEffect(() => {
@@ -183,12 +220,27 @@ export default function App() {
     }
   }, [user, panel, setPanel]);
 
+  // Cada sesión arranca en Hugo (chat), no en Centro de Mando
+  useEffect(() => {
+    if (!user || !puedeVerPanel(user, "hugo")) return;
+    try {
+      if (sessionStorage.getItem("mck-boot-hugo")) return;
+      setPanel("hugo");
+      sessionStorage.setItem("mck-boot-hugo", "1");
+    } catch {
+      setPanel("hugo");
+    }
+  }, [user, setPanel]);
+
   if (!user || !token) {
     return (
       <AppLoginView
         onLogin={(t, u, apiToken) => {
           setAuth(t, u, apiToken);
           if (apiToken) mckennaAndroidBridge()?.saveApiToken?.(apiToken);
+          if (puedeVerPanel(u, "hugo")) {
+            useAppStore.getState().setPanel("hugo");
+          }
         }}
       />
     );
