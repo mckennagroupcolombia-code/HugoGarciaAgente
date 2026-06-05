@@ -2340,9 +2340,13 @@ def register_tickets_routes(app):
     def tickets_agente_chat():
         """
         Chat agéntico para registro de acciones en móvil.
-        Usa Ollama/Gemma4 para NLG; la lógica de comandos está en agente_tickets_chat.py.
+        Usa Ollama/Gemma para NLG; comandos y detección de intención en agente_tickets_chat.py.
         """
-        from app.services.agente_tickets_chat import obtener_contexto, generar_respuesta, ejecutar_cmd
+        from app.services.agente_tickets_chat import (
+            obtener_contexto, generar_respuesta, ejecutar_cmd,
+            detectar_procs_relevantes, tiene_intent_accion,
+            detectar_solicitud_context,
+        )
         data = request.get_json(force=True) or {}
         usuario = request.tickets_usuario
         nombre = (usuario.get("nombre") or "").split()[0]
@@ -2357,34 +2361,85 @@ def register_tickets_routes(app):
         if cmd:
             resultado_cmd = ejecutar_cmd(cmd, datos_cmd, usuario)
 
-        # 2. Contexto fresco (acciones activas + protocolos)
+        # 2. Contexto fresco
         contexto = obtener_contexto(usuario)
 
-        # 3. Respuesta conversacional
+        # 3. Detección de intención en texto libre (sin comando)
+        procs_relevantes: list[dict] = []
+        es_intent = False
+        solicitud_ctx: dict = {"es_solicitud": False}
+        if mensaje and not cmd:
+            solicitud_ctx = detectar_solicitud_context(mensaje, historial)
+            if not solicitud_ctx["es_solicitud"]:
+                es_intent = tiene_intent_accion(mensaje)
+                procs_relevantes = detectar_procs_relevantes(mensaje, contexto["protocolos"])
+
+        # 4. Respuesta conversacional
         respuesta = ""
-        if mensaje:
+        sol = solicitud_ctx
+        # No llamar al LLM cuando hay un comando explícito o cuando la solicitud
+        # ya tiene persona y título identificados (evita respuestas genéricas del modelo)
+        skip_llm = bool(cmd) or (
+            sol.get("es_solicitud") and sol.get("usuario") and sol.get("titulo_sugerido")
+        )
+        if mensaje and not skip_llm:
             respuesta = generar_respuesta(mensaje, historial, contexto, usuario)
 
         # Fallbacks sin LLM
         if not respuesta:
             if resultado_cmd and not resultado_cmd.get("error"):
                 if cmd == "crear_accion":
-                    respuesta = f"¡Listo {nombre}! Acción registrada. ¿Arrancamos?"
+                    titulo = resultado_cmd.get("titulo", "")
+                    n_pasos = len(resultado_cmd.get("pasos") or [])
+                    if n_pasos:
+                        respuesta = f"¡Listo! '{titulo}' registrada con {n_pasos} paso{'s' if n_pasos != 1 else ''}. ¡Arrancamos!"
+                    else:
+                        respuesta = f"¡Listo, {nombre}! '{titulo}' registrada. ¡A darle!"
                 elif cmd == "completar_accion":
-                    respuesta = f"¡Buena {nombre}! Acción cerrada. ¿Qué más hacemos?"
+                    respuesta = f"¡Muy bien, {nombre}! Acción cerrada. ¿Qué más hacemos?"
                 elif cmd == "marcar_paso":
-                    respuesta = "Paso marcado. ¡Sigue así!"
+                    respuesta = "¡Paso marcado! Seguimos."
+                elif cmd == "crear_solicitud":
+                    asig = datos_cmd.get("asignado_a_nombre") or "la persona"
+                    titulo_sol = datos_cmd.get("titulo") or resultado_cmd.get("titulo") or ""
+                    if titulo_sol:
+                        respuesta = f"Creé la solicitud para {asig}: \"{titulo_sol}\". Ya le llegará la notificación."
+                    else:
+                        respuesta = f"Creé la solicitud para {asig}. Ya le llegará la notificación."
             elif resultado_cmd and resultado_cmd.get("error"):
                 respuesta = f"Tuve un problema: {resultado_cmd['error']}"
+            elif sol.get("es_solicitud"):
+                u_sol = sol.get("usuario")
+                t_sol = sol.get("titulo_sugerido")
+                if u_sol and t_sol:
+                    respuesta = f"¿Le pido a {u_sol['nombre']} que {t_sol}?"
+                elif u_sol:
+                    respuesta = f"¿Qué necesitás que haga {u_sol['nombre']}?"
+                elif sol.get("persona_nombre"):
+                    respuesta = f"No encontré a '{sol['persona_nombre']}' en el equipo. ¿Cómo se llama exactamente?"
+                else:
+                    respuesta = "¿Para quién es la solicitud?"
+            elif es_intent and procs_relevantes:
+                respuesta = "¿Cuál procedimiento usamos para eso?"
+            elif es_intent:
+                respuesta = f"¡Dale, {nombre}! ¿La registramos como acción nueva?"
             elif not mensaje:
                 respuesta = f"¿Qué vas a hacer hoy, {nombre}?"
             else:
-                respuesta = "Entendido. ¿Cómo te ayudo?"
+                respuesta = "¿Cómo te ayudo?"
 
         return jsonify({
             "respuesta": respuesta,
             "contexto": contexto,
             "accion_resultado": resultado_cmd,
+            "procs_relevantes": procs_relevantes,
+            "es_intent": es_intent,
+            "solicitud_ctx": {
+                "es_solicitud": bool(sol.get("es_solicitud")),
+                "persona_nombre": sol.get("persona_nombre"),
+                "usuario": sol.get("usuario"),
+                "titulo_sugerido": sol.get("titulo_sugerido"),
+            },
         }), 200
 
     @app.route("/api/tickets/recordatorios/notificar-hoy", methods=["POST"])
