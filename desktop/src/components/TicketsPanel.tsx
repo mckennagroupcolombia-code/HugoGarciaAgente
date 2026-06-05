@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useId, createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
+import { useAppStore, type TicketsBootView } from "../stores/app";
 import {
   isAndroidMobileBrowser,
   isMcKennaAndroidApp,
   mckennaAndroidBridge,
   webNotificationsAvailable,
 } from "../lib/androidApp";
+import { onPanelResume } from "../lib/panelRefresh";
 import { useQuestTheme } from "../stores/questTheme";
 import QuestThemeToggle from "./QuestThemeToggle";
 import { QuestBoardTitle, QuestBoardNavLabel, QuestBoardBackLabel } from "./QuestBoardTitle";
@@ -49,10 +51,17 @@ import {
 function tapi(path: string, token: string, options: RequestInit = {}) {
   const isForm = options.body instanceof FormData;
   const hasJsonBody = options.body != null && options.body !== "" && !isForm;
-  return fetch(`/api/tickets${path}`, {
+  const method = (options.method ?? "GET").toUpperCase();
+  let url = `/api/tickets${path}`;
+  if (method === "GET" || method === "HEAD") {
+    url += `${path.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+  }
+  return fetch(url, {
+    cache: "no-store",
     ...options,
     headers: {
       Authorization: `Bearer ${token}`,
+      Pragma: "no-cache",
       ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
     },
@@ -1551,7 +1560,7 @@ function QuestNavBar({
   permisos,
   bajoStockCount,
   userNombre,
-  onTablero,
+  onInicio,
   onAcciones,
   onSolicitudes,
   onInventario,
@@ -1563,14 +1572,13 @@ function QuestNavBar({
   onPerfil,
   onCreateMision,
   onLogout,
-  onAgente,
 }: {
   view: View;
   nivel: number;
   permisos: Record<string, boolean> | null | undefined;
   bajoStockCount: number;
   userNombre: string;
-  onTablero: () => void;
+  onInicio: () => void;
   onAcciones: () => void;
   onSolicitudes: () => void;
   onInventario: () => void;
@@ -1582,15 +1590,15 @@ function QuestNavBar({
   onPerfil: () => void;
   onCreateMision: () => void;
   onLogout: () => void;
-  onAgente: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
+  const panel = useAppStore((s) => s.panel);
   const [menuOpen, setMenuOpen] = useState(false);
   const cerrar = () => setMenuOpen(false);
 
   // Etiqueta de la sección activa (para la cabecera móvil)
   const viewLabels: Partial<Record<View, string>> = {
-    home: "Inicio", list: "Tablero", acciones: "Acciones", solicitudes: "Solicitudes",
+    home: "Centro de Mando", list: "Tablero", acciones: "Acciones", solicitudes: "Solicitudes",
     crear_mision: "Nueva misión", inventario: "Inventario", reinos: "Reinos",
     recetas: "Recetas", workload: "Aliados", perfil: "Perfil",
     mision_detail: "Misión", detail: "Ticket", create: "Nuevo ticket",
@@ -1612,16 +1620,8 @@ function QuestNavBar({
 
         {/* Items — desktop (siempre visibles desde sm) */}
         <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex">
-          <button type="button" onClick={onTablero} className={questNavBtn(view === "home" || view === "list")}>
-            <TopicIcon value="🏠" size={14} weight="duotone" />Inicio
-          </button>
-          <button
-            type="button"
-            onClick={onAgente}
-            className={questNavBtn(view === "agente")}
-            title="Agente de voz — registrar acciones"
-          >
-            <TopicIcon value="🎙️" size={14} weight="duotone" />Hugo
+          <button type="button" onClick={onInicio} className={questNavBtn(panel === "hugo")} title="Ir a Hugo">
+            <TopicIcon value="🎙️" size={14} weight="duotone" />Inicio Hugo
           </button>
           {nivel >= 2 && pVer("workload") && (
             <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
@@ -1662,9 +1662,9 @@ function QuestNavBar({
       {/* ── Menú desplegable — solo mobile, solo cuando está abierto ────── */}
       {menuOpen && (
         <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-2.5 sm:hidden">
-          <button type="button" onClick={() => { onTablero(); cerrar(); }}
-            className={`${questNavBtn(view === "home" || view === "list")} w-full justify-start text-left`}>
-            <TopicIcon value="🏠" size={14} weight="duotone" />Inicio
+          <button type="button" onClick={() => { onInicio(); cerrar(); }}
+            className={`${questNavBtn(panel === "hugo")} w-full justify-start text-left`}>
+            <TopicIcon value="🎙️" size={14} weight="duotone" />Inicio Hugo
           </button>
           {nivel >= 2 && pVer("workload") && (
             <button type="button" onClick={() => { onWorkload(); cerrar(); }}
@@ -1678,10 +1678,6 @@ function QuestNavBar({
               <TopicIcon value="👤" size={14} weight="duotone" />Perfil
             </button>
           )}
-          <button type="button" onClick={() => { onAgente(); cerrar(); }}
-            className={`${questNavBtn(view === "agente")} w-full justify-start text-left`}>
-            <TopicIcon value="🎙️" size={14} weight="duotone" />Hugo — Registrar acción
-          </button>
           <button type="button" onClick={onLogout}
             className={`${questNavBtn(false)} w-full justify-start border-t border-border pt-2 text-left`}>
             <Icon name="signOut" size={14} weight="bold" className="shrink-0" />
@@ -4054,7 +4050,7 @@ function navScopeLabel(scope: NavScope): string {
 function CentroMandoHome({
   token, user, nivel, permisos,
   onAcciones, onSolicitudes, onTablero,
-  onAccionesFuturas, onRecordatorios, onProcedimientos, onAgente,
+  onAccionesFuturas, onRecordatorios, onProcedimientos,
 }: {
   token: string;
   user: TicketsUser;
@@ -4066,7 +4062,6 @@ function CentroMandoHome({
   onAccionesFuturas: () => void;
   onRecordatorios: () => void;
   onProcedimientos: () => void;
-  onAgente?: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
 
@@ -4308,26 +4303,6 @@ function CentroMandoHome({
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Botón agente — visible solo en pantallas pequeñas (móvil) */}
-      {onAgente && (
-        <div className="sm:hidden">
-          <button
-            type="button"
-            onClick={onAgente}
-            className="w-full flex items-center gap-4 rounded-3xl border-2 border-accent bg-accent/10 px-6 py-4 text-left transition hover:bg-accent/20 active:scale-[0.98]"
-          >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-2xl text-white shadow">
-              🎙️
-            </span>
-            <div>
-              <p className="text-lg font-extrabold text-ink dark:text-white leading-tight">Hugo, registra</p>
-              <p className="text-sm font-semibold text-accent">Dictá o escribí lo que vas a hacer</p>
-            </div>
-            <span className="ml-auto text-accent text-xl">›</span>
-          </button>
         </div>
       )}
 
@@ -11672,6 +11647,46 @@ async function _playBlobBuffer(buffer: ArrayBuffer, type: string): Promise<void>
   });
 }
 
+const HUGO_VOICEBOX_PROFILE = "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23";
+
+/** TTS con la voz de Hugo García (Voicebox). apiToken = CHAT_API_TOKEN o JWT de tickets. */
+async function hablarHugoTts(apiToken: string, texto: string): Promise<boolean> {
+  if (!texto.trim() || !apiToken) return false;
+  try {
+    const res = await fetch("/api/voz/sintetizar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+      body: JSON.stringify({
+        texto: texto.trim(),
+        motor: "voicebox",
+        voicebox_engine: "qwen3",
+        voicebox_profile: HUGO_VOICEBOX_PROFILE,
+        language: "Spanish",
+      }),
+    });
+    if (!res.ok) throw new Error("tts http");
+    const ct = res.headers.get("content-type") || "audio/wav";
+    if (ct.includes("json")) throw new Error("tts json");
+    const buffer = await res.arrayBuffer();
+    const type = ct.includes("mpeg") ? "audio/mpeg" : "audio/wav";
+    await _playBlobBuffer(buffer, type);
+    return true;
+  } catch {
+    if ("speechSynthesis" in window) {
+      return await new Promise<boolean>((resolve) => {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(texto.trim());
+        u.lang = "es-CO";
+        u.rate = 0.92;
+        u.onend = () => resolve(true);
+        u.onerror = () => resolve(false);
+        window.speechSynthesis.speak(u);
+      });
+    }
+    return false;
+  }
+}
+
 /** Reproduce alerta de voz para recordatorios vencidos usando la voz de Hugo García. */
 async function playRecordatorioAlerta(apiToken: string, count: number): Promise<void> {
   const texto = count === 1
@@ -11772,6 +11787,40 @@ async function playAlarmAudio(apiToken?: string) {
     });
     setTimeout(() => ctx.close().catch(() => {}), 2500);
   } catch { /* AudioContext no disponible */ }
+}
+
+async function playSolicitudAudio(nombre: string, apiToken?: string): Promise<void> {
+  const texto = `Tienes una solicitud de ${nombre}.`;
+  if (apiToken) {
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 12_000);
+      const res = await fetch("/api/voz/sintetizar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+        body: JSON.stringify({
+          texto,
+          motor: "voicebox",
+          voicebox_engine: "qwen3",
+          voicebox_profile: "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
+          language: "Spanish",
+        }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(tid);
+      if (!res.ok) throw new Error("tts error");
+      const buffer = await res.arrayBuffer();
+      const type = res.headers.get("content-type") || "audio/wav";
+      await _playBlobBuffer(buffer, type);
+      return;
+    } catch { /* fallback */ }
+  }
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(texto);
+    utt.lang = "es-CO"; utt.rate = 0.92; utt.volume = 1;
+    window.speechSynthesis.speak(utt);
+  }
 }
 
 // Persists timer start time across React remounts (ticket moves between column groups).
@@ -16829,7 +16878,7 @@ function SolicitudesView({
       setComprasDelegadas(comprasRes.value.map(normalizeTicketForList));
     }
     if (!silent) setLoading(false);
-  }, [token]);
+  }, [token, user.id]);
 
   const cargarHistorial = useCallback(async () => {
     setLoadingHistorial(true);
@@ -16844,14 +16893,10 @@ function SolicitudesView({
 
   useEffect(() => { void load(false); }, [load]);
   useEffect(() => {
-    const iv = setInterval(() => void load(true), 30000);
+    const iv = setInterval(() => void load(true), 15000);
     return () => clearInterval(iv);
   }, [load]);
-  useEffect(() => {
-    const onVis = () => { if (document.visibilityState === "visible") void load(true); };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [load]);
+  useEffect(() => onPanelResume(() => { void load(true); }), [load]);
 
   async function cargarProtocolos() {
     setLoadingProtocolos(true);
@@ -16867,6 +16912,12 @@ function SolicitudesView({
     if (tab === "historial") void cargarHistorial();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "historial") return;
+    const iv = setInterval(() => { void cargarHistorial(); }, 15000);
+    return onPanelResume(() => { void cargarHistorial(); });
+  }, [tab, cargarHistorial]);
 
   const asignadas = solicitudes.filter(
     (t) => uidEq(t.asignado_a, user.id) && t.estado !== "resuelto" && t.estado !== "rechazado",
@@ -17046,14 +17097,24 @@ function SolicitudesView({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowWizard(true)}
-            className="w-full rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white font-extrabold text-lg py-4 flex items-center justify-center gap-2 transition-all shadow-[0_3px_0_#9f1239] active:shadow-none active:translate-y-0.5"
-          >
-            <Icon name="plus" size={18} weight="bold" />
-            Nueva solicitud
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => setShowWizard(true)}
+              className="flex-1 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white font-extrabold text-lg py-4 flex items-center justify-center gap-2 transition-all shadow-[0_3px_0_#9f1239] active:shadow-none active:translate-y-0.5"
+            >
+              <Icon name="plus" size={18} weight="bold" />
+              Nueva solicitud
+            </button>
+            <button
+              type="button"
+              onClick={() => void load(false)}
+              disabled={loading}
+              className="rounded-2xl border-2 border-rose-300 dark:border-rose-600/70 px-4 py-3 text-sm font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50"
+            >
+              ↻ Actualizar
+            </button>
+          </div>
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
@@ -17165,6 +17226,19 @@ function SolicitudesView({
           </div>
         );
       })()}
+
+      {tab !== "subhome" && tab !== "historial" && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void load(false)}
+            disabled={loading}
+            className="text-xs text-accent hover:underline disabled:opacity-50"
+          >
+            ↻ Actualizar lista
+          </button>
+        </div>
+      )}
 
       {tab === "subhome" && loading && <div className="py-8 text-center text-sm text-muted">Cargando solicitudes…</div>}
 
@@ -19088,6 +19162,7 @@ function AccionesView({
   const minRef       = useRef(alarmaMinutos);
   const androidAlarmDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const accionesRef  = useRef(acciones);
+  const solicitudesRef = useRef<Ticket[]>([]);
   const tokenRef     = useRef(chatApiToken ?? token);
   const ultimaAlarmaRef = useRef(Date.now());
   const prevHayEnProcesoRef = useRef<boolean | null>(null);
@@ -19095,6 +19170,23 @@ function AccionesView({
   useEffect(() => { minRef.current = alarmaMinutos; }, [alarmaMinutos]);
   useEffect(() => { accionesRef.current = acciones; }, [acciones]);
   useEffect(() => { tokenRef.current = chatApiToken ?? token; }, [chatApiToken, token]);
+
+  // Polling de solicitudes asignadas para el mensaje de alarma
+  useEffect(() => {
+    const fetchSols = async () => {
+      try {
+        const data = await tapi("/?tipo=solicitud&activas=1", token) as any[];
+        if (!Array.isArray(data)) return;
+        solicitudesRef.current = data
+          .map(normalizeTicketForList)
+          .filter((t: Ticket) => uidEq(t.asignado_a, user.id) && t.estado !== "resuelto" && t.estado !== "rechazado");
+      } catch { /* ignore */ }
+    };
+    void fetchSols();
+    const iv = setInterval(() => void fetchSols(), 15_000);
+    return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, user.id]);
 
   const ANDROID_PANEL_PKG = "co.mckennagroup.panel";
 
@@ -19238,10 +19330,16 @@ function AccionesView({
   // Dispara la alarma: audio si foreground, notificación + push si background
   const dispararAlarma = useCallback(async (forzar = false) => {
     const hayTarea = accionesRef.current.some((t) => t.estado === "en_proceso");
-    if (!forzar && (!alarmaRef.current || !hayTarea)) return;
+    const solPendiente = solicitudesRef.current[0] ?? null;
+    if (!forzar && (!alarmaRef.current || (!hayTarea && !solPendiente))) return;
     ultimaAlarmaRef.current = Date.now();
     if (!document.hidden) {
-      await playAlarmAudio(tokenRef.current);
+      if (solPendiente && !hayTarea) {
+        const nombre = solPendiente.creado_por_nombre ?? solPendiente.creado_por_info?.nombre ?? "un compañero";
+        await playSolicitudAudio(nombre, tokenRef.current ?? undefined);
+      } else {
+        await playAlarmAudio(tokenRef.current);
+      }
     } else {
       // Background / pantalla bloqueada:
       // Canal A — SW message (app en background, pantalla encendida)
@@ -19303,9 +19401,8 @@ function AccionesView({
         return true;
       });
       setAcciones((prev) => {
-        const ns = JSON.stringify(list.map((t) => t.id + t.estado));
-        const ps = JSON.stringify(prev.map((t) => t.id + t.estado));
-        return ns === ps ? prev : list;
+        const snap = (arr: Ticket[]) => JSON.stringify(arr.map((t) => `${t.id}:${t.estado}:${t.actualizado_en ?? ""}:${t.pasos_completados ?? 0}/${t.pasos_total ?? 0}`));
+        return snap(list) === snap(prev) ? prev : list;
       });
       if (usrs.status === "fulfilled" && Array.isArray(usrs.value)) {
         setUsuarios(usrs.value);
@@ -19315,14 +19412,10 @@ function AccionesView({
   }, [token, isAdmin, user.id]);
 
   useEffect(() => {
-    const iv = setInterval(() => { void load(true); }, 30000);
+    const iv = setInterval(() => { void load(true); }, 15000);
     return () => clearInterval(iv);
   }, [load]);
-  useEffect(() => {
-    const onVis = () => { if (document.visibilityState === "visible") void load(true); };
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [load]);
+  useEffect(() => onPanelResume(() => { void load(true); }), [load]);
 
   function abrirWizard(tituloPrefill = "", plantilla?: PlantillaAccion) {
     setReanudarWizard(null);
@@ -19410,8 +19503,8 @@ function AccionesView({
     }
   }
 
-  const cargarHistorialYProcedimientos = useCallback(async () => {
-    setLoadingExtra(true);
+  const cargarHistorialYProcedimientos = useCallback(async (silent = false) => {
+    if (!silent) setLoadingExtra(true);
     // Cargar independientemente para que un fallo en historial no bloquee procedimientos
     const [histRes, procRes] = await Promise.allSettled([
       tapi("/acciones/historial", token),
@@ -19423,7 +19516,7 @@ function AccionesView({
     if (procRes.status === "fulfilled") {
       setProcedimientos(Array.isArray(procRes.value) ? procRes.value : []);
     }
-    setLoadingExtra(false);
+    if (!silent) setLoadingExtra(false);
   }, [token]);
 
   const cargarPendientes = useCallback(async () => {
@@ -19470,6 +19563,13 @@ function AccionesView({
     if (tabAcciones === "pendientes" || tabAcciones === "subhome") void cargarPendientes();
     if (tabAcciones === "recordatorios" || tabAcciones === "subhome") void cargarRecordatorios();
   }, [tabAcciones, cargarHistorialYProcedimientos, cargarPendientes, cargarRecordatorios]);
+
+  // Historial/procedimientos: refresco periódico y al volver a la app (móvil en background no recibe el poll de activas)
+  useEffect(() => {
+    if (tabAcciones !== "historial" && tabAcciones !== "procedimientos") return;
+    const iv = setInterval(() => { void cargarHistorialYProcedimientos(true); }, 15000);
+    return onPanelResume(() => { void cargarHistorialYProcedimientos(true); });
+  }, [tabAcciones, cargarHistorialYProcedimientos]);
 
   async function repetirProcedimiento(protocoloId: number) {
     setLoadingExtra(true);
@@ -19943,7 +20043,20 @@ function AccionesView({
 
       {tabAcciones === "historial" && !isAdmin && (
         <div className="space-y-3">
-          {loadingExtra && <p className="text-sm text-muted">Cargando historial…</p>}
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-muted">
+              {loadingExtra ? "Actualizando…" : `${historial.length} acción${historial.length === 1 ? "" : "es"} en historial`}
+            </p>
+            <button
+              type="button"
+              onClick={() => void cargarHistorialYProcedimientos()}
+              disabled={loadingExtra}
+              className="text-xs text-accent hover:underline disabled:opacity-50"
+            >
+              ↻ Recargar historial
+            </button>
+          </div>
+          {loadingExtra && historial.length === 0 && <p className="text-sm text-muted">Cargando historial…</p>}
           {!loadingExtra && historial.length === 0 && (
             <p className="py-8 text-center text-sm text-muted">Aún no hay acciones en tu historial.</p>
           )}
@@ -20336,6 +20449,39 @@ function AccionesView({
   );
 }
 
+// ── Botón cámara (acción en ejecución) ───────────────────────────────────────
+
+function BotonCamaraEjecucion({ onFile, title = "Tomar foto" }: { onFile: (file: File) => void; title?: string }) {
+  const inputId = useId();
+  return (
+    <>
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onFile(file);
+          e.target.value = "";
+        }}
+      />
+      <label
+        htmlFor={inputId}
+        className="h-11 w-11 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-white/70 hover:text-gray-700 dark:hover:text-white transition cursor-pointer"
+        title={title}
+        aria-label={title}
+      >
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </label>
+    </>
+  );
+}
+
 // ── EjecucionAccionChat ───────────────────────────────────────────────────────
 
 function EjecucionAccionChat({
@@ -20359,7 +20505,6 @@ function EjecucionAccionChat({
   const t0 = useRef(Date.now() - segundos * 1000);
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const fotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const iv = setInterval(() => {
@@ -20389,15 +20534,17 @@ function EjecucionAccionChat({
       if (fotoFile) {
         const fd = new FormData();
         fd.append("archivo", fotoFile);
-        await fetch(`/api/tickets/${accion.id}/adjuntos`, {
+        const res = await fetch(`/api/tickets/${accion.id}/adjuntos`, {
           method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
         });
+        if (!res.ok) throw new Error("upload");
       } else if (texto.trim()) {
-        await fetch(`/api/tickets/${accion.id}/comentarios`, {
+        const res = await fetch(`/api/tickets/${accion.id}/comentarios`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({ texto: texto.trim() }),
         });
+        if (!res.ok) throw new Error("comment");
       }
       setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false } : n));
     } catch {
@@ -20405,11 +20552,8 @@ function EjecucionAccionChat({
     }
   }
 
-  function onFotoSeleccionada(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function onFotoSeleccionada(file: File) {
     void agregarNota("", file, URL.createObjectURL(file));
-    e.target.value = "";
   }
 
   async function terminar() {
@@ -20437,15 +20581,15 @@ function EjecucionAccionChat({
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-950">
+    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
       {/* Header con cronómetro */}
-      <div className="shrink-0 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950">
+      <div className="shrink-0 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
         <div className="flex items-center gap-3 px-4 py-2.5">
           <button type="button" onClick={guardarYVolver}
             className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0">‹</button>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">En ejecución</p>
-            <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-snug truncate">{accion.titulo}</p>
+            <p className="text-xs font-extrabold uppercase tracking-widest text-muted">En ejecución</p>
+            <p className="text-base font-extrabold text-ink leading-snug truncate tracking-tight">{accion.titulo}</p>
           </div>
           {/* Cronómetro */}
           <div className="shrink-0 flex items-center gap-1.5 bg-accent/10 rounded-full px-3 py-1">
@@ -20487,24 +20631,17 @@ function EjecucionAccionChat({
         <div ref={bottomRef}/>
       </div>
 
-      {/* Terminar */}
-      <div className="shrink-0 px-4 pt-3 pb-2 bg-white dark:bg-gray-950">
+      {/* Pie: terminar + input + micrófono */}
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 pb-safe">
+      <div className="px-4 pt-3 pb-2">
         <button type="button" onClick={terminar} disabled={terminando || notas.some(n => n.guardando)}
           className="w-full rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
           {terminando ? "Cerrando…" : notas.some(n => n.guardando) ? "Guardando…" : "✅ Terminé la actividad"}
         </button>
       </div>
 
-      {/* Input */}
-      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 px-4 py-3 flex items-center gap-2 bg-white dark:bg-gray-950">
-        <input type="file" accept="image/*" capture="environment" ref={fotoInputRef} className="hidden" onChange={onFotoSeleccionada}/>
-        <button type="button" onClick={() => fotoInputRef.current?.click()}
-          className="h-11 w-11 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-white/70 transition" title="Foto">
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-            <circle cx="12" cy="13" r="4"/>
-          </svg>
-        </button>
+      <div className="px-4 py-2.5 flex items-center gap-2">
+        <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto" />
         <input value={inputNota} onChange={e => setInputNota(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
           placeholder="Describí lo que hiciste…"
@@ -20528,10 +20665,11 @@ function EjecucionAccionChat({
         )}
       </div>
       {(stt.grabando || stt.transcribiendo) && (
-        <p className="shrink-0 text-center text-xs text-accent pb-2 bg-white dark:bg-gray-950">
+        <p className="text-center text-xs text-accent px-4 pb-1">
           {stt.grabando ? `🎙️ ${stt.segundos}s` : "✨ Transcribiendo…"}
         </p>
       )}
+      </div>
     </div>
   );
 }
@@ -20555,7 +20693,6 @@ function ResolverActividadChat({
   const [error, setError] = useState("");
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const fotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -20570,15 +20707,17 @@ function ResolverActividadChat({
       if (fotoFile) {
         const fd = new FormData();
         fd.append("archivo", fotoFile);
-        await fetch(`/api/tickets/${solicitud.id}/adjuntos`, {
+        const res = await fetch(`/api/tickets/${solicitud.id}/adjuntos`, {
           method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
         });
+        if (!res.ok) throw new Error("upload");
       } else if (texto.trim()) {
-        await fetch(`/api/tickets/${solicitud.id}/comentarios`, {
+        const res = await fetch(`/api/tickets/${solicitud.id}/comentarios`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
           body: JSON.stringify({ texto: texto.trim() }),
         });
+        if (!res.ok) throw new Error("comment");
       }
       setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false } : n));
     } catch {
@@ -20586,11 +20725,8 @@ function ResolverActividadChat({
     }
   }
 
-  function onFotoSeleccionada(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function onFotoSeleccionada(file: File) {
     void agregarNota("", file, URL.createObjectURL(file));
-    e.target.value = "";
   }
 
   async function terminar() {
@@ -20615,17 +20751,17 @@ function ResolverActividadChat({
   const hayContenido = notas.length > 0;
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-950">
+    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
       {/* Header */}
-      <div className="shrink-0 flex items-start gap-3 px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950">
+      <div className="shrink-0 flex items-start gap-3 px-4 py-3 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
         <button type="button" onClick={onVolver}
           className="mt-0.5 flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0"
         >‹</button>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40 mb-0.5">Actividad pendiente</p>
-          <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-snug line-clamp-2">{solicitud.titulo}</p>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-muted mb-0.5">Actividad pendiente</p>
+          <p className="text-base font-extrabold text-ink leading-snug line-clamp-2 tracking-tight">{solicitud.titulo}</p>
           {solicitud.creado_por_nombre && (
-            <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">De: {solicitud.creado_por_nombre}</p>
+            <p className="text-sm font-bold text-muted mt-0.5">De: {solicitud.creado_por_nombre}</p>
           )}
         </div>
       </div>
@@ -20662,8 +20798,9 @@ function ResolverActividadChat({
         <div ref={bottomRef} />
       </div>
 
-      {/* Botón terminar */}
-      <div className="shrink-0 px-4 pt-3 pb-2 bg-white dark:bg-gray-950">
+      {/* Pie: terminar + input + micrófono */}
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 pb-safe">
+      <div className="px-4 pt-3 pb-2">
         <button type="button" onClick={terminar} disabled={terminando || notas.some(n => n.guardando)}
           className="w-full rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
           {terminando ? "Cerrando…" : notas.some(n => n.guardando) ? "Guardando…" : "✅ Terminé la actividad"}
@@ -20673,17 +20810,8 @@ function ResolverActividadChat({
         )}
       </div>
 
-      {/* Input de notas + mic + cámara */}
-      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 px-4 py-3 flex items-center gap-2 bg-white dark:bg-gray-950">
-        <input type="file" accept="image/*" capture="environment" ref={fotoInputRef} className="hidden" onChange={onFotoSeleccionada}/>
-        <button type="button" onClick={() => fotoInputRef.current?.click()}
-          className="h-11 w-11 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-white/70 hover:text-gray-700 dark:hover:text-white transition"
-          title="Tomar foto">
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-            <circle cx="12" cy="13" r="4"/>
-          </svg>
-        </button>
+      <div className="px-4 py-2.5 flex items-center gap-2">
+        <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto" />
         <input value={inputNota} onChange={e => setInputNota(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
           placeholder="Describí lo que hiciste…"
@@ -20708,10 +20836,11 @@ function ResolverActividadChat({
         )}
       </div>
       {(stt.grabando || stt.transcribiendo) && (
-        <p className="shrink-0 text-center text-xs text-accent pb-2 bg-white dark:bg-gray-950">
+        <p className="text-center text-xs text-accent px-4 pb-1">
           {stt.grabando ? `🎙️ Grabando… ${stt.segundos}s` : "✨ Transcribiendo…"}
         </p>
       )}
+      </div>
     </div>
   );
 }
@@ -20733,11 +20862,17 @@ type AgentChip = {
 };
 
 function AgenteMandoView({
-  token, user, onSalir, onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones,
+  token, user, modoInicio = false, onSalir, onAbrirMenu, onIrInicio,
+  onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones,
 }: {
   token: string;
   user: TicketsUser;
+  /** Pantalla principal de la app: solo chat, sin panel de accesos. */
+  modoInicio?: boolean;
   onSalir: () => void;
+  onAbrirMenu?: () => void;
+  /** Volver a Hugo (pantalla principal de la app). */
+  onIrInicio: () => void;
   onGoSolicitudes: () => void;
   onGoAcciones: () => void;
   onGoTablero: () => void;
@@ -20778,6 +20913,16 @@ function AgenteMandoView({
     setBurbujas(prev => [...prev, { id: nextId(), rol, texto, chips }]);
   }
 
+  /** Reemplaza el historial por un único mensaje del agente (chat limpio). */
+  function establecerBurbujaAgente(texto: string, chips?: AgentChip[]) {
+    setBurbujas([{ id: nextId(), rol: "agente", texto, chips }]);
+  }
+
+  function truncarTituloChip(t: string, max = 28) {
+    const s = t.trim();
+    return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+  }
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [burbujas, pensando]);
@@ -20787,6 +20932,32 @@ function AgenteMandoView({
     void cargarContextoInicial();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function aplicarContextoAgente(
+    res: {
+      contexto?: {
+        protocolos?: { id: number; titulo: string }[];
+        acciones_activas?: any[];
+        solicitudes_asignadas?: any[];
+      };
+    },
+    opts?: { trasActividad?: boolean },
+  ) {
+    const prots: { id: number; titulo: string }[] = res.contexto?.protocolos ?? [];
+    const accActivas: any[] = res.contexto?.acciones_activas ?? [];
+    const solAsignadas: any[] = res.contexto?.solicitudes_asignadas ?? [];
+    setProtocolos(prots);
+    setSolicitudesCount(solAsignadas.length);
+    setAccionesCount(accActivas.length);
+
+    if (modoEjecucion && !accActivas.some((a: { id: number }) => a.id === modoEjecucion.id)) {
+      localStorage.removeItem("mckenna-accion-activa");
+      setModoEjecucion(null);
+    }
+
+    const { texto, chips } = construirMensajeContexto(solAsignadas, accActivas, opts);
+    establecerBurbujaAgente(texto, chips);
+  }
+
   async function cargarContextoInicial() {
     setPensando(true);
     try {
@@ -20794,44 +20965,27 @@ function AgenteMandoView({
         method: "POST",
         body: JSON.stringify({ mensaje: "", historial: [] }),
       });
-      const prots: { id: number; titulo: string }[] = res.contexto?.protocolos ?? [];
-      const accActivas: any[] = res.contexto?.acciones_activas ?? [];
-      const solAsignadas: any[] = res.contexto?.solicitudes_asignadas ?? [];
-      setProtocolos(prots);
-      setSolicitudesCount(solAsignadas.length);
-      setAccionesCount(accActivas.length);
-
-      const mainChips = buildMainChips(prots, accActivas);
-      agregarBurbuja("agente", `¡Hola ${nombre}! ¿Qué vas a hacer?`, mainChips);
-
-      if (solAsignadas.length > 0) {
-        const chipsSol: AgentChip[] = solAsignadas.slice(0, 3).map((s: any) => ({
-          label: `📋 ${s.titulo}`,
-          onTap: () => setSolicitudResolviendo({
-            id: s.id, titulo: s.titulo,
-            numero: s.numero, creado_por_nombre: s.creado_por_nombre,
-          }),
-        }));
-        agregarBurbuja(
-          "agente",
-          `Tenés ${solAsignadas.length} solicitud${solAsignadas.length > 1 ? "es" : ""} pendiente${solAsignadas.length > 1 ? "s" : ""} de resolver:`,
-          chipsSol,
-        );
-      }
-
-      if (accActivas.length > 0) {
-        const chipsContinuar: AgentChip[] = accActivas.slice(0, 3).map((a: any) => ({
-          label: `⚡ Continuar: ${a.titulo}`,
-          onTap: () => continuarAccion(a),
-        }));
-        agregarBurbuja(
-          "agente",
-          `Tenés ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} en curso:`,
-          chipsContinuar,
-        );
-      }
+      await aplicarContextoAgente(res);
     } catch {
-      agregarBurbuja("agente", `¡Hola ${nombre}! ¿Qué vas a hacer hoy?`, [
+      establecerBurbujaAgente(`¡Hola ${nombre}! ¿Qué hacemos hoy?`, [
+        { label: "⚡ Registrar acción", onTap: mostrarProcedimientos },
+        { label: "📋 Crear solicitud", onTap: onGoSolicitudes },
+      ]);
+    } finally {
+      setPensando(false);
+    }
+  }
+
+  async function reiniciarTrasActividad() {
+    setPensando(true);
+    try {
+      const res = await tapi("/agente-chat", token, {
+        method: "POST",
+        body: JSON.stringify({ mensaje: "", historial: [] }),
+      });
+      await aplicarContextoAgente(res, { trasActividad: true });
+    } catch {
+      establecerBurbujaAgente("¡Listo! Actividad registrada. ¿Qué más hacemos?", [
         { label: "⚡ Registrar acción", onTap: mostrarProcedimientos },
         { label: "📋 Crear solicitud", onTap: onGoSolicitudes },
       ]);
@@ -20848,6 +21002,40 @@ function AgenteMandoView({
     chips.push({ label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
     chips.push({ label: "📋 Crear solicitud", onTap: onGoSolicitudes });
     return chips;
+  }
+
+  /** Un solo mensaje de saludo / post-actividad + chips unificados (sin burbujas apiladas). */
+  function construirMensajeContexto(
+    _solAsignadas: any[],
+    accActivas: any[],
+    opts?: { trasActividad?: boolean },
+  ): { texto: string; chips: AgentChip[] } {
+    const chips: AgentChip[] = [];
+
+    // Las solicitudes pendientes no se muestran en la pantalla principal de Hugo
+    // (el usuario las ve en Centro de Mando o desde el menú lateral).
+    for (const a of accActivas.slice(0, 2)) {
+      chips.push({
+        label: `⚡ ${truncarTituloChip(a.titulo)}`,
+        onTap: () => continuarAccion(a),
+      });
+    }
+    chips.push({ label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
+    chips.push({ label: "📋 Crear solicitud", onTap: onGoSolicitudes });
+
+    if (opts?.trasActividad) {
+      const extra = accActivas.length > 0
+        ? ` Quedan ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} en curso.`
+        : "";
+      return { texto: `¡Listo! Actividad registrada.${extra} ¿Qué sigue?`, chips };
+    }
+
+    let texto = `¡Hola ${nombre}!`;
+    if (accActivas.length > 0) {
+      texto += ` Tenés ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} activa${accActivas.length > 1 ? "s" : ""}.`;
+    }
+    texto += " ¿Qué hacemos?";
+    return { texto, chips };
   }
 
   function mostrarProcedimientos(_procsOverride?: typeof protocolos) {
@@ -21014,14 +21202,14 @@ function AgenteMandoView({
 
         if (cmd === "completar_accion") {
           setAccionActual(null);
-          agregarBurbuja("agente", res.respuesta, buildMainChips(protsActualizados, accActivas));
+          void reiniciarTrasActividad();
           return;
         }
 
         if (cmd === "crear_solicitud") {
           agregarBurbuja("agente", res.respuesta, [
             { label: "📋 Ver mis solicitudes", onTap: onGoSolicitudes },
-            { label: "🏠 Inicio", onTap: onSalir },
+            { label: "🏠 Inicio", onTap: onIrInicio },
           ]);
           return;
         }
@@ -21101,33 +21289,18 @@ function AgenteMandoView({
   }
 
   async function hablar(texto: string, burbulaId: number) {
-    if (ttsPlaying === burbulaId) return;
+    if (ttsPlaying === burbulaId) {
+      window.speechSynthesis?.cancel();
+      setTtsPlaying(null);
+      return;
+    }
+    const ttsToken = chatApiToken ?? token;
+    if (!ttsToken) return;
     setTtsPlaying(burbulaId);
     try {
-      const r = await fetch("/api/voz/sintetizar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(chatApiToken ? { Authorization: `Bearer ${chatApiToken}` } : {}),
-        },
-        body: JSON.stringify({ texto, motor: "auto" }),
-      });
-      if (!r.ok) throw new Error();
-      const blob = await r.blob();
-      const audio = new Audio(URL.createObjectURL(blob));
-      audio.onended = () => setTtsPlaying(null);
-      audio.onerror = () => setTtsPlaying(null);
-      await audio.play();
-    } catch {
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(texto);
-        u.lang = "es-CO";
-        u.onend = () => setTtsPlaying(null);
-        window.speechSynthesis.speak(u);
-      } else {
-        setTtsPlaying(null);
-      }
+      await hablarHugoTts(ttsToken, texto);
+    } finally {
+      setTtsPlaying(null);
     }
   }
 
@@ -21141,6 +21314,12 @@ function AgenteMandoView({
   }
 
   const lastChips = burbujas.length > 0 ? burbujas[burbujas.length - 1].chips : undefined;
+  const ultimaBurbujaAgenteId = useMemo(() => {
+    for (let i = burbujas.length - 1; i >= 0; i--) {
+      if (burbujas[i].rol === "agente") return burbujas[i].id;
+    }
+    return null;
+  }, [burbujas]);
 
   // ── Modo ejecución de acción propia ─────────────────────────────────────────
   if (modoEjecucion) {
@@ -21153,8 +21332,7 @@ function AgenteMandoView({
         onVolver={() => setModoEjecucion(null)}
         onTerminado={() => {
           setModoEjecucion(null);
-          setAccionesCount(c => Math.max(0, c - 1));
-          agregarBurbuja("agente", "¡Buena! Actividad registrada. ¿Qué más hacemos?", buildMainChips(protocolos, []));
+          void reiniciarTrasActividad();
         }}
       />
     );
@@ -21171,46 +21349,60 @@ function AgenteMandoView({
         onVolver={() => setSolicitudResolviendo(null)}
         onTerminado={() => {
           setSolicitudResolviendo(null);
-          agregarBurbuja("agente", "¡Actividad registrada! ¿Qué más hacemos?", buildMainChips(protocolos, []));
+          void reiniciarTrasActividad();
         }}
       />
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-950">
+    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-200 dark:border-white/10 shrink-0 bg-white dark:bg-gray-950">
-        <button type="button" onClick={onSalir}
-          className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0"
-          aria-label="Volver">‹</button>
-        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-accent text-white font-black text-sm shadow shrink-0">H</div>
+      <div className="flex items-center gap-3 px-4 py-3 border-b-2 border-border shrink-0 bg-surface-panel pt-safe shadow-paper-sm">
+        {modoInicio ? (
+          <button type="button" onClick={onAbrirMenu}
+            className="flex items-center justify-center h-11 w-11 rounded-2xl border-2 border-border bg-surface text-ink font-extrabold text-lg hover:bg-surface-hover transition shrink-0"
+            aria-label="Menú">☰</button>
+        ) : (
+          <button type="button" onClick={onSalir}
+            className="flex items-center justify-center h-11 w-11 rounded-2xl border-2 border-border bg-surface text-muted font-extrabold text-xl hover:bg-surface-hover hover:text-ink transition shrink-0"
+            aria-label="Volver">‹</button>
+        )}
+        <div className="flex items-center justify-center h-11 w-11 rounded-2xl bg-accent text-white font-black text-lg shadow shrink-0">H</div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-tight">Hugo García</p>
-          <p className="text-[11px] text-gray-400 dark:text-white/40">Asistente de Operaciones</p>
+          <p className="text-lg font-extrabold text-ink leading-tight tracking-tight">Hugo García</p>
+          <p className="text-sm font-bold text-muted leading-snug">
+            {modoInicio ? "¿Qué vas a hacer hoy?" : "Asistente de Operaciones"}
+          </p>
         </div>
-        {accionActual && (
-          <span className="text-[10px] font-bold text-accent bg-accent/10 rounded-full px-2 py-0.5 shrink-0">En curso</span>
+        {accionesCount > 0 && modoInicio && (
+          <button type="button" onClick={onGoAcciones}
+            className="shrink-0 rounded-full bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-700/50 px-2.5 py-1 text-xs font-extrabold text-amber-800 dark:text-amber-300">
+            {accionesCount} acc.
+          </button>
+        )}
+        {accionActual && !modoInicio && (
+          <span className="text-xs font-extrabold text-accent bg-accent/10 border border-accent/30 rounded-full px-2.5 py-1 shrink-0">En curso</span>
         )}
       </div>
 
-      {/* ── Chat — mitad superior ────────────────────────────────────────────── */}
-      <div className="overflow-y-auto px-4 py-3 space-y-2.5 bg-gray-50 dark:bg-gray-950" style={{ maxHeight: "42vh" }}>
+      {/* ── Chat (área flexible) ───────────────────────────────────────────── */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-3 bg-surface">
         {burbujas.map((b) => (
-          <div key={b.id} className={`flex flex-col ${b.rol === "usuario" ? "items-end" : "items-start"} gap-1`}>
-            <div className={`max-w-[88%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+          <div key={b.id} className={`flex flex-col ${b.rol === "usuario" ? "items-end" : "items-start"} gap-1.5`}>
+            <div className={`hugo-bubble max-w-[90%] rounded-2xl px-4 py-3 whitespace-pre-wrap shadow-paper-sm ${
               b.rol === "usuario"
-                ? "bg-accent text-white rounded-br-sm"
-                : "bg-gray-100 text-gray-900 rounded-bl-sm dark:bg-white/10 dark:text-white"
+                ? "hugo-bubble--user bg-accent text-white rounded-br-md"
+                : "bg-surface-panel border-2 border-border text-ink rounded-bl-md"
             }`}>
               <p>{b.texto}</p>
-              {b.rol === "agente" && (
+              {b.rol === "agente" && b.id === ultimaBurbujaAgenteId && (
                 <button type="button" onClick={() => void hablar(b.texto, b.id)}
-                  className={`mt-1 flex items-center gap-1 text-[10px] font-semibold transition ${
-                    ttsPlaying === b.id ? "text-accent animate-pulse" : "text-gray-400 hover:text-gray-600 dark:text-white/25 dark:hover:text-white/50"
+                  className={`mt-2 flex items-center gap-1.5 text-xs font-extrabold transition ${
+                    ttsPlaying === b.id ? "text-accent animate-pulse" : "text-muted hover:text-ink"
                   }`}>
-                  <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
                   </svg>
                   {ttsPlaying === b.id ? "Escuchando…" : "Escuchar"}
@@ -21220,10 +21412,10 @@ function AgenteMandoView({
           </div>
         ))}
         {lastChips && lastChips.length > 0 && !pensando && (
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
+          <div className="flex flex-wrap gap-2 pt-1">
             {lastChips.map((chip, i) => (
               <button key={i} type="button" onClick={() => onChipTap(chip)}
-                className="rounded-full border border-accent/60 bg-accent/10 px-3 py-1 text-xs font-bold text-accent hover:bg-accent/20 active:scale-95 transition">
+                className="hugo-chip rounded-2xl border-2 border-accent/50 bg-accent/10 px-4 py-2.5 text-accent hover:bg-accent/20 active:scale-95 transition shadow-paper-sm">
                 {chip.label}
               </button>
             ))}
@@ -21231,88 +21423,60 @@ function AgenteMandoView({
         )}
         {pensando && (
           <div className="flex items-start">
-            <div className="bg-gray-100 dark:bg-white/10 rounded-2xl rounded-bl-sm px-4 py-2.5 flex gap-1">
-              {[0,1,2].map(i => <span key={i} className="block h-2 w-2 rounded-full bg-gray-400 dark:bg-white/40 animate-bounce" style={{ animationDelay: `${i*150}ms` }}/>)}
+            <div className="bg-surface-panel border-2 border-border rounded-2xl rounded-bl-md px-5 py-3.5 flex gap-1.5 shadow-paper-sm">
+              {[0,1,2].map(i => <span key={i} className="block h-2.5 w-2.5 rounded-full bg-muted animate-bounce" style={{ animationDelay: `${i*150}ms` }}/>)}
             </div>
           </div>
         )}
         {(stt.grabando || stt.transcribiendo) && (
           <div className="flex justify-end">
-            <div className="bg-accent/20 border border-accent/40 rounded-2xl px-3 py-1.5 text-xs font-semibold text-accent">
+            <div className="bg-accent/15 border-2 border-accent/40 rounded-2xl px-4 py-2 text-sm font-extrabold text-accent">
               {stt.grabando ? `🎙️ ${stt.segundos}s` : "✨ Transcribiendo…"}
             </div>
           </div>
         )}
-        {stt.error && <p className="text-center text-xs text-red-500 dark:text-red-400">{stt.error}</p>}
+        {stt.error && <p className="text-center text-sm font-bold text-danger">{stt.error}</p>}
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Panel inferior — accesos rápidos ────────────────────────────────── */}
-      <div className="flex-1 flex flex-col border-t border-gray-200 dark:border-white/10 min-h-0 bg-white dark:bg-gray-950">
+      {/* ── Pie: progreso (si aplica) + input ───────────────────────────────── */}
+      <div className="shrink-0 border-t-2 border-border bg-surface-panel pb-safe shadow-paper-sm">
 
-        {/* Barra de progreso si hay acción activa */}
         {accionActual && accionActual.pasos_total > 0 && (
           <div className="px-4 pt-3 pb-1 shrink-0">
-            <div className="flex justify-between text-[10px] font-bold text-gray-400 dark:text-white/50 mb-1">
+            <div className="flex justify-between text-xs font-extrabold text-muted mb-1.5">
               <span className="truncate">{accionActual.titulo}</span>
               <span className="text-accent shrink-0 ml-2">{accionActual.pasos_completados}/{accionActual.pasos_total}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
+            <div className="h-1 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
               <div className="h-full rounded-full bg-accent transition-all duration-500"
                 style={{ width: `${Math.round((accionActual.pasos_completados / accionActual.pasos_total) * 100)}%` }}/>
             </div>
           </div>
         )}
 
-        {/* Estadísticas rápidas */}
-        <div className="px-4 pt-3 pb-2 shrink-0">
-          <div className="grid grid-cols-2 gap-2">
+        {!modoInicio && (
+          <div className="px-4 pt-2 pb-1 shrink-0 grid grid-cols-2 gap-2">
             <button type="button" onClick={onGoSolicitudes}
-              className={`flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-left transition active:scale-[0.97] border ${
+              className={`rounded-2xl px-3 py-2.5 text-left text-sm font-extrabold border-2 transition active:scale-[0.97] ${
                 solicitudesCount > 0
-                  ? "bg-rose-50 border-rose-200 hover:bg-rose-100 dark:bg-rose-500/15 dark:border-rose-500/30 dark:hover:bg-rose-500/25"
-                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10"
+                  ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/40 dark:text-rose-300"
+                  : "border-border bg-surface text-muted"
               }`}>
-              <span className="text-2xl leading-none">📋</span>
-              <div className="min-w-0">
-                <p className={`text-lg font-black leading-none tabular-nums ${solicitudesCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-gray-300 dark:text-white/30"}`}>
-                  {solicitudesCount}
-                </p>
-                <p className="text-[10px] font-semibold text-gray-400 dark:text-white/50 mt-0.5 leading-tight">
-                  {solicitudesCount === 1 ? "solicitud" : "solicitudes"} por resolver
-                </p>
-              </div>
+              📋 {solicitudesCount} solicitud{solicitudesCount === 1 ? "" : "es"}
             </button>
-
             <button type="button" onClick={onGoAcciones}
-              className={`flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-left transition active:scale-[0.97] border ${
+              className={`rounded-2xl px-3 py-2.5 text-left text-sm font-extrabold border-2 transition active:scale-[0.97] ${
                 accionesCount > 0
-                  ? "bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-500/15 dark:border-amber-500/30 dark:hover:bg-amber-500/25"
-                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10"
+                  ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300"
+                  : "border-border bg-surface text-muted"
               }`}>
-              <span className="text-2xl leading-none">⚡</span>
-              <div className="min-w-0">
-                <p className={`text-lg font-black leading-none tabular-nums ${accionesCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-gray-300 dark:text-white/30"}`}>
-                  {accionesCount}
-                </p>
-                <p className="text-[10px] font-semibold text-gray-400 dark:text-white/50 mt-0.5 leading-tight">
-                  {accionesCount === 1 ? "acción" : "acciones"} en curso
-                </p>
-              </div>
+              ⚡ {accionesCount} acción{accionesCount === 1 ? "" : "es"}
             </button>
           </div>
+        )}
 
-          {/* Historial de acciones propias */}
-          <button type="button" onClick={onGoHistorialAcciones}
-            className="mt-2 w-full flex items-center gap-3 rounded-2xl bg-gray-50 border border-gray-200 px-3.5 py-2.5 text-left hover:bg-gray-100 active:scale-[0.97] transition dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10">
-            <span className="text-lg leading-none">📂</span>
-            <span className="text-xs font-bold text-gray-500 dark:text-white/60">Historial de mis acciones</span>
-            <span className="ml-auto text-gray-300 dark:text-white/20 text-sm">›</span>
-          </button>
-        </div>
-
-        {/* Input */}
-        <div className="mt-auto border-t border-gray-200 dark:border-white/10 px-4 py-2.5 flex items-center gap-2 shrink-0">
+        <div className="px-4 py-3 flex items-center gap-3 shrink-0">
           <input
             ref={inputRef}
             value={input}
@@ -21320,50 +21484,30 @@ function AgenteMandoView({
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviar(input); } }}
             placeholder="Escribí o dictá…"
             disabled={pensando}
-            className="flex-1 rounded-full bg-gray-100 border border-gray-200 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition disabled:opacity-50 dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"
+            className="hugo-input flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-3.5 text-ink placeholder:text-muted placeholder:font-semibold outline-none focus:border-accent transition disabled:opacity-50 shadow-paper-sm"
           />
           {input.trim() ? (
             <button type="button" onClick={() => void enviar(input)} disabled={pensando}
-              className="h-10 w-10 shrink-0 rounded-full bg-accent flex items-center justify-center text-white shadow disabled:opacity-50 active:scale-95 transition">
-              <svg className="h-4 w-4 rotate-90" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+              className="h-12 w-12 shrink-0 rounded-2xl bg-accent flex items-center justify-center text-white shadow-paper disabled:opacity-50 active:scale-95 transition">
+              <svg className="h-5 w-5 rotate-90" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
             </button>
           ) : (
             <button type="button"
               onClick={() => stt.grabando ? stt.detener() : stt.iniciar(txt => void enviar(txt))}
               disabled={pensando || stt.transcribiendo}
-              className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white shadow transition active:scale-95 disabled:opacity-50 ${
-                stt.grabando ? "bg-red-500 animate-pulse" : "bg-accent hover:brightness-110"
+              className={`h-12 w-12 shrink-0 rounded-2xl flex items-center justify-center text-white shadow-paper transition active:scale-95 disabled:opacity-50 ${
+                stt.grabando ? "bg-danger animate-pulse" : "bg-accent hover:brightness-110"
               }`}
               aria-label={stt.grabando ? "Detener" : "Grabar voz"}>
               {stt.grabando
-                ? <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-                : <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                ? <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                : <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
                     <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
                   </svg>
               }
             </button>
           )}
-        </div>
-
-        {/* Botones rápidos — debajo del input */}
-        <div className="px-4 pb-3 pt-1 shrink-0">
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "Tablero",         emoji: "🏠", onTap: onGoTablero },
-              { label: "Nueva acción",    emoji: "➕", onTap: () => mostrarProcedimientos() },
-              { label: "Crear solicitud", emoji: "📤", onTap: () => {
-                agregarBurbuja("agente", "¿A quién le vas a hacer la solicitud y qué necesitás que haga?");
-                inputRef.current?.focus();
-              }},
-            ].map(btn => (
-              <button key={btn.label} type="button" onClick={btn.onTap}
-                className="flex flex-col items-center gap-1 rounded-2xl bg-gray-50 border border-gray-200 px-2 py-2.5 text-center hover:bg-gray-100 active:scale-95 transition dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10">
-                <span className="text-xl leading-none">{btn.emoji}</span>
-                <span className="text-[10px] font-bold text-gray-500 dark:text-white/60 leading-tight">{btn.label}</span>
-              </button>
-            ))}
-          </div>
         </div>
 
       </div>
@@ -21373,10 +21517,16 @@ function AgenteMandoView({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export default function TicketsPanel() {
+export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInicio?: boolean }) {
   const { token, user, setAuth, clear } = useTicketsAuth();
+  const setPanel = useAppStore((s) => s.setPanel);
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const ticketsBootView = useAppStore((s) => s.ticketsBootView);
+  const setTicketsBootView = useAppStore((s) => s.setTicketsBootView);
+  const accionesBootTab = useAppStore((s) => s.accionesBootTab);
+  const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const questDark = useQuestTheme((s) => s.dark);
-  const [view, setView] = useState<View>("home");
+  const [view, setView] = useState<View>(agenteEsInicio ? "agente" : "home");
   const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial">("activas");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(null);
@@ -21394,6 +21544,17 @@ export default function TicketsPanel() {
   }, [token]);
 
   useEffect(() => { reloadCats(); }, [reloadCats]);
+
+  useEffect(() => {
+    if (!ticketsBootView) return;
+    if (ticketsBootView === "acciones" && accionesBootTab) {
+      setAccionesInitialTab(accionesBootTab);
+      setAccionesKey((k) => k + 1);
+      setAccionesBootTab(null);
+    }
+    setView(ticketsBootView);
+    setTicketsBootView(null);
+  }, [ticketsBootView, accionesBootTab, setTicketsBootView, setAccionesBootTab]);
 
   useEffect(() => {
     if (!token) return;
@@ -21419,6 +21580,12 @@ export default function TicketsPanel() {
     setSelectedMisionId(null);
   }
   function goMisionDetail(id: number) { setSelectedMisionId(id); setView("mision_detail"); }
+  function goInicio() {
+    setTicketsBootView(null);
+    setAccionesBootTab(null);
+    setPanel("hugo");
+  }
+
   function goTablero() {
     setNavScope({ kind: "all" });
     setBoardRefreshKey((k) => k + 1);
@@ -21426,18 +21593,41 @@ export default function TicketsPanel() {
     setSelectedId(null);
     setSelectedMisionId(null);
   }
+
   function goKingdom() {
     setNavScope({ kind: "all" });
     setBoardRefreshKey((k) => k + 1);
     setView("list");
   }
+  function irATickets(destino: Exclude<TicketsBootView, null>) {
+    if (agenteEsInicio || useAppStore.getState().panel === "hugo") {
+      setTicketsBootView(destino);
+      setPanel("tickets");
+      return;
+    }
+    setView(destino);
+  }
+
+  function salirDeAgente() {
+    if (agenteEsInicio || useAppStore.getState().panel === "hugo") {
+      goInicio();
+      return;
+    }
+    goTablero();
+  }
+
   function goAcciones(tab: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" = "activas") {
+    if (agenteEsInicio || useAppStore.getState().panel === "hugo") {
+      setAccionesBootTab(tab);
+      setTicketsBootView("acciones");
+      setPanel("tickets");
+      return;
+    }
     setAccionesInitialTab(tab);
     setAccionesKey((k) => k + 1);
     setView("acciones");
   }
-  function goSolicitudes() { setView("solicitudes"); }
-  function goAgente() { setView("agente"); }
+  function goSolicitudes() { irATickets("solicitudes"); }
   function goInventario() { setView("inventario"); }
   function goReinos() { setView("reinos"); }
   function goWorkload() { setView("workload"); }
@@ -21451,16 +21641,38 @@ export default function TicketsPanel() {
   }
   function goIrInventarioConFiltro() { setView("inventario"); }
 
+  // Panel Hugo: siempre chat a pantalla completa (no reutilizar view del Centro de Mando)
+  if (agenteEsInicio) {
+    return (
+      <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
+        <div className={`hugo-shell hugo-chat flex flex-col bg-surface font-sans antialiased ${questDark ? "dark" : ""}`}>
+          <AgenteMandoView
+            token={token}
+            user={user}
+            modoInicio
+            onSalir={salirDeAgente}
+            onAbrirMenu={toggleSidebar}
+            onIrInicio={goInicio}
+            onGoSolicitudes={goSolicitudes}
+            onGoAcciones={() => goAcciones("activas")}
+            onGoTablero={() => irATickets("home")}
+            onGoHistorialAcciones={() => goAcciones("historial")}
+          />
+        </div>
+      </CategoriasCtx.Provider>
+    );
+  }
+
   return (
     <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
-    <div className={`quest-canvas relative min-h-full transition-colors duration-200 ${questDark ? "dark" : ""}`}>
+    <div className={`quest-canvas relative min-h-0 min-w-0 flex-1 overflow-x-hidden transition-colors duration-200 ${questDark ? "dark" : ""}`}>
         <QuestNavBar
           view={view}
           nivel={nivel}
           permisos={permisos}
           bajoStockCount={bajoStockCount}
           userNombre={user.nombre}
-          onTablero={goTablero}
+          onInicio={goInicio}
           onAcciones={goAcciones}
           onSolicitudes={goSolicitudes}
           onInventario={goInventario}
@@ -21472,7 +21684,6 @@ export default function TicketsPanel() {
           onPerfil={goPerfil}
           onCreateMision={goCreateMision}
           onLogout={clear}
-          onAgente={goAgente}
         />
         <InventarioCarritoModal
           token={token}
@@ -21504,7 +21715,6 @@ export default function TicketsPanel() {
             onAccionesFuturas={() => goAcciones("pendientes")}
             onRecordatorios={() => goAcciones("recordatorios")}
             onProcedimientos={() => goAcciones("procedimientos")}
-            onAgente={goAgente}
           />
         )}
         {/* AgenteMandoView se renderiza como overlay fixed — ver abajo */}
@@ -21525,14 +21735,14 @@ export default function TicketsPanel() {
             onSelect={goDetail}
             onIrCompras={goSolicitudes}
             initialTab={accionesInitialTab}
-            onInicio={goTablero}
+            onInicio={goInicio}
           />
         )}
         {view === "solicitudes" && (
           <SolicitudesView
             token={token}
             user={user}
-            onInicio={goTablero}
+            onInicio={goInicio}
           />
         )}
         {view === "create" && (
@@ -21599,16 +21809,17 @@ export default function TicketsPanel() {
         )}
     </div>
 
-    {/* ── Agente overlay: full-screen, escapa el padding del layout ─────────── */}
+    {/* ── Agente overlay (desde Centro de Mando, no pantalla principal) ───── */}
     {view === "agente" && (
-      <div className={`fixed inset-0 z-50 ${questDark ? "dark" : ""}`}>
+      <div className={`fixed inset-0 z-50 hugo-shell hugo-chat font-sans antialiased ${questDark ? "dark" : ""}`}>
         <AgenteMandoView
           token={token}
           user={user}
-          onSalir={goTablero}
+          onSalir={salirDeAgente}
+          onIrInicio={goInicio}
           onGoSolicitudes={goSolicitudes}
-          onGoAcciones={goAcciones}
-          onGoTablero={goTablero}
+          onGoAcciones={() => goAcciones("activas")}
+          onGoTablero={() => irATickets("home")}
           onGoHistorialAcciones={() => goAcciones("historial")}
         />
       </div>

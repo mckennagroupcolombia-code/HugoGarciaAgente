@@ -79,7 +79,8 @@ import type { UiIconName } from "./types";
 
 /** Mapa panel del sidebar → Phosphor. Ver https://phosphoricons.com/ */
 export const PANEL_ICON: Record<Panel, PhosphorIcon> = {
-  dashboard: SquaresFour,
+  hugo: Microphone,
+  dashboard: ChartBar,
   chat: ChatCircle,
   voz: Microphone,
   webchat: GlobeHemisphereWest,

@@ -29,6 +29,15 @@ public class LauncherActivity
     private boolean _aguardandoPermisos = false;
     private boolean _webviewLaunched = false;
 
+    /**
+     * Evita que el padre TWA lance Custom Tab / Trusted Web Activity.
+     * Abrimos McKennaWebViewActivity en su lugar (asset links no verifican en este APK).
+     */
+    @Override
+    protected boolean shouldLaunchImmediately() {
+        return false;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,12 +54,9 @@ public class LauncherActivity
         }
     }
 
-    /**
-     * No llamar super.onStart(): evita TWA + Custom Tab que MIUI/Chrome cierran
-     * cuando falla la verificación de asset links.
-     */
     @Override
     protected void onStart() {
+        super.onStart();
         abrirWebViewSiListo();
     }
 

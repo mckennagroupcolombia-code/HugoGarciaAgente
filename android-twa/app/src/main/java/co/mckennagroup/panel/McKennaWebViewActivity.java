@@ -9,10 +9,12 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
@@ -22,6 +24,15 @@ import android.webkit.WebViewClient;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Panel en WebView con OAuth Google vía Chrome Custom Tab y retorno por mckennaapp://auth.
@@ -30,11 +41,14 @@ public class McKennaWebViewActivity extends Activity {
 
     private static final String TAG = "McKennaWebView";
     public static final String EXTRA_URL = "panel_url";
-    private static final String UA_SUFFIX = " McKennaPanelAndroid/1.3.0";
+    private static final String UA_SUFFIX = " McKennaPanelAndroid/1.3.1";
     private static final int REQ_AUDIO = 1001;
+    private static final int REQ_FILE_CHOOSER = 1002;
 
     private WebView webView;
     private PermissionRequest pendingPermissionRequest;
+    private ValueCallback<Uri[]> pendingFileCallback;
+    private Uri cameraPhotoUri;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -50,6 +64,7 @@ public class McKennaWebViewActivity extends Activity {
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             settings.setSafeBrowsingEnabled(true);
         }
@@ -92,6 +107,75 @@ public class McKennaWebViewActivity extends Activity {
                     );
                 }
             }
+
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> filePathCallback,
+                                             FileChooserParams fileChooserParams) {
+                if (pendingFileCallback != null) {
+                    pendingFileCallback.onReceiveValue(null);
+                }
+                pendingFileCallback = filePathCallback;
+                cameraPhotoUri = null;
+
+                String mimeType = "image/*";
+                boolean captureEnabled = false;
+                if (fileChooserParams != null) {
+                    captureEnabled = fileChooserParams.isCaptureEnabled();
+                    String[] accept = fileChooserParams.getAcceptTypes();
+                    if (accept != null && accept.length > 0 && accept[0] != null && !accept[0].isEmpty()) {
+                        mimeType = accept[0];
+                    }
+                }
+
+                Intent takePictureIntent = null;
+                boolean wantsImage = mimeType.startsWith("image/") || "*/*".equals(mimeType);
+                if (wantsImage || captureEnabled) {
+                    if (ContextCompat.checkSelfPermission(McKennaWebViewActivity.this, Manifest.permission.CAMERA)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(
+                                McKennaWebViewActivity.this,
+                                new String[]{Manifest.permission.CAMERA},
+                                REQ_AUDIO + 1
+                        );
+                    }
+                    Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    if (cameraIntent.resolveActivity(getPackageManager()) != null) {
+                        File photoFile = createCameraImageFile();
+                        if (photoFile != null) {
+                            cameraPhotoUri = FileProvider.getUriForFile(
+                                    McKennaWebViewActivity.this,
+                                    getString(R.string.providerAuthority),
+                                    photoFile
+                            );
+                            cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraPhotoUri);
+                            cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                    | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            takePictureIntent = cameraIntent;
+                        }
+                    }
+                }
+
+                Intent contentIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                contentIntent.setType(mimeType);
+
+                Intent chooserIntent = Intent.createChooser(contentIntent, "Seleccionar archivo");
+                if (takePictureIntent != null) {
+                    chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{takePictureIntent});
+                }
+
+                try {
+                    startActivityForResult(chooserIntent, REQ_FILE_CHOOSER);
+                } catch (Exception e) {
+                    Log.e(TAG, "onShowFileChooser: no se pudo abrir selector", e);
+                    if (pendingFileCallback != null) {
+                        pendingFileCallback.onReceiveValue(null);
+                        pendingFileCallback = null;
+                    }
+                    return false;
+                }
+                return true;
+            }
         });
         webView.setWebViewClient(new PanelWebViewClient());
 
@@ -101,6 +185,54 @@ public class McKennaWebViewActivity extends Activity {
         }
         Log.i(TAG, "Cargando " + url);
         webView.loadUrl(url);
+    }
+
+    private File createCameraImageFile() {
+        try {
+            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+            return File.createTempFile("MCK_" + timeStamp + "_", ".jpg", getCacheDir());
+        } catch (IOException e) {
+            Log.e(TAG, "createCameraImageFile", e);
+            return null;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQ_FILE_CHOOSER) {
+            if (pendingFileCallback != null) {
+                Uri[] results = null;
+                if (resultCode == Activity.RESULT_OK) {
+                    if (data != null && data.getClipData() != null) {
+                        int count = data.getClipData().getItemCount();
+                        List<Uri> uris = new ArrayList<>();
+                        for (int i = 0; i < count; i++) {
+                            uris.add(data.getClipData().getItemAt(i).getUri());
+                        }
+                        results = uris.toArray(new Uri[0]);
+                    } else if (data != null && data.getData() != null) {
+                        results = new Uri[]{data.getData()};
+                    } else if (cameraPhotoUri != null) {
+                        results = new Uri[]{cameraPhotoUri};
+                    }
+                }
+                pendingFileCallback.onReceiveValue(results);
+                pendingFileCallback = null;
+            }
+            cameraPhotoUri = null;
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            webView.evaluateJavascript(
+                    "(function(){try{window.dispatchEvent(new Event('mckenna-panel-resume'));}catch(e){}})();",
+                    null);
+        }
     }
 
     @Override
@@ -127,9 +259,9 @@ public class McKennaWebViewActivity extends Activity {
                 }
                 pendingPermissionRequest = null;
             }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+            return;
         }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     void loadUrl(String url) {
@@ -161,8 +293,6 @@ public class McKennaWebViewActivity extends Activity {
             CustomTabsIntent.Builder builder = new CustomTabsIntent.Builder();
             builder.setShowTitle(true);
             CustomTabsIntent tabs = builder.build();
-            // Sin NEW_TASK: OAuth queda en la misma tarea que el WebView (evita que MIUI
-            // deje Chrome como app visible y parezca que "sacó" del panel).
             tabs.launchUrl(this, uri);
         } catch (Exception e) {
             Log.e(TAG, "Custom Tab falló, cargando en WebView", e);
@@ -176,7 +306,6 @@ public class McKennaWebViewActivity extends Activity {
         return host.contains("mckennagroup.co") || host.contains("bot.mckennagroup.co");
     }
 
-    /** Retorno OAuth por HTTPS (Custom Tab o WebView). */
     private boolean handlePanelAuthReturn(Uri uri) {
         if (!isPanelHost(uri)) return false;
         String path = uri.getPath() != null ? uri.getPath() : "";

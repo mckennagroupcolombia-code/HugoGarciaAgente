@@ -53,7 +53,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ink">Dashboard</h2>
+        <h2 className="text-lg font-semibold text-ink">Métricas</h2>
         {m?.fecha && (
           <span className="text-xs text-muted">{m.fecha}</span>
         )}
