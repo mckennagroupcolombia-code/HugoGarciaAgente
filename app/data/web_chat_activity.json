@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-03T15:43:37",
+  "updated_at": "2026-06-04T14:25:44",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -19,9 +19,59 @@
     "2026-05-30": 8,
     "2026-06-01": 3,
     "2026-06-02": 2,
-    "2026-06-03": 1
+    "2026-06-03": 1,
+    "2026-06-04": 4
   },
   "sessions": [
+    {
+      "session_id": "web-83ae6968-7684-4cda-b148-a0b6a9bc180e",
+      "started_at": "2026-06-04T14:23:57",
+      "last_at": "2026-06-04T14:25:44",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/?utm_source=chatgpt.com",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Estani muy altos los precios para elaborar un producto",
+      "last_agent_reply": "Mientras tanto, según nuestro catálogo en la tienda, esto podría interesarte:\n• PARAFINA Kg — Ref. C-PARKg — $21.042 COP\n• KIT REPARADOR COSMETICO 1 — Ref. C-KITREPCOS1 — $65.882 COP\n• KIT REPARADOR COSMETICO 2 — Ref. C-KITREPCOS2 — $65.882 COP\n• KIT REPARADOR COSMETICO 3 — Ref. C-KITREPCOS3 — $66.716 COP\n• ALULOSA 250g — Ref. C-ALU250g — $15.865 COP\nPara confirmar disponibilidad y comprar: WhatsApp https://wa.me/573195183596",
+      "last_source": "catalog_fallback",
+      "last_upstream_error": "upstream_excepcion:ConnectionError",
+      "recent_turns": [
+        {
+          "at": "2026-06-04T14:23:57",
+          "user_message": "Hola buenas tardes",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-04T14:24:12",
+          "user_message": "Tienes está lista de productos",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-04T14:24:22",
+          "user_message": "Aceite esencial de citronela (Cymbopogon winterianus). Aceite esencial de limón o naranja. Polisorbato 20 grado cosmético. Alcohol etílico 96%. Benzoato de sodio grado alimentario. Sorbato de potasio grado alimentario. Fragancia cítrica premium",
+          "agent_reply": "Listo veci. Estas son las presentaciones disponibles en catálogo:\n1) *ACEITE ESENCIAL LIMON 5mL* $14,195 COP — Ref. C-ACEESELIM5mL 2) *ACEITE ESENCIAL NARANJA 5 mL* $14,195 COP — Ref. C-ACEESENAR5mL 3) *ACEITE ESENCIAL ALBAHACA 5mL* $14,195 COP — Ref. C-ACEESEALB5mL 4) *ACEITE ESENCIAL EUCALIPTO 5 mL* $14,195 COP — Ref. C-ACEESEEUC5mL 5) *ACEITE ESENCIAL HIERBA BUENA 5mL* $14,195 COP — Ref. C-ACEESEHIEBUE5mL 6) *ACEITE ESENCIAL JAZMIN 5mL* $14,195 COP — Ref. C-ACEESEJAZ5mL 7) *ACEITE ESENCIAL JENGIBRE 5mL* $14,195 COP — Ref. C-ACEESEJEN5mL 8) *ACEITE ESENCIAL MANDARINA 5mL* $14,195 COP — Ref. C-ACEESNMAN5mL ¿Cuál presentación le sirve?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-04T14:25:44",
+          "user_message": "Estani muy altos los precios para elaborar un producto",
+          "agent_reply": "Mientras tanto, según nuestro catálogo en la tienda, esto podría interesarte:\n• PARAFINA Kg — Ref. C-PARKg — $21.042 COP\n• KIT REPARADOR COSMETICO 1 — Ref. C-KITREPCOS1 — $65.882 COP\n• KIT REPARADOR COSMETICO 2 — Ref. C-KITREPCOS2 — $65.882 COP\n• KIT REPARADOR COSMETICO 3 — Ref. C-KITREPCOS3 — $66.716 COP\n• ALULOSA 250g — Ref. C-ALU250g — $15.865 COP\nPara confirmar disponibilidad y comprar: WhatsApp https://wa.me/573195183596",
+          "attachments_count": 0,
+          "source": "catalog_fallback",
+          "upstream_error": "upstream_excepcion:ConnectionError"
+        }
+      ]
+    },
     {
       "session_id": "web-88dd3b12-9577-4b1b-b227-bf460f276c6b",
       "started_at": "2026-06-03T15:43:37",

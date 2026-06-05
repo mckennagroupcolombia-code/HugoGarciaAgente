@@ -1563,6 +1563,7 @@ function QuestNavBar({
   onPerfil,
   onCreateMision,
   onLogout,
+  onAgente,
 }: {
   view: View;
   nivel: number;
@@ -1581,6 +1582,7 @@ function QuestNavBar({
   onPerfil: () => void;
   onCreateMision: () => void;
   onLogout: () => void;
+  onAgente: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -1592,6 +1594,7 @@ function QuestNavBar({
     crear_mision: "Nueva misión", inventario: "Inventario", reinos: "Reinos",
     recetas: "Recetas", workload: "Aliados", perfil: "Perfil",
     mision_detail: "Misión", detail: "Ticket", create: "Nuevo ticket",
+    agente: "🎙️ Hugo",
   };
   const activeLabel = viewLabels[view] ?? "Menú";
 
@@ -1611,6 +1614,14 @@ function QuestNavBar({
         <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex">
           <button type="button" onClick={onTablero} className={questNavBtn(view === "home" || view === "list")}>
             <TopicIcon value="🏠" size={14} weight="duotone" />Inicio
+          </button>
+          <button
+            type="button"
+            onClick={onAgente}
+            className={questNavBtn(view === "agente")}
+            title="Agente de voz — registrar acciones"
+          >
+            <TopicIcon value="🎙️" size={14} weight="duotone" />Hugo
           </button>
           {nivel >= 2 && pVer("workload") && (
             <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
@@ -1667,6 +1678,10 @@ function QuestNavBar({
               <TopicIcon value="👤" size={14} weight="duotone" />Perfil
             </button>
           )}
+          <button type="button" onClick={() => { onAgente(); cerrar(); }}
+            className={`${questNavBtn(view === "agente")} w-full justify-start text-left`}>
+            <TopicIcon value="🎙️" size={14} weight="duotone" />Hugo — Registrar acción
+          </button>
           <button type="button" onClick={onLogout}
             className={`${questNavBtn(false)} w-full justify-start border-t border-border pt-2 text-left`}>
             <Icon name="signOut" size={14} weight="bold" className="shrink-0" />
@@ -19054,6 +19069,8 @@ function AccionesView({
   const [loadingRecordatorios, setLoadingRecordatorios] = useState(false);
   const [loadingExtra, setLoadingExtra] = useState(false);
   const [msg, setMsg] = useState("");
+  const [registroExpandido, setRegistroExpandido] = useState<number | null>(null);
+  const [registros, setRegistros] = useState<Record<number, { comentarios: any[]; adjuntos: any[] }>>({});
   const nivel = user.rol?.nivel ?? 1;
 
   // ── STT (voz → título de acción) ─────────────────────────────────────────
@@ -20015,8 +20032,81 @@ function AccionesView({
                       )}
                     </div>
 
+                    {/* Registro de actividad expandible */}
+                    {registroExpandido === t.id && (
+                      <div className="rounded-xl bg-surface border border-border p-3 space-y-2">
+                        {!registros[t.id] ? (
+                          <p className="text-xs text-muted text-center py-2">Cargando…</p>
+                        ) : (() => {
+                            const items = [
+                              ...registros[t.id].comentarios.map((c: any) => ({ ...c, _tipo: "comentario" })),
+                              ...registros[t.id].adjuntos.map((a: any) => ({ ...a, _tipo: "adjunto" })),
+                            ].sort((a, b) => (a.creado_en ?? "").localeCompare(b.creado_en ?? ""));
+
+                            if (items.length === 0) return (
+                              <p className="text-xs text-muted text-center py-2">No hay notas ni fotos registradas.</p>
+                            );
+
+                            const fmt = (ts: string) => {
+                              try { return new Date(ts.includes("T") || ts.includes("Z") ? ts : ts + "Z").toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" }); }
+                              catch { return ts; }
+                            };
+
+                            return (
+                              <div className="space-y-2">
+                                {items.map((item: any, idx: number) => (
+                                  <div key={idx}>
+                                    {item._tipo === "adjunto" ? (
+                                      <div>
+                                        <a href={`/api/tickets/uploads/${encodeURIComponent(item.nombre_archivo)}?token=${token}`}
+                                          target="_blank" rel="noopener noreferrer">
+                                          <img src={`/api/tickets/uploads/${encodeURIComponent(item.nombre_archivo)}?token=${token}`}
+                                            alt={item.nombre_original ?? "foto"}
+                                            className="rounded-xl w-full max-w-xs border border-border object-cover hover:opacity-80 transition"/>
+                                        </a>
+                                        <p className="text-[10px] text-muted mt-1">{fmt(item.creado_en)}</p>
+                                      </div>
+                                    ) : (
+                                      <div className="rounded-lg bg-surface-hover px-3 py-2">
+                                        <p className="text-xs text-ink leading-relaxed whitespace-pre-wrap">{item.texto}</p>
+                                        <p className="text-[10px] text-muted mt-1">{fmt(item.creado_en)}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()
+                        }
+                      </div>
+                    )}
+
                     {/* Acciones */}
                     <div className="flex flex-col gap-1.5 pt-0.5">
+                      {/* Ver registro */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (registroExpandido === t.id) { setRegistroExpandido(null); return; }
+                          setRegistroExpandido(t.id);
+                          if (!registros[t.id]) {
+                            const [coms, adjs] = await Promise.allSettled([
+                              tapi(`/${t.id}/comentarios`, token),
+                              tapi(`/${t.id}/adjuntos`, token),
+                            ]);
+                            setRegistros(prev => ({
+                              ...prev,
+                              [t.id]: {
+                                comentarios: coms.status === "fulfilled" && Array.isArray(coms.value) ? coms.value : [],
+                                adjuntos: adjs.status === "fulfilled" && Array.isArray(adjs.value) ? adjs.value : [],
+                              },
+                            }));
+                          }
+                        }}
+                        className="w-full rounded-xl border-2 border-border py-2 text-sm font-bold text-ink hover:border-accent hover:text-accent transition"
+                      >
+                        {registroExpandido === t.id ? "▲ Ocultar registro" : "📷 Ver fotos y notas"}
+                      </button>
                       <button
                         type="button"
                         disabled={loadingExtra}
@@ -20246,6 +20336,386 @@ function AccionesView({
   );
 }
 
+// ── EjecucionAccionChat ───────────────────────────────────────────────────────
+
+function EjecucionAccionChat({
+  token, accion, stt, chatApiToken, onVolver, onTerminado,
+}: {
+  token: string;
+  accion: { id: number; titulo: string };
+  stt: ReturnType<typeof useStt>;
+  chatApiToken: string | null | undefined;
+  onVolver: () => void;
+  onTerminado: () => void;
+}) {
+  type Nota = { id: number; texto: string; fotoUrl?: string; guardando?: boolean; errorGuarda?: boolean };
+
+  const SECS_KEY = `mckenna-accion-secs-${accion.id}`;
+  const [notas, setNotas] = useState<Nota[]>([]);
+  const [inputNota, setInputNota] = useState("");
+  const [terminando, setTerminando] = useState(false);
+  const [error, setError] = useState("");
+  const [segundos, setSegundos] = useState(() => parseInt(localStorage.getItem(SECS_KEY) ?? "0") || 0);
+  const t0 = useRef(Date.now() - segundos * 1000);
+  const notaIdRef = useRef(0);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      const s = Math.floor((Date.now() - t0.current) / 1000);
+      setSegundos(s);
+      localStorage.setItem(SECS_KEY, String(s));
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [SECS_KEY]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [notas]);
+
+  function fmtSeg(s: number) {
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sc = s % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}`
+      : `${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}`;
+  }
+
+  // Guarda cada ítem inmediatamente para preservar el orden cronológico real
+  async function agregarNota(texto: string, fotoFile?: File, fotoUrl?: string) {
+    if (!texto.trim() && !fotoFile) return;
+    const nid = ++notaIdRef.current;
+    setNotas(prev => [...prev, { id: nid, texto: texto.trim(), fotoUrl, guardando: true }]);
+    setInputNota("");
+    try {
+      if (fotoFile) {
+        const fd = new FormData();
+        fd.append("archivo", fotoFile);
+        await fetch(`/api/tickets/${accion.id}/adjuntos`, {
+          method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
+        });
+      } else if (texto.trim()) {
+        await fetch(`/api/tickets/${accion.id}/comentarios`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ texto: texto.trim() }),
+        });
+      }
+      setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false } : n));
+    } catch {
+      setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false, errorGuarda: true } : n));
+    }
+  }
+
+  function onFotoSeleccionada(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    void agregarNota("", file, URL.createObjectURL(file));
+    e.target.value = "";
+  }
+
+  async function terminar() {
+    // Esperar que todo esté guardado antes de cerrar
+    const pendientes = notas.filter(n => n.guardando).length;
+    if (pendientes > 0) { setError(`Aún guardando ${pendientes} ítem(s)…`); return; }
+    setTerminando(true);
+    setError("");
+    try {
+      await fetch(`/api/tickets/${accion.id}/completar-accion`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ reporte: `Duración: ${fmtSeg(segundos)}` }),
+      });
+      localStorage.removeItem(SECS_KEY);
+      localStorage.removeItem("mckenna-accion-activa");
+      onTerminado();
+    } catch { setError("No se pudo cerrar. Intenta de nuevo."); }
+    finally { setTerminando(false); }
+  }
+
+  function guardarYVolver() {
+    localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: accion.id, titulo: accion.titulo }));
+    onVolver();
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-white dark:bg-gray-950">
+      {/* Header con cronómetro */}
+      <div className="shrink-0 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950">
+        <div className="flex items-center gap-3 px-4 py-2.5">
+          <button type="button" onClick={guardarYVolver}
+            className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0">‹</button>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40">En ejecución</p>
+            <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-snug truncate">{accion.titulo}</p>
+          </div>
+          {/* Cronómetro */}
+          <div className="shrink-0 flex items-center gap-1.5 bg-accent/10 rounded-full px-3 py-1">
+            <span className="text-xs">⏱</span>
+            <span className="text-sm font-black tabular-nums text-accent">{fmtSeg(segundos)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Área de actividad */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-gray-950">
+        {notas.length === 0 && (
+          <div className="text-center py-8 space-y-2">
+            <p className="text-3xl">📋</p>
+            <p className="text-sm text-gray-400 dark:text-white/40">
+              Describí lo que vas haciendo,<br/>tomá fotos como evidencia.
+            </p>
+          </div>
+        )}
+        {notas.map(nota => (
+          <div key={nota.id} className="flex justify-end">
+            <div className="max-w-[88%] space-y-1">
+              {nota.fotoUrl && (
+                <img src={nota.fotoUrl} alt="foto"
+                  className={`rounded-xl w-full max-w-xs border object-cover transition ${nota.guardando ? "opacity-60 border-gray-200 dark:border-white/10" : "border-gray-200 dark:border-white/10"}`}/>
+              )}
+              {nota.texto && (
+                <div className={`bg-accent rounded-2xl rounded-br-sm px-4 py-2.5 text-sm text-white leading-relaxed transition ${nota.guardando ? "opacity-60" : ""}`}>
+                  {nota.texto}
+                </div>
+              )}
+              <p className="text-right text-[10px] text-gray-400 dark:text-white/30">
+                {nota.errorGuarda ? "⚠ No se guardó" : nota.guardando ? "Guardando…" : "✓"}
+              </p>
+            </div>
+          </div>
+        ))}
+        {error && <p className="text-center text-xs text-red-500 dark:text-red-400">{error}</p>}
+        <div ref={bottomRef}/>
+      </div>
+
+      {/* Terminar */}
+      <div className="shrink-0 px-4 pt-3 pb-2 bg-white dark:bg-gray-950">
+        <button type="button" onClick={terminar} disabled={terminando || notas.some(n => n.guardando)}
+          className="w-full rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
+          {terminando ? "Cerrando…" : notas.some(n => n.guardando) ? "Guardando…" : "✅ Terminé la actividad"}
+        </button>
+      </div>
+
+      {/* Input */}
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 px-4 py-3 flex items-center gap-2 bg-white dark:bg-gray-950">
+        <input type="file" accept="image/*" capture="environment" ref={fotoInputRef} className="hidden" onChange={onFotoSeleccionada}/>
+        <button type="button" onClick={() => fotoInputRef.current?.click()}
+          className="h-11 w-11 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-white/70 transition" title="Foto">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </button>
+        <input value={inputNota} onChange={e => setInputNota(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
+          placeholder="Describí lo que hiciste…"
+          className="flex-1 rounded-full bg-gray-100 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"/>
+        {inputNota.trim() ? (
+          <button type="button" onClick={() => agregarNota(inputNota)}
+            className="h-11 w-11 shrink-0 rounded-full bg-accent flex items-center justify-center text-white shadow active:scale-95 transition">
+            <svg className="h-5 w-5 rotate-90" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+          </button>
+        ) : (
+          <button type="button" onClick={() => stt.grabando ? stt.detener() : stt.iniciar(txt => agregarNota(txt))}
+            disabled={stt.transcribiendo}
+            className={`h-11 w-11 shrink-0 rounded-full flex items-center justify-center shadow transition active:scale-95 disabled:opacity-50 ${
+              stt.grabando ? "bg-red-500 animate-pulse text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+            }`}>
+            {stt.grabando
+              ? <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+              : <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+            }
+          </button>
+        )}
+      </div>
+      {(stt.grabando || stt.transcribiendo) && (
+        <p className="shrink-0 text-center text-xs text-accent pb-2 bg-white dark:bg-gray-950">
+          {stt.grabando ? `🎙️ ${stt.segundos}s` : "✨ Transcribiendo…"}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── ResolverActividadChat ─────────────────────────────────────────────────────
+
+function ResolverActividadChat({
+  token, solicitud, stt, chatApiToken, onVolver, onTerminado,
+}: {
+  token: string;
+  solicitud: { id: number; titulo: string; numero: string; creado_por_nombre: string };
+  stt: ReturnType<typeof useStt>;
+  chatApiToken: string | null | undefined;
+  onVolver: () => void;
+  onTerminado: () => void;
+}) {
+  type Nota = { id: number; texto: string; fotoUrl?: string; guardando?: boolean; errorGuarda?: boolean };
+  const [notas, setNotas] = useState<Nota[]>([]);
+  const [inputNota, setInputNota] = useState("");
+  const [terminando, setTerminando] = useState(false);
+  const [error, setError] = useState("");
+  const notaIdRef = useRef(0);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [notas]);
+
+  async function agregarNota(texto: string, fotoFile?: File, fotoUrl?: string) {
+    if (!texto.trim() && !fotoFile) return;
+    const nid = ++notaIdRef.current;
+    setNotas(prev => [...prev, { id: nid, texto: texto.trim(), fotoUrl, guardando: true }]);
+    setInputNota("");
+    try {
+      if (fotoFile) {
+        const fd = new FormData();
+        fd.append("archivo", fotoFile);
+        await fetch(`/api/tickets/${solicitud.id}/adjuntos`, {
+          method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
+        });
+      } else if (texto.trim()) {
+        await fetch(`/api/tickets/${solicitud.id}/comentarios`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ texto: texto.trim() }),
+        });
+      }
+      setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false } : n));
+    } catch {
+      setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false, errorGuarda: true } : n));
+    }
+  }
+
+  function onFotoSeleccionada(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    void agregarNota("", file, URL.createObjectURL(file));
+    e.target.value = "";
+  }
+
+  async function terminar() {
+    if (notas.some(n => n.guardando)) { setError("Aún guardando ítems…"); return; }
+    setTerminando(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/tickets/${solicitud.id}/estado`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "resuelto" }),
+      });
+      if (!res.ok) throw new Error("No se pudo cerrar la actividad");
+      onTerminado();
+    } catch (e: any) {
+      setError(e.message || "Ocurrió un error. Intenta de nuevo.");
+    } finally {
+      setTerminando(false);
+    }
+  }
+
+  const hayContenido = notas.length > 0;
+
+  return (
+    <div className="flex flex-col h-full bg-white dark:bg-gray-950">
+      {/* Header */}
+      <div className="shrink-0 flex items-start gap-3 px-4 py-3 border-b border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950">
+        <button type="button" onClick={onVolver}
+          className="mt-0.5 flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0"
+        >‹</button>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-white/40 mb-0.5">Actividad pendiente</p>
+          <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-snug line-clamp-2">{solicitud.titulo}</p>
+          {solicitud.creado_por_nombre && (
+            <p className="text-xs text-gray-400 dark:text-white/40 mt-0.5">De: {solicitud.creado_por_nombre}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Área de notas / actividad */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-gray-950">
+        {notas.length === 0 && (
+          <div className="text-center py-10 space-y-2">
+            <p className="text-3xl">📝</p>
+            <p className="text-sm text-gray-400 dark:text-white/40">
+              Contá lo que vas haciendo o tomá fotos.<br />Cuando termines, tocá el botón verde.
+            </p>
+          </div>
+        )}
+        {notas.map(nota => (
+          <div key={nota.id} className="flex justify-end">
+            <div className="max-w-[88%] space-y-1">
+              {nota.fotoUrl && (
+                <img src={nota.fotoUrl} alt="foto"
+                  className={`rounded-xl w-full max-w-xs border border-gray-200 dark:border-white/10 object-cover transition ${nota.guardando ? "opacity-60" : ""}`}/>
+              )}
+              {nota.texto && (
+                <div className={`bg-accent rounded-2xl rounded-br-sm px-4 py-2.5 text-sm text-white leading-relaxed transition ${nota.guardando ? "opacity-60" : ""}`}>
+                  {nota.texto}
+                </div>
+              )}
+              <p className="text-right text-[10px] text-gray-400 dark:text-white/30">
+                {nota.errorGuarda ? "⚠ No se guardó" : nota.guardando ? "Guardando…" : "✓"}
+              </p>
+            </div>
+          </div>
+        ))}
+        {error && <p className="text-center text-xs text-red-500 dark:text-red-400">{error}</p>}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Botón terminar */}
+      <div className="shrink-0 px-4 pt-3 pb-2 bg-white dark:bg-gray-950">
+        <button type="button" onClick={terminar} disabled={terminando || notas.some(n => n.guardando)}
+          className="w-full rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
+          {terminando ? "Cerrando…" : notas.some(n => n.guardando) ? "Guardando…" : "✅ Terminé la actividad"}
+        </button>
+        {!hayContenido && (
+          <p className="text-center text-[10px] text-gray-400 dark:text-white/30 mt-1.5">Podés terminar sin agregar notas</p>
+        )}
+      </div>
+
+      {/* Input de notas + mic + cámara */}
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 px-4 py-3 flex items-center gap-2 bg-white dark:bg-gray-950">
+        <input type="file" accept="image/*" capture="environment" ref={fotoInputRef} className="hidden" onChange={onFotoSeleccionada}/>
+        <button type="button" onClick={() => fotoInputRef.current?.click()}
+          className="h-11 w-11 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-white/70 hover:text-gray-700 dark:hover:text-white transition"
+          title="Tomar foto">
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </button>
+        <input value={inputNota} onChange={e => setInputNota(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
+          placeholder="Describí lo que hiciste…"
+          className="flex-1 rounded-full bg-gray-100 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"
+        />
+        {inputNota.trim() ? (
+          <button type="button" onClick={() => agregarNota(inputNota)}
+            className="h-11 w-11 shrink-0 rounded-full bg-accent flex items-center justify-center text-white shadow active:scale-95 transition">
+            <svg className="h-5 w-5 rotate-90" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+          </button>
+        ) : (
+          <button type="button" onClick={() => stt.grabando ? stt.detener() : stt.iniciar(txt => agregarNota(txt))}
+            disabled={stt.transcribiendo}
+            className={`h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white shadow transition active:scale-95 disabled:opacity-50 ${
+              stt.grabando ? "bg-red-500 animate-pulse" : "bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+            }`}>
+            {stt.grabando
+              ? <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+              : <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
+            }
+          </button>
+        )}
+      </div>
+      {(stt.grabando || stt.transcribiendo) && (
+        <p className="shrink-0 text-center text-xs text-accent pb-2 bg-white dark:bg-gray-950">
+          {stt.grabando ? `🎙️ Grabando… ${stt.segundos}s` : "✨ Transcribiendo…"}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── AgenteMandoView ───────────────────────────────────────────────────────────
 
 type AgenteBurbuja = {
@@ -20263,23 +20733,38 @@ type AgentChip = {
 };
 
 function AgenteMandoView({
-  token, user, onSalir, onGoSolicitudes,
+  token, user, onSalir, onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones,
 }: {
   token: string;
   user: TicketsUser;
   onSalir: () => void;
   onGoSolicitudes: () => void;
+  onGoAcciones: () => void;
+  onGoTablero: () => void;
+  onGoHistorialAcciones: () => void;
 }) {
   const { apiToken: chatApiToken } = useTicketsAuth();
   const stt = useStt(token, chatApiToken);
   const nombre = user.nombre.split(" ")[0];
 
   const [burbujas, setBurbujas] = useState<AgenteBurbuja[]>([]);
-  const [protocolos, setProtocolos] = useState<{ id: number; titulo: string }[]>([]);
+  const [protocolos, setProtocolos] = useState<{ id: number; titulo: string; pasos?: any[]; lista_compras?: any[] }[]>([]);
   const [accionActual, setAccionActual] = useState<{
     id: number; titulo: string; pasos: any[];
     pasos_total: number; pasos_completados: number;
   } | null>(null);
+  const [solicitudResolviendo, setSolicitudResolviendo] = useState<{
+    id: number; titulo: string; numero: string; creado_por_nombre: string;
+  } | null>(null);
+  const [modoEjecucion, setModoEjecucion] = useState<{ id: number; titulo: string } | null>(() => {
+    try {
+      const s = localStorage.getItem("mckenna-accion-activa");
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+  const [esperandoTituloAccion, setEsperandoTituloAccion] = useState(false);
+  const [solicitudesCount, setSolicitudesCount] = useState(0);
+  const [accionesCount, setAccionesCount] = useState(0);
   const [pensando, setPensando] = useState(false);
   const [input, setInput] = useState("");
   const [ttsPlaying, setTtsPlaying] = useState<number | null>(null);
@@ -20311,10 +20796,28 @@ function AgenteMandoView({
       });
       const prots: { id: number; titulo: string }[] = res.contexto?.protocolos ?? [];
       const accActivas: any[] = res.contexto?.acciones_activas ?? [];
+      const solAsignadas: any[] = res.contexto?.solicitudes_asignadas ?? [];
       setProtocolos(prots);
+      setSolicitudesCount(solAsignadas.length);
+      setAccionesCount(accActivas.length);
 
       const mainChips = buildMainChips(prots, accActivas);
       agregarBurbuja("agente", `¡Hola ${nombre}! ¿Qué vas a hacer?`, mainChips);
+
+      if (solAsignadas.length > 0) {
+        const chipsSol: AgentChip[] = solAsignadas.slice(0, 3).map((s: any) => ({
+          label: `📋 ${s.titulo}`,
+          onTap: () => setSolicitudResolviendo({
+            id: s.id, titulo: s.titulo,
+            numero: s.numero, creado_por_nombre: s.creado_por_nombre,
+          }),
+        }));
+        agregarBurbuja(
+          "agente",
+          `Tenés ${solAsignadas.length} solicitud${solAsignadas.length > 1 ? "es" : ""} pendiente${solAsignadas.length > 1 ? "s" : ""} de resolver:`,
+          chipsSol,
+        );
+      }
 
       if (accActivas.length > 0) {
         const chipsContinuar: AgentChip[] = accActivas.slice(0, 3).map((a: any) => ({
@@ -20347,26 +20850,31 @@ function AgenteMandoView({
     return chips;
   }
 
-  function mostrarProcedimientos() {
-    if (protocolos.length === 0) {
-      agregarBurbuja(
-        "agente",
-        "No tenés procedimientos guardados. ¿Qué acción vas a hacer?",
-        [{ label: "🆕 Acción libre", onTap: pedirTituloLibre }],
-      );
+  function mostrarProcedimientos(_procsOverride?: typeof protocolos) {
+    agregarBurbuja("agente", "¿Es algo nuevo o algo que ya has hecho antes?", [
+      { label: "🆕 Acción nueva",       onTap: pedirTituloLibre },
+      { label: "🔄 Acción recurrente",  onTap: mostrarListaProcedimientos },
+    ]);
+  }
+
+  function mostrarListaProcedimientos() {
+    const prots = protocolos;
+    if (prots.length === 0) {
+      agregarBurbuja("agente", "No tenés procedimientos guardados aún. ¿Cómo se llama la acción?");
+      inputRef.current?.focus();
       return;
     }
-    const chips: AgentChip[] = protocolos.slice(0, 4).map(p => ({
+    const chips: AgentChip[] = prots.slice(0, 6).map(p => ({
       label: p.titulo,
       cmd: "crear_accion",
-      datos: { protocolo_id: p.id, titulo: p.titulo },
+      datos: { protocolo_id: p.id, titulo: p.titulo, lista_compras: p.lista_compras ?? [] },
     }));
-    chips.push({ label: "🆕 Acción libre (sin procedimiento)", onTap: pedirTituloLibre });
-    agregarBurbuja("agente", "¿Cuál procedimiento usamos?", chips);
+    agregarBurbuja("agente", "Elegí el que corresponde:", chips);
   }
 
   function pedirTituloLibre() {
-    agregarBurbuja("agente", "Dale, ¿cómo se llama la acción?");
+    setEsperandoTituloAccion(true);
+    agregarBurbuja("agente", "¿Cómo se llama la acción?");
     inputRef.current?.focus();
   }
 
@@ -20387,15 +20895,19 @@ function AgenteMandoView({
     setPensando(true);
     try {
       const t = await tapi(`/${id}`, token) as any;
-      const pasos: any[] = t.pasos ?? [];
+      const pasosRaw: any[] = t.pasos ?? [];
+      // normalizar: usar descripcion como campo principal
+      const pasos = pasosRaw.map((p: any) => ({
+        ...p,
+        descripcion: (p.descripcion || p.nombre || "").trim(),
+      })).filter((p: any) => p.descripcion);
       const completados = pasos.filter((p: any) => p.completado).length;
       const total = pasos.length;
       setAccionActual({ id, titulo, pasos, pasos_total: total, pasos_completados: completados });
 
       if (total === 0) {
-        agregarBurbuja("agente", `Acción "${titulo}" en curso. ¿Cerramos cuando termines?`, [
+        agregarBurbuja("agente", `"${titulo}" lista para trabajar. Decime cuando termines.`, [
           { label: "🏁 Cerrar acción", onTap: () => pedirCierre(id) },
-          { label: "← Volver", onTap: () => setAccionActual(null) },
         ]);
         return;
       }
@@ -20404,25 +20916,37 @@ function AgenteMandoView({
       if (pendientes.length === 0) {
         agregarBurbuja("agente", `¡Todos los pasos listos! ¿Cerramos "${titulo}"?`, [
           { label: "🏁 Sí, cerrar", onTap: () => pedirCierre(id) },
-          { label: "← Cancelar", onTap: () => setAccionActual(null) },
         ]);
         return;
       }
 
-      const siguiente = pendientes[0];
-      agregarBurbuja(
-        "agente",
-        `Acción: "${titulo}" · Paso ${completados + 1}/${total}: ${siguiente.nombre}`,
-        [
-          { label: `✓ Listo: ${siguiente.nombre}`, cmd: "marcar_paso", datos: { ticket_id: id, paso_id: siguiente.id } },
-          { label: "🏁 Cerrar acción ya", onTap: () => pedirCierre(id) },
-        ],
-      );
+      mostrarPasoActual(id, titulo, pasos, completados, total);
     } catch {
       agregarBurbuja("agente", "No pude cargar los pasos. Intenta de nuevo.");
     } finally {
       setPensando(false);
     }
+  }
+
+  function mostrarPasoActual(ticketId: number, titulo: string, pasos: any[], completados: number, total: number) {
+    const pendientes = pasos.filter((p: any) => !p.completado);
+    if (pendientes.length === 0) {
+      agregarBurbuja("agente", `¡Todos los pasos de "${titulo}" listos!`, [
+        { label: "🏁 Cerrar acción", onTap: () => pedirCierre(ticketId) },
+      ]);
+      return;
+    }
+    const sig = pendientes[0];
+    const notas = (sig.notas || "").trim();
+    const msgPaso = `Paso ${completados + 1}/${total}: ${sig.descripcion}${notas ? `\n📝 ${notas}` : ""}`;
+    agregarBurbuja(
+      "agente",
+      msgPaso,
+      [
+        { label: `✓ Listo`, cmd: "marcar_paso", datos: { ticket_id: ticketId, paso_id: sig.id } },
+        { label: "🏁 Cerrar acción", onTap: () => pedirCierre(ticketId) },
+      ],
+    );
   }
 
   function pedirCierre(id: number) {
@@ -20433,6 +20957,14 @@ function AgenteMandoView({
 
   async function enviar(texto: string, cmd?: string, datos?: Record<string, unknown>) {
     if (pensando || (!texto.trim() && !cmd)) return;
+
+    // Interceptar cuando el bot esperaba el nombre de la acción
+    if (esperandoTituloAccion && texto.trim() && !cmd) {
+      setEsperandoTituloAccion(false);
+      cmd = "crear_accion";
+      datos = { titulo: texto.trim() };
+    }
+
     if (texto.trim()) agregarBurbuja("usuario", texto.trim());
     setInput("");
     setPensando(true);
@@ -20449,67 +20981,102 @@ function AgenteMandoView({
         }),
       });
 
-      // Actualizar protocolos si cambiaron
+      const protsActualizados = res.contexto?.protocolos ?? protocolos;
       if (res.contexto?.protocolos) setProtocolos(res.contexto.protocolos);
       const accActivas: any[] = res.contexto?.acciones_activas ?? [];
 
-      // Procesar resultado de comando
+      // ── Comando ejecutado ────────────────────────────────────────────────────
       const resultado = res.accion_resultado as any;
       if (resultado && !resultado.error) {
+
         if (cmd === "crear_accion" && resultado.ticket_id) {
-          const pasos = resultado.pasos ?? [];
-          setAccionActual({
-            id: resultado.ticket_id,
-            titulo: resultado.titulo ?? texto,
-            pasos,
-            pasos_total: pasos.length,
-            pasos_completados: 0,
-          });
-          const chipsAccion: AgentChip[] = [];
-          if (pasos.length > 0) {
-            chipsAccion.push({
-              label: `▶ Primer paso: ${pasos[0].nombre}`,
-              cmd: "marcar_paso",
-              datos: { ticket_id: resultado.ticket_id, paso_id: pasos[0].id },
-            });
-          }
-          chipsAccion.push({ label: "🏁 Cerrar cuando termine", onTap: () => pedirCierre(resultado.ticket_id) });
-          agregarBurbuja("agente", res.respuesta, chipsAccion);
+          const titulo = resultado.titulo ?? texto;
+          // Guardar en localStorage para persistencia
+          localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: resultado.ticket_id, titulo }));
+          // Entrar directamente al modo de ejecución libre
+          setModoEjecucion({ id: resultado.ticket_id, titulo });
           return;
         }
 
         if (cmd === "marcar_paso") {
-          const pasosAct = resultado.pasos ?? [];
+          const pasosAct: any[] = (resultado.pasos ?? []).map((p: any) => ({
+            ...p,
+            descripcion: (p.descripcion || p.nombre || "").trim(),
+          })).filter((p: any) => p.descripcion);
           const total = resultado.pasos_total ?? pasosAct.length;
           const completados = resultado.pasos_completados ?? 0;
-          const pendientes = pasosAct.filter((p: any) => !p.completado);
           setAccionActual(prev => prev ? { ...prev, pasos: pasosAct, pasos_total: total, pasos_completados: completados } : prev);
-
-          if (pendientes.length === 0) {
-            const chips: AgentChip[] = [
-              { label: "🏁 Cerrar acción", onTap: () => pedirCierre(datos?.ticket_id as number) },
-            ];
-            agregarBurbuja("agente", `${res.respuesta} ¡Todos los pasos completados!`, chips);
-          } else {
-            const sig = pendientes[0];
-            agregarBurbuja("agente", `${res.respuesta} Siguiente: ${sig.nombre}`, [
-              { label: `✓ Listo: ${sig.nombre}`, cmd: "marcar_paso", datos: { ticket_id: datos?.ticket_id, paso_id: sig.id } },
-              { label: "🏁 Cerrar acción", onTap: () => pedirCierre(datos?.ticket_id as number) },
-            ]);
-          }
+          const ticketId = datos?.ticket_id as number;
+          const tituloActual = accionActual?.titulo ?? "";
+          mostrarPasoActual(ticketId, tituloActual, pasosAct, completados, total);
           return;
         }
 
         if (cmd === "completar_accion") {
           setAccionActual(null);
-          agregarBurbuja("agente", res.respuesta, buildMainChips(res.contexto?.protocolos ?? protocolos, accActivas));
+          agregarBurbuja("agente", res.respuesta, buildMainChips(protsActualizados, accActivas));
+          return;
+        }
+
+        if (cmd === "crear_solicitud") {
+          agregarBurbuja("agente", res.respuesta, [
+            { label: "📋 Ver mis solicitudes", onTap: onGoSolicitudes },
+            { label: "🏠 Inicio", onTap: onSalir },
+          ]);
           return;
         }
       }
 
-      // Respuesta general: decidir chips según contexto
-      const chips = buildChipsContextuales(accActivas, cmd);
-      agregarBurbuja("agente", res.respuesta || "¿Cómo te ayudo?", chips);
+      if (resultado?.error) {
+        agregarBurbuja("agente", `No pude hacerlo: ${resultado.error}`, buildMainChips(protsActualizados, accActivas));
+        return;
+      }
+
+      // ── Texto libre: detectar intención ──────────────────────────────────────
+      const procsRel: any[] = res.procs_relevantes ?? [];
+      const esIntent: boolean = res.es_intent ?? false;
+      const solCtx = res.solicitud_ctx ?? {};
+
+      // Mostrar respuesta del LLM (o fallback del servidor)
+      if (res.respuesta) agregarBurbuja("agente", res.respuesta);
+
+      if (solCtx.es_solicitud) {
+        // ── SOLICITUD A OTRA PERSONA ────────────────────────────────────────
+        const u = solCtx.usuario as { id: number; nombre: string } | null;
+        const tituloSol: string = solCtx.titulo_sugerido ?? texto.trim();
+        if (u && tituloSol) {
+          // Tenemos persona + título → ofrecer crear directamente
+          agregarBurbuja("agente", `¿Creo la solicitud para ${u.nombre}?`, [
+            {
+              label: `📋 Sí, crear solicitud`,
+              cmd: "crear_solicitud",
+              datos: { titulo: tituloSol, asignado_a: u.id, asignado_a_nombre: u.nombre },
+            },
+            { label: "✏️ Cambiar texto", onTap: () => inputRef.current?.focus() },
+          ]);
+        } else if (u && !tituloSol) {
+          // Tenemos persona pero no título → el bot ya preguntó, no agregar más chips
+        } else if (!u && solCtx.persona_nombre) {
+          // Persona no encontrada → ya el servidor respondió el error, sin chips extra
+        }
+        // Si es solicitud genérica sin persona, el servidor ya preguntó
+      } else if (procsRel.length > 0 || esIntent) {
+        // Intención de acción detectada → pregunta simple, sin listar procedimientos
+        agregarBurbuja("agente", "¿La registramos?", [
+          { label: "🆕 Acción nueva",      cmd: "crear_accion", datos: { titulo: texto.trim() } },
+          { label: "🔄 Acción recurrente", onTap: mostrarListaProcedimientos },
+        ]);
+      } else {
+        // Respuesta genérica: pegar chips contextuales a la última burbuja del agente
+        const chips = buildChipsContextuales(accActivas);
+        if (chips.length > 0) setBurbujas(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.rol === "agente" && !last.chips) {
+            return [...prev.slice(0, -1), { ...last, chips }];
+          }
+          return prev;
+        });
+      }
     } catch {
       agregarBurbuja("agente", "Sin conexión con el servidor. Intenta de nuevo.", [
         { label: "🔄 Reintentar", onTap: () => void enviar(texto, cmd, datos) },
@@ -20519,15 +21086,16 @@ function AgenteMandoView({
     }
   }
 
-  function buildChipsContextuales(accActivas: any[], lastCmd?: string): AgentChip[] {
-    if (accionActual && !lastCmd) {
+  function buildChipsContextuales(accActivas: any[]): AgentChip[] {
+    if (accionActual) {
       const pendientes = accionActual.pasos.filter((p: any) => !p.completado);
       if (pendientes.length > 0) {
         return [
-          { label: `✓ ${pendientes[0].nombre}`, cmd: "marcar_paso", datos: { ticket_id: accionActual.id, paso_id: pendientes[0].id } },
+          { label: "✓ Listo el paso", cmd: "marcar_paso", datos: { ticket_id: accionActual.id, paso_id: pendientes[0].id } },
           { label: "🏁 Cerrar acción", onTap: () => pedirCierre(accionActual.id) },
         ];
       }
+      return [{ label: "🏁 Cerrar acción", onTap: () => pedirCierre(accionActual.id) }];
     }
     return buildMainChips(protocolos, accActivas);
   }
@@ -20574,54 +21142,74 @@ function AgenteMandoView({
 
   const lastChips = burbujas.length > 0 ? burbujas[burbujas.length - 1].chips : undefined;
 
+  // ── Modo ejecución de acción propia ─────────────────────────────────────────
+  if (modoEjecucion) {
+    return (
+      <EjecucionAccionChat
+        token={token}
+        accion={modoEjecucion}
+        stt={stt}
+        chatApiToken={chatApiToken}
+        onVolver={() => setModoEjecucion(null)}
+        onTerminado={() => {
+          setModoEjecucion(null);
+          setAccionesCount(c => Math.max(0, c - 1));
+          agregarBurbuja("agente", "¡Buena! Actividad registrada. ¿Qué más hacemos?", buildMainChips(protocolos, []));
+        }}
+      />
+    );
+  }
+
+  // ── Modo resolver solicitud ──────────────────────────────────────────────────
+  if (solicitudResolviendo) {
+    return (
+      <ResolverActividadChat
+        token={token}
+        solicitud={solicitudResolviendo}
+        stt={stt}
+        chatApiToken={chatApiToken}
+        onVolver={() => setSolicitudResolviendo(null)}
+        onTerminado={() => {
+          setSolicitudResolviendo(null);
+          agregarBurbuja("agente", "¡Actividad registrada! ¿Qué más hacemos?", buildMainChips(protocolos, []));
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--color-surface, #0f111a)" }}>
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 shrink-0">
-        <button
-          type="button"
-          onClick={onSalir}
-          className="flex items-center justify-center h-8 w-8 rounded-full bg-white/10 text-white/70 hover:bg-white/20 transition"
-          aria-label="Volver"
-        >
-          ‹
-        </button>
-        <div className="flex items-center justify-center h-9 w-9 rounded-full bg-accent text-white font-black text-base shadow">
-          H
-        </div>
+    <div className="flex flex-col h-full bg-white dark:bg-gray-950">
+
+      {/* ── Header ───────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-200 dark:border-white/10 shrink-0 bg-white dark:bg-gray-950">
+        <button type="button" onClick={onSalir}
+          className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0"
+          aria-label="Volver">‹</button>
+        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-accent text-white font-black text-sm shadow shrink-0">H</div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-extrabold text-white leading-tight">Hugo García</p>
-          <p className="text-xs text-white/40">Asistente de Operaciones</p>
+          <p className="text-sm font-extrabold text-gray-900 dark:text-white leading-tight">Hugo García</p>
+          <p className="text-[11px] text-gray-400 dark:text-white/40">Asistente de Operaciones</p>
         </div>
         {accionActual && (
-          <div className="text-right">
-            <p className="text-[10px] font-bold text-accent uppercase tracking-wide">En curso</p>
-            <p className="text-xs text-white/70 truncate max-w-[120px]">{accionActual.titulo}</p>
-          </div>
+          <span className="text-[10px] font-bold text-accent bg-accent/10 rounded-full px-2 py-0.5 shrink-0">En curso</span>
         )}
       </div>
 
-      {/* Burbujas */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {/* ── Chat — mitad superior ────────────────────────────────────────────── */}
+      <div className="overflow-y-auto px-4 py-3 space-y-2.5 bg-gray-50 dark:bg-gray-950" style={{ maxHeight: "42vh" }}>
         {burbujas.map((b) => (
           <div key={b.id} className={`flex flex-col ${b.rol === "usuario" ? "items-end" : "items-start"} gap-1`}>
-            <div
-              className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                b.rol === "usuario"
-                  ? "bg-accent text-white rounded-br-sm"
-                  : "bg-white/10 text-white rounded-bl-sm"
-              }`}
-            >
+            <div className={`max-w-[88%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
+              b.rol === "usuario"
+                ? "bg-accent text-white rounded-br-sm"
+                : "bg-gray-100 text-gray-900 rounded-bl-sm dark:bg-white/10 dark:text-white"
+            }`}>
               <p>{b.texto}</p>
               {b.rol === "agente" && (
-                <button
-                  type="button"
-                  onClick={() => void hablar(b.texto, b.id)}
-                  className={`mt-1.5 flex items-center gap-1 text-[10px] font-semibold transition ${
-                    ttsPlaying === b.id ? "text-accent animate-pulse" : "text-white/30 hover:text-white/60"
-                  }`}
-                  title="Escuchar"
-                >
+                <button type="button" onClick={() => void hablar(b.texto, b.id)}
+                  className={`mt-1 flex items-center gap-1 text-[10px] font-semibold transition ${
+                    ttsPlaying === b.id ? "text-accent animate-pulse" : "text-gray-400 hover:text-gray-600 dark:text-white/25 dark:hover:text-white/50"
+                  }`}>
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
                   </svg>
@@ -20631,114 +21219,153 @@ function AgenteMandoView({
             </div>
           </div>
         ))}
-
-        {/* Chips del último mensaje */}
         {lastChips && lastChips.length > 0 && !pensando && (
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
             {lastChips.map((chip, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => onChipTap(chip)}
-                className="rounded-full border border-accent/60 bg-accent/10 px-3.5 py-1.5 text-xs font-bold text-accent hover:bg-accent/20 active:scale-95 transition"
-              >
+              <button key={i} type="button" onClick={() => onChipTap(chip)}
+                className="rounded-full border border-accent/60 bg-accent/10 px-3 py-1 text-xs font-bold text-accent hover:bg-accent/20 active:scale-95 transition">
                 {chip.label}
               </button>
             ))}
           </div>
         )}
-
-        {/* Indicador de "pensando" */}
         {pensando && (
-          <div className="flex items-start gap-2">
-            <div className="bg-white/10 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  className="block h-2 w-2 rounded-full bg-white/40 animate-bounce"
-                  style={{ animationDelay: `${i * 150}ms` }}
-                />
-              ))}
+          <div className="flex items-start">
+            <div className="bg-gray-100 dark:bg-white/10 rounded-2xl rounded-bl-sm px-4 py-2.5 flex gap-1">
+              {[0,1,2].map(i => <span key={i} className="block h-2 w-2 rounded-full bg-gray-400 dark:bg-white/40 animate-bounce" style={{ animationDelay: `${i*150}ms` }}/>)}
             </div>
           </div>
         )}
-
-        {/* Barra de progreso de acción activa */}
-        {accionActual && accionActual.pasos_total > 0 && (
-          <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 mt-2">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-[11px] font-bold text-white/60 uppercase tracking-wide">Progreso</p>
-              <p className="text-[11px] font-bold text-accent">
-                {accionActual.pasos_completados}/{accionActual.pasos_total} pasos
-              </p>
-            </div>
-            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-accent transition-all duration-500"
-                style={{ width: `${Math.round((accionActual.pasos_completados / accionActual.pasos_total) * 100)}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* STT feedback */}
         {(stt.grabando || stt.transcribiendo) && (
           <div className="flex justify-end">
-            <div className="bg-accent/20 border border-accent/40 rounded-2xl px-4 py-2 text-xs font-semibold text-accent">
-              {stt.grabando ? `🎙️ Grabando… ${stt.segundos}s` : "✨ Transcribiendo…"}
+            <div className="bg-accent/20 border border-accent/40 rounded-2xl px-3 py-1.5 text-xs font-semibold text-accent">
+              {stt.grabando ? `🎙️ ${stt.segundos}s` : "✨ Transcribiendo…"}
             </div>
           </div>
         )}
-        {stt.error && (
-          <p className="text-center text-xs text-red-400 px-4">{stt.error}</p>
-        )}
-
+        {stt.error && <p className="text-center text-xs text-red-500 dark:text-red-400">{stt.error}</p>}
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
-      <div className="shrink-0 border-t border-white/10 px-4 py-3 flex items-center gap-2">
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviar(input); } }}
-          placeholder="Escribí o usá el micrófono…"
-          disabled={pensando}
-          className="flex-1 rounded-full bg-white/8 border border-white/15 px-4 py-2.5 text-sm text-white placeholder:text-white/30 outline-none focus:border-accent/60 transition disabled:opacity-50"
-        />
-        {input.trim() ? (
-          <button
-            type="button"
-            onClick={() => void enviar(input)}
-            disabled={pensando}
-            className="h-11 w-11 shrink-0 rounded-full bg-accent flex items-center justify-center text-white shadow disabled:opacity-50 hover:brightness-110 active:scale-95 transition"
-            aria-label="Enviar"
-          >
-            <svg className="h-5 w-5 rotate-90" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/>
-            </svg>
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => stt.grabando ? stt.detener() : stt.iniciar((txt) => void enviar(txt))}
-            disabled={pensando || stt.transcribiendo}
-            className={`h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white shadow transition active:scale-95 ${
-              stt.grabando ? "bg-red-500 animate-pulse" : "bg-accent hover:brightness-110"
-            } disabled:opacity-50`}
-            aria-label={stt.grabando ? "Detener grabación" : "Grabar voz"}
-          >
-            {stt.grabando ? (
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
-            ) : (
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
-                <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
-              </svg>
-            )}
-          </button>
+      {/* ── Panel inferior — accesos rápidos ────────────────────────────────── */}
+      <div className="flex-1 flex flex-col border-t border-gray-200 dark:border-white/10 min-h-0 bg-white dark:bg-gray-950">
+
+        {/* Barra de progreso si hay acción activa */}
+        {accionActual && accionActual.pasos_total > 0 && (
+          <div className="px-4 pt-3 pb-1 shrink-0">
+            <div className="flex justify-between text-[10px] font-bold text-gray-400 dark:text-white/50 mb-1">
+              <span className="truncate">{accionActual.titulo}</span>
+              <span className="text-accent shrink-0 ml-2">{accionActual.pasos_completados}/{accionActual.pasos_total}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
+              <div className="h-full rounded-full bg-accent transition-all duration-500"
+                style={{ width: `${Math.round((accionActual.pasos_completados / accionActual.pasos_total) * 100)}%` }}/>
+            </div>
+          </div>
         )}
+
+        {/* Estadísticas rápidas */}
+        <div className="px-4 pt-3 pb-2 shrink-0">
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={onGoSolicitudes}
+              className={`flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-left transition active:scale-[0.97] border ${
+                solicitudesCount > 0
+                  ? "bg-rose-50 border-rose-200 hover:bg-rose-100 dark:bg-rose-500/15 dark:border-rose-500/30 dark:hover:bg-rose-500/25"
+                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10"
+              }`}>
+              <span className="text-2xl leading-none">📋</span>
+              <div className="min-w-0">
+                <p className={`text-lg font-black leading-none tabular-nums ${solicitudesCount > 0 ? "text-rose-600 dark:text-rose-400" : "text-gray-300 dark:text-white/30"}`}>
+                  {solicitudesCount}
+                </p>
+                <p className="text-[10px] font-semibold text-gray-400 dark:text-white/50 mt-0.5 leading-tight">
+                  {solicitudesCount === 1 ? "solicitud" : "solicitudes"} por resolver
+                </p>
+              </div>
+            </button>
+
+            <button type="button" onClick={onGoAcciones}
+              className={`flex items-center gap-2.5 rounded-2xl px-3.5 py-3 text-left transition active:scale-[0.97] border ${
+                accionesCount > 0
+                  ? "bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-500/15 dark:border-amber-500/30 dark:hover:bg-amber-500/25"
+                  : "bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10"
+              }`}>
+              <span className="text-2xl leading-none">⚡</span>
+              <div className="min-w-0">
+                <p className={`text-lg font-black leading-none tabular-nums ${accionesCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-gray-300 dark:text-white/30"}`}>
+                  {accionesCount}
+                </p>
+                <p className="text-[10px] font-semibold text-gray-400 dark:text-white/50 mt-0.5 leading-tight">
+                  {accionesCount === 1 ? "acción" : "acciones"} en curso
+                </p>
+              </div>
+            </button>
+          </div>
+
+          {/* Historial de acciones propias */}
+          <button type="button" onClick={onGoHistorialAcciones}
+            className="mt-2 w-full flex items-center gap-3 rounded-2xl bg-gray-50 border border-gray-200 px-3.5 py-2.5 text-left hover:bg-gray-100 active:scale-[0.97] transition dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10">
+            <span className="text-lg leading-none">📂</span>
+            <span className="text-xs font-bold text-gray-500 dark:text-white/60">Historial de mis acciones</span>
+            <span className="ml-auto text-gray-300 dark:text-white/20 text-sm">›</span>
+          </button>
+        </div>
+
+        {/* Input */}
+        <div className="mt-auto border-t border-gray-200 dark:border-white/10 px-4 py-2.5 flex items-center gap-2 shrink-0">
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviar(input); } }}
+            placeholder="Escribí o dictá…"
+            disabled={pensando}
+            className="flex-1 rounded-full bg-gray-100 border border-gray-200 px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition disabled:opacity-50 dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"
+          />
+          {input.trim() ? (
+            <button type="button" onClick={() => void enviar(input)} disabled={pensando}
+              className="h-10 w-10 shrink-0 rounded-full bg-accent flex items-center justify-center text-white shadow disabled:opacity-50 active:scale-95 transition">
+              <svg className="h-4 w-4 rotate-90" viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+            </button>
+          ) : (
+            <button type="button"
+              onClick={() => stt.grabando ? stt.detener() : stt.iniciar(txt => void enviar(txt))}
+              disabled={pensando || stt.transcribiendo}
+              className={`h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white shadow transition active:scale-95 disabled:opacity-50 ${
+                stt.grabando ? "bg-red-500 animate-pulse" : "bg-accent hover:brightness-110"
+              }`}
+              aria-label={stt.grabando ? "Detener" : "Grabar voz"}>
+              {stt.grabando
+                ? <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                : <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                    <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>
+                  </svg>
+              }
+            </button>
+          )}
+        </div>
+
+        {/* Botones rápidos — debajo del input */}
+        <div className="px-4 pb-3 pt-1 shrink-0">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "Tablero",         emoji: "🏠", onTap: onGoTablero },
+              { label: "Nueva acción",    emoji: "➕", onTap: () => mostrarProcedimientos() },
+              { label: "Crear solicitud", emoji: "📤", onTap: () => {
+                agregarBurbuja("agente", "¿A quién le vas a hacer la solicitud y qué necesitás que haga?");
+                inputRef.current?.focus();
+              }},
+            ].map(btn => (
+              <button key={btn.label} type="button" onClick={btn.onTap}
+                className="flex flex-col items-center gap-1 rounded-2xl bg-gray-50 border border-gray-200 px-2 py-2.5 text-center hover:bg-gray-100 active:scale-95 transition dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10">
+                <span className="text-xl leading-none">{btn.emoji}</span>
+                <span className="text-[10px] font-bold text-gray-500 dark:text-white/60 leading-tight">{btn.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -20845,6 +21472,7 @@ export default function TicketsPanel() {
           onPerfil={goPerfil}
           onCreateMision={goCreateMision}
           onLogout={clear}
+          onAgente={goAgente}
         />
         <InventarioCarritoModal
           token={token}
@@ -20879,14 +21507,7 @@ export default function TicketsPanel() {
             onAgente={goAgente}
           />
         )}
-        {view === "agente" && (
-          <AgenteMandoView
-            token={token}
-            user={user}
-            onSalir={goTablero}
-            onGoSolicitudes={goSolicitudes}
-          />
-        )}
+        {/* AgenteMandoView se renderiza como overlay fixed — ver abajo */}
         {view === "list" && (
           <TicketListView
             token={token} user={user}
@@ -20977,6 +21598,21 @@ export default function TicketsPanel() {
           />
         )}
     </div>
+
+    {/* ── Agente overlay: full-screen, escapa el padding del layout ─────────── */}
+    {view === "agente" && (
+      <div className={`fixed inset-0 z-50 ${questDark ? "dark" : ""}`}>
+        <AgenteMandoView
+          token={token}
+          user={user}
+          onSalir={goTablero}
+          onGoSolicitudes={goSolicitudes}
+          onGoAcciones={goAcciones}
+          onGoTablero={goTablero}
+          onGoHistorialAcciones={() => goAcciones("historial")}
+        />
+      </div>
+    )}
     </CategoriasCtx.Provider>
   );
 }
