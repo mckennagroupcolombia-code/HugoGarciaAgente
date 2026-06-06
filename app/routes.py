@@ -638,9 +638,7 @@ def _normalizar_numero_wa(numero: str) -> str | None:
     digits = re.sub(r"\D", "", numero)
     if len(digits) == 10 and digits.startswith("3"):
         return f"57{digits}@c.us"
-    if len(digits) == 12 and digits.startswith("573"):
-        return f"{digits}@c.us"
-    if len(digits) > 5:
+    if len(digits) == 12 and digits.startswith("57") and digits[2] == "3":
         return f"{digits}@c.us"
     return None
 
@@ -1614,11 +1612,21 @@ def register_routes(app):
         sender_lid = str(data.get("sender_lid") or "").strip()
         sender_phone = str(data.get("sender_phone") or "").strip()
         try:
-            from app.services.wa_jid import jid_canonico, registrar_alias_lid
+            from app.services.wa_jid import (
+                jid_canonico,
+                normalizar_jid_almacenamiento,
+                registrar_alias_lid,
+            )
 
             if sender_lid and sender_phone:
                 registrar_alias_lid(sender_lid, sender_phone)
-            sender_id = jid_canonico(sender_raw) if sender_raw else sender_raw
+            sender_id = normalizar_jid_almacenamiento(
+                sender_raw,
+                sender_lid=sender_lid,
+                sender_phone=sender_phone,
+            )
+            if not sender_id:
+                sender_id = jid_canonico(sender_raw) if sender_raw else sender_raw
         except Exception:
             sender_id = sender_raw
         reply_to_wa = str(data.get("reply_to") or sender_raw or sender_id).strip()
@@ -5531,6 +5539,9 @@ def register_routes(app):
         from app.services.wa_jid import info_contacto_jid, limpiar_aliases_falsos, modo_para_jid
 
         limpiar_aliases_falsos()
+        from app.services.wa_chats import reparar_jids_falsos_en_db
+
+        reparar_jids_falsos_en_db()
         conversaciones = _lc(limit=limit)
         modos = cargar_modos_atencion()
         humanos = modos.get("numeros_en_humano", [])
@@ -5617,6 +5628,13 @@ def register_routes(app):
         from app.services.wa_chats import ingestar_desde_whatsapp as _ing
 
         stats = _ing(body.get("mensajes") or [])
+        alias = body.get("alias") or {}
+        lid_a = str(alias.get("lid") or "").strip()
+        phone_a = str(alias.get("phone") or "").strip()
+        if lid_a and phone_a:
+            from app.services.wa_jid import registrar_alias_lid
+
+            registrar_alias_lid(lid_a, phone_a)
         return jsonify({"ok": True, **stats})
 
     @app.route("/api/bot/chats/revoke", methods=["POST"])
