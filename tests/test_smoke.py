@@ -1435,11 +1435,21 @@ def test_meli_pack_tiene_documento_fiscal(monkeypatch) -> None:
     assert meli_svc.meli_pack_tiene_documento_fiscal("333", token="tok") is False
 
 
-def test_wa_jid_telefono_colombia_valido() -> None:
+def test_wa_jid_telefono_colombia_valido(tmp_path, monkeypatch) -> None:
+    import app.services.wa_jid as wj_mod
+
+    monkeypatch.setattr(wj_mod, "_ALIASES_PATH", str(tmp_path / "wa_aliases_test.json"))
+    wj_mod._ALIASES_LIMPIOS = False
+
     from app.services.wa_jid import (
         es_alias_telefono_falso,
+        es_jid_cus_falso,
         es_telefono_jid_valido,
+        es_telefono_negocio,
         info_contacto_jid,
+        jid_canonico,
+        lid_desde_jid_cus_falso,
+        normalizar_jid_almacenamiento,
         registrar_alias_lid,
         telefono_desde_jid,
     )
@@ -1452,9 +1462,23 @@ def test_wa_jid_telefono_colombia_valido() -> None:
     lid = "73031707820119@lid"
     falso = "5773031707820119@c.us"
     assert es_telefono_jid_valido(falso) is False
+    assert es_jid_cus_falso(falso) is True
+    assert lid_desde_jid_cus_falso(falso) == lid
+    assert jid_canonico(falso) == lid
+    assert normalizar_jid_almacenamiento(falso) == lid
+    assert info_contacto_jid(falso)["display"].startswith("Contacto WA")
     assert es_alias_telefono_falso(lid, falso) is True
     registrar_alias_lid(lid, falso)
     assert info_contacto_jid(lid)["telefono"] is None
+
+    registrar_alias_lid(lid, ok)
+    assert jid_canonico(lid) == ok
+    assert info_contacto_jid(falso)["telefono"] == "+57 301 234 5678"
+
+    negocio = "573195183596@c.us"
+    assert es_telefono_negocio(negocio) is True
+    registrar_alias_lid("99999999999999@lid", negocio)
+    assert "99999999999999@lid" not in wj_mod._load_aliases()
 
 
 def test_wa_chats_no_degrada_bot_a_humano(tmp_path, monkeypatch) -> None:

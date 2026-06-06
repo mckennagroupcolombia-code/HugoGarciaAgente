@@ -284,6 +284,8 @@ const GRUPO_SEDE_SUR = envLimpio('GRUPO_SEDE_SUR_WA', '120363023555909043@g.us')
 const sedeSurBotSentIds = new Set();
 /** Respuestas IA a clientes — evitar que message_create las marque como humano. */
 const panelBotSentIds = new Set();
+/** Ventana tras sendMessage del bot: message_create debe marcar enviado_por=bot. */
+const panelBotOutgoingUntil = new Map();
 const GRUPOS_ADMIN       = [GRUPO_CONTABILIDAD, GRUPO_COMPRAS];
 /** Contabilidad/compras + pedidos web + preventa/postventa MeLi (comandos resp / posventa). */
 const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB, GRUPO_PREVENTA_MELI, GRUPO_POSTVENTA_MELI];
@@ -595,6 +597,7 @@ client.on('message', async (msg) => {
         });
 
         if (responseIA.data && responseIA.data.respuesta) {
+            panelBotOutgoingUntil.set(ident.replyTo, Date.now() + 45000);
             const sent = await client.sendMessage(ident.replyTo, responseIA.data.respuesta);
             console.log(`📤 Respuesta de IA enviada a ${msg.from}`);
             logActividad('SALIENTE', { para: msg.from, texto: responseIA.data.respuesta });
@@ -734,6 +737,14 @@ const PANEL_INGEST_URL = (
     process.env.PANEL_INGEST_URL || 'http://127.0.0.1:8081/api/bot/chats/ingest'
 ).replace(/\/$/, '');
 const CHAT_API_TOKEN = (process.env.CHAT_API_TOKEN || '').split('#')[0].trim();
+const NUMERO_NEGOCIO_WA = String(
+    process.env.MCKENNA_WA_PUBLIC || process.env.WEB_WA_NUMBER || '573195183596'
+).replace(/\D/g, '');
+
+function esTelefonoNegocio(phoneJid) {
+    const n = String(phoneJid || '').split('@')[0].replace(/\D/g, '');
+    return n.length >= 10 && n === NUMERO_NEGOCIO_WA;
+}
 
 function panelAuthHeaders() {
     const h = { 'Content-Type': 'application/json' };
@@ -778,6 +789,31 @@ function normalizarPhoneJidColombia(rawDigits) {
     return '';
 }
 
+async function resolverTelefonoDesdeContacto(contact) {
+    if (!contact) return '';
+    if (contact.number) {
+        const p = normalizarPhoneJidColombia(String(contact.number).replace(/\D/g, ''));
+        if (p && !esTelefonoNegocio(p)) return p;
+    }
+    if (typeof contact.getFormattedNumber === 'function') {
+        try {
+            const f = await contact.getFormattedNumber();
+            const p = normalizarPhoneJidColombia(String(f || '').replace(/\D/g, ''));
+            if (p && !esTelefonoNegocio(p)) return p;
+        } catch (_) { /* ignore */ }
+    }
+    return '';
+}
+
+/** @c.us opaco (57+dígitos lid) → @lid para historial del panel. */
+function lidDesdeJidCusFalso(jid) {
+    const num = String(jid || '').split('@')[0].replace(/\D/g, '');
+    if (num.startsWith('57') && num.length > 12) {
+        return `${num.slice(2)}@lid`;
+    }
+    return '';
+}
+
 /** WhatsApp @lid → teléfono @c.us cuando el contacto lo expone (evita chats duplicados en panel). */
 async function resolverIdentidadCliente(msg) {
     const from = (msg && msg.from) ? String(msg.from) : '';
@@ -785,11 +821,7 @@ async function resolverIdentidadCliente(msg) {
     if (from.endsWith('@lid')) {
         try {
             const c = await msg.getContact();
-            let n = (c && c.number) ? String(c.number).replace(/\D/g, '') : '';
-            if (!n && c && c.id && c.id.user) {
-                n = String(c.id.user).replace(/\D/g, '');
-            }
-            phoneJid = normalizarPhoneJidColombia(n);
+            phoneJid = await resolverTelefonoDesdeContacto(c);
             if (phoneJid) {
                 console.log(`📇 LID ${from} → ${phoneJid}`);
             }
@@ -797,12 +829,23 @@ async function resolverIdentidadCliente(msg) {
             console.warn('⚠️ No se pudo resolver teléfono desde @lid:', e.message);
         }
     } else if (from.endsWith('@c.us')) {
-        phoneJid = normalizarPhoneJidColombia(from.split('@')[0]) || from;
+        phoneJid = normalizarPhoneJidColombia(from.split('@')[0]);
+        if (!phoneJid) {
+            const lid = lidDesdeJidCusFalso(from);
+            if (lid) {
+                return {
+                    replyTo: from,
+                    sender: lid,
+                    sender_lid: lid,
+                    sender_phone: '',
+                };
+            }
+        }
     }
     return {
         replyTo: from,
         sender: phoneJid || from,
-        sender_lid: from.endsWith('@lid') ? from : '',
+        sender_lid: from.endsWith('@lid') ? from : (lidDesdeJidCusFalso(from) || ''),
         sender_phone: phoneJid,
     };
 }
@@ -811,15 +854,22 @@ async function resolverIdentidadDesdeChat(chatJid, msg) {
     const cj = String(chatJid || '').trim();
     let phoneJid = '';
     if (cj.endsWith('@c.us')) {
-        phoneJid = normalizarPhoneJidColombia(cj.split('@')[0]) || cj;
+        phoneJid = normalizarPhoneJidColombia(cj.split('@')[0]);
+        if (!phoneJid) {
+            const lid = lidDesdeJidCusFalso(cj);
+            if (lid) {
+                return {
+                    canon: lid,
+                    replyTo: cj,
+                    sender_lid: lid,
+                    sender_phone: '',
+                };
+            }
+        }
     } else if (cj.endsWith('@lid') && msg) {
         try {
             const c = await msg.getContact();
-            let n = (c && c.number) ? String(c.number).replace(/\D/g, '') : '';
-            if (!n && c && c.id && c.id.user) {
-                n = String(c.id.user).replace(/\D/g, '');
-            }
-            phoneJid = normalizarPhoneJidColombia(n);
+            phoneJid = await resolverTelefonoDesdeContacto(c);
         } catch (_) { /* ignore */ }
     }
     return {
@@ -847,7 +897,15 @@ async function mensajeAPayloadHistorial(msg) {
     if (!texto) {
         return null;
     }
-    const enviado = msg.fromMe ? "humano" : "cliente";
+    const enviado = msg.fromMe ? 'humano' : 'cliente';
+    let enviadoFinal = enviado;
+    if (msg.fromMe) {
+        const sid = serializarWaId(msg);
+        const until = panelBotOutgoingUntil.get(chatJid) || panelBotOutgoingUntil.get(ident.replyTo || '');
+        if ((sid && panelBotSentIds.has(sid)) || (until && Date.now() < until)) {
+            enviadoFinal = 'bot';
+        }
+    }
     return {
         wa_id: serializarWaId(msg),
         jid: ident.canon,
@@ -857,7 +915,7 @@ async function mensajeAPayloadHistorial(msg) {
         tiene_media: !!msg.hasMedia,
         nombre_arch: '',
         type: tipo,
-        enviado_por: enviado,
+        enviado_por: enviadoFinal,
         sender_lid: ident.sender_lid || '',
         sender_phone: ident.sender_phone || '',
     };
@@ -919,10 +977,27 @@ app.post('/chats/sync', async (req, res) => {
             } catch (_) { /* ignore */ }
         }
         let ingest = { insertados: 0, actualizados: 0, omitidos: 0, total: 0 };
-        if (batch.length) {
+        let aliasRegistrado = null;
+        const lidSync = jid.endsWith('@lid') ? jid : lidDesdeJidCusFalso(jid);
+        if (lidSync) {
+            try {
+                let phoneAlias = '';
+                if (chat.contact) {
+                    phoneAlias = await resolverTelefonoDesdeContacto(chat.contact);
+                }
+                if (!phoneAlias) {
+                    const c = await client.getContactById(lidSync);
+                    phoneAlias = await resolverTelefonoDesdeContacto(c);
+                }
+                if (phoneAlias) {
+                    aliasRegistrado = { lid: lidSync, phone: phoneAlias };
+                }
+            } catch (_) { /* contacto no resuelto */ }
+        }
+        if (batch.length || aliasRegistrado) {
             const r = await axios.post(
                 PANEL_INGEST_URL,
-                { mensajes: batch },
+                { mensajes: batch, alias: aliasRegistrado || undefined },
                 { headers: panelAuthHeaders(), timeout: 30000 }
             );
             ingest = r.data || ingest;
@@ -933,6 +1008,7 @@ app.post('/chats/sync', async (req, res) => {
             sincronizados: batch.length,
             revocados: revocados.length,
             ingest,
+            alias: aliasRegistrado,
         });
     } catch (e) {
         console.error('❌ /chats/sync:', e.message);

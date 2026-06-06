@@ -67,6 +67,23 @@ def es_telefono_jid_valido(jid: str) -> bool:
     return len(local) == 10 and local.startswith("3")
 
 
+def es_jid_cus_falso(jid: str) -> bool:
+    """@c.us que no es móvil colombiano válido (p. ej. 57+dígitos del @lid)."""
+    return es_jid_cus(jid) and not es_telefono_jid_valido(jid)
+
+
+def lid_desde_jid_cus_falso(jid: str) -> str | None:
+    """Infiere @lid desde un @c.us opaco tipo 5763973621784822@c.us."""
+    if not es_jid_cus_falso(jid):
+        return None
+    digits = digitos_jid(jid)
+    if digits.startswith("57") and len(digits) > 12:
+        lid_part = digits[2:]
+        if len(lid_part) >= 8:
+            return f"{lid_part}@lid"
+    return None
+
+
 def es_alias_telefono_falso(lid: str, phone_jid: str) -> bool:
     """Detecta 57+lid_digits@c.us (error histórico al normalizar @lid)."""
     if not es_jid_lid(lid) or not es_jid_cus(phone_jid):
@@ -91,6 +108,7 @@ def limpiar_aliases_falsos() -> int:
             lid: phone
             for lid, phone in aliases.items()
             if not es_alias_telefono_falso(lid, phone)
+            and not es_telefono_negocio(phone)
         }
         removidos = len(aliases) - len(limpios)
         if removidos:
@@ -106,11 +124,28 @@ def _aliases_seguros() -> dict[str, str]:
     return _load_aliases()
 
 
+def es_telefono_negocio(jid: str) -> bool:
+    """Evita mapear @lid → número de la línea comercial (no es el cliente)."""
+    if not es_jid_cus(jid):
+        return False
+    digits = digitos_jid(jid)
+    negocio = {
+        digitos_jid(os.getenv("MCKENNA_WA_PUBLIC") or ""),
+        digitos_jid(os.getenv("WEB_WA_NUMBER") or ""),
+        digitos_jid(os.getenv("MCKENNA_WA_LINE") or ""),
+        "573195183596",
+    }
+    negocio = {d for d in negocio if len(d) >= 10}
+    return digits in negocio
+
+
 def registrar_alias_lid(lid: str, phone_jid: str) -> None:
     """Persiste lid@lid → 573XXXXXXXXX@c.us cuando el bridge resuelve el contacto."""
     lid = str(lid or "").strip()
     phone_jid = str(phone_jid or "").strip()
     if not es_jid_lid(lid) or not es_telefono_jid_valido(phone_jid):
+        return
+    if es_telefono_negocio(phone_jid):
         return
     if es_alias_telefono_falso(lid, phone_jid):
         return
@@ -122,6 +157,33 @@ def registrar_alias_lid(lid: str, phone_jid: str) -> None:
         _save_aliases(aliases)
 
 
+def normalizar_jid_almacenamiento(
+    jid: str,
+    *,
+    sender_lid: str = "",
+    sender_phone: str = "",
+) -> str:
+    """JID estable para SQLite: teléfono real > @lid > nunca 57+lid@c.us."""
+    jid = str(jid or "").strip()
+    sl = str(sender_lid or "").strip()
+    sp = str(sender_phone or "").strip()
+    if sl and sp and es_jid_lid(sl) and es_telefono_jid_valido(sp):
+        registrar_alias_lid(sl, sp)
+    if sp and es_telefono_jid_valido(sp):
+        return sp
+    if sl and es_jid_lid(sl):
+        return jid_canonico(sl)
+    if es_jid_lid(jid):
+        return jid_canonico(jid)
+    if es_jid_cus_falso(jid):
+        lid = lid_desde_jid_cus_falso(jid)
+        if lid:
+            return jid_canonico(lid)
+    if es_telefono_jid_valido(jid):
+        return jid
+    return jid
+
+
 def jid_canonico(jid: str) -> str:
     """JID preferido para agrupar historial (teléfono válido si se conoce el alias)."""
     jid = str(jid or "").strip()
@@ -130,7 +192,15 @@ def jid_canonico(jid: str) -> str:
     if es_jid_grupo(jid):
         return jid
     if es_jid_cus(jid):
-        return jid if es_telefono_jid_valido(jid) else jid
+        if es_telefono_jid_valido(jid):
+            return jid
+        lid = lid_desde_jid_cus_falso(jid)
+        if lid:
+            phone = _aliases_seguros().get(lid)
+            if phone and es_telefono_jid_valido(phone):
+                return phone
+            return lid
+        return jid
     if es_jid_lid(jid):
         phone = _aliases_seguros().get(jid)
         if phone and es_telefono_jid_valido(phone):
@@ -156,6 +226,12 @@ def jids_relacionados(jid: str) -> set[str]:
         for lid, phone in aliases.items():
             if phone == jid:
                 out.add(lid)
+        lid_falso = lid_desde_jid_cus_falso(jid)
+        if lid_falso:
+            out.add(lid_falso)
+            fake_cus = jid if es_jid_cus_falso(jid) else None
+            if fake_cus:
+                out.add(fake_cus)
     canon = jid_canonico(jid)
     out.add(canon)
     if es_jid_lid(canon):
@@ -200,6 +276,10 @@ def telefono_desde_jid(jid: str) -> str | None:
 def info_contacto_jid(jid: str) -> dict[str, str | bool | None]:
     """Metadatos para el panel Agente WA."""
     jid = str(jid or "").strip()
+    if es_jid_cus_falso(jid):
+        lid_inf = lid_desde_jid_cus_falso(jid)
+        if lid_inf:
+            return info_contacto_jid(lid_inf)
     canon = jid_canonico(jid)
     telefono = telefono_desde_jid(jid)
     lid_raw = jid if es_jid_lid(jid) else None
@@ -209,14 +289,23 @@ def info_contacto_jid(jid: str) -> dict[str, str | bool | None]:
             if phone == canon or phone == jid:
                 lid_raw = lid
                 break
+    if not lid_raw and es_jid_cus_falso(jid):
+        lid_raw = lid_desde_jid_cus_falso(jid)
     es_lid = bool(lid_raw) or es_jid_lid(jid) or (es_jid_lid(canon) and not telefono)
     if telefono:
         display = telefono
-    elif es_jid_lid(jid) or es_jid_lid(canon):
-        corto = (jid if es_jid_lid(jid) else canon).split("@")[0][-8:]
-        display = f"Contacto WA · ID …{corto}"
+    elif es_jid_lid(jid) or es_jid_lid(canon) or lid_raw:
+        ref = lid_raw or (jid if es_jid_lid(jid) else canon)
+        corto = ref.split("@")[0][-8:]
+        display = f"Contacto WA · …{corto}"
+    elif es_jid_cus_falso(jid):
+        corto = digitos_jid(jid)[-8:]
+        display = f"Contacto WA · …{corto}"
     else:
-        display = jid.split("@")[0] if "@" in jid else jid
+        pref = jid.split("@")[0] if "@" in jid else jid
+        display = telefono_desde_jid(jid) or (
+            f"Contacto WA · …{pref[-8:]}" if len(pref) > 10 else pref
+        )
     return {
         "display": display,
         "telefono": telefono,

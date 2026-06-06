@@ -102,9 +102,9 @@ def guardar(
     if not jid or not direccion:
         return
     try:
-        from app.services.wa_jid import jid_canonico
+        from app.services.wa_jid import normalizar_jid_almacenamiento
 
-        canon = jid_canonico(jid)
+        canon = normalizar_jid_almacenamiento(jid)
         ts_val = float(ts if ts is not None else time.time())
         wa_key = (wa_id or "").strip() or None
         mpath = (media_path or "").strip()[:500]
@@ -119,8 +119,10 @@ def guardar(
                 ).fetchone()
                 if row:
                     prev_enviado = str(row["enviado_por"] or "")
-                    # No degradar bot → humano por sync/message_create duplicado
+                    # No degradar bot → humano; sí corregir humano → bot (message_create vs ingest bot)
                     if prev_enviado == "bot" and enviado_por == "humano":
+                        enviado_por = "bot"
+                    elif enviado_por == "bot":
                         enviado_por = "bot"
                     c.execute(
                         """UPDATE mensajes SET
@@ -242,6 +244,18 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
         if not texto and not raw.get("tiene_media"):
             omitidos += 1
             continue
+        sender_lid = str(raw.get("sender_lid") or "").strip()
+        sender_phone = str(raw.get("sender_phone") or "").strip()
+        try:
+            from app.services.wa_jid import normalizar_jid_almacenamiento, registrar_alias_lid
+
+            jid = normalizar_jid_almacenamiento(
+                jid, sender_lid=sender_lid, sender_phone=sender_phone
+            )
+            if sender_lid and sender_phone:
+                registrar_alias_lid(sender_lid, sender_phone)
+        except Exception:
+            pass
         ts_raw = raw.get("ts")
         try:
             ts_val = float(ts_raw) if ts_raw is not None else time.time()
@@ -269,8 +283,6 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
             media_path=str(raw.get("media_path") or ""),
             media_mime=str(raw.get("media_mime") or ""),
         )
-        sender_lid = str(raw.get("sender_lid") or "").strip()
-        sender_phone = str(raw.get("sender_phone") or "").strip()
         if sender_lid and sender_phone:
             try:
                 from app.services.wa_jid import registrar_alias_lid
@@ -409,3 +421,39 @@ def marcar_eliminados(wa_ids: list[str]) -> int:
     for wid in wa_ids or []:
         n += marcar_eliminado_por_wa_id(str(wid).strip())
     return n
+
+
+_reparo_jids_done = False
+
+
+def reparar_jids_falsos_en_db(force: bool = False) -> dict:
+    """Migra 57+lid@c.us → @lid (o teléfono real si hay alias). Una vez por proceso."""
+    global _reparo_jids_done
+    if _reparo_jids_done and not force:
+        return {"actualizados": 0, "omitido": True}
+    stats: dict = {"actualizados": 0, "mapeos": []}
+    try:
+        from app.services.wa_jid import normalizar_jid_almacenamiento
+
+        with _lock, _conn() as c:
+            rows = c.execute("SELECT DISTINCT jid FROM mensajes").fetchall()
+            for (jid,) in rows:
+                jid = str(jid or "").strip()
+                if not jid:
+                    continue
+                nuevo = normalizar_jid_almacenamiento(jid)
+                if nuevo != jid:
+                    n = c.execute(
+                        "UPDATE mensajes SET jid=? WHERE jid=?", (nuevo, jid)
+                    ).rowcount
+                    stats["actualizados"] += int(n or 0)
+                    stats["mapeos"].append({"de": jid, "a": nuevo})
+        _reparo_jids_done = True
+        if stats["actualizados"]:
+            print(
+                f"[wa_chats] reparar_jids: {stats['actualizados']} filas, "
+                f"{len(stats['mapeos'])} conversaciones"
+            )
+    except Exception as e:
+        stats["error"] = str(e)
+    return stats
