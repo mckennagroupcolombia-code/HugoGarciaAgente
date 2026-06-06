@@ -1,144 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1780071449.2954733,
-      "tipo": "bot_pausado_global",
-      "sender": "57246827609772242@c.us",
-      "detalle": "Para el día jueves al medio día retiramos"
-    },
-    {
-      "ts": 1780071458.0305574,
-      "tipo": "bot_pausado_auto",
-      "sender": "57246827609772242@c.us",
-      "detalle": "ráfaga de 6 mensajes en 120s"
-    },
-    {
-      "ts": 1780071461.5285745,
-      "tipo": "bot_pausado_auto",
-      "sender": "57246827609772242@c.us",
-      "detalle": "ráfaga de 7 mensajes en 120s"
-    },
-    {
-      "ts": 1780071470.952984,
-      "tipo": "bot_pausado_auto",
-      "sender": "57246827609772242@c.us",
-      "detalle": "ráfaga de 8 mensajes en 120s"
-    },
-    {
-      "ts": 1780071721.0077305,
-      "tipo": "bot_pausado_global",
-      "sender": "5773156362547407@c.us",
-      "detalle": "1 kilo"
-    },
-    {
-      "ts": 1780071723.9143887,
-      "tipo": "bot_pausado_global",
-      "sender": "5773156362547407@c.us",
-      "detalle": "Mil gracias"
-    },
-    {
-      "ts": 1780072211.9075956,
-      "tipo": "bot_pausado_global",
-      "sender": "5761452828315787@c.us",
-      "detalle": "WhatsApp Business"
-    },
-    {
-      "ts": 1780072215.8162796,
-      "tipo": "bot_pausado_global",
-      "sender": "5761452828315787@c.us",
-      "detalle": "Muchas gracias"
-    },
-    {
-      "ts": 1780072220.4034953,
-      "tipo": "bot_pausado_global",
-      "sender": "5773156362547407@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780072301.99675,
-      "tipo": "bot_pausado_global",
-      "sender": "5761452828315787@c.us",
-      "detalle": "Perfecto!!"
-    },
-    {
-      "ts": 1780074793.2247555,
-      "tipo": "bot_pausado_global",
-      "sender": "5777747565154452@c.us",
-      "detalle": "Buenos días como está"
-    },
-    {
-      "ts": 1780076765.4660106,
-      "tipo": "bot_pausado_global",
-      "sender": "5787016121311420@c.us",
-      "detalle": "Hola buenas tardes, quisiera saber si tienen fructosa 500 gr ? No lo encontré en la página esta vez 🤔"
-    },
-    {
-      "ts": 1780078113.6353924,
-      "tipo": "bot_pausado_global",
-      "sender": "5777747565154452@c.us",
-      "detalle": "Buenas tardes quería saber si depronto manejas estos insumos para perfumeris"
-    },
-    {
-      "ts": 1780078120.0037427,
-      "tipo": "bot_pausado_global",
-      "sender": "5777747565154452@c.us",
-      "detalle": "50 ml de Ambroxan.\n50 ml de Iso E Super.\n30 ml de Hedione.\n30 ml de Cashmeran.\n30 ml de Galaxolide."
-    },
-    {
-      "ts": 1780078496.206836,
-      "tipo": "modo_humano",
-      "sender": "57130975447179480@c.us",
-      "detalle": "Hola, buenas tardes como estás?"
-    },
-    {
-      "ts": 1780082715.878466,
-      "tipo": "modo_humano",
-      "sender": "5773031707820119@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780082716.426527,
-      "tipo": "modo_humano",
-      "sender": "5773031707820119@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780082716.8338614,
-      "tipo": "modo_humano",
-      "sender": "5773031707820119@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780082717.1273556,
-      "tipo": "modo_humano",
-      "sender": "5773031707820119@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780084942.3989913,
-      "tipo": "bot_pausado_global",
-      "sender": "57104977657790477@c.us",
-      "detalle": "Listo!"
-    },
-    {
-      "ts": 1780086579.6110187,
-      "tipo": "bot_pausado_global",
-      "sender": "57265841396469895@c.us",
-      "detalle": "Buenas tardes"
-    },
-    {
-      "ts": 1780086595.1725886,
-      "tipo": "bot_pausado_global",
-      "sender": "57265841396469895@c.us",
-      "detalle": "Me regalas el precio de la vitamina c"
-    },
-    {
-      "ts": 1780087247.294622,
-      "tipo": "bot_pausado_global",
-      "sender": "57265841396469895@c.us",
-      "detalle": "Cosmética"
-    },
-    {
       "ts": 1780087298.9560893,
       "tipo": "bot_pausado_global",
       "sender": "57265841396469895@c.us",
@@ -1799,6 +1661,144 @@
       "tipo": "bot_pausado_global",
       "sender": "57133234415374579@c.us",
       "detalle": "Gracias"
+    },
+    {
+      "ts": 1780666578.0626667,
+      "tipo": "bot_pausado_global",
+      "sender": "5782141534748904@c.us",
+      "detalle": "Buenos dias"
+    },
+    {
+      "ts": 1780669903.5594978,
+      "tipo": "modo_humano",
+      "sender": "57246827609772242@c.us",
+      "detalle": "🥹no me enviaron algo más de producto para  recompensar aquello q me tocó pagar para retirar el producto incautado"
+    },
+    {
+      "ts": 1780670005.1215842,
+      "tipo": "modo_humano",
+      "sender": "57246827609772242@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780670043.100925,
+      "tipo": "modo_humano",
+      "sender": "57246827609772242@c.us",
+      "detalle": "Yo les envié la prueba de incautación y q no me entregaron el paquete anterior y yo tuve q pagar para q me entreguen"
+    },
+    {
+      "ts": 1780670823.3315012,
+      "tipo": "bot_pausado_global",
+      "sender": "57192642218467479@c.us",
+      "detalle": "Buenos dias"
+    },
+    {
+      "ts": 1780670842.3579655,
+      "tipo": "bot_pausado_global",
+      "sender": "57192642218467479@c.us",
+      "detalle": "El acido hialuronico que costo tiene"
+    },
+    {
+      "ts": 1780670859.4531255,
+      "tipo": "bot_pausado_global",
+      "sender": "57192642218467479@c.us",
+      "detalle": "Grscias por  su respuesta"
+    },
+    {
+      "ts": 1780671641.4508348,
+      "tipo": "bot_pausado_global",
+      "sender": "57188222730682528@c.us",
+      "detalle": "Hola, quiero una cotización"
+    },
+    {
+      "ts": 1780674914.640527,
+      "tipo": "bot_pausado_global",
+      "sender": "57188222730682528@c.us",
+      "detalle": "¿Hola me gustaría saber si los productos como el ácido hialurónico o la vitamina c, están listos para aplicarse directamente en la piel?"
+    },
+    {
+      "ts": 1780675269.4675388,
+      "tipo": "bot_pausado_global",
+      "sender": "57192642218467479@c.us",
+      "detalle": "20.000 mil pesos"
+    },
+    {
+      "ts": 1780679661.7506452,
+      "tipo": "modo_humano",
+      "sender": "57246827609772242@c.us",
+      "detalle": "☹️"
+    },
+    {
+      "ts": 1780683642.133761,
+      "tipo": "bot_pausado_global",
+      "sender": "57229265421430838@c.us",
+      "detalle": "Buen día"
+    },
+    {
+      "ts": 1780683651.2337227,
+      "tipo": "bot_pausado_global",
+      "sender": "57229265421430838@c.us",
+      "detalle": "Hice una compra por mercado libre de un citrato de calcio"
+    },
+    {
+      "ts": 1780683659.7740743,
+      "tipo": "bot_pausado_global",
+      "sender": "57229265421430838@c.us",
+      "detalle": "Pero en el empaque no aparece el registro invima"
+    },
+    {
+      "ts": 1780683666.0333195,
+      "tipo": "bot_pausado_global",
+      "sender": "57229265421430838@c.us",
+      "detalle": "Me lo pueden enviar, por favor"
+    },
+    {
+      "ts": 1780684615.5052204,
+      "tipo": "bot_pausado_global",
+      "sender": "57143842900717701@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1780684617.6437242,
+      "tipo": "bot_pausado_global",
+      "sender": "57143842900717701@c.us",
+      "detalle": "Cómo estas"
+    },
+    {
+      "ts": 1780684656.6240351,
+      "tipo": "bot_pausado_global",
+      "sender": "57143842900717701@c.us",
+      "detalle": "Para pedir por favor \n- 3 vitamina c para rostro \n- 3 ácido hialurónico rostro \n- 1 colageno hidrolizado"
+    },
+    {
+      "ts": 1780685109.9215379,
+      "tipo": "bot_pausado_global",
+      "sender": "57143842900717701@c.us",
+      "detalle": "Pero no me sale gratis el envio"
+    },
+    {
+      "ts": 1780685122.6340225,
+      "tipo": "bot_pausado_global",
+      "sender": "57143842900717701@c.us",
+      "detalle": "?"
+    },
+    {
+      "ts": 1780685258.52975,
+      "tipo": "bot_pausado_global",
+      "sender": "57143842900717701@c.us",
+      "detalle": "El carmen de viboral"
+    },
+    {
+      "ts": 1780688088.1847398,
+      "tipo": "bot_pausado_global",
+      "sender": "57133234415374579@c.us",
+      "detalle": "Hola"
+    },
+    {
+      "ts": 1780688096.4408803,
+      "tipo": "bot_pausado_global",
+      "sender": "57133234415374579@c.us",
+      "detalle": "Buenas tardes"
     }
   ]
 }

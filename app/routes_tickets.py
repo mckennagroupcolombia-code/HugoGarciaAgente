@@ -846,11 +846,20 @@ def register_tickets_routes(app):
         texto = (data.get("texto") or "").strip()
         if not texto:
             return jsonify({"error": "texto requerido"}), 400
-        agregar_comentario(
+        new_id = agregar_comentario(
             ticket_id, request.tickets_usuario["id"],
             texto, bool(data.get("es_interno", False)),
         )
-        return jsonify(get_ticket(ticket_id, request.tickets_usuario)), 200
+        return jsonify({"id": new_id, "ticket_id": ticket_id}), 201
+
+    @app.route("/api/tickets/comentarios/<int:comentario_id>", methods=["DELETE"])
+    @_auth
+    def tickets_eliminar_comentario(comentario_id):
+        from app.services.tickets_db import eliminar_comentario
+        ok, err = eliminar_comentario(comentario_id, request.tickets_usuario["id"])
+        if not ok:
+            return jsonify({"error": err}), 404 if "encontrado" in (err or "") else 403
+        return jsonify({"ok": True}), 200
 
     @app.route("/api/tickets/<int:ticket_id>/tiempo", methods=["POST"])
     @_auth
@@ -2392,20 +2401,20 @@ def register_tickets_routes(app):
                     titulo = resultado_cmd.get("titulo", "")
                     n_pasos = len(resultado_cmd.get("pasos") or [])
                     if n_pasos:
-                        respuesta = f"¡Listo! '{titulo}' registrada con {n_pasos} paso{'s' if n_pasos != 1 else ''}. ¡Arrancamos!"
+                        respuesta = f"¡Listo, veci! '{titulo}' registrada con {n_pasos} paso{'s' if n_pasos != 1 else ''}. ¡De una, arrancamos!"
                     else:
-                        respuesta = f"¡Listo, {nombre}! '{titulo}' registrada. ¡A darle!"
+                        respuesta = f"¡Listo, {nombre}! '{titulo}' registrada. ¡Hagámosle!"
                 elif cmd == "completar_accion":
-                    respuesta = f"¡Muy bien, {nombre}! Acción cerrada. ¿Qué más hacemos?"
+                    respuesta = f"¡Bueno pues, {nombre}! Acción cerrada. ¿Qué más hacemos?"
                 elif cmd == "marcar_paso":
-                    respuesta = "¡Paso marcado! Seguimos."
+                    respuesta = "¡Listo el paso! Seguimos."
                 elif cmd == "crear_solicitud":
                     asig = datos_cmd.get("asignado_a_nombre") or "la persona"
                     titulo_sol = datos_cmd.get("titulo") or resultado_cmd.get("titulo") or ""
                     if titulo_sol:
-                        respuesta = f"Creé la solicitud para {asig}: \"{titulo_sol}\". Ya le llegará la notificación."
+                        respuesta = f"Listo, creé la solicitud para {asig}: \"{titulo_sol}\". Ya le llega la notificación."
                     else:
-                        respuesta = f"Creé la solicitud para {asig}. Ya le llegará la notificación."
+                        respuesta = f"Listo, creé la solicitud para {asig}. Ya le llega la notificación."
             elif resultado_cmd and resultado_cmd.get("error"):
                 respuesta = f"Tuve un problema: {resultado_cmd['error']}"
             elif sol.get("es_solicitud"):
@@ -2414,7 +2423,7 @@ def register_tickets_routes(app):
                 if u_sol and t_sol:
                     respuesta = f"¿Le pido a {u_sol['nombre']} que {t_sol}?"
                 elif u_sol:
-                    respuesta = f"¿Qué necesitás que haga {u_sol['nombre']}?"
+                    respuesta = f"¿Qué necesita que haga {u_sol['nombre']}?"
                 elif sol.get("persona_nombre"):
                     respuesta = f"No encontré a '{sol['persona_nombre']}' en el equipo. ¿Cómo se llama exactamente?"
                 else:
@@ -2422,11 +2431,11 @@ def register_tickets_routes(app):
             elif es_intent and procs_relevantes:
                 respuesta = "¿Cuál procedimiento usamos para eso?"
             elif es_intent:
-                respuesta = f"¡Dale, {nombre}! ¿La registramos como acción nueva?"
+                respuesta = f"¡De una, {nombre}! ¿La registramos como acción nueva?"
             elif not mensaje:
-                respuesta = f"¿Qué vas a hacer hoy, {nombre}?"
+                respuesta = f"¡Hola {nombre}! ¿Qué hacemos hoy?"
             else:
-                respuesta = "¿Cómo te ayudo?"
+                respuesta = "¿En qué le ayudo?"
 
         return jsonify({
             "respuesta": respuesta,

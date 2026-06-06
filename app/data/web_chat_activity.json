@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-04T14:25:44",
+  "updated_at": "2026-06-05T20:47:49",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -20,17 +20,84 @@
     "2026-06-01": 3,
     "2026-06-02": 2,
     "2026-06-03": 1,
-    "2026-06-04": 4
+    "2026-06-04": 4,
+    "2026-06-05": 4
   },
   "sessions": [
+    {
+      "session_id": "web-22c6319c-7edb-400c-a8bd-b5cc0581dc1c",
+      "started_at": "2026-06-05T13:19:50",
+      "last_at": "2026-06-05T16:04:17",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-06-05T20:47:49",
+      "page_url": "https://mckennagroup.co/producto/c-citcal500g",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Necesito ver un registro invima.",
+      "last_agent_reply": "Veci, revisé nuestro archivo para ver un registro invima, Usuario_web-22c6319c-7edb-400c-a8bd-b5cc0581dc1c: Necesito el registro invima del citrato de calcio Veci, revisé nuestro archivo para el registro invima del citrato de calcio, no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la en la del en https://mckennagroup.co/tienda. Si me deja su **correo electrónico**, la referencia exacta, el equipo le envía y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha en la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía COA, ficha técnica y ficha de seguridad en breve. Para seguimiento de pedido o cotización formal con asesor: WhatsApp +57 319 518 3596 (https://wa.me/573195183596).",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-05T13:19:50",
+          "user_message": "Necesito el registro invima del citrato de calcio",
+          "agent_reply": "Veci, revisé nuestro archivo para el registro invima del citrato de calcio y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha en la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía COA, ficha técnica y ficha de seguridad en breve. Para seguimiento de pedido o cotización formal con asesor: WhatsApp +57 319 518 3596 (https://wa.me/573195183596).",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-05T16:04:17",
+          "user_message": "Necesito ver un registro invima.",
+          "agent_reply": "Veci, revisé nuestro archivo para ver un registro invima, Usuario_web-22c6319c-7edb-400c-a8bd-b5cc0581dc1c: Necesito el registro invima del citrato de calcio Veci, revisé nuestro archivo para el registro invima del citrato de calcio, no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la en la del en https://mckennagroup.co/tienda. Si me deja su **correo electrónico**, la referencia exacta, el equipo le envía y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha en la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía COA, ficha técnica y ficha de seguridad en breve. Para seguimiento de pedido o cotización formal con asesor: WhatsApp +57 319 518 3596 (https://wa.me/573195183596).",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-cdaa3902-7723-4d4b-8ac3-42b31efacece",
+      "started_at": "2026-06-05T09:59:01",
+      "last_at": "2026-06-05T10:00:12",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-06-05T20:47:49",
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Me gustaría saber si los productos como ácido hialurónico o vitamina c, son adecuados para usarse directamente en la piel, o si les haría falta algo tipo de procedimiento?",
+      "last_agent_reply": "Veci, somos McKenna Group. Compartimos la documentación que tenemos disponible: *Me gustaría saber si los como ácido hialurónico o vitamina c*\n📄 Ficha técnica: https://drive.google.com/file/d/1mt5rySnit_-_HuhdCS4gdT_ty0BjN39b/view?usp=drivesdk Para son adecuados para usarse directamente en la piel, o si les haría falta algo tipo de procedimiento? no encontré PDF ahora; déjeme su **correo** y la referencia y se los enviamos. También puede consultar guías en https://mckennagroup.co/guias. Para seguimiento de pedido o cotización formal con asesor: WhatsApp +57 319 518 3596 (https://wa.me/573195183596).",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-05T09:59:01",
+          "user_message": "Buenos días",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-05T10:00:12",
+          "user_message": "Me gustaría saber si los productos como ácido hialurónico o vitamina c, son adecuados para usarse directamente en la piel, o si les haría falta algo tipo de procedimiento?",
+          "agent_reply": "Veci, somos McKenna Group. Compartimos la documentación que tenemos disponible: *Me gustaría saber si los como ácido hialurónico o vitamina c*\n📄 Ficha técnica: https://drive.google.com/file/d/1mt5rySnit_-_HuhdCS4gdT_ty0BjN39b/view?usp=drivesdk Para son adecuados para usarse directamente en la piel, o si les haría falta algo tipo de procedimiento? no encontré PDF ahora; déjeme su **correo** y la referencia y se los enviamos. También puede consultar guías en https://mckennagroup.co/guias. Para seguimiento de pedido o cotización formal con asesor: WhatsApp +57 319 518 3596 (https://wa.me/573195183596).",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-83ae6968-7684-4cda-b148-a0b6a9bc180e",
       "started_at": "2026-06-04T14:23:57",
       "last_at": "2026-06-04T14:25:44",
       "messages_count": 4,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-06-05T20:47:49",
       "page_url": "https://www.mckennagroup.co/?utm_source=chatgpt.com",
       "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
       "last_user_message": "Estani muy altos los precios para elaborar un producto",
@@ -78,8 +145,8 @@
       "last_at": "2026-06-03T15:43:37",
       "messages_count": 1,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-06-05T20:47:49",
       "page_url": "https://www.mckennagroup.co/guias/dipropilenglicol",
       "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
       "last_user_message": "Dpg",
@@ -103,8 +170,8 @@
       "last_at": "2026-06-02T16:35:55",
       "messages_count": 1,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-06-05T20:47:49",
       "page_url": "https://www.mckennagroup.co/catalogo/",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
       "last_user_message": "hola buen día",
@@ -128,8 +195,8 @@
       "last_at": "2026-06-02T13:48:36",
       "messages_count": 1,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-06-05T20:47:49",
       "page_url": "https://www.mckennagroup.co/",
       "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36",
       "last_user_message": "Holaa para preguntar cuando vence el conservante sharomix 705  de Lot. 042026",
@@ -153,8 +220,8 @@
       "last_at": "2026-06-01T21:55:48",
       "messages_count": 3,
       "attachments_count": 0,
-      "reviewed": false,
-      "reviewed_at": null,
+      "reviewed": true,
+      "reviewed_at": "2026-06-05T20:47:49",
       "page_url": "https://www.mckennagroup.co/catalogo/",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
       "last_user_message": "Ah ok, es que recientemente la compre para un proyecto de la universidad y me genera duda en cuanto de solucion o si tiene una cantidad especifica para prepararla",

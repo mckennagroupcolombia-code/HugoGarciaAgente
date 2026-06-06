@@ -1213,6 +1213,79 @@ def test_web_chat_lista_tras_pedir_fichas() -> None:
     assert "correo" in out.lower() or "documentación" in out.lower() or "Ficha" in out
 
 
+def test_web_chat_saludo_no_dispara_documentos() -> None:
+    from app.core import _contexto_historial_usuario_web, _mensaje_parece_consulta_tecnica_web
+    from app.web_chat_documentos import manejar_documentos_web
+
+    hist = [
+        {"role": "user", "content": "Usuario_web-x: Buenos días"},
+        {
+            "role": "assistant",
+            "content": (
+                "Hola veci, puede consultarme precios, disponibilidad, ficha técnica o uso."
+            ),
+        },
+    ]
+    msg = (
+        "Me gustaría saber si ácido hialurónico o vitamina c son adecuados "
+        "para usarse directamente en la piel"
+    )
+    assert _mensaje_parece_consulta_tecnica_web(msg)
+    hu = _contexto_historial_usuario_web(hist)
+    assert manejar_documentos_web(user_message=msg, historial_usuario=hu) is None
+
+
+def test_web_chat_invima_sin_basura_historial() -> None:
+    from app.core import _contexto_historial_usuario_web
+    from app.web_chat_documentos import manejar_documentos_web
+
+    hist = [
+        {
+            "role": "user",
+            "content": "Usuario_web-abc: Necesito el registro invima del citrato de calcio",
+        },
+        {"role": "assistant", "content": "Veci, no localicé el PDF en este momento."},
+    ]
+    out = manejar_documentos_web(
+        user_message="Necesito ver un registro invima.",
+        historial_usuario=_contexto_historial_usuario_web(hist),
+    )
+    assert out is not None
+    assert "Usuario_web" not in out
+    assert out.lower().count("no localicé el pdf") <= 1
+    assert "materias primas" in out.lower() or "marco regulatorio" in out.lower()
+
+
+def test_web_chat_nota_regulatoria_invima() -> None:
+    from app.web_chat_mensajes import nota_regulatoria_materias_primas_invima
+
+    txt = nota_regulatoria_materias_primas_invima()
+    assert "materias primas" in txt.lower()
+    assert "ficha técnica" in txt.lower()
+    assert "coa" in txt.lower()
+
+
+def test_web_chat_lote_no_es_catalogo() -> None:
+    from app.core import _mensaje_parece_consulta_catalogo_web
+
+    msg = "Holaa para preguntar cuando vence el conservante sharomix 705 de Lot. 042026"
+    assert _mensaje_parece_consulta_catalogo_web(msg) is False
+
+
+def test_web_chat_fallback_queja_precios() -> None:
+    import importlib.util
+    from pathlib import Path
+
+    site_path = Path(__file__).resolve().parents[1] / "PAGINA_WEB" / "site" / "website.py"
+    spec = importlib.util.spec_from_file_location("website_chat_test", site_path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    out = mod._chat_fallback_contextual("Estani muy altos los precios para elaborar un producto")
+    assert out is not None
+    assert "PARAFINA" not in out
+    assert "wa.me" in out
+
+
 def test_coa_generacion_docx() -> None:
     from app.services.coa import PLANTILLA_DEFAULT, generar_desde_datos, plantilla_datos_ejemplo
 

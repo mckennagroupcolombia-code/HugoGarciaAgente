@@ -203,3 +203,20 @@ def buscar_sds_pdf(nombre_producto: str) -> str | None:
         hit = buscar_pdf_en_carpeta_drive(nombre_producto, DRIVE_SDS_FOLDER_ID)
     return (hit or {}).get("webViewLink")
 
+
+def buscar_registro_invima_pdf(nombre_producto: str) -> str | None:
+    """Registro sanitario / INVIMA en carpeta FT (prefijos RS, INVIMA, Registro)."""
+    for folder_id in (DRIVE_FT_FOLDER_ID, DRIVE_COA_FOLDER_ID):
+        for prefijo in ("INVIMA", "RS", "Registro", "RS-"):
+            hit = buscar_pdf_en_carpeta_drive(
+                nombre_producto, folder_id, prefijo_nombre=prefijo
+            )
+            if hit:
+                return hit.get("webViewLink")
+        hit = buscar_pdf_en_carpeta_drive(
+            f"INVIMA {nombre_producto}", folder_id
+        )
+        if hit:
+            return hit.get("webViewLink")
+    return None
+

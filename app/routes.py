@@ -4449,32 +4449,47 @@ def register_routes(app):
         voicebox_engine  = body.get("voicebox_engine") or cfg.get("voicebox_engine", "qwen3")
         voz_lang = voicebox_language_code(body.get("language") or cfg.get("language"))
 
-        # ── Motor 1: Voicebox (Qwen3-TTS-Base — mejor clonación) ──────────
+        # ── Motor 1: Voicebox (Qwen3-TTS — clonación de voz Hugo) ───────────
         from app.services.tts_voicebox import voicebox_disponible, sintetizar_voicebox
+        import time as _time
         if engine == "voicebox":
+            # Si el servicio no responde ahora, esperar hasta 30 s antes de rendirse.
+            # Voicebox puede estar cargando el modelo en el primer arranque del día.
             if not voicebox_disponible():
-                if motor_forzado == "voicebox":
-                    return jsonify({"error": "Voicebox no disponible"}), 503
-            else:
-                try:
-                    audio = sintetizar_voicebox(
-                        texto,
-                        profile_id=voicebox_profile,
-                        engine=voicebox_engine,
-                        language=voz_lang,
-                    )
-                    return _R(
-                        audio,
-                        content_type="audio/wav",
-                        headers={
-                            "X-TTS-Motor": "voicebox-clone",
-                            "X-TTS-Profile": voicebox_profile,
-                        },
-                    )
-                except Exception as exc:
-                    print(f"[Voz] Voicebox falló ({voicebox_profile}): {exc}")
+                _esperas = [3, 5, 8, 14]   # segundos entre reintentos (total ≤ 30 s)
+                for _w in _esperas:
+                    _time.sleep(_w)
+                    if voicebox_disponible():
+                        break
+                else:
+                    # Agotados los reintentos: solo falla si el motor fue forzado
                     if motor_forzado == "voicebox":
-                        return jsonify({"error": f"Voicebox: {exc}"}), 500
+                        return jsonify({"error": "Voicebox no disponible tras reintentos"}), 503
+            if voicebox_disponible():
+                _ultimo_exc: Exception | None = None
+                for _intento in range(3):  # hasta 3 intentos de síntesis
+                    try:
+                        audio = sintetizar_voicebox(
+                            texto,
+                            profile_id=voicebox_profile,
+                            engine=voicebox_engine,
+                            language=voz_lang,
+                        )
+                        return _R(
+                            audio,
+                            content_type="audio/wav",
+                            headers={
+                                "X-TTS-Motor": "voicebox-clone",
+                                "X-TTS-Profile": voicebox_profile,
+                            },
+                        )
+                    except Exception as exc:
+                        _ultimo_exc = exc
+                        print(f"[Voz] Voicebox intento {_intento+1}/3 falló ({voicebox_profile}): {exc}")
+                        if _intento < 2:
+                            _time.sleep(3)
+                if motor_forzado == "voicebox":
+                    return jsonify({"error": f"Voicebox falló tras 3 intentos: {_ultimo_exc}"}), 500
 
         # ── Motor 2: Qwen3 TTS local (GPU) ────────────────────────────────
         if engine in ("qwen3", "auto") and qwen3_disponible():

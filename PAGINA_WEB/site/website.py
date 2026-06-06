@@ -1778,11 +1778,63 @@ def find_product(slug_or_sku: str) -> dict | None:
     return None
 
 
+def _chat_fallback_contextual(message: str) -> str | None:
+    """Respuestas útiles cuando el agente :8081 no responde — sin catálogo aleatorio."""
+    msg = (message or "").strip().lower()
+    if len(msg) < 3:
+        return None
+    if re.search(
+        r"\b("
+        r"precios?\s+(muy\s+)?altos?|"
+        r"altos?\s+(los\s+)?precios?|"
+        r"muy\s+car[oa]s?|"
+        r"car[oa]s?\s+para|"
+        r"est[aá]ni?\s+muy\s+altos"
+        r")\b",
+        msg,
+    ):
+        return (
+            "Entiendo veci. Los precios dependen de presentación y cantidad; a veces conviene "
+            "ajustar gramajes o combinar formatos. Si quiere una cotización optimizada para su "
+            f"formulación, escríbanos por WhatsApp https://wa.me/{WA_NUMBER} con su lista "
+            "y le asesoramos."
+        )
+    if re.search(r"\b(vence|vencimiento|caducidad|lote|lot\.)\b", msg):
+        return (
+            "Veci, para **vencimiento o lote** necesitamos la referencia del producto y el número "
+            f"de lote del empaque. Escríbanos por WhatsApp https://wa.me/{WA_NUMBER} "
+            "y el equipo le confirma."
+        )
+    if re.search(
+        r"\b(adecuad[oa]|usarse?\s+directamente|aplicar\s+en\s+la\s+piel|"
+        r"como\s+se\s+prepara|densidad|dosis|formulaci[oó]n)\b",
+        msg,
+    ):
+        return (
+            "Veci, esa es una consulta técnica de formulación o uso. En este momento no pude "
+            "conectar con el asistente en línea; escríbanos por WhatsApp "
+            f"https://wa.me/{WA_NUMBER} con el producto y su pregunta, "
+            "o revise guías en https://mckennagroup.co/guias."
+        )
+    if re.search(r"\b(coa|certificado|ficha|invima|registro\s+sanitario)\b", msg):
+        return (
+            "Veci, las **materias primas** suelen documentarse con **ficha técnica** y **COA**, "
+            "con un marco distinto al registro INVIMA de producto terminado. "
+            "Déjenos referencia y correo por WhatsApp https://wa.me/"
+            f"{WA_NUMBER} y el equipo le envía lo disponible. "
+            "Allí mantienen el hilo; este chat no guarda el historial al cerrar el navegador."
+        )
+    return None
+
+
 def _chat_catalog_guess(message: str) -> str | None:
     """
     Si el proxy al agente falla, intenta contestar con productos del catálogo web (Sheets/cache).
     Evita bucle de mensaje genérico idéntico en preguntas tipo '¿tienen cera de abejas?'.
     """
+    contextual = _chat_fallback_contextual(message)
+    if contextual:
+        return contextual
     msg = (message or "").strip().lower()
     if len(msg) < 2:
         return None

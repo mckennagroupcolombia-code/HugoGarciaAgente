@@ -112,3 +112,38 @@ def manejar_escalacion_tecnica_web(
 
 def manejar_seguimiento_codigo_web(texto: str) -> str | None:
     return intentar_respuesta_por_codigo_en_mensaje(texto)
+
+
+_PATRONES_OPERATIVA = (
+    r"\b(vence|vencimiento|caducidad|caduca)\b",
+    r"\blot\.?\b",
+    r"\blote\b",
+    r"\bfecha\s+de\s+vencimiento\b",
+)
+
+
+def mensaje_pide_info_operativa(texto: str) -> bool:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    if len(low) < 4:
+        return False
+    return any(re.search(p, low) for p in _PATRONES_OPERATIVA)
+
+
+def manejar_consulta_operativa_web(
+    *,
+    pregunta: str,
+    session_id: str = "",
+    page_url: str = "",
+) -> str | None:
+    """Vencimiento, lote, trazabilidad — no responder con catálogo de precios."""
+    if not mensaje_pide_info_operativa(pregunta):
+        return None
+    from app.web_chat_mensajes import nota_asesor_whatsapp_chat_web
+
+    return (
+        "Veci, para consultar **vencimiento, lote o trazabilidad** de un producto que ya compró, "
+        "necesitamos la **referencia (SKU)** y el **número de lote** impreso en el empaque."
+        + nota_asesor_whatsapp_chat_web(
+            motivo="confirmar fechas y lote con el equipo"
+        )
+    )

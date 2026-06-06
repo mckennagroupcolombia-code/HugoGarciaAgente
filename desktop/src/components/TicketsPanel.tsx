@@ -5620,7 +5620,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
   const { user: currentUser } = useTicketsAuth();
   const nivel = currentUser?.rol?.nivel ?? 1;
   const { cats: categorias, reload: reloadCats } = useContext(CategoriasCtx);
-  const [tab, setTab] = useState<"usuarios" | "telefonos" | "roles" | "departamentos" | "categorias">("usuarios");
+  const [tab, setTab] = useState<"usuarios" | "telefonos" | "roles" | "departamentos" | "categorias" | "tickets">("usuarios");
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [roles, setRoles] = useState<Rol[]>([]);
   const [depts, setDepts] = useState<Dept[]>([]);
@@ -5634,6 +5634,16 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
   const [catForm, setCatForm] = useState({ slug: "", nombre: "", color: "#0c6069", icono: "📋" });
   const [catError, setCatError] = useState("");
   const [catSaving, setCatSaving] = useState(false);
+  // User deletion (danger zone inside modal)
+  const [deleteUserConfirm, setDeleteUserConfirm] = useState("");
+  const [deletingUser, setDeletingUser] = useState(false);
+  // Tickets admin tab
+  const [adminTickets, setAdminTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [ticketSearch, setTicketSearch] = useState("");
+  const [ticketDeleteId, setTicketDeleteId] = useState<number | null>(null);
+  const [ticketDeleteConfirm, setTicketDeleteConfirm] = useState(false);
+  const [ticketDeleting, setTicketDeleting] = useState(false);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -5657,6 +5667,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
     setModal(type);
     setEditItem(item);
     setError("");
+    setDeleteUserConfirm("");
     if (type === "user") {
       const deptIds = item ? (item.departamentos || []).map((d: any) => d.id) : [];
       setForm(item
@@ -5744,6 +5755,39 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
     } catch (e: any) { alert(e.message); }
   }
 
+  async function eliminarUsuarioAdmin() {
+    if (!editItem) return;
+    setDeletingUser(true);
+    try {
+      await tapi(`/usuarios/${editItem.id}`, token, { method: "DELETE" });
+      setModal(null);
+      setDeleteUserConfirm("");
+      await reload();
+    } catch (e: any) { setError(e.message || "No se pudo desactivar el usuario."); }
+    finally { setDeletingUser(false); }
+  }
+
+  async function loadAdminTickets() {
+    setLoadingTickets(true);
+    try {
+      const data = await tapi("/", token);
+      setAdminTickets(Array.isArray(data) ? data : []);
+    } catch { setAdminTickets([]); }
+    finally { setLoadingTickets(false); }
+  }
+
+  async function eliminarTicketAdmin() {
+    if (!ticketDeleteId) return;
+    setTicketDeleting(true);
+    try {
+      await tapi(`/${ticketDeleteId}`, token, { method: "DELETE" });
+      setAdminTickets((ts) => ts.filter((t) => t.id !== ticketDeleteId));
+      setTicketDeleteId(null);
+      setTicketDeleteConfirm(false);
+    } catch (e: any) { alert(e.message || "No se pudo eliminar el ticket."); }
+    finally { setTicketDeleting(false); }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
@@ -5752,15 +5796,16 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
       </div>
 
       <div className="sticky top-[3.25rem] z-10 flex flex-wrap gap-2 border-b border-border bg-surface-panel/95 py-2 backdrop-blur-md">
-        {(["usuarios", "telefonos", "roles", "departamentos", "categorias"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
+        {(["usuarios", "telefonos", "roles", "departamentos", "categorias", "tickets"] as const).map((t) => (
+          <button key={t} onClick={() => { setTab(t); if (t === "tickets") loadAdminTickets(); }}
             className={`rounded-paper border-2 px-4 py-1.5 text-sm font-bold capitalize transition
               ${tab === t ? "border-accent bg-surface-hover text-ink" : "border-transparent text-muted hover:text-ink"}`}>
             {t === "usuarios" ? "👤 Usuarios"
               : t === "telefonos" ? "📱 Teléfonos WA"
               : t === "roles" ? "🎭 Roles"
               : t === "departamentos" ? "🏢 Departamentos"
-              : "🏷️ Categorías"}
+              : t === "categorias" ? "🏷️ Categorías"
+              : "🎫 Tickets"}
           </button>
         ))}
       </div>
@@ -5959,6 +6004,92 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
         </div>
       )}
 
+      {/* Tickets admin tab */}
+      {tab === "tickets" && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              className="flex-1 min-w-[180px] rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+              placeholder="Buscar por número, título o solicitante…"
+              value={ticketSearch}
+              onChange={(e) => setTicketSearch(e.target.value)}
+            />
+            <button
+              onClick={loadAdminTickets}
+              disabled={loadingTickets}
+              className="rounded-paper border-2 border-border px-3 py-2 text-xs font-bold text-muted transition hover:border-accent hover:text-accent disabled:opacity-50"
+            >
+              {loadingTickets ? "Cargando…" : "↺ Actualizar"}
+            </button>
+          </div>
+          {loadingTickets ? (
+            <div className="py-10 text-center text-sm text-muted">Cargando tickets…</div>
+          ) : (
+            <div className="space-y-2">
+              {adminTickets
+                .filter((t) => {
+                  if (!ticketSearch.trim()) return true;
+                  const q = ticketSearch.toLowerCase();
+                  return (
+                    t.numero?.toLowerCase().includes(q) ||
+                    t.titulo?.toLowerCase().includes(q) ||
+                    (t.creado_por_nombre ?? "").toLowerCase().includes(q)
+                  );
+                })
+                .map((t) => (
+                  <div key={t.id} className="flex items-center justify-between rounded-paper border-2 border-border bg-surface-panel p-3 shadow-paper-sm gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-muted">{t.numero}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          t.estado === "resuelto" ? "bg-green-100 text-green-700" :
+                          t.estado === "en_proceso" ? "bg-blue-100 text-blue-700" :
+                          t.estado === "rechazado" ? "bg-red-100 text-red-700" :
+                          "bg-surface-hover text-muted"
+                        }`}>{t.estado?.replace("_", " ")}</span>
+                      </div>
+                      <p className="mt-0.5 truncate text-sm font-semibold text-ink">{t.titulo}</p>
+                      {t.creado_por_nombre && (
+                        <p className="text-xs text-muted">Por: {t.creado_por_nombre}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0">
+                      {ticketDeleteId === t.id ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-xs font-bold text-red-700">¿Eliminar permanentemente?</span>
+                          <button
+                            disabled={ticketDeleting}
+                            onClick={() => { setTicketDeleteConfirm(true); void eliminarTicketAdmin(); }}
+                            className="rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50"
+                          >
+                            {ticketDeleting ? "Eliminando…" : "Sí, eliminar"}
+                          </button>
+                          <button
+                            onClick={() => setTicketDeleteId(null)}
+                            className="rounded-lg border-2 border-border px-3 py-1 text-xs font-bold text-muted hover:text-ink"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { setTicketDeleteId(t.id); setTicketDeleteConfirm(false); }}
+                          className="rounded-paper border-2 border-red-300 px-3 py-1 text-xs font-bold text-red-600 transition hover:bg-red-50"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              {adminTickets.length === 0 && !loadingTickets && (
+                <p className="py-8 text-center text-sm text-muted">Sin tickets. Haz clic en "Actualizar" para cargar.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Modal */}
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -6062,6 +6193,33 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     </div>
                   );
                 })()}
+                {editItem && editItem.id !== currentUser?.id && (
+                  <div className="mt-4 rounded-xl border-2 border-red-200 bg-red-50 p-4 space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-red-700">Zona de peligro</p>
+                    <p className="text-xs text-red-600">
+                      Desactiva el acceso de <strong>{editItem.nombre}</strong> al sistema. El historial de tickets se conserva.
+                    </p>
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-red-700">
+                        Escribe el nombre <span className="font-mono">"{editItem.nombre}"</span> para confirmar
+                      </label>
+                      <input
+                        className="w-full rounded-paper border-2 border-red-300 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-red-500"
+                        placeholder="Nombre del usuario…"
+                        value={deleteUserConfirm}
+                        onChange={(e) => setDeleteUserConfirm(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={deletingUser || deleteUserConfirm.trim() !== editItem.nombre}
+                      onClick={() => void eliminarUsuarioAdmin()}
+                      className="rounded-paper border-2 border-red-600 bg-red-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {deletingUser ? "Desactivando…" : "Desactivar acceso"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -6099,7 +6257,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
             {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => { setModal(null); setError(""); }}
+              <button onClick={() => { setModal(null); setError(""); setDeleteUserConfirm(""); }}
                 className="rounded-paper border-2 border-border px-4 py-2 text-sm font-bold text-muted hover:bg-surface-hover transition">
                 Cancelar
               </button>
@@ -11273,17 +11431,6 @@ function WorkloadView({
                         <div className="text-xs font-semibold text-muted">Tiempo total</div>
                       </div>
                     </div>
-                    {canManageAliados && u.id !== user.id && (
-                      <button
-                        type="button"
-                        onClick={() => void eliminarAliado(u)}
-                        disabled={deletingId === u.id}
-                        title="Eliminar aliado (desactivar acceso)"
-                        className="rounded-paper border-2 border-red-400/80 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-600 hover:text-white disabled:opacity-40 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-600"
-                      >
-                        {deletingId === u.id ? "Eliminando…" : "🗑 Eliminar"}
-                      </button>
-                    )}
                   </div>
                 </div>
                 {/* Load bar + expand toggle */}
@@ -11652,71 +11799,53 @@ const HUGO_VOICEBOX_PROFILE = "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23";
 /** TTS con la voz de Hugo García (Voicebox). apiToken = CHAT_API_TOKEN o JWT de tickets. */
 async function hablarHugoTts(apiToken: string, texto: string): Promise<boolean> {
   if (!texto.trim() || !apiToken) return false;
-  try {
-    const res = await fetch("/api/voz/sintetizar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
-      body: JSON.stringify({
-        texto: texto.trim(),
-        motor: "voicebox",
-        voicebox_engine: "qwen3",
-        voicebox_profile: HUGO_VOICEBOX_PROFILE,
-        language: "Spanish",
-      }),
-    });
-    if (!res.ok) throw new Error("tts http");
-    const ct = res.headers.get("content-type") || "audio/wav";
-    if (ct.includes("json")) throw new Error("tts json");
-    const buffer = await res.arrayBuffer();
-    const type = ct.includes("mpeg") ? "audio/mpeg" : "audio/wav";
-    await _playBlobBuffer(buffer, type);
-    return true;
-  } catch {
-    if ("speechSynthesis" in window) {
-      return await new Promise<boolean>((resolve) => {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(texto.trim());
-        u.lang = "es-CO";
-        u.rate = 0.92;
-        u.onend = () => resolve(true);
-        u.onerror = () => resolve(false);
-        window.speechSynthesis.speak(u);
+
+  const payload = JSON.stringify({
+    texto: texto.trim(),
+    motor: "voicebox",
+    voicebox_engine: "qwen3",
+    voicebox_profile: HUGO_VOICEBOX_PROFILE,
+    language: "Spanish",
+  });
+
+  // Dos intentos: el backend ya reintenta internamente, pero un error de red
+  // transitorio (conexión cerrada, gateway timeout) merece un segundo intento.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch("/api/voz/sintetizar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
+        body: payload,
       });
+      if (!res.ok) {
+        // El backend ya agotó sus reintentos internos y devolvió error.
+        // No usar voz del navegador — simplemente fallar.
+        if (attempt === 0) { await new Promise(r => setTimeout(r, 2000)); continue; }
+        return false;
+      }
+      const ct = res.headers.get("content-type") || "audio/wav";
+      if (ct.includes("json")) {
+        if (attempt === 0) { await new Promise(r => setTimeout(r, 2000)); continue; }
+        return false;
+      }
+      const buffer = await res.arrayBuffer();
+      const type = ct.includes("mpeg") ? "audio/mpeg" : "audio/wav";
+      await _playBlobBuffer(buffer, type);
+      return true;
+    } catch {
+      if (attempt === 0) { await new Promise(r => setTimeout(r, 2000)); }
     }
-    return false;
   }
+  // Si ambos intentos fallan: no usar voz del navegador, solo fallar silenciosamente.
+  return false;
 }
 
 /** Reproduce alerta de voz para recordatorios vencidos usando la voz de Hugo García. */
 async function playRecordatorioAlerta(apiToken: string, count: number): Promise<void> {
   const texto = count === 1
-    ? "Hola. Tienes un recordatorio pendiente para hoy."
-    : `Hola. Tienes ${count} recordatorios pendientes para hoy.`;
-  try {
-    const res = await fetch("/api/voz/sintetizar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
-      body: JSON.stringify({
-        texto,
-        motor: "voicebox",
-        voicebox_engine: "qwen3",
-        voicebox_profile: "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
-        language: "Spanish",
-      }),
-    });
-    if (!res.ok) throw new Error("tts error");
-    const buffer = await res.arrayBuffer();
-    const type = res.headers.get("content-type") || "audio/wav";
-    await _playBlobBuffer(buffer, type);
-  } catch {
-    // Fallback: síntesis del navegador
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utt = new SpeechSynthesisUtterance(texto);
-      utt.lang = "es-CO"; utt.rate = 0.92; utt.volume = 1;
-      window.speechSynthesis.speak(utt);
-    }
-  }
+    ? "Hola, veci. Tiene un recordatorio pendiente para hoy."
+    : `Hola, veci. Tiene ${count} recordatorios pendientes para hoy.`;
+  await hablarHugoTts(apiToken, texto);
 }
 
 /** Genera y cachea el audio de alarma. Llámalo al activar la alarma para pre-calentar. */
@@ -11729,7 +11858,7 @@ async function warmAlarmCache(apiToken: string): Promise<boolean> {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiToken}` },
       body: JSON.stringify({
-        texto: "Recuerda: tienes una tarea en proceso.",
+        texto: "Pilas, veci: tiene una tarea en proceso.",
         motor: "voicebox",
         voicebox_engine: "qwen3",
         voicebox_profile: "3762e0ae-ae88-4f5e-8d77-af4f8eb7cc23",
@@ -11766,7 +11895,7 @@ async function playAlarmAudio(apiToken?: string) {
   // Intento 3: SpeechSynthesis del navegador (sin servidor, Android Chrome lo soporta)
   if ("speechSynthesis" in window) {
     window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance("Recuerda: tienes una tarea en proceso.");
+    const utt = new SpeechSynthesisUtterance("Pilas, veci: tiene una tarea en proceso.");
     utt.lang = "es-CO"; utt.rate = 0.92; utt.volume = 1;
     window.speechSynthesis.speak(utt);
     return;
@@ -11790,7 +11919,7 @@ async function playAlarmAudio(apiToken?: string) {
 }
 
 async function playSolicitudAudio(nombre: string, apiToken?: string): Promise<void> {
-  const texto = `Tienes una solicitud de ${nombre}.`;
+  const texto = `Veci, tiene una solicitud de parte de ${nombre}.`;
   if (apiToken) {
     try {
       const ctrl = new AbortController();
@@ -19437,6 +19566,29 @@ function AccionesView({
       onIrCompras?.();
       return;
     }
+
+    // Acción en_proceso sin bloqueo: sincronizar timer y abrir en Hugo
+    if (t.estado === "en_proceso" && !t.bloqueado_por && onInicio) {
+      setLoadingExtra(true);
+      setMsg("");
+      try {
+        const ticket = await tapi(`/${t.id}`, token) as any;
+        const segundosServidor = ticket.corrida?.segundos_acumulados ?? ticket.segundos_trabajo ?? 0;
+        const SECS_KEY = `mckenna-accion-secs-${t.id}`;
+        const localSecs = parseInt(localStorage.getItem(SECS_KEY) ?? "0") || 0;
+        if (segundosServidor > localSecs) {
+          localStorage.setItem(SECS_KEY, String(segundosServidor));
+        }
+        localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: t.id, titulo: t.titulo }));
+        onInicio();
+        return;
+      } catch {
+        /* falló el fetch — continuar con el wizard como fallback */
+      } finally {
+        setLoadingExtra(false);
+      }
+    }
+
     setLoadingExtra(true);
     setMsg("");
     try {
@@ -20482,6 +20634,222 @@ function BotonCamaraEjecucion({ onFile, title = "Tomar foto" }: { onFile: (file:
   );
 }
 
+// ── PanelComprasEjecucion ─────────────────────────────────────────────────────
+
+type ItemCompraEjec = {
+  id: number; nombre: string; cantidad: string; unidad: string;
+  comprado: boolean; precio_estimado: number | null; notas: string | null;
+};
+
+function PanelComprasEjecucion({
+  token, ticketId, ticketTitulo, onVolver,
+}: {
+  token: string; ticketId: number; ticketTitulo: string; onVolver: () => void;
+}) {
+  const [items, setItems] = useState<ItemCompraEjec[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [inputNombre, setInputNombre] = useState("");
+  const [inputCantidad, setInputCantidad] = useState("");
+  const [inputUnidad, setInputUnidad] = useState<"u"|"g"|"kg"|"L"|"ml">("u");
+  const [guardando, setGuardando] = useState(false);
+  const [facturaFile, setFacturaFile] = useState<File | null>(null);
+  const [subiendoFactura, setSubiendoFactura] = useState(false);
+  const [msg, setMsg] = useState("");
+  const facturaRef = useRef<HTMLInputElement>(null);
+
+  async function cargar() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/lista-compras`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = res.ok ? await res.json() as Array<Record<string,unknown>> : [];
+      setItems(data.map(r => ({
+        id: r.id as number,
+        nombre: ((r.nombre || r.material_nombre || "") as string).trim(),
+        cantidad: String(r.cantidad ?? "1"),
+        unidad: (r.unidad as string) || "u",
+        comprado: !!(r.comprado),
+        precio_estimado: (r.precio_estimado as number | null) ?? null,
+        notas: (r.notas as string | null) ?? null,
+      })));
+    } catch { /* silencioso */ }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { void cargar(); }, [ticketId]);
+
+  async function agregar() {
+    const nombre = inputNombre.trim();
+    if (!nombre) return;
+    setGuardando(true);
+    setMsg("");
+    try {
+      const res = await fetch(`/api/tickets/${ticketId}/lista-compras`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre, cantidad: inputCantidad || "1", unidad: inputUnidad }),
+      });
+      if (!res.ok) throw new Error("error");
+      const data = await res.json() as Array<Record<string,unknown>>;
+      setItems(data.map(r => ({
+        id: r.id as number,
+        nombre: ((r.nombre || r.material_nombre || "") as string).trim(),
+        cantidad: String(r.cantidad ?? "1"),
+        unidad: (r.unidad as string) || "u",
+        comprado: !!(r.comprado),
+        precio_estimado: (r.precio_estimado as number | null) ?? null,
+        notas: (r.notas as string | null) ?? null,
+      })));
+      setInputNombre("");
+      setInputCantidad("");
+    } catch { setMsg("No se pudo agregar."); }
+    finally { setGuardando(false); }
+  }
+
+  async function toggleComprado(item: ItemCompraEjec) {
+    try {
+      const res = await fetch(`/api/tickets/lista-compras/${item.id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ comprado: item.comprado ? 0 : 1 }),
+      });
+      if (!res.ok) return;
+      const data = await res.json() as Array<Record<string,unknown>>;
+      setItems(data.map(r => ({
+        id: r.id as number,
+        nombre: ((r.nombre || r.material_nombre || "") as string).trim(),
+        cantidad: String(r.cantidad ?? "1"),
+        unidad: (r.unidad as string) || "u",
+        comprado: !!(r.comprado),
+        precio_estimado: (r.precio_estimado as number | null) ?? null,
+        notas: (r.notas as string | null) ?? null,
+      })));
+    } catch { /* silencioso */ }
+  }
+
+  async function eliminar(id: number) {
+    try {
+      const res = await fetch(`/api/tickets/lista-compras/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const data = await res.json() as Array<Record<string,unknown>>;
+      setItems(data.map(r => ({
+        id: r.id as number,
+        nombre: ((r.nombre || r.material_nombre || "") as string).trim(),
+        cantidad: String(r.cantidad ?? "1"),
+        unidad: (r.unidad as string) || "u",
+        comprado: !!(r.comprado),
+        precio_estimado: (r.precio_estimado as number | null) ?? null,
+        notas: (r.notas as string | null) ?? null,
+      })));
+    } catch { /* silencioso */ }
+  }
+
+  async function subirFactura(file: File) {
+    setSubiendoFactura(true);
+    setMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("archivo", file);
+      const res = await fetch(`/api/tickets/${ticketId}/adjuntos`, {
+        method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
+      });
+      if (!res.ok) throw new Error("upload");
+      setFacturaFile(file);
+      await fetch(`/api/tickets/${ticketId}/comentarios`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ texto: "🧾 Factura de compras adjunta." }),
+      });
+      setMsg("✅ Factura adjunta correctamente.");
+    } catch { setMsg("No se pudo subir la factura."); }
+    finally { setSubiendoFactura(false); }
+  }
+
+  const activos = items.filter(i => i.nombre.trim());
+  const comprados = activos.filter(i => i.comprado).length;
+
+  return (
+    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
+      {/* Header */}
+      <div className="shrink-0 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
+        <div className="flex items-center gap-3 px-4 py-2.5">
+          <button type="button" onClick={onVolver}
+            className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0">‹</button>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-widest text-muted">Lista de compras</p>
+            <p className="text-base font-extrabold text-ink leading-snug truncate tracking-tight">{ticketTitulo}</p>
+          </div>
+          {activos.length > 0 && (
+            <div className="shrink-0 flex items-center gap-1 bg-green-500/10 rounded-full px-3 py-1">
+              <span className="text-xs font-black tabular-nums text-green-600 dark:text-green-400">{comprados}/{activos.length}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Lista */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 bg-gray-50 dark:bg-gray-950">
+        {loading && <p className="text-center text-sm text-muted py-8">Cargando…</p>}
+        {!loading && activos.length === 0 && (
+          <div className="text-center py-10 space-y-2">
+            <p className="text-3xl">🛒</p>
+            <p className="text-sm text-gray-400 dark:text-white/40">Agregue los productos<br/>que necesita conseguir.</p>
+          </div>
+        )}
+        {activos.map(item => (
+          <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 bg-white dark:bg-gray-900 transition ${item.comprado ? "border-green-300/50 dark:border-green-700/30 opacity-70" : "border-gray-200 dark:border-white/10"}`}>
+            <button type="button" onClick={() => void toggleComprado(item)}
+              className={`shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${item.comprado ? "bg-green-500 border-green-500 text-white" : "border-gray-300 dark:border-white/20"}`}>
+              {item.comprado && <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold leading-snug ${item.comprado ? "line-through text-gray-400 dark:text-white/30" : "text-ink"}`}>{item.nombre}</p>
+              {(item.cantidad !== "1" || item.unidad !== "u") && (
+                <p className="text-xs text-muted">{item.cantidad} {item.unidad}</p>
+              )}
+            </div>
+            <button type="button" onClick={() => void eliminar(item.id)}
+              className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition text-xs">✕</button>
+          </div>
+        ))}
+        {msg && <p className={`text-center text-xs px-4 py-2 font-semibold ${msg.startsWith("✅") ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>{msg}</p>}
+      </div>
+
+      {/* Formulario agregar + factura */}
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 pb-safe px-4 pt-3 pb-3 space-y-2">
+        {/* Fila producto */}
+        <div className="flex gap-2">
+          <input value={inputNombre} onChange={e => setInputNombre(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); void agregar(); } }}
+            placeholder="Producto…"
+            className="flex-1 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 px-3 py-2.5 text-sm text-ink placeholder:text-gray-400 outline-none focus:border-accent/60 transition"/>
+          <input value={inputCantidad} onChange={e => setInputCantidad(e.target.value)}
+            placeholder="Cant."
+            inputMode="decimal"
+            className="w-16 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 px-3 py-2.5 text-sm text-ink placeholder:text-gray-400 outline-none focus:border-accent/60 transition"/>
+          <select value={inputUnidad} onChange={e => setInputUnidad(e.target.value as "u"|"g"|"kg"|"L"|"ml")}
+            className="w-16 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 px-2 py-2.5 text-sm font-bold text-ink outline-none focus:border-accent/60 transition">
+            <option value="u">u</option>
+            <option value="g">g</option>
+            <option value="kg">kg</option>
+            <option value="L">L</option>
+            <option value="ml">ml</option>
+          </select>
+          <button type="button" onClick={() => void agregar()} disabled={guardando || !inputNombre.trim()}
+            className="h-11 w-11 shrink-0 rounded-xl bg-accent disabled:opacity-40 text-white font-extrabold text-lg flex items-center justify-center transition">+</button>
+        </div>
+        {/* Adjuntar factura */}
+        <input ref={facturaRef} type="file" accept="image/*,.pdf" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) void subirFactura(f); e.target.value = ""; }}/>
+        <button type="button" onClick={() => facturaRef.current?.click()} disabled={subiendoFactura}
+          className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-bold transition disabled:opacity-50 ${facturaFile ? "border-green-400 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/10" : "border-dashed border-gray-300 dark:border-white/20 text-muted hover:border-accent hover:text-accent"}`}>
+          <span>🧾</span>
+          <span>{subiendoFactura ? "Subiendo…" : facturaFile ? `Factura: ${facturaFile.name}` : "Adjuntar factura de compras"}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── EjecucionAccionChat ───────────────────────────────────────────────────────
 
 function EjecucionAccionChat({
@@ -20494,14 +20862,17 @@ function EjecucionAccionChat({
   onVolver: () => void;
   onTerminado: () => void;
 }) {
-  type Nota = { id: number; texto: string; fotoUrl?: string; guardando?: boolean; errorGuarda?: boolean };
+  type Nota = { id: number; texto: string; fotoUrl?: string; tipo: "texto" | "foto"; serverItemId?: number; guardando?: boolean; errorGuarda?: boolean; eliminando?: boolean };
 
   const SECS_KEY = `mckenna-accion-secs-${accion.id}`;
   const [notas, setNotas] = useState<Nota[]>([]);
+  const [cargandoNotas, setCargandoNotas] = useState(true);
   const [inputNota, setInputNota] = useState("");
   const [terminando, setTerminando] = useState(false);
   const [error, setError] = useState("");
   const [segundos, setSegundos] = useState(() => parseInt(localStorage.getItem(SECS_KEY) ?? "0") || 0);
+  const [modoCompras, setModoCompras] = useState(false);
+  const [numCompras, setNumCompras] = useState(0);
   const t0 = useRef(Date.now() - segundos * 1000);
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -20517,6 +20888,59 @@ function EjecucionAccionChat({
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [notas]);
 
+  // Carga historial existente del servidor al montar (sincronización entre dispositivos)
+  useEffect(() => {
+    let cancelled = false;
+    async function cargarHistorial() {
+      setCargandoNotas(true);
+      try {
+        const [resComs, resAdjs, resCompras] = await Promise.all([
+          fetch(`/api/tickets/${accion.id}/comentarios`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`/api/tickets/${accion.id}/adjuntos`,   { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`/api/tickets/${accion.id}/lista-compras`, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (cancelled) return;
+
+        type ComRow = { id: number; texto: string; creado_en: string };
+        type AdjRow = { id: number; nombre_archivo: string; mime: string | null; nombre_original: string; creado_en: string };
+
+        const coms: ComRow[]  = resComs.ok  ? await resComs.json()  : [];
+        const adjs: AdjRow[]  = resAdjs.ok  ? await resAdjs.json()  : [];
+        const compras: Array<{nombre:string}> = resCompras.ok ? await resCompras.json() : [];
+
+        // Mezclar y ordenar por fecha
+        const items: Array<{ creado_en: string; nota: Nota }> = [];
+        let localId = 0;
+        for (const c of coms) {
+          items.push({ creado_en: c.creado_en, nota: { id: ++localId, texto: c.texto, tipo: "texto", serverItemId: c.id } });
+        }
+        for (const a of adjs) {
+          const esImagen = (a.mime ?? "").startsWith("image/");
+          if (esImagen) {
+            items.push({ creado_en: a.creado_en, nota: {
+              id: ++localId, texto: "", tipo: "foto",
+              fotoUrl: ticketsUploadUrl(a.nombre_archivo, token),
+              serverItemId: a.id,
+            }});
+          } else {
+            // Archivo no-imagen: mostrar como texto con nombre
+            items.push({ creado_en: a.creado_en, nota: {
+              id: ++localId, texto: `📎 ${a.nombre_original}`, tipo: "texto", serverItemId: a.id,
+            }});
+          }
+        }
+        items.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
+        notaIdRef.current = localId;
+        setNotas(items.map(i => i.nota));
+        setNumCompras(compras.filter(i => i.nombre?.trim()).length);
+      } catch { /* silencioso — el usuario puede seguir escribiendo */ }
+      finally { if (!cancelled) setCargandoNotas(false); }
+    }
+    void cargarHistorial();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accion.id]);
+
   function fmtSeg(s: number) {
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sc = s % 60;
     return h > 0
@@ -20528,9 +20952,11 @@ function EjecucionAccionChat({
   async function agregarNota(texto: string, fotoFile?: File, fotoUrl?: string) {
     if (!texto.trim() && !fotoFile) return;
     const nid = ++notaIdRef.current;
-    setNotas(prev => [...prev, { id: nid, texto: texto.trim(), fotoUrl, guardando: true }]);
+    const tipo: "texto" | "foto" = fotoFile ? "foto" : "texto";
+    setNotas(prev => [...prev, { id: nid, texto: texto.trim(), fotoUrl, tipo, guardando: true }]);
     setInputNota("");
     try {
+      let serverItemId: number | undefined;
       if (fotoFile) {
         const fd = new FormData();
         fd.append("archivo", fotoFile);
@@ -20538,6 +20964,8 @@ function EjecucionAccionChat({
           method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
         });
         if (!res.ok) throw new Error("upload");
+        const json = await res.json() as { id: number };
+        serverItemId = json.id;
       } else if (texto.trim()) {
         const res = await fetch(`/api/tickets/${accion.id}/comentarios`, {
           method: "POST",
@@ -20545,15 +20973,41 @@ function EjecucionAccionChat({
           body: JSON.stringify({ texto: texto.trim() }),
         });
         if (!res.ok) throw new Error("comment");
+        const json = await res.json() as { id: number };
+        serverItemId = json.id;
       }
-      setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false } : n));
+      setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false, serverItemId } : n));
     } catch {
       setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false, errorGuarda: true } : n));
     }
   }
 
+  async function eliminarNota(nota: Nota) {
+    if (!nota.serverItemId || nota.guardando || nota.eliminando) return;
+    setNotas(prev => prev.map(n => n.id === nota.id ? { ...n, eliminando: true } : n));
+    try {
+      const url = nota.tipo === "foto"
+        ? `/api/tickets/adjuntos/${nota.serverItemId}`
+        : `/api/tickets/comentarios/${nota.serverItemId}`;
+      const res = await fetch(url, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("delete");
+      setNotas(prev => prev.filter(n => n.id !== nota.id));
+    } catch {
+      setNotas(prev => prev.map(n => n.id === nota.id ? { ...n, eliminando: false } : n));
+    }
+  }
+
   function onFotoSeleccionada(file: File) {
     void agregarNota("", file, URL.createObjectURL(file));
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    const items = Array.from(e.clipboardData.items);
+    const imgItem = items.find(it => it.type.startsWith("image/"));
+    if (!imgItem) return;
+    e.preventDefault();
+    const file = imgItem.getAsFile();
+    if (file) onFotoSeleccionada(new File([file], `captura-${Date.now()}.png`, { type: file.type }));
   }
 
   async function terminar() {
@@ -20580,8 +21034,27 @@ function EjecucionAccionChat({
     onVolver();
   }
 
+  if (modoCompras) {
+    return (
+      <PanelComprasEjecucion
+        token={token}
+        ticketId={accion.id}
+        ticketTitulo={accion.titulo}
+        onVolver={() => {
+          // Recargar conteo al volver
+          fetch(`/api/tickets/${accion.id}/lista-compras`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(r => r.ok ? r.json() : [])
+            .then((items: Array<{nombre:string}>) => setNumCompras(items.filter(i => i.nombre?.trim()).length))
+            .catch(() => {});
+          setModoCompras(false);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
+    // onPaste en el contenedor: captura Ctrl+V con imagen desde cualquier lugar de la vista
+    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink" onPaste={handlePaste}>
       {/* Header con cronómetro */}
       <div className="shrink-0 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
         <div className="flex items-center gap-3 px-4 py-2.5">
@@ -20601,32 +21074,61 @@ function EjecucionAccionChat({
 
       {/* Área de actividad */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-gray-950">
-        {notas.length === 0 && (
-          <div className="text-center py-8 space-y-2">
+        {cargandoNotas && (
+          <div className="flex items-center justify-center py-10 gap-2">
+            {[0,1,2].map(i => <span key={i} className="block h-2.5 w-2.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: `${i*150}ms` }}/>)}
+          </div>
+        )}
+        {!cargandoNotas && notas.length === 0 && (
+          <div className="text-center py-6 space-y-2">
             <p className="text-3xl">📋</p>
             <p className="text-sm text-gray-400 dark:text-white/40">
-              Describí lo que vas haciendo,<br/>tomá fotos como evidencia.
+              Cuénteme qué va haciendo,<br/>tome fotos como evidencia.
             </p>
           </div>
         )}
-        {notas.map(nota => (
-          <div key={nota.id} className="flex justify-end">
-            <div className="max-w-[88%] space-y-1">
-              {nota.fotoUrl && (
-                <img src={nota.fotoUrl} alt="foto"
-                  className={`rounded-xl w-full max-w-xs border object-cover transition ${nota.guardando ? "opacity-60 border-gray-200 dark:border-white/10" : "border-gray-200 dark:border-white/10"}`}/>
-              )}
-              {nota.texto && (
-                <div className={`bg-accent rounded-2xl rounded-br-sm px-4 py-2.5 text-sm text-white leading-relaxed transition ${nota.guardando ? "opacity-60" : ""}`}>
-                  {nota.texto}
+        {(() => {
+          let pasoNum = 0;
+          return notas.map(nota => {
+            if (nota.tipo === "texto") pasoNum++;
+            const label = nota.tipo === "texto" ? `Paso ${pasoNum}` : null;
+            return (
+              <div key={nota.id} className="flex justify-end">
+                <div className="max-w-[88%] space-y-1">
+                  {label && <p className="text-right text-[10px] font-bold text-accent/70 uppercase tracking-wide">{label}</p>}
+                  {nota.fotoUrl && (
+                    <div className="relative group">
+                      <img src={nota.fotoUrl} alt="foto"
+                        className={`rounded-xl w-full max-w-xs border object-cover transition ${nota.guardando || nota.eliminando ? "opacity-60" : ""} border-gray-200 dark:border-white/10`}/>
+                      {!nota.guardando && nota.serverItemId && (
+                        <button type="button" onClick={() => void eliminarNota(nota)}
+                          disabled={!!nota.eliminando}
+                          className="absolute top-1 right-1 hidden group-hover:flex items-center justify-center h-6 w-6 rounded-full bg-black/60 text-white text-xs hover:bg-red-600 transition">
+                          {nota.eliminando ? "…" : "✕"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {nota.texto && (
+                    <div className={`relative group bg-accent rounded-2xl rounded-br-sm px-4 py-2.5 text-sm text-white leading-relaxed transition ${nota.guardando || nota.eliminando ? "opacity-60" : ""}`}>
+                      {nota.texto}
+                      {!nota.guardando && nota.serverItemId && (
+                        <button type="button" onClick={() => void eliminarNota(nota)}
+                          disabled={!!nota.eliminando}
+                          className="absolute -top-1.5 -right-1.5 hidden group-hover:flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-[10px] hover:bg-red-700 transition">
+                          {nota.eliminando ? "…" : "✕"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-right text-[10px] text-gray-400 dark:text-white/30">
+                    {nota.errorGuarda ? "⚠ No se guardó" : nota.eliminando ? "Eliminando…" : nota.guardando ? "Guardando…" : "✓"}
+                  </p>
                 </div>
-              )}
-              <p className="text-right text-[10px] text-gray-400 dark:text-white/30">
-                {nota.errorGuarda ? "⚠ No se guardó" : nota.guardando ? "Guardando…" : "✓"}
-              </p>
-            </div>
-          </div>
-        ))}
+              </div>
+            );
+          });
+        })()}
         {error && <p className="text-center text-xs text-red-500 dark:text-red-400">{error}</p>}
         <div ref={bottomRef}/>
       </div>
@@ -20641,10 +21143,16 @@ function EjecucionAccionChat({
       </div>
 
       <div className="px-4 py-2.5 flex items-center gap-2">
-        <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto" />
+        <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto o pegar captura (Ctrl+V)" />
+        <button type="button" onClick={() => setModoCompras(true)} title="Lista de compras"
+          className="relative shrink-0 h-11 w-11 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex items-center justify-center transition text-lg">
+          🛒
+          {numCompras > 0 && <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-accent text-white text-[9px] font-black flex items-center justify-center px-0.5">{numCompras}</span>}
+        </button>
         <input value={inputNota} onChange={e => setInputNota(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
-          placeholder="Describí lo que hiciste…"
+          onPaste={handlePaste}
+          placeholder="Cuénteme qué hizo… (Ctrl+V para pegar captura)"
           className="flex-1 rounded-full bg-gray-100 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"/>
         {inputNota.trim() ? (
           <button type="button" onClick={() => agregarNota(inputNota)}
@@ -20686,17 +21194,160 @@ function ResolverActividadChat({
   onVolver: () => void;
   onTerminado: () => void;
 }) {
-  type Nota = { id: number; texto: string; fotoUrl?: string; guardando?: boolean; errorGuarda?: boolean };
+  type Nota = { id: number; texto: string; fotoUrl?: string; autorNombre?: string; esSolicitante?: boolean; guardando?: boolean; errorGuarda?: boolean };
+  const { user: currentUser } = useTicketsAuth();
   const [notas, setNotas] = useState<Nota[]>([]);
+  const [cargandoNotas, setCargandoNotas] = useState(true);
+  const [descripcion, setDescripcion] = useState("");
   const [inputNota, setInputNota] = useState("");
   const [terminando, setTerminando] = useState(false);
   const [error, setError] = useState("");
+  const [showIntervencion, setShowIntervencion] = useState(false);
+  const [modoIntervencion, setModoIntervencion] = useState<"pausar" | "colaborar">("pausar");
+  const [participantes, setParticipantes] = useState<{ usuario_id: number; usuario_nombre: string; rol: string }[]>([]);
+  const [usuarios, setUsuarios] = useState<{ id: number; nombre: string }[]>([]);
+  const [interUsuario, setInterUsuario] = useState("");
+  const [interTitulo, setInterTitulo] = useState("");
+  const [creandoInter, setCreandoInter] = useState(false);
+  // Bloqueo por intervención pendiente
+  const [bloqueadoPorNumero, setBloqueadoPorNumero] = useState<string | null>(null);
+  const [bloqueadoPorNombre, setBloqueadoPorNombre] = useState<string | null>(null);
+  // Contexto del ticket padre (cuando este es un sub-ticket de intervención)
+  const [padreInfo, setPadreInfo] = useState<{ titulo: string; numero: string; notasPadre: Nota[] } | null>(null);
+  const [showPadre, setShowPadre] = useState(false);
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [notas]);
+
+  // Carga historial existente + descripción del ticket al montar
+  useEffect(() => {
+    let cancelled = false;
+    async function cargarHistorial() {
+      setCargandoNotas(true);
+      try {
+        const hdrs = { Authorization: `Bearer ${token}` };
+        const [resTkt, resComs, resAdjs] = await Promise.all([
+          fetch(`/api/tickets/${solicitud.id}`,            { headers: hdrs }),
+          fetch(`/api/tickets/${solicitud.id}/comentarios`, { headers: hdrs }),
+          fetch(`/api/tickets/${solicitud.id}/adjuntos`,    { headers: hdrs }),
+        ]);
+        if (cancelled) return;
+
+        type ComRow = { id: number; texto: string; creado_en: string; autor_nombre?: string };
+        type AdjRow = { id: number; nombre_archivo: string; mime: string | null; nombre_original: string; creado_en: string; creado_por_nombre?: string };
+        type TktRow = {
+          descripcion?: string;
+          participantes?: { usuario_id: number; usuario_nombre: string; rol: string }[];
+          bloqueado_por?: number | null;
+          bloqueado_por_numero?: string | null;
+          asignado_a_nombre?: string | null;
+          ticket_padre_id?: number | null;
+          ticket_padre_titulo?: string | null;
+          ticket_padre_numero?: string | null;
+        };
+
+        const tkt: TktRow           = resTkt.ok  ? await resTkt.json()  : {};
+        const coms: ComRow[]        = resComs.ok  ? await resComs.json() : [];
+        const adjs: AdjRow[]        = resAdjs.ok  ? await resAdjs.json() : [];
+
+        if (tkt.participantes) setParticipantes(tkt.participantes);
+
+        // Detectar bloqueo por intervención pendiente
+        if (tkt.bloqueado_por) {
+          setBloqueadoPorNumero(tkt.bloqueado_por_numero ?? null);
+          // Obtener el nombre del asignado del sub-ticket (bloqueador)
+          try {
+            const resBloq = await fetch(`/api/tickets/${tkt.bloqueado_por}`, { headers: hdrs });
+            if (resBloq.ok) {
+              const bloqTkt: { asignado_a_nombre?: string } = await resBloq.json();
+              setBloqueadoPorNombre(bloqTkt.asignado_a_nombre ?? null);
+            }
+          } catch { /* silencioso */ }
+        }
+
+        // Si este ticket ES un sub-ticket (intervención), cargar el hilo del ticket padre
+        if (tkt.ticket_padre_id) {
+          try {
+            const [resPadreComs, resPadreAdjs] = await Promise.all([
+              fetch(`/api/tickets/${tkt.ticket_padre_id}/comentarios`, { headers: hdrs }),
+              fetch(`/api/tickets/${tkt.ticket_padre_id}/adjuntos`, { headers: hdrs }),
+            ]);
+            const padreComs: ComRow[] = resPadreComs.ok ? await resPadreComs.json() : [];
+            const padreAdjs: AdjRow[] = resPadreAdjs.ok ? await resPadreAdjs.json() : [];
+            const nombreSolPadre = solicitud.creado_por_nombre?.trim().toLowerCase();
+            const padreItems: Array<{ creado_en: string; nota: Nota }> = [];
+            let pid = 0;
+            for (const c of padreComs) {
+              const autor = c.autor_nombre ?? "";
+              padreItems.push({ creado_en: c.creado_en, nota: {
+                id: --pid, texto: c.texto, autorNombre: autor,
+                esSolicitante: !!nombreSolPadre && autor.trim().toLowerCase() === nombreSolPadre,
+              }});
+            }
+            for (const a of padreAdjs) {
+              const autor = a.creado_por_nombre ?? "";
+              const esImg = (a.mime ?? "").startsWith("image/");
+              if (esImg) {
+                padreItems.push({ creado_en: a.creado_en, nota: {
+                  id: --pid, texto: "", autorNombre: autor,
+                  esSolicitante: !!nombreSolPadre && autor.trim().toLowerCase() === nombreSolPadre,
+                  fotoUrl: ticketsUploadUrl(a.nombre_archivo, token),
+                }});
+              }
+            }
+            padreItems.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
+            if (padreItems.length > 0) {
+              setPadreInfo({
+                titulo: tkt.ticket_padre_titulo ?? "Hilo principal",
+                numero: tkt.ticket_padre_numero ?? "",
+                notasPadre: padreItems.map(i => i.nota),
+              });
+            }
+          } catch { /* silencioso */ }
+        }
+
+        if (tkt.descripcion?.trim()) setDescripcion(tkt.descripcion.trim());
+
+        // Nombre del solicitante para identificar sus aportes
+        const nombreSol = solicitud.creado_por_nombre?.trim().toLowerCase();
+
+        const items: Array<{ creado_en: string; nota: Nota }> = [];
+        let localId = 0;
+        for (const c of coms) {
+          const autor = c.autor_nombre ?? "";
+          const esSol = !!nombreSol && autor.trim().toLowerCase() === nombreSol;
+          items.push({ creado_en: c.creado_en, nota: {
+            id: ++localId, texto: c.texto, autorNombre: autor, esSolicitante: esSol,
+          }});
+        }
+        for (const a of adjs) {
+          const autor = a.creado_por_nombre ?? "";
+          const esSol = !!nombreSol && autor.trim().toLowerCase() === nombreSol;
+          const esImg = (a.mime ?? "").startsWith("image/");
+          if (esImg) {
+            items.push({ creado_en: a.creado_en, nota: {
+              id: ++localId, texto: "", autorNombre: autor, esSolicitante: esSol,
+              fotoUrl: ticketsUploadUrl(a.nombre_archivo, token),
+            }});
+          } else {
+            items.push({ creado_en: a.creado_en, nota: {
+              id: ++localId, texto: `📎 ${a.nombre_original}`, autorNombre: autor, esSolicitante: esSol,
+            }});
+          }
+        }
+        items.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
+        notaIdRef.current = localId;
+        setNotas(items.map(i => i.nota));
+      } catch { /* silencioso */ }
+      finally { if (!cancelled) setCargandoNotas(false); }
+    }
+    void cargarHistorial();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solicitud.id]);
 
   async function agregarNota(texto: string, fotoFile?: File, fotoUrl?: string) {
     if (!texto.trim() && !fotoFile) return;
@@ -20729,6 +21380,76 @@ function ResolverActividadChat({
     void agregarNota("", file, URL.createObjectURL(file));
   }
 
+  function handlePaste(e: React.ClipboardEvent) {
+    const items = Array.from(e.clipboardData.items);
+    const imgItem = items.find(it => it.type.startsWith("image/"));
+    if (!imgItem) return;
+    e.preventDefault();
+    const file = imgItem.getAsFile();
+    if (file) onFotoSeleccionada(new File([file], `captura-${Date.now()}.png`, { type: file.type }));
+  }
+
+  async function cargarUsuarios() {
+    try {
+      const data = await tapi("/usuarios", token);
+      setUsuarios(Array.isArray(data) ? data.filter((u: any) => u.activo) : []);
+    } catch { /* ignore */ }
+  }
+
+  async function crearIntervencion() {
+    if (!interUsuario) return;
+    setCreandoInter(true);
+    try {
+      if (modoIntervencion === "colaborar") {
+        // Agregar como participante/colaborador sin pausar
+        await tapi(`/${solicitud.id}/participantes`, token, {
+          method: "POST",
+          body: JSON.stringify({ usuario_id: Number(interUsuario), rol: "colaborador" }),
+        });
+        const nombreInvitado = usuarios.find(u => String(u.id) === interUsuario)?.nombre ?? "Compañero";
+        // Dejar nota en el hilo anunciando la colaboración
+        await fetch(`/api/tickets/${solicitud.id}/comentarios`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ texto: `👥 ${nombreInvitado} fue invitado a colaborar en este hilo.${interTitulo.trim() ? ` (${interTitulo.trim()})` : ""}` }),
+        });
+        // Actualizar lista de participantes localmente
+        setParticipantes(prev => [
+          ...prev.filter(p => p.usuario_id !== Number(interUsuario)),
+          { usuario_id: Number(interUsuario), usuario_nombre: nombreInvitado, rol: "colaborador" },
+        ]);
+        const newNota: Nota = {
+          id: ++notaIdRef.current,
+          texto: `👥 ${nombreInvitado} fue invitado a colaborar en este hilo.${interTitulo.trim() ? ` (${interTitulo.trim()})` : ""}`,
+          autorNombre: "Sistema",
+          esSolicitante: false,
+        };
+        setNotas(prev => [...prev, newNota]);
+        setShowIntervencion(false);
+        setInterTitulo("");
+        setInterUsuario("");
+      } else {
+        if (!interTitulo.trim()) return;
+        await tapi(`/${solicitud.id}/pedir-intervencion`, token, {
+          method: "POST",
+          body: JSON.stringify({
+            titulo: interTitulo.trim(),
+            descripcion: "",
+            asignado_a: Number(interUsuario),
+          }),
+        });
+        setShowIntervencion(false);
+        setInterTitulo("");
+        setInterUsuario("");
+        setError("Intervención solicitada. La solicitud quedará pausada hasta que el compañero responda.");
+      }
+    } catch (e: any) {
+      setError(e.message || "No se pudo crear la intervención.");
+    } finally {
+      setCreandoInter(false);
+    }
+  }
+
   async function terminar() {
     if (notas.some(n => n.guardando)) { setError("Aún guardando ítems…"); return; }
     setTerminando(true);
@@ -20737,9 +21458,10 @@ function ResolverActividadChat({
       const res = await fetch(`/api/tickets/${solicitud.id}/estado`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ estado: "resuelto" }),
+        // Pasa a esperando_aprobacion: el solicitante debe confirmar que fue atendida
+        body: JSON.stringify({ estado: "esperando_aprobacion" }),
       });
-      if (!res.ok) throw new Error("No se pudo cerrar la actividad");
+      if (!res.ok) throw new Error("No se pudo marcar la actividad");
       onTerminado();
     } catch (e: any) {
       setError(e.message || "Ocurrió un error. Intenta de nuevo.");
@@ -20750,50 +21472,261 @@ function ResolverActividadChat({
 
   const hayContenido = notas.length > 0;
 
+  if (showIntervencion) {
+    const canSubmit = modoIntervencion === "colaborar"
+      ? !!interUsuario
+      : !!interTitulo.trim() && !!interUsuario;
+    return (
+      <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
+        <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
+          <button type="button" onClick={() => setShowIntervencion(false)}
+            className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 transition shrink-0">‹</button>
+          <p className="text-base font-extrabold text-ink">Pedir intervención</p>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+          {/* Selector de modo */}
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button"
+              onClick={() => setModoIntervencion("pausar")}
+              className={`rounded-2xl border-2 px-4 py-3 text-left transition ${
+                modoIntervencion === "pausar"
+                  ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30"
+                  : "border-border bg-surface hover:border-accent/50"
+              }`}>
+              <p className="text-sm font-extrabold text-ink">🛑 Pausar y delegar</p>
+              <p className="mt-0.5 text-[11px] text-muted leading-snug">Crea un sub-ticket. La solicitud queda bloqueada hasta que el compañero responda.</p>
+            </button>
+            <button type="button"
+              onClick={() => setModoIntervencion("colaborar")}
+              className={`rounded-2xl border-2 px-4 py-3 text-left transition ${
+                modoIntervencion === "colaborar"
+                  ? "border-violet-400 bg-violet-50 dark:bg-violet-950/30"
+                  : "border-border bg-surface hover:border-accent/50"
+              }`}>
+              <p className="text-sm font-extrabold text-ink">👥 Invitar a colaborar</p>
+              <p className="mt-0.5 text-[11px] text-muted leading-snug">Comparte el hilo. El compañero puede ver y escribir en la misma conversación sin pausar.</p>
+            </button>
+          </div>
+
+          {/* Compañero */}
+          <div className="space-y-2">
+            <label className="text-xs font-extrabold uppercase tracking-wide text-muted">¿A quién?</label>
+            {usuarios.length === 0
+              ? <button type="button" onClick={cargarUsuarios} className="text-sm text-accent font-bold">Cargar compañeros…</button>
+              : <select value={interUsuario} onChange={e => setInterUsuario(e.target.value)}
+                  className="w-full rounded-xl border-2 border-border bg-surface px-4 py-3 text-sm text-ink outline-none focus:border-accent transition">
+                  <option value="">Elegí un compañero</option>
+                  {usuarios.filter(u => u.id !== currentUser?.id).map(u => (
+                    <option key={u.id} value={u.id}>{u.nombre}</option>
+                  ))}
+                </select>
+            }
+          </div>
+
+          {/* Título/motivo — solo en modo pausar, opcional en colaborar */}
+          <div className="space-y-2">
+            <label className="text-xs font-extrabold uppercase tracking-wide text-muted">
+              {modoIntervencion === "pausar" ? "¿Qué necesitás que haga? *" : "Contexto para el compañero (opcional)"}
+            </label>
+            <input
+              value={interTitulo}
+              onChange={e => setInterTitulo(e.target.value)}
+              placeholder={modoIntervencion === "pausar" ? "Ej: Preparar el informe de inventario" : "Ej: Revisá la sección de facturación"}
+              className="w-full rounded-xl border-2 border-border bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted outline-none focus:border-accent transition"
+            />
+          </div>
+
+          {error && <p className="text-xs text-red-500">{error}</p>}
+        </div>
+        <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-4 py-3 pb-safe">
+          <button type="button" onClick={crearIntervencion}
+            disabled={creandoInter || !canSubmit}
+            className={`w-full rounded-2xl py-3.5 text-base font-extrabold text-white disabled:opacity-50 transition active:scale-[0.98] ${
+              modoIntervencion === "colaborar" ? "bg-violet-600 hover:bg-violet-500" : "bg-accent hover:bg-accent-hover"
+            }`}>
+            {creandoInter
+              ? "Enviando…"
+              : modoIntervencion === "colaborar"
+                ? "👥 Invitar a colaborar"
+                : "🛑 Crear sub-ticket y pausar"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
+    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink" onPaste={handlePaste}>
       {/* Header */}
       <div className="shrink-0 flex items-start gap-3 px-4 py-3 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
         <button type="button" onClick={onVolver}
           className="mt-0.5 flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0"
         >‹</button>
-        <div className="min-w-0">
-          <p className="text-xs font-extrabold uppercase tracking-widest text-muted mb-0.5">Actividad pendiente</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-extrabold uppercase tracking-widest text-muted mb-0.5">Solicitud para atender</p>
           <p className="text-base font-extrabold text-ink leading-snug line-clamp-2 tracking-tight">{solicitud.titulo}</p>
           {solicitud.creado_por_nombre && (
             <p className="text-sm font-bold text-muted mt-0.5">De: {solicitud.creado_por_nombre}</p>
           )}
         </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {participantes.length > 0 && (
+            <div className="flex items-center gap-1" title={participantes.map(p => p.usuario_nombre).join(", ")}>
+              {participantes.slice(0, 3).map(p => (
+                <span key={p.usuario_id}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500 text-white text-[10px] font-black shadow"
+                  title={`${p.usuario_nombre} (${p.rol})`}>
+                  {p.usuario_nombre.charAt(0).toUpperCase()}
+                </span>
+              ))}
+              {participantes.length > 3 && (
+                <span className="text-xs font-bold text-muted">+{participantes.length - 3}</span>
+              )}
+            </div>
+          )}
+          <button type="button"
+            onClick={() => { setShowIntervencion(true); void cargarUsuarios(); }}
+            className="shrink-0 rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+            title="Pedir intervención de un compañero">
+            🤝 Intervenir
+          </button>
+        </div>
       </div>
 
       {/* Área de notas / actividad */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-gray-950">
-        {notas.length === 0 && (
-          <div className="text-center py-10 space-y-2">
-            <p className="text-3xl">📝</p>
-            <p className="text-sm text-gray-400 dark:text-white/40">
-              Contá lo que vas haciendo o tomá fotos.<br />Cuando termines, tocá el botón verde.
-            </p>
-          </div>
-        )}
-        {notas.map(nota => (
-          <div key={nota.id} className="flex justify-end">
-            <div className="max-w-[88%] space-y-1">
-              {nota.fotoUrl && (
-                <img src={nota.fotoUrl} alt="foto"
-                  className={`rounded-xl w-full max-w-xs border border-gray-200 dark:border-white/10 object-cover transition ${nota.guardando ? "opacity-60" : ""}`}/>
-              )}
-              {nota.texto && (
-                <div className={`bg-accent rounded-2xl rounded-br-sm px-4 py-2.5 text-sm text-white leading-relaxed transition ${nota.guardando ? "opacity-60" : ""}`}>
-                  {nota.texto}
-                </div>
-              )}
-              <p className="text-right text-[10px] text-gray-400 dark:text-white/30">
-                {nota.errorGuarda ? "⚠ No se guardó" : nota.guardando ? "Guardando…" : "✓"}
+
+        {/* Banner: bloqueo por intervención pendiente */}
+        {bloqueadoPorNumero && (
+          <div className="rounded-2xl border-2 border-amber-300/70 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 flex items-start gap-3">
+            <span className="text-xl shrink-0">⏳</span>
+            <div>
+              <p className="text-xs font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Esperando intervención</p>
+              <p className="text-sm text-amber-800 dark:text-amber-300 leading-snug mt-0.5">
+                Sub-ticket <strong>{bloqueadoPorNumero}</strong>{bloqueadoPorNombre ? ` asignado a ${bloqueadoPorNombre}` : ""} debe resolverse antes de poder marcar esta solicitud como terminada. Puedes seguir comunicándote en el hilo.
               </p>
             </div>
           </div>
-        ))}
+        )}
+
+        {/* Hilo del ticket padre (cuando este es un sub-ticket de intervención) */}
+        {padreInfo && (
+          <div className="rounded-2xl border-2 border-violet-300/60 dark:border-violet-700/40 bg-violet-50 dark:bg-violet-950/20">
+            <button type="button"
+              onClick={() => setShowPadre(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-2.5 text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-violet-600 dark:text-violet-400">👥</span>
+                <span className="text-xs font-extrabold text-violet-700 dark:text-violet-400 uppercase tracking-wide">
+                  Hilo principal · {padreInfo.numero}
+                </span>
+                <span className="text-xs text-violet-600/70 dark:text-violet-400/60 truncate max-w-[150px]">{padreInfo.titulo}</span>
+              </div>
+              <span className="text-xs font-bold text-violet-500 shrink-0 ml-2">{showPadre ? "▲ Ocultar" : `▼ Ver (${padreInfo.notasPadre.length})`}</span>
+            </button>
+            {showPadre && (
+              <div className="border-t border-violet-200 dark:border-violet-700/40 px-4 py-3 space-y-2 max-h-72 overflow-y-auto">
+                {padreInfo.notasPadre.map(nota => {
+                  const esSol = !!nota.esSolicitante;
+                  return (
+                    <div key={nota.id} className={`flex ${esSol ? "justify-start" : "justify-end"}`}>
+                      <div className="max-w-[88%] space-y-0.5">
+                        {nota.autorNombre && (
+                          <p className="text-[10px] font-extrabold text-violet-600 dark:text-violet-400 uppercase tracking-wide px-1">{nota.autorNombre}</p>
+                        )}
+                        {nota.fotoUrl && (
+                          <img src={nota.fotoUrl} alt="foto" className="rounded-xl w-full max-w-xs border border-violet-200 dark:border-violet-700/40 object-cover" />
+                        )}
+                        {nota.texto && (
+                          <div className={`rounded-2xl px-3 py-2 text-xs leading-relaxed ${
+                            esSol ? "bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-bl-sm"
+                                  : "bg-violet-200 dark:bg-violet-800/40 text-violet-900 dark:text-violet-100 rounded-br-sm"
+                          }`}>{nota.texto}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tarjeta de contexto: descripción de la solicitud (siempre visible) */}
+        {!cargandoNotas && (
+          <div className="rounded-2xl border-2 border-blue-300/60 dark:border-blue-700/40 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="h-6 w-6 shrink-0 rounded-full bg-blue-500 text-white text-[11px] font-black flex items-center justify-center">
+                {solicitud.creado_por_nombre?.charAt(0)?.toUpperCase() ?? "?"}
+              </span>
+              <p className="text-[11px] font-extrabold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
+                {solicitud.creado_por_nombre} · Solicitud {solicitud.numero}
+              </p>
+            </div>
+            <p className="text-sm font-bold text-blue-900 dark:text-blue-200 leading-snug">{solicitud.titulo}</p>
+            {descripcion && descripcion !== solicitud.titulo && (
+              <p className="text-sm text-blue-800/80 dark:text-blue-300/70 leading-relaxed whitespace-pre-wrap">{descripcion}</p>
+            )}
+          </div>
+        )}
+
+        {cargandoNotas && (
+          <div className="flex items-center justify-center py-10 gap-2">
+            {[0,1,2].map(i => <span key={i} className="block h-2.5 w-2.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: `${i*150}ms` }}/>)}
+          </div>
+        )}
+        {!cargandoNotas && notas.length === 0 && (
+          <div className="text-center py-8 space-y-2">
+            <p className="text-sm text-gray-400 dark:text-white/40">
+              Cuénteme qué va haciendo o tome fotos.<br />Cuando termine, toque el botón verde.
+            </p>
+          </div>
+        )}
+
+        {notas.map(nota => {
+          const esSol = !!nota.esSolicitante;
+          // Nota mía: la escribió el usuario actual (o no tiene autor = recién agregada localmente)
+          const esMia = !nota.autorNombre || nota.autorNombre === currentUser?.nombre;
+          // Colaborador: tiene autor, no soy yo, no es el solicitante
+          const esColab = !!nota.autorNombre && !esSol && !esMia;
+          const posicion = esSol || esColab ? "justify-start" : "justify-end";
+          return (
+            <div key={nota.id} className={`flex ${posicion}`}>
+              <div className="max-w-[88%] space-y-1">
+                {/* Nombre del autor — para solicitante y colaboradores */}
+                {(esSol || esColab) && nota.autorNombre && (
+                  <p className={`text-[10px] font-extrabold uppercase tracking-wide px-1 ${
+                    esColab ? "text-violet-600 dark:text-violet-400" : "text-blue-600 dark:text-blue-400"
+                  }`}>
+                    {nota.autorNombre}
+                  </p>
+                )}
+                {nota.fotoUrl && (
+                  <img src={nota.fotoUrl} alt="foto"
+                    className={`rounded-xl w-full max-w-xs border object-cover transition ${nota.guardando ? "opacity-60" : ""} ${
+                      esSol ? "border-blue-200 dark:border-blue-700/40"
+                      : esColab ? "border-violet-200 dark:border-violet-700/40"
+                      : "border-gray-200 dark:border-white/10"
+                    }`}/>
+                )}
+                {nota.texto && (
+                  <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition ${nota.guardando ? "opacity-60" : ""} ${
+                    esSol
+                      ? "bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-bl-sm"
+                      : esColab
+                        ? "bg-violet-100 dark:bg-violet-900/40 text-violet-900 dark:text-violet-100 rounded-bl-sm"
+                        : "bg-accent text-white rounded-br-sm"
+                  }`}>
+                    {nota.texto}
+                  </div>
+                )}
+                <p className={`text-[10px] text-gray-400 dark:text-white/30 ${esSol || esColab ? "text-left" : "text-right"}`}>
+                  {nota.errorGuarda ? "⚠ No se guardó" : nota.guardando ? "Guardando…" : "✓"}
+                </p>
+              </div>
+            </div>
+          );
+        })}
         {error && <p className="text-center text-xs text-red-500 dark:text-red-400">{error}</p>}
         <div ref={bottomRef} />
       </div>
@@ -20801,20 +21734,28 @@ function ResolverActividadChat({
       {/* Pie: terminar + input + micrófono */}
       <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 pb-safe">
       <div className="px-4 pt-3 pb-2">
-        <button type="button" onClick={terminar} disabled={terminando || notas.some(n => n.guardando)}
+        <button type="button" onClick={terminar}
+          disabled={terminando || notas.some(n => n.guardando) || !!bloqueadoPorNumero}
           className="w-full rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
-          {terminando ? "Cerrando…" : notas.some(n => n.guardando) ? "Guardando…" : "✅ Terminé la actividad"}
+          {terminando ? "Enviando para revisión…"
+            : notas.some(n => n.guardando) ? "Guardando…"
+            : bloqueadoPorNumero ? `⏳ Esperando intervención ${bloqueadoPorNumero}`
+            : "✅ Listo — enviar para confirmación"}
         </button>
-        {!hayContenido && (
-          <p className="text-center text-[10px] text-gray-400 dark:text-white/30 mt-1.5">Podés terminar sin agregar notas</p>
-        )}
+        <p className="text-center text-[10px] text-gray-400 dark:text-white/30 mt-1.5">
+          {bloqueadoPorNumero
+            ? "Primero debe resolverse la intervención pendiente."
+            : hayContenido ? "El solicitante recibirá aviso para confirmar."
+            : "Podés marcar sin notas — el solicitante deberá confirmar."}
+        </p>
       </div>
 
       <div className="px-4 py-2.5 flex items-center gap-2">
-        <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto" />
+        <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto o pegar captura (Ctrl+V)" />
         <input value={inputNota} onChange={e => setInputNota(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
-          placeholder="Describí lo que hiciste…"
+          onPaste={handlePaste}
+          placeholder="Cuénteme qué hizo… (Ctrl+V para pegar captura)"
           className="flex-1 rounded-full bg-gray-100 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"
         />
         {inputNota.trim() ? (
@@ -20856,6 +21797,8 @@ type AgenteBurbuja = {
 
 type AgentChip = {
   label: string;
+  subtitulo?: string;
+  tipo?: "solicitud_aprobar" | "solicitud_asignada" | "accion_activa" | "util" | "solicitud_esperando" | "colaboracion";
   cmd?: string;
   datos?: Record<string, unknown>;
   onTap?: () => void;
@@ -20891,6 +21834,12 @@ function AgenteMandoView({
   const [solicitudResolviendo, setSolicitudResolviendo] = useState<{
     id: number; titulo: string; numero: string; creado_por_nombre: string;
   } | null>(null);
+  const [solicitudesPorAprobar, setSolicitudesPorAprobar] = useState<{
+    id: number; titulo: string; numero: string; asignado_a_nombre: string;
+  }[]>([]);
+  const [confirmandoSolicitud, setConfirmandoSolicitud] = useState<{
+    id: number; titulo: string; asignado_a_nombre: string;
+  } | null>(null);
   const [modoEjecucion, setModoEjecucion] = useState<{ id: number; titulo: string } | null>(() => {
     try {
       const s = localStorage.getItem("mckenna-accion-activa");
@@ -20906,6 +21855,7 @@ function AgenteMandoView({
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const burbulaIdRef = useRef(0);
+  const autoPlayedRef = useRef(false);
 
   function nextId() { return ++burbulaIdRef.current; }
 
@@ -20927,6 +21877,23 @@ function AgenteMandoView({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [burbujas, pensando]);
 
+  // Auto-reproducir el saludo al abrir el dashboard, máximo una vez cada 6 horas
+  useEffect(() => {
+    if (autoPlayedRef.current || pensando) return;
+    const primerAgente = burbujas.find(b => b.rol === "agente");
+    if (!primerAgente) return;
+    autoPlayedRef.current = true;
+    const SEIS_HORAS = 6 * 60 * 60 * 1000;
+    const KEY = "mckenna-hugo-tts-ultimo";
+    const ultimo = parseInt(localStorage.getItem(KEY) ?? "0");
+    if (Date.now() - ultimo < SEIS_HORAS) return;
+    localStorage.setItem(KEY, String(Date.now()));
+    const ttsToken = chatApiToken ?? token;
+    if (!ttsToken) return;
+    hablarHugoTts(ttsToken, primerAgente.texto).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [burbujas, pensando]);
+
   // Cargar contexto inicial
   useEffect(() => {
     void cargarContextoInicial();
@@ -20938,6 +21905,9 @@ function AgenteMandoView({
         protocolos?: { id: number; titulo: string }[];
         acciones_activas?: any[];
         solicitudes_asignadas?: any[];
+        solicitudes_por_aprobar?: any[];
+        solicitudes_esperando_confirmacion?: any[];
+        colaboraciones?: any[];
       };
     },
     opts?: { trasActividad?: boolean },
@@ -20945,16 +21915,20 @@ function AgenteMandoView({
     const prots: { id: number; titulo: string }[] = res.contexto?.protocolos ?? [];
     const accActivas: any[] = res.contexto?.acciones_activas ?? [];
     const solAsignadas: any[] = res.contexto?.solicitudes_asignadas ?? [];
+    const solPorAprobar: any[] = res.contexto?.solicitudes_por_aprobar ?? [];
+    const solEsperando: any[] = res.contexto?.solicitudes_esperando_confirmacion ?? [];
+    const colabs: any[] = res.contexto?.colaboraciones ?? [];
     setProtocolos(prots);
     setSolicitudesCount(solAsignadas.length);
     setAccionesCount(accActivas.length);
+    setSolicitudesPorAprobar(solPorAprobar);
 
     if (modoEjecucion && !accActivas.some((a: { id: number }) => a.id === modoEjecucion.id)) {
       localStorage.removeItem("mckenna-accion-activa");
       setModoEjecucion(null);
     }
 
-    const { texto, chips } = construirMensajeContexto(solAsignadas, accActivas, opts);
+    const { texto, chips } = construirMensajeContexto(solAsignadas, accActivas, solPorAprobar, solEsperando, colabs, opts);
     establecerBurbujaAgente(texto, chips);
   }
 
@@ -20978,6 +21952,7 @@ function AgenteMandoView({
 
   async function reiniciarTrasActividad() {
     setPensando(true);
+    setConfirmandoSolicitud(null);
     try {
       const res = await tapi("/agente-chat", token, {
         method: "POST",
@@ -20994,52 +21969,125 @@ function AgenteMandoView({
     }
   }
 
-  function buildMainChips(prots: { id: number; titulo: string }[], accActivas: any[]): AgentChip[] {
+  function buildMainChips(_prots: { id: number; titulo: string }[], accActivas: any[]): AgentChip[] {
     const chips: AgentChip[] = [];
     if (accActivas.length > 0) {
-      chips.push({ label: `📊 Ver mis ${accActivas.length} activa${accActivas.length > 1 ? "s" : ""}`, onTap: mostrarActivas });
+      chips.push({ tipo: "util", label: `📊 Ver mis ${accActivas.length} activa${accActivas.length > 1 ? "s" : ""}`, onTap: mostrarActivas });
     }
-    chips.push({ label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
-    chips.push({ label: "📋 Crear solicitud", onTap: onGoSolicitudes });
+    chips.push({ tipo: "util", label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
+    chips.push({ tipo: "util", label: "📋 Crear solicitud", onTap: onGoSolicitudes });
     return chips;
   }
 
   /** Un solo mensaje de saludo / post-actividad + chips unificados (sin burbujas apiladas). */
   function construirMensajeContexto(
-    _solAsignadas: any[],
+    solAsignadas: any[],
     accActivas: any[],
+    solPorAprobar: any[],
+    solEsperando: any[],
+    colabs: any[],
     opts?: { trasActividad?: boolean },
   ): { texto: string; chips: AgentChip[] } {
     const chips: AgentChip[] = [];
 
-    // Las solicitudes pendientes no se muestran en la pantalla principal de Hugo
-    // (el usuario las ve en Centro de Mando o desde el menú lateral).
-    for (const a of accActivas.slice(0, 2)) {
+    // Solicitudes que esperan mi aprobación (las creé yo)
+    for (const s of solPorAprobar.slice(0, 3)) {
       chips.push({
-        label: `⚡ ${truncarTituloChip(a.titulo)}`,
-        onTap: () => continuarAccion(a),
+        tipo: "solicitud_aprobar",
+        label: `🔔 ${truncarTituloChip(s.titulo)}`,
+        subtitulo: s.asignado_a_nombre,
+        onTap: () => {
+          setConfirmandoSolicitud({ id: s.id, titulo: s.titulo, asignado_a_nombre: s.asignado_a_nombre });
+          agregarBurbuja("agente",
+            `"${s.titulo}" ${s.asignado_a_nombre ? `(${s.asignado_a_nombre})` : ""} marcó esta solicitud como lista. ¿Fue atendida correctamente?`,
+            [
+              { label: "✅ Sí, cerrar solicitud", cmd: "aprobar_solicitud", datos: { id: s.id, titulo: s.titulo } },
+              { label: "↩️ Pedir ajustes", cmd: "rechazar_solicitud", datos: { id: s.id, titulo: s.titulo } },
+            ]
+          );
+        },
       });
     }
-    chips.push({ label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
-    chips.push({ label: "📋 Crear solicitud", onTap: onGoSolicitudes });
+
+    // Solicitudes asignadas a mí que debo atender
+    for (const s of solAsignadas.slice(0, 3)) {
+      chips.push({
+        tipo: "solicitud_asignada",
+        label: `📝 ${truncarTituloChip(s.titulo)}`,
+        subtitulo: s.creado_por_nombre,
+        onTap: () => setSolicitudResolviendo({
+          id: s.id, titulo: s.titulo, numero: s.numero, creado_por_nombre: s.creado_por_nombre,
+        }),
+      });
+    }
+
+    // Solicitudes que yo ejecuté y están esperando que el solicitante confirme
+    for (const s of solEsperando.slice(0, 3)) {
+      chips.push({
+        tipo: "solicitud_esperando",
+        label: `⏳ ${truncarTituloChip(s.titulo)}`,
+        subtitulo: s.creado_por_nombre,
+      });
+    }
+
+    // Tickets en los que fui invitado a colaborar
+    for (const c of colabs.slice(0, 3)) {
+      chips.push({
+        tipo: "colaboracion",
+        label: `👥 ${truncarTituloChip(c.titulo)}`,
+        subtitulo: c.asignado_a_nombre ? `Ejecuta: ${c.asignado_a_nombre}` : c.creado_por_nombre,
+        onTap: () => setSolicitudResolviendo({
+          id: c.id, titulo: c.titulo, numero: c.numero, creado_por_nombre: c.creado_por_nombre,
+        }),
+      });
+    }
+
+    // Acciones activas en curso
+    for (const a of accActivas.slice(0, 3)) {
+      chips.push({
+        tipo: "accion_activa",
+        label: `⚡ ${truncarTituloChip(a.titulo)}`,
+        onTap: () => void continuarAccion(a),
+      });
+    }
+    chips.push({ tipo: "util", label: "⚡ Registrar acción", onTap: mostrarProcedimientos });
+    chips.push({ tipo: "util", label: "📋 Crear solicitud", onTap: onGoSolicitudes });
 
     if (opts?.trasActividad) {
       const extra = accActivas.length > 0
         ? ` Quedan ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} en curso.`
         : "";
-      return { texto: `¡Listo! Actividad registrada.${extra} ¿Qué sigue?`, chips };
+      const pending = solAsignadas.length + solPorAprobar.length;
+      const pendingTxt = pending > 0 ? ` ${pending} solicitud${pending > 1 ? "es" : ""} pendiente${pending > 1 ? "s" : ""}.` : "";
+      const esperandoTxt = solEsperando.length > 0 ? ` ${solEsperando.length} esperando confirmación.` : "";
+      const colabTxt = colabs.length > 0 ? ` ${colabs.length} colaboración${colabs.length > 1 ? "es" : ""} activa${colabs.length > 1 ? "s" : ""}.` : "";
+      return { texto: `¡Listo! Actividad registrada.${extra}${pendingTxt}${esperandoTxt}${colabTxt} ¿Qué sigue?`, chips };
     }
 
     let texto = `¡Hola ${nombre}!`;
-    if (accActivas.length > 0) {
-      texto += ` Tenés ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} activa${accActivas.length > 1 ? "s" : ""}.`;
+    const totalPendiente = accActivas.length + solAsignadas.length + solPorAprobar.length;
+    if (solPorAprobar.length > 0) {
+      texto += ` Tenés ${solPorAprobar.length} solicitud${solPorAprobar.length > 1 ? "es" : ""} esperando tu confirmación.`;
     }
+    if (solAsignadas.length > 0) {
+      texto += ` ${solAsignadas.length} solicitud${solAsignadas.length > 1 ? "es" : ""} para atender.`;
+    }
+    if (solEsperando.length > 0) {
+      texto += ` ${solEsperando.length} solicitud${solEsperando.length > 1 ? "es" : ""} esperando confirmación del solicitante.`;
+    }
+    if (colabs.length > 0) {
+      texto += ` ${colabs.length} solicitud${colabs.length > 1 ? "es" : ""} donde colaborás con el equipo.`;
+    }
+    if (accActivas.length > 0) {
+      texto += ` ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} activa${accActivas.length > 1 ? "s" : ""}.`;
+    }
+    if (totalPendiente === 0) texto += " Todo al día.";
     texto += " ¿Qué hacemos?";
     return { texto, chips };
   }
 
   function mostrarProcedimientos(_procsOverride?: typeof protocolos) {
-    agregarBurbuja("agente", "¿Es algo nuevo o algo que ya has hecho antes?", [
+    agregarBurbuja("agente", "¿Es algo nuevo o algo que ya ha hecho antes?", [
       { label: "🆕 Acción nueva",       onTap: pedirTituloLibre },
       { label: "🔄 Acción recurrente",  onTap: mostrarListaProcedimientos },
     ]);
@@ -21048,7 +22096,7 @@ function AgenteMandoView({
   function mostrarListaProcedimientos() {
     const prots = protocolos;
     if (prots.length === 0) {
-      agregarBurbuja("agente", "No tenés procedimientos guardados aún. ¿Cómo se llama la acción?");
+      agregarBurbuja("agente", "No tiene procedimientos guardados por ahora. ¿Cómo se llama la acción?");
       inputRef.current?.focus();
       return;
     }
@@ -21067,16 +22115,27 @@ function AgenteMandoView({
   }
 
   function mostrarActivas() {
-    agregarBurbuja("agente", "Aquí van tus acciones en curso. Tocá una para continuar.");
+    agregarBurbuja("agente", "Acá están sus acciones en curso. Tóquele a una para continuar.");
   }
 
-  function continuarAccion(a: any) {
-    setAccionActual({
-      id: a.id, titulo: a.titulo, pasos: [],
-      pasos_total: a.pasos_total ?? 0,
-      pasos_completados: a.pasos_completados ?? 0,
-    });
-    void cargarPasosAccion(a.id, a.titulo);
+  async function continuarAccion(a: any) {
+    setPensando(true);
+    try {
+      const ticket = await tapi(`/${a.id}`, token) as any;
+      const segundosServidor = ticket.corrida?.segundos_acumulados ?? ticket.segundos_trabajo ?? 0;
+      const SECS_KEY = `mckenna-accion-secs-${a.id}`;
+      const localSecs = parseInt(localStorage.getItem(SECS_KEY) ?? "0") || 0;
+      if (segundosServidor > localSecs) {
+        localStorage.setItem(SECS_KEY, String(segundosServidor));
+      }
+      localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: a.id, titulo: a.titulo }));
+      setModoEjecucion({ id: a.id, titulo: a.titulo });
+    } catch {
+      localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: a.id, titulo: a.titulo }));
+      setModoEjecucion({ id: a.id, titulo: a.titulo });
+    } finally {
+      setPensando(false);
+    }
   }
 
   async function cargarPasosAccion(id: number, titulo: string) {
@@ -21094,7 +22153,7 @@ function AgenteMandoView({
       setAccionActual({ id, titulo, pasos, pasos_total: total, pasos_completados: completados });
 
       if (total === 0) {
-        agregarBurbuja("agente", `"${titulo}" lista para trabajar. Decime cuando termines.`, [
+        agregarBurbuja("agente", `"${titulo}" lista para trabajar. Dígame cuando termine.`, [
           { label: "🏁 Cerrar acción", onTap: () => pedirCierre(id) },
         ]);
         return;
@@ -21138,7 +22197,7 @@ function AgenteMandoView({
   }
 
   function pedirCierre(id: number) {
-    agregarBurbuja("agente", "¿Querés dejar un reporte de cierre? (opcional, podés omitir)");
+    agregarBurbuja("agente", "¿Quiere dejar un reporte de cierre? (opcional, puede omitir)");
     setAccionActual(prev => prev ? { ...prev, id } : prev);
     inputRef.current?.focus();
   }
@@ -21172,6 +22231,7 @@ function AgenteMandoView({
       const protsActualizados = res.contexto?.protocolos ?? protocolos;
       if (res.contexto?.protocolos) setProtocolos(res.contexto.protocolos);
       const accActivas: any[] = res.contexto?.acciones_activas ?? [];
+      if (res.contexto?.solicitudes_por_aprobar) setSolicitudesPorAprobar(res.contexto.solicitudes_por_aprobar);
 
       // ── Comando ejecutado ────────────────────────────────────────────────────
       const resultado = res.accion_resultado as any;
@@ -21213,6 +22273,49 @@ function AgenteMandoView({
           ]);
           return;
         }
+      }
+
+      // ── Comandos de aprobación/rechazo de solicitudes (manejados localmente) ──
+      if (cmd === "aprobar_solicitud") {
+        const sid = datos?.id as number;
+        const stitulo = datos?.titulo as string;
+        setPensando(true);
+        try {
+          await tapi(`/${sid}/estado`, token, {
+            method: "PUT",
+            body: JSON.stringify({ estado: "resuelto" }),
+          });
+          setConfirmandoSolicitud(null);
+          setSolicitudesPorAprobar(prev => prev.filter(s => s.id !== sid));
+          agregarBurbuja("agente", `✅ Solicitud "${stitulo}" cerrada correctamente.`);
+          void reiniciarTrasActividad();
+        } catch {
+          agregarBurbuja("agente", "No pude cerrar la solicitud. Intentá desde Centro de Mando.");
+        } finally {
+          setPensando(false);
+        }
+        return;
+      }
+
+      if (cmd === "rechazar_solicitud") {
+        const sid = datos?.id as number;
+        const stitulo = datos?.titulo as string;
+        setPensando(true);
+        try {
+          await tapi(`/${sid}/estado`, token, {
+            method: "PUT",
+            body: JSON.stringify({ estado: "en_proceso" }),
+          });
+          setConfirmandoSolicitud(null);
+          setSolicitudesPorAprobar(prev => prev.filter(s => s.id !== sid));
+          agregarBurbuja("agente", `↩️ Solicitud "${stitulo}" devuelta. ${datos?.asignado_a_nombre ? `Le avisaré a ${String(datos.asignado_a_nombre)} que necesita ajustes.` : "Quedó de nuevo en proceso."}`);
+          void reiniciarTrasActividad();
+        } catch {
+          agregarBurbuja("agente", "No pude actualizar la solicitud. Intentá desde Centro de Mando.");
+        } finally {
+          setPensando(false);
+        }
+        return;
       }
 
       if (resultado?.error) {
@@ -21373,7 +22476,7 @@ function AgenteMandoView({
         <div className="flex-1 min-w-0">
           <p className="text-lg font-extrabold text-ink leading-tight tracking-tight">Hugo García</p>
           <p className="text-sm font-bold text-muted leading-snug">
-            {modoInicio ? "¿Qué vas a hacer hoy?" : "Asistente de Operaciones"}
+            {modoInicio ? "¿Qué hacemos hoy?" : "Asistente de Operaciones"}
           </p>
         </div>
         {accionesCount > 0 && modoInicio && (
@@ -21412,13 +22515,92 @@ function AgenteMandoView({
           </div>
         ))}
         {lastChips && lastChips.length > 0 && !pensando && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {lastChips.map((chip, i) => (
-              <button key={i} type="button" onClick={() => onChipTap(chip)}
-                className="hugo-chip rounded-2xl border-2 border-accent/50 bg-accent/10 px-4 py-2.5 text-accent hover:bg-accent/20 active:scale-95 transition shadow-paper-sm">
-                {chip.label}
-              </button>
-            ))}
+          <div className="space-y-3 pt-1">
+            {/* Solicitudes para confirmar — amber */}
+            {lastChips.some(c => c.tipo === "solicitud_aprobar") && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1.5 px-1">⏳ Para confirmar</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lastChips.filter(c => c.tipo === "solicitud_aprobar").map((chip, i) => (
+                    <button key={i} type="button" onClick={() => onChipTap(chip)}
+                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-left hover:bg-amber-100 dark:hover:bg-amber-900/40 active:scale-[0.98] transition shadow-sm">
+                      <span className="text-sm font-extrabold text-amber-800 dark:text-amber-300 leading-snug">{chip.label}</span>
+                      {chip.subtitulo && <span className="text-[11px] text-amber-600/80 dark:text-amber-400/70">Atendió: {chip.subtitulo}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Solicitudes asignadas a mí — azul */}
+            {lastChips.some(c => c.tipo === "solicitud_asignada") && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1.5 px-1">📋 Para atender</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lastChips.filter(c => c.tipo === "solicitud_asignada").map((chip, i) => (
+                    <button key={i} type="button" onClick={() => onChipTap(chip)}
+                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-blue-400/60 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 text-left hover:bg-blue-100 dark:hover:bg-blue-900/40 active:scale-[0.98] transition shadow-sm">
+                      <span className="text-sm font-extrabold text-blue-800 dark:text-blue-300 leading-snug">{chip.label}</span>
+                      {chip.subtitulo && <span className="text-[11px] text-blue-600/80 dark:text-blue-400/70">De: {chip.subtitulo}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Solicitudes enviadas, esperando que el solicitante confirme — gris/slate */}
+            {lastChips.some(c => c.tipo === "solicitud_esperando") && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5 px-1">⏳ Esperando confirmación</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lastChips.filter(c => c.tipo === "solicitud_esperando").map((chip, i) => (
+                    <div key={i}
+                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-slate-300/60 bg-slate-50 dark:bg-slate-900/30 px-4 py-3 shadow-sm opacity-80">
+                      <span className="text-sm font-extrabold text-slate-600 dark:text-slate-300 leading-snug">{chip.label}</span>
+                      {chip.subtitulo && <span className="text-[11px] text-slate-500 dark:text-slate-400">Solicitó: {chip.subtitulo}</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Colaboraciones activas — violeta */}
+            {lastChips.some(c => c.tipo === "colaboracion") && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-1.5 px-1">👥 Colaborando</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lastChips.filter(c => c.tipo === "colaboracion").map((chip, i) => (
+                    <button key={i} type="button" onClick={() => onChipTap(chip)}
+                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-violet-400/60 bg-violet-50 dark:bg-violet-950/30 px-4 py-3 text-left hover:bg-violet-100 dark:hover:bg-violet-900/40 active:scale-[0.98] transition shadow-sm">
+                      <span className="text-sm font-extrabold text-violet-800 dark:text-violet-300 leading-snug">{chip.label}</span>
+                      {chip.subtitulo && <span className="text-[11px] text-violet-600/80 dark:text-violet-400/70">{chip.subtitulo}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Acciones activas — verde/accent */}
+            {lastChips.some(c => c.tipo === "accion_activa") && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-accent mb-1.5 px-1">⚡ En curso</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lastChips.filter(c => c.tipo === "accion_activa").map((chip, i) => (
+                    <button key={i} type="button" onClick={() => onChipTap(chip)}
+                      className="flex flex-col items-start rounded-2xl border-2 border-accent/50 bg-accent/10 px-4 py-3 text-left hover:bg-accent/20 active:scale-[0.98] transition shadow-sm">
+                      <span className="text-sm font-extrabold text-accent leading-snug">{chip.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Chips de utilidad — neutros */}
+            {lastChips.some(c => !c.tipo || c.tipo === "util") && (
+              <div className="flex flex-wrap gap-2">
+                {lastChips.filter(c => !c.tipo || c.tipo === "util").map((chip, i) => (
+                  <button key={i} type="button" onClick={() => onChipTap(chip)}
+                    className="hugo-chip rounded-2xl border-2 border-border bg-surface-panel px-4 py-2.5 text-sm font-bold text-muted hover:border-accent hover:text-accent active:scale-95 transition shadow-paper-sm">
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {pensando && (
@@ -21482,7 +22664,7 @@ function AgenteMandoView({
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviar(input); } }}
-            placeholder="Escribí o dictá…"
+            placeholder="Escriba o dicte…"
             disabled={pensando}
             className="hugo-input flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-3.5 text-ink placeholder:text-muted placeholder:font-semibold outline-none focus:border-accent transition disabled:opacity-50 shadow-paper-sm"
           />
