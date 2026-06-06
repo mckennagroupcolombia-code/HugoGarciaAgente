@@ -1146,7 +1146,7 @@ function AgentScheduleSection() {
           <p className="text-sm font-semibold text-ink">Agente habilitado</p>
           <p className="text-xs text-muted mt-0.5">
             {globalActivo
-              ? "El agente responde automáticamente (sujeto al horario si está configurado)"
+              ? "Hugo responde automáticamente 24/7 (salvo pausa manual)"
               : "El agente está pausado — ningún chat recibirá respuesta automática"}
           </p>
         </div>
@@ -1181,8 +1181,8 @@ function AgentScheduleSection() {
             <p className="text-sm font-semibold text-ink">Horario de atención</p>
             <p className="text-xs text-muted mt-0.5">
               {scheduleHabilitado
-                ? `Activo ${draft.horario_bot.hora_inicio}–${draft.horario_bot.hora_fin} en los días seleccionados`
-                : "Sin horario — el agente responde siempre que esté habilitado"}
+                ? `Referencia ${draft.horario_bot.hora_inicio}–${draft.horario_bot.hora_fin} (no pausa al bot)`
+                : "Sin horario — Hugo responde siempre que el bot esté habilitado"}
             </p>
           </div>
           <span
@@ -1269,7 +1269,7 @@ function AgentScheduleSection() {
             </div>
 
             <p className="text-[11px] text-muted">
-              Zona horaria: Colombia (UTC−5). El agente se pausa automáticamente fuera del horario.
+              Zona horaria: Colombia (UTC−5). El horario es referencia en panel; Hugo responde 24/7 salvo pausa manual.
             </p>
           </div>
         )}

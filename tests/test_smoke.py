@@ -1479,6 +1479,22 @@ def test_wa_jid_telefono_colombia_valido(tmp_path, monkeypatch) -> None:
     assert es_telefono_negocio(negocio) is True
     registrar_alias_lid("99999999999999@lid", negocio)
     assert "99999999999999@lid" not in wj_mod._load_aliases()
+    assert jid_canonico("99999999999999@lid") == "99999999999999@lid"
+
+    from app.services.wa_jid import es_jid_conversacion_cliente, lid_desde_wa_id
+
+    assert lid_desde_wa_id("true_39818893471872@lid_ABC") == "39818893471872@lid"
+    assert es_jid_conversacion_cliente(negocio) is False
+    assert es_jid_conversacion_cliente(lid) is True
+
+
+def test_wa_bot_detect_parece_respuesta_bot() -> None:
+    from app.services.wa_bot_detect import parece_respuesta_bot
+
+    assert parece_respuesta_bot("Hola Soy hugo Garcia de mckenna Group") is True
+    assert parece_respuesta_bot("Buenos días") is False
+    assert parece_respuesta_bot("Para que ciudad es") is False
+    assert parece_respuesta_bot("Veci, " + "x" * 120) is True
 
 
 def test_wa_chats_no_degrada_bot_a_humano(tmp_path, monkeypatch) -> None:
@@ -1495,4 +1511,60 @@ def test_wa_chats_no_degrada_bot_a_humano(tmp_path, monkeypatch) -> None:
     msgs = wc.listar_mensajes(jid, limit=5)
     assert len(msgs) == 1
     assert msgs[0]["enviado_por"] == "bot"
+
+
+def test_bot_debe_responder_ignora_horario() -> None:
+    from app.routes import _bot_debe_responder_global, _bot_en_horario_servicio
+
+    modos = {
+        "bot_global_activo": True,
+        "horario_bot": {
+            "habilitado": True,
+            "hora_inicio": "18:00",
+            "hora_fin": "07:00",
+            "dias": [1, 2, 3, 4, 5, 6, 7],
+        },
+    }
+    assert _bot_debe_responder_global(modos) is True
+    assert _bot_en_horario_servicio(modos) in (True, False)
+
+    modos["bot_global_activo"] = False
+    assert _bot_debe_responder_global(modos) is False
+
+
+def test_wa_metricas_calcular(tmp_path, monkeypatch) -> None:
+    import sqlite3
+
+    import app.services.wa_metricas as wm
+
+    db = tmp_path / "wa_metricas.db"
+    conn = sqlite3.connect(db)
+    conn.execute(
+        """
+        CREATE TABLE mensajes (
+            id INTEGER PRIMARY KEY, ts REAL, jid TEXT, direccion TEXT,
+            texto TEXT, enviado_por TEXT, eliminado INTEGER DEFAULT 0,
+            tiene_media INTEGER DEFAULT 0
+        )
+        """
+    )
+    base = 1_700_000_000.0
+    conn.execute(
+        "INSERT INTO mensajes VALUES (1, ?, '573001112233@c.us', 'entrada', ?, 'cliente', 0, 0)",
+        (base, "¿Precio de la urea cosmética 250g?"),
+    )
+    conn.execute(
+        "INSERT INTO mensajes VALUES (2, ?, '573001112233@c.us', 'salida', ?, 'humano', 0, 0)",
+        (base + 300, "Hola veci, la urea 250g está a $45.000"),
+    )
+    conn.commit()
+    conn.close()
+
+    monkeypatch.setattr(wm, "_DB", str(db))
+    out = wm.calcular_metricas(dias=0)
+    assert out["tiempos"]["primera_respuesta_humana"]["n"] == 1
+    assert out["tiempos"]["primera_respuesta_humana"]["mediana_min"] == 5.0
+    assert out["calificacion"]["humano"]["nota"] >= 0
+    assert out["ventas"]["embudo"]
+    assert out["glosario"]
 

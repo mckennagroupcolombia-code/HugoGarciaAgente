@@ -606,13 +606,12 @@ def guardar_modos_atencion(data):
         json.dump(data, f, indent=2)
 
 
-def _bot_debe_responder_global(modos=None) -> bool:
-    """False si el bot está pausado manualmente o fuera del horario configurado."""
+def _bot_en_horario_servicio(modos=None) -> bool:
+    """True si la hora actual cae dentro de horario_bot (solo informativo en panel)."""
     from datetime import timedelta
+
     if modos is None:
         modos = cargar_modos_atencion()
-    if not modos.get("bot_global_activo", True):
-        return False
     horario = modos.get("horario_bot", {})
     if not horario.get("habilitado", False):
         return True
@@ -625,7 +624,17 @@ def _bot_debe_responder_global(modos=None) -> bool:
     hora_actual = now_col.strftime("%H:%M")
     h_ini = horario.get("hora_inicio", "08:00")
     h_fin = horario.get("hora_fin", "18:00")
-    return h_ini <= hora_actual < h_fin
+    if h_ini <= h_fin:
+        return h_ini <= hora_actual < h_fin
+    # Ventana nocturna (ej. 22:00–07:00)
+    return hora_actual >= h_ini or hora_actual < h_fin
+
+
+def _bot_debe_responder_global(modos=None) -> bool:
+    """False solo si el operador pausó el bot global desde el panel."""
+    if modos is None:
+        modos = cargar_modos_atencion()
+    return bool(modos.get("bot_global_activo", True))
 
 
 def _normalizar_numero_wa(numero: str) -> str | None:
@@ -2162,7 +2171,7 @@ def register_routes(app):
                     args=(mensaje_reenvio, grupo_compras),
                 )
                 return jsonify({"status": "human_mode", "respuesta": None})
-            # --- CONTROL GLOBAL DEL BOT (manual o por horario) ---
+            # --- CONTROL GLOBAL DEL BOT (pausa manual desde panel) ---
             if not _bot_debe_responder_global(modos):
                 from app.services.wa_logs import registrar as _wa_log
                 _wa_log("bot_pausado_global", sender_id, (message_text or "")[:200])
@@ -5422,6 +5431,7 @@ def register_routes(app):
             "bot_global_activo": modos.get("bot_global_activo", True),
             "horario_bot": modos.get("horario_bot", _HORARIO_DEFAULT),
             "activo_ahora": activo_ahora,
+            "horario_en_servicio": _bot_en_horario_servicio(modos),
         })
 
     @app.route("/api/bot/config", methods=["POST"])
@@ -5528,6 +5538,15 @@ def register_routes(app):
         eventos = _wa_listar(limit=limit, sender=sender)
         return jsonify({"eventos": eventos, "total": len(eventos)})
 
+    @app.route("/api/bot/metricas", methods=["GET"])
+    def api_bot_metricas_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_metricas import calcular_metricas
+
+        dias = int(request.args.get("dias", 30))
+        return jsonify(calcular_metricas(dias=dias))
+
     # ── Chats WhatsApp (historial de conversaciones) ──────────────────────────
 
     @app.route("/api/bot/chats", methods=["GET"])
@@ -5569,7 +5588,7 @@ def register_routes(app):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         from app.services.wa_chats import listar_mensajes as _lm, marcar_leido as _ml
-        limit = min(int(request.args.get("limit", 120)), 300)
+        limit = min(int(request.args.get("limit", 200)), 300)
         from app.services.wa_jid import info_contacto_jid, modo_para_jid
 
         mensajes = _lm(jid, limit=limit)
