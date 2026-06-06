@@ -22424,7 +22424,13 @@ function AgenteMandoView({
   const [input, setInput] = useState("");
   const [ttsPlaying, setTtsPlaying] = useState<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [input]);
   const burbulaIdRef = useRef(0);
   const autoPlayedRef = useRef(false);
 
@@ -23272,15 +23278,16 @@ function AgenteMandoView({
           </div>
         )}
 
-        <div className="px-4 py-3 flex items-center gap-3 shrink-0">
-          <input
+        <div className="px-4 py-3 flex items-end gap-3 shrink-0">
+          <textarea
             ref={inputRef}
+            rows={1}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviar(input); } }}
             placeholder="Escriba o dicte…"
             disabled={pensando}
-            className="hugo-input flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-3.5 text-ink placeholder:text-muted placeholder:font-semibold outline-none focus:border-accent transition disabled:opacity-50 shadow-paper-sm"
+            className="hugo-input flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-3.5 text-ink placeholder:text-muted placeholder:font-semibold outline-none focus:border-accent transition disabled:opacity-50 shadow-paper-sm resize-none overflow-y-auto min-h-[42px] max-h-32"
           />
           {input.trim() ? (
             <button type="button" onClick={() => void enviar(input)} disabled={pensando}
