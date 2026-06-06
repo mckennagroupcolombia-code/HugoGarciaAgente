@@ -124,6 +124,14 @@ def _aliases_seguros() -> dict[str, str]:
     return _load_aliases()
 
 
+def lid_desde_wa_id(wa_id: str) -> str | None:
+    """Extrae 39818893471872@lid desde true_39818893471872@lid_ABC…"""
+    m = re.search(r"(\d+@lid)", str(wa_id or ""))
+    if m:
+        return m.group(1)
+    return None
+
+
 def es_telefono_negocio(jid: str) -> bool:
     """Evita mapear @lid → número de la línea comercial (no es el cliente)."""
     if not es_jid_cus(jid):
@@ -167,9 +175,9 @@ def normalizar_jid_almacenamiento(
     jid = str(jid or "").strip()
     sl = str(sender_lid or "").strip()
     sp = str(sender_phone or "").strip()
-    if sl and sp and es_jid_lid(sl) and es_telefono_jid_valido(sp):
+    if sl and sp and es_jid_lid(sl) and es_telefono_jid_valido(sp) and not es_telefono_negocio(sp):
         registrar_alias_lid(sl, sp)
-    if sp and es_telefono_jid_valido(sp):
+    if sp and es_telefono_jid_valido(sp) and not es_telefono_negocio(sp):
         return sp
     if sl and es_jid_lid(sl):
         return jid_canonico(sl)
@@ -179,7 +187,9 @@ def normalizar_jid_almacenamiento(
         lid = lid_desde_jid_cus_falso(jid)
         if lid:
             return jid_canonico(lid)
-    if es_telefono_jid_valido(jid):
+    if es_telefono_jid_valido(jid) and not es_telefono_negocio(jid):
+        return jid
+    if es_telefono_negocio(jid):
         return jid
     return jid
 
@@ -192,18 +202,28 @@ def jid_canonico(jid: str) -> str:
     if es_jid_grupo(jid):
         return jid
     if es_jid_cus(jid):
-        if es_telefono_jid_valido(jid):
+        if es_telefono_jid_valido(jid) and not es_telefono_negocio(jid):
+            return jid
+        if es_telefono_negocio(jid):
             return jid
         lid = lid_desde_jid_cus_falso(jid)
         if lid:
             phone = _aliases_seguros().get(lid)
-            if phone and es_telefono_jid_valido(phone):
+            if (
+                phone
+                and es_telefono_jid_valido(phone)
+                and not es_telefono_negocio(phone)
+            ):
                 return phone
             return lid
         return jid
     if es_jid_lid(jid):
         phone = _aliases_seguros().get(jid)
-        if phone and es_telefono_jid_valido(phone):
+        if (
+            phone
+            and es_telefono_jid_valido(phone)
+            and not es_telefono_negocio(phone)
+        ):
             return phone
         return jid
     return jid
@@ -220,12 +240,13 @@ def jids_relacionados(jid: str) -> set[str]:
     aliases = _aliases_seguros()
     if es_jid_lid(jid):
         phone = aliases.get(jid)
-        if phone and es_telefono_jid_valido(phone):
+        if phone and es_telefono_jid_valido(phone) and not es_telefono_negocio(phone):
             out.add(phone)
     elif es_jid_cus(jid):
-        for lid, phone in aliases.items():
-            if phone == jid:
-                out.add(lid)
+        if not es_telefono_negocio(jid):
+            for lid, phone in aliases.items():
+                if phone == jid:
+                    out.add(lid)
         lid_falso = lid_desde_jid_cus_falso(jid)
         if lid_falso:
             out.add(lid_falso)
@@ -236,9 +257,25 @@ def jids_relacionados(jid: str) -> set[str]:
     out.add(canon)
     if es_jid_lid(canon):
         phone = aliases.get(canon)
-        if phone and es_telefono_jid_valido(phone):
+        if phone and es_telefono_jid_valido(phone) and not es_telefono_negocio(phone):
             out.add(phone)
     return out
+
+
+def es_jid_conversacion_cliente(jid: str) -> bool:
+    """False para la línea comercial (no es un chat de cliente)."""
+    jid = str(jid or "").strip()
+    if not jid or es_jid_grupo(jid):
+        return bool(jid)
+    if es_telefono_negocio(jid):
+        return False
+    if es_jid_lid(jid):
+        return True
+    if es_telefono_jid_valido(jid):
+        return True
+    if es_jid_cus_falso(jid):
+        return True
+    return True
 
 
 def en_lista_modo(jid: str, lista: Iterable[str]) -> bool:

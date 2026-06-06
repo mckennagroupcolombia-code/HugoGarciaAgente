@@ -284,11 +284,61 @@ const GRUPO_SEDE_SUR = envLimpio('GRUPO_SEDE_SUR_WA', '120363023555909043@g.us')
 const sedeSurBotSentIds = new Set();
 /** Respuestas IA a clientes — evitar que message_create las marque como humano. */
 const panelBotSentIds = new Set();
-/** Ventana tras sendMessage del bot: message_create debe marcar enviado_por=bot. */
-const panelBotOutgoingUntil = new Map();
+/** Texto recién enviado por el bot (evita marcar humano si wa_id difiere). */
+const panelBotSentContent = new Map();
 const GRUPOS_ADMIN       = [GRUPO_CONTABILIDAD, GRUPO_COMPRAS];
 /** Contabilidad/compras + pedidos web + preventa/postventa MeLi (comandos resp / posventa). */
 const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB, GRUPO_PREVENTA_MELI, GRUPO_POSTVENTA_MELI];
+
+function claveContenidoBot(chatJid, texto) {
+    const t = String(texto || '').trim().slice(0, 240);
+    return `${chatJid}::${t}`;
+}
+
+function marcarEnvioBot(replyTo, texto, waId) {
+    if (waId) {
+        panelBotSentIds.add(waId);
+        setTimeout(() => panelBotSentIds.delete(waId), 120000);
+    }
+    const key = claveContenidoBot(replyTo, texto);
+    panelBotSentContent.set(key, Date.now() + 120000);
+    setTimeout(() => panelBotSentContent.delete(key), 120000);
+}
+
+function esRespuestaBotReciente(chatJid, replyTo, texto, waId) {
+    if (waId && panelBotSentIds.has(waId)) return true;
+    const keys = [
+        claveContenidoBot(chatJid, texto),
+        claveContenidoBot(replyTo, texto),
+    ];
+    const now = Date.now();
+    for (const k of keys) {
+        const until = panelBotSentContent.get(k);
+        if (until && now < until) return true;
+    }
+    return false;
+}
+
+async function ingestarFromMeCliente(msg) {
+    const sidProbe = serializarWaId(msg);
+    if (sidProbe && panelBotSentIds.has(sidProbe)) {
+        return;
+    }
+    const payload = await mensajeAPayloadHistorial(msg);
+    if (!payload || payload.revoke) {
+        if (payload && payload.revoke && payload.wa_id) {
+            try {
+                await axios.post(
+                    PANEL_INGEST_URL.replace('/ingest', '/revoke'),
+                    { wa_id: payload.wa_id },
+                    { headers: panelAuthHeaders(), timeout: 8000 }
+                );
+            } catch (_) { /* ignore */ }
+        }
+        return;
+    }
+    await enviarHistorialPanel([payload]);
+}
 
 // Función compartida: procesar comandos de grupos admin
 async function procesarComandoGrupo(msg, chatIdOverride) {
@@ -404,24 +454,7 @@ client.on('message_create', async (msg) => {
 
     // Mensajes enviados desde el celular (fromMe) a clientes → historial del panel, sin IA
     if (msg.fromMe && !enGrupoCmd && !esComandoMeliOperativo(textoProbe)) {
-        const sidProbe = serializarWaId(msg);
-        if (sidProbe && panelBotSentIds.has(sidProbe)) {
-            return;
-        }
-        const payload = await mensajeAPayloadHistorial(msg);
-        if (payload) {
-            if (payload.revoke && payload.wa_id) {
-                try {
-                    await axios.post(
-                        PANEL_INGEST_URL.replace('/ingest', '/revoke'),
-                        { wa_id: payload.wa_id },
-                        { headers: panelAuthHeaders(), timeout: 8000 }
-                    );
-                } catch (_) { /* ignore */ }
-            } else if (!payload.revoke) {
-                await enviarHistorialPanel([payload]);
-            }
-        }
+        await ingestarFromMeCliente(msg);
         return;
     }
 
@@ -475,8 +508,11 @@ client.on('message', async (msg) => {
         return;
     }
 
-    // Filtro 2: ignorar mensajes del propio agente a clientes (salvo comandos MeLi)
-    if (msg.fromMe && !esGrupoComando && !esCmdMeli) return;
+    // Mensajes del operador al cliente → historial del panel (fallback si message_create no dispara)
+    if (msg.fromMe && !esGrupoComando && !esCmdMeli) {
+        await ingestarFromMeCliente(msg);
+        return;
+    }
 
     // MCKG SEDE SUR: equipo interno — reenviar todos los mensajes al agente
     if (chatIdComando === GRUPO_SEDE_SUR) {
@@ -597,24 +633,22 @@ client.on('message', async (msg) => {
         });
 
         if (responseIA.data && responseIA.data.respuesta) {
-            panelBotOutgoingUntil.set(ident.replyTo, Date.now() + 45000);
-            const sent = await client.sendMessage(ident.replyTo, responseIA.data.respuesta);
+            const respuestaBot = responseIA.data.respuesta;
+            marcarEnvioBot(ident.replyTo, respuestaBot, '');
+            const sent = await client.sendMessage(ident.replyTo, respuestaBot);
             console.log(`📤 Respuesta de IA enviada a ${msg.from}`);
-            logActividad('SALIENTE', { para: msg.from, texto: responseIA.data.respuesta });
+            logActividad('SALIENTE', { para: msg.from, texto: respuestaBot });
             const outPayload = {
                 wa_id: sent && sent.id ? (sent.id._serialized || sent.id.id || '') : '',
                 jid: ident.sender,
                 ts: Math.floor(Date.now() / 1000),
                 from_me: true,
-                texto: responseIA.data.respuesta,
+                texto: respuestaBot,
                 tiene_media: false,
                 enviado_por: 'bot',
             };
-            if (outPayload.wa_id) {
-                panelBotSentIds.add(outPayload.wa_id);
-                setTimeout(() => panelBotSentIds.delete(outPayload.wa_id), 120000);
-                await enviarHistorialPanel([outPayload]);
-            }
+            marcarEnvioBot(ident.replyTo, respuestaBot, outPayload.wa_id);
+            await enviarHistorialPanel([outPayload]);
         }
     } catch (error) {
         console.error("❌ Error de comunicación con el agente Python:", error.message);
@@ -901,8 +935,7 @@ async function mensajeAPayloadHistorial(msg) {
     let enviadoFinal = enviado;
     if (msg.fromMe) {
         const sid = serializarWaId(msg);
-        const until = panelBotOutgoingUntil.get(chatJid) || panelBotOutgoingUntil.get(ident.replyTo || '');
-        if ((sid && panelBotSentIds.has(sid)) || (until && Date.now() < until)) {
+        if (esRespuestaBotReciente(chatJid, ident.replyTo || chatJid, texto, sid)) {
             enviadoFinal = 'bot';
         }
     }

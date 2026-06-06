@@ -8,7 +8,7 @@ Tipos de evento:
   silenciado       – número agregado a lista de silenciados
   activado         – número retirado de silenciados
   modo_humano      – mensaje recibido con número en modo humano (reenvío al grupo)
-  bot_pausado_global – mensaje ignorado por pausa global o fuera de horario
+  bot_pausado_global – mensaje ignorado por pausa manual del bot (panel)
   manual_humano    – operador agregó número a modo humano desde el panel
   manual_quita_humano – operador quitó número de modo humano desde el panel
   manual_silenciar – operador silenció número desde el panel

@@ -102,11 +102,19 @@ def guardar(
     if not jid or not direccion:
         return
     try:
-        from app.services.wa_jid import normalizar_jid_almacenamiento
+        from app.services.wa_jid import (
+            es_telefono_negocio,
+            lid_desde_wa_id,
+            normalizar_jid_almacenamiento,
+        )
 
-        canon = normalizar_jid_almacenamiento(jid)
-        ts_val = float(ts if ts is not None else time.time())
         wa_key = (wa_id or "").strip() or None
+        canon = normalizar_jid_almacenamiento(jid)
+        if es_telefono_negocio(canon) and wa_key:
+            lid_wa = lid_desde_wa_id(wa_key)
+            if lid_wa:
+                canon = lid_wa
+        ts_val = float(ts if ts is not None else time.time())
         mpath = (media_path or "").strip()[:500]
         mmime = (media_mime or "").strip()[:120]
         narch = (nombre_arch or "").strip()[:200]
@@ -119,11 +127,19 @@ def guardar(
                 ).fetchone()
                 if row:
                     prev_enviado = str(row["enviado_por"] or "")
-                    # No degradar bot → humano; sí corregir humano → bot (message_create vs ingest bot)
+                    # No degradar bot → humano; sí corregir humano → bot
                     if prev_enviado == "bot" and enviado_por == "humano":
                         enviado_por = "bot"
                     elif enviado_por == "bot":
                         enviado_por = "bot"
+                    elif enviado_por == "humano" and direccion == "salida":
+                        try:
+                            from app.services.wa_bot_detect import parece_respuesta_bot
+
+                            if parece_respuesta_bot(texto):
+                                enviado_por = "bot"
+                        except Exception:
+                            pass
                     c.execute(
                         """UPDATE mensajes SET
                            ts=?, jid=?, direccion=?, texto=?, tiene_media=?,
@@ -238,6 +254,14 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
         from_me = bool(raw.get("from_me"))
         direccion = "salida" if from_me else "entrada"
         enviado = str(raw.get("enviado_por") or ("humano" if from_me else "cliente"))
+        if from_me and enviado == "humano":
+            try:
+                from app.services.wa_bot_detect import parece_respuesta_bot
+
+                if parece_respuesta_bot(texto):
+                    enviado = "bot"
+            except Exception:
+                pass
         texto = str(raw.get("texto") or "")
         if not texto and raw.get("tiene_media"):
             texto = "[adjunto]"
@@ -247,11 +271,20 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
         sender_lid = str(raw.get("sender_lid") or "").strip()
         sender_phone = str(raw.get("sender_phone") or "").strip()
         try:
-            from app.services.wa_jid import normalizar_jid_almacenamiento, registrar_alias_lid
+            from app.services.wa_jid import (
+                es_telefono_negocio,
+                lid_desde_wa_id,
+                normalizar_jid_almacenamiento,
+                registrar_alias_lid,
+            )
 
             jid = normalizar_jid_almacenamiento(
                 jid, sender_lid=sender_lid, sender_phone=sender_phone
             )
+            if es_telefono_negocio(jid):
+                lid_wa = lid_desde_wa_id(wa_id) or (sender_lid if sender_lid else None)
+                if lid_wa:
+                    jid = lid_wa
             if sender_lid and sender_phone:
                 registrar_alias_lid(sender_lid, sender_phone)
         except Exception:
@@ -374,6 +407,9 @@ def listar_conversaciones(limit: int = 60) -> list[dict]:
                 prev["no_leidos"] = no_leidos
                 merged[canon] = prev
         out = sorted(merged.values(), key=lambda x: float(x.get("ts") or 0), reverse=True)
+        from app.services.wa_jid import es_jid_conversacion_cliente
+
+        out = [c for c in out if es_jid_conversacion_cliente(c.get("jid", ""))]
         return out[:limit]
     except Exception as e:
         print(f"[wa_chats] error listar_conversaciones: {e}")
@@ -427,33 +463,71 @@ _reparo_jids_done = False
 
 
 def reparar_jids_falsos_en_db(force: bool = False) -> dict:
-    """Migra 57+lid@c.us → @lid (o teléfono real si hay alias). Una vez por proceso."""
+    """Migra JIDs corruptos (57+lid, línea comercial, alias negocio) → @lid o teléfono real."""
     global _reparo_jids_done
     if _reparo_jids_done and not force:
         return {"actualizados": 0, "omitido": True}
-    stats: dict = {"actualizados": 0, "mapeos": []}
+    stats: dict = {"actualizados": 0, "mapeos": [], "desde_wa_id": 0}
     try:
-        from app.services.wa_jid import normalizar_jid_almacenamiento
+        from app.services.wa_jid import (
+            es_telefono_negocio,
+            limpiar_aliases_falsos,
+            lid_desde_wa_id,
+            normalizar_jid_almacenamiento,
+        )
 
+        limpiar_aliases_falsos()
         with _lock, _conn() as c:
-            rows = c.execute("SELECT DISTINCT jid FROM mensajes").fetchall()
-            for (jid,) in rows:
-                jid = str(jid or "").strip()
-                if not jid:
-                    continue
+            filas = c.execute(
+                "SELECT id, jid, wa_id FROM mensajes WHERE eliminado=0"
+            ).fetchall()
+            for row in filas:
+                mid = row["id"]
+                jid = str(row["jid"] or "").strip()
+                wa_id = str(row["wa_id"] or "").strip()
                 nuevo = normalizar_jid_almacenamiento(jid)
-                if nuevo != jid:
-                    n = c.execute(
-                        "UPDATE mensajes SET jid=? WHERE jid=?", (nuevo, jid)
-                    ).rowcount
-                    stats["actualizados"] += int(n or 0)
+                if es_telefono_negocio(nuevo) or es_telefono_negocio(jid):
+                    lid_wa = lid_desde_wa_id(wa_id)
+                    if lid_wa:
+                        nuevo = lid_wa
+                        stats["desde_wa_id"] += 1
+                if nuevo and nuevo != jid:
+                    c.execute("UPDATE mensajes SET jid=? WHERE id=?", (nuevo, mid))
+                    stats["actualizados"] += 1
                     stats["mapeos"].append({"de": jid, "a": nuevo})
         _reparo_jids_done = True
         if stats["actualizados"]:
             print(
-                f"[wa_chats] reparar_jids: {stats['actualizados']} filas, "
-                f"{len(stats['mapeos'])} conversaciones"
+                f"[wa_chats] reparar_jids: {stats['actualizados']} filas "
+                f"({stats['desde_wa_id']} vía wa_id)"
             )
+        stats_bot = reparar_enviado_por_bot_en_db(force=force)
+        stats["bot_reclasificados"] = stats_bot.get("actualizados", 0)
+    except Exception as e:
+        stats["error"] = str(e)
+    return stats
+
+
+def reparar_enviado_por_bot_en_db(force: bool = False) -> dict:
+    """Re-etiqueta salidas del bot que quedaron como humano."""
+    stats: dict = {"actualizados": 0}
+    try:
+        from app.services.wa_bot_detect import parece_respuesta_bot
+
+        with _lock, _conn() as c:
+            rows = c.execute(
+                """SELECT id, texto FROM mensajes
+                   WHERE eliminado=0 AND direccion='salida' AND enviado_por='humano'"""
+            ).fetchall()
+            for row in rows:
+                if parece_respuesta_bot(str(row["texto"] or "")):
+                    c.execute(
+                        "UPDATE mensajes SET enviado_por='bot' WHERE id=?",
+                        (row["id"],),
+                    )
+                    stats["actualizados"] += 1
+        if stats["actualizados"]:
+            print(f"[wa_chats] bot reclasificados: {stats['actualizados']}")
     except Exception as e:
         stats["error"] = str(e)
     return stats

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import WhatsAppMetricas from "./WhatsAppMetricas";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -90,9 +91,9 @@ const REMITENTE_META: Record<
   asesor: {
     label: "Asesor",
     preview: "Asesor:",
-    avatarBg: "bg-blue-500/25",
-    avatarText: "text-blue-300",
-    bubbleOut: "bg-blue-600/90 text-white rounded-tr-sm",
+    avatarBg: "bg-blue-500/30",
+    avatarText: "text-blue-200",
+    bubbleOut: "bg-blue-700 text-white rounded-tr-sm ring-2 ring-blue-400/50",
   },
   salida: {
     label: "Salida",
@@ -143,7 +144,7 @@ const TIPO_LABEL: Record<string, { label: string; color: string }> = {
 
 // ── Tab bar ────────────────────────────────────────────────────────────────
 
-type Tab = "chats" | "control" | "cuenta" | "numeros" | "interacciones";
+type Tab = "chats" | "control" | "cuenta" | "numeros" | "interacciones" | "metricas";
 
 interface BridgeSesion {
   conectado: boolean;
@@ -168,6 +169,7 @@ interface BridgeStatus {
 function TabBar({ active, onChange, noLeidos }: { active: Tab; onChange: (t: Tab) => void; noLeidos?: number }) {
   const tabs: { id: Tab; label: string }[] = [
     { id: "chats",         label: "Chats" },
+    { id: "metricas",      label: "Métricas" },
     { id: "control",       label: "Control" },
     { id: "cuenta",        label: "Cuenta WA" },
     { id: "numeros",       label: "Números" },
@@ -350,7 +352,7 @@ function TabControl() {
             <p className="text-sm font-semibold text-ink">Horario de atención</p>
             <p className="text-xs text-muted mt-0.5">
               {draft.horario_bot.habilitado
-                ? `Activo ${draft.horario_bot.hora_inicio}–${draft.horario_bot.hora_fin}`
+                ? `Referencia ${draft.horario_bot.hora_inicio}–${draft.horario_bot.hora_fin} (no pausa al bot)`
                 : "Sin horario — responde siempre que esté habilitado"}
             </p>
           </div>
@@ -1505,6 +1507,7 @@ function TabChats() {
   const [displayActivo, setDisplayActivo] = useState("");
   const [telefonoActivo, setTelefonoActivo] = useState<string | null>(null);
   const [esLidActivo, setEsLidActivo] = useState(false);
+  const [filtroRemitente, setFiltroRemitente] = useState<"todos" | "cliente" | "bot" | "asesor">("todos");
   const bottomRef  = useRef<HTMLDivElement>(null);
   const pollMsgRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollLstRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1529,7 +1532,7 @@ function TabChats() {
         telefono?: string | null;
         es_lid?: boolean;
       }>(
-        `/api/bot/chats/${encodeURIComponent(jid)}`,
+        `/api/bot/chats/${encodeURIComponent(jid)}?limit=250`,
       );
       setMensajes(d.mensajes ?? []);
       setModoActivo(d.modo ?? "bot");
@@ -1561,7 +1564,7 @@ function TabChats() {
   const sincronizarDesdeWa = useCallback(async (jid: string, silencioso = false) => {
     if (!silencioso) setSincronizando(true);
     try {
-      await api.post(`/api/bot/chats/${encodeURIComponent(jid)}/sincronizar`, { limit: 60 });
+      await api.post(`/api/bot/chats/${encodeURIComponent(jid)}/sincronizar`, { limit: 80 });
       await cargarMensajes(jid);
       await cargarLista();
     } catch (e: any) {
@@ -1596,10 +1599,24 @@ function TabChats() {
     setTelefonoActivo(conv.telefono ?? null);
     setEsLidActivo(!!conv.es_lid);
     setDisplayActivo(etiquetaConversacion(conv));
+    setFiltroRemitente("todos");
     setTexto("");
     setErrorEnvio("");
     setVistaMovil("chat");
   }
+
+  const conteosRemitente = {
+    cliente: mensajes.filter((m) => m.direccion === "entrada").length,
+    bot: mensajes.filter((m) => m.direccion === "salida" && m.enviado_por === "bot").length,
+    asesor: mensajes.filter((m) => m.direccion === "salida" && m.enviado_por === "humano").length,
+  };
+
+  const mensajesVisibles = mensajes.filter((m) => {
+    if (filtroRemitente === "todos") return true;
+    if (filtroRemitente === "cliente") return m.direccion === "entrada";
+    if (filtroRemitente === "bot") return m.direccion === "salida" && m.enviado_por === "bot";
+    return m.direccion === "salida" && m.enviado_por === "humano";
+  });
 
   function volverALista() {
     setJidActivo(null);
@@ -1775,12 +1792,45 @@ function TabChats() {
               </div>
             </div>
 
+            {/* Filtro por remitente */}
+            <div className="shrink-0 px-4 py-2 border-b border-border bg-surface-panel flex flex-wrap items-center gap-1.5">
+              {([
+                ["todos", "Todos", mensajes.length],
+                ["cliente", "Cliente", conteosRemitente.cliente],
+                ["asesor", "Asesor", conteosRemitente.asesor],
+                ["bot", "Bot", conteosRemitente.bot],
+              ] as const).map(([id, label, n]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setFiltroRemitente(id)}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition ${
+                    filtroRemitente === id
+                      ? id === "asesor"
+                        ? "bg-blue-600 text-white"
+                        : id === "bot"
+                          ? "bg-emerald-600 text-white"
+                          : id === "cliente"
+                            ? "bg-slate-600 text-white"
+                            : "bg-accent text-white"
+                      : "bg-surface-hover text-muted hover:text-ink border border-border"
+                  }`}
+                >
+                  {label} ({n})
+                </button>
+              ))}
+            </div>
+
             {/* Mensajes */}
             <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-              {mensajes.length === 0 ? (
-                <p className="text-sm text-muted text-center py-8">Sin mensajes registrados en esta conversación</p>
+              {mensajesVisibles.length === 0 ? (
+                <p className="text-sm text-muted text-center py-8">
+                  {mensajes.length === 0
+                    ? "Sin mensajes registrados en esta conversación"
+                    : "Ningún mensaje con este filtro — prueba otro o pulsa ↻ Actualizar"}
+                </p>
               ) : (
-                mensajes.map((msg) => <ChatBubble key={msg.id} msg={msg} />)
+                mensajesVisibles.map((msg) => <ChatBubble key={msg.id} msg={msg} />)
               )}
               <div ref={bottomRef} />
             </div>
@@ -1845,6 +1895,7 @@ function TabChats() {
 export default function WhatsAppPanel() {
   const [tab, setTab] = useState<Tab>("chats");
   const [noLeidos, setNoLeidos] = useState(0);
+  const wide = tab === "chats" || tab === "metricas";
 
   // Polling ligero del contador de no leídos para el badge del TabBar
   useEffect(() => {
@@ -1860,17 +1911,18 @@ export default function WhatsAppPanel() {
   }, []);
 
   return (
-    <div className={tab === "chats" ? "mx-auto max-w-5xl" : "mx-auto max-w-2xl"}>
+    <div className={wide ? "mx-auto max-w-5xl" : "mx-auto max-w-2xl"}>
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-ink">Agente WhatsApp</h2>
         <p className="text-xs text-muted mt-0.5">
-          Chat con clientes, control del bot y gestión de números
+          Chat con clientes, métricas de atención, control del bot y gestión de números
         </p>
       </div>
 
       <TabBar active={tab} onChange={setTab} noLeidos={noLeidos} />
 
       {tab === "chats"         && <TabChats />}
+      {tab === "metricas"      && <WhatsAppMetricas />}
       {tab === "control"       && <TabControl />}
       {tab === "cuenta"        && <TabCuentaWa />}
       {tab === "numeros"       && <TabNumeros />}
