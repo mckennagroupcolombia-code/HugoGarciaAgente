@@ -116,42 +116,9 @@ def procesar_nueva_pregunta(question_id):
     )
 
     if not fue_respondida:
-        # Sin ficha → delegado al grupo, ya se envió la alerta
-        print(f"⏳ Preventa: pregunta {question_id} delegada al grupo humano")
+        # Delegado al grupo: sin ficha, IA falló, o borrador pendiente de aprobación
+        print(f"⏳ Preventa: pregunta {question_id} en cola (borrador o sin ficha)")
         return
-
-    # Con ficha → responder al cliente en MeLi
-    status = enviar_respuesta_meli(question_id, respuesta_generada, token)
-
-    from app.utils import enviar_whatsapp_reporte
-
-    emoji_status = "✅" if status else "❌"
-    mensaje_ws = (
-        f"🔔 *REPORTE PREVENTA MELI*\n\n"
-        f"📦 *Producto:* {nombre_producto}\n"
-        f"🗣 *Cliente Preguntó:* {texto_pregunta}\n"
-        f"🤖 *IA Respondió:* {respuesta_generada}\n\n"
-        f"Status Respuesta: {emoji_status}"
-    )
-    ok_wa = enviar_whatsapp_reporte(
-        mensaje_ws, numero_destino=jid_grupo_preventa_wa()
-    )
-    if not ok_wa:
-        print(
-            f"❌ Preventa: el reporte a WhatsApp NO se envió (revisar bridge :3000 / "
-            f"logs). Pregunta MeLi {question_id} respondida={'sí' if status else 'no'}. "
-            f"Grupo configurado: {jid_grupo_preventa_wa()}"
-        )
-        try:
-            from app.meli_webhook_incidents import registrar_meli_webhook_incidente
-
-            registrar_meli_webhook_incidente(
-                "preventa_whatsapp_no_entregado",
-                question_id=str(question_id),
-                meli_respuesta_ok=bool(status),
-            )
-        except Exception:
-            pass
 
 # --- Para probar el script manualmente ---
 if __name__ == "__main__":

@@ -17,6 +17,11 @@ _MODOS_PATH = os.path.join(
     os.path.dirname(__file__), "data", "modos_atencion.json"
 )
 
+# Dedup en memoria: evita re-alertar la misma sesión aunque el archivo se
+# sobrescriba por una condición de carrera entre threads.
+_sesiones_alertadas: dict[str, float] = {}
+_DEDUP_SEGUNDOS = int(os.getenv("WEB_ESCALACION_DEDUP_MIN", "60")) * 60
+
 # Pago, pedido, cotización, datos bancarios / link
 _PATRONES_PAGO_PEDIDO: list[str] = [
     r"\blink\s+de\s+pago\b",
@@ -225,6 +230,18 @@ def mensaje_sesion_ya_escalada() -> str:
     )
 
 
+def _jid_escalacion_web() -> str:
+    """Grupo de destino para alertas de escalación del chat web.
+
+    Usa GRUPO_ESCALACION_WEB_WA si está configurado; si no, cae en
+    GRUPO_CONTABILIDAD_WA (equipo de ventas). NO usa Guias_Envios.
+    """
+    explicit = os.getenv("GRUPO_ESCALACION_WEB_WA", "").strip()
+    if explicit:
+        return explicit
+    return os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us").strip()
+
+
 def alertar_grupo_escalacion(
     *,
     session_id: str,
@@ -232,14 +249,18 @@ def alertar_grupo_escalacion(
     tipo: str,
     page_url: str = "",
 ) -> None:
+    sid = (session_id or "").strip()[:40]
+    # Dedup en memoria: si ya alertamos esta sesión hace < DEDUP_SEGUNDOS, saltar
+    ahora = time.time()
+    ultima = _sesiones_alertadas.get(sid, 0.0)
+    if ahora - ultima < _DEDUP_SEGUNDOS:
+        return
+    _sesiones_alertadas[sid] = ahora
+
     def _enviar():
         try:
-            from app.services.web_chat_notify import (
-                jid_grupo_pedidos_web_wa,
-            )
             from app.utils import enviar_whatsapp_reporte
 
-            sid = (session_id or "")[:40]
             tipo_txt = {
                 "pago_pedido": "Pago / pedido / cotización",
                 "humano": "Solicita asesor humano",
@@ -253,7 +274,7 @@ def alertar_grupo_escalacion(
                 f"Cliente: {(user_message or '')[:700]}\n\n"
                 "_Atender por WhatsApp; la burbuja quedó en pausa._"
             )
-            enviar_whatsapp_reporte(texto, numero_destino=jid_grupo_pedidos_web_wa())
+            enviar_whatsapp_reporte(texto, numero_destino=_jid_escalacion_web())
         except Exception as e:
             log_json("web_chat_escalacion_wa_error", error=str(e)[:200])
 

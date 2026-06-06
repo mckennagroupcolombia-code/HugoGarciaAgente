@@ -39,7 +39,7 @@ def _log_error(contexto: str, exc: Exception):
 
 # --- Importación de Herramientas desde los Nuevos Módulos ---
 
-from app.tools.memoria import query_sqlite, query_vector_db
+from app.tools.memoria import query_sqlite, query_vector_db, guardar_qa_exitoso, query_memoria_pre_respuesta
 from app.services.autocorrector import manejar_incidente_autocorreccion
 from app.services.google_services import (
     leer_datos_hoja,
@@ -405,20 +405,45 @@ def _guardar_historial_persistente(usuario_id: str, messages: list) -> None:
         _log_error(f"Guardar historial persistente usuario={usuario_id}", e)
 
 
-def _memoria_vectorial_para_chat(pregunta: str) -> str:
+def _memoria_vectorial_para_chat(
+    pregunta: str,
+    historial: list | None = None,
+) -> str:
+    """
+    Recupera memoria relevante antes de que el bot responda.
+    Usa multi-query: pregunta + producto extraído del historial + contexto reciente.
+    """
     if os.getenv("AGENTE_USAR_MEMORIA_VECTORIAL_CHAT", "1").strip() == "0":
         return ""
-    if not (pregunta or "").strip():
+    pregunta = (pregunta or "").strip()
+    if not pregunta:
         return ""
     try:
-        memoria = query_vector_db(pregunta[:500])
+        # Extraer producto del historial para enriquecer la búsqueda
+        producto = ""
+        historial_texto = ""
+        if historial:
+            producto = _extraer_producto_reciente_historial_web(historial)
+            # Últimos 2 turnos del cliente como contexto adicional
+            turnos_cliente = [
+                _extraer_texto_visible_mensaje(m.get("content", ""))
+                for m in historial[-6:]
+                if m.get("role") == "user"
+            ]
+            historial_texto = " | ".join(turnos_cliente[-2:])
+
+        memoria = query_memoria_pre_respuesta(
+            pregunta=pregunta,
+            producto=producto,
+            historial_texto=historial_texto,
+        )
     except Exception as e:
         _log_error("Memoria vectorial chat", e)
         return ""
     baja = (memoria or "").lower()
     if not memoria or "error:" in baja or "no tengo recuerdos" in baja:
         return ""
-    return memoria[:1800]
+    return memoria[:2400]
 
 
 # Compat stub (routes.py podría referenciar esto)
@@ -1938,7 +1963,7 @@ def obtener_respuesta_ia(
                 pregunta_visible, messages
             )
         ctx_ficha = _preflight_ficha_tecnica(pregunta_visible, messages)
-        memoria_vec = _memoria_vectorial_para_chat(pregunta_visible)
+        memoria_vec = _memoria_vectorial_para_chat(pregunta_visible, historial=messages)
 
         # Si el cliente pregunta por algo específico pero no hay evidencia en catálogo/ficha,
         # NO inventar: pedir precisión antes de llamar al LLM.
@@ -1985,6 +2010,13 @@ def obtener_respuesta_ia(
             _historiales[usuario_id] = final_messages
             _guardar_historial_persistente(usuario_id, final_messages)
             salida = _sanitizar_respuesta_web_chat(texto_cli) if es_web else texto_cli
+            # Aprender de respuestas exitosas (async, no bloquea)
+            if pregunta_visible and len(salida) > 80:
+                spawn_thread(
+                    guardar_qa_exitoso,
+                    args=(pregunta_visible, salida, canal_efectivo),
+                    daemon=True,
+                )
             return salida, final_messages
 
         return (
@@ -2043,13 +2075,22 @@ def obtener_respuesta_ia(
         gemini_model=modelo_canal if modelo_canal.startswith("gemini-") else "gemini-2.5-pro",
     )
 
+    # Inyectar memoria semántica en el system prompt del loop tool-use.
+    # memoria_vec ya fue calculado arriba para el path Gemini; se reutiliza aquí.
+    prompt_con_memoria = system_prompt_efectivo
+    if memoria_vec:
+        prompt_con_memoria = (
+            system_prompt_efectivo
+            + f"\n\n---\n[Conocimiento de casos anteriores similares — úsalo como contexto, no lo cites literalmente]\n{memoria_vec}\n---"
+        )
+
     agent_run = AgentRun(
         usuario_id=usuario_id,
         canal=canal_efectivo,
         router=router,
         tools_map=_tools_map,
         tools_schema=_tools_schema,
-        system_prompt=system_prompt_efectivo,
+        system_prompt=prompt_con_memoria,
     )
 
     result = agent_run.execute(
@@ -2078,5 +2119,13 @@ def obtener_respuesta_ia(
     salida = result.text or "✅ Tarea ejecutada."
     if es_web:
         salida = _sanitizar_respuesta_web_chat(salida)
+
+    # Aprender de respuestas exitosas: guardar Q→A en ChromaDB (async, no bloquea)
+    if pregunta_visible and salida and len(salida) > 80:
+        spawn_thread(
+            guardar_qa_exitoso,
+            args=(pregunta_visible, salida, canal_efectivo),
+            daemon=True,
+        )
 
     return salida, result.messages

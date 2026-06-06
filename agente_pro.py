@@ -106,6 +106,12 @@ def create_app():
     except Exception as e:
         print(f"⚠️ Backup nocturno: {e}")
 
+    try:
+        from app.tools.memoria import sembrar_casos_preventa
+        sembrar_casos_preventa()
+    except Exception as e:
+        print(f"⚠️ Siembra ChromaDB preventa: {e}")
+
     return app
 
 

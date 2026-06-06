@@ -198,6 +198,12 @@ def guardar(
                 )
         if direccion == "salida" and enviado_por == "humano":
             marcar_leido(canon)
+        # Alertas de intención de compra (lazy import — no circular)
+        try:
+            from app.services.wa_alertas_intencion import registrar_mensaje as _reg_alerta
+            _reg_alerta(canon, texto or "", ts_val, direccion, enviado_por, bool(tiene_media))
+        except Exception:
+            pass
     except Exception as e:
         print(f"[wa_chats] error al guardar: {e}")
 

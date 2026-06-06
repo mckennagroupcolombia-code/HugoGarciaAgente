@@ -31,19 +31,27 @@ def _guardar_pendientes(lista):
         print(f"❌ Preventa: error guardando pendientes: {e}")
 
 
-def guardar_pregunta_pendiente(question_id: str, titulo_producto: str, pregunta: str) -> bool:
+def guardar_pregunta_pendiente(
+    question_id: str,
+    titulo_producto: str,
+    pregunta: str,
+    borrador_ia: str = "",
+) -> bool:
     pendientes = _leer_pendientes()
     # Evitar duplicados: si ya existe (pendiente o respondida), no re-notificar
     if any(str(p.get('question_id')) == str(question_id) for p in pendientes):
         print(f"⚠️ Preventa: question_id {question_id} ya registrado, omitiendo duplicado")
         return False
-    pendientes.append({
+    entrada: dict = {
         'question_id': str(question_id),
         'titulo_producto': titulo_producto,
         'pregunta': pregunta,
         'timestamp': datetime.now().isoformat(),
         'respondida': False,
-    })
+    }
+    if borrador_ia:
+        entrada['borrador_ia'] = borrador_ia
+    pendientes.append(entrada)
     _guardar_pendientes(pendientes)
     return True
 
@@ -60,6 +68,12 @@ def obtener_pregunta_pendiente(question_id: str):
         if str(p.get('question_id')) == str(question_id):
             return p
     return None
+
+
+def obtener_borrador_ia(question_id: str) -> str:
+    """Retorna el borrador IA guardado para una pregunta pendiente, o '' si no hay."""
+    p = obtener_pregunta_pendiente(question_id)
+    return (p or {}).get("borrador_ia", "")
 
 
 def marcar_pregunta_respondida(question_id: str) -> bool:
@@ -239,10 +253,38 @@ def manejar_pregunta_preventa(question_id: str, titulo_producto: str, pregunta_c
                 pass
         return None, False
 
-    # Guardar como aprendizaje
-    guardar_caso_preventa(titulo_producto, pregunta_cliente, respuesta)
+    # Guardar pendiente CON borrador IA — el equipo debe aprobar antes de enviar
+    creada = guardar_pregunta_pendiente(
+        question_id, titulo_producto, pregunta_cliente, borrador_ia=respuesta
+    )
+    if not creada:
+        return None, False
 
-    return respuesta, True
+    try:
+        from app.utils import enviar_whatsapp_reporte
+
+        sufijo = str(question_id)[-3:]
+        texto_borrador = respuesta[:500] + ("..." if len(respuesta) > 500 else "")
+        ok_wa = enviar_whatsapp_reporte(
+            f"🤖 *BORRADOR IA — PREVENTA MELI*\n\n"
+            f"📦 *Producto:* {titulo_producto}\n"
+            f"🗣 *Cliente preguntó:*\n\"{pregunta_cliente}\"\n\n"
+            f"💬 *Respuesta IA:*\n_{texto_borrador}_\n\n"
+            f"──────────────\n"
+            f"✅ Enviar como está: *ok {sufijo}*\n"
+            f"✍️ Mejorar respuesta: *resp {sufijo}: tu versión*",
+            numero_destino=jid_grupo_preventa_wa(),
+        )
+        if not ok_wa:
+            from app.meli_webhook_incidents import registrar_meli_webhook_incidente
+            registrar_meli_webhook_incidente(
+                "preventa_borrador_whatsapp_fallo",
+                question_id=str(question_id),
+            )
+    except Exception as e:
+        print(f"❌ Preventa: error enviando borrador IA al grupo: {e}")
+
+    return None, False
 
 
 _GEMINI_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash"]

@@ -411,6 +411,7 @@ def monitor_loop():
         "reporte_sem": -1,
         "informe_mes": -1,
         "recordatorio_tickets_dia": -1,
+        "aprendizaje_ia_dia": -1,
     }
 
     # Esperar 60s al arrancar para que los servicios terminen de iniciar
@@ -482,6 +483,25 @@ def monitor_loop():
 
                 threading.Thread(target=_backup, daemon=True).start()
                 contadores["backup_dia"] = ahora.day
+
+            # REC-10: 3 AM diario — Ciclo de aprendizaje automático de memoria IA
+            if ahora.hour == 3 and contadores["aprendizaje_ia_dia"] != ahora.day:
+
+                def _aprender_ia():
+                    try:
+                        from app.tools.memoria import ciclo_aprendizaje_diario
+                        res = ciclo_aprendizaje_diario()
+                        total_qa = res.get("total_qa", 0)
+                        total_brain = res.get("total_brain", 0)
+                        print(
+                            f"🎓 Monitor: aprendizaje IA completado — "
+                            f"preventa_qa={total_qa} docs, mckenna_brain={total_brain} docs"
+                        )
+                    except Exception as exc_ap:
+                        print(f"⚠️ Monitor: ciclo aprendizaje IA: {exc_ap}")
+
+                threading.Thread(target=_aprender_ia, daemon=True, name="monitor-aprendizaje-ia").start()
+                contadores["aprendizaje_ia_dia"] = ahora.day
 
             # REC-08: Lunes 7 AM — Reporte financiero semanal
             if (

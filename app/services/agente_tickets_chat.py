@@ -111,6 +111,21 @@ def obtener_contexto(usuario: dict) -> dict:
         if t.get("creado_por") == usuario["id"] and t.get("estado") == "esperando_aprobacion"
     ][:3]
 
+    # Solicitudes que yo creé y están activas (en proceso o pendientes — asignadas a otra persona)
+    solicitudes_creadas_activas = [
+        {
+            "id": t["id"],
+            "titulo": t["titulo"],
+            "numero": t.get("numero") or "",
+            "asignado_a_nombre": t.get("asignado_a_nombre") or "",
+            "estado": t.get("estado") or "pendiente",
+        }
+        for t in solic_todas_raw
+        if t.get("creado_por") == usuario["id"]
+        and t.get("asignado_a") != usuario["id"]
+        and t.get("estado") in ("en_proceso", "pendiente")
+    ][:3]
+
     # Tickets donde el usuario es participante/colaborador (no executor ni solicitante)
     from app.services.tickets_db import _conn
     with _conn() as _db:
@@ -165,6 +180,7 @@ def obtener_contexto(usuario: dict) -> dict:
         "solicitudes_asignadas": solicitudes_asignadas,
         "solicitudes_por_aprobar": solicitudes_por_aprobar,
         "solicitudes_esperando_confirmacion": solicitudes_esperando_confirmacion,
+        "solicitudes_creadas_activas": solicitudes_creadas_activas,
         "colaboraciones": colaboraciones,
     }
 
