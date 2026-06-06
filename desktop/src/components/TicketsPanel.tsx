@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useId, createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, useId, createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAppStore, type TicketsBootView } from "../stores/app";
@@ -21079,6 +21079,14 @@ function EjecucionAccionChat({
   const t0 = useRef(Date.now() - segundos * 1000);
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputNotaRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = inputNotaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [inputNota]);
 
   useEffect(() => {
     const iv = setInterval(() => {
@@ -21397,18 +21405,19 @@ function EjecucionAccionChat({
         </button>
       </div>
 
-      <div className="px-4 py-2.5 flex items-center gap-2">
+      <div className="px-4 py-2.5 flex items-end gap-2">
         <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto o pegar captura (Ctrl+V)" />
         <button type="button" onClick={() => setModoCompras(true)} title="Lista de compras"
           className="relative shrink-0 h-11 w-11 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 flex items-center justify-center transition text-lg">
           🛒
           {numCompras > 0 && <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-accent text-white text-[9px] font-black flex items-center justify-center px-0.5">{numCompras}</span>}
         </button>
-        <input value={inputNota} onChange={e => setInputNota(e.target.value)}
+        <textarea ref={inputNotaRef} value={inputNota} onChange={e => setInputNota(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
           onPaste={handlePaste}
-          placeholder="Cuénteme qué hizo… (Ctrl+V para pegar captura)"
-          className="flex-1 rounded-full bg-gray-100 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"/>
+          rows={1}
+          placeholder="Cuénteme qué hizo… (Shift+Enter para nueva línea)"
+          className="flex-1 rounded-2xl bg-gray-100 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition resize-none overflow-y-auto min-h-[42px] max-h-32 dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"/>
         {inputNota.trim() ? (
           <button type="button" onClick={() => agregarNota(inputNota)}
             className="h-11 w-11 shrink-0 rounded-full bg-accent flex items-center justify-center text-white shadow active:scale-95 transition">
@@ -21665,6 +21674,14 @@ function ResolverActividadChat({
   const [showPadre, setShowPadre] = useState(false);
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputNotaRef = useRef<HTMLTextAreaElement>(null);
+
+  useLayoutEffect(() => {
+    const el = inputNotaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, [inputNota]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -22299,13 +22316,14 @@ function ResolverActividadChat({
         </p>
       </div>
 
-      <div className="px-4 py-2.5 flex items-center gap-2">
+      <div className="px-4 py-2.5 flex items-end gap-2">
         <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto o pegar captura (Ctrl+V)" />
-        <input value={inputNota} onChange={e => setInputNota(e.target.value)}
+        <textarea ref={inputNotaRef} value={inputNota} onChange={e => setInputNota(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
           onPaste={handlePaste}
-          placeholder="Cuénteme qué hizo… (Ctrl+V para pegar captura)"
-          className="flex-1 rounded-full bg-gray-100 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"
+          rows={1}
+          placeholder="Cuénteme qué hizo… (Shift+Enter para nueva línea)"
+          className="flex-1 rounded-2xl bg-gray-100 border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-accent/60 transition resize-none overflow-y-auto min-h-[42px] max-h-32 dark:bg-gray-800 dark:border-white/15 dark:text-white dark:placeholder:text-white/40"
         />
         {inputNota.trim() ? (
           <button type="button" onClick={() => agregarNota(inputNota)}
