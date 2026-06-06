@@ -168,7 +168,7 @@
   },
   "bot_global_activo": true,
   "horario_bot": {
-    "habilitado": true,
+    "habilitado": false,
     "hora_inicio": "18:00",
     "hora_fin": "07:00",
     "dias": [

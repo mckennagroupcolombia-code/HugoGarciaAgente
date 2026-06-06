@@ -293,15 +293,18 @@ def alertar_grupo_consulta(registro: dict, *, async_send: bool = True) -> bool:
 
 
 def mensaje_cliente_consulta_creada(registro: dict) -> str:
+    from app.web_chat_mensajes import nota_asesor_whatsapp_chat_web
+
     codigo = registro.get("codigo") or "WCQ"
     producto = (registro.get("producto") or "").strip()
     prod_txt = f" sobre *{producto}*" if producto else ""
     return (
-        f"Veci, registré su consulta{prod_txt} con el número de seguimiento **{codigo}**.\n\n"
-        f"La emití al equipo técnico para confirmar cómo responderla con precisión. "
-        f"Cuando tengamos el dato, podrá consultarlo aquí mencionando **{codigo}** "
-        f"(por ejemplo: «consulta {codigo.split('-')[-1]}»).\n\n"
-        f"En breve le confirmamos 🙏"
+        f"Veci, registré su consulta{prod_txt} con el número **{codigo}**.\n\n"
+        f"La emití al equipo técnico para confirmar el dato con precisión. "
+        f"Cuando esté lista, puede mencionar **{codigo}** aquí "
+        f"(ej.: «consulta {codigo.split('-')[-1]}»).\n\n"
+        f"Mientras tanto, si prefiere no esperar:"
+        + nota_asesor_whatsapp_chat_web(motivo="la respuesta detallada de un asesor")
     )
 
 

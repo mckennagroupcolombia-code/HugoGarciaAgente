@@ -186,17 +186,20 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
 1. SOLO ofrezca presentaciones y precios que devuelva buscar_productos_combo_siigo (catálogo interno).
 2. PROHIBIDO al cliente mencionar SIIGO, combo, ERP, Sheets o configuración interna. Diga "materia prima", "presentación" o "referencia".
 3. PROHIBIDO inventar presentaciones ni precios sin consultar buscar_productos_combo_siigo.
-4. Si preguntan USO, DOSIS, "cómo tomar", recomendación de consumo o formulación: NO liste precios otra vez.
-   Responda la consulta técnica (usa buscar_productos_combo_siigo + contexto de ficha si aplica). Aclare que vendemos materia prima, no producto terminado.
+4. CONSULTAS TÉCNICAS (uso, dosis, densidad, solubilidad, aplicación en piel, formulación): NO liste precios otra vez.
+   Responda la consulta con la ficha/memoria si vienen en contexto. Si falta el dato exacto del lote, puede usar
+   **valores teóricos o rangos habituales** de literatura científica/técnica para esa materia prima, marcándolos como
+   **orientativos** (no sustituyen el COA del lote). Vendemos materia prima, no producto terminado.
 5. DISPONIBILIDAD Y PRECIOS: Responda con el catálogo inyectado. Si no hay match, diga que no aparece en catálogo web ahora,
    sugiera mckennagroup.co/tienda y ofrezca WhatsApp solo como canal para confirmar stock especial — no obligue a cambiar de canal para una simple consulta.
-6. DOCUMENTOS (COA, ficha técnica, ficha de seguridad/MSDS): Use los enlaces del contexto si vienen inyectados.
-   Si no hay PDF, pida correo electrónico para enviarlos; puede mencionar guías en mckennagroup.co/guias. No sustituya documentos por lista de precios.
+6. DOCUMENTOS: Lo habitual en materia prima es **ficha técnica** y/o **COA**. Las materias primas tienen marco regulatorio
+   distinto a un producto terminado con registro INVIMA; no prometa "registro INVIMA" como documento estándar de MP.
+   Si piden INVIMA, explíquelo con tacto y ofrezca FT/COA. Use enlaces del contexto si vienen inyectados.
 7. COTIZACIÓN DE PRECIOS por producto/presentación (ej. "cotización de 1 kg de cada uno"): responda con precios del catálogo en este chat.
 8. La referencia (Ref.) es el SKU oficial para pedido.
-9. WHATSAPP (explícito): Use WhatsApp solo para pago, link de pago, comprobante, facturación de pedido, seguimiento de pedido
-   o cotización formal que el cliente quiera cerrar con asesor. Indique número +57 319 518 3596 (wa.me/573195183596).
-   No redirija a WhatsApp por preguntas de producto, documentos o listas de ingredientes que puede resolver aquí.
+9. SI NO PUEDE RESPONDER con fundamento (dato de lote, normativa específica, trámite comercial): indique el **botón WhatsApp**
+   de la página (+57 319 518 3596, wa.me/573195183596) para hablar con un **asesor humano** que sí mantiene el hilo.
+   Aclare que **este chat web no guarda el historial** si cierra la pestaña o borra datos del navegador.
 10. No prometa "le escribo después en este chat" ni que recordará su sesión si cierra el navegador.
 """
 
@@ -973,6 +976,16 @@ def _mensaje_parece_consulta_tecnica_web(texto: str) -> bool:
         r"\buna\s+pregunta\b",
         r"\b(formulaci[oó]n|mezclar|diluir)\b",
         r"\bpara\s+que\s+sirve\b",
+        r"\b(adecuad[oa]s?|apto[s]?)\s+.*\bpiel\b",
+        r"\busarse?\s+directamente\s+en\s+la\s+piel\b",
+        r"\baplicar\s+(en\s+la\s+)?piel\b",
+        r"\btipo\s+de\s+procedimiento\b",
+        r"\b(cantidad|cu[aá]nto)\s+(de\s+)?(soluci[oó]n|preparar|usar|mezcla)\b",
+        r"\bproyecto\s+(de\s+la\s+)?universidad\b",
+        r"\b(espec[ií]fic[oa])\s+para\s+preparar",
+        r"\bgenera\s+duda\b",
+        r"\bcontiene\s+el\s+kit\b",
+        r"\bque\s+contiene\b",
     )
     if any(re.search(p, low) for p in patrones):
         return True
@@ -980,6 +993,29 @@ def _mensaje_parece_consulta_tecnica_web(texto: str) -> bool:
         if any(w in low for w in ("tomar", "toma", "dia", "día", "gramos", "dosis", "debe")):
             return True
     return False
+
+
+def _mensaje_parece_consulta_operativa_web(texto: str) -> bool:
+    from app.web_chat_escalacion import mensaje_pide_info_operativa
+
+    return mensaje_pide_info_operativa(texto)
+
+
+def _mensaje_pide_lista_productos_web(texto: str) -> bool:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    if re.search(r"\b(lista|listado)\s+(de\s+)?(productos?|ingredientes?|materias?)\b", low):
+        return True
+    if re.search(r"\b(tienes|tiene|tienen)\s+(esta|esta|es)?\s*lista\b", low):
+        return True
+    return False
+
+
+def _respuesta_pedir_lista_web() -> str:
+    return (
+        "Claro veci. Pégame aquí la **lista completa** de ingredientes o referencias "
+        "(uno por línea o separados por coma) y le confirmo cuáles manejamos, "
+        "presentaciones y precios."
+    )
 
 
 def _mensaje_parece_solicitud_documentos_web(texto: str) -> bool:
@@ -993,6 +1029,10 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
     if _mensaje_parece_solicitud_documentos_web(texto):
         return False
     if _mensaje_parece_consulta_tecnica_web(texto):
+        return False
+    if _mensaje_parece_consulta_operativa_web(texto):
+        return False
+    if _mensaje_pide_lista_productos_web(texto):
         return False
     if _es_saludo_puro_web(texto):
         return False
@@ -1032,8 +1072,38 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
         return True
     if _es_seleccion_presentacion_web(texto):
         return True
-    tokens = re.findall(r"[a-záéíóúüñ]{4,}", low)
-    return len(tokens) >= 1 and len(low) >= 4 and "?" not in low
+    _palabras_no_producto = (
+        "cuando",
+        "vence",
+        "vencimiento",
+        "lote",
+        "caducidad",
+        "porque",
+        "por qué",
+        "adecuad",
+        "preparar",
+        "proyecto",
+        "universidad",
+        "genera",
+        "duda",
+        "altos",
+        "caros",
+        "caras",
+        "lista",
+        "listado",
+        "contiene",
+        "certificado",
+        "invima",
+        "registro",
+    )
+    if any(w in low for w in _palabras_no_producto):
+        return False
+    tokens = re.findall(r"[a-záéíóúüñ0-9\-]{2,}", low)
+    if re.fullmatch(r"[\w\-]{2,30}", low.strip()):
+        return True
+    if 1 <= len(tokens) <= 4 and len(low) <= 48:
+        return True
+    return False
 
 
 def _es_seleccion_presentacion_web(texto: str) -> bool:
@@ -1063,6 +1133,19 @@ def _contexto_historial_web(messages: list) -> str:
     partes: list[str] = []
     for m in (messages or [])[-8:]:
         texto = _extraer_texto_visible_mensaje(m.get("content"))
+        if texto:
+            partes.append(texto[:600])
+    return " ".join(partes)[-1200:]
+
+
+def _contexto_historial_usuario_web(messages: list) -> str:
+    """Solo turnos del cliente (sin respuestas del bot ni prefijo Usuario_…)."""
+    partes: list[str] = []
+    for m in (messages or [])[-8:]:
+        if m.get("role") != "user":
+            continue
+        texto = _extraer_texto_visible_mensaje(m.get("content"))
+        texto = re.sub(r"^Usuario_[^:]+:\s*", "", (texto or "").strip())
         if texto:
             partes.append(texto[:600])
     return " ".join(partes)[-1200:]
@@ -1338,22 +1421,38 @@ def _respuesta_directa_web_si_combos(
     return None
 
 
-def _enriquecer_pregunta_tecnica_web(pregunta: str, messages: list) -> str:
+def _enriquecer_pregunta_tecnica_web(
+    pregunta: str,
+    messages: list,
+    *,
+    ficha: str | None = None,
+    memoria_vec: str = "",
+) -> str:
     prod = _extraer_producto_reciente_historial_web(messages)
     base = (pregunta or "").strip()
+    bloques = [
+        "[Consulta técnica chat web — materia prima McKenna, NO producto terminado.]",
+    ]
     if prod:
-        return (
-            f"[Contexto: el cliente consulta sobre la materia prima '{prod}' "
-            f"que ya se ofreció en el chat. Vendemos materia prima, NO producto terminado.]\n\n"
-            f"Pregunta del cliente: {base}\n\n"
-            "Responda uso, dosis orientativa o cómo se suele emplear en formulación. "
-            "No repita lista de precios. Si no tiene dato exacto en ficha, dé orientación "
-            "general prudente y sugiera validar con su formulador o WhatsApp."
+        bloques.append(
+            f"[Producto en contexto del chat: '{prod}'.]"
         )
-    return (
-        f"{base}\n\n"
-        "(Consulta técnica de uso/dosis — materia prima McKenna, no producto terminado.)"
+    if (ficha or "").strip():
+        bloques.append(f"[Ficha técnica disponible:\n{ficha.strip()[:3200]}]")
+    if (memoria_vec or "").strip():
+        bloques.append(f"[Memoria McKenna:\n{memoria_vec.strip()[:1200]}]")
+    bloques.extend(
+        [
+            f"\nPregunta del cliente: {base}",
+            "\nInstrucciones de respuesta:",
+            "- Responda uso, propiedades o formulación. NO repita lista de precios.",
+            "- Si falta dato exacto de lote en ficha/memoria, use **valores teóricos o rangos "
+            "habituales** de literatura científica para ese ingrediente; indique que son orientativos.",
+            "- Si no puede responder con fundamento, derive al **botón WhatsApp** para asesor humano "
+            "y aclare que **este chat no guarda el historial** al cerrar el navegador.",
+        ]
     )
+    return "\n".join(bloques)
 
 
 def _sanitizar_respuesta_web_chat(texto: str) -> str:
@@ -1387,12 +1486,11 @@ def _sanitizar_respuesta_web_chat(texto: str) -> str:
 def _preflight_contexto_combos_web(pregunta: str, messages: list | None = None) -> str | None:
     if _mensaje_parece_consulta_tecnica_web(pregunta):
         return None
+    if _mensaje_parece_consulta_operativa_web(pregunta):
+        return None
+    if not _mensaje_parece_consulta_catalogo_web(pregunta):
+        return None
     termino = _termino_busqueda_producto_web(pregunta, messages or [])
-    if not _mensaje_parece_consulta_catalogo_web(pregunta) and not _mensaje_parece_consulta_catalogo_web(
-        termino
-    ):
-        if not messages:
-            return None
     try:
         datos = _buscar_productos_combo_siigo(termino)
     except Exception as e:
@@ -1526,6 +1624,8 @@ def obtener_respuesta_ia(
 
     n_adj = len(adjuntos)
     pregunta_visible = (pregunta or "").strip()
+    ficha_esc: str | None = None
+    memoria_esc = ""
 
     # Recuperar historial previo del usuario (o usar el pasado como parámetro)
     if historial:
@@ -1544,11 +1644,11 @@ def obtener_respuesta_ia(
         )
         from app.web_chat_documentos import manejar_documentos_web
         from app.web_chat_escalacion import (
-            manejar_escalacion_tecnica_web,
+            manejar_consulta_operativa_web,
             manejar_seguimiento_codigo_web,
         )
 
-        hist_txt_web = _contexto_historial_web(messages)
+        hist_user_web = _contexto_historial_usuario_web(messages)
 
         seguimiento = manejar_seguimiento_codigo_web(pregunta_visible)
         if seguimiento:
@@ -1584,6 +1684,33 @@ def obtener_respuesta_ia(
             _guardar_historial_persistente(usuario_id, final_messages)
             return corr_out, final_messages
 
+        if _mensaje_pide_lista_productos_web(pregunta_visible):
+            lista_out = _sanitizar_respuesta_web_chat(_respuesta_pedir_lista_web())
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": lista_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return lista_out, final_messages
+
+        operativa = manejar_consulta_operativa_web(
+            pregunta=pregunta_visible,
+            session_id=usuario_id,
+            page_url=page_url or "",
+        )
+        if operativa:
+            op_out = _sanitizar_respuesta_web_chat(operativa)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": op_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return op_out, final_messages
+
         contacto = manejar_pregunta_contacto_web(pregunta_visible)
         if contacto:
             contacto_out = _sanitizar_respuesta_web_chat(contacto)
@@ -1600,7 +1727,7 @@ def obtener_respuesta_ia(
 
         docs = manejar_documentos_web(
             user_message=pregunta_visible,
-            historial_texto=hist_txt_web,
+            historial_usuario=hist_user_web,
         )
         if docs:
             docs_out = _sanitizar_respuesta_web_chat(docs)
@@ -1634,7 +1761,6 @@ def obtener_respuesta_ia(
 
         prod_ctx = _extraer_producto_reciente_historial_web(messages)
         memoria_esc = _memoria_vectorial_para_chat(pregunta_visible)
-        ficha_esc: str | None = None
         if prod_ctx or _mensaje_parece_consulta_tecnica_web(pregunta_visible):
             try:
                 from app.services.google_services import buscar_ficha_tecnica_producto
@@ -1643,24 +1769,6 @@ def obtener_respuesta_ia(
                 ficha_esc = buscar_ficha_tecnica_producto(term_ficha)
             except Exception:
                 ficha_esc = None
-        escalada_tec = manejar_escalacion_tecnica_web(
-            pregunta=pregunta_visible,
-            session_id=usuario_id,
-            producto=prod_ctx,
-            page_url=page_url or "",
-            ficha=ficha_esc,
-            memoria_vec=memoria_esc,
-        )
-        if escalada_tec:
-            esc_out = _sanitizar_respuesta_web_chat(escalada_tec)
-            messages.append(
-                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
-            )
-            final_messages = messages + [{"role": "assistant", "content": esc_out}]
-            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
-            _historiales[usuario_id] = final_messages
-            _guardar_historial_persistente(usuario_id, final_messages)
-            return esc_out, final_messages
 
     # ── Handoff humano (solo WhatsApp; web usa web_chat_intents arriba) ─────
     low0 = re.sub(r"\s+", " ", (pregunta_visible or "").strip().lower())
@@ -1728,7 +1836,12 @@ def obtener_respuesta_ia(
         _preflight_contexto_combos_web(pregunta_visible, messages) if es_web else None
     )
     if _mensaje_parece_consulta_tecnica_web(pregunta_visible):
-        pregunta_para_ia = _enriquecer_pregunta_tecnica_web(pregunta_visible, messages)
+        pregunta_para_ia = _enriquecer_pregunta_tecnica_web(
+            pregunta_visible,
+            messages,
+            ficha=ficha_esc if es_web else None,
+            memoria_vec=memoria_esc if es_web else "",
+        )
     elif contexto_combos and pregunta_visible:
         pregunta_para_ia = (
             f"[Catálogo web verificado — uso interno, no mencionar SIIGO/combo al cliente]\n"

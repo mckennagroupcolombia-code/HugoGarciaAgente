@@ -83,8 +83,61 @@ def obtener_contexto(usuario: dict) -> dict:
             "creado_por_nombre": t.get("creado_por_nombre") or "",
         }
         for t in (solic_raw or [])
-        if t.get("asignado_a") == usuario["id"]
+        if t.get("asignado_a") == usuario["id"] and t.get("estado") not in ("resuelto", "rechazado", "esperando_aprobacion")
     ][:5]
+
+    # Solicitudes que yo ejecuté y están esperando que el solicitante confirme
+    solicitudes_esperando_confirmacion = [
+        {
+            "id": t["id"],
+            "titulo": t["titulo"],
+            "numero": t.get("numero") or "",
+            "creado_por_nombre": t.get("creado_por_nombre") or "",
+        }
+        for t in (solic_raw or [])
+        if t.get("asignado_a") == usuario["id"] and t.get("estado") == "esperando_aprobacion"
+    ][:5]
+
+    # Solicitudes que yo creé y que esperan mi confirmación
+    solic_todas_raw = listar_tickets(usuario, {"tipo": "solicitud"}) or []
+    solicitudes_por_aprobar = [
+        {
+            "id": t["id"],
+            "titulo": t["titulo"],
+            "numero": t.get("numero") or "",
+            "asignado_a_nombre": t.get("asignado_a_nombre") or "",
+        }
+        for t in solic_todas_raw
+        if t.get("creado_por") == usuario["id"] and t.get("estado") == "esperando_aprobacion"
+    ][:3]
+
+    # Tickets donde el usuario es participante/colaborador (no executor ni solicitante)
+    from app.services.tickets_db import _conn
+    with _conn() as _db:
+        colab_rows = _db.execute("""
+            SELECT t.id, t.titulo, t.numero, t.estado,
+                   uc.nombre AS creado_por_nombre,
+                   ua.nombre AS asignado_a_nombre
+            FROM tickets t
+            JOIN ticket_participantes tp ON tp.ticket_id = t.id AND tp.usuario_id = ?
+            LEFT JOIN usuarios uc ON uc.id = t.creado_por
+            LEFT JOIN usuarios ua ON ua.id = t.asignado_a
+            WHERE t.asignado_a != ?
+              AND t.creado_por != ?
+              AND t.estado NOT IN ('resuelto', 'rechazado')
+            ORDER BY t.creado_en DESC
+            LIMIT 5
+        """, [usuario["id"], usuario["id"], usuario["id"]]).fetchall()
+    colaboraciones = [
+        {
+            "id": r["id"],
+            "titulo": r["titulo"],
+            "numero": r["numero"] or "",
+            "creado_por_nombre": r["creado_por_nombre"] or "",
+            "asignado_a_nombre": r["asignado_a_nombre"] or "",
+        }
+        for r in colab_rows
+    ]
 
     protos_raw = listar_protocolos(usuario)
     protocolos = []
@@ -106,7 +159,14 @@ def obtener_contexto(usuario: dict) -> dict:
             "lista_compras": compras,
         })
 
-    return {"acciones_activas": acciones, "protocolos": protocolos, "solicitudes_asignadas": solicitudes_asignadas}
+    return {
+        "acciones_activas": acciones,
+        "protocolos": protocolos,
+        "solicitudes_asignadas": solicitudes_asignadas,
+        "solicitudes_por_aprobar": solicitudes_por_aprobar,
+        "solicitudes_esperando_confirmacion": solicitudes_esperando_confirmacion,
+        "colaboraciones": colaboraciones,
+    }
 
 
 # ── Detección de intención ────────────────────────────────────────────────────
@@ -261,10 +321,10 @@ def generar_respuesta(
     ) or "ninguna"
 
     system = (
-        f"Sos Hugo García, asistente operativo de McKenna Group (Bogotá, Colombia). "
-        f"Ayudás a {nombre} a registrar su trabajo. "
-        f"Respondé en español colombiano, MUY breve (1 frase, sin markdown, sin listas). "
-        f"Si el usuario describe algo que va a hacer, confirmá brevemente y pedile que elija el procedimiento. "
+        f"Usted es Hugo García, asistente operativo de McKenna Group (Bogotá, Colombia). "
+        f"Le ayuda a {nombre} a registrar su trabajo. "
+        f"Responda en español rolo bogotano (use 'usted', 'listo', 'de una', 'pilas', 'veci'), MUY breve (1 frase, sin markdown, sin listas). "
+        f"Si el usuario describe algo que va a hacer, confirme brevemente y pídale que elija el procedimiento. "
         f"Acciones activas: {activas}. Procedimientos disponibles: {prots}."
     )
 

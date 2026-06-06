@@ -3054,6 +3054,11 @@ def pedir_intervencion(ticket_id: int, titulo: str, asignado_a: int,
         )
         _log(db, ticket_id, usuario_id, "estado_cambiado", t["estado"], "pendiente",
              f"Bloqueado — esperando intervención {numero}")
+        # Dar acceso al intervener al hilo del ticket padre para que vea el contexto
+        db.execute(
+            "INSERT OR IGNORE INTO ticket_participantes (ticket_id, usuario_id, rol) VALUES (?,?,?)",
+            (ticket_id, asignado_a, "colaborador"),
+        )
         db.commit()
 
     return get_ticket(ticket_id, {"id": usuario_id, "rol": {"nivel": 3}}), None
@@ -3549,16 +3554,32 @@ def listar_comentarios(ticket_id: int) -> list:
 
 
 def agregar_comentario(ticket_id: int, usuario_id: int,
-                       texto: str, es_interno: bool = False) -> bool:
+                       texto: str, es_interno: bool = False) -> int:
     with _conn() as db:
-        db.execute(
+        cur = db.execute(
             "INSERT INTO comentarios_tickets (ticket_id, usuario_id, texto, es_interno) VALUES (?,?,?,?)",
             (ticket_id, usuario_id, texto, 1 if es_interno else 0),
         )
+        new_id: int = cur.lastrowid
         _log(db, ticket_id, usuario_id, "comentario_agregado", detalles=texto[:100])
         db.execute("UPDATE tickets SET actualizado_en=datetime('now') WHERE id=?", (ticket_id,))
         db.commit()
-        return True
+        return new_id
+
+
+def eliminar_comentario(comentario_id: int, usuario_id: int) -> tuple[bool, str | None]:
+    with _conn() as db:
+        row = db.execute(
+            "SELECT ticket_id, usuario_id FROM comentarios_tickets WHERE id=?", (comentario_id,)
+        ).fetchone()
+        if not row:
+            return False, "Comentario no encontrado"
+        if row["usuario_id"] != usuario_id:
+            return False, "Sin permisos para eliminar este comentario"
+        db.execute("DELETE FROM comentarios_tickets WHERE id=?", (comentario_id,))
+        db.execute("UPDATE tickets SET actualizado_en=datetime('now') WHERE id=?", (row["ticket_id"],))
+        db.commit()
+        return True, None
 
 
 def registrar_tiempo(ticket_id: int, usuario_id: int,
