@@ -39,21 +39,75 @@ interface Evento {
 
 function formatJid(jid: string): string {
   const num = jid.replace(/@(c|g|lid)\.us$/, "").replace(/@lid$/, "");
-  if (num.startsWith("57") && num.length === 12) {
-    const local = num.slice(2);
-    return `${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+  const digits = num.replace(/\D/g, "");
+  if (digits.startsWith("57") && digits.length === 12 && digits[2] === "3") {
+    const local = digits.slice(2);
+    return `+57 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
   }
-  if (num.length === 10 && num.startsWith("3")) {
-    return `${num.slice(0, 3)} ${num.slice(3, 6)} ${num.slice(6)}`;
+  if (digits.length === 10 && digits.startsWith("3")) {
+    return `+57 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
   }
   if (jid.includes("@lid")) {
-    return `WA ${num.slice(0, 6)}…`;
+    return `Contacto WA · …${digits.slice(-6)}`;
+  }
+  if (digits.startsWith("57") && digits.length > 12) {
+    return `Contacto WA · …${digits.slice(-6)}`;
   }
   return num;
 }
 
-function etiquetaConversacion(conv: { jid: string; display?: string }): string {
-  return conv.display?.trim() || formatJid(conv.jid);
+function etiquetaConversacion(conv: {
+  jid: string;
+  display?: string;
+  telefono?: string | null;
+}): string {
+  if (conv.telefono?.trim()) return conv.telefono.trim();
+  const disp = conv.display?.trim();
+  if (disp && !disp.startsWith("Contacto WA")) return disp;
+  return formatJid(conv.jid);
+}
+
+type RemitenteTipo = "cliente" | "bot" | "asesor" | "salida";
+
+const REMITENTE_META: Record<
+  RemitenteTipo,
+  { label: string; preview: string; avatarBg: string; avatarText: string; bubbleOut: string }
+> = {
+  cliente: {
+    label: "Cliente",
+    preview: "Cliente:",
+    avatarBg: "bg-slate-500/25",
+    avatarText: "text-slate-300",
+    bubbleOut: "",
+  },
+  bot: {
+    label: "Bot Hugo",
+    preview: "Bot:",
+    avatarBg: "bg-emerald-500/25",
+    avatarText: "text-emerald-300",
+    bubbleOut: "bg-emerald-600/90 text-white rounded-tr-sm",
+  },
+  asesor: {
+    label: "Asesor",
+    preview: "Asesor:",
+    avatarBg: "bg-blue-500/25",
+    avatarText: "text-blue-300",
+    bubbleOut: "bg-blue-600/90 text-white rounded-tr-sm",
+  },
+  salida: {
+    label: "Salida",
+    preview: "↑",
+    avatarBg: "bg-accent/20",
+    avatarText: "text-accent",
+    bubbleOut: "bg-accent/80 text-white rounded-tr-sm",
+  },
+};
+
+function metaRemitentePreview(rem?: string): { preview: string; color: string } {
+  if (rem === "cliente") return { preview: "Cliente:", color: "text-slate-400" };
+  if (rem === "bot") return { preview: "Bot:", color: "text-emerald-400" };
+  if (rem === "asesor") return { preview: "Asesor:", color: "text-blue-400" };
+  return { preview: "", color: "text-muted" };
 }
 
 function tiempoRelativo(ts: number | null): string {
@@ -1044,12 +1098,15 @@ function TabInteracciones() {
 interface Conversacion {
   jid: string;
   display?: string;
+  telefono?: string | null;
+  es_lid?: boolean;
   jid_raw?: string;
   ts: number;
   texto: string | null;
   direccion: "entrada" | "salida";
   tiene_media: number;
   enviado_por: string;
+  ultimo_remitente?: RemitenteTipo;
   no_leidos: number;
   modo?: "bot" | "humano" | "silenciado";
 }
@@ -1068,6 +1125,13 @@ interface Mensaje {
   media_mime?: string;
 }
 
+function metaRemitenteMensaje(msg: Mensaje): typeof REMITENTE_META.cliente {
+  if (msg.direccion === "entrada") return REMITENTE_META.cliente;
+  if (msg.enviado_por === "bot") return REMITENTE_META.bot;
+  if (msg.enviado_por === "humano") return REMITENTE_META.asesor;
+  return REMITENTE_META.salida;
+}
+
 function modoBadge(modo: string) {
   if (modo === "humano")
     return <span className="text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5">HUMANO</span>;
@@ -1078,6 +1142,7 @@ function modoBadge(modo: string) {
 
 function ChatBubble({ msg }: { msg: Mensaje }) {
   const esEntrada = msg.direccion === "entrada";
+  const meta = metaRemitenteMensaje(msg);
   const hora = new Date(msg.ts * 1000).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaErr, setMediaErr] = useState(false);
@@ -1123,15 +1188,23 @@ function ChatBubble({ msg }: { msg: Mensaje }) {
   const textoVisible =
     msg.texto && msg.texto !== "[adjunto]" ? msg.texto : null;
 
+  const bubbleClass = esEntrada
+    ? "bg-surface-hover text-ink rounded-tl-sm border border-border/60"
+    : meta.bubbleOut || REMITENTE_META.salida.bubbleOut;
+
   return (
-    <div className={`flex ${esEntrada ? "justify-start" : "justify-end"}`}>
-      <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-snug ${
-        esEntrada
-          ? "bg-surface-hover text-ink rounded-tl-sm"
-          : msg.enviado_por === "humano"
-            ? "bg-blue-600/80 text-white rounded-tr-sm"
-            : "bg-accent/80 text-white rounded-tr-sm"
-      }`}>
+    <div className={`flex gap-2 ${esEntrada ? "justify-start" : "justify-end flex-row-reverse"}`}>
+      <div
+        className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5 ${meta.avatarBg} ${meta.avatarText}`}
+        title={meta.label}
+      >
+        {meta.label.slice(0, 1)}
+      </div>
+      <div className="max-w-[76%] min-w-0">
+        <p className={`text-[10px] font-semibold mb-0.5 ${esEntrada ? "text-slate-400" : meta.avatarText}`}>
+          {meta.label}
+        </p>
+        <div className={`rounded-2xl px-3.5 py-2 text-sm leading-snug ${bubbleClass}`}>
         {esImagen && mediaUrl && (
           <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="block mb-1.5">
             <img src={mediaUrl} alt={msg.nombre_arch || "Adjunto"} className="max-h-56 rounded-lg object-contain" />
@@ -1158,11 +1231,7 @@ function ChatBubble({ msg }: { msg: Mensaje }) {
         )}
         <div className={`flex items-center gap-1 mt-0.5 ${esEntrada ? "justify-start" : "justify-end"}`}>
           <span className={`text-[10px] ${esEntrada ? "text-muted" : "text-white/60"}`}>{hora}</span>
-          {!esEntrada && (
-            <span className={`text-[9px] ${esEntrada ? "text-muted" : "text-white/50"}`}>
-              {msg.enviado_por === "humano" ? "tú" : "bot"}
-            </span>
-          )}
+        </div>
         </div>
       </div>
     </div>
@@ -1434,6 +1503,8 @@ function TabChats() {
   const [cambiandoModo, setCambiandoModo] = useState(false);
   const [sincronizando, setSincronizando] = useState(false);
   const [displayActivo, setDisplayActivo] = useState("");
+  const [telefonoActivo, setTelefonoActivo] = useState<string | null>(null);
+  const [esLidActivo, setEsLidActivo] = useState(false);
   const bottomRef  = useRef<HTMLDivElement>(null);
   const pollMsgRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollLstRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -1451,12 +1522,20 @@ function TabChats() {
   // ── Cargar mensajes de la conversación activa ─────────────────────────────
   const cargarMensajes = useCallback(async (jid: string) => {
     try {
-      const d = await api.get<{ mensajes: Mensaje[]; modo: string; display?: string }>(
+      const d = await api.get<{
+        mensajes: Mensaje[];
+        modo: string;
+        display?: string;
+        telefono?: string | null;
+        es_lid?: boolean;
+      }>(
         `/api/bot/chats/${encodeURIComponent(jid)}`,
       );
       setMensajes(d.mensajes ?? []);
       setModoActivo(d.modo ?? "bot");
-      if (d.display) setDisplayActivo(d.display);
+      setTelefonoActivo(d.telefono ?? null);
+      setEsLidActivo(!!d.es_lid);
+      setDisplayActivo(d.telefono?.trim() || d.display?.trim() || formatJid(jid));
     } catch { /* silencioso */ }
   }, []);
 
@@ -1514,6 +1593,8 @@ function TabChats() {
 
   function abrirChat(conv: Conversacion) {
     setJidActivo(conv.jid);
+    setTelefonoActivo(conv.telefono ?? null);
+    setEsLidActivo(!!conv.es_lid);
     setDisplayActivo(etiquetaConversacion(conv));
     setTexto("");
     setErrorEnvio("");
@@ -1585,7 +1666,11 @@ function TabChats() {
               <p className="text-xs text-muted mt-1">Los mensajes aparecerán aquí cuando los clientes escriban</p>
             </div>
           ) : (
-            conversaciones.map((conv) => (
+            conversaciones.map((conv) => {
+              const previewMeta = metaRemitentePreview(conv.ultimo_remitente);
+              const previewTexto =
+                conv.tiene_media && !conv.texto ? "📎 Adjunto" : (conv.texto ?? "—");
+              return (
               <button
                 key={conv.jid}
                 onClick={() => abrirChat(conv)}
@@ -1595,16 +1680,21 @@ function TabChats() {
               >
                 {/* Avatar */}
                 <div className="shrink-0 w-9 h-9 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold">
-                  {etiquetaConversacion(conv).slice(0, 1)}
+                  {etiquetaConversacion(conv).replace(/\D/g, "").slice(-2) || etiquetaConversacion(conv).slice(0, 1)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1 flex-wrap">
                     <span className="text-xs font-semibold text-ink truncate">{etiquetaConversacion(conv)}</span>
+                    {conv.es_lid && !conv.telefono && (
+                      <span className="text-[8px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/25 rounded px-1">LID</span>
+                    )}
                     {modoBadge(conv.modo ?? "bot")}
                   </div>
                   <p className="text-[11px] text-muted truncate mt-0.5">
-                    {conv.direccion === "salida" ? "↑ " : ""}
-                    {conv.tiene_media && !conv.texto ? "📎 Adjunto" : (conv.texto ?? "—")}
+                    {previewMeta.preview && (
+                      <span className={`font-semibold ${previewMeta.color}`}>{previewMeta.preview} </span>
+                    )}
+                    {previewTexto}
                   </p>
                   <p className="text-[10px] text-muted mt-0.5">{tiempoRelativo(conv.ts)}</p>
                 </div>
@@ -1614,7 +1704,8 @@ function TabChats() {
                   </span>
                 )}
               </button>
-            ))
+            );
+            })
           )}
         </div>
       </div>
@@ -1635,12 +1726,21 @@ function TabChats() {
             <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-surface-panel shrink-0">
               <button onClick={volverALista} className="md:hidden text-muted hover:text-ink transition text-lg leading-none">‹</button>
               <div className="w-8 h-8 rounded-full bg-accent/20 text-accent flex items-center justify-center text-sm font-bold shrink-0">
-                {(displayActivo || formatJid(jidActivo)).slice(0, 1)}
+                {(telefonoActivo || displayActivo || formatJid(jidActivo)).replace(/\D/g, "").slice(-2) || "?"}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-ink truncate">{displayActivo || formatJid(jidActivo)}</p>
+                <p className="text-sm font-semibold text-ink truncate">
+                  {telefonoActivo || displayActivo || formatJid(jidActivo)}
+                </p>
+                {esLidActivo && !telefonoActivo && (
+                  <p className="text-[10px] text-amber-400">
+                    Teléfono no resuelto — pulsa ↻ Actualizar tras un mensaje del cliente
+                  </p>
+                )}
                 {jidActivo.includes("@lid") && (
-                  <p className="text-[10px] text-muted font-mono truncate">{jidActivo}</p>
+                  <p className="text-[10px] text-muted font-mono truncate" title={jidActivo}>
+                    ID interno: …{jidActivo.split("@")[0].slice(-8)}
+                  </p>
                 )}
                 <div className="flex items-center gap-1.5 mt-0.5">{modoBadge(modoActivo)}</div>
               </div>

@@ -1434,3 +1434,41 @@ def test_meli_pack_tiene_documento_fiscal(monkeypatch) -> None:
     assert meli_svc.meli_pack_tiene_documento_fiscal("222", token="tok") is False
     assert meli_svc.meli_pack_tiene_documento_fiscal("333", token="tok") is False
 
+
+def test_wa_jid_telefono_colombia_valido() -> None:
+    from app.services.wa_jid import (
+        es_alias_telefono_falso,
+        es_telefono_jid_valido,
+        info_contacto_jid,
+        registrar_alias_lid,
+        telefono_desde_jid,
+    )
+
+    ok = "573012345678@c.us"
+    assert es_telefono_jid_valido(ok) is True
+    assert telefono_desde_jid(ok) == "+57 301 234 5678"
+    assert info_contacto_jid(ok)["display"] == "+57 301 234 5678"
+
+    lid = "73031707820119@lid"
+    falso = "5773031707820119@c.us"
+    assert es_telefono_jid_valido(falso) is False
+    assert es_alias_telefono_falso(lid, falso) is True
+    registrar_alias_lid(lid, falso)
+    assert info_contacto_jid(lid)["telefono"] is None
+
+
+def test_wa_chats_no_degrada_bot_a_humano(tmp_path, monkeypatch) -> None:
+    import app.services.wa_chats as wc
+
+    db = tmp_path / "wa_test.db"
+    monkeypatch.setattr(wc, "_DB", str(db))
+    wc._init()
+
+    jid = "573001112233@c.us"
+    wc.guardar(jid, "salida", texto="respuesta bot", enviado_por="bot", wa_id="wa-bot-1")
+    wc.guardar(jid, "salida", texto="respuesta bot", enviado_por="humano", wa_id="wa-bot-1")
+
+    msgs = wc.listar_mensajes(jid, limit=5)
+    assert len(msgs) == 1
+    assert msgs[0]["enviado_por"] == "bot"
+
