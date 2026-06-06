@@ -771,6 +771,22 @@ def register_tickets_routes(app):
             return jsonify({"error": "No encontrado o sin acceso"}), 404
         return jsonify(t), 200
 
+    @app.route("/api/tickets/<int:ticket_id>/sub-tickets", methods=["GET"])
+    @_auth
+    def tickets_sub_tickets(ticket_id):
+        from app.services.tickets_db import _conn
+        with _conn() as db:
+            rows = db.execute("""
+                SELECT t.id, t.titulo, t.numero, t.estado,
+                       t.asignado_a, ua.nombre AS asignado_a_nombre,
+                       t.resuelto_en, t.actualizado_en, t.creado_en
+                FROM tickets t
+                LEFT JOIN usuarios ua ON ua.id = t.asignado_a
+                WHERE t.ticket_padre_id = ?
+                ORDER BY t.creado_en ASC
+            """, (ticket_id,)).fetchall()
+            return jsonify([dict(r) for r in rows])
+
     @app.route("/api/tickets/<int:ticket_id>", methods=["PUT"])
     @_auth
     def tickets_actualizar(ticket_id):

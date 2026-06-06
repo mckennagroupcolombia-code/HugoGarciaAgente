@@ -3383,19 +3383,21 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         # Si este ticket era una intervención, propagar la respuesta al ticket padre
         padre_id = t.get("ticket_padre_id")
         if nuevo_estado == "resuelto" and padre_id:
+            # Usar el asignado_a (ejecutor real) para la atribución, no el uid del aprobador
+            interventor_id = t.get("asignado_a") or uid
             # Recuperar el último comentario del interventor (la respuesta que escribió)
             ultimo_com = db.execute(
                 "SELECT texto FROM comentarios_tickets "
                 "WHERE ticket_id=? AND usuario_id=? "
                 "ORDER BY creado_en DESC LIMIT 1",
-                (ticket_id, uid),
+                (ticket_id, interventor_id),
             ).fetchone()
             if ultimo_com:
                 resp_texto = ultimo_com["texto"]
             else:
                 resp_texto = t.get("titulo") or "Intervención resuelta"
             u_nombre = db.execute(
-                "SELECT nombre FROM usuarios WHERE id=?", (uid,)
+                "SELECT nombre FROM usuarios WHERE id=?", (interventor_id,)
             ).fetchone()
             nombre = u_nombre["nombre"] if u_nombre else "Interventor"
             inter_num = t.get("numero", "")

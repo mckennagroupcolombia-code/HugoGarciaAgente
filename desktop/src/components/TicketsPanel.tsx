@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, useId, createContext, useContext, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAppStore, type TicketsBootView } from "../stores/app";
 import {
@@ -20601,6 +20602,208 @@ function AccionesView({
   );
 }
 
+// ── Modal de recorte de imagen ────────────────────────────────────────────────
+
+function CropperModal({ file, onConfirmar, onCancelar }: {
+  file: File;
+  onConfirmar: (cropped: File) => void;
+  onCancelar: () => void;
+}) {
+  const [imgSrc, setImgSrc] = useState("");
+  const [crop, setCrop] = useState({ x: 0.05, y: 0.05, w: 0.90, h: 0.90 });
+  const [imgRect, setImgRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const [aplicando, setAplicando] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef<{
+    handle: string;
+    startClientX: number; startClientY: number;
+    startCrop: { x: number; y: number; w: number; h: number };
+  } | null>(null);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setImgSrc(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  const calcImgRect = useCallback(() => {
+    const img = imgRef.current;
+    const container = containerRef.current;
+    if (!img || !container || !img.naturalWidth) return;
+    const cW = container.clientWidth;
+    const cH = container.clientHeight;
+    const ia = img.naturalWidth / img.naturalHeight;
+    const ca = cW / cH;
+    let dW: number, dH: number, dX: number, dY: number;
+    if (ia > ca) { dW = cW; dH = cW / ia; dX = 0; dY = (cH - dH) / 2; }
+    else { dH = cH; dW = cH * ia; dX = (cW - dW) / 2; dY = 0; }
+    setImgRect({ left: dX, top: dY, width: dW, height: dH });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("resize", calcImgRect);
+    return () => window.removeEventListener("resize", calcImgRect);
+  }, [calcImgRect]);
+
+  function onPointerDown(handle: string, e: React.PointerEvent) {
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragging.current = {
+      handle,
+      startClientX: e.clientX, startClientY: e.clientY,
+      startCrop: { ...crop },
+    };
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!dragging.current || !imgRect) return;
+    const ddx = (e.clientX - dragging.current.startClientX) / imgRect.width;
+    const ddy = (e.clientY - dragging.current.startClientY) / imgRect.height;
+    const { handle, startCrop: sc } = dragging.current;
+    const MIN = 0.08;
+    let { x, y, w, h } = sc;
+
+    if (handle === "move") {
+      x = Math.max(0, Math.min(1 - w, x + ddx));
+      y = Math.max(0, Math.min(1 - h, y + ddy));
+    } else if (handle === "tl") {
+      const nx = Math.min(sc.x + sc.w - MIN, sc.x + ddx);
+      const ny = Math.min(sc.y + sc.h - MIN, sc.y + ddy);
+      w = sc.w + (sc.x - nx); h = sc.h + (sc.y - ny); x = nx; y = ny;
+    } else if (handle === "tr") {
+      const ny = Math.min(sc.y + sc.h - MIN, sc.y + ddy);
+      w = Math.max(MIN, sc.w + ddx); h = sc.h + (sc.y - ny); y = ny;
+    } else if (handle === "bl") {
+      const nx = Math.min(sc.x + sc.w - MIN, sc.x + ddx);
+      w = sc.w + (sc.x - nx); h = Math.max(MIN, sc.h + ddy); x = nx;
+    } else if (handle === "br") {
+      w = Math.max(MIN, sc.w + ddx); h = Math.max(MIN, sc.h + ddy);
+    }
+
+    x = Math.max(0, x); y = Math.max(0, y);
+    w = Math.min(1 - x, w); h = Math.min(1 - y, h);
+    setCrop({ x, y, w, h });
+  }
+
+  function onPointerUp() { dragging.current = null; }
+
+  async function aplicarRecorte() {
+    const img = imgRef.current;
+    if (!img) return;
+    setAplicando(true);
+    try {
+      const canvas = document.createElement("canvas");
+      const sx = Math.round(crop.x * img.naturalWidth);
+      const sy = Math.round(crop.y * img.naturalHeight);
+      const sw = Math.round(crop.w * img.naturalWidth);
+      const sh = Math.round(crop.h * img.naturalHeight);
+      canvas.width = sw; canvas.height = sh;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+      await new Promise<void>(resolve => {
+        canvas.toBlob(blob => {
+          if (!blob) { resolve(); return; }
+          const nombre = file.name.replace(/\.[^.]+$/, "") + "_recortada.jpg";
+          onConfirmar(new File([blob], nombre, { type: "image/jpeg" }));
+          resolve();
+        }, "image/jpeg", 0.92);
+      });
+    } finally {
+      setAplicando(false);
+    }
+  }
+
+  const H = 36;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col">
+      <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-black/90 pt-safe">
+        <button onClick={onCancelar}
+          className="text-white/70 text-sm px-4 py-2 rounded-xl bg-white/10 active:bg-white/20">
+          Cancelar
+        </button>
+        <span className="text-white text-sm font-semibold">Recortar imagen</span>
+        <button onClick={aplicarRecorte} disabled={aplicando}
+          className="text-white text-sm font-semibold px-4 py-2 rounded-xl bg-accent active:opacity-80 disabled:opacity-50">
+          {aplicando ? "…" : "Listo"}
+        </button>
+      </div>
+
+      <div
+        ref={containerRef}
+        className="flex-1 relative overflow-hidden select-none touch-none"
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+      >
+        {imgSrc && (
+          <img
+            ref={imgRef}
+            src={imgSrc}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+            draggable={false}
+            onLoad={calcImgRect}
+          />
+        )}
+
+        {imgRect && (() => {
+          const cx = imgRect.left + crop.x * imgRect.width;
+          const cy = imgRect.top + crop.y * imgRect.height;
+          const cw = crop.w * imgRect.width;
+          const ch = crop.h * imgRect.height;
+          return (
+            <>
+              {/* Oscurecer áreas fuera del recorte */}
+              <div className="absolute bg-black/55 pointer-events-none" style={{ left: imgRect.left, top: imgRect.top, width: imgRect.width, height: cy - imgRect.top }} />
+              <div className="absolute bg-black/55 pointer-events-none" style={{ left: imgRect.left, top: cy + ch, width: imgRect.width, height: imgRect.top + imgRect.height - cy - ch }} />
+              <div className="absolute bg-black/55 pointer-events-none" style={{ left: imgRect.left, top: cy, width: cx - imgRect.left, height: ch }} />
+              <div className="absolute bg-black/55 pointer-events-none" style={{ left: cx + cw, top: cy, width: imgRect.left + imgRect.width - cx - cw, height: ch }} />
+
+              {/* Borde del recorte */}
+              <div className="absolute border border-white/80 pointer-events-none box-border" style={{ left: cx, top: cy, width: cw, height: ch }} />
+
+              {/* Líneas de tercios */}
+              <div className="absolute pointer-events-none overflow-hidden" style={{ left: cx, top: cy, width: cw, height: ch }}>
+                <div className="absolute bg-white/25 w-px inset-y-0" style={{ left: "33.33%" }} />
+                <div className="absolute bg-white/25 w-px inset-y-0" style={{ left: "66.66%" }} />
+                <div className="absolute bg-white/25 h-px inset-x-0" style={{ top: "33.33%" }} />
+                <div className="absolute bg-white/25 h-px inset-x-0" style={{ top: "66.66%" }} />
+              </div>
+
+              {/* Área de arrastre (mover recorte) */}
+              <div
+                className="absolute cursor-move touch-none"
+                style={{ left: cx, top: cy, width: cw, height: ch }}
+                onPointerDown={e => onPointerDown("move", e)}
+              />
+
+              {/* Esquinas */}
+              {([["tl", cx, cy], ["tr", cx + cw, cy], ["bl", cx, cy + ch], ["br", cx + cw, cy + ch]] as [string, number, number][]).map(([corner, hx, hy]) => (
+                <div
+                  key={corner}
+                  className="absolute touch-none flex items-center justify-center"
+                  style={{ left: hx - H / 2, top: hy - H / 2, width: H, height: H }}
+                  onPointerDown={e => onPointerDown(corner, e)}
+                >
+                  <div className="w-5 h-5 rounded-full bg-white shadow-xl"
+                    style={{ border: "2.5px solid var(--color-accent, #3b82f6)" }} />
+                </div>
+              ))}
+            </>
+          );
+        })()}
+      </div>
+
+      <div className="shrink-0 py-2.5 text-center text-white/40 text-xs pb-safe">
+        Arrastra las esquinas para ajustar el recorte
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // ── Botón cámara (acción en ejecución) ───────────────────────────────────────
 
 function BotonCamaraEjecucion({ onFile, title = "Tomar foto" }: { onFile: (file: File) => void; title?: string }) {
@@ -20862,7 +21065,7 @@ function EjecucionAccionChat({
   onVolver: () => void;
   onTerminado: () => void;
 }) {
-  type Nota = { id: number; texto: string; fotoUrl?: string; tipo: "texto" | "foto"; serverItemId?: number; guardando?: boolean; errorGuarda?: boolean; eliminando?: boolean };
+  type Nota = { id: number; texto: string; fotoUrl?: string; tipo: "texto" | "foto" | "sistema"; serverItemId?: number; guardando?: boolean; errorGuarda?: boolean; eliminando?: boolean };
 
   const SECS_KEY = `mckenna-accion-secs-${accion.id}`;
   const [notas, setNotas] = useState<Nota[]>([]);
@@ -20923,12 +21126,42 @@ function EjecucionAccionChat({
               serverItemId: a.id,
             }});
           } else {
-            // Archivo no-imagen: mostrar como texto con nombre
             items.push({ creado_en: a.creado_en, nota: {
               id: ++localId, texto: `📎 ${a.nombre_original}`, tipo: "texto", serverItemId: a.id,
             }});
           }
         }
+
+        // Cargar hilos de sub-tickets (intervenciones resueltas)
+        try {
+          const resSubTkts = await fetch(`/api/tickets/${accion.id}/sub-tickets`, { headers: { Authorization: `Bearer ${token}` } });
+          const subTkts: Array<{ id: number; numero: string; estado: string; asignado_a_nombre: string; resuelto_en: string }> =
+            resSubTkts.ok ? await resSubTkts.json() : [];
+          for (const sub of subTkts.filter(s => s.estado === "resuelto")) {
+            const [rSubComs, rSubAdjs] = await Promise.all([
+              fetch(`/api/tickets/${sub.id}/comentarios`, { headers: { Authorization: `Bearer ${token}` } }),
+              fetch(`/api/tickets/${sub.id}/adjuntos`,   { headers: { Authorization: `Bearer ${token}` } }),
+            ]);
+            const subComs: ComRow[] = rSubComs.ok ? await rSubComs.json() : [];
+            const subAdjs: AdjRow[] = rSubAdjs.ok ? await rSubAdjs.json() : [];
+            const ts = sub.resuelto_en || "";
+            items.push({ creado_en: ts, nota: {
+              id: ++localId, texto: `🔧 ${sub.numero} — ${sub.asignado_a_nombre}`, tipo: "sistema",
+            }});
+            for (const c of subComs) {
+              items.push({ creado_en: c.creado_en, nota: { id: ++localId, texto: c.texto, tipo: "texto" } });
+            }
+            for (const a of subAdjs) {
+              if ((a.mime ?? "").startsWith("image/")) {
+                items.push({ creado_en: a.creado_en, nota: {
+                  id: ++localId, texto: "", tipo: "foto",
+                  fotoUrl: ticketsUploadUrl(a.nombre_archivo, token),
+                }});
+              }
+            }
+          }
+        } catch { /* silencioso */ }
+
         items.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
         notaIdRef.current = localId;
         setNotas(items.map(i => i.nota));
@@ -20997,8 +21230,10 @@ function EjecucionAccionChat({
     }
   }
 
+  const [cropFile, setCropFile] = useState<File | null>(null);
+
   function onFotoSeleccionada(file: File) {
-    void agregarNota("", file, URL.createObjectURL(file));
+    setCropFile(file);
   }
 
   function handlePaste(e: React.ClipboardEvent) {
@@ -21007,7 +21242,7 @@ function EjecucionAccionChat({
     if (!imgItem) return;
     e.preventDefault();
     const file = imgItem.getAsFile();
-    if (file) onFotoSeleccionada(new File([file], `captura-${Date.now()}.png`, { type: file.type }));
+    if (file) setCropFile(new File([file], `captura-${Date.now()}.png`, { type: file.type }));
   }
 
   async function terminar() {
@@ -21053,7 +21288,18 @@ function EjecucionAccionChat({
   }
 
   return (
-    // onPaste en el contenedor: captura Ctrl+V con imagen desde cualquier lugar de la vista
+    <>
+      {cropFile && (
+        <CropperModal
+          file={cropFile}
+          onConfirmar={croppedFile => {
+            setCropFile(null);
+            void agregarNota("", croppedFile, URL.createObjectURL(croppedFile));
+          }}
+          onCancelar={() => setCropFile(null)}
+        />
+      )}
+    {/* onPaste en el contenedor: captura Ctrl+V con imagen desde cualquier lugar de la vista */}
     <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink" onPaste={handlePaste}>
       {/* Header con cronómetro */}
       <div className="shrink-0 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
@@ -21090,6 +21336,15 @@ function EjecucionAccionChat({
         {(() => {
           let pasoNum = 0;
           return notas.map(nota => {
+            if (nota.tipo === "sistema") {
+              return (
+                <div key={nota.id} className="flex items-center gap-2 py-1">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[10px] font-bold text-muted uppercase tracking-wide px-2 shrink-0">{nota.texto}</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              );
+            }
             if (nota.tipo === "texto") pasoNum++;
             const label = nota.tipo === "texto" ? `Paso ${pasoNum}` : null;
             return (
@@ -21179,6 +21434,199 @@ function EjecucionAccionChat({
       )}
       </div>
     </div>
+    </>
+  );
+}
+
+// ── RevisionSolicitudView ─────────────────────────────────────────────────────
+
+function RevisionSolicitudView({
+  token, solicitud, onVolver, onConfirmar, onPedirAjustes,
+}: {
+  token: string;
+  solicitud: { id: number; titulo: string; numero: string; asignado_a_nombre: string };
+  onVolver: () => void;
+  onConfirmar: () => Promise<void>;
+  onPedirAjustes: (motivo: string) => Promise<void>;
+}) {
+  type NotaRev = { id: number; texto: string; fotoUrl?: string; autorNombre?: string };
+  const [notas, setNotas] = useState<NotaRev[]>([]);
+  const [descripcion, setDescripcion] = useState("");
+  const [cargando, setCargando] = useState(true);
+  const [confirmando, setConfirmando] = useState(false);
+  const [showRechazo, setShowRechazo] = useState(false);
+  const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [rechazando, setRechazando] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [notas]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function cargar() {
+      setCargando(true);
+      try {
+        const hdrs = { Authorization: `Bearer ${token}` };
+        const [resTkt, resComs, resAdjs] = await Promise.all([
+          fetch(`/api/tickets/${solicitud.id}`,             { headers: hdrs }),
+          fetch(`/api/tickets/${solicitud.id}/comentarios`, { headers: hdrs }),
+          fetch(`/api/tickets/${solicitud.id}/adjuntos`,    { headers: hdrs }),
+        ]);
+        if (cancelled) return;
+        type ComRow = { id: number; texto: string; creado_en: string; autor_nombre?: string };
+        type AdjRow = { id: number; nombre_archivo: string; mime: string | null; nombre_original: string; creado_en: string; creado_por_nombre?: string };
+        const tkt: { descripcion?: string } = resTkt.ok ? await resTkt.json() : {};
+        const coms: ComRow[] = resComs.ok ? await resComs.json() : [];
+        const adjs: AdjRow[] = resAdjs.ok ? await resAdjs.json() : [];
+        if (tkt.descripcion?.trim()) setDescripcion(tkt.descripcion.trim());
+        const items: Array<{ creado_en: string; nota: NotaRev }> = [];
+        let lid = 0;
+        for (const c of coms) {
+          items.push({ creado_en: c.creado_en, nota: { id: ++lid, texto: c.texto, autorNombre: c.autor_nombre } });
+        }
+        for (const a of adjs) {
+          const esImg = (a.mime ?? "").startsWith("image/");
+          if (esImg) {
+            items.push({ creado_en: a.creado_en, nota: {
+              id: ++lid, texto: "", autorNombre: a.creado_por_nombre,
+              fotoUrl: ticketsUploadUrl(a.nombre_archivo, token),
+            }});
+          } else {
+            items.push({ creado_en: a.creado_en, nota: {
+              id: ++lid, texto: `📎 ${a.nombre_original}`, autorNombre: a.creado_por_nombre,
+            }});
+          }
+        }
+        items.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
+        setNotas(items.map(i => i.nota));
+      } catch { /* silencioso */ }
+      finally { if (!cancelled) setCargando(false); }
+    }
+    void cargar();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solicitud.id]);
+
+  return (
+    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
+      {/* Header */}
+      <div className="shrink-0 flex items-start gap-3 px-4 py-3 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
+        <button type="button" onClick={onVolver}
+          className="mt-0.5 flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0">‹</button>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-0.5">⏳ Revisar y confirmar</p>
+          <p className="text-base font-extrabold text-ink leading-snug line-clamp-2 tracking-tight">{solicitud.titulo}</p>
+          {solicitud.asignado_a_nombre && (
+            <p className="text-sm font-bold text-muted mt-0.5">Resolvió: {solicitud.asignado_a_nombre}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Hilo */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-gray-950">
+        {/* Tarjeta de contexto */}
+        <div className="rounded-2xl border-2 border-amber-300/60 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="h-6 w-6 shrink-0 rounded-full bg-amber-500 text-white text-[11px] font-black flex items-center justify-center">
+              {solicitud.asignado_a_nombre?.charAt(0)?.toUpperCase() ?? "?"}
+            </span>
+            <p className="text-[11px] font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+              {solicitud.asignado_a_nombre} · {solicitud.numero}
+            </p>
+          </div>
+          <p className="text-sm font-bold text-amber-900 dark:text-amber-200 leading-snug">{solicitud.titulo}</p>
+          {descripcion && descripcion !== solicitud.titulo && (
+            <p className="text-sm text-amber-800/80 dark:text-amber-300/70 leading-relaxed whitespace-pre-wrap">{descripcion}</p>
+          )}
+        </div>
+
+        {cargando && (
+          <div className="flex items-center justify-center py-10 gap-2">
+            {[0,1,2].map(i => <span key={i} className="block h-2.5 w-2.5 rounded-full bg-accent animate-bounce" style={{ animationDelay: `${i*150}ms` }}/>)}
+          </div>
+        )}
+
+        {!cargando && notas.length === 0 && (
+          <p className="text-center py-8 text-sm text-gray-400 dark:text-white/40">
+            No se registraron notas ni fotos durante la ejecución.
+          </p>
+        )}
+
+        {notas.map(nota => (
+          <div key={nota.id} className="flex justify-start">
+            <div className="max-w-[88%] space-y-1">
+              {nota.autorNombre && (
+                <p className="text-[10px] font-extrabold text-accent uppercase tracking-wide px-1">{nota.autorNombre}</p>
+              )}
+              {nota.fotoUrl && (
+                <img src={nota.fotoUrl} alt="foto"
+                  className="rounded-xl w-full max-w-xs border border-gray-200 dark:border-white/10 object-cover" />
+              )}
+              {nota.texto && (
+                <div className="rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed bg-surface-panel border-2 border-border text-ink">
+                  {nota.texto}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Pie: confirmar / pedir ajustes */}
+      <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-4 py-3 pb-safe space-y-2">
+        {showRechazo ? (
+          <div className="space-y-2">
+            <p className="text-xs font-extrabold uppercase tracking-wide text-muted">¿Qué necesita ajustar?</p>
+            <textarea
+              value={motivoRechazo}
+              onChange={e => setMotivoRechazo(e.target.value)}
+              placeholder="Explica qué faltó o qué debe corregirse…"
+              rows={2}
+              className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-accent transition resize-none"
+            />
+            <div className="flex gap-2">
+              <button type="button"
+                onClick={() => { setShowRechazo(false); setMotivoRechazo(""); }}
+                className="flex-1 rounded-2xl border-2 border-border py-2.5 text-sm font-bold text-muted transition hover:bg-surface-hover">
+                Cancelar
+              </button>
+              <button type="button"
+                disabled={rechazando}
+                onClick={async () => {
+                  setRechazando(true);
+                  await onPedirAjustes(motivoRechazo);
+                  setRechazando(false);
+                }}
+                className="flex-1 rounded-2xl bg-amber-500 hover:bg-amber-400 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
+                {rechazando ? "Enviando…" : "↩️ Devolver para ajustes"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <button type="button"
+              onClick={() => setShowRechazo(true)}
+              className="flex-1 rounded-2xl border-2 border-amber-400 py-3 text-sm font-extrabold text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-950/30 active:scale-[0.98]">
+              ↩️ Pedir ajustes
+            </button>
+            <button type="button"
+              disabled={confirmando}
+              onClick={async () => {
+                setConfirmando(true);
+                await onConfirmar();
+                setConfirmando(false);
+              }}
+              className="flex-2 flex-grow-[2] rounded-2xl bg-green-500 hover:bg-green-400 py-3 text-sm font-extrabold text-white transition active:scale-[0.98] shadow-lg disabled:opacity-50">
+              {confirmando ? "Confirmando…" : "✅ Confirmar — todo listo"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -21194,7 +21642,7 @@ function ResolverActividadChat({
   onVolver: () => void;
   onTerminado: () => void;
 }) {
-  type Nota = { id: number; texto: string; fotoUrl?: string; autorNombre?: string; esSolicitante?: boolean; guardando?: boolean; errorGuarda?: boolean };
+  type Nota = { id: number; texto: string; fotoUrl?: string; autorNombre?: string; esSolicitante?: boolean; tipo?: "texto" | "foto" | "sistema"; serverItemId?: number; guardando?: boolean; errorGuarda?: boolean; eliminando?: boolean };
   const { user: currentUser } = useTicketsAuth();
   const [notas, setNotas] = useState<Nota[]>([]);
   const [cargandoNotas, setCargandoNotas] = useState(true);
@@ -21321,6 +21769,7 @@ function ResolverActividadChat({
           const esSol = !!nombreSol && autor.trim().toLowerCase() === nombreSol;
           items.push({ creado_en: c.creado_en, nota: {
             id: ++localId, texto: c.texto, autorNombre: autor, esSolicitante: esSol,
+            tipo: "texto", serverItemId: c.id,
           }});
         }
         for (const a of adjs) {
@@ -21331,13 +21780,49 @@ function ResolverActividadChat({
             items.push({ creado_en: a.creado_en, nota: {
               id: ++localId, texto: "", autorNombre: autor, esSolicitante: esSol,
               fotoUrl: ticketsUploadUrl(a.nombre_archivo, token),
+              tipo: "foto", serverItemId: a.id,
             }});
           } else {
             items.push({ creado_en: a.creado_en, nota: {
               id: ++localId, texto: `📎 ${a.nombre_original}`, autorNombre: autor, esSolicitante: esSol,
+              tipo: "texto", serverItemId: a.id,
             }});
           }
         }
+
+        // Cargar hilos de sub-tickets (intervenciones resueltas por terceros)
+        try {
+          const resSubTkts = await fetch(`/api/tickets/${solicitud.id}/sub-tickets`, { headers: hdrs });
+          const subTkts: Array<{ id: number; numero: string; estado: string; asignado_a_nombre: string; resuelto_en: string }> =
+            resSubTkts.ok ? await resSubTkts.json() : [];
+          for (const sub of subTkts.filter(s => s.estado === "resuelto")) {
+            const [rSubComs, rSubAdjs] = await Promise.all([
+              fetch(`/api/tickets/${sub.id}/comentarios`, { headers: hdrs }),
+              fetch(`/api/tickets/${sub.id}/adjuntos`,   { headers: hdrs }),
+            ]);
+            const subComs: ComRow[] = rSubComs.ok ? await rSubComs.json() : [];
+            const subAdjs: AdjRow[] = rSubAdjs.ok ? await rSubAdjs.json() : [];
+            items.push({ creado_en: sub.resuelto_en || "", nota: {
+              id: ++localId, texto: `🔧 ${sub.numero} — ${sub.asignado_a_nombre}`, tipo: "sistema",
+            }});
+            for (const c of subComs) {
+              items.push({ creado_en: c.creado_en, nota: {
+                id: ++localId, texto: c.texto, autorNombre: c.autor_nombre ?? sub.asignado_a_nombre,
+                esSolicitante: false, tipo: "texto",
+              }});
+            }
+            for (const a of subAdjs) {
+              if ((a.mime ?? "").startsWith("image/")) {
+                items.push({ creado_en: a.creado_en, nota: {
+                  id: ++localId, texto: "", autorNombre: a.creado_por_nombre ?? sub.asignado_a_nombre,
+                  esSolicitante: false, tipo: "foto",
+                  fotoUrl: ticketsUploadUrl(a.nombre_archivo, token),
+                }});
+              }
+            }
+          }
+        } catch { /* silencioso */ }
+
         items.sort((a, b) => a.creado_en.localeCompare(b.creado_en));
         notaIdRef.current = localId;
         setNotas(items.map(i => i.nota));
@@ -21355,6 +21840,7 @@ function ResolverActividadChat({
     setNotas(prev => [...prev, { id: nid, texto: texto.trim(), fotoUrl, guardando: true }]);
     setInputNota("");
     try {
+      let serverItemId: number | undefined;
       if (fotoFile) {
         const fd = new FormData();
         fd.append("archivo", fotoFile);
@@ -21362,6 +21848,9 @@ function ResolverActividadChat({
           method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
         });
         if (!res.ok) throw new Error("upload");
+        const json = await res.json();
+        serverItemId = json.id;
+        setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false, tipo: "foto", serverItemId } : n));
       } else if (texto.trim()) {
         const res = await fetch(`/api/tickets/${solicitud.id}/comentarios`, {
           method: "POST",
@@ -21369,15 +21858,34 @@ function ResolverActividadChat({
           body: JSON.stringify({ texto: texto.trim() }),
         });
         if (!res.ok) throw new Error("comment");
+        const json = await res.json();
+        serverItemId = json.id;
+        setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false, tipo: "texto", serverItemId } : n));
       }
-      setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false } : n));
     } catch {
       setNotas(prev => prev.map(n => n.id === nid ? { ...n, guardando: false, errorGuarda: true } : n));
     }
   }
 
+  async function eliminarNota(nota: Nota) {
+    if (!nota.serverItemId || nota.guardando || nota.eliminando) return;
+    setNotas(prev => prev.map(n => n.id === nota.id ? { ...n, eliminando: true } : n));
+    try {
+      const url = nota.tipo === "foto"
+        ? `/api/tickets/adjuntos/${nota.serverItemId}`
+        : `/api/tickets/comentarios/${nota.serverItemId}`;
+      const res = await fetch(url, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("delete");
+      setNotas(prev => prev.filter(n => n.id !== nota.id));
+    } catch {
+      setNotas(prev => prev.map(n => n.id === nota.id ? { ...n, eliminando: false } : n));
+    }
+  }
+
+  const [cropFile, setCropFile] = useState<File | null>(null);
+
   function onFotoSeleccionada(file: File) {
-    void agregarNota("", file, URL.createObjectURL(file));
+    setCropFile(file);
   }
 
   function handlePaste(e: React.ClipboardEvent) {
@@ -21386,7 +21894,7 @@ function ResolverActividadChat({
     if (!imgItem) return;
     e.preventDefault();
     const file = imgItem.getAsFile();
-    if (file) onFotoSeleccionada(new File([file], `captura-${Date.now()}.png`, { type: file.type }));
+    if (file) setCropFile(new File([file], `captura-${Date.now()}.png`, { type: file.type }));
   }
 
   async function cargarUsuarios() {
@@ -21556,6 +22064,17 @@ function ResolverActividadChat({
   }
 
   return (
+    <>
+      {cropFile && (
+        <CropperModal
+          file={cropFile}
+          onConfirmar={croppedFile => {
+            setCropFile(null);
+            void agregarNota("", croppedFile, URL.createObjectURL(croppedFile));
+          }}
+          onCancelar={() => setCropFile(null)}
+        />
+      )}
     <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink" onPaste={handlePaste}>
       {/* Header */}
       <div className="shrink-0 flex items-start gap-3 px-4 py-3 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
@@ -21684,14 +22203,24 @@ function ResolverActividadChat({
         )}
 
         {notas.map(nota => {
+          if (nota.tipo === "sistema") {
+            return (
+              <div key={nota.id} className="flex items-center gap-2 py-1.5">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[10px] font-bold text-muted uppercase tracking-wide px-2 shrink-0">{nota.texto}</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+            );
+          }
           const esSol = !!nota.esSolicitante;
           // Nota mía: la escribió el usuario actual (o no tiene autor = recién agregada localmente)
           const esMia = !nota.autorNombre || nota.autorNombre === currentUser?.nombre;
           // Colaborador: tiene autor, no soy yo, no es el solicitante
           const esColab = !!nota.autorNombre && !esSol && !esMia;
           const posicion = esSol || esColab ? "justify-start" : "justify-end";
+          const canDelete = esMia && !esSol && !esColab && !!nota.serverItemId && !nota.guardando;
           return (
-            <div key={nota.id} className={`flex ${posicion}`}>
+            <div key={nota.id} className={`flex ${posicion} group`}>
               <div className="max-w-[88%] space-y-1">
                 {/* Nombre del autor — para solicitante y colaboradores */}
                 {(esSol || esColab) && nota.autorNombre && (
@@ -21702,26 +22231,46 @@ function ResolverActividadChat({
                   </p>
                 )}
                 {nota.fotoUrl && (
-                  <img src={nota.fotoUrl} alt="foto"
-                    className={`rounded-xl w-full max-w-xs border object-cover transition ${nota.guardando ? "opacity-60" : ""} ${
-                      esSol ? "border-blue-200 dark:border-blue-700/40"
-                      : esColab ? "border-violet-200 dark:border-violet-700/40"
-                      : "border-gray-200 dark:border-white/10"
-                    }`}/>
+                  <div className="relative">
+                    <img src={nota.fotoUrl} alt="foto"
+                      className={`rounded-xl w-full max-w-xs border object-cover transition ${nota.guardando || nota.eliminando ? "opacity-60" : ""} ${
+                        esSol ? "border-blue-200 dark:border-blue-700/40"
+                        : esColab ? "border-violet-200 dark:border-violet-700/40"
+                        : "border-gray-200 dark:border-white/10"
+                      }`}/>
+                    {canDelete && (
+                      <button
+                        onClick={() => eliminarNota(nota)}
+                        disabled={nota.eliminando}
+                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-black/60 hover:bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs transition"
+                        title="Eliminar foto"
+                      >✕</button>
+                    )}
+                  </div>
                 )}
                 {nota.texto && (
-                  <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition ${nota.guardando ? "opacity-60" : ""} ${
-                    esSol
-                      ? "bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-bl-sm"
-                      : esColab
-                        ? "bg-violet-100 dark:bg-violet-900/40 text-violet-900 dark:text-violet-100 rounded-bl-sm"
-                        : "bg-accent text-white rounded-br-sm"
-                  }`}>
-                    {nota.texto}
+                  <div className="relative">
+                    <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition ${nota.guardando || nota.eliminando ? "opacity-60" : ""} ${
+                      esSol
+                        ? "bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-bl-sm"
+                        : esColab
+                          ? "bg-violet-100 dark:bg-violet-900/40 text-violet-900 dark:text-violet-100 rounded-bl-sm"
+                          : "bg-accent text-white rounded-br-sm"
+                    }`}>
+                      {nota.texto}
+                    </div>
+                    {canDelete && (
+                      <button
+                        onClick={() => eliminarNota(nota)}
+                        disabled={nota.eliminando}
+                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 bg-black/60 hover:bg-red-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-[10px] transition"
+                        title="Eliminar nota"
+                      >✕</button>
+                    )}
                   </div>
                 )}
                 <p className={`text-[10px] text-gray-400 dark:text-white/30 ${esSol || esColab ? "text-left" : "text-right"}`}>
-                  {nota.errorGuarda ? "⚠ No se guardó" : nota.guardando ? "Guardando…" : "✓"}
+                  {nota.eliminando ? "Eliminando…" : nota.errorGuarda ? "⚠ No se guardó" : nota.guardando ? "Guardando…" : "✓"}
                 </p>
               </div>
             </div>
@@ -21783,6 +22332,7 @@ function ResolverActividadChat({
       )}
       </div>
     </div>
+    </>
   );
 }
 
@@ -21839,6 +22389,9 @@ function AgenteMandoView({
   }[]>([]);
   const [confirmandoSolicitud, setConfirmandoSolicitud] = useState<{
     id: number; titulo: string; asignado_a_nombre: string;
+  } | null>(null);
+  const [revisionSolicitud, setRevisionSolicitud] = useState<{
+    id: number; titulo: string; numero: string; asignado_a_nombre: string;
   } | null>(null);
   const [modoEjecucion, setModoEjecucion] = useState<{ id: number; titulo: string } | null>(() => {
     try {
@@ -21997,14 +22550,7 @@ function AgenteMandoView({
         label: `🔔 ${truncarTituloChip(s.titulo)}`,
         subtitulo: s.asignado_a_nombre,
         onTap: () => {
-          setConfirmandoSolicitud({ id: s.id, titulo: s.titulo, asignado_a_nombre: s.asignado_a_nombre });
-          agregarBurbuja("agente",
-            `"${s.titulo}" ${s.asignado_a_nombre ? `(${s.asignado_a_nombre})` : ""} marcó esta solicitud como lista. ¿Fue atendida correctamente?`,
-            [
-              { label: "✅ Sí, cerrar solicitud", cmd: "aprobar_solicitud", datos: { id: s.id, titulo: s.titulo } },
-              { label: "↩️ Pedir ajustes", cmd: "rechazar_solicitud", datos: { id: s.id, titulo: s.titulo } },
-            ]
-          );
+          setRevisionSolicitud({ id: s.id, titulo: s.titulo, numero: s.numero, asignado_a_nombre: s.asignado_a_nombre });
         },
       });
     }
@@ -22423,6 +22969,56 @@ function AgenteMandoView({
     }
     return null;
   }, [burbujas]);
+
+  // ── Modo revisión de solicitud para confirmar ────────────────────────────────
+  if (revisionSolicitud) {
+    return (
+      <RevisionSolicitudView
+        token={token}
+        solicitud={revisionSolicitud}
+        onVolver={() => setRevisionSolicitud(null)}
+        onConfirmar={async () => {
+          setPensando(true);
+          try {
+            await tapi(`/${revisionSolicitud.id}/estado`, token, {
+              method: "PUT",
+              body: JSON.stringify({ estado: "resuelto" }),
+            });
+            setRevisionSolicitud(null);
+            setConfirmandoSolicitud(null);
+            setSolicitudesPorAprobar(prev => prev.filter(s => s.id !== revisionSolicitud.id));
+            void reiniciarTrasActividad();
+          } catch {
+            agregarBurbuja("agente", "No pude cerrar la solicitud. Intentá desde Centro de Mando.");
+            setRevisionSolicitud(null);
+          } finally { setPensando(false); }
+        }}
+        onPedirAjustes={async (motivo) => {
+          setPensando(true);
+          try {
+            await tapi(`/${revisionSolicitud.id}/estado`, token, {
+              method: "PUT",
+              body: JSON.stringify({ estado: "en_proceso" }),
+            });
+            if (motivo.trim()) {
+              await fetch(`/api/tickets/${revisionSolicitud.id}/comentarios`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify({ texto: `↩️ Ajustes solicitados: ${motivo.trim()}` }),
+              });
+            }
+            setRevisionSolicitud(null);
+            setConfirmandoSolicitud(null);
+            setSolicitudesPorAprobar(prev => prev.filter(s => s.id !== revisionSolicitud.id));
+            void reiniciarTrasActividad();
+          } catch {
+            agregarBurbuja("agente", "No pude actualizar la solicitud. Intentá desde Centro de Mando.");
+            setRevisionSolicitud(null);
+          } finally { setPensando(false); }
+        }}
+      />
+    );
+  }
 
   // ── Modo ejecución de acción propia ─────────────────────────────────────────
   if (modoEjecucion) {
