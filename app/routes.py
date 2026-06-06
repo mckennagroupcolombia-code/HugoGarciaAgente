@@ -5528,8 +5528,9 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.wa_chats import listar_conversaciones as _lc, total_no_leidos as _tnl
         limit = min(int(request.args.get("limit", 60)), 200)
-        from app.services.wa_jid import formato_display, modo_para_jid
+        from app.services.wa_jid import info_contacto_jid, limpiar_aliases_falsos, modo_para_jid
 
+        limpiar_aliases_falsos()
         conversaciones = _lc(limit=limit)
         modos = cargar_modos_atencion()
         humanos = modos.get("numeros_en_humano", [])
@@ -5537,8 +5538,19 @@ def register_routes(app):
         for c in conversaciones:
             jid = c.get("jid", "")
             c["modo"] = modo_para_jid(jid, humanos, silenciados)
-            c["display"] = formato_display(jid)
+            info = info_contacto_jid(jid)
+            c["display"] = info.get("display") or jid
+            c["telefono"] = info.get("telefono")
+            c["es_lid"] = bool(info.get("es_lid"))
             c["jid_raw"] = jid
+            if c.get("direccion") == "entrada":
+                c["ultimo_remitente"] = "cliente"
+            elif c.get("enviado_por") == "humano":
+                c["ultimo_remitente"] = "asesor"
+            elif c.get("enviado_por") == "bot":
+                c["ultimo_remitente"] = "bot"
+            else:
+                c["ultimo_remitente"] = "salida"
         return jsonify({"conversaciones": conversaciones, "no_leidos_total": _tnl()})
 
     @app.route("/api/bot/chats/<path:jid>", methods=["GET"])
@@ -5547,7 +5559,7 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.wa_chats import listar_mensajes as _lm, marcar_leido as _ml
         limit = min(int(request.args.get("limit", 120)), 300)
-        from app.services.wa_jid import formato_display, modo_para_jid
+        from app.services.wa_jid import info_contacto_jid, modo_para_jid
 
         mensajes = _lm(jid, limit=limit)
         _ml(jid)
@@ -5555,11 +5567,14 @@ def register_routes(app):
         humanos = modos.get("numeros_en_humano", [])
         silenciados = modos.get("numeros_silenciados", [])
         modo = modo_para_jid(jid, humanos, silenciados)
+        info = info_contacto_jid(jid)
         return jsonify({
             "mensajes": mensajes,
             "modo": modo,
             "jid": jid,
-            "display": formato_display(jid),
+            "display": info.get("display") or jid,
+            "telefono": info.get("telefono"),
+            "es_lid": bool(info.get("es_lid")),
         })
 
     @app.route("/api/bot/chats/<path:jid>/enviar", methods=["POST"])
@@ -5796,27 +5811,42 @@ def register_routes(app):
         from app.services.wa_biblioteca import obtener as _bget, ruta_archivo as _barch
         from app.utils import enviar_whatsapp_reporte, enviar_whatsapp_archivo
         from app.services.wa_chats import guardar as _wag
+        from app.services.wa_jid import jids_relacionados
+
         item = _bget(item_id)
         if not item:
             return jsonify({"error": "ítem no encontrado"}), 404
+        destinos = list(jids_relacionados(jid))
+        destino_envio = next((d for d in destinos if d.endswith("@lid")), None)
+        if not destino_envio:
+            destino_envio = next((d for d in destinos if d.endswith("@c.us")), jid)
         tipo = item["tipo"]
         try:
             if tipo == "texto":
-                ok = enviar_whatsapp_reporte(item["contenido"], numero_destino=jid)
+                ok = enviar_whatsapp_reporte(item["contenido"], numero_destino=destino_envio)
                 if ok:
                     _wag(jid, "salida", item["contenido"], False, "", "humano")
             elif tipo == "link":
                 msg = f"{item['titulo']}\n{item['url']}" if item["titulo"] else item["url"]
-                ok = enviar_whatsapp_reporte(msg, numero_destino=jid)
+                ok = enviar_whatsapp_reporte(msg, numero_destino=destino_envio)
                 if ok:
                     _wag(jid, "salida", msg, False, "", "humano")
             elif tipo == "archivo":
                 ruta = _barch(item_id)
                 if not ruta:
                     return jsonify({"error": "archivo físico no encontrado"}), 404
-                ok = enviar_whatsapp_archivo(ruta, item.get("titulo", ""), item["nombre_arch"], jid)
+                ok = enviar_whatsapp_archivo(
+                    ruta, item.get("titulo", ""), item["nombre_arch"], destino_envio
+                )
                 if ok:
-                    _wag(jid, "salida", f"[Archivo: {item['nombre_arch']}]", True, item["nombre_arch"], "humano")
+                    _wag(
+                        jid,
+                        "salida",
+                        f"[Archivo: {item['nombre_arch']}]",
+                        True,
+                        item["nombre_arch"],
+                        "humano",
+                    )
             else:
                 return jsonify({"error": "tipo desconocido"}), 400
             if ok:

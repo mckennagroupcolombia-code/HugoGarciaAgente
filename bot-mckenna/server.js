@@ -282,6 +282,8 @@ const GRUPO_POSTVENTA_MELI = envLimpio('GRUPO_POSTVENTA_WA', '120363406693905719
 const GRUPO_SEDE_SUR = envLimpio('GRUPO_SEDE_SUR_WA', '120363023555909043@g.us');
 // IDs de mensajes enviados por el bot al grupo SEDE SUR (para evitar loop fromMe).
 const sedeSurBotSentIds = new Set();
+/** Respuestas IA a clientes — evitar que message_create las marque como humano. */
+const panelBotSentIds = new Set();
 const GRUPOS_ADMIN       = [GRUPO_CONTABILIDAD, GRUPO_COMPRAS];
 /** Contabilidad/compras + pedidos web + preventa/postventa MeLi (comandos resp / posventa). */
 const GRUPOS_COMANDO     = [...GRUPOS_ADMIN, GRUPO_PEDIDOS_WEB, GRUPO_PREVENTA_MELI, GRUPO_POSTVENTA_MELI];
@@ -400,6 +402,10 @@ client.on('message_create', async (msg) => {
 
     // Mensajes enviados desde el celular (fromMe) a clientes → historial del panel, sin IA
     if (msg.fromMe && !enGrupoCmd && !esComandoMeliOperativo(textoProbe)) {
+        const sidProbe = serializarWaId(msg);
+        if (sidProbe && panelBotSentIds.has(sidProbe)) {
+            return;
+        }
         const payload = await mensajeAPayloadHistorial(msg);
         if (payload) {
             if (payload.revoke && payload.wa_id) {
@@ -602,6 +608,8 @@ client.on('message', async (msg) => {
                 enviado_por: 'bot',
             };
             if (outPayload.wa_id) {
+                panelBotSentIds.add(outPayload.wa_id);
+                setTimeout(() => panelBotSentIds.delete(outPayload.wa_id), 120000);
                 await enviarHistorialPanel([outPayload]);
             }
         }
@@ -758,6 +766,18 @@ async function jidChatCliente(msg) {
     return msg.from || '';
 }
 
+/** Colombia móvil: 57 + 10 dígitos empezando en 3. Rechaza 57+lid_digits. */
+function normalizarPhoneJidColombia(rawDigits) {
+    const n = String(rawDigits || '').replace(/\D/g, '');
+    if (n.length === 10 && n.startsWith('3')) {
+        return `57${n}@c.us`;
+    }
+    if (n.length === 12 && n.startsWith('57') && n[2] === '3') {
+        return `${n}@c.us`;
+    }
+    return '';
+}
+
 /** WhatsApp @lid → teléfono @c.us cuando el contacto lo expone (evita chats duplicados en panel). */
 async function resolverIdentidadCliente(msg) {
     const from = (msg && msg.from) ? String(msg.from) : '';
@@ -769,11 +789,7 @@ async function resolverIdentidadCliente(msg) {
             if (!n && c && c.id && c.id.user) {
                 n = String(c.id.user).replace(/\D/g, '');
             }
-            if (n.length === 10 && n.startsWith('3')) {
-                phoneJid = `57${n}@c.us`;
-            } else if (n.length >= 11) {
-                phoneJid = n.startsWith('57') ? `${n}@c.us` : `57${n}@c.us`;
-            }
+            phoneJid = normalizarPhoneJidColombia(n);
             if (phoneJid) {
                 console.log(`📇 LID ${from} → ${phoneJid}`);
             }
@@ -781,7 +797,7 @@ async function resolverIdentidadCliente(msg) {
             console.warn('⚠️ No se pudo resolver teléfono desde @lid:', e.message);
         }
     } else if (from.endsWith('@c.us')) {
-        phoneJid = from;
+        phoneJid = normalizarPhoneJidColombia(from.split('@')[0]) || from;
     }
     return {
         replyTo: from,
@@ -795,7 +811,7 @@ async function resolverIdentidadDesdeChat(chatJid, msg) {
     const cj = String(chatJid || '').trim();
     let phoneJid = '';
     if (cj.endsWith('@c.us')) {
-        phoneJid = cj;
+        phoneJid = normalizarPhoneJidColombia(cj.split('@')[0]) || cj;
     } else if (cj.endsWith('@lid') && msg) {
         try {
             const c = await msg.getContact();
@@ -803,16 +819,14 @@ async function resolverIdentidadDesdeChat(chatJid, msg) {
             if (!n && c && c.id && c.id.user) {
                 n = String(c.id.user).replace(/\D/g, '');
             }
-            if (n.length === 10 && n.startsWith('3')) {
-                phoneJid = `57${n}@c.us`;
-            } else if (n.length >= 11) {
-                phoneJid = n.startsWith('57') ? `${n}@c.us` : `57${n}@c.us`;
-            }
+            phoneJid = normalizarPhoneJidColombia(n);
         } catch (_) { /* ignore */ }
     }
     return {
         canon: phoneJid || cj,
         replyTo: cj,
+        sender_lid: cj.endsWith('@lid') ? cj : '',
+        sender_phone: phoneJid,
     };
 }
 
@@ -833,6 +847,7 @@ async function mensajeAPayloadHistorial(msg) {
     if (!texto) {
         return null;
     }
+    const enviado = msg.fromMe ? "humano" : "cliente";
     return {
         wa_id: serializarWaId(msg),
         jid: ident.canon,
@@ -842,7 +857,9 @@ async function mensajeAPayloadHistorial(msg) {
         tiene_media: !!msg.hasMedia,
         nombre_arch: '',
         type: tipo,
-        enviado_por: msg.fromMe ? 'humano' : 'cliente',
+        enviado_por: enviado,
+        sender_lid: ident.sender_lid || '',
+        sender_phone: ident.sender_phone || '',
     };
 }
 

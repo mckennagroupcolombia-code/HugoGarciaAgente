@@ -115,9 +115,13 @@ def guardar(
         with _lock, _conn() as c:
             if wa_key:
                 row = c.execute(
-                    "SELECT id FROM mensajes WHERE wa_id=?", (wa_key,)
+                    "SELECT id, enviado_por FROM mensajes WHERE wa_id=?", (wa_key,)
                 ).fetchone()
                 if row:
+                    prev_enviado = str(row["enviado_por"] or "")
+                    # No degradar bot → humano por sync/message_create duplicado
+                    if prev_enviado == "bot" and enviado_por == "humano":
+                        enviado_por = "bot"
                     c.execute(
                         """UPDATE mensajes SET
                            ts=?, jid=?, direccion=?, texto=?, tiene_media=?,
@@ -265,6 +269,15 @@ def ingestar_desde_whatsapp(mensajes: list[dict]) -> dict:
             media_path=str(raw.get("media_path") or ""),
             media_mime=str(raw.get("media_mime") or ""),
         )
+        sender_lid = str(raw.get("sender_lid") or "").strip()
+        sender_phone = str(raw.get("sender_phone") or "").strip()
+        if sender_lid and sender_phone:
+            try:
+                from app.services.wa_jid import registrar_alias_lid
+
+                registrar_alias_lid(sender_lid, sender_phone)
+            except Exception:
+                pass
         if antes:
             actualizados += 1
         else:
