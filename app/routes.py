@@ -1812,6 +1812,36 @@ def register_routes(app):
                     )
                 return jsonify({"status": "ok", "respuesta": None})
 
+            # Aprobar borrador IA de preventa: "ok [sufijo]" desde el grupo preventa
+            if es_grupo_preventa_cmd and re.match(r"^ok\s+\d{3,}$", msg_lower.strip()):
+                _sufijo_ok = msg_lower.split()[1]
+                _qid_ok = encontrar_question_id_por_sufijo(_sufijo_ok)
+                if _qid_ok:
+                    from app.services.meli_preventa import obtener_borrador_ia
+                    _borrador_ok = obtener_borrador_ia(_qid_ok)
+                    if _borrador_ok:
+                        spawn_thread(
+                            _procesar_respuesta_preventa, args=(_qid_ok, _borrador_ok)
+                        )
+                    else:
+                        spawn_thread(
+                            enviar_whatsapp_reporte,
+                            args=(
+                                f"⚠️ No hay borrador IA para el código *{_sufijo_ok}*.\n"
+                                f"Usa: *resp {_sufijo_ok}: tu respuesta*",
+                                grupo_preventa,
+                            ),
+                        )
+                else:
+                    spawn_thread(
+                        enviar_whatsapp_reporte,
+                        args=(
+                            f"⚠️ No encontré pregunta pendiente con código *{_sufijo_ok}*.",
+                            grupo_preventa,
+                        ),
+                    )
+                return jsonify({"status": "ok", "respuesta": None})
+
             # Formato corto: "ok 463" (últimos 3 dígitos del número)
             if re.match(r"^ok\s+\d{3}$", msg_lower):
                 sufijo = msg_lower.split()[1]
@@ -5546,6 +5576,21 @@ def register_routes(app):
 
         dias = int(request.args.get("dias", 30))
         return jsonify(calcular_metricas(dias=dias))
+
+    @app.route("/api/alertas/intencion", methods=["GET"])
+    def api_alertas_intencion_get():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_alertas_intencion import listar_pendientes
+        return jsonify({"alertas": listar_pendientes()})
+
+    @app.route("/api/alertas/intencion/<path:jid>", methods=["DELETE"])
+    def api_alertas_intencion_cancelar(jid: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.wa_alertas_intencion import cancelar
+        cancelar(jid, razon="panel")
+        return jsonify({"ok": True})
 
     # ── Chats WhatsApp (historial de conversaciones) ──────────────────────────
 

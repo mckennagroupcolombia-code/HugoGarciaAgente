@@ -46,6 +46,42 @@ def test_canales_cliente_flujo_sin_tools_api() -> None:
     assert by_id["web_chat"]["modelo_id"] == "gemma4:e4b"
 
 
+def test_wa_alertas_intencion_lifecycle() -> None:
+    """Verifica detección de intención, registro de humano y listado."""
+    import time
+    from app.services import wa_alertas_intencion as _m
+
+    # Fixture: estado limpio en memoria
+    _m._state = {"version": 1, "alertas": {}}
+    _m._ticker_started = True  # no arrancar hilo real en tests
+
+    jid = "573001234567@c.us"
+    ts = time.time() - 1800  # hace 30 min
+
+    # mensaje con intención de compra
+    _m.registrar_mensaje(jid, "quiero hacer un pedido, ¿cuál es la cuenta para transferir?", ts, "entrada", "cliente")
+
+    pendientes = _m.listar_pendientes()
+    assert any(a["jid"] == jid for a in pendientes), "debe aparecer en pendientes"
+    assert pendientes[0]["espera_min"] >= 25
+
+    # bot responde — no debe cancelar
+    _m.registrar_mensaje(jid, "Hola veci, los datos de pago son…", ts + 60, "salida", "bot")
+    pendientes2 = _m.listar_pendientes()
+    assert any(a["jid"] == jid for a in pendientes2), "alerta debe seguir activa tras bot"
+    assert pendientes2[0]["bot_respondio"] is True
+
+    # humano responde — debe cancelar
+    _m.registrar_mensaje(jid, "¡Claro que sí! Aquí le envío los datos.", ts + 120, "salida", "humano")
+    pendientes3 = _m.listar_pendientes()
+    assert not any(a["jid"] == jid for a in pendientes3), "alerta debe cancelarse cuando humano responde"
+
+    # Grupos de WhatsApp no deben generar alertas
+    jid_grupo = "120363407538342427@g.us"
+    _m.registrar_mensaje(jid_grupo, "quiero hacer un pedido nequi", ts, "entrada", "cliente")
+    assert not any(a["jid"] == jid_grupo for a in _m.listar_pendientes())
+
+
 def test_meli_webhook_dispatch_contracts() -> None:
     from app.meli_webhook_topics import meli_webhook_evaluar_despacho
 

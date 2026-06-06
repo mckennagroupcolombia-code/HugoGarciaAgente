@@ -12813,6 +12813,9 @@ function SolicitudCard({
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [msg, setMsg] = useState("");
+  const [showEdit, setShowEdit] = useState(false);
+  const [editDraft, setEditDraft] = useState({ titulo: "", descripcion: "", prioridad: "" });
+  const [guardandoEdit, setGuardandoEdit] = useState(false);
   const esAsignado = uidEq(ticket.asignado_a, user.id);
   const esCreadoPorMi = uidEq(ticket.creado_por, user.id);
   const esParticipante = ticket.participantes?.some((p) => p.usuario_id === user.id) ?? false;
@@ -12865,6 +12868,8 @@ function SolicitudCard({
   const [notaRevision, setNotaRevision] = useState("");
   const [showPedirAjustes, setShowPedirAjustes] = useState(false);
   const [ajustesMensaje, setAjustesMensaje] = useState("");
+  const [ajustesArchivo, setAjustesArchivo] = useState<File | null>(null);
+  const [ajustesArchivoPreview, setAjustesArchivoPreview] = useState<string | null>(null);
 
   // Guardar como protocolo
   const [showProtocoloForm, setShowProtocoloForm] = useState(false);
@@ -13146,8 +13151,19 @@ function SolicitudCard({
         method: "PUT",
         body: JSON.stringify({ estado: "en_proceso", motivo: ajustesMensaje.trim() }),
       });
+      if (ajustesArchivo) {
+        const fd = new FormData();
+        fd.append("archivo", ajustesArchivo);
+        await fetch(`/api/tickets/${ticket.id}/adjuntos`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        }).catch(() => { /* adjunto no crítico */ });
+      }
       setShowPedirAjustes(false);
       setAjustesMensaje("");
+      setAjustesArchivo(null);
+      setAjustesArchivoPreview(null);
       onChanged();
     } catch (e: any) {
       setMsg(e.message ?? "Error");
@@ -13233,6 +13249,26 @@ function SolicitudCard({
       await tapi(`/${ticket.id}`, token, { method: "DELETE" });
       onChanged();
     } catch { /* ignore */ } finally { setBusy(false); setConfirmDelete(false); }
+  }
+
+  async function guardarEdit() {
+    if (!editDraft.titulo.trim()) return;
+    setGuardandoEdit(true);
+    try {
+      await tapi(`/${ticket.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({
+          titulo: editDraft.titulo.trim(),
+          descripcion: editDraft.descripcion.trim() || undefined,
+          prioridad: editDraft.prioridad || undefined,
+        }),
+      });
+      setShowEdit(false);
+      onChanged();
+    } catch (e: any) {
+      setMsg(e.message ?? "Error al guardar");
+      setTimeout(() => setMsg(""), 3000);
+    } finally { setGuardandoEdit(false); }
   }
 
   async function abrirIntervencion() {
@@ -13453,7 +13489,16 @@ function SolicitudCard({
             <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </button>
-        {(isAdmin || esCreadoPorMi) && !confirmDelete && (
+        {(isAdmin || esCreadoPorMi) && !confirmDelete && !showEdit && (
+          <button type="button" title="Editar solicitud" onClick={() => {
+            setEditDraft({ titulo: ticket.titulo, descripcion: ticket.descripcion ?? "", prioridad: ticket.prioridad ?? "media" });
+            setShowEdit(true);
+          }}
+            className="shrink-0 rounded p-0.5 text-muted hover:text-accent transition-colors">
+            <Icon name="pencil" size={13} />
+          </button>
+        )}
+        {(isAdmin || esCreadoPorMi) && !confirmDelete && !showEdit && (
           <button type="button" title="Eliminar" onClick={() => setConfirmDelete(true)}
             className="shrink-0 rounded p-0.5 text-muted hover:text-red-600 transition-colors">
             <Icon name="trash" size={13} />
@@ -13500,6 +13545,47 @@ function SolicitudCard({
           {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
         </span>
       </div>
+
+      {/* Formulario de edición inline — visible al creador o admin */}
+      {showEdit && (
+        <div className="rounded-xl border-2 border-accent/40 bg-accent/5 p-3 space-y-2">
+          <p className="text-xs font-extrabold uppercase tracking-wide text-accent">✏️ Editar solicitud</p>
+          {msg && <p className="text-xs text-red-400">{msg}</p>}
+          <input
+            className="quest-input w-full text-sm"
+            placeholder="Título"
+            value={editDraft.titulo}
+            onChange={e => setEditDraft(d => ({ ...d, titulo: e.target.value }))}
+          />
+          <textarea
+            className="quest-input w-full text-xs resize-none"
+            rows={3}
+            placeholder="Descripción (opcional)"
+            value={editDraft.descripcion}
+            onChange={e => setEditDraft(d => ({ ...d, descripcion: e.target.value }))}
+          />
+          <select
+            className="quest-input w-full text-xs"
+            value={editDraft.prioridad}
+            onChange={e => setEditDraft(d => ({ ...d, prioridad: e.target.value }))}
+          >
+            <option value="baja">🟢 Baja</option>
+            <option value="media">🟡 Media</option>
+            <option value="alta">🟠 Alta</option>
+            <option value="urgente">🔴 Urgente</option>
+          </select>
+          <div className="flex gap-2">
+            <button type="button" disabled={guardandoEdit || !editDraft.titulo.trim()} onClick={guardarEdit}
+              className="flex-1 rounded-xl bg-accent py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent/80 transition-colors">
+              {guardandoEdit ? "Guardando…" : "Guardar cambios"}
+            </button>
+            <button type="button" onClick={() => setShowEdit(false)}
+              className="rounded-xl border border-border px-3 py-2 text-xs text-muted hover:text-ink">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Banner: esta solicitud ES una intervención que otro usuario necesita */}
       {esIntervencion && (
@@ -14215,12 +14301,45 @@ function SolicitudCard({
                 value={ajustesMensaje}
                 onChange={(e) => setAjustesMensaje(e.target.value)}
               />
+              {/* Adjuntar imagen */}
+              <label className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-xs transition-colors ${ajustesArchivo ? "border-orange-400 bg-orange-50/30 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400" : "border-dashed border-border text-muted hover:border-orange-400/60 hover:text-orange-600"}`}>
+                <span>{ajustesArchivo ? "📎" : "🖼️"}</span>
+                <span className="flex-1 truncate">{ajustesArchivo ? ajustesArchivo.name : "Adjuntar imagen (opcional)"}</span>
+                {ajustesArchivo && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="ml-1 text-muted hover:text-red-500"
+                    onClick={(e) => { e.preventDefault(); setAjustesArchivo(null); setAjustesArchivoPreview(null); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { setAjustesArchivo(null); setAjustesArchivoPreview(null); } }}
+                  >✕</span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*,.pdf,application/pdf"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null;
+                    setAjustesArchivo(f);
+                    if (f && f.type.startsWith("image/")) {
+                      const url = URL.createObjectURL(f);
+                      setAjustesArchivoPreview(url);
+                    } else {
+                      setAjustesArchivoPreview(null);
+                    }
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {ajustesArchivoPreview && (
+                <img src={ajustesArchivoPreview} alt="Vista previa" className="rounded-lg max-h-32 object-contain border border-border" />
+              )}
               <div className="flex gap-2">
                 <button type="button" disabled={busy || !ajustesMensaje.trim()} onClick={pedirAjustes}
                   className="flex-1 rounded-xl bg-orange-500 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-orange-600 transition-colors">
                   {busy ? "Enviando…" : "Enviar ajustes"}
                 </button>
-                <button type="button" onClick={() => { setShowPedirAjustes(false); setAjustesMensaje(""); }}
+                <button type="button" onClick={() => { setShowPedirAjustes(false); setAjustesMensaje(""); setAjustesArchivo(null); setAjustesArchivoPreview(null); }}
                   className="rounded-xl border border-border px-3 py-2 text-xs text-muted hover:text-ink">
                   Cancelar
                 </button>
@@ -21466,7 +21585,27 @@ function RevisionSolicitudView({
   const [showRechazo, setShowRechazo] = useState(false);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazando, setRechazando] = useState(false);
+  type ItemAjuste = { id: number; texto: string; fotos: { file: File; preview: string | null }[] };
+  const itemIdRef = useRef(0);
+  const [itemsAjuste, setItemsAjuste] = useState<ItemAjuste[]>([{ id: 0, texto: "", fotos: [] }]);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  function agregarItemAjuste() {
+    setItemsAjuste(prev => [...prev, { id: ++itemIdRef.current, texto: "", fotos: [] }]);
+  }
+  function eliminarItemAjuste(id: number) {
+    setItemsAjuste(prev => prev.filter(it => it.id !== id));
+  }
+  function setTextoItem(id: number, texto: string) {
+    setItemsAjuste(prev => prev.map(it => it.id === id ? { ...it, texto } : it));
+  }
+  function agregarFotoItem(id: number, file: File) {
+    const preview = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
+    setItemsAjuste(prev => prev.map(it => it.id === id ? { ...it, fotos: [...it.fotos, { file, preview }] } : it));
+  }
+  function quitarFotoItem(itemId: number, idx: number) {
+    setItemsAjuste(prev => prev.map(it => it.id === itemId ? { ...it, fotos: it.fotos.filter((_, i) => i !== idx) } : it));
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -21588,26 +21727,87 @@ function RevisionSolicitudView({
       {/* Pie: confirmar / pedir ajustes */}
       <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-4 py-3 pb-safe space-y-2">
         {showRechazo ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-xs font-extrabold uppercase tracking-wide text-muted">¿Qué necesita ajustar?</p>
-            <textarea
-              value={motivoRechazo}
-              onChange={e => setMotivoRechazo(e.target.value)}
-              placeholder="Explica qué faltó o qué debe corregirse…"
-              rows={2}
-              className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-accent transition resize-none"
-            />
+
+            {itemsAjuste.map((item, idx) => (
+              <div key={item.id} className="rounded-xl border-2 border-border bg-surface p-2.5 space-y-2">
+                {itemsAjuste.length > 1 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wide text-muted">Punto {idx + 1}</span>
+                    <button type="button" onClick={() => eliminarItemAjuste(item.id)}
+                      className="text-xs text-muted hover:text-red-500 leading-none">✕</button>
+                  </div>
+                )}
+                <textarea
+                  value={item.texto}
+                  onChange={e => setTextoItem(item.id, e.target.value)}
+                  placeholder={idx === 0 ? "Explica qué faltó o qué debe corregirse…" : "Describe este punto…"}
+                  rows={2}
+                  className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-accent transition resize-none"
+                />
+                {/* Fotos del item */}
+                {item.fotos.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {item.fotos.map((f, fi) => (
+                      <div key={fi} className="relative">
+                        {f.preview
+                          ? <img src={f.preview} alt="" className="h-16 w-16 rounded-lg object-cover border-2 border-border" />
+                          : <div className="h-16 w-16 rounded-lg border-2 border-border bg-surface-hover flex items-center justify-center text-xl">📎</div>
+                        }
+                        <button type="button" onClick={() => quitarFotoItem(item.id, fi)}
+                          className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted hover:text-amber-600 transition-colors">
+                  <span>📷</span>
+                  <span>{item.fotos.length > 0 ? "Agregar otra imagen" : "Adjuntar imagen o PDF"}</span>
+                  <input type="file" accept="image/*,.pdf,application/pdf" multiple className="sr-only"
+                    onChange={e => {
+                      Array.from(e.target.files ?? []).forEach(f => agregarFotoItem(item.id, f));
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+            ))}
+
+            <button type="button" onClick={agregarItemAjuste}
+              className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 hover:underline font-bold">
+              + Agregar otro punto de ajuste
+            </button>
+
             <div className="flex gap-2">
               <button type="button"
-                onClick={() => { setShowRechazo(false); setMotivoRechazo(""); }}
+                onClick={() => { setShowRechazo(false); setMotivoRechazo(""); setItemsAjuste([{ id: 0, texto: "", fotos: [] }]); }}
                 className="flex-1 rounded-2xl border-2 border-border py-2.5 text-sm font-bold text-muted transition hover:bg-surface-hover">
                 Cancelar
               </button>
               <button type="button"
-                disabled={rechazando}
+                disabled={rechazando || itemsAjuste.every(it => !it.texto.trim() && it.fotos.length === 0)}
                 onClick={async () => {
                   setRechazando(true);
-                  await onPedirAjustes(motivoRechazo);
+                  // Subir todas las fotos de todos los items
+                  for (const item of itemsAjuste) {
+                    for (const foto of item.fotos) {
+                      const fd = new FormData();
+                      fd.append("archivo", foto.file);
+                      await fetch(`/api/tickets/${solicitud.id}/adjuntos`, {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${token}` },
+                        body: fd,
+                      }).catch(() => { /* no crítico */ });
+                    }
+                  }
+                  // Motivo: unir todos los textos no vacíos
+                  const motivo = itemsAjuste
+                    .map((it, i) => it.texto.trim() ? (itemsAjuste.length > 1 ? `${i + 1}. ${it.texto.trim()}` : it.texto.trim()) : "")
+                    .filter(Boolean)
+                    .join("\n");
+                  await onPedirAjustes(motivo);
+                  setItemsAjuste([{ id: 0, texto: "", fotos: [] }]);
                   setRechazando(false);
                 }}
                 className="flex-1 rounded-2xl bg-amber-500 hover:bg-amber-400 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
@@ -22484,6 +22684,7 @@ function AgenteMandoView({
         solicitudes_asignadas?: any[];
         solicitudes_por_aprobar?: any[];
         solicitudes_esperando_confirmacion?: any[];
+        solicitudes_creadas_activas?: any[];
         colaboraciones?: any[];
       };
     },
@@ -22494,6 +22695,7 @@ function AgenteMandoView({
     const solAsignadas: any[] = res.contexto?.solicitudes_asignadas ?? [];
     const solPorAprobar: any[] = res.contexto?.solicitudes_por_aprobar ?? [];
     const solEsperando: any[] = res.contexto?.solicitudes_esperando_confirmacion ?? [];
+    const solCreadasActivas: any[] = res.contexto?.solicitudes_creadas_activas ?? [];
     const colabs: any[] = res.contexto?.colaboraciones ?? [];
     setProtocolos(prots);
     setSolicitudesCount(solAsignadas.length);
@@ -22505,7 +22707,7 @@ function AgenteMandoView({
       setModoEjecucion(null);
     }
 
-    const { texto, chips } = construirMensajeContexto(solAsignadas, accActivas, solPorAprobar, solEsperando, colabs, opts);
+    const { texto, chips } = construirMensajeContexto(solAsignadas, accActivas, solPorAprobar, solEsperando, solCreadasActivas, colabs, opts);
     establecerBurbujaAgente(texto, chips);
   }
 
@@ -22562,12 +22764,13 @@ function AgenteMandoView({
     accActivas: any[],
     solPorAprobar: any[],
     solEsperando: any[],
+    solCreadasActivas: any[],
     colabs: any[],
     opts?: { trasActividad?: boolean },
   ): { texto: string; chips: AgentChip[] } {
     const chips: AgentChip[] = [];
 
-    // Solicitudes que esperan mi aprobación (las creé yo)
+    // Solicitudes que esperan mi aprobación (las creé yo, estado esperando_aprobacion)
     for (const s of solPorAprobar.slice(0, 3)) {
       chips.push({
         tipo: "solicitud_aprobar",
@@ -22576,6 +22779,16 @@ function AgenteMandoView({
         onTap: () => {
           setRevisionSolicitud({ id: s.id, titulo: s.titulo, numero: s.numero, asignado_a_nombre: s.asignado_a_nombre });
         },
+      });
+    }
+
+    // Solicitudes que yo creé y siguen activas (en_proceso / pendiente — ejecutor trabajando)
+    for (const s of solCreadasActivas.slice(0, 3)) {
+      chips.push({
+        tipo: "solicitud_esperando",
+        label: `🔄 ${truncarTituloChip(s.titulo)}`,
+        subtitulo: s.asignado_a_nombre ? `En proceso: ${s.asignado_a_nombre}` : "En proceso",
+        onTap: onGoSolicitudes,
       });
     }
 
@@ -22630,14 +22843,18 @@ function AgenteMandoView({
       const pending = solAsignadas.length + solPorAprobar.length;
       const pendingTxt = pending > 0 ? ` ${pending} solicitud${pending > 1 ? "es" : ""} pendiente${pending > 1 ? "s" : ""}.` : "";
       const esperandoTxt = solEsperando.length > 0 ? ` ${solEsperando.length} esperando confirmación.` : "";
+      const creadasTxt = solCreadasActivas.length > 0 ? ` ${solCreadasActivas.length} solicitud${solCreadasActivas.length > 1 ? "es" : ""} en proceso.` : "";
       const colabTxt = colabs.length > 0 ? ` ${colabs.length} colaboración${colabs.length > 1 ? "es" : ""} activa${colabs.length > 1 ? "s" : ""}.` : "";
-      return { texto: `¡Listo! Actividad registrada.${extra}${pendingTxt}${esperandoTxt}${colabTxt} ¿Qué sigue?`, chips };
+      return { texto: `¡Listo! Actividad registrada.${extra}${pendingTxt}${creadasTxt}${esperandoTxt}${colabTxt} ¿Qué sigue?`, chips };
     }
 
     let texto = `¡Hola ${nombre}!`;
-    const totalPendiente = accActivas.length + solAsignadas.length + solPorAprobar.length;
+    const totalPendiente = accActivas.length + solAsignadas.length + solPorAprobar.length + solCreadasActivas.length;
     if (solPorAprobar.length > 0) {
       texto += ` Tenés ${solPorAprobar.length} solicitud${solPorAprobar.length > 1 ? "es" : ""} esperando tu confirmación.`;
+    }
+    if (solCreadasActivas.length > 0) {
+      texto += ` ${solCreadasActivas.length} solicitud${solCreadasActivas.length > 1 ? "es tuyas están" : " tuya está"} en proceso.`;
     }
     if (solAsignadas.length > 0) {
       texto += ` ${solAsignadas.length} solicitud${solAsignadas.length > 1 ? "es" : ""} para atender.`;

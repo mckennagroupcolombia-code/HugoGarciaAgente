@@ -69,16 +69,28 @@ _CRITERIOS_TIEMPO = [
 
 _GLOSARIO = [
     {
+        "termino": "Tiempo de espera del cliente",
+        "explicacion": "Reloj que arranca cuando el cliente escribe y se detiene cuando llega la primera respuesta (bot o humano). Es lo que el cliente siente.",
+    },
+    {
         "termino": "Mediana de respuesta",
         "explicacion": "Tiempo «típico» de espera: la mitad de los clientes esperó menos y la otra mitad más. No se distorsiona por un caso extremo.",
     },
     {
         "termino": "Primera respuesta humana",
-        "explicacion": "Minutos desde que el cliente escribe una consulta real hasta que un asesor (no el bot) responde por primera vez en esa conversación.",
+        "explicacion": "Minutos desde que el cliente escribe hasta que un asesor responde. Si Hugo (bot) contestó antes, aquí se mide cuánto tardó además el humano.",
     },
     {
-        "termino": "Primera respuesta (equipo)",
-        "explicacion": "Igual que la anterior, pero cuenta la primera salida del bot o del humano: mide si «alguien» atiende rápido.",
+        "termino": "Primera respuesta del equipo",
+        "explicacion": "Minutos hasta la primera salida de Hugo o del asesor. Mide si el cliente queda atendido rápido aunque sea por el bot.",
+    },
+    {
+        "termino": "Hueco sin respuesta",
+        "explicacion": "El cliente escribió y nadie (ni bot ni humano) respondió en más de 60 minutos. Alta probabilidad de perder la venta.",
+    },
+    {
+        "termino": "Conversión a venta (52% no es «de todos»)",
+        "explicacion": "Es ventas cerradas ÷ chats con intención explícita de compra. No es el % de todos los WhatsApp que llegaron.",
     },
     {
         "termino": "Tiempo laboral ajustado",
@@ -408,7 +420,13 @@ def _analizar_embudo(mensajes: list[dict[str, Any]]) -> dict[str, Any]:
                 if _PAT_INTENCION.search(t):
                     etapas.add("intencion_compra")
                     tuvo_intencion = True
-                if m.get("tiene_media") or _PAT_COMPROBANTE.search(t):
+                if _PAT_COMPROBANTE.search(t):
+                    etapas.add("comprobante")
+                elif m.get("tiene_media") and (
+                    tuvo_intencion
+                    or _PAT_INTENCION.search(t)
+                    or _PAT_COMPROBANTE.search(t)
+                ):
                     etapas.add("comprobante")
             elif m["direccion"] == "salida":
                 if _PAT_PAGO_OK.search(t):
@@ -420,7 +438,7 @@ def _analizar_embudo(mensajes: list[dict[str, Any]]) -> dict[str, Any]:
             conteo_etapas[e] += 1
 
         venta_cerrada = "pago_confirmado" in etapas or (
-            "envio" in etapas and ("comprobante" in etapas or "intencion_compra" in etapas)
+            "envio" in etapas and "comprobante" in etapas
         )
         if venta_cerrada:
             resultado = "venta_cerrada"
@@ -496,6 +514,24 @@ def _analizar_embudo(mensajes: list[dict[str, Any]]) -> dict[str, Any]:
             "en_proceso": en_proceso,
             "tasa_conversion_intencion_pct": tasa_intencion,
             "tasa_conversion_total_pct": tasa_total,
+            "conversion_explicacion": {
+                "titulo": "Conversión de intenciones de compra",
+                "formula": "ventas_cerradas ÷ con_intencion_compra × 100",
+                "numerador": ventas,
+                "denominador": intencion,
+                "resultado_pct": tasa_intencion,
+                "texto": (
+                    f"{ventas} ventas cerradas de {intencion} chats donde el cliente "
+                    f"pidió comprar, pagar o datos de pago (= {tasa_intencion}%). "
+                    f"Sobre todos los chats ({chats_total}) la tasa es {tasa_total}%."
+                ),
+                "venta_significa": (
+                    "Mensaje de pago confirmado en el chat, o envío/guía después de comprobante."
+                ),
+            },
+        },
+        "resultado_por_chat": {
+            c["jid"]: c["resultado"] for c in chats_detalle
         },
         "sin_venta": solo_consulta + abandonados,
         "chats_muestra": sorted(
@@ -633,7 +669,8 @@ def _cola_pendiente(mensajes: list[dict[str, Any]], umbral_min: float = 30) -> l
     return pendientes[:12]
 
 
-def _actividad_horaria(mensajes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _actividad_horaria(mensajes: list[dict[str, Any]]) -> dict[str, Any]:
+    """Respuestas del equipo por hora (no cuándo escribe el cliente)."""
     by_h: dict[int, dict[str, int]] = defaultdict(lambda: {"humano": 0, "bot": 0})
     for m in mensajes:
         if m["direccion"] != "salida":
@@ -643,11 +680,11 @@ def _actividad_horaria(mensajes: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if key in by_h[h]:
             by_h[h][key] += 1
     max_h = max((v["humano"] + v["bot"] for v in by_h.values()), default=1)
-    out = []
+    filas = []
     for h in range(24):
         v = by_h[h]
         total = v["humano"] + v["bot"]
-        out.append(
+        filas.append(
             {
                 "hora": h,
                 "humano": v["humano"],
@@ -656,7 +693,232 @@ def _actividad_horaria(mensajes: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "intensidad_pct": round(100 * total / max_h, 0) if max_h else 0,
             }
         )
-    return out
+    return {
+        "titulo": "Cuándo responde el equipo",
+        "nota": (
+            "Cuenta mensajes salientes del asesor o Hugo por hora del día. "
+            "No indica a qué hora escriben los clientes; para eso use «Cuándo escriben los clientes»."
+        ),
+        "filas": filas,
+    }
+
+
+def _actividad_horaria_cliente(mensajes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_h: dict[int, int] = defaultdict(int)
+    for m in mensajes:
+        if m["direccion"] != "entrada" or m["enviado_por"] != "cliente":
+            continue
+        if not _es_consulta_real(m.get("texto") or ""):
+            continue
+        h = datetime.fromtimestamp(m["ts"], tz=_CO).hour
+        by_h[h] += 1
+    max_h = max(by_h.values(), default=1)
+    return [
+        {
+            "hora": h,
+            "consultas": by_h[h],
+            "intensidad_pct": round(100 * by_h[h] / max_h, 0) if max_h else 0,
+        }
+        for h in range(24)
+    ]
+
+
+def _bucket_espera(minutos: float | None) -> str:
+    if minutos is None:
+        return "Sin respuesta"
+    if minutos <= 5:
+        return "≤5 min"
+    if minutos <= 15:
+        return "5–15 min"
+    if minutos <= 60:
+        return "15–60 min"
+    return ">60 min"
+
+
+def _interpret_correlacion(label: str, n: int, ventas: int) -> str:
+    if n == 0:
+        return "Sin intenciones de compra en este rango de espera."
+    pct = round(100 * ventas / n, 0)
+    if label == "≤5 min":
+        return f"{ventas} de {n} intenciones cerraron ({pct}%). Respuesta rápida del equipo."
+    if label == "Sin respuesta":
+        return f"{ventas} de {n} intenciones sin respuesta del equipo ({pct}%). Hueco crítico."
+    if label == ">60 min":
+        return f"Solo {ventas} de {n} cerraron ({pct}%) tras más de 1 h de espera."
+    return f"{ventas} de {n} intenciones cerraron ({pct}%) con espera {label.lower()}."
+
+
+def _medir_atencion_cliente(
+    mensajes: list[dict[str, Any]],
+    embudo: dict[str, Any],
+) -> dict[str, Any]:
+    sesiones_map = _sesiones_por_jid(mensajes)
+    resultado_por_chat = embudo.get("resultado_por_chat", {})
+    consultas_equipo: list[float] = []
+    consultas_humano: list[float] = []
+    sin_respuesta = 0
+    bot_primero = 0
+    total_consultas = 0
+    huecos: list[dict[str, Any]] = []
+    ejemplos: list[dict[str, Any]] = []
+    intencion_espera: list[dict[str, Any]] = []
+
+    for jid, sesiones in sesiones_map.items():
+        first_intencion_msg: dict[str, Any] | None = None
+        all_msgs = [m for ses in sesiones for m in ses]
+
+        for ses in sesiones:
+            for i, m in enumerate(ses):
+                if m["direccion"] != "entrada" or m["enviado_por"] != "cliente":
+                    continue
+                texto = m.get("texto") or ""
+                if not _es_consulta_real(texto):
+                    continue
+
+                # Solo turnos donde el cliente espera respuesta: inicio de sesión o tras salida del equipo
+                prev = ses[i - 1] if i > 0 else None
+                if prev and not (prev["direccion"] == "salida"):
+                    continue
+
+                total_consultas += 1
+                if _PAT_INTENCION.search(_norm(texto)) and first_intencion_msg is None:
+                    first_intencion_msg = m
+
+                equipo_ts = hum_ts = None
+                equipo_quien = None
+                for j in range(i + 1, len(ses)):
+                    n = ses[j]
+                    if n["direccion"] != "salida":
+                        continue
+                    delta = float(n["ts"]) - float(m["ts"])
+                    if delta < 5:
+                        continue
+                    if delta > 86400:
+                        break
+                    if equipo_ts is None:
+                        equipo_ts = float(n["ts"])
+                        equipo_quien = n["enviado_por"]
+                    if n["enviado_por"] == "humano" and hum_ts is None:
+                        hum_ts = float(n["ts"])
+                    if equipo_ts and hum_ts:
+                        break
+
+                espera_eq = round((equipo_ts - float(m["ts"])) / 60, 1) if equipo_ts else None
+                espera_hum = round((hum_ts - float(m["ts"])) / 60, 1) if hum_ts else None
+
+                if espera_eq is not None:
+                    consultas_equipo.append(espera_eq)
+                    if equipo_quien == "bot":
+                        bot_primero += 1
+                else:
+                    sin_respuesta += 1
+
+                if espera_hum is not None:
+                    consultas_humano.append(espera_hum)
+
+                if espera_eq is None or espera_eq > 60:
+                    huecos.append(
+                        {
+                            "jid": jid,
+                            "cliente_escribio": datetime.fromtimestamp(m["ts"], tz=_CO).strftime(
+                                "%Y-%m-%d %H:%M"
+                            ),
+                            "espera_min": espera_eq,
+                            "texto": texto[:80],
+                            "convirtio": resultado_por_chat.get(jid) == "venta_cerrada",
+                        }
+                    )
+
+                if len(ejemplos) < 12:
+                    dt_cli = datetime.fromtimestamp(m["ts"], tz=_CO).strftime("%H:%M")
+                    eq_str = (
+                        f"{datetime.fromtimestamp(equipo_ts, tz=_CO).strftime('%H:%M')} ({equipo_quien})"
+                        if equipo_ts
+                        else "—"
+                    )
+                    hum_str = (
+                        datetime.fromtimestamp(hum_ts, tz=_CO).strftime("%H:%M") if hum_ts else "—"
+                    )
+                    ejemplos.append(
+                        {
+                            "cliente": dt_cli,
+                            "equipo": eq_str,
+                            "humano": hum_str,
+                            "espera_equipo_min": espera_eq,
+                            "resultado": resultado_por_chat.get(jid, "—"),
+                            "pregunta": texto[:60],
+                        }
+                    )
+
+        if first_intencion_msg:
+            ts_int = float(first_intencion_msg["ts"])
+            espera_int = None
+            for m in all_msgs:
+                if float(m["ts"]) < ts_int:
+                    continue
+                if m["direccion"] == "salida":
+                    delta = float(m["ts"]) - ts_int
+                    if delta >= 5:
+                        espera_int = round(delta / 60, 1)
+                        break
+            resultado = resultado_por_chat.get(jid, "contacto_sin_conversion")
+            intencion_espera.append(
+                {
+                    "jid": jid,
+                    "espera_min": espera_int,
+                    "bucket": _bucket_espera(espera_int),
+                    "convirtio": resultado == "venta_cerrada",
+                    "resultado": resultado,
+                }
+            )
+
+    correlacion = []
+    for label in ["≤5 min", "5–15 min", "15–60 min", ">60 min", "Sin respuesta"]:
+        subset = [x for x in intencion_espera if x["bucket"] == label]
+        n = len(subset)
+        ventas = sum(1 for x in subset if x["convirtio"])
+        correlacion.append(
+            {
+                "rango": label,
+                "chats_intencion": n,
+                "ventas": ventas,
+                "conversion_pct": round(100 * ventas / n, 1) if n else 0,
+                "interpretacion": _interpret_correlacion(label, n, ventas),
+            }
+        )
+
+    med_eq = round(statistics.median(consultas_equipo), 1) if consultas_equipo else None
+    med_hum = round(statistics.median(consultas_humano), 1) if consultas_humano else None
+    huecos_graves = [h for h in huecos if h.get("espera_min") is None or (h["espera_min"] or 0) > 60]
+
+    return {
+        "explicacion": (
+            "Medimos turnos de consulta: cuando el cliente escribe y espera respuesta "
+            "(inicio de conversación o tras un mensaje del equipo). "
+            "«Espera equipo» = hasta la primera respuesta (Hugo o asesor). "
+            "«Espera humano» = hasta que interviene el asesor."
+        ),
+        "resumen": {
+            "consultas_medidas": total_consultas,
+            "mediana_espera_equipo_min": med_eq,
+            "mediana_espera_humano_min": med_hum,
+            "bot_respondio_primero_pct": round(100 * bot_primero / len(consultas_equipo), 1)
+            if consultas_equipo
+            else 0,
+            "sin_respuesta_pct": round(100 * sin_respuesta / total_consultas, 1) if total_consultas else 0,
+            "huecos_mas_60min": len(huecos_graves),
+        },
+        "correlacion_intencion_espera": correlacion,
+        "huecos": sorted(
+            huecos,
+            key=lambda x: (x.get("espera_min") is None, -(x.get("espera_min") or 9999)),
+        )[:10],
+        "ejemplos_timeline": sorted(
+            ejemplos,
+            key=lambda x: (x.get("espera_equipo_min") is None, x.get("espera_equipo_min") or 999),
+        )[:8],
+        "actividad_cliente_hora": _actividad_horaria_cliente(mensajes),
+    }
 
 
 def _recomendaciones(
@@ -664,11 +926,25 @@ def _recomendaciones(
     embudo: dict[str, Any],
     pendientes: list[dict[str, Any]],
     calificacion: dict[str, Any],
+    atencion: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
+    atencion = atencion or {}
     recs: list[dict[str, str]] = []
     hum = tiempos["primera_respuesta_humana"]
     emb = embudo["resumen"]
 
+    if atencion.get("resumen", {}).get("huecos_mas_60min", 0) > 0:
+        n_h = atencion["resumen"]["huecos_mas_60min"]
+        recs.insert(
+            0,
+            {
+                "prioridad": "alta",
+                "texto": (
+                    f"{n_h} consulta(s) quedaron más de 60 min sin respuesta del equipo. "
+                    "Revise la pestaña Atención: ahí se correlaciona espera vs conversión."
+                ),
+            },
+        )
     if pendientes:
         recs.append(
             {
@@ -723,9 +999,10 @@ def calcular_metricas(dias: int = 30) -> dict[str, Any]:
     mensajes = _cargar_mensajes(desde_ts)
     tiempos = _medir_tiempos(mensajes)
     embudo = _analizar_embudo(mensajes)
+    atencion = _medir_atencion_cliente(mensajes, embudo)
     calificacion = _calificar_equipo(tiempos, embudo, mensajes)
     pendientes = _cola_pendiente(mensajes)
-    recomendaciones = _recomendaciones(tiempos, embudo, pendientes, calificacion)
+    recomendaciones = _recomendaciones(tiempos, embudo, pendientes, calificacion, atencion)
 
     ts_vals = [m["ts"] for m in mensajes]
     if ts_vals:
@@ -766,6 +1043,7 @@ def calcular_metricas(dias: int = 30) -> dict[str, Any]:
             "nota_bot": calificacion["bot"]["nota"],
         },
         "tiempos": tiempos,
+        "atencion_cliente": atencion,
         "ventas": embudo,
         "calificacion": calificacion,
         "actividad_horaria": _actividad_horaria(mensajes),

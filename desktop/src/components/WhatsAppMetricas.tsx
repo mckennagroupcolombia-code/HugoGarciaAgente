@@ -78,6 +78,15 @@ interface WaMetricas {
       en_proceso: number;
       tasa_conversion_intencion_pct: number;
       tasa_conversion_total_pct: number;
+      conversion_explicacion?: {
+        titulo: string;
+        formula: string;
+        numerador: number;
+        denominador: number;
+        resultado_pct: number;
+        texto: string;
+        venta_significa: string;
+      };
     };
     chats_muestra: {
       jid: string;
@@ -86,6 +95,40 @@ interface WaMetricas {
       etapas: string[];
       ultimo_texto: string;
     }[];
+  };
+  atencion_cliente?: {
+    explicacion: string;
+    resumen: {
+      consultas_medidas: number;
+      mediana_espera_equipo_min: number | null;
+      mediana_espera_humano_min: number | null;
+      bot_respondio_primero_pct: number;
+      sin_respuesta_pct: number;
+      huecos_mas_60min: number;
+    };
+    correlacion_intencion_espera: {
+      rango: string;
+      chats_intencion: number;
+      ventas: number;
+      conversion_pct: number;
+      interpretacion: string;
+    }[];
+    huecos: {
+      jid: string;
+      cliente_escribio: string;
+      espera_min: number | null;
+      texto: string;
+      convirtio: boolean;
+    }[];
+    ejemplos_timeline: {
+      cliente: string;
+      equipo: string;
+      humano: string;
+      espera_equipo_min: number | null;
+      resultado: string;
+      pregunta: string;
+    }[];
+    actividad_cliente_hora: { hora: number; consultas: number; intensidad_pct: number }[];
   };
   calificacion: {
     humano: {
@@ -101,12 +144,25 @@ interface WaMetricas {
       chats_con_humano: number;
     };
   };
-  actividad_horaria: { hora: number; humano: number; bot: number; total: number; intensidad_pct: number }[];
+  actividad_horaria: {
+    titulo: string;
+    nota: string;
+    filas: { hora: number; humano: number; bot: number; total: number; intensidad_pct: number }[];
+  };
   cola_pendiente: { jid: string; espera_min: number; texto: string; desde: string }[];
   recomendaciones: { prioridad: string; texto: string }[];
 }
 
-type Seccion = "panorama" | "tiempos" | "ventas" | "equipo" | "guia";
+interface AlertaIntencion {
+  jid: string;
+  display: string;
+  texto: string;
+  espera_min: number;
+  bot_respondio: boolean;
+  alerta_enviada: boolean;
+}
+
+type Seccion = "panorama" | "atencion" | "tiempos" | "ventas" | "equipo" | "guia";
 
 const PERIODOS = [
   { dias: 7, label: "7 días" },
@@ -117,6 +173,7 @@ const PERIODOS = [
 
 const SECCIONES: { id: Seccion; label: string; icon: string }[] = [
   { id: "panorama", label: "Panorama", icon: "◎" },
+  { id: "atencion", label: "Atención", icon: "↔" },
   { id: "tiempos", label: "Tiempos", icon: "⏱" },
   { id: "ventas", label: "Ventas", icon: "₿" },
   { id: "equipo", label: "Human vs Bot", icon: "⚖" },
@@ -283,6 +340,7 @@ export default function WhatsAppMetricas() {
   const [data, setData] = useState<WaMetricas | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [alertas, setAlertas] = useState<AlertaIntencion[]>([]);
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -298,14 +356,40 @@ export default function WhatsAppMetricas() {
     }
   }, [dias]);
 
+  const cargarAlertas = useCallback(async () => {
+    try {
+      const r = await api.get<{ alertas: AlertaIntencion[] }>("/api/alertas/intencion");
+      setAlertas(r.alertas ?? []);
+    } catch {
+      // silencioso — no bloquea la UI principal
+    }
+  }, []);
+
+  const descartarAlerta = useCallback(async (jid: string) => {
+    try {
+      await api.delete(`/api/alertas/intencion/${encodeURIComponent(jid)}`);
+      setAlertas((prev) => prev.filter((a) => a.jid !== jid));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  useEffect(() => {
+    cargarAlertas();
+    const id = setInterval(cargarAlertas, 30_000);
+    return () => clearInterval(id);
+  }, [cargarAlertas]);
 
   const obj = data?.objetivos;
   const r = data?.resumen;
   const hum = data?.tiempos?.primera_respuesta_humana;
   const emb = data?.ventas?.resumen;
+  const att = data?.atencion_cliente;
+  const convExp = emb?.conversion_explicacion;
 
   return (
     <div className="space-y-4">
@@ -353,6 +437,11 @@ export default function WhatsAppMetricas() {
           >
             <span>{s.icon}</span>
             {s.label}
+            {s.id === "panorama" && alertas.length > 0 && (
+              <span className="ml-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                {alertas.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -405,7 +494,10 @@ export default function WhatsAppMetricas() {
                   valor={`${emb?.tasa_conversion_intencion_pct ?? 0}%`}
                   meta={`≥ ${obj?.conversion_intencion_pct ?? 35}% (de intenciones)`}
                   cumple={(emb?.tasa_conversion_intencion_pct ?? 0) >= (obj?.conversion_intencion_pct ?? 35)}
-                  explicacion="De quienes mostraron intención de comprar, cuántos llegaron a pago confirmado o envío."
+                  explicacion={
+                    convExp?.texto ??
+                    "De quienes mostraron intención de comprar, cuántos llegaron a pago confirmado o envío."
+                  }
                 />
                 <MetricCard
                   titulo="Chats analizados"
@@ -413,6 +505,68 @@ export default function WhatsAppMetricas() {
                   explicacion={`${r.mensajes_cliente} mensajes cliente · ${r.respuestas_humano} resp. humano · ${r.respuestas_bot} bot`}
                 />
               </div>
+
+              {convExp && (
+                <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-4 text-xs text-emerald-100 leading-relaxed">
+                  <p className="font-semibold text-emerald-200 mb-2">{convExp.titulo}</p>
+                  <p className="font-mono text-[11px] mb-2">
+                    {convExp.numerador} ÷ {convExp.denominador} × 100 = {convExp.resultado_pct}%
+                  </p>
+                  <p>{convExp.texto}</p>
+                  <p className="text-muted mt-2 italic">Venta cerrada = {convExp.venta_significa}</p>
+                </section>
+              )}
+
+              {alertas.length > 0 && (
+                <section className="rounded-xl border border-red-500/50 bg-red-500/5 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-red-200 flex items-center gap-2">
+                      🚨 Intención de compra sin atención humana
+                      <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">
+                        {alertas.length}
+                      </span>
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={cargarAlertas}
+                      className="text-[11px] text-muted hover:text-ink"
+                    >
+                      ↻
+                    </button>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {alertas.map((a) => (
+                      <div
+                        key={a.jid}
+                        className="rounded-lg border border-red-500/20 bg-black/10 px-3 py-2 flex flex-col gap-1"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-red-300">
+                            {a.display} · {a.espera_min} min
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {a.bot_respondio && (
+                              <span className="text-[10px] text-sky-400">🤖 bot</span>
+                            )}
+                            {a.alerta_enviada && (
+                              <span className="text-[10px] text-emerald-400">✓ alertado</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => descartarAlerta(a.jid)}
+                              className="text-[11px] text-muted hover:text-red-400 leading-none"
+                              title="Descartar alerta"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-ink/80 line-clamp-2">{a.texto}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {data.cola_pendiente.length > 0 && (
                 <section className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
@@ -458,6 +612,146 @@ export default function WhatsAppMetricas() {
             </div>
           )}
 
+          {/* ── ATENCIÓN (cliente escribe → equipo responde) ── */}
+          {seccion === "atencion" && att && (
+            <div className="space-y-5">
+              <div className="rounded-xl border border-accent/30 bg-accent/5 px-4 py-3 text-xs text-ink/90 leading-relaxed">
+                {att.explicacion}
+              </div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <MetricCard
+                  titulo="Espera típica del cliente (equipo)"
+                  valor={fmtMin(att.resumen.mediana_espera_equipo_min)}
+                  explicacion="Desde que el cliente escribe hasta la primera respuesta de Hugo o del asesor."
+                />
+                <MetricCard
+                  titulo="Espera hasta el asesor"
+                  valor={fmtMin(att.resumen.mediana_espera_humano_min)}
+                  explicacion="Tiempo extra si Hugo respondió primero y el humano entró después."
+                />
+                <MetricCard
+                  titulo="Hugo respondió primero"
+                  valor={`${att.resumen.bot_respondio_primero_pct}%`}
+                  explicacion="Consultas donde el bot cubrió antes que el asesor humano."
+                />
+                <MetricCard
+                  titulo="Huecos >60 min"
+                  valor={String(att.resumen.huecos_mas_60min)}
+                  explicacion={`${att.resumen.sin_respuesta_pct}% de consultas sin respuesta del equipo en la sesión.`}
+                />
+              </div>
+
+              <section className="rounded-xl border border-border bg-surface-panel p-5">
+                <h3 className="text-sm font-semibold text-ink mb-1">
+                  ¿La espera afecta la conversión?
+                </h3>
+                <p className="text-[11px] text-muted mb-4">
+                  Por cada chat con intención de compra, medimos cuánto tardó el equipo en responder
+                  y si terminó en venta cerrada.
+                </p>
+                <div className="space-y-3">
+                  {att.correlacion_intencion_espera.map((c) => (
+                    <div key={c.rango} className="rounded-lg border border-border/60 bg-surface-hover/40 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <span className="text-sm font-semibold text-ink">Espera {c.rango}</span>
+                        <span className="text-xs tabular-nums">
+                          <span className="text-emerald-400 font-bold">{c.conversion_pct}%</span>
+                          <span className="text-muted"> · {c.ventas}/{c.chats_intencion} intenciones</span>
+                        </span>
+                      </div>
+                      <div className="h-2 rounded-full bg-surface-hover overflow-hidden mb-1">
+                        <div
+                          className="h-full bg-emerald-500/70 rounded-full"
+                          style={{ width: `${Math.min(c.conversion_pct, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-muted">{c.interpretacion}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <div className="grid lg:grid-cols-2 gap-4">
+                <section className="rounded-xl border border-border bg-surface-panel p-4">
+                  <h3 className="text-sm font-semibold text-ink mb-1">Cuándo escriben los clientes</h3>
+                  <p className="text-[11px] text-muted mb-3">
+                    Hora del día en que llegan consultas reales (no respuestas del equipo).
+                  </p>
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {att.actividad_cliente_hora
+                      .filter((h) => h.hora >= 7 && h.hora <= 22 && h.consultas > 0)
+                      .map((h) => (
+                        <div key={h.hora} className="flex items-center gap-2 text-[11px]">
+                          <span className="w-9 text-muted tabular-nums">{h.hora.toString().padStart(2, "0")}h</span>
+                          <div className="flex-1 h-3 rounded bg-surface-hover overflow-hidden">
+                            <div
+                              className="h-full bg-sky-500/70 rounded"
+                              style={{ width: `${h.intensidad_pct}%` }}
+                            />
+                          </div>
+                          <span className="w-8 text-right tabular-nums text-muted">{h.consultas}</span>
+                        </div>
+                      ))}
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-border bg-surface-panel p-4 overflow-x-auto">
+                  <h3 className="text-sm font-semibold text-ink mb-2">Línea de tiempo (ejemplos)</h3>
+                  <p className="text-[11px] text-muted mb-3">
+                    Cliente → primera respuesta equipo → primera respuesta humano → resultado.
+                  </p>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-muted border-b border-border">
+                        <th className="pb-2 text-left">Cliente</th>
+                        <th className="pb-2 text-left">Equipo</th>
+                        <th className="pb-2 text-left">Humano</th>
+                        <th className="pb-2 text-left">Espera</th>
+                        <th className="pb-2 text-left">Resultado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {att.ejemplos_timeline.map((e, i) => {
+                        const meta = RESULTADO_LABEL[e.resultado] ?? { label: e.resultado, color: "text-muted" };
+                        return (
+                          <tr key={i} className="border-b border-border/40">
+                            <td className="py-2 tabular-nums">{e.cliente}</td>
+                            <td className="py-2 text-violet-300">{e.equipo}</td>
+                            <td className="py-2 text-accent">{e.humano}</td>
+                            <td className="py-2 tabular-nums">{fmtMin(e.espera_equipo_min)}</td>
+                            <td className={`py-2 font-semibold ${meta.color}`}>{meta.label}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </section>
+              </div>
+
+              {att.huecos.length > 0 && (
+                <section className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+                  <h3 className="text-sm font-semibold text-red-200 mb-2">
+                    Huecos sin respuesta (&gt;60 min o sin contestar)
+                  </h3>
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {att.huecos.slice(0, 6).map((h, i) => (
+                      <div key={i} className="rounded-lg border border-red-500/20 bg-black/10 px-3 py-2">
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-muted">{h.cliente_escribio}</span>
+                          <span className={h.convirtio ? "text-emerald-400" : "text-red-300"}>
+                            {h.convirtio ? "Cerró venta" : "Sin venta"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-ink line-clamp-2 mt-0.5">{h.texto}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
+
           {/* ── TIEMPOS ── */}
           {seccion === "tiempos" && (
             <div className="space-y-5">
@@ -485,16 +779,24 @@ export default function WhatsAppMetricas() {
 
               <div className="grid lg:grid-cols-2 gap-4">
                 <section className="rounded-xl border border-border bg-surface-panel p-4 space-y-4">
-                  <h3 className="text-sm font-semibold text-ink">SLA — respuesta humana</h3>
+                  <h3 className="text-sm font-semibold text-ink">Tiempo de espera del cliente (asesor)</h3>
+                  <p className="text-[11px] text-muted -mt-2">
+                    Desde que el cliente escribe hasta la primera respuesta del asesor humano.
+                  </p>
                   {data.tiempos.sla_humana.map((s) => (
                     <SlaBar key={s.label} item={s} />
                   ))}
                 </section>
                 <section className="rounded-xl border border-border bg-surface-panel p-4">
-                  <h3 className="text-sm font-semibold text-ink mb-1">Actividad por hora</h3>
-                  <p className="text-[11px] text-muted mb-3">Barras apiladas: humano (accent) + bot (violeta)</p>
+                  <h3 className="text-sm font-semibold text-ink mb-1">
+                    {data.actividad_horaria?.titulo ?? "Cuándo responde el equipo"}
+                  </h3>
+                  <p className="text-[11px] text-muted mb-3">
+                    {data.actividad_horaria?.nota ??
+                      "Mensajes salientes del asesor o Hugo por hora (no cuándo escriben los clientes)."}
+                  </p>
                   <div className="space-y-1 max-h-72 overflow-y-auto">
-                    {data.actividad_horaria
+                    {(data.actividad_horaria?.filas ?? [])
                       .filter((h) => h.hora >= 7 && h.hora <= 21 && h.total > 0)
                       .map((h) => (
                         <div key={h.hora} className="flex items-center gap-2 text-[11px]">
@@ -547,6 +849,23 @@ export default function WhatsAppMetricas() {
           {/* ── VENTAS ── */}
           {seccion === "ventas" && emb && (
             <div className="space-y-5">
+              {convExp && (
+                <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-5 py-4">
+                  <h3 className="text-sm font-semibold text-emerald-200 mb-2">{convExp.titulo}</h3>
+                  <div className="flex flex-wrap items-baseline gap-3 mb-2">
+                    <span className="text-3xl font-bold text-emerald-300 tabular-nums">{convExp.resultado_pct}%</span>
+                    <span className="font-mono text-xs text-emerald-100/80">
+                      {convExp.numerador} ventas ÷ {convExp.denominador} intenciones × 100
+                    </span>
+                  </div>
+                  <p className="text-xs text-emerald-100/90 leading-relaxed">{convExp.texto}</p>
+                  <p className="text-[11px] text-muted mt-2">
+                    Tasa sobre todos los chats: {emb.tasa_conversion_total_pct}% ({emb.ventas_cerradas}/
+                    {emb.chats_analizados})
+                  </p>
+                </section>
+              )}
+
               <div className="grid sm:grid-cols-3 gap-3">
                 <MetricCard
                   titulo="Ventas cerradas"
