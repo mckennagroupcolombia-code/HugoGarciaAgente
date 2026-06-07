@@ -14,6 +14,30 @@ def nota_regulatoria_materias_primas_invima() -> str:
     )
 
 
+def nota_regulatoria_invima_reempaque() -> str:
+    return (
+        "Tienes toda la razón en que el INVIMA otorga registros para la modalidad de Reempaque "
+        "o Envase, pero la norma hace una distinción fundamental que aclara por qué no aplica "
+        "en este caso:\n\n"
+        "**¿Cuándo sí aplica?** Aplica exclusivamente cuando se toma un granel para transformarlo "
+        "en un Producto Terminado de Consumo Directo bajo una marca comercial destinada a góndola "
+        "o retail (por ejemplo, bolsas de frutos secos de pasabocas para el consumidor final). "
+        "Esos productos sí requieren una Notificación Sanitaria (NSA) de reempaque.\n\n"
+        "**¿Por qué no aplica con nosotros?** Porque nosotros comercializamos el producto en su "
+        "estado de Materia Prima Pura / Insumo Grado Industrial o Alimentario. Al venderse como "
+        "un insumo técnico para que tú u otras empresas lo utilicen como ingrediente en diversos "
+        "desarrollos (cosméticos, alimentos procesados, fórmulas farmacéuticas, etc.), el INVIMA "
+        "no lo clasifica como producto terminado.\n\n"
+        "Por ley, las materias primas puras destinadas a procesos de transformación no se amparan "
+        "con registros comerciales de marca, sino con la trazabilidad técnica obligatoria: el "
+        "**Visto Bueno de Importación (VUCE)** de la aduana y el **Certificado de Análisis (COA)** "
+        "del lote de origen.\n\n"
+        "Ten la total seguridad de que nuestro producto es 100% lícito, cumple con la cadena de "
+        "custodia y cuenta con los soportes de laboratorio que garantizan su pureza para el uso "
+        "que le vayas a dar en tu producción."
+    )
+
+
 def nota_regulatoria_invima_explicacion() -> str:
     return (
         "Es simple: el INVIMA divide los productos en dos categorías muy claras:\n\n"
