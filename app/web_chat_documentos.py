@@ -15,6 +15,7 @@ from app.services.drive_documentos import (
 from app.web_chat_mensajes import (
     nota_asesor_whatsapp_chat_web,
     nota_regulatoria_invima_explicacion,
+    nota_regulatoria_invima_reempaque,
     nota_regulatoria_materias_primas_invima,
     nota_regulatoria_materias_primas_invima_larga,
     nota_seguimiento_pedido_whatsapp,
@@ -88,8 +89,23 @@ def mensaje_pide_explicacion_invima(texto: str) -> bool:
     ))
 
 
+def mensaje_insiste_invima_aplica(texto: str) -> bool:
+    """Detecta cuando el cliente argumenta que el INVIMA sí aplica (suplementos, reempaque, etc.)."""
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    if not re.search(r"\b(invima|registro\s+sanitario|registro|nsa|rsa)\b", low):
+        return False
+    return bool(re.search(
+        r"\b(suplementos?|supplements?|reempaque|reenvas|envases?|si\s+aplica|s[ií]\s+es|"
+        r"pero\s+s[ií]|porque\s+son|alimentos?|nutri|granola|almendra|pasaboca|"
+        r"consumo\s+directo|marca\s+propia|gondola|supermercado|exito|retail|cadena)\b",
+        low,
+    ))
+
+
 def _nota_invima_segun_contexto(user_message: str, hist_user: str) -> str:
     """Selecciona la nota INVIMA adecuada según el nivel de la conversación."""
+    if mensaje_insiste_invima_aplica(user_message):
+        return nota_regulatoria_invima_reempaque()
     if mensaje_pide_explicacion_invima(user_message):
         return nota_regulatoria_invima_explicacion()
     if mensaje_pide_registro_invima(user_message) and mensaje_pide_registro_invima(hist_user):

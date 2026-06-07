@@ -21248,6 +21248,7 @@ function EjecucionAccionChat({
   const [segundos, setSegundos] = useState(() => parseInt(localStorage.getItem(SECS_KEY) ?? "0") || 0);
   const [modoCompras, setModoCompras] = useState(false);
   const [numCompras, setNumCompras] = useState(0);
+  const [lbUrl, setLbUrl] = useState<string | null>(null);
   const t0 = useRef(Date.now() - segundos * 1000);
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -21533,8 +21534,12 @@ function EjecucionAccionChat({
                   {label && <p className="text-right text-[10px] font-bold text-accent/70 uppercase tracking-wide">{label}</p>}
                   {nota.fotoUrl && (
                     <div className="relative group">
-                      <img src={nota.fotoUrl} alt="foto"
-                        className={`rounded-xl w-full max-w-xs border object-cover transition ${nota.guardando || nota.eliminando ? "opacity-60" : ""} border-gray-200 dark:border-white/10`}/>
+                      {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
+                      <button type="button" onClick={() => !(nota.guardando || nota.eliminando) && setLbUrl(nota.fotoUrl!)} className="block w-full max-w-xs text-left" title="Ver imagen">
+                        <img src={nota.fotoUrl} alt="foto"
+                          className={`rounded-xl w-full max-w-xs border object-cover transition group-hover:opacity-80 ${nota.guardando || nota.eliminando ? "opacity-60" : ""} border-gray-200 dark:border-white/10`}/>
+                        {!(nota.guardando || nota.eliminando) && <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>}
+                      </button>
                       {!nota.guardando && nota.serverItemId && (
                         <button type="button" onClick={() => void eliminarNota(nota)}
                           disabled={!!nota.eliminando}
@@ -21638,6 +21643,7 @@ function RevisionSolicitudView({
   const [showRechazo, setShowRechazo] = useState(false);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazando, setRechazando] = useState(false);
+  const [lbUrl, setLbUrl] = useState<string | null>(null);
   type ItemAjuste = { id: number; texto: string; fotos: { file: File; preview: string | null }[] };
   const itemIdRef = useRef(0);
   const [itemsAjuste, setItemsAjuste] = useState<ItemAjuste[]>([{ id: 0, texto: "", fotos: [] }]);
@@ -21762,8 +21768,14 @@ function RevisionSolicitudView({
                 <p className="text-[10px] font-extrabold text-accent uppercase tracking-wide px-1">{nota.autorNombre}</p>
               )}
               {nota.fotoUrl && (
-                <img src={nota.fotoUrl} alt="foto"
-                  className="rounded-xl w-full max-w-xs border border-gray-200 dark:border-white/10 object-cover" />
+                <>
+                  {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
+                  <button type="button" onClick={() => setLbUrl(nota.fotoUrl!)} className="group relative block w-full max-w-xs text-left" title="Ver imagen">
+                    <img src={nota.fotoUrl} alt="foto"
+                      className="rounded-xl w-full max-w-xs border border-gray-200 dark:border-white/10 object-cover group-hover:opacity-80 transition-opacity" />
+                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>
+                  </button>
+                </>
               )}
               {nota.texto && (
                 <div className="rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed bg-surface-panel border-2 border-border text-ink">
@@ -21925,6 +21937,7 @@ function ResolverActividadChat({
   // Contexto del ticket padre (cuando este es un sub-ticket de intervención)
   const [padreInfo, setPadreInfo] = useState<{ titulo: string; numero: string; notasPadre: Nota[] } | null>(null);
   const [showPadre, setShowPadre] = useState(false);
+  const [lbUrl, setLbUrl] = useState<string | null>(null);
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputNotaRef = useRef<HTMLTextAreaElement>(null);
@@ -22345,6 +22358,7 @@ function ResolverActividadChat({
           onCancelar={() => setCropFile(null)}
         />
       )}
+      {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
     <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink" onPaste={handlePaste}>
       {/* Header */}
       <div className="shrink-0 flex items-start gap-3 px-4 py-3 border-b-2 border-border bg-surface-panel pt-safe shadow-paper-sm">
@@ -22424,7 +22438,13 @@ function ResolverActividadChat({
                           <p className="text-[10px] font-extrabold text-violet-600 dark:text-violet-400 uppercase tracking-wide px-1">{nota.autorNombre}</p>
                         )}
                         {nota.fotoUrl && (
-                          <img src={nota.fotoUrl} alt="foto" className="rounded-xl w-full max-w-xs border border-violet-200 dark:border-violet-700/40 object-cover" />
+                          <>
+                            {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
+                            <button type="button" onClick={() => setLbUrl(nota.fotoUrl!)} className="group relative block w-full max-w-xs text-left" title="Ver imagen">
+                              <img src={nota.fotoUrl} alt="foto" className="rounded-xl w-full max-w-xs border border-violet-200 dark:border-violet-700/40 object-cover group-hover:opacity-80 transition-opacity" />
+                              <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>
+                            </button>
+                          </>
                         )}
                         {nota.texto && (
                           <div className={`rounded-2xl px-3 py-2 text-xs leading-relaxed ${
@@ -22501,18 +22521,21 @@ function ResolverActividadChat({
                   </p>
                 )}
                 {nota.fotoUrl && (
-                  <div className="relative">
-                    <img src={nota.fotoUrl} alt="foto"
-                      className={`rounded-xl w-full max-w-xs border object-cover transition ${nota.guardando || nota.eliminando ? "opacity-60" : ""} ${
-                        esSol ? "border-blue-200 dark:border-blue-700/40"
-                        : esColab ? "border-violet-200 dark:border-violet-700/40"
-                        : "border-gray-200 dark:border-white/10"
-                      }`}/>
+                  <div className="relative group/img">
+                    <button type="button" onClick={() => !(nota.guardando || nota.eliminando) && setLbUrl(nota.fotoUrl!)} className="block w-full max-w-xs text-left" title="Ver imagen">
+                      <img src={nota.fotoUrl} alt="foto"
+                        className={`rounded-xl w-full max-w-xs border object-cover transition group-hover/img:opacity-80 ${nota.guardando || nota.eliminando ? "opacity-60" : ""} ${
+                          esSol ? "border-blue-200 dark:border-blue-700/40"
+                          : esColab ? "border-violet-200 dark:border-violet-700/40"
+                          : "border-gray-200 dark:border-white/10"
+                        }`}/>
+                      {!(nota.guardando || nota.eliminando) && <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>}
+                    </button>
                     {canDelete && (
                       <button
                         onClick={() => eliminarNota(nota)}
                         disabled={nota.eliminando}
-                        className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-black/60 hover:bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs transition"
+                        className="absolute top-1 right-1 opacity-0 group-hover/img:opacity-100 bg-black/60 hover:bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs transition"
                         title="Eliminar foto"
                       >✕</button>
                     )}
