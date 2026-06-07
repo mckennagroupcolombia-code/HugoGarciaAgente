@@ -144,7 +144,7 @@ const TIPO_LABEL: Record<string, { label: string; color: string }> = {
 
 // ── Tab bar ────────────────────────────────────────────────────────────────
 
-type Tab = "chats" | "control" | "cuenta" | "numeros" | "interacciones" | "metricas";
+type Tab = "chats" | "filtro" | "metricas" | "control" | "cuenta" | "numeros" | "interacciones";
 
 interface BridgeSesion {
   conectado: boolean;
@@ -169,6 +169,7 @@ interface BridgeStatus {
 function TabBar({ active, onChange, noLeidos }: { active: Tab; onChange: (t: Tab) => void; noLeidos?: number }) {
   const tabs: { id: Tab; label: string }[] = [
     { id: "chats",         label: "Chats" },
+    { id: "filtro",        label: "Filtro" },
     { id: "metricas",      label: "Métricas" },
     { id: "control",       label: "Control" },
     { id: "cuenta",        label: "Cuenta WA" },
@@ -1890,6 +1891,67 @@ function TabChats() {
   );
 }
 
+// ── Tab Filtro de Respuesta ────────────────────────────────────────────────
+
+function TabFiltroRespuesta() {
+  const [texto, setTexto] = useState("");
+  const [resultado, setResultado] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+
+  async function mejorar() {
+    if (!texto.trim() || loading) return;
+    setLoading(true);
+    setResultado("");
+    try {
+      const r = await api.post<{ texto_mejorado: string }>("/api/filtro-respuesta", { texto });
+      setResultado(r.texto_mejorado);
+    } catch (e: any) {
+      setResultado(`Error: ${e.message ?? "No se pudo procesar"}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-xl space-y-3 pt-2">
+      <textarea
+        value={texto}
+        onChange={(e) => { setTexto(e.target.value); setResultado(""); }}
+        onKeyDown={(e) => { if (e.key === "Enter" && e.ctrlKey) mejorar(); }}
+        placeholder="Tu respuesta al cliente…"
+        rows={4}
+        className="w-full resize-none rounded-xl border border-border bg-surface-hover px-4 py-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:border-accent"
+      />
+      <button
+        type="button"
+        onClick={mejorar}
+        disabled={!texto.trim() || loading}
+        className="w-full rounded-xl bg-accent py-2.5 text-sm font-semibold text-white transition hover:bg-accent/90 disabled:opacity-40 flex items-center justify-center gap-2"
+      >
+        {loading && <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />}
+        {loading ? "Mejorando…" : "Mejorar respuesta"}
+      </button>
+
+      {resultado && (
+        <div className="rounded-xl border border-border bg-surface-panel p-4 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">Versión mejorada</p>
+            <button
+              type="button"
+              onClick={() => navigator.clipboard.writeText(resultado).then(() => { setCopiado(true); setTimeout(() => setCopiado(false), 2000); })}
+              className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition ${copiado ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" : "border-border text-muted hover:text-ink"}`}
+            >
+              {copiado ? "✓ Copiado" : "Copiar"}
+            </button>
+          </div>
+          <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">{resultado}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Panel principal ────────────────────────────────────────────────────────
 
 export default function WhatsAppPanel() {
@@ -1922,6 +1984,7 @@ export default function WhatsAppPanel() {
       <TabBar active={tab} onChange={setTab} noLeidos={noLeidos} />
 
       {tab === "chats"         && <TabChats />}
+      {tab === "filtro"        && <TabFiltroRespuesta />}
       {tab === "metricas"      && <WhatsAppMetricas />}
       {tab === "control"       && <TabControl />}
       {tab === "cuenta"        && <TabCuentaWa />}

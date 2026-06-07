@@ -334,6 +334,31 @@ function ComponenteBar({
   );
 }
 
+function SemaforoPill({
+  ok, warn, val, label, meta, tip,
+}: {
+  ok: boolean; warn: boolean; val: string; label: string; meta: string; tip: string;
+}) {
+  const cls = ok
+    ? "border-emerald-500/40 bg-emerald-500/5"
+    : warn
+      ? "border-amber-500/40 bg-amber-500/5"
+      : "border-red-500/40 bg-red-500/5";
+  const dot = ok ? "bg-emerald-500" : warn ? "bg-amber-500" : "bg-red-500";
+  const txt = ok ? "text-emerald-300" : warn ? "text-amber-300" : "text-red-300";
+  return (
+    <div className={`rounded-xl border p-4 ${cls}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${dot}`} />
+        <p className="text-xs font-semibold text-ink">{label}</p>
+      </div>
+      <p className={`text-2xl font-bold tabular-nums ${txt}`}>{val}</p>
+      <p className="text-[10px] text-muted mt-1">Meta: {meta}</p>
+      <p className="text-[11px] text-ink/70 mt-1.5 leading-relaxed">{tip}</p>
+    </div>
+  );
+}
+
 export default function WhatsAppMetricas() {
   const [dias, setDias] = useState(30);
   const [seccion, setSeccion] = useState<Seccion>("panorama");
@@ -461,59 +486,75 @@ export default function WhatsAppMetricas() {
           {/* ── PANORAMA ── */}
           {seccion === "panorama" && (
             <div className="space-y-5">
-              <div className="grid sm:grid-cols-2 gap-6 rounded-xl border border-border bg-surface-panel p-6">
-                <ScoreRing
-                  nota={data.calificacion.humano.nota}
-                  label="Asesor humano"
-                  sub={data.calificacion.humano.nivel.label}
+              {/* Strip de cifras clave */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 rounded-xl border border-border bg-surface-panel px-4 py-4">
+                {[
+                  { label: "Conversaciones", val: emb?.chats_analizados ?? r.chats_unicos, color: "text-ink" },
+                  { label: "Msgs cliente", val: r.mensajes_cliente, color: "text-muted" },
+                  { label: "Resp. humano", val: r.respuestas_humano, color: "text-blue-300" },
+                  { label: "Resp. bot", val: r.respuestas_bot, color: "text-emerald-300" },
+                  { label: "Con intención", val: emb?.con_intencion_compra ?? 0, color: "text-violet-300" },
+                  { label: "Ventas cerradas", val: emb?.ventas_cerradas ?? 0, color: "text-emerald-400" },
+                ].map(({ label, val, color }) => (
+                  <div key={label} className="text-center py-1">
+                    <p className={`text-xl font-bold tabular-nums ${color}`}>{val}</p>
+                    <p className="text-[9px] font-semibold text-muted mt-0.5 uppercase tracking-wide leading-tight">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Semáforo de desempeño */}
+              <div className="grid sm:grid-cols-3 gap-3">
+                <SemaforoPill
+                  ok={(r.mediana_humana_min ?? 999) <= (obj?.mediana_humana_min ?? 10)}
+                  warn={(r.mediana_humana_min ?? 999) <= 30}
+                  val={fmtMin(r.mediana_humana_min)}
+                  label="Velocidad de respuesta"
+                  meta={`≤ ${obj?.mediana_humana_min ?? 10} min (mediana)`}
+                  tip="Tiempo típico que el cliente espera hasta recibir respuesta del asesor."
                 />
-                <ScoreRing
-                  nota={data.calificacion.bot.nota}
-                  label="Bot Hugo"
-                  sub={data.calificacion.bot.nivel.label}
+                <SemaforoPill
+                  ok={(hum?.sla_15_pct ?? 0) >= (obj?.sla_15_pct ?? 55)}
+                  warn={(hum?.sla_15_pct ?? 0) >= 35}
+                  val={`${hum?.sla_15_pct ?? 0}%`}
+                  label="Atención en ≤15 min"
+                  meta={`≥ ${obj?.sla_15_pct ?? 55}% de consultas`}
+                  tip="Porcentaje de clientes atendidos antes de 15 minutos."
+                />
+                <SemaforoPill
+                  ok={(emb?.tasa_conversion_intencion_pct ?? 0) >= (obj?.conversion_intencion_pct ?? 35)}
+                  warn={(emb?.tasa_conversion_intencion_pct ?? 0) >= 15}
+                  val={`${emb?.tasa_conversion_intencion_pct ?? 0}%`}
+                  label="Conversión a venta"
+                  meta={`≥ ${obj?.conversion_intencion_pct ?? 35}% de intenciones`}
+                  tip={`${emb?.ventas_cerradas ?? 0} ventas de ${emb?.con_intencion_compra ?? 0} chats con intención de compra detectada.`}
                 />
               </div>
 
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <MetricCard
-                  titulo="Tiempo típico humano"
-                  valor={fmtMin(r.mediana_humana_min)}
-                  meta={`≤ ${obj?.mediana_humana_min ?? 10} min`}
-                  cumple={(r.mediana_humana_min ?? 999) <= (obj?.mediana_humana_min ?? 10)}
-                  explicacion="Mediana: la mitad de los clientes esperó menos que esto antes de recibir respuesta del asesor."
-                />
-                <MetricCard
-                  titulo="Atención rápida (≤15 min)"
-                  valor={`${hum?.sla_15_pct ?? 0}%`}
-                  meta={`≥ ${obj?.sla_15_pct ?? 55}%`}
-                  cumple={(hum?.sla_15_pct ?? 0) >= (obj?.sla_15_pct ?? 55)}
-                  explicacion="Porcentaje de consultas donde el asesor respondió en menos de 15 minutos."
-                />
-                <MetricCard
-                  titulo="Conversión a venta"
-                  valor={`${emb?.tasa_conversion_intencion_pct ?? 0}%`}
-                  meta={`≥ ${obj?.conversion_intencion_pct ?? 35}% (de intenciones)`}
-                  cumple={(emb?.tasa_conversion_intencion_pct ?? 0) >= (obj?.conversion_intencion_pct ?? 35)}
-                  explicacion={
-                    convExp?.texto ??
-                    "De quienes mostraron intención de comprar, cuántos llegaron a pago confirmado o envío."
-                  }
-                />
-                <MetricCard
-                  titulo="Chats analizados"
-                  valor={String(emb?.chats_analizados ?? r.chats_unicos)}
-                  explicacion={`${r.mensajes_cliente} mensajes cliente · ${r.respuestas_humano} resp. humano · ${r.respuestas_bot} bot`}
-                />
+              {/* Score asesor + bot como badges simples */}
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { titulo: "Asesor humano", nota: data.calificacion.humano.nota, nivel: data.calificacion.humano.nivel.label },
+                  { titulo: "Bot Hugo", nota: data.calificacion.bot.nota, nivel: data.calificacion.bot.nivel.label },
+                ].map(({ titulo, nota, nivel }) => (
+                  <div key={titulo} className="rounded-xl border border-border bg-surface-panel px-5 py-3">
+                    <p className="text-[10px] text-muted uppercase font-semibold tracking-wide">{titulo}</p>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className={`text-3xl font-bold tabular-nums ${colorNota(nota)}`}>{nota}</span>
+                      <span className="text-sm text-muted">/100</span>
+                    </div>
+                    <p className="text-[11px] text-muted mt-0.5">{nivel}</p>
+                  </div>
+                ))}
               </div>
 
               {convExp && (
-                <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-4 text-xs text-emerald-100 leading-relaxed">
-                  <p className="font-semibold text-emerald-200 mb-2">{convExp.titulo}</p>
-                  <p className="font-mono text-[11px] mb-2">
-                    {convExp.numerador} ÷ {convExp.denominador} × 100 = {convExp.resultado_pct}%
+                <section className="rounded-xl border border-border bg-surface-panel px-4 py-4 text-xs text-ink/80 leading-relaxed">
+                  <p className="font-semibold text-ink mb-1">{convExp.titulo}</p>
+                  <p className="font-mono text-[11px] mb-2 text-muted">
+                    {convExp.numerador} ventas ÷ {convExp.denominador} chats con intención × 100 = <span className="text-emerald-300 font-bold">{convExp.resultado_pct}%</span>
                   </p>
-                  <p>{convExp.texto}</p>
-                  <p className="text-muted mt-2 italic">Venta cerrada = {convExp.venta_significa}</p>
+                  <p className="text-muted">{convExp.venta_significa}</p>
                 </section>
               )}
 
@@ -849,6 +890,17 @@ export default function WhatsAppMetricas() {
           {/* ── VENTAS ── */}
           {seccion === "ventas" && emb && (
             <div className="space-y-5">
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-xs text-amber-100/90 leading-relaxed">
+                <p className="font-semibold text-amber-200 mb-1">¿Por qué las ventas detectadas parecen pocas?</p>
+                <p>
+                  Una conversación cuenta como <strong>venta cerrada</strong> solo cuando el sistema
+                  detecta en el texto del chat: (a) una frase de confirmación del asesor como
+                  "pago confirmado", "ya queda registrado", "pedido confirmado", etc.; o (b) un número
+                  de guía/envío después de que el cliente envió comprobante. Si el asesor confirmó
+                  con otras palabras, el pago se tramitó por MercadoLibre, o la conversación
+                  continuó por llamada, esa venta no queda registrada aquí. Los datos mejoran con el tiempo.
+                </p>
+              </div>
               {convExp && (
                 <section className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-5 py-4">
                   <h3 className="text-sm font-semibold text-emerald-200 mb-2">{convExp.titulo}</h3>

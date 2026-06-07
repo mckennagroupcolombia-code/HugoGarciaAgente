@@ -14,7 +14,7 @@ import smtplib
 import sqlite3
 import ssl
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -167,6 +167,7 @@ def migrate_orders_table() -> None:
         ("siigo_invoice_emitted_at", "TEXT"),
         ("siigo_invoice_error", "TEXT"),
         ("siigo_invoice_attempted_at", "TEXT"),
+        ("siigo_invoice_email_sent_at", "TEXT"),
     ]
     for col, decl in additions:
         if col not in existing:
@@ -907,6 +908,7 @@ def _update_invoice_state(reference: str, **fields) -> None:
         "siigo_invoice_emitted_at",
         "siigo_invoice_error",
         "siigo_invoice_attempted_at",
+        "siigo_invoice_email_sent_at",
         "invoice_requested_at",
     }
     updates = [(k, v) for k, v in fields.items() if k in allowed]
@@ -1216,18 +1218,25 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
         stamp = result.get("stamp") if isinstance(result.get("stamp"), dict) else {}
         stamp_error = stamp.get("errors") or stamp.get("observations") or None
         mail_customer = False
-        try:
-            mail_customer = send_siigo_invoice_email_to_customer(
-                order,
-                invoice_number=number,
-                invoice_id=invoice_id,
-                pdf_path=result.get("pdf_path"),
-                cufe=cufe,
+        # Solo enviar correo al cliente cuando DIAN aceptó el documento (CUFE real asignado).
+        # Si está en Processing/retry, el hilo check_and_finalize_processing_invoices lo enviará
+        # cuando Siigo confirme la aceptación.
+        if status == "Accepted":
+            try:
+                mail_customer = send_siigo_invoice_email_to_customer(
+                    order,
+                    invoice_number=number,
+                    invoice_id=invoice_id,
+                    pdf_path=result.get("pdf_path"),
+                    cufe=cufe,
+                )
+            except Exception as e:
+                log.warning("Correo factura cliente %s: %s", ref, e)
+        else:
+            log.info(
+                "Factura %s en estado '%s' — correo diferido hasta aceptación DIAN", ref, status
             )
-        except Exception as e:
-            log.warning("Correo factura cliente %s: %s", ref, e)
-        _update_invoice_state(
-            ref,
+        invoice_state: dict = dict(
             siigo_invoice_id=invoice_id,
             siigo_invoice_number=number,
             siigo_invoice_status=status,
@@ -1235,17 +1244,19 @@ def emitir_factura_siigo_pedido_web(reference: str, *, force: bool = False) -> t
             siigo_invoice_emitted_at=now,
             siigo_invoice_error=stamp_error,
         )
+        if mail_customer:
+            invoice_state["siigo_invoice_email_sent_at"] = now
+        _update_invoice_state(ref, **invoice_state)
         cufe_line = f"CUFE: `{cufe}`\n" if cufe else "CUFE: pendiente/no recibido aún\n"
         used_fe_fallback = bool(_invoice_email_for_fe(order)[1])
-        mail_line = (
-            "Correo PDF cliente: enviado ✅\n"
-            if mail_customer
-            else (
-                "Correo PDF cliente: no enviado (revisa SMTP o email en datos de facturación)\n"
-                if _billing_email_from_order(order) or WEB_INVOICE_EMAIL_FALLBACK
-                else "Correo PDF cliente: sin email en pedido ni fallback configurado\n"
-            )
-        )
+        if mail_customer:
+            mail_line = "Correo PDF cliente: enviado ✅\n"
+        elif status != "Accepted":
+            mail_line = f"Correo PDF cliente: diferido (DIAN en {status}) ⏳\n"
+        elif _billing_email_from_order(order) or WEB_INVOICE_EMAIL_FALLBACK:
+            mail_line = "Correo PDF cliente: no enviado (revisa SMTP o email en datos de facturación)\n"
+        else:
+            mail_line = "Correo PDF cliente: sin email en pedido ni fallback configurado\n"
         if mail_customer and used_fe_fallback and WEB_INVOICE_EMAIL_FALLBACK:
             mail_line += (
                 f"_(Sin email en la venta → PDF a {WEB_INVOICE_EMAIL_FALLBACK})_\n"
@@ -1418,3 +1429,113 @@ def marcar_solicitud_facturacion(reference: str) -> tuple[bool, str]:
     if not ok:
         return False, f"No encontré el pedido {ref}."
     return emitir_factura_siigo_pedido_web(ref, force=True)
+
+
+def marcar_pedidos_expirados(horas: int = 24) -> int:
+    """Marca como 'no_realizado' todos los pedidos que llevan más de `horas` horas en 'pending'.
+
+    Retorna el número de pedidos marcados.
+    """
+    if not ORDERS_DB.exists():
+        return 0
+    desde = (datetime.now() - timedelta(hours=horas)).isoformat()
+    try:
+        con = sqlite3.connect(ORDERS_DB, timeout=30)
+        cur = con.execute(
+            "UPDATE orders SET status = 'no_realizado' "
+            "WHERE status = 'pending' AND created_at < ?",
+            (desde,),
+        )
+        count = cur.rowcount
+        con.commit()
+        con.close()
+        if count:
+            log.info("marcar_pedidos_expirados: %d pedido(s) → no_realizado", count)
+        return count
+    except Exception as e:
+        log.warning("marcar_pedidos_expirados: %s", e)
+        return 0
+
+
+def check_and_finalize_processing_invoices() -> int:
+    """Re-consulta Siigo para facturas en estado Processing y envía correo cuando DIAN las acepta.
+
+    Retorna el número de facturas cuyo correo se envió en esta ronda.
+    """
+    import requests as _requests
+    from app.services.siigo import autenticar_siigo, _stamp_info_siigo
+
+    if not ORDERS_DB.exists():
+        return 0
+
+    con = sqlite3.connect(ORDERS_DB, timeout=30)
+    con.row_factory = sqlite3.Row
+    rows = con.execute(
+        """SELECT * FROM orders
+           WHERE status = 'approved'
+             AND siigo_invoice_id IS NOT NULL AND siigo_invoice_id != ''
+             AND (siigo_invoice_email_sent_at IS NULL OR siigo_invoice_email_sent_at = '')
+           ORDER BY id DESC LIMIT 20""",
+    ).fetchall()
+    con.close()
+
+    if not rows:
+        return 0
+
+    token = autenticar_siigo()
+    if not token:
+        log.warning("check_and_finalize_processing_invoices: no pudo autenticar con Siigo")
+        return 0
+
+    headers = {"Authorization": f"Bearer {token}", "Partner-Id": "SiigoAPI"}
+    finalized = 0
+
+    for row in rows:
+        order = _row_dict(row)
+        invoice_id = str(order.get("siigo_invoice_id") or "")
+        ref = order.get("reference") or ""
+        try:
+            res = _requests.get(
+                f"https://api.siigo.com/v1/invoices/{invoice_id}",
+                headers=headers,
+                timeout=15,
+            )
+            if res.status_code != 200:
+                continue
+            factura = res.json()
+            stamp = _stamp_info_siigo(factura)
+            stamp_status = stamp.get("status", "")
+
+            if stamp_status != "Accepted":
+                continue
+
+            cufe = stamp.get("cufe") or stamp.get("cude") or ""
+            number = str(order.get("siigo_invoice_number") or invoice_id)
+            pdf_path = _ensure_siigo_invoice_pdf_path(invoice_id, number, None)
+
+            sent = False
+            try:
+                sent = send_siigo_invoice_email_to_customer(
+                    order,
+                    invoice_number=number,
+                    invoice_id=invoice_id,
+                    pdf_path=pdf_path,
+                    cufe=cufe,
+                )
+            except Exception as e:
+                log.warning("Correo factura diferida %s: %s", ref, e)
+
+            updates: dict = {"siigo_invoice_status": stamp_status}
+            if cufe:
+                updates["siigo_invoice_cufe"] = cufe
+            if sent:
+                updates["siigo_invoice_email_sent_at"] = datetime.now().isoformat()
+                finalized += 1
+                log.info("Correo factura diferida enviado: %s (FE %s)", ref, number)
+
+            _update_invoice_state(ref, **updates)
+
+        except Exception as e:
+            log.warning("check_and_finalize invoice %s: %s", invoice_id, e)
+
+    return finalized

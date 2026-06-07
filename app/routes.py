@@ -5577,6 +5577,61 @@ def register_routes(app):
         dias = int(request.args.get("dias", 30))
         return jsonify(calcular_metricas(dias=dias))
 
+    @app.route("/api/filtro-respuesta", methods=["POST"])
+    def api_filtro_respuesta():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(force=True, silent=True) or {}
+        texto = (data.get("texto") or "").strip()
+        if not texto:
+            return jsonify({"error": "Texto vacío"}), 400
+        contexto = (data.get("contexto") or "").strip()
+        try:
+            _prompt_sistema = (
+                "Eres el asistente de comunicaciones de McKenna Group S.A.S., empresa de materias "
+                "primas farmacéuticas y cosméticas con sede en Bogotá, Colombia. "
+                "Tu tarea es reescribir mensajes de WhatsApp de operadores para que suenen "
+                "cordiales, profesionales y claros, con el acento y modismos propios del habla rola "
+                "(bogotana): usa 'usted' en lugar de 'tú', expresiones naturales como "
+                "'con mucho gusto', 'claro que sí', 'no hay problema', 'quedamos pendientes', "
+                "'estamos a sus órdenes', 'con toda'; si el cliente tiene nombre úsalo, si no, "
+                "usa 'estimado/a cliente'. Evita tutear, evitar groserías o frases secas. "
+                "Máximo 1–2 emojis si aportan; resuelve sin rodeos; cierra siempre con "
+                "disposición de ayuda. "
+                "Devuelve únicamente el texto del mensaje mejorado, sin explicaciones, "
+                "sin encabezados, sin comillas. Conserva la misma información esencial."
+            )
+            _usuario = f"Reescribe este mensaje al cliente con tono profesional y cordial:\n\n{texto}"
+            if contexto:
+                _usuario = f"Contexto de la conversación: {contexto}\n\n{_usuario}"
+
+            _anthropic_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+            _gemini_key = os.getenv("GOOGLE_API_KEY", "").strip()
+
+            if _anthropic_key:
+                import anthropic as _anthropic
+                _cliente = _anthropic.Anthropic(api_key=_anthropic_key)
+                _resp = _cliente.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=800,
+                    system=_prompt_sistema,
+                    messages=[{"role": "user", "content": _usuario}],
+                )
+                return jsonify({"texto_mejorado": _resp.content[0].text.strip()})
+            elif _gemini_key:
+                from google import genai as _genai
+                _gc = _genai.Client(api_key=_gemini_key)
+                _full = f"{_prompt_sistema}\n\n{_usuario}"
+                _resp = _gc.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=_full,
+                )
+                return jsonify({"texto_mejorado": (_resp.text or "").strip()})
+            else:
+                return jsonify({"error": "No hay API key de IA configurada (ANTHROPIC_API_KEY o GOOGLE_API_KEY)"}), 500
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
     @app.route("/api/alertas/intencion", methods=["GET"])
     def api_alertas_intencion_get():
         if not _api_token_valido():

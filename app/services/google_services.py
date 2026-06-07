@@ -222,6 +222,7 @@ def buscar_producto_completo(consulta: str):
             if len(row) < 7:
                 continue
 
+            meli_id = str(row[0]).strip().upper() if row[0] else ""  # columna A
             sku = str(row[1]).strip()           # columna B
             nombre_sheet = str(row[3]).strip()  # columna D
             stock_siigo = str(row[6]).strip()   # columna G
@@ -238,6 +239,7 @@ def buscar_producto_completo(consulta: str):
 
                 return {
                     "sku": sku,
+                    "meli_id": meli_id if meli_id.startswith("MCO") else "",
                     "nombre_meli": nombre_sheet,
                     "nombre_siigo": datos_siigo["nombre"] if datos_siigo else nombre_sheet,
                     "precio": datos_siigo["precio"] if datos_siigo else None,

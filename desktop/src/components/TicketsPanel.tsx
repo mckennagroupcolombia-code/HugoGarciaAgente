@@ -89,6 +89,35 @@ function ticketsUploadUrl(filename: string, token: string) {
   return `/api/tickets/uploads/${encodeURIComponent(filename)}?token=${encodeURIComponent(token)}`;
 }
 
+function ImageLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute -top-3 -right-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-surface border border-border text-ink hover:text-accent shadow-lg text-sm font-bold"
+        >✕</button>
+        <img src={url} alt="" className="max-w-[92vw] max-h-[88vh] rounded-xl object-contain shadow-2xl" />
+        <a href={url} target="_blank" rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute bottom-2 right-2 text-[10px] text-white/70 hover:text-white bg-black/50 rounded px-2 py-0.5 transition-colors">
+          Abrir original ↗
+        </a>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function UserAvatar({
   user,
   token,
@@ -12864,6 +12893,7 @@ function SolicitudCard({
   const [eliminandoAdj, setEliminandoAdj] = useState<number | null>(null);
   const [subiendoAdjPaso, setSubiendoAdjPaso] = useState<number | null>(null);
   const [subiendoAdjTicket, setSubiendoAdjTicket] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [showPedirRevision, setShowPedirRevision] = useState(false);
   const [notaRevision, setNotaRevision] = useState("");
   const [showPedirAjustes, setShowPedirAjustes] = useState(false);
@@ -13723,6 +13753,7 @@ function SolicitudCard({
           {!loadingAdjuntos && adjuntos.length === 0 && (
             <p className="text-xs text-muted italic">Sin archivos adjuntos.</p>
           )}
+          {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
           <div className="space-y-1">
             {adjuntos.map((a) => {
               const esImagen = /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
@@ -13732,9 +13763,10 @@ function SolicitudCard({
               return (
                 <div key={a.id} className="flex items-center gap-2 rounded-lg border border-border/50 bg-surface px-2 py-1.5">
                   {esImagen ? (
-                    <a href={url} target="_blank" rel="noreferrer" className="shrink-0">
-                      <img src={url} alt={a.nombre_original} className="h-8 w-8 rounded object-cover border border-border" />
-                    </a>
+                    <button type="button" onClick={() => setLightboxUrl(url)} className="shrink-0 group relative" title="Ver imagen">
+                      <img src={url} alt={a.nombre_original} className="h-8 w-8 rounded object-cover border border-border group-hover:opacity-80 transition-opacity" />
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold transition-opacity">🔍</span>
+                    </button>
                   ) : (
                     <span className="text-base shrink-0">{icono}</span>
                   )}
@@ -16796,22 +16828,32 @@ function HistorialSolicitudDetalle({
   const adjuntosTicket = useMemo(() => adjuntos.filter((a) => !a.paso_id), [adjuntos]);
 
   function AdjuntoLink({ a }: { a: Adjunto }) {
+    const [lbUrl, setLbUrl] = useState<string | null>(null);
     const esImagen = /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
     const esPdf    = /\.pdf$/i.test(a.nombre_original);
     const icono    = esImagen ? "🖼" : esPdf ? "📄" : "📁";
     const url      = ticketsUploadUrl(a.nombre_archivo, token);
     return (
-      <a href={url} target="_blank" rel="noreferrer"
-        className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs text-accent hover:bg-surface-hover transition-colors min-w-0">
-        {esImagen
-          ? <img src={url} alt={a.nombre_original} className="h-8 w-8 shrink-0 rounded object-cover border border-border" />
-          : <span className="text-base shrink-0">{icono}</span>
-        }
-        <span className="min-w-0 truncate flex-1">{a.nombre_original}</span>
-        {a.creado_por_nombre && (
-          <span className="text-[10px] text-muted shrink-0 hidden sm:inline">{a.creado_por_nombre}</span>
-        )}
-      </a>
+      <>
+        {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs min-w-0">
+          {esImagen ? (
+            <button type="button" onClick={() => setLbUrl(url)} className="group relative shrink-0" title="Ver imagen">
+              <img src={url} alt={a.nombre_original} className="h-8 w-8 rounded object-cover border border-border group-hover:opacity-80 transition-opacity" />
+              <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-[10px] font-bold transition-opacity">🔍</span>
+            </button>
+          ) : (
+            <span className="text-base shrink-0">{icono}</span>
+          )}
+          <a href={url} target="_blank" rel="noreferrer"
+            className="min-w-0 truncate flex-1 text-accent hover:underline">
+            {a.nombre_original}
+          </a>
+          {a.creado_por_nombre && (
+            <span className="text-[10px] text-muted shrink-0 hidden sm:inline">{a.creado_por_nombre}</span>
+          )}
+        </div>
+      </>
     );
   }
 
@@ -18970,6 +19012,7 @@ function ProcedimientoCard({
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [subiendoFoto, setSubiendoFoto] = useState<number | null>(null);
+  const [lbUrl, setLbUrl] = useState<string | null>(null);
 
   // Picker de visibilidad
   const [showPicker, setShowPicker] = useState(false);
@@ -19163,6 +19206,7 @@ function ProcedimientoCard({
                 </div>
 
                 {/* Fotos de referencia del paso */}
+                {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
                 <div className="ml-6 space-y-1.5">
                   {paso.adjuntos_ref.length > 0 && (
                     <div className="flex flex-wrap gap-2">
@@ -19172,7 +19216,10 @@ function ProcedimientoCard({
                         return (
                           <div key={ai} className="relative group">
                             {esImagen
-                              ? <img src={url} alt="" className="h-16 w-16 rounded-lg object-cover border border-border" />
+                              ? <button type="button" onClick={() => setLbUrl(url)} className="block" title="Ver imagen">
+                                  <img src={url} alt="" className="h-16 w-16 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
+                                  <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-sm font-bold transition-opacity pointer-events-none">🔍</span>
+                                </button>
                               : <a href={url} target="_blank" rel="noreferrer"
                                   className="flex h-16 w-16 items-center justify-center rounded-lg border border-border bg-surface text-xl">📄</a>
                             }
@@ -19394,6 +19441,7 @@ function AccionesView({
   const [msg, setMsg] = useState("");
   const [registroExpandido, setRegistroExpandido] = useState<number | null>(null);
   const [registros, setRegistros] = useState<Record<number, { comentarios: any[]; adjuntos: any[] }>>({});
+  const [histLbUrl, setHistLbUrl] = useState<string | null>(null);
   const nivel = user.rol?.nivel ?? 1;
 
   // ── STT (voz → título de acción) ─────────────────────────────────────────
@@ -20439,16 +20487,21 @@ function AccionesView({
 
                             return (
                               <div className="space-y-2">
+                                {histLbUrl && <ImageLightbox url={histLbUrl} onClose={() => setHistLbUrl(null)} />}
                                 {items.map((item: any, idx: number) => (
                                   <div key={idx}>
                                     {item._tipo === "adjunto" ? (
                                       <div>
-                                        <a href={`/api/tickets/uploads/${encodeURIComponent(item.nombre_archivo)}?token=${token}`}
-                                          target="_blank" rel="noopener noreferrer">
+                                        <button
+                                          type="button"
+                                          onClick={() => setHistLbUrl(`/api/tickets/uploads/${encodeURIComponent(item.nombre_archivo)}?token=${token}`)}
+                                          className="group relative block w-full max-w-xs"
+                                        >
                                           <img src={`/api/tickets/uploads/${encodeURIComponent(item.nombre_archivo)}?token=${token}`}
                                             alt={item.nombre_original ?? "foto"}
-                                            className="rounded-xl w-full max-w-xs border border-border object-cover hover:opacity-80 transition"/>
-                                        </a>
+                                            className="rounded-xl w-full border border-border object-cover hover:opacity-80 transition"/>
+                                          <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>
+                                        </button>
                                         <p className="text-[10px] text-muted mt-1">{fmt(item.creado_en)}</p>
                                       </div>
                                     ) : (
