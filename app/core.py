@@ -133,13 +133,19 @@ def buscar_producto_completo(consulta: str) -> str:
         unidad = resultado["unidad"] or ""
         ficha = resultado["ficha_tecnica"] or "No disponible"
         disp = _resumen_disponibilidad_para_agente(resultado.get("stock_siigo"))
+        meli_id = resultado.get("meli_id", "")
+        meli_url = ""
+        if meli_id and meli_id.startswith("MCO"):
+            num = meli_id[3:]
+            meli_url = f"\n- Link MercadoLibre: https://articulo.mercadolibre.com.co/MCO-{num}"
         return (
             f"✅ Producto encontrado en catálogo McKenna Group:\n"
             f"- Nombre oficial: {resultado['nombre_siigo']}\n"
             f"- SKU/Referencia: {resultado['referencia']}\n"
             f"- Precio: {precio_fmt}\n"
             f"- Unidad: {unidad}\n"
-            f"{disp}\n"
+            f"{disp}"
+            f"{meli_url}\n"
             f"- Ficha técnica: {ficha}"
         )
     return f"Producto '{consulta}' no encontrado en el catálogo."
@@ -192,6 +198,7 @@ CANAL CHAT WEB (burbuja mckennagroup.co):
    **orientativos** (no sustituyen el COA del lote). Vendemos materia prima, no producto terminado.
 5. DISPONIBILIDAD Y PRECIOS: Responda con el catálogo inyectado. Si no hay match, diga que no aparece en catálogo web ahora,
    sugiera mckennagroup.co/tienda y ofrezca WhatsApp solo como canal para confirmar stock especial — no obligue a cambiar de canal para una simple consulta.
+   Si el catálogo incluye un "Link MercadoLibre", inclúyalo siempre en la respuesta para que el cliente pueda comprar directamente.
 6. DOCUMENTOS: Lo habitual en materia prima es **ficha técnica** y/o **COA**. Las materias primas tienen marco regulatorio
    distinto a un producto terminado con registro INVIMA; no prometa "registro INVIMA" como documento estándar de MP.
    Si piden INVIMA, explíquelo con tacto y ofrezca FT/COA. Use enlaces del contexto si vienen inyectados.
@@ -276,6 +283,12 @@ REGLAS DE INTERACCIÓN WHATSAPP Y VENTAS:
    a. Usa la herramienta 'crear_factura_completa_siigo' pasando los datos de la cotización preliminar y la ruta del archivo del comprobante (si está disponible).
    b. Esta herramienta se encargará de crear la factura oficial en SIIGO, adjuntar el comprobante y enviar el reporte automático al grupo de WhatsApp con la factura PDF y el resumen de despacho.
 7. IMÁGENES SIN CONTEXTO DE PAGO: si recibes un mensaje tipo "El cliente envió una imagen por WhatsApp." y no hay señales explícitas de pago/comprobante, NO asumas pago. Responde pidiendo intención de forma breve (ej. "¿Desea cotización, validación de producto o soporte técnico?").
+8. LOGÍSTICA Y PUNTO DE VENTA — REGLA CRÍTICA:
+   - McKenna Group es una TIENDA VIRTUAL ÚNICAMENTE. NO tenemos punto físico, bodega ni lugar de recogida para el cliente.
+   - NUNCA digas que el cliente puede "pasar a recoger", "coordinamos para que recoja", "puede venir a recibir" ni nada similar.
+   - Para Bogotá: manejamos entregas el MISMO DÍA de lunes a viernes mediante mensajero. Menciona esto cuando el cliente pregunte por envíos en Bogotá.
+   - Para el resto del país: despachamos por transportadora (Interrapidísimo u otro operador). El tiempo de entrega varía según la ciudad.
+   - Si el cliente pregunta por tienda física, dirección o punto de recogida, responde: "Somos tienda virtual, no contamos con punto físico. Para Bogotá hacemos entrega el mismo día de lunes a viernes con mensajero."
 
 REGLAS DE CONTROL DE HERRAMIENTAS:
 1. NO EJECUTTES 'sincronizar_inteligente' ni 'sincronizar_facturas_recientes' si el usuario solo hace preguntas de estado (ej: "¿Cómo va la conexión?").
@@ -285,6 +298,7 @@ REGLAS DE CONTROL DE HERRAMIENTAS:
 
 REGLAS SOBRE NOMBRES Y PRECIOS DE PRODUCTOS:
 - En conversaciones de WHATSAPP: SIEMPRE usa 'buscar_producto_completo' para consultar un producto (no repitas cantidades de inventario al cliente). Usa el nombre oficial que retorna el catálogo (columna SIIGO), no el nombre de la publicación de MercadoLibre. Usa el precio del catálogo.
+- Si 'buscar_producto_completo' retorna un "Link MercadoLibre", SIEMPRE inclúyelo en la respuesta al cliente para que pueda verlo y comprarlo directamente.
 - En respuestas de PREVENTA en MercadoLibre: puedes mencionar el nombre de la publicación, pero consulta la ficha técnica real desde Google Sheets.
 - NUNCA uses nombres de publicaciones de MercadoLibre al hablar con clientes por WhatsApp.
 - El SKU es la referencia oficial del producto en todas las facturas y cotizaciones.
