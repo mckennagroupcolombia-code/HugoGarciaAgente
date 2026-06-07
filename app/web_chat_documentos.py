@@ -14,7 +14,9 @@ from app.services.drive_documentos import (
 )
 from app.web_chat_mensajes import (
     nota_asesor_whatsapp_chat_web,
+    nota_regulatoria_invima_explicacion,
     nota_regulatoria_materias_primas_invima,
+    nota_regulatoria_materias_primas_invima_larga,
     nota_seguimiento_pedido_whatsapp,
 )
 
@@ -73,6 +75,26 @@ def _historial_solo_usuario(historial_texto: str) -> str:
 def mensaje_pide_registro_invima(texto: str) -> bool:
     low = re.sub(r"\s+", " ", (texto or "").strip().lower())
     return bool(re.search(r"\b(invima|registro\s+sanitario)\b", low))
+
+
+def mensaje_pide_explicacion_invima(texto: str) -> bool:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    if not re.search(r"\b(invima|registro\s+sanitario|registro)\b", low):
+        return False
+    return bool(re.search(
+        r"\b(por\s*qu[eé]|como\s+funciona|c[oó]mo\s+opera|explica|entiend|no\s+entiendo|"
+        r"la\s+l[oó]gica|qu[eé]\s+significa|qu[eé]\s+quiere\s+decir|diferencia|categor)\b",
+        low,
+    ))
+
+
+def _nota_invima_segun_contexto(user_message: str, hist_user: str) -> str:
+    """Selecciona la nota INVIMA adecuada según el nivel de la conversación."""
+    if mensaje_pide_explicacion_invima(user_message):
+        return nota_regulatoria_invima_explicacion()
+    if mensaje_pide_registro_invima(user_message) and mensaje_pide_registro_invima(hist_user):
+        return nota_regulatoria_materias_primas_invima_larga()
+    return nota_regulatoria_materias_primas_invima()
 
 
 def mensaje_pide_documentacion_web(texto: str) -> bool:
@@ -261,19 +283,23 @@ def manejar_documentos_web(
             "¿Me indica el nombre exacto de cada materia prima o la referencia (ej. C-TAU250g)? "
             "Si prefiere recibir los PDF por correo, déjeme su email y el equipo se los envía en breve."
         )
-        if mensaje_pide_registro_invima(user_message) or mensaje_pide_registro_invima(hist_user):
-            intro = nota_regulatoria_materias_primas_invima() + "\n\n" + intro
+        pide_invima_ahora = mensaje_pide_registro_invima(user_message)
+        pide_invima_antes = mensaje_pide_registro_invima(hist_user)
+        if pide_invima_ahora or pide_invima_antes:
+            nota = _nota_invima_segun_contexto(user_message, hist_user)
+            intro = nota + "\n\n" + intro
         return intro + nota_asesor_whatsapp_chat_web(
             motivo="documentación o datos de lote puntuales"
         )
 
-    pide_invima = mensaje_pide_registro_invima(user_message) or mensaje_pide_registro_invima(
-        hist_user
-    )
+    pide_invima_ahora = mensaje_pide_registro_invima(user_message)
+    pide_invima_antes = mensaje_pide_registro_invima(hist_user)
+    pide_invima = pide_invima_ahora or pide_invima_antes
 
     lineas: list[str] = []
     if pide_invima:
-        lineas.append(nota_regulatoria_materias_primas_invima())
+        nota = _nota_invima_segun_contexto(user_message, hist_user)
+        lineas.append(nota)
         lineas.append(
             "\nCompartimos la documentación de materia prima que tenemos disponible "
             "(ficha técnica / COA):\n"

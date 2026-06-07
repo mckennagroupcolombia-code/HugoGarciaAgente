@@ -28,6 +28,8 @@ from app.tools.web_pedidos import (
     process_order_paid_side_effects,
     get_order_by_reference,
     registrar_envio_y_notificar,
+    marcar_pedidos_expirados,
+    check_and_finalize_processing_invoices,
 )
 from app.services.siigo import listar_productos_combo_siigo, buscar_producto_siigo_por_sku
 
@@ -2814,7 +2816,7 @@ def admin_pedidos_lista():
     init_db()
     q = (request.args.get("q") or "").strip()
     status_f = (request.args.get("status") or "").strip().lower()
-    if status_f not in ("", "pending", "approved", "declined", "unknown"):
+    if status_f not in ("", "pending", "approved", "declined", "unknown", "no_realizado"):
         status_f = ""
     limit = _admin_orders_limit()
     rows = []
@@ -3073,6 +3075,28 @@ def checkout_colombia():
 @app.errorhandler(404)
 def not_found(e):
     return render_template("404.html"), 404
+
+
+def _orders_maintenance_loop() -> None:
+    """Hilo daemon: expira pedidos pendientes >24h y completa envíos de correos de FE diferidos."""
+    import time as _time
+    _time.sleep(60)  # espera inicial para que Flask esté completamente listo
+    while True:
+        try:
+            marcar_pedidos_expirados(horas=24)
+        except Exception as e:
+            log.warning("orders_maintenance marcar_pedidos_expirados: %s", e)
+        try:
+            check_and_finalize_processing_invoices()
+        except Exception as e:
+            log.warning("orders_maintenance check_and_finalize: %s", e)
+        _time.sleep(300)  # cada 5 minutos
+
+
+_maintenance_thread = threading.Thread(
+    target=_orders_maintenance_loop, daemon=True, name="orders-maintenance"
+)
+_maintenance_thread.start()
 
 
 if __name__ == "__main__":

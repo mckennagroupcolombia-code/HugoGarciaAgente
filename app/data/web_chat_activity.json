@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-05T20:47:49",
+  "updated_at": "2026-06-06T17:55:48",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -21,9 +21,51 @@
     "2026-06-02": 2,
     "2026-06-03": 1,
     "2026-06-04": 4,
-    "2026-06-05": 4
+    "2026-06-05": 4,
+    "2026-06-06": 3
   },
   "sessions": [
+    {
+      "session_id": "web-e1cdf968-1b2b-4af7-8182-928909922b0d",
+      "started_at": "2026-06-06T14:06:10",
+      "last_at": "2026-06-06T14:08:15",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": true,
+      "reviewed_at": "2026-06-06T17:55:48",
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/423.5.920392540 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Súper no la encuentro",
+      "last_agent_reply": "Qué raro, veci. A veces la tienda se demora en actualizar el inventario. Para ir a la fija, porfa escríbanos a nuestro WhatsApp +57 319 518 3596. Allá un asesor humano le confirma de una las presentaciones y precios que tenemos disponibles. Le aclaro que este chat de la página no guarda el historial si cierra la ventana, para que lo tenga presente.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-06T14:06:10",
+          "user_message": "Hola ustedes manejar proteína de suero",
+          "agent_reply": "Claro que sí, veci. Manejamos Proteína de Suero de Leche, es materia prima concentrada al 80% y con calidad USP.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-06T14:07:21",
+          "user_message": "Qué precio tiene? Y cuánto viene ? Y qué cantidad de proteína por scup",
+          "agent_reply": "Claro, veci. En este momento no me cargan las presentaciones y precios en el sistema de este chat, pero puede verlos directamente en nuestra tienda online: mckennagroup.co/tienda. Sobre la cantidad de proteína por 'scoop', le aclaro: como es materia prima pura, no incluye medidor (scoop) ni tabla nutricional por porción como un suplemento terminado. La concentración es del 80%, lo que significa que por cada 100 gramos de producto, está llevando aproximadamente 80 gramos de proteína. Es calidad USP, ideal para formulaciones.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-06T14:08:15",
+          "user_message": "Súper no la encuentro",
+          "agent_reply": "Qué raro, veci. A veces la tienda se demora en actualizar el inventario. Para ir a la fija, porfa escríbanos a nuestro WhatsApp +57 319 518 3596. Allá un asesor humano le confirma de una las presentaciones y precios que tenemos disponibles. Le aclaro que este chat de la página no guarda el historial si cierra la ventana, para que lo tenga presente.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-22c6319c-7edb-400c-a8bd-b5cc0581dc1c",
       "started_at": "2026-06-05T13:19:50",

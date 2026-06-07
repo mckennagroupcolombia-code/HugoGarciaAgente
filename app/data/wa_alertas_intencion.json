@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "alertas": {
+    "573001234567@c.us": {
+      "jid": "573001234567@c.us",
+      "primer_intencion_ts": 1780748254.4672236,
+      "primer_intencion_texto": "quiero hacer un pedido, ¿cuál es la cuenta para transferir?",
+      "ultima_human_ts": 1780748374.4672236,
+      "ultimo_bot_ts": 1780748314.4672236,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573214399939@c.us": {
+      "jid": "573214399939@c.us",
+      "primer_intencion_ts": 1780752734.0,
+      "primer_intencion_texto": "Necesito comprar 200 jabones espuma para jacuzzi",
+      "ultima_human_ts": 1780752754.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573182974834@c.us": {
+      "jid": "573182974834@c.us",
+      "primer_intencion_ts": 1780782559.0,
+      "primer_intencion_texto": "Me indicas por favor si tienes alantoina por cuánto viene  por favor el valor y el número de la cuenta nequi para hacer el pago. El martes gracias",
+      "ultima_human_ts": 1780782756.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573053339987@c.us": {
+      "jid": "573053339987@c.us",
+      "primer_intencion_ts": 1780420302.0,
+      "primer_intencion_texto": "Pedido:\n9 - Esencias de ylang ylang",
+      "ultima_human_ts": 1780580939.0,
+      "ultimo_bot_ts": 1780579463.0,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    }
+  }
+}

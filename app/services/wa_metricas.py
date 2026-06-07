@@ -131,19 +131,32 @@ _PAT_INTENCION = re.compile(
     re.I,
 )
 _PAT_COMPROBANTE = re.compile(
-    r"\b(comprobante|transferencia realizada|ya pagu[eé]|pago hecho|"
-    r"adjunto comprobante|soporte de pago)\b",
+    r"(comprobante|transferencia realizada|ya pagu[eé]|pago hecho|"
+    r"adjunto comprobante|soporte de pago|"
+    r"ya hice (la )?transferencia|ya realic[eé] (el )?pago|"
+    r"hice (el )?pago|env[ií][eo] (el )?soporte|"
+    r"realic[eé] la transferencia|pago realizado|ya consign[eé]|"
+    r"te mando el comprobante|le mando el soporte)",
     re.I,
 )
 _PAT_PAGO_OK = re.compile(
-    r"\b(confirmamos su pago|confirmamos tu pago|pago confirmado|"
-    r"pago recibido|pago validado|compra confirmada)\b",
+    r"(confirmamos su pago|confirmamos tu pago|pago confirmado|"
+    r"pago recibido|pago validado|compra confirmada|"
+    r"ya queda (confirmado|registrado|listo el pedido)|"
+    r"queda (confirmado|registrado|procesado) (el pago|su pedido|tu pedido)|"
+    r"se registra(ron)? (el|su) pago|"
+    r"(el )?pago (fue|ha sido|est[aá]) (recibido|confirmado|registrado|validado)|"
+    r"pedido (confirmado|registrado|procesado)|"
+    r"factura (generada|registrada|enviada|lista)|"
+    r"compra procesada|le confirmamos|su pedido est[aá] listo)",
     re.I,
 )
 _PAT_ENVIO = re.compile(
-    r"\b(gu[ií]a|interrapid[ií]simo|rastreo|tracking|despachad|"
+    r"(gu[ií]a|interrapid[ií]simo|rastreo|tracking|despachad|"
     r"en camino|n[uú]mero de env[ií]o|env[ií]o registrado|"
-    r"comprobante.*inter\.la)\b",
+    r"comprobante.*inter\.la|n[uú]mero de seguimiento|"
+    r"ya (fue|lo|le) (enviado|despachado)|ya sali[oó] el paquete|"
+    r"despacho listo|enviamos (por|con)|se env[ií]a (hoy|ma[nñ]ana))",
     re.I,
 )
 
