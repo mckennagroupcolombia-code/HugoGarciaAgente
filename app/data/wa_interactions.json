@@ -1,12 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1780325547.6987064,
-      "tipo": "bot_pausado_global",
-      "sender": "57125035289284720@c.us",
-      "detalle": "por mercadolibre sale mas economico?"
-    },
-    {
       "ts": 1780325684.591643,
       "tipo": "bot_pausado_global",
       "sender": "57125035289284720@c.us",
@@ -1799,6 +1793,12 @@
       "tipo": "bot_pausado_global",
       "sender": "573115010287@c.us",
       "detalle": "No veo el número y una amiga necesita pedirlo"
+    },
+    {
+      "ts": 1780898644.6033225,
+      "tipo": "bot_pausado_global",
+      "sender": "573132616045@c.us",
+      "detalle": "Hola, quiero información sobre Aceite de Ricino"
     }
   ]
 }
