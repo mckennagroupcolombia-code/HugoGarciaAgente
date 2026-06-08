@@ -1,84 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1780324479.5718138,
-      "tipo": "bot_pausado_global",
-      "sender": "57257534845792363@c.us",
-      "detalle": "Si es para la ciudad de Bogotá"
-    },
-    {
-      "ts": 1780324772.7625003,
-      "tipo": "bot_pausado_global",
-      "sender": "57125035289284720@c.us",
-      "detalle": "hola buenos días"
-    },
-    {
-      "ts": 1780324895.193906,
-      "tipo": "modo_humano",
-      "sender": "5773031707820119@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780324895.3058689,
-      "tipo": "modo_humano",
-      "sender": "5773031707820119@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780325003.3835518,
-      "tipo": "bot_pausado_global",
-      "sender": "57125035289284720@c.us",
-      "detalle": "por favor para pedirte 6kg de arcilla blanca"
-    },
-    {
-      "ts": 1780325048.5937426,
-      "tipo": "bot_pausado_global",
-      "sender": "57235368536358931@c.us",
-      "detalle": "Dame un momento consulto algo"
-    },
-    {
-      "ts": 1780325146.2178028,
-      "tipo": "bot_pausado_global",
-      "sender": "57257534845792363@c.us",
-      "detalle": "Vale el envío lo cobran cuando lleguen?"
-    },
-    {
-      "ts": 1780325155.631399,
-      "tipo": "bot_pausado_global",
-      "sender": "57257534845792363@c.us",
-      "detalle": "O toca pagarlo de una vez?"
-    },
-    {
-      "ts": 1780325326.7201364,
-      "tipo": "bot_pausado_global",
-      "sender": "57235368536358931@c.us",
-      "detalle": "Listo, me darías esto"
-    },
-    {
-      "ts": 1780325334.2281313,
-      "tipo": "bot_pausado_global",
-      "sender": "57235368536358931@c.us",
-      "detalle": "Más esto porfa"
-    },
-    {
-      "ts": 1780325338.546721,
-      "tipo": "bot_pausado_global",
-      "sender": "57235368536358931@c.us",
-      "detalle": "Lisset Otavo\nCC 1030551423\nCalle  2 #93D - 66 apto 501 torre 22 \nBarrio Tierra Buena \nBogotá \n3173033440-3204642331\nlissotavo@gmail.com"
-    },
-    {
-      "ts": 1780325351.139031,
-      "tipo": "bot_pausado_global",
-      "sender": "57257534845792363@c.us",
-      "detalle": "Cuánto se demora en llegar ?"
-    },
-    {
-      "ts": 1780325493.6049466,
-      "tipo": "bot_pausado_global",
-      "sender": "57235368536358931@c.us",
-      "detalle": "Gracias"
-    },
-    {
       "ts": 1780325547.6987064,
       "tipo": "bot_pausado_global",
       "sender": "57125035289284720@c.us",
@@ -1799,6 +1721,84 @@
       "tipo": "bot_pausado_global",
       "sender": "573207092059@c.us",
       "detalle": ""
+    },
+    {
+      "ts": 1780853726.7453787,
+      "tipo": "bot_pausado_global",
+      "sender": "573145632357@c.us",
+      "detalle": "Hola, quiero información sobre sus productos"
+    },
+    {
+      "ts": 1780853741.5356104,
+      "tipo": "bot_pausado_global",
+      "sender": "573145632357@c.us",
+      "detalle": "Me puedes dar por favor el certificado de análisis (CoA) o la ficha de seguridad (MSDS) de la C-PROCONSUE80PKg"
+    },
+    {
+      "ts": 1780882608.6918397,
+      "tipo": "bot_pausado_global",
+      "sender": "573125663476@c.us",
+      "detalle": "Hola, busco una materia prima específica"
+    },
+    {
+      "ts": 1780883965.6651146,
+      "tipo": "bot_pausado_global",
+      "sender": "573125663476@c.us",
+      "detalle": "En otras presentaciones al mismo precio"
+    },
+    {
+      "ts": 1780883973.2551844,
+      "tipo": "bot_pausado_global",
+      "sender": "573125663476@c.us",
+      "detalle": "Cómo puedo hacer la compra"
+    },
+    {
+      "ts": 1780884007.3091354,
+      "tipo": "bot_pausado_global",
+      "sender": "573125663476@c.us",
+      "detalle": "En qué concentración viene lo busco para degradación de proteínas"
+    },
+    {
+      "ts": 1780884261.836587,
+      "tipo": "bot_pausado_global",
+      "sender": "573125663476@c.us",
+      "detalle": "También me regalas la cotización de este"
+    },
+    {
+      "ts": 1780884477.1613343,
+      "tipo": "bot_pausado_global",
+      "sender": "573125663476@c.us",
+      "detalle": "Este también"
+    },
+    {
+      "ts": 1780884518.0310667,
+      "tipo": "bot_pausado_global",
+      "sender": "573133401041@c.us",
+      "detalle": "Buenas quisiera una fragancia para pebetero"
+    },
+    {
+      "ts": 1780885961.6896522,
+      "tipo": "bot_pausado_global",
+      "sender": "153128502607916@lid",
+      "detalle": "Buenas noches dispone de amodhimeticona"
+    },
+    {
+      "ts": 1780887551.3054435,
+      "tipo": "bot_pausado_global",
+      "sender": "573115010287@c.us",
+      "detalle": "Hola"
+    },
+    {
+      "ts": 1780887645.7171862,
+      "tipo": "bot_pausado_global",
+      "sender": "573115010287@c.us",
+      "detalle": "Una pregunta a que número puedo pedir"
+    },
+    {
+      "ts": 1780887687.5746927,
+      "tipo": "bot_pausado_global",
+      "sender": "573115010287@c.us",
+      "detalle": "No veo el número y una amiga necesita pedirlo"
     }
   ]
 }

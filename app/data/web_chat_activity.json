@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-06T17:55:48",
+  "updated_at": "2026-06-07T12:34:53",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -22,9 +22,59 @@
     "2026-06-03": 1,
     "2026-06-04": 4,
     "2026-06-05": 4,
-    "2026-06-06": 3
+    "2026-06-06": 3,
+    "2026-06-07": 4
   },
   "sessions": [
+    {
+      "session_id": "web-64f4fb9c-5adb-4245-83df-7ffa514307c6",
+      "started_at": "2026-06-07T12:31:58",
+      "last_at": "2026-06-07T12:34:53",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-proconsue80pkg",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/423.5.920392540 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Me puedes enviar el perfil de aminoácidos de C-PROCONSUE80PKg",
+      "last_agent_reply": "Veci, para esa referencia no tengo el perfil de aminoácidos aquí a la mano. Ese es un dato técnico que va en la ficha o el COA del lote. Si me deja su **correo electrónico**, el equipo se lo busca y se lo envía. O para una respuesta más rápida con el archivo, puede escribirle a un asesor humano directamente por el **botón de WhatsApp** de la página.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-07T12:31:58",
+          "user_message": "C-PROCONSUE80PKg",
+          "agent_reply": "Veci, esa referencia no me aparece en el catálogo web en este momento. Puede revisar las materias primas disponibles en nuestra tienda en mckennagroup.co/tienda. Si es para un pedido especial, puede confirmar con un asesor humano por WhatsApp.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-07T12:33:17",
+          "user_message": "Me puedes dar por favor el certificado de análisis (CoA) o la ficha de seguridad (MSDS) de la C-PROCONSUE80PKg",
+          "agent_reply": "Veci, revisé nuestro archivo para Me puedes dar el de ( ), ( ) de la C-PROCONSUE80PKg y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía ficha técnica, COA y ficha de seguridad cuando aplique. Si necesita COA, ficha técnica o el dato de lote específico, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-07T12:34:12",
+          "user_message": "Me puedes dar por favor el certificado de análisis (CoA) o la ficha de seguridad (MSDS) de la C-PROCONSUE80PKg",
+          "agent_reply": "Veci, revisé nuestro archivo para Me puedes dar el de ( ), ( ) de la C-PROCONSUE80PKg y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía ficha técnica, COA y ficha de seguridad cuando aplique. Si necesita COA, ficha técnica o el dato de lote específico, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-07T12:34:53",
+          "user_message": "Me puedes enviar el perfil de aminoácidos de C-PROCONSUE80PKg",
+          "agent_reply": "Veci, para esa referencia no tengo el perfil de aminoácidos aquí a la mano. Ese es un dato técnico que va en la ficha o el COA del lote. Si me deja su **correo electrónico**, el equipo se lo busca y se lo envía. O para una respuesta más rápida con el archivo, puede escribirle a un asesor humano directamente por el **botón de WhatsApp** de la página.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-e1cdf968-1b2b-4af7-8182-928909922b0d",
       "started_at": "2026-06-06T14:06:10",
