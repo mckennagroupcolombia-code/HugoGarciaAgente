@@ -4,47 +4,47 @@ export function questTone(light: string, dark: string, isDark: boolean): string 
   return isDark ? dark : light;
 }
 
-/** KPIs del tablero — versión apagada en oscuro */
+/** KPIs del tablero */
 export const QUEST_STAT_ITEMS = [
-  { label: "En campaña", icon: "sword" as const, key: "en_proceso" as const, color: "#3b82f6", colorDark: "#5a7f9e", borderDark: "rgba(90,127,158,0.32)" },
-  { label: "En revisión", icon: "bell" as const, key: "esperando" as const, color: "#f59e0b", colorDark: "#9a7d52", borderDark: "rgba(154,125,82,0.32)" },
-  { label: "Por iniciar", icon: "hourglass" as const, key: "pendientes" as const, color: "#9ca3af", colorDark: "#5c6b70", borderDark: "rgba(92,107,112,0.28)" },
-  { label: "Completadas", icon: "check" as const, key: "resueltos" as const, color: "#22c55e", colorDark: "#4d8a62", borderDark: "rgba(77,138,98,0.32)" },
+  { label: "En campaña", icon: "sword" as const, key: "en_proceso" as const, color: "#3b82f6", colorDark: "#6eb4f0", borderDark: "rgba(110,180,240,0.35)" },
+  { label: "En revisión", icon: "bell" as const, key: "esperando" as const, color: "#f59e0b", colorDark: "#e8b858", borderDark: "rgba(232,184,88,0.35)" },
+  { label: "Por iniciar", icon: "hourglass" as const, key: "pendientes" as const, color: "#9ca3af", colorDark: "#96aab2", borderDark: "rgba(150,170,178,0.32)" },
+  { label: "Completadas", icon: "check" as const, key: "resueltos" as const, color: "#22c55e", colorDark: "#5cc88a", borderDark: "rgba(92,200,138,0.35)" },
 ];
 
 export const ESTADO_DOT_COLOR = {
-  pendiente:            { light: "#9ca3af", dark: "#5c6b70" },
-  en_proceso:           { light: "#3b82f6", dark: "#5a7f9e" },
-  esperando_aprobacion: { light: "#f59e0b", dark: "#9a7d52" },
-  resuelto:             { light: "#22c55e", dark: "#4d8a62" },
-  rechazado:            { light: "#ef4444", dark: "#9a5a5a" },
+  pendiente:            { light: "#9ca3af", dark: "#96aab2" },
+  en_proceso:           { light: "#3b82f6", dark: "#6eb4f0" },
+  esperando_aprobacion: { light: "#f59e0b", dark: "#e8b858" },
+  resuelto:             { light: "#22c55e", dark: "#5cc88a" },
+  rechazado:            { light: "#ef4444", dark: "#e87878" },
 };
 
 export const PRIORIDAD_DOT: Record<string, { sym: string; cls: string }> = {
-  baja:    { sym: "—",  cls: "text-gray-400 dark:text-muted/70" },
-  media:   { sym: "▲",  cls: "text-blue-500 dark:text-sky-500/55" },
-  alta:    { sym: "▲▲", cls: "text-orange-500 dark:text-orange-400/50" },
-  urgente: { sym: "⚡",  cls: "text-red-500 dark:text-red-400/50" },
+  baja:    { sym: "—",  cls: "text-gray-400 dark:text-muted" },
+  media:   { sym: "▲",  cls: "text-blue-500 dark:text-sky-400" },
+  alta:    { sym: "▲▲", cls: "text-orange-500 dark:text-orange-300" },
+  urgente: { sym: "⚡",  cls: "text-red-500 dark:text-red-300" },
 };
 
 export const ESTADO_STYLES: Record<string, string> = {
   pendiente:
-    "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/35 dark:text-yellow-400/90 dark:border-yellow-800/40",
+    "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/45 dark:text-yellow-200 dark:border-yellow-700/50",
   en_proceso:
-    "bg-blue-100 text-blue-800 border-blue-300 dark:bg-sky-950/40 dark:text-sky-400/85 dark:border-sky-900/45",
+    "bg-blue-100 text-blue-800 border-blue-300 dark:bg-sky-950/50 dark:text-sky-200 dark:border-sky-700/55",
   esperando_aprobacion:
-    "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/35 dark:text-orange-400/85 dark:border-orange-900/40",
+    "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/45 dark:text-orange-200 dark:border-orange-700/50",
   resuelto:
-    "bg-green-100 text-green-800 border-green-300 dark:bg-emerald-950/40 dark:text-emerald-400/85 dark:border-emerald-900/45",
+    "bg-green-100 text-green-800 border-green-300 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-700/55",
   rechazado:
-    "bg-red-100 text-red-700 border-red-300 dark:bg-red-950/35 dark:text-red-400/85 dark:border-red-900/40",
+    "bg-red-100 text-red-700 border-red-300 dark:bg-red-950/45 dark:text-red-200 dark:border-red-700/50",
 };
 
 export const PRIORIDAD_STYLES: Record<string, string> = {
-  baja: "bg-gray-100 text-gray-600 dark:bg-black/25 dark:text-muted",
-  media: "bg-blue-100 text-blue-700 dark:bg-sky-950/35 dark:text-sky-400/80",
-  alta: "bg-orange-100 text-orange-700 dark:bg-orange-950/35 dark:text-orange-400/80",
-  urgente: "bg-red-100 text-red-700 dark:bg-red-950/35 dark:text-red-400/80",
+  baja: "bg-gray-100 text-gray-600 dark:bg-surface-input/80 dark:text-muted",
+  media: "bg-blue-100 text-blue-700 dark:bg-sky-950/45 dark:text-sky-200",
+  alta: "bg-orange-100 text-orange-700 dark:bg-orange-950/45 dark:text-orange-200",
+  urgente: "bg-red-100 text-red-700 dark:bg-red-950/45 dark:text-red-200",
 };
 
 export const CATEGORIA_FALLBACK: Record<string, { label: string; cls: string }> = {
@@ -118,7 +118,7 @@ export function stickyRotation(id: number): number {
 export function stickyPaperBackground(color: string, dark: boolean): string {
   const c = color || "#0c6069";
   if (dark) {
-    return `linear-gradient(168deg, ${c}38 0%, rgb(32 40 42) 42%, rgb(24 32 34) 100%)`;
+    return `linear-gradient(168deg, ${c}55 0%, rgb(26 48 53) 38%, rgb(18 36 40) 100%)`;
   }
   return `linear-gradient(168deg, ${c}28 0%, rgb(var(--mck-surface-panel)) 42%, rgb(var(--mck-surface-input)) 100%)`;
 }

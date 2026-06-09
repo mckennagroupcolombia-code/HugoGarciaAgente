@@ -478,4 +478,13 @@ export const MCK_UI_PATHS: Record<string, ReactNode> = {
       <path d="M7 17c.5-1 1.2-1.5 2-1.5s1.5.5 2 1.5" />
     </>
   ),
+  palette: (
+    <>
+      <path d="M12 21a8.5 8.5 0 1 0 0-17 1.5 1.5 0 0 1 1.5 1.5c0 1-.5 1.5-1 2s-.5 1.2 0 2.2A2.8 2.8 0 0 0 12 21z" />
+      <circle cx="8.5" cy="10.5" r="1" />
+      <circle cx="11.5" cy="7.5" r="1" />
+      <circle cx="15" cy="9.5" r="1" />
+      <circle cx="16" cy="13.5" r="1" />
+    </>
+  ),
 };

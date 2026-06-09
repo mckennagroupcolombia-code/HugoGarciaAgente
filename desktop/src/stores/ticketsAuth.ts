@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import type { UserUiPreferences } from "../lib/userThemeSync";
+
 export interface TicketsRol {
   id: number;
   nombre: string;
@@ -23,6 +25,7 @@ export interface TicketsUser {
   rol: TicketsRol | null;
   departamento: TicketsDept | null;
   permisos_secciones?: Record<string, boolean> | null;
+  preferencias_ui?: UserUiPreferences | null;
 }
 
 interface TicketsAuthState {

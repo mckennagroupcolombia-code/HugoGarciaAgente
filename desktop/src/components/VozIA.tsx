@@ -9,6 +9,7 @@ function _getApiToken(): string {
 }
 import { useModelos, CATEGORIA_COLOR, type Modelo } from "../hooks/useModelos";
 import { usePanelChatMutation } from "../hooks/useChat";
+import { ProseTextarea } from "./ProseTextarea";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -671,7 +672,7 @@ function VozConfigPanel({ onClose }: { onClose: () => void }) {
               </div>
             )}
           </div>
-          <textarea value={refText} onChange={(e) => setRefText(e.target.value)}
+          <ProseTextarea value={refText} onChange={(e) => setRefText(e.target.value)}
             onBlur={() => saveMut.mutate({ ref_text: refText })}
             placeholder="Transcripción exacta del audio de referencia…" rows={2}
             className="w-full rounded-lg border border-border bg-surface-hover px-3 py-2 text-xs text-ink placeholder-muted resize-none focus:outline-none focus:border-accent/60" />

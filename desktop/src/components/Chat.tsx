@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, type FormEvent } from "react";
 import { api } from "../api/client";
 import { usePanelChatMutation } from "../hooks/useChat";
+import { ProseTextarea } from "./ProseTextarea";
 import { useModelos, CATEGORIA_LABEL, CATEGORIA_COLOR, type Modelo } from "../hooks/useModelos";
 import {
   useCanales,
@@ -550,11 +551,12 @@ export default function Chat() {
 
       {/* ── Input ── */}
       <form onSubmit={send} className="flex gap-2">
-        <textarea
+        <ProseTextarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKeyDown}
+          prose={false}
           placeholder={`Mensaje para ${modeloActual?.nombre ?? "el agente"}…`}
           rows={1}
           className="flex-1 resize-none rounded-xl border border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none placeholder:text-muted/50 focus:border-accent"

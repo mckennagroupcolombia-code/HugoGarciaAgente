@@ -1,6 +1,9 @@
+import { useRef, useState, useEffect } from "react";
 import { useAppStore, type Panel } from "../stores/app";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
+import UserAvatar from "./UserAvatar";
+import { uploadProfilePhoto } from "../lib/profilePhoto";
 import { usePreventa } from "../hooks/usePreventa";
 import { usePostventa } from "../hooks/usePostventa";
 import { useWebChat } from "../hooks/useWebChat";
@@ -8,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
+import TemasSidebarButton from "./TemasSidebarButton";
 
 const NAV: { id: Panel; label: string }[] = [
   { id: "hugo",       label: "Hugo · Centro" },
@@ -25,35 +29,11 @@ const NAV: { id: Panel; label: string }[] = [
   { id: "pedidos",       label: "Pedidos Web" },
   { id: "publicaciones", label: "Publicaciones" },
   { id: "facturas",      label: "Facturas Compra" },
-  { id: "etiquetas",  label: "Etiquetas" },
+  { id: "etiquetas",  label: "Impresora · Etiquetas" },
   { id: "settings",   label: "Ajustes" },
 ];
 
-const DEFAULT_SECCIONES = new Set(["tickets"]);
-
-function ticketsUploadUrl(filename: string, token: string) {
-  return `/api/tickets/uploads/${encodeURIComponent(filename)}?token=${encodeURIComponent(token)}`;
-}
-
-function SidebarUserAvatar({ user, token }: { user: TicketsUser; token: string }) {
-  if (user.foto) {
-    return (
-      <img
-        src={ticketsUploadUrl(user.foto, token)}
-        alt={user.nombre}
-        className="h-10 w-10 rounded-full border-2 border-border object-cover shadow-sm"
-      />
-    );
-  }
-  return (
-    <div
-      className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-base font-black text-white shadow"
-      style={{ background: user.departamento?.color || "#0c6069" }}
-    >
-      {user.nombre.charAt(0).toUpperCase()}
-    </div>
-  );
-}
+const DEFAULT_SECCIONES = new Set(["tickets", "etiquetas"]);
 
 function puedeVerTickets(user: TicketsUser): boolean {
   if ((user.rol?.nivel ?? 0) >= 3) return true;
@@ -67,10 +47,16 @@ function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
   if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
   if ((user.rol?.nivel ?? 0) >= 3) return true; // admin siempre ve todo
   if (seccion === "settings") return true; // todos ven ajustes
+  if (seccion === "etiquetas") return true; // impresora disponible para todo el equipo
   const p = user.permisos_secciones;
   if (!p) return DEFAULT_SECCIONES.has(seccion);
   if (seccion === "postventa" && p.preventa) return true;
   return Boolean(p[seccion]);
+}
+
+/** Misma regla que el sidebar — reutilizable en Hugo / Centro de Mando. */
+export function puedeVerSeccionPanel(user: TicketsUser | null, seccion: string): boolean {
+  return puedeVerSeccion(user, seccion);
 }
 
 export default function Sidebar() {
@@ -80,8 +66,17 @@ export default function Sidebar() {
   const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
-  const { user, token, clear: clearTickets } = useTicketsAuth();
+  const { user, token, setAuth, clear: clearTickets } = useTicketsAuth();
   const clearMain = useAuthStore((s) => s.clear);
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
   const { data } = usePreventa();
   const pendientes = data?.total ?? 0;
   const { data: postventaData } = usePostventa();
@@ -96,6 +91,32 @@ export default function Sidebar() {
   const facturasPendientes = facturaData?.total ?? 0;
 
   const visibleNav = NAV.filter((item) => puedeVerSeccion(user, item.id));
+
+  async function subirFotoDesdeSidebar(file: File) {
+    if (!token || !user) return;
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localPreview;
+    });
+    setUploadingFoto(true);
+    try {
+      const updated = await uploadProfilePhoto(token, file);
+      setAuth(token, updated);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    } catch {
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+    } finally {
+      setUploadingFoto(false);
+      if (fotoInputRef.current) fotoInputRef.current.value = "";
+    }
+  }
 
   async function logout() {
     if (token) {
@@ -128,22 +149,43 @@ export default function Sidebar() {
         <div className="flex items-center gap-2.5 px-5 pb-4 pt-6">
           {user && token ? (
             <>
+              <input
+                ref={fotoInputRef}
+                type="file"
+                accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void subirFotoDesdeSidebar(f);
+                }}
+              />
+              <button
+                type="button"
+                title="Cambiar foto de perfil"
+                disabled={uploadingFoto}
+                onClick={() => fotoInputRef.current?.click()}
+                className="relative shrink-0 rounded-full transition hover:opacity-90 disabled:opacity-60"
+              >
+                <UserAvatar user={user} token={token} previewUrl={previewUrl} />
+                {uploadingFoto && (
+                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-[9px] font-bold text-white">
+                    …
+                  </span>
+                )}
+              </button>
               <button
                 type="button"
                 title="Mi perfil"
                 onClick={() => setPanel("perfil")}
-                className="shrink-0 rounded-full transition hover:opacity-90"
+                className="min-w-0 flex-1 text-left"
               >
-                <SidebarUserAvatar user={user} token={token} />
-              </button>
-              <div className="min-w-0 flex-1">
                 <div className="truncate text-base font-extrabold tracking-tight text-ink">
                   {user.nombre}
                 </div>
                 <div className="truncate text-[11px] text-muted">
                   {user.rol?.nombre ?? user.email ?? `@${user.username}`}
                 </div>
-              </div>
+              </button>
               <button
                 type="button"
                 title="Mi perfil"
@@ -166,7 +208,19 @@ export default function Sidebar() {
           )}
         </div>
 
-        <p className="px-5 pb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Menu</p>
+        <div className="space-y-1 border-b border-border px-3 pb-3">
+          <TemasSidebarButton />
+          <button
+            type="button"
+            onClick={logout}
+            className="flex w-full items-center gap-3 rounded-paper border-2 border-transparent px-3 py-2.5 text-left text-sm font-semibold text-muted transition hover:border-border-strong hover:bg-surface-hover hover:text-danger"
+          >
+            <Icon name="signOut" size={20} className="shrink-0" />
+            Salir
+          </button>
+        </div>
+
+        <p className="px-5 pb-1 pt-3 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">Menu</p>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
           {visibleNav.map((item) => {
@@ -221,16 +275,6 @@ export default function Sidebar() {
             );
           })}
         </nav>
-
-        <div className="mt-auto border-t border-border p-3">
-          <button
-            onClick={logout}
-            className="flex w-full items-center gap-3 rounded-paper border-2 border-transparent px-3 py-2.5 text-sm font-semibold text-muted transition hover:border-border-strong hover:bg-surface-hover hover:text-danger"
-          >
-            <Icon name="signOut" size={20} className="shrink-0" />
-            Cerrar sesion
-          </button>
-        </div>
       </div>
     </aside>
   );

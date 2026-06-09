@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
+import { ProseTextarea } from "./ProseTextarea";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 
@@ -427,7 +428,7 @@ function TabEnviarVoz() {
           <label className="text-[11px] font-semibold text-muted uppercase tracking-wide">
             Texto a sintetizar
           </label>
-          <textarea
+          <ProseTextarea
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             rows={4}

@@ -9,18 +9,21 @@ function assert(condition, message) {
 
 const root = process.cwd();
 const ticketsPath = resolve(root, "src/components/TicketsPanel.tsx");
+const sidebarPath = resolve(root, "src/components/Sidebar.tsx");
 const distPath = resolve(root, "dist/index.html");
 
 assert(existsSync(ticketsPath), "No existe TicketsPanel.tsx");
+assert(existsSync(sidebarPath), "No existe Sidebar.tsx");
 assert(existsSync(distPath), "No existe dist/index.html (build falló)");
 
 const tickets = readFileSync(ticketsPath, "utf8");
+const sidebar = readFileSync(sidebarPath, "utf8");
 
 const checks = [
   { ok: tickets.includes("Centro de Mando"), msg: "Falta título Centro de Mando" },
   { ok: tickets.includes("quest-nav-bar"), msg: "Falta barra de navegación quest" },
   { ok: tickets.includes("crear_mision"), msg: "Falta flujo crear misión" },
-  { ok: tickets.includes("QuestThemeToggle"), msg: "Falta toggle de tema" },
+  { ok: sidebar.includes("TemasSidebarButton"), msg: "Falta botón Temas en sidebar" },
   { ok: tickets.includes("RecetasPanel"), msg: "Falta panel de recetas" },
 ];
 

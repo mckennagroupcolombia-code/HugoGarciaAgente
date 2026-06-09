@@ -11,7 +11,10 @@ import {
 import { notifyNavChange, registerTicketsNavBridge } from "../lib/appBackNavigation";
 import { onPanelResume } from "../lib/panelRefresh";
 import { useQuestTheme } from "../stores/questTheme";
-import QuestThemeToggle from "./QuestThemeToggle";
+import { ProseTextarea } from "./ProseTextarea";
+import { ProseInput } from "./ProseInput";
+import { ProseHint } from "./ProseHint";
+import { proseText } from "../lib/proseText";
 import { QuestBoardTitle, QuestBoardNavLabel, QuestBoardBackLabel } from "./QuestBoardTitle";
 import { useQuestBoardTitle } from "../stores/questBoard";
 import {
@@ -29,6 +32,7 @@ import {
   InventarioCarritoModal,
 } from "./InventarioCarrito";
 import MaterialCalculadora from "./MaterialCalculadora";
+import { puedeVerSeccionPanel } from "./Sidebar";
 import { useInventarioCarrito } from "../stores/inventarioCarrito";
 import {
   ESTADO_STYLES,
@@ -860,6 +864,7 @@ interface Comentario {
   id: number;
   texto: string;
   es_interno: number;
+  usuario_id?: number;
   autor_nombre: string;
   creado_en: string;
 }
@@ -1594,23 +1599,19 @@ function QuestNavBar({
   view,
   nivel,
   permisos,
-  userNombre,
   onInicio,
   onCentroMando,
   onSolicitudes,
   onWorkload,
-  onLogout,
   hugoChatActive = false,
 }: {
   view: View;
   nivel: number;
   permisos: Record<string, boolean> | null | undefined;
-  userNombre: string;
   onInicio: () => void;
   onCentroMando: () => void;
   onSolicitudes: () => void;
   onWorkload: () => void;
-  onLogout: () => void;
   /** Hugo activo en hub integrado (chat expandido sobre Centro de Mando). */
   hugoChatActive?: boolean;
 }) {
@@ -1631,37 +1632,31 @@ function QuestNavBar({
 
   return (
     <nav
-      className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 border-b-2 border-border px-4 py-2.5 backdrop-blur-md lg:-mx-10"
+      className="quest-nav-bar sticky top-0 z-20 mb-4 w-full border-b-2 border-border py-2.5 backdrop-blur-md"
       aria-label="Navegación Hugo y Centro de Mando"
     >
-      <div className="flex items-center gap-2">
-        <span className="flex-1 truncate text-sm font-extrabold text-ink sm:hidden">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-sm font-extrabold text-ink sm:hidden">
           {activeLabel}
         </span>
 
-        <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex">
-          <button type="button" onClick={onCentroMando} className={questNavBtn(view === "home")} title="Panel operativo">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:order-first sm:min-w-0 sm:flex-1">
+          <button
+            type="button"
+            onClick={onCentroMando}
+            className={`${questNavBtn(view === "home")} shrink-0 whitespace-nowrap`}
+            title="Panel operativo"
+          >
             <TopicIcon value="🎯" size={14} />Centro
           </button>
           {nivel >= 2 && pVer("workload") && (
-            <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
+            <button type="button" onClick={onWorkload} className={`${questNavBtn(view === "workload")} shrink-0 whitespace-nowrap`}>
               <TopicIcon value="🤝" size={14} weight="regular" />Aliados
             </button>
           )}
         </div>
 
-        {/* Acciones siempre visibles */}
-        <div className="flex shrink-0 items-center gap-1.5 sm:ml-auto">
-          <QuestThemeToggle />
-          {/* Logout — desktop */}
-          <button
-            type="button" onClick={onLogout}
-            title={`Cerrar sesión (${userNombre})`}
-            className={`hidden sm:flex ${questNavBtn(false)} max-w-[12rem] truncate`}
-          >
-            <Icon name="signOut" size={14} weight="bold" className="shrink-0" />
-            <span className="truncate">Salir</span>
-          </button>
+        <div className="quest-nav-bar-actions flex shrink-0 items-center sm:ml-auto">
           {/* Hamburguesa — solo mobile */}
           <button
             type="button"
@@ -1677,21 +1672,12 @@ function QuestNavBar({
       {/* ── Menú desplegable — solo mobile, solo cuando está abierto ────── */}
       {menuOpen && (
         <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-2.5 sm:hidden">
-          <button type="button" onClick={() => { onCentroMando(); cerrar(); }}
-            className={`${questNavBtn(view === "home")} w-full justify-start text-left`}>
-            <TopicIcon value="🎯" size={14} />Centro de Mando
-          </button>
           {nivel >= 2 && pVer("workload") && (
             <button type="button" onClick={() => { onWorkload(); cerrar(); }}
               className={`${questNavBtn(view === "workload")} w-full justify-start text-left`}>
               <TopicIcon value="🤝" size={14} weight="regular" />Aliados
             </button>
           )}
-          <button type="button" onClick={onLogout}
-            className={`${questNavBtn(false)} w-full justify-start border-t border-border pt-2 text-left`}>
-            <Icon name="signOut" size={14} weight="bold" className="shrink-0" />
-            Salir ({userNombre})
-          </button>
         </div>
       )}
     </nav>
@@ -3289,7 +3275,7 @@ function TicketCard({ t, onClick }: { t: Ticket; onClick: () => void }) {
       style={{
         transform: `rotate(${rot}deg)`,
         background: dark
-          ? `linear-gradient(168deg, ${accent}28 0%, rgb(32 40 42) 50%, rgb(28 36 38) 100%)`
+          ? `linear-gradient(168deg, ${accent}28 0%, rgb(99 105 106) 50%, rgb(96 102 103) 100%)`
           : `linear-gradient(168deg, ${accent}22 0%, rgb(var(--mck-surface-panel)) 45%, rgb(var(--mck-surface-input)) 100%)`,
       }}
       onMouseEnter={(e) => { e.currentTarget.style.transform = "rotate(0deg) scale(1.02)"; }}
@@ -4059,7 +4045,7 @@ function navScopeLabel(scope: NavScope): string {
 function CentroMandoHome({
   token, user, nivel, permisos,
   onAcciones, onSolicitudes, onContratos, onTablero,
-  onAccionesFuturas, onRecordatorios, onProcedimientos,
+  onAccionesFuturas, onRecordatorios, onProcedimientos, onImpresora,
 }: {
   token: string;
   user: TicketsUser;
@@ -4072,8 +4058,10 @@ function CentroMandoHome({
   onAccionesFuturas: () => void;
   onRecordatorios: () => void;
   onProcedimientos: () => void;
+  onImpresora?: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
+  const verImpresora = puedeVerSeccionPanel(user, "etiquetas");
 
   interface HomeStat { label: string; value: number | null }
   const [stats, setStats] = useState<{
@@ -4171,6 +4159,7 @@ function CentroMandoHome({
     recordat:   { card: "bg-violet-50 dark:bg-violet-950/50 border-violet-200   dark:border-violet-700/60", icon: "bg-violet-200/70  dark:bg-violet-800/60  text-violet-700 dark:text-violet-300" },
     proced:     { card: "bg-sky-50    dark:bg-sky-950/50    border-sky-200      dark:border-sky-700/60",    icon: "bg-sky-200/70    dark:bg-sky-800/60    text-sky-700    dark:text-sky-300"   },
     tablero:    { card: "bg-stone-50  dark:bg-stone-900/60  border-stone-200    dark:border-stone-600/50",  icon: "bg-stone-200/70  dark:bg-stone-700/60  text-stone-600  dark:text-stone-300" },
+    impresora:  { card: "bg-teal-50   dark:bg-teal-950/50   border-teal-200     dark:border-teal-700/60",   icon: "bg-teal-200/70   dark:bg-teal-800/60   text-teal-700   dark:text-teal-300"  },
   };
 
   const homeIconSlot = "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink";
@@ -4228,12 +4217,14 @@ function CentroMandoHome({
           />
         )}
 
+        {nivel >= 3 && (
         <HomeCard
           onClick={onContratos} p={paleta.contratos} topicIcon="📄"
           titulo="Contratos"
           stat={<Stat s={stats.contratos} />}
-          desc="Gestión de contratos laborales y comerciales. Adjunta el documento firmado o borrador."
+          desc="Envía solicitudes de contrato a los aliados del equipo. Plantilla o documento adjunto."
         />
+        )}
 
         {pVer("acciones") && (
           <HomeCard
@@ -4264,6 +4255,17 @@ function CentroMandoHome({
             titulo="Procedimientos"
             stat={<Stat s={stats.procedimientos} />}
             desc="Los pasos que ya guardaste pa' no explicar lo mismo dos veces. Úsalos cuando quieras."
+          />
+        )}
+
+        {verImpresora && onImpresora && (
+          <HomeCard
+            onClick={onImpresora}
+            p={paleta.impresora}
+            topicIcon="🖨"
+            titulo="Impresora"
+            stat="→"
+            desc="Etiquetas de producto con lote, vencimiento y vista previa antes de imprimir."
           />
         )}
 
@@ -4703,6 +4705,10 @@ function CreateTicketView({
   });
   const [file, setFile] = useState<File | null>(null);
   const esContrato = categoriaFija === "contratos" || form.categoria === "contratos";
+  const aliadosContrato = useMemo(
+    () => usuarios.filter((u) => u.id !== user.id && u.activo !== 0),
+    [usuarios, user.id],
+  );
   const [modoContrato, setModoContrato] = useState<"plantilla" | "propio">("plantilla");
   const [archivoPlantilla, setArchivoPlantilla] = useState<File | null>(null);
   const requiereDocumento = form.categoria === "rrhh" || form.categoria === "contratos"
@@ -4723,6 +4729,10 @@ function CreateTicketView({
       setError("Título, categoría y descripción son requeridos");
       return;
     }
+    if (esContrato && !form.asignado_a) {
+      setError("Selecciona el aliado que recibirá la solicitud de contrato");
+      return;
+    }
     if (requiereDocumento && !archivoEfectivo) {
       setError(esContrato && modoContrato === "plantilla"
         ? "Genera el documento desde la plantilla antes de registrar el contrato"
@@ -4737,6 +4747,7 @@ function CreateTicketView({
       fd.append("descripcion", form.descripcion);
       fd.append("prioridad", form.prioridad);
       if (form.asignado_a) fd.append("asignado_a", form.asignado_a);
+      if (esContrato) fd.append("tipo", "solicitud");
       if (archivoEfectivo) fd.append("soporte_archivo", archivoEfectivo);
       const ticket = await tapi("/", token, { method: "POST", body: fd });
       onCreated(ticket.id);
@@ -4801,11 +4812,12 @@ function CreateTicketView({
         {/* Título */}
         <div>
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Título *</label>
-          <input
+          <ProseInput
             className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent"
             placeholder={categoriaFija === "contratos" ? "Ej: Contrato prestación de servicios — Juan Pérez" : categoriaFija === "rrhh" ? "Ej: Permiso por cita médica" : "Describe el problema brevemente"}
             value={form.titulo} onChange={set("titulo")} maxLength={150}
           />
+          <ProseHint className="mt-1" />
         </div>
 
         {/* Categoría + Prioridad */}
@@ -4851,26 +4863,35 @@ function CreateTicketView({
         {/* Descripción */}
         <div>
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Descripción detallada *</label>
-          <textarea
+          <ProseTextarea
             className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent resize-none"
             rows={4}
             placeholder={esContrato ? "Resumen del contrato (se completa con la plantilla)…" : "Describe el problema con todos los detalles necesarios..."}
             value={form.descripcion} onChange={set("descripcion")} required
           />
+          <ProseHint className="mt-1.5" />
         </div>
 
-        {/* Asignar a */}
+        {/* Asignar a / Enviar a aliado */}
         <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Asignar a (opcional)</label>
+          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">
+            {esContrato ? "Enviar solicitud a aliado *" : "Asignar a (opcional)"}
+          </label>
           <select
             className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent"
             value={form.asignado_a} onChange={set("asignado_a")}
+            required={esContrato}
           >
-            <option value="">Sin asignar</option>
-            {usuarios.map((u) => (
-              <option key={u.id} value={u.id}>{u.nombre} — {u.departamento?.nombre}</option>
+            <option value="">{esContrato ? "Selecciona un aliado…" : "Sin asignar"}</option>
+            {(esContrato ? aliadosContrato : usuarios).map((u) => (
+              <option key={u.id} value={u.id}>{u.nombre} — {u.departamento?.nombre ?? "Sin depto."}</option>
             ))}
           </select>
+          {esContrato && (
+            <p className="mt-1 text-xs text-muted">
+              El aliado recibirá la solicitud en <strong className="text-ink">Solicitudes → Por resolver</strong> con el documento adjunto.
+            </p>
+          )}
         </div>
 
         {/* Archivo */}
@@ -4919,7 +4940,7 @@ function CreateTicketView({
           </button>
           <button type="submit" disabled={loading}
             className="rounded-paper border-2 border-accent bg-accent px-6 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50">
-            {loading ? "Creando..." : esContrato ? "Registrar contrato" : "Crear Ticket"}
+            {loading ? "Enviando…" : esContrato ? "Enviar solicitud de contrato" : "Crear Ticket"}
           </button>
         </div>
       </form>
@@ -5335,7 +5356,7 @@ function TicketPasoAPasoView({
             <label className="text-xs font-bold uppercase tracking-wide text-muted">
               Nota del motivo <span className="normal-case font-normal">(opcional)</span>
             </label>
-            <textarea
+            <ProseTextarea
               className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
               placeholder="Ej: Factura pendiente en SIIGO, se creó manualmente y se subió a MeLi…"
               rows={3}
@@ -6196,6 +6217,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "fichas",    label: "Fichas técnicas" },
                     { id: "pedidos",   label: "Pedidos Web" },
                     { id: "facturas",  label: "Facturas Compra" },
+                    { id: "etiquetas", label: "Impresora · Etiquetas" },
                     { id: "tickets",   label: "Centro de Mando" },
                   ];
                   const permisos: Record<string, boolean> = form.permisos_secciones || {};
@@ -6491,7 +6513,7 @@ function PasoNotaPostit({
           <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-amber-900/80 dark:text-amber-200/90">
             {titulo}
           </p>
-          <textarea
+          <ProseTextarea
             readOnly={readonly}
             rows={4}
             autoFocus={!readonly}
@@ -6689,7 +6711,7 @@ function PasosDraftEditor({
             <li key={i} className="rounded-paper border border-border bg-surface-input px-2 py-1.5">
               <div className="flex items-center gap-2">
                 <span className="w-5 shrink-0 text-center text-xs font-bold text-muted">{i + 1}.</span>
-                <input
+                <ProseInput
                   type="text"
                   value={p.descripcion}
                   onChange={(e) =>
@@ -6731,7 +6753,7 @@ function PasosDraftEditor({
         </ul>
       )}
       <div className="flex gap-2">
-        <input
+        <ProseInput
           type="text"
           className="min-w-0 flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
           placeholder="Nuevo paso…"
@@ -6752,6 +6774,7 @@ function PasosDraftEditor({
           + Paso
         </button>
       </div>
+      <ProseHint className="mt-1" />
     </div>
   );
 }
@@ -6835,13 +6858,13 @@ function CreateMisionEtapaFrames({
             </div>
 
             <div className="grid gap-2 lg:grid-cols-2">
-              <input
+              <ProseInput
                 className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent lg:col-span-2"
                 placeholder={`Título ticket ${i + 1} *`}
                 value={et.titulo}
                 onChange={(e) => onEtapaTitulo(i, e.target.value)}
               />
-              <input
+              <ProseInput
                 className="w-full rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
                 placeholder="Descripción (opc.)"
                 value={et.descripcion}
@@ -7217,7 +7240,7 @@ function PasosSection({
       )}
       {editMode && (
         <div className="flex gap-2 pt-1">
-          <input className="flex-1 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+          <ProseInput className="flex-1 rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
             placeholder="Agregar paso..." value={nuevo}
             onChange={(e) => setNuevo(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && add()} />
@@ -7708,7 +7731,7 @@ function MaterialesSection({
                           <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-amber-900/80 dark:text-amber-200/90">
                             {it.nombre}
                           </p>
-                          <textarea
+                          <ProseTextarea
                             readOnly={readonly}
                             rows={4}
                             autoFocus={!readonly}
@@ -8392,7 +8415,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
             </div>
             <div className={MATERIAL_FORM_GRID_FULL}>
               <label className={MATERIAL_FORM_LABEL}>Descripción</label>
-              <textarea rows={1} className={`${MATERIAL_FORM_INPUT} resize-none`}
+              <ProseTextarea rows={1} className={`${MATERIAL_FORM_INPUT} resize-none`}
                 value={editForm.descripcion} onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))} />
             </div>
             <div className={MATERIAL_FORM_GRID_FULL}>
@@ -8555,7 +8578,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
         </div>
         <div className={MATERIAL_FORM_GRID_FULL}>
           <label className={MATERIAL_FORM_LABEL}>Descripción</label>
-          <textarea rows={1} className={`${MATERIAL_FORM_INPUT} resize-none`}
+          <ProseTextarea rows={1} className={`${MATERIAL_FORM_INPUT} resize-none`}
             value={form.descripcion} onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))} />
         </div>
         <div className={MATERIAL_FORM_GRID_FULL}>
@@ -9203,7 +9226,7 @@ function CreateMisionView({
             <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">Paso 1 de 3</p>
             <h2 className="text-3xl font-extrabold text-ink leading-tight">¿Cómo se llama<br/>esta misión?</h2>
           </div>
-          <input
+          <ProseInput
             autoFocus
             className="w-full rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-xl font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/50"
             placeholder="Ej: Elaborar Masa Madre"
@@ -9212,7 +9235,7 @@ function CreateMisionView({
             onKeyDown={(e) => { if (e.key === "Enter" && tituloSimple.trim()) { setWizardDir("right"); setPasoSimple(2); } }}
             maxLength={150}
           />
-          <textarea
+          <ProseTextarea
             className="w-full rounded-2xl border-2 border-border bg-surface-input px-5 py-3 text-base text-ink outline-none focus:border-accent resize-none placeholder:text-muted/50"
             placeholder="Descripción breve (opcional)"
             rows={2}
@@ -9308,7 +9331,7 @@ function CreateMisionView({
             {/* Nombre del paso */}
             <div>
               <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">¿Qué se hace aquí?</label>
-              <input
+              <ProseInput
                 autoFocus
                 className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
                 placeholder="Ej: Pesar los ingredientes"
@@ -9317,18 +9340,20 @@ function CreateMisionView({
                 onChange={(e) => setPasoNombre(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && pasoNombre.trim()) e.currentTarget.blur(); }}
               />
+              <ProseHint className="mt-1" />
             </div>
 
             {/* Descripción */}
             <div>
               <label className="mb-1.5 block text-xs font-bold text-muted uppercase tracking-wide">Descripción <span className="normal-case font-normal">(opcional)</span></label>
-              <textarea
+              <ProseTextarea
                 className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
                 placeholder="Detalla cómo se hace este paso…"
                 rows={2}
                 value={pasoDesc}
                 onChange={(e) => setPasoDesc(e.target.value)}
               />
+              <ProseHint className="mt-1" />
             </div>
 
             {/* Materiales accordion */}
@@ -9487,7 +9512,7 @@ function CreateMisionView({
 
               <div>
                 <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Título *</label>
-                <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                <ProseInput className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
                   placeholder="Nombre de la misión" value={form.titulo} onChange={setF("titulo")} maxLength={150} />
               </div>
 
@@ -9540,7 +9565,7 @@ function CreateMisionView({
 
               <div>
                 <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Descripción</label>
-                <textarea className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent resize-none"
+                <ProseTextarea className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent resize-none"
                   rows={2} placeholder="Objetivo general..."
                   value={form.descripcion} onChange={setF("descripcion")} />
               </div>
@@ -10427,7 +10452,7 @@ function MisionDetailView({
           <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Editar misión</h3>
           <div>
             <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Título *</label>
-            <input className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+            <ProseInput className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
               value={metaForm.titulo} onChange={(e) => setMetaForm((f) => ({ ...f, titulo: e.target.value }))} />
           </div>
           <div>
@@ -10468,7 +10493,7 @@ function MisionDetailView({
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-muted">Descripción</label>
-            <textarea className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent resize-none"
+            <ProseTextarea className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent resize-none"
               rows={2} value={metaForm.descripcion}
               onChange={(e) => setMetaForm((f) => ({ ...f, descripcion: e.target.value }))} />
           </div>
@@ -10943,16 +10968,17 @@ function MisionDetailView({
             {showAddEtapa ? (
               <div className="rounded-paper border-2 border-accent bg-surface p-4 space-y-3">
                 <p className="text-xs font-extrabold uppercase tracking-wide text-muted">Nuevo ticket</p>
-                <input
+                <ProseInput
                   className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
                   placeholder="Título del ticket *"
                   value={addForm.titulo}
                   onChange={(e) => setAddForm((f) => ({ ...f, titulo: e.target.value }))}
                   autoFocus
                 />
-                <input
-                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                <ProseTextarea
+                  className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent resize-none"
                   placeholder="Descripción (opcional)"
+                  rows={2}
                   value={addForm.descripcion}
                   onChange={(e) => setAddForm((f) => ({ ...f, descripcion: e.target.value }))}
                 />
@@ -12602,7 +12628,7 @@ interface ProductoCatalogo {
 
 function SolicitudCard({
   ticket, token, user, onChanged, isAdmin, supervision, protocolos = [],
-  onRegistrarEjecucion,
+  onRegistrarEjecucion, detalleAmpliado = false,
 }: {
   ticket: Ticket; token: string; user: TicketsUser;
   onChanged: () => void;
@@ -12612,6 +12638,8 @@ function SolicitudCard({
   protocolos?: Protocolo[];
   /** Abre el asistente de acción vinculado a esta solicitud. */
   onRegistrarEjecucion?: (ticket: Ticket) => void;
+  /** Vista expandida: tipografía mayor y secciones visibles de inmediato. */
+  detalleAmpliado?: boolean;
 }) {
   const nivel = (user.rol?.nivel ?? 1);
   const [busy, setBusy] = useState(false);
@@ -12624,8 +12652,10 @@ function SolicitudCard({
   const esCreadoPorMi = uidEq(ticket.creado_por, user.id);
   const esParticipante = ticket.participantes?.some((p) => p.usuario_id === user.id) ?? false;
   const esIntervencion = !!ticket.ticket_padre_id;
-  const puedeVerSensible = nivel >= 2 || esAsignado || esCreadoPorMi || esParticipante;
   const resuelta = ticket.estado === "resuelto" || ticket.estado === "rechazado";
+  const puedeVerChat = esAsignado || esCreadoPorMi || esParticipante || supervision || isAdmin || nivel >= 2;
+  const puedeEnviarChat = !resuelta && puedeVerChat && !ticket.bloqueado_por;
+  const puedeVerSensible = nivel >= 2 || esAsignado || esCreadoPorMi || esParticipante;
 
   // Pasos/checklist
   const [pasos, setPasos] = useState<Paso[]>([]);
@@ -12658,8 +12688,10 @@ function SolicitudCard({
 
   // Comentarios (respuestas de intervención)
   const [comentarios, setComentarios] = useState<Comentario[]>([]);
-  const [showComentarios, setShowComentarios] = useState(false);
   const [loadingComentarios, setLoadingComentarios] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatDraft, setChatDraft] = useState("");
+  const [enviandoChat, setEnviandoChat] = useState(false);
 
   // Adjuntos
   const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
@@ -12669,6 +12701,22 @@ function SolicitudCard({
   const [subiendoAdjPaso, setSubiendoAdjPaso] = useState<number | null>(null);
   const [subiendoAdjTicket, setSubiendoAdjTicket] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  const adjuntosPorPaso = useMemo(() => {
+    const map = new Map<number, Adjunto[]>();
+    for (const a of adjuntos) {
+      if (a.paso_id) {
+        if (!map.has(a.paso_id)) map.set(a.paso_id, []);
+        map.get(a.paso_id)!.push(a);
+      }
+    }
+    return map;
+  }, [adjuntos]);
+
+  const adjuntosTicket = useMemo(
+    () => adjuntos.filter((a) => !a.paso_id),
+    [adjuntos],
+  );
   const [showPedirRevision, setShowPedirRevision] = useState(false);
   const [notaRevision, setNotaRevision] = useState("");
   const [showPedirAjustes, setShowPedirAjustes] = useState(false);
@@ -12697,14 +12745,28 @@ function SolicitudCard({
   const [loadingSensible, setLoadingSensible] = useState(false);
   const [sensibleMsg, setSensibleMsg] = useState("");
 
-  // Cargar pasos al iniciar (siempre que esté en proceso) o al hacer clic
+  // Cargar pasos al iniciar (siempre que esté en proceso) o al abrir vista ampliada
   useEffect(() => {
-    if (ticket.estado === "en_proceso") {
+    if (ticket.estado === "en_proceso" || detalleAmpliado) {
       void cargarPasos();
       setShowPasos(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket.id, ticket.estado]);
+  }, [ticket.id, ticket.estado, detalleAmpliado]);
+
+  useEffect(() => {
+    if (showPasos) void cargarAdjuntos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPasos, ticket.id]);
+
+  useEffect(() => {
+    if (!detalleAmpliado) return;
+    setShowAdjuntos(true);
+    void cargarAdjuntos();
+    void cargarCompras();
+    setShowCompras(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detalleAmpliado, ticket.id]);
 
   async function cargarPasos() {
     setLoadingPasos(true);
@@ -12731,11 +12793,12 @@ function SolicitudCard({
     try {
       const fd = new FormData();
       fd.append("archivo", file);
-      await fetch(`/api/tickets/${ticket.id}/pasos/${pasoId}/adjuntos`, {
+      const res = await fetch(`/api/tickets/${ticket.id}/pasos/${pasoId}/adjuntos`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
+      if (res.ok) void cargarAdjuntos();
     } catch { /* no crítico */ } finally {
       setSubiendoAdjPaso(null);
     }
@@ -13118,8 +13181,28 @@ function SolicitudCard({
       const data = await tapi(`/${ticket.id}/comentarios`, token);
       const lista = Array.isArray(data) ? data : [];
       setComentarios(lista);
-      if (lista.length > 0) setShowComentarios(true);
     } catch { /* ignore */ } finally { setLoadingComentarios(false); }
+  }
+
+  async function enviarMensajeChat() {
+    const texto = chatDraft.trim();
+    if (!texto || enviandoChat || !puedeEnviarChat) return;
+    setEnviandoChat(true);
+    try {
+      await tapi(`/${ticket.id}/comentarios`, token, {
+        method: "POST",
+        body: JSON.stringify({ texto }),
+      });
+      setChatDraft("");
+      await cargarComentarios();
+      setShowChat(true);
+      onChanged();
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "No se pudo enviar el mensaje");
+      setTimeout(() => setMsg(""), 3500);
+    } finally {
+      setEnviandoChat(false);
+    }
   }
 
   // Auto-cargar comentarios al montar y cuando el ticket se desbloquea
@@ -13135,6 +13218,14 @@ function SolicitudCard({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket.bloqueado_por]);
+
+  useEffect(() => {
+    if (!showChat) return;
+    void cargarComentarios();
+    const iv = setInterval(() => void cargarComentarios(), 12000);
+    return () => clearInterval(iv);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showChat, ticket.id]);
 
   async function cargarAdjuntos() {
     setLoadingAdjuntos(true);
@@ -13267,13 +13358,16 @@ function SolicitudCard({
   }
 
   return (
-    <div className={`flex flex-col gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}>
+    <div className={`flex flex-col gap-3 transition-opacity ${detalleAmpliado ? "rounded-2xl border-2 border-border bg-surface-panel p-5 shadow-paper-lg" : "gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm"} ${resuelta ? "opacity-60" : ""}`}>
       {/* Encabezado */}
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <span className="text-sm font-medium text-ink">{ticket.titulo}</span>
+          <span className={detalleAmpliado ? "text-xl font-extrabold text-ink leading-snug" : "text-sm font-medium text-ink"}>{ticket.titulo}</span>
           {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
-            <p className="mt-0.5 text-xs text-muted line-clamp-2">{ticket.descripcion}</p>
+            <p className={`mt-1 text-muted ${detalleAmpliado ? "text-sm leading-relaxed whitespace-pre-wrap" : "mt-0.5 text-xs line-clamp-2"}`}>{ticket.descripcion}</p>
+          )}
+          {detalleAmpliado && (
+            <p className="mt-2 text-xs font-mono text-muted">{ticket.numero}</p>
           )}
         </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
@@ -13346,6 +13440,26 @@ function SolicitudCard({
             📋 {ticket.protocolo_titulo}
           </span>
         )}
+        {puedeVerChat && (
+          <button
+            type="button"
+            onClick={() => {
+              setShowChat((v) => {
+                const next = !v;
+                if (next) void cargarComentarios();
+                return next;
+              });
+            }}
+            className={`flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-bold transition ${
+              showChat
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border text-muted hover:border-accent hover:text-accent"
+            }`}
+          >
+            <Icon name="chat" size={12} weight="bold" />
+            Mensajes{comentarios.length > 0 ? ` (${comentarios.length})` : ""}
+          </button>
+        )}
         <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px]">
           {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
         </span>
@@ -13356,13 +13470,13 @@ function SolicitudCard({
         <div className="rounded-xl border-2 border-accent/40 bg-accent/5 p-3 space-y-2">
           <p className="text-xs font-extrabold uppercase tracking-wide text-accent">✏️ Editar solicitud</p>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
-          <input
+          <ProseInput
             className="quest-input w-full text-sm"
             placeholder="Título"
             value={editDraft.titulo}
             onChange={e => setEditDraft(d => ({ ...d, titulo: e.target.value }))}
           />
-          <textarea
+          <ProseTextarea
             className="quest-input w-full text-xs resize-none"
             rows={3}
             placeholder="Descripción (opcional)"
@@ -13450,7 +13564,7 @@ function SolicitudCard({
           )}
           {!loadingSensible && puedeVerSensible && editandoSensible && (
             <div className="space-y-2">
-              <textarea
+              <ProseTextarea
                 className="quest-input w-full resize-none text-xs"
                 rows={4}
                 placeholder="Escribe aquí contraseñas, pasos de resolución, notas privadas…"
@@ -13467,40 +13581,91 @@ function SolicitudCard({
         </div>
       )}
 
-      {/* Comentarios / respuestas de intervención */}
-      {comentarios.length > 0 && (
+      {/* Conversación — solicitante, asignado y equipo */}
+      {showChat && puedeVerChat && (
         <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-2">
-          <button type="button"
-            onClick={() => setShowComentarios((v) => !v)}
-            className="flex w-full items-center justify-between text-xs font-bold text-ink">
-            <span>
-              💬 Respuestas{comentarios.length > 0 && <span className="ml-1 font-normal text-muted">({comentarios.length})</span>}
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-ink flex items-center gap-1.5">
+              <Icon name="chat" size={14} weight="bold" />
+              Conversación
+              {supervision && (
+                <span className="font-normal text-muted">· coordinación del equipo</span>
+              )}
             </span>
-            <span className="text-muted">{showComentarios ? "▲" : "▼"}</span>
-          </button>
-          {showComentarios && (
-            <div className="space-y-2 pt-1">
-              {loadingComentarios && <p className="text-xs text-muted">Cargando…</p>}
-              {comentarios.map((c) => (
-                <div key={c.id} className={`rounded-lg px-3 py-2 text-xs ${c.es_interno ? "bg-surface border border-border/50" : "bg-accent/5 border border-accent/20"}`}>
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-semibold text-ink">{c.autor_nombre}</span>
-                    <span className="text-muted shrink-0">{new Date(c.creado_en).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}</span>
+            <button type="button" onClick={() => setShowChat(false)} className="text-muted hover:text-ink text-xs">✕</button>
+          </div>
+          <div className="max-h-52 overflow-y-auto space-y-2 rounded-lg border border-border/50 bg-surface px-2 py-2">
+            {loadingComentarios && comentarios.length === 0 && (
+              <p className="text-xs text-muted text-center py-2">Cargando mensajes…</p>
+            )}
+            {!loadingComentarios && comentarios.length === 0 && (
+              <p className="text-xs text-muted text-center py-3 italic">
+                Aún no hay mensajes. Escribe para coordinarte con quien solicitó o quien ejecuta la tarea.
+              </p>
+            )}
+            {comentarios.map((c) => {
+              const esMio = c.usuario_id === user.id;
+              return (
+                <div key={c.id} className={`flex ${esMio ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`max-w-[88%] rounded-2xl px-3 py-2 text-xs shadow-sm ${
+                      esMio
+                        ? "rounded-br-md bg-accent text-white"
+                        : "rounded-bl-md border border-border bg-surface-panel text-ink"
+                    }`}
+                  >
+                    {!esMio && (
+                      <p className={`mb-0.5 text-[10px] font-bold ${esMio ? "text-white/80" : "text-muted"}`}>
+                        {c.autor_nombre}
+                      </p>
+                    )}
+                    <p className="whitespace-pre-wrap leading-relaxed">{c.texto}</p>
+                    <p className={`mt-1 text-[9px] ${esMio ? "text-white/70" : "text-muted"}`}>
+                      {new Date(c.creado_en).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
+                    </p>
                   </div>
-                  <p className="whitespace-pre-wrap text-ink/90 leading-relaxed">{c.texto}</p>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+          {puedeEnviarChat ? (
+            <div className="flex gap-2 items-end">
+              <ProseInput
+                className="quest-input flex-1 text-sm"
+                placeholder="Escribe un mensaje…"
+                value={chatDraft}
+                onChange={(e) => setChatDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void enviarMensajeChat();
+                  }
+                }}
+                maxLength={2000}
+              />
+              <button
+                type="button"
+                disabled={enviandoChat || !chatDraft.trim()}
+                onClick={() => void enviarMensajeChat()}
+                className="quest-btn-primary shrink-0 px-3 py-2 text-xs disabled:opacity-40"
+              >
+                {enviandoChat ? "…" : "Enviar"}
+              </button>
             </div>
+          ) : (
+            <p className="text-[10px] text-center text-muted">
+              {resuelta ? "Solicitud cerrada — solo lectura." : "Conversación en pausa mientras hay una intervención activa."}
+            </p>
           )}
         </div>
       )}
 
       {/* Adjuntos */}
-      {(adjuntos.length > 0 || showAdjuntos) && (
+      {(adjuntosTicket.length > 0 || showAdjuntos) && (
         <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-ink">
-              📎 Adjuntos {adjuntos.length > 0 && <span className="font-normal text-muted">({adjuntos.length})</span>}
+              📎 Adjuntos generales {adjuntosTicket.length > 0 && <span className="font-normal text-muted">({adjuntosTicket.length})</span>}
             </span>
             <div className="flex items-center gap-2">
               {(esAsignado || esCreadoPorMi || nivel >= 2) && !resuelta && (
@@ -13525,12 +13690,12 @@ function SolicitudCard({
             </div>
           </div>
           {loadingAdjuntos && <p className="text-xs text-muted">Cargando…</p>}
-          {!loadingAdjuntos && adjuntos.length === 0 && (
-            <p className="text-xs text-muted italic">Sin archivos adjuntos.</p>
+          {!loadingAdjuntos && adjuntosTicket.length === 0 && (
+            <p className="text-xs text-muted italic">Sin archivos generales. Las fotos por paso aparecen junto a cada paso del protocolo.</p>
           )}
           {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
           <div className="space-y-1">
-            {adjuntos.map((a) => {
+            {adjuntosTicket.map((a) => {
               const esImagen = /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
               const esPdf = /\.pdf$/i.test(a.nombre_original);
               const icono = esImagen ? "🖼" : esPdf ? "📄" : "📁";
@@ -13633,10 +13798,10 @@ function SolicitudCard({
                 {editandoPasoId === p.id ? (
                   /* Modo edición inline */
                   <div className="space-y-1.5">
-                    <input autoFocus className="quest-input w-full text-xs" value={editPasoDesc}
+                    <ProseInput autoFocus className="quest-input w-full text-xs" value={editPasoDesc}
                       onChange={(e) => setEditPasoDesc(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && void guardarEditPaso(p)} />
-                    <input className="quest-input w-full text-xs" placeholder="Notas (opcional)" value={editPasoNotas}
+                    <ProseTextarea className="quest-input w-full text-xs resize-none" placeholder="Notas (opcional)" rows={2} value={editPasoNotas}
                       onChange={(e) => setEditPasoNotas(e.target.value)} />
                     <div className="flex gap-2">
                       <button type="button" onClick={() => void guardarEditPaso(p)}
@@ -13726,6 +13891,41 @@ function SolicitudCard({
                     {p.notas && !p.respuesta_intervencion && (
                       <p className="ml-6 text-[10px] text-muted">{p.notas}</p>
                     )}
+                    {/* Imágenes/archivos vinculados a este paso */}
+                    {(() => {
+                      const pasoAdjs = adjuntosPorPaso.get(p.id) ?? [];
+                      if (pasoAdjs.length === 0) return null;
+                      return (
+                        <div className="ml-6 flex flex-wrap gap-1.5 pt-0.5">
+                          {pasoAdjs.map((a) => {
+                            const esImagen = (a.mime?.startsWith("image/"))
+                              || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
+                            const url = ticketsUploadUrl(a.nombre_archivo, token);
+                            return (
+                              <div key={a.id} className="relative group">
+                                {esImagen ? (
+                                  <button type="button" onClick={() => setLightboxUrl(url)} className="block" title={a.nombre_original}>
+                                    <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
+                                    <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold transition-opacity pointer-events-none">🔍</span>
+                                  </button>
+                                ) : (
+                                  <a href={url} target="_blank" rel="noreferrer"
+                                    className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface text-lg"
+                                    title={a.nombre_original}>📄</a>
+                                )}
+                                {(nivel >= 2 || ticket.creado_por === user.id) && (
+                                  <button type="button" disabled={eliminandoAdj === a.id}
+                                    onClick={() => void eliminarAdjunto(a.id)}
+                                    className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold shadow">
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -13741,7 +13941,7 @@ function SolicitudCard({
           {esAsignado && !supervision && (
             showAddPaso ? (
               <div className="flex gap-2 pt-1">
-                <input autoFocus className="quest-input flex-1 text-xs" placeholder="Descripción del nuevo paso…"
+                <ProseInput autoFocus className="quest-input flex-1 text-xs" placeholder="Descripción del nuevo paso…"
                   value={nuevoPasoDesc} onChange={(e) => setNuevoPasoDesc(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && void agregarPasoInline()} />
                 <button type="button" disabled={agregandoPaso || !nuevoPasoDesc.trim()} onClick={() => void agregarPasoInline()}
@@ -13776,13 +13976,13 @@ function SolicitudCard({
               Origen: {interForm.paso_ref}
             </p>
           )}
-          <input
+          <ProseInput
             className="quest-input w-full text-sm"
             placeholder="¿Qué necesita hacer el otro usuario?"
             value={interForm.titulo}
             onChange={(e) => setInterForm((f) => ({ ...f, titulo: e.target.value }))}
           />
-          <textarea
+          <ProseTextarea
             className="quest-input w-full text-xs resize-none"
             rows={2}
             placeholder="Contexto adicional — ¿por qué se necesita esta intervención?"
@@ -13904,7 +14104,7 @@ function SolicitudCard({
       {!resuelta && esAsignado && !supervision && esIntervencion && (
         <div className="space-y-2 pt-1">
           {msg && <p className="text-xs text-red-400">{msg}</p>}
-          <textarea
+          <ProseTextarea
             className="quest-input w-full resize-none text-sm"
             rows={3}
             placeholder="Escribe tu respuesta o resolución aquí…"
@@ -14017,7 +14217,7 @@ function SolicitudCard({
                   <p className="text-xs font-bold text-orange-700 dark:text-orange-400">
                     Solicitar revisión a {ticket.creado_por_nombre ?? "el solicitante"}
                   </p>
-                  <textarea
+                  <ProseTextarea
                     className="quest-input w-full text-xs resize-none"
                     rows={2}
                     placeholder="Nota para el solicitante (opcional): qué revisó, cómo quedó…"
@@ -14044,7 +14244,7 @@ function SolicitudCard({
             <button type="button"
               onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
               className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
-              📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
+              📎 Adjuntos{adjuntosTicket.length > 0 ? ` (${adjuntosTicket.length})` : ""}
             </button>
             {/* Ver pasos solo para solicitudes sin protocolo (las de protocolo usan el wizard) */}
             {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
@@ -14100,7 +14300,7 @@ function SolicitudCard({
             </button>
           ) : (
             <div className="space-y-2">
-              <textarea
+              <ProseTextarea
                 autoFocus
                 className="quest-input w-full text-xs resize-none"
                 rows={3}
@@ -14173,7 +14373,9 @@ function SolicitudCard({
         </div>
       )}
       {!resuelta && supervision && !isAdmin && (
-        <p className="text-[10px] text-center text-muted">Seguimiento del equipo — solo lectura</p>
+        <p className="text-[10px] text-center text-muted">
+          Seguimiento del equipo — usa <strong>Mensajes</strong> para conversar con quien solicita o ejecuta la tarea
+        </p>
       )}
 
       {/* Botón: guardar como protocolo (solo para tickets resueltos, nivel supervisor+) */}
@@ -14199,7 +14401,7 @@ function SolicitudCard({
                 📋 Guardar como procedimiento
                 <InfoTooltip text="Crea un procedimiento reutilizable a partir de esta solicitud resuelta. El procedimiento guardará todos los pasos ejecutados y servirá como plantilla para nuevas solicitudes del mismo tipo." />
               </p>
-              <input
+              <ProseInput
                 className="quest-input w-full text-sm"
                 placeholder="Nombre del procedimiento (ej: Pago a proveedor)"
                 value={protocoloForm.titulo}
@@ -14211,7 +14413,7 @@ function SolicitudCard({
                 value={protocoloForm.categoria}
                 onChange={(e) => setProtocoloForm((f) => ({ ...f, categoria: e.target.value }))}
               />
-              <textarea
+              <ProseTextarea
                 className="quest-input w-full text-xs resize-none"
                 rows={2}
                 placeholder="Descripción breve (opcional)"
@@ -14565,6 +14767,7 @@ function NuevaAccionWizard({
   );
   const [wizardDir, setWizardDir] = useState<"right" | "left">("right");
   const [titulo, setTitulo] = useState(plantillaEff?.titulo ?? tituloInicial);
+  const [detalle, setDetalle] = useState("");
   const [conCompras, setConCompras] = useState((plantillaEff?.listaCompras?.length ?? 0) > 0);
   const [subCompras, setSubCompras] = useState<"idle" | "editando">(
     reanudar?.subCompras ?? ((plantillaEff?.listaCompras?.length ?? 0) > 0 ? "editando" : "idle"),
@@ -14703,7 +14906,7 @@ function NuevaAccionWizard({
       method: "POST",
       body: JSON.stringify({
         titulo: titulo.trim(),
-        descripcion: titulo.trim(),
+        descripcion: detalle.trim() || titulo.trim(),
         prioridad: "media",
         categoria: solicitudPadreId ? "logistica" : "logistica",
         asignado_a: user.id,
@@ -15109,8 +15312,8 @@ function NuevaAccionWizard({
   }, []);
 
   async function finalizar() {
-    const extra = pasoNombre.trim()
-      ? [{ nombre: pasoNombre.trim(), desc: pasoDesc.trim() }]
+    const extra: PasoAccionDraft[] = pasoNombre.trim()
+      ? [{ nombre: pasoNombre.trim(), desc: pasoDesc.trim(), foto: pasoFoto }]
       : [];
     await finalizarConPasos([...pasosGuardados, ...extra]);
   }
@@ -15196,24 +15399,41 @@ function NuevaAccionWizard({
             <h2 className="text-3xl font-extrabold text-ink leading-tight">
               ¿Qué vas<br />a hacer?
             </h2>
-            <p className="mt-2 text-sm text-muted">Solo esta pregunta — escribe o usa el micrófono.</p>
+            <p className="mt-2 text-sm text-muted">Nombre corto y, si quieres, más detalle de la acción.</p>
           </div>
-          <div className="flex gap-2">
-            <input
-              autoFocus
-              className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-xl font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/50"
-              placeholder="Ej: Preparar torta de zanahoria"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && titulo.trim() && !loading) void avanzarDesdeTitulo();
-              }}
-              maxLength={150}
-            />
-            <SttInlineBtn
-              stt={stt}
-              onStart={() => void stt.iniciar((t) => setTitulo(t))}
-            />
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <ProseInput
+                autoFocus
+                className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-xl font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/50"
+                placeholder="Ej: Preparar torta de zanahoria"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && titulo.trim() && !loading) void avanzarDesdeTitulo();
+                }}
+                maxLength={150}
+              />
+              <SttInlineBtn
+                stt={stt}
+                onStart={() => void stt.iniciar((t) => setTitulo(proseText(t)))}
+              />
+            </div>
+            <div className="flex gap-2 items-start">
+              <ProseTextarea
+                className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-3 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/50 resize-none min-h-[100px]"
+                placeholder="Detalle opcional: pasos, ingredientes, observaciones…"
+                rows={4}
+                value={detalle}
+                onChange={(e) => setDetalle(e.target.value)}
+              />
+              <SttInlineBtn
+                stt={stt}
+                label="Detalle"
+                onStart={() => void stt.iniciar((t) => setDetalle(proseText(t)))}
+              />
+            </div>
+            <ProseHint />
           </div>
           <button
             type="button"
@@ -15604,13 +15824,13 @@ function NuevaAccionWizard({
               <p className="text-sm font-bold text-orange-800 dark:text-orange-300">
                 Pedir verificación{interPasoIdx != null ? ` — paso ${interPasoIdx + 1}` : ""}
               </p>
-              <input
+              <ProseInput
                 className="quest-input w-full text-sm"
                 placeholder="Título de la intervención"
                 value={interForm.titulo}
                 onChange={(e) => setInterForm((f) => ({ ...f, titulo: e.target.value }))}
               />
-              <textarea
+              <ProseTextarea
                 className="quest-input w-full resize-none text-sm"
                 rows={2}
                 placeholder="Qué debe verificar o hacer…"
@@ -15660,7 +15880,7 @@ function NuevaAccionWizard({
                 ¿Qué haces en este paso?
               </label>
               <div className="flex gap-2">
-                <input
+                <ProseInput
                   autoFocus
                   className="w-full flex-1 rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
                   placeholder="Ej: Mezclar harina y zanahoria"
@@ -15670,7 +15890,7 @@ function NuevaAccionWizard({
                 />
                 <SttInlineBtn
                   stt={stt}
-                  onStart={() => void stt.iniciar((t) => setPasoNombre(t))}
+                  onStart={() => void stt.iniciar((t) => setPasoNombre(proseText(t)))}
                 />
               </div>
             </div>
@@ -15679,7 +15899,7 @@ function NuevaAccionWizard({
                 Detalle <span className="normal-case font-normal">(opcional)</span>
               </label>
               <div className="flex gap-2">
-                <textarea
+                <ProseTextarea
                   className="w-full flex-1 rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
                   placeholder="Instrucciones, tiempos, temperatura…"
                   rows={2}
@@ -15689,9 +15909,10 @@ function NuevaAccionWizard({
                 <SttInlineBtn
                   stt={stt}
                   label="Det."
-                  onStart={() => void stt.iniciar((t) => setPasoDesc((d) => (d ? `${d} ${t}` : t)))}
+                  onStart={() => void stt.iniciar((t) => setPasoDesc((d) => proseText(d ? `${d} ${t}` : t)))}
                 />
               </div>
+              <ProseHint className="mt-1" />
             </div>
             <div>
               <label className={`flex items-center gap-3 rounded-xl border-2 cursor-pointer px-4 py-2.5 transition
@@ -15797,13 +16018,14 @@ function NuevaAccionWizard({
               <label className="text-xs font-bold uppercase tracking-wide text-accent">
                 Reporte para el solicitante
               </label>
-              <textarea
+              <ProseTextarea
                 className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent resize-none"
                 rows={4}
                 placeholder="Qué hiciste, resultados, observaciones…"
                 value={reporteSolicitud}
                 onChange={(e) => setReporteSolicitud(e.target.value)}
               />
+              <ProseHint />
             </div>
           )}
 
@@ -16066,7 +16288,9 @@ function NuevaSolicitudWizard({
   }
 
   async function crear() {
-    if (!titulo.trim() || asignados.length === 0) return;
+    const desc = descripcion.trim();
+    if (!desc || asignados.length === 0) return;
+    const tituloFinal = (titulo.trim() || desc.split(/\n/)[0]?.trim() || desc).slice(0, 150);
     setLoading(true);
     setError("");
     try {
@@ -16075,8 +16299,8 @@ function NuevaSolicitudWizard({
           tapi("/", token, {
             method: "POST",
             body: JSON.stringify({
-              titulo: titulo.trim(),
-              descripcion: descripcion.trim() || titulo.trim(),
+              titulo: tituloFinal,
+              descripcion: desc,
               categoria: "logistica",
               prioridad: "media",
               asignado_a: uid,
@@ -16198,40 +16422,25 @@ function NuevaSolicitudWizard({
             <h2 className="text-3xl font-extrabold text-ink leading-tight">
               ¿Qué quieres<br />que haga?
             </h2>
-            <p className="mt-2 text-sm text-muted">Describe la tarea con tus propias palabras.</p>
+            <p className="mt-2 text-sm text-muted">Redacta la tarea con todos los detalles necesarios.</p>
           </div>
           <div className="space-y-3">
-            <div className="flex gap-2">
-              <input
+            <div className="flex gap-2 items-start">
+              <ProseTextarea
                 autoFocus
-                className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-xl font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/50"
-                placeholder="Ej: Revisar el inventario de la bodega"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && titulo.trim()) irFase("asignados");
-                }}
-                maxLength={150}
-              />
-              <SttInlineBtn
-                stt={stt}
-                onStart={() => void stt.iniciar((t) => setTitulo(t))}
-              />
-            </div>
-            <div className="flex gap-2">
-              <textarea
-                className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-3 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/50 resize-none"
-                placeholder="Detalles adicionales (opcional)"
-                rows={2}
+                className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-base text-ink outline-none focus:border-accent placeholder:text-muted/50 resize-none min-h-[140px]"
+                placeholder="Ej: Revisar el inventario de la bodega y enviarme un listado de lo que falta. Incluir referencias y cantidades."
+                rows={5}
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
               />
               <SttInlineBtn
                 stt={stt}
-                label="Desc."
-                onStart={() => void stt.iniciar((t) => setDescripcion(t))}
+                label="Dictar"
+                onStart={() => void stt.iniciar((t) => setDescripcion(proseText(t)))}
               />
             </div>
+            <ProseHint />
             <label className={`flex items-center gap-3 rounded-2xl border-2 cursor-pointer px-4 py-3 transition
               ${adjuntoFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
               <span className="text-xl">{adjuntoFile ? "📎" : "📷"}</span>
@@ -16257,8 +16466,12 @@ function NuevaSolicitudWizard({
           </div>
           <button
             type="button"
-            disabled={!titulo.trim()}
-            onClick={() => irFase("asignados")}
+            disabled={!descripcion.trim()}
+            onClick={() => {
+              const d = descripcion.trim();
+              setTitulo(d.split(/\n/)[0]?.trim().slice(0, 150) ?? d.slice(0, 150));
+              irFase("asignados");
+            }}
             className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
           >
             Siguiente →
@@ -16468,6 +16681,54 @@ function _fmtFechaHist(s: string | null | undefined): string {
       hour: "2-digit", minute: "2-digit",
     });
   } catch { return s; }
+}
+
+// ── SolicitudResumenCard — tarjeta compacta (lista Por resolver) ─────────────
+
+function SolicitudResumenCard({
+  ticket,
+  user,
+  onClick,
+}: {
+  ticket: Ticket;
+  user: TicketsUser;
+  onClick: () => void;
+}) {
+  const esCreadoPorMi = uidEq(ticket.creado_por, user.id);
+  const pasoTotal = ticket.pasos_total ?? 0;
+  const pasoComp = ticket.pasos_completados ?? 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group w-full rounded-2xl border-2 border-border bg-surface-panel/80 px-4 py-3.5 text-left transition hover:border-accent/60 hover:bg-surface-hover hover:shadow-paper-sm space-y-2"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-extrabold text-ink leading-snug">{ticket.titulo}</p>
+          {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
+            <p className="text-xs text-muted mt-0.5 line-clamp-2">{ticket.descripcion}</p>
+          )}
+        </div>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
+          {ticket.prioridad ?? "media"}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+        <span>{esCreadoPorMi ? "📋 Tú" : `📋 ${ticket.creado_por_nombre ?? "?"}`}</span>
+        {ticket.asignado_a_nombre && <span>→ 👤 {ticket.asignado_a_nombre}</span>}
+        {pasoTotal > 0 && <span>☑ {pasoComp}/{pasoTotal} pasos</span>}
+        {ticket.protocolo_titulo && <span className="text-accent/90">📋 {ticket.protocolo_titulo}</span>}
+        <span className="rounded-full border border-border px-2 py-0.5 text-[10px]">
+          {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
+        </span>
+        <span className="ml-auto text-[10px] font-bold text-accent/70 group-hover:text-accent transition-colors">
+          Ver detalle →
+        </span>
+      </div>
+    </button>
+  );
 }
 
 // ── HistorialSolicitudCard — tarjeta compacta del historial ───────────────────
@@ -16889,7 +17150,6 @@ function ContratosView({
   onSelect: (id: number) => void;
   onCreate: () => void;
 }) {
-  const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   const [tab, setTab] = useState<"activas" | "historial">("activas");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16932,15 +17192,13 @@ function ContratosView({
         <h2 className="text-xl font-extrabold text-ink">Contratos</h2>
         <button type="button" onClick={onCreate}
           className="ml-auto rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
-          + Nuevo contrato
+          + Nueva solicitud de contrato
         </button>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 dark:border-slate-700/50 dark:bg-slate-950/40 dark:text-slate-200">
-        Registro y seguimiento de contratos. Usa la plantilla de prestación de servicios o adjunta tu documento (PDF, Word o imagen).
-        {isAdmin
-          ? " Como administrador puedes aprobar y cerrar los registros."
-          : " Solo Administración puede marcar contratos como resueltos."}
+        Crea solicitudes de contrato y envíalas a un aliado del equipo. Usa la plantilla de prestación de servicios o adjunta tu documento (PDF, Word o imagen).
+        El aliado las verá en <strong>Solicitudes → Por resolver</strong>.
       </div>
 
       <div className="flex gap-2">
@@ -16975,7 +17233,7 @@ function ContratosView({
           {tab === "activas" && (
             <button type="button" onClick={onCreate}
               className="mt-4 rounded-paper border-2 border-accent px-4 py-2 text-sm font-bold text-accent hover:bg-accent hover:text-white transition">
-              Registrar primer contrato
+              Enviar primera solicitud de contrato
             </button>
           )}
         </div>
@@ -17023,6 +17281,7 @@ function SolicitudesView({
   const [solicitudEjecId, setSolicitudEjecId] = useState<number | undefined>();
   const [tab, setTab] = useState<"subhome" | "asignadas" | "creadas" | "equipo" | "historial" | "protocolos">("subhome");
   const [selectedHistorialTicket, setSelectedHistorialTicket] = useState<Ticket | null>(null);
+  const [asignadaDetalle, setAsignadaDetalle] = useState<Ticket | null>(null);
   const [solicitudes, setSolicitudes] = useState<Ticket[]>([]);
   const [solicitudesEquipo, setSolicitudesEquipo] = useState<Ticket[]>([]);
   const [comprasDelegadas, setComprasDelegadas] = useState<Ticket[]>([]);
@@ -17034,6 +17293,7 @@ function SolicitudesView({
   const [loadingProtocolos, setLoadingProtocolos] = useState(false);
   const [historialSol, setHistorialSol] = useState<Ticket[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [historialGruposAbiertos, setHistorialGruposAbiertos] = useState<Set<number>>(new Set());
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -17128,6 +17388,17 @@ function SolicitudesView({
     }
   }, [compraActiva, comprasPendientes]);
 
+  useEffect(() => {
+    if (!asignadaDetalle) return;
+    const fresh = otrasAsignadas.find((t) => t.id === asignadaDetalle.id);
+    if (fresh) setAsignadaDetalle(fresh);
+    else setAsignadaDetalle(null);
+  }, [otrasAsignadas, asignadaDetalle?.id]);
+
+  useEffect(() => {
+    if (tab !== "asignadas") setAsignadaDetalle(null);
+  }, [tab]);
+
   const equipoPorAsignado = useMemo(() => {
     const map = new Map<number, { nombre: string; items: Ticket[] }>();
     for (const t of enEquipo) {
@@ -17137,6 +17408,40 @@ function SolicitudesView({
     }
     return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [enEquipo]);
+
+  const historialPorAsignado = useMemo(() => {
+    const map = new Map<number, { uid: number; nombre: string; items: Ticket[] }>();
+    for (const t of historial) {
+      const uid = t.asignado_a ?? 0;
+      if (!map.has(uid)) map.set(uid, { uid, nombre: t.asignado_a_nombre ?? "Sin asignar", items: [] });
+      map.get(uid)!.items.push(t);
+    }
+    const ts = (x: Ticket) =>
+      new Date(x.resuelto_en || x.actualizado_en || x.creado_en || 0).getTime();
+    return [...map.values()]
+      .map((g) => ({
+        ...g,
+        items: [...g.items].sort((a, b) => ts(b) - ts(a)),
+      }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [historial]);
+
+  useEffect(() => {
+    if (tab !== "historial" || historialPorAsignado.length === 0) return;
+    setHistorialGruposAbiertos((prev) => {
+      if (prev.size > 0) return prev;
+      return new Set(historialPorAsignado.map((g) => g.uid));
+    });
+  }, [tab, historialPorAsignado]);
+
+  function toggleHistorialGrupo(uid: number) {
+    setHistorialGruposAbiertos((prev) => {
+      const next = new Set(prev);
+      if (next.has(uid)) next.delete(uid);
+      else next.add(uid);
+      return next;
+    });
+  }
 
   async function iniciarEjecucionSolicitud(t: Ticket) {
     let plantilla: PlantillaAccion = {
@@ -17281,20 +17586,20 @@ function SolicitudesView({
               </p>
             </div>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setShowWizard(true)}
-              className="flex-1 rounded-2xl bg-rose-500 hover:bg-rose-600 active:scale-[0.98] text-white font-extrabold text-lg py-4 flex items-center justify-center gap-2 transition-all shadow-[0_3px_0_#9f1239] active:shadow-none active:translate-y-0.5"
+              className={`${CENTRO_MANDO_CTA_BTN} bg-rose-500 hover:bg-rose-600 shadow-[0_2px_0_#9f1239]`}
             >
-              <Icon name="plus" size={18} weight="bold" />
+              <Icon name="plus" size={14} weight="bold" />
               Nueva solicitud
             </button>
             <button
               type="button"
               onClick={() => void load(false)}
               disabled={loading}
-              className="rounded-2xl border-2 border-rose-300 dark:border-rose-600/70 px-4 py-3 text-sm font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50"
+              className="rounded-xl border-2 border-rose-300 dark:border-rose-600/70 px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50"
             >
               ↻ Actualizar
             </button>
@@ -17483,20 +17788,51 @@ function SolicitudesView({
         </div>
       )}
 
-      {/* Vista historial: cards compactas con vista de detalle */}
+      {/* Vista historial: agrupado por miembro asignado (desplegable) */}
       {tab === "historial" && !loading && !loadingHistorial && historial.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-xs text-muted flex items-center gap-1">
             {historial.length} solicitud{historial.length !== 1 ? "es" : ""} completada{historial.length !== 1 ? "s" : ""} o rechazada{historial.length !== 1 ? "s" : ""}
-            <InfoTooltip text="Haz clic en una solicitud para ver el detalle completo: pasos ejecutados, archivos adjuntos, comentarios y estadísticas de tiempo. Los pasos son de solo lectura." />
+            <InfoTooltip text="Agrupadas por quien las atendió. Toca el nombre del miembro para desplegar u ocultar sus solicitudes." />
           </p>
-          {historial.map((t) => (
-            <HistorialSolicitudCard
-              key={t.id}
-              ticket={t}
-              onClick={() => setSelectedHistorialTicket(t)}
-            />
-          ))}
+          {historialPorAsignado.map(({ uid, nombre, items }) => {
+            const abierto = historialGruposAbiertos.has(uid);
+            return (
+              <div key={uid} className="overflow-hidden rounded-xl border border-border bg-surface-panel/60">
+                <button
+                  type="button"
+                  onClick={() => toggleHistorialGrupo(uid)}
+                  aria-expanded={abierto}
+                  className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition hover:bg-surface-hover"
+                >
+                  <span
+                    className={`shrink-0 text-[10px] text-muted transition-transform duration-200 ${abierto ? "" : "-rotate-90"}`}
+                    aria-hidden
+                  >
+                    ▼
+                  </span>
+                  <Icon name="user" size={13} className="shrink-0 text-muted" />
+                  <span className="min-w-0 flex-1 truncate text-xs font-bold uppercase tracking-wide text-ink">
+                    {nombre}
+                  </span>
+                  <span className="shrink-0 rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] text-muted">
+                    {items.length}
+                  </span>
+                </button>
+                {abierto && (
+                  <div className="space-y-2 border-t border-border/60 px-3 pb-3 pt-2">
+                    {items.map((t) => (
+                      <HistorialSolicitudCard
+                        key={t.id}
+                        ticket={t}
+                        onClick={() => setSelectedHistorialTicket(t)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -17527,7 +17863,77 @@ function SolicitudesView({
         </div>
       )}
 
-      {tab !== "equipo" && tab !== "historial" && tab !== "protocolos" && (
+      {tab === "asignadas" && asignadaDetalle && (
+        <div className="space-y-4">
+          <button
+            type="button"
+            onClick={() => setAsignadaDetalle(null)}
+            className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-sm font-bold text-muted hover:border-accent hover:text-accent transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Por resolver
+          </button>
+          <SolicitudCard
+            ticket={asignadaDetalle}
+            token={token}
+            user={user}
+            isAdmin={isAdmin}
+            protocolos={protocolos}
+            detalleAmpliado
+            onChanged={() => void load(true)}
+            onRegistrarEjecucion={
+              esSolicitudCompraDelegada(asignadaDetalle)
+                ? undefined
+                : (sol) => void iniciarEjecucionSolicitud(sol)
+            }
+          />
+        </div>
+      )}
+
+      {tab === "asignadas" && !asignadaDetalle && !loading && otrasAsignadas.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted">
+            {otrasAsignadas.length} solicitud{otrasAsignadas.length !== 1 ? "es" : ""} pendiente{otrasAsignadas.length !== 1 ? "s" : ""}
+            {" · "}
+            Toca una para ver el detalle completo
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {otrasAsignadas.map((t) => (
+              <SolicitudResumenCard
+                key={t.id}
+                ticket={t}
+                user={user}
+                onClick={() => setAsignadaDetalle(t)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === "creadas" && (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {!loading && creadas.map((t) => (
+            <SolicitudCard
+              key={t.id}
+              ticket={t}
+              token={token}
+              user={user}
+              isAdmin={isAdmin}
+              protocolos={protocolos}
+              onChanged={() => void load(true)}
+              onRegistrarEjecucion={
+                esSolicitudCompraDelegada(t)
+                  ? undefined
+                  : (sol) => void iniciarEjecucionSolicitud(sol)
+              }
+            />
+          ))}
+        </div>
+      )}
+
+      {tab !== "equipo" && tab !== "historial" && tab !== "protocolos" && tab !== "asignadas" && tab !== "creadas" && (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {!loading && lista.map((t) => (
             <SolicitudCard
@@ -18194,7 +18600,7 @@ function RepetirAccionWizard({
                 Reporte para quien te hizo la solicitud
               </label>
               <div className="flex gap-2">
-                <textarea
+                <ProseTextarea
                   autoFocus
                   className="w-full rounded-2xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
                   placeholder="Describe cómo quedó la tarea…"
@@ -18202,8 +18608,9 @@ function RepetirAccionWizard({
                   value={reporteTexto}
                   onChange={(e) => setReporteTexto(e.target.value)}
                 />
-                <SttInlineBtn stt={stt} onStart={() => void stt.iniciar((t) => setReporteTexto(t))} />
+                <SttInlineBtn stt={stt} onStart={() => void stt.iniciar((t) => setReporteTexto(proseText(t)))} />
               </div>
+              <ProseHint />
             </div>
           ) : (
             <p className="text-sm text-muted">¿Todo listo? Marca la acción como completada.</p>
@@ -18410,7 +18817,7 @@ function PendientesPanel({
         <button
           type="button"
           onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
-          className={`flex shrink-0 items-center gap-1.5 rounded-xl border-2 px-4 py-2 text-sm font-extrabold transition ${
+          className={`flex shrink-0 items-center gap-1 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
             showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
           }`}
         >
@@ -18421,7 +18828,7 @@ function PendientesPanel({
       {/* Formulario colapsable */}
       {showForm && (
         <div className="rounded-2xl border-2 border-accent/30 bg-accent/5 p-4 space-y-3">
-          <input
+          <ProseInput
             autoFocus
             className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
             placeholder="Ej: Reparar el computador, revisar la cotización del proveedor…"
@@ -18430,7 +18837,7 @@ function PendientesPanel({
             onKeyDown={(e) => { if (e.key === "Enter" && titulo.trim()) void crear().then(() => setShowForm(false)); }}
             maxLength={150}
           />
-          <textarea
+          <ProseTextarea
             className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
             placeholder="Detalle opcional…"
             rows={2}
@@ -18477,7 +18884,7 @@ function PendientesPanel({
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="mx-auto rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-emerald-700"
+            className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-emerald-600 hover:bg-emerald-700 shadow-[0_2px_0_#065f46]`}
           >
             + Nueva acción futura
           </button>
@@ -18505,7 +18912,7 @@ function PendientesPanel({
                       onChange={(e) => setEditTitulo(e.target.value)}
                       maxLength={150}
                     />
-                    <textarea
+                    <ProseTextarea
                       className="w-full rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent resize-none"
                       rows={2}
                       placeholder="Detalle (opcional)"
@@ -18725,7 +19132,7 @@ function RecordatoriosPanel({
         <button
           type="button"
           onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
-          className={`flex shrink-0 items-center gap-1.5 rounded-xl border-2 px-4 py-2 text-sm font-extrabold transition ${
+          className={`flex shrink-0 items-center gap-1 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
             showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
           }`}
         >
@@ -18739,14 +19146,14 @@ function RecordatoriosPanel({
         <p className="text-xs font-bold uppercase tracking-widest text-accent">Nuevo recordatorio</p>
         <p className="text-xs text-muted">Tarea con alerta en la fecha que elijas — puntual o recurrente. Te avisamos por voz cuando toque.</p>
 
-        <input
+        <ProseInput
           className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
           placeholder="Ej: Pagar recibo del celular, llamar al banco, renovar el seguro…"
           value={titulo}
           onChange={(e) => setTitulo(e.target.value)}
           maxLength={150}
         />
-        <textarea
+        <ProseTextarea
           className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent resize-none placeholder:text-muted/40"
           placeholder="Detalle opcional…"
           rows={2}
@@ -18935,7 +19342,7 @@ function RecordatoriosPanel({
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="mx-auto rounded-xl bg-accent px-5 py-2.5 text-sm font-extrabold text-white transition hover:brightness-110"
+            className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-violet-600 hover:bg-violet-700 shadow-[0_2px_0_#4c1d95]`}
           >
             + Crear recordatorio
           </button>
@@ -19024,7 +19431,7 @@ function NuevoProcedimientoForm({
         <button
           type="button"
           onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
-          className={`flex shrink-0 items-center gap-1.5 rounded-xl border-2 px-4 py-2 text-sm font-extrabold transition ${
+          className={`flex shrink-0 items-center gap-1 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
             showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
           }`}
         >
@@ -19035,7 +19442,7 @@ function NuevoProcedimientoForm({
       {showForm && (
         <div className="space-y-3 rounded-2xl border-2 border-accent/30 bg-accent/5 p-4">
           <p className="text-xs font-bold uppercase tracking-widest text-accent">Nuevo procedimiento</p>
-          <input
+          <ProseInput
             autoFocus
             className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
             placeholder="Ej: Cierre de caja, preparación de pedido MeLi…"
@@ -19043,7 +19450,7 @@ function NuevoProcedimientoForm({
             onChange={(e) => setTitulo(e.target.value)}
             maxLength={150}
           />
-          <textarea
+          <ProseTextarea
             className="w-full resize-none rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/40"
             placeholder="Descripción opcional…"
             rows={2}
@@ -19054,7 +19461,7 @@ function NuevoProcedimientoForm({
             <p className="text-xs font-bold text-muted">Pasos (opcional)</p>
             {pasos.map((paso, i) => (
               <div key={i} className="flex gap-2">
-                <input
+                <ProseInput
                   className="flex-1 rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
                   placeholder={`Paso ${i + 1}`}
                   value={paso}
@@ -19275,7 +19682,7 @@ function ProcedimientoCard({
         <div className="space-y-3">
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wide text-muted mb-1 block">Título</label>
-            <input
+            <ProseInput
               autoFocus
               className="quest-input w-full text-sm"
               value={titulo}
@@ -19293,7 +19700,7 @@ function ProcedimientoCard({
                 <div className="flex items-start gap-2">
                   <span className="text-[10px] font-bold text-muted mt-2 shrink-0 w-4 text-center">{i + 1}</span>
                   <div className="flex-1 min-w-0 space-y-1.5">
-                    <input
+                    <ProseInput
                       className="quest-input w-full text-xs"
                       placeholder="Nombre del paso…"
                       value={paso.descripcion}
@@ -19301,8 +19708,9 @@ function ProcedimientoCard({
                         prev.map((x, j) => j === i ? { ...x, descripcion: e.target.value } : x)
                       )}
                     />
-                    <input
-                      className="quest-input w-full text-xs"
+                    <ProseTextarea
+                      className="quest-input w-full text-xs resize-none"
+                      rows={2}
                       placeholder="Notas / instrucciones (opcional)…"
                       value={paso.notas}
                       onChange={(e) => setPasosDraft((prev) =>
@@ -19506,12 +19914,16 @@ function ProcedimientoCard({
 }
 
 // ── AccionesView — paleta por subtab (nivel módulo, no depende de estado) ─────
+/** CTA compacto del hero en Centro de Mando (solicitudes / acciones / recordatorios). */
+const CENTRO_MANDO_CTA_BTN =
+  "inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-px";
+
 const ACCIONES_TAB_CFG = {
-  subhome:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_3px_0_#b45309]",   ctaBase: true  },
-  activas:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_3px_0_#b45309]",   ctaBase: true  },
-  pendientes:     { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_3px_0_#065f46]", ctaBase: false },
-  recordatorios:  { card: "border-violet-200 dark:border-violet-700/60 bg-violet-50 dark:bg-violet-950/50",          icon: "bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300",         emoji: "🔔", titulo: "Recordatorios",     desc: "Tareas con alerta: te avisamos en la fecha. Crea recordatorios puntuales o recurrentes.",            btnCtaCls: "bg-violet-600 hover:bg-violet-700 shadow-[0_3px_0_#4c1d95]",  ctaBase: false },
-  procedimientos: { card: "border-sky-200 dark:border-sky-700/60 bg-sky-50 dark:bg-sky-950/50",                      icon: "bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-sky-600 hover:bg-sky-700 shadow-[0_3px_0_#0c4a6e]",       ctaBase: false },
+  subhome:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_2px_0_#b45309]",   ctaBase: true  },
+  activas:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_2px_0_#b45309]",   ctaBase: true  },
+  pendientes:     { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_2px_0_#065f46]", ctaBase: false },
+  recordatorios:  { card: "border-violet-200 dark:border-violet-700/60 bg-violet-50 dark:bg-violet-950/50",          icon: "bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300",         emoji: "🔔", titulo: "Recordatorios",     desc: "Tareas con alerta: te avisamos en la fecha. Crea recordatorios puntuales o recurrentes.",            btnCtaCls: "bg-violet-600 hover:bg-violet-700 shadow-[0_2px_0_#4c1d95]",  ctaBase: false },
+  procedimientos: { card: "border-sky-200 dark:border-sky-700/60 bg-sky-50 dark:bg-sky-950/50",                      icon: "bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-sky-600 hover:bg-sky-700 shadow-[0_2px_0_#0c4a6e]",       ctaBase: false },
   historial:      { card: "border-stone-200 dark:border-stone-600/50 bg-stone-50 dark:bg-stone-900/60",              icon: "bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300",             emoji: "📜", titulo: "Historial",         desc: "Todo lo que ya completaste. Pa' que no se pierda nada.",                                             btnCtaCls: "bg-stone-500 hover:bg-stone-600 shadow-[0_3px_0_#292524]",   ctaBase: false },
 } as const;
 type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
@@ -20228,31 +20640,35 @@ function AccionesView({
         </div>
         {/* CTA principal — solo en subhome y activas, nunca para admin */}
         {mostrarCta && (
-          <button
-            type="button"
-            onClick={async () => {
-              setLoadingMenu(true);
-              setShowIniciarMenu(true);
-              try {
-                const data = await tapi("/protocolos", token);
-                setProtocolosMenu(Array.isArray(data) ? data : []);
-              } catch { setProtocolosMenu([]); } finally { setLoadingMenu(false); }
-            }}
-            className={`w-full rounded-2xl ${tc.btnCtaCls} active:scale-[0.98] text-white font-extrabold text-lg py-4 flex items-center justify-center gap-2 transition-all active:shadow-none active:translate-y-0.5`}
-          >
-            <Icon name="plus" size={18} weight="bold" />
-            Iniciar acción
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={async () => {
+                setLoadingMenu(true);
+                setShowIniciarMenu(true);
+                try {
+                  const data = await tapi("/protocolos", token);
+                  setProtocolosMenu(Array.isArray(data) ? data : []);
+                } catch { setProtocolosMenu([]); } finally { setLoadingMenu(false); }
+              }}
+              className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
+            >
+              <Icon name="plus" size={14} weight="bold" />
+              Iniciar acción
+            </button>
+          </div>
         )}
         {mostrarCtaCrear && (
-          <button
-            type="button"
-            onClick={abrirFormularioCrear}
-            className={`w-full rounded-2xl ${tc.btnCtaCls} flex items-center justify-center gap-2 py-4 text-lg font-extrabold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-0.5`}
-          >
-            <Icon name="plus" size={18} weight="bold" />
-            {labelCtaCrear}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={abrirFormularioCrear}
+              className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
+            >
+              <Icon name="plus" size={14} weight="bold" />
+              {labelCtaCrear}
+            </button>
+          </div>
         )}
         {/* Toolbar: alarma + filtro + STT */}
         <div className="flex gap-2 flex-wrap items-center">
@@ -20769,7 +21185,7 @@ function AccionesView({
                 <button
                   type="button"
                   onClick={() => setCrearProcedimientoSignal((n) => n + 1)}
-                  className="mx-auto rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-sky-700"
+                  className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-sky-600 hover:bg-sky-700 shadow-[0_2px_0_#0c4a6e]`}
                 >
                   + Nuevo procedimiento
                 </button>
@@ -21763,7 +22179,7 @@ function EjecucionAccionChat({
           🛒
           {numCompras > 0 && <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 rounded-full bg-accent text-white text-[9px] font-black flex items-center justify-center px-0.5">{numCompras}</span>}
         </button>
-        <textarea ref={inputNotaRef} value={inputNota} onChange={e => setInputNota(e.target.value)}
+        <ProseTextarea ref={inputNotaRef} value={inputNota} onChange={e => setInputNota(e.target.value)} prose={false}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
           onPaste={handlePaste}
           rows={1}
@@ -21978,7 +22394,7 @@ function RevisionSolicitudView({
                       className="text-xs text-muted hover:text-red-500 leading-none">✕</button>
                   </div>
                 )}
-                <textarea
+                <ProseTextarea
                   value={item.texto}
                   onChange={e => setTextoItem(item.id, e.target.value)}
                   placeholder={idx === 0 ? "Explica qué faltó o qué debe corregirse…" : "Describe este punto…"}
@@ -22768,7 +23184,7 @@ function ResolverActividadChat({
 
       <div className="px-4 py-2.5 flex items-end gap-2">
         <BotonCamaraEjecucion onFile={onFotoSeleccionada} title="Tomar foto o pegar captura (Ctrl+V)" />
-        <textarea ref={inputNotaRef} value={inputNota} onChange={e => setInputNota(e.target.value)}
+        <ProseTextarea ref={inputNotaRef} value={inputNota} onChange={e => setInputNota(e.target.value)} prose={false}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); agregarNota(inputNota); } }}
           onPaste={handlePaste}
           rows={1}
@@ -22825,7 +23241,7 @@ type AgentChip = {
 function AgenteMandoView({
   token, user, modoInicio = false, embedido = false, chatExpanded = true,
   onToggleChatExpanded, onExpandChat, onSalir, onAbrirMenu, onIrInicio,
-  onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones,
+  onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones, onGoImpresora,
 }: {
   token: string;
   user: TicketsUser;
@@ -22844,8 +23260,10 @@ function AgenteMandoView({
   onGoAcciones: () => void;
   onGoTablero: () => void;
   onGoHistorialAcciones: () => void;
+  onGoImpresora?: () => void;
 }) {
   const { apiToken: chatApiToken } = useTicketsAuth();
+  const verImpresora = puedeVerSeccionPanel(user, "etiquetas");
   const stt = useStt(token, chatApiToken);
   const nombre = user.nombre.split(" ")[0];
 
@@ -23560,37 +23978,60 @@ function AgenteMandoView({
     );
   }
 
+  if (embedido && !dockExpandido) {
+    const hayActividad = solicitudesCount > 0 || !!accionActual || solicitudesPorAprobar.length > 0;
+    return (
+      <button
+        type="button"
+        onClick={() => onExpandChat?.()}
+        className="hugo-dock-fab group"
+        aria-label="Iniciar conversación con Hugo García"
+        title="Hablar con Hugo García"
+      >
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-xl font-black text-white shadow-[0_4px_14px_rgba(12,96,105,0.45)] transition group-hover:scale-105 group-active:scale-95">
+          H
+        </span>
+        {hayActividad && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-surface-panel bg-rose-500 px-1 text-[10px] font-extrabold text-white">
+            {solicitudesCount > 0 ? solicitudesCount : "!"}
+          </span>
+        )}
+        <span className="pointer-events-none absolute bottom-full right-0 mb-2 hidden whitespace-nowrap rounded-xl border-2 border-border bg-surface-panel px-3 py-1.5 text-xs font-extrabold text-ink shadow-paper-md sm:group-hover:block">
+          Hugo García
+        </span>
+      </button>
+    );
+  }
+
   return (
     <div
       className={`hugo-chat flex flex-col min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink ${
-        embedido ? "hugo-dock" : "h-full"
-      } ${embedido && dockExpandido ? "hugo-dock--expanded" : ""} ${embedido && !dockExpandido ? "hugo-dock--collapsed" : ""}`}
+        embedido ? "hugo-dock-panel" : "h-full"
+      }`}
     >
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       {embedido ? (
-        <button
-          type="button"
-          onClick={onToggleChatExpanded}
-          className="flex w-full items-center gap-3 border-b-2 border-border bg-surface-panel px-4 py-2.5 text-left shadow-paper-sm transition hover:bg-surface-hover shrink-0"
-          aria-expanded={dockExpandido}
-        >
+        <div className="flex shrink-0 items-center gap-3 border-b-2 border-border bg-surface-panel px-4 py-2.5 shadow-paper-sm">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-sm font-black text-white shadow">H</div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-extrabold leading-tight text-ink">Hugo García</p>
-            {!dockExpandido && (
-              <p className="truncate text-xs font-bold text-muted">{previewAgente}</p>
-            )}
+            <p className="truncate text-xs font-bold text-muted">{previewAgente}</p>
           </div>
           {accionActual && (
             <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-extrabold text-accent">
               En curso
             </span>
           )}
-          <span className="shrink-0 text-lg font-bold text-muted" aria-hidden>
-            {dockExpandido ? "▼" : "▲"}
-          </span>
-        </button>
+          <button
+            type="button"
+            onClick={onToggleChatExpanded}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-border text-muted transition hover:border-accent hover:text-accent"
+            aria-label="Cerrar chat"
+          >
+            ✕
+          </button>
+        </div>
       ) : (
         <div className="flex shrink-0 items-center gap-3 border-b-2 border-border bg-surface-panel px-4 py-3 pt-safe shadow-paper-sm">
           {modoInicio ? (
@@ -23610,11 +24051,21 @@ function AgenteMandoView({
             </p>
           </div>
           {modoInicio && (
-            <button type="button" onClick={onGoTablero}
-              className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-extrabold text-ink transition hover:border-accent hover:text-accent"
-              title="Centro de Mando">
-              🎯 Centro
-            </button>
+            <>
+              {verImpresora && onGoImpresora && (
+                <button type="button" onClick={onGoImpresora}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-border bg-surface text-muted transition hover:border-accent hover:text-accent"
+                  title="Impresora · Etiquetas"
+                  aria-label="Impresora">
+                  <Icon name="etiquetas" size={20} weight="regular" />
+                </button>
+              )}
+              <button type="button" onClick={onGoTablero}
+                className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-extrabold text-ink transition hover:border-accent hover:text-accent"
+                title="Centro de Mando">
+                🎯 Centro
+              </button>
+            </>
           )}
           {accionActual && !modoInicio && (
             <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-extrabold text-accent">En curso</span>
@@ -23802,11 +24253,12 @@ function AgenteMandoView({
         )}
 
         <div className={`flex shrink-0 items-end gap-3 px-4 ${embedido && !dockExpandido ? "py-2" : "py-3"}`}>
-          <textarea
+          <ProseTextarea
             ref={inputRef}
             rows={1}
             value={input}
             onChange={e => setInput(e.target.value)}
+            prose={false}
             onFocus={() => { if (embedido && !chatExpanded) onExpandChat?.(); }}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviar(input); } }}
             placeholder="Escriba o dicte…"
@@ -23910,6 +24362,7 @@ export default function TicketsPanel() {
 
   useEffect(() => {
     if (!ticketsBootView) return;
+    const bootNivel = user?.rol?.nivel ?? 1;
     if (ticketsBootView === "acciones" && accionesBootTab) {
       setAccionesInitialTab(accionesBootTab);
       setAccionesKey((k) => k + 1);
@@ -23918,13 +24371,19 @@ export default function TicketsPanel() {
     if (ticketsBootView === "agente") {
       setView("home");
       setHugoChatExpanded(true);
+    } else if (ticketsBootView === "contratos") {
+      if (bootNivel >= 3) {
+        setView("contratos");
+        setHugoChatExpanded(false);
+      } else {
+        setView("home");
+      }
     } else {
       setView(ticketsBootView as View);
       if (ticketsBootView === "home") setHugoChatExpanded(false);
-      if (ticketsBootView === "contratos") setHugoChatExpanded(false);
     }
     setTicketsBootView(null);
-  }, [ticketsBootView, accionesBootTab, setTicketsBootView, setAccionesBootTab]);
+  }, [ticketsBootView, accionesBootTab, setTicketsBootView, setAccionesBootTab, user?.rol?.nivel]);
 
   useEffect(() => {
     if (!token) return;
@@ -24001,12 +24460,18 @@ export default function TicketsPanel() {
   }
   function goSolicitudes() { irATickets("solicitudes"); }
   function goContratos() {
+    if (nivel < 3) return;
     setPanel("hugo");
     setCentroMandoView("contratos");
     setHugoChatExpanded(false);
     setView("contratos");
   }
+  function goImpresora() {
+    if (!puedeVerSeccionPanel(user, "etiquetas")) return;
+    setPanel("etiquetas");
+  }
   function goCreateContrato() {
+    if (nivel < 3) return;
     setPanel("hugo");
     setCentroMandoView("contratos");
     setCreateCategoriaFija("contratos");
@@ -24026,18 +24491,16 @@ export default function TicketsPanel() {
 
   return (
     <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
-    <div className={`quest-canvas relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-colors duration-200 ${view === "home" ? "px-4 pt-4 lg:px-10" : ""} ${questDark ? "dark" : ""}`}>
+    <div className={`quest-canvas relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${questDark ? "dark" : ""}`}>
         <QuestNavBar
           view={view}
           nivel={nivel}
           permisos={permisos}
-          userNombre={user.nombre}
           hugoChatActive={view === "home" && hugoChatExpanded}
           onInicio={goInicio}
           onCentroMando={goCentroMando}
           onSolicitudes={goSolicitudes}
           onWorkload={goWorkload}
-          onLogout={clear}
         />
         <InventarioCarritoModal
           token={token}
@@ -24058,8 +24521,8 @@ export default function TicketsPanel() {
           />
         )}
         {view === "home" && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3">
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20">
               <CentroMandoHome
                 token={token}
                 user={user}
@@ -24072,26 +24535,26 @@ export default function TicketsPanel() {
                 onAccionesFuturas={() => goAcciones("pendientes")}
                 onRecordatorios={() => goAcciones("recordatorios")}
                 onProcedimientos={() => goAcciones("procedimientos")}
+                onImpresora={goImpresora}
               />
             </div>
-            <div className="-mx-4 shrink-0 border-t-2 border-border bg-surface-panel shadow-paper-md lg:-mx-10">
-              <AgenteMandoView
-                token={token}
-                user={user}
-                modoInicio
-                embedido
-                chatExpanded={hugoChatExpanded}
-                onToggleChatExpanded={() => setHugoChatExpanded((v) => !v)}
-                onExpandChat={() => setHugoChatExpanded(true)}
-                onSalir={salirDeAgente}
-                onAbrirMenu={toggleSidebar}
-                onIrInicio={goInicio}
-                onGoSolicitudes={goSolicitudes}
-                onGoAcciones={() => goAcciones("activas")}
-                onGoTablero={goCentroMando}
-                onGoHistorialAcciones={() => goAcciones("historial")}
-              />
-            </div>
+            <AgenteMandoView
+              token={token}
+              user={user}
+              modoInicio
+              embedido
+              chatExpanded={hugoChatExpanded}
+              onToggleChatExpanded={() => setHugoChatExpanded(false)}
+              onExpandChat={() => setHugoChatExpanded(true)}
+              onSalir={salirDeAgente}
+              onAbrirMenu={toggleSidebar}
+              onIrInicio={goInicio}
+              onGoSolicitudes={goSolicitudes}
+              onGoAcciones={() => goAcciones("activas")}
+              onGoTablero={goCentroMando}
+              onGoHistorialAcciones={() => goAcciones("historial")}
+              onGoImpresora={goImpresora}
+            />
           </div>
         )}
         {view === "list" && (
@@ -24124,7 +24587,7 @@ export default function TicketsPanel() {
             onInicio={goInicio}
           />
         )}
-        {view === "contratos" && (
+        {view === "contratos" && nivel >= 3 && (
           <ContratosView
             token={token}
             user={user}
@@ -24133,7 +24596,7 @@ export default function TicketsPanel() {
             onCreate={goCreateContrato}
           />
         )}
-        {view === "create" && (
+        {view === "create" && (!createCategoriaFija || createCategoriaFija !== "contratos" || nivel >= 3) && (
           <CreateTicketView
             token={token} user={user}
             categoriaFija={createCategoriaFija}

@@ -21,6 +21,12 @@ import PublicacionesPanel from "./components/PublicacionesPanel";
 import Settings from "./components/Settings";
 import PerfilPanel from "./components/PerfilPanel";
 import { usePanelTheme } from "./stores/panelTheme";
+import { useQuestTheme } from "./stores/questTheme";
+import {
+  applyUserUiPreferences,
+  resetSaveBaseline,
+  scheduleSaveUserUiPreferences,
+} from "./lib/userThemeSync";
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
@@ -162,6 +168,7 @@ const NAV_ORDER: Panel[] = [
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
+  if (panel === "etiquetas") return true;
   if (panel === "hugo" || panel === "tickets") {
     if ((user.rol?.nivel ?? 0) >= 3) return true;
     const p = user.permisos_secciones;
@@ -206,10 +213,47 @@ export default function App() {
   const applyTheme = usePanelTheme((s) => s.apply);
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
+  const lastAppliedPrefs = useRef<string | null>(null);
 
   useEffect(() => {
     applyTheme();
   }, [applyTheme]);
+
+  // Tema personalizado por usuario (servidor)
+  useEffect(() => {
+    if (!user || !token) {
+      lastAppliedPrefs.current = null;
+      return;
+    }
+    const json = JSON.stringify(user.preferencias_ui ?? null);
+    if (json === lastAppliedPrefs.current) return;
+    lastAppliedPrefs.current = json;
+    applyUserUiPreferences(user.preferencias_ui);
+    resetSaveBaseline(user.preferencias_ui);
+  }, [user, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const unsubPanel = usePanelTheme.subscribe((state, prev) => {
+      if (
+        state.mode === prev.mode
+        && state.fontSans === prev.fontSans
+        && state.accentRgb === prev.accentRgb
+        && state.radius === prev.radius
+      ) {
+        return;
+      }
+      scheduleSaveUserUiPreferences(token);
+    });
+    const unsubQuest = useQuestTheme.subscribe((state, prev) => {
+      if (state.dark === prev.dark) return;
+      scheduleSaveUserUiPreferences(token);
+    });
+    return () => {
+      unsubPanel();
+      unsubQuest();
+    };
+  }, [token]);
 
   useEffect(() => initAppBackNavigation(), []);
 

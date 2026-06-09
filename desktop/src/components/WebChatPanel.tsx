@@ -12,6 +12,7 @@ import {
   type QuickReply,
 } from "../hooks/useWebChat";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import { ProseTextarea } from "./ProseTextarea";
 
 function sourceLabel(source?: string) {
   switch (source) {
@@ -185,7 +186,7 @@ function RespuestasRapidasSection() {
                 placeholder="Nombre corto (ej: Saludo Jenniffer)"
                 className="w-full rounded-lg border border-border bg-surface-panel px-2 py-1.5 text-[11px] text-ink focus:outline-none focus:border-accent-sky"
               />
-              <textarea
+              <ProseTextarea
                 value={texto}
                 onChange={(e) => setTexto(e.target.value)}
                 placeholder="Hola, buenas tardes. Soy Jenniffer, su asesora comercial…"

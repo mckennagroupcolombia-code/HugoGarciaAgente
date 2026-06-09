@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "../../api/client";
+import { ProseTextarea } from "../ProseTextarea";
 
 export interface DocDatosItem {
   id: string;
@@ -564,7 +565,7 @@ export function Field({
     return (
       <div>
         {label && <label className="text-xs text-muted">{label}</label>}
-        <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} className={`mt-1 ${cls}`} />
+        <ProseTextarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} className={`mt-1 ${cls}`} />
       </div>
     );
   }

@@ -1,7 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAppStore } from "../stores/app";
 import { Icon } from "../icons";
+import UserAvatar from "./UserAvatar";
+import { uploadProfilePhoto, removeProfilePhoto } from "../lib/profilePhoto";
 
 function tapi(path: string, token: string, options: RequestInit = {}) {
   const isForm = options.body instanceof FormData;
@@ -33,39 +35,6 @@ function tapi(path: string, token: string, options: RequestInit = {}) {
   });
 }
 
-function ticketsUploadUrl(filename: string, token: string) {
-  return `/api/tickets/uploads/${encodeURIComponent(filename)}?token=${encodeURIComponent(token)}`;
-}
-
-function UserAvatar({
-  user,
-  token,
-  size = "md",
-}: {
-  user: TicketsUser;
-  token: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  const dims = size === "sm" ? "h-9 w-9 text-sm" : size === "lg" ? "h-20 w-20 text-2xl" : "h-14 w-14 text-xl";
-  if (user.foto) {
-    return (
-      <img
-        src={ticketsUploadUrl(user.foto, token)}
-        alt={user.nombre}
-        className={`${dims} rounded-full border-2 border-white object-cover shadow`}
-      />
-    );
-  }
-  return (
-    <div
-      className={`flex ${dims} items-center justify-center rounded-full border-2 border-white font-black text-white shadow`}
-      style={{ background: user.departamento?.color || "#0c6069" }}
-    >
-      {user.nombre.charAt(0).toUpperCase()}
-    </div>
-  );
-}
-
 function PerfilContent({
   token,
   user,
@@ -83,8 +52,19 @@ function PerfilContent({
   const [password2, setPassword2] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setNombre(user.nombre);
+  }, [user.nombre]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   function volver() {
     setPanel("hugo");
@@ -129,18 +109,25 @@ function PerfilContent({
 
   async function subirFoto(file: File) {
     setMsg(null);
-    if (!file.type.startsWith("image/")) {
-      setMsg({ type: "err", text: "Selecciona una imagen (JPG, PNG, GIF o WEBP)." });
-      return;
-    }
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localPreview;
+    });
     setUploadingFoto(true);
     try {
-      const fd = new FormData();
-      fd.append("foto", file);
-      const res = await tapi("/auth/me/foto", token, { method: "POST", body: fd });
-      if (res.usuario) handleUserUpdated(res.usuario as TicketsUser);
+      const updated = await uploadProfilePhoto(token, file);
+      handleUserUpdated(updated);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
       setMsg({ type: "ok", text: "Foto de perfil actualizada." });
     } catch (e: any) {
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
       setMsg({ type: "err", text: e?.message || "Error al subir la foto" });
     } finally {
       setUploadingFoto(false);
@@ -152,14 +139,22 @@ function PerfilContent({
     setMsg(null);
     setUploadingFoto(true);
     try {
-      const res = await tapi("/auth/me/foto", token, { method: "DELETE" });
-      if (res.usuario) handleUserUpdated(res.usuario as TicketsUser);
+      const updated = await removeProfilePhoto(token);
+      handleUserUpdated(updated);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
       setMsg({ type: "ok", text: "Foto de perfil eliminada." });
     } catch (e: any) {
       setMsg({ type: "err", text: e?.message || "Error al quitar la foto" });
     } finally {
       setUploadingFoto(false);
     }
+  }
+
+  function onFileSelected(file: File | undefined) {
+    if (file) void subirFoto(file);
   }
 
   return (
@@ -180,9 +175,22 @@ function PerfilContent({
 
       <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper-sm space-y-3">
         <div className="flex items-center gap-4">
-          <UserAvatar user={user} token={token} size="lg" />
+          <button
+            type="button"
+            title="Cambiar foto"
+            disabled={uploadingFoto}
+            onClick={() => fotoInputRef.current?.click()}
+            className="relative shrink-0 rounded-full transition hover:opacity-90 disabled:opacity-60"
+          >
+            <UserAvatar user={user} token={token} size="lg" previewUrl={previewUrl} />
+            {uploadingFoto && (
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-[10px] font-bold text-white">
+                …
+              </span>
+            )}
+          </button>
           <div>
-            <p className="font-extrabold text-ink">{user.nombre}</p>
+            <p className="font-extrabold text-ink">{nombre}</p>
             <p className="text-sm text-muted">@{user.username}</p>
             {user.email && (
               <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
@@ -217,26 +225,57 @@ function PerfilContent({
         </div>
         <div className="border-t border-border pt-3 space-y-2">
           <p className="text-xs font-bold uppercase tracking-wide text-muted">Foto de perfil</p>
+          <input
+            ref={fotoInputRef}
+            type="file"
+            accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
+            className="hidden"
+            onChange={(e) => onFileSelected(e.target.files?.[0])}
+          />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => !uploadingFoto && fotoInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (!uploadingFoto) fotoInputRef.current?.click();
+              }
+            }}
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!uploadingFoto) onFileSelected(e.dataTransfer.files?.[0]);
+            }}
+            className={`cursor-pointer rounded-paper border-2 border-dashed p-4 text-center transition ${
+              previewUrl || user.foto
+                ? "border-accent bg-surface-hover"
+                : "border-border hover:border-accent"
+            }`}
+          >
+            {uploadingFoto ? (
+              <p className="text-sm font-semibold text-muted">Subiendo foto…</p>
+            ) : previewUrl || user.foto ? (
+              <p className="text-sm font-semibold text-accent">
+                Toca o arrastra otra imagen para cambiar la foto
+              </p>
+            ) : (
+              <p className="text-sm text-muted">
+                Toca o arrastra una imagen (JPG, PNG, GIF, WEBP)
+              </p>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              ref={fotoInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void subirFoto(f);
-              }}
-            />
             <button
               type="button"
               disabled={uploadingFoto}
               onClick={() => fotoInputRef.current?.click()}
               className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-ink transition hover:border-accent hover:text-accent disabled:opacity-50"
             >
-              {uploadingFoto ? "Subiendo..." : user.foto ? "Cambiar foto" : "Adjuntar foto"}
+              {uploadingFoto ? "Subiendo..." : user.foto || previewUrl ? "Cambiar foto" : "Adjuntar foto"}
             </button>
-            {user.foto && (
+            {(user.foto || previewUrl) && (
               <button
                 type="button"
                 disabled={uploadingFoto}
@@ -247,7 +286,9 @@ function PerfilContent({
               </button>
             )}
           </div>
-          <p className="text-[11px] text-muted">JPG, PNG, GIF o WEBP. Se muestra en tu perfil.</p>
+          <p className="text-[11px] text-muted">
+            La foto se muestra aquí y en el menú lateral al guardarse.
+          </p>
         </div>
       </div>
 
