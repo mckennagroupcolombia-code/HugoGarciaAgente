@@ -1,28 +1,27 @@
 import type { ReactNode } from "react";
 import { Icon } from "./Icon";
 import { resolveTopicIcon } from "./emojiMap";
-import type { UiIconName } from "./types";
-import type { IconWeight } from "@phosphor-icons/react";
+import type { IconWeight, UiIconName } from "./types";
 
 export interface TopicIconProps {
-  /** Emoji guardado en BD, nombre Phosphor o vacío. */
+  /** Emoji guardado en BD, nombre de icono o vacío. */
   value?: string | null;
   fallback?: UiIconName;
   size?: number;
   weight?: IconWeight;
   className?: string;
-  /** Si no hay mapeo, muestra el emoji original (default true). */
+  /** Si no hay mapeo, muestra emoji (default: false — solo líneas SVG). */
   showEmojiFallback?: boolean;
 }
 
-/** Renderiza emoji de reino/categoría/misión como icono Phosphor. */
+/** Renderiza emoji de reino/categoría/misión como icono SVG lineal. */
 export function TopicIcon({
   value,
-  fallback,
+  fallback = "circle",
   size = 16,
-  weight = "duotone",
+  weight = "regular",
   className,
-  showEmojiFallback = true,
+  showEmojiFallback = false,
 }: TopicIconProps) {
   const trimmed = (value ?? "").trim();
   const iconName = resolveTopicIcon(trimmed, fallback);
@@ -39,11 +38,7 @@ export function TopicIcon({
     );
   }
 
-  if (fallback) {
-    return <Icon name={fallback} size={size} weight={weight} className={className} />;
-  }
-
-  return null;
+  return <Icon name={fallback} size={size} weight={weight} className={className} />;
 }
 
 /** Icono + texto en línea. */
@@ -52,7 +47,7 @@ export function TopicIconLabel({
   fallback,
   children,
   size = 16,
-  weight = "duotone",
+  weight = "regular",
   className = "",
   gap = "gap-1.5",
 }: TopicIconProps & { children: ReactNode; gap?: string }) {

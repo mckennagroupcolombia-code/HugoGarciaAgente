@@ -9,10 +9,12 @@ import { Icon } from "../icons";
 export default function Layout({ children }: { children: ReactNode }) {
   usePanelSession();
   const panel = useAppStore((s) => s.panel);
+  const centroMandoView = useAppStore((s) => s.centroMandoView);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggle = useAppStore((s) => s.toggleSidebar);
   const isAdmin = (useTicketsAuth((s) => s.user)?.rol?.nivel ?? 0) >= 3;
-  const esHugo = panel === "hugo";
+  const hubIntegrado =
+    (panel === "hugo" || panel === "tickets") && centroMandoView === "home";
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
@@ -26,7 +28,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <Sidebar />
 
       <main className="flex flex-1 flex-col overflow-hidden bg-surface">
-        <header className={`flex items-center gap-3 border-b border-border bg-surface-panel px-4 py-3 shadow-paper-sm ${esHugo ? "hidden" : ""}`}>
+        <header className="flex items-center gap-3 border-b border-border bg-surface-panel px-4 py-3 shadow-paper-sm">
           <button
             type="button"
             onClick={toggle}
@@ -36,16 +38,24 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Icon name="menu" size={24} weight="bold" aria-label="Abrir menú" />
           </button>
           <span className="flex-1 text-sm font-bold tracking-tight text-ink lg:hidden">
-            {panel === "hugo" ? "Hugo" : "McKenna"}
+            {hubIntegrado ? "Centro de Mando" : "McKenna"}
           </span>
           <span className="hidden flex-1 text-sm font-bold tracking-tight text-ink lg:inline">
-            {panel === "hugo" ? "Hugo García — Asistente" : "Panel de operaciones"}
+            {hubIntegrado ? "Hugo · Centro de Mando" : "Panel de operaciones"}
           </span>
         </header>
 
         <div className="flex flex-1 flex-col overflow-hidden">
-          <div className={`min-h-0 min-w-0 flex-1 ${esHugo ? "overflow-hidden" : "overflow-x-hidden overflow-y-auto px-4 py-5 lg:px-10 lg:py-8"}`}>{children}</div>
-          {isAdmin && !esHugo && (
+          <div
+            className={`min-h-0 min-w-0 flex-1 ${
+              hubIntegrado
+                ? "flex flex-col overflow-hidden"
+                : "overflow-x-hidden overflow-y-auto px-4 py-5 lg:px-10 lg:py-8"
+            }`}
+          >
+            {children}
+          </div>
+          {isAdmin && !hubIntegrado && (
             <div className="shrink-0 border-t border-border bg-surface-panel px-4 pb-3 pt-2 shadow-paper-sm lg:px-8">
               <ActivityLog />
             </div>

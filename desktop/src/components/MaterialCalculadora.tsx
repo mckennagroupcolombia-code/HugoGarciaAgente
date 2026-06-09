@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Calculator } from "@phosphor-icons/react";
+import { Icon } from "../icons";
 
 export type MaterialCalcField = "stock_actual" | "stock_minimo" | "precio_unitario" | "cantidad";
 
@@ -163,7 +163,7 @@ export default function MaterialCalculadora({
       }`}
     >
       <div className="mb-1.5 flex items-center gap-1 text-muted">
-        <Calculator size={13} weight="duotone" />
+        <Icon name="calculator" size={13} weight="regular" />
         <span className="text-[10px] font-extrabold uppercase tracking-wide">Calculadora</span>
       </div>
 

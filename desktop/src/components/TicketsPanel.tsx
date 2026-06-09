@@ -8,6 +8,7 @@ import {
   mckennaAndroidBridge,
   webNotificationsAvailable,
 } from "../lib/androidApp";
+import { notifyNavChange, registerTicketsNavBridge } from "../lib/appBackNavigation";
 import { onPanelResume } from "../lib/panelRefresh";
 import { useQuestTheme } from "../stores/questTheme";
 import QuestThemeToggle from "./QuestThemeToggle";
@@ -26,7 +27,6 @@ import { CorridaCronometroBlock, fmtTiempo } from "./Cronometro";
 import {
   InventarioCarritoBadge,
   InventarioCarritoModal,
-  InventarioCarritoNavBtn,
 } from "./InventarioCarrito";
 import MaterialCalculadora from "./MaterialCalculadora";
 import { useInventarioCarrito } from "../stores/inventarioCarrito";
@@ -46,6 +46,12 @@ import {
   stickyPaperBackground,
   questNavBtn,
 } from "../lib/questStyles";
+import { ContratoPlantillaForm } from "./ContratoPlantillaForm";
+import {
+  type ContratoPrestacionDatos,
+  resumenContrato,
+  tituloDesdeContrato,
+} from "../lib/contratoPrestacionServicios";
 
 // ── API helper ────────────────────────────────────────────────────────────────
 
@@ -1206,6 +1212,7 @@ type View =
   | "list"
   | "acciones"
   | "solicitudes"
+  | "contratos"
   | "create"
   | "detail"
   | "admin"
@@ -1215,7 +1222,6 @@ type View =
   | "mision_detail"
   | "inventario"
   | "reinos"
-  | "perfil"
   | "recetas"
   | "agente";
 
@@ -1588,49 +1594,36 @@ function QuestNavBar({
   view,
   nivel,
   permisos,
-  bajoStockCount,
   userNombre,
   onInicio,
-  onAcciones,
+  onCentroMando,
   onSolicitudes,
-  onInventario,
-  onReinos,
-  onRecetas,
-  onCarrito,
-  carritoOpen,
   onWorkload,
-  onPerfil,
-  onCreateMision,
   onLogout,
+  hugoChatActive = false,
 }: {
   view: View;
   nivel: number;
   permisos: Record<string, boolean> | null | undefined;
-  bajoStockCount: number;
   userNombre: string;
   onInicio: () => void;
-  onAcciones: () => void;
+  onCentroMando: () => void;
   onSolicitudes: () => void;
-  onInventario: () => void;
-  onReinos: () => void;
-  onRecetas: () => void;
-  onCarrito: () => void;
-  carritoOpen: boolean;
   onWorkload: () => void;
-  onPerfil: () => void;
-  onCreateMision: () => void;
   onLogout: () => void;
+  /** Hugo activo en hub integrado (chat expandido sobre Centro de Mando). */
+  hugoChatActive?: boolean;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
-  const panel = useAppStore((s) => s.panel);
   const [menuOpen, setMenuOpen] = useState(false);
   const cerrar = () => setMenuOpen(false);
 
   // Etiqueta de la sección activa (para la cabecera móvil)
   const viewLabels: Partial<Record<View, string>> = {
     home: "Centro de Mando", list: "Tablero", acciones: "Acciones", solicitudes: "Solicitudes",
+    contratos: "Contratos",
     crear_mision: "Nueva misión", inventario: "Inventario", reinos: "Reinos",
-    recetas: "Recetas", workload: "Aliados", perfil: "Perfil",
+    recetas: "Recetas", workload: "Aliados",
     mision_detail: "Misión", detail: "Ticket", create: "Nuevo ticket",
     agente: "🎙️ Hugo",
   };
@@ -1639,28 +1632,20 @@ function QuestNavBar({
   return (
     <nav
       className="quest-nav-bar sticky top-0 z-20 -mx-4 mb-5 border-b-2 border-border px-4 py-2.5 backdrop-blur-md lg:-mx-10"
-      aria-label="Navegación Centro de Mando"
+      aria-label="Navegación Hugo y Centro de Mando"
     >
-      {/* ── Cabecera única (siempre visible) ───────────────────────────── */}
       <div className="flex items-center gap-2">
-        {/* Sección activa — mobile */}
         <span className="flex-1 truncate text-sm font-extrabold text-ink sm:hidden">
           {activeLabel}
         </span>
 
-        {/* Items — desktop (siempre visibles desde sm) */}
         <div className="hidden min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex">
-          <button type="button" onClick={onInicio} className={questNavBtn(panel === "hugo")} title="Ir a Hugo">
-            <TopicIcon value="🎙️" size={14} weight="duotone" />Inicio Hugo
+          <button type="button" onClick={onCentroMando} className={questNavBtn(view === "home")} title="Panel operativo">
+            <TopicIcon value="🎯" size={14} />Centro
           </button>
           {nivel >= 2 && pVer("workload") && (
             <button type="button" onClick={onWorkload} className={questNavBtn(view === "workload")}>
-              <TopicIcon value="🤝" size={14} weight="duotone" />Aliados
-            </button>
-          )}
-          {pVer("perfil") && (
-            <button type="button" onClick={onPerfil} className={questNavBtn(view === "perfil")}>
-              <TopicIcon value="👤" size={14} weight="duotone" />Perfil
+              <TopicIcon value="🤝" size={14} weight="regular" />Aliados
             </button>
           )}
         </div>
@@ -1692,20 +1677,14 @@ function QuestNavBar({
       {/* ── Menú desplegable — solo mobile, solo cuando está abierto ────── */}
       {menuOpen && (
         <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-2.5 sm:hidden">
-          <button type="button" onClick={() => { onInicio(); cerrar(); }}
-            className={`${questNavBtn(panel === "hugo")} w-full justify-start text-left`}>
-            <TopicIcon value="🎙️" size={14} weight="duotone" />Inicio Hugo
+          <button type="button" onClick={() => { onCentroMando(); cerrar(); }}
+            className={`${questNavBtn(view === "home")} w-full justify-start text-left`}>
+            <TopicIcon value="🎯" size={14} />Centro de Mando
           </button>
           {nivel >= 2 && pVer("workload") && (
             <button type="button" onClick={() => { onWorkload(); cerrar(); }}
               className={`${questNavBtn(view === "workload")} w-full justify-start text-left`}>
-              <TopicIcon value="🤝" size={14} weight="duotone" />Aliados
-            </button>
-          )}
-          {pVer("perfil") && (
-            <button type="button" onClick={() => { onPerfil(); cerrar(); }}
-              className={`${questNavBtn(view === "perfil")} w-full justify-start text-left`}>
-              <TopicIcon value="👤" size={14} weight="duotone" />Perfil
+              <TopicIcon value="🤝" size={14} weight="regular" />Aliados
             </button>
           )}
           <button type="button" onClick={onLogout}
@@ -2230,7 +2209,7 @@ function ReinosView({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-extrabold text-ink">
-            <TopicIconLabel value="🏰" size={20} weight="duotone">Reinos</TopicIconLabel>
+            <TopicIconLabel value="🏰" size={20} weight="regular">Reinos</TopicIconLabel>
           </h2>
           <p className="mt-1 text-xs text-muted">
             Reino → zona → subzona → departamento (labor). Usa ▼ para desplegar cada nivel; clic en el nombre para filtrar tablero e inventario.
@@ -2725,8 +2704,8 @@ function LoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser) =>
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-full max-w-sm rounded-paper border-2 border-border bg-surface-panel p-8 shadow-paper">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white text-2xl font-black shadow-[0_4px_0_#045159]">
-            🎫
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border-2 border-border bg-surface text-ink shadow-paper">
+            <Icon name="ticket" size={28} weight="regular" />
           </div>
           <h2 className="text-xl font-extrabold text-ink">Centro de Mando</h2>
           <p className="mt-1 text-sm text-muted">McKenna Group</p>
@@ -3708,7 +3687,7 @@ function MisionGroupCard({
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-xs font-black text-white shadow-sm sm:h-8 sm:w-8"
           style={{ background: c }}
         >
-          <TopicIcon value={isSeq ? "🔗" : "⚡"} size={14} weight="fill" className="text-white" />
+          <TopicIcon value={isSeq ? "🔗" : "⚡"} size={14} weight="bold" className="text-white" />
         </div>
         <button
           type="button"
@@ -3982,7 +3961,7 @@ function ReinoBoardSectionBlock({
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm shadow-sm"
           style={{ background: section.color, color: "#fff" }}
         >
-          <TopicIcon value={section.icono} fallback="castle" size={16} weight="duotone" />
+          <TopicIcon value={section.icono} fallback="castle" size={16} weight="regular" />
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-xs font-extrabold uppercase tracking-wide text-ink sm:text-sm">
@@ -4000,7 +3979,7 @@ function ReinoBoardSectionBlock({
       <div className="p-3 sm:p-4">
         {totalMisiones === 0 && section.standalone.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
-            <span className="text-4xl select-none opacity-40">🏰</span>
+            <TopicIcon value="🏰" size={40} className="opacity-40" />
             <p className="text-sm font-medium text-muted">Sin misiones activas en este reino</p>
           </div>
         ) : (
@@ -4026,7 +4005,7 @@ function ReinoBoardSectionBlock({
                   <div className="flex items-start gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg shadow-sm"
                       style={{ background: c, color: "#fff" }}>
-                      <TopicIcon value={(group as any).mision_icono || "🎯"} size={20} weight="fill" className="text-white" />
+                      <TopicIcon value={(group as any).mision_icono || "🎯"} size={20} weight="bold" className="text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="truncate text-sm font-extrabold text-ink leading-tight"
@@ -4038,7 +4017,7 @@ function ReinoBoardSectionBlock({
                       </p>
                     </div>
                     {isComplete && (
-                      <span className="mck-bounce-in shrink-0 text-xl select-none">🏆</span>
+                      <TopicIcon value="🏆" size={20} className="mck-bounce-in shrink-0 text-accent" />
                     )}
                   </div>
                   {/* Barra de progreso */}
@@ -4079,7 +4058,7 @@ function navScopeLabel(scope: NavScope): string {
 
 function CentroMandoHome({
   token, user, nivel, permisos,
-  onAcciones, onSolicitudes, onTablero,
+  onAcciones, onSolicitudes, onContratos, onTablero,
   onAccionesFuturas, onRecordatorios, onProcedimientos,
 }: {
   token: string;
@@ -4088,6 +4067,7 @@ function CentroMandoHome({
   permisos: Record<string, boolean> | null | undefined;
   onAcciones: () => void;
   onSolicitudes: () => void;
+  onContratos: () => void;
   onTablero: () => void;
   onAccionesFuturas: () => void;
   onRecordatorios: () => void;
@@ -4099,6 +4079,7 @@ function CentroMandoHome({
   const [stats, setStats] = useState<{
     acciones: HomeStat;
     solicitudes: HomeStat;
+    contratos: HomeStat;
     pendientes: HomeStat;
     recordatorios: HomeStat;
     recordatoriosHoy: number;
@@ -4106,6 +4087,7 @@ function CentroMandoHome({
   }>({
     acciones:       { label: "en curso", value: null },
     solicitudes:    { label: "por resolver", value: null },
+    contratos:      { label: "activos", value: null },
     pendientes:     { label: "anotadas", value: null },
     recordatorios:  { label: "programados", value: null },
     recordatoriosHoy: 0,
@@ -4118,15 +4100,17 @@ function CentroMandoHome({
     Promise.allSettled([
       tapi("/?tipo=accion&activas=1", token),
       tapi("/?tipo=solicitud&activas=1", token),
+      tapi("/?categoria=contratos&activas=1", token),
       tapi("/pendientes", token),
       tapi("/recordatorios", token),
       tapi("/protocolos?alcance=mis", token),
-    ]).then(([acc, sol, pend, rec, proc]) => {
+    ]).then(([acc, sol, cont, pend, rec, proc]) => {
       const accList = acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value as any[] : [];
       setAccionesActivas(accList);
       setStats({
         acciones:      { label: "en curso",      value: accList.length },
         solicitudes:   { label: "por resolver",  value: sol.status  === "fulfilled" && Array.isArray(sol.value)  ? (sol.value as any[]).filter((t: any) => t.asignado_a === user.id).length  : null },
+        contratos:     { label: "activos",       value: cont.status === "fulfilled" && Array.isArray(cont.value) ? cont.value.length : null },
         pendientes:    { label: "anotadas",      value: pend.status === "fulfilled" && Array.isArray(pend.value) ? pend.value.length : null },
         recordatorios: { label: "programados",   value: rec.status  === "fulfilled" && Array.isArray(rec.value)  ? rec.value.length  : null },
         recordatoriosHoy: rec.status === "fulfilled" && Array.isArray(rec.value)
@@ -4143,15 +4127,17 @@ function CentroMandoHome({
       Promise.allSettled([
         tapi("/?tipo=accion&activas=1", token),
         tapi("/?tipo=solicitud&activas=1", token),
+        tapi("/?categoria=contratos&activas=1", token),
         tapi("/pendientes", token),
         tapi("/recordatorios", token),
         tapi("/protocolos?alcance=mis", token),
-      ]).then(([acc, sol, pend, rec, proc]) => {
+      ]).then(([acc, sol, cont, pend, rec, proc]) => {
         const accList = acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value as any[] : [];
         setAccionesActivas(accList);
         setStats({
           acciones:       { label: "en curso",     value: accList.length },
           solicitudes:    { label: "por resolver",  value: sol.status  === "fulfilled" && Array.isArray(sol.value)  ? (sol.value as any[]).filter((t: any) => t.asignado_a === user.id).length  : null },
+          contratos:      { label: "activos",      value: cont.status === "fulfilled" && Array.isArray(cont.value) ? cont.value.length : null },
           pendientes:     { label: "anotadas",      value: pend.status === "fulfilled" && Array.isArray(pend.value) ? pend.value.length : null },
           recordatorios:  { label: "programados",   value: rec.status  === "fulfilled" && Array.isArray(rec.value)  ? rec.value.length  : null },
           recordatoriosHoy: rec.status === "fulfilled" && Array.isArray(rec.value)
@@ -4180,16 +4166,19 @@ function CentroMandoHome({
   const paleta = {
     acciones:   { card: "bg-amber-50  dark:bg-amber-950/50  border-amber-200    dark:border-amber-700/60",  icon: "bg-amber-200/70  dark:bg-amber-800/60  text-amber-700  dark:text-amber-300" },
     solicitudes:{ card: "bg-rose-50   dark:bg-rose-950/50   border-rose-200     dark:border-rose-700/60",   icon: "bg-rose-200/70   dark:bg-rose-800/60   text-rose-700   dark:text-rose-300"  },
+    contratos:  { card: "bg-slate-50  dark:bg-slate-950/50  border-slate-200    dark:border-slate-700/60",  icon: "bg-slate-200/70  dark:bg-slate-800/60  text-slate-700  dark:text-slate-300" },
     futuras:    { card: "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-700/60", icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300" },
     recordat:   { card: "bg-violet-50 dark:bg-violet-950/50 border-violet-200   dark:border-violet-700/60", icon: "bg-violet-200/70  dark:bg-violet-800/60  text-violet-700 dark:text-violet-300" },
     proced:     { card: "bg-sky-50    dark:bg-sky-950/50    border-sky-200      dark:border-sky-700/60",    icon: "bg-sky-200/70    dark:bg-sky-800/60    text-sky-700    dark:text-sky-300"   },
     tablero:    { card: "bg-stone-50  dark:bg-stone-900/60  border-stone-200    dark:border-stone-600/50",  icon: "bg-stone-200/70  dark:bg-stone-700/60  text-stone-600  dark:text-stone-300" },
   };
 
-  function HomeCard({ onClick, p, emoji, titulo, stat, desc, badge }: {
+  const homeIconSlot = "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink";
+
+  function HomeCard({ onClick, p, topicIcon, titulo, stat, desc, badge }: {
     onClick: () => void;
-    p: { card: string; icon: string };
-    emoji: string;
+    p: { card: string };
+    topicIcon: string;
     titulo: string;
     stat: React.ReactNode;
     desc: string;
@@ -4199,8 +4188,8 @@ function CentroMandoHome({
       <button type="button" onClick={onClick} className={`${cardBase} ${p.card}`}>
         {/* Fila superior: ícono + número */}
         <div className="flex items-center justify-between gap-3">
-          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl ${p.icon}`}>
-            {emoji}
+          <span className={homeIconSlot}>
+            <TopicIcon value={topicIcon} size={24} weight="regular" />
           </span>
           <div className="text-right space-y-1">
             <div className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{stat}</div>
@@ -4221,45 +4210,46 @@ function CentroMandoHome({
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-muted/60 mb-1">McKenna Group</p>
         <h2 className="text-3xl font-extrabold text-ink leading-tight">Centro de Mando</h2>
-        <p className="mt-1 text-sm text-muted">Bienvenido, {user.nombre.split(" ")[0]} 👋</p>
+        <p className="mt-1 text-sm text-muted inline-flex items-center gap-1.5">
+          Bienvenido, {user.nombre.split(" ")[0]}
+          <TopicIcon value="👋" size={16} className="opacity-70" />
+        </p>
       </div>
 
       {/* Grid principal */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
-        {pVer("acciones") && (
-          <HomeCard
-            onClick={onAcciones} p={paleta.acciones} emoji="⚡"
-            titulo="Acciones"
-            stat={<Stat s={stats.acciones} />}
-            desc="Arranca y registra tus labores del día. Graba lo que hiciste y no pierdas el hilo."
-          />
-        )}
-
         {pVer("solicitudes") && (
           <HomeCard
-            onClick={onSolicitudes} p={paleta.solicitudes} emoji="📋"
+            onClick={onSolicitudes} p={paleta.solicitudes} topicIcon="📋"
             titulo="Solicitudes"
             stat={<Stat s={stats.solicitudes} />}
             desc="¿Alguien te pidió algo o tú le pediste a alguien del equipo? Acá están esas tareas."
           />
         )}
 
+        <HomeCard
+          onClick={onContratos} p={paleta.contratos} topicIcon="📄"
+          titulo="Contratos"
+          stat={<Stat s={stats.contratos} />}
+          desc="Gestión de contratos laborales y comerciales. Adjunta el documento firmado o borrador."
+        />
+
         {pVer("acciones") && (
           <HomeCard
-            onClick={onAccionesFuturas} p={paleta.futuras} emoji="🗓️"
+            onClick={onAccionesFuturas} p={paleta.futuras} topicIcon="🗓️"
             titulo="Acciones futuras"
             stat={<Stat s={stats.pendientes} />}
-            desc="Tareas que requieren tu atención pero todavía no arrancas. Anótalas y cuando estés listo, las conviertes en acción."
+            desc="Ideas y tareas para más adelante. Solo anótalas — sin convertirlas en acción."
           />
         )}
 
         {pVer("acciones") && (
           <HomeCard
-            onClick={onRecordatorios} p={paleta.recordat} emoji="🔔"
+            onClick={onRecordatorios} p={paleta.recordat} topicIcon="🔔"
             titulo="Recordatorios"
             stat={<Stat s={stats.recordatorios} />}
-            desc="Para cosas sencillas y recurrentes — pagar un recibo, llamar a alguien. Solo necesitas que te avisen."
+            desc="Tareas con alerta en la fecha que elijas. Crea recordatorios puntuales o recurrentes."
             badge={stats.recordatoriosHoy > 0 ? (
               <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
                 {stats.recordatoriosHoy} para hoy
@@ -4270,71 +4260,14 @@ function CentroMandoHome({
 
         {pVer("acciones") && (
           <HomeCard
-            onClick={onProcedimientos} p={paleta.proced} emoji="🔒"
+            onClick={onProcedimientos} p={paleta.proced} topicIcon="🔒"
             titulo="Procedimientos"
             stat={<Stat s={stats.procedimientos} />}
             desc="Los pasos que ya guardaste pa' no explicar lo mismo dos veces. Úsalos cuando quieras."
           />
         )}
 
-        {nivel >= 3 && (
-          <HomeCard
-            onClick={onTablero} p={paleta.tablero} emoji="📊"
-            titulo="Tablero completo"
-            stat={<span className="text-sm font-semibold text-muted">Admin</span>}
-            desc="Vista general de todas las tareas del equipo organizadas por zona de trabajo."
-          />
-        )}
-
       </div>
-
-      {/* Panel de acciones activas asignadas */}
-      {pVer("acciones") && accionesActivas.length > 0 && (
-        <div className="rounded-3xl border border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/40 p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base">⚡</span>
-            <p className="text-xs font-extrabold uppercase tracking-widest text-amber-700 dark:text-amber-300">
-              Tus acciones activas
-            </p>
-          </div>
-          <div className="space-y-2">
-            {accionesActivas.map((t: any) => {
-              const prioBg: Record<string, string> = {
-                urgente: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-                alta: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
-                media: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/60 dark:text-yellow-300",
-                baja: "bg-surface-hover text-muted",
-              };
-              const estadoBg: Record<string, string> = {
-                en_proceso: "bg-green-100 text-green-700 dark:bg-green-950/60 dark:text-green-300",
-                pendiente: "bg-surface-hover text-muted",
-                esperando_aprobacion: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
-              };
-              return (
-                <button
-                  key={t.id ?? t.numero}
-                  type="button"
-                  onClick={onAcciones}
-                  className="w-full flex flex-wrap items-start justify-between gap-2 rounded-2xl border border-amber-200 dark:border-amber-700/40 bg-white dark:bg-amber-950/30 px-4 py-3 text-left transition-all hover:border-amber-400 hover:shadow-sm active:scale-[0.98]"
-                >
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <span className="font-mono text-[11px] font-bold text-accent">{t.numero}</span>
-                    <span className="text-sm font-semibold text-ink leading-tight">{t.titulo}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-0.5">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${estadoBg[t.estado] ?? "bg-surface-hover text-muted"}`}>
-                      {t.estado === "en_proceso" ? "▶ en proceso" : t.estado === "esperando_aprobacion" ? "🕐 esperando" : "⏸ pendiente"}
-                    </span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${prioBg[t.prioridad] ?? prioBg.baja}`}>
-                      {t.prioridad}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
     </div>
   );
@@ -4607,7 +4540,7 @@ function TicketListView({
                 title={s.label}
               >
                 <span className="opacity-70 inline-flex items-center gap-0.5">
-                  <Icon name={s.icon} size={11} weight="duotone" />
+                  <Icon name={s.icon} size={11} weight="regular" />
                   {s.label.split(" ")[0]}
                 </span>
                 <span>{val}</span>
@@ -4751,11 +4684,12 @@ function TicketListView({
 
 // Create ticket form
 function CreateTicketView({
-  token, user, onBack, onCreated,
+  token, user, onBack, onCreated, categoriaFija,
 }: {
   token: string; user: TicketsUser;
   onBack: () => void;
   onCreated: (id: number) => void;
+  categoriaFija?: string;
 }) {
   const { cats: categorias } = useContext(CategoriasCtx);
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
@@ -4764,10 +4698,16 @@ function CreateTicketView({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
-    titulo: "", categoria: "", descripcion: "",
+    titulo: "", categoria: categoriaFija ?? "", descripcion: "",
     prioridad: "media", asignado_a: "",
   });
   const [file, setFile] = useState<File | null>(null);
+  const esContrato = categoriaFija === "contratos" || form.categoria === "contratos";
+  const [modoContrato, setModoContrato] = useState<"plantilla" | "propio">("plantilla");
+  const [archivoPlantilla, setArchivoPlantilla] = useState<File | null>(null);
+  const requiereDocumento = form.categoria === "rrhh" || form.categoria === "contratos"
+    || categoriaFija === "rrhh" || categoriaFija === "contratos";
+  const archivoEfectivo = esContrato && modoContrato === "plantilla" ? archivoPlantilla : file;
 
   useEffect(() => {
     tapi("/usuarios", token).then(setUsuarios).catch(() => {});
@@ -4783,8 +4723,10 @@ function CreateTicketView({
       setError("Título, categoría y descripción son requeridos");
       return;
     }
-    if (form.categoria === "rrhh" && !file) {
-      setError("Los tickets de RR.HH. requieren un soporte documental (PDF o imagen)");
+    if (requiereDocumento && !archivoEfectivo) {
+      setError(esContrato && modoContrato === "plantilla"
+        ? "Genera el documento desde la plantilla antes de registrar el contrato"
+        : "Este trámite requiere un soporte documental (PDF o imagen)");
       return;
     }
     setLoading(true);
@@ -4795,7 +4737,7 @@ function CreateTicketView({
       fd.append("descripcion", form.descripcion);
       fd.append("prioridad", form.prioridad);
       if (form.asignado_a) fd.append("asignado_a", form.asignado_a);
-      if (file) fd.append("soporte_archivo", file);
+      if (archivoEfectivo) fd.append("soporte_archivo", archivoEfectivo);
       const ticket = await tapi("/", token, { method: "POST", body: fd });
       onCreated(ticket.id);
     } catch (e: any) {
@@ -4812,8 +4754,48 @@ function CreateTicketView({
           className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
           ←
         </button>
-        <h2 className="text-xl font-extrabold text-ink">Nuevo Ticket</h2>
+        <h2 className="text-xl font-extrabold text-ink">
+          {categoriaFija === "contratos" ? "Nuevo contrato" : categoriaFija === "rrhh" ? "Nueva solicitud RR.HH." : "Nuevo Ticket"}
+        </h2>
       </div>
+
+      {esContrato && (
+        <div className="flex flex-wrap gap-2">
+          {([
+            { id: "plantilla" as const, label: "Plantilla prestación de servicios" },
+            { id: "propio" as const, label: "Adjuntar documento propio" },
+          ]).map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => {
+                setModoContrato(m.id);
+                if (m.id === "propio") setArchivoPlantilla(null);
+              }}
+              className={`rounded-paper border-2 px-4 py-2 text-sm font-bold transition ${
+                modoContrato === m.id
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border text-muted hover:border-accent hover:text-accent"
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {esContrato && modoContrato === "plantilla" && (
+        <ContratoPlantillaForm
+          onDatosChange={(datos: ContratoPrestacionDatos, archivo: File | null) => {
+            setArchivoPlantilla(archivo);
+            setForm((f) => ({
+              ...f,
+              titulo: tituloDesdeContrato(datos),
+              descripcion: resumenContrato(datos),
+            }));
+          }}
+        />
+      )}
 
       <form onSubmit={handleSubmit} className="rounded-paper border-2 border-border bg-surface-panel p-6 shadow-paper space-y-5">
         {/* Título */}
@@ -4821,7 +4803,7 @@ function CreateTicketView({
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Título *</label>
           <input
             className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent"
-            placeholder="Describe el problema brevemente"
+            placeholder={categoriaFija === "contratos" ? "Ej: Contrato prestación de servicios — Juan Pérez" : categoriaFija === "rrhh" ? "Ej: Permiso por cita médica" : "Describe el problema brevemente"}
             value={form.titulo} onChange={set("titulo")} maxLength={150}
           />
         </div>
@@ -4830,18 +4812,25 @@ function CreateTicketView({
         <div className={TICKET_FORM_GRID_2}>
           <div>
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Categoría *</label>
-            <select
-              className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent"
-              value={form.categoria} onChange={set("categoria")} required
-            >
-              <option value="">Seleccionar...</option>
-              {categorias.map((c) => (
-                <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
-              ))}
-            </select>
-            {form.categoria === "rrhh" && (
+            {categoriaFija ? (
+              <div className="flex items-center gap-2 rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm font-semibold text-ink">
+                <TopicIcon value={categoriaFija === "contratos" ? "📄" : "👥"} size={18} className="shrink-0" />
+                {categoriaFija === "contratos" ? "Contratos" : "Recursos Humanos"}
+              </div>
+            ) : (
+              <select
+                className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent"
+                value={form.categoria} onChange={set("categoria")} required
+              >
+                <option value="">Seleccionar...</option>
+                {categorias.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.icono} {c.nombre}</option>
+                ))}
+              </select>
+            )}
+            {requiereDocumento && (
               <p className="mt-1 text-xs font-medium text-amber-700">
-                ⚠️ Requiere soporte documental (EPS, certificado, etc.)
+                ⚠️ Requiere soporte documental adjunto (PDF o imagen)
               </p>
             )}
           </div>
@@ -4864,7 +4853,8 @@ function CreateTicketView({
           <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Descripción detallada *</label>
           <textarea
             className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2.5 text-sm text-ink outline-none transition focus:border-accent resize-none"
-            rows={4} placeholder="Describe el problema con todos los detalles necesarios..."
+            rows={4}
+            placeholder={esContrato ? "Resumen del contrato (se completa con la plantilla)…" : "Describe el problema con todos los detalles necesarios..."}
             value={form.descripcion} onChange={set("descripcion")} required
           />
         </div>
@@ -4884,31 +4874,41 @@ function CreateTicketView({
         </div>
 
         {/* Archivo */}
-        <div>
-          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">
-            Soporte documental {form.categoria === "rrhh" ? "* (obligatorio para RR.HH.)" : "(opcional)"}
-          </label>
-          <div
-            onClick={() => fileRef.current?.click()}
-            className={`cursor-pointer rounded-paper border-2 border-dashed p-4 text-center transition
-              ${file ? "border-accent bg-surface-hover" : "border-border hover:border-accent"}`}
-          >
-            {file ? (
-              <div className="flex items-center justify-center gap-2 text-sm font-semibold text-accent">
-                <span>📎</span> {file.name}
-                <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                  className="ml-2 text-muted hover:text-danger font-bold">✕</button>
-              </div>
-            ) : (
-              <p className="text-sm text-muted">
-                📎 Haz clic o arrastra un archivo (PDF, JPG, PNG · máx. 10MB)
-              </p>
-            )}
+        {(!esContrato || modoContrato === "propio") && (
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">
+              Soporte documental {requiereDocumento ? "* (obligatorio)" : "(opcional)"}
+            </label>
+            <div
+              onClick={() => fileRef.current?.click()}
+              className={`cursor-pointer rounded-paper border-2 border-dashed p-4 text-center transition
+                ${file ? "border-accent bg-surface-hover" : "border-border hover:border-accent"}`}
+            >
+              {file ? (
+                <div className="flex items-center justify-center gap-2 text-sm font-semibold text-accent">
+                  <span>📎</span> {file.name}
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                    className="ml-2 text-muted hover:text-danger font-bold">✕</button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted">
+                  📎 Haz clic o arrastra un archivo (PDF, JPG, PNG · máx. 10MB)
+                </p>
+              )}
+            </div>
+            <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.txt"
+              className="hidden"
+              onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </div>
-          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
-            className="hidden"
-            onChange={(e) => setFile(e.target.files?.[0] || null)} />
-        </div>
+        )}
+
+        {esContrato && modoContrato === "plantilla" && (
+          <div className="rounded-lg border border-border bg-surface-input px-4 py-3 text-sm text-muted">
+            {archivoPlantilla
+              ? <>Documento adjunto: <strong className="text-ink">{archivoPlantilla.name}</strong></>
+              : "Usa «Generar documento para adjuntar» en la plantilla arriba."}
+          </div>
+        )}
 
         {error && <div className="rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
@@ -4919,7 +4919,7 @@ function CreateTicketView({
           </button>
           <button type="submit" disabled={loading}
             className="rounded-paper border-2 border-accent bg-accent px-6 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none disabled:opacity-50">
-            {loading ? "Creando..." : "Crear Ticket"}
+            {loading ? "Creando..." : esContrato ? "Registrar contrato" : "Crear Ticket"}
           </button>
         </div>
       </form>
@@ -5879,7 +5879,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                           : "border-border bg-surface-input hover:border-accent/50"
                       }`}
                     >
-                      <TopicIcon value={p.emoji} size={16} weight="duotone" />
+                      <TopicIcon value={p.emoji} size={16} weight="regular" />
                     </button>
                   ))}
                 </div>
@@ -5925,7 +5925,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
                     style={{ background: c.color + "22", color: c.color }}
                   >
-                    <TopicIcon value={c.icono} size={20} weight="duotone" />
+                    <TopicIcon value={c.icono} size={20} weight="regular" />
                   </span>
                   <div>
                     <p className="text-sm font-bold text-ink">{c.nombre}</p>
@@ -5937,13 +5937,13 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     {c.nombre}
                   </span>
                 </div>
-                {!["rrhh", "logistica", "mantenimiento"].includes(c.slug) && (
+                {!["rrhh", "logistica", "mantenimiento", "contratos"].includes(c.slug) && (
                   <button onClick={() => eliminarCategoria(c.slug, c.nombre)}
                     className="text-xs font-semibold text-red-400 transition hover:text-red-600">
                     🗑️ Eliminar
                   </button>
                 )}
-                {["rrhh", "logistica", "mantenimiento"].includes(c.slug) && (
+                {["rrhh", "logistica", "mantenimiento", "contratos"].includes(c.slug) && (
                   <span className="text-xs text-muted">Sistema</span>
                 )}
               </div>
@@ -7274,7 +7274,7 @@ function materialTipoEmoji(tipo?: string): string | null {
 function MaterialTipoIcon({ tipo, size = 12 }: { tipo?: string; size?: number }) {
   const emoji = materialTipoEmoji(tipo);
   if (!emoji) return null;
-  return <TopicIcon value={emoji} size={size} weight="duotone" className="shrink-0" />;
+  return <TopicIcon value={emoji} size={size} weight="regular" className="shrink-0" />;
 }
 
 function BadgeTipoMaterial({ tipo }: { tipo?: string }) {
@@ -7283,7 +7283,7 @@ function BadgeTipoMaterial({ tipo }: { tipo?: string }) {
   if (!cfg) return null;
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-bold ${cfg.className}`}>
-      <TopicIcon value={cfg.emoji} size={10} weight="duotone" />
+      <TopicIcon value={cfg.emoji} size={10} weight="regular" />
       {cfg.label}
     </span>
   );
@@ -9248,7 +9248,9 @@ function CreateMisionView({
                 className={`w-full flex items-center gap-4 rounded-2xl border-2 px-5 py-4 text-left transition
                   ${frecSimple === key ? "border-accent bg-accent/10" : "border-border bg-surface-panel hover:border-accent/60"}`}
               >
-                <span className="text-3xl">{icon}</span>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-ink">
+                  <TopicIcon value={icon} size={22} />
+                </span>
                 <div>
                   <p className="text-base font-extrabold text-ink">{label}</p>
                   <p className="text-xs text-muted">{desc}</p>
@@ -11528,233 +11530,6 @@ function WorkloadView({
   );
 }
 
-// ── Perfil ────────────────────────────────────────────────────────────────────
-
-function PerfilView({
-  token,
-  user,
-  onBack,
-  onUserUpdated,
-}: {
-  token: string;
-  user: TicketsUser;
-  onBack: () => void;
-  onUserUpdated: (u: TicketsUser) => void;
-}) {
-  const [nombre, setNombre] = useState(user.nombre);
-  const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [uploadingFoto, setUploadingFoto] = useState(false);
-  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const fotoInputRef = useRef<HTMLInputElement>(null);
-
-  async function guardar(ev: React.FormEvent) {
-    ev.preventDefault();
-    setMsg(null);
-    if (!nombre.trim()) {
-      setMsg({ type: "err", text: "El nombre no puede estar vacío." });
-      return;
-    }
-    if (password && password !== password2) {
-      setMsg({ type: "err", text: "Las contraseñas no coinciden." });
-      return;
-    }
-    if (password && password.length < 6) {
-      setMsg({ type: "err", text: "La contraseña debe tener al menos 6 caracteres." });
-      return;
-    }
-    setSaving(true);
-    try {
-      const body: { nombre: string; password?: string } = { nombre: nombre.trim() };
-      if (password) body.password = password;
-      const res = await tapi("/auth/me", token, { method: "PUT", body: JSON.stringify(body) });
-      if (res.usuario) onUserUpdated(res.usuario as TicketsUser);
-      setPassword("");
-      setPassword2("");
-      setMsg({ type: "ok", text: "Perfil actualizado." });
-    } catch (e: any) {
-      setMsg({ type: "err", text: e?.message || "Error al guardar" });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function subirFoto(file: File) {
-    setMsg(null);
-    if (!file.type.startsWith("image/")) {
-      setMsg({ type: "err", text: "Selecciona una imagen (JPG, PNG, GIF o WEBP)." });
-      return;
-    }
-    setUploadingFoto(true);
-    try {
-      const fd = new FormData();
-      fd.append("foto", file);
-      const res = await tapi("/auth/me/foto", token, { method: "POST", body: fd });
-      if (res.usuario) onUserUpdated(res.usuario as TicketsUser);
-      setMsg({ type: "ok", text: "Foto de perfil actualizada." });
-    } catch (e: any) {
-      setMsg({ type: "err", text: e?.message || "Error al subir la foto" });
-    } finally {
-      setUploadingFoto(false);
-      if (fotoInputRef.current) fotoInputRef.current.value = "";
-    }
-  }
-
-  async function quitarFoto() {
-    setMsg(null);
-    setUploadingFoto(true);
-    try {
-      const res = await tapi("/auth/me/foto", token, { method: "DELETE" });
-      if (res.usuario) onUserUpdated(res.usuario as TicketsUser);
-      setMsg({ type: "ok", text: "Foto de perfil eliminada." });
-    } catch (e: any) {
-      setMsg({ type: "err", text: e?.message || "Error al quitar la foto" });
-    } finally {
-      setUploadingFoto(false);
-    }
-  }
-
-  return (
-    <div className="space-y-5 max-w-lg">
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={onBack}
-          className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
-          ←
-        </button>
-        <h2 className="text-xl font-extrabold text-ink">👤 Mi perfil</h2>
-      </div>
-
-      <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper-sm space-y-3">
-        <div className="flex items-center gap-4">
-          <UserAvatar user={user} token={token} size="lg" />
-          <div>
-            <p className="font-extrabold text-ink">{user.nombre}</p>
-            <p className="text-sm text-muted">@{user.username}</p>
-            {user.email && (
-              <p className="mt-0.5 flex items-center gap-1 text-xs text-muted">
-                <svg width="12" height="12" viewBox="0 0 48 48" fill="none" className="shrink-0">
-                  <path d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.5-.4-3.5z" fill="#FFC107"/>
-                  <path d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" fill="#FF3D00"/>
-                  <path d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 35.3 26.8 36 24 36c-5.3 0-9.7-3.3-11.3-8H6.1C9.5 35.6 16.2 44 24 44z" fill="#4CAF50"/>
-                  <path d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 38.4 44 33 44 24c0-1.2-.1-2.5-.4-3.5z" fill="#1976D2"/>
-                </svg>
-                {user.email}
-              </p>
-            )}
-            <div className="mt-1 flex flex-wrap gap-2">
-              {user.rol && (
-                <span className="rounded-full bg-surface-hover px-2 py-0.5 text-[10px] font-bold text-muted">
-                  {user.rol.nombre} · Nivel {user.rol.nivel}
-                </span>
-              )}
-              {user.departamento && (
-                <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                  style={{
-                    background: `${user.departamento.color}22`,
-                    color: user.departamento.color,
-                  }}
-                >
-                  {user.departamento.nombre}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="border-t border-border pt-3 space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted">Foto de perfil</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              ref={fotoInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void subirFoto(f);
-              }}
-            />
-            <button
-              type="button"
-              disabled={uploadingFoto}
-              onClick={() => fotoInputRef.current?.click()}
-              className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-ink transition hover:border-accent hover:text-accent disabled:opacity-50"
-            >
-              {uploadingFoto ? "Subiendo..." : user.foto ? "Cambiar foto" : "Adjuntar foto"}
-            </button>
-            {user.foto && (
-              <button
-                type="button"
-                disabled={uploadingFoto}
-                onClick={() => void quitarFoto()}
-                className="rounded-paper border-2 border-red-300 px-3 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-              >
-                Quitar foto
-              </button>
-            )}
-          </div>
-          <p className="text-[11px] text-muted">JPG, PNG, GIF o WEBP. Se muestra en tu perfil.</p>
-        </div>
-      </div>
-
-      <form onSubmit={guardar} className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper-sm space-y-4">
-        <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">Editar datos</h3>
-        <div>
-          <label className="mb-1 block text-xs font-bold text-muted">Nombre para mostrar</label>
-          <input
-            className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-bold text-muted">Usuario (no editable)</label>
-          <input
-            disabled
-            className="w-full rounded-paper border-2 border-border bg-surface-hover px-3 py-2 text-sm text-muted"
-            value={user.username}
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-xs font-bold text-muted">Nueva contraseña (opcional)</label>
-          <input
-            type="password"
-            autoComplete="new-password"
-            className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Dejar vacío para no cambiar"
-          />
-        </div>
-        {password && (
-          <div>
-            <label className="mb-1 block text-xs font-bold text-muted">Confirmar contraseña</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              className="w-full rounded-paper border-2 border-border bg-surface-input px-3 py-2 text-sm outline-none focus:border-accent"
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
-            />
-          </div>
-        )}
-        {msg && (
-          <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${msg.type === "ok" ? "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
-            {msg.text}
-          </p>
-        )}
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
-        >
-          {saving ? "Guardando..." : "Guardar cambios"}
-        </button>
-      </form>
-    </div>
-  );
-}
 
 // ── Acciones View ─────────────────────────────────────────────────────────────
 
@@ -15475,7 +15250,9 @@ function NuevaAccionWizard({
                 }}
                 className="w-full flex items-center gap-4 rounded-2xl border-2 border-border bg-surface-panel px-5 py-4 text-left transition hover:border-accent/60"
               >
-                <span className="text-3xl">🛒</span>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-ink">
+                  <TopicIcon value="🛒" size={22} />
+                </span>
                 <div>
                   <p className="text-base font-extrabold text-ink">Ir de compras</p>
                   <p className="text-xs text-muted">Arma la lista con gramos o unidades</p>
@@ -15699,7 +15476,7 @@ function NuevaAccionWizard({
             <p className="text-xs font-bold uppercase tracking-wide text-muted">Factura de caja</p>
             <p className="text-xs text-muted">Foto o PDF del ticket al pagar (opcional antes de salir).</p>
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-4 py-6 transition hover:border-accent">
-              <span className="text-2xl">📷</span>
+              <TopicIcon value="📷" size={28} className="text-muted" />
               <span className="text-sm font-bold text-accent">
                 {facturaFile ? facturaFile.name : "Subir captura de factura"}
               </span>
@@ -16034,7 +15811,7 @@ function NuevaAccionWizard({
             <p className="text-xs font-bold uppercase tracking-wide text-muted">Adjunto opcional</p>
             <p className="text-xs text-muted">Foto o imagen de referencia (resultado, comprobante, etc.).</p>
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-4 py-6 transition hover:border-accent">
-              <span className="text-2xl">📎</span>
+              <TopicIcon value="📎" size={28} className="text-muted" />
               <span className="text-sm font-bold text-accent">
                 {cierreArchivo ? cierreArchivo.name : "Adjuntar captura o imagen"}
               </span>
@@ -16150,7 +15927,7 @@ function ProtocolosView({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-ink flex items-center gap-1">
-            📋 Procedimientos disponibles
+            <TopicIconLabel value="📋" size={16} weight="bold">Procedimientos disponibles</TopicIconLabel>
             <InfoTooltip text="Procedimientos del equipo que puedes usar como plantilla al crear una solicitud. Para editarlos o crear nuevos, ve a Acciones → Procedimientos." />
           </p>
           <p className="text-xs text-muted mt-0.5">
@@ -16165,7 +15942,7 @@ function ProtocolosView({
 
       {protocolos.length === 0 && (
         <div className="py-12 text-center space-y-2">
-          <p className="text-3xl">📋</p>
+          <TopicIcon value="📋" size={36} className="mx-auto text-muted" />
           <p className="text-sm text-muted">Aún no hay procedimientos compartidos con el equipo.</p>
         </div>
       )}
@@ -16180,7 +15957,7 @@ function ProtocolosView({
                 className="min-w-0 flex-1 text-left"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-base">📋</span>
+                  <TopicIcon value="📋" size={16} className="shrink-0 text-muted" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-ink truncate">{p.titulo}</p>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
@@ -17101,6 +16878,120 @@ function HistorialSolicitudDetalle({
   );
 }
 
+// ── ContratosView ─────────────────────────────────────────────────────────────
+
+function ContratosView({
+  token, user, onBack, onSelect, onCreate,
+}: {
+  token: string;
+  user: TicketsUser;
+  onBack: () => void;
+  onSelect: (id: number) => void;
+  onCreate: () => void;
+}) {
+  const isAdmin = (user.rol?.nivel ?? 1) >= 3;
+  const [tab, setTab] = useState<"activas" | "historial">("activas");
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    try {
+      const params = new URLSearchParams({ categoria: "contratos" });
+      if (tab === "activas") params.set("activas", "1");
+      const data = await tapi(`/?${params}`, token);
+      const list = Array.isArray(data) ? data.map(normalizeTicketForList) : [];
+      setTickets(
+        tab === "historial"
+          ? list.filter((t) => t.estado === "resuelto" || t.estado === "rechazado")
+          : list,
+      );
+    } catch {
+      if (!silent) setTickets([]);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [token, tab]);
+
+  useEffect(() => { void load(false); }, [load]);
+  useEffect(() => {
+    const iv = setInterval(() => { void load(true); }, 30000);
+    return () => clearInterval(iv);
+  }, [load]);
+  useEffect(() => onPanelResume(() => { void load(true); }), [load]);
+
+  const pendientes = tickets.filter((t) => t.estado !== "resuelto" && t.estado !== "rechazado").length;
+
+  return (
+    <div className="space-y-5 pb-8">
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={onBack}
+          className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-muted transition hover:border-accent hover:text-accent">
+          ← Volver al Centro
+        </button>
+        <h2 className="text-xl font-extrabold text-ink">Contratos</h2>
+        <button type="button" onClick={onCreate}
+          className="ml-auto rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none">
+          + Nuevo contrato
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 dark:border-slate-700/50 dark:bg-slate-950/40 dark:text-slate-200">
+        Registro y seguimiento de contratos. Usa la plantilla de prestación de servicios o adjunta tu documento (PDF, Word o imagen).
+        {isAdmin
+          ? " Como administrador puedes aprobar y cerrar los registros."
+          : " Solo Administración puede marcar contratos como resueltos."}
+      </div>
+
+      <div className="flex gap-2">
+        {(["activas", "historial"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`rounded-paper border-2 px-4 py-2 text-sm font-bold transition ${
+              tab === t
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border text-muted hover:border-accent hover:text-accent"
+            }`}
+          >
+            {t === "activas" ? `Activos${pendientes > 0 && tab === "activas" ? ` (${pendientes})` : ""}` : "Historial"}
+          </button>
+        ))}
+        <button type="button" onClick={() => void load(false)} disabled={loading}
+          className="ml-auto text-xs text-accent hover:underline disabled:opacity-50">
+          ↻ Actualizar
+        </button>
+      </div>
+
+      {loading && <div className="py-8 text-center text-sm text-muted">Cargando contratos…</div>}
+
+      {!loading && tickets.length === 0 && (
+        <div className="rounded-2xl border-2 border-dashed border-border py-12 text-center">
+          <TopicIcon value="📄" size={36} className="mx-auto mb-2 text-muted" />
+          <p className="text-sm font-bold text-muted">
+            {tab === "activas" ? "No hay contratos activos." : "Sin historial de contratos."}
+          </p>
+          {tab === "activas" && (
+            <button type="button" onClick={onCreate}
+              className="mt-4 rounded-paper border-2 border-accent px-4 py-2 text-sm font-bold text-accent hover:bg-accent hover:text-white transition">
+              Registrar primer contrato
+            </button>
+          )}
+        </div>
+      )}
+
+      {!loading && tickets.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {tickets.map((t) => (
+            <TicketCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── SolicitudesView ───────────────────────────────────────────────────────────
 
 const FRECUENCIA_OPTS: { value: Frecuencia; label: string }[] = [
@@ -17368,7 +17259,9 @@ function SolicitudesView({
       {tab === "subhome" ? (
         <div className="rounded-3xl border border-rose-200 dark:border-rose-700/60 bg-rose-50 dark:bg-rose-950/50 p-6 shadow-[0_2px_14px_rgba(0,0,0,0.06)] space-y-4">
           <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-200/70 dark:bg-rose-800/60 text-rose-700 dark:text-rose-300 text-2xl">📋</span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+              <TopicIcon value="📋" size={24} />
+            </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-2xl font-extrabold text-ink">Solicitudes</h2>
@@ -17379,7 +17272,7 @@ function SolicitudesView({
                     className="ml-auto flex items-center gap-1 rounded-xl border-2 border-rose-300 dark:border-rose-600/70 px-3 py-1 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition"
                     title="Volver al inicio"
                   >
-                    🏠 Inicio
+                    <TopicIcon value="🏠" size={14} className="shrink-0" /> Inicio
                   </button>
                 )}
               </div>
@@ -17416,7 +17309,7 @@ function SolicitudesView({
               className="flex items-center gap-1 rounded-xl border-2 border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent transition shrink-0"
               title="Volver al inicio"
             >
-              🏠 Inicio
+              <TopicIcon value="🏠" size={14} className="shrink-0" /> Inicio
             </button>
           )}
           <button
@@ -17440,11 +17333,11 @@ function SolicitudesView({
       {/* Título de la sub-sección activa */}
       {tab !== "subhome" && (
         <p className="text-base font-extrabold text-ink">
-          {tab === "asignadas" ? "📥 Por resolver"
-            : tab === "creadas" ? "📤 Enviadas"
-            : tab === "equipo" ? "👥 En curso — equipo"
-            : tab === "historial" ? "📜 Historial"
-            : "📋 Procedimientos"}
+          {tab === "asignadas" ? <TopicIconLabel value="📥" size={16} weight="bold">Por resolver</TopicIconLabel>
+            : tab === "creadas" ? <TopicIconLabel value="📤" size={16} weight="bold">Enviadas</TopicIconLabel>
+            : tab === "equipo" ? <TopicIconLabel value="👥" size={16} weight="bold">En curso — equipo</TopicIconLabel>
+            : tab === "historial" ? <TopicIconLabel value="📜" size={16} weight="bold">Historial</TopicIconLabel>
+            : <TopicIconLabel value="📋" size={16} weight="bold">Procedimientos</TopicIconLabel>}
         </p>
       )}
 
@@ -17468,7 +17361,9 @@ function SolicitudesView({
             <button type="button" onClick={() => setTab("asignadas")}
               className={`${sc} bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-700/60`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-200/70 dark:bg-rose-800/60 text-rose-700 dark:text-rose-300 text-2xl shrink-0">📥</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="📥" size={24} />
+                </span>
                 <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{total}</span>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Por resolver</p>
@@ -17478,7 +17373,9 @@ function SolicitudesView({
             <button type="button" onClick={() => setTab("creadas")}
               className={`${sc} bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-700/60`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-200/70 dark:bg-orange-800/60 text-orange-700 dark:text-orange-300 text-2xl shrink-0">📤</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="📤" size={24} />
+                </span>
                 <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{creadas.length}</span>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Enviadas</p>
@@ -17488,7 +17385,9 @@ function SolicitudesView({
             <button type="button" onClick={() => setTab("equipo")}
               className={`${sc} bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-700/60`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-200/70 dark:bg-indigo-800/60 text-indigo-700 dark:text-indigo-300 text-2xl shrink-0">👥</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="👥" size={24} />
+                </span>
                 <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{enEquipo.length}</span>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">En curso — equipo</p>
@@ -17498,7 +17397,9 @@ function SolicitudesView({
             <button type="button" onClick={() => setTab("historial")}
               className={`${sc} bg-stone-50 dark:bg-stone-900/60 border-stone-200 dark:border-stone-600/50`}>
               <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 text-2xl shrink-0">📜</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="📜" size={24} />
+                </span>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Historial</p>
               <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Las solicitudes que ya se cerraron — resueltas o rechazadas. Pa' que quede el registro.</p>
@@ -17507,7 +17408,9 @@ function SolicitudesView({
             <button type="button" onClick={() => setTab("protocolos")}
               className={`${sc} bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-700/60`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-200/70 dark:bg-teal-800/60 text-teal-700 dark:text-teal-300 text-2xl shrink-0">📋</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="📋" size={24} />
+                </span>
                 <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{protocolos.length}</span>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Procedimientos</p>
@@ -17921,7 +17824,7 @@ function RepetirAccionWizard({
   if (fase === "iniciando") {
     if (error) return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-5 text-center px-6">
-        <p className="text-4xl">⚠️</p>
+        <TopicIcon value="⚠️" size={40} className="text-muted" />
         <p className="text-base font-bold text-ink">{error}</p>
         <button onClick={onCancel} className="rounded-2xl border-2 border-border px-6 py-3 text-sm font-bold text-muted hover:border-accent hover:text-accent transition">
           Cancelar
@@ -18032,7 +17935,9 @@ function RepetirAccionWizard({
                 onClick={() => { setSlideDir("right"); setFase("compras_lista"); }}
                 className="w-full flex items-center gap-4 rounded-2xl border-2 border-border bg-surface-panel px-5 py-4 text-left transition hover:border-accent/60"
               >
-                <span className="text-3xl">🛒</span>
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-ink">
+                  <TopicIcon value="🛒" size={22} />
+                </span>
                 <div>
                   <p className="text-base font-extrabold text-ink">Ir de compras</p>
                   <p className="text-xs text-muted">
@@ -18382,13 +18287,16 @@ function PendientesPanel({
   pendientes,
   loading,
   onRecargar,
-  onIniciarAccion,
+  abrirFormInicial = false,
+  abrirFormSignal = 0,
 }: {
   token: string;
   pendientes: PendienteItem[];
   loading: boolean;
   onRecargar: () => void;
-  onIniciarAccion: (p: PendienteItem) => void;
+  abrirFormInicial?: boolean;
+  /** Incrementar desde el padre para abrir el formulario (p. ej. CTA del hero). */
+  abrirFormSignal?: number;
 }) {
   const hoy = new Date().toISOString().slice(0, 10);
 
@@ -18478,7 +18386,15 @@ function PendientesPanel({
     futuro:  "bg-surface border border-border text-muted",
   };
 
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(abrirFormInicial);
+
+  useEffect(() => {
+    if (abrirFormInicial) setShowForm(true);
+  }, [abrirFormInicial]);
+
+  useEffect(() => {
+    if (abrirFormSignal > 0) setShowForm(true);
+  }, [abrirFormSignal]);
 
   function resetForm() {
     setTitulo(""); setDescripcion(""); setFecha(""); setError("");
@@ -18487,15 +18403,15 @@ function PendientesPanel({
   return (
     <div className="space-y-3">
       {/* Encabezado con botón crear */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-ink">
           {pendientes.length > 0 ? `${pendientes.length} acción${pendientes.length !== 1 ? "es" : ""} futura${pendientes.length !== 1 ? "s" : ""}` : "Acciones futuras"}
         </p>
         <button
           type="button"
           onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
-          className={`flex items-center gap-1.5 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
-            showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent text-accent hover:bg-accent/10"
+          className={`flex shrink-0 items-center gap-1.5 rounded-xl border-2 px-4 py-2 text-sm font-extrabold transition ${
+            showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
           }`}
         >
           {showForm ? "✕ Cancelar" : "+ Nueva acción futura"}
@@ -18554,10 +18470,17 @@ function PendientesPanel({
       {loading && <p className="py-6 text-center text-sm text-muted">Cargando…</p>}
 
       {!loading && pendientes.length === 0 && !showForm && (
-        <div className="py-12 text-center space-y-2">
+        <div className="space-y-3 py-12 text-center">
           <p className="text-3xl">🗓️</p>
           <p className="text-sm text-muted">Sin acciones futuras anotadas.</p>
-          <p className="text-xs text-muted">Úsala para tareas que requieren tu atención pero todavía no arrancas — como reparar algo, resolver un tema o empezar un proyecto. Cuando estés listo, la conviertes en acción.</p>
+          <p className="text-xs text-muted">Anota ideas o tareas para más adelante. Si necesitas alerta en una fecha, créala en Recordatorios.</p>
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="mx-auto rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-emerald-700"
+          >
+            + Nueva acción futura
+          </button>
         </div>
       )}
 
@@ -18634,17 +18557,11 @@ function PendientesPanel({
                     <div className="flex gap-1.5 pt-0.5">
                       <button
                         type="button"
-                        onClick={() => onIniciarAccion(p)}
-                        className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98]"
-                      >
-                        ▶ Iniciar acción
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => abrirEditar(p)}
-                        className="rounded-xl border-2 border-border px-3 py-2 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
-                        title="Editar"
-                      >✏️</button>
+                        className="flex-1 rounded-xl border-2 border-border py-2 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
+                      >
+                        ✏️ Editar
+                      </button>
                       <button
                         type="button"
                         onClick={() => void descartar(p.id)}
@@ -18696,13 +18613,18 @@ function RecordatoriosPanel({
   recordatorios,
   loading,
   onRecargar,
+  abrirFormInicial = false,
+  abrirFormSignal = 0,
 }: {
   token: string;
   recordatorios: RecordatorioItem[];
   loading: boolean;
   onRecargar: () => void;
+  abrirFormInicial?: boolean;
+  abrirFormSignal?: number;
 }) {
   const hoy = new Date().toISOString().slice(0, 10);
+  const [showForm, setShowForm] = useState(abrirFormInicial);
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [tipoRep, setTipoRep] = useState<RecordatorioItem["tipo_rep"]>("una_vez");
@@ -18713,6 +18635,25 @@ function RecordatoriosPanel({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [editandoId, setEditandoId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (abrirFormInicial) setShowForm(true);
+  }, [abrirFormInicial]);
+
+  useEffect(() => {
+    if (abrirFormSignal > 0) setShowForm(true);
+  }, [abrirFormSignal]);
+
+  function resetForm() {
+    setTitulo("");
+    setDescripcion("");
+    setTipoRep("una_vez");
+    setFechaInicio(hoy);
+    setCadaN(1);
+    setDiasSemana([]);
+    setDiasMes([]);
+    setError("");
+  }
 
   function toggleDiaSemana(d: number) {
     setDiasSemana((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort());
@@ -18739,8 +18680,8 @@ function RecordatoriosPanel({
           dias_mes: tipoRep === "mensual" ? diasMes : undefined,
         }),
       });
-      setTitulo(""); setDescripcion(""); setTipoRep("una_vez");
-      setFechaInicio(hoy); setCadaN(1); setDiasSemana([]); setDiasMes([]);
+      resetForm();
+      setShowForm(false);
       onRecargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al guardar");
@@ -18775,10 +18716,28 @@ function RecordatoriosPanel({
 
   return (
     <div className="space-y-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-ink">
+          {recordatorios.length > 0
+            ? `${recordatorios.length} recordatorio${recordatorios.length !== 1 ? "s" : ""}`
+            : "Recordatorios con alerta"}
+        </p>
+        <button
+          type="button"
+          onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
+          className={`flex shrink-0 items-center gap-1.5 rounded-xl border-2 px-4 py-2 text-sm font-extrabold transition ${
+            showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
+          }`}
+        >
+          {showForm ? "✕ Cancelar" : "+ Nuevo recordatorio"}
+        </button>
+      </div>
+
       {/* Formulario */}
+      {showForm && (
       <div className="rounded-2xl border-2 border-accent/30 bg-accent/5 p-4 space-y-3">
         <p className="text-xs font-bold uppercase tracking-widest text-accent">Nuevo recordatorio</p>
-        <p className="text-xs text-muted">Para cosas simples del día a día — pagar un recibo, llamar a alguien, renovar algo. Solo necesitas que te avise en el momento.</p>
+        <p className="text-xs text-muted">Tarea con alerta en la fecha que elijas — puntual o recurrente. Te avisamos por voz cuando toque.</p>
 
         <input
           className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
@@ -18895,6 +18854,7 @@ function RecordatoriosPanel({
           {guardando ? "Guardando…" : "Programar recordatorio"}
         </button>
       </div>
+      )}
 
       {loading && <p className="py-6 text-center text-sm text-muted">Cargando recordatorios…</p>}
 
@@ -18967,12 +18927,167 @@ function RecordatoriosPanel({
         </div>
       )}
 
-      {!loading && recordatorios.length === 0 && (
-        <div className="py-12 text-center space-y-2">
+      {!loading && recordatorios.length === 0 && !showForm && (
+        <div className="space-y-3 py-12 text-center">
           <p className="text-3xl">🔔</p>
           <p className="text-sm text-muted">Sin recordatorios programados.</p>
-          <p className="text-xs text-muted">Ideal para cosas simples y recurrentes — pagar recibos, llamadas pendientes, renovaciones. No necesitas describir pasos, solo que el sistema te avise a tiempo.</p>
-          <p className="text-xs text-muted">Programa una alerta que se repite automáticamente.</p>
+          <p className="text-xs text-muted">Crea tareas con alerta en la fecha que elijas — puntuales o recurrentes.</p>
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="mx-auto rounded-xl bg-accent px-5 py-2.5 text-sm font-extrabold text-white transition hover:brightness-110"
+          >
+            + Crear recordatorio
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── NuevoProcedimientoForm ────────────────────────────────────────────────────
+
+function NuevoProcedimientoForm({
+  token,
+  user,
+  onCreado,
+  abrirFormInicial = false,
+  abrirFormSignal = 0,
+}: {
+  token: string;
+  user: TicketsUser;
+  onCreado: () => void;
+  abrirFormInicial?: boolean;
+  abrirFormSignal?: number;
+}) {
+  const puedeCrear = puedeCrearProtocolos(user);
+  const [showForm, setShowForm] = useState(abrirFormInicial && puedeCrear);
+  const [titulo, setTitulo] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+  const [pasos, setPasos] = useState<string[]>([""]);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (abrirFormInicial && puedeCrear) setShowForm(true);
+  }, [abrirFormInicial, puedeCrear]);
+
+  useEffect(() => {
+    if (abrirFormSignal > 0 && puedeCrear) setShowForm(true);
+  }, [abrirFormSignal, puedeCrear]);
+
+  function resetForm() {
+    setTitulo("");
+    setDescripcion("");
+    setPasos([""]);
+    setError("");
+  }
+
+  async function crear() {
+    if (!titulo.trim()) return;
+    setGuardando(true);
+    setError("");
+    try {
+      await tapi("/protocolos", token, {
+        method: "POST",
+        body: JSON.stringify({
+          titulo: titulo.trim(),
+          descripcion: descripcion.trim() || undefined,
+          pasos: pasos
+            .map((p) => p.trim())
+            .filter(Boolean)
+            .map((descripcion) => ({ descripcion })),
+        }),
+      });
+      resetForm();
+      setShowForm(false);
+      onCreado();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al guardar");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  if (!puedeCrear) {
+    return (
+      <p className="rounded-xl border border-border bg-surface-panel px-4 py-3 text-xs text-muted">
+        No tienes permiso para crear procedimientos nuevos. Puedes guardar una acción completada como procedimiento desde el historial.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-ink">Procedimientos guardados</p>
+        <button
+          type="button"
+          onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
+          className={`flex shrink-0 items-center gap-1.5 rounded-xl border-2 px-4 py-2 text-sm font-extrabold transition ${
+            showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
+          }`}
+        >
+          {showForm ? "✕ Cancelar" : "+ Nuevo procedimiento"}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="space-y-3 rounded-2xl border-2 border-accent/30 bg-accent/5 p-4">
+          <p className="text-xs font-bold uppercase tracking-widest text-accent">Nuevo procedimiento</p>
+          <input
+            autoFocus
+            className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-base font-semibold text-ink outline-none focus:border-accent placeholder:text-muted/40"
+            placeholder="Ej: Cierre de caja, preparación de pedido MeLi…"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            maxLength={150}
+          />
+          <textarea
+            className="w-full resize-none rounded-xl border-2 border-border bg-surface-input px-4 py-2.5 text-sm text-ink outline-none focus:border-accent placeholder:text-muted/40"
+            placeholder="Descripción opcional…"
+            rows={2}
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+          />
+          <div className="space-y-2">
+            <p className="text-xs font-bold text-muted">Pasos (opcional)</p>
+            {pasos.map((paso, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  className="flex-1 rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  placeholder={`Paso ${i + 1}`}
+                  value={paso}
+                  onChange={(e) => setPasos((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
+                />
+                {pasos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setPasos((prev) => prev.filter((_, j) => j !== i))}
+                    className="rounded-xl border-2 border-border px-3 text-muted hover:border-danger hover:text-danger"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPasos((prev) => [...prev, ""])}
+              className="text-xs font-bold text-accent hover:underline"
+            >
+              + Agregar paso
+            </button>
+          </div>
+          {error && <p className="text-xs text-danger">{error}</p>}
+          <button
+            type="button"
+            disabled={!titulo.trim() || guardando}
+            onClick={() => void crear()}
+            className="w-full rounded-xl bg-accent py-3 text-sm font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            {guardando ? "Guardando…" : "Guardar procedimiento"}
+          </button>
         </div>
       )}
     </div>
@@ -19394,8 +19509,8 @@ function ProcedimientoCard({
 const ACCIONES_TAB_CFG = {
   subhome:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_3px_0_#b45309]",   ctaBase: true  },
   activas:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_3px_0_#b45309]",   ctaBase: true  },
-  pendientes:     { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Tareas que aún no arrancas. Anótalas y conviértelas en acción cuando estés listo.",                  btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_3px_0_#065f46]", ctaBase: false },
-  recordatorios:  { card: "border-violet-200 dark:border-violet-700/60 bg-violet-50 dark:bg-violet-950/50",          icon: "bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300",         emoji: "🔔", titulo: "Recordatorios",     desc: "Alertas simples para cosas cotidianas — sin pasos complejos.",                                       btnCtaCls: "bg-violet-600 hover:bg-violet-700 shadow-[0_3px_0_#4c1d95]",  ctaBase: false },
+  pendientes:     { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_3px_0_#065f46]", ctaBase: false },
+  recordatorios:  { card: "border-violet-200 dark:border-violet-700/60 bg-violet-50 dark:bg-violet-950/50",          icon: "bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300",         emoji: "🔔", titulo: "Recordatorios",     desc: "Tareas con alerta: te avisamos en la fecha. Crea recordatorios puntuales o recurrentes.",            btnCtaCls: "bg-violet-600 hover:bg-violet-700 shadow-[0_3px_0_#4c1d95]",  ctaBase: false },
   procedimientos: { card: "border-sky-200 dark:border-sky-700/60 bg-sky-50 dark:bg-sky-950/50",                      icon: "bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-sky-600 hover:bg-sky-700 shadow-[0_3px_0_#0c4a6e]",       ctaBase: false },
   historial:      { card: "border-stone-200 dark:border-stone-600/50 bg-stone-50 dark:bg-stone-900/60",              icon: "bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300",             emoji: "📜", titulo: "Historial",         desc: "Todo lo que ya completaste. Pa' que no se pierda nada.",                                             btnCtaCls: "bg-stone-500 hover:bg-stone-600 shadow-[0_3px_0_#292524]",   ctaBase: false },
 } as const;
@@ -19405,12 +19520,18 @@ type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
 
 function AccionesView({
   token, user, onSelect, onIrCompras, initialTab, onInicio,
+  abrirFormRecordatorio = false,
+  abrirFormPendientes = false,
+  abrirFormProcedimiento = false,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
   onIrCompras?: () => void;
   initialTab?: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial";
   onInicio?: () => void;
+  abrirFormRecordatorio?: boolean;
+  abrirFormPendientes?: boolean;
+  abrirFormProcedimiento?: boolean;
 }) {
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   // apiToken = CHAT_API_TOKEN que usa /api/voz/transcribir (distinto del JWT de tickets)
@@ -19439,6 +19560,9 @@ function AccionesView({
   const [loadingRecordatorios, setLoadingRecordatorios] = useState(false);
   const [loadingExtra, setLoadingExtra] = useState(false);
   const [msg, setMsg] = useState("");
+  const [crearPendienteSignal, setCrearPendienteSignal] = useState(0);
+  const [crearRecordatorioSignal, setCrearRecordatorioSignal] = useState(0);
+  const [crearProcedimientoSignal, setCrearProcedimientoSignal] = useState(0);
   const [registroExpandido, setRegistroExpandido] = useState<number | null>(null);
   const [registros, setRegistros] = useState<Record<number, { comentarios: any[]; adjuntos: any[] }>>({});
   const [histLbUrl, setHistLbUrl] = useState<string | null>(null);
@@ -20053,6 +20177,19 @@ function AccionesView({
 
   const tc = ACCIONES_TAB_CFG[tabAcciones as AccionesTab] ?? ACCIONES_TAB_CFG.subhome;
   const mostrarCta = tc.ctaBase && !isAdmin;
+  const mostrarCtaCrear =
+    tabAcciones === "pendientes"
+    || tabAcciones === "recordatorios"
+    || (tabAcciones === "procedimientos" && puedeCrearProtocolos(user));
+  const labelCtaCrear =
+    tabAcciones === "pendientes" ? "+ Nueva acción futura"
+    : tabAcciones === "recordatorios" ? "+ Nuevo recordatorio"
+    : "+ Nuevo procedimiento";
+  function abrirFormularioCrear() {
+    if (tabAcciones === "pendientes") setCrearPendienteSignal((n) => n + 1);
+    else if (tabAcciones === "recordatorios") setCrearRecordatorioSignal((n) => n + 1);
+    else if (tabAcciones === "procedimientos") setCrearProcedimientoSignal((n) => n + 1);
+  }
 
   return (
     <div className="space-y-4">
@@ -20060,7 +20197,9 @@ function AccionesView({
       <div className={`rounded-3xl border ${tc.card} p-6 shadow-[0_2px_14px_rgba(0,0,0,0.06)] space-y-4`}>
         {/* Fila: ícono + título + descripción + botones de navegación */}
         <div className="flex items-start gap-4">
-          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${tc.icon} text-2xl`}>{tc.emoji}</span>
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+            <TopicIcon value={tc.emoji} size={24} weight="regular" />
+          </span>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-2xl font-extrabold text-ink flex items-center gap-2">
@@ -20076,7 +20215,7 @@ function AccionesView({
                   className="ml-auto flex items-center gap-1 rounded-xl border-2 border-border/60 px-3 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
                   title="Volver al inicio"
                 >
-                  🏠 Inicio
+                  <TopicIcon value="🏠" size={14} className="shrink-0" /> Inicio
                 </button>
               )}
             </div>
@@ -20103,6 +20242,16 @@ function AccionesView({
           >
             <Icon name="plus" size={18} weight="bold" />
             Iniciar acción
+          </button>
+        )}
+        {mostrarCtaCrear && (
+          <button
+            type="button"
+            onClick={abrirFormularioCrear}
+            className={`w-full rounded-2xl ${tc.btnCtaCls} flex items-center justify-center gap-2 py-4 text-lg font-extrabold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-0.5`}
+          >
+            <Icon name="plus" size={18} weight="bold" />
+            {labelCtaCrear}
           </button>
         )}
         {/* Toolbar: alarma + filtro + STT */}
@@ -20173,8 +20322,8 @@ function AccionesView({
               </button>
             </div>
           )}
-          {/* Botón voz (STT) — solo quien puede crear acciones */}
-          {!isAdmin && (
+          {/* Botón voz (STT) — solo en acciones en curso, no en futuras ni recordatorios */}
+          {!isAdmin && tabAcciones !== "pendientes" && tabAcciones !== "recordatorios" && (
             <SttInlineBtn
               stt={stt}
               label="Voz"
@@ -20281,7 +20430,9 @@ function AccionesView({
             <button type="button" onClick={() => setTabAcciones("activas")}
               className={`${subCard} bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-700/60`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300 text-2xl shrink-0">⚡</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="⚡" size={24} />
+                </span>
                 <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{acciones.length}</span>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">En curso</p>
@@ -20291,33 +20442,39 @@ function AccionesView({
             <button type="button" onClick={() => setTabAcciones("pendientes")}
               className={`${subCard} bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-700/60`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-2xl shrink-0">🗓️</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="🗓️" size={24} />
+                </span>
                 <div className="text-right space-y-1">
                   <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{pendientes.length}</span>
                   {pendHoy > 0 && <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{pendHoy} para hoy</p>}
                 </div>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Acciones futuras</p>
-              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Tareas que necesitan tu atención pero todavía no arrancas. Anótala y cuando estés listo la conviertes en acción.</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Ideas y tareas para más adelante. Solo anótalas aquí — sin convertirlas en acción.</p>
             </button>
 
             <button type="button" onClick={() => setTabAcciones("recordatorios")}
               className={`${subCard} bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-700/60`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300 text-2xl shrink-0">🔔</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="🔔" size={24} />
+                </span>
                 <div className="text-right space-y-1">
                   <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{recordatorios.length}</span>
                   {recHoy > 0 && <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{recHoy} para hoy</p>}
                 </div>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Recordatorios</p>
-              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Alertas simples para cosas cotidianas — pagar recibos, llamadas — sin pasos complejos.</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Tareas con alerta en la fecha que elijas. Crea recordatorios puntuales o recurrentes.</p>
             </button>
 
             <button type="button" onClick={() => setTabAcciones("historial")}
               className={`${subCard} bg-stone-50 dark:bg-stone-900/60 border-stone-200 dark:border-stone-600/50`}>
               <div className="flex items-center gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300 text-2xl shrink-0">📜</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="📜" size={24} />
+                </span>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Historial</p>
               <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Todo lo que ya completaste. Pa' que no se pierda nada de lo que hiciste.</p>
@@ -20326,7 +20483,9 @@ function AccionesView({
             <button type="button" onClick={() => setTabAcciones("procedimientos")}
               className={`${subCard} bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-700/60`}>
               <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300 text-2xl shrink-0">🔒</span>
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                  <TopicIcon value="🔒" size={24} />
+                </span>
                 <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{procedimientos.length}</span>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Procedimientos</p>
@@ -20338,25 +20497,24 @@ function AccionesView({
       })()}
 
 
-      {tabAcciones === "pendientes" && !isAdmin && (
+      {tabAcciones === "pendientes" && (
         <PendientesPanel
           token={token}
           pendientes={pendientes}
           loading={loadingPendientes}
+          abrirFormInicial={abrirFormPendientes}
+          abrirFormSignal={crearPendienteSignal}
           onRecargar={() => void cargarPendientes()}
-          onIniciarAccion={(p) => {
-            abrirWizard(p.titulo);
-            void tapi(`/pendientes/${p.id}/iniciar`, token, { method: "POST", body: "{}" });
-            setPendientes((ps) => ps.filter((x) => x.id !== p.id));
-          }}
         />
       )}
 
-      {tabAcciones === "recordatorios" && !isAdmin && (
+      {tabAcciones === "recordatorios" && (
         <RecordatoriosPanel
           token={token}
           recordatorios={recordatorios}
           loading={loadingRecordatorios}
+          abrirFormInicial={abrirFormRecordatorio}
+          abrirFormSignal={crearRecordatorioSignal}
           onRecargar={() => void cargarRecordatorios()}
         />
       )}
@@ -20594,13 +20752,29 @@ function AccionesView({
         </div>
       )}
 
-      {tabAcciones === "procedimientos" && !isAdmin && (
+      {tabAcciones === "procedimientos" && (
         <div className="space-y-4">
+          <NuevoProcedimientoForm
+            token={token}
+            user={user}
+            abrirFormInicial={abrirFormProcedimiento}
+            abrirFormSignal={crearProcedimientoSignal}
+            onCreado={() => void cargarHistorialYProcedimientos()}
+          />
           {loadingExtra && <p className="text-sm text-muted">Cargando…</p>}
-          {!loadingExtra && procedimientos.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted">
-              Guarda una acción como procedimiento para verla aquí.
-            </p>
+          {!loadingExtra && procedimientos.length === 0 && !abrirFormProcedimiento && crearProcedimientoSignal === 0 && (
+            <div className="space-y-3 py-8 text-center">
+              <p className="text-sm text-muted">Aún no tienes procedimientos guardados.</p>
+              {puedeCrearProtocolos(user) && (
+                <button
+                  type="button"
+                  onClick={() => setCrearProcedimientoSignal((n) => n + 1)}
+                  className="mx-auto rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-sky-700"
+                >
+                  + Nuevo procedimiento
+                </button>
+              )}
+            </div>
           )}
 
           {/* Privados */}
@@ -20704,7 +20878,7 @@ function AccionesView({
               onClick={() => setTabAcciones(tab)}
               className={`flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all active:scale-[0.97] cursor-pointer shadow-sm ${color}`}
             >
-              <span className="text-2xl">{emoji}</span>
+              <TopicIcon value={emoji} size={22} className="text-ink" />
               <span className="text-sm font-extrabold text-ink leading-tight">{label}</span>
               {count != null && (
                 <span className="text-xs font-bold text-muted">{count} {count === 1 ? "ítem" : "ítems"}</span>
@@ -20720,7 +20894,7 @@ function AccionesView({
 
       {!["pendientes","recordatorios","historial","procedimientos"].includes(tabAcciones) && !loading && acciones.length === 0 && (
         <div className="py-12 text-center space-y-2">
-          <p className="text-2xl">⚡</p>
+          <TopicIcon value="⚡" size={28} className="mx-auto text-muted" />
           <p className="text-sm text-muted">No hay acciones registradas.</p>
         </div>
       )}
@@ -21166,7 +21340,7 @@ function PanelComprasEjecucion({
         {loading && <p className="text-center text-sm text-muted py-8">Cargando…</p>}
         {!loading && activos.length === 0 && (
           <div className="text-center py-10 space-y-2">
-            <p className="text-3xl">🛒</p>
+            <TopicIcon value="🛒" size={36} className="mx-auto text-muted" />
             <p className="text-sm text-gray-400 dark:text-white/40">Agregue los productos<br/>que necesita conseguir.</p>
           </div>
         )}
@@ -22649,13 +22823,19 @@ type AgentChip = {
 };
 
 function AgenteMandoView({
-  token, user, modoInicio = false, onSalir, onAbrirMenu, onIrInicio,
+  token, user, modoInicio = false, embedido = false, chatExpanded = true,
+  onToggleChatExpanded, onExpandChat, onSalir, onAbrirMenu, onIrInicio,
   onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones,
 }: {
   token: string;
   user: TicketsUser;
   /** Pantalla principal de la app: solo chat, sin panel de accesos. */
   modoInicio?: boolean;
+  /** Chat anclado al pie del Centro de Mando (no pantalla completa). */
+  embedido?: boolean;
+  chatExpanded?: boolean;
+  onToggleChatExpanded?: () => void;
+  onExpandChat?: () => void;
   onSalir: () => void;
   onAbrirMenu?: () => void;
   /** Volver a Hugo (pantalla principal de la app). */
@@ -23067,6 +23247,7 @@ function AgenteMandoView({
 
   async function enviar(texto: string, cmd?: string, datos?: Record<string, unknown>) {
     if (pensando || (!texto.trim() && !cmd)) return;
+    if (embedido && !chatExpanded) onExpandChat?.();
 
     // Interceptar cuando el bot esperaba el nombre de la acción
     if (esperandoTituloAccion && texto.trim() && !cmd) {
@@ -23286,6 +23467,14 @@ function AgenteMandoView({
     }
     return null;
   }, [burbujas]);
+  const ultimaBurbujaAgente = useMemo(() => {
+    for (let i = burbujas.length - 1; i >= 0; i--) {
+      if (burbujas[i].rol === "agente") return burbujas[i];
+    }
+    return null;
+  }, [burbujas]);
+  const previewAgente = ultimaBurbujaAgente?.texto ?? "¿Qué hacemos hoy, veci?";
+  const dockExpandido = !embedido || chatExpanded;
 
   // ── Modo revisión de solicitud para confirmar ────────────────────────────────
   if (revisionSolicitud) {
@@ -23372,39 +23561,70 @@ function AgenteMandoView({
   }
 
   return (
-    <div className="hugo-chat flex flex-col h-full min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink">
+    <div
+      className={`hugo-chat flex flex-col min-h-0 overflow-hidden bg-surface font-sans antialiased text-ink ${
+        embedido ? "hugo-dock" : "h-full"
+      } ${embedido && dockExpandido ? "hugo-dock--expanded" : ""} ${embedido && !dockExpandido ? "hugo-dock--collapsed" : ""}`}
+    >
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b-2 border-border shrink-0 bg-surface-panel pt-safe shadow-paper-sm">
-        {modoInicio ? (
-          <button type="button" onClick={onAbrirMenu}
-            className="flex items-center justify-center h-11 w-11 rounded-2xl border-2 border-border bg-surface text-ink font-extrabold text-lg hover:bg-surface-hover transition shrink-0"
-            aria-label="Menú">☰</button>
-        ) : (
-          <button type="button" onClick={onSalir}
-            className="flex items-center justify-center h-11 w-11 rounded-2xl border-2 border-border bg-surface text-muted font-extrabold text-xl hover:bg-surface-hover hover:text-ink transition shrink-0"
-            aria-label="Volver">‹</button>
-        )}
-        <div className="flex items-center justify-center h-11 w-11 rounded-2xl bg-accent text-white font-black text-lg shadow shrink-0">H</div>
-        <div className="flex-1 min-w-0">
-          <p className="text-lg font-extrabold text-ink leading-tight tracking-tight">Hugo García</p>
-          <p className="text-sm font-bold text-muted leading-snug">
-            {modoInicio ? "¿Qué hacemos hoy?" : "Asistente de Operaciones"}
-          </p>
+      {embedido ? (
+        <button
+          type="button"
+          onClick={onToggleChatExpanded}
+          className="flex w-full items-center gap-3 border-b-2 border-border bg-surface-panel px-4 py-2.5 text-left shadow-paper-sm transition hover:bg-surface-hover shrink-0"
+          aria-expanded={dockExpandido}
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-sm font-black text-white shadow">H</div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold leading-tight text-ink">Hugo García</p>
+            {!dockExpandido && (
+              <p className="truncate text-xs font-bold text-muted">{previewAgente}</p>
+            )}
+          </div>
+          {accionActual && (
+            <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-extrabold text-accent">
+              En curso
+            </span>
+          )}
+          <span className="shrink-0 text-lg font-bold text-muted" aria-hidden>
+            {dockExpandido ? "▼" : "▲"}
+          </span>
+        </button>
+      ) : (
+        <div className="flex shrink-0 items-center gap-3 border-b-2 border-border bg-surface-panel px-4 py-3 pt-safe shadow-paper-sm">
+          {modoInicio ? (
+            <button type="button" onClick={onAbrirMenu}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-border bg-surface text-lg font-extrabold text-ink transition hover:bg-surface-hover"
+              aria-label="Menú">☰</button>
+          ) : (
+            <button type="button" onClick={onSalir}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border-2 border-border bg-surface text-xl font-extrabold text-muted transition hover:bg-surface-hover hover:text-ink"
+              aria-label="Volver">‹</button>
+          )}
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent text-lg font-black text-white shadow">H</div>
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-extrabold leading-tight tracking-tight text-ink">Hugo García</p>
+            <p className="text-sm font-bold leading-snug text-muted">
+              {modoInicio ? "¿Qué hacemos hoy?" : "Asistente de Operaciones"}
+            </p>
+          </div>
+          {modoInicio && (
+            <button type="button" onClick={onGoTablero}
+              className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-extrabold text-ink transition hover:border-accent hover:text-accent"
+              title="Centro de Mando">
+              🎯 Centro
+            </button>
+          )}
+          {accionActual && !modoInicio && (
+            <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-xs font-extrabold text-accent">En curso</span>
+          )}
         </div>
-        {accionesCount > 0 && modoInicio && (
-          <button type="button" onClick={onGoAcciones}
-            className="shrink-0 rounded-full bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-700/50 px-2.5 py-1 text-xs font-extrabold text-amber-800 dark:text-amber-300">
-            {accionesCount} acc.
-          </button>
-        )}
-        {accionActual && !modoInicio && (
-          <span className="text-xs font-extrabold text-accent bg-accent/10 border border-accent/30 rounded-full px-2.5 py-1 shrink-0">En curso</span>
-        )}
-      </div>
+      )}
 
       {/* ── Chat (área flexible) ───────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4 space-y-3 bg-surface">
+      {dockExpandido && (
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-surface px-4 py-4 space-y-3">
         {burbujas.map((b) => (
           <div key={b.id} className={`flex flex-col ${b.rol === "usuario" ? "items-end" : "items-start"} gap-1.5`}>
             <div className={`hugo-bubble max-w-[90%] rounded-2xl px-4 py-3 whitespace-pre-wrap shadow-paper-sm ${
@@ -23533,11 +23753,12 @@ function AgenteMandoView({
         {stt.error && <p className="text-center text-sm font-bold text-danger">{stt.error}</p>}
         <div ref={bottomRef} />
       </div>
+      )}
 
       {/* ── Pie: progreso (si aplica) + input ───────────────────────────────── */}
       <div className="shrink-0 border-t-2 border-border bg-surface-panel pb-safe shadow-paper-sm">
 
-        {accionActual && accionActual.pasos_total > 0 && (
+        {accionActual && accionActual.pasos_total > 0 && dockExpandido && (
           <div className="px-4 pt-3 pb-1 shrink-0">
             <div className="flex justify-between text-xs font-extrabold text-muted mb-1.5">
               <span className="truncate">{accionActual.titulo}</span>
@@ -23550,33 +23771,43 @@ function AgenteMandoView({
           </div>
         )}
 
-        {!modoInicio && (
-          <div className="px-4 pt-2 pb-1 shrink-0 grid grid-cols-2 gap-2">
+        {!embedido && (
+        <div className={`shrink-0 grid grid-cols-2 gap-2 px-4 pt-2 pb-1`}>
+          {modoInicio ? (
+            <>
+              <button type="button" onClick={onGoTablero}
+                className="rounded-2xl border-2 border-stone-200 bg-stone-50 px-3 py-2.5 text-left text-sm font-extrabold text-stone-800 transition active:scale-[0.97] dark:border-stone-600/50 dark:bg-stone-900/50 dark:text-stone-200">
+                🎯 Centro de Mando
+              </button>
+              <button type="button" onClick={onGoSolicitudes}
+                className={`rounded-2xl border-2 px-3 py-2.5 text-left text-sm font-extrabold transition active:scale-[0.97] ${
+                  solicitudesCount > 0
+                    ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/40 dark:text-rose-300"
+                    : "border-border bg-surface text-muted"
+                }`}>
+                📋 {solicitudesCount} solicitud{solicitudesCount === 1 ? "" : "es"}
+              </button>
+            </>
+          ) : (
             <button type="button" onClick={onGoSolicitudes}
-              className={`rounded-2xl px-3 py-2.5 text-left text-sm font-extrabold border-2 transition active:scale-[0.97] ${
+              className={`rounded-2xl border-2 px-3 py-2.5 text-left text-sm font-extrabold transition active:scale-[0.97] ${
                 solicitudesCount > 0
                   ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/40 dark:text-rose-300"
                   : "border-border bg-surface text-muted"
               }`}>
               📋 {solicitudesCount} solicitud{solicitudesCount === 1 ? "" : "es"}
             </button>
-            <button type="button" onClick={onGoAcciones}
-              className={`rounded-2xl px-3 py-2.5 text-left text-sm font-extrabold border-2 transition active:scale-[0.97] ${
-                accionesCount > 0
-                  ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-300"
-                  : "border-border bg-surface text-muted"
-              }`}>
-              ⚡ {accionesCount} acción{accionesCount === 1 ? "" : "es"}
-            </button>
-          </div>
+          )}
+        </div>
         )}
 
-        <div className="px-4 py-3 flex items-end gap-3 shrink-0">
+        <div className={`flex shrink-0 items-end gap-3 px-4 ${embedido && !dockExpandido ? "py-2" : "py-3"}`}>
           <textarea
             ref={inputRef}
             rows={1}
             value={input}
             onChange={e => setInput(e.target.value)}
+            onFocus={() => { if (embedido && !chatExpanded) onExpandChat?.(); }}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void enviar(input); } }}
             placeholder="Escriba o dicte…"
             disabled={pensando}
@@ -23613,16 +23844,21 @@ function AgenteMandoView({
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInicio?: boolean }) {
+export default function TicketsPanel() {
   const { token, user, setAuth, clear } = useTicketsAuth();
-  const setPanel = useAppStore((s) => s.setPanel);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const setPanel = useAppStore((s) => s.setPanel);
+  const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
   const ticketsBootView = useAppStore((s) => s.ticketsBootView);
   const setTicketsBootView = useAppStore((s) => s.setTicketsBootView);
   const accionesBootTab = useAppStore((s) => s.accionesBootTab);
   const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const questDark = useQuestTheme((s) => s.dark);
-  const [view, setView] = useState<View>(agenteEsInicio ? "agente" : "home");
+  const [view, setView] = useState<View>("home");
+  const [hugoChatExpanded, setHugoChatExpanded] = useState(false);
+  const [abrirFormRecordatorio, setAbrirFormRecordatorio] = useState(false);
+  const [abrirFormPendientes, setAbrirFormPendientes] = useState(false);
+  const [abrirFormProcedimiento, setAbrirFormProcedimiento] = useState(false);
   const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial">("activas");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(null);
@@ -23631,8 +23867,39 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
   const [navScope, setNavScope] = useState<NavScope>({ kind: "all" });
   const [boardRefreshKey, setBoardRefreshKey] = useState(0);
   const [accionesKey, setAccionesKey] = useState(0);
+  const [createCategoriaFija, setCreateCategoriaFija] = useState<string | undefined>();
   const carritoOpen = useInventarioCarrito((s) => s.modalOpen);
   const openCarrito = useInventarioCarrito((s) => s.setModalOpen);
+  const panel = useAppStore((s) => s.panel);
+  const viewRef = useRef(view);
+  const selectedIdRef = useRef(selectedId);
+  const selectedMisionIdRef = useRef(selectedMisionId);
+  viewRef.current = view;
+  selectedIdRef.current = selectedId;
+  selectedMisionIdRef.current = selectedMisionId;
+
+  useEffect(() => {
+    registerTicketsNavBridge({
+      getView: () => viewRef.current,
+      getSelectedId: () => selectedIdRef.current,
+      getSelectedMisionId: () => selectedMisionIdRef.current,
+      apply: (partial) => {
+        if (partial.view !== undefined) setView(partial.view as View);
+        if (partial.selectedId !== undefined) setSelectedId(partial.selectedId);
+        if (partial.selectedMisionId !== undefined) setSelectedMisionId(partial.selectedMisionId);
+      },
+    });
+    return () => registerTicketsNavBridge(null);
+  }, []);
+
+  useEffect(() => {
+    setCentroMandoView(view);
+  }, [view, setCentroMandoView]);
+
+  useEffect(() => {
+    if (!token || !user) return;
+    notifyNavChange();
+  }, [token, user, panel, view, selectedId, selectedMisionId]);
 
   const reloadCats = useCallback(() => {
     if (!token) return;
@@ -23648,7 +23915,14 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
       setAccionesKey((k) => k + 1);
       setAccionesBootTab(null);
     }
-    setView(ticketsBootView);
+    if (ticketsBootView === "agente") {
+      setView("home");
+      setHugoChatExpanded(true);
+    } else {
+      setView(ticketsBootView as View);
+      if (ticketsBootView === "home") setHugoChatExpanded(false);
+      if (ticketsBootView === "contratos") setHugoChatExpanded(false);
+    }
     setTicketsBootView(null);
   }, [ticketsBootView, accionesBootTab, setTicketsBootView, setAccionesBootTab]);
 
@@ -23671,6 +23945,7 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
   function goDetail(id: number) { setSelectedId(id); setView("detail"); }
   function goBack() {
     setBoardRefreshKey((k) => k + 1);
+    setCreateCategoriaFija(undefined);
     setView("home");
     setSelectedId(null);
     setSelectedMisionId(null);
@@ -23680,6 +23955,17 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
     setTicketsBootView(null);
     setAccionesBootTab(null);
     setPanel("hugo");
+    setCentroMandoView("home");
+    setView("home");
+    setHugoChatExpanded(true);
+  }
+
+  function goCentroMando() {
+    setTicketsBootView(null);
+    setAccionesBootTab(null);
+    setCentroMandoView("home");
+    setView("home");
+    setHugoChatExpanded(false);
   }
 
   function goTablero() {
@@ -23696,38 +23982,39 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
     setView("list");
   }
   function irATickets(destino: Exclude<TicketsBootView, null>) {
-    if (agenteEsInicio || useAppStore.getState().panel === "hugo") {
-      setTicketsBootView(destino);
-      setPanel("tickets");
-      return;
-    }
     setView(destino);
   }
 
   function salirDeAgente() {
-    if (agenteEsInicio || useAppStore.getState().panel === "hugo") {
-      goInicio();
-      return;
-    }
-    goTablero();
+    setCentroMandoView("home");
+    setView("home");
+    setHugoChatExpanded(false);
   }
 
   function goAcciones(tab: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" = "activas") {
-    if (agenteEsInicio || useAppStore.getState().panel === "hugo") {
-      setAccionesBootTab(tab);
-      setTicketsBootView("acciones");
-      setPanel("tickets");
-      return;
-    }
     setAccionesInitialTab(tab);
+    setAbrirFormRecordatorio(tab === "recordatorios");
+    setAbrirFormPendientes(tab === "pendientes");
+    setAbrirFormProcedimiento(tab === "procedimientos");
     setAccionesKey((k) => k + 1);
     setView("acciones");
   }
   function goSolicitudes() { irATickets("solicitudes"); }
+  function goContratos() {
+    setPanel("hugo");
+    setCentroMandoView("contratos");
+    setHugoChatExpanded(false);
+    setView("contratos");
+  }
+  function goCreateContrato() {
+    setPanel("hugo");
+    setCentroMandoView("contratos");
+    setCreateCategoriaFija("contratos");
+    setView("create");
+  }
   function goInventario() { setView("inventario"); }
   function goReinos() { setView("reinos"); }
   function goWorkload() { setView("workload"); }
-  function goPerfil() { setView("perfil"); }
   function goRecetas() { setView("recetas"); }
   function goCreateMision() { setView("crear_mision"); }
   function handleNavScope(scope: NavScope) { setNavScope(scope); }
@@ -23737,48 +24024,19 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
   }
   function goIrInventarioConFiltro() { setView("inventario"); }
 
-  // Panel Hugo: siempre chat a pantalla completa (no reutilizar view del Centro de Mando)
-  if (agenteEsInicio) {
-    return (
-      <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
-        <div className={`hugo-shell hugo-chat flex flex-col bg-surface font-sans antialiased ${questDark ? "dark" : ""}`}>
-          <AgenteMandoView
-            token={token}
-            user={user}
-            modoInicio
-            onSalir={salirDeAgente}
-            onAbrirMenu={toggleSidebar}
-            onIrInicio={goInicio}
-            onGoSolicitudes={goSolicitudes}
-            onGoAcciones={() => goAcciones("activas")}
-            onGoTablero={() => irATickets("home")}
-            onGoHistorialAcciones={() => goAcciones("historial")}
-          />
-        </div>
-      </CategoriasCtx.Provider>
-    );
-  }
-
   return (
     <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
-    <div className={`quest-canvas relative min-h-0 min-w-0 flex-1 overflow-x-hidden transition-colors duration-200 ${questDark ? "dark" : ""}`}>
+    <div className={`quest-canvas relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-colors duration-200 ${view === "home" ? "px-4 pt-4 lg:px-10" : ""} ${questDark ? "dark" : ""}`}>
         <QuestNavBar
           view={view}
           nivel={nivel}
           permisos={permisos}
-          bajoStockCount={bajoStockCount}
           userNombre={user.nombre}
+          hugoChatActive={view === "home" && hugoChatExpanded}
           onInicio={goInicio}
-          onAcciones={goAcciones}
+          onCentroMando={goCentroMando}
           onSolicitudes={goSolicitudes}
-          onInventario={goInventario}
-          onReinos={goReinos}
-          onRecetas={goRecetas}
-          onCarrito={() => openCarrito(true)}
-          carritoOpen={carritoOpen}
           onWorkload={goWorkload}
-          onPerfil={goPerfil}
-          onCreateMision={goCreateMision}
           onLogout={clear}
         />
         <InventarioCarritoModal
@@ -23800,20 +24058,42 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
           />
         )}
         {view === "home" && (
-          <CentroMandoHome
-            token={token}
-            user={user}
-            nivel={nivel}
-            permisos={permisos}
-            onAcciones={goAcciones}
-            onSolicitudes={goSolicitudes}
-            onTablero={goKingdom}
-            onAccionesFuturas={() => goAcciones("pendientes")}
-            onRecordatorios={() => goAcciones("recordatorios")}
-            onProcedimientos={() => goAcciones("procedimientos")}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3">
+              <CentroMandoHome
+                token={token}
+                user={user}
+                nivel={nivel}
+                permisos={permisos}
+                onAcciones={goAcciones}
+                onSolicitudes={goSolicitudes}
+                onContratos={goContratos}
+                onTablero={goKingdom}
+                onAccionesFuturas={() => goAcciones("pendientes")}
+                onRecordatorios={() => goAcciones("recordatorios")}
+                onProcedimientos={() => goAcciones("procedimientos")}
+              />
+            </div>
+            <div className="-mx-4 shrink-0 border-t-2 border-border bg-surface-panel shadow-paper-md lg:-mx-10">
+              <AgenteMandoView
+                token={token}
+                user={user}
+                modoInicio
+                embedido
+                chatExpanded={hugoChatExpanded}
+                onToggleChatExpanded={() => setHugoChatExpanded((v) => !v)}
+                onExpandChat={() => setHugoChatExpanded(true)}
+                onSalir={salirDeAgente}
+                onAbrirMenu={toggleSidebar}
+                onIrInicio={goInicio}
+                onGoSolicitudes={goSolicitudes}
+                onGoAcciones={() => goAcciones("activas")}
+                onGoTablero={goCentroMando}
+                onGoHistorialAcciones={() => goAcciones("historial")}
+              />
+            </div>
+          </div>
         )}
-        {/* AgenteMandoView se renderiza como overlay fixed — ver abajo */}
         {view === "list" && (
           <TicketListView
             token={token} user={user}
@@ -23831,6 +24111,9 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
             onSelect={goDetail}
             onIrCompras={goSolicitudes}
             initialTab={accionesInitialTab}
+            abrirFormRecordatorio={abrirFormRecordatorio}
+            abrirFormPendientes={abrirFormPendientes}
+            abrirFormProcedimiento={abrirFormProcedimiento}
             onInicio={goInicio}
           />
         )}
@@ -23841,11 +24124,33 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
             onInicio={goInicio}
           />
         )}
+        {view === "contratos" && (
+          <ContratosView
+            token={token}
+            user={user}
+            onBack={goCentroMando}
+            onSelect={goDetail}
+            onCreate={goCreateContrato}
+          />
+        )}
         {view === "create" && (
           <CreateTicketView
             token={token} user={user}
-            onBack={goBack}
-            onCreated={(id) => goDetail(id)}
+            categoriaFija={createCategoriaFija}
+            onBack={() => {
+              const volverAContratos = createCategoriaFija === "contratos";
+              setCreateCategoriaFija(undefined);
+              if (volverAContratos) {
+                goContratos();
+              } else {
+                setPanel("hugo");
+                goCentroMando();
+              }
+            }}
+            onCreated={(id) => {
+              setCreateCategoriaFija(undefined);
+              goDetail(id);
+            }}
           />
         )}
         {view === "detail" && selectedId != null && (
@@ -23856,14 +24161,6 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
               if (selectedMisionId) { setView("mision_detail"); }
               else { goBack(); }
             }}
-          />
-        )}
-        {view === "perfil" && (
-          <PerfilView
-            token={token}
-            user={user}
-            onBack={goBack}
-            onUserUpdated={(u) => setAuth(token, u)}
           />
         )}
         {view === "recetas" && (
@@ -23904,22 +24201,6 @@ export default function TicketsPanel({ agenteEsInicio = false }: { agenteEsInici
           />
         )}
     </div>
-
-    {/* ── Agente overlay (desde Centro de Mando, no pantalla principal) ───── */}
-    {view === "agente" && (
-      <div className={`fixed inset-0 z-50 hugo-shell hugo-chat font-sans antialiased ${questDark ? "dark" : ""}`}>
-        <AgenteMandoView
-          token={token}
-          user={user}
-          onSalir={salirDeAgente}
-          onIrInicio={goInicio}
-          onGoSolicitudes={goSolicitudes}
-          onGoAcciones={() => goAcciones("activas")}
-          onGoTablero={() => irATickets("home")}
-          onGoHistorialAcciones={() => goAcciones("historial")}
-        />
-      </div>
-    )}
     </CategoriasCtx.Provider>
   );
 }

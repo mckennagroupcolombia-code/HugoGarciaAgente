@@ -733,7 +733,6 @@ const TICKETS_TABS: { id: string; label: string }[] = [
   { id: "acciones",    label: "Acciones (+ Recordatorios + Procedimientos)" },
   { id: "solicitudes", label: "Solicitudes" },
   { id: "workload",    label: "Aliados" },
-  { id: "perfil",      label: "Perfil" },
 ];
 
 function PermisosEditor({

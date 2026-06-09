@@ -52,6 +52,10 @@ export const CATEGORIA_FALLBACK: Record<string, { label: string; cls: string }> 
     label: "RR.H.H.",
     cls: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200",
   },
+  contratos: {
+    label: "Contratos",
+    cls: "bg-slate-100 text-slate-800 dark:bg-slate-500/15 dark:text-slate-200",
+  },
   logistica: {
     label: "Logística",
     cls: "bg-teal-100 text-teal-800 dark:bg-accent/20 dark:text-accent-sun",

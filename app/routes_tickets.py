@@ -45,9 +45,9 @@ from app.services.tickets_db import (
     buscar_productos_para_compra,
 )
 
-_ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx"}
+_ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx", "txt"}
 _AVATAR_EXT = {"png", "jpg", "jpeg", "gif", "webp"}
-_ALLOWED_LABEL = "PDF, JPG, PNG, GIF, WEBP, DOC, DOCX, XLS, XLSX"
+_ALLOWED_LABEL = "PDF, JPG, PNG, GIF, WEBP, DOC, DOCX, XLS, XLSX, TXT"
 
 _GRUPO_SEDE_SUR_WA = os.getenv("GRUPO_SEDE_SUR_WA", "120363023555909043@g.us")
 
@@ -736,16 +736,16 @@ def register_tickets_routes(app):
         archivo_nombre = None
         if is_multipart:
             f = request.files.get("soporte_archivo")
-            if data["categoria"] == "rrhh" and not f:
-                return jsonify({"error": "Los tickets de RRHH requieren soporte documental"}), 400
+            if data["categoria"] in ("rrhh", "contratos") and not f:
+                return jsonify({"error": "Este trámite requiere soporte documental"}), 400
             if f and f.filename:
                 if not _ext_ok(f.filename):
                     return jsonify({"error": "Tipo de archivo no permitido (PDF, JPG, PNG)"}), 400
                 ext = f.filename.rsplit(".", 1)[1].lower()
                 archivo_nombre = f"{uuid.uuid4().hex}.{ext}"
                 f.save(os.path.join(UPLOADS_DIR, archivo_nombre))
-        elif data.get("categoria") == "rrhh":
-            return jsonify({"error": "Los tickets de RRHH requieren soporte documental (multipart)"}), 400
+        elif data.get("categoria") in ("rrhh", "contratos"):
+            return jsonify({"error": "Este trámite requiere soporte documental (multipart)"}), 400
 
         ticket, err = crear_ticket(data, usuario["id"], archivo_nombre)
         if err:

@@ -1,8 +1,9 @@
-import { resolvePhosphorIcon } from "./registry";
+import { MckIconFrame } from "./mck/MckIcon";
+import { resolveMckPaths } from "./mck/registry";
 import type { IconProps } from "./types";
 
 /**
- * Icono unificado del panel (Phosphor Icons).
+ * Icono unificado del panel (set SVG McKenna: lineal, trazo uniforme, bordes redondeados).
  * Uso: `<Icon name="dashboard" />` o `<Icon name="refresh" size={16} weight="bold" />`
  */
 export function Icon({
@@ -12,14 +13,16 @@ export function Icon({
   className,
   ...rest
 }: IconProps) {
-  const Comp = resolvePhosphorIcon(name);
+  const paths = resolveMckPaths(name);
+  if (!paths) {
+    if (import.meta.env.DEV) {
+      console.warn(`[Icon] Sin SVG para "${name}"`);
+    }
+    return null;
+  }
   return (
-    <Comp
-      size={size}
-      weight={weight}
-      className={className}
-      aria-hidden={rest["aria-label"] ? undefined : true}
-      {...rest}
-    />
+    <MckIconFrame size={size} weight={weight} className={className} {...rest}>
+      {paths}
+    </MckIconFrame>
   );
 }

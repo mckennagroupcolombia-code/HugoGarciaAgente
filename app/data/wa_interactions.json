@@ -1,234 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1780325684.591643,
-      "tipo": "bot_pausado_global",
-      "sender": "57125035289284720@c.us",
-      "detalle": "ok"
-    },
-    {
-      "ts": 1780325695.462622,
-      "tipo": "bot_pausado_global",
-      "sender": "57125035289284720@c.us",
-      "detalle": "me puedes enviar el link por favor"
-    },
-    {
-      "ts": 1780325697.8657312,
-      "tipo": "bot_pausado_global",
-      "sender": "57235368536358931@c.us",
-      "detalle": "Listo!!"
-    },
-    {
-      "ts": 1780325753.9150522,
-      "tipo": "bot_pausado_global",
-      "sender": "57235368536358931@c.us",
-      "detalle": "Perfecto!! Muchas gracias 🤗"
-    },
-    {
-      "ts": 1780325778.7931867,
-      "tipo": "bot_pausado_global",
-      "sender": "57125035289284720@c.us",
-      "detalle": "gracias"
-    },
-    {
-      "ts": 1780326127.4369626,
-      "tipo": "bot_pausado_global",
-      "sender": "57257534845792363@c.us",
-      "detalle": "Vale lo pediría el día de mañana porque hoy no lo puedo recibir"
-    },
-    {
-      "ts": 1780327215.4146643,
-      "tipo": "bot_pausado_global",
-      "sender": "57125035289284720@c.us",
-      "detalle": "Listo, ya realice el pago"
-    },
-    {
-      "ts": 1780327224.2903528,
-      "tipo": "bot_pausado_global",
-      "sender": "57180384415359091@c.us",
-      "detalle": "Buenos días. Q precio tiene la creatina y WPC al 80"
-    },
-    {
-      "ts": 1780328422.7996635,
-      "tipo": "bot_pausado_global",
-      "sender": "57180384415359091@c.us",
-      "detalle": "Gracias. Consulto y te escribo si hago pedido"
-    },
-    {
-      "ts": 1780328885.646584,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "Buen día"
-    },
-    {
-      "ts": 1780329053.4839575,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1780329060.9836283,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "Para pedir un frasquito de agar agar"
-    },
-    {
-      "ts": 1780329109.155117,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "Armenia, Quindío"
-    },
-    {
-      "ts": 1780329371.8232276,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780329390.2515178,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "Calle 23 norte 24 01 Toledo campestre casa 26 sector 2"
-    },
-    {
-      "ts": 1780329392.9420013,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "Luis Londoño"
-    },
-    {
-      "ts": 1780329419.5153096,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "3128859513"
-    },
-    {
-      "ts": 1780329475.3317714,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "Si, gracias"
-    },
-    {
-      "ts": 1780330333.4311805,
-      "tipo": "bot_pausado_global",
-      "sender": "57213584512548924@c.us",
-      "detalle": "Hola, quiero información sobre sus productos"
-    },
-    {
-      "ts": 1780330339.5899725,
-      "tipo": "bot_pausado_global",
-      "sender": "57213584512548924@c.us",
-      "detalle": "hola buenos dias"
-    },
-    {
-      "ts": 1780330388.238567,
-      "tipo": "bot_pausado_global",
-      "sender": "57213584512548924@c.us",
-      "detalle": "hola buenos dias"
-    },
-    {
-      "ts": 1780330465.6760325,
-      "tipo": "bot_pausado_global",
-      "sender": "57213584512548924@c.us",
-      "detalle": "estoy buscando este producto"
-    },
-    {
-      "ts": 1780330466.231046,
-      "tipo": "bot_pausado_global",
-      "sender": "57213584512548924@c.us",
-      "detalle": "Beta-ciclodextrina"
-    },
-    {
-      "ts": 1780330785.371828,
-      "tipo": "bot_pausado_global",
-      "sender": "57213584512548924@c.us",
-      "detalle": "ha vale muchas gracias"
-    },
-    {
-      "ts": 1780330813.044561,
-      "tipo": "bot_pausado_global",
-      "sender": "57213584512548924@c.us",
-      "detalle": "de casualidad tú no sabes dónde podría conseguirlo"
-    },
-    {
-      "ts": 1780332301.1537602,
-      "tipo": "bot_pausado_global",
-      "sender": "5723665420836895@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780334284.0654159,
-      "tipo": "bot_pausado_global",
-      "sender": "5723665420836895@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1780334664.389839,
-      "tipo": "bot_pausado_global",
-      "sender": "5723665420836895@c.us",
-      "detalle": "María Alejandra García Pavas \n1007290629\nCRA 16 # 21-02\nLa Ceja, Antioquia \n3197348977"
-    },
-    {
-      "ts": 1780340518.2445269,
-      "tipo": "bot_pausado_global",
-      "sender": "57250611392053286@c.us",
-      "detalle": "Graciass"
-    },
-    {
-      "ts": 1780343582.1784453,
-      "tipo": "modo_humano",
-      "sender": "57246827609772242@c.us",
-      "detalle": "Buenas tardes listo gracias 👌"
-    },
-    {
-      "ts": 1780344684.9843214,
-      "tipo": "modo_humano",
-      "sender": "57246827609772242@c.us",
-      "detalle": "Si el jueves le informaré alguna cosa gracias"
-    },
-    {
-      "ts": 1780346874.4224646,
-      "tipo": "modo_humano",
-      "sender": "57246827609772242@c.us",
-      "detalle": "Si xfavor"
-    },
-    {
-      "ts": 1780350943.3312023,
-      "tipo": "bot_pausado_global",
-      "sender": "57256925128241220@c.us",
-      "detalle": "Hola, quiero pagar mi pedido MCKG-09FD098B52 por $31.286 COP"
-    },
-    {
-      "ts": 1780351006.9999945,
-      "tipo": "bot_pausado_global",
-      "sender": "5785500551516276@c.us",
-      "detalle": "¡Hola! Admitimos tus envíos exitosamente. Si encuentras algún dato incorrecto tuyo o del destinatario, puedes comunicarte al 3232554455."
-    },
-    {
-      "ts": 1780351009.2456539,
-      "tipo": "bot_pausado_global",
-      "sender": "57240303571214466@c.us",
-      "detalle": "Apreciado Cliente INTERRAPIDISIMO te ha enviado tu comprobante, descárgala en: http://inter.la/347uynN/MTY5MzY0NDcz"
-    },
-    {
-      "ts": 1780351096.4795434,
-      "tipo": "bot_pausado_global",
-      "sender": "57256925128241220@c.us",
-      "detalle": "Hola, quiero pagar mi pedido MCKG-09FD098B52 por $31.286 COP"
-    },
-    {
-      "ts": 1780351220.7193055,
-      "tipo": "bot_pausado_global",
-      "sender": "57256925128241220@c.us",
-      "detalle": "Recibes tarjeta de credito¡"
-    },
-    {
-      "ts": 1780351224.1624026,
-      "tipo": "bot_pausado_global",
-      "sender": "57256925128241220@c.us",
-      "detalle": "?"
-    },
-    {
       "ts": 1780351259.7340286,
       "tipo": "bot_pausado_global",
       "sender": "57256925128241220@c.us",
@@ -1799,6 +1571,234 @@
       "tipo": "bot_pausado_global",
       "sender": "573132616045@c.us",
       "detalle": "Hola, quiero información sobre Aceite de Ricino"
+    },
+    {
+      "ts": 1780936284.1048427,
+      "tipo": "bot_pausado_global",
+      "sender": "573133401041@c.us",
+      "detalle": "Me puede enviar el catálogo de los aromas"
+    },
+    {
+      "ts": 1780936293.8495798,
+      "tipo": "bot_pausado_global",
+      "sender": "573133401041@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780936299.3184226,
+      "tipo": "bot_pausado_global",
+      "sender": "573133401041@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1780945179.8273811,
+      "tipo": "bot_pausado_global",
+      "sender": "573154730612@c.us",
+      "detalle": "Hola. Me cotizas por favor lo siguiente"
+    },
+    {
+      "ts": 1780947010.856474,
+      "tipo": "bot_pausado_global",
+      "sender": "573154730612@c.us",
+      "detalle": "12 Aceite almendras 120\n12 Aceite aguacate 120\n6 aceite argán \n6 aceite jojoba\n3 aceite neem 60 ml\n10 aceite ricino aplicador\n4 te matcha 100g\n1 cera abejas amarilla 500g\n\n\n\nAceite esencial 5 ML:\n2 cl"
+    },
+    {
+      "ts": 1780947407.8576005,
+      "tipo": "bot_pausado_global",
+      "sender": "573008239211@c.us",
+      "detalle": "Buenas precio ?"
+    },
+    {
+      "ts": 1780947492.2057018,
+      "tipo": "bot_pausado_global",
+      "sender": "573154730612@c.us",
+      "detalle": "Aceite esencial de orégano tienen?"
+    },
+    {
+      "ts": 1780949381.1083095,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Hola buenas tardes como estás"
+    },
+    {
+      "ts": 1780949542.8302748,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Tienes por favor carbón activado cosmético"
+    },
+    {
+      "ts": 1780956882.2634554,
+      "tipo": "bot_pausado_global",
+      "sender": "573157594653@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1780961736.489392,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Por favor busco sci"
+    },
+    {
+      "ts": 1780961808.1037984,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Una vitamina e"
+    },
+    {
+      "ts": 1780961836.1774669,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Una libra"
+    },
+    {
+      "ts": 1780961896.1231651,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Pantenol"
+    },
+    {
+      "ts": 1780961910.8804328,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Manteca de mango"
+    },
+    {
+      "ts": 1780961950.856384,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Una arcilla blanca"
+    },
+    {
+      "ts": 1780961960.8675356,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Aceites esenciales y fragancia cula tienes?"
+    },
+    {
+      "ts": 1780961962.690587,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Si"
+    },
+    {
+      "ts": 1780962224.5383875,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Ylang ylang, manzanilla"
+    },
+    {
+      "ts": 1780962273.4099412,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Si uno y uno porfa"
+    },
+    {
+      "ts": 1780962280.3387907,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Y fragancias?"
+    },
+    {
+      "ts": 1780962945.7461903,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "A como son?"
+    },
+    {
+      "ts": 1780962948.791826,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Sería rosas"
+    },
+    {
+      "ts": 1780963203.297178,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Eso es agua de rosas o fragancia más concentrada?"
+    },
+    {
+      "ts": 1780963253.2364807,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Es diferente al agua de rosas si?"
+    },
+    {
+      "ts": 1780963256.628998,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Dame una porfa"
+    },
+    {
+      "ts": 1780963301.970885,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Eso sería todo por favor"
+    },
+    {
+      "ts": 1780963352.0602305,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Cogua Cundinamarca"
+    },
+    {
+      "ts": 1780963371.1628807,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Amanda Julieth paez orozco"
+    },
+    {
+      "ts": 1780963371.4188762,
+      "tipo": "bot_pausado_auto",
+      "sender": "573174923920@c.us",
+      "detalle": "ráfaga de 6 mensajes en 120s"
+    },
+    {
+      "ts": 1780963371.5556278,
+      "tipo": "bot_pausado_auto",
+      "sender": "573174923920@c.us",
+      "detalle": "ráfaga de 7 mensajes en 120s"
+    },
+    {
+      "ts": 1780963371.676152,
+      "tipo": "bot_pausado_auto",
+      "sender": "573174923920@c.us",
+      "detalle": "ráfaga de 8 mensajes en 120s"
+    },
+    {
+      "ts": 1780963371.8285067,
+      "tipo": "bot_pausado_auto",
+      "sender": "573174923920@c.us",
+      "detalle": "ráfaga de 9 mensajes en 120s"
+    },
+    {
+      "ts": 1780963371.9499693,
+      "tipo": "bot_pausado_auto",
+      "sender": "573174923920@c.us",
+      "detalle": "ráfaga de 10 mensajes en 120s"
+    },
+    {
+      "ts": 1780963715.5191708,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Q cantidad es el pantenol?"
+    },
+    {
+      "ts": 1780964464.0078008,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Porfa"
+    },
+    {
+      "ts": 1780966071.2817326,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "🥇 Phenoxyethanol + Ethylhexylglycerin (a menudo se vende como Euxyl PE 9010, PEHG, Microcare PEHG o similares)."
+    },
+    {
+      "ts": 1780966075.4796739,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Tienes este?"
     }
   ]
 }

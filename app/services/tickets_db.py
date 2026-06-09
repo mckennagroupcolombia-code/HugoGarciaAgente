@@ -1125,6 +1125,7 @@ def init_db():
             ("logistica",     "Logística",        "#4a9a6a", "🚚"),
             ("mantenimiento", "Mantenimiento",    "#a68bc8", "🔧"),
             ("contabilidad",  "Contabilidad",     "#0c6069", "🧾"),
+            ("contratos",     "Contratos",        "#64748b", "📄"),
         ]:
             db.execute(
                 "INSERT OR IGNORE INTO categorias (slug, nombre, color, icono) VALUES (?,?,?,?)",
@@ -3293,8 +3294,8 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
         uid   = usuario["id"]
 
         if nuevo_estado == "resuelto":
-            if t["categoria"] == "rrhh" and nivel < 3:
-                return False, "Solo Administración puede aprobar tickets de RR.HH."
+            if t["categoria"] in ("rrhh", "contratos") and nivel < 3:
+                return False, "Solo Administración puede aprobar este tipo de ticket."
             # Las solicitudes solo pueden resolverlas el asignado,
             # EXCEPTO cuando están en revisión: el creador puede aprobarlas.
             if t["tipo"] == "solicitud" and t["asignado_a"] != uid:
@@ -4782,7 +4783,7 @@ def crear_categoria(slug: str, nombre: str, color: str = "#0c6069", icono: str =
 
 
 def eliminar_categoria(slug: str) -> tuple:
-    if slug in ("rrhh", "logistica", "mantenimiento"):
+    if slug in ("rrhh", "logistica", "mantenimiento", "contratos"):
         return False, "No se pueden eliminar las categorías del sistema"
     with _conn() as db:
         cat = db.execute("SELECT id FROM categorias WHERE slug=?", (slug,)).fetchone()

@@ -697,7 +697,7 @@ export default function RecetasPanel({
     if (esRecetaCatalogo(r)) {
       return (
         <span className={`${cls} inline-flex items-center gap-1 bg-amber-500/15 text-amber-800 dark:text-amber-200`}>
-          <TopicIcon value="📚" size={12} weight="duotone" />
+          <TopicIcon value="📚" size={12} weight="regular" />
           Catálogo McKenna
           {r.categoria ? ` · ${etiquetaCategoriaCatalogo(r.categoria)}` : ""}
         </span>
@@ -708,7 +708,7 @@ export default function RecetasPanel({
         className={`${cls} inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300`}
         style={r.reino_color ? { boxShadow: `inset 0 0 0 1px ${r.reino_color}44` } : undefined}
       >
-        <TopicIcon value="🏰" size={12} weight="duotone" />
+        <TopicIcon value="🏰" size={12} weight="regular" />
         {r.reino_nombre ? `Reino: ${r.reino_nombre}` : "Receta de reino"}
       </span>
     );
@@ -1299,7 +1299,7 @@ export default function RecetasPanel({
           </button>
           <div>
             <h2 className="text-xl font-extrabold text-ink">
-              <TopicIconLabel value="📖" size={20} weight="duotone">Recetario</TopicIconLabel>
+              <TopicIconLabel value="📖" size={20} weight="regular">Recetario</TopicIconLabel>
             </h2>
             <p className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
               <span className="inline-flex items-center gap-1"><TopicIcon value="📚" size={12} /> Catálogo importado</span>

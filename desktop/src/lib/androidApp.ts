@@ -33,6 +33,8 @@ type McKennaAndroidBridge = {
   syncAlarma?: (activa: boolean, intervaloMin: number, hayTarea: boolean, precache: boolean) => void;
   hasAudioPermission?: () => boolean;
   requestAudioPermission?: () => void;
+  /** Evita que webView.goBack() regrese al login OAuth. */
+  clearWebHistory?: () => void;
 };
 
 export function mckennaAndroidBridge(): McKennaAndroidBridge | null {

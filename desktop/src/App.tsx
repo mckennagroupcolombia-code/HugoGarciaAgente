@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAppStore, type Panel } from "./stores/app";
 import { useTicketsAuth, type TicketsUser } from "./stores/ticketsAuth";
 import Layout from "./components/Layout";
@@ -19,15 +19,18 @@ import SupervisorPanel from "./components/SupervisorPanel";
 import EtiquetasPanel from "./components/EtiquetasPanel";
 import PublicacionesPanel from "./components/PublicacionesPanel";
 import Settings from "./components/Settings";
+import PerfilPanel from "./components/PerfilPanel";
 import { usePanelTheme } from "./stores/panelTheme";
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
+import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
 
 function PanelRouter() {
   const panel = useAppStore((s) => s.panel);
   switch (panel) {
     case "hugo":
-      return <TicketsPanel key="panel-hugo" agenteEsInicio />;
+    case "tickets":
+      return <TicketsPanel />;
     case "dashboard":
       return <Dashboard />;
     case "chat":
@@ -54,14 +57,14 @@ function PanelRouter() {
       return <PedidosWebPanel />;
     case "facturas":
       return <FacturasCompraPanel />;
-    case "tickets":
-      return <TicketsPanel key="panel-tickets" />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
     case "settings":
       return <Settings />;
+    case "perfil":
+      return <PerfilPanel />;
     default:
       return <Dashboard />;
   }
@@ -154,16 +157,20 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 }
 
 const NAV_ORDER: Panel[] = [
-  "hugo", "dashboard", "tickets", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
+  "hugo", "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
   "sync", "stock", "fichas", "pedidos", "publicaciones", "facturas", "etiquetas", "settings",
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
-  if (panel === "hugo") return puedeVerPanel(user, "tickets");
+  if (panel === "hugo" || panel === "tickets") {
+    if ((user.rol?.nivel ?? 0) >= 3) return true;
+    const p = user.permisos_secciones;
+    if (!p) return true;
+    return Boolean(p.tickets);
+  }
   if ((user.rol?.nivel ?? 0) >= 3) return true;
   const p = user.permisos_secciones;
-  // Sin permisos personalizados: Hugo (tickets) + ajustes por defecto
-  if (!p) return panel === "tickets" || panel === "settings";
+  if (!p) return panel === "settings";
   if (panel === "postventa" && p.preventa) return true;
   return Boolean(p[panel]);
 }
@@ -204,12 +211,30 @@ export default function App() {
     applyTheme();
   }, [applyTheme]);
 
+  useEffect(() => initAppBackNavigation(), []);
+
+  const navHistoryReset = useRef(false);
+  useEffect(() => {
+    if (!user || !token) {
+      navHistoryReset.current = false;
+      return;
+    }
+    if (navHistoryReset.current) return;
+    navHistoryReset.current = true;
+    resetAppNavHistory();
+  }, [user, token]);
+
   // Revalidar sesión al abrir y al volver a la app (evita user.id obsoleto en filtros del móvil)
   useEffect(() => {
     if (!token) return;
     void refreshTicketsSession(token, setAuth, clear);
     return onPanelResume(() => { void refreshTicketsSession(token, setAuth, clear); });
   }, [token, setAuth, clear]);
+
+  // Centro de Mando quedó integrado en Hugo (misma ruta de panel)
+  useEffect(() => {
+    if (panel === "tickets") setPanel("hugo");
+  }, [panel, setPanel]);
 
   // Si el panel persistido no es visible para este usuario, ir al primero disponible
   useEffect(() => {
@@ -220,7 +245,7 @@ export default function App() {
     }
   }, [user, panel, setPanel]);
 
-  // Cada sesión arranca en Hugo (chat), no en Centro de Mando
+  // Cada sesión arranca en Hugo · Centro (hub integrado)
   useEffect(() => {
     if (!user || !puedeVerPanel(user, "hugo")) return;
     try {

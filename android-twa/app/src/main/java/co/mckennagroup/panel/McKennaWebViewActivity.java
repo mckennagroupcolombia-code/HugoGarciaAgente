@@ -270,13 +270,27 @@ public class McKennaWebViewActivity extends Activity {
         }
     }
 
+    void clearWebHistory() {
+        if (webView == null) return;
+        webView.clearHistory();
+    }
+
     @Override
     public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
-            webView.goBack();
-        } else {
+        if (webView == null) {
             super.onBackPressed();
+            return;
         }
+        webView.evaluateJavascript(
+                "(function(){try{return window.__mckennaHandleBack&&window.__mckennaHandleBack()?1:0;}catch(e){return 0;}})()",
+                value -> {
+                    if ("1".equals(value) || "\"1\"".equals(value)) {
+                        return;
+                    }
+                    // En la pantalla raíz minimizar la app; no webView.goBack() (evita volver al login).
+                    moveTaskToBack(true);
+                }
+        );
     }
 
     private boolean shouldOpenExternally(Uri uri) {

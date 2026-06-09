@@ -116,7 +116,7 @@ export function QuestBoardNavLabel({ prefix = true }: { prefix?: boolean }) {
   const title = useQuestBoardTitle((s) => s.title);
   return (
     <span className="inline-flex max-w-[10rem] items-center gap-1 truncate align-middle" title={title}>
-      {prefix ? <Icon name="scroll" size={14} weight="duotone" className="shrink-0" /> : null}
+      {prefix ? <Icon name="scroll" size={14} weight="regular" className="shrink-0" /> : null}
       {title}
     </span>
   );
