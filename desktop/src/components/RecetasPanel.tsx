@@ -3,6 +3,7 @@ import type { TicketsUser } from "../stores/ticketsAuth";
 import { Icon, TopicIcon, TopicIconLabel } from "../icons";
 import { ALERT_ERROR_SM } from "../lib/questStyles";
 import { CorridaCronometroBlock, CronometroPanel, fmtTiempo, useCronometro } from "./Cronometro";
+import { ProseTextarea } from "./ProseTextarea";
 
 function tapi(path: string, token: string, options: RequestInit = {}) {
   return fetch(`/api/tickets${path}`, {
@@ -888,7 +889,7 @@ export default function RecetasPanel({
       {draft.map((p, i) => (
         <div key={i} className="flex gap-2">
           <span className="mt-2 text-xs font-bold text-muted w-5">{i + 1}.</span>
-          <textarea className={`${selCls} flex-1 resize-none`} rows={2} value={p.descripcion}
+          <ProseTextarea className={`${selCls} flex-1 resize-none`} rows={2} value={p.descripcion}
             onChange={(e) => setDraft((d) => d.map((x, j) =>
               j === i ? { ...x, descripcion: e.target.value } : x))} placeholder="Describe el paso…" />
           <button type="button" className="text-red-500 text-xs"
@@ -960,7 +961,7 @@ export default function RecetasPanel({
               </div>
             <div>
               <label className="mb-1 block text-xs font-bold text-muted">Descripción</label>
-              <textarea className={`${selCls} resize-none`} rows={2} value={metaDraft.descripcion}
+              <ProseTextarea className={`${selCls} resize-none`} rows={2} value={metaDraft.descripcion}
                 onChange={(e) => setMetaDraft((m) => ({ ...m, descripcion: e.target.value }))} />
             </div>
           </section>
@@ -1078,7 +1079,7 @@ export default function RecetasPanel({
               </div>
               <div className="sm:col-span-2">
                 <label className="mb-1 block text-xs font-bold text-muted">Descripción</label>
-                <textarea className={`${selCls} resize-none`} rows={2} value={metaDraft.descripcion}
+                <ProseTextarea className={`${selCls} resize-none`} rows={2} value={metaDraft.descripcion}
                   onChange={(e) => setMetaDraft((m) => ({ ...m, descripcion: e.target.value }))} />
               </div>
               <div className="sm:col-span-2">
@@ -1208,7 +1209,7 @@ export default function RecetasPanel({
                 {procesosDraft.map((p, i) => (
                   <div key={i} className="flex gap-2">
                     <span className="mt-2 text-xs font-bold text-muted w-5">{i + 1}.</span>
-                    <textarea
+                    <ProseTextarea
                       className={`${selCls} flex-1 resize-none`}
                       rows={2}
                       value={p.descripcion}

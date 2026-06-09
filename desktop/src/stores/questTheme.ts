@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 interface QuestThemeState {
   dark: boolean;
@@ -7,14 +6,9 @@ interface QuestThemeState {
   setDark: (dark: boolean) => void;
 }
 
-/** Tema del Centro de Mando / Tablero de Quests (no afecta el resto del panel). */
-export const useQuestTheme = create<QuestThemeState>()(
-  persist(
-    (set) => ({
-      dark: true,
-      toggle: () => set((s) => ({ dark: !s.dark })),
-      setDark: (dark) => set({ dark }),
-    }),
-    { name: "mckenna-quest-theme" },
-  ),
-);
+/** Tema del Centro de Mando / Tablero de Quests (persistido por usuario en el servidor). */
+export const useQuestTheme = create<QuestThemeState>()((set) => ({
+  dark: true,
+  toggle: () => set((s) => ({ dark: !s.dark })),
+  setDark: (dark) => set({ dark }),
+}));

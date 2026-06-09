@@ -724,6 +724,7 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "fichas",     label: "Docs técnicos" },
   { id: "pedidos",    label: "Pedidos Web" },
   { id: "facturas",   label: "Facturas Compra" },
+  { id: "etiquetas",  label: "Impresora · Etiquetas" },
   { id: "tickets",    label: "Centro de Mando" },
   { id: "settings",   label: "Ajustes" },
 ];
@@ -799,17 +800,21 @@ function PermisosEditor({
       <div className="space-y-2">
         <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Secciones del panel</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
-          {SIDEBAR_SECCIONES.map((s) => (
-            <label key={s.id} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+          {SIDEBAR_SECCIONES.map((s) => {
+            const siempreActivo = s.id === "etiquetas";
+            return (
+            <label key={s.id} className={`flex items-center gap-2 text-sm text-ink ${siempreActivo ? "opacity-70" : "cursor-pointer"}`}>
               <input
                 type="checkbox"
-                checked={Boolean(permisos[s.id])}
-                onChange={() => toggleSeccion(s.id)}
-                className="h-3.5 w-3.5 rounded border-border accent-accent"
+                checked={siempreActivo || Boolean(permisos[s.id])}
+                disabled={siempreActivo}
+                onChange={() => !siempreActivo && toggleSeccion(s.id)}
+                className="h-3.5 w-3.5 rounded border-border accent-accent disabled:opacity-60"
               />
-              {s.label}
+              {s.label}{siempreActivo ? " (todos)" : ""}
             </label>
-          ))}
+            );
+          })}
         </div>
       </div>
 

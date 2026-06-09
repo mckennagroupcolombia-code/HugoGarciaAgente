@@ -34,35 +34,40 @@
     --mck-shadow-paper-lg: 0 8px 0 rgba(2, 45, 51, 0.07), 0 24px 60px rgba(12, 96, 105, 0.12);
   }
 
-  /* Centro de Mando — oscuro profundo (Daily Quest: #011a1f → #022D33) */
+  /* Oscuro — carbón teal con jerarquía clara y acentos legibles */
   .dark {
-    --mck-surface: 1 14 18;
-    --mck-surface-panel: 2 29 33;
-    --mck-surface-input: 4 40 46;
-    --mck-surface-hover: 6 52 58;
-    --mck-ink: 186 218 222;
-    --mck-ink-secondary: 157 205 212;
-    --mck-ink-muted: 58 126 135;
-    --mck-border: 24 58 64;
-    --mck-border-strong: 38 82 88;
-    --mck-muted: 45 120 128;
-    --mck-accent: 12 96 105;
-    --mck-accent-hover: 61 138 147;
-    --mck-accent-sun: 212 168 52;
-    --mck-accent-sun-deep: 196 148 40;
-    --mck-accent-leaf: 74 154 106;
-    --mck-accent-leaf-deep: 58 130 82;
-    --mck-accent-sky: 61 138 147;
-    --mck-accent-sky-deep: 45 110 118;
-    --mck-accent-rose: 180 110 110;
-    --mck-accent-plum: 140 115 170;
-    --mck-success: 58 160 98;
-    --mck-danger: 190 95 95;
-    --mck-warning: 196 148 48;
-    --mck-shadow-paper: 0 1px 0 rgba(0, 0, 0, 0.5), 0 8px 20px rgba(0, 0, 0, 0.55);
-    --mck-shadow-paper-sm: 0 1px 0 rgba(0, 0, 0, 0.45);
-    --mck-shadow-paper-lg: 0 2px 0 rgba(0, 0, 0, 0.5), 0 16px 40px rgba(0, 0, 0, 0.6);
+    --mck-surface: 12 24 27;
+    --mck-surface-panel: 18 36 40;
+    --mck-surface-input: 26 48 53;
+    --mck-surface-hover: 36 62 68;
+    --mck-ink: 236 246 248;
+    --mck-ink-secondary: 190 220 226;
+    --mck-ink-muted: 128 162 170;
+    --mck-border: 48 82 90;
+    --mck-border-strong: 68 108 116;
+    --mck-muted: 150 178 186;
+    --mck-accent-sun: 238 190 82;
+    --mck-accent-sun-deep: 218 162 52;
+    --mck-accent-leaf: 82 190 128;
+    --mck-accent-leaf-deep: 58 155 98;
+    --mck-accent-sky: 88 186 198;
+    --mck-accent-sky-deep: 62 155 170;
+    --mck-accent-rose: 235 130 130;
+    --mck-accent-plum: 172 142 210;
+    --mck-success: 72 180 118;
+    --mck-danger: 228 110 110;
+    --mck-warning: 228 168 72;
+    --mck-shadow-paper: 0 1px 0 rgba(0, 0, 0, 0.35), 0 6px 20px rgba(0, 0, 0, 0.22);
+    --mck-shadow-paper-sm: 0 1px 0 rgba(0, 0, 0, 0.28);
+    --mck-shadow-paper-lg: 0 2px 0 rgba(0, 0, 0, 0.32), 0 12px 32px rgba(0, 0, 0, 0.28);
     color-scheme: dark;
+  }
+
+  .dark body {
+    background:
+      radial-gradient(ellipse 120% 80% at 0% -20%, rgb(var(--mck-accent) / 0.08), transparent 55%),
+      radial-gradient(ellipse 90% 60% at 100% 100%, rgb(var(--mck-accent-sky) / 0.06), transparent 50%),
+      rgb(var(--mck-surface));
   }
 
   * {
@@ -95,18 +100,9 @@
 }
 
 @layer components {
-  /* Cubre el padding claro del layout cuando el quest está en oscuro */
+  /* Fondo oscuro del Centro de Mando — sin margen horizontal (evita recorte junto al sidebar) */
   .quest-canvas.dark {
     @apply bg-surface text-ink;
-    margin: -1.25rem -1rem;
-    padding: 1.25rem 1rem;
-    min-height: calc(100% + 0.5rem);
-  }
-  @media (min-width: 1024px) {
-    .quest-canvas.dark {
-      margin: -2rem -2.5rem;
-      padding: 2rem 2.5rem;
-    }
   }
 
   .quest-nav-bar {
@@ -160,7 +156,7 @@
     box-shadow: 0 0 12px 0 rgb(var(--mck-accent) / 0.25);
   }
   .quest-canvas.dark .quest-nav-btn:hover {
-    box-shadow: 0 0 12px 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 14px 0 rgb(var(--mck-accent) / 0.28);
   }
   .quest-nav-btn--active {
     border-color: rgb(var(--mck-accent));
@@ -173,16 +169,41 @@
     color: rgb(var(--mck-accent));
   }
 
+  .quest-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--mck-radius-paper);
+    border: 2px solid rgb(var(--mck-accent));
+    background: rgb(var(--mck-accent));
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 2px 0 rgb(var(--mck-accent-hover));
+    transition:
+      transform 0.16s cubic-bezier(0.34, 1.22, 0.64, 1),
+      box-shadow 0.2s ease,
+      filter 0.14s ease,
+      background-color 0.15s ease;
+  }
+  .quest-btn-primary:hover:not(:disabled) {
+    background: rgb(var(--mck-accent-hover));
+    filter: brightness(1.06);
+  }
+  .quest-btn-primary:active:not(:disabled) {
+    transform: scale(0.96) translateY(1px);
+    box-shadow: 0 0 12px rgb(var(--mck-accent-sky) / 0.35);
+  }
+
   .quest-board-toolbar {
     @apply flex flex-col gap-2 rounded-paper border-2 border-border bg-surface-panel/80 px-2.5 py-2.5 sm:px-3 sm:py-3;
   }
   .dark .quest-board-toolbar {
     background: linear-gradient(
       180deg,
-      rgb(var(--mck-surface-panel) / 0.85) 0%,
-      rgb(var(--mck-surface) / 0.95) 100%
+      rgb(var(--mck-surface-panel) / 0.95) 0%,
+      rgb(var(--mck-surface-input) / 0.88) 100%
     );
-    border-color: rgb(var(--mck-border-strong) / 0.5);
+    border-color: rgb(var(--mck-border) / 0.7);
   }
 
   .quest-board-toolbar-brand {
@@ -300,8 +321,8 @@
   .dark .quest-inventario-grupo {
     background: linear-gradient(
       90deg,
-      color-mix(in srgb, var(--inv-accent, #0c6069) 12%, transparent) 0%,
-      rgb(var(--mck-surface-panel) / 0.55) 28%
+      color-mix(in srgb, var(--inv-accent, #58b8c4) 14%, transparent) 0%,
+      rgb(var(--mck-surface-input) / 0.72) 32%
     );
   }
 
@@ -354,8 +375,8 @@
   .dark .quest-reinos-grupo {
     background: linear-gradient(
       90deg,
-      color-mix(in srgb, var(--reino-accent, #0c6069) 10%, transparent) 0%,
-      rgb(var(--mck-surface-panel) / 0.55) 28%
+      color-mix(in srgb, var(--reino-accent, #58b8c4) 12%, transparent) 0%,
+      rgb(var(--mck-surface-input) / 0.72) 32%
     );
   }
   .quest-reinos-grupo-row {
@@ -388,54 +409,48 @@
   .dark .quest-board-banner {
     background: linear-gradient(
       180deg,
-      rgb(var(--mck-surface-panel) / 0.85) 0%,
-      rgb(var(--mck-surface) / 0.95) 100%
+      rgb(var(--mck-surface-panel) / 0.95) 0%,
+      rgb(var(--mck-surface-input) / 0.88) 100%
     );
-    border-color: rgb(var(--mck-border-strong) / 0.5);
-    box-shadow: inset 0 1px 0 rgb(var(--mck-border) / 0.25);
+    border-color: rgb(var(--mck-border) / 0.7);
+    box-shadow: inset 0 1px 0 rgb(var(--mck-border-strong) / 0.2);
   }
 
   .dark .quest-stat-card {
-    background: rgb(var(--mck-surface-panel) / 0.65) !important;
-    box-shadow: none !important;
+    background: rgb(var(--mck-surface-input) / 0.72) !important;
+    border-color: rgb(var(--mck-border) / 0.65) !important;
+    box-shadow: var(--mck-shadow-paper-sm) !important;
   }
 
   .dark .quest-stat-value {
-    opacity: 0.88;
-    filter: saturate(0.5) brightness(0.95);
+    opacity: 1;
   }
 
   .dark .quest-stat-card .text-muted {
-    opacity: 0.85;
-  }
-
-  .dark .quest-mision-chrome {
-    filter: saturate(0.48) brightness(0.9);
+    opacity: 0.92;
   }
 
   .dark .quest-mision-chrome .text-muted,
   .dark .quest-mision-chrome .text-green-600 {
-    filter: none;
-    opacity: 0.8;
+    opacity: 0.88;
   }
 
   .dark .quest-kingdom-title {
-    color: rgb(var(--mck-muted) / 0.85) !important;
+    color: rgb(var(--mck-ink-secondary)) !important;
   }
 
   .dark .quest-kingdom-rule {
-    background: rgb(var(--mck-border) / 0.35) !important;
+    background: rgb(var(--mck-border) / 0.55) !important;
   }
 
   .dark .quest-board-accent-count {
-    color: rgb(var(--mck-accent-sky) / 0.75) !important;
+    color: rgb(var(--mck-accent-sky)) !important;
   }
 
   .dark .quest-status-orb {
-    --tw-ring-color: rgb(var(--mck-border) / 0.5);
+    --tw-ring-color: rgb(var(--mck-border-strong) / 0.65);
     --tw-ring-offset-color: rgb(var(--mck-surface-panel));
-    opacity: 0.85;
-    filter: saturate(0.45);
+    opacity: 1;
   }
 
   .dark .shadow-paper,
@@ -488,12 +503,12 @@
     box-shadow: inset 0 1px 0 rgb(var(--mck-border) / 0.35);
   }
   .quest-canvas.dark .quest-board-cork {
-    border-color: rgb(var(--mck-border) / 0.45);
-    background-color: rgb(var(--mck-surface-input) / 0.35);
+    border-color: rgb(var(--mck-border) / 0.55);
+    background-color: rgb(var(--mck-surface-input) / 0.55);
     background-image:
-      radial-gradient(ellipse 70% 40% at 50% 0%, rgb(var(--mck-accent) / 0.12), transparent 60%),
-      radial-gradient(circle, rgb(var(--mck-border) / 0.35) 1px, transparent 1px);
-    box-shadow: inset 0 1px 0 rgb(var(--mck-border) / 0.2);
+      radial-gradient(ellipse 70% 45% at 50% 0%, rgb(var(--mck-accent) / 0.14), transparent 62%),
+      radial-gradient(circle, rgb(var(--mck-border) / 0.28) 1px, transparent 1px);
+    box-shadow: inset 0 1px 0 rgb(var(--mck-border-strong) / 0.25);
   }
 
   .quest-sticky-grid {
@@ -675,15 +690,17 @@
       12px 28px 48px rgba(0, 0, 0, 0.1);
   }
   .quest-canvas.dark .quest-sticky {
-    border-color: rgb(var(--mck-border) / 0.35);
+    border-color: rgb(var(--mck-border-strong) / 0.45);
     box-shadow:
-      0 1px 0 rgba(0, 0, 0, 0.4),
-      4px 10px 24px rgba(0, 0, 0, 0.45);
+      0 1px 0 rgba(0, 0, 0, 0.3),
+      0 6px 18px rgba(0, 0, 0, 0.24),
+      inset 0 1px 0 rgb(255 255 255 / 0.04);
   }
   .quest-canvas.dark .quest-sticky:hover {
     box-shadow:
-      0 2px 0 rgba(0, 0, 0, 0.45),
-      8px 18px 36px rgba(0, 0, 0, 0.55);
+      0 2px 0 rgba(0, 0, 0, 0.32),
+      0 10px 28px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
   }
 
   .quest-sticky-mission--compact .quest-sticky-tape {
@@ -706,10 +723,10 @@
   .quest-canvas.dark .quest-sticky-tape {
     background: linear-gradient(
       180deg,
-      rgba(180, 175, 150, 0.55) 0%,
-      rgba(140, 135, 115, 0.35) 100%
+      rgb(var(--mck-accent-sky) / 0.65) 0%,
+      rgb(var(--mck-accent) / 0.4) 100%
     );
-    opacity: 0.75;
+    opacity: 0.82;
   }
 
   .quest-sticky-mission {
@@ -805,11 +822,11 @@
     transform: translateY(-1px);
   }
   .quest-canvas.dark .quest-sticky-task {
-    background: rgba(0, 0, 0, 0.22);
-    border-color: rgb(var(--mck-border) / 0.3);
+    background: rgb(var(--mck-surface-panel) / 0.55);
+    border-color: rgb(var(--mck-border) / 0.45);
   }
   .quest-canvas.dark .quest-sticky-task:hover {
-    background: rgba(0, 0, 0, 0.32);
+    background: rgb(var(--mck-surface-hover) / 0.65);
   }
 
   .quest-kingdom-pin {
@@ -904,6 +921,112 @@
   to   { stroke-dashoffset: 0; }
 }
 
+/* ── Efectos sutiles de fantasía al pulsar botones ── */
+@keyframes mck-fantasy-ripple-out {
+  from {
+    transform: translate(-50%, -50%) scale(0.12);
+    opacity: 0.5;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes mck-fantasy-spark-fly {
+  from {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.95;
+  }
+  to {
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% + var(--dy, 0px))) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes mck-fantasy-glow-flash {
+  0% {
+    box-shadow:
+      inset 0 0 0 rgb(var(--mck-accent-plum) / 0),
+      0 0 0 rgb(var(--mck-accent-sky) / 0);
+  }
+  35% {
+    box-shadow:
+      inset 0 0 20px rgb(var(--mck-accent-plum) / 0.14),
+      0 0 18px rgb(var(--mck-accent-sky) / 0.32),
+      0 0 6px rgb(var(--mck-accent-sun) / 0.2);
+  }
+  100% {
+    box-shadow:
+      inset 0 0 0 transparent,
+      0 0 0 transparent;
+  }
+}
+
+#root button:not(:disabled):not(.mck-btn-no-fx):not(.sr-only):not(.paso-checklist-input),
+#root [role="button"]:not([aria-disabled="true"]):not(.mck-btn-no-fx) {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition:
+    transform 0.16s cubic-bezier(0.34, 1.22, 0.64, 1),
+    box-shadow 0.22s ease,
+    filter 0.14s ease;
+}
+
+#root button:not(:disabled):not(.mck-btn-no-fx):not(.sr-only):active,
+#root [role="button"]:not([aria-disabled="true"]):not(.mck-btn-no-fx):active {
+  transform: scale(0.975);
+  filter: brightness(1.05) saturate(1.06);
+}
+
+.mck-fantasy-ripple {
+  position: absolute;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    circle,
+    rgb(var(--mck-accent-sky) / 0.42) 0%,
+    rgb(var(--mck-accent-plum) / 0.18) 38%,
+    transparent 72%
+  );
+  animation: mck-fantasy-ripple-out 0.52s ease-out forwards;
+}
+
+.mck-fantasy-spark {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  background: rgb(var(--mck-accent-sun));
+  box-shadow:
+    0 0 5px rgb(var(--mck-accent-sun) / 0.85),
+    0 0 10px rgb(var(--mck-accent-sky) / 0.35);
+  animation: mck-fantasy-spark-fly 0.42s ease-out forwards;
+}
+
+.mck-fantasy-flash {
+  animation: mck-fantasy-glow-flash 0.48s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root button:not(:disabled):not(.mck-btn-no-fx),
+  #root [role="button"]:not([aria-disabled="true"]):not(.mck-btn-no-fx) {
+    transition: none;
+  }
+  .mck-fantasy-ripple,
+  .mck-fantasy-spark,
+  .mck-fantasy-flash {
+    display: none !important;
+    animation: none !important;
+  }
+}
+
 .mck-slide-right { animation: mck-slide-in-right 0.28s cubic-bezier(.25,.46,.45,.94) both; }
 .mck-slide-left  { animation: mck-slide-in-left  0.28s cubic-bezier(.25,.46,.45,.94) both; }
 .mck-slide-up    { animation: mck-slide-up       0.28s cubic-bezier(.25,.46,.45,.94) both; }
@@ -990,20 +1113,39 @@
     line-height: 1.35;
   }
 
-  /* Hugo integrado al pie del Centro de Mando */
-  .hugo-dock {
-    flex-shrink: 0;
-    background: var(--mck-surface-panel, #fff);
+  /* Hugo en Centro de Mando — botón flotante + panel de chat */
+  .hugo-dock-fab {
+    position: absolute;
+    right: max(1rem, env(safe-area-inset-right, 0px));
+    bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
   }
-  .hugo-dock--collapsed {
-    max-height: none;
+  .hugo-dock-panel {
+    position: absolute;
+    right: max(0.75rem, env(safe-area-inset-right, 0px));
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    width: min(24rem, calc(100% - 1.5rem));
+    max-height: min(72dvh, 34rem);
+    border-radius: 1.25rem;
+    border: 2px solid var(--mck-border, #e2e8f0);
+    background: var(--mck-surface, #fff);
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+    overflow: hidden;
   }
-  .hugo-dock--expanded {
-    max-height: min(42dvh, 22rem);
-  }
-  @media (min-width: 1024px) {
-    .hugo-dock--expanded {
-      max-height: min(38dvh, 20rem);
+  @media (min-width: 640px) {
+    .hugo-dock-panel {
+      width: 22rem;
+      max-height: min(68dvh, 32rem);
     }
   }
 

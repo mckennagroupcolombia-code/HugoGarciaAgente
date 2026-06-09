@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
+import { ProseTextarea } from "./ProseTextarea";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import WhatsAppMetricas from "./WhatsAppMetricas";
 
@@ -1395,7 +1396,7 @@ function BibliotecaDrawer({ jid, onClose }: { jid: string; onClose: () => void }
             className="w-full rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-xs text-ink placeholder:text-muted focus:outline-none focus:border-accent"
           />
           {formTipo === "texto" && (
-            <textarea value={formContenido} onChange={(e) => setFormContenido(e.target.value)}
+            <ProseTextarea value={formContenido} onChange={(e) => setFormContenido(e.target.value)}
               placeholder="Texto completo que se enviará al cliente…"
               rows={3}
               className="w-full resize-none rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-xs text-ink placeholder:text-muted focus:outline-none focus:border-accent"
@@ -1864,7 +1865,7 @@ function TabChats() {
                 >
                   📎
                 </button>
-                <textarea
+                <ProseTextarea
                   value={texto}
                   onChange={(e) => setTexto(e.target.value)}
                   onKeyDown={(e) => {
@@ -1915,7 +1916,7 @@ function TabFiltroRespuesta() {
 
   return (
     <div className="mx-auto max-w-xl space-y-3 pt-2">
-      <textarea
+      <ProseTextarea
         value={texto}
         onChange={(e) => { setTexto(e.target.value); setResultado(""); }}
         onKeyDown={(e) => { if (e.key === "Enter" && e.ctrlKey) mejorar(); }}

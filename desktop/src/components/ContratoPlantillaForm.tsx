@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ProseTextarea } from "./ProseTextarea";
 import {
   type ContratoPrestacionDatos,
   datosPrestacionVacios,
@@ -149,17 +150,17 @@ export function ContratoPlantillaForm({ onDatosChange }: Props) {
       <div className="space-y-4">
         <p className="text-xs font-bold uppercase tracking-wide text-accent">Términos del contrato</p>
         <Field label="Objeto del contrato" required>
-          <textarea className={`${inputCls} resize-none`} rows={3} required
+          <ProseTextarea className={`${inputCls} resize-none`} rows={3} required
             value={datos.objeto} onChange={(e) => patch({ objeto: e.target.value })}
             placeholder="Describa el servicio: alcance, entregables, lugar de ejecución…" />
         </Field>
         <Field label="Obligaciones del contratista">
-          <textarea className={`${inputCls} resize-none`} rows={3}
+          <ProseTextarea className={`${inputCls} resize-none`} rows={3}
             value={datos.obligacionesContratista}
             onChange={(e) => patch({ obligacionesContratista: e.target.value })} />
         </Field>
         <Field label="Obligaciones del contratante">
-          <textarea className={`${inputCls} resize-none`} rows={2}
+          <ProseTextarea className={`${inputCls} resize-none`} rows={2}
             value={datos.obligacionesContratante}
             onChange={(e) => patch({ obligacionesContratante: e.target.value })} />
         </Field>
@@ -187,7 +188,7 @@ export function ContratoPlantillaForm({ onDatosChange }: Props) {
           </Field>
         </div>
         <Field label="Forma de pago">
-          <textarea className={`${inputCls} resize-none`} rows={2}
+          <ProseTextarea className={`${inputCls} resize-none`} rows={2}
             value={datos.formaPago} onChange={(e) => patch({ formaPago: e.target.value })} />
         </Field>
       </div>

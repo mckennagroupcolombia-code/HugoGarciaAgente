@@ -705,6 +705,13 @@ def _migrate_usuario_permisos():
         db.commit()
 
 
+def _migrate_usuario_preferencias_ui():
+    """Preferencias visuales del panel por usuario (tema, acento, modo quest)."""
+    with _conn() as db:
+        _add_col(db, "usuarios", "preferencias_ui", "TEXT DEFAULT NULL")
+        db.commit()
+
+
 def _migrate_ticket_protocolo_id():
     """Vincula tickets/solicitudes con un protocolo estándar reutilizable."""
     with _conn() as db:
@@ -856,6 +863,7 @@ def init_db():
     _safe_migrate(_migrate_ticket_fecha_inicio)
     _safe_migrate(_migrate_usuario_google)
     _safe_migrate(_migrate_usuario_permisos)
+    _safe_migrate(_migrate_usuario_preferencias_ui)
     _safe_migrate(_migrate_usuario_departamentos)
     _safe_migrate(_migrate_usuario_telefono)
     _safe_migrate(_migrate_ticket_protocolo_id)
@@ -1221,7 +1229,7 @@ def _usuario_full(db, user_id: int) -> dict | None:
     import json as _json
     row = db.execute("""
         SELECT u.id, u.nombre, u.username, u.email, u.telefono, u.activo, u.creado_en, u.foto,
-               u.permisos_secciones,
+               u.permisos_secciones, u.preferencias_ui,
                r.id as rol_id, r.nombre as rol_nombre, r.nivel as rol_nivel,
                d.id as dept_id, d.nombre as dept_nombre, d.color as dept_color
         FROM usuarios u
@@ -1235,6 +1243,12 @@ def _usuario_full(db, user_id: int) -> dict | None:
     if row["permisos_secciones"]:
         try:
             permisos = _json.loads(row["permisos_secciones"])
+        except Exception:
+            pass
+    preferencias_ui = None
+    if row["preferencias_ui"]:
+        try:
+            preferencias_ui = _json.loads(row["preferencias_ui"])
         except Exception:
             pass
     # Multi-department: query junction table
@@ -1259,6 +1273,7 @@ def _usuario_full(db, user_id: int) -> dict | None:
         "creado_en": row["creado_en"],
         "foto":     row["foto"],
         "permisos_secciones": permisos,
+        "preferencias_ui": preferencias_ui,
         "rol": {"id": row["rol_id"], "nombre": row["rol_nombre"], "nivel": row["rol_nivel"]}
                if row["rol_id"] else None,
         "departamento": primary_dept,
@@ -1560,6 +1575,82 @@ def desactivar_usuario(user_id: int, solicitante_id: int) -> tuple:
         db.execute("UPDATE usuarios SET activo=0 WHERE id=?", (user_id,))
         db.commit()
     return True, None
+
+
+def actualizar_preferencias_ui(user_id: int, preferencias: dict) -> tuple[bool, str | None, dict | None]:
+    """Guarda tema del panel asociado al usuario (JSON validado)."""
+    import json as _json
+
+    if not isinstance(preferencias, dict):
+        return False, "preferencias inválidas", None
+
+    panel_in = preferencias.get("panel")
+    quest_in = preferencias.get("quest")
+    clean: dict = {}
+
+    if panel_in is not None:
+        if not isinstance(panel_in, dict):
+            return False, "panel inválido", None
+        panel: dict = {}
+        mode = panel_in.get("mode")
+        if mode is not None:
+            if mode not in ("light", "dark", "system"):
+                return False, "mode inválido", None
+            panel["mode"] = mode
+        font = panel_in.get("fontSans")
+        if font is not None:
+            if font not in ("Montserrat", "Inter", "DM Sans", "Nunito", "system-ui"):
+                return False, "fontSans inválido", None
+            panel["fontSans"] = font
+        accent = panel_in.get("accentRgb")
+        if accent is not None:
+            parts = str(accent).strip().split()
+            if len(parts) != 3 or not all(p.isdigit() and 0 <= int(p) <= 255 for p in parts):
+                return False, "accentRgb inválido", None
+            panel["accentRgb"] = " ".join(str(int(p)) for p in parts)
+        radius = panel_in.get("radius")
+        if radius is not None:
+            if radius not in ("sm", "md", "lg"):
+                return False, "radius inválido", None
+            panel["radius"] = radius
+        if panel:
+            clean["panel"] = panel
+
+    if quest_in is not None:
+        if not isinstance(quest_in, dict):
+            return False, "quest inválido", None
+        quest: dict = {}
+        if "dark" in quest_in:
+            quest["dark"] = bool(quest_in["dark"])
+        if quest:
+            clean["quest"] = quest
+
+    if not clean:
+        return False, "Nada que guardar", None
+
+    with _conn() as db:
+        row = db.execute(
+            "SELECT preferencias_ui FROM usuarios WHERE id=? AND activo=1",
+            (user_id,),
+        ).fetchone()
+        if not row:
+            return False, "Usuario no encontrado", None
+        merged = {}
+        if row["preferencias_ui"]:
+            try:
+                merged = _json.loads(row["preferencias_ui"]) or {}
+            except Exception:
+                merged = {}
+        if "panel" in clean:
+            merged["panel"] = {**(merged.get("panel") or {}), **clean["panel"]}
+        if "quest" in clean:
+            merged["quest"] = {**(merged.get("quest") or {}), **clean["quest"]}
+        db.execute(
+            "UPDATE usuarios SET preferencias_ui=? WHERE id=?",
+            (_json.dumps(merged), user_id),
+        )
+        db.commit()
+    return True, None, merged
 
 
 def actualizar_permisos_secciones(user_id: int, permisos: dict, admin_id: int) -> tuple[bool, str | None]:
@@ -3546,7 +3637,7 @@ def asignar_ticket(ticket_id: int, asignado_a: int | None, usuario: dict) -> tup
 def listar_comentarios(ticket_id: int) -> list:
     with _conn() as db:
         rows = db.execute("""
-            SELECT c.id, c.texto, c.es_interno, c.creado_en,
+            SELECT c.id, c.texto, c.es_interno, c.creado_en, c.usuario_id,
                    u.nombre AS autor_nombre
             FROM comentarios_tickets c
             LEFT JOIN usuarios u ON u.id = c.usuario_id

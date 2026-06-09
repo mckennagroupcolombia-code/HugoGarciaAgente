@@ -15,7 +15,7 @@ from app.services.tickets_db import (
     listar_roles, crear_rol, actualizar_rol,
     listar_departamentos, crear_departamento, actualizar_departamento,
     listar_usuarios, crear_usuario, actualizar_usuario, desactivar_usuario,
-    actualizar_foto_usuario, eliminar_foto_usuario,
+    actualizar_foto_usuario, eliminar_foto_usuario, actualizar_preferencias_ui,
     crear_ticket, listar_tickets, listar_compras_delegadas, get_ticket, actualizar_ticket,
     cambiar_estado, asignar_ticket, agregar_comentario,
     renovar_ticket,
@@ -387,6 +387,16 @@ def register_tickets_routes(app):
         usuario = get_usuario_by_token(token)
         return jsonify({"ok": True, "usuario": usuario}), 200
 
+    @app.route("/api/tickets/auth/me/preferencias", methods=["PUT"])
+    @_auth
+    def tickets_preferencias_me():
+        data = request.get_json(force=True) or {}
+        uid = request.tickets_usuario["id"]
+        ok, err, merged = actualizar_preferencias_ui(uid, data)
+        if not ok:
+            return jsonify({"error": err or "No se pudo guardar"}), 400
+        return jsonify({"ok": True, "preferencias_ui": merged}), 200
+
     @app.route("/api/tickets/auth/logout", methods=["POST"])
     @_auth
     def tickets_logout():
@@ -721,9 +731,18 @@ def register_tickets_routes(app):
                 "descripcion": request.form.get("descripcion", ""),
                 "prioridad":   request.form.get("prioridad", "media"),
                 "asignado_a":  request.form.get("asignado_a") or None,
+                "tipo":        request.form.get("tipo") or "ticket",
             }
         else:
             data = request.get_json(force=True) or {}
+
+        nivel_usuario = (usuario.get("rol") or {}).get("nivel", 0)
+        if data.get("categoria") == "contratos":
+            if nivel_usuario < 3:
+                return jsonify({"error": "Solo administradores pueden gestionar contratos"}), 403
+            if not data.get("asignado_a"):
+                return jsonify({"error": "Debes asignar la solicitud de contrato a un aliado"}), 400
+            data["tipo"] = "solicitud"
 
         tipo_ticket = data.get("tipo", "ticket")
         # Para acciones y solicitudes, descripcion es opcional

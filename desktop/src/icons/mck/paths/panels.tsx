@@ -104,8 +104,10 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
   ),
   etiquetas: (
     <>
-      <path d="M6 5h7l7 7-7 7H6V5z" />
-      <path d="M6 9h3M17 7l2 2" />
+      <path d="M6 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4" />
+      <rect x="6" y="9" width="12" height="8" rx="1.5" />
+      <path d="M6 13H4a2 2 0 0 0-2 2v3h16v-3a2 2 0 0 0-2-2h-2" />
+      <path d="M6 17v2h12v-2" />
     </>
   ),
   publicaciones: (

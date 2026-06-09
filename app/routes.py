@@ -6326,25 +6326,108 @@ def register_routes(app):
         "Diecut_Blackmark": "Diecut_Blackmark",
         "Contlabel_no_detection": "Contlabel_no_detection",
     }
-    _MAPEO_ROTACION = {"0": "3", "90": "4", "180": "6", "270": "5"}
+    _MAPEO_ROTACION = {"0": "3", "90": "4"}
     _MAPEO_CALIDAD = {
         "MaxSpeed": "MaxSpeed", "Speed": "Speed", "Normal": "Normal",
         "Quality": "Quality", "MaxQuality": "MaxQuality",
     }
 
-    # Raíz permitida para el navegador de archivos (no se puede ir más arriba)
-    _FILE_BROWSER_ROOT = os.path.expanduser("~")
+    _FILE_BROWSER_BLOQUEADOS = ("/proc", "/sys", "/dev")
+    _ROOT_DIRS_UTILES = frozenset({
+        "home", "media", "mnt", "opt", "srv", "tmp", "usr", "var", "run",
+    })
+
+    def _resolver_ruta_pdf_etiquetas(ruta: str) -> str:
+        if not ruta:
+            return ""
+        if not os.path.isabs(ruta):
+            ruta = os.path.join(_PDF_DIR, ruta)
+        return os.path.realpath(ruta)
+
+    def _ruta_pdf_etiquetas_ok(ruta: str) -> tuple:
+        """Valida lectura de PDF en cualquier disco montado (bloquea /proc, /sys, /dev)."""
+        r = _resolver_ruta_pdf_etiquetas(ruta)
+        if not r:
+            return None, "Falta ruta_pdf"
+        if not r.startswith("/"):
+            return None, "Ruta inválida"
+        for bloq in _FILE_BROWSER_BLOQUEADOS:
+            if r == bloq or r.startswith(bloq + "/"):
+                return None, "Ruta no permitida"
+        if not os.path.isfile(r):
+            return None, "Archivo no encontrado"
+        if not r.lower().endswith(".pdf"):
+            return None, "Debe ser un archivo PDF"
+        return r, None
+
+    def _listar_discos_entrada_etiquetas() -> list:
+        items: list = []
+        vistos: set = set()
+
+        def _agregar(nombre: str, ruta: str, icono: str = "disco") -> None:
+            try:
+                rr = os.path.realpath(ruta)
+            except OSError:
+                return
+            if rr in vistos or not os.path.isdir(rr):
+                return
+            vistos.add(rr)
+            items.append({"nombre": nombre, "ruta": rr, "icono": icono})
+
+        home = os.path.expanduser("~")
+        _agregar(f"Inicio ({os.path.basename(home) or 'home'})", home, "home")
+
+        for base in ("/media", "/mnt", "/run/media"):
+            if not os.path.isdir(base):
+                continue
+            try:
+                for nombre in sorted(os.listdir(base), key=str.lower):
+                    if nombre.startswith("."):
+                        continue
+                    full = os.path.join(base, nombre)
+                    if not os.path.isdir(full):
+                        continue
+                    if base in ("/media", "/run/media"):
+                        try:
+                            hijos = [
+                                s for s in os.listdir(full)
+                                if not s.startswith(".")
+                                and os.path.isdir(os.path.join(full, s))
+                            ]
+                            if hijos:
+                                for sub in sorted(hijos, key=str.lower):
+                                    _agregar(sub, os.path.join(full, sub), "usb")
+                                continue
+                        except PermissionError:
+                            pass
+                    _agregar(nombre, full, "disco")
+            except PermissionError:
+                continue
+
+        _agregar("Sistema (/)", "/", "sistema")
+        return items
 
     @app.route("/api/etiquetas/navegar", methods=["GET"])
     def api_etiquetas_navegar():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        ruta = request.args.get("ruta", _FILE_BROWSER_ROOT)
-        ruta = os.path.realpath(ruta)
-        root_real = os.path.realpath(_FILE_BROWSER_ROOT)
-        # Seguridad: no salir de la raíz permitida
-        if not ruta.startswith(root_real):
-            ruta = root_real
+        ruta_param = (request.args.get("ruta") or "").strip()
+        if not ruta_param or ruta_param == "__raiz__":
+            return jsonify({
+                "ruta_actual": "",
+                "padre": None,
+                "modo_raiz": True,
+                "discos": _listar_discos_entrada_etiquetas(),
+                "carpetas": [],
+                "pdfs": [],
+            })
+
+        ruta = os.path.realpath(ruta_param)
+        if not ruta.startswith("/"):
+            return jsonify({"error": "Ruta inválida"}), 400
+        for bloq in _FILE_BROWSER_BLOQUEADOS:
+            if ruta == bloq or ruta.startswith(bloq + "/"):
+                return jsonify({"error": "Ruta no permitida"}), 403
         if not os.path.isdir(ruta):
             return jsonify({"error": "Directorio no encontrado"}), 404
         try:
@@ -6354,6 +6437,8 @@ def register_routes(app):
                 if nombre.startswith("."):
                     continue
                 if os.path.isdir(ruta_item):
+                    if ruta == "/" and nombre not in _ROOT_DIRS_UTILES:
+                        continue
                     carpetas.append(nombre)
                 elif nombre.lower().endswith(".pdf"):
                     pdfs.append({
@@ -6361,10 +6446,16 @@ def register_routes(app):
                         "ruta_completa": ruta_item,
                         "tamano_kb": round(os.path.getsize(ruta_item) / 1024, 1),
                     })
-            padre = os.path.dirname(ruta) if ruta != root_real else None
+            if ruta == "/":
+                padre = "__raiz__"
+            else:
+                padre_dir = os.path.dirname(ruta)
+                padre = padre_dir if padre_dir and padre_dir != ruta else "__raiz__"
             return jsonify({
                 "ruta_actual": ruta,
                 "padre": padre,
+                "modo_raiz": False,
+                "discos": [],
                 "carpetas": carpetas,
                 "pdfs": pdfs,
             })
@@ -6711,9 +6802,9 @@ def register_routes(app):
                 lh2 = lote_font * 1.35
                 lineas2 = []
                 if lote:
-                    lineas2.append(f"Lote: {lote}")
+                    lineas2.append(lote)
                 if vencimiento:
-                    lineas2.append(f"Vence: {vencimiento}")
+                    lineas2.append(vencimiento)
                 if lote_pos == "bottom-left":
                     xp = margen
                     yb = margen + lh2 * (len(lineas2) - 1)
@@ -6770,9 +6861,9 @@ def register_routes(app):
             # Texto a imprimir
             lineas = []
             if lote:
-                lineas.append(f"Lote: {lote}")
+                lineas.append(lote)
             if vencimiento:
-                lineas.append(f"Vence: {vencimiento}")
+                lineas.append(vencimiento)
 
             if pos == "bottom-left":
                 x = margen
@@ -6822,14 +6913,10 @@ def register_routes(app):
         if not ruta_pdf:
             return jsonify({"error": "Falta ruta_pdf"}), 400
 
-        if not os.path.isabs(ruta_pdf):
-            ruta_pdf = os.path.join(_PDF_DIR, ruta_pdf)
-        ruta_pdf = os.path.realpath(ruta_pdf)
-        home_real = os.path.realpath(os.path.expanduser("~"))
-        if not ruta_pdf.startswith(home_real):
-            return jsonify({"error": "Ruta no permitida"}), 400
-        if not os.path.isfile(ruta_pdf):
-            return jsonify({"error": "Archivo no encontrado"}), 404
+        ruta_pdf, err_pdf = _ruta_pdf_etiquetas_ok(ruta_pdf)
+        if err_pdf:
+            code = 404 if "no encontrado" in err_pdf.lower() else 400
+            return jsonify({"error": err_pdf}), code
 
         tmp_pdf = None
         tmp_dir = None
@@ -6897,15 +6984,10 @@ def register_routes(app):
         if not ruta_pdf:
             return jsonify({"error": "Debe especificar ruta_pdf"}), 400
 
-        # Validar ruta: debe estar dentro del home del usuario
-        if not os.path.isabs(ruta_pdf):
-            ruta_pdf = os.path.join(_PDF_DIR, ruta_pdf)
-        ruta_pdf = os.path.realpath(ruta_pdf)
-        home_real = os.path.realpath(os.path.expanduser("~"))
-        if not ruta_pdf.startswith(home_real):
-            return jsonify({"error": "Ruta PDF no permitida"}), 400
-        if not os.path.isfile(ruta_pdf):
-            return jsonify({"error": "Archivo PDF no encontrado"}), 404
+        ruta_pdf, err_pdf = _ruta_pdf_etiquetas_ok(ruta_pdf)
+        if err_pdf:
+            code = 404 if "no encontrado" in err_pdf.lower() else 400
+            return jsonify({"error": err_pdf}), code
 
         ancho, alto = _ETIQUETAS[producto]
         max_ancho, max_alto = _ETIQUETAS_MAX_MM
@@ -7284,12 +7366,10 @@ def register_routes(app):
         ruta_pdf = request.args.get("ruta_pdf", "").strip()
         if not ruta_pdf:
             return jsonify({"error": "Falta ruta_pdf"}), 400
-        if not os.path.isabs(ruta_pdf):
-            ruta_pdf = os.path.join(_PDF_DIR, ruta_pdf)
-        ruta_pdf = os.path.realpath(ruta_pdf)
-        home_real = os.path.realpath(os.path.expanduser("~"))
-        if not ruta_pdf.startswith(home_real) or not os.path.isfile(ruta_pdf):
-            return jsonify({"error": "Archivo no encontrado o ruta no permitida"}), 404
+        ruta_pdf, err_pdf = _ruta_pdf_etiquetas_ok(ruta_pdf)
+        if err_pdf:
+            code = 404 if "no encontrado" in err_pdf.lower() else 400
+            return jsonify({"error": err_pdf}), code
         try:
             import fitz as _fitz
             doc = _fitz.open(ruta_pdf)
@@ -7344,12 +7424,10 @@ def register_routes(app):
 
         if not ruta_pdf:
             return jsonify({"error": "Falta ruta_pdf"}), 400
-        if not os.path.isabs(ruta_pdf):
-            ruta_pdf = os.path.join(_PDF_DIR, ruta_pdf)
-        ruta_pdf = os.path.realpath(ruta_pdf)
-        home_real = os.path.realpath(os.path.expanduser("~"))
-        if not ruta_pdf.startswith(home_real) or not os.path.isfile(ruta_pdf):
-            return jsonify({"error": "Archivo no encontrado o ruta no permitida"}), 404
+        ruta_pdf, err_pdf = _ruta_pdf_etiquetas_ok(ruta_pdf)
+        if err_pdf:
+            code = 404 if "no encontrado" in err_pdf.lower() else 400
+            return jsonify({"error": err_pdf}), code
 
         # Solo los spans que cambiaron
         cambios = [

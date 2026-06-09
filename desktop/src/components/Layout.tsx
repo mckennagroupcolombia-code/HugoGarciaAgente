@@ -13,8 +13,9 @@ export default function Layout({ children }: { children: ReactNode }) {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggle = useAppStore((s) => s.toggleSidebar);
   const isAdmin = (useTicketsAuth((s) => s.user)?.rol?.nivel ?? 0) >= 3;
+  const isCentroMando = panel === "hugo" || panel === "tickets";
   const hubIntegrado =
-    (panel === "hugo" || panel === "tickets") && centroMandoView === "home";
+    isCentroMando && centroMandoView === "home";
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
@@ -48,8 +49,10 @@ export default function Layout({ children }: { children: ReactNode }) {
         <div className="flex flex-1 flex-col overflow-hidden">
           <div
             className={`min-h-0 min-w-0 flex-1 ${
-              hubIntegrado
-                ? "flex flex-col overflow-hidden"
+              isCentroMando
+                ? hubIntegrado
+                  ? "flex min-h-0 flex-col overflow-hidden px-5 pt-4 lg:px-10 lg:pt-5"
+                  : "overflow-x-hidden overflow-y-auto px-5 py-5 lg:px-10 lg:py-6"
                 : "overflow-x-hidden overflow-y-auto px-4 py-5 lg:px-10 lg:py-8"
             }`}
           >

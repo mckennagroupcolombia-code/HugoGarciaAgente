@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { ProseTextarea } from "./ProseTextarea";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -45,11 +46,28 @@ interface PreviewResp {
   error?: string;
 }
 
+interface DiscoItem {
+  nombre: string;
+  ruta: string;
+  icono?: "home" | "disco" | "usb" | "sistema";
+}
+
 interface NavResp {
   ruta_actual: string;
   padre: string | null;
+  modo_raiz?: boolean;
+  discos?: DiscoItem[];
   carpetas: string[];
   pdfs: { nombre: string; ruta_completa: string; tamano_kb: number }[];
+}
+
+function iconoDisco(icono?: DiscoItem["icono"]): string {
+  switch (icono) {
+    case "home": return "🏠";
+    case "usb": return "💾";
+    case "sistema": return "🖥️";
+    default: return "💿";
+  }
 }
 
 interface ComboSiigo {
@@ -122,6 +140,53 @@ function rotacionDefaultEtiqueta(tipo: string): string {
   return ETIQUETAS_ROTACION_DEFAULT[tipo] ?? "0";
 }
 
+/** Solo 0° y 90° están disponibles en el panel. */
+function rotacionValida(r: string | undefined): string {
+  return r === "90" ? "90" : "0";
+}
+
+const LOTE_PREFIJO = "LOT.";
+const EXP_PREFIJO = "EXP.";
+
+function conPrefijoLote(val: string | undefined): string {
+  const v = (val ?? "").trim();
+  if (!v) return LOTE_PREFIJO;
+  if (v.toUpperCase().startsWith(LOTE_PREFIJO)) return v;
+  if (v.toUpperCase().startsWith("LOT")) return LOTE_PREFIJO + v.slice(3).replace(/^[.\s]+/, "");
+  return LOTE_PREFIJO + v;
+}
+
+function conPrefijoExp(val: string | undefined): string {
+  const v = (val ?? "").trim();
+  if (!v) return EXP_PREFIJO;
+  if (v.toUpperCase().startsWith(EXP_PREFIJO)) return v;
+  if (v.toUpperCase().startsWith("EXP")) return EXP_PREFIJO + v.slice(3).replace(/^[.\s]+/, "");
+  return EXP_PREFIJO + v;
+}
+
+function editarConPrefijo(valor: string, prefijo: string): string {
+  const upper = valor.toUpperCase();
+  const prefUpper = prefijo.toUpperCase();
+  if (!upper.startsWith(prefUpper)) {
+    const stripped = valor.replace(new RegExp(`^${prefijo.replace(".", "\\.")}`, "i"), "");
+    return prefijo + stripped;
+  }
+  if (valor.length < prefijo.length) return prefijo;
+  return valor;
+}
+
+function loteParaEtiqueta(val: string): string | undefined {
+  const v = val.trim();
+  if (!v || v === LOTE_PREFIJO) return undefined;
+  return v;
+}
+
+function expParaEtiqueta(val: string): string | undefined {
+  const v = val.trim();
+  if (!v || v === EXP_PREFIJO) return undefined;
+  return v;
+}
+
 const FORMAS = [
   { label: "Troquelada — separación (gap)", value: "Diecut_Gap" },
   { label: "Troquelada — marca negra", value: "Diecut_Blackmark" },
@@ -136,7 +201,7 @@ const CALIDADES = [
   { label: "Máxima calidad (Fotos / Logos)", value: "MaxQuality" },
 ];
 
-const ROTACIONES = ["0", "90", "180", "270"];
+const ROTACIONES = ["0", "90"];
 
 const POSICIONES = [
   { value: "bottom-left",  label: "↙ Inf. Izq." },
@@ -158,16 +223,21 @@ function NavegadorArchivos({
   const [busqueda, setBusqueda] = useState("");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["nav-archivos", rutaActual],
+    queryKey: ["nav-archivos", rutaActual ?? "__raiz__"],
     queryFn: () =>
       api.get<NavResp>(
-        `/api/etiquetas/navegar${rutaActual ? `?ruta=${encodeURIComponent(rutaActual)}` : ""}`,
+        `/api/etiquetas/navegar?ruta=${encodeURIComponent(rutaActual ?? "__raiz__")}`,
       ),
   });
 
   const pdfsVisibles = (data?.pdfs ?? []).filter(
     (p) => !busqueda.trim() || p.nombre.toLowerCase().includes(busqueda.toLowerCase()),
   );
+
+  function irA(ruta: string | null) {
+    setBusqueda("");
+    setRutaActual(ruta);
+  }
 
   const breadcrumb: { nombre: string; ruta: string }[] = [];
   if (data?.ruta_actual) {
@@ -179,37 +249,57 @@ function NavegadorArchivos({
     }
   }
 
+  const discos = data?.discos ?? [];
+  const enRaiz = !!data?.modo_raiz;
+  const apiSinDiscos =
+    !isLoading && !error && !enRaiz && rutaActual === null && !!data?.ruta_actual;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       <div className="flex h-[80vh] w-full max-w-xl flex-col rounded-2xl border-2 border-border bg-surface-panel shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5 flex-shrink-0">
-          <h3 className="text-sm font-bold text-ink">Explorar archivos</h3>
+          <div>
+            <h3 className="text-sm font-bold text-ink">Explorar archivos PDF</h3>
+            <p className="text-xs text-muted">{enRaiz ? "Selecciona un disco o ubicación" : data?.ruta_actual}</p>
+          </div>
           <button onClick={onCerrar} className="rounded p-1 text-muted hover:text-ink">✕</button>
         </div>
 
-        {data?.ruta_actual && (
+        {(enRaiz || data?.ruta_actual) && (
           <div className="flex items-center gap-1 overflow-x-auto border-b border-border px-4 py-2 flex-shrink-0 text-xs">
-            {data.padre !== null && (
+            {data?.padre != null && (
               <button
-                onClick={() => { setBusqueda(""); setRutaActual(data.padre); }}
+                onClick={() => irA(data.padre === "__raiz__" ? null : data.padre)}
                 className="mr-1 rounded px-1.5 py-0.5 text-muted hover:bg-surface-hover hover:text-ink"
               >
                 ←
               </button>
             )}
-            {breadcrumb.map((b, i) => (
-              <span key={b.ruta} className="flex items-center gap-1">
-                {i > 0 && <span className="text-muted">/</span>}
-                <button
-                  onClick={() => { setBusqueda(""); setRutaActual(b.ruta); }}
-                  className={`rounded px-1.5 py-0.5 transition hover:bg-surface-hover ${
-                    i === breadcrumb.length - 1 ? "font-semibold text-ink" : "text-muted"
-                  }`}
-                >
-                  {b.nombre}
-                </button>
-              </span>
-            ))}
+            {!enRaiz && (
+              <button
+                onClick={() => irA(null)}
+                className="mr-1 rounded px-1.5 py-0.5 font-semibold text-accent hover:bg-surface-hover"
+              >
+                💿 Este equipo
+              </button>
+            )}
+            {enRaiz ? (
+              <span className="rounded px-1.5 py-0.5 font-semibold text-ink">Discos y ubicaciones</span>
+            ) : (
+              breadcrumb.map((b, i) => (
+                <span key={b.ruta} className="flex items-center gap-1">
+                  {i > 0 && <span className="text-muted">/</span>}
+                  <button
+                    onClick={() => irA(b.ruta)}
+                    className={`rounded px-1.5 py-0.5 transition hover:bg-surface-hover ${
+                      i === breadcrumb.length - 1 ? "font-semibold text-ink" : "text-muted"
+                    }`}
+                  >
+                    {b.nombre}
+                  </button>
+                </span>
+              ))
+            )}
           </div>
         )}
 
@@ -224,6 +314,13 @@ function NavegadorArchivos({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-4">
+          {apiSinDiscos && (
+            <div className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
+              El servidor aún no tiene la vista de discos. Reinicia el servicio:{" "}
+              <code className="font-mono">sudo systemctl restart agente-pro</code>
+              {" "}y recarga el panel (Ctrl+Shift+R).
+            </div>
+          )}
           {isLoading && (
             <div className="flex items-center justify-center py-8 text-sm text-muted gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
@@ -232,10 +329,21 @@ function NavegadorArchivos({
           )}
           {error && <p className="py-4 text-center text-sm text-red-500">Error al leer directorio</p>}
 
-          {!busqueda && (data?.carpetas ?? []).map((c) => (
+          {!busqueda && enRaiz && discos.map((d) => (
+            <button
+              key={d.ruta}
+              onClick={() => irA(d.ruta)}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-surface-hover"
+            >
+              <span className="text-base">{iconoDisco(d.icono)}</span>
+              <span className="font-medium text-ink">{d.nombre}</span>
+            </button>
+          ))}
+
+          {!busqueda && !enRaiz && (data?.carpetas ?? []).map((c) => (
             <button
               key={c}
-              onClick={() => { setBusqueda(""); setRutaActual(`${data!.ruta_actual}/${c}`); }}
+              onClick={() => irA(`${data!.ruta_actual}/${c}`)}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-surface-hover"
             >
               <span className="text-base">📁</span>
@@ -243,11 +351,11 @@ function NavegadorArchivos({
             </button>
           ))}
 
-          {!busqueda && (data?.carpetas ?? []).length > 0 && pdfsVisibles.length > 0 && (
+          {!busqueda && !enRaiz && (data?.carpetas ?? []).length > 0 && pdfsVisibles.length > 0 && (
             <div className="my-2 border-t border-border" />
           )}
 
-          {pdfsVisibles.map((p) => (
+          {!enRaiz && pdfsVisibles.map((p) => (
             <button
               key={p.ruta_completa}
               onClick={() => onSeleccionar({ nombre: p.nombre, ruta_completa: p.ruta_completa })}
@@ -259,8 +367,11 @@ function NavegadorArchivos({
             </button>
           ))}
 
-          {!isLoading && pdfsVisibles.length === 0 && (data?.carpetas ?? []).length === 0 && (
+          {!isLoading && !enRaiz && pdfsVisibles.length === 0 && (data?.carpetas ?? []).length === 0 && (
             <p className="py-6 text-center text-sm text-muted">Sin archivos PDF aquí</p>
+          )}
+          {!isLoading && enRaiz && discos.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted">No se detectaron discos montados</p>
           )}
           {!isLoading && busqueda && pdfsVisibles.length === 0 && (
             <p className="py-6 text-center text-sm text-muted">Sin resultados para "{busqueda}"</p>
@@ -523,7 +634,7 @@ function EditarPDFTab({ rutaPdf, onGuardado }: EditarPDFTabProps) {
                       <span className="text-[9px] text-orange-500" title="Fuente no encontrada en el sistema — se usará Helvetica">⚠ fuente approx.</span>
                     )}
                   </div>
-                  <textarea
+                  <ProseTextarea
                     value={span.texto_editado}
                     onChange={(e) => updateSpan(span.id, e.target.value)}
                     rows={span.texto_editado.split("\n").length}
@@ -633,12 +744,12 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     presentacion: datosIniciales.presentacion ?? "",
     pdf_ruta: datosIniciales.pdf_ruta ?? "",
     pdf_nombre: datosIniciales.pdf_nombre ?? "",
-    lote_defecto: datosIniciales.lote_defecto ?? "",
-    vencimiento_defecto: datosIniciales.vencimiento_defecto ?? "",
+    lote_defecto: conPrefijoLote(datosIniciales.lote_defecto),
+    vencimiento_defecto: conPrefijoExp(datosIniciales.vencimiento_defecto),
     tipo_etiqueta: datosIniciales.tipo_etiqueta ?? ETIQUETAS_LISTA[0],
     forma: datosIniciales.forma ?? "Diecut_Gap",
     calidad: datosIniciales.calidad ?? "Normal",
-    rotacion: datosIniciales.rotacion ?? "0",
+    rotacion: rotacionValida(datosIniciales.rotacion),
     lote_pos: datosIniciales.lote_pos ?? "bottom-left",
     lote_font: datosIniciales.lote_font ?? 7,
     campos_texto: datosIniciales.campos_texto ?? [],
@@ -658,8 +769,8 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
       api.post<{ imagen: string; mime: string; error?: string }>("/api/etiquetas/preview", {
         ruta_pdf: form.pdf_ruta,
         campos_texto: camposDebounced,
-        lote: loteDebounced || undefined,
-        vencimiento: vencDebounced || undefined,
+        lote: loteParaEtiqueta(loteDebounced),
+        vencimiento: expParaEtiqueta(vencDebounced),
         lote_pos: form.lote_pos,
         lote_font: form.lote_font,
       }),
@@ -805,11 +916,11 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="mb-1 block text-xs font-medium text-ink">N° de lote</label>
-                          <input type="text" value={form.lote_defecto ?? ""} onChange={(e) => set("lote_defecto", e.target.value)} className={inp} placeholder="MCK-2026-001" />
+                          <input type="text" value={form.lote_defecto ?? LOTE_PREFIJO} onChange={(e) => set("lote_defecto", editarConPrefijo(e.target.value, LOTE_PREFIJO))} className={inp} placeholder="LOT.MCK-2026-001" />
                         </div>
                         <div>
                           <label className="mb-1 block text-xs font-medium text-ink">Vencimiento</label>
-                          <input type="text" value={form.vencimiento_defecto ?? ""} onChange={(e) => set("vencimiento_defecto", e.target.value)} className={inp} placeholder="12/2028" />
+                          <input type="text" value={form.vencimiento_defecto ?? EXP_PREFIJO} onChange={(e) => set("vencimiento_defecto", editarConPrefijo(e.target.value, EXP_PREFIJO))} className={inp} placeholder="EXP.12/2028" />
                         </div>
                       </div>
                     </section>
@@ -946,7 +1057,7 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
 
                               <div>
                                 <label className="mb-1 block text-[10px] font-medium text-muted">Texto (Enter = nueva línea)</label>
-                                <textarea
+                                <ProseTextarea
                                   value={campo.texto}
                                   onChange={(e) => actualizarCampo(campo.id, { texto: e.target.value })}
                                   rows={3}
@@ -1307,8 +1418,8 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
   const [pdfSeleccionado, setPdfSeleccionado] = useState<{ nombre: string; ruta_completa: string } | null>(null);
   const [busquedaRapida, setBusquedaRapida] = useState("");
   const [mostrarNavegador, setMostrarNavegador] = useState(false);
-  const [lote, setLote] = useState("");
-  const [vencimiento, setVencimiento] = useState("");
+  const [lote, setLote] = useState(LOTE_PREFIJO);
+  const [vencimiento, setVencimiento] = useState(EXP_PREFIJO);
   const [lotePos, setLotePos] = useState("bottom-left");
   const [loteFont, setLoteFont] = useState(7);
   const [camposTexto, setCamposTexto] = useState<CampoTexto[]>([]);
@@ -1326,11 +1437,11 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
     if (precargar.tipo_etiqueta) setProducto(precargar.tipo_etiqueta);
     if (precargar.forma) setForma(precargar.forma);
     if (precargar.calidad) setCalidad(precargar.calidad);
-    if (precargar.rotacion) setRotacion(precargar.rotacion);
+    if (precargar.rotacion) setRotacion(rotacionValida(precargar.rotacion));
     if (precargar.lote_pos) setLotePos(precargar.lote_pos);
     if (precargar.lote_font) setLoteFont(precargar.lote_font);
-    if (precargar.lote_defecto) setLote(precargar.lote_defecto);
-    if (precargar.vencimiento_defecto) setVencimiento(precargar.vencimiento_defecto);
+    setLote(conPrefijoLote(precargar.lote_defecto));
+    setVencimiento(conPrefijoExp(precargar.vencimiento_defecto));
     if (precargar.pdf_ruta && precargar.pdf_nombre) {
       setPdfSeleccionado({ nombre: precargar.pdf_nombre, ruta_completa: precargar.pdf_ruta });
     }
@@ -1355,8 +1466,8 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
       api.post<PreviewResp>("/api/etiquetas/preview", {
         ruta_pdf: pdfSeleccionado!.ruta_completa,
         campos_texto: camposDebounced.length ? camposDebounced : undefined,
-        lote: loteDebounced || undefined,
-        vencimiento: vencDebounced || undefined,
+        lote: loteParaEtiqueta(loteDebounced),
+        vencimiento: expParaEtiqueta(vencDebounced),
         lote_pos: lotePos,
         lote_font: loteFontDebounced,
       }),
@@ -1371,8 +1482,8 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
         offset_v: offsetV, offset_h: offsetH,
         ruta_pdf: pdfSeleccionado?.ruta_completa ?? "",
         campos_texto: camposTexto.length ? camposTexto : undefined,
-        lote: lote || undefined,
-        vencimiento: vencimiento || undefined,
+        lote: loteParaEtiqueta(lote),
+        vencimiento: expParaEtiqueta(vencimiento),
         lote_pos: lotePos,
         lote_font: loteFont,
       }),
@@ -1406,7 +1517,9 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
       return;
     }
     const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    const loteInfo = (lote || vencimiento) ? ` · Lote: ${lote || "–"} / Vence: ${vencimiento || "–"}` : "";
+    const loteVal = loteParaEtiqueta(lote);
+    const expVal = expParaEtiqueta(vencimiento);
+    const loteInfo = (loteVal || expVal) ? ` · ${loteVal || "–"} / ${expVal || "–"}` : "";
     setLog((prev) => [...prev, `[${ts}] ${cantidad} cop. · ${producto} · ${calidad}${loteInfo}...`]);
     imprimirMut.mutate();
   }
@@ -1522,15 +1635,15 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink">N° de lote</label>
-                <input type="text" value={lote} onChange={(e) => setLote(e.target.value)} placeholder="Ej: MCK-2026-001" className={inp_l} />
+                <input type="text" value={lote} onChange={(e) => setLote(editarConPrefijo(e.target.value, LOTE_PREFIJO))} placeholder="LOT.MCK-2026-001" className={inp_l} />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-ink">Fecha vencimiento</label>
-                <input type="text" value={vencimiento} onChange={(e) => setVencimiento(e.target.value)} placeholder="Ej: 12/2028" className={inp_l} />
+                <input type="text" value={vencimiento} onChange={(e) => setVencimiento(editarConPrefijo(e.target.value, EXP_PREFIJO))} placeholder="EXP.12/2028" className={inp_l} />
               </div>
             </div>
 
-            {(lote || vencimiento) && (
+            {(loteParaEtiqueta(lote) || expParaEtiqueta(vencimiento)) && (
               <div className="space-y-2">
                 <label className="block text-xs font-medium text-ink">Posición en la etiqueta</label>
                 <div className="grid grid-cols-2 gap-1.5">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { ProseTextarea } from "./ProseTextarea";
 import {
   usePublicaciones,
   usePublicacionDetalle,
@@ -847,7 +848,7 @@ function EditorPanel({ sku, onClose }: { sku: string; onClose: () => void }) {
             <label className="mb-1.5 block text-xs font-semibold text-ink">
               Descripción para la web
             </label>
-            <textarea
+            <ProseTextarea
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               rows={5}

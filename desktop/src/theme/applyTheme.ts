@@ -29,13 +29,22 @@ export function applyPanelTheme(config: PanelThemeConfig): void {
 
   root.classList.toggle("dark", dark);
   root.style.colorScheme = dark ? "dark" : "light";
-  root.style.setProperty("--mck-accent", config.accentRgb);
+  const accent = dark ? brightenAccentRgb(config.accentRgb, 0.52) : config.accentRgb;
+  root.style.setProperty("--mck-accent", accent);
   root.style.setProperty(
     "--mck-accent-hover",
-    darkenAccentRgb(config.accentRgb),
+    dark ? brightenAccentRgb(config.accentRgb, 0.68) : darkenAccentRgb(config.accentRgb),
   );
   root.style.setProperty("--mck-font-sans", FONT_STACKS[config.fontSans]);
   root.style.setProperty("--mck-radius-paper", RADIUS_PX[config.radius]);
+}
+
+function brightenAccentRgb(rgb: string, amount: number): string {
+  const parts = rgb.trim().split(/\s+/).map(Number);
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return rgb;
+  return parts
+    .map((n) => Math.min(255, Math.round(n + (255 - n) * amount)))
+    .join(" ");
 }
 
 function darkenAccentRgb(rgb: string): string {

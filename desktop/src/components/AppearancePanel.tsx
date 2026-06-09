@@ -78,7 +78,7 @@ export default function AppearancePanel() {
       <div>
         <h2 className="text-lg font-semibold text-ink">Apariencia</h2>
         <p className="mt-1 text-sm text-muted">
-          Tipografía, colores, cajas y modo del panel. Los cambios se guardan en este navegador.
+          Tipografía, colores, cajas y modo del panel. Los cambios se guardan en tu cuenta.
         </p>
       </div>
 
