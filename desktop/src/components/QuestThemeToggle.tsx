@@ -16,12 +16,12 @@ export default function QuestThemeToggle({ className = "" }: { className?: strin
     >
       {dark ? (
         <>
-          <Icon name="sun" size={16} weight="duotone" />
+          <Icon name="sun" size={16} weight="regular" />
           Claro
         </>
       ) : (
         <>
-          <Icon name="moon" size={16} weight="duotone" />
+          <Icon name="moon" size={16} weight="regular" />
           Oscuro
         </>
       )}

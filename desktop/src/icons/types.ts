@@ -1,7 +1,8 @@
-import type { IconProps as PhosphorIconProps, IconWeight } from "@phosphor-icons/react";
+import type { SVGAttributes } from "react";
+import type { MckIconWeight } from "./mck/types";
 import type { Panel } from "../stores/app";
 
-/** Iconos de acciones y UI compartidos (Phosphor). */
+/** Iconos de acciones y UI compartidos (set McKenna SVG). */
 export type UiIconName =
   | "signOut"
   | "menu"
@@ -62,11 +63,36 @@ export type UiIconName =
   | "receipt"
   | "ear"
   | "question"
-  | "star";
+  | "star"
+  | "calculator"
+  | "file"
+  | "home"
+  | "mic"
+  | "cart"
+  | "inbox"
+  | "outbox"
+  | "paperclip"
+  | "chat"
+  | "stop"
+  | "note"
+  | "camera"
+  | "folder"
+  | "image"
+  | "brick"
+  | "recycle"
+  | "sunrise"
+  | "phone"
+  | "play"
+  | "rocket"
+  | "eye"
+  | "ticket"
+  | "wave";
 
 export type IconName = Panel | UiIconName;
 
-export interface IconProps extends Omit<PhosphorIconProps, "ref"> {
+export type IconWeight = MckIconWeight;
+
+export interface IconProps extends Omit<SVGAttributes<SVGSVGElement>, "name"> {
   name: IconName;
   /** Tamaño en px (default 20). */
   size?: number;

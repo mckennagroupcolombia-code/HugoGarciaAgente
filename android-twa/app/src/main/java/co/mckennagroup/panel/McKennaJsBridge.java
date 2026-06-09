@@ -48,6 +48,12 @@ public class McKennaJsBridge {
     }
 
     @JavascriptInterface
+    public void clearWebHistory() {
+        activity.runOnUiThread(() -> activity.clearWebHistory());
+        Log.i(TAG, "clearWebHistory vía JS");
+    }
+
+    @JavascriptInterface
     public void requestAudioPermission() {
         if (!hasAudioPermission()) {
             ActivityCompat.requestPermissions(

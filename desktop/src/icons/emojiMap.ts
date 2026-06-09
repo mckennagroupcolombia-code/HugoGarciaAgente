@@ -1,7 +1,7 @@
 import type { UiIconName } from "./types";
 import { isUiIconName } from "./registry";
 
-/** Emoji / texto guardado en BD → icono Phosphor. Ver https://phosphoricons.com/ */
+/** Emoji / texto guardado en BD → icono SVG lineal McKenna. */
 export const EMOJI_TO_ICON: Record<string, UiIconName> = {
   "🏰": "castle",
   "📍": "mapPin",
@@ -11,6 +11,7 @@ export const EMOJI_TO_ICON: Record<string, UiIconName> = {
   "📖": "book",
   "📋": "listChecks",
   "📚": "books",
+  "📄": "file",
   "🔗": "link",
   "⚡": "lightning",
   "📌": "pin",
@@ -19,8 +20,11 @@ export const EMOJI_TO_ICON: Record<string, UiIconName> = {
   "🔔": "bell",
   "✅": "check",
   "✓": "check",
+  "☑️": "check",
+  "☑": "check",
   "🔒": "lock",
   "👤": "user",
+  "👥": "users",
   "🎭": "users",
   "🏷️": "tag",
   "🏷": "tag",
@@ -61,6 +65,35 @@ export const EMOJI_TO_ICON: Record<string, UiIconName> = {
   "✨": "star",
   "✏️": "pencil",
   "✏": "pencil",
+  "🏠": "home",
+  "🛒": "cart",
+  "🎙️": "mic",
+  "🎙": "mic",
+  "🏆": "star",
+  "📥": "inbox",
+  "📤": "outbox",
+  "📎": "paperclip",
+  "💬": "chat",
+  "🛑": "stop",
+  "📝": "note",
+  "📷": "camera",
+  "📁": "folder",
+  "🖼": "image",
+  "🖼️": "image",
+  "🧱": "brick",
+  "♻️": "recycle",
+  "♻": "recycle",
+  "🌅": "sunrise",
+  "📱": "phone",
+  "▶": "play",
+  "▶️": "play",
+  "🚀": "rocket",
+  "👁": "eye",
+  "👁️": "eye",
+  "🎫": "ticket",
+  "👋": "wave",
+  "🔁": "refresh",
+  "🔓": "unlock",
 };
 
 /** Presets para elegir ícono de categoría / reino (valor guardado = emoji). */

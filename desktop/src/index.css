@@ -989,4 +989,32 @@
     font-weight: 600;
     line-height: 1.35;
   }
+
+  /* Hugo integrado al pie del Centro de Mando */
+  .hugo-dock {
+    flex-shrink: 0;
+    background: var(--mck-surface-panel, #fff);
+  }
+  .hugo-dock--collapsed {
+    max-height: none;
+  }
+  .hugo-dock--expanded {
+    max-height: min(42dvh, 22rem);
+  }
+  @media (min-width: 1024px) {
+    .hugo-dock--expanded {
+      max-height: min(38dvh, 20rem);
+    }
+  }
+
+  /* Iconos SVG McKenna — solo línea, heredan color del texto */
+  .mck-icon {
+    display: inline-block;
+    flex-shrink: 0;
+    color: inherit;
+  }
+  .mck-icon * {
+    fill: none;
+    vector-effect: non-scaling-stroke;
+  }
 }
