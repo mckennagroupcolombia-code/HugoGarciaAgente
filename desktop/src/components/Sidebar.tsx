@@ -1,9 +1,9 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef } from "react";
 import { useAppStore, type Panel } from "../stores/app";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
 import UserAvatar from "./UserAvatar";
-import { uploadProfilePhoto } from "../lib/profilePhoto";
+import { useProfilePhotoPending } from "../stores/profilePhotoPending";
 import { usePreventa } from "../hooks/usePreventa";
 import { usePostventa } from "../hooks/usePostventa";
 import { useWebChat } from "../hooks/useWebChat";
@@ -66,17 +66,10 @@ export default function Sidebar() {
   const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
-  const { user, token, setAuth, clear: clearTickets } = useTicketsAuth();
+  const { user, token, clear: clearTickets } = useTicketsAuth();
   const clearMain = useAuthStore((s) => s.clear);
   const fotoInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingFoto, setUploadingFoto] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
+  const setFotoPendiente = useProfilePhotoPending((s) => s.setFile);
   const { data } = usePreventa();
   const pendientes = data?.total ?? 0;
   const { data: postventaData } = usePostventa();
@@ -92,30 +85,10 @@ export default function Sidebar() {
 
   const visibleNav = NAV.filter((item) => puedeVerSeccion(user, item.id));
 
-  async function subirFotoDesdeSidebar(file: File) {
-    if (!token || !user) return;
-    const localPreview = URL.createObjectURL(file);
-    setPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return localPreview;
-    });
-    setUploadingFoto(true);
-    try {
-      const updated = await uploadProfilePhoto(token, file);
-      setAuth(token, updated);
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-    } catch {
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-    } finally {
-      setUploadingFoto(false);
-      if (fotoInputRef.current) fotoInputRef.current.value = "";
-    }
+  function elegirFotoPerfil(file: File) {
+    setFotoPendiente(file);
+    setPanel("perfil");
+    if (fotoInputRef.current) fotoInputRef.current.value = "";
   }
 
   async function logout() {
@@ -156,22 +129,16 @@ export default function Sidebar() {
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) void subirFotoDesdeSidebar(f);
+                  if (f) elegirFotoPerfil(f);
                 }}
               />
               <button
                 type="button"
-                title="Cambiar foto de perfil"
-                disabled={uploadingFoto}
+                title="Elegir foto de perfil"
                 onClick={() => fotoInputRef.current?.click()}
-                className="relative shrink-0 rounded-full transition hover:opacity-90 disabled:opacity-60"
+                className="relative shrink-0 rounded-full transition hover:opacity-90"
               >
-                <UserAvatar user={user} token={token} previewUrl={previewUrl} />
-                {uploadingFoto && (
-                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-[9px] font-bold text-white">
-                    …
-                  </span>
-                )}
+                <UserAvatar user={user} token={token} />
               </button>
               <button
                 type="button"

@@ -664,6 +664,36 @@
       "pregunta": "Buenos días una pregunta viene en precentacion más grande gracias",
       "timestamp": "2026-06-05T10:48:25.994972",
       "respondida": true
+    },
+    {
+      "question_id": "13600470444",
+      "titulo_producto": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+      "pregunta": "realizan factura electronica ?",
+      "timestamp": "2026-06-09T14:47:23.567038",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-06-09"
+    },
+    {
+      "question_id": "13600470716",
+      "titulo_producto": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+      "pregunta": "realizan factura electronica ?",
+      "timestamp": "2026-06-09T14:48:06.326665",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-06-09"
+    },
+    {
+      "question_id": "13600470826",
+      "titulo_producto": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+      "pregunta": "realizan factura electronica ?",
+      "timestamp": "2026-06-09T14:48:25.228348",
+      "respondida": true
+    },
+    {
+      "question_id": "13600678280",
+      "titulo_producto": "Gel Silica Cristal Desecante 250g",
+      "pregunta": "Hola!! estos cambian de color con la humedad??",
+      "timestamp": "2026-06-09T19:28:44.792774",
+      "respondida": true
     }
   ]
 }
