@@ -2389,7 +2389,7 @@ def register_tickets_routes(app):
         from app.services.agente_tickets_chat import (
             obtener_contexto, generar_respuesta, ejecutar_cmd,
             detectar_procs_relevantes, tiene_intent_accion,
-            detectar_solicitud_context,
+            detectar_solicitud_context, construir_saludo_operativo,
         )
         data = request.get_json(force=True) or {}
         usuario = request.tickets_usuario
@@ -2468,7 +2468,7 @@ def register_tickets_routes(app):
             elif es_intent:
                 respuesta = f"¡De una, {nombre}! ¿La registramos como acción nueva?"
             elif not mensaje:
-                respuesta = f"¡Hola {nombre}! ¿Qué hacemos hoy?"
+                respuesta = construir_saludo_operativo(nombre, contexto)
             else:
                 respuesta = "¿En qué le ayudo?"
 

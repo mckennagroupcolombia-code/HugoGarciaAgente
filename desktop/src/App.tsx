@@ -12,11 +12,12 @@ import StockPanel from "./components/StockPanel";
 import FichasTecnicasPanel from "./components/FichasTecnicasPanel";
 import PedidosWebPanel from "./components/PedidosWebPanel";
 import FacturasCompraPanel from "./components/FacturasCompraPanel";
+import CentroCostosPanel from "./components/CentroCostosPanel";
 import TicketsPanel from "./components/TicketsPanel";
 import WebChatPanel from "./components/WebChatPanel";
 import WhatsAppPanel from "./components/WhatsAppPanel";
 import SupervisorPanel from "./components/SupervisorPanel";
-import EtiquetasPanel from "./components/EtiquetasPanel";
+import EtiquetasPanel, { ConfigurarProductosPanel } from "./components/EtiquetasPanel";
 import PublicacionesPanel from "./components/PublicacionesPanel";
 import Settings from "./components/Settings";
 import PerfilPanel from "./components/PerfilPanel";
@@ -30,6 +31,7 @@ import {
 import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
+import { puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
 
 function PanelRouter() {
   const panel = useAppStore((s) => s.panel);
@@ -63,8 +65,12 @@ function PanelRouter() {
       return <PedidosWebPanel />;
     case "facturas":
       return <FacturasCompraPanel />;
+    case "centros-costo":
+      return <CentroCostosPanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
+    case "etiquetas-config":
+      return <ConfigurarProductosPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
     case "settings":
@@ -164,11 +170,13 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 
 const NAV_ORDER: Panel[] = [
   "hugo", "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
-  "sync", "stock", "fichas", "pedidos", "publicaciones", "facturas", "etiquetas", "settings",
+  "facturas", "centros-costo", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config", "settings",
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
-  if (panel === "etiquetas") return true;
+  const contab = puedeVerModuloContabilidad(user, panel);
+  if (contab !== null) return contab;
+  if (panel === "etiquetas" || panel === "etiquetas-config") return true;
   if (panel === "hugo" || panel === "tickets") {
     if ((user.rol?.nivel ?? 0) >= 3) return true;
     const p = user.permisos_secciones;

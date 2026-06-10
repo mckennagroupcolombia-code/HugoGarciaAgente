@@ -12,6 +12,8 @@ import { api } from "../api/client";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
 import TemasSidebarButton from "./TemasSidebarButton";
+import ContabilidadSidebarGroup, { contabilidadNavVisible } from "./ContabilidadSidebarGroup";
+import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 
 const NAV: { id: Panel; label: string }[] = [
   { id: "hugo",       label: "Hugo · Centro" },
@@ -23,13 +25,12 @@ const NAV: { id: Panel; label: string }[] = [
   { id: "supervisor", label: "Supervisor WA" },
   { id: "preventa",   label: "Preventa MeLi" },
   { id: "postventa",  label: "Postventa MeLi" },
-  { id: "sync",       label: "Sincronización" },
   { id: "stock",      label: "Stock" },
   { id: "fichas",     label: "Docs técnicos" },
   { id: "pedidos",       label: "Pedidos Web" },
   { id: "publicaciones", label: "Publicaciones" },
-  { id: "facturas",      label: "Facturas Compra" },
   { id: "etiquetas",  label: "Impresora · Etiquetas" },
+  { id: "etiquetas-config", label: "Configurar productos" },
   { id: "settings",   label: "Ajustes" },
 ];
 
@@ -44,10 +45,12 @@ function puedeVerTickets(user: TicketsUser): boolean {
 
 function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
   if (!user) return false;
+  const contab = puedeVerModuloContabilidad(user, seccion);
+  if (contab !== null) return contab;
   if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
   if ((user.rol?.nivel ?? 0) >= 3) return true; // admin siempre ve todo
   if (seccion === "settings") return true; // todos ven ajustes
-  if (seccion === "etiquetas") return true; // impresora disponible para todo el equipo
+  if (seccion === "etiquetas" || seccion === "etiquetas-config") return true; // impresora disponible para todo el equipo
   const p = user.permisos_secciones;
   if (!p) return DEFAULT_SECCIONES.has(seccion);
   if (seccion === "postventa" && p.preventa) return true;
@@ -84,6 +87,16 @@ export default function Sidebar() {
   const facturasPendientes = facturaData?.total ?? 0;
 
   const visibleNav = NAV.filter((item) => puedeVerSeccion(user, item.id));
+  const verContabilidad = contabilidadNavVisible(user, puedeVerSeccion);
+
+  function navegarPanel(id: Panel) {
+    setAccionesBootTab(null);
+    if (id === "hugo") {
+      setTicketsBootView("agente");
+      setCentroMandoView("home");
+    }
+    setPanel(id);
+  }
 
   function elegirFotoPerfil(file: File) {
     setFotoPendiente(file);
@@ -192,55 +205,65 @@ export default function Sidebar() {
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
           {visibleNav.map((item) => {
             const active = panel === item.id || (item.id === "hugo" && panel === "tickets");
+            const insertContabilidadAfter =
+              verContabilidad && item.id === "postventa";
             return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setAccionesBootTab(null);
-                  if (item.id === "hugo") {
-                    setTicketsBootView("agente");
-                    setCentroMandoView("home");
-                  }
-                  setPanel(item.id);
-                }}
-                className={`
-                  flex w-full items-center gap-3 rounded-paper border-2 px-3 py-2.5 text-left text-sm font-semibold transition
-                  ${active
-                    ? "border-ink bg-surface-hover text-ink"
-                    : "border-transparent text-ink-secondary hover:bg-surface-hover"
-                  }
-                `}
-              >
-                <Icon
-                  name={item.id}
-                  size={20}
-                  weight={active ? "bold" : "regular"}
-                  className="shrink-0 opacity-80"
-                />
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                {item.id === "preventa" && pendientes > 0 && (
-                  <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
-                    {pendientes}
-                  </span>
+              <div key={item.id} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => navegarPanel(item.id)}
+                  className={`
+                    flex w-full items-center gap-3 rounded-paper border-2 px-3 py-2.5 text-left text-sm font-semibold transition
+                    ${active
+                      ? "border-ink bg-surface-hover text-ink"
+                      : "border-transparent text-ink-secondary hover:bg-surface-hover"
+                    }
+                  `}
+                >
+                  <Icon
+                    name={item.id}
+                    size={20}
+                    weight={active ? "bold" : "regular"}
+                    className="shrink-0 opacity-80"
+                  />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  {item.id === "preventa" && pendientes > 0 && (
+                    <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
+                      {pendientes}
+                    </span>
+                  )}
+                  {item.id === "postventa" && postventaPendientes > 0 && (
+                    <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
+                      {postventaPendientes}
+                    </span>
+                  )}
+                  {item.id === "webchat" && webChatPendientes > 0 && (
+                    <span className="shrink-0 rounded-full bg-warning px-2 py-0.5 text-[11px] font-bold text-black">
+                      {webChatPendientes}
+                    </span>
+                  )}
+                </button>
+                {insertContabilidadAfter && (
+                  <ContabilidadSidebarGroup
+                    user={user}
+                    panel={panel}
+                    puedeVer={puedeVerSeccion}
+                    facturasPendientes={facturasPendientes}
+                    onNavigate={navegarPanel}
+                  />
                 )}
-                {item.id === "postventa" && postventaPendientes > 0 && (
-                  <span className="shrink-0 rounded-full bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
-                    {postventaPendientes}
-                  </span>
-                )}
-                {item.id === "webchat" && webChatPendientes > 0 && (
-                  <span className="shrink-0 rounded-full bg-warning px-2 py-0.5 text-[11px] font-bold text-black">
-                    {webChatPendientes}
-                  </span>
-                )}
-                {item.id === "facturas" && facturasPendientes > 0 && (
-                  <span className="shrink-0 rounded-full bg-yellow-500 px-2 py-0.5 text-[11px] font-bold text-black">
-                    {facturasPendientes}
-                  </span>
-                )}
-              </button>
+              </div>
             );
           })}
+          {verContabilidad && !visibleNav.some((i) => i.id === "postventa") && (
+            <ContabilidadSidebarGroup
+              user={user}
+              panel={panel}
+              puedeVer={puedeVerSeccion}
+              facturasPendientes={facturasPendientes}
+              onNavigate={navegarPanel}
+            />
+          )}
         </nav>
       </div>
     </aside>
