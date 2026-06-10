@@ -98,6 +98,132 @@ def listar_productos_rentabilidad() -> tuple[list, str | None]:
     return result, None
 
 
+# ─── Categorización de componentes ───────────────────────────────────────────
+
+def _categorizar(nombre: str) -> str:
+    n = nombre.lower()
+    if any(k in n for k in ["etiqueta", "label", "sticker", "adhesivo"]):
+        return "etiqueta"
+    if any(k in n for k in ["env.", "frasco", "botero", "botella", "doypack", "caneca",
+                              "tarro", "pote", "vaso", "gotero", "tubo", "sachet"]):
+        return "envase"
+    if any(k in n for k in ["tapa", "tapón", "tapon", "liner", "dosificadora",
+                              "dispensador", "bomba", "sifon", "spray", "copa dosificadora"]):
+        return "envase"
+    if any(k in n for k in ["vinipel", "burbuja", "bolsa", "cinta", "flejes", "zipper"]):
+        return "empaque"
+    if any(k in n for k in ["operativo", "mano de obra", "m.o.", "minuto", "min "]):
+        return "operativo"
+    return "material"
+
+
+def combo_costos_desglose(code: str) -> dict:
+    """Busca el combo en Siigo, cruza componentes con costos guardados y devuelve desglose."""
+    from app.services.siigo import listar_productos_combo_siigo, _precio_lista_siigo_producto
+    from app.services.contabilidad_db import buscar_componente
+
+    combos = listar_productos_combo_siigo()
+    combo = next((c for c in combos if (c.get("code") or "").strip().upper() == code.upper()), None)
+    if combo is None:
+        return {"error": f"Combo '{code}' no encontrado en Siigo"}
+
+    precio = _precio_lista_siigo_producto(combo)
+    iva_pct = 0.0
+    for tax in (combo.get("taxes") or []):
+        if (tax.get("type") or "").upper() == "IVA":
+            iva_pct = float(tax.get("percentage") or 0) / 100
+            break
+    tax_included = bool(combo.get("tax_included", False))
+
+    totales: dict[str, float] = {
+        "costo_materiales": 0.0,
+        "costo_envase": 0.0,
+        "costo_etiqueta": 0.0,
+        "otros_costos": 0.0,
+        "costo_nomina": 0.0,
+    }
+    sin_costo = 0
+    componentes_out = []
+
+    for comp in (combo.get("components") or []):
+        nombre = (comp.get("name") or "").strip()
+        cantidad = float(comp.get("quantity") or 1)
+        cat = _categorizar(nombre)
+        stored = buscar_componente(nombre)
+        costo_unit = float(stored["costo_unitario"]) if stored else 0.0
+        costo_total = costo_unit * cantidad
+        conocido = stored is not None
+
+        if not conocido:
+            sin_costo += 1
+
+        # Acumular en el campo correcto
+        if cat == "material":
+            totales["costo_materiales"] += costo_total
+        elif cat == "envase":
+            totales["costo_envase"] += costo_total
+        elif cat == "etiqueta":
+            totales["costo_etiqueta"] += costo_total
+        elif cat == "empaque":
+            totales["otros_costos"] += costo_total
+        elif cat == "operativo":
+            totales["costo_nomina"] += costo_total
+
+        componentes_out.append({
+            "nombre": nombre,
+            "cantidad": cantidad,
+            "categoria": cat,
+            "costo_unit": costo_unit,
+            "costo_total": round(costo_total, 2),
+            "costo_conocido": conocido,
+        })
+
+    totales_rounded = {k: round(v, 2) for k, v in totales.items()}
+    totales_rounded["componentes_sin_costo"] = sin_costo
+    totales_rounded["componentes_total"] = len(componentes_out)
+
+    return {
+        "code": code.upper(),
+        "nombre": (combo.get("name") or "").strip(),
+        "precio_lista": precio,
+        "iva_pct": iva_pct,
+        "tax_included": tax_included,
+        "componentes": componentes_out,
+        "totales": totales_rounded,
+    }
+
+
+# ─── Recordatorios de pagos por WhatsApp ─────────────────────────────────────
+
+def enviar_recordatorios_pagos() -> dict:
+    """Envía al grupo de contabilidad recordatorios de servicios próximos a vencer."""
+    import os
+    from app.services.contabilidad_db import servicios_proximos_vencimiento
+    from app.utils import enviar_whatsapp_reporte
+
+    proximos = servicios_proximos_vencimiento(dias=3)
+    if not proximos:
+        return {"enviados": 0, "servicios": []}
+
+    lineas = ["*Recordatorio de pagos próximos a vencer:*\n"]
+    for s in proximos:
+        dias = s["dias_para_vencer"]
+        venc = s["fecha_vencimiento"]
+        aviso = "HOY" if dias == 0 else f"en {dias} día{'s' if dias != 1 else ''} ({venc})"
+        lineas.append(f"• *{s['empresa']}* ({s['tipo'].upper()}) — vence {aviso}")
+        if s.get("numero_contrato"):
+            lineas.append(f"  Contrato: {s['numero_contrato']}")
+
+    mensaje = "\n".join(lineas)
+    grupo = os.getenv("GRUPO_CONTABILIDAD_WA", "120363407538342427@g.us")
+    try:
+        enviar_whatsapp_reporte(mensaje, grupo)
+    except Exception as e:
+        return {"error": str(e), "servicios": [s["empresa"] for s in proximos]}
+
+    return {"enviados": len(proximos), "servicios": [s["empresa"] for s in proximos]}
+
+
 # ─── Calculadora ─────────────────────────────────────────────────────────────
 
 def calcular_rentabilidad(

@@ -3867,6 +3867,128 @@ def register_routes(app):
         guardar_config_producto(codigo, config)
         return jsonify({"ok": True})
 
+    # ── Componente costos ─────────────────────────────────────────────────────
+
+    @app.route("/api/rentabilidad/componentes", methods=["GET"])
+    def api_componentes_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import listar_componentes
+        return jsonify({"componentes": listar_componentes()})
+
+    @app.route("/api/rentabilidad/componentes", methods=["POST"])
+    def api_componentes_save():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        nombre = (data.get("nombre") or "").strip()
+        if not nombre:
+            return jsonify({"error": "Se requiere nombre"}), 400
+        from app.services.contabilidad_db import upsert_componente
+        row = upsert_componente(nombre, float(data.get("costo_unitario") or 0), data.get("categoria", "material"))
+        return jsonify(row)
+
+    @app.route("/api/rentabilidad/combo-costos/<code>", methods=["GET"])
+    def api_combo_costos(code):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import combo_costos_desglose
+        try:
+            result = combo_costos_desglose(code)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+        if "error" in result:
+            return jsonify(result), 404
+        return jsonify(result)
+
+    # ── Nómina ────────────────────────────────────────────────────────────────
+
+    @app.route("/api/nomina/empleados", methods=["GET"])
+    def api_nomina_empleados_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import listar_empleados
+        return jsonify({"empleados": listar_empleados()})
+
+    @app.route("/api/nomina/empleados", methods=["POST"])
+    def api_nomina_empleados_save():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        if not (data.get("nombre") or "").strip():
+            return jsonify({"error": "Se requiere nombre"}), 400
+        from app.services.contabilidad_db import upsert_empleado
+        return jsonify(upsert_empleado(data))
+
+    @app.route("/api/nomina/empleados/<int:emp_id>", methods=["DELETE"])
+    def api_nomina_empleados_delete(emp_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import eliminar_empleado
+        eliminar_empleado(emp_id)
+        return jsonify({"ok": True})
+
+    @app.route("/api/nomina/resumen", methods=["GET"])
+    def api_nomina_resumen():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import resumen_nomina
+        return jsonify(resumen_nomina())
+
+    # ── Servicios públicos ────────────────────────────────────────────────────
+
+    @app.route("/api/servicios", methods=["GET"])
+    def api_servicios_list():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import listar_servicios
+        return jsonify({"servicios": listar_servicios()})
+
+    @app.route("/api/servicios", methods=["POST"])
+    def api_servicios_save():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        if not (data.get("empresa") or "").strip():
+            return jsonify({"error": "Se requiere empresa"}), 400
+        from app.services.contabilidad_db import upsert_servicio
+        return jsonify(upsert_servicio(data))
+
+    @app.route("/api/servicios/<int:srv_id>", methods=["DELETE"])
+    def api_servicios_delete(srv_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import eliminar_servicio
+        eliminar_servicio(srv_id)
+        return jsonify({"ok": True})
+
+    @app.route("/api/servicios/<int:srv_id>/pago", methods=["POST"])
+    def api_servicios_pago(srv_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        fecha = (data.get("fecha") or "").strip()
+        monto = float(data.get("monto") or 0)
+        if not fecha or monto <= 0:
+            return jsonify({"error": "Se requieren fecha y monto > 0"}), 400
+        from app.services.contabilidad_db import registrar_pago
+        return jsonify(registrar_pago(srv_id, fecha, monto, data.get("comprobante", ""), data.get("notas", "")))
+
+    @app.route("/api/servicios/pagos/<int:pago_id>", methods=["DELETE"])
+    def api_servicios_pago_delete(pago_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import eliminar_pago
+        eliminar_pago(pago_id)
+        return jsonify({"ok": True})
+
+    @app.route("/api/nomina/recordatorios", methods=["POST"])
+    def api_nomina_recordatorios():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import enviar_recordatorios_pagos
+        return jsonify(enviar_recordatorios_pagos())
+
     @app.route("/api/facturas/pendientes", methods=["GET"])
     def api_facturas_pendientes():
         if not _api_token_valido():
