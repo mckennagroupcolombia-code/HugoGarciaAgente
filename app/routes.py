@@ -6310,7 +6310,70 @@ def register_routes(app):
     _ELPU_PATH = "/opt/epson/epson-label-printer-utility/elpu"
     _PRINTER_NAME = "CW-C4000u"
     _PDF_DIR = os.path.expanduser("~/Documentos")
+    _PDF_ETIQUETAS_SUBDIR = "Etiquetas McKenna"
+    _PDF_ETIQUETAS_DIR = os.path.join(_PDF_DIR, _PDF_ETIQUETAS_SUBDIR)
+    _ETIQUETAS_PDFS_GUARDADOS_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_pdfs_guardados.json",
+    )
+    _PDF_ETIQUETAS_MAX_BYTES = 30 * 1024 * 1024
     _REPO_EPSON_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "epson")
+
+    def _carpeta_pdfs_etiquetas():
+        os.makedirs(_PDF_ETIQUETAS_DIR, exist_ok=True)
+        return _PDF_ETIQUETAS_DIR
+
+    def _nombre_pdf_etiqueta_seguro(nombre: str) -> str:
+        import re as _re
+        base = os.path.basename((nombre or "").strip()) or "etiqueta.pdf"
+        base = _re.sub(r"[^\w.\- áéíóúÁÉÍÓÚñÑ]", "_", base, flags=_re.UNICODE)
+        if not base.lower().endswith(".pdf"):
+            base = f"{base}.pdf"
+        return base[:180]
+
+    def _load_pdfs_guardados_etiquetas() -> list:
+        try:
+            with open(_ETIQUETAS_PDFS_GUARDADOS_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return []
+        except Exception:
+            return []
+        items = data.get("archivos") if isinstance(data, dict) else []
+        if not isinstance(items, list):
+            return []
+        out = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            ruta = it.get("ruta_completa") or ""
+            if ruta and os.path.isfile(ruta):
+                out.append(it)
+        out.sort(key=lambda x: x.get("subido_at") or "", reverse=True)
+        return out
+
+    def _registrar_pdf_guardado_etiqueta(nombre: str, ruta_completa: str, bytes_size: int) -> dict:
+        os.makedirs(os.path.dirname(_ETIQUETAS_PDFS_GUARDADOS_PATH), exist_ok=True)
+        try:
+            with open(_ETIQUETAS_PDFS_GUARDADOS_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {"archivos": []}
+        except Exception:
+            data = {"archivos": []}
+        archivos = [a for a in data.get("archivos", []) if a.get("ruta_completa") != ruta_completa]
+        rel = os.path.relpath(ruta_completa, _PDF_DIR) if ruta_completa.startswith(_PDF_DIR) else nombre
+        entry = {
+            "nombre": nombre,
+            "ruta": rel.replace("\\", "/"),
+            "ruta_completa": ruta_completa,
+            "subido_at": _dt.now().isoformat(timespec="seconds"),
+            "bytes": bytes_size,
+        }
+        archivos.insert(0, entry)
+        data["archivos"] = archivos[:200]
+        with open(_ETIQUETAS_PDFS_GUARDADOS_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return entry
 
     _ETIQUETAS = {
         "30 mL": (102, 38), "5 mL": (66, 22), "125 g": (70, 70),
@@ -6327,10 +6390,222 @@ def register_routes(app):
         "Contlabel_no_detection": "Contlabel_no_detection",
     }
     _MAPEO_ROTACION = {"0": "3", "90": "4"}
+    _LOTE_PREFIJO_ETI = "LOT."
+    _EXP_PREFIJO_ETI = "EXP."
+
+    def _con_prefijo_lote_etiqueta(val):
+        v = (val or "").strip()
+        if not v:
+            return _LOTE_PREFIJO_ETI
+        vu = v.upper()
+        if vu.startswith(_LOTE_PREFIJO_ETI.upper()):
+            return v
+        if vu.startswith("LOT"):
+            return _LOTE_PREFIJO_ETI + v[3:].lstrip(". ")
+        return _LOTE_PREFIJO_ETI + v
+
+    def _con_prefijo_exp_etiqueta(val):
+        v = (val or "").strip()
+        if not v:
+            return _EXP_PREFIJO_ETI
+        vu = v.upper()
+        if vu.startswith(_EXP_PREFIJO_ETI.upper()):
+            return v
+        if vu.startswith("EXP"):
+            return _EXP_PREFIJO_ETI + v[3:].lstrip(". ")
+        return _EXP_PREFIJO_ETI + v
+
+    def _lote_impresion_etiqueta(val):
+        v = (val or "").strip()
+        return "" if not v or v == _LOTE_PREFIJO_ETI else v
+
+    def _exp_impresion_etiqueta(val):
+        v = (val or "").strip()
+        return "" if not v or v == _EXP_PREFIJO_ETI else v
+
+    def _rotacion_etiqueta_valida(val):
+        """Solo 0° y 90°; 180/270 legacy se normalizan a 0."""
+        return "90" if str(val).strip() == "90" else "0"
+
     _MAPEO_CALIDAD = {
         "MaxSpeed": "MaxSpeed", "Speed": "Speed", "Normal": "Normal",
         "Quality": "Quality", "MaxQuality": "MaxQuality",
     }
+
+    _PATRONES_ERROR_IMPRESORA_ETI = (
+        (
+            ("deshabilitad", "disabled", "printer is disabled"),
+            "Impresora deshabilitada",
+            "Conecta el cable USB de la Epson CW-C4000u y pulsa «Instalar» en el panel de etiquetas.",
+            "deshabilitada",
+        ),
+        (
+            ("en pausa", "paused", "printer is paused", "pausad"),
+            "Impresora en pausa",
+            "En el panel pulsa «Instalar impresora» o ejecuta: sudo cupsenable CW-C4000u && sudo cupsaccept CW-C4000u",
+            "pausada",
+        ),
+        (
+            ("no such file", "no existe", "unknown printer", "does not exist", "unable to locate printer", "no destination"),
+            "Impresora no registrada en CUPS",
+            "Pulsa «Instalar impresora» en el panel para registrar la Epson CW-C4000u con el driver correcto.",
+            "no_registrada",
+        ),
+        (
+            ("password is required", "contraseña", "nopasswd", "sudoers"),
+            "Sin permisos para configurar la impresora (sudo)",
+            "Ejecuta la instalación desde el panel («Instalar impresora») o configura sudoers para elpu sin contraseña.",
+            "sudo",
+        ),
+        (
+            ("elpu", "epson-label-printer"),
+            "Utilidad ELPU no disponible",
+            "Instala elpu desde el asistente «Instalar impresora» o coloca el binario en scripts/epson/elpu.",
+            "elpu",
+        ),
+        (
+            ("out of paper", "media tray empty", "sin papel", "sin etiquetas", "load paper", "cargue"),
+            "Sin etiquetas o rollo vacío",
+            "Carga el rollo de etiquetas en la bandeja y verifica que el sensor de gap/blackmark coincida con el tipo elegido.",
+            "sin_papel",
+        ),
+        (
+            ("cover open", "tapa abierta", "door open", "cabezal"),
+            "Tapa o cabezal abierto",
+            "Cierra la tapa frontal de la impresora y espera a que deje de parpadear el LED de error.",
+            "tapa_abierta",
+        ),
+        (
+            ("communication", "comunicación", "usb", "device not found", "i/o error"),
+            "Error de comunicación USB",
+            "Reconecta el cable USB (preferible directo al PC, sin hub). Reinicia la impresora y vuelve a pulsar «Instalar».",
+            "sin_conexion",
+        ),
+        (
+            ("filter failed", "document-format-not-supported", "unsupported document"),
+            "El PDF no es compatible con la impresora",
+            "Abre el PDF en la pestaña «Editar PDF», guárdalo de nuevo o exporta como PDF estándar (sin protección).",
+            "pdf_invalido",
+        ),
+        (
+            ("service-unavailable", "connection refused", "failed to connect", "cups"),
+            "Servicio CUPS no disponible",
+            "Activa CUPS: sudo systemctl enable --now cups. Luego pulsa «Instalar impresora» en el panel.",
+            "cups_inactivo",
+        ),
+        (
+            ("ink", "tinta", "maintenance", "mantenimiento", "waste"),
+            "Mantenimiento o consumible de la impresora",
+            "Revisa en el panel de la Epson si pide limpieza del cabezal, cambio de cartucho o vaciado del contenedor de residuos.",
+            "mantenimiento",
+        ),
+        (
+            ("jam", "atasc", "stuck"),
+            "Atasco de etiquetas",
+            "Abre la impresora, retira etiquetas atascadas con cuidado y vuelve a cargar el rollo alineado con las guías.",
+            "atasco",
+        ),
+    )
+
+    def _interpretar_error_impresora_etiquetas(texto: str) -> tuple:
+        """Devuelve (mensaje_corto, solucion, codigo) a partir de salida lp/elpu/CUPS."""
+        t = (texto or "").strip()
+        tl = t.lower()
+        for patrones, error, solucion, codigo in _PATRONES_ERROR_IMPRESORA_ETI:
+            if any(p in tl for p in patrones):
+                return error, solucion, codigo
+        if t:
+            return (
+                t[:200] + ("…" if len(t) > 200 else ""),
+                "Revisa el cable USB, que la impresora esté encendida y pulsa «Instalar impresora». Si persiste, abre el log del panel.",
+                "desconocido",
+            )
+        return (
+            "La impresora rechazó el trabajo de impresión",
+            "Verifica conexión USB, rollo cargado y pulsa «Instalar impresora» en el panel.",
+            "desconocido",
+        )
+
+    def _verificar_impresora_etiquetas() -> dict | None:
+        """Pre-vuelo antes de imprimir. None = OK; dict con error/solucion/codigo si falla."""
+        import subprocess as _sp
+        import shutil as _shutil
+
+        try:
+            r_cups = _sp.run(
+                ["systemctl", "is-active", "cups"],
+                capture_output=True, text=True, timeout=5,
+            )
+            if r_cups.stdout.strip() != "active":
+                return {
+                    "error": "Servicio CUPS inactivo",
+                    "solucion": "Ejecuta: sudo systemctl enable --now cups. Luego pulsa «Instalar impresora».",
+                    "codigo": "cups_inactivo",
+                    "detalle": r_cups.stdout.strip() or r_cups.stderr.strip(),
+                }
+        except Exception as e:
+            return {
+                "error": "No se pudo comprobar CUPS",
+                "solucion": "Verifica que CUPS esté instalado: sudo apt install cups. Reinicia el servicio agente-pro.",
+                "codigo": "cups_inactivo",
+                "detalle": str(e),
+            }
+
+        try:
+            r = _sp.run(
+                ["lpstat", "-p", _PRINTER_NAME],
+                capture_output=True, text=True, timeout=5,
+            )
+            estado = (r.stdout + r.stderr).strip()
+            el = estado.lower()
+            if r.returncode != 0 or "unknown" in el or "does not exist" in el or "no existe" in el:
+                return {
+                    "error": "Impresora CW-C4000u no registrada",
+                    "solucion": "Pulsa «Instalar impresora» en el panel para registrarla con el driver Epson.",
+                    "codigo": "no_registrada",
+                    "detalle": estado,
+                }
+            if "disabled" in el or "deshabilitad" in el:
+                return {
+                    "error": "Impresora deshabilitada",
+                    "solucion": "Conecta el cable USB y pulsa «Instalar impresora», o ejecuta: sudo cupsenable CW-C4000u",
+                    "codigo": "deshabilitada",
+                    "detalle": estado,
+                }
+            if "paused" in el or "en pausa" in el or "pausad" in el:
+                return {
+                    "error": "Impresora en pausa",
+                    "solucion": "Pulsa «Instalar impresora» o ejecuta: sudo cupsenable CW-C4000u && sudo cupsaccept CW-C4000u",
+                    "codigo": "pausada",
+                    "detalle": estado,
+                }
+        except Exception as e:
+            return {
+                "error": "No se pudo consultar el estado de la impresora",
+                "solucion": "Reinicia CUPS (sudo systemctl restart cups) y vuelve a intentar.",
+                "codigo": "estado",
+                "detalle": str(e),
+            }
+
+        if not os.path.isfile(_ELPU_PATH) and not _shutil.which("elpu"):
+            return {
+                "error": "Utilidad ELPU no instalada",
+                "solucion": "Pulsa «Instalar impresora» en el panel para instalar elpu (ajuste de posición).",
+                "codigo": "elpu",
+                "detalle": _ELPU_PATH,
+            }
+
+        return None
+
+    def _respuesta_error_impresion_etiquetas(log_lines: list, texto: str) -> dict:
+        error, solucion, codigo = _interpretar_error_impresora_etiquetas(texto)
+        return {
+            "ok": False,
+            "log": log_lines,
+            "error": error,
+            "solucion": solucion,
+            "codigo": codigo,
+        }
 
     _FILE_BROWSER_BLOQUEADOS = ("/proc", "/sys", "/dev")
     _ROOT_DIRS_UTILES = frozenset({
@@ -6681,9 +6956,73 @@ def register_routes(app):
                             rel = os.path.relpath(full, _PDF_DIR)
                             pdfs.append({"nombre": f, "ruta": rel, "ruta_completa": full})
             pdfs.sort(key=lambda x: x["nombre"].lower())
-            return jsonify({"pdfs": pdfs, "total": len(pdfs)})
+            guardados = []
+            vistos = set()
+            for g in _load_pdfs_guardados_etiquetas():
+                rc = g.get("ruta_completa")
+                if not rc or rc in vistos:
+                    continue
+                vistos.add(rc)
+                guardados.append({
+                    "nombre": g.get("nombre") or os.path.basename(rc),
+                    "ruta": g.get("ruta") or os.path.relpath(rc, _PDF_DIR),
+                    "ruta_completa": rc,
+                    "subido_at": g.get("subido_at"),
+                    "guardado": True,
+                })
+            return jsonify({
+                "pdfs": pdfs,
+                "guardados": guardados,
+                "total": len(pdfs),
+                "carpeta_guardados": _PDF_ETIQUETAS_DIR,
+            })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/subir-pdf", methods=["POST"])
+    def api_etiquetas_subir_pdf():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        archivo = request.files.get("archivo") or request.files.get("file")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envía un PDF en el campo multipart «archivo»"}), 400
+        nombre_orig = _nombre_pdf_etiqueta_seguro(archivo.filename)
+        if not nombre_orig.lower().endswith(".pdf"):
+            return jsonify({"error": "Solo se permiten archivos PDF"}), 400
+        try:
+            raw = archivo.read()
+        except Exception as e:
+            return jsonify({"error": f"No se pudo leer el archivo: {e}"}), 400
+        if len(raw) > _PDF_ETIQUETAS_MAX_BYTES:
+            return jsonify({
+                "error": f"El PDF supera el límite de {_PDF_ETIQUETAS_MAX_BYTES // (1024 * 1024)} MB",
+            }), 400
+        if not raw[:5].startswith(b"%PDF"):
+            return jsonify({"error": "El archivo no parece un PDF válido"}), 400
+        carpeta = _carpeta_pdfs_etiquetas()
+        base, ext = os.path.splitext(nombre_orig)
+        dest_name = nombre_orig
+        dest_path = os.path.join(carpeta, dest_name)
+        if os.path.isfile(dest_path):
+            stamp = _dt.now().strftime("%Y%m%d_%H%M%S")
+            dest_name = f"{base}_{stamp}{ext}"
+            dest_path = os.path.join(carpeta, dest_name)
+        try:
+            with open(dest_path, "wb") as f:
+                f.write(raw)
+        except OSError as e:
+            return jsonify({"error": f"No se pudo guardar en Documentos: {e}"}), 500
+        entry = _registrar_pdf_guardado_etiqueta(dest_name, dest_path, len(raw))
+        rel = entry.get("ruta") or os.path.relpath(dest_path, _PDF_DIR)
+        return jsonify({
+            "ok": True,
+            "nombre": dest_name,
+            "ruta": rel,
+            "ruta_completa": dest_path,
+            "guardado": True,
+            "subido_at": entry.get("subido_at"),
+            "bytes": len(raw),
+        })
 
     @app.route("/api/etiquetas/impresora", methods=["GET"])
     def api_etiquetas_impresora():
@@ -6716,6 +7055,121 @@ def register_routes(app):
         )
         return out_base + ".png"
 
+    _MONTSERRAT_ETIQUETA_ARCHIVOS = {
+        "light": "Montserrat-Light",
+        "regular": "Montserrat-Regular",
+        "medium": "Montserrat-Medium",
+        "semibold": "Montserrat-SemiBold",
+        "bold": "Montserrat-Bold",
+        "extrabold": "Montserrat-ExtraBold",
+        "black": "Montserrat-Black",
+    }
+
+    def _registrar_fuente_montserrat(nombre_registro: str, archivo_ttf: str) -> str | None:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+
+        if nombre_registro in pdfmetrics.getRegisteredFontNames():
+            return nombre_registro
+        for base in (
+            "/usr/share/fonts/truetype/montserrat",
+            "/usr/share/fonts/TTF",
+            "/usr/share/fonts/truetype",
+        ):
+            ruta = os.path.join(base, archivo_ttf)
+            if os.path.isfile(ruta):
+                try:
+                    pdfmetrics.registerFont(TTFont(nombre_registro, ruta))
+                    return nombre_registro
+                except Exception:
+                    pass
+        return None
+
+    def _fuente_montserrat_etiqueta(variant: str | None = None, bold: bool = False) -> str:
+        """Montserrat por variante para campos de plantilla; fallback Helvetica."""
+        v = (variant or "").strip().lower()
+        if not v:
+            v = "bold" if bold else "light"
+        archivo = _MONTSERRAT_ETIQUETA_ARCHIVOS.get(v, "Montserrat-Regular")
+        nombre = archivo.replace(".ttf", "")
+        registrada = _registrar_fuente_montserrat(nombre, f"{archivo}.ttf")
+        if registrada:
+            return registrada
+        return "Helvetica-Bold" if bold or v in ("bold", "extrabold", "black", "semibold") else "Helvetica"
+
+    def _fuente_lote_etiqueta():
+        """Montserrat Light para lote/vencimiento; fallback Helvetica."""
+        return _fuente_montserrat_etiqueta("light")
+
+    def _lote_xy_desde_pct(w_pt, h_pt, x_pct, y_pct, font_size, font_name):
+        """
+        Convierte % (origen arriba-izq, igual que el overlay CSS del panel) a coordenadas PDF.
+        y_pct=0 → borde superior; y_pct=100 → borde inferior.
+        """
+        from reportlab.pdfbase import pdfmetrics
+
+        x_val = max(0.0, min(100.0, float(x_pct)))
+        y_val = max(0.0, min(100.0, float(y_pct)))
+        try:
+            ascent = pdfmetrics.getAscent(font_name) / 1000.0 * font_size
+            descent = abs(pdfmetrics.getDescent(font_name) / 1000.0 * font_size)
+        except Exception:
+            ascent = font_size * 0.72
+            descent = font_size * 0.22
+        x_pt = w_pt * x_val / 100.0
+        top_from_top = h_pt * y_val / 100.0
+        y_baseline = h_pt - top_from_top - ascent
+        return x_pt, y_baseline, ascent, descent
+
+    def _dibujar_linea_texto_etiqueta(c, linea, font_name, fs, x_pt, y_l, align, box_w_pt=0):
+        """Dibuja una línea con alineación; justify reparte espacio en el ancho de caja."""
+        align = (align or "left").strip().lower()
+        if align == "justify" and box_w_pt > 8:
+            palabras = linea.split()
+            if len(palabras) >= 2:
+                anchos = [c.stringWidth(p, font_name, fs) for p in palabras]
+                total = sum(anchos)
+                huecos = len(palabras) - 1
+                extra = box_w_pt - total
+                if extra > 0 and huecos > 0:
+                    gap = extra / huecos
+                    x = x_pt
+                    for i, palabra in enumerate(palabras):
+                        c.drawString(x, y_l, palabra)
+                        if i < huecos:
+                            x += anchos[i] + gap
+                    return
+        if align == "center":
+            tw = c.stringWidth(linea, font_name, fs)
+            if box_w_pt > 0:
+                c.drawString(x_pt + (box_w_pt - tw) / 2.0, y_l, linea)
+            else:
+                c.drawString(x_pt - tw / 2.0, y_l, linea)
+        elif align == "right":
+            if box_w_pt > 0:
+                c.drawRightString(x_pt + box_w_pt, y_l, linea)
+            else:
+                c.drawRightString(x_pt, y_l, linea)
+        else:
+            c.drawString(x_pt, y_l, linea)
+
+    def _color_etiqueta_rl(color_hex, color_cmyk=None):
+        from reportlab.lib.colors import CMYKColor, HexColor, black
+        if isinstance(color_cmyk, dict):
+            try:
+                return CMYKColor(
+                    max(0.0, min(1.0, float(color_cmyk.get("c", 0)) / 100.0)),
+                    max(0.0, min(1.0, float(color_cmyk.get("m", 0)) / 100.0)),
+                    max(0.0, min(1.0, float(color_cmyk.get("y", 0)) / 100.0)),
+                    max(0.0, min(1.0, float(color_cmyk.get("k", 0)) / 100.0)),
+                )
+            except Exception:
+                pass
+        try:
+            return HexColor((color_hex or "#000000").strip())
+        except Exception:
+            return black
+
     def _pdf_con_campos_texto(
         ruta_pdf: str,
         campos: list,
@@ -6723,13 +7177,22 @@ def register_routes(app):
         vencimiento: str = "",
         lote_pos: str = "bottom-left",
         lote_font: int = 7,
+        lote_x_pct: float | None = None,
+        lote_y_pct: float | None = None,
+        lineas: list | None = None,
+        imagenes: list | None = None,
+        rectangulos: list | None = None,
     ) -> str:
         """
         Genera PDF temporal con:
-        - campos: lista de {texto, x_pct, y_pct, font_size, bold, align, fondo_blanco, color}
+        - lineas: [{x1_pct,y1_pct,x2_pct,y2_pct,grosor,color,color_cmyk}] origen top-left %
+        - rectangulos: [{x_pct,y_pct,ancho_pct,alto_pct,relleno,color_relleno,color_trazo,grosor_trazo}]
+        - imagenes: [{ruta_completa,x_pct,y_pct,ancho_pct}] PNG sobre el PDF
+        - campos: lista de {texto, x_pct, y_pct, font_size, bold, align, fondo_blanco, color, color_cmyk,
+          color_trazo, color_trazo_cmyk, grosor_trazo}
           x_pct/y_pct: 0-100 porcentaje del tamaño de página, origen top-left.
           Admite saltos de línea (\n) en texto.
-        - lote/vencimiento opcionales en esquina (comportamiento heredado).
+        - lote/vencimiento: Montserrat Light; posición por lote_x_pct/lote_y_pct o esquina (lote_pos).
         """
         import io as _io
         import tempfile as _tmp
@@ -6749,6 +7212,71 @@ def register_routes(app):
             buf = _io.BytesIO()
             c = _rl_canvas.Canvas(buf, pagesize=(w_pt, h_pt))
 
+            for ln in (lineas or []):
+                c.setStrokeColor(_color_etiqueta_rl(ln.get("color"), ln.get("color_cmyk")))
+                grosor = max(0.25, min(6.0, float(ln.get("grosor", 1))))
+                c.setLineWidth(grosor)
+                x1 = w_pt * float(ln.get("x1_pct", 0)) / 100.0
+                y1 = h_pt * (1.0 - float(ln.get("y1_pct", 0)) / 100.0)
+                x2 = w_pt * float(ln.get("x2_pct", 0)) / 100.0
+                y2 = h_pt * (1.0 - float(ln.get("y2_pct", 0)) / 100.0)
+                c.line(x1, y1, x2, y2)
+
+            for rc in (rectangulos or []):
+                try:
+                    x_pct_r = float(rc.get("x_pct", 0))
+                    y_pct_r = float(rc.get("y_pct", 0))
+                    w_pct_r = max(0.5, min(100.0, float(rc.get("ancho_pct", 10))))
+                    h_pct_r = max(0.5, min(100.0, float(rc.get("alto_pct", 10))))
+                    x_r = w_pt * x_pct_r / 100.0
+                    rw = w_pt * w_pct_r / 100.0
+                    rh = h_pt * h_pct_r / 100.0
+                    y_top_r = h_pt * (1.0 - y_pct_r / 100.0)
+                    y_r = y_top_r - rh
+                    grosor_r = max(0.25, min(6.0, float(rc.get("grosor_trazo", 1))))
+                    c.setLineWidth(grosor_r)
+                    c.setStrokeColor(_color_etiqueta_rl(rc.get("color_trazo"), rc.get("color_trazo_cmyk")))
+                    if rc.get("relleno"):
+                        c.setFillColor(_color_etiqueta_rl(rc.get("color_relleno"), rc.get("color_relleno_cmyk")))
+                        c.rect(x_r, y_r, rw, rh, fill=1, stroke=1)
+                    else:
+                        c.rect(x_r, y_r, rw, rh, fill=0, stroke=1)
+                except Exception:
+                    pass
+
+            for img in (imagenes or []):
+                ruta_img = (img.get("ruta_completa") or "").strip()
+                if not ruta_img or not os.path.isfile(ruta_img):
+                    continue
+                if not ruta_img.lower().endswith(".png"):
+                    continue
+                try:
+                    x_pct_i = float(img.get("x_pct", 0))
+                    y_pct_i = float(img.get("y_pct", 0))
+                    w_pct_i = max(1.0, min(100.0, float(img.get("ancho_pct", 20))))
+                    img_w = w_pt * w_pct_i / 100.0
+                    alto_pct_val = img.get("alto_pct")
+                    if alto_pct_val is not None:
+                        try:
+                            img_h = h_pt * max(1.0, min(100.0, float(alto_pct_val))) / 100.0
+                        except (TypeError, ValueError):
+                            img_h = img_w
+                    else:
+                        ar = 1.0
+                        try:
+                            from PIL import Image as _PILImage
+                            with _PILImage.open(ruta_img) as im:
+                                ar = im.height / float(im.width or 1)
+                        except Exception:
+                            pass
+                        img_h = img_w * ar
+                    x_pt_i = w_pt * x_pct_i / 100.0
+                    y_top_i = h_pt * (1.0 - y_pct_i / 100.0)
+                    y_pt_i = y_top_i - img_h
+                    c.drawImage(ruta_img, x_pt_i, y_pt_i, width=img_w, height=img_h, mask="auto")
+                except Exception:
+                    pass
+
             for campo in (campos or []):
                 texto = (campo.get("texto") or "").strip()
                 if not texto:
@@ -6760,8 +7288,16 @@ def register_routes(app):
                 color_hex = (campo.get("color") or "#000000").strip()
                 x_pct = float(campo.get("x_pct", 5))
                 y_pct = float(campo.get("y_pct", 5))
+                try:
+                    ancho_caja_pct = float(campo.get("ancho_caja_pct") or 0)
+                except (TypeError, ValueError):
+                    ancho_caja_pct = 0.0
+                box_w_pt = w_pt * ancho_caja_pct / 100.0 if ancho_caja_pct > 0 else 0.0
 
-                font_name = "Helvetica-Bold" if bold else "Helvetica"
+                font_name = _fuente_montserrat_etiqueta(
+                    campo.get("font_variant"),
+                    bold=bool(bold),
+                )
                 x_pt = w_pt * x_pct / 100.0
                 # PDF origen bottom-left; y_pct desde top-left
                 y_base_pt = h_pt * (1.0 - y_pct / 100.0) - fs
@@ -6769,58 +7305,50 @@ def register_routes(app):
                 lineas = texto.split("\n")
                 lh = fs * 1.3
 
+                fill_color = _color_etiqueta_rl(color_hex, campo.get("color_cmyk"))
+                stroke_w = max(0.0, float(campo.get("grosor_trazo") or 0))
+                stroke_color = _color_etiqueta_rl(
+                    campo.get("color_trazo") or "#000000",
+                    campo.get("color_trazo_cmyk"),
+                )
                 for i, linea in enumerate(lineas):
                     y_l = y_base_pt - i * lh
                     c.setFont(font_name, fs)
-                    try:
-                        c.setFillColor(HexColor(color_hex))
-                    except Exception:
-                        c.setFillColor(black)
+                    c.setFillColor(fill_color)
+                    if stroke_w > 0:
+                        c.setStrokeColor(stroke_color)
+                        c.setLineWidth(stroke_w * 0.35)
+                        c.setTextRenderMode(2)
+                    else:
+                        c.setTextRenderMode(0)
                     if fondo:
                         tw = c.stringWidth(linea, font_name, fs)
                         pad = 1.5
                         c.setFillColor(white)
                         c.rect(x_pt - pad, y_l - pad, tw + pad * 2, fs + pad * 2, fill=1, stroke=0)
-                        try:
-                            c.setFillColor(HexColor(color_hex))
-                        except Exception:
-                            c.setFillColor(black)
-                    if align == "center":
-                        tw = c.stringWidth(linea, font_name, fs)
-                        c.drawString(x_pt - tw / 2, y_l, linea)
-                    elif align == "right":
-                        c.drawRightString(x_pt, y_l, linea)
-                    else:
-                        c.drawString(x_pt, y_l, linea)
+                        c.setFillColor(fill_color)
+                    _dibujar_linea_texto_etiqueta(
+                        c, linea, font_name, fs, x_pt, y_l, align, box_w_pt=box_w_pt,
+                    )
 
-            # Lote / vencimiento — comportamiento anterior preservado
+            # Lote / vencimiento — Montserrat Light, posición % (igual que overlay del panel)
             if lote or vencimiento:
-                fn = "Helvetica-Bold"
+                fn = _fuente_lote_etiqueta()
                 c.setFont(fn, lote_font)
                 c.setFillColor(black)
-                margen = 3 * _mm
                 lh2 = lote_font * 1.35
                 lineas2 = []
                 if lote:
                     lineas2.append(lote)
                 if vencimiento:
                     lineas2.append(vencimiento)
-                if lote_pos == "bottom-left":
-                    xp = margen
-                    yb = margen + lh2 * (len(lineas2) - 1)
-                elif lote_pos == "bottom-right":
-                    mw = max((c.stringWidth(l, fn, lote_font) for l in lineas2), default=0)
-                    xp = w_pt - mw - margen
-                    yb = margen + lh2 * (len(lineas2) - 1)
-                elif lote_pos == "top-left":
-                    xp = margen
-                    yb = h_pt - margen - lote_font
-                else:
-                    mw = max((c.stringWidth(l, fn, lote_font) for l in lineas2), default=0)
-                    xp = w_pt - mw - margen
-                    yb = h_pt - margen - lote_font
+                x_pct_val = max(0.0, min(100.0, 5.0 if lote_x_pct is None else float(lote_x_pct)))
+                y_pct_val = max(0.0, min(100.0, 88.0 if lote_y_pct is None else float(lote_y_pct)))
+                # Misma convención que campos_texto y el overlay CSS (top % + tamaño pt)
+                xp = w_pt * x_pct_val / 100.0
+                y_base_pt = h_pt * (1.0 - y_pct_val / 100.0) - lote_font
                 for i2, txt2 in enumerate(lineas2):
-                    c.drawString(xp, yb - i2 * lh2, txt2)
+                    c.drawString(xp, y_base_pt - i2 * lh2, txt2)
 
             c.save()
             buf.seek(0)
@@ -6853,7 +7381,8 @@ def register_routes(app):
             # Crear overlay con las dimensiones exactas de esta página
             buf = _io.BytesIO()
             c = _rl_canvas.Canvas(buf, pagesize=(w_pt, h_pt))
-            c.setFont("Helvetica-Bold", font_size)
+            fn = _fuente_lote_etiqueta()
+            c.setFont(fn, font_size)
 
             margen = 3 * _mm
             linea = font_size * 1.35  # interlineado en pts
@@ -6869,15 +7398,14 @@ def register_routes(app):
                 x = margen
                 y_base = margen + linea * (len(lineas) - 1)
             elif pos == "bottom-right":
-                # Medir el texto más ancho para alinear a la derecha
-                max_w = max((c.stringWidth(l, "Helvetica-Bold", font_size) for l in lineas), default=0)
+                max_w = max((c.stringWidth(l, fn, font_size) for l in lineas), default=0)
                 x = w_pt - max_w - margen
                 y_base = margen + linea * (len(lineas) - 1)
             elif pos == "top-left":
                 x = margen
                 y_base = h_pt - margen - font_size
             else:  # top-right
-                max_w = max((c.stringWidth(l, "Helvetica-Bold", font_size) for l in lineas), default=0)
+                max_w = max((c.stringWidth(l, fn, font_size) for l in lineas), default=0)
                 x = w_pt - max_w - margen
                 y_base = h_pt - margen - font_size
 
@@ -6904,11 +7432,10 @@ def register_routes(app):
         data = request.get_json(silent=True) or {}
 
         ruta_pdf = data.get("ruta_pdf", "")
-        lote = (data.get("lote") or "").strip()
-        vencimiento = (data.get("vencimiento") or "").strip()
-        lote_pos = data.get("lote_pos", "bottom-left")
-        lote_font = max(5, min(20, int(data.get("lote_font", 7))))
         campos_texto = data.get("campos_texto") or []
+        lineas = data.get("lineas") or []
+        imagenes = data.get("imagenes") or []
+        rectangulos = data.get("rectangulos") or []
 
         if not ruta_pdf:
             return jsonify({"error": "Falta ruta_pdf"}), 400
@@ -6922,10 +7449,11 @@ def register_routes(app):
         tmp_dir = None
         try:
             pdf_para_preview = ruta_pdf
-            tiene_contenido = lote or vencimiento or campos_texto
-            if tiene_contenido:
-                pos_val = lote_pos if lote_pos in ("bottom-left", "bottom-right", "top-left", "top-right") else "bottom-left"
-                tmp_pdf = _pdf_con_campos_texto(ruta_pdf, campos_texto, lote, vencimiento, pos_val, lote_font)
+            # Lote/vencimiento: solo overlay arrastrable en el panel (evita texto duplicado en PNG).
+            if campos_texto or lineas or imagenes or rectangulos:
+                tmp_pdf = _pdf_con_campos_texto(
+                    ruta_pdf, campos_texto, lineas=lineas, imagenes=imagenes, rectangulos=rectangulos,
+                )
                 pdf_para_preview = tmp_pdf
 
             png_path = _pdf_a_imagen(pdf_para_preview, dpi=180)
@@ -6955,21 +7483,32 @@ def register_routes(app):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         import subprocess as _sp
+        import shutil as _shutil
         data = request.get_json(silent=True) or {}
 
         producto = data.get("producto", "")
         forma = data.get("forma", "Diecut_Gap")
         calidad = data.get("calidad", "Normal")
-        rotacion = str(data.get("rotacion", "0"))
+        rotacion = _rotacion_etiqueta_valida(data.get("rotacion", "0"))
         cantidad = data.get("cantidad", 1)
         offset_v = float(data.get("offset_v", 0.0))
         offset_h = float(data.get("offset_h", 0.0))
         ruta_pdf = data.get("ruta_pdf", "")
-        lote = (data.get("lote") or "").strip()
-        vencimiento = (data.get("vencimiento") or "").strip()
-        lote_pos = data.get("lote_pos", "bottom-left")
+        lote = _lote_impresion_etiqueta(data.get("lote"))
+        vencimiento = _exp_impresion_etiqueta(data.get("vencimiento"))
         lote_font = int(data.get("lote_font", 7))
+        try:
+            lote_x_pct = max(0.0, min(100.0, float(data.get("lote_x_pct", 5))))
+        except (TypeError, ValueError):
+            lote_x_pct = 5.0
+        try:
+            lote_y_pct = max(0.0, min(100.0, float(data.get("lote_y_pct", 88))))
+        except (TypeError, ValueError):
+            lote_y_pct = 88.0
         campos_texto = data.get("campos_texto") or []
+        lineas = data.get("lineas") or []
+        imagenes = data.get("imagenes") or []
+        rectangulos = data.get("rectangulos") or []
 
         if producto not in _ETIQUETAS:
             return jsonify({"error": f"Producto desconocido: {producto}"}), 400
@@ -7009,26 +7548,50 @@ def register_routes(app):
         log_lines = []
         tmp_pdf = None
         try:
-            # Overlay de campos de texto + lote/vencimiento
+            preflight = _verificar_impresora_etiquetas()
+            if preflight:
+                log_lines.append(f"Pre-vuelo: {preflight.get('detalle', preflight['error'])}")
+                return jsonify({
+                    "ok": False,
+                    "log": log_lines,
+                    "error": preflight["error"],
+                    "solucion": preflight["solucion"],
+                    "codigo": preflight.get("codigo", "preflight"),
+                })
+
+            # Overlay de líneas, imágenes PNG, campos de texto + lote/vencimiento
             pdf_a_imprimir = ruta_pdf
-            if lote or vencimiento or campos_texto:
-                lote_pos_val = lote_pos if lote_pos in ("bottom-left", "bottom-right", "top-left", "top-right") else "bottom-left"
+            if lote or vencimiento or campos_texto or lineas or imagenes or rectangulos:
                 lote_font_val = max(5, min(20, lote_font))
-                tmp_pdf = _pdf_con_campos_texto(ruta_pdf, campos_texto, lote, vencimiento, lote_pos_val, lote_font_val)
+                tmp_pdf = _pdf_con_campos_texto(
+                    ruta_pdf, campos_texto, lote, vencimiento, "custom", lote_font_val,
+                    lote_x_pct=lote_x_pct, lote_y_pct=lote_y_pct, lineas=lineas, imagenes=imagenes,
+                    rectangulos=rectangulos,
+                )
                 pdf_a_imprimir = tmp_pdf
                 info = []
+                if lineas:
+                    info.append(f"{len(lineas)} línea(s)")
+                if rectangulos:
+                    info.append(f"{len(rectangulos)} rectángulo(s)")
+                if imagenes:
+                    info.append(f"{len(imagenes)} imagen(es) PNG")
                 if campos_texto:
                     info.append(f"{len(campos_texto)} campo(s) de texto")
                 if lote or vencimiento:
-                    info.append(f"lote/vence ({lote_pos_val})")
+                    info.append(f"lote/vence ({lote_x_pct:.1f}%, {lote_y_pct:.1f}%)")
                 log_lines.append(f"Overlay aplicado: {', '.join(info)}")
 
             # 1. Ajuste físico de posición
+            elpu_bin = _ELPU_PATH if os.path.isfile(_ELPU_PATH) else (_shutil.which("elpu") or _ELPU_PATH)
             r_elpu = _sp.run(
-                ["sudo", _ELPU_PATH, "-p", _PRINTER_NAME, "-o", f"printPositionV={offset_v}"],
+                ["sudo", elpu_bin, "-p", _PRINTER_NAME, "-o", f"printPositionV={offset_v}"],
                 capture_output=True, text=True, timeout=15,
             )
-            log_lines.append(f"elpu: {(r_elpu.stdout + r_elpu.stderr).strip() or 'OK'}")
+            salida_elpu = (r_elpu.stdout + r_elpu.stderr).strip()
+            log_lines.append(f"elpu: {salida_elpu or 'OK'}")
+            if r_elpu.returncode != 0:
+                return jsonify(_respuesta_error_impresion_etiquetas(log_lines, salida_elpu))
 
             # 2. Imprimir con lp
             cmd = [
@@ -7044,15 +7607,17 @@ def register_routes(app):
                 pdf_a_imprimir,
             ]
             r_lp = _sp.run(cmd, capture_output=True, text=True, timeout=30)
-            log_lines.append(f"lp: {(r_lp.stdout + r_lp.stderr).strip() or 'OK'}")
+            salida_lp = (r_lp.stdout + r_lp.stderr).strip()
+            log_lines.append(f"lp: {salida_lp or 'OK'}")
 
             if r_lp.returncode != 0:
-                return jsonify({"ok": False, "log": log_lines}), 500
+                return jsonify(_respuesta_error_impresion_etiquetas(log_lines, salida_lp))
 
             return jsonify({"ok": True, "log": log_lines})
         except Exception as e:
             log_lines.append(f"Excepción: {e}")
-            return jsonify({"ok": False, "log": log_lines}), 500
+            err = _respuesta_error_impresion_etiquetas(log_lines, str(e))
+            return jsonify(err)
         finally:
             if tmp_pdf and os.path.isfile(tmp_pdf):
                 try:
@@ -7531,6 +8096,232 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    # ── Etiquetas: plantillas de dibujo ─────────────────────────────────────
+
+    _ETIQUETAS_PLANTILLAS_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_plantillas.json",
+    )
+
+    def _load_etiquetas_plantillas() -> list:
+        try:
+            with open(_ETIQUETAS_PLANTILLAS_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return []
+        except Exception:
+            return []
+        items = data.get("plantillas") if isinstance(data, dict) else data
+        return items if isinstance(items, list) else []
+
+    def _save_etiquetas_plantillas(items: list) -> None:
+        os.makedirs(os.path.dirname(_ETIQUETAS_PLANTILLAS_PATH), exist_ok=True)
+        with open(_ETIQUETAS_PLANTILLAS_PATH, "w", encoding="utf-8") as f:
+            json.dump({"plantillas": items}, f, ensure_ascii=False, indent=2)
+
+    @app.route("/api/etiquetas/plantillas", methods=["GET", "POST"])
+    def api_etiquetas_plantillas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if request.method == "GET":
+            return jsonify({"plantillas": _load_etiquetas_plantillas()})
+
+        import uuid as _uuid
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or "").strip() or "Plantilla sin nombre"
+        tipo = body.get("tipo_etiqueta") or next(iter(_ETIQUETAS.keys()))
+        if tipo not in _ETIQUETAS:
+            tipo = next(iter(_ETIQUETAS.keys()))
+        pid = (body.get("id") or "").strip() or _uuid.uuid4().hex[:12]
+        orientacion = (body.get("orientacion") or "horizontal").strip().lower()
+        if orientacion not in ("horizontal", "vertical"):
+            orientacion = "horizontal"
+        entry = {
+            "id": pid,
+            "nombre": nombre,
+            "tipo_etiqueta": tipo,
+            "orientacion": orientacion,
+            "campos_texto": body.get("campos_texto") or [],
+            "lineas": body.get("lineas") or [],
+            "imagenes": body.get("imagenes") or [],
+            "rectangulos": body.get("rectangulos") or [],
+            "updated_at": _dt.now().isoformat(timespec="seconds"),
+        }
+        items = [p for p in _load_etiquetas_plantillas() if p.get("id") != pid]
+        items.insert(0, entry)
+        _save_etiquetas_plantillas(items[:100])
+        return jsonify({"ok": True, "plantilla": entry})
+
+    @app.route("/api/etiquetas/plantillas/<plantilla_id>", methods=["DELETE"])
+    def api_etiquetas_plantilla_delete(plantilla_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        items = [p for p in _load_etiquetas_plantillas() if p.get("id") != plantilla_id]
+        _save_etiquetas_plantillas(items)
+        return jsonify({"ok": True})
+
+    # ── Etiquetas: biblioteca PNG ────────────────────────────────────────────
+
+    _PNG_RECURSOS_SUBDIR = "Recursos PNG"
+    _ETIQUETAS_PNG_INDEX_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_recursos_png.json",
+    )
+    _PNG_RECURSOS_MAX_BYTES = 8 * 1024 * 1024
+
+    def _carpeta_png_recursos_etiquetas():
+        d = os.path.join(_carpeta_pdfs_etiquetas(), _PNG_RECURSOS_SUBDIR)
+        os.makedirs(d, exist_ok=True)
+        return d
+
+    def _nombre_png_recurso_seguro(nombre: str) -> str:
+        import re as _re
+        base = os.path.basename((nombre or "").strip()) or "recurso.png"
+        base = _re.sub(r"[^\w.\- áéíóúÁÉÍÓÚñÑ]", "_", base, flags=_re.UNICODE)
+        if not base.lower().endswith(".png"):
+            base = f"{base}.png"
+        return base[:180]
+
+    def _load_png_recursos_etiquetas() -> list:
+        try:
+            with open(_ETIQUETAS_PNG_INDEX_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return []
+        except Exception:
+            return []
+        items = data.get("recursos") if isinstance(data, dict) else []
+        if not isinstance(items, list):
+            return []
+        out = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            ruta = it.get("ruta_completa") or ""
+            if ruta and os.path.isfile(ruta):
+                out.append(it)
+        out.sort(key=lambda x: x.get("subido_at") or "", reverse=True)
+        return out
+
+    def _save_png_recursos_etiquetas(items: list) -> None:
+        os.makedirs(os.path.dirname(_ETIQUETAS_PNG_INDEX_PATH), exist_ok=True)
+        with open(_ETIQUETAS_PNG_INDEX_PATH, "w", encoding="utf-8") as f:
+            json.dump({"recursos": items[:300]}, f, ensure_ascii=False, indent=2)
+
+    def _thumb_png_b64(ruta: str, max_px: int = 72) -> str | None:
+        import base64 as _b64png
+        try:
+            from PIL import Image as _PILImg
+            with _PILImg.open(ruta) as im:
+                im = im.convert("RGBA")
+                im.thumbnail((max_px, max_px))
+                import io as _iopng
+                buf = _iopng.BytesIO()
+                im.save(buf, format="PNG")
+                return _b64png.b64encode(buf.getvalue()).decode()
+        except Exception:
+            try:
+                if os.path.getsize(ruta) <= 400_000:
+                    with open(ruta, "rb") as f:
+                        return _b64png.b64encode(f.read()).decode()
+            except Exception:
+                pass
+        return None
+
+    def _registrar_png_recurso(nombre: str, ruta_completa: str, bytes_size: int) -> dict:
+        import uuid as _uuid_png
+        items = _load_png_recursos_etiquetas()
+        items = [a for a in items if a.get("ruta_completa") != ruta_completa]
+        rel = os.path.relpath(ruta_completa, _PDF_DIR) if ruta_completa.startswith(_PDF_DIR) else nombre
+        entry = {
+            "id": _uuid_png.uuid4().hex[:12],
+            "nombre": nombre,
+            "ruta": rel.replace("\\", "/"),
+            "ruta_completa": ruta_completa,
+            "subido_at": _dt.now().isoformat(timespec="seconds"),
+            "bytes": bytes_size,
+            "thumb_b64": _thumb_png_b64(ruta_completa),
+        }
+        items.insert(0, entry)
+        _save_png_recursos_etiquetas(items)
+        return entry
+
+    def _ruta_png_recurso_ok(nombre: str) -> tuple:
+        nombre = os.path.basename((nombre or "").strip())
+        if not nombre or not nombre.lower().endswith(".png"):
+            return None, "Nombre PNG inválido"
+        carpeta = os.path.realpath(_carpeta_png_recursos_etiquetas())
+        for it in _load_png_recursos_etiquetas():
+            if it.get("nombre") == nombre:
+                ruta = os.path.realpath(it.get("ruta_completa") or "")
+                if ruta.startswith(carpeta + os.sep) and os.path.isfile(ruta):
+                    return ruta, None
+        ruta_directa = os.path.realpath(os.path.join(carpeta, nombre))
+        if ruta_directa.startswith(carpeta + os.sep) and os.path.isfile(ruta_directa):
+            return ruta_directa, None
+        return None, "Recurso PNG no encontrado"
+
+    @app.route("/api/etiquetas/recursos-png", methods=["GET", "POST"])
+    def api_etiquetas_recursos_png():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if request.method == "GET":
+            recursos = _load_png_recursos_etiquetas()
+            return jsonify({
+                "recursos": recursos,
+                "total": len(recursos),
+                "carpeta": _carpeta_png_recursos_etiquetas(),
+            })
+
+        archivo = request.files.get("archivo")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Falta archivo PNG"}), 400
+        nombre = _nombre_png_recurso_seguro(archivo.filename)
+        raw = archivo.read()
+        if not raw:
+            return jsonify({"error": "Archivo vacío"}), 400
+        if len(raw) > _PNG_RECURSOS_MAX_BYTES:
+            return jsonify({
+                "error": f"El PNG supera el límite de {_PNG_RECURSOS_MAX_BYTES // (1024 * 1024)} MB",
+            }), 400
+        if raw[:8] != b"\x89PNG\r\n\x1a\n":
+            return jsonify({"error": "Solo se permiten archivos PNG"}), 400
+        destino = os.path.join(_carpeta_png_recursos_etiquetas(), nombre)
+        if os.path.isfile(destino):
+            base, ext = os.path.splitext(nombre)
+            n = 2
+            while os.path.isfile(destino):
+                nombre = f"{base}_{n}{ext}"
+                destino = os.path.join(_carpeta_png_recursos_etiquetas(), nombre)
+                n += 1
+        with open(destino, "wb") as f:
+            f.write(raw)
+        entry = _registrar_png_recurso(nombre, destino, len(raw))
+        return jsonify({"ok": True, **entry})
+
+    @app.route("/api/etiquetas/recursos-png/<path:nombre>", methods=["DELETE"])
+    def api_etiquetas_recurso_png_delete(nombre: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        ruta, err = _ruta_png_recurso_ok(nombre)
+        if err:
+            return jsonify({"error": err}), 404
+        try:
+            os.unlink(ruta)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        items = [r for r in _load_png_recursos_etiquetas() if r.get("ruta_completa") != ruta]
+        _save_png_recursos_etiquetas(items)
+        return jsonify({"ok": True})
+
+    @app.route("/api/etiquetas/recursos-png/archivo/<path:nombre>", methods=["GET"])
+    def api_etiquetas_recurso_png_archivo(nombre: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        ruta, err = _ruta_png_recurso_ok(nombre)
+        if err:
+            return jsonify({"error": err}), 404
+        from flask import send_file
+        return send_file(ruta, mimetype="image/png", conditional=True)
+
     # ── Etiquetas: datos de productos ────────────────────────────────────────
 
     _ETIQUETAS_DATOS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_datos.json")
@@ -7577,12 +8368,18 @@ def register_routes(app):
             "siigo_code", "siigo_name", "nombre_etiqueta", "presentacion",
             "pdf_ruta", "pdf_nombre", "lote_defecto", "vencimiento_defecto",
             "tipo_etiqueta", "forma", "calidad", "rotacion",
-            "lote_pos", "lote_font", "campos_texto",
+            "lote_pos", "lote_font", "lote_x_pct", "lote_y_pct", "campos_texto",
         }
         entry = dict(datos.get(sku, {}))
         for k, v in body.items():
             if k in _allowed_etiqueta:
                 entry[k] = v
+        if "lote_defecto" in entry:
+            entry["lote_defecto"] = _con_prefijo_lote_etiqueta(entry.get("lote_defecto"))
+        if "vencimiento_defecto" in entry:
+            entry["vencimiento_defecto"] = _con_prefijo_exp_etiqueta(entry.get("vencimiento_defecto"))
+        if "rotacion" in entry:
+            entry["rotacion"] = _rotacion_etiqueta_valida(entry.get("rotacion"))
         entry["updated_at"] = _dt.now().isoformat()
         datos[sku] = entry
         _save_etiquetas_datos(datos)

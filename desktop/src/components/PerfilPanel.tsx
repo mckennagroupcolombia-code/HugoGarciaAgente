@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
 import { useAppStore } from "../stores/app";
+import { useProfilePhotoPending } from "../stores/profilePhotoPending";
 import { Icon } from "../icons";
 import UserAvatar from "./UserAvatar";
-import { uploadProfilePhoto, removeProfilePhoto } from "../lib/profilePhoto";
+import { uploadProfilePhoto, removeProfilePhoto, isImageFile } from "../lib/profilePhoto";
 
 function tapi(path: string, token: string, options: RequestInit = {}) {
   const isForm = options.body instanceof FormData;
@@ -46,12 +47,15 @@ function PerfilContent({
 }) {
   const setPanel = useAppStore((s) => s.setPanel);
   const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
+  const pendingFromSidebar = useProfilePhotoPending((s) => s.file);
+  const clearPendingFromSidebar = useProfilePhotoPending((s) => s.setFile);
 
   const [nombre, setNombre] = useState(user.nombre);
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [fotoPendiente, setFotoPendiente] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
@@ -66,6 +70,12 @@ function PerfilContent({
     };
   }, [previewUrl]);
 
+  useEffect(() => {
+    if (!pendingFromSidebar) return;
+    seleccionarFoto(pendingFromSidebar);
+    clearPendingFromSidebar(null);
+  }, [pendingFromSidebar, clearPendingFromSidebar]);
+
   function volver() {
     setPanel("hugo");
     setCentroMandoView("home");
@@ -74,6 +84,41 @@ function PerfilContent({
   function handleUserUpdated(u: TicketsUser) {
     onUserUpdated(u);
     setNombre(u.nombre);
+  }
+
+  function seleccionarFoto(file: File) {
+    setMsg(null);
+    if (!isImageFile(file)) {
+      setMsg({ type: "err", text: "Selecciona una imagen (JPG, PNG, GIF o WEBP)." });
+      return;
+    }
+    const localPreview = URL.createObjectURL(file);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return localPreview;
+    });
+    setFotoPendiente(file);
+    if (fotoInputRef.current) fotoInputRef.current.value = "";
+  }
+
+  async function guardarFoto() {
+    if (!fotoPendiente) return;
+    setMsg(null);
+    setUploadingFoto(true);
+    try {
+      const updated = await uploadProfilePhoto(token, fotoPendiente);
+      handleUserUpdated(updated);
+      setFotoPendiente(null);
+      setPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setMsg({ type: "ok", text: "Foto guardada en tu perfil." });
+    } catch (e: any) {
+      setMsg({ type: "err", text: e?.message || "Error al guardar la foto" });
+    } finally {
+      setUploadingFoto(false);
+    }
   }
 
   async function guardar(ev: React.FormEvent) {
@@ -92,14 +137,27 @@ function PerfilContent({
       return;
     }
     setSaving(true);
+    const habiaFotoPendiente = Boolean(fotoPendiente);
     try {
+      if (fotoPendiente) {
+        const updated = await uploadProfilePhoto(token, fotoPendiente);
+        handleUserUpdated(updated);
+        setFotoPendiente(null);
+        setPreviewUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+      }
       const body: { nombre: string; password?: string } = { nombre: nombre.trim() };
       if (password) body.password = password;
       const res = await tapi("/auth/me", token, { method: "PUT", body: JSON.stringify(body) });
       if (res.usuario) handleUserUpdated(res.usuario as TicketsUser);
       setPassword("");
       setPassword2("");
-      setMsg({ type: "ok", text: "Perfil actualizado." });
+      setMsg({
+        type: "ok",
+        text: habiaFotoPendiente ? "Perfil y foto guardados en la base de datos." : "Perfil actualizado.",
+      });
     } catch (e: any) {
       setMsg({ type: "err", text: e?.message || "Error al guardar" });
     } finally {
@@ -107,44 +165,18 @@ function PerfilContent({
     }
   }
 
-  async function subirFoto(file: File) {
-    setMsg(null);
-    const localPreview = URL.createObjectURL(file);
-    setPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return localPreview;
-    });
-    setUploadingFoto(true);
-    try {
-      const updated = await uploadProfilePhoto(token, file);
-      handleUserUpdated(updated);
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setMsg({ type: "ok", text: "Foto de perfil actualizada." });
-    } catch (e: any) {
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setMsg({ type: "err", text: e?.message || "Error al subir la foto" });
-    } finally {
-      setUploadingFoto(false);
-      if (fotoInputRef.current) fotoInputRef.current.value = "";
-    }
-  }
-
   async function quitarFoto() {
     setMsg(null);
+    setFotoPendiente(null);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    if (!user.foto) return;
     setUploadingFoto(true);
     try {
       const updated = await removeProfilePhoto(token);
       handleUserUpdated(updated);
-      setPreviewUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
       setMsg({ type: "ok", text: "Foto de perfil eliminada." });
     } catch (e: any) {
       setMsg({ type: "err", text: e?.message || "Error al quitar la foto" });
@@ -153,9 +185,7 @@ function PerfilContent({
     }
   }
 
-  function onFileSelected(file: File | undefined) {
-    if (file) void subirFoto(file);
-  }
+  const hayFotoPendiente = Boolean(fotoPendiente);
 
   return (
     <div className="space-y-5 max-w-lg">
@@ -177,7 +207,7 @@ function PerfilContent({
         <div className="flex items-center gap-4">
           <button
             type="button"
-            title="Cambiar foto"
+            title="Elegir foto"
             disabled={uploadingFoto}
             onClick={() => fotoInputRef.current?.click()}
             className="relative shrink-0 rounded-full transition hover:opacity-90 disabled:opacity-60"
@@ -189,7 +219,7 @@ function PerfilContent({
               </span>
             )}
           </button>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="font-extrabold text-ink">{nombre}</p>
             <p className="text-sm text-muted">@{user.username}</p>
             {user.email && (
@@ -230,7 +260,10 @@ function PerfilContent({
             type="file"
             accept="image/*,.jpg,.jpeg,.png,.gif,.webp"
             className="hidden"
-            onChange={(e) => onFileSelected(e.target.files?.[0])}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) seleccionarFoto(f);
+            }}
           />
           <div
             role="button"
@@ -246,16 +279,24 @@ function PerfilContent({
             onDrop={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              if (!uploadingFoto) onFileSelected(e.dataTransfer.files?.[0]);
+              const f = e.dataTransfer.files?.[0];
+              if (f && !uploadingFoto) seleccionarFoto(f);
             }}
             className={`cursor-pointer rounded-paper border-2 border-dashed p-4 text-center transition ${
-              previewUrl || user.foto
-                ? "border-accent bg-surface-hover"
-                : "border-border hover:border-accent"
+              hayFotoPendiente
+                ? "border-amber-400 bg-amber-50/50 dark:bg-amber-950/20"
+                : previewUrl || user.foto
+                  ? "border-accent bg-surface-hover"
+                  : "border-border hover:border-accent"
             }`}
           >
-            {uploadingFoto ? (
-              <p className="text-sm font-semibold text-muted">Subiendo foto…</p>
+            {hayFotoPendiente ? (
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+                Archivo listo: {fotoPendiente?.name}
+                <span className="mt-1 block text-xs font-normal text-muted">Pulsa Guardar para subirlo a la base de datos</span>
+              </p>
+            ) : uploadingFoto ? (
+              <p className="text-sm font-semibold text-muted">Guardando foto…</p>
             ) : previewUrl || user.foto ? (
               <p className="text-sm font-semibold text-accent">
                 Toca o arrastra otra imagen para cambiar la foto
@@ -273,8 +314,19 @@ function PerfilContent({
               onClick={() => fotoInputRef.current?.click()}
               className="rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-ink transition hover:border-accent hover:text-accent disabled:opacity-50"
             >
-              {uploadingFoto ? "Subiendo..." : user.foto || previewUrl ? "Cambiar foto" : "Adjuntar foto"}
+              Elegir archivo
             </button>
+            {hayFotoPendiente && (
+              <button
+                type="button"
+                disabled={uploadingFoto}
+                onClick={() => void guardarFoto()}
+                className="inline-flex items-center gap-1.5 rounded-paper border-2 border-accent bg-accent px-3 py-1.5 text-xs font-bold text-white transition hover:bg-accent-hover disabled:opacity-50"
+              >
+                <Icon name="floppyDisk" size={14} weight="bold" className="shrink-0" />
+                {uploadingFoto ? "Guardando..." : "Guardar foto"}
+              </button>
+            )}
             {(user.foto || previewUrl) && (
               <button
                 type="button"
@@ -287,7 +339,7 @@ function PerfilContent({
             )}
           </div>
           <p className="text-[11px] text-muted">
-            La foto se muestra aquí y en el menú lateral al guardarse.
+            La foto se guarda en la base de datos y aparece en el menú lateral.
           </p>
         </div>
       </div>
@@ -340,10 +392,11 @@ function PerfilContent({
         )}
         <button
           type="submit"
-          disabled={saving}
-          className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+          disabled={saving || uploadingFoto}
+          className="inline-flex items-center gap-2 rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
         >
-          {saving ? "Guardando..." : "Guardar cambios"}
+          <Icon name="floppyDisk" size={16} weight="bold" className="shrink-0" />
+          {saving ? "Guardando..." : hayFotoPendiente ? "Guardar todo" : "Guardar cambios"}
         </button>
       </form>
     </div>

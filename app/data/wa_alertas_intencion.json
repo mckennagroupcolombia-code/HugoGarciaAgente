@@ -40,6 +40,36 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573115010287@c.us": {
+      "jid": "573115010287@c.us",
+      "primer_intencion_ts": 1773099559.0,
+      "primer_intencion_texto": "Pedido",
+      "ultima_human_ts": 1773099794.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573174923920@c.us": {
+      "jid": "573174923920@c.us",
+      "primer_intencion_ts": 1781016872.0,
+      "primer_intencion_texto": "Una porfa también dentro del pedido",
+      "ultima_human_ts": 1781017013.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573114292482@c.us": {
+      "jid": "573114292482@c.us",
+      "primer_intencion_ts": 1781030613.0,
+      "primer_intencion_texto": "Si me da los datos de envío para hacerle la transferencia",
+      "ultima_human_ts": 1781030648.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }

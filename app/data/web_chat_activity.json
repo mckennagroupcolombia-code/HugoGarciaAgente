@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-07T12:34:53",
+  "updated_at": "2026-06-09T12:14:14",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -23,9 +23,76 @@
     "2026-06-04": 4,
     "2026-06-05": 4,
     "2026-06-06": 3,
-    "2026-06-07": 4
+    "2026-06-07": 4,
+    "2026-06-09": 4
   },
   "sessions": [
+    {
+      "session_id": "web-e5dc85c5-62f9-4df4-bc93-a282e3494795",
+      "started_at": "2026-06-09T12:12:57",
+      "last_at": "2026-06-09T12:14:14",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Si",
+      "last_agent_reply": "Listo veci. Para ese pedido especial, lo mejor es que le escriba directamente a un asesor humano a nuestro WhatsApp: +57 319 518 3596. Allá le confirman de una si se puede conseguir. Le recuerdo que este chat de la página no guarda la conversación si cierra la ventana.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-09T12:12:57",
+          "user_message": "Hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-09T12:13:34",
+          "user_message": "Tienen L citrulina",
+          "agent_reply": "Veci, la L-Citrulina no me aparece en el catálogo web en este momento. Puede revisar todas las materias primas disponibles en nuestra tienda en mckennagroup.co/tienda. Si es para un pedido especial, puede confirmar con un asesor humano por WhatsApp.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-09T12:14:14",
+          "user_message": "Si",
+          "agent_reply": "Listo veci. Para ese pedido especial, lo mejor es que le escriba directamente a un asesor humano a nuestro WhatsApp: +57 319 518 3596. Allá le confirman de una si se puede conseguir. Le recuerdo que este chat de la página no guarda la conversación si cierra la ventana.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-9cc7041f-9bd4-43ae-86c3-de12467e8934",
+      "started_at": "2026-06-09T08:06:38",
+      "last_at": "2026-06-09T08:06:38",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/contacto",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Hola, tienen aceite esencial de pachuli?",
+      "last_agent_reply": "Hola veci, ¿cómo vas? Por ahora no me aparece el aceite esencial de pachulí en el catálogo. Te sugiero revisar nuestra tienda en mckennagroup.co/tienda, de pronto ahí lo encuentras.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-09T08:06:38",
+          "user_message": "Hola, tienen aceite esencial de pachuli?",
+          "agent_reply": "Hola veci, ¿cómo vas? Por ahora no me aparece el aceite esencial de pachulí en el catálogo. Te sugiero revisar nuestra tienda en mckennagroup.co/tienda, de pronto ahí lo encuentras.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-64f4fb9c-5adb-4245-83df-7ffa514307c6",
       "started_at": "2026-06-07T12:31:58",

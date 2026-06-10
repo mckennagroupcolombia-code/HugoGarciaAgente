@@ -28,8 +28,6 @@ MAPEO_FORMA = {
 MAPEO_ROTACION = {
     "Normal (0°)": "3",
     "Girar 90° (Derecha)": "4",
-    "Girar 180° (Invertido)": "6",
-    "Girar 270° (Izquierda)": "5"
 }
 
 # --- NUEVO MAPEO DE CALIDAD ---
