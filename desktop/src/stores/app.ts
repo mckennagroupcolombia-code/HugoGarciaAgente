@@ -19,6 +19,7 @@ export type Panel =
   | "publicaciones"
   | "facturas"
   | "centros-costo"
+  | "rentabilidad"
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"

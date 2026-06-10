@@ -12641,6 +12641,11 @@ interface ProductoCatalogo {
   tipo: string;
 }
 
+function shortNumero(numero: string): string {
+  const m = numero.match(/(\d+)$/);
+  return m ? `# ${m[1]}` : numero;
+}
+
 // ── SolicitudCard ─────────────────────────────────────────────────────────────
 
 function SolicitudCard({
@@ -12719,6 +12724,7 @@ function SolicitudCard({
   const [subiendoAdjPaso, setSubiendoAdjPaso] = useState<number | null>(null);
   const [subiendoAdjTicket, setSubiendoAdjTicket] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [showExtrasMenu, setShowExtrasMenu] = useState(false);
 
   const adjuntosPorPaso = useMemo(() => {
     const map = new Map<number, Adjunto[]>();
@@ -12774,20 +12780,20 @@ function SolicitudCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adjuntos, ticket.id]);
 
-  // Cargar pasos al iniciar (en proceso, vista ampliada o supervisión del equipo)
+  // Cargar pasos al iniciar (en proceso o supervisión del equipo)
   useEffect(() => {
-    if (ticket.estado === "en_proceso" || detalleAmpliado || supervision) {
+    if (ticket.estado === "en_proceso" || supervision) {
       void cargarPasos();
-      if (ticket.estado === "en_proceso" || detalleAmpliado) setShowPasos(true);
+      if (ticket.estado === "en_proceso") setShowPasos(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket.id, ticket.estado, detalleAmpliado, supervision]);
+  }, [ticket.id, ticket.estado, supervision]);
 
+  // Vista ampliada: mostrar conversación de inmediato
   useEffect(() => {
     if (!detalleAmpliado) return;
-    setShowAdjuntos(true);
-    void cargarCompras();
-    setShowCompras(true);
+    setShowChat(true);
+    void cargarComentarios();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detalleAmpliado, ticket.id]);
 
@@ -13388,120 +13394,186 @@ function SolicitudCard({
 
   return (
     <div className={`flex flex-col gap-3 transition-opacity ${detalleAmpliado ? "rounded-2xl border-2 border-border bg-surface-panel p-5 shadow-paper-lg" : "gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm"} ${resuelta ? "opacity-60" : ""}`}>
-      {/* Encabezado */}
-      <div className="flex items-start gap-2">
-        <div className="min-w-0 flex-1">
-          <span className={detalleAmpliado ? "text-xl font-extrabold text-ink leading-snug" : "text-sm font-medium text-ink"}>{ticket.titulo}</span>
+
+      {detalleAmpliado ? (
+        /* ── Encabezado ampliado: número, título, quién ── */
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-[11px] font-black text-muted/60 tracking-widest">{shortNumero(ticket.numero)}</span>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
+              {ticket.prioridad ?? "media"}
+            </span>
+            <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted">{ESTADO_LABEL[ticket.estado] ?? ticket.estado}</span>
+            <div className="ml-auto flex items-center gap-0.5">
+              <button
+                type="button"
+                title={ticket.tiene_datos_sensibles ? "Ver datos sensibles 🔒" : "Datos sensibles 🔓"}
+                onClick={() => { setShowSensible((v) => !v); if (!showSensible) void cargarSensible(); }}
+                className={`rounded p-1 transition-colors ${ticket.tiene_datos_sensibles ? "text-yellow-500 hover:text-yellow-400" : "text-muted hover:text-accent"}`}
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </button>
+              {(isAdmin || esCreadoPorMi) && !confirmDelete && !showEdit && (
+                <button type="button" title="Editar" onClick={() => {
+                  setEditDraft({ titulo: ticket.titulo, descripcion: ticket.descripcion ?? "", prioridad: ticket.prioridad ?? "media" });
+                  setShowEdit(true);
+                }} className="rounded p-1 text-muted hover:text-accent transition-colors">
+                  <Icon name="pencil" size={13} />
+                </button>
+              )}
+              {(isAdmin || esCreadoPorMi) && !confirmDelete && !showEdit && (
+                <button type="button" title="Eliminar" onClick={() => setConfirmDelete(true)}
+                  className="rounded p-1 text-muted hover:text-red-600 transition-colors">
+                  <Icon name="trash" size={13} />
+                </button>
+              )}
+              {(isAdmin || esCreadoPorMi) && confirmDelete && (
+                <div className="flex items-center gap-1">
+                  <button type="button" disabled={busy} onClick={eliminar}
+                    className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-700">Sí</button>
+                  <button type="button" onClick={() => setConfirmDelete(false)}
+                    className="rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-bold text-muted hover:text-ink">No</button>
+                </div>
+              )}
+            </div>
+          </div>
+          <h2 className="text-2xl font-extrabold text-ink leading-snug tracking-tight">{ticket.titulo}</h2>
           {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
-            <p className={`mt-1 text-muted ${detalleAmpliado ? "text-sm leading-relaxed whitespace-pre-wrap" : "mt-0.5 text-xs line-clamp-2"}`}>{ticket.descripcion}</p>
+            <p className="text-sm leading-relaxed text-muted whitespace-pre-wrap">{ticket.descripcion}</p>
           )}
-          {detalleAmpliado && (
-            <p className="mt-2 text-xs font-mono text-muted">{ticket.numero}</p>
+          <p className="text-sm font-semibold text-muted leading-snug">
+            {esCreadoPorMi
+              ? <><span className="font-medium">Solicitado por </span><strong className="font-bold text-ink">ti</strong></>
+              : <><span className="font-medium">Solicitado por </span><strong className="font-bold text-ink">{ticket.creado_por_nombre ?? "?"}</strong></>}
+            <span className="mx-2 opacity-30">·</span>
+            <span className="font-medium">Para </span><strong className="font-bold text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</strong>
+          </p>
+          {(ticket.frecuencia || ticket.protocolo_titulo) && (
+            <div className="flex flex-wrap gap-2">
+              {ticket.frecuencia && (
+                <span className="inline-flex items-center gap-1 text-xs text-muted">♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}</span>
+              )}
+              {ticket.protocolo_titulo && (
+                <span className="inline-flex items-center gap-1 text-xs text-accent/90" title="Procedimiento vinculado">📋 {ticket.protocolo_titulo}</span>
+              )}
+            </div>
           )}
         </div>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
-          {ticket.prioridad ?? "media"}
-        </span>
-        {/* Ícono de datos sensibles */}
-        <button
-          type="button"
-          title={ticket.tiene_datos_sensibles ? "Ver datos sensibles 🔒" : "Agregar datos sensibles 🔓"}
-          onClick={() => {
-            setShowSensible((v) => !v);
-            if (!showSensible) void cargarSensible();
-          }}
-          className={`shrink-0 rounded p-0.5 transition-colors ${ticket.tiene_datos_sensibles ? "text-yellow-500 hover:text-yellow-400" : "text-muted hover:text-accent"}`}
-        >
-          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-        </button>
-        {(isAdmin || esCreadoPorMi) && !confirmDelete && !showEdit && (
-          <button type="button" title="Editar solicitud" onClick={() => {
-            setEditDraft({ titulo: ticket.titulo, descripcion: ticket.descripcion ?? "", prioridad: ticket.prioridad ?? "media" });
-            setShowEdit(true);
-          }}
-            className="shrink-0 rounded p-0.5 text-muted hover:text-accent transition-colors">
-            <Icon name="pencil" size={13} />
-          </button>
-        )}
-        {(isAdmin || esCreadoPorMi) && !confirmDelete && !showEdit && (
-          <button type="button" title="Eliminar" onClick={() => setConfirmDelete(true)}
-            className="shrink-0 rounded p-0.5 text-muted hover:text-red-600 transition-colors">
-            <Icon name="trash" size={13} />
-          </button>
-        )}
-        {(isAdmin || esCreadoPorMi) && confirmDelete && (
-          <div className="flex items-center gap-1">
-            <button type="button" disabled={busy} onClick={eliminar}
-              className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-700">Sí</button>
-            <button type="button" onClick={() => setConfirmDelete(false)}
-              className="rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-bold text-muted hover:text-ink">No</button>
+      ) : (
+        <>
+          {/* Encabezado compacto */}
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <span className="text-sm font-medium text-ink">{ticket.titulo}</span>
+              {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
+                <p className="mt-0.5 text-xs text-muted line-clamp-2">{ticket.descripcion}</p>
+              )}
+            </div>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
+              {ticket.prioridad ?? "media"}
+            </span>
+            <button
+              type="button"
+              title={ticket.tiene_datos_sensibles ? "Ver datos sensibles 🔒" : "Agregar datos sensibles 🔓"}
+              onClick={() => {
+                setShowSensible((v) => !v);
+                if (!showSensible) void cargarSensible();
+              }}
+              className={`shrink-0 rounded p-0.5 transition-colors ${ticket.tiene_datos_sensibles ? "text-yellow-500 hover:text-yellow-400" : "text-muted hover:text-accent"}`}
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </button>
+            {(isAdmin || esCreadoPorMi) && !confirmDelete && !showEdit && (
+              <button type="button" title="Editar solicitud" onClick={() => {
+                setEditDraft({ titulo: ticket.titulo, descripcion: ticket.descripcion ?? "", prioridad: ticket.prioridad ?? "media" });
+                setShowEdit(true);
+              }}
+                className="shrink-0 rounded p-0.5 text-muted hover:text-accent transition-colors">
+                <Icon name="pencil" size={13} />
+              </button>
+            )}
+            {(isAdmin || esCreadoPorMi) && !confirmDelete && !showEdit && (
+              <button type="button" title="Eliminar" onClick={() => setConfirmDelete(true)}
+                className="shrink-0 rounded p-0.5 text-muted hover:text-red-600 transition-colors">
+                <Icon name="trash" size={13} />
+              </button>
+            )}
+            {(isAdmin || esCreadoPorMi) && confirmDelete && (
+              <div className="flex items-center gap-1">
+                <button type="button" disabled={busy} onClick={eliminar}
+                  className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white hover:bg-red-700">Sí</button>
+                <button type="button" onClick={() => setConfirmDelete(false)}
+                  className="rounded bg-surface-hover px-1.5 py-0.5 text-[10px] font-bold text-muted hover:text-ink">No</button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      {/* Meta */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-        <span className="flex items-center gap-1">
-          <Icon name="user" size={11} />
-          {esCreadoPorMi ? "Solicitado por ti" : `Solicitado por ${ticket.creado_por_nombre ?? "?"}`}
-        </span>
-        <span className="flex items-center gap-1">
-          <Icon name="user" size={11} />
-          Para: <strong className="text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</strong>
-        </span>
-        {ticket.frecuencia && (
-          <span className="flex items-center gap-1">
-            ♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}
-          </span>
-        )}
-        {/* Progreso de pasos en header */}
-        {(ticket.pasos_total ?? 0) > 0 && !showPasos && (
-          <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
-            className="flex items-center gap-1 text-accent hover:underline">
-            ☑ {ticket.pasos_completados}/{ticket.pasos_total} pasos
-          </button>
-        )}
-        {ticket.protocolo_titulo && (
-          <span className="flex items-center gap-1 text-accent/90" title="Procedimiento vinculado">
-            📋 {ticket.protocolo_titulo}
-          </span>
-        )}
-        {(adjuntos.length > 0 || loadingAdjuntos) && (
-          <button
-            type="button"
-            onClick={() => { setShowAdjuntos(true); if (!adjuntos.length && !loadingAdjuntos) void cargarAdjuntos(); }}
-            className="flex items-center gap-1 text-accent hover:underline"
-          >
-            📎 {loadingAdjuntos ? "Cargando…" : `${adjuntos.length} adjunto${adjuntos.length !== 1 ? "s" : ""}`}
-          </button>
-        )}
-        {puedeVerChat && (
-          <button
-            type="button"
-            onClick={() => {
-              setShowChat((v) => {
-                const next = !v;
-                if (next) void cargarComentarios();
-                return next;
-              });
-            }}
-            className={`flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-bold transition ${
-              showChat
-                ? "border-accent bg-accent/10 text-accent"
-                : "border-border text-muted hover:border-accent hover:text-accent"
-            }`}
-          >
-            <Icon name="chat" size={12} weight="bold" />
-            Mensajes{comentarios.length > 0 ? ` (${comentarios.length})` : ""}
-          </button>
-        )}
-        <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px]">
-          {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
-        </span>
-      </div>
+          {/* Meta compacta */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+            <span className="flex items-center gap-1">
+              <Icon name="user" size={11} />
+              {esCreadoPorMi ? "Solicitado por ti" : `Solicitado por ${ticket.creado_por_nombre ?? "?"}`}
+            </span>
+            <span className="flex items-center gap-1">
+              <Icon name="user" size={11} />
+              Para: <strong className="text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</strong>
+            </span>
+            {ticket.frecuencia && (
+              <span className="flex items-center gap-1">
+                ♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}
+              </span>
+            )}
+            {(ticket.pasos_total ?? 0) > 0 && !showPasos && (
+              <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
+                className="flex items-center gap-1 text-accent hover:underline">
+                ☑ {ticket.pasos_completados}/{ticket.pasos_total} pasos
+              </button>
+            )}
+            {ticket.protocolo_titulo && (
+              <span className="flex items-center gap-1 text-accent/90" title="Procedimiento vinculado">
+                📋 {ticket.protocolo_titulo}
+              </span>
+            )}
+            {(adjuntos.length > 0 || loadingAdjuntos) && (
+              <button
+                type="button"
+                onClick={() => { setShowAdjuntos(true); if (!adjuntos.length && !loadingAdjuntos) void cargarAdjuntos(); }}
+                className="flex items-center gap-1 text-accent hover:underline"
+              >
+                📎 {loadingAdjuntos ? "Cargando…" : `${adjuntos.length} adjunto${adjuntos.length !== 1 ? "s" : ""}`}
+              </button>
+            )}
+            {puedeVerChat && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowChat((v) => {
+                    const next = !v;
+                    if (next) void cargarComentarios();
+                    return next;
+                  });
+                }}
+                className={`flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-bold transition ${
+                  showChat
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border text-muted hover:border-accent hover:text-accent"
+                }`}
+              >
+                <Icon name="chat" size={12} weight="bold" />
+                Mensajes{comentarios.length > 0 ? ` (${comentarios.length})` : ""}
+              </button>
+            )}
+            <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[10px]">
+              {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
+            </span>
+          </div>
+        </>
+      )}
 
       {/* Formulario de edición inline — visible al creador o admin */}
       {showEdit && (
@@ -13620,19 +13692,21 @@ function SolicitudCard({
       )}
 
       {/* Conversación — solicitante, asignado y equipo */}
-      {showChat && puedeVerChat && (
-        <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-2">
+      {(showChat || detalleAmpliado) && puedeVerChat && (
+        <div className={`rounded-xl border border-border p-3 space-y-2 ${detalleAmpliado ? "bg-surface" : "bg-surface-hover"}`}>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-ink flex items-center gap-1.5">
-              <Icon name="chat" size={14} weight="bold" />
-              Conversación
+            <span className={`flex items-center gap-1.5 font-bold text-ink ${detalleAmpliado ? "text-sm" : "text-xs"}`}>
+              <Icon name="chat" size={detalleAmpliado ? 16 : 14} weight="bold" />
+              {detalleAmpliado ? "Mensajes" : "Conversación"}
               {supervision && (
-                <span className="font-normal text-muted">· coordinación del equipo</span>
+                <span className="font-normal text-muted">· equipo</span>
               )}
             </span>
-            <button type="button" onClick={() => setShowChat(false)} className="text-muted hover:text-ink text-xs">✕</button>
+            {!detalleAmpliado && (
+              <button type="button" onClick={() => setShowChat(false)} className="text-muted hover:text-ink text-xs">✕</button>
+            )}
           </div>
-          <div className="max-h-52 overflow-y-auto space-y-2 rounded-lg border border-border/50 bg-surface px-2 py-2">
+          <div className={`overflow-y-auto space-y-2 rounded-lg border border-border/50 bg-surface px-2 py-2 ${detalleAmpliado ? "min-h-[8rem] max-h-[45vh]" : "max-h-52"}`}>
             {loadingComentarios && comentarios.length === 0 && (
               <p className="text-xs text-muted text-center py-2">Cargando mensajes…</p>
             )}
@@ -14284,39 +14358,86 @@ function SolicitudCard({
           )}
 
           {/* Botones secundarios */}
-          <div className="flex flex-wrap gap-1.5">
-            <button type="button"
-              onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
-              className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
-              📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
-            </button>
-            {/* Ver pasos solo para solicitudes sin protocolo (las de protocolo usan el wizard) */}
-            {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
-              <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
-                className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
-                ☑ Ver pasos
+          {detalleAmpliado ? (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowExtrasMenu((v) => !v)}
+                title="Adjuntos, pasos y lista de compras"
+                className={`flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition-colors ${showExtrasMenu ? "border-accent bg-accent/10 text-accent" : "border-border text-muted hover:border-accent hover:text-accent"}`}
+              >
+                <span className="text-sm leading-none font-black">{showExtrasMenu ? "✕" : "+"}</span>
+                Opciones
               </button>
-            )}
-            {(ticket.pasos_total ?? 0) === 0 && !showPasos && puedeVincularProtocolo && protocolos.length > 0 && (
+              {showExtrasMenu && (
+                <>
+                  <button type="button"
+                    onClick={() => { setShowAdjuntos((v) => !v); if (!showAdjuntos) void cargarAdjuntos(); }}
+                    className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
+                    📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
+                  </button>
+                  {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
+                    <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
+                      className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
+                      ☑ Ver pasos
+                    </button>
+                  )}
+                  {(ticket.pasos_total ?? 0) === 0 && !showPasos && puedeVincularProtocolo && protocolos.length > 0 && (
+                    <button type="button"
+                      onClick={() => { setShowPasos(true); setShowVincularProtocolo(true); void cargarPasos(); }}
+                      className="rounded-lg border border-accent/40 px-2 py-1.5 text-xs text-accent hover:bg-accent/10 transition-colors">
+                      📋 Enlazar
+                    </button>
+                  )}
+                  {ticket.estado === "en_proceso" && !ticket.bloqueado_por && showPasos && (
+                    <button type="button" onClick={() => setShowAddPaso(true)}
+                      className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
+                      + Paso
+                    </button>
+                  )}
+                  <button type="button"
+                    onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
+                    className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-blue-400 text-blue-600" : "border-border text-muted hover:text-blue-500 hover:border-blue-400"}`}>
+                    🛒 Compras{compras.length > 0 ? ` (${compras.length})` : ""}
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
               <button type="button"
-                onClick={() => { setShowPasos(true); setShowVincularProtocolo(true); void cargarPasos(); }}
-                className="rounded-lg border border-accent/40 px-2 py-1.5 text-xs text-accent hover:bg-accent/10 transition-colors">
-                📋 Enlazar procedimiento
+                onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
+                className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
+                📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
               </button>
-            )}
-            {ticket.estado === "en_proceso" && !ticket.bloqueado_por && showPasos && (
-              <button type="button" onClick={() => setShowAddPaso(true)}
-                className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
-                + Paso
+              {/* Ver pasos solo para solicitudes sin protocolo (las de protocolo usan el wizard) */}
+              {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
+                <button type="button" onClick={() => { setShowPasos(true); void cargarPasos(); }}
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
+                  ☑ Ver pasos
+                </button>
+              )}
+              {(ticket.pasos_total ?? 0) === 0 && !showPasos && puedeVincularProtocolo && protocolos.length > 0 && (
+                <button type="button"
+                  onClick={() => { setShowPasos(true); setShowVincularProtocolo(true); void cargarPasos(); }}
+                  className="rounded-lg border border-accent/40 px-2 py-1.5 text-xs text-accent hover:bg-accent/10 transition-colors">
+                  📋 Enlazar procedimiento
+                </button>
+              )}
+              {ticket.estado === "en_proceso" && !ticket.bloqueado_por && showPasos && (
+                <button type="button" onClick={() => setShowAddPaso(true)}
+                  className="rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:text-accent hover:border-accent transition-colors">
+                  + Paso
+                </button>
+              )}
+              <button type="button"
+                onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
+                className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-blue-400 text-blue-600" : "border-border text-muted hover:text-blue-500 hover:border-blue-400"}`}>
+                🛒 Compras{compras.length > 0 ? ` (${compras.length})` : ""}
               </button>
-            )}
-            <button type="button"
-              onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
-              className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-blue-400 text-blue-600" : "border-border text-muted hover:text-blue-500 hover:border-blue-400"}`}>
-              🛒 Compras{compras.length > 0 ? ` (${compras.length})` : ""}
-            </button>
-            {/* Intervención solo disponible por paso — botón general eliminado */}
-          </div>
+              {/* Intervención solo disponible por paso — botón general eliminado */}
+            </div>
+          )}
         </div>
       )}
 
@@ -22653,7 +22774,7 @@ function RevisionSolicitudView({
               {solicitud.asignado_a_nombre?.charAt(0)?.toUpperCase() ?? "?"}
             </span>
             <p className="text-[11px] font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
-              {solicitud.asignado_a_nombre} · {solicitud.numero}
+              {solicitud.asignado_a_nombre} · {shortNumero(solicitud.numero)}
             </p>
           </div>
           <p className="text-sm font-bold text-amber-900 dark:text-amber-200 leading-snug">{solicitud.titulo}</p>
@@ -23565,7 +23686,7 @@ function AgenteMandoView({
   token, user, modoInicio = false, embedido = false, chatExpanded = true,
   onToggleChatExpanded, onExpandChat, onSalir, onAbrirMenu, onIrInicio,
   onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones, onGoImpresora,
-  onGoRecordatorios, onGoTableroLabores, onGoPendientes,
+  onGoRecordatorios, onGoTableroLabores, onGoPendientes, clearSubViewKey = 0,
 }: {
   token: string;
   user: TicketsUser;
@@ -23588,6 +23709,8 @@ function AgenteMandoView({
   onGoRecordatorios?: () => void;
   onGoTableroLabores?: () => void;
   onGoPendientes?: () => void;
+  /** Incrementar este valor desde el padre limpia las sub-vistas activas (revisar, resolver, ejecución). */
+  clearSubViewKey?: number;
 }) {
   const { apiToken: chatApiToken } = useTicketsAuth();
   const verImpresora = puedeVerSeccionPanel(user, "etiquetas");
@@ -23619,6 +23742,16 @@ function AgenteMandoView({
     } catch { return null; }
   });
   const [esperandoTituloAccion, setEsperandoTituloAccion] = useState(false);
+
+  // Limpiar sub-vistas cuando el padre incrementa clearSubViewKey (botón "Centro" en móvil)
+  useEffect(() => {
+    if (!clearSubViewKey) return;
+    setSolicitudResolviendo(null);
+    setRevisionSolicitud(null);
+    setModoEjecucion(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearSubViewKey]);
+
   const [solicitudesCount, setSolicitudesCount] = useState(0);
   const [accionesCount, setAccionesCount] = useState(0);
   const [pensando, setPensando] = useState(false);
@@ -24777,6 +24910,7 @@ export default function TicketsPanel() {
   const [boardRefreshKey, setBoardRefreshKey] = useState(0);
   const [accionesKey, setAccionesKey] = useState(0);
   const [createCategoriaFija, setCreateCategoriaFija] = useState<string | undefined>();
+  const [agenteClearKey, setAgenteClearKey] = useState(0);
   const carritoOpen = useInventarioCarrito((s) => s.modalOpen);
   const openCarrito = useInventarioCarrito((s) => s.setModalOpen);
   const panel = useAppStore((s) => s.panel);
@@ -24882,6 +25016,7 @@ export default function TicketsPanel() {
     setCentroMandoView("home");
     setView("home");
     setHugoChatExpanded(false);
+    setAgenteClearKey((k) => k + 1);
   }
 
   function goTablero() {
@@ -25014,6 +25149,7 @@ export default function TicketsPanel() {
               onGoRecordatorios={() => goAcciones("recordatorios")}
               onGoTableroLabores={goKingdom}
               onGoPendientes={() => goAcciones("pendientes")}
+              clearSubViewKey={agenteClearKey}
             />
           </div>
         )}

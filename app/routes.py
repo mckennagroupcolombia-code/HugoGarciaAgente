@@ -3795,6 +3795,78 @@ def register_routes(app):
             return jsonify({"error": err}), 502
         return jsonify({"centros": centros or [], "total": len(centros or [])})
 
+    # ── Rentabilidad ─────────────────────────────────────────────────────────
+
+    @app.route("/api/rentabilidad/productos", methods=["GET"])
+    def api_rentabilidad_productos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import listar_productos_rentabilidad
+        productos, err = listar_productos_rentabilidad()
+        if err and not productos:
+            return jsonify({"error": err}), 502
+        return jsonify({"productos": productos, "total": len(productos)})
+
+    @app.route("/api/rentabilidad/calcular", methods=["POST"])
+    def api_rentabilidad_calcular():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        from app.services.rentabilidad import calcular_rentabilidad
+        try:
+            resultado = calcular_rentabilidad(
+                precio_lista=float(data.get("precio_lista") or 0),
+                iva_pct=float(data.get("iva_pct") or 0),
+                tax_included=bool(data.get("tax_included", True)),
+                costo_materiales=float(data.get("costo_materiales") or 0),
+                costo_nomina=float(data.get("costo_nomina") or 0),
+                costo_envase=float(data.get("costo_envase") or 0),
+                costo_etiqueta=float(data.get("costo_etiqueta") or 0),
+                otros_costos=float(data.get("otros_costos") or 0),
+                comision_pct=float(data.get("comision_pct") or 0.165),
+                margen_objetivo_pct=float(data["margen_objetivo_pct"]) if data.get("margen_objetivo_pct") not in (None, "") else None,
+            )
+            return jsonify(resultado)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/rentabilidad/resumen", methods=["GET"])
+    def api_rentabilidad_resumen():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        fecha_inicio = request.args.get("fecha_inicio", "")
+        fecha_fin = request.args.get("fecha_fin") or None
+        if not fecha_inicio:
+            return jsonify({"error": "Se requiere fecha_inicio (YYYY-MM-DD)"}), 400
+        from app.services.rentabilidad import resumen_periodo
+        resultado = resumen_periodo(fecha_inicio, fecha_fin)
+        if "error" in resultado:
+            return jsonify(resultado), 502
+        return jsonify(resultado)
+
+    @app.route("/api/rentabilidad/config/<codigo>", methods=["GET"])
+    def api_rentabilidad_config_get(codigo):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import cargar_config_producto
+        cfg = cargar_config_producto(codigo)
+        if cfg is None:
+            return jsonify({"config": None})
+        return jsonify({"config": cfg})
+
+    @app.route("/api/rentabilidad/config", methods=["POST"])
+    def api_rentabilidad_config_save():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        codigo = (data.get("codigo") or "").strip()
+        if not codigo:
+            return jsonify({"error": "Se requiere codigo"}), 400
+        from app.services.rentabilidad import guardar_config_producto
+        config = {k: v for k, v in data.items() if k != "codigo"}
+        guardar_config_producto(codigo, config)
+        return jsonify({"ok": True})
+
     @app.route("/api/facturas/pendientes", methods=["GET"])
     def api_facturas_pendientes():
         if not _api_token_valido():
