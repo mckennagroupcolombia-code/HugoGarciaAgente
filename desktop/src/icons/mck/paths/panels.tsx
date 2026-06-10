@@ -102,6 +102,12 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M12 12L16 8" />
     </>
   ),
+  rentabilidad: (
+    <>
+      <path d="M3 17l3-6 4 4 4-7 4 3" />
+      <path d="M3 20h18" />
+    </>
+  ),
   tickets: (
     <>
       <rect x="7" y="5" width="10" height="14" rx="1.5" />

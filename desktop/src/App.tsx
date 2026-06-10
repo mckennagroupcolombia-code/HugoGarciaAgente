@@ -13,6 +13,7 @@ import FichasTecnicasPanel from "./components/FichasTecnicasPanel";
 import PedidosWebPanel from "./components/PedidosWebPanel";
 import FacturasCompraPanel from "./components/FacturasCompraPanel";
 import CentroCostosPanel from "./components/CentroCostosPanel";
+import RentabilidadPanel from "./components/RentabilidadPanel";
 import TicketsPanel from "./components/TicketsPanel";
 import WebChatPanel from "./components/WebChatPanel";
 import WhatsAppPanel from "./components/WhatsAppPanel";
@@ -67,6 +68,8 @@ function PanelRouter() {
       return <FacturasCompraPanel />;
     case "centros-costo":
       return <CentroCostosPanel />;
+    case "rentabilidad":
+      return <RentabilidadPanel />;
     case "etiquetas":
       return <EtiquetasPanel />;
     case "etiquetas-config":
@@ -170,7 +173,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 
 const NAV_ORDER: Panel[] = [
   "hugo", "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
-  "facturas", "centros-costo", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config", "settings",
+  "facturas", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config", "settings",
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
