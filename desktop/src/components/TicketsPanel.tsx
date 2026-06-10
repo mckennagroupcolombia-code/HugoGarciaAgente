@@ -24645,136 +24645,64 @@ function AgenteMandoView({
           </div>
         ))}
         {lastChips && lastChips.length > 0 && !pensando && (
-          <div className="space-y-3 pt-1">
-            {/* Recordatorios del día */}
-            {lastChips.some(c => c.tipo === "recordatorio") && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-1.5 px-1">🔔 Recordatorios hoy</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {lastChips.filter(c => c.tipo === "recordatorio").map((chip, i) => (
-                    <button key={i} type="button" onClick={() => onChipTap(chip)}
-                      className="flex flex-col items-start rounded-2xl border-2 border-violet-400/60 bg-violet-50 dark:bg-violet-950/30 px-4 py-3 text-left hover:bg-violet-100 dark:hover:bg-violet-900/40 active:scale-[0.98] transition shadow-sm">
-                      <span className="text-sm font-extrabold text-violet-800 dark:text-violet-300 leading-snug">{chip.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Labores del tablero */}
-            {lastChips.some(c => c.tipo === "labor_tablero") && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 mb-1.5 px-1">🎯 Tablero</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {lastChips.filter(c => c.tipo === "labor_tablero").map((chip, i) => (
-                    <button key={i} type="button" onClick={() => onChipTap(chip)}
-                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-stone-400/60 bg-stone-50 dark:bg-stone-900/30 px-4 py-3 text-left hover:bg-stone-100 dark:hover:bg-stone-800/40 active:scale-[0.98] transition shadow-sm">
-                      <span className="text-sm font-extrabold text-stone-800 dark:text-stone-200 leading-snug">{chip.label}</span>
-                      {chip.subtitulo && <span className="text-[11px] text-stone-600/80 dark:text-stone-400/70">{chip.subtitulo}</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Pendientes para hoy */}
-            {lastChips.some(c => c.tipo === "pendiente") && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-1.5 px-1">🗓️ Pendientes hoy</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {lastChips.filter(c => c.tipo === "pendiente").map((chip, i) => (
-                    <button key={i} type="button" onClick={() => onChipTap(chip)}
-                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 text-left hover:bg-emerald-100 dark:hover:bg-emerald-900/40 active:scale-[0.98] transition shadow-sm">
-                      <span className="text-sm font-extrabold text-emerald-800 dark:text-emerald-300 leading-snug">{chip.label}</span>
-                      {chip.subtitulo && <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/70">{chip.subtitulo}</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Solicitudes para confirmar — amber */}
-            {lastChips.some(c => c.tipo === "solicitud_aprobar") && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1.5 px-1">⏳ Para confirmar</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {lastChips.filter(c => c.tipo === "solicitud_aprobar").map((chip, i) => (
-                    <button key={i} type="button" onClick={() => onChipTap(chip)}
-                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-left hover:bg-amber-100 dark:hover:bg-amber-900/40 active:scale-[0.98] transition shadow-sm">
-                      <span className="text-sm font-extrabold text-amber-800 dark:text-amber-300 leading-snug">{chip.label}</span>
-                      {chip.subtitulo && <span className="text-[11px] text-amber-600/80 dark:text-amber-400/70">Atendió: {chip.subtitulo}</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Solicitudes asignadas a mí — azul */}
-            {lastChips.some(c => c.tipo === "solicitud_asignada") && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-1.5 px-1">📋 Para atender</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {lastChips.filter(c => c.tipo === "solicitud_asignada").map((chip, i) => (
-                    <button key={i} type="button" onClick={() => onChipTap(chip)}
-                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-blue-400/60 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 text-left hover:bg-blue-100 dark:hover:bg-blue-900/40 active:scale-[0.98] transition shadow-sm">
-                      <span className="text-sm font-extrabold text-blue-800 dark:text-blue-300 leading-snug">{chip.label}</span>
-                      {chip.subtitulo && <span className="text-[11px] text-blue-600/80 dark:text-blue-400/70">De: {chip.subtitulo}</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Solicitudes enviadas, esperando que el solicitante confirme — gris/slate */}
-            {lastChips.some(c => c.tipo === "solicitud_esperando") && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5 px-1">⏳ Esperando confirmación</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {lastChips.filter(c => c.tipo === "solicitud_esperando").map((chip, i) => (
-                    <div key={i}
-                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-slate-300/60 bg-slate-50 dark:bg-slate-900/30 px-4 py-3 shadow-sm opacity-80">
-                      <span className="text-sm font-extrabold text-slate-600 dark:text-slate-300 leading-snug">{chip.label}</span>
-                      {chip.subtitulo && <span className="text-[11px] text-slate-500 dark:text-slate-400">Solicitó: {chip.subtitulo}</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Colaboraciones activas — violeta */}
-            {lastChips.some(c => c.tipo === "colaboracion") && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-1.5 px-1">👥 Colaborando</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {lastChips.filter(c => c.tipo === "colaboracion").map((chip, i) => (
-                    <button key={i} type="button" onClick={() => onChipTap(chip)}
-                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-violet-400/60 bg-violet-50 dark:bg-violet-950/30 px-4 py-3 text-left hover:bg-violet-100 dark:hover:bg-violet-900/40 active:scale-[0.98] transition shadow-sm">
-                      <span className="text-sm font-extrabold text-violet-800 dark:text-violet-300 leading-snug">{chip.label}</span>
-                      {chip.subtitulo && <span className="text-[11px] text-violet-600/80 dark:text-violet-400/70">{chip.subtitulo}</span>}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Acciones activas — verde/accent */}
-            {lastChips.some(c => c.tipo === "accion_activa") && (
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-accent mb-1.5 px-1">⚡ En curso</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {lastChips.filter(c => c.tipo === "accion_activa").map((chip, i) => (
-                    <button key={i} type="button" onClick={() => onChipTap(chip)}
-                      className="flex flex-col items-start rounded-2xl border-2 border-accent/50 bg-accent/10 px-4 py-3 text-left hover:bg-accent/20 active:scale-[0.98] transition shadow-sm">
-                      <span className="text-sm font-extrabold text-accent leading-snug">{chip.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Chips de utilidad — neutros */}
-            {lastChips.some(c => !c.tipo || c.tipo === "util") && (
-              <div className="flex flex-wrap gap-2">
-                {lastChips.filter(c => !c.tipo || c.tipo === "util").map((chip, i) => (
-                  <button key={i} type="button" onClick={() => onChipTap(chip)}
-                    className="hugo-chip rounded-2xl border-2 border-border bg-surface-panel px-4 py-2.5 text-sm font-bold text-muted hover:border-accent hover:text-accent active:scale-95 transition shadow-paper-sm">
-                    {chip.label}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="divide-y divide-border/50 rounded-xl border border-border/60 overflow-hidden mt-2">
+            {([] as typeof lastChips).concat(
+              lastChips.filter(c => c.tipo === "accion_activa"),
+              lastChips.filter(c => c.tipo === "solicitud_asignada"),
+              lastChips.filter(c => c.tipo === "solicitud_aprobar"),
+              lastChips.filter(c => c.tipo === "recordatorio"),
+              lastChips.filter(c => c.tipo === "pendiente"),
+              lastChips.filter(c => c.tipo === "colaboracion"),
+              lastChips.filter(c => c.tipo === "labor_tablero"),
+              lastChips.filter(c => c.tipo === "solicitud_esperando"),
+              lastChips.filter(c => !c.tipo || c.tipo === "util"),
+            ).map((chip, i) => {
+              const tipoIcon: Record<string, string> = {
+                accion_activa: "⚡",
+                solicitud_asignada: "📋",
+                solicitud_aprobar: "⏳",
+                recordatorio: "🔔",
+                pendiente: "🗓️",
+                colaboracion: "👥",
+                labor_tablero: "🎯",
+                solicitud_esperando: "…",
+                util: "→",
+              };
+              const icon = tipoIcon[chip.tipo ?? "util"] ?? "→";
+              const clickable = chip.tipo !== "solicitud_esperando";
+              const colorClass = {
+                accion_activa: "text-accent",
+                solicitud_asignada: "text-blue-600 dark:text-blue-400",
+                solicitud_aprobar: "text-amber-600 dark:text-amber-400",
+                recordatorio: "text-violet-600 dark:text-violet-400",
+                pendiente: "text-emerald-600 dark:text-emerald-400",
+                colaboracion: "text-violet-600 dark:text-violet-400",
+                labor_tablero: "text-stone-600 dark:text-stone-400",
+                solicitud_esperando: "text-slate-500 dark:text-slate-400",
+                util: "text-muted",
+              }[chip.tipo ?? "util"] ?? "text-muted";
+              const Tag = clickable ? "button" : "div";
+              return (
+                <Tag
+                  key={i}
+                  {...(clickable ? { type: "button" as const, onClick: () => onChipTap(chip) } : {})}
+                  className={`flex w-full items-center gap-3 bg-surface px-3 py-2.5 text-left transition ${clickable ? "hover:bg-surface-hover active:scale-[0.99] cursor-pointer" : "opacity-60 cursor-default"}`}
+                >
+                  <span className={`text-base leading-none ${colorClass}`}>{icon}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block truncate text-sm font-semibold text-ink`}>{chip.label}</span>
+                    {chip.subtitulo && (
+                      <span className="block truncate text-xs text-muted">{chip.subtitulo}</span>
+                    )}
+                  </span>
+                  {clickable && (
+                    <svg className="h-3.5 w-3.5 shrink-0 text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                  )}
+                </Tag>
+              );
+            })}
           </div>
         )}
         {pensando && (
@@ -24884,6 +24812,19 @@ function AgenteMandoView({
   );
 }
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return mobile;
+}
+
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 export default function TicketsPanel() {
@@ -24911,6 +24852,7 @@ export default function TicketsPanel() {
   const [accionesKey, setAccionesKey] = useState(0);
   const [createCategoriaFija, setCreateCategoriaFija] = useState<string | undefined>();
   const [agenteClearKey, setAgenteClearKey] = useState(0);
+  const isMobile = useIsMobile();
   const carritoOpen = useInventarioCarrito((s) => s.modalOpen);
   const openCarrito = useInventarioCarrito((s) => s.setModalOpen);
   const panel = useAppStore((s) => s.panel);
@@ -25114,6 +25056,7 @@ export default function TicketsPanel() {
         )}
         {view === "home" && (
           <div className="relative flex min-h-0 flex-1 flex-col">
+            {/* Dashboard — siempre visible en desktop; en móvil queda detrás de Hugo */}
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20">
               <CentroMandoHome
                 token={token}
@@ -25135,7 +25078,7 @@ export default function TicketsPanel() {
               user={user}
               modoInicio
               embedido
-              chatExpanded={hugoChatExpanded}
+              chatExpanded={isMobile ? true : hugoChatExpanded}
               onToggleChatExpanded={() => setHugoChatExpanded(false)}
               onExpandChat={() => setHugoChatExpanded(true)}
               onSalir={salirDeAgente}
