@@ -72,6 +72,48 @@ def autenticar_siigo(forzar=False):
     
     return None
 
+
+def listar_centros_costo_siigo() -> tuple[list | None, str | None]:
+    """Centros de costo activos en Siigo (API v1/cost-centers)."""
+    token = autenticar_siigo()
+    if not token:
+        return None, "No se pudo autenticar con Siigo"
+
+    def _fetch(bearer: str):
+        return requests.get(
+            "https://api.siigo.com/v1/cost-centers",
+            headers={"Authorization": f"Bearer {bearer}", "Partner-Id": PARTNER_ID},
+            timeout=15,
+        )
+
+    try:
+        res = _fetch(token)
+        if res.status_code == 401:
+            _invalidar_cache_token_siigo()
+            token = autenticar_siigo(forzar=True)
+            if not token:
+                return None, "Sesión Siigo expirada"
+            res = _fetch(token)
+        if res.status_code != 200:
+            return None, f"Siigo respondió {res.status_code}"
+        data = res.json()
+        raw = data if isinstance(data, list) else data.get("results", [])
+        centros = []
+        for c in raw:
+            if not isinstance(c, dict):
+                continue
+            centros.append({
+                "id": c.get("id"),
+                "code": c.get("code"),
+                "name": c.get("name"),
+                "active": c.get("active", True),
+            })
+        centros.sort(key=lambda x: (str(x.get("code") or ""), str(x.get("name") or "")))
+        return centros, None
+    except Exception as e:
+        return None, str(e)
+
+
 def obtener_facturas_siigo_paginadas(fecha_inicio):
     """
     Obtiene todas las facturas de Siigo a partir de una fecha de inicio,

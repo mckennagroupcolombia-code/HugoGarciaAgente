@@ -95,6 +95,13 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M10 9h6M10 13h6M10 17h4" />
     </>
   ),
+  "centros-costo": (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8v8M8 12h8" />
+      <path d="M12 12L16 8" />
+    </>
+  ),
   tickets: (
     <>
       <rect x="7" y="5" width="10" height="14" rx="1.5" />
@@ -108,6 +115,13 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <rect x="6" y="9" width="12" height="8" rx="1.5" />
       <path d="M6 13H4a2 2 0 0 0-2 2v3h16v-3a2 2 0 0 0-2-2h-2" />
       <path d="M6 17v2h12v-2" />
+    </>
+  ),
+  "etiquetas-config": (
+    <>
+      <circle cx="12" cy="12" r="2.5" />
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4" />
+      <rect x="7" y="14" width="10" height="5" rx="1" />
     </>
   ),
   publicaciones: (

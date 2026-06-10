@@ -719,14 +719,19 @@ const SIDEBAR_SECCIONES: { id: string; label: string }[] = [
   { id: "whatsapp",   label: "Agente WA" },
   { id: "preventa",   label: "Preventa MeLi" },
   { id: "postventa",  label: "Postventa MeLi" },
-  { id: "sync",       label: "Sincronización" },
   { id: "stock",      label: "Stock" },
   { id: "fichas",     label: "Docs técnicos" },
   { id: "pedidos",    label: "Pedidos Web" },
-  { id: "facturas",   label: "Facturas Compra" },
   { id: "etiquetas",  label: "Impresora · Etiquetas" },
+  { id: "etiquetas-config", label: "Configurar productos" },
   { id: "tickets",    label: "Centro de Mando" },
   { id: "settings",   label: "Ajustes" },
+];
+
+const CONTABILIDAD_SECCIONES: { id: string; label: string }[] = [
+  { id: "facturas",      label: "Facturas de compra" },
+  { id: "centros-costo", label: "Centro de costos (incl. con Facturas o Sync)" },
+  { id: "sync",          label: "Sincronización" },
 ];
 
 // Sub-tabs within Centro de Mando (solo los que tienen pVer gating en TicketsPanel)
@@ -801,7 +806,7 @@ function PermisosEditor({
         <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Secciones del panel</p>
         <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
           {SIDEBAR_SECCIONES.map((s) => {
-            const siempreActivo = s.id === "etiquetas";
+            const siempreActivo = s.id === "etiquetas" || s.id === "etiquetas-config";
             return (
             <label key={s.id} className={`flex items-center gap-2 text-sm text-ink ${siempreActivo ? "opacity-70" : "cursor-pointer"}`}>
               <input
@@ -815,6 +820,23 @@ function PermisosEditor({
             </label>
             );
           })}
+        </div>
+      </div>
+
+      <div className="space-y-2 rounded-lg border border-border bg-surface-hover px-4 py-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted">Contabilidad</p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">
+          {CONTABILIDAD_SECCIONES.map((s) => (
+            <label key={s.id} className="flex cursor-pointer items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={Boolean(permisos[s.id])}
+                onChange={() => toggle(s.id)}
+                className="h-3.5 w-3.5 rounded border-border accent-accent"
+              />
+              {s.label}
+            </label>
+          ))}
         </div>
       </div>
 

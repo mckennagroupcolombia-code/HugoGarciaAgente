@@ -5,6 +5,7 @@ La lógica de estado y ejecución de comandos vive en el cliente y en este módu
 """
 from __future__ import annotations
 import logging, os, re
+from datetime import date
 import requests
 
 log = logging.getLogger(__name__)
@@ -56,9 +57,113 @@ def _ollama_model() -> str:
 
 # ── Contexto ──────────────────────────────────────────────────────────────────
 
+def _hoy_iso() -> str:
+    return date.today().isoformat()
+
+
+def _labores_tablero_usuario(usuario_id: int) -> list[dict]:
+    """Etapas del tablero asignadas al usuario y aún abiertas."""
+    from app.services.tickets_db import _conn
+
+    with _conn() as db:
+        rows = db.execute(
+            """
+            SELECT t.id,
+                   t.titulo,
+                   t.estado,
+                   t.numero,
+                   m.id AS mision_id,
+                   m.titulo AS mision_titulo,
+                   (SELECT COUNT(*) FROM ticket_pasos tp WHERE tp.ticket_id = t.id)
+                       AS pasos_total,
+                   (SELECT COUNT(*) FROM ticket_pasos tp
+                    WHERE tp.ticket_id = t.id AND tp.completado = 1)
+                       AS pasos_completados
+            FROM tickets t
+            INNER JOIN etapas_mision e ON e.ticket_id = t.id
+            INNER JOIN misiones m ON m.id = e.mision_id
+            WHERE t.asignado_a = ?
+              AND t.estado NOT IN ('resuelto', 'rechazado')
+              AND m.estado IN ('activa', 'borrador')
+            ORDER BY
+              CASE t.estado WHEN 'en_proceso' THEN 0 WHEN 'pendiente' THEN 1 ELSE 2 END,
+              t.creado_en ASC
+            LIMIT 5
+            """,
+            (usuario_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def construir_saludo_operativo(nombre: str, contexto: dict) -> str:
+    """Saludo breve con preguntas prácticas sobre el día en Centro de Mando."""
+    preguntas: list[str] = []
+    hoy = _hoy_iso()
+
+    recs = contexto.get("recordatorios_hoy") or []
+    if recs:
+        if len(recs) == 1:
+            preguntas.append(f"¿Ya atendió el recordatorio «{recs[0]['titulo']}»?")
+        else:
+            preguntas.append(f"¿Por cuál recordatorio empezamos? ({len(recs)} para hoy)")
+
+    labores = contexto.get("labores_tablero") or []
+    if labores and len(preguntas) < 2:
+        primera = labores[0]["titulo"]
+        preguntas.append(f"¿Avanzó con «{primera}» en el tablero?")
+
+    sol_asig = contexto.get("solicitudes_asignadas") or []
+    if sol_asig and len(preguntas) < 2:
+        if len(sol_asig) == 1:
+            de = sol_asig[0].get("creado_por_nombre") or "el equipo"
+            preguntas.append(f"¿Atendió la solicitud «{sol_asig[0]['titulo']}» de {de}?")
+        else:
+            preguntas.append(f"¿Con cuál solicitud arranca? ({len(sol_asig)} le esperan)")
+
+    acciones = contexto.get("acciones_activas") or []
+    if acciones and len(preguntas) < 2:
+        if len(acciones) == 1:
+            preguntas.append(f"¿Sigue con «{acciones[0]['titulo']}» o registra otra acción?")
+        else:
+            preguntas.append("¿Retoma alguna acción en curso o empieza una nueva?")
+
+    pendientes = contexto.get("pendientes") or []
+    pend_hoy = [
+        p for p in pendientes
+        if p.get("fecha_recordatorio") and str(p["fecha_recordatorio"])[:10] <= hoy
+    ]
+    if pend_hoy and len(preguntas) < 2:
+        preguntas.append("¿Convierte en acción algún pendiente anotado para hoy?")
+
+    sol_aprobar = contexto.get("solicitudes_por_aprobar") or []
+    if sol_aprobar and len(preguntas) < 2:
+        n = len(sol_aprobar)
+        preguntas.append(
+            f"¿Revisamos la{'s' if n > 1 else ''} solicitud"
+            f"{'es' if n > 1 else ''} que esperan su confirmación?"
+        )
+
+    if preguntas:
+        return f"¡Hola {nombre}! " + " ".join(preguntas[:2])
+
+    total = (
+        len(acciones) + len(sol_asig) + len(sol_aprobar)
+        + len(contexto.get("solicitudes_creadas_activas") or [])
+        + len(labores) + len(recs)
+    )
+    if total == 0:
+        return (
+            f"¡Hola {nombre}! ¿Qué va a hacer hoy? "
+            "Cuénteme la labor y la registramos, o elija una opción abajo."
+        )
+    return f"¡Hola {nombre}! ¿En qué labor del día le ayudo?"
+
+
 def obtener_contexto(usuario: dict) -> dict:
     """Devuelve acciones activas y protocolos disponibles del usuario."""
-    from app.services.tickets_db import listar_tickets, listar_protocolos
+    from app.services.tickets_db import (
+        listar_tickets, listar_protocolos, listar_recordatorios, listar_pendientes,
+    )
     import json
 
     acciones_raw = listar_tickets(usuario, {"tipo": "accion", "activas": True})
@@ -174,6 +279,26 @@ def obtener_contexto(usuario: dict) -> dict:
             "lista_compras": compras,
         })
 
+    hoy = _hoy_iso()
+    recordatorios_raw = listar_recordatorios(usuario["id"]) or []
+    recordatorios_hoy = [
+        {"id": r["id"], "titulo": r["titulo"], "proxima_fecha": r.get("proxima_fecha") or ""}
+        for r in recordatorios_raw
+        if (r.get("proxima_fecha") or "")[:10] <= hoy
+    ][:5]
+
+    pendientes_raw = listar_pendientes(usuario["id"]) or []
+    pendientes = [
+        {
+            "id": p["id"],
+            "titulo": p["titulo"],
+            "fecha_recordatorio": p.get("fecha_recordatorio"),
+        }
+        for p in pendientes_raw[:5]
+    ]
+
+    labores_tablero = _labores_tablero_usuario(usuario["id"])
+
     return {
         "acciones_activas": acciones,
         "protocolos": protocolos,
@@ -182,6 +307,9 @@ def obtener_contexto(usuario: dict) -> dict:
         "solicitudes_esperando_confirmacion": solicitudes_esperando_confirmacion,
         "solicitudes_creadas_activas": solicitudes_creadas_activas,
         "colaboraciones": colaboraciones,
+        "recordatorios_hoy": recordatorios_hoy,
+        "pendientes": pendientes,
+        "labores_tablero": labores_tablero,
     }
 
 
@@ -335,13 +463,23 @@ def generar_respuesta(
     activas = ", ".join(
         f"#{a['id']} {a['titulo']}" for a in contexto.get("acciones_activas", [])
     ) or "ninguna"
+    recs = ", ".join(r["titulo"] for r in contexto.get("recordatorios_hoy", [])) or "ninguno"
+    labores = ", ".join(
+        f"{l['titulo']} ({l.get('mision_titulo') or 'tablero'})"
+        for l in contexto.get("labores_tablero", [])
+    ) or "ninguna"
+    sol_asig = ", ".join(s["titulo"] for s in contexto.get("solicitudes_asignadas", [])) or "ninguna"
+    pend = ", ".join(p["titulo"] for p in contexto.get("pendientes", [])) or "ninguno"
 
     system = (
-        f"Usted es Hugo García, asistente operativo de McKenna Group (Bogotá, Colombia). "
-        f"Le ayuda a {nombre} a registrar su trabajo. "
-        f"Responda en español rolo bogotano (use 'usted', 'listo', 'de una', 'pilas', 'veci'), MUY breve (1 frase, sin markdown, sin listas). "
-        f"Si el usuario describe algo que va a hacer, confirme brevemente y pídale que elija el procedimiento. "
-        f"Acciones activas: {activas}. Procedimientos disponibles: {prots}."
+        f"Usted es Hugo García, asistente operativo del Centro de Mando de McKenna Group (Bogotá). "
+        f"Ayuda a {nombre} con las labores del día: acciones, solicitudes, recordatorios y tablero. "
+        f"Sea práctico: haga preguntas concretas sobre lo pendiente antes de sugerir opciones genéricas. "
+        f"Responda en español rolo bogotano (use 'usted', 'listo', 'de una', 'pilas'), MUY breve "
+        f"(1-2 frases, sin markdown, sin listas). "
+        f"Si describe algo que va a hacer, confirme y guíe al procedimiento o registro de acción. "
+        f"Recordatorios hoy: {recs}. Labores tablero: {labores}. Solicitudes por atender: {sol_asig}. "
+        f"Pendientes anotados: {pend}. Acciones activas: {activas}. Procedimientos: {prots}."
     )
 
     msgs: list[dict] = [{"role": "system", "content": system}]

@@ -3,13 +3,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, resolvePanelApiUrl } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import { useAppStore, type EtiquetasHandoff, type EtiquetasTab } from "../stores/app";
 import {
   type CmykColor,
-  cmykToHex,
   hexToCmyk,
-  hexToHsl,
-  hslToHex,
-  clampCmyk,
   CMYK_NEGRO,
 } from "../lib/cmykColor";
 import { Icon } from "../icons";
@@ -240,9 +237,278 @@ interface PlantillaEtiqueta {
 }
 
 type HerramientaPlantilla = "seleccionar" | "texto" | "linea" | "rectangulo";
-type SeleccionPlantilla =
-  | { tipo: "texto" | "linea" | "imagen" | "rectangulo"; id: string }
-  | null;
+type TipoElementoPlantilla = "texto" | "linea" | "imagen" | "rectangulo";
+type ItemPlantillaRef = { tipo: TipoElementoPlantilla; id: string };
+type SeleccionPlantilla = ItemPlantillaRef[];
+
+interface BoundsPct {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+}
+
+interface OrigenesGrupoArrastre {
+  textos: Record<string, { x_pct: number; y_pct: number }>;
+  imagenes: Record<string, { x_pct: number; y_pct: number }>;
+  rectangulos: Record<string, { x_pct: number; y_pct: number }>;
+  lineas: Record<string, { x1_pct: number; y1_pct: number; x2_pct: number; y2_pct: number }>;
+}
+
+type AlineacionPlantilla = "izq" | "centro-h" | "der" | "arriba" | "medio-v" | "abajo";
+
+function estaEnSeleccion(sel: SeleccionPlantilla, item: ItemPlantillaRef): boolean {
+  return sel.some((s) => s.tipo === item.tipo && s.id === item.id);
+}
+
+function toggleEnSeleccion(sel: SeleccionPlantilla, item: ItemPlantillaRef): SeleccionPlantilla {
+  if (estaEnSeleccion(sel, item)) {
+    return sel.filter((s) => !(s.tipo === item.tipo && s.id === item.id));
+  }
+  return [...sel, item];
+}
+
+function agregarASeleccion(sel: SeleccionPlantilla, item: ItemPlantillaRef): SeleccionPlantilla {
+  if (estaEnSeleccion(sel, item)) return sel;
+  return [...sel, item];
+}
+
+function seleccionarSolo(item: ItemPlantillaRef): SeleccionPlantilla {
+  return [item];
+}
+
+function seleccionDesdeClick(e: React.MouseEvent | MouseEvent, sel: SeleccionPlantilla, item: ItemPlantillaRef): SeleccionPlantilla {
+  if (e.ctrlKey || e.metaKey) return toggleEnSeleccion(sel, item);
+  if (e.shiftKey) return agregarASeleccion(sel, item);
+  if (estaEnSeleccion(sel, item) && sel.length > 1) return sel;
+  return seleccionarSolo(item);
+}
+
+function seleccionUnica(sel: SeleccionPlantilla): ItemPlantillaRef | null {
+  return sel.length === 1 ? sel[0] : null;
+}
+
+function altoImagenPct(im: ImagenPlantilla): number {
+  return im.alto_pct ?? im.ancho_pct * 0.75;
+}
+
+function boundsTexto(c: CampoTexto): BoundsPct {
+  const w = c.ancho_caja_pct ?? 42;
+  const h = c.alto_caja_pct ?? 14;
+  return {
+    left: c.x_pct,
+    top: c.y_pct,
+    right: c.x_pct + w,
+    bottom: c.y_pct + h,
+    width: w,
+    height: h,
+    centerX: c.x_pct + w / 2,
+    centerY: c.y_pct + h / 2,
+  };
+}
+
+function boundsImagen(im: ImagenPlantilla): BoundsPct {
+  const w = im.ancho_pct;
+  const h = altoImagenPct(im);
+  return {
+    left: im.x_pct,
+    top: im.y_pct,
+    right: im.x_pct + w,
+    bottom: im.y_pct + h,
+    width: w,
+    height: h,
+    centerX: im.x_pct + w / 2,
+    centerY: im.y_pct + h / 2,
+  };
+}
+
+function boundsRect(rc: RectanguloPlantilla): BoundsPct {
+  return {
+    left: rc.x_pct,
+    top: rc.y_pct,
+    right: rc.x_pct + rc.ancho_pct,
+    bottom: rc.y_pct + rc.alto_pct,
+    width: rc.ancho_pct,
+    height: rc.alto_pct,
+    centerX: rc.x_pct + rc.ancho_pct / 2,
+    centerY: rc.y_pct + rc.alto_pct / 2,
+  };
+}
+
+function boundsLinea(ln: LineaPlantilla): BoundsPct {
+  const left = Math.min(ln.x1_pct, ln.x2_pct);
+  const top = Math.min(ln.y1_pct, ln.y2_pct);
+  const right = Math.max(ln.x1_pct, ln.x2_pct);
+  const bottom = Math.max(ln.y1_pct, ln.y2_pct);
+  const w = Math.max(0.5, right - left);
+  const h = Math.max(0.5, bottom - top);
+  return { left, top, right, bottom, width: w, height: h, centerX: (left + right) / 2, centerY: (top + bottom) / 2 };
+}
+
+function boundsElemento(
+  item: ItemPlantillaRef,
+  campos: CampoTexto[],
+  lineas: LineaPlantilla[],
+  imagenes: ImagenPlantilla[],
+  rectangulos: RectanguloPlantilla[],
+): BoundsPct | null {
+  if (item.tipo === "texto") {
+    const c = campos.find((x) => x.id === item.id);
+    return c ? boundsTexto(c) : null;
+  }
+  if (item.tipo === "linea") {
+    const ln = lineas.find((x) => x.id === item.id);
+    return ln ? boundsLinea(ln) : null;
+  }
+  if (item.tipo === "imagen") {
+    const im = imagenes.find((x) => x.id === item.id);
+    return im ? boundsImagen(im) : null;
+  }
+  const rc = rectangulos.find((x) => x.id === item.id);
+  return rc ? boundsRect(rc) : null;
+}
+
+function unionBounds(bounds: BoundsPct[]): BoundsPct | null {
+  if (!bounds.length) return null;
+  const left = Math.min(...bounds.map((b) => b.left));
+  const top = Math.min(...bounds.map((b) => b.top));
+  const right = Math.max(...bounds.map((b) => b.right));
+  const bottom = Math.max(...bounds.map((b) => b.bottom));
+  const width = right - left;
+  const height = bottom - top;
+  return { left, top, right, bottom, width, height, centerX: left + width / 2, centerY: top + height / 2 };
+}
+
+function intersectaBounds(a: BoundsPct, b: BoundsPct): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+
+function capturarOrigenesGrupo(
+  items: ItemPlantillaRef[],
+  campos: CampoTexto[],
+  lineas: LineaPlantilla[],
+  imagenes: ImagenPlantilla[],
+  rectangulos: RectanguloPlantilla[],
+): OrigenesGrupoArrastre {
+  const orig: OrigenesGrupoArrastre = { textos: {}, imagenes: {}, rectangulos: {}, lineas: {} };
+  for (const item of items) {
+    if (item.tipo === "texto") {
+      const c = campos.find((x) => x.id === item.id);
+      if (c) orig.textos[item.id] = { x_pct: c.x_pct, y_pct: c.y_pct };
+    } else if (item.tipo === "imagen") {
+      const im = imagenes.find((x) => x.id === item.id);
+      if (im) orig.imagenes[item.id] = { x_pct: im.x_pct, y_pct: im.y_pct };
+    } else if (item.tipo === "rectangulo") {
+      const rc = rectangulos.find((x) => x.id === item.id);
+      if (rc) orig.rectangulos[item.id] = { x_pct: rc.x_pct, y_pct: rc.y_pct };
+    } else {
+      const ln = lineas.find((x) => x.id === item.id);
+      if (ln) orig.lineas[item.id] = { x1_pct: ln.x1_pct, y1_pct: ln.y1_pct, x2_pct: ln.x2_pct, y2_pct: ln.y2_pct };
+    }
+  }
+  return orig;
+}
+
+function alinearSeleccionPlantilla(
+  seleccion: ItemPlantillaRef[],
+  modo: AlineacionPlantilla,
+  campos: CampoTexto[],
+  lineas: LineaPlantilla[],
+  imagenes: ImagenPlantilla[],
+  rectangulos: RectanguloPlantilla[],
+): {
+  campos: CampoTexto[];
+  lineas: LineaPlantilla[];
+  imagenes: ImagenPlantilla[];
+  rectangulos: RectanguloPlantilla[];
+} {
+  const boundsSel = seleccion
+    .map((item) => boundsElemento(item, campos, lineas, imagenes, rectangulos))
+    .filter((b): b is BoundsPct => !!b);
+  const grupo = unionBounds(boundsSel);
+  if (!grupo || seleccion.length < 2) {
+    return { campos, lineas, imagenes, rectangulos };
+  }
+
+  let camposOut = campos;
+  let lineasOut = lineas;
+  let imagenesOut = imagenes;
+  let rectangulosOut = rectangulos;
+
+  for (const item of seleccion) {
+    const b = boundsElemento(item, campos, lineas, imagenes, rectangulos);
+    if (!b) continue;
+    let dx = 0;
+    let dy = 0;
+    if (modo === "izq") dx = grupo.left - b.left;
+    else if (modo === "der") dx = grupo.right - b.right;
+    else if (modo === "centro-h") dx = grupo.centerX - b.centerX;
+    else if (modo === "arriba") dy = grupo.top - b.top;
+    else if (modo === "abajo") dy = grupo.bottom - b.bottom;
+    else if (modo === "medio-v") dy = grupo.centerY - b.centerY;
+
+    if (item.tipo === "texto") {
+      camposOut = camposOut.map((c) =>
+        c.id === item.id
+          ? { ...c, x_pct: clampLotePct(c.x_pct + dx), y_pct: clampLotePct(c.y_pct + dy) }
+          : c,
+      );
+    } else if (item.tipo === "imagen") {
+      imagenesOut = imagenesOut.map((im) =>
+        im.id === item.id
+          ? { ...im, x_pct: clampLotePct(im.x_pct + dx), y_pct: clampLotePct(im.y_pct + dy) }
+          : im,
+      );
+    } else if (item.tipo === "rectangulo") {
+      rectangulosOut = rectangulosOut.map((rc) =>
+        rc.id === item.id
+          ? { ...rc, x_pct: clampLotePct(rc.x_pct + dx), y_pct: clampLotePct(rc.y_pct + dy) }
+          : rc,
+      );
+    } else {
+      lineasOut = lineasOut.map((ln) =>
+        ln.id === item.id
+          ? {
+              ...ln,
+              x1_pct: clampLotePct(ln.x1_pct + dx),
+              y1_pct: clampLotePct(ln.y1_pct + dy),
+              x2_pct: clampLotePct(ln.x2_pct + dx),
+              y2_pct: clampLotePct(ln.y2_pct + dy),
+            }
+          : ln,
+      );
+    }
+  }
+
+  return { campos: camposOut, lineas: lineasOut, imagenes: imagenesOut, rectangulos: rectangulosOut };
+}
+
+function elementosEnMarquee(
+  box: BoundsPct,
+  campos: CampoTexto[],
+  lineas: LineaPlantilla[],
+  imagenes: ImagenPlantilla[],
+  rectangulos: RectanguloPlantilla[],
+): ItemPlantillaRef[] {
+  const items: ItemPlantillaRef[] = [];
+  for (const c of campos) {
+    if (intersectaBounds(boundsTexto(c), box)) items.push({ tipo: "texto", id: c.id });
+  }
+  for (const ln of lineas) {
+    if (intersectaBounds(boundsLinea(ln), box)) items.push({ tipo: "linea", id: ln.id });
+  }
+  for (const im of imagenes) {
+    if (intersectaBounds(boundsImagen(im), box)) items.push({ tipo: "imagen", id: im.id });
+  }
+  for (const rc of rectangulos) {
+    if (intersectaBounds(boundsRect(rc), box)) items.push({ tipo: "rectangulo", id: rc.id });
+  }
+  return items;
+}
 
 interface DatosEtiqueta {
   siigo_code?: string;
@@ -330,6 +596,20 @@ const ETIQUETAS_MM: Record<string, [number, number]> = {
   "100 g": [69, 51], Lactato: [38, 140], Circular: [55, 55],
   "Circular 70": [70, 70], "5 g": [50, 42], "54mm": [54, 58],
 };
+
+const TAMANO_TEXTO_PT_MIN = 3;
+const TAMANO_TEXTO_PT_MAX = 40;
+
+function clampTamanoTextoPt(n: number): number {
+  return Math.max(TAMANO_TEXTO_PT_MIN, Math.min(TAMANO_TEXTO_PT_MAX, Math.round(n)));
+}
+
+const GROSOR_LINEA_MIN = 0.1;
+const GROSOR_LINEA_MAX = 20;
+
+function clampGrosorLinea(n: number): number {
+  return Math.max(GROSOR_LINEA_MIN, Math.min(GROSOR_LINEA_MAX, Math.round(n * 10) / 10));
+}
 
 function idPlantilla() {
   return Math.random().toString(36).slice(2, 11);
@@ -458,7 +738,8 @@ type ArrastrePlantilla =
       startX: number;
       startY: number;
       orig: { x1: number; y1: number; x2: number; y2: number };
-    };
+    }
+  | { tipo: "grupo"; startX: number; startY: number; orig: OrigenesGrupoArrastre };
 
 type AsaRedimensionId = "nw" | "ne" | "sw" | "se" | "n" | "s" | "e" | "w";
 
@@ -476,12 +757,72 @@ type RedimensionPlantilla =
       orig: { x1: number; y1: number; x2: number; y2: number };
     };
 
-const ASAS_REDIMENSION: { id: AsaRedimensionId; pos: string; cursor: string }[] = [
-  { id: "nw", pos: "left-0 top-0", cursor: "cursor-nw-resize" },
-  { id: "ne", pos: "right-0 top-0", cursor: "cursor-ne-resize" },
-  { id: "sw", pos: "left-0 bottom-0", cursor: "cursor-sw-resize" },
-  { id: "se", pos: "right-0 bottom-0", cursor: "cursor-se-resize" },
+const ASA_TAM_PX = 10;
+
+const ASAS_REDIMENSION: { id: AsaRedimensionId; cursor: string }[] = [
+  { id: "nw", cursor: "nw-resize" },
+  { id: "ne", cursor: "ne-resize" },
+  { id: "sw", cursor: "sw-resize" },
+  { id: "se", cursor: "se-resize" },
 ];
+
+const ASAS_LATERALES: { id: AsaRedimensionId; cursor: string }[] = [
+  { id: "n", cursor: "n-resize" },
+  { id: "s", cursor: "s-resize" },
+  { id: "e", cursor: "e-resize" },
+  { id: "w", cursor: "w-resize" },
+];
+
+function estiloAsaEsquina(id: AsaRedimensionId): CSSProperties {
+  const base: CSSProperties = {
+    position: "absolute",
+    width: ASA_TAM_PX,
+    height: ASA_TAM_PX,
+    margin: 0,
+    padding: 0,
+    boxSizing: "border-box",
+    zIndex: 40,
+  };
+  switch (id) {
+    case "nw":
+      return { ...base, left: 0, top: 0, transform: "translate(-50%, -50%)" };
+    case "ne":
+      return { ...base, left: "100%", top: 0, transform: "translate(-50%, -50%)" };
+    case "sw":
+      return { ...base, left: 0, top: "100%", transform: "translate(-50%, -50%)" };
+    case "se":
+      return { ...base, left: "100%", top: "100%", transform: "translate(-50%, -50%)" };
+    default:
+      return base;
+  }
+}
+
+function estiloAsaLado(id: AsaRedimensionId): CSSProperties {
+  const base: CSSProperties = {
+    position: "absolute",
+    margin: 0,
+    padding: 0,
+    boxSizing: "border-box",
+    zIndex: 40,
+  };
+  switch (id) {
+    case "n":
+      return { ...base, left: "50%", top: 0, width: 14, height: 8, transform: "translate(-50%, -50%)" };
+    case "s":
+      return { ...base, left: "50%", top: "100%", width: 14, height: 8, transform: "translate(-50%, -50%)" };
+    case "e":
+      return { ...base, left: "100%", top: "50%", width: 8, height: 14, transform: "translate(-50%, -50%)" };
+    case "w":
+      return { ...base, left: 0, top: "50%", width: 8, height: 14, transform: "translate(-50%, -50%)" };
+    default:
+      return base;
+  }
+}
+
+function estiloAsaRedimension(id: AsaRedimensionId): CSSProperties {
+  if (id === "n" || id === "s" || id === "e" || id === "w") return estiloAsaLado(id);
+  return estiloAsaEsquina(id);
+}
 
 function calcularCajaRedimension(
   orig: { x: number; y: number; w: number; h: number },
@@ -534,10 +875,189 @@ function BarraIconos({ children }: { children: ReactNode }) {
   return <div className="grid grid-cols-2 gap-px p-1">{children}</div>;
 }
 
-function PanelSuperiorRellenosTrazos({
+const COLOR_SIN = "transparent";
+const CMYK_TRANSPARENTE: CmykColor = { c: 0, m: 0, y: 0, k: 0 };
+
+interface ColorEtiquetaGuardado {
+  id: string;
+  hex: string;
+  cmyk?: CmykColor;
+  guardado_at?: string;
+}
+
+function normalizarHexColor(hex: string): string | null {
+  let h = hex.trim().toLowerCase();
+  if (!h) return null;
+  if (!h.startsWith("#")) h = `#${h}`;
+  if (/^#[0-9a-f]{6}$/.test(h)) return h;
+  if (/^#[0-9a-f]{3}$/.test(h)) {
+    return `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}`;
+  }
+  return null;
+}
+
+function esSinColor(color?: string): boolean {
+  if (!color) return true;
+  const s = color.trim().toLowerCase();
+  return s === "transparent" || s === "none";
+}
+
+function SelectorColorCompact({
+  label,
+  color,
+  onChange,
+  allowSinColor = true,
+  onGuardarColor,
+  guardandoColor = false,
+  onActivar,
+}: {
+  label: string;
+  color: string;
+  onChange: (hex: string, cmyk: CmykColor) => void;
+  allowSinColor?: boolean;
+  onGuardarColor?: (hex: string, cmyk: CmykColor) => void;
+  guardandoColor?: boolean;
+  onActivar?: () => void;
+}) {
+  const sinColor = esSinColor(color);
+  const colorInput = sinColor ? "#000000" : color;
+
+  return (
+    <div className="flex items-center gap-2 text-[10px]">
+      <span className="w-14 shrink-0 text-muted">{label}</span>
+      {allowSinColor && (
+        <button
+          type="button"
+          onClick={() =>
+            onChange(
+              sinColor ? "#000000" : COLOR_SIN,
+              sinColor ? hexToCmyk("#000000") : CMYK_TRANSPARENTE,
+            )
+          }
+          className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-semibold transition ${
+            sinColor
+              ? "border-accent bg-accent/10 text-accent"
+              : "border-border text-muted hover:border-accent hover:text-accent"
+          }`}
+        >
+          Sin color
+        </button>
+      )}
+      {!sinColor ? (
+        <>
+          <input
+            type="color"
+            value={colorInput}
+            onFocus={onActivar}
+            onClick={onActivar}
+            onChange={(e) => onChange(e.target.value, hexToCmyk(e.target.value))}
+            className="h-7 w-9 shrink-0 cursor-pointer rounded border border-border bg-transparent p-0.5"
+          />
+          {onGuardarColor && (
+            <button
+              type="button"
+              title="Guardar color en paleta"
+              disabled={guardandoColor}
+              onClick={() => onGuardarColor(colorInput, hexToCmyk(colorInput))}
+              className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[9px] text-muted hover:border-accent hover:text-accent disabled:opacity-50"
+            >
+              ★
+            </button>
+          )}
+          <span className="truncate font-mono text-[9px] text-muted">{color}</span>
+        </>
+      ) : (
+        <span className="text-[9px] italic text-muted">Transparente</span>
+      )}
+    </div>
+  );
+}
+
+function PaletaColoresGuardados({
+  colores,
+  colorActivo,
+  onElegir,
+  onEliminar,
+  cargando,
+}: {
+  colores: ColorEtiquetaGuardado[];
+  colorActivo?: string;
+  onElegir: (color: ColorEtiquetaGuardado) => void;
+  onEliminar: (id: string) => void;
+  cargando?: boolean;
+}) {
+  const activo = colorActivo ? normalizarHexColor(colorActivo) : null;
+
+  return (
+    <div className="space-y-1.5 border-b border-border pb-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Colores guardados</p>
+      {cargando ? (
+        <p className="text-[10px] text-muted">Cargando…</p>
+      ) : colores.length === 0 ? (
+        <p className="text-[10px] leading-snug text-muted">
+          Pulsa ★ junto a un color para guardarlo y reutilizarlo.
+        </p>
+      ) : (
+        <div className="grid grid-cols-6 gap-1">
+          {colores.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              title={`${c.hex} · clic derecho quitar`}
+              onClick={() => onElegir(c)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                onEliminar(c.id);
+              }}
+              className={`relative aspect-square rounded border transition hover:scale-105 ${
+                activo === c.hex ? "border-accent ring-2 ring-accent/40" : "border-border"
+              }`}
+              style={{ backgroundColor: c.hex }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SliderCompacto({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label className="flex items-center gap-2 text-[10px]">
+      <span className="w-14 shrink-0 text-muted">{label}</span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="min-w-0 flex-1 accent-accent"
+      />
+      <span className="w-7 shrink-0 text-right font-mono text-[9px]">{value.toFixed(1)}</span>
+    </label>
+  );
+}
+
+function PanelLateralApariencia({
   campo,
   linea,
   rect,
+  multiseleccion = 0,
   onPatchCampo,
   onPatchLinea,
   onPatchRect,
@@ -545,117 +1065,184 @@ function PanelSuperiorRellenosTrazos({
   campo?: CampoTexto;
   linea?: LineaPlantilla;
   rect?: RectanguloPlantilla;
+  multiseleccion?: number;
   onPatchCampo: (patch: Partial<CampoTexto>) => void;
   onPatchLinea: (patch: Partial<LineaPlantilla>) => void;
   onPatchRect: (patch: Partial<RectanguloPlantilla>) => void;
 }) {
+  const qc = useQueryClient();
   const haySeleccion = !!(campo || linea || rect);
+  const [destinoColor, setDestinoColor] = useState<"texto" | "borde" | "linea" | "relleno" | "rect-borde">("texto");
+
+  useEffect(() => {
+    if (campo) setDestinoColor("texto");
+    else if (linea) setDestinoColor("linea");
+    else if (rect) setDestinoColor("relleno");
+  }, [campo?.id, linea?.id, rect?.id]);
+
+  const { data: coloresData, isLoading: cargandoColores } = useQuery({
+    queryKey: ["etiquetas-colores-guardados"],
+    queryFn: () => api.get<{ colores: ColorEtiquetaGuardado[] }>("/api/etiquetas/colores"),
+  });
+  const coloresGuardados = coloresData?.colores ?? [];
+
+  const guardarColorMut = useMutation({
+    mutationFn: (payload: { hex: string; cmyk: CmykColor }) =>
+      api.post<ColorEtiquetaGuardado & { ok: boolean }>("/api/etiquetas/colores", payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etiquetas-colores-guardados"] }),
+  });
+
+  const eliminarColorMut = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/etiquetas/colores/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etiquetas-colores-guardados"] }),
+  });
+
+  function guardarEnPaleta(hex: string, cmyk: CmykColor) {
+    const norm = normalizarHexColor(hex);
+    if (!norm || esSinColor(norm)) return;
+    guardarColorMut.mutate({ hex: norm, cmyk });
+  }
+
+  function aplicarColorGuardado(color: ColorEtiquetaGuardado) {
+    if (multiseleccion > 1 || !haySeleccion) return;
+    const cmyk = color.cmyk ?? hexToCmyk(color.hex);
+    if (campo) {
+      if (destinoColor === "borde") {
+        onPatchCampo({ color_trazo: color.hex, color_trazo_cmyk: cmyk, grosor_trazo: Math.max(campo.grosor_trazo ?? 0, 0.2) });
+      } else {
+        onPatchCampo({ color: color.hex, color_cmyk: cmyk });
+      }
+      return;
+    }
+    if (linea) {
+      onPatchLinea({ color: color.hex, color_cmyk: cmyk });
+      return;
+    }
+    if (rect) {
+      if (destinoColor === "rect-borde") {
+        onPatchRect({ color_trazo: color.hex, color_trazo_cmyk: cmyk, grosor_trazo: Math.max(rect.grosor_trazo ?? 0, 0.2) });
+      } else {
+        onPatchRect({ relleno: true, color_relleno: color.hex, color_relleno_cmyk: cmyk });
+      }
+    }
+  }
+
+  const colorActivoPaleta =
+    campo && destinoColor === "borde"
+      ? campo.color_trazo
+      : campo
+        ? campo.color
+        : linea
+          ? linea.color
+          : rect && destinoColor === "rect-borde"
+            ? rect.color_trazo
+            : rect?.relleno && !esSinColor(rect.color_relleno)
+              ? rect.color_relleno
+              : rect?.color_trazo;
+
+  const propsGuardar = {
+    onGuardarColor: guardarEnPaleta,
+    guardandoColor: guardarColorMut.isPending,
+  };
 
   return (
-    <div className="flex flex-shrink-0 flex-wrap items-start gap-x-4 gap-y-2 border-b border-border bg-surface-panel px-3 py-2">
-      <span className="w-24 shrink-0 pt-0.5 text-[9px] font-bold uppercase tracking-wide text-muted">
-        Rellenos y trazos
-      </span>
-      {!haySeleccion ? (
-        <p className="text-[10px] text-muted">Selecciona texto, línea o rectángulo.</p>
+    <div className="space-y-2">
+      <PaletaColoresGuardados
+        colores={coloresGuardados}
+        colorActivo={colorActivoPaleta}
+        onElegir={aplicarColorGuardado}
+        onEliminar={(id) => eliminarColorMut.mutate(id)}
+        cargando={cargandoColores}
+      />
+
+      <div className="space-y-2 border-b border-border pb-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Color y trazo</p>
+      {multiseleccion > 1 ? (
+        <p className="text-[10px] leading-snug text-muted">
+          {multiseleccion} elementos seleccionados. Usa los botones de alineación o elige uno solo para editar color.
+        </p>
+      ) : !haySeleccion ? (
+        <p className="text-[10px] leading-snug text-muted">Selecciona texto, línea o rectángulo en el lienzo.</p>
       ) : campo ? (
-        <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
-          <div className="min-w-[11rem] max-w-xs flex-1">
-            <SelectorColorArcoiris
-              label="Relleno texto"
-              color={campo.color}
-              colorCmyk={campo.color_cmyk}
-              onChange={(hex, cmyk) => onPatchCampo({ color: hex, color_cmyk: cmyk })}
-            />
-          </div>
-          <label className="flex min-w-[8rem] items-center gap-2 pt-5 text-[10px]">
-            <span className="text-muted whitespace-nowrap">Trazo</span>
-            <input
-              type="range"
-              min={0}
-              max={4}
-              step={0.2}
-              value={campo.grosor_trazo ?? 0}
-              onChange={(e) => onPatchCampo({ grosor_trazo: Number(e.target.value) })}
-              className="w-20 accent-accent"
-            />
-            <span className="font-mono">{(campo.grosor_trazo ?? 0).toFixed(1)}</span>
-          </label>
-          <div className="min-w-[11rem] max-w-xs flex-1">
-            <SelectorColorArcoiris
-              label="Color trazo"
+        <div className="space-y-2">
+          <SelectorColorCompact
+            label="Texto"
+            color={campo.color}
+            onChange={(hex, cmyk) => onPatchCampo({ color: hex, color_cmyk: cmyk })}
+            onActivar={() => setDestinoColor("texto")}
+            {...propsGuardar}
+          />
+          <SliderCompacto
+            label="Trazo"
+            value={campo.grosor_trazo ?? 0}
+            min={0}
+            max={4}
+            step={0.2}
+            onChange={(v) => onPatchCampo({ grosor_trazo: v })}
+          />
+          {(campo.grosor_trazo ?? 0) > 0 && (
+            <SelectorColorCompact
+              label="Borde"
               color={campo.color_trazo ?? "#000000"}
-              colorCmyk={campo.color_trazo_cmyk}
               onChange={(hex, cmyk) => onPatchCampo({ color_trazo: hex, color_trazo_cmyk: cmyk })}
+              onActivar={() => setDestinoColor("borde")}
+              {...propsGuardar}
             />
-          </div>
+          )}
         </div>
       ) : linea ? (
-        <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
-          <label className="flex items-center gap-2 pt-1 text-[10px]">
-            <span className="text-muted whitespace-nowrap">Grosor</span>
-            <input
-              type="range"
-              min={0.5}
-              max={4}
-              step={0.1}
-              value={linea.grosor}
-              onChange={(e) => onPatchLinea({ grosor: Number(e.target.value) })}
-              className="w-24 accent-accent"
-            />
-          </label>
-          <div className="min-w-[11rem] max-w-sm flex-1">
-            <SelectorColorArcoiris
-              label="Color línea"
-              color={linea.color}
-              colorCmyk={linea.color_cmyk}
-              onChange={(hex, cmyk) => onPatchLinea({ color: hex, color_cmyk: cmyk })}
-            />
-          </div>
+        <div className="space-y-2">
+          <SelectorColorCompact
+            label="Línea"
+            color={linea.color}
+            onChange={(hex, cmyk) => onPatchLinea({ color: hex, color_cmyk: cmyk })}
+            onActivar={() => setDestinoColor("linea")}
+            {...propsGuardar}
+          />
+          <SliderCompacto
+            label="Grosor"
+            value={clampGrosorLinea(linea.grosor)}
+            min={GROSOR_LINEA_MIN}
+            max={GROSOR_LINEA_MAX}
+            step={0.1}
+            onChange={(v) => onPatchLinea({ grosor: clampGrosorLinea(v) })}
+          />
         </div>
       ) : rect ? (
-        <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
-          <label className="flex items-center gap-2 pt-1 text-[10px]">
-            <input
-              type="checkbox"
-              checked={rect.relleno}
-              onChange={(e) => onPatchRect({ relleno: e.target.checked })}
-              className="accent-accent"
-            />
-            Relleno activo
-          </label>
-          {rect.relleno && (
-            <div className="min-w-[11rem] max-w-xs flex-1">
-              <SelectorColorArcoiris
-                label="Color relleno"
-                color={rect.color_relleno}
-                colorCmyk={rect.color_relleno_cmyk}
-                onChange={(hex, cmyk) => onPatchRect({ color_relleno: hex, color_relleno_cmyk: cmyk })}
-              />
-            </div>
-          )}
-          <label className="flex items-center gap-2 pt-1 text-[10px]">
-            <span className="text-muted whitespace-nowrap">Trazo</span>
-            <input
-              type="range"
-              min={0.5}
-              max={4}
-              step={0.1}
-              value={rect.grosor_trazo}
-              onChange={(e) => onPatchRect({ grosor_trazo: Number(e.target.value) })}
-              className="w-20 accent-accent"
-            />
-          </label>
-          <div className="min-w-[11rem] max-w-xs flex-1">
-            <SelectorColorArcoiris
-              label="Color trazo"
+        <div className="space-y-2">
+          <SelectorColorCompact
+            label="Relleno"
+            color={rect.relleno && !esSinColor(rect.color_relleno) ? rect.color_relleno : COLOR_SIN}
+            onChange={(hex, cmyk) => {
+              if (esSinColor(hex)) {
+                onPatchRect({ relleno: false, color_relleno: COLOR_SIN, color_relleno_cmyk: CMYK_TRANSPARENTE });
+              } else {
+                onPatchRect({ relleno: true, color_relleno: hex, color_relleno_cmyk: cmyk });
+              }
+            }}
+            onActivar={() => setDestinoColor("relleno")}
+            {...propsGuardar}
+          />
+          <SliderCompacto
+            label="Trazo"
+            value={rect.grosor_trazo}
+            min={0}
+            max={4}
+            step={0.1}
+            onChange={(v) => onPatchRect({ grosor_trazo: v })}
+          />
+          {(rect.grosor_trazo ?? 0) > 0 && (
+            <SelectorColorCompact
+              label="Borde"
               color={rect.color_trazo}
-              colorCmyk={rect.color_trazo_cmyk}
               onChange={(hex, cmyk) => onPatchRect({ color_trazo: hex, color_trazo_cmyk: cmyk })}
+              onActivar={() => setDestinoColor("rect-borde")}
+              {...propsGuardar}
             />
-          </div>
+          )}
         </div>
       ) : null}
+      </div>
     </div>
   );
 }
@@ -707,13 +1294,14 @@ function PanelSuperiorEdicion({
             <span className="text-muted">Pt</span>
             <input
               type="range"
-              min={6}
-              max={24}
-              value={campo.font_size}
-              onChange={(e) => onPatch({ font_size: Number(e.target.value) })}
-              className="w-16 accent-accent"
+              min={TAMANO_TEXTO_PT_MIN}
+              max={TAMANO_TEXTO_PT_MAX}
+              step={1}
+              value={clampTamanoTextoPt(campo.font_size)}
+              onChange={(e) => onPatch({ font_size: clampTamanoTextoPt(Number(e.target.value)) })}
+              className="w-20 accent-accent"
             />
-            <span className="w-5 font-mono">{campo.font_size}</span>
+            <span className="w-5 font-mono">{clampTamanoTextoPt(campo.font_size)}</span>
           </label>
           <div className="flex shrink-0 gap-0.5">
             {ALINEACIONES_TEXTO.map((a) => (
@@ -780,34 +1368,97 @@ function BtnIconoToolbar({
   );
 }
 
+function MarcoSeleccionSimple({ onMover }: { onMover?: (e: React.MouseEvent) => void }) {
+  return (
+    <div
+      className="pointer-events-none absolute inset-0 box-border border-2 border-dashed border-accent/80"
+      style={{ overflow: "visible" }}
+    >
+      {onMover && (
+        <button
+          type="button"
+          title="Mover"
+          className="pointer-events-auto absolute z-50 m-0 flex h-5 w-5 cursor-move items-center justify-center rounded border border-accent bg-white p-0 text-[9px] text-accent shadow-sm hover:bg-accent/10"
+          style={{ left: 4, top: 4 }}
+          onMouseDown={onMover}
+        >
+          ⠿
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PanelAlineacion({
+  cantidad,
+  onAlinear,
+}: {
+  cantidad: number;
+  onAlinear: (modo: AlineacionPlantilla) => void;
+}) {
+  if (cantidad < 2) return null;
+  const btn = (modo: AlineacionPlantilla, icon: string, title: string) => (
+    <button
+      key={modo}
+      type="button"
+      title={title}
+      onClick={() => onAlinear(modo)}
+      className="flex h-7 w-7 items-center justify-center rounded border border-border bg-surface text-xs text-ink hover:border-accent hover:bg-accent/10"
+    >
+      {icon}
+    </button>
+  );
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-lg border border-border bg-surface-panel px-3 py-2">
+      <span className="mr-1 text-[10px] font-semibold text-muted">{cantidad} seleccionados</span>
+      {btn("izq", "⬅", "Alinear izquierda")}
+      {btn("centro-h", "↔", "Centrar horizontal")}
+      {btn("der", "➡", "Alinear derecha")}
+      <span className="mx-0.5 w-px self-stretch bg-border" aria-hidden />
+      {btn("arriba", "⬆", "Alinear arriba")}
+      {btn("medio-v", "↕", "Centrar vertical")}
+      {btn("abajo", "⬇", "Alinear abajo")}
+    </div>
+  );
+}
+
 function MarcoRedimensionable({
   activo,
   onMover,
   onRedimensionar,
+  redimensionLibre = false,
   children,
 }: {
   activo: boolean;
   onMover: (e: React.MouseEvent) => void;
   onRedimensionar: (e: React.MouseEvent, asa: AsaRedimensionId) => void;
+  /** Esquinas + lados (estirar ancho/alto por separado; sin mantener proporción). */
+  redimensionLibre?: boolean;
   children?: React.ReactNode;
 }) {
   if (!activo) return <>{children}</>;
+  const asas = redimensionLibre ? [...ASAS_REDIMENSION, ...ASAS_LATERALES] : ASAS_REDIMENSION;
   const marco = (
-    <div className="pointer-events-auto absolute inset-0 box-border border-2 border-accent">
+    <div
+      className="pointer-events-none absolute inset-0 box-border border-2 border-accent"
+      style={{ overflow: "visible" }}
+    >
       <button
         type="button"
         title="Mover"
-        className="absolute left-1 top-1 z-30 flex h-5 w-5 cursor-move items-center justify-center rounded border border-accent bg-white text-[9px] text-accent shadow-sm hover:bg-accent/10"
+        className="pointer-events-auto absolute z-50 m-0 flex h-5 w-5 cursor-move items-center justify-center rounded border border-accent bg-white p-0 text-[9px] text-accent shadow-sm hover:bg-accent/10"
+        style={{ left: 4, top: 4 }}
         onMouseDown={onMover}
       >
         ⠿
       </button>
-      {ASAS_REDIMENSION.map((a) => (
+      {asas.map((a) => (
         <button
           key={a.id}
           type="button"
-          title={`Redimensionar esquina ${a.id}`}
-          className={`absolute z-30 box-border h-3 w-3 border-2 border-accent bg-white shadow-sm hover:bg-accent/20 ${a.pos} ${a.cursor}`}
+          title={redimensionLibre ? `Redimensionar ${a.id}` : `Redimensionar esquina ${a.id}`}
+          className="pointer-events-auto m-0 block appearance-none border-2 border-accent bg-white p-0 shadow-sm hover:bg-accent/20"
+          style={{ ...estiloAsaRedimension(a.id), cursor: a.cursor }}
           onMouseDown={(e) => onRedimensionar(e, a.id)}
         />
       ))}
@@ -815,7 +1466,7 @@ function MarcoRedimensionable({
   );
   if (!children) return marco;
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full w-full overflow-visible">
       {children}
       {marco}
     </div>
@@ -842,126 +1493,6 @@ function enCampoEditable(target: EventTarget | null) {
 function panelBearerToken(): string | null {
   const tickets = useTicketsAuth.getState();
   return tickets.apiToken || tickets.token || useAuthStore.getState().token || null;
-}
-
-function SelectorColorArcoiris({
-  color,
-  colorCmyk,
-  onChange,
-  label = "Color",
-}: {
-  color: string;
-  colorCmyk?: CmykColor;
-  onChange: (hex: string, cmyk: CmykColor) => void;
-  label?: string;
-}) {
-  const arcoirisRef = useRef<HTMLDivElement>(null);
-  const [arrastrandoHue, setArrastrandoHue] = useState(false);
-  const hsl = hexToHsl(color);
-  const cmyk = colorCmyk ?? hexToCmyk(color);
-
-  function aplicarHex(hex: string) {
-    onChange(hex, hexToCmyk(hex));
-  }
-
-  function hueDesdeClienteX(clientX: number) {
-    const el = arcoirisRef.current;
-    if (!el) return hsl.h;
-    const r = el.getBoundingClientRect();
-    const t = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
-    return t * 360;
-  }
-
-  function aplicarHue(h: number) {
-    const hex = hslToHex(h, Math.max(hsl.s, 85), Math.max(hsl.l, 45));
-    aplicarHex(hex);
-  }
-
-  useEffect(() => {
-    if (!arrastrandoHue) return;
-    function onMove(e: MouseEvent) {
-      aplicarHue(hueDesdeClienteX(e.clientX));
-    }
-    function onUp() {
-      setArrastrandoHue(false);
-    }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [arrastrandoHue, hsl.s, hsl.l]);
-
-  function patchCmyk(partial: Partial<CmykColor>) {
-    const next: CmykColor = {
-      c: clampCmyk(partial.c ?? cmyk.c),
-      m: clampCmyk(partial.m ?? cmyk.m),
-      y: clampCmyk(partial.y ?? cmyk.y),
-      k: clampCmyk(partial.k ?? cmyk.k),
-    };
-    onChange(cmykToHex(next), next);
-  }
-
-  const inp = "w-11 rounded border border-border bg-surface px-1 py-0.5 text-center text-[11px]";
-  const marcadorLeft = `${(hsl.h / 360) * 100}%`;
-
-  return (
-    <div className="space-y-2">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <div
-          className="h-10 w-10 flex-shrink-0 rounded-lg border-2 border-border shadow-inner"
-          style={{ backgroundColor: color }}
-          title="Color seleccionado"
-        />
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => aplicarHex(e.target.value)}
-          className="h-10 w-14 cursor-pointer rounded border border-border bg-transparent p-0"
-          title="Selector de color del sistema"
-        />
-      </div>
-      <div className="relative">
-        <div
-          ref={arcoirisRef}
-          role="slider"
-          aria-label="Arcoíris de tonos"
-          className="h-7 w-full cursor-crosshair rounded-md border border-border shadow-sm"
-          style={{
-            background:
-              "linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)",
-          }}
-          onMouseDown={(e) => {
-            setArrastrandoHue(true);
-            aplicarHue(hueDesdeClienteX(e.clientX));
-          }}
-        />
-        <div
-          className="pointer-events-none absolute top-1/2 h-5 w-1 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-white bg-ink shadow"
-          style={{ left: marcadorLeft }}
-        />
-      </div>
-      <p className="text-[10px] text-muted">Arrastra el arcoíris o usa el selector · CMYK para impresión</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[10px] font-bold uppercase text-muted">CMYK</span>
-        {(["c", "m", "y", "k"] as const).map((ch) => (
-          <label key={ch} className="flex items-center gap-0.5 text-[10px] uppercase text-muted">
-            {ch}
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={cmyk[ch]}
-              onChange={(e) => patchCmyk({ [ch]: Number(e.target.value) })}
-              className={inp}
-            />
-          </label>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function ImgRecursoPng({
@@ -1003,10 +1534,18 @@ function ImgRecursoPng({
   return <img src={src} alt={nombre} className={className} style={style} draggable={false} />;
 }
 
-function BotonSubirPngRecurso({
+function esImagenPngJpg(file: File): boolean {
+  const lower = file.name.toLowerCase();
+  if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".jpe")) {
+    return true;
+  }
+  return file.type === "image/png" || file.type === "image/jpeg" || file.type === "image/jpg";
+}
+
+function BotonImportarImagenRecurso({
   onSubido,
   className = "",
-  label = "📤 Subir PNG",
+  label = "Importar imagen",
   compact = false,
 }: {
   onSubido: (item: RecursoPng) => void;
@@ -1020,8 +1559,7 @@ function BotonSubirPngRecurso({
 
   const subirMut = useMutation({
     mutationFn: (file: File) => {
-      const esPng = file.type === "image/png" || file.name.toLowerCase().endsWith(".png");
-      if (!esPng) throw new Error("Solo se permiten archivos PNG.");
+      if (!esImagenPngJpg(file)) throw new Error("Solo se permiten archivos JPG o PNG.");
       const fd = new FormData();
       fd.append("archivo", file);
       return api.upload<RecursoPng & { ok: boolean }>("/api/etiquetas/recursos-png", fd);
@@ -1039,7 +1577,7 @@ function BotonSubirPngRecurso({
       <input
         ref={inputRef}
         type="file"
-        accept="image/png,.png"
+        accept="image/jpeg,image/jpg,image/png,.jpg,.jpeg,.jpe,.png"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -1051,11 +1589,12 @@ function BotonSubirPngRecurso({
         type="button"
         disabled={subirMut.isPending}
         onClick={() => inputRef.current?.click()}
+        title="Importar JPG o PNG"
         className={`inline-flex items-center gap-1 rounded border border-border bg-surface font-semibold text-ink hover:border-accent hover:text-accent disabled:opacity-50 ${
           compact ? `h-8 px-2.5 ${RIB_FONT_BTN}` : "px-3 py-2 text-sm"
         }`}
       >
-        {subirMut.isPending ? "Subiendo…" : label}
+        {subirMut.isPending ? "Importando…" : label}
       </button>
       {errorLocal && <p className="mt-1 text-[10px] text-danger">{errorLocal}</p>}
     </div>
@@ -1340,8 +1879,8 @@ function VistaPreviaConLote({
   const puedeArrastrar = Boolean(onPositionChange && lineas.length > 0 && imagen);
   const fontPx =
     imgMetrics.naturalH > 0 && imgMetrics.displayH > 0
-      ? Math.max(6, loteFont * (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH))
-      : Math.max(6, loteFont);
+      ? Math.max(TAMANO_TEXTO_PT_MIN, loteFont * (PREVIEW_DPI / 72) * (imgMetrics.displayH / imgMetrics.naturalH))
+      : Math.max(TAMANO_TEXTO_PT_MIN, loteFont);
 
   const moverDesdeEvento = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -2037,7 +2576,7 @@ function nuevoCampo(): CampoTexto {
     bold: false,
     align: "left",
     ortografia: true,
-    fondo_blanco: true,
+    fondo_blanco: false,
     color: "#000000",
     color_trazo: "#000000",
     grosor_trazo: 0,
@@ -2347,14 +2886,14 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                       <div className="flex items-center gap-2">
                         <input
                           type="range"
-                          min={5}
-                          max={14}
+                          min={TAMANO_TEXTO_PT_MIN}
+                          max={TAMANO_TEXTO_PT_MAX}
                           step={1}
-                          value={form.lote_font ?? 7}
-                          onChange={(e) => set("lote_font", Number(e.target.value))}
+                          value={clampTamanoTextoPt(form.lote_font ?? 7)}
+                          onChange={(e) => set("lote_font", clampTamanoTextoPt(Number(e.target.value)))}
                           className="w-24 accent-accent"
                         />
-                        <span className={`${RIB_FONT_BTN} font-bold text-ink`}>{form.lote_font ?? 7}pt</span>
+                        <span className={`${RIB_FONT_BTN} font-bold text-ink`}>{clampTamanoTextoPt(form.lote_font ?? 7)}pt</span>
                       </div>
                     </div>
                   </RibbonGroup>
@@ -2447,10 +2986,22 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
                           <div className="space-y-2 border-t border-border px-3 py-3">
                             <input type="text" value={campo.etiqueta} onChange={(e) => actualizarCampo(campo.id, { etiqueta: e.target.value })} className={RIB_INP} placeholder="Nombre del campo" />
                             <ProseTextarea value={campo.texto} onChange={(e) => actualizarCampo(campo.id, { texto: e.target.value })} rows={2} className="w-full rounded border border-border bg-surface px-2 py-1.5 text-xs resize-none" />
-                            <div className="flex flex-wrap gap-3 text-xs">
+                            <div className="flex flex-wrap items-center gap-3 text-xs">
                               <label className="flex items-center gap-1"><input type="checkbox" checked={campo.bold} onChange={(e) => actualizarCampo(campo.id, { bold: e.target.checked })} className="accent-accent" /> Negrita</label>
-                              <label className="flex items-center gap-1"><input type="checkbox" checked={campo.fondo_blanco} onChange={(e) => actualizarCampo(campo.id, { fondo_blanco: e.target.checked })} className="accent-accent" /> Fondo blanco</label>
                               <input type="color" value={campo.color} onChange={(e) => actualizarCampo(campo.id, { color: e.target.value })} className="h-6 w-8" />
+                              <label className="flex items-center gap-1.5">
+                                <span className="text-muted">Pt</span>
+                                <input
+                                  type="range"
+                                  min={TAMANO_TEXTO_PT_MIN}
+                                  max={TAMANO_TEXTO_PT_MAX}
+                                  step={1}
+                                  value={clampTamanoTextoPt(campo.font_size)}
+                                  onChange={(e) => actualizarCampo(campo.id, { font_size: clampTamanoTextoPt(Number(e.target.value)) })}
+                                  className="w-20 accent-accent"
+                                />
+                                <span className="font-mono">{clampTamanoTextoPt(campo.font_size)}</span>
+                              </label>
                               <span className="text-muted">X {campo.x_pct}% Y {campo.y_pct}%</span>
                             </div>
                           </div>
@@ -2782,11 +3333,15 @@ function EditorPlantillaCanvas({
   const textoEditRef = useRef<HTMLTextAreaElement>(null);
   const [dibujando, setDibujando] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [dibujandoRect, setDibujandoRect] = useState<{ x1: number; y1: number; x2: number; y2: number; proporcion?: boolean } | null>(null);
+  const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [arrastrando, setArrastrando] = useState<ArrastrePlantilla | null>(null);
   const [redimensionando, setRedimensionando] = useState<RedimensionPlantilla | null>(null);
+  const seleccionRef = useRef(seleccion);
+  seleccionRef.current = seleccion;
+  const unico = seleccionUnica(seleccion);
 
   useEffect(() => {
-    if (seleccion?.tipo === "texto") {
+    if (unico?.tipo === "texto") {
       requestAnimationFrame(() => {
         const el = textoEditRef.current;
         if (!el) return;
@@ -2794,7 +3349,26 @@ function EditorPlantillaCanvas({
         el.setSelectionRange(el.value.length, el.value.length);
       });
     }
-  }, [seleccion?.id]);
+  }, [unico?.id, unico?.tipo]);
+
+  function iniciarArrastreElemento(e: React.MouseEvent, item: ItemPlantillaRef, arrastreSimple: () => void) {
+    e.stopPropagation();
+    onActivarSeleccion?.();
+    const nuevaSel = seleccionDesdeClick(e, seleccionRef.current, item);
+    onSeleccion(nuevaSel);
+    const itemsMover = estaEnSeleccion(nuevaSel, item) && nuevaSel.length > 1 ? nuevaSel : [item];
+    if (itemsMover.length > 1) {
+      const p = pctDesdeEvento(e.clientX, e.clientY);
+      setArrastrando({
+        tipo: "grupo",
+        startX: p.x,
+        startY: p.y,
+        orig: capturarOrigenesGrupo(itemsMover, campos, lineas, imagenes, rectangulos),
+      });
+      return;
+    }
+    arrastreSimple();
+  }
 
   const pctDesdeEvento = useCallback((clientX: number, clientY: number) => {
     const el = lienzoRef.current;
@@ -2804,22 +3378,37 @@ function EditorPlantillaCanvas({
   }, []);
 
   useEffect(() => {
-    if (!dibujando && !dibujandoRect && !arrastrando && !redimensionando) return;
+    if (!dibujando && !dibujandoRect && !arrastrando && !redimensionando && !marquee) return;
     function onMove(e: MouseEvent) {
+      if (marquee) {
+        const p = pctDesdeEvento(e.clientX, e.clientY);
+        setMarquee((m) => (m ? { ...m, x2: p.x, y2: p.y } : m));
+      }
       if (redimensionando) {
         const p = pctDesdeEvento(e.clientX, e.clientY);
         if (redimensionando.tipo === "linea") {
+          const ln = lineas.find((l) => l.id === redimensionando.id);
+          let x = p.x;
+          let y = p.y;
+          if (e.shiftKey && ln) {
+            const snap =
+              redimensionando.punto === "inicio"
+                ? snapLineaRecta(ln.x2_pct, ln.y2_pct, p.x, p.y)
+                : snapLineaRecta(ln.x1_pct, ln.y1_pct, p.x, p.y);
+            x = snap.x2;
+            y = snap.y2;
+          }
           const patch =
             redimensionando.punto === "inicio"
-              ? { x1_pct: clampLotePct(p.x), y1_pct: clampLotePct(p.y) }
-              : { x2_pct: clampLotePct(p.x), y2_pct: clampLotePct(p.y) };
-          onLineasChange(lineas.map((ln) => (ln.id === redimensionando.id ? { ...ln, ...patch } : ln)));
+              ? { x1_pct: clampLotePct(x), y1_pct: clampLotePct(y) }
+              : { x2_pct: clampLotePct(x), y2_pct: clampLotePct(y) };
+          onLineasChange(lineas.map((l) => (l.id === redimensionando.id ? { ...l, ...patch } : l)));
         } else {
           const { x, y, w, h } = calcularCajaRedimension(
             redimensionando.orig,
             redimensionando.asa,
             p,
-            e.shiftKey,
+            redimensionando.tipo !== "imagen" && e.shiftKey,
           );
           if (redimensionando.tipo === "rectangulo") {
             onRectangulosChange(
@@ -2865,7 +3454,49 @@ function EditorPlantillaCanvas({
       }
       if (arrastrando) {
         const p = pctDesdeEvento(e.clientX, e.clientY);
-        if (arrastrando.tipo === "texto") {
+        if (arrastrando.tipo === "grupo") {
+          const dx = p.x - arrastrando.startX;
+          const dy = p.y - arrastrando.startY;
+          const { orig } = arrastrando;
+          onCamposChange(
+            campos.map((c) => {
+              const o = orig.textos[c.id];
+              return o
+                ? { ...c, x_pct: clampLotePct(o.x_pct + dx), y_pct: clampLotePct(o.y_pct + dy) }
+                : c;
+            }),
+          );
+          onImagenesChange(
+            imagenes.map((im) => {
+              const o = orig.imagenes[im.id];
+              return o
+                ? { ...im, x_pct: clampLotePct(o.x_pct + dx), y_pct: clampLotePct(o.y_pct + dy) }
+                : im;
+            }),
+          );
+          onRectangulosChange(
+            rectangulos.map((rc) => {
+              const o = orig.rectangulos[rc.id];
+              return o
+                ? { ...rc, x_pct: clampLotePct(o.x_pct + dx), y_pct: clampLotePct(o.y_pct + dy) }
+                : rc;
+            }),
+          );
+          onLineasChange(
+            lineas.map((ln) => {
+              const o = orig.lineas[ln.id];
+              return o
+                ? {
+                    ...ln,
+                    x1_pct: clampLotePct(o.x1_pct + dx),
+                    y1_pct: clampLotePct(o.y1_pct + dy),
+                    x2_pct: clampLotePct(o.x2_pct + dx),
+                    y2_pct: clampLotePct(o.y2_pct + dy),
+                  }
+                : ln;
+            }),
+          );
+        } else if (arrastrando.tipo === "texto") {
           onCamposChange(
             campos.map((c) =>
               c.id === arrastrando.id
@@ -2900,12 +3531,34 @@ function EditorPlantillaCanvas({
       }
     }
     function onUp(e: MouseEvent) {
+      if (marquee) {
+        const box = rectNormalizado(marquee.x1, marquee.y1, marquee.x2, marquee.y2, false);
+        const bounds: BoundsPct = {
+          left: box.x_pct,
+          top: box.y_pct,
+          right: box.x_pct + box.ancho_pct,
+          bottom: box.y_pct + box.alto_pct,
+          width: box.ancho_pct,
+          height: box.alto_pct,
+          centerX: box.x_pct + box.ancho_pct / 2,
+          centerY: box.y_pct + box.alto_pct / 2,
+        };
+        const dx = Math.abs(marquee.x2 - marquee.x1);
+        const dy = Math.abs(marquee.y2 - marquee.y1);
+        if (dx > 0.8 || dy > 0.8) {
+          const items = elementosEnMarquee(bounds, campos, lineas, imagenes, rectangulos);
+          onSeleccion(e.shiftKey ? [...seleccionRef.current, ...items.filter((it) => !estaEnSeleccion(seleccionRef.current, it))] : items);
+        } else {
+          onSeleccion([]);
+        }
+        setMarquee(null);
+      }
       if (dibujandoRect) {
         const box = rectNormalizado(dibujandoRect.x1, dibujandoRect.y1, dibujandoRect.x2, dibujandoRect.y2, e.shiftKey);
         if (box.ancho_pct > 1 && box.alto_pct > 1) {
           const rc = { ...nuevoRectangulo(box.x_pct, box.y_pct, box.ancho_pct, box.alto_pct) };
           onRectangulosChange([...rectangulos, rc]);
-          onSeleccion({ tipo: "rectangulo", id: rc.id });
+          onSeleccion(seleccionarSolo({ tipo: "rectangulo", id: rc.id }));
         }
         setDibujandoRect(null);
       }
@@ -2934,7 +3587,7 @@ function EditorPlantillaCanvas({
             color: "#000000",
           };
           onLineasChange([...lineas, ln]);
-          onSeleccion({ tipo: "linea", id: ln.id });
+          onSeleccion(seleccionarSolo({ tipo: "linea", id: ln.id }));
         }
         setDibujando(null);
       }
@@ -2947,7 +3600,7 @@ function EditorPlantillaCanvas({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [dibujando, dibujandoRect, arrastrando, redimensionando, campos, lineas, imagenes, rectangulos, onCamposChange, onLineasChange, onImagenesChange, onRectangulosChange, onSeleccion, pctDesdeEvento]);
+  }, [dibujando, dibujandoRect, marquee, arrastrando, redimensionando, campos, lineas, imagenes, rectangulos, onCamposChange, onLineasChange, onImagenesChange, onRectangulosChange, onSeleccion, pctDesdeEvento]);
 
   function iniciarRedimension(e: React.MouseEvent, payload: RedimensionPlantilla) {
     e.stopPropagation();
@@ -2962,10 +3615,10 @@ function EditorPlantillaCanvas({
     const p = pctDesdeEvento(e.clientX, e.clientY);
     if (herramienta === "rectangulo") {
       setDibujandoRect({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
-      onSeleccion(null);
+      onSeleccion([]);
     } else if (herramienta === "linea") {
       setDibujando({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
-      onSeleccion(null);
+      onSeleccion([]);
     } else if (herramienta === "texto") {
       const c = nuevoCampo();
       c.x_pct = p.x;
@@ -2973,9 +3626,9 @@ function EditorPlantillaCanvas({
       c.texto = "Texto";
       c.font_size = fontSize;
       onCamposChange([...campos, c]);
-      onSeleccion({ tipo: "texto", id: c.id });
+      onSeleccion(seleccionarSolo({ tipo: "texto", id: c.id }));
     } else {
-      onSeleccion(null);
+      setMarquee({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
     }
   }
 
@@ -3004,17 +3657,31 @@ function EditorPlantillaCanvas({
     <div
       ref={lienzoRef}
       tabIndex={0}
-      className="relative mx-auto w-full max-w-3xl cursor-crosshair select-none overflow-hidden rounded-xl border-2 border-dashed border-border bg-white shadow-inner outline-none focus:ring-2 focus:ring-accent/40"
+      className="relative mx-auto w-full max-w-3xl cursor-crosshair select-none overflow-visible rounded-xl border-2 border-dashed border-border bg-white shadow-inner outline-none focus:ring-2 focus:ring-accent/40"
       style={{ aspectRatio: `${anchoMm} / ${altoMm}` }}
       onMouseDown={(e) => { lienzoRef.current?.focus(); onLienzoMouseDown(e); }}
       onKeyDown={(e) => {
-        if (!esTeclaEliminarElemento(e) || !seleccion || !onSuprimirSeleccion) return;
+        if (!esTeclaEliminarElemento(e) || seleccion.length === 0 || !onSuprimirSeleccion) return;
         if (enCampoEditable(e.target)) return;
         e.preventDefault();
         e.stopPropagation();
         onSuprimirSeleccion();
       }}
     >
+      {marquee && (() => {
+        const box = rectNormalizado(marquee.x1, marquee.y1, marquee.x2, marquee.y2, false);
+        return (
+          <div
+            className="pointer-events-none absolute z-30 border-2 border-dashed border-accent bg-accent/10"
+            style={{
+              left: `${box.x_pct}%`,
+              top: `${box.y_pct}%`,
+              width: `${box.ancho_pct}%`,
+              height: `${box.alto_pct}%`,
+            }}
+          />
+        );
+      })()}
       <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
         {rectsRender.map((rc) => (
           <rect
@@ -3023,9 +3690,9 @@ function EditorPlantillaCanvas({
             y={rc.y_pct}
             width={rc.ancho_pct}
             height={rc.alto_pct}
-            fill={rc.relleno ? rc.color_relleno : "none"}
-            stroke={rc.color_trazo}
-            strokeWidth={rc.grosor_trazo * 0.35}
+            fill={rc.relleno && !esSinColor(rc.color_relleno) ? rc.color_relleno : "none"}
+            stroke={esSinColor(rc.color_trazo) || rc.grosor_trazo <= 0 ? "none" : rc.color_trazo}
+            strokeWidth={rc.grosor_trazo <= 0 ? 0 : rc.grosor_trazo * 0.35}
             vectorEffect="non-scaling-stroke"
           />
         ))}
@@ -3036,8 +3703,8 @@ function EditorPlantillaCanvas({
             y1={ln.y1_pct}
             x2={ln.x2_pct}
             y2={ln.y2_pct}
-            stroke={ln.color}
-            strokeWidth={ln.grosor * 0.35}
+            stroke={esSinColor(ln.color) || ln.grosor < GROSOR_LINEA_MIN ? "none" : ln.color}
+            strokeWidth={ln.grosor < GROSOR_LINEA_MIN ? 0 : ln.grosor * 0.35}
             vectorEffect="non-scaling-stroke"
           />
         ))}
@@ -3056,13 +3723,12 @@ function EditorPlantillaCanvas({
             vectorEffect="non-scaling-stroke"
             className="cursor-move"
             style={{ pointerEvents: "all" }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onActivarSeleccion?.();
-              onSeleccion({ tipo: "rectangulo", id: rc.id });
-              const p = pctDesdeEvento(e.clientX, e.clientY);
-              setArrastrando({ tipo: "rectangulo", id: rc.id, ox: p.x - rc.x_pct, oy: p.y - rc.y_pct });
-            }}
+            onMouseDown={(e) =>
+              iniciarArrastreElemento(e, { tipo: "rectangulo", id: rc.id }, () => {
+                const p = pctDesdeEvento(e.clientX, e.clientY);
+                setArrastrando({ tipo: "rectangulo", id: rc.id, ox: p.x - rc.x_pct, oy: p.y - rc.y_pct });
+              })
+            }
           />
         ))}
         {lineas.map((ln) => (
@@ -3077,49 +3743,49 @@ function EditorPlantillaCanvas({
             vectorEffect="non-scaling-stroke"
             className="cursor-move"
             style={{ pointerEvents: "stroke" }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              onActivarSeleccion?.();
-              onSeleccion({ tipo: "linea", id: ln.id });
-              const p = pctDesdeEvento(e.clientX, e.clientY);
-              setArrastrando({
-                tipo: "linea",
-                id: ln.id,
-                startX: p.x,
-                startY: p.y,
-                orig: { x1: ln.x1_pct, y1: ln.y1_pct, x2: ln.x2_pct, y2: ln.y2_pct },
-              });
-            }}
+            onMouseDown={(e) =>
+              iniciarArrastreElemento(e, { tipo: "linea", id: ln.id }, () => {
+                const p = pctDesdeEvento(e.clientX, e.clientY);
+                setArrastrando({
+                  tipo: "linea",
+                  id: ln.id,
+                  startX: p.x,
+                  startY: p.y,
+                  orig: { x1: ln.x1_pct, y1: ln.y1_pct, x2: ln.x2_pct, y2: ln.y2_pct },
+                });
+              })
+            }
           />
         ))}
       </svg>
       {campos.map((c) => {
-        const sel = seleccion?.tipo === "texto" && seleccion.id === c.id;
+        const item: ItemPlantillaRef = { tipo: "texto", id: c.id };
+        const sel = estaEnSeleccion(seleccion, item);
+        const selUnico = unico?.tipo === "texto" && unico.id === c.id;
         const gTrazo = c.grosor_trazo ?? 0;
         const colorTrazo = c.color_trazo ?? "#000000";
+        const sinTrazo = gTrazo <= 0 || esSinColor(colorTrazo);
         const anchoCaja = c.ancho_caja_pct ?? 42;
         const altoCaja = c.alto_caja_pct ?? 14;
         const variante = varianteMontserratCampo(c);
         const estiloTexto: CSSProperties = {
           fontFamily: '"Montserrat", sans-serif',
-          fontSize: `${Math.max(8, c.font_size * 1.35)}px`,
+          fontSize: `${Math.max(TAMANO_TEXTO_PT_MIN * 1.35, c.font_size * 1.35)}px`,
           fontWeight: pesoMontserratVariante(variante),
-          color: c.color,
-          WebkitTextStroke: gTrazo > 0 ? `${Math.max(0.4, gTrazo * 0.45)}px ${colorTrazo}` : undefined,
-          paintOrder: gTrazo > 0 ? "stroke fill" : undefined,
+          color: esSinColor(c.color) ? "transparent" : c.color,
+          WebkitTextStroke: !sinTrazo ? `${Math.max(0.4, gTrazo * 0.45)}px ${colorTrazo}` : undefined,
+          paintOrder: !sinTrazo ? "stroke fill" : undefined,
           textAlign: c.align,
-          background: c.fondo_blanco ? "rgba(255,255,255,0.92)" : "transparent",
+          background: "transparent",
           whiteSpace: "pre-wrap",
           lineHeight: 1.2,
           wordBreak: "break-word",
         };
-        const onMoverTexto = (e: React.MouseEvent) => {
-          e.stopPropagation();
-          onActivarSeleccion?.();
-          onSeleccion({ tipo: "texto", id: c.id });
-          const p = pctDesdeEvento(e.clientX, e.clientY);
-          setArrastrando({ tipo: "texto", id: c.id, ox: p.x - c.x_pct, oy: p.y - c.y_pct });
-        };
+        const onMoverTexto = (e: React.MouseEvent) =>
+          iniciarArrastreElemento(e, item, () => {
+            const p = pctDesdeEvento(e.clientX, e.clientY);
+            setArrastrando({ tipo: "texto", id: c.id, ox: p.x - c.x_pct, oy: p.y - c.y_pct });
+          });
         const onRedimTexto = (e: React.MouseEvent, asa: AsaRedimensionId) =>
           iniciarRedimension(e, {
             tipo: "texto",
@@ -3132,7 +3798,7 @@ function EditorPlantillaCanvas({
           <div
             key={c.id}
             data-pl-elem
-            className={`absolute ${sel ? "z-10" : ""}`}
+            className={`absolute ${sel ? "z-10 overflow-visible" : ""}`}
             style={{
               left: `${c.x_pct}%`,
               top: `${c.y_pct}%`,
@@ -3142,18 +3808,18 @@ function EditorPlantillaCanvas({
             onClick={(e) => {
               e.stopPropagation();
               onActivarSeleccion?.();
-              onSeleccion({ tipo: "texto", id: c.id });
+              onSeleccion(seleccionDesdeClick(e, seleccion, item));
             }}
           >
-            {sel ? (
-              <div className="relative h-full w-full">
+            {selUnico ? (
+              <>
                 <textarea
                   ref={textoEditRef}
                   value={c.texto}
                   placeholder="Escribe aquí…"
                   lang="es"
                   spellCheck={c.ortografia !== false}
-                  className="box-border h-full w-full resize-none overflow-auto bg-transparent px-1.5 py-1 outline-none"
+                  className="absolute inset-0 box-border resize-none overflow-auto bg-transparent px-1.5 py-1 outline-none"
                   style={estiloTexto}
                   onMouseDown={(e) => e.stopPropagation()}
                   onChange={(e) =>
@@ -3165,15 +3831,26 @@ function EditorPlantillaCanvas({
                   onMover={onMoverTexto}
                   onRedimensionar={onRedimTexto}
                 />
-              </div>
+              </>
+            ) : sel ? (
+              <>
+                <div
+                  className="absolute inset-0 box-border cursor-pointer overflow-hidden px-1.5 py-1"
+                  style={estiloTexto}
+                  onMouseDown={onMoverTexto}
+                >
+                  {c.texto || c.etiqueta || "Texto"}
+                </div>
+                <MarcoSeleccionSimple onMover={onMoverTexto} />
+              </>
             ) : (
               <div
-                className="box-border h-full w-full cursor-pointer overflow-hidden px-1.5 py-1"
+                className="absolute inset-0 box-border cursor-pointer overflow-hidden px-1.5 py-1"
                 style={estiloTexto}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   onActivarSeleccion?.();
-                  onSeleccion({ tipo: "texto", id: c.id });
+                  onSeleccion(seleccionarSolo(item));
                 }}
               >
                 {c.texto || c.etiqueta || "Texto"}
@@ -3183,13 +3860,15 @@ function EditorPlantillaCanvas({
         );
       })}
       {imagenes.map((im) => {
-        const sel = seleccion?.tipo === "imagen" && seleccion.id === im.id;
-        const altoIm = im.alto_pct ?? im.ancho_pct * 0.75;
+        const item: ItemPlantillaRef = { tipo: "imagen", id: im.id };
+        const sel = estaEnSeleccion(seleccion, item);
+        const selUnico = unico?.tipo === "imagen" && unico.id === im.id;
+        const altoIm = altoImagenPct(im);
         return (
           <div
             key={im.id}
             data-pl-elem
-            className={`absolute ${sel ? "z-10" : ""}`}
+            className={`absolute ${sel ? "z-10 overflow-visible" : ""}`}
             style={{
               left: `${im.x_pct}%`,
               top: `${im.y_pct}%`,
@@ -3199,23 +3878,25 @@ function EditorPlantillaCanvas({
             onClick={(e) => {
               e.stopPropagation();
               onActivarSeleccion?.();
-              onSeleccion({ tipo: "imagen", id: im.id });
+              onSeleccion(seleccionDesdeClick(e, seleccion, item));
             }}
           >
-            {sel ? (
-              <div className="relative h-full w-full">
+            {selUnico ? (
+              <>
                 <ImgRecursoPng
                   nombre={im.nombre}
                   thumbB64={recursosThumb[im.recurso_id]}
-                  className="pointer-events-none h-full w-full object-contain"
+                  className="pointer-events-none absolute inset-0 h-full w-full object-fill"
                 />
                 <MarcoRedimensionable
                   activo
-                  onMover={(e) => {
-                    e.stopPropagation();
-                    const p = pctDesdeEvento(e.clientX, e.clientY);
-                    setArrastrando({ tipo: "imagen", id: im.id, ox: p.x - im.x_pct, oy: p.y - im.y_pct });
-                  }}
+                  redimensionLibre
+                  onMover={(e) =>
+                    iniciarArrastreElemento(e, item, () => {
+                      const p = pctDesdeEvento(e.clientX, e.clientY);
+                      setArrastrando({ tipo: "imagen", id: im.id, ox: p.x - im.x_pct, oy: p.y - im.y_pct });
+                    })
+                  }
                   onRedimensionar={(e, asa) =>
                     iniciarRedimension(e, {
                       tipo: "imagen",
@@ -3225,58 +3906,89 @@ function EditorPlantillaCanvas({
                     })
                   }
                 />
-              </div>
+              </>
+            ) : sel ? (
+              <>
+                <ImgRecursoPng
+                  nombre={im.nombre}
+                  thumbB64={recursosThumb[im.recurso_id]}
+                  className="pointer-events-none absolute inset-0 h-full w-full object-fill"
+                />
+                <MarcoSeleccionSimple
+                  onMover={(e) =>
+                    iniciarArrastreElemento(e, item, () => {
+                      const p = pctDesdeEvento(e.clientX, e.clientY);
+                      setArrastrando({ tipo: "imagen", id: im.id, ox: p.x - im.x_pct, oy: p.y - im.y_pct });
+                    })
+                  }
+                />
+              </>
             ) : (
               <ImgRecursoPng
                 nombre={im.nombre}
                 thumbB64={recursosThumb[im.recurso_id]}
-                className="pointer-events-none h-full w-full object-contain"
+                className="pointer-events-none absolute inset-0 h-full w-full object-fill"
               />
             )}
           </div>
         );
       })}
       {rectangulos.map((rc) => {
-        const sel = seleccion?.tipo === "rectangulo" && seleccion.id === rc.id;
+        const item: ItemPlantillaRef = { tipo: "rectangulo", id: rc.id };
+        const sel = estaEnSeleccion(seleccion, item);
         if (!sel) return null;
+        const selUnico = unico?.tipo === "rectangulo" && unico.id === rc.id;
+        const onMoverRect = (e: React.MouseEvent) =>
+          iniciarArrastreElemento(e, item, () => {
+            const p = pctDesdeEvento(e.clientX, e.clientY);
+            setArrastrando({ tipo: "rectangulo", id: rc.id, ox: p.x - rc.x_pct, oy: p.y - rc.y_pct });
+          });
         return (
           <div
             key={`handles-rc-${rc.id}`}
-            className="absolute z-10"
+            data-pl-elem
+            className="absolute z-10 overflow-visible"
             style={{
               left: `${rc.x_pct}%`,
               top: `${rc.y_pct}%`,
               width: `${rc.ancho_pct}%`,
               height: `${rc.alto_pct}%`,
             }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onActivarSeleccion?.();
+              onSeleccion(seleccionDesdeClick(e, seleccion, item));
+            }}
           >
-            <MarcoRedimensionable
-              activo
-              onMover={(e) => {
-                e.stopPropagation();
-                const p = pctDesdeEvento(e.clientX, e.clientY);
-                setArrastrando({ tipo: "rectangulo", id: rc.id, ox: p.x - rc.x_pct, oy: p.y - rc.y_pct });
-              }}
-              onRedimensionar={(e, asa) =>
-                iniciarRedimension(e, {
-                  tipo: "rectangulo",
-                  id: rc.id,
-                  asa,
-                  orig: { x: rc.x_pct, y: rc.y_pct, w: rc.ancho_pct, h: rc.alto_pct },
-                })
-              }
-            />
+            {selUnico ? (
+              <MarcoRedimensionable
+                activo
+                onMover={onMoverRect}
+                onRedimensionar={(e, asa) =>
+                  iniciarRedimension(e, {
+                    tipo: "rectangulo",
+                    id: rc.id,
+                    asa,
+                    orig: { x: rc.x_pct, y: rc.y_pct, w: rc.ancho_pct, h: rc.alto_pct },
+                  })
+                }
+              />
+            ) : (
+              <MarcoSeleccionSimple onMover={onMoverRect} />
+            )}
           </div>
         );
       })}
       {lineas.map((ln) => {
-        const sel = seleccion?.tipo === "linea" && seleccion.id === ln.id;
+        const item: ItemPlantillaRef = { tipo: "linea", id: ln.id };
+        const sel = estaEnSeleccion(seleccion, item);
         if (!sel) return null;
+        const selUnico = unico?.tipo === "linea" && unico.id === ln.id;
         const punto = (label: "inicio" | "fin", x: number, y: number) => (
           <button
             key={`${ln.id}-${label}`}
             type="button"
-            title={label === "inicio" ? "Extremo inicio" : "Extremo fin"}
+            title={label === "inicio" ? "Extremo inicio (Shift = H/V)" : "Extremo fin (Shift = H/V)"}
             className="pointer-events-auto absolute z-20 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-accent bg-white shadow-sm hover:scale-110"
             style={{ left: `${x}%`, top: `${y}%` }}
             onMouseDown={(e) =>
@@ -3291,8 +4003,8 @@ function EditorPlantillaCanvas({
         );
         return (
           <div key={`${ln.id}-handles`} className="pointer-events-none absolute inset-0">
-            {punto("inicio", ln.x1_pct, ln.y1_pct)}
-            {punto("fin", ln.x2_pct, ln.y2_pct)}
+            {selUnico && punto("inicio", ln.x1_pct, ln.y1_pct)}
+            {selUnico && punto("fin", ln.x2_pct, ln.y2_pct)}
           </div>
         );
       })}
@@ -3307,10 +4019,10 @@ interface TabPlantillasProps {
 function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
   const qc = useQueryClient();
   const panelRef = useRef<HTMLDivElement>(null);
-  const seleccionRef = useRef<SeleccionPlantilla>(null);
+  const seleccionRef = useRef<SeleccionPlantilla>([]);
   const [actual, setActual] = useState<PlantillaEtiqueta>(() => plantillaVacia());
   const [herramienta, setHerramienta] = useState<HerramientaPlantilla>("seleccionar");
-  const [seleccion, setSeleccion] = useState<SeleccionPlantilla>(null);
+  const [seleccion, setSeleccion] = useState<SeleccionPlantilla>([]);
   const [fontSize, setFontSize] = useState(9);
   seleccionRef.current = seleccion;
 
@@ -3337,8 +4049,28 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
     mutationFn: (id: string) => api.delete(`/api/etiquetas/plantillas/${id}`),
     onSuccess: () => {
       setActual(plantillaVacia());
-      setSeleccion(null);
+      setSeleccion([]);
       qc.invalidateQueries({ queryKey: ["etiquetas-plantillas"] });
+    },
+  });
+
+  const eliminarRecursoMut = useMutation({
+    mutationFn: (recurso: RecursoPng) =>
+      api.delete(`/api/etiquetas/recursos-png/${encodeURIComponent(recurso.nombre)}`),
+    onSuccess: (_data, recurso) => {
+      qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      setActual((p) => {
+        const idsEnLienzo = new Set(
+          (p.imagenes ?? []).filter((im) => im.recurso_id === recurso.id).map((im) => im.id),
+        );
+        if (idsEnLienzo.size) {
+          setSeleccion((sel) => sel.filter((item) => !(item.tipo === "imagen" && idsEnLienzo.has(item.id))));
+        }
+        return {
+          ...p,
+          imagenes: (p.imagenes ?? []).filter((im) => im.recurso_id !== recurso.id),
+        };
+      });
     },
   });
 
@@ -3347,17 +4079,18 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
   const recursosThumb = Object.fromEntries(recursos.map((r) => [r.id, r.thumb_b64]));
   const orientacion = orientacionPlantilla(actual);
   const [aw, ah] = dimensioensPlantillaMm(actual.tipo_etiqueta, orientacion);
-  const campoSel = seleccion?.tipo === "texto"
-    ? actual.campos_texto.find((c) => c.id === seleccion.id)
+  const unicoSel = seleccionUnica(seleccion);
+  const campoSel = unicoSel?.tipo === "texto"
+    ? actual.campos_texto.find((c) => c.id === unicoSel.id)
     : undefined;
-  const lineaSel = seleccion?.tipo === "linea"
-    ? actual.lineas.find((l) => l.id === seleccion.id)
+  const lineaSel = unicoSel?.tipo === "linea"
+    ? actual.lineas.find((l) => l.id === unicoSel.id)
     : undefined;
-  const imagenSel = seleccion?.tipo === "imagen"
-    ? (actual.imagenes ?? []).find((i) => i.id === seleccion.id)
+  const imagenSel = unicoSel?.tipo === "imagen"
+    ? (actual.imagenes ?? []).find((i) => i.id === unicoSel.id)
     : undefined;
-  const rectSel = seleccion?.tipo === "rectangulo"
-    ? (actual.rectangulos ?? []).find((r) => r.id === seleccion.id)
+  const rectSel = unicoSel?.tipo === "rectangulo"
+    ? (actual.rectangulos ?? []).find((r) => r.id === unicoSel.id)
     : undefined;
 
   function setCampos(campos: CampoTexto[]) {
@@ -3376,26 +4109,46 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
     setCampos(actual.campos_texto.map((c) => (c.id === id ? { ...c, ...patch } : c)));
   }
   function eliminarSeleccionado() {
-    const sel = seleccionRef.current;
-    if (!sel) return;
-    if (sel.tipo === "texto") {
-      setActual((p) => ({ ...p, campos_texto: p.campos_texto.filter((c) => c.id !== sel.id) }));
-    } else if (sel.tipo === "linea") {
-      setActual((p) => ({ ...p, lineas: p.lineas.filter((l) => l.id !== sel.id) }));
-    } else if (sel.tipo === "imagen") {
-      setActual((p) => ({ ...p, imagenes: (p.imagenes ?? []).filter((i) => i.id !== sel.id) }));
-    } else {
-      setActual((p) => ({ ...p, rectangulos: (p.rectangulos ?? []).filter((r) => r.id !== sel.id) }));
-    }
-    setSeleccion(null);
+    const items = seleccionRef.current;
+    if (!items.length) return;
+    const idsTexto = new Set(items.filter((i) => i.tipo === "texto").map((i) => i.id));
+    const idsLinea = new Set(items.filter((i) => i.tipo === "linea").map((i) => i.id));
+    const idsImagen = new Set(items.filter((i) => i.tipo === "imagen").map((i) => i.id));
+    const idsRect = new Set(items.filter((i) => i.tipo === "rectangulo").map((i) => i.id));
+    setActual((p) => ({
+      ...p,
+      campos_texto: p.campos_texto.filter((c) => !idsTexto.has(c.id)),
+      lineas: p.lineas.filter((l) => !idsLinea.has(l.id)),
+      imagenes: (p.imagenes ?? []).filter((im) => !idsImagen.has(im.id)),
+      rectangulos: (p.rectangulos ?? []).filter((r) => !idsRect.has(r.id)),
+    }));
+    setSeleccion([]);
+  }
+
+  function alinearSeleccionados(modo: AlineacionPlantilla) {
+    const resultado = alinearSeleccionPlantilla(
+      seleccion,
+      modo,
+      actual.campos_texto,
+      actual.lineas,
+      actual.imagenes ?? [],
+      actual.rectangulos ?? [],
+    );
+    setActual((p) => ({
+      ...p,
+      campos_texto: resultado.campos,
+      lineas: resultado.lineas,
+      imagenes: resultado.imagenes,
+      rectangulos: resultado.rectangulos,
+    }));
   }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (!esTeclaEliminarElemento(e)) return;
       if (enCampoEditable(e.target)) return;
-      const sel = seleccionRef.current;
-      if (!sel) return;
+      const items = seleccionRef.current;
+      if (!items.length) return;
       e.preventDefault();
       e.stopPropagation();
       eliminarSeleccionado();
@@ -3405,14 +4158,14 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
   }, []);
 
   useEffect(() => {
-    if (!seleccion || seleccion.tipo === "texto") return;
+    if (!seleccion.length || unicoSel?.tipo === "texto") return;
     panelRef.current?.focus({ preventScroll: true });
-  }, [seleccion]);
+  }, [seleccion, unicoSel?.tipo]);
 
   function agregarRecursoAlLienzo(recurso: RecursoPng) {
     const im = nuevaImagenPlantilla(recurso);
     setImagenes([...(actual.imagenes ?? []), im]);
-    setSeleccion({ tipo: "imagen", id: im.id });
+    setSeleccion(seleccionarSolo({ tipo: "imagen", id: im.id }));
     setHerramienta("seleccionar");
   }
 
@@ -3428,7 +4181,7 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
       orientacion: nueva,
       ...rotado,
     }));
-    setSeleccion(null);
+    setSeleccion([]);
     setHerramienta("seleccionar");
   }
 
@@ -3469,7 +4222,7 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
       tabIndex={-1}
       className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-sm outline-none"
       onKeyDown={(e) => {
-        if (!esTeclaEliminarElemento(e) || !seleccion) return;
+        if (!esTeclaEliminarElemento(e) || seleccion.length === 0) return;
         if (enCampoEditable(e.target)) return;
         e.preventDefault();
         eliminarSeleccionado();
@@ -3498,15 +4251,6 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
         </div>
       </div>
 
-      <PanelSuperiorRellenosTrazos
-        campo={campoSel}
-        linea={lineaSel}
-        rect={rectSel}
-        onPatchCampo={(patch) => campoSel && patchCampo(campoSel.id, patch)}
-        onPatchLinea={(patch) => lineaSel && patchLinea(lineaSel.id, patch)}
-        onPatchRect={(patch) => rectSel && patchRect(rectSel.id, patch)}
-      />
-
       <PanelSuperiorEdicion
         campo={campoSel}
         onPatch={(patch) => campoSel && patchCampo(campoSel.id, patch)}
@@ -3526,19 +4270,19 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
             />
             <BtnIconoToolbar
               activo={herramienta === "texto"}
-              onClick={() => { elegirHerramienta("texto"); setSeleccion(null); }}
+              onClick={() => { elegirHerramienta("texto"); setSeleccion([]); }}
               icon={<span className="font-serif font-bold">T</span>}
               title="Texto"
             />
             <BtnIconoToolbar
               activo={herramienta === "linea"}
-              onClick={() => { elegirHerramienta("linea"); setSeleccion(null); }}
+              onClick={() => { elegirHerramienta("linea"); setSeleccion([]); }}
               icon="／"
               title="Línea libre (Shift = H/V)"
             />
             <BtnIconoToolbar
               activo={herramienta === "rectangulo"}
-              onClick={() => { setHerramienta("rectangulo"); setSeleccion(null); }}
+              onClick={() => { setHerramienta("rectangulo"); setSeleccion([]); }}
               icon="▭"
               title="Rectángulo — Shift = cuadrado"
             />
@@ -3548,7 +4292,7 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
 
           <BarraIconos>
             <BtnIconoToolbar
-              onClick={() => { setActual(plantillaVacia()); setSeleccion(null); }}
+              onClick={() => { setActual(plantillaVacia()); setSeleccion([]); }}
               icon="📄"
               title="Nueva plantilla"
             />
@@ -3581,7 +4325,7 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
               icon="⧉"
               title="Guardar como nueva"
             />
-            {seleccion ? (
+            {seleccion.length > 0 ? (
               <BtnIconoToolbar
                 onClick={eliminarSeleccionado}
                 icon="🗑"
@@ -3599,9 +4343,10 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
             {herramienta === "linea" && "Línea libre · Shift = recta H/V"}
             {herramienta === "texto" && "Clic = nuevo texto · arrastra cualquier elemento para moverlo"}
             {herramienta === "rectangulo" && "Arrastra ▭ rectángulo · Shift = cuadrado"}
-            {herramienta === "seleccionar" && "Selecciona · esquinas redimensionan · ⠿ mueve · Suprimir elimina"}
+            {herramienta === "seleccionar" && "Selecciona · arrastra caja para varios · Ctrl/Cmd o Shift+clic · alinear con 2+ · Suprimir elimina"}
             {" · "}{orientacion === "vertical" ? "▮ Vertical" : "▬ Horizontal"} · {aw}×{ah} mm
           </p>
+          <PanelAlineacion cantidad={seleccion.length} onAlinear={alinearSeleccionados} />
           <EditorPlantillaCanvas
             anchoMm={aw}
             altoMm={ah}
@@ -3624,17 +4369,30 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
           {imagenSel && (
             <div className="w-full max-w-md rounded-lg border border-border bg-surface-panel p-3 text-xs">
               <p className="text-muted">Imagen: {imagenSel.nombre}</p>
+              <p className="mt-1 text-[10px] text-muted">Arrastra esquinas o lados · estira libre (puede pixelarse).</p>
               <label className="mt-2 flex items-center gap-2">
-                <span className="text-muted">Ancho</span>
+                <span className="w-10 shrink-0 text-muted">Ancho</span>
                 <input
                   type="range"
-                  min={5}
-                  max={90}
+                  min={1}
+                  max={100}
                   value={imagenSel.ancho_pct}
                   onChange={(e) => patchImagen(imagenSel.id, { ancho_pct: Number(e.target.value) })}
                   className="flex-1 accent-accent"
                 />
-                <span>{imagenSel.ancho_pct}%</span>
+                <span className="w-9 text-right">{imagenSel.ancho_pct}%</span>
+              </label>
+              <label className="mt-2 flex items-center gap-2">
+                <span className="w-10 shrink-0 text-muted">Alto</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={100}
+                  value={altoImagenPct(imagenSel)}
+                  onChange={(e) => patchImagen(imagenSel.id, { alto_pct: Number(e.target.value) })}
+                  className="flex-1 accent-accent"
+                />
+                <span className="w-9 text-right">{altoImagenPct(imagenSel)}%</span>
               </label>
             </div>
           )}
@@ -3643,9 +4401,9 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
               <button
                 key={rc.id}
                 type="button"
-                onClick={() => setSeleccion({ tipo: "rectangulo", id: rc.id })}
+                onClick={(e) => setSeleccion(seleccionDesdeClick(e, seleccion, { tipo: "rectangulo", id: rc.id }))}
                 className={`rounded border px-2 py-0.5 text-[10px] ${
-                  seleccion?.id === rc.id ? "border-accent bg-accent/10" : "border-border"
+                  estaEnSeleccion(seleccion, { tipo: "rectangulo", id: rc.id }) ? "border-accent bg-accent/10" : "border-border"
                 }`}
               >
                 ▭ Rect
@@ -3655,9 +4413,9 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
               <button
                 key={im.id}
                 type="button"
-                onClick={() => setSeleccion({ tipo: "imagen", id: im.id })}
+                onClick={(e) => setSeleccion(seleccionDesdeClick(e, seleccion, { tipo: "imagen", id: im.id }))}
                 className={`rounded border px-2 py-0.5 text-[10px] ${
-                  seleccion?.id === im.id ? "border-accent bg-accent/10" : "border-border"
+                  estaEnSeleccion(seleccion, { tipo: "imagen", id: im.id }) ? "border-accent bg-accent/10" : "border-border"
                 }`}
               >
                 🖼 {im.nombre}
@@ -3667,9 +4425,9 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
               <button
                 key={ln.id}
                 type="button"
-                onClick={() => setSeleccion({ tipo: "linea", id: ln.id })}
+                onClick={(e) => setSeleccion(seleccionDesdeClick(e, seleccion, { tipo: "linea", id: ln.id }))}
                 className={`rounded border px-2 py-0.5 text-[10px] ${
-                  seleccion?.id === ln.id ? "border-accent bg-accent/10" : "border-border"
+                  estaEnSeleccion(seleccion, { tipo: "linea", id: ln.id }) ? "border-accent bg-accent/10" : "border-border"
                 }`}
               >
                 Línea
@@ -3678,7 +4436,17 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
           </div>
         </div>
 
-        <aside className="flex w-52 flex-shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface-panel p-3">
+        <aside className="flex w-56 flex-shrink-0 flex-col gap-4 overflow-y-auto border-l border-border bg-surface-panel p-3">
+          <PanelLateralApariencia
+            campo={campoSel}
+            linea={lineaSel}
+            rect={rectSel}
+            multiseleccion={seleccion.length}
+            onPatchCampo={(patch) => campoSel && patchCampo(campoSel.id, patch)}
+            onPatchLinea={(patch) => lineaSel && patchLinea(lineaSel.id, patch)}
+            onPatchRect={(patch) => rectSel && patchRect(rectSel.id, patch)}
+          />
+
           <div>
             <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">Guardadas</p>
             <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-surface">
@@ -3697,7 +4465,7 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
                       imagenes: p.imagenes ?? [],
                       rectangulos: p.rectangulos ?? [],
                     });
-                    setSeleccion(null);
+                    setSeleccion([]);
                   }}
                   className={`block w-full border-b border-border/50 px-3 py-2 text-left text-xs last:border-0 ${
                     actual.id === p.id ? "bg-accent/10 font-semibold text-accent" : "text-ink hover:bg-surface-hover"
@@ -3721,36 +4489,50 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
 
           <div>
             <div className="mb-2 flex items-center justify-between gap-1">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Biblioteca PNG</p>
-              <BotonSubirPngRecurso compact label="+" onSubido={agregarRecursoAlLienzo} />
+              <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Biblioteca de imágenes</p>
+              <BotonImportarImagenRecurso compact label="+" onSubido={agregarRecursoAlLienzo} />
             </div>
-            <p className="mb-2 text-[10px] text-muted">Clic para colocar en la etiqueta.</p>
+            <p className="mb-2 text-[10px] text-muted">Importa JPG o PNG · clic coloca · × elimina.</p>
             <div className="grid grid-cols-3 gap-1.5 overflow-y-auto rounded-lg border border-border bg-surface p-2">
               {cargandoRecursos && <p className="col-span-3 p-2 text-xs text-muted">Cargando…</p>}
               {!cargandoRecursos && recursos.length === 0 && (
                 <div className="col-span-3 flex flex-col items-center gap-2 py-4">
-                  <p className="text-[10px] text-muted">Sin PNG</p>
-                  <BotonSubirPngRecurso label="Subir PNG" onSubido={agregarRecursoAlLienzo} />
+                  <p className="text-[10px] text-muted">Sin imágenes</p>
+                  <BotonImportarImagenRecurso label="Importar imagen" onSubido={agregarRecursoAlLienzo} />
                 </div>
               )}
               {recursos.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  title={r.nombre}
-                  onClick={() => agregarRecursoAlLienzo(r)}
-                  className="aspect-square overflow-hidden rounded border border-border bg-white hover:border-accent hover:ring-1 hover:ring-accent"
-                >
-                  {r.thumb_b64 ? (
-                    <img
-                      src={`data:image/png;base64,${r.thumb_b64}`}
-                      alt={r.nombre}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <span className="flex h-full items-center justify-center text-[9px] text-muted">PNG</span>
-                  )}
-                </button>
+                <div key={r.id} className="relative aspect-square">
+                  <button
+                    type="button"
+                    title={r.nombre}
+                    onClick={() => agregarRecursoAlLienzo(r)}
+                    className="h-full w-full overflow-hidden rounded border border-border bg-white hover:border-accent hover:ring-1 hover:ring-accent"
+                  >
+                    {r.thumb_b64 ? (
+                      <img
+                        src={`data:image/png;base64,${r.thumb_b64}`}
+                        alt={r.nombre}
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <span className="flex h-full items-center justify-center text-[9px] text-muted">IMG</span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    title={`Eliminar ${r.nombre}`}
+                    disabled={eliminarRecursoMut.isPending}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      eliminarRecursoMut.mutate(r);
+                    }}
+                    className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-white text-[11px] font-bold leading-none text-muted shadow-sm hover:border-danger hover:bg-danger hover:text-white disabled:opacity-40"
+                    aria-label={`Eliminar ${r.nombre}`}
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </div>
           </div>
@@ -4127,8 +4909,16 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
                   <div className="flex min-w-[150px] flex-col gap-0.5">
                     <label className={RIB_LBL}>Montserrat Light</label>
                     <div className="flex items-center gap-2">
-                      <input type="range" min={5} max={14} step={1} value={loteFont} onChange={(e) => setLoteFont(Number(e.target.value))} className="w-24 accent-accent" />
-                      <span className={`${RIB_FONT_BTN} font-bold text-ink`}>{loteFont}pt</span>
+                      <input
+                        type="range"
+                        min={TAMANO_TEXTO_PT_MIN}
+                        max={TAMANO_TEXTO_PT_MAX}
+                        step={1}
+                        value={clampTamanoTextoPt(loteFont)}
+                        onChange={(e) => setLoteFont(clampTamanoTextoPt(Number(e.target.value)))}
+                        className="w-24 accent-accent"
+                      />
+                      <span className={`${RIB_FONT_BTN} font-bold text-ink`}>{clampTamanoTextoPt(loteFont)}pt</span>
                     </div>
                   </div>
                 </RibbonGroup>
@@ -4345,58 +5135,288 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
   );
 }
 
+// ── Inventario papel y tinta ──────────────────────────────────────────────────
+
+interface InventarioConsumible {
+  id: string;
+  tipo: "papel" | "tinta";
+  nombre: string;
+  cantidad: number;
+  unidad: string;
+  minimo: number;
+  notas?: string;
+  updated_at?: string;
+}
+
+function TabInventarioPapelTinta() {
+  const qc = useQueryClient();
+  const [tipoNuevo, setTipoNuevo] = useState<"papel" | "tinta">("papel");
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  const [cantNuevo, setCantNuevo] = useState(1);
+  const [minNuevo, setMinNuevo] = useState(1);
+  const [notasNuevo, setNotasNuevo] = useState("");
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["etiquetas-inventario-consumibles"],
+    queryFn: () => api.get<{ items: InventarioConsumible[] }>("/api/etiquetas/inventario-consumibles"),
+  });
+
+  const crearMut = useMutation({
+    mutationFn: (body: Partial<InventarioConsumible>) =>
+      api.post<{ ok: boolean; item: InventarioConsumible }>("/api/etiquetas/inventario-consumibles", body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
+      setNombreNuevo("");
+      setCantNuevo(1);
+      setMinNuevo(1);
+      setNotasNuevo("");
+    },
+  });
+
+  const patchMut = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<InventarioConsumible> }) =>
+      api.put<{ ok: boolean; item: InventarioConsumible }>(`/api/etiquetas/inventario-consumibles/${id}`, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] }),
+  });
+
+  const eliminarMut = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/etiquetas/inventario-consumibles/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] }),
+  });
+
+  const items = data?.items ?? [];
+  const papeles = items.filter((i) => i.tipo === "papel");
+  const tintas = items.filter((i) => i.tipo === "tinta");
+
+  function renderLista(titulo: string, lista: InventarioConsumible[], emoji: string) {
+    return (
+      <div className="rounded-xl border border-border bg-surface-panel p-4">
+        <p className="mb-3 text-sm font-bold text-ink">{emoji} {titulo}</p>
+        {lista.length === 0 ? (
+          <p className="text-xs text-muted">Sin registros.</p>
+        ) : (
+          <div className="space-y-2">
+            {lista.map((it) => {
+              const bajo = it.minimo > 0 && it.cantidad <= it.minimo;
+              return (
+                <div
+                  key={it.id}
+                  className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+                    bajo ? "border-orange-300 bg-orange-50" : "border-border bg-surface"
+                  }`}
+                >
+                  <span className="min-w-0 flex-1 font-semibold text-ink">{it.nombre}</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="rounded border border-border px-2 py-0.5 hover:bg-surface-hover"
+                      onClick={() => patchMut.mutate({ id: it.id, patch: { cantidad: Math.max(0, it.cantidad - 1) } })}
+                    >
+                      −
+                    </button>
+                    <span className={`min-w-[4rem] text-center font-mono ${bajo ? "text-orange-700" : ""}`}>
+                      {it.cantidad} {it.unidad}
+                    </span>
+                    <button
+                      type="button"
+                      className="rounded border border-border px-2 py-0.5 hover:bg-surface-hover"
+                      onClick={() => patchMut.mutate({ id: it.id, patch: { cantidad: it.cantidad + 1 } })}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-muted">mín. {it.minimo}</span>
+                  {it.notas && <span className="w-full text-[10px] text-muted">{it.notas}</span>}
+                  <button
+                    type="button"
+                    title="Eliminar"
+                    onClick={() => eliminarMut.mutate(it.id)}
+                    className="ml-auto rounded px-1.5 text-muted hover:bg-danger/10 hover:text-danger"
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-4">
+      <div>
+        <h2 className="text-lg font-bold text-ink">Inventario de papel y tinta</h2>
+        <p className="text-xs text-muted">Control de rollos de etiqueta y cartuchos para la Epson ColorWorks.</p>
+      </div>
+
+      {isLoading && <p className="text-sm text-muted">Cargando inventario…</p>}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {renderLista("Papel / etiquetas", papeles, "📄")}
+        {renderLista("Tintas", tintas, "🖨")}
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface-panel p-4">
+        <p className="mb-3 text-sm font-bold text-ink">Agregar ítem</p>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={tipoNuevo}
+            onChange={(e) => setTipoNuevo(e.target.value as "papel" | "tinta")}
+            className="rounded border border-border bg-surface px-2 py-1.5 text-xs"
+          >
+            <option value="papel">Papel / etiquetas</option>
+            <option value="tinta">Tinta</option>
+          </select>
+          <input
+            type="text"
+            value={nombreNuevo}
+            onChange={(e) => setNombreNuevo(e.target.value)}
+            placeholder={tipoNuevo === "papel" ? "Ej. Rollo 30 mL die-cut" : "Ej. Cartucho negro"}
+            className="min-w-[10rem] flex-1 rounded border border-border bg-surface px-2 py-1.5 text-xs"
+          />
+          <label className="flex items-center gap-1 text-xs text-muted">
+            Cant.
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={cantNuevo}
+              onChange={(e) => setCantNuevo(Number(e.target.value))}
+              className="w-16 rounded border border-border bg-surface px-2 py-1 text-xs"
+            />
+          </label>
+          <label className="flex items-center gap-1 text-xs text-muted">
+            Mín.
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={minNuevo}
+              onChange={(e) => setMinNuevo(Number(e.target.value))}
+              className="w-16 rounded border border-border bg-surface px-2 py-1 text-xs"
+            />
+          </label>
+        </div>
+        <input
+          type="text"
+          value={notasNuevo}
+          onChange={(e) => setNotasNuevo(e.target.value)}
+          placeholder="Notas (opcional)"
+          className="mt-2 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs"
+        />
+        <button
+          type="button"
+          disabled={!nombreNuevo.trim() || crearMut.isPending}
+          onClick={() =>
+            crearMut.mutate({
+              tipo: tipoNuevo,
+              nombre: nombreNuevo.trim(),
+              cantidad: cantNuevo,
+              minimo: minNuevo,
+              notas: notasNuevo.trim() || undefined,
+            })
+          }
+          className="mt-3 rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent/90 disabled:opacity-50"
+        >
+          {crearMut.isPending ? "Guardando…" : "Agregar"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function handoffDesdeDatos(datos: DatosEtiqueta): EtiquetasHandoff {
+  return {
+    tipo_etiqueta: datos.tipo_etiqueta,
+    campos_texto: datos.campos_texto,
+    lineas: datos.lineas,
+    imagenes: datos.imagenes,
+    rectangulos: datos.rectangulos,
+  };
+}
+
+function handoffDesdePlantilla(p: PlantillaEtiqueta): EtiquetasHandoff {
+  return {
+    tipo_etiqueta: p.tipo_etiqueta,
+    rotacion: rotacionDesdePlantilla(p),
+    campos_texto: p.campos_texto,
+    lineas: p.lineas,
+    imagenes: p.imagenes,
+    rectangulos: p.rectangulos,
+  };
+}
+
+/** Panel lateral: configurar productos SIIGO ↔ PDF. */
+export function ConfigurarProductosPanel() {
+  const setPanel = useAppStore((s) => s.setPanel);
+  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
+  const setHandoff = useAppStore((s) => s.setEtiquetasHandoff);
+
+  function irAImprimir(datos: DatosEtiqueta) {
+    setHandoff(handoffDesdeDatos(datos));
+    setEtiquetasTab("imprimir");
+    setPanel("etiquetas");
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-5 px-1 sm:px-0">
+      <div>
+        <h2 className="text-lg font-bold text-ink">Configurar productos</h2>
+        <p className="text-xs text-muted">Asocia PDF y datos por SKU SIIGO · al imprimir abre Impresora · Etiquetas</p>
+      </div>
+      <TabConfigurar onImprimirProducto={irAImprimir} />
+    </div>
+  );
+}
+
 // ── Panel principal ───────────────────────────────────────────────────────────
 
 export default function EtiquetasPanel() {
-  const [tab, setTab] = useState<"imprimir" | "configurar" | "plantillas">("imprimir");
+  const storeTab = useAppStore((s) => s.etiquetasTab);
+  const setStoreTab = useAppStore((s) => s.setEtiquetasTab);
+  const handoff = useAppStore((s) => s.etiquetasHandoff);
+  const setHandoff = useAppStore((s) => s.setEtiquetasHandoff);
+  const [tab, setTabLocal] = useState<EtiquetasTab>(storeTab);
   const [precargarImpresion, setPrecargarImpresion] = useState<PrecargarImpresion | null>(null);
 
-  function irAImprimir(datos: DatosEtiqueta) {
-    setPrecargarImpresion({
-      tipo_etiqueta: datos.tipo_etiqueta,
-      campos_texto: datos.campos_texto,
-      lineas: datos.lineas,
-      imagenes: datos.imagenes,
-    });
-    setTab("imprimir");
+  useEffect(() => {
+    setTabLocal(storeTab);
+  }, [storeTab]);
+
+  useEffect(() => {
+    if (!handoff) return;
+    setPrecargarImpresion(handoff as PrecargarImpresion);
+    setHandoff(null);
+  }, [handoff, setHandoff]);
+
+  function setTab(t: EtiquetasTab) {
+    setTabLocal(t);
+    setStoreTab(t);
   }
 
   function irAImprimirPlantilla(p: PlantillaEtiqueta) {
-    setPrecargarImpresion({
-      tipo_etiqueta: p.tipo_etiqueta,
-      rotacion: rotacionDesdePlantilla(p),
-      campos_texto: p.campos_texto,
-      lineas: p.lineas,
-      imagenes: p.imagenes,
-      rectangulos: p.rectangulos,
-    });
+    setPrecargarImpresion(handoffDesdePlantilla(p) as PrecargarImpresion);
     setTab("imprimir");
   }
 
-  const tabCls = (t: typeof tab) =>
+  const tabCls = (t: EtiquetasTab) =>
     `flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t ? "bg-accent text-white shadow" : "text-ink-secondary hover:bg-surface-hover"}`;
 
   return (
-    <div className={`space-y-4 px-1 sm:px-0 ${tab === "imprimir" || tab === "plantillas" ? "mx-auto max-w-[min(100%,1440px)]" : "mx-auto max-w-6xl space-y-5"}`}>
-      {/* Tabs principales */}
+    <div className={`space-y-4 px-1 sm:px-0 ${tab === "imprimir" || tab === "plantillas" ? "mx-auto max-w-[min(100%,1440px)]" : "mx-auto max-w-6xl"}`}>
       <div className="flex gap-2 rounded-xl border border-border bg-surface-panel p-1">
-        <button onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
+        <button type="button" onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
           🖨 Imprimir
         </button>
-        <button onClick={() => setTab("plantillas")} className={tabCls("plantillas")}>
+        <button type="button" onClick={() => setTab("plantillas")} className={tabCls("plantillas")}>
           📐 Plantillas
         </button>
-        <button onClick={() => setTab("configurar")} className={tabCls("configurar")}>
-          ⚙️ Configurar Productos
+        <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
+          📦 Inventario de papel y tinta
         </button>
       </div>
-
-      {tab === "configurar" && (
-        <div>
-          <h2 className="text-lg font-bold text-ink">Configurar productos</h2>
-          <p className="text-xs text-muted">Asocia PDF y datos por SKU SIIGO</p>
-        </div>
-      )}
 
       {tab === "imprimir" && (
         <TabImprimir
@@ -4407,9 +5427,7 @@ export default function EtiquetasPanel() {
       {tab === "plantillas" && (
         <TabPlantillas onUsarEnImpresion={irAImprimirPlantilla} />
       )}
-      {tab === "configurar" && (
-        <TabConfigurar onImprimirProducto={irAImprimir} />
-      )}
+      {tab === "inventario" && <TabInventarioPapelTinta />}
     </div>
   );
 }

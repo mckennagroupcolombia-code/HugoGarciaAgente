@@ -6212,13 +6212,16 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "voz",       label: "Voz IA" },
                     { id: "webchat",   label: "Chat web" },
                     { id: "preventa",  label: "Preventa MeLi" },
-                    { id: "sync",      label: "Sincronización" },
                     { id: "stock",     label: "Stock" },
                     { id: "fichas",    label: "Fichas técnicas" },
                     { id: "pedidos",   label: "Pedidos Web" },
-                    { id: "facturas",  label: "Facturas Compra" },
                     { id: "etiquetas", label: "Impresora · Etiquetas" },
                     { id: "tickets",   label: "Centro de Mando" },
+                  ];
+                  const SECCIONES_CONTABILIDAD: { id: string; label: string }[] = [
+                    { id: "facturas",      label: "Facturas de compra" },
+                    { id: "centros-costo", label: "Centro de costos (con Facturas/Sync)" },
+                    { id: "sync",          label: "Sincronización" },
                   ];
                   const permisos: Record<string, boolean> = form.permisos_secciones || {};
                   const editRolNivel = roles.find((r) => r.id === form.rol_id)?.nivel ?? 1;
@@ -6231,6 +6234,20 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                       <p className="mb-2 text-xs font-bold text-muted uppercase tracking-wide">Accesos al panel</p>
                       <div className="grid grid-cols-2 gap-1.5">
                         {SECCIONES.map((s) => (
+                          <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs font-medium text-ink hover:bg-surface-hover">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(permisos[s.id])}
+                              onChange={() => toggleSeccion(s.id)}
+                              className="h-3.5 w-3.5 accent-accent"
+                            />
+                            {s.label}
+                          </label>
+                        ))}
+                      </div>
+                      <p className="mb-1 mt-2 text-[10px] font-bold uppercase tracking-wide text-muted">Contabilidad</p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {SECCIONES_CONTABILIDAD.map((s) => (
                           <label key={s.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs font-medium text-ink hover:bg-surface-hover">
                             <input
                               type="checkbox"
@@ -12656,6 +12673,7 @@ function SolicitudCard({
   const puedeVerChat = esAsignado || esCreadoPorMi || esParticipante || supervision || isAdmin || nivel >= 2;
   const puedeEnviarChat = !resuelta && puedeVerChat && !ticket.bloqueado_por;
   const puedeVerSensible = nivel >= 2 || esAsignado || esCreadoPorMi || esParticipante;
+  const puedeSubirAdjuntos = (esAsignado || esCreadoPorMi || nivel >= 2) && !resuelta;
 
   // Pasos/checklist
   const [pasos, setPasos] = useState<Paso[]>([]);
@@ -12713,10 +12731,6 @@ function SolicitudCard({
     return map;
   }, [adjuntos]);
 
-  const adjuntosTicket = useMemo(
-    () => adjuntos.filter((a) => !a.paso_id),
-    [adjuntos],
-  );
   const [showPedirRevision, setShowPedirRevision] = useState(false);
   const [notaRevision, setNotaRevision] = useState("");
   const [showPedirAjustes, setShowPedirAjustes] = useState(false);
@@ -12745,24 +12759,33 @@ function SolicitudCard({
   const [loadingSensible, setLoadingSensible] = useState(false);
   const [sensibleMsg, setSensibleMsg] = useState("");
 
-  // Cargar pasos al iniciar (siempre que esté en proceso) o al abrir vista ampliada
+  // Adjuntos visibles para todo el equipo al abrir la solicitud
   useEffect(() => {
-    if (ticket.estado === "en_proceso" || detalleAmpliado) {
-      void cargarPasos();
-      setShowPasos(true);
-    }
+    void cargarAdjuntos();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket.id, ticket.estado, detalleAmpliado]);
+  }, [ticket.id]);
 
   useEffect(() => {
-    if (showPasos) void cargarAdjuntos();
+    if (adjuntos.length > 0) setShowAdjuntos(true);
+  }, [adjuntos.length]);
+
+  useEffect(() => {
+    if (adjuntos.some((a) => a.paso_id) && pasos.length === 0) void cargarPasos();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPasos, ticket.id]);
+  }, [adjuntos, ticket.id]);
+
+  // Cargar pasos al iniciar (en proceso, vista ampliada o supervisión del equipo)
+  useEffect(() => {
+    if (ticket.estado === "en_proceso" || detalleAmpliado || supervision) {
+      void cargarPasos();
+      if (ticket.estado === "en_proceso" || detalleAmpliado) setShowPasos(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket.id, ticket.estado, detalleAmpliado, supervision]);
 
   useEffect(() => {
     if (!detalleAmpliado) return;
     setShowAdjuntos(true);
-    void cargarAdjuntos();
     void cargarCompras();
     setShowCompras(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -13331,6 +13354,12 @@ function SolicitudCard({
   const pasosCompletados = pasos.filter((p) => p.completado).length;
   const pasosTotal = pasos.length;
 
+  function etiquetaPasoAdjunto(pasoId: number): string {
+    const p = pasos.find((x) => x.id === pasoId);
+    if (!p) return `Paso #${pasoId}`;
+    return `Paso ${p.orden}: ${p.descripcion}`;
+  }
+
   if (esSolicitudCompraDelegada(ticket)) {
     return (
       <div className={`flex flex-col gap-2 rounded-xl border border-blue-400/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}>
@@ -13439,6 +13468,15 @@ function SolicitudCard({
           <span className="flex items-center gap-1 text-accent/90" title="Procedimiento vinculado">
             📋 {ticket.protocolo_titulo}
           </span>
+        )}
+        {(adjuntos.length > 0 || loadingAdjuntos) && (
+          <button
+            type="button"
+            onClick={() => { setShowAdjuntos(true); if (!adjuntos.length && !loadingAdjuntos) void cargarAdjuntos(); }}
+            className="flex items-center gap-1 text-accent hover:underline"
+          >
+            📎 {loadingAdjuntos ? "Cargando…" : `${adjuntos.length} adjunto${adjuntos.length !== 1 ? "s" : ""}`}
+          </button>
         )}
         {puedeVerChat && (
           <button
@@ -13660,15 +13698,15 @@ function SolicitudCard({
         </div>
       )}
 
-      {/* Adjuntos */}
-      {(adjuntosTicket.length > 0 || showAdjuntos) && (
+      {/* Adjuntos — visibles para todo el equipo (lectura); subir solo asignado/creador/supervisor */}
+      {(adjuntos.length > 0 || showAdjuntos) && (
         <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-ink">
-              📎 Adjuntos generales {adjuntosTicket.length > 0 && <span className="font-normal text-muted">({adjuntosTicket.length})</span>}
+              📎 Adjuntos {adjuntos.length > 0 && <span className="font-normal text-muted">({adjuntos.length})</span>}
             </span>
             <div className="flex items-center gap-2">
-              {(esAsignado || esCreadoPorMi || nivel >= 2) && !resuelta && (
+              {puedeSubirAdjuntos && (
                 <label title="Subir archivo adjunto" className="cursor-pointer flex items-center gap-1 rounded-lg border border-border px-2 py-0.5 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
                   {subiendoAdjTicket
                     ? <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
@@ -13690,13 +13728,14 @@ function SolicitudCard({
             </div>
           </div>
           {loadingAdjuntos && <p className="text-xs text-muted">Cargando…</p>}
-          {!loadingAdjuntos && adjuntosTicket.length === 0 && (
-            <p className="text-xs text-muted italic">Sin archivos generales. Las fotos por paso aparecen junto a cada paso del protocolo.</p>
+          {!loadingAdjuntos && adjuntos.length === 0 && (
+            <p className="text-xs text-muted italic">Sin archivos adjuntos en esta solicitud.</p>
           )}
           {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
           <div className="space-y-1">
-            {adjuntosTicket.map((a) => {
-              const esImagen = /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
+            {adjuntos.map((a) => {
+              const esImagen = (a.mime?.startsWith("image/"))
+                || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
               const esPdf = /\.pdf$/i.test(a.nombre_original);
               const icono = esImagen ? "🖼" : esPdf ? "📄" : "📁";
               const url = ticketsUploadUrl(a.nombre_archivo, token);
@@ -13710,10 +13749,15 @@ function SolicitudCard({
                   ) : (
                     <span className="text-base shrink-0">{icono}</span>
                   )}
-                  <a href={url} target="_blank" rel="noreferrer"
-                    className="min-w-0 flex-1 text-xs text-accent hover:underline truncate">
-                    {a.nombre_original}
-                  </a>
+                  <div className="min-w-0 flex-1">
+                    <a href={url} target="_blank" rel="noreferrer"
+                      className="block text-xs text-accent hover:underline truncate">
+                      {a.nombre_original}
+                    </a>
+                    {a.paso_id && (
+                      <p className="text-[10px] text-muted truncate">{etiquetaPasoAdjunto(a.paso_id)}</p>
+                    )}
+                  </div>
                   {a.creado_por_nombre && (
                     <span className="text-[10px] text-muted shrink-0 hidden sm:inline">{a.creado_por_nombre}</span>
                   )}
@@ -14244,7 +14288,7 @@ function SolicitudCard({
             <button type="button"
               onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
               className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
-              📎 Adjuntos{adjuntosTicket.length > 0 ? ` (${adjuntosTicket.length})` : ""}
+              📎 Adjuntos{adjuntos.length > 0 ? ` (${adjuntos.length})` : ""}
             </button>
             {/* Ver pasos solo para solicitudes sin protocolo (las de protocolo usan el wizard) */}
             {!(onRegistrarEjecucion && ticket.protocolo_id) && (ticket.pasos_total ?? 0) > 0 && !showPasos && (
@@ -14373,9 +14417,20 @@ function SolicitudCard({
         </div>
       )}
       {!resuelta && supervision && !isAdmin && (
-        <p className="text-[10px] text-center text-muted">
-          Seguimiento del equipo — usa <strong>Mensajes</strong> para conversar con quien solicita o ejecuta la tarea
-        </p>
+        <div className="space-y-2">
+          {adjuntos.length === 0 && !loadingAdjuntos && (
+            <button
+              type="button"
+              onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
+              className="w-full rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted hover:border-accent hover:text-accent transition-colors"
+            >
+              📎 Ver adjuntos
+            </button>
+          )}
+          <p className="text-[10px] text-center text-muted">
+            Seguimiento del equipo — usa <strong>Mensajes</strong> para conversar con quien solicita o ejecuta la tarea
+          </p>
+        </div>
       )}
 
       {/* Botón: guardar como protocolo (solo para tickets resueltos, nivel supervisor+) */}
@@ -16731,14 +16786,169 @@ function SolicitudResumenCard({
   );
 }
 
+// ── HistorialSeguimientoChat — conversación sobre solicitud cerrada ───────────
+
+function HistorialSeguimientoChat({
+  ticket,
+  token,
+  user,
+  onActualizado,
+  onReabierta,
+}: {
+  ticket: Ticket;
+  token: string;
+  user: TicketsUser;
+  onActualizado?: () => void;
+  onReabierta?: () => void;
+}) {
+  const [comentarios, setComentarios] = useState<Comentario[]>([]);
+  const [draft, setDraft] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [reabierta, setReabierta] = useState(false);
+  const cerrada = ticket.estado === "resuelto" || ticket.estado === "rechazado";
+
+  const puedeChatear =
+    uidEq(ticket.creado_por, user.id)
+    || uidEq(ticket.asignado_a, user.id)
+    || (user.rol?.nivel ?? 1) >= 2;
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await tapi(`/${ticket.id}/comentarios`, token);
+      setComentarios(Array.isArray(data) ? data : []);
+    } catch { /* ignore */ } finally { setLoading(false); }
+  }, [ticket.id, token]);
+
+  useEffect(() => { void cargar(); }, [cargar]);
+
+  async function enviar() {
+    const texto = draft.trim();
+    if (!texto || enviando || !puedeChatear) return;
+    setEnviando(true);
+    setMsg("");
+    try {
+      if (cerrada && !reabierta) {
+        await tapi(`/${ticket.id}/estado`, token, {
+          method: "PUT",
+          body: JSON.stringify({
+            estado: "en_proceso",
+            motivo: "Seguimiento desde historial — quedó algo por revisar",
+          }),
+        });
+        setReabierta(true);
+        onReabierta?.();
+      }
+      await tapi(`/${ticket.id}/comentarios`, token, {
+        method: "POST",
+        body: JSON.stringify({ texto: `🔁 Seguimiento:\n${texto}` }),
+      });
+      setDraft("");
+      await cargar();
+      onActualizado?.();
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "No se pudo enviar el mensaje");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  if (!puedeChatear) {
+    return (
+      <p className="text-[10px] text-muted italic px-1 py-2">
+        Solo participantes de la solicitud pueden iniciar conversación.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-2 rounded-xl border border-border bg-surface p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+      <p className="text-[10px] text-muted leading-snug">
+        {cerrada && !reabierta
+          ? "Al enviar el primer mensaje la solicitud vuelve a activas para coordinar lo pendiente."
+          : reabierta
+            ? "Solicitud reabierta — la conversación continúa en activas."
+            : "Conversación sobre esta solicitud."}
+      </p>
+      <div className="max-h-40 overflow-y-auto space-y-2 rounded-lg border border-border/50 bg-surface-panel px-2 py-2">
+        {loading && comentarios.length === 0 && (
+          <p className="text-xs text-muted text-center py-2">Cargando mensajes…</p>
+        )}
+        {!loading && comentarios.length === 0 && (
+          <p className="text-xs text-muted text-center py-2 italic">Sin mensajes aún.</p>
+        )}
+        {comentarios.map((c) => {
+          const esMio = c.usuario_id === user.id;
+          return (
+            <div key={c.id} className={`flex ${esMio ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[90%] rounded-2xl px-2.5 py-1.5 text-xs ${
+                  esMio
+                    ? "rounded-br-md bg-accent text-white"
+                    : "rounded-bl-md border border-border bg-surface text-ink"
+                }`}
+              >
+                {!esMio && (
+                  <p className={`mb-0.5 text-[9px] font-bold ${esMio ? "text-white/80" : "text-muted"}`}>
+                    {c.autor_nombre}
+                  </p>
+                )}
+                <p className="whitespace-pre-wrap leading-relaxed">{c.texto}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {msg && <p className="text-[10px] text-red-500">{msg}</p>}
+      <div className="flex gap-2 items-end">
+        <ProseInput
+          className="quest-input flex-1 text-sm"
+          placeholder="Algo que quedó pendiente…"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void enviar();
+            }
+          }}
+          maxLength={2000}
+        />
+        <button
+          type="button"
+          disabled={enviando || !draft.trim()}
+          onClick={() => void enviar()}
+          className="quest-btn-primary shrink-0 px-3 py-2 text-xs disabled:opacity-40"
+        >
+          {enviando ? "…" : "Enviar"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── HistorialSolicitudCard — tarjeta compacta del historial ───────────────────
 
 function HistorialSolicitudCard({
   ticket,
+  user,
   onClick,
+  chatAbierto,
+  onToggleChat,
+  token,
+  onConversacionActualizada,
+  onSolicitudReabierta,
 }: {
   ticket: Ticket;
+  user: TicketsUser;
   onClick: () => void;
+  chatAbierto: boolean;
+  onToggleChat: () => void;
+  token: string;
+  onConversacionActualizada?: () => void;
+  onSolicitudReabierta?: () => void;
 }) {
   const duracionMs = ticket.creado_en && ticket.resuelto_en
     ? new Date(ticket.resuelto_en).getTime() - new Date(ticket.creado_en).getTime()
@@ -16746,42 +16956,75 @@ function HistorialSolicitudCard({
   const pasoTotal = ticket.pasos_total ?? 0;
   const pasoComp  = ticket.pasos_completados ?? 0;
   const rechazado = ticket.estado === "rechazado";
+  const puedeMensaje =
+    uidEq(ticket.creado_por, user.id)
+    || uidEq(ticket.asignado_a, user.id)
+    || (user.rol?.nivel ?? 1) >= 2;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full text-left rounded-2xl border-2 px-4 py-3.5 transition space-y-2 group
+    <div
+      className={`rounded-2xl border-2 px-4 py-3.5 transition space-y-2
         ${rechazado
-          ? "border-red-400/30 bg-red-50/10 dark:bg-red-900/10 hover:border-red-400/50"
-          : "border-green-500/30 bg-green-50/20 dark:bg-green-900/10 hover:border-green-400/60 hover:bg-green-50/40 dark:hover:bg-green-900/20"
+          ? "border-red-400/30 bg-red-50/10 dark:bg-red-900/10"
+          : "border-green-500/30 bg-green-50/20 dark:bg-green-900/10"
         }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold text-ink leading-snug truncate">{ticket.titulo}</p>
-          {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
-            <p className="text-xs text-muted mt-0.5 line-clamp-1">{ticket.descripcion}</p>
-          )}
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full text-left space-y-2 group"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold text-ink leading-snug truncate">{ticket.titulo}</p>
+            {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
+              <p className="text-xs text-muted mt-0.5 line-clamp-1">{ticket.descripcion}</p>
+            )}
+          </div>
+          <span className={`shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border
+            ${rechazado
+              ? "text-red-600 dark:text-red-400 bg-red-500/15 border-red-500/25"
+              : "text-green-600 dark:text-green-400 bg-green-500/15 border-green-500/25"
+            }`}>
+            {rechazado ? "✕ Rechazada" : "✓ Resuelta"}
+          </span>
         </div>
-        <span className={`shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border
-          ${rechazado
-            ? "text-red-600 dark:text-red-400 bg-red-500/15 border-red-500/25"
-            : "text-green-600 dark:text-green-400 bg-green-500/15 border-green-500/25"
-          }`}>
-          {rechazado ? "✕ Rechazada" : "✓ Resuelta"}
-        </span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+          {ticket.creado_por_nombre && <span>📋 {ticket.creado_por_nombre}</span>}
+          {ticket.asignado_a_nombre && <span>→ 👤 {ticket.asignado_a_nombre}</span>}
+          {duracionMs !== null && <span>⏱ {_fmtDuracionMs(duracionMs)}</span>}
+          {pasoTotal > 0 && <span>☑ {pasoComp}/{pasoTotal} pasos</span>}
+          <span className="ml-auto text-[10px] text-accent/70 group-hover:text-accent transition-colors">
+            Ver detalle →
+          </span>
+        </div>
+      </button>
+      <div className="flex flex-wrap gap-2 pt-0.5">
+        {puedeMensaje && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleChat(); }}
+            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-[10px] font-bold transition ${
+              chatAbierto
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border text-muted hover:border-accent hover:text-accent"
+            }`}
+          >
+            <Icon name="chat" size={12} weight="bold" />
+            Mensaje
+          </button>
+        )}
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
-        {ticket.creado_por_nombre && <span>📋 {ticket.creado_por_nombre}</span>}
-        {ticket.asignado_a_nombre && <span>→ 👤 {ticket.asignado_a_nombre}</span>}
-        {duracionMs !== null && <span>⏱ {_fmtDuracionMs(duracionMs)}</span>}
-        {pasoTotal > 0 && <span>☑ {pasoComp}/{pasoTotal} pasos</span>}
-        <span className="ml-auto text-[10px] text-accent/70 group-hover:text-accent transition-colors">
-          Ver detalle →
-        </span>
-      </div>
-    </button>
+      {chatAbierto && puedeMensaje && (
+        <HistorialSeguimientoChat
+          ticket={ticket}
+          token={token}
+          user={user}
+          onActualizado={onConversacionActualizada}
+          onReabierta={onSolicitudReabierta}
+        />
+      )}
+    </div>
   );
 }
 
@@ -16790,11 +17033,17 @@ function HistorialSolicitudCard({
 function HistorialSolicitudDetalle({
   ticket: ticketResumen,
   token,
+  user,
   onBack,
+  onConversacionActualizada,
+  onSolicitudReabierta,
 }: {
   ticket: Ticket;
   token: string;
+  user: TicketsUser;
   onBack: () => void;
+  onConversacionActualizada?: () => void;
+  onSolicitudReabierta?: () => void;
 }) {
   const [ticket, setTicket]       = useState<Ticket | null>(null);
   const [pasos, setPasos]         = useState<Paso[]>([]);
@@ -16803,6 +17052,7 @@ function HistorialSolicitudDetalle({
   const [loading, setLoading]     = useState(true);
   const [usuarios, setUsuarios]   = useState<UserInfo[]>([]);
   const [showRepetir, setShowRepetir] = useState(false);
+  const [showSeguimientoChat, setShowSeguimientoChat] = useState(false);
   const [repetirAsignado, setRepetirAsignado] = useState<number | "">("");
   const [repetirMsg, setRepetirMsg] = useState("");
   const [creandoRepeticion, setCreandoRepeticion] = useState(false);
@@ -16862,8 +17112,6 @@ function HistorialSolicitudDetalle({
     }
     return map;
   }, [adjuntos]);
-
-  const adjuntosTicket = useMemo(() => adjuntos.filter((a) => !a.paso_id), [adjuntos]);
 
   function AdjuntoLink({ a }: { a: Adjunto }) {
     const [lbUrl, setLbUrl] = useState<string | null>(null);
@@ -17047,12 +17295,24 @@ function HistorialSolicitudDetalle({
         </div>
       )}
 
-      {/* Archivos adjuntos generales */}
-      {adjuntosTicket.length > 0 && (
+      {/* Archivos adjuntos (generales y por paso) */}
+      {adjuntos.length > 0 && (
         <div className="rounded-2xl border-2 border-border bg-surface-panel p-4 space-y-3">
           <p className="text-xs font-extrabold uppercase tracking-wide text-ink">📎 Archivos adjuntos</p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {adjuntosTicket.map((a) => <AdjuntoLink key={a.id} a={a} />)}
+            {adjuntos.map((a) => {
+              const paso = a.paso_id ? pasos.find((p) => p.id === a.paso_id) : null;
+              return (
+                <div key={a.id} className="min-w-0">
+                  {paso && (
+                    <p className="mb-0.5 text-[10px] text-muted truncate">
+                      Paso {paso.orden}: {paso.descripcion}
+                    </p>
+                  )}
+                  <AdjuntoLink a={a} />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -17083,6 +17343,44 @@ function HistorialSolicitudDetalle({
       {pasos.length === 0 && adjuntos.length === 0 && comentarios.length === 0 && (
         <p className="text-sm text-muted text-center py-6 italic">Sin registros adicionales para esta solicitud.</p>
       )}
+
+      {/* Seguimiento — conversación sobre algo pendiente */}
+      <div className="rounded-2xl border-2 border-accent/30 bg-accent/5 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-extrabold text-ink flex items-center gap-1.5">
+              <Icon name="chat" size={14} weight="bold" />
+              Seguimiento
+            </p>
+            <p className="text-xs text-muted mt-0.5">
+              Escribe si quedó algo por aclarar o corregir de esta solicitud cerrada.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSeguimientoChat((v) => !v)}
+            className={`shrink-0 rounded-xl border px-3 py-1.5 text-xs font-bold transition ${
+              showSeguimientoChat
+                ? "border-accent bg-accent text-white"
+                : "border-border text-muted hover:border-accent hover:text-accent"
+            }`}
+          >
+            {showSeguimientoChat ? "Ocultar" : "Mensaje"}
+          </button>
+        </div>
+        {showSeguimientoChat && (
+          <HistorialSeguimientoChat
+            ticket={t}
+            token={token}
+            user={user}
+            onActualizado={onConversacionActualizada}
+            onReabierta={() => {
+              onSolicitudReabierta?.();
+              onBack();
+            }}
+          />
+        )}
+      </div>
 
       {/* Repetir solicitud */}
       <div className="rounded-2xl border-2 border-dashed border-border p-4 space-y-3">
@@ -17294,6 +17592,7 @@ function SolicitudesView({
   const [historialSol, setHistorialSol] = useState<Ticket[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [historialGruposAbiertos, setHistorialGruposAbiertos] = useState<Set<number>>(new Set());
+  const [historialChatId, setHistorialChatId] = useState<number | null>(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -17553,7 +17852,18 @@ function SolicitudesView({
       <HistorialSolicitudDetalle
         ticket={selectedHistorialTicket}
         token={token}
+        user={user}
         onBack={() => setSelectedHistorialTicket(null)}
+        onConversacionActualizada={() => void cargarHistorial()}
+        onSolicitudReabierta={() => {
+          setSelectedHistorialTicket(null);
+          setHistorialChatId(null);
+          void load(true);
+          void cargarHistorial();
+          setTab("asignadas");
+          setMsg("Solicitud reabierta — revisa en activas");
+          setTimeout(() => setMsg(""), 3500);
+        }}
       />
     );
   }
@@ -17825,7 +18135,20 @@ function SolicitudesView({
                       <HistorialSolicitudCard
                         key={t.id}
                         ticket={t}
+                        user={user}
+                        token={token}
+                        chatAbierto={historialChatId === t.id}
+                        onToggleChat={() => setHistorialChatId((prev) => (prev === t.id ? null : t.id))}
                         onClick={() => setSelectedHistorialTicket(t)}
+                        onConversacionActualizada={() => void cargarHistorial()}
+                        onSolicitudReabierta={() => {
+                          setHistorialChatId(null);
+                          void load(true);
+                          void cargarHistorial();
+                          setTab("asignadas");
+                          setMsg("Solicitud reabierta — revisa en activas");
+                          setTimeout(() => setMsg(""), 3500);
+                        }}
                       />
                     ))}
                   </div>
@@ -23232,7 +23555,7 @@ type AgenteBurbuja = {
 type AgentChip = {
   label: string;
   subtitulo?: string;
-  tipo?: "solicitud_aprobar" | "solicitud_asignada" | "accion_activa" | "util" | "solicitud_esperando" | "colaboracion";
+  tipo?: "solicitud_aprobar" | "solicitud_asignada" | "accion_activa" | "util" | "solicitud_esperando" | "colaboracion" | "recordatorio" | "labor_tablero" | "pendiente";
   cmd?: string;
   datos?: Record<string, unknown>;
   onTap?: () => void;
@@ -23242,6 +23565,7 @@ function AgenteMandoView({
   token, user, modoInicio = false, embedido = false, chatExpanded = true,
   onToggleChatExpanded, onExpandChat, onSalir, onAbrirMenu, onIrInicio,
   onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones, onGoImpresora,
+  onGoRecordatorios, onGoTableroLabores, onGoPendientes,
 }: {
   token: string;
   user: TicketsUser;
@@ -23261,6 +23585,9 @@ function AgenteMandoView({
   onGoTablero: () => void;
   onGoHistorialAcciones: () => void;
   onGoImpresora?: () => void;
+  onGoRecordatorios?: () => void;
+  onGoTableroLabores?: () => void;
+  onGoPendientes?: () => void;
 }) {
   const { apiToken: chatApiToken } = useTicketsAuth();
   const verImpresora = puedeVerSeccionPanel(user, "etiquetas");
@@ -23352,6 +23679,7 @@ function AgenteMandoView({
 
   async function aplicarContextoAgente(
     res: {
+      respuesta?: string;
       contexto?: {
         protocolos?: { id: number; titulo: string }[];
         acciones_activas?: any[];
@@ -23360,6 +23688,9 @@ function AgenteMandoView({
         solicitudes_esperando_confirmacion?: any[];
         solicitudes_creadas_activas?: any[];
         colaboraciones?: any[];
+        recordatorios_hoy?: { id: number; titulo: string; proxima_fecha?: string }[];
+        pendientes?: { id: number; titulo: string; fecha_recordatorio?: string | null }[];
+        labores_tablero?: { id: number; titulo: string; mision_titulo?: string; pasos_total?: number; pasos_completados?: number }[];
       };
     },
     opts?: { trasActividad?: boolean },
@@ -23371,6 +23702,9 @@ function AgenteMandoView({
     const solEsperando: any[] = res.contexto?.solicitudes_esperando_confirmacion ?? [];
     const solCreadasActivas: any[] = res.contexto?.solicitudes_creadas_activas ?? [];
     const colabs: any[] = res.contexto?.colaboraciones ?? [];
+    const recordatoriosHoy = res.contexto?.recordatorios_hoy ?? [];
+    const pendientes = res.contexto?.pendientes ?? [];
+    const laboresTablero = res.contexto?.labores_tablero ?? [];
     setProtocolos(prots);
     setSolicitudesCount(solAsignadas.length);
     setAccionesCount(accActivas.length);
@@ -23381,7 +23715,13 @@ function AgenteMandoView({
       setModoEjecucion(null);
     }
 
-    const { texto, chips } = construirMensajeContexto(solAsignadas, accActivas, solPorAprobar, solEsperando, solCreadasActivas, colabs, opts);
+    const { texto: textoLocal, chips } = construirMensajeContexto(
+      solAsignadas, accActivas, solPorAprobar, solEsperando, solCreadasActivas, colabs,
+      recordatoriosHoy, pendientes, laboresTablero, opts,
+    );
+    const texto = opts?.trasActividad
+      ? textoLocal
+      : (res.respuesta?.trim() || textoLocal);
     establecerBurbujaAgente(texto, chips);
   }
 
@@ -23394,7 +23734,7 @@ function AgenteMandoView({
       });
       await aplicarContextoAgente(res);
     } catch {
-      establecerBurbujaAgente(`¡Hola ${nombre}! ¿Qué hacemos hoy?`, [
+      establecerBurbujaAgente(`¡Hola ${nombre}! ¿Qué va a hacer hoy? Cuénteme y lo registramos.`, [
         { label: "⚡ Registrar acción", onTap: mostrarProcedimientos },
         { label: "📋 Crear solicitud", onTap: onGoSolicitudes },
       ]);
@@ -23413,7 +23753,7 @@ function AgenteMandoView({
       });
       await aplicarContextoAgente(res, { trasActividad: true });
     } catch {
-      establecerBurbujaAgente("¡Listo! Actividad registrada. ¿Qué más hacemos?", [
+      establecerBurbujaAgente("¡Listo! ¿Con qué labor sigue?", [
         { label: "⚡ Registrar acción", onTap: mostrarProcedimientos },
         { label: "📋 Crear solicitud", onTap: onGoSolicitudes },
       ]);
@@ -23440,9 +23780,48 @@ function AgenteMandoView({
     solEsperando: any[],
     solCreadasActivas: any[],
     colabs: any[],
+    recordatoriosHoy: { id: number; titulo: string }[],
+    pendientes: { id: number; titulo: string; fecha_recordatorio?: string | null }[],
+    laboresTablero: { id: number; titulo: string; mision_titulo?: string; pasos_total?: number; pasos_completados?: number }[],
     opts?: { trasActividad?: boolean },
   ): { texto: string; chips: AgentChip[] } {
     const chips: AgentChip[] = [];
+    const hoy = new Date().toISOString().slice(0, 10);
+
+    // Recordatorios vencidos o para hoy
+    for (const r of recordatoriosHoy.slice(0, 3)) {
+      chips.push({
+        tipo: "recordatorio",
+        label: `🔔 ${truncarTituloChip(r.titulo)}`,
+        onTap: onGoRecordatorios,
+      });
+    }
+
+    // Labores del tablero asignadas al usuario
+    for (const l of laboresTablero.slice(0, 3)) {
+      const prog = l.pasos_total
+        ? `${l.pasos_completados ?? 0}/${l.pasos_total} pasos`
+        : undefined;
+      chips.push({
+        tipo: "labor_tablero",
+        label: `🎯 ${truncarTituloChip(l.titulo)}`,
+        subtitulo: l.mision_titulo ? `${l.mision_titulo}${prog ? ` · ${prog}` : ""}` : prog,
+        onTap: onGoTableroLabores ?? onGoTablero,
+      });
+    }
+
+    // Pendientes anotados (acciones futuras)
+    const pendientesHoy = pendientes.filter(
+      (p) => p.fecha_recordatorio && String(p.fecha_recordatorio).slice(0, 10) <= hoy,
+    );
+    for (const p of pendientesHoy.slice(0, 2)) {
+      chips.push({
+        tipo: "pendiente",
+        label: `🗓️ ${truncarTituloChip(p.titulo)}`,
+        subtitulo: "Pendiente para hoy",
+        onTap: onGoPendientes,
+      });
+    }
 
     // Solicitudes que esperan mi aprobación (las creé yo, estado esperando_aprobacion)
     for (const s of solPorAprobar.slice(0, 3)) {
@@ -23511,39 +23890,73 @@ function AgenteMandoView({
     chips.push({ tipo: "util", label: "📋 Crear solicitud", onTap: onGoSolicitudes });
 
     if (opts?.trasActividad) {
-      const extra = accActivas.length > 0
-        ? ` Quedan ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} en curso.`
-        : "";
-      const pending = solAsignadas.length + solPorAprobar.length;
-      const pendingTxt = pending > 0 ? ` ${pending} solicitud${pending > 1 ? "es" : ""} pendiente${pending > 1 ? "s" : ""}.` : "";
-      const esperandoTxt = solEsperando.length > 0 ? ` ${solEsperando.length} esperando confirmación.` : "";
-      const creadasTxt = solCreadasActivas.length > 0 ? ` ${solCreadasActivas.length} solicitud${solCreadasActivas.length > 1 ? "es" : ""} en proceso.` : "";
-      const colabTxt = colabs.length > 0 ? ` ${colabs.length} colaboración${colabs.length > 1 ? "es" : ""} activa${colabs.length > 1 ? "s" : ""}.` : "";
-      return { texto: `¡Listo! Actividad registrada.${extra}${pendingTxt}${creadasTxt}${esperandoTxt}${colabTxt} ¿Qué sigue?`, chips };
+      const preguntas: string[] = [];
+      if (recordatoriosHoy.length > 0) {
+        preguntas.push(
+          recordatoriosHoy.length === 1
+            ? `¿Ya atendió «${recordatoriosHoy[0].titulo}»?`
+            : `¿Le quedan ${recordatoriosHoy.length} recordatorios por hoy?`,
+        );
+      }
+      if (solAsignadas.length > 0 && preguntas.length < 2) {
+        preguntas.push(
+          solAsignadas.length === 1
+            ? `¿Sigue con la solicitud «${solAsignadas[0].titulo}»?`
+            : `¿Atiende alguna de las ${solAsignadas.length} solicitudes pendientes?`,
+        );
+      }
+      if (accActivas.length > 0 && preguntas.length < 2) {
+        preguntas.push("¿Retoma una acción en curso o registra otra?");
+      }
+      const seguimiento = preguntas.length > 0
+        ? preguntas.join(" ")
+        : "¿Con qué labor sigue?";
+      return { texto: `¡Listo! Actividad registrada. ${seguimiento}`, chips };
+    }
+
+    // Texto local de respaldo si el API no devuelve saludo
+    const preguntas: string[] = [];
+    if (recordatoriosHoy.length > 0) {
+      preguntas.push(
+        recordatoriosHoy.length === 1
+          ? `¿Ya atendió el recordatorio «${recordatoriosHoy[0].titulo}»?`
+          : `¿Por cuál recordatorio empezamos? (${recordatoriosHoy.length} para hoy)`,
+      );
+    }
+    if (laboresTablero.length > 0 && preguntas.length < 2) {
+      preguntas.push(`¿Avanzó con «${laboresTablero[0].titulo}» en el tablero?`);
+    }
+    if (solAsignadas.length > 0 && preguntas.length < 2) {
+      preguntas.push(
+        solAsignadas.length === 1
+          ? `¿Atendió la solicitud «${solAsignadas[0].titulo}»?`
+          : `¿Con cuál solicitud arranca? (${solAsignadas.length} le esperan)`,
+      );
+    }
+    if (accActivas.length > 0 && preguntas.length < 2) {
+      preguntas.push(
+        accActivas.length === 1
+          ? `¿Sigue con «${accActivas[0].titulo}» o registra otra acción?`
+          : "¿Retoma alguna acción en curso o empieza una nueva?",
+      );
+    }
+    if (pendientesHoy.length > 0 && preguntas.length < 2) {
+      preguntas.push("¿Convierte en acción algún pendiente anotado para hoy?");
+    }
+    if (solPorAprobar.length > 0 && preguntas.length < 2) {
+      preguntas.push("¿Revisa las solicitudes que esperan su confirmación?");
     }
 
     let texto = `¡Hola ${nombre}!`;
-    const totalPendiente = accActivas.length + solAsignadas.length + solPorAprobar.length + solCreadasActivas.length;
-    if (solPorAprobar.length > 0) {
-      texto += ` Tenés ${solPorAprobar.length} solicitud${solPorAprobar.length > 1 ? "es" : ""} esperando tu confirmación.`;
+    if (preguntas.length > 0) {
+      texto += ` ${preguntas.slice(0, 2).join(" ")}`;
+    } else {
+      const totalPendiente = accActivas.length + solAsignadas.length + solPorAprobar.length
+        + solCreadasActivas.length + laboresTablero.length;
+      texto += totalPendiente === 0
+        ? " ¿Qué va a hacer hoy? Cuénteme y lo registramos."
+        : " ¿En qué labor del día le ayudo?";
     }
-    if (solCreadasActivas.length > 0) {
-      texto += ` ${solCreadasActivas.length} solicitud${solCreadasActivas.length > 1 ? "es tuyas están" : " tuya está"} en proceso.`;
-    }
-    if (solAsignadas.length > 0) {
-      texto += ` ${solAsignadas.length} solicitud${solAsignadas.length > 1 ? "es" : ""} para atender.`;
-    }
-    if (solEsperando.length > 0) {
-      texto += ` ${solEsperando.length} solicitud${solEsperando.length > 1 ? "es" : ""} esperando confirmación del solicitante.`;
-    }
-    if (colabs.length > 0) {
-      texto += ` ${colabs.length} solicitud${colabs.length > 1 ? "es" : ""} donde colaborás con el equipo.`;
-    }
-    if (accActivas.length > 0) {
-      texto += ` ${accActivas.length} acción${accActivas.length > 1 ? "es" : ""} activa${accActivas.length > 1 ? "s" : ""}.`;
-    }
-    if (totalPendiente === 0) texto += " Todo al día.";
-    texto += " ¿Qué hacemos?";
     return { texto, chips };
   }
 
@@ -24100,6 +24513,50 @@ function AgenteMandoView({
         ))}
         {lastChips && lastChips.length > 0 && !pensando && (
           <div className="space-y-3 pt-1">
+            {/* Recordatorios del día */}
+            {lastChips.some(c => c.tipo === "recordatorio") && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-violet-600 dark:text-violet-400 mb-1.5 px-1">🔔 Recordatorios hoy</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lastChips.filter(c => c.tipo === "recordatorio").map((chip, i) => (
+                    <button key={i} type="button" onClick={() => onChipTap(chip)}
+                      className="flex flex-col items-start rounded-2xl border-2 border-violet-400/60 bg-violet-50 dark:bg-violet-950/30 px-4 py-3 text-left hover:bg-violet-100 dark:hover:bg-violet-900/40 active:scale-[0.98] transition shadow-sm">
+                      <span className="text-sm font-extrabold text-violet-800 dark:text-violet-300 leading-snug">{chip.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Labores del tablero */}
+            {lastChips.some(c => c.tipo === "labor_tablero") && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-stone-600 dark:text-stone-400 mb-1.5 px-1">🎯 Tablero</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lastChips.filter(c => c.tipo === "labor_tablero").map((chip, i) => (
+                    <button key={i} type="button" onClick={() => onChipTap(chip)}
+                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-stone-400/60 bg-stone-50 dark:bg-stone-900/30 px-4 py-3 text-left hover:bg-stone-100 dark:hover:bg-stone-800/40 active:scale-[0.98] transition shadow-sm">
+                      <span className="text-sm font-extrabold text-stone-800 dark:text-stone-200 leading-snug">{chip.label}</span>
+                      {chip.subtitulo && <span className="text-[11px] text-stone-600/80 dark:text-stone-400/70">{chip.subtitulo}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Pendientes para hoy */}
+            {lastChips.some(c => c.tipo === "pendiente") && (
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-1.5 px-1">🗓️ Pendientes hoy</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lastChips.filter(c => c.tipo === "pendiente").map((chip, i) => (
+                    <button key={i} type="button" onClick={() => onChipTap(chip)}
+                      className="flex flex-col items-start gap-0.5 rounded-2xl border-2 border-emerald-400/60 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3 text-left hover:bg-emerald-100 dark:hover:bg-emerald-900/40 active:scale-[0.98] transition shadow-sm">
+                      <span className="text-sm font-extrabold text-emerald-800 dark:text-emerald-300 leading-snug">{chip.label}</span>
+                      {chip.subtitulo && <span className="text-[11px] text-emerald-600/80 dark:text-emerald-400/70">{chip.subtitulo}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Solicitudes para confirmar — amber */}
             {lastChips.some(c => c.tipo === "solicitud_aprobar") && (
               <div>
@@ -24554,6 +25011,9 @@ export default function TicketsPanel() {
               onGoTablero={goCentroMando}
               onGoHistorialAcciones={() => goAcciones("historial")}
               onGoImpresora={goImpresora}
+              onGoRecordatorios={() => goAcciones("recordatorios")}
+              onGoTableroLabores={goKingdom}
+              onGoPendientes={() => goAcciones("pendientes")}
             />
           </div>
         )}

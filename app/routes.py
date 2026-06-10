@@ -3784,6 +3784,17 @@ def register_routes(app):
 
     # ── Facturas de compra (clasificación desde panel) ─────────────────────
 
+    @app.route("/api/siigo/centros-costo", methods=["GET"])
+    def api_siigo_centros_costo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.siigo import listar_centros_costo_siigo
+
+        centros, err = listar_centros_costo_siigo()
+        if err:
+            return jsonify({"error": err}), 502
+        return jsonify({"centros": centros or [], "total": len(centros or [])})
+
     @app.route("/api/facturas/pendientes", methods=["GET"])
     def api_facturas_pendientes():
         if not _api_token_valido():
@@ -7153,8 +7164,15 @@ def register_routes(app):
         else:
             c.drawString(x_pt, y_l, linea)
 
+    def _color_etiqueta_sin(color_hex) -> bool:
+        if not color_hex:
+            return True
+        return str(color_hex).strip().lower() in ("transparent", "none", "")
+
     def _color_etiqueta_rl(color_hex, color_cmyk=None):
         from reportlab.lib.colors import CMYKColor, HexColor, black
+        if _color_etiqueta_sin(color_hex):
+            return black
         if isinstance(color_cmyk, dict):
             try:
                 return CMYKColor(
@@ -7213,8 +7231,13 @@ def register_routes(app):
             c = _rl_canvas.Canvas(buf, pagesize=(w_pt, h_pt))
 
             for ln in (lineas or []):
+                if _color_etiqueta_sin(ln.get("color")):
+                    continue
+                grosor = float(ln.get("grosor", 1))
+                if grosor < 0.1:
+                    continue
                 c.setStrokeColor(_color_etiqueta_rl(ln.get("color"), ln.get("color_cmyk")))
-                grosor = max(0.25, min(6.0, float(ln.get("grosor", 1))))
+                grosor = max(0.1, min(20.0, grosor))
                 c.setLineWidth(grosor)
                 x1 = w_pt * float(ln.get("x1_pct", 0)) / 100.0
                 y1 = h_pt * (1.0 - float(ln.get("y1_pct", 0)) / 100.0)
@@ -7233,13 +7256,18 @@ def register_routes(app):
                     rh = h_pt * h_pct_r / 100.0
                     y_top_r = h_pt * (1.0 - y_pct_r / 100.0)
                     y_r = y_top_r - rh
-                    grosor_r = max(0.25, min(6.0, float(rc.get("grosor_trazo", 1))))
-                    c.setLineWidth(grosor_r)
-                    c.setStrokeColor(_color_etiqueta_rl(rc.get("color_trazo"), rc.get("color_trazo_cmyk")))
-                    if rc.get("relleno"):
+                    grosor_r = float(rc.get("grosor_trazo", 1))
+                    sin_trazo = _color_etiqueta_sin(rc.get("color_trazo")) or grosor_r <= 0
+                    con_relleno = bool(rc.get("relleno")) and not _color_etiqueta_sin(rc.get("color_relleno"))
+                    if not con_relleno and sin_trazo:
+                        continue
+                    if not sin_trazo:
+                        c.setLineWidth(max(0.25, min(6.0, grosor_r)))
+                        c.setStrokeColor(_color_etiqueta_rl(rc.get("color_trazo"), rc.get("color_trazo_cmyk")))
+                    if con_relleno:
                         c.setFillColor(_color_etiqueta_rl(rc.get("color_relleno"), rc.get("color_relleno_cmyk")))
-                        c.rect(x_r, y_r, rw, rh, fill=1, stroke=1)
-                    else:
+                        c.rect(x_r, y_r, rw, rh, fill=1, stroke=0 if sin_trazo else 1)
+                    elif not sin_trazo:
                         c.rect(x_r, y_r, rw, rh, fill=0, stroke=1)
                 except Exception:
                     pass
@@ -7248,7 +7276,7 @@ def register_routes(app):
                 ruta_img = (img.get("ruta_completa") or "").strip()
                 if not ruta_img or not os.path.isfile(ruta_img):
                     continue
-                if not ruta_img.lower().endswith(".png"):
+                if not ruta_img.lower().endswith((".png", ".jpg", ".jpeg", ".jpe")):
                     continue
                 try:
                     x_pct_i = float(img.get("x_pct", 0))
@@ -7281,11 +7309,13 @@ def register_routes(app):
                 texto = (campo.get("texto") or "").strip()
                 if not texto:
                     continue
-                fs = max(4, min(72, int(campo.get("font_size", 8))))
+                fs = max(3, min(40, int(campo.get("font_size", 8))))
                 bold = campo.get("bold", False)
                 align = campo.get("align", "left")
-                fondo = campo.get("fondo_blanco", False)
+                fondo = False
                 color_hex = (campo.get("color") or "#000000").strip()
+                if _color_etiqueta_sin(color_hex):
+                    continue
                 x_pct = float(campo.get("x_pct", 5))
                 y_pct = float(campo.get("y_pct", 5))
                 try:
@@ -7311,6 +7341,8 @@ def register_routes(app):
                     campo.get("color_trazo") or "#000000",
                     campo.get("color_trazo_cmyk"),
                 )
+                if stroke_w > 0 and _color_etiqueta_sin(campo.get("color_trazo")):
+                    stroke_w = 0.0
                 for i, linea in enumerate(lineas):
                     y_l = y_base_pt - i * lh
                     c.setFont(font_name, fs)
@@ -7562,7 +7594,7 @@ def register_routes(app):
             # Overlay de líneas, imágenes PNG, campos de texto + lote/vencimiento
             pdf_a_imprimir = ruta_pdf
             if lote or vencimiento or campos_texto or lineas or imagenes or rectangulos:
-                lote_font_val = max(5, min(20, lote_font))
+                lote_font_val = max(3, min(40, lote_font))
                 tmp_pdf = _pdf_con_campos_texto(
                     ruta_pdf, campos_texto, lote, vencimiento, "custom", lote_font_val,
                     lote_x_pct=lote_x_pct, lote_y_pct=lote_y_pct, lineas=lineas, imagenes=imagenes,
@@ -7575,7 +7607,7 @@ def register_routes(app):
                 if rectangulos:
                     info.append(f"{len(rectangulos)} rectángulo(s)")
                 if imagenes:
-                    info.append(f"{len(imagenes)} imagen(es) PNG")
+                    info.append(f"{len(imagenes)} imagen(es)")
                 if campos_texto:
                     info.append(f"{len(campos_texto)} campo(s) de texto")
                 if lote or vencimiento:
@@ -8172,13 +8204,37 @@ def register_routes(app):
         os.makedirs(d, exist_ok=True)
         return d
 
+    def _extension_imagen_recurso_ok(nombre: str) -> str | None:
+        lower = (nombre or "").strip().lower()
+        if lower.endswith(".jpeg"):
+            return ".jpeg"
+        if lower.endswith(".jpg"):
+            return ".jpg"
+        if lower.endswith(".jpe"):
+            return ".jpe"
+        if lower.endswith(".png"):
+            return ".png"
+        return None
+
     def _nombre_png_recurso_seguro(nombre: str) -> str:
         import re as _re
         base = os.path.basename((nombre or "").strip()) or "recurso.png"
-        base = _re.sub(r"[^\w.\- áéíóúÁÉÍÓÚñÑ]", "_", base, flags=_re.UNICODE)
-        if not base.lower().endswith(".png"):
-            base = f"{base}.png"
-        return base[:180]
+        ext = _extension_imagen_recurso_ok(base)
+        if ext:
+            stem = base[: -len(ext)]
+        else:
+            stem, _ = os.path.splitext(base)
+            ext = ".png"
+        stem = _re.sub(r"[^\w.\- áéíóúÁÉÍÓÚñÑ]", "_", stem or "recurso", flags=_re.UNICODE) or "recurso"
+        return f"{stem}{ext}"[:180]
+
+    def _es_bytes_imagen_png_jpg(raw: bytes) -> bool:
+        if not raw:
+            return False
+        if raw[:8] == b"\x89PNG\r\n\x1a\n":
+            return True
+        # JPEG: SOI FF D8 (JFIF, EXIF, etc. varían el 3er byte)
+        return len(raw) >= 2 and raw[0] == 0xFF and raw[1] == 0xD8
 
     def _load_png_recursos_etiquetas() -> list:
         try:
@@ -8246,8 +8302,8 @@ def register_routes(app):
 
     def _ruta_png_recurso_ok(nombre: str) -> tuple:
         nombre = os.path.basename((nombre or "").strip())
-        if not nombre or not nombre.lower().endswith(".png"):
-            return None, "Nombre PNG inválido"
+        if not nombre or not _extension_imagen_recurso_ok(nombre):
+            return None, "Nombre de imagen inválido (PNG o JPG)"
         carpeta = os.path.realpath(_carpeta_png_recursos_etiquetas())
         for it in _load_png_recursos_etiquetas():
             if it.get("nombre") == nombre:
@@ -8257,7 +8313,7 @@ def register_routes(app):
         ruta_directa = os.path.realpath(os.path.join(carpeta, nombre))
         if ruta_directa.startswith(carpeta + os.sep) and os.path.isfile(ruta_directa):
             return ruta_directa, None
-        return None, "Recurso PNG no encontrado"
+        return None, "Imagen no encontrada"
 
     @app.route("/api/etiquetas/recursos-png", methods=["GET", "POST"])
     def api_etiquetas_recursos_png():
@@ -8273,17 +8329,17 @@ def register_routes(app):
 
         archivo = request.files.get("archivo")
         if not archivo or not archivo.filename:
-            return jsonify({"error": "Falta archivo PNG"}), 400
+            return jsonify({"error": "Falta archivo de imagen"}), 400
         nombre = _nombre_png_recurso_seguro(archivo.filename)
         raw = archivo.read()
         if not raw:
             return jsonify({"error": "Archivo vacío"}), 400
         if len(raw) > _PNG_RECURSOS_MAX_BYTES:
             return jsonify({
-                "error": f"El PNG supera el límite de {_PNG_RECURSOS_MAX_BYTES // (1024 * 1024)} MB",
+                "error": f"La imagen supera el límite de {_PNG_RECURSOS_MAX_BYTES // (1024 * 1024)} MB",
             }), 400
-        if raw[:8] != b"\x89PNG\r\n\x1a\n":
-            return jsonify({"error": "Solo se permiten archivos PNG"}), 400
+        if not _es_bytes_imagen_png_jpg(raw):
+            return jsonify({"error": "Solo se permiten archivos JPG o PNG"}), 400
         destino = os.path.join(_carpeta_png_recursos_etiquetas(), nombre)
         if os.path.isfile(destino):
             base, ext = os.path.splitext(nombre)
@@ -8320,7 +8376,228 @@ def register_routes(app):
         if err:
             return jsonify({"error": err}), 404
         from flask import send_file
-        return send_file(ruta, mimetype="image/png", conditional=True)
+        mime = "image/jpeg" if nombre.lower().endswith((".jpg", ".jpeg", ".jpe")) else "image/png"
+        return send_file(ruta, mimetype=mime, conditional=True)
+
+    # ── Etiquetas: colores guardados ─────────────────────────────────────────
+
+    _ETIQUETAS_COLORES_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_colores_guardados.json",
+    )
+    _ETIQUETAS_COLORES_MAX = 36
+
+    def _normalizar_hex_etiqueta(hex_color: str) -> str | None:
+        import re as _re_hex
+        h = (hex_color or "").strip().lower()
+        if not h:
+            return None
+        if not h.startswith("#"):
+            h = f"#{h}"
+        if _re_hex.fullmatch(r"#[0-9a-f]{6}", h):
+            return h
+        if _re_hex.fullmatch(r"#[0-9a-f]{3}", h):
+            return f"#{h[1]}{h[1]}{h[2]}{h[2]}{h[3]}{h[3]}"
+        return None
+
+    def _load_colores_etiquetas() -> list:
+        try:
+            with open(_ETIQUETAS_COLORES_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return []
+        except Exception:
+            return []
+        items = data.get("colores") if isinstance(data, dict) else []
+        if not isinstance(items, list):
+            return []
+        out = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            hex_norm = _normalizar_hex_etiqueta(it.get("hex") or "")
+            if not hex_norm:
+                continue
+            out.append({
+                "id": str(it.get("id") or ""),
+                "hex": hex_norm,
+                "cmyk": it.get("cmyk") if isinstance(it.get("cmyk"), dict) else None,
+                "guardado_at": it.get("guardado_at") or "",
+            })
+        out = [c for c in out if c.get("id")]
+        out.sort(key=lambda x: x.get("guardado_at") or "", reverse=True)
+        return out[:_ETIQUETAS_COLORES_MAX]
+
+    def _save_colores_etiquetas(items: list) -> None:
+        os.makedirs(os.path.dirname(_ETIQUETAS_COLORES_PATH), exist_ok=True)
+        with open(_ETIQUETAS_COLORES_PATH, "w", encoding="utf-8") as f:
+            json.dump({"colores": items[:_ETIQUETAS_COLORES_MAX]}, f, ensure_ascii=False, indent=2)
+
+    @app.route("/api/etiquetas/colores", methods=["GET", "POST"])
+    def api_etiquetas_colores():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if request.method == "GET":
+            colores = _load_colores_etiquetas()
+            return jsonify({"colores": colores, "total": len(colores)})
+
+        body = request.get_json(silent=True) or {}
+        hex_norm = _normalizar_hex_etiqueta(body.get("hex") or "")
+        if not hex_norm:
+            return jsonify({"error": "Color hex inválido"}), 400
+        if _color_etiqueta_sin(hex_norm):
+            return jsonify({"error": "No se puede guardar un color transparente"}), 400
+
+        items = _load_colores_etiquetas()
+        for it in items:
+            if (it.get("hex") or "").lower() == hex_norm:
+                return jsonify({"ok": True, "duplicado": True, **it})
+
+        import uuid as _uuid_color
+        cmyk = body.get("cmyk") if isinstance(body.get("cmyk"), dict) else None
+        entry = {
+            "id": _uuid_color.uuid4().hex[:12],
+            "hex": hex_norm,
+            "cmyk": cmyk,
+            "guardado_at": _dt.now().isoformat(timespec="seconds"),
+        }
+        items.insert(0, entry)
+        _save_colores_etiquetas(items)
+        return jsonify({"ok": True, **entry})
+
+    @app.route("/api/etiquetas/colores/<color_id>", methods=["DELETE"])
+    def api_etiquetas_color_delete(color_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        color_id = (color_id or "").strip()
+        if not color_id:
+            return jsonify({"error": "ID inválido"}), 400
+        items = _load_colores_etiquetas()
+        nuevo = [c for c in items if c.get("id") != color_id]
+        if len(nuevo) == len(items):
+            return jsonify({"error": "Color no encontrado"}), 404
+        _save_colores_etiquetas(nuevo)
+        return jsonify({"ok": True})
+
+    # ── Etiquetas: inventario papel y tinta ───────────────────────────────────
+
+    _ETIQUETAS_INVENTARIO_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_inventario_consumibles.json",
+    )
+
+    def _load_etiquetas_inventario() -> dict:
+        try:
+            with open(_ETIQUETAS_INVENTARIO_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return {"items": []}
+        except Exception:
+            return {"items": []}
+        items = data.get("items") if isinstance(data, dict) else []
+        if not isinstance(items, list):
+            return {"items": []}
+        out = []
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            tipo = (it.get("tipo") or "").strip().lower()
+            if tipo not in ("papel", "tinta"):
+                continue
+            nombre = (it.get("nombre") or "").strip()
+            if not nombre:
+                continue
+            try:
+                cantidad = float(it.get("cantidad", 0))
+            except (TypeError, ValueError):
+                cantidad = 0.0
+            try:
+                minimo = float(it.get("minimo", 0))
+            except (TypeError, ValueError):
+                minimo = 0.0
+            out.append({
+                "id": str(it.get("id") or ""),
+                "tipo": tipo,
+                "nombre": nombre[:120],
+                "cantidad": max(0.0, cantidad),
+                "unidad": (it.get("unidad") or ("rollos" if tipo == "papel" else "cartuchos")).strip()[:40],
+                "minimo": max(0.0, minimo),
+                "notas": (it.get("notas") or "").strip()[:500],
+                "updated_at": it.get("updated_at") or "",
+            })
+        out = [x for x in out if x["id"]]
+        return {"items": out}
+
+    def _save_etiquetas_inventario(items: list) -> None:
+        os.makedirs(os.path.dirname(_ETIQUETAS_INVENTARIO_PATH), exist_ok=True)
+        with open(_ETIQUETAS_INVENTARIO_PATH, "w", encoding="utf-8") as f:
+            json.dump({"items": items[:200]}, f, ensure_ascii=False, indent=2)
+
+    @app.route("/api/etiquetas/inventario-consumibles", methods=["GET", "POST"])
+    def api_etiquetas_inventario_consumibles():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if request.method == "GET":
+            data = _load_etiquetas_inventario()
+            return jsonify({**data, "total": len(data.get("items") or [])})
+
+        body = request.get_json(silent=True) or {}
+        tipo = (body.get("tipo") or "").strip().lower()
+        nombre = (body.get("nombre") or "").strip()
+        if tipo not in ("papel", "tinta"):
+            return jsonify({"error": "tipo debe ser papel o tinta"}), 400
+        if not nombre:
+            return jsonify({"error": "Falta nombre"}), 400
+        try:
+            cantidad = max(0.0, float(body.get("cantidad", 0)))
+        except (TypeError, ValueError):
+            cantidad = 0.0
+        try:
+            minimo = max(0.0, float(body.get("minimo", 0)))
+        except (TypeError, ValueError):
+            minimo = 0.0
+        import uuid as _uuid_inv
+        items = _load_etiquetas_inventario().get("items") or []
+        entry = {
+            "id": _uuid_inv.uuid4().hex[:12],
+            "tipo": tipo,
+            "nombre": nombre[:120],
+            "cantidad": cantidad,
+            "unidad": (body.get("unidad") or ("rollos" if tipo == "papel" else "cartuchos")).strip()[:40],
+            "minimo": minimo,
+            "notas": (body.get("notas") or "").strip()[:500],
+            "updated_at": _dt.now().isoformat(timespec="seconds"),
+        }
+        items.insert(0, entry)
+        _save_etiquetas_inventario(items)
+        return jsonify({"ok": True, "item": entry})
+
+    @app.route("/api/etiquetas/inventario-consumibles/<item_id>", methods=["PUT", "PATCH", "DELETE"])
+    def api_etiquetas_inventario_item(item_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        item_id = (item_id or "").strip()
+        items = _load_etiquetas_inventario().get("items") or []
+        idx = next((i for i, it in enumerate(items) if it.get("id") == item_id), None)
+        if idx is None:
+            return jsonify({"error": "Ítem no encontrado"}), 404
+        if request.method == "DELETE":
+            items.pop(idx)
+            _save_etiquetas_inventario(items)
+            return jsonify({"ok": True})
+        body = request.get_json(silent=True) or {}
+        it = dict(items[idx])
+        for key in ("nombre", "unidad", "notas"):
+            if key in body and body[key] is not None:
+                it[key] = str(body[key]).strip()[:500 if key == "notas" else 120]
+        for key in ("cantidad", "minimo"):
+            if key in body:
+                try:
+                    it[key] = max(0.0, float(body[key]))
+                except (TypeError, ValueError):
+                    pass
+        it["updated_at"] = _dt.now().isoformat(timespec="seconds")
+        items[idx] = it
+        _save_etiquetas_inventario(items)
+        return jsonify({"ok": True, "item": it})
 
     # ── Etiquetas: datos de productos ────────────────────────────────────────
 
