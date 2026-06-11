@@ -48,6 +48,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
 from app.tools.sincronizar_facturas_de_compra_siigo import (
+    GmailAuthError,
     get_gmail_service,
     leer_correos_no_descargados,
     descargar_y_extraer_zip,
@@ -1240,7 +1241,6 @@ def procesar_items_inventario(sufijo: str, indices: list, codigos_manual: dict |
     )
     enviar_whatsapp_reporte(msg, numero_destino=GRUPO_COMPRAS)
     _quitar_pendiente(key)
-    threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
     return {
         'ok':      True,
         'nuevos':  nuevos,
@@ -1435,6 +1435,145 @@ def buscar_compra_siigo_registrada(datos: dict, compras_siigo: list[dict]) -> di
 #  Orquestador principal — fase 1: escaneo
 # ─────────────────────────────────────────────
 
+def escanear_facturas_gmail_para_panel(fecha_desde: str = "2026/01/01") -> dict:
+    """
+    Escanea Gmail, encola facturas en facturas_compra_pendientes.json
+    y devuelve resultado estructurado para el panel (sin WhatsApp).
+    """
+    from app.tools.sincronizar_facturas_de_compra_siigo import (
+        GmailAuthError,
+        get_gmail_service,
+        leer_correos_no_descargados,
+        descargar_y_extraer_zip,
+        extraer_datos_xml_dian,
+    )
+
+    resultado = {
+        "ok": False,
+        "correos_revisados": 0,
+        "encoladas": [],
+        "ya_en_cola": [],
+        "omitidas": [],
+        "errores": [],
+        "mensaje": "",
+    }
+
+    try:
+        correos = leer_correos_no_descargados(fecha_desde=fecha_desde)
+    except GmailAuthError as e:
+        resultado["mensaje"] = str(e)
+        return resultado
+
+    resultado["correos_revisados"] = len(correos)
+    if not correos:
+        resultado["ok"] = True
+        resultado["mensaje"] = "No hay facturas nuevas en Gmail (label: FACTURAS-MCKG)."
+        return resultado
+
+    try:
+        service = get_gmail_service()
+    except GmailAuthError as e:
+        resultado["mensaje"] = str(e)
+        return resultado
+
+    compras_siigo = obtener_compras_siigo_para_dedupe()
+    state = _cargar_pendientes()
+    numeros_en_cola = {
+        (v.get("numero_factura") or "").upper()
+        for v in state.get("pendientes", {}).values()
+    }
+
+    for correo in correos:
+        asunto = correo.get("asunto", "Sin asunto")
+        for adjunto in correo.get("adjuntos_zip") or []:
+            try:
+                xml_content, _pdf, _pdf_name = descargar_y_extraer_zip(
+                    service, correo["id"], adjunto["id"], adjunto["filename"]
+                )
+                if not xml_content:
+                    resultado["errores"].append({
+                        "asunto": asunto,
+                        "archivo": adjunto.get("filename", ""),
+                        "motivo": "ZIP sin XML DIAN válido",
+                    })
+                    continue
+
+                datos = extraer_datos_xml_dian(xml_content)
+                if not datos:
+                    resultado["errores"].append({
+                        "asunto": asunto,
+                        "archivo": adjunto.get("filename", ""),
+                        "motivo": "No se pudo parsear el XML DIAN",
+                    })
+                    continue
+
+                numero_factura = f"{datos['prefix']}{datos['number']}"
+                proveedor = datos.get("proveedor", "")
+                nit = datos.get("nit_proveedor") or datos.get("nit") or ""
+                n_items = len(datos.get("items", []))
+                total = round(sum(
+                    item.get("subtotal", 0) + sum(
+                        imp.get("valor", 0) for imp in item.get("impuestos", [])
+                    )
+                    for item in datos.get("items", [])
+                ), 2)
+
+                if numero_factura.upper() in numeros_en_cola:
+                    resultado["ya_en_cola"].append({
+                        "numero_factura": numero_factura,
+                        "proveedor": proveedor,
+                    })
+                    continue
+
+                compra_registrada = buscar_compra_siigo_registrada(datos, compras_siigo)
+                if compra_registrada:
+                    doc = compra_registrada.get("name") or compra_registrada.get("id") or "SIIGO"
+                    resultado["omitidas"].append({
+                        "numero_factura": numero_factura,
+                        "proveedor": proveedor,
+                        "motivo": f"Ya registrada en SIIGO ({doc})",
+                    })
+                    continue
+
+                es_nuevo = not es_proveedor_especial(nit, proveedor)
+                sufijo = _encolar_factura(numero_factura, datos, xml_content, es_nuevo)
+                numeros_en_cola.add(numero_factura.upper())
+                resultado["encoladas"].append({
+                    "sufijo": sufijo,
+                    "numero_factura": numero_factura,
+                    "proveedor": proveedor,
+                    "nit": nit,
+                    "items_count": n_items,
+                    "total": total,
+                    "es_nuevo_proveedor": es_nuevo,
+                    "estado": "esperando_clasificacion" if es_nuevo else "esperando_confirmacion",
+                })
+            except Exception as e:
+                resultado["errores"].append({
+                    "asunto": asunto,
+                    "archivo": adjunto.get("filename", ""),
+                    "motivo": str(e)[:200],
+                })
+
+    n_enc = len(resultado["encoladas"])
+    if n_enc:
+        resultado["ok"] = True
+        resultado["mensaje"] = (
+            f"{n_enc} factura(s) lista(s) para revisión en el panel. "
+            "Revísalas una a una antes de confirmar."
+        )
+    elif resultado["errores"]:
+        resultado["mensaje"] = "Se encontraron correos pero hubo errores al leer los XML."
+    elif resultado["omitidas"] or resultado["ya_en_cola"]:
+        resultado["ok"] = True
+        resultado["mensaje"] = "No hay facturas nuevas; las detectadas ya están en SIIGO o en cola."
+    else:
+        resultado["ok"] = True
+        resultado["mensaje"] = "No se encontraron facturas nuevas en Gmail."
+
+    return resultado
+
+
 def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
     """
     Fase 1: Lee facturas del correo y las encola para aprobación manual por WhatsApp.
@@ -1448,97 +1587,25 @@ def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
       inv gasto <código>       → proveedor nuevo, tratar como gasto/consumible
     """
     print(f"\n🚀 [IMPORTACIÓN] Escaneando facturas de proveedor en Gmail...")
+    scan = escanear_facturas_gmail_para_panel()
+    if not scan.get("ok") and scan.get("mensaje"):
+        return f"❌ {scan['mensaje']}"
 
-    correos = leer_correos_no_descargados()
-    if not correos:
-        return "No se encontraron facturas nuevas en el correo (label: FACTURAS MCKG)."
-
-    service  = get_gmail_service()
-    compras_siigo = obtener_compras_siigo_para_dedupe()
-    encoladas = []
-
-    for correo in correos:
-        print(f"\n📩 Procesando: '{correo['asunto']}'")
-
-        for adjunto in correo['adjuntos_zip']:
-            print(f"  📥 Descargando {adjunto['filename']}...")
-            xml_content, _pdf, _pdf_name = descargar_y_extraer_zip(
-                service, correo['id'], adjunto['id'], adjunto['filename']
-            )
-
-            if not xml_content:
-                print("  ⚠️ No se encontró XML válido en el ZIP.")
-                continue
-
-            datos = extraer_datos_xml_dian(xml_content)
-            if not datos:
-                print("  ⚠️ No se pudo parsear el XML DIAN.")
-                continue
-
-            numero_factura = f"{datos['prefix']}{datos['number']}"
-            proveedor      = datos.get('proveedor', '')
-            nit            = datos.get('nit_proveedor') or datos.get('nit') or ''
-            n_items        = len(datos.get('items', []))
-            total          = round(sum(
-                item.get('subtotal', 0) + sum(
-                    imp.get('valor', 0) for imp in item.get('impuestos', [])
-                )
-                for item in datos.get('items', [])
-            ), 2)
-            print(f"  📄 Factura: {numero_factura} | Proveedor: {proveedor} | NIT: {nit}")
-
-            compra_registrada = buscar_compra_siigo_registrada(datos, compras_siigo)
-            if compra_registrada:
-                doc = compra_registrada.get('name') or compra_registrada.get('id') or 'SIIGO'
-                print(f"  ⏭️ Ya registrada en SIIGO ({doc}) — no se encola")
-                try:
-                    from app.panel_activity import log_line
-                    log_line(f"⏭️ {numero_factura} ya existe en SIIGO ({doc}) — {proveedor}")
-                except Exception:
-                    pass
-                continue
-
-            es_nuevo = not es_proveedor_especial(nit, proveedor)
-            sufijo   = _encolar_factura(numero_factura, datos, xml_content, es_nuevo)
-
-            if es_nuevo:
-                msg = (
-                    f"📦 *FACTURA DE COMPRA DETECTADA*\n\n"
-                    f"🔢 *Factura:* {numero_factura}  _(código: *{sufijo}*)_\n"
-                    f"🏢 *Proveedor:* {proveedor}\n"
-                    f"🆔 *NIT:* {nit or '—'}\n"
-                    f"📦 *Ítems:* {n_items}  |  💰 *Total:* ${total:,.0f} COP\n\n"
-                    f"⚠️ *Proveedor NO registrado* en la lista de materias primas.\n\n"
-                    f"¿Esta factura corresponde a?\n\n"
-                    f"   *inv inventario {sufijo}*\n"
-                    f"   → Materias primas · se inventaría en SIIGO\n\n"
-                    f"   *inv gasto {sufijo}*\n"
-                    f"   → Consumibles/gastos · registrar directo en SIIGO"
-                )
-            else:
-                msg = (
-                    f"📦 *FACTURA DE COMPRA — PROVEEDOR ESPECIAL*\n\n"
-                    f"🔢 *Factura:* {numero_factura}  _(código: *{sufijo}*)_\n"
-                    f"🏢 *Proveedor:* {proveedor}\n"
-                    f"📦 *Ítems:* {n_items}  |  💰 *Total:* ${total:,.0f} COP\n\n"
-                    f"✅ Proveedor registrado como proveedor de materias primas.\n\n"
-                    f"¿Proceder con la codificación e importación?\n\n"
-                    f"   *inv ok {sufijo}* → Sí, procesar\n"
-                    f"   *inv skip {sufijo}* → No, omitir"
-                )
-
-            encoladas.append(f"⏳ {numero_factura} ({proveedor}) — código: {sufijo}")
-            print(f"  📥 Factura encolada — código: {sufijo}")
+    encoladas = scan.get("encoladas") or []
+    for f in encoladas:
+        print(f"  📥 Encolada: {f['numero_factura']} ({f['proveedor']}) — #{f['sufijo']}")
+    for o in scan.get("omitidas") or []:
+        print(f"  ⏭️ Omitida: {o['numero_factura']} — {o.get('motivo', '')}")
+    for e in scan.get("errores") or []:
+        print(f"  ⚠️ Error: {e.get('asunto', '')} — {e.get('motivo', '')}")
 
     if not encoladas:
-        return "Se leyeron correos pero no se encontraron XML DIAN válidos."
+        return scan.get("mensaje") or "No se encontraron facturas nuevas."
 
-    # Enviar notificación solo de la primera factura pendiente (procesamiento uno a uno)
-    _notificar_siguiente_factura_pendiente()
-
+    lineas = [f"⏳ {f['numero_factura']} ({f['proveedor']}) — #{f['sufijo']}" for f in encoladas]
     return (
-        f"✅ {len(encoladas)} factura(s) encoladas. Se notificó la primera al grupo.\n"
-        + "\n".join(encoladas)
+        f"✅ {len(encoladas)} factura(s) en cola del panel. Ábrelas en Facturas de Compra.\n"
+        + "\n".join(lineas)
     )
 
 

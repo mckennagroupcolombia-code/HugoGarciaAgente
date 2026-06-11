@@ -29,6 +29,18 @@ RUTA_FACTURAS_DESCARGADAS = os.path.join(
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.modify", "https://www.googleapis.com/auth/gmail.labels"]
 
+GMAIL_REAUTH_CMD = "source venv/bin/activate && python3 scripts/reautorizar_gmail.py"
+
+
+class GmailAuthError(Exception):
+    """Token Gmail revocado o expirado; requiere reautorización OAuth."""
+
+    def __init__(self, mensaje: str | None = None):
+        super().__init__(
+            mensaje
+            or f"Token de Gmail inválido. Ejecuta en el servidor: {GMAIL_REAUTH_CMD}"
+        )
+
 
 def _clave_adjunto_gmail(msg_id: str, att_id: str, filename: str) -> str:
     return f"{msg_id}:{att_id}:{filename}"
@@ -87,15 +99,28 @@ def _adjunto_gmail_ya_descargado(msg_id: str, att_id: str, filename: str, descar
     return False
 
 def get_gmail_service():
+    from google.auth.exceptions import RefreshError
+
     creds = None
     if os.path.exists(TOKEN_GMAIL_PATH):
         creds = Credentials.from_authorized_user_file(TOKEN_GMAIL_PATH, SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+            except RefreshError as e:
+                try:
+                    os.remove(TOKEN_GMAIL_PATH)
+                except OSError:
+                    pass
+                raise GmailAuthError(
+                    f"Gmail OAuth expiró (invalid_grant: {e}). "
+                    f"Reautoriza con: {GMAIL_REAUTH_CMD}"
+                ) from e
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(GOOGLE_CREDS_PATH, SCOPES)
-            creds = flow.run_local_server(port=8085)
+            raise GmailAuthError(
+                f"No hay token de Gmail válido. Reautoriza con: {GMAIL_REAUTH_CMD}"
+            )
         with open(TOKEN_GMAIL_PATH, "w") as token:
             token.write(creds.to_json())
     return build("gmail", "v1", credentials=creds)
@@ -411,6 +436,7 @@ def leer_correos_no_descargados(fecha_desde: str = "2026/01/01"):
             # Buscar ZIPs en partes directas y en partes anidadas (multipart)
             adjuntos = []
             def _buscar_zips(partes):
+                nonlocal adjuntos_omitidos, manifest_cambio
                 for part in partes:
                     if part.get("filename", "").lower().endswith(".zip"):
                         att_id = part["body"].get("attachmentId")
@@ -528,12 +554,21 @@ def sincronizar_facturas_de_compra_siigo(solo_nit: str = None, modo_terminal: bo
     label = f"solo NIT {filtro}" if filtro else "todos los proveedores"
     print(f"\n🚀 Iniciando sincronización de Facturas de Compra ({label})...")
 
-    correos = leer_correos_no_descargados()
+    try:
+        correos = leer_correos_no_descargados()
+    except GmailAuthError as e:
+        print(f"❌ {e}")
+        return f"❌ {e}"
+
     if not correos:
         print("✅ No se encontraron facturas pendientes de descargar.")
         return "No hay facturas nuevas para sincronizar."
 
-    service = get_gmail_service()
+    try:
+        service = get_gmail_service()
+    except GmailAuthError as e:
+        print(f"❌ {e}")
+        return f"❌ {e}"
     facturas_procesadas = 0
 
     for correo in correos:

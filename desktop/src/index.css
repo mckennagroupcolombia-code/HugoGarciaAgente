@@ -1119,7 +1119,7 @@
     right: max(1rem, env(safe-area-inset-right, 0px));
     bottom: max(1rem, env(safe-area-inset-bottom, 0px));
     z-index: 30;
-    display: none; /* oculto en móvil — Hugo ocupa pantalla completa */
+    display: flex;
     align-items: center;
     justify-content: center;
     border: none;
@@ -1127,33 +1127,32 @@
     padding: 0;
     cursor: pointer;
   }
-  /* Móvil: Hugo ocupa toda la pantalla — el contenedor es relative/flex-1 */
   .hugo-dock-panel {
     position: absolute;
-    inset: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     z-index: 40;
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-height: 100%;
-    border-radius: 0;
-    border: none;
+    max-height: min(78dvh, 34rem);
+    border-radius: 1.25rem 1.25rem 0 0;
+    border: 2px solid var(--mck-border, #e2e8f0);
+    border-bottom: none;
     background: var(--mck-surface, #fff);
+    box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.14);
     overflow: hidden;
   }
   @media (min-width: 640px) {
-    .hugo-dock-fab {
-      display: flex; /* visible en desktop como botón flotante */
-    }
     .hugo-dock-panel {
-      position: absolute;
       right: max(0.75rem, env(safe-area-inset-right, 0px));
       bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
-      inset: unset;
+      left: auto;
       width: 22rem;
       max-height: min(68dvh, 32rem);
       border-radius: 1.25rem;
-      border: 2px solid var(--mck-border, #e2e8f0);
+      border-bottom: 2px solid var(--mck-border, #e2e8f0);
       box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
     }
   }

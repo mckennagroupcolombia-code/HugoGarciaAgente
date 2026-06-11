@@ -3901,7 +3901,98 @@ def register_routes(app):
             return jsonify(result), 404
         return jsonify(result)
 
+    @app.route("/api/rentabilidad/catalogo-estado", methods=["GET"])
+    def api_catalogo_estado():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import estado_catalogo
+        return jsonify(estado_catalogo())
+
+    @app.route("/api/rentabilidad/catalogo-rebuild", methods=["POST"])
+    def api_catalogo_rebuild():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import construir_catalogo_costos, estado_catalogo
+        from app.observability import spawn_thread
+        def _rebuild():
+            construir_catalogo_costos(forzar=True)
+        spawn_thread(_rebuild, "catalogo_rebuild")
+        return jsonify({"ok": True, "mensaje": "Reconstruyendo catálogo en segundo plano (~15 s). Refresca en 20 s."})
+
+    @app.route("/api/rentabilidad/componentes-faltantes", methods=["GET"])
+    def api_componentes_faltantes():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import escanear_componentes_sin_costo
+        try:
+            return jsonify(escanear_componentes_sin_costo())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
+    @app.route("/api/rentabilidad/componentes-autofill", methods=["POST"])
+    def api_componentes_autofill():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import autocompletar_costos_componentes
+        data = request.get_json(silent=True) or {}
+        dry_run = bool(data.get("dry_run", False))
+        try:
+            return jsonify(autocompletar_costos_componentes(dry_run=dry_run))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
     # ── Nómina ────────────────────────────────────────────────────────────────
+
+    @app.route("/api/nomina/usuarios-app", methods=["GET"])
+    def api_nomina_usuarios_app():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.tickets_db import listar_usuarios as _lu
+            usuarios = _lu() or []
+            resultado = [
+                {
+                    "id": u["id"],
+                    "nombre": u.get("nombre") or u.get("username") or "",
+                    "email": u.get("email") or "",
+                    "telefono": u.get("telefono") or "",
+                    "activo": u.get("activo", True),
+                }
+                for u in usuarios
+                if u and u.get("activo", True)
+            ]
+            resultado.sort(key=lambda x: x["nombre"].lower())
+            return jsonify({"usuarios": resultado})
+        except Exception as e:
+            return jsonify({"usuarios": [], "warning": str(e)})
+
+    @app.route("/api/nomina/empleados/<int:emp_id>/recordatorio", methods=["POST"])
+    def api_nomina_recordatorio_individual(emp_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.contabilidad_db import listar_empleados
+        empleados = listar_empleados()
+        emp = next((e for e in empleados if e["id"] == emp_id), None)
+        if not emp:
+            return jsonify({"error": "Empleado no encontrado"}), 404
+        telefono = (emp.get("telefono_wa") or "").strip()
+        if not telefono:
+            return jsonify({"error": "El empleado no tiene número de WhatsApp configurado"}), 400
+        from app.utils import enviar_whatsapp_texto
+        nombre = emp.get("nombre", "")
+        sueldo = emp.get("sueldo_mensual", 0)
+        dia = emp.get("dia_pago")
+        msg = (
+            f"Hola {nombre}, te informamos que tu pago de nómina "
+            f"por ${sueldo:,.0f} COP está programado"
+            + (f" para el día {dia} de este mes." if dia else ".")
+            + "\n\nCualquier novedad, comunícate con el área administrativa. McKenna Group."
+        )
+        try:
+            enviar_whatsapp_texto(f"{telefono}@c.us", msg)
+            return jsonify({"ok": True, "enviado_a": telefono})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     @app.route("/api/nomina/empleados", methods=["GET"])
     def api_nomina_empleados_list():
@@ -3988,6 +4079,24 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.rentabilidad import enviar_recordatorios_pagos
         return jsonify(enviar_recordatorios_pagos())
+
+    @app.route("/api/facturas/escanear", methods=["POST"])
+    def api_facturas_escanear():
+        """Escanea Gmail y encola facturas para revisión humana en el panel."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import escanear_facturas_gmail_para_panel
+            from app.panel_activity import log_line
+            body = request.get_json(silent=True) or {}
+            fecha_desde = (body.get("fecha_desde") or "2026/01/01").strip()
+            log_line("▶ escanear_facturas_gmail — inicio (panel)")
+            resultado = escanear_facturas_gmail_para_panel(fecha_desde=fecha_desde)
+            n = len(resultado.get("encoladas") or [])
+            log_line(f"✔ escanear_facturas_gmail — {n} encolada(s)")
+            return jsonify(resultado)
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e), "mensaje": str(e)}), 502
 
     @app.route("/api/facturas/pendientes", methods=["GET"])
     def api_facturas_pendientes():
@@ -5572,6 +5681,9 @@ def register_routes(app):
         if not numero:
             return jsonify({"error": "numero requerido"}), 400
 
+        from app.services.wa_jid import jid_preferido_para_envio
+        numero = jid_preferido_para_envio(numero)
+
         # Sintetizar audio
         from app.services.voz_config import leer_config
         cfg    = leer_config()
@@ -5642,7 +5754,13 @@ def register_routes(app):
                 err_msg = r.json().get("error", f"Error HTTP {r.status_code} del bridge")
             except Exception:
                 err_msg = f"Error HTTP {r.status_code} del bridge"
-            http_code = r.status_code if r.status_code in (400, 401, 503) else 502
+            if "no lid" in err_msg.lower():
+                err_msg = (
+                    "WhatsApp no pudo resolver el contacto (LID). "
+                    "Pide al cliente que escriba primero al número supervisor, "
+                    "o envía desde el panel Agente WA donde ya está el chat."
+                )
+            http_code = r.status_code if r.status_code in (400, 401, 422, 503) else 502
             return jsonify({"error": err_msg}), http_code
         except Exception as e:
             return jsonify({"error": f"Bridge supervisor no disponible: {e}"}), 503

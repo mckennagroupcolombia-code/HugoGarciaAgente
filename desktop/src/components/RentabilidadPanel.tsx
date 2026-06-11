@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import { api } from "../api/client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -16,6 +16,17 @@ interface ComponenteDesglose {
   costo_unit: number;
   costo_total: number;
   costo_conocido: boolean;
+  fuente?: "siigo" | "manual" | null;
+  fecha_compra?: string | null;
+}
+
+interface CatalogoEstado {
+  existe: boolean;
+  vigente: boolean;
+  productos_total?: number;
+  con_precio_compra?: number;
+  edad_horas?: number;
+  actualizado?: string | null;
 }
 
 interface ComboTotales {
@@ -38,17 +49,6 @@ interface ComboDesglose {
   totales: ComboTotales;
 }
 
-interface CostosConfig {
-  costo_materiales?: number;
-  costo_nomina?: number;
-  costo_envase?: number;
-  costo_etiqueta?: number;
-  otros_costos?: number;
-  comision_pct?: number;
-  margen_objetivo_pct?: number;
-  updated_at?: string;
-}
-
 interface Producto {
   code: string;
   name: string;
@@ -56,24 +56,6 @@ interface Producto {
   iva_pct: number;
   tax_included: boolean;
   components: Componente[];
-  config_guardada: boolean;
-  costos: CostosConfig | null;
-}
-
-interface ResultadoCalculo {
-  precio_lista: number;
-  precio_sin_iva: number;
-  iva_valor: number;
-  comision_valor: number;
-  comision_pct: number;
-  ingreso_neto: number;
-  costo_total: number;
-  utilidad_bruta: number;
-  utilidad_neta: number;
-  margen_bruto_pct: number;
-  margen_neto_pct: number;
-  es_rentable: boolean;
-  precio_sugerido: number | null;
 }
 
 interface TopProducto {
@@ -95,6 +77,13 @@ interface ResumenPeriodo {
   top_productos: TopProducto[];
 }
 
+interface UsuarioApp {
+  id: number;
+  nombre: string;
+  email: string;
+  telefono: string;
+}
+
 interface Empleado {
   id: number;
   nombre: string;
@@ -102,7 +91,9 @@ interface Empleado {
   tipo_contrato: string;
   sueldo_mensual: number;
   activo: number;
-  fecha_ingreso: string | null;
+  usuario_id: number | null;
+  dia_pago: number | null;
+  telefono_wa: string;
   notas: string;
   created_at: string;
 }
@@ -146,10 +137,6 @@ function cop(n: number | null | undefined): string {
   }).format(n);
 }
 
-function pct(n: number): string {
-  return `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
-}
-
 function haceNDias(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
@@ -173,528 +160,510 @@ const TIPO_SERVICIO_LABELS: Record<string, string> = {
   otro: "Otro",
 };
 
-// ─── Shared form controls ─────────────────────────────────────────────────────
+// ─── Tab: Productos Combo Siigo ───────────────────────────────────────────────
 
-function CampoMoneda({
-  label,
-  hint,
-  value,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-xs font-semibold text-ink-secondary">{label}</label>
-      {hint && <p className="text-[11px] text-muted">{hint}</p>}
-      <div className="flex items-center rounded-paper border-2 border-border bg-surface focus-within:border-accent transition">
-        <span className="px-2 text-xs text-muted select-none">$</span>
-        <input
-          type="number"
-          min="0"
-          step="100"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-transparent py-2 pr-2 text-sm text-ink outline-none"
-          placeholder="0"
-        />
-      </div>
-    </div>
-  );
-}
-
-function CampoPorcentaje({
-  label,
-  hint,
-  value,
-  onChange,
-}: {
-  label: string;
-  hint?: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="space-y-1">
-      <label className="block text-xs font-semibold text-ink-secondary">{label}</label>
-      {hint && <p className="text-[11px] text-muted">{hint}</p>}
-      <div className="flex items-center rounded-paper border-2 border-border bg-surface focus-within:border-accent transition">
-        <input
-          type="number"
-          min="0"
-          max="99"
-          step="0.5"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 bg-transparent py-2 pl-2 text-sm text-ink outline-none"
-          placeholder="0"
-        />
-        <span className="px-2 text-xs text-muted select-none">%</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Resultado de la calculadora ─────────────────────────────────────────────
-
-function ResultadoCard({ r }: { r: ResultadoCalculo }) {
-  const ivaPct =
-    r.precio_sin_iva > 0
-      ? ((r.iva_valor / r.precio_sin_iva) * 100).toFixed(0)
-      : "0";
-
-  const filas: { label: string; valor: string; sub?: boolean; color?: string }[] = [
-    { label: `Precio lista (IVA ${ivaPct}% incluido)`, valor: cop(r.precio_lista) },
-    { label: `IVA (${ivaPct}%)`, valor: `– ${cop(r.iva_valor)}`, sub: true },
-    { label: "Precio sin IVA", valor: cop(r.precio_sin_iva) },
-    { label: `Comisión canal (${(r.comision_pct * 100).toFixed(1)}%)`, valor: `– ${cop(r.comision_valor)}`, sub: true },
-    { label: "Ingreso neto", valor: cop(r.ingreso_neto) },
-    { label: "Costo total", valor: `– ${cop(r.costo_total)}`, sub: true },
-    {
-      label: "Utilidad neta",
-      valor: `${r.utilidad_neta >= 0 ? "+" : ""}${cop(r.utilidad_neta)}`,
-      color: r.utilidad_neta >= 0
-        ? "text-green-600 dark:text-green-400"
-        : "text-red-600 dark:text-red-400",
-    },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-border bg-surface-panel">
-        <table className="w-full text-sm">
-          <tbody>
-            {filas.map((f, i) => (
-              <tr
-                key={i}
-                className={`border-b border-border/50 last:border-0 ${f.sub ? "bg-surface/40" : ""}`}
-              >
-                <td className={`px-4 py-2.5 ${f.sub ? "pl-7 text-xs text-muted" : "font-medium text-ink"}`}>
-                  {f.label}
-                </td>
-                <td className={`px-4 py-2.5 text-right font-mono ${f.color ?? (f.sub ? "text-xs text-muted" : "text-ink")}`}>
-                  {f.valor}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-surface-panel p-3 text-center">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-muted">Margen bruto</div>
-          <div className={`mt-1 text-xl font-black ${r.margen_bruto_pct >= 30 ? "text-green-600 dark:text-green-400" : r.margen_bruto_pct >= 15 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"}`}>
-            {pct(r.margen_bruto_pct)}
-          </div>
-          <div className="mt-0.5 text-[10px] text-muted">sin comisión canal</div>
-        </div>
-        <div className="rounded-xl border border-border bg-surface-panel p-3 text-center">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-muted">Margen neto</div>
-          <div className={`mt-1 text-xl font-black ${r.margen_neto_pct >= 20 ? "text-green-600 dark:text-green-400" : r.margen_neto_pct >= 5 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400"}`}>
-            {pct(r.margen_neto_pct)}
-          </div>
-          <div className="mt-0.5 text-[10px] text-muted">con comisión canal</div>
-        </div>
-        <div className="col-span-2 rounded-xl border border-border bg-surface-panel p-3 text-center sm:col-span-1">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-muted">Resultado</div>
-          <div className={`mt-1 text-sm font-black ${r.es_rentable ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-            {r.es_rentable ? "Rentable" : "No rentable"}
-          </div>
-          <div className="mt-0.5 text-[10px] text-muted">utilidad {r.es_rentable ? "positiva" : "negativa"}</div>
-        </div>
-      </div>
-
-      {r.precio_sugerido != null && (
-        <div className="rounded-xl border-2 border-accent/40 bg-accent/5 px-4 py-3">
-          <div className="text-xs font-bold text-accent">Precio sugerido para el margen objetivo</div>
-          <div className="mt-1 text-2xl font-black text-ink">{cop(r.precio_sugerido)}</div>
-          <div className="mt-0.5 text-[11px] text-muted">incluye IVA · aplica comisión canal</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Tab: Calculadora de producto ─────────────────────────────────────────────
-
-function TabCalculadora() {
+function TabCombos() {
   const [busqueda, setBusqueda] = useState("");
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [loadingProductos, setLoadingProductos] = useState(false);
-  const [errorProductos, setErrorProductos] = useState<string | null>(null);
-  const [productoSel, setProductoSel] = useState<Producto | null>(null);
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  const [costoMateriales, setCostoMateriales] = useState("0");
-  const [costoNomina, setCostoNomina] = useState("0");
-  const [costoEnvase, setCostoEnvase] = useState("0");
-  const [costoEtiqueta, setCostoEtiqueta] = useState("0");
-  const [otrosCostos, setOtrosCostos] = useState("0");
-  const [comisionPct, setComisionPct] = useState("16.5");
-  const [margenObjetivo, setMargenObjetivo] = useState("");
-
-  const [desglose, setDesglose] = useState<ComboDesglose | null>(null);
-  const [loadingDesglose, setLoadingDesglose] = useState(false);
-  const [showDesglose, setShowDesglose] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [desgloses, setDesgloses] = useState<Record<string, ComboDesglose>>({});
+  const [loadingDesgloses, setLoadingDesgloses] = useState<Set<string>>(new Set());
   const [editandoCostos, setEditandoCostos] = useState<Record<string, string>>({});
   const [guardandoCostos, setGuardandoCostos] = useState<Record<string, boolean>>({});
-
-  const [resultado, setResultado] = useState<ResultadoCalculo | null>(null);
-  const [calculando, setCalculando] = useState(false);
-  const [guardando, setGuardando] = useState(false);
-  const [guardadoOk, setGuardadoOk] = useState(false);
+  const [catalogoEstado, setCatalogoEstado] = useState<CatalogoEstado | null>(null);
+  const [rebuilding, setRebuilding] = useState(false);
+  const [autofillPreview, setAutofillPreview] = useState<{
+    componentes_sin_costo: number;
+    con_propuesta_autofill: number;
+    sin_propuesta: number;
+    componentes: Array<{
+      nombre: string;
+      propuesta_costo: number | null;
+      propuesta_fuente: string | null;
+      combos_afectados: number;
+    }>;
+  } | null>(null);
+  const [autofillLoading, setAutofillLoading] = useState(false);
+  const [autofillResult, setAutofillResult] = useState<string | null>(null);
 
   const cargarProductos = useCallback(async () => {
-    setLoadingProductos(true);
-    setErrorProductos(null);
+    setLoading(true);
+    setError(null);
     try {
       const data = await api.get<{ productos: Producto[] }>("/api/rentabilidad/productos");
-      setProductos(data.productos ?? []);
+      setProductos((data.productos ?? []).filter((p) => p.components.length > 0));
     } catch (e) {
-      setErrorProductos((e as Error).message);
+      setError((e as Error).message);
     } finally {
-      setLoadingProductos(false);
+      setLoading(false);
     }
   }, []);
 
+  const cargarCatalogoEstado = useCallback(async () => {
+    try {
+      const d = await api.get<CatalogoEstado>("/api/rentabilidad/catalogo-estado");
+      setCatalogoEstado(d);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => { void cargarProductos(); }, [cargarProductos]);
+  useEffect(() => { void cargarCatalogoEstado(); }, [cargarCatalogoEstado]);
+
+  const toggleExpandir = async (p: Producto) => {
+    const code = p.code;
+    if (expandidos.has(code)) {
+      setExpandidos((prev) => { const s = new Set(prev); s.delete(code); return s; });
+      return;
+    }
+    setExpandidos((prev) => new Set(prev).add(code));
+    if (desgloses[code]) return;
+    setLoadingDesgloses((prev) => new Set(prev).add(code));
+    try {
+      const d = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${code}`);
+      setDesgloses((prev) => ({ ...prev, [code]: d }));
+    } catch { /* ignore */ }
+    finally {
+      setLoadingDesgloses((prev) => { const s = new Set(prev); s.delete(code); return s; });
+    }
+  };
+
+  const guardarCostoComponente = async (nombre: string, categoria: string, costoStr: string, parentCode: string) => {
+    const costo = parseFloat(costoStr);
+    if (isNaN(costo)) return;
+    const key = `${parentCode}::${nombre}`;
+    setGuardandoCostos((prev) => ({ ...prev, [key]: true }));
+    try {
+      await api.post("/api/rentabilidad/componentes", { nombre, costo_unitario: costo, categoria });
+      const d = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${parentCode}`);
+      setDesgloses((prev) => ({ ...prev, [parentCode]: d }));
+    } catch { /* ignore */ }
+    finally {
+      setGuardandoCostos((prev) => ({ ...prev, [key]: false }));
+      setEditandoCostos((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    }
+  };
+
+  const escanearFaltantes = async () => {
+    setAutofillLoading(true);
+    setAutofillResult(null);
+    try {
+      const d = await api.get<typeof autofillPreview>("/api/rentabilidad/componentes-faltantes");
+      setAutofillPreview(d);
+    } catch (e) {
+      setAutofillResult((e as Error).message);
+    } finally {
+      setAutofillLoading(false);
+    }
+  };
+
+  const aplicarAutofill = async () => {
+    setAutofillLoading(true);
+    setAutofillResult(null);
+    try {
+      const d = await api.post<{
+        asignados: number;
+        sin_propuesta: number;
+        detalle_asignados: Array<{ nombre: string; costo_unitario: number; combos_afectados: number }>;
+      }>("/api/rentabilidad/componentes-autofill", { dry_run: false });
+      setAutofillResult(
+        `Asignados ${d.asignados} componentes` +
+        (d.sin_propuesta > 0 ? ` · ${d.sin_propuesta} sin precio en Siigo` : "")
+      );
+      setAutofillPreview(null);
+      for (const code of Array.from(expandidos)) {
+        try {
+          const desg = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${code}`);
+          setDesgloses((prev) => ({ ...prev, [code]: desg }));
+        } catch { /* ignore */ }
+      }
+    } catch (e) {
+      setAutofillResult((e as Error).message);
+    } finally {
+      setAutofillLoading(false);
+    }
+  };
+
+  const rebuildCatalogo = async () => {
+    setRebuilding(true);
+    try {
+      await api.post("/api/rentabilidad/catalogo-rebuild", {});
+      for (let i = 0; i < 30; i++) {
+        await new Promise((r) => setTimeout(r, 1000));
+        const d = await api.get<CatalogoEstado>("/api/rentabilidad/catalogo-estado");
+        setCatalogoEstado(d);
+        if (d.existe && d.vigente) {
+          for (const code of Array.from(expandidos)) {
+            try {
+              const desg = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${code}`);
+              setDesgloses((prev) => ({ ...prev, [code]: desg }));
+            } catch { /* ignore */ }
+          }
+          break;
+        }
+      }
+    } catch { /* ignore */ }
+    finally { setRebuilding(false); }
+  };
 
   const productosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    if (!q) return productos.slice(0, 20);
-    return productos
-      .filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q))
-      .slice(0, 15);
+    if (!q) return productos;
+    return productos.filter((p) =>
+      p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)
+    );
   }, [productos, busqueda]);
 
-  const aplicarConfig = (p: Producto) => {
-    const c = p.costos;
-    setCostoMateriales(String(c?.costo_materiales ?? 0));
-    setCostoNomina(String(c?.costo_nomina ?? 0));
-    setCostoEnvase(String(c?.costo_envase ?? 0));
-    setCostoEtiqueta(String(c?.costo_etiqueta ?? 0));
-    setOtrosCostos(String(c?.otros_costos ?? 0));
-    setComisionPct(String(((c?.comision_pct ?? 0.165) * 100).toFixed(1)));
-    setMargenObjetivo(c?.margen_objetivo_pct != null ? String(c.margen_objetivo_pct) : "");
-  };
-
-  const aplicarDesglose = (d: ComboDesglose) => {
-    setCostoMateriales(String(d.totales.costo_materiales));
-    setCostoEnvase(String(d.totales.costo_envase));
-    setCostoEtiqueta(String(d.totales.costo_etiqueta));
-    setOtrosCostos(String(d.totales.otros_costos));
-    setCostoNomina(String(d.totales.costo_nomina));
-  };
-
-  const cargarDesglose = async (p: Producto) => {
-    setLoadingDesglose(true);
-    setDesglose(null);
-    try {
-      const d = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${p.code}`);
-      setDesglose(d);
-      aplicarDesglose(d);
-      setEditandoCostos({});
-    } catch {
-      // silently fail — user can still enter costs manually
-    } finally {
-      setLoadingDesglose(false);
-    }
-  };
-
-  const seleccionarProducto = (p: Producto) => {
-    setProductoSel(p);
-    setBusqueda(`${p.code} — ${p.name}`);
-    setShowDropdown(false);
-    setResultado(null);
-    setShowDesglose(false);
-    setDesglose(null);
-    aplicarConfig(p);
-    void cargarDesglose(p);
-  };
-
-  const guardarCostoComponente = async (nombre: string, categoria: string, costoStr: string) => {
-    const costo = parseFloat(costoStr);
-    if (isNaN(costo)) return;
-    setGuardandoCostos((prev) => ({ ...prev, [nombre]: true }));
-    try {
-      await api.post("/api/rentabilidad/componentes", { nombre, costo_unitario: costo, categoria });
-      if (productoSel) void cargarDesglose(productoSel);
-    } catch {
-      // ignore
-    } finally {
-      setGuardandoCostos((prev) => ({ ...prev, [nombre]: false }));
-      setEditandoCostos((prev) => { const n = { ...prev }; delete n[nombre]; return n; });
-    }
-  };
-
-  const calcular = async () => {
-    if (!productoSel) return;
-    setCalculando(true);
-    setResultado(null);
-    try {
-      const r = await api.post<ResultadoCalculo>("/api/rentabilidad/calcular", {
-        precio_lista: productoSel.precio_lista,
-        iva_pct: productoSel.iva_pct,
-        tax_included: productoSel.tax_included,
-        costo_materiales: parseFloat(costoMateriales) || 0,
-        costo_nomina: parseFloat(costoNomina) || 0,
-        costo_envase: parseFloat(costoEnvase) || 0,
-        costo_etiqueta: parseFloat(costoEtiqueta) || 0,
-        otros_costos: parseFloat(otrosCostos) || 0,
-        comision_pct: (parseFloat(comisionPct) || 16.5) / 100,
-        margen_objetivo_pct: margenObjetivo !== "" ? parseFloat(margenObjetivo) : null,
-      });
-      setResultado(r);
-    } catch (e) {
-      alert((e as Error).message);
-    } finally {
-      setCalculando(false);
-    }
-  };
-
-  const guardarConfig = async () => {
-    if (!productoSel) return;
-    setGuardando(true);
-    setGuardadoOk(false);
-    try {
-      await api.post("/api/rentabilidad/config", {
-        codigo: productoSel.code,
-        costo_materiales: parseFloat(costoMateriales) || 0,
-        costo_nomina: parseFloat(costoNomina) || 0,
-        costo_envase: parseFloat(costoEnvase) || 0,
-        costo_etiqueta: parseFloat(costoEtiqueta) || 0,
-        otros_costos: parseFloat(otrosCostos) || 0,
-        comision_pct: (parseFloat(comisionPct) || 16.5) / 100,
-        margen_objetivo_pct: margenObjetivo !== "" ? parseFloat(margenObjetivo) : null,
-      });
-      setGuardadoOk(true);
-      await cargarProductos();
-      setTimeout(() => setGuardadoOk(false), 2500);
-    } catch (e) {
-      alert((e as Error).message);
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  const sinCosto = desglose?.totales.componentes_sin_costo ?? 0;
+  const combosConCostoCompleto = useMemo(
+    () => Object.values(desgloses).filter((d) => d.totales.componentes_sin_costo === 0).length,
+    [desgloses]
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Selector de producto */}
-      <div className="space-y-1">
-        <label className="block text-xs font-semibold text-ink-secondary">Producto (combo Siigo)</label>
-        <div className="relative">
+    <div className="space-y-4">
+      {/* Barra superior */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex-1 min-w-[180px]">
           <input
             type="text"
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
-              setShowDropdown(true);
-              if (!e.target.value) { setProductoSel(null); setResultado(null); }
-            }}
-            onFocus={() => setShowDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
             placeholder="Buscar por nombre o código…"
-            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted outline-none focus:border-accent transition"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition"
           />
-          {loadingProductos && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-            </div>
-          )}
-          {showDropdown && productosFiltrados.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-64 overflow-y-auto rounded-paper border-2 border-border bg-surface-panel shadow-paper">
-              {productosFiltrados.map((p) => (
-                <button
-                  key={p.code}
-                  type="button"
-                  onMouseDown={() => seleccionarProducto(p)}
-                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm hover:bg-surface-hover transition"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-ink">{p.name}</div>
-                    <div className="mt-0.5 flex items-center gap-2">
-                      <span className="font-mono text-[11px] text-muted">{p.code}</span>
-                      <span className="text-[11px] text-muted">{cop(p.precio_lista)}</span>
-                      {p.config_guardada && (
-                        <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                          Config ✓
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
-        {errorProductos && <p className="text-xs text-red-600 dark:text-red-400">{errorProductos}</p>}
+        {catalogoEstado && (
+          <span
+            title={catalogoEstado.actualizado ? `Actualizado: ${catalogoEstado.actualizado}` : "Sin catálogo Siigo"}
+            className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold cursor-default ${
+              catalogoEstado.vigente
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+            }`}
+          >
+            {catalogoEstado.vigente
+              ? `${catalogoEstado.con_precio_compra ?? 0} precios en Siigo`
+              : "Catálogo vencido"}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={() => void rebuildCatalogo()}
+          disabled={rebuilding}
+          title="Reconstruir índice cruzando todas las facturas de compra Siigo"
+          className="shrink-0 rounded-paper border-2 border-border px-3 py-1.5 text-xs font-semibold text-muted hover:border-accent hover:text-accent disabled:opacity-50 transition"
+        >
+          {rebuilding ? "Actualizando…" : "Actualizar catálogo"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void escanearFaltantes()}
+          disabled={autofillLoading}
+          title="Detecta componentes de combos sin costo y asigna precio desde Siigo (lista o costo bodega)"
+          className="shrink-0 rounded-paper border-2 border-accent/60 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:border-accent disabled:opacity-50 transition"
+        >
+          {autofillLoading && !autofillPreview ? "Escaneando…" : "Rellenar faltantes"}
+        </button>
       </div>
 
-      {productoSel && (
-        <>
-          {/* Info producto */}
-          <div className="rounded-xl border border-border bg-surface-panel px-4 py-3 space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <div className="font-semibold text-ink">{productoSel.name}</div>
-                <div className="mt-0.5 font-mono text-xs text-muted">{productoSel.code}</div>
-              </div>
-              <div className="shrink-0 text-right">
-                <div className="text-sm font-bold text-ink">{cop(productoSel.precio_lista)}</div>
-                <div className="text-[11px] text-muted">
-                  {productoSel.tax_included
-                    ? `IVA ${(productoSel.iva_pct * 100).toFixed(0)}% incluido`
-                    : "sin IVA"}
-                </div>
-              </div>
+      {autofillResult && (
+        <p className="text-xs text-ink-secondary rounded-lg border border-border bg-surface-panel px-3 py-2">
+          {autofillResult}
+        </p>
+      )}
+
+      {autofillPreview && (
+        <div className="rounded-lg border-2 border-accent/40 bg-surface-panel p-4 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-bold text-ink">Componentes sin costo en combos</p>
+              <p className="text-xs text-muted mt-0.5">
+                <span className="font-bold text-ink">{autofillPreview.componentes_sin_costo}</span> únicos detectados ·{" "}
+                <span className="font-bold text-green-600 dark:text-green-400">{autofillPreview.con_propuesta_autofill}</span> con precio en Siigo ·{" "}
+                <span className="font-bold text-orange-600">{autofillPreview.sin_propuesta}</span> sin precio disponible
+              </p>
             </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAutofillPreview(null)}
+                className="rounded-paper border border-border px-3 py-1.5 text-xs text-muted hover:text-ink"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void aplicarAutofill()}
+                disabled={autofillLoading || autofillPreview.con_propuesta_autofill === 0}
+                className="rounded-paper bg-accent px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+              >
+                {autofillLoading ? "Asignando…" : `Asignar ${autofillPreview.con_propuesta_autofill} costos`}
+              </button>
+            </div>
+          </div>
+          {autofillPreview.componentes.length > 0 && (
+            <div className="max-h-48 overflow-y-auto rounded border border-border text-xs">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-surface-hover text-[10px] font-bold uppercase text-muted">
+                  <tr>
+                    <th className="px-2 py-1.5 text-left">Componente</th>
+                    <th className="px-2 py-1.5 text-right">Combos</th>
+                    <th className="px-2 py-1.5 text-right">Precio propuesto</th>
+                    <th className="px-2 py-1.5 text-center">Fuente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {autofillPreview.componentes.slice(0, 30).map((c) => (
+                    <tr key={c.nombre} className="border-t border-border/50">
+                      <td className="px-2 py-1 truncate max-w-[220px]" title={c.nombre}>{c.nombre}</td>
+                      <td className="px-2 py-1 text-right font-mono">{c.combos_afectados}</td>
+                      <td className="px-2 py-1 text-right font-mono">
+                        {c.propuesta_costo != null ? cop(c.propuesta_costo) : "—"}
+                      </td>
+                      <td className="px-2 py-1 text-center text-[10px] text-muted">
+                        {c.propuesta_fuente === "siigo_lista" ? "Lista Siigo" : c.propuesta_fuente === "siigo_unit_cost" ? "Costo bodega" : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {autofillPreview.componentes.length > 30 && (
+                <p className="px-2 py-1 text-[10px] text-muted">…y {autofillPreview.componentes.length - 30} más</p>
+              )}
+            </div>
+          )}
+          <p className="text-[10px] text-muted">
+            Los combos son productos de venta; los componentes son insumos/compras. Un costo asignado aquí aplica a todos los combos que usen ese componente.
+          </p>
+        </div>
+      )}
 
-            {productoSel.components.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDesglose((v) => !v)}
-                    className="flex items-center gap-1 text-xs text-accent hover:underline"
-                  >
-                    <span>{showDesglose ? "Ocultar" : "Ver"} {productoSel.components.length} componentes</span>
-                    <span className={`transition-transform ${showDesglose ? "rotate-180" : ""}`}>▾</span>
-                  </button>
-                  {loadingDesglose && (
-                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                  )}
-                  {sinCosto > 0 && (
-                    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                      {sinCosto} sin costo
-                    </span>
-                  )}
-                </div>
+      {/* Chips resumen */}
+      {!loading && productos.length > 0 && (
+        <div className="flex flex-wrap gap-2 text-[11px]">
+          <span className="rounded-full border border-border bg-surface-panel px-3 py-1 text-ink-secondary">
+            <span className="font-bold text-ink">{productos.length}</span> combos en Siigo
+          </span>
+          {busqueda && (
+            <span className="rounded-full border border-border bg-surface-panel px-3 py-1 text-ink-secondary">
+              <span className="font-bold text-ink">{productosFiltrados.length}</span> resultados
+            </span>
+          )}
+          {Object.keys(desgloses).length > 0 && (
+            <span className="rounded-full border border-border bg-surface-panel px-3 py-1 text-ink-secondary">
+              <span className="font-bold text-green-600 dark:text-green-400">{combosConCostoCompleto}</span>
+              /{Object.keys(desgloses).length} con costo completo
+            </span>
+          )}
+        </div>
+      )}
 
-                {showDesglose && desglose && (
-                  <div className="mt-3 overflow-hidden rounded-lg border border-border">
-                    <table className="w-full text-xs">
-                      <thead className="border-b border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wide text-muted">
-                        <tr>
-                          <th className="px-3 py-2 text-left">Componente</th>
-                          <th className="px-3 py-2 text-center">Cat.</th>
-                          <th className="px-3 py-2 text-right">Cant.</th>
-                          <th className="px-3 py-2 text-right">Costo unit.</th>
-                          <th className="px-3 py-2 text-right">Total</th>
-                          <th className="px-3 py-2"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {desglose.componentes.map((c) => {
-                          const editVal = editandoCostos[c.nombre];
-                          const isEditing = editVal !== undefined;
-                          return (
-                            <tr key={c.nombre} className={`border-b border-border/50 last:border-0 ${!c.costo_conocido ? "bg-orange-50/40 dark:bg-orange-900/10" : ""}`}>
-                              <td className="px-3 py-1.5 text-ink-secondary max-w-[180px] truncate">{c.nombre}</td>
-                              <td className="px-3 py-1.5 text-center">
-                                <span className="text-[10px] text-muted">{CATEGORIA_LABELS[c.categoria] ?? c.categoria}</span>
-                              </td>
-                              <td className="px-3 py-1.5 text-right font-mono text-muted">×{c.cantidad}</td>
-                              <td className="px-3 py-1.5 text-right">
-                                {isEditing ? (
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="50"
-                                    value={editVal}
-                                    onChange={(e) => setEditandoCostos((prev) => ({ ...prev, [c.nombre]: e.target.value }))}
-                                    className="w-20 rounded border border-accent bg-surface px-1 py-0.5 text-right text-ink outline-none"
-                                    autoFocus
-                                  />
-                                ) : (
-                                  <span className={c.costo_conocido ? "font-mono text-ink" : "text-orange-500"}>
-                                    {c.costo_conocido ? cop(c.costo_unit) : "—"}
-                                  </span>
+      {loading && (
+        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          Cargando productos Siigo…
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      {!loading && productosFiltrados.length === 0 && !error && (
+        <p className="py-10 text-center text-sm text-muted">
+          {busqueda ? "Sin resultados para esa búsqueda." : "No hay productos combo en Siigo."}
+        </p>
+      )}
+
+      {!loading && productosFiltrados.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-border bg-surface-panel">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-surface-hover">
+              <tr>
+                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Código</th>
+                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Producto</th>
+                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio</th>
+                <th className="px-4 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-muted">Comp.</th>
+                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Costo total</th>
+                <th className="w-8 px-2 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {productosFiltrados.map((p) => {
+                const isExpanded = expandidos.has(p.code);
+                const isLoadingThis = loadingDesgloses.has(p.code);
+                const desglose = desgloses[p.code];
+                const sinCosto = desglose?.totales.componentes_sin_costo ?? null;
+                const costoTotal = desglose
+                  ? desglose.totales.costo_materiales + desglose.totales.costo_envase +
+                    desglose.totales.costo_etiqueta + desglose.totales.otros_costos
+                  : null;
+
+                return (
+                  <Fragment key={p.code}>
+                    <tr
+                      onClick={() => void toggleExpandir(p)}
+                      className={`cursor-pointer border-b border-border/50 transition-colors hover:bg-surface-hover ${isExpanded ? "bg-surface-hover/60" : ""}`}
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-muted">{p.code}</td>
+                      <td className="px-4 py-3 font-medium text-ink">
+                        <div className="max-w-[260px] truncate">{p.name}</div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-ink">{cop(p.precio_lista)}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] font-semibold text-muted">
+                          {p.components.length}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {isLoadingThis ? (
+                          <div className="flex justify-end">
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                          </div>
+                        ) : costoTotal != null ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="font-mono text-ink">{cop(costoTotal)}</span>
+                            {sinCosto != null && sinCosto > 0 && (
+                              <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                                {sinCosto} sin costo
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted">—</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-3 text-center text-muted">
+                        <span className={`text-sm transition-transform inline-block ${isExpanded ? "rotate-180" : ""}`}>▾</span>
+                      </td>
+                    </tr>
+
+                    {isExpanded && isLoadingThis && (
+                      <tr className="border-b border-border/50">
+                        <td colSpan={6} className="px-4 py-3 text-center text-xs text-muted">
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                            Cargando componentes…
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {isExpanded && desglose && (
+                      <tr className="border-b border-border/50">
+                        <td colSpan={6} className="px-4 pb-4 pt-2">
+                          <div className="overflow-hidden rounded-lg border border-border">
+                            <table className="w-full text-xs">
+                              <thead className="border-b border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wide text-muted">
+                                <tr>
+                                  <th className="px-3 py-2 text-left">Componente</th>
+                                  <th className="px-3 py-2 text-center">Categoría</th>
+                                  <th className="px-3 py-2 text-right">Cant.</th>
+                                  <th className="px-3 py-2 text-right">Costo unit.</th>
+                                  <th className="px-3 py-2 text-right">Total</th>
+                                  <th className="px-3 py-2 text-center">Fuente</th>
+                                  <th className="px-3 py-2 w-16"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {desglose.componentes.map((c) => {
+                                  const key = `${p.code}::${c.nombre}`;
+                                  const editVal = editandoCostos[key];
+                                  const isEditing = editVal !== undefined;
+                                  return (
+                                    <tr key={c.nombre} className={`border-b border-border/40 last:border-0 ${!c.costo_conocido ? "bg-orange-50/40 dark:bg-orange-900/10" : ""}`}>
+                                      <td className="px-3 py-1.5 max-w-[200px] truncate text-ink-secondary" title={c.nombre}>{c.nombre}</td>
+                                      <td className="px-3 py-1.5 text-center text-muted">{CATEGORIA_LABELS[c.categoria] ?? c.categoria}</td>
+                                      <td className="px-3 py-1.5 text-right font-mono text-muted">×{c.cantidad}</td>
+                                      <td className="px-3 py-1.5 text-right">
+                                        {isEditing ? (
+                                          <input type="number" min="0" step="50" value={editVal}
+                                            onChange={(e) => setEditandoCostos((prev) => ({ ...prev, [key]: e.target.value }))}
+                                            className="w-20 rounded border border-accent bg-surface px-1 py-0.5 text-right text-ink outline-none"
+                                            autoFocus />
+                                        ) : (
+                                          <span className={c.costo_conocido ? "font-mono text-ink" : "text-orange-500"}>
+                                            {c.costo_conocido ? cop(c.costo_unit) : "—"}
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-1.5 text-right font-mono text-ink">
+                                        {c.costo_conocido ? cop(c.costo_total) : "—"}
+                                      </td>
+                                      <td className="px-3 py-1.5 text-center">
+                                        {c.fuente === "siigo" ? (
+                                          <span title={c.fecha_compra ? `Última compra: ${c.fecha_compra}` : "Facturas Siigo"}
+                                            className="rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-default">
+                                            Siigo
+                                          </span>
+                                        ) : c.fuente === "manual" ? (
+                                          <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 cursor-default">
+                                            Manual
+                                          </span>
+                                        ) : c.costo_conocido ? (
+                                          <span className="text-[9px] text-muted">—</span>
+                                        ) : (
+                                          <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 cursor-default">
+                                            Sin costo
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-1.5 text-right">
+                                        {isEditing ? (
+                                          <div className="flex justify-end gap-1">
+                                            <button type="button"
+                                              onClick={() => void guardarCostoComponente(c.nombre, c.categoria, editVal, p.code)}
+                                              disabled={guardandoCostos[key]}
+                                              className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-50">
+                                              {guardandoCostos[key] ? "…" : "OK"}
+                                            </button>
+                                            <button type="button"
+                                              onClick={() => setEditandoCostos((prev) => { const n = { ...prev }; delete n[key]; return n; })}
+                                              className="rounded border border-border px-2 py-0.5 text-[10px] text-muted">×</button>
+                                          </div>
+                                        ) : (
+                                          <button type="button"
+                                            onClick={() => setEditandoCostos((prev) => ({ ...prev, [key]: String(c.costo_unit) }))}
+                                            className="text-[10px] text-accent hover:underline">
+                                            {c.costo_conocido ? "Editar" : "Ingresar"}
+                                          </button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                            <div className="flex flex-wrap gap-4 border-t border-border bg-surface-hover px-3 py-2 text-[11px]">
+                              {[
+                                { label: "Materias primas", val: desglose.totales.costo_materiales },
+                                { label: "Envase", val: desglose.totales.costo_envase },
+                                { label: "Etiqueta", val: desglose.totales.costo_etiqueta },
+                                { label: "Otros", val: desglose.totales.otros_costos },
+                              ].map((item) => (
+                                <span key={item.label} className="text-muted">
+                                  {item.label}: <span className="font-semibold text-ink">{cop(item.val)}</span>
+                                </span>
+                              ))}
+                              <span className="ml-auto font-bold text-ink">
+                                Total: {cop(
+                                  desglose.totales.costo_materiales + desglose.totales.costo_envase +
+                                  desglose.totales.costo_etiqueta + desglose.totales.otros_costos
                                 )}
-                              </td>
-                              <td className="px-3 py-1.5 text-right font-mono text-ink">
-                                {c.costo_conocido ? cop(c.costo_total) : "—"}
-                              </td>
-                              <td className="px-3 py-1.5 text-right">
-                                {isEditing ? (
-                                  <div className="flex gap-1 justify-end">
-                                    <button
-                                      type="button"
-                                      onClick={() => void guardarCostoComponente(c.nombre, c.categoria, editVal)}
-                                      disabled={guardandoCostos[c.nombre]}
-                                      className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
-                                    >
-                                      {guardandoCostos[c.nombre] ? "…" : "Guardar"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditandoCostos((prev) => { const n = { ...prev }; delete n[c.nombre]; return n; })}
-                                      className="rounded border border-border px-2 py-0.5 text-[10px] text-muted"
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditandoCostos((prev) => ({ ...prev, [c.nombre]: String(c.costo_unit) }))}
-                                    className="text-[10px] text-accent hover:underline"
-                                  >
-                                    {c.costo_conocido ? "Editar" : "Ingresar"}
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Campos de costos */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <CampoMoneda label="Costo materias primas" hint="Materia prima e insumos del combo" value={costoMateriales} onChange={setCostoMateriales} />
-            <CampoMoneda label="Costo nómina por unidad" hint="Fracción del costo laboral asignado a esta unidad" value={costoNomina} onChange={setCostoNomina} />
-            <CampoMoneda label="Costo envase" hint="Frasco, bolsa, doypack, etc." value={costoEnvase} onChange={setCostoEnvase} />
-            <CampoMoneda label="Costo etiqueta" hint="Impresión + papel de etiqueta" value={costoEtiqueta} onChange={setCostoEtiqueta} />
-            <CampoMoneda label="Otros costos operativos" hint="Empaque, flejes, envío interno, etc." value={otrosCostos} onChange={setOtrosCostos} />
-            <CampoPorcentaje label="Comisión canal (%)" hint="MeLi: 16.5 · Web directa: 0 · Distribuidor: varía" value={comisionPct} onChange={setComisionPct} />
-            <CampoPorcentaje label="Margen neto objetivo (%)" hint="Opcional — calcula precio sugerido automáticamente" value={margenObjetivo} onChange={setMargenObjetivo} />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => void calcular()}
-              disabled={calculando}
-              className="rounded-paper border-2 border-accent bg-accent px-5 py-2.5 text-sm font-bold text-white shadow-[0_3px_0_#045159] transition hover:bg-accent/90 active:translate-y-0.5 disabled:opacity-40"
-            >
-              {calculando ? "Calculando…" : "Calcular rentabilidad"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void guardarConfig()}
-              disabled={guardando}
-              className="rounded-paper border-2 border-border px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-accent hover:text-accent disabled:opacity-40"
-            >
-              {guardando ? "Guardando…" : "Guardar costos"}
-            </button>
-            {guardadoOk && (
-              <span className="text-xs font-semibold text-green-600 dark:text-green-400">Costos guardados ✓</span>
-            )}
-          </div>
-
-          {resultado && <ResultadoCard r={resultado} />}
-        </>
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
@@ -713,13 +682,31 @@ function FormEmpleado({
   onGuardar: (data: Partial<Empleado>) => Promise<void>;
   onCancelar: () => void;
 }) {
+  const [usuariosApp, setUsuariosApp] = useState<UsuarioApp[]>([]);
+  const [usuarioId, setUsuarioId] = useState<number | null>(inicial?.usuario_id ?? null);
   const [nombre, setNombre] = useState(inicial?.nombre ?? "");
   const [cargo, setCargo] = useState(inicial?.cargo ?? "");
   const [tipoContrato, setTipoContrato] = useState(inicial?.tipo_contrato ?? "fijo");
   const [sueldo, setSueldo] = useState(String(inicial?.sueldo_mensual ?? ""));
-  const [fechaIngreso, setFechaIngreso] = useState(inicial?.fecha_ingreso ?? "");
+  const [diaPago, setDiaPago] = useState(String(inicial?.dia_pago ?? ""));
+  const [telefonoWa, setTelefonoWa] = useState(inicial?.telefono_wa ?? "");
   const [notas, setNotas] = useState(inicial?.notas ?? "");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get<{ usuarios: UsuarioApp[] }>("/api/nomina/usuarios-app")
+      .then((d) => setUsuariosApp(d.usuarios ?? []))
+      .catch(() => {});
+  }, []);
+
+  const seleccionarUsuario = (id: number | null) => {
+    setUsuarioId(id);
+    if (!id) return;
+    const u = usuariosApp.find((x) => x.id === id);
+    if (!u) return;
+    if (!nombre.trim()) setNombre(u.nombre);
+    if (!telefonoWa.trim() && u.telefono) setTelefonoWa(u.telefono);
+  };
 
   const handleSubmit = async () => {
     if (!nombre.trim()) return;
@@ -732,7 +719,9 @@ function FormEmpleado({
         tipo_contrato: tipoContrato,
         sueldo_mensual: parseFloat(sueldo) || 0,
         activo: inicial?.activo ?? 1,
-        fecha_ingreso: fechaIngreso || null,
+        usuario_id: usuarioId,
+        dia_pago: diaPago ? parseInt(diaPago) : null,
+        telefono_wa: telefonoWa.trim(),
         notas,
       });
     } finally {
@@ -740,23 +729,45 @@ function FormEmpleado({
     }
   };
 
+  const INPUT = "w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition";
+
   return (
-    <div className="rounded-xl border-2 border-accent/30 bg-surface-panel p-4 space-y-3">
+    <div className="rounded-xl border-2 border-accent/30 bg-surface-panel p-4 space-y-4">
+      {/* Vincular a usuario de la app */}
+      <div className="space-y-1">
+        <label className="block text-xs font-semibold text-ink-secondary">
+          Vincular a usuario del panel
+          <span className="ml-1 font-normal text-muted">(opcional)</span>
+        </label>
+        <select
+          value={usuarioId ?? ""}
+          onChange={(e) => seleccionarUsuario(e.target.value ? parseInt(e.target.value) : null)}
+          className={INPUT}
+        >
+          <option value="">— Sin vincular —</option>
+          {usuariosApp.map((u) => (
+            <option key={u.id} value={u.id}>{u.nombre}{u.email ? ` (${u.email})` : ""}</option>
+          ))}
+        </select>
+        {usuarioId && usuariosApp.find((u) => u.id === usuarioId) && (
+          <p className="text-[11px] text-muted">
+            Vinculado a {usuariosApp.find((u) => u.id === usuarioId)!.nombre}
+          </p>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1">
           <label className="block text-xs font-semibold text-ink-secondary">Nombre *</label>
-          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre completo"
-            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition" />
+          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre completo" className={INPUT} />
         </div>
         <div className="space-y-1">
           <label className="block text-xs font-semibold text-ink-secondary">Cargo</label>
-          <input value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="Cargo o rol"
-            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition" />
+          <input value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="Cargo o rol" className={INPUT} />
         </div>
         <div className="space-y-1">
           <label className="block text-xs font-semibold text-ink-secondary">Tipo contrato</label>
-          <select value={tipoContrato} onChange={(e) => setTipoContrato(e.target.value)}
-            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition">
+          <select value={tipoContrato} onChange={(e) => setTipoContrato(e.target.value)} className={INPUT}>
             <option value="fijo">Fijo</option>
             <option value="servicios">Servicios</option>
             <option value="aprendiz">Aprendiz</option>
@@ -770,17 +781,37 @@ function FormEmpleado({
               placeholder="0" className="flex-1 bg-transparent py-2 pr-2 text-sm text-ink outline-none" />
           </div>
         </div>
+
+        {/* Día de pago */}
         <div className="space-y-1">
-          <label className="block text-xs font-semibold text-ink-secondary">Fecha ingreso</label>
-          <input type="date" value={fechaIngreso} onChange={(e) => setFechaIngreso(e.target.value)}
-            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition" />
+          <label className="block text-xs font-semibold text-ink-secondary">
+            Día de pago del mes
+            <span className="ml-1 font-normal text-muted">(para recordatorio)</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <input type="number" min="1" max="31" value={diaPago} onChange={(e) => setDiaPago(e.target.value)}
+              placeholder="Ej: 25"
+              className="w-24 rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition" />
+            <span className="text-xs text-muted">de cada mes</span>
+          </div>
         </div>
+
+        {/* WhatsApp para recordatorio */}
         <div className="space-y-1">
+          <label className="block text-xs font-semibold text-ink-secondary">
+            WhatsApp para recordatorio
+          </label>
+          <input value={telefonoWa} onChange={(e) => setTelefonoWa(e.target.value)}
+            placeholder="57300…" className={INPUT} />
+          <p className="text-[11px] text-muted">Número con código de país, sin +</p>
+        </div>
+
+        <div className="space-y-1 sm:col-span-2">
           <label className="block text-xs font-semibold text-ink-secondary">Notas</label>
-          <input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Opcional"
-            className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition" />
+          <input value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Opcional" className={INPUT} />
         </div>
       </div>
+
       <div className="flex gap-2">
         <button type="button" onClick={() => void handleSubmit()} disabled={saving || !nombre.trim()}
           className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-40">
@@ -802,6 +833,8 @@ function TabNomina() {
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Empleado | null>(null);
   const [unidadesMes, setUnidadesMes] = useState("100");
+  const [enviando, setEnviando] = useState<Record<number, boolean>>({});
+  const [enviado, setEnviado] = useState<Record<number, boolean>>({});
 
   const cargar = useCallback(async () => {
     setLoading(true);
@@ -812,11 +845,8 @@ function TabNomina() {
       ]);
       setEmpleados(empData.empleados ?? []);
       setResumen(resData);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { void cargar(); }, [cargar]);
@@ -832,6 +862,19 @@ function TabNomina() {
     if (!confirm("¿Desactivar este empleado?")) return;
     await api.delete(`/api/nomina/empleados/${id}`);
     void cargar();
+  };
+
+  const enviarRecordatorio = async (id: number) => {
+    setEnviando((p) => ({ ...p, [id]: true }));
+    try {
+      await api.post(`/api/nomina/empleados/${id}/recordatorio`, {});
+      setEnviado((p) => ({ ...p, [id]: true }));
+      setTimeout(() => setEnviado((p) => ({ ...p, [id]: false })), 4000);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setEnviando((p) => ({ ...p, [id]: false }));
+    }
   };
 
   const costoPorUnidad = resumen && parseFloat(unidadesMes) > 0
@@ -877,7 +920,9 @@ function TabNomina() {
       )}
 
       {loading && <p className="text-sm text-muted">Cargando…</p>}
-      {!loading && empleados.length === 0 && <p className="text-sm text-muted">No hay empleados registrados.</p>}
+      {!loading && empleados.length === 0 && (
+        <p className="text-sm text-muted">No hay empleados registrados.</p>
+      )}
 
       {empleados.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-border bg-surface-panel">
@@ -885,10 +930,9 @@ function TabNomina() {
             <thead className="border-b border-border bg-surface-hover text-[11px] font-bold uppercase tracking-wide text-muted">
               <tr>
                 <th className="px-4 py-2.5 text-left">Nombre</th>
-                <th className="px-4 py-2.5 text-left">Cargo</th>
-                <th className="px-4 py-2.5 text-left">Contrato</th>
+                <th className="px-4 py-2.5 text-left hidden sm:table-cell">Cargo · Contrato</th>
                 <th className="px-4 py-2.5 text-right">Sueldo</th>
-                <th className="px-4 py-2.5 text-center">Estado</th>
+                <th className="px-4 py-2.5 text-center">Pago</th>
                 <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
@@ -896,26 +940,51 @@ function TabNomina() {
               {empleados.map((e) =>
                 editando?.id === e.id ? (
                   <tr key={e.id} className="border-b border-border/50">
-                    <td colSpan={6} className="px-4 py-3">
+                    <td colSpan={5} className="px-4 py-3">
                       <FormEmpleado inicial={e} onGuardar={guardarEmpleado} onCancelar={() => setEditando(null)} />
                     </td>
                   </tr>
                 ) : (
                   <tr key={e.id} className={`border-b border-border/50 last:border-0 ${!e.activo ? "opacity-50" : ""}`}>
-                    <td className="px-4 py-2.5 font-medium text-ink">{e.nombre}</td>
-                    <td className="px-4 py-2.5 text-ink-secondary text-xs">{e.cargo || "—"}</td>
-                    <td className="px-4 py-2.5 text-xs text-muted">{CONTRATO_LABELS[e.tipo_contrato] ?? e.tipo_contrato}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium text-ink">{e.nombre}</div>
+                      {e.telefono_wa && (
+                        <div className="text-[11px] text-muted font-mono">{e.telefono_wa}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 hidden sm:table-cell">
+                      <div className="text-xs text-ink-secondary">{e.cargo || "—"}</div>
+                      <div className="text-[11px] text-muted">{CONTRATO_LABELS[e.tipo_contrato] ?? e.tipo_contrato}</div>
+                    </td>
                     <td className="px-4 py-2.5 text-right font-mono text-sm text-ink">{cop(e.sueldo_mensual)}</td>
                     <td className="px-4 py-2.5 text-center">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${e.activo ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-surface-hover text-muted"}`}>
-                        {e.activo ? "Activo" : "Inactivo"}
-                      </span>
+                      {e.dia_pago ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                            día {e.dia_pago}
+                          </span>
+                          {Boolean(e.activo) && e.telefono_wa && (
+                            <button
+                              type="button"
+                              onClick={() => void enviarRecordatorio(e.id)}
+                              disabled={enviando[e.id]}
+                              className="text-[10px] font-semibold text-green-600 hover:underline disabled:opacity-50 dark:text-green-400"
+                            >
+                              {enviado[e.id] ? "Enviado ✓" : enviando[e.id] ? "…" : "Recordatorio WA"}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-muted">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex gap-2 justify-end">
-                        <button type="button" onClick={() => setEditando(e)} className="text-xs text-accent hover:underline">Editar</button>
+                        <button type="button" onClick={() => { setEditando(e); setShowForm(false); }}
+                          className="text-xs text-accent hover:underline">Editar</button>
                         {Boolean(e.activo) && (
-                          <button type="button" onClick={() => void eliminar(e.id)} className="text-xs text-red-500 hover:underline">Desactivar</button>
+                          <button type="button" onClick={() => void eliminar(e.id)}
+                            className="text-xs text-red-500 hover:underline">Desactivar</button>
                         )}
                       </div>
                     </td>
@@ -1384,13 +1453,13 @@ function TabPeriodo() {
 
 // ─── Panel principal ──────────────────────────────────────────────────────────
 
-type Tab = "calculadora" | "nomina" | "servicios" | "periodo";
+type Tab = "combos" | "nomina" | "servicios" | "periodo";
 
 export default function RentabilidadPanel() {
-  const [tab, setTab] = useState<Tab>("calculadora");
+  const [tab, setTab] = useState<Tab>("combos");
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "calculadora", label: "Calculadora" },
+    { id: "combos", label: "Combos Siigo" },
     { id: "nomina", label: "Nómina" },
     { id: "servicios", label: "Servicios" },
     { id: "periodo", label: "Análisis de período" },
@@ -1420,7 +1489,7 @@ export default function RentabilidadPanel() {
         ))}
       </div>
 
-      {tab === "calculadora" && <TabCalculadora />}
+      {tab === "combos" && <TabCombos />}
       {tab === "nomina" && <TabNomina />}
       {tab === "servicios" && <TabServicios />}
       {tab === "periodo" && <TabPeriodo />}

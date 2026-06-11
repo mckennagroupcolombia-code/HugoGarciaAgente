@@ -78,6 +78,18 @@ def init_db() -> None:
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
         """)
+    # Migración: columnas añadidas después del schema inicial
+    _migraciones = [
+        "ALTER TABLE empleados ADD COLUMN usuario_id INTEGER DEFAULT NULL",
+        "ALTER TABLE empleados ADD COLUMN dia_pago INTEGER DEFAULT NULL",
+        "ALTER TABLE empleados ADD COLUMN telefono_wa TEXT DEFAULT ''",
+    ]
+    with _conn() as con:
+        for sql in _migraciones:
+            try:
+                con.execute(sql)
+            except Exception:
+                pass  # columna ya existe
     _initialized = True
 
 
@@ -146,12 +158,23 @@ def upsert_empleado(data: dict) -> dict:
     _ensure()
     emp_id = data.get("id")
     now = datetime.now().isoformat()
+    dia_pago = data.get("dia_pago")
+    if dia_pago is not None:
+        try:
+            dia_pago = int(dia_pago)
+            if not 1 <= dia_pago <= 31:
+                dia_pago = None
+        except (TypeError, ValueError):
+            dia_pago = None
+    usuario_id = data.get("usuario_id") or None
+    telefono_wa = (data.get("telefono_wa") or "").strip()
     with _conn() as con:
         if emp_id:
             con.execute(
                 """UPDATE empleados SET
                      nombre = ?, cargo = ?, tipo_contrato = ?,
-                     sueldo_mensual = ?, activo = ?, fecha_ingreso = ?, notas = ?
+                     sueldo_mensual = ?, activo = ?, notas = ?,
+                     usuario_id = ?, dia_pago = ?, telefono_wa = ?
                    WHERE id = ?""",
                 (
                     data.get("nombre", ""),
@@ -159,8 +182,10 @@ def upsert_empleado(data: dict) -> dict:
                     data.get("tipo_contrato", "fijo"),
                     float(data.get("sueldo_mensual") or 0),
                     1 if data.get("activo", True) else 0,
-                    data.get("fecha_ingreso"),
                     data.get("notas", ""),
+                    usuario_id,
+                    dia_pago,
+                    telefono_wa,
                     emp_id,
                 ),
             )
@@ -168,16 +193,18 @@ def upsert_empleado(data: dict) -> dict:
         else:
             cur = con.execute(
                 """INSERT INTO empleados (nombre, cargo, tipo_contrato, sueldo_mensual,
-                     activo, fecha_ingreso, notas, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                     activo, notas, usuario_id, dia_pago, telefono_wa, created_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     data.get("nombre", ""),
                     data.get("cargo", ""),
                     data.get("tipo_contrato", "fijo"),
                     float(data.get("sueldo_mensual") or 0),
                     1 if data.get("activo", True) else 0,
-                    data.get("fecha_ingreso"),
                     data.get("notas", ""),
+                    usuario_id,
+                    dia_pago,
+                    telefono_wa,
                     now,
                 ),
             )
