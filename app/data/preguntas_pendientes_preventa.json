@@ -694,6 +694,24 @@
       "pregunta": "Hola!! estos cambian de color con la humedad??",
       "timestamp": "2026-06-09T19:28:44.792774",
       "respondida": true
+    },
+    {
+      "question_id": "13600810527",
+      "titulo_producto": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+      "pregunta": "Tengo varias verrugas en el cuello y manchas de acné en diferentes partes del cuerpo. Quita manchas y verrugas?",
+      "timestamp": "2026-06-11T00:27:48.042565",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro con su duda.\n\nNuestro Ácido Salicílico al 20% sí está indicado para el tratamiento de verrugas, ya que ayuda a disolver las capas externas de la piel afectada. Se recomienda aplicar una pequeña cantidad directamente sobre la verruga una vez al día, preferiblemente por la noche, evitando el contacto con la piel sana de alrededor.\n\nEn cuanto a las manchas de acné, es importante considerar que nuestro producto tiene una alta concentración. Para el cuidado general de la piel, como el tratamiento del acné o la mejora de la textura, las concentraciones habituales son mucho más bajas, entre el 0,5% y el 2%. Por esta razón, el uso recomendado para nuestro producto es específicamente para las verrugas.\n\nSi tiene alguna otra pregunta sobre el producto, ¡quedamos atentos para ayudarle",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-06-11"
+    },
+    {
+      "question_id": "13601573356",
+      "titulo_producto": "Ácido Salicílico 20% 30 Ml Todo Tipo De Piel",
+      "pregunta": "Con que podría disolver el ácido para quitarme las manchas? O tienen otro producto para manchas",
+      "timestamp": "2026-06-11T01:28:08.643463",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro con su duda.\n\nEs muy importante tener en cuenta la concentración de nuestro producto. Para el cuidado de la piel y el tratamiento de manchas o acné, las concentraciones recomendadas suelen ser mucho más bajas (entre 0.5% y 2%). Por esta razón, no recomendamos disolver o mezclar nuestro ácido salicílico en otros productos para este fin.\n\nDebido a su alta concentración del 20%, el uso indicado para nuestro Ácido Salicílico es específicamente para el tratamiento localizado de verrugas. La recomendación es aplicar una pequeña cantidad directamente sobre la verruga, evitando el contacto con la piel sana de alrededor.\n\n¡Quedamos atentos si tiene alguna otra pregunta sobre nuestro producto",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-06-11"
     }
   ]
 }
