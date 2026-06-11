@@ -360,7 +360,8 @@ function TabEnviarVoz() {
     try {
       const d = await api.post<{ status?: string; bytes?: number; error?: string }>(
         "/api/supervisor/bridge/enviar-voz",
-        { numero: numeroEfectivo, texto: texto.trim() }
+        { numero: numeroEfectivo, texto: texto.trim() },
+        { timeoutMs: 360_000 },
       );
       if (d.status === "enviado") {
         setResult({ ok: true, msg: `✅ Nota de voz enviada a ${etiquetaDestino}` });

@@ -45,13 +45,6 @@ const MANUAL_ACTIONS: ActionDef[] = [
     icon: "🤖",
   },
   {
-    id: "gmail",
-    label: "Facturas Gmail",
-    description: "Escanear facturas de compra",
-    endpoint: "/api/sync/gmail",
-    icon: "✉️",
-  },
-  {
     id: "skus-meli",
     label: "Sincronizar SKUs",
     description: "Actualizar SKUs MeLi → Google Sheets",

@@ -401,6 +401,26 @@ def aplicar_modo_en_relacionados(
             ]
 
 
+def jid_preferido_para_envio(numero_o_jid: str) -> str:
+    """JID preferido para envío saliente: @lid si hay alias, si no @c.us / @g.us."""
+    s = str(numero_o_jid or "").strip()
+    if not s:
+        return s
+    if s.endswith("@lid") or s.endswith("@g.us"):
+        return s
+    if s.endswith("@c.us"):
+        digits = digitos_jid(s)
+    else:
+        digits = re.sub(r"\D", "", s)
+    if len(digits) > 15:
+        return f"{digits}@g.us"
+    phone = f"{digits}@c.us"
+    for lid, ph in _aliases_seguros().items():
+        if ph == phone and not es_telefono_negocio(ph):
+            return lid
+    return phone
+
+
 def limpiar_jids_falsos_en_modos(modos: dict) -> bool:
     """
     Quita entradas 123456789012@c.us generadas por error al normalizar un @lid.

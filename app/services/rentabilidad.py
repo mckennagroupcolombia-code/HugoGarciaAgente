@@ -1,23 +1,39 @@
 """
-Servicio de Rentabilidad: cálculos de costos reales y márgenes por producto.
+Rentabilidad: costos reales desde facturas de compra Siigo + cálculos de margen.
 
-Fuentes de datos:
-  - Siigo combos: lista de componentes (materias primas, envases, etiquetas, operativos)
-  - Siigo facturas de venta: ingresos reales por período
-  - Configuración manual por producto: costos guardados localmente
+Flujo de costos por componente:
+  1. Catálogo de productos Siigo  → normalized_name → code
+  2. Facturas de compra Siigo     → code → precio_unitario_más_reciente
+  3. Combo components             → nombre → precio_unitario × cantidad
+  4. Fallback: registro manual en contabilidad.db
 """
 
 import json
 import os
-from datetime import datetime
+import re
+import time
+import unicodedata
+from datetime import datetime, timedelta
 
 _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "rentabilidad_config.json")
+_CACHE_PATH  = os.path.join(os.path.dirname(__file__), "..", "data", "siigo_costos_cache.json")
+_CACHE_TTL   = 24 * 3600  # 24 horas
 
 COMISION_MELI_DEFAULT = 0.165
 IVA_DEFAULT = 0.19
 
 
-# ─── Persistencia de configuración de costos ────────────────────────────────
+# ─── Normalización de nombres ─────────────────────────────────────────────────
+
+def _norm(texto: str) -> str:
+    t = (texto or "").strip().lower()
+    t = unicodedata.normalize("NFD", t)
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    t = re.sub(r"[^a-z0-9\s\.]", " ", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+# ─── Configuración manual por combo ──────────────────────────────────────────
 
 def _cargar_configs() -> dict:
     try:
@@ -43,59 +59,325 @@ def cargar_config_producto(codigo: str) -> dict | None:
     return _cargar_configs().get(codigo.strip().upper())
 
 
-# ─── Productos ───────────────────────────────────────────────────────────────
+# ─── Catálogo de costos (productos + facturas de compra Siigo) ────────────────
 
-def listar_productos_rentabilidad() -> tuple[list, str | None]:
-    """Devuelve combos Siigo con componentes, precios e IVA para la calculadora."""
-    from app.services.siigo import listar_productos_combo_siigo, _precio_lista_siigo_producto
+def _cargar_cache_costos() -> dict | None:
+    try:
+        with open(_CACHE_PATH, encoding="utf-8") as f:
+            cache = json.load(f)
+        if time.time() - float(cache.get("ts", 0)) < _CACHE_TTL:
+            return cache
+    except (FileNotFoundError, json.JSONDecodeError, ValueError):
+        pass
+    return None
+
+
+def _guardar_cache_costos(cache: dict) -> None:
+    cache["ts"] = time.time()
+    os.makedirs(os.path.dirname(os.path.abspath(_CACHE_PATH)), exist_ok=True)
+    with open(_CACHE_PATH, "w", encoding="utf-8") as f:
+        json.dump(cache, f, ensure_ascii=False)
+
+
+def construir_catalogo_costos(forzar: bool = False) -> dict:
+    """
+    Construye (y cachea 24 h) un índice de costos por componente cruzando:
+      - Catálogo de productos Siigo: normalized_name → code
+      - Facturas de compra Siigo:    code → {precio, fecha, descripcion}
+    """
+    if not forzar:
+        cache = _cargar_cache_costos()
+        if cache:
+            return cache
+
+    from app.services.siigo import autenticar_siigo, PARTNER_ID
+    import requests
+
+    token = autenticar_siigo()
+    if not token:
+        return {}
+
+    headers = {"Authorization": f"Bearer {token}", "Partner-Id": PARTNER_ID}
+
+    # ── Paso 1: catálogo completo de productos → nombre_norm → code ──────────
+    nombre_a_codigo: dict[str, str] = {}
+    codigo_a_nombre: dict[str, str] = {}
+    codigo_a_producto: dict[str, dict] = {}
+
+    for page in range(1, 300):
+        try:
+            res = requests.get(
+                "https://api.siigo.com/v1/products",
+                params={"page": page, "page_size": 100, "active": "true"},
+                headers=headers, timeout=25,
+            )
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            break
+        data = res.json()
+        results = data.get("results") or []
+        if not results:
+            break
+        for p in results:
+            code = (p.get("code") or "").strip()
+            name = (p.get("name") or "").strip()
+            if code and name:
+                nombre_a_codigo[_norm(name)] = code
+                codigo_a_nombre[code] = name
+                unit_cost = 0.0
+                for wh in (p.get("warehouses") or []):
+                    uc = wh.get("unit_cost")
+                    if uc is not None and float(uc) > 0:
+                        unit_cost = float(uc)
+                        break
+                from app.services.siigo import _precio_lista_siigo_producto
+                codigo_a_producto[code] = {
+                    "nombre": name,
+                    "unit_cost": unit_cost,
+                    "precio_lista": _precio_lista_siigo_producto(p),
+                }
+        pag = data.get("pagination") or {}
+        total = int(pag.get("total_results") or 0)
+        if total and page * 100 >= total:
+            break
+        if len(results) < 100:
+            break
+
+    # ── Paso 2: facturas de compra → code → precio más reciente ──────────────
+    fecha_inicio = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+    codigo_a_precio: dict[str, dict] = {}
+
+    for page in range(1, 200):
+        try:
+            res = requests.get(
+                "https://api.siigo.com/v1/purchases",
+                params={"date_start": fecha_inicio, "page": page, "page_size": 100},
+                headers=headers, timeout=25,
+            )
+        except requests.RequestException:
+            break
+        if res.status_code != 200:
+            break
+        data = res.json()
+        results = data.get("results") or []
+        if not results:
+            break
+        for factura in results:
+            fecha_f = (factura.get("date") or "")[:10]
+            for item in (factura.get("items") or []):
+                if item.get("type") != "Product":
+                    continue
+                code = (item.get("code") or "").strip()
+                precio = float(item.get("price") or 0)
+                if not code or precio <= 0:
+                    continue
+                existente = codigo_a_precio.get(code)
+                if not existente or fecha_f > existente["fecha"]:
+                    codigo_a_precio[code] = {
+                        "precio": precio,
+                        "fecha": fecha_f,
+                        "descripcion": (item.get("description") or "").strip(),
+                    }
+        pag = data.get("pagination") or {}
+        total = int(pag.get("total_results") or 0)
+        if total and page * 100 >= total:
+            break
+        if len(results) < 100:
+            break
+
+    # ── Paso 3: construir índice final ────────────────────────────────────────
+    por_nombre: dict[str, dict] = {}
+    por_codigo: dict[str, dict] = {}
+
+    for code, precio_data in codigo_a_precio.items():
+        nombre = codigo_a_nombre.get(code, precio_data.get("descripcion", ""))
+        norm_name = _norm(nombre)
+        entry = {
+            "code": code,
+            "nombre": nombre,
+            "precio_compra": precio_data["precio"],
+            "fecha_compra": precio_data["fecha"],
+        }
+        if norm_name:
+            por_nombre[norm_name] = entry
+        por_codigo[code] = entry
+
+    cache = {
+        "nombre_a_codigo": nombre_a_codigo,
+        "por_nombre": por_nombre,
+        "por_codigo": por_codigo,
+        "codigo_a_producto": codigo_a_producto,
+        "productos_total": len(nombre_a_codigo),
+        "con_precio_compra": len(por_codigo),
+    }
+    _guardar_cache_costos(cache)
+    return cache
+
+
+def _buscar_precio_componente(nombre: str, catalogo: dict) -> dict | None:
+    """
+    Busca el precio de compra de un componente en el catálogo.
+    Estrategia: exact → code-lookup → prefix-4-words.
+    """
+    norm_name = _norm(nombre)
+    por_nombre = catalogo.get("por_nombre", {})
+    nombre_a_codigo = catalogo.get("nombre_a_codigo", {})
+    por_codigo = catalogo.get("por_codigo", {})
+
+    # 1. Exact normalized match
+    if norm_name in por_nombre:
+        return por_nombre[norm_name]
+
+    # 2. Name → code → precio
+    code = nombre_a_codigo.get(norm_name)
+    if code and code in por_codigo:
+        return por_codigo[code]
+
+    # 3. Prefix match (4 primeras palabras significativas)
+    palabras = [w for w in norm_name.split() if len(w) >= 2]
+    if len(palabras) >= 3:
+        prefijo = " ".join(palabras[:4])
+        for n, entry in por_nombre.items():
+            if n.startswith(prefijo):
+                return entry
+
+    return None
+
+
+def estado_catalogo() -> dict:
+    """Devuelve metadatos del caché actual sin reconstruirlo."""
+    try:
+        with open(_CACHE_PATH, encoding="utf-8") as f:
+            cache = json.load(f)
+        ts = float(cache.get("ts", 0))
+        edad_h = (time.time() - ts) / 3600
+        return {
+            "existe": True,
+            "productos_total": cache.get("productos_total", 0),
+            "con_precio_compra": cache.get("con_precio_compra", 0),
+            "edad_horas": round(edad_h, 1),
+            "vigente": edad_h < 24,
+            "actualizado": datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M") if ts else None,
+        }
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"existe": False, "vigente": False}
+
+
+def _componente_tiene_costo(nombre: str, catalogo: dict) -> bool:
+    from app.services.contabilidad_db import buscar_componente
+
+    if _buscar_precio_componente(nombre, catalogo):
+        return True
+    stored = buscar_componente(nombre)
+    return bool(stored and float(stored.get("costo_unitario") or 0) > 0)
+
+
+def _buscar_precio_autofill(nombre: str, catalogo: dict) -> dict | None:
+    """
+    Fuentes alternativas para componentes de combo (insumos/compras) sin factura de compra:
+      1. unit_cost en bodega Siigo
+      2. precio de lista Siigo (último recurso)
+    """
+    code = catalogo.get("nombre_a_codigo", {}).get(_norm(nombre))
+    if not code:
+        return None
+    meta = catalogo.get("codigo_a_producto", {}).get(code, {})
+    unit_cost = float(meta.get("unit_cost") or 0)
+    if unit_cost > 0:
+        return {"precio": unit_cost, "fuente": "siigo_unit_cost", "code": code}
+    precio_lista = float(meta.get("precio_lista") or 0)
+    if precio_lista > 0:
+        return {"precio": precio_lista, "fuente": "siigo_lista", "code": code}
+    return None
+
+
+def escanear_componentes_sin_costo() -> dict:
+    """
+    Recorre todos los combos (productos de venta) y lista componentes únicos
+    (insumos/compras) que aún no tienen costo asignado.
+    """
+    from app.services.siigo import listar_productos_combo_siigo
 
     try:
-        combos = listar_productos_combo_siigo()
-    except Exception as e:
-        return [], str(e)
+        catalogo = construir_catalogo_costos()
+    except Exception:
+        catalogo = {}
 
-    configs = _cargar_configs()
-    result = []
+    combos = listar_productos_combo_siigo()
+    faltantes: dict[str, dict] = {}
 
-    for c in combos:
-        code = (c.get("code") or "").strip()
-        if not code:
+    for combo in combos:
+        code_combo = (combo.get("code") or "").strip()
+        for comp in (combo.get("components") or []):
+            nombre = (comp.get("name") or "").strip()
+            if not nombre or _componente_tiene_costo(nombre, catalogo):
+                continue
+            norm = _norm(nombre)
+            if norm not in faltantes:
+                propuesta = _buscar_precio_autofill(nombre, catalogo)
+                faltantes[norm] = {
+                    "nombre": nombre,
+                    "code_siigo": catalogo.get("nombre_a_codigo", {}).get(norm),
+                    "categoria": _categorizar(nombre),
+                    "combos_afectados": 0,
+                    "propuesta_costo": propuesta["precio"] if propuesta else None,
+                    "propuesta_fuente": propuesta["fuente"] if propuesta else None,
+                }
+            faltantes[norm]["combos_afectados"] += 1
+
+    items = sorted(faltantes.values(), key=lambda x: (-x["combos_afectados"], x["nombre"]))
+    con_propuesta = [i for i in items if i.get("propuesta_costo")]
+    return {
+        "total_combos": len(combos),
+        "componentes_sin_costo": len(items),
+        "con_propuesta_autofill": len(con_propuesta),
+        "sin_propuesta": len(items) - len(con_propuesta),
+        "componentes": items,
+    }
+
+
+def autocompletar_costos_componentes(dry_run: bool = False) -> dict:
+    """
+    Asigna masivamente costos a componentes de combo sin precio.
+    Guarda en componente_costos (aplica a todos los combos que usen ese insumo).
+    """
+    from app.services.contabilidad_db import upsert_componente
+
+    escaneo = escanear_componentes_sin_costo()
+    asignados: list[dict] = []
+    sin_propuesta: list[str] = []
+
+    for item in escaneo["componentes"]:
+        costo = item.get("propuesta_costo")
+        if not costo or float(costo) <= 0:
+            sin_propuesta.append(item["nombre"])
             continue
+        registro = {
+            "nombre": item["nombre"],
+            "costo_unitario": round(float(costo), 4),
+            "categoria": item["categoria"],
+            "fuente": item["propuesta_fuente"],
+            "code_siigo": item.get("code_siigo"),
+            "combos_afectados": item["combos_afectados"],
+            "aplicado": False,
+        }
+        if not dry_run:
+            upsert_componente(item["nombre"], registro["costo_unitario"], item["categoria"])
+            registro["aplicado"] = True
+        asignados.append(registro)
 
-        precio = _precio_lista_siigo_producto(c)
-
-        iva_pct = 0.0
-        for tax in (c.get("taxes") or []):
-            if (tax.get("type") or "").upper() == "IVA":
-                iva_pct = float(tax.get("percentage") or 0) / 100
-                break
-
-        tax_included = bool(c.get("tax_included", False))
-
-        components = [
-            {
-                "id": comp.get("id"),
-                "name": (comp.get("name") or "").strip(),
-                "quantity": float(comp.get("quantity") or 1),
-            }
-            for comp in (c.get("components") or [])
-        ]
-
-        saved = configs.get(code.upper(), {})
-
-        result.append({
-            "code": code,
-            "name": (c.get("name") or "").strip(),
-            "precio_lista": precio,
-            "iva_pct": iva_pct,
-            "tax_included": tax_included,
-            "components": components,
-            "config_guardada": bool(saved),
-            "costos": saved if saved else None,
-        })
-
-    result.sort(key=lambda x: x["name"])
-    return result, None
+    return {
+        "dry_run": dry_run,
+        "asignados": len(asignados),
+        "sin_propuesta": len(sin_propuesta),
+        "detalle_asignados": asignados,
+        "detalle_sin_propuesta": sin_propuesta[:80],
+        "escaneo": {
+            "total_combos": escaneo["total_combos"],
+            "componentes_sin_costo": escaneo["componentes_sin_costo"],
+        },
+    }
 
 
 # ─── Categorización de componentes ───────────────────────────────────────────
@@ -105,10 +387,10 @@ def _categorizar(nombre: str) -> str:
     if any(k in n for k in ["etiqueta", "label", "sticker", "adhesivo"]):
         return "etiqueta"
     if any(k in n for k in ["env.", "frasco", "botero", "botella", "doypack", "caneca",
-                              "tarro", "pote", "vaso", "gotero", "tubo", "sachet"]):
+                             "tarro", "pote", "vaso", "gotero", "tubo", "sachet"]):
         return "envase"
     if any(k in n for k in ["tapa", "tapón", "tapon", "liner", "dosificadora",
-                              "dispensador", "bomba", "sifon", "spray", "copa dosificadora"]):
+                             "dispensador", "bomba", "sifon", "spray", "copa dosificadora"]):
         return "envase"
     if any(k in n for k in ["vinipel", "burbuja", "bolsa", "cinta", "flejes", "zipper"]):
         return "empaque"
@@ -117,13 +399,29 @@ def _categorizar(nombre: str) -> str:
     return "material"
 
 
+# ─── Desglose de costos por combo ─────────────────────────────────────────────
+
 def combo_costos_desglose(code: str) -> dict:
-    """Busca el combo en Siigo, cruza componentes con costos guardados y devuelve desglose."""
+    """
+    Cruza los componentes del combo con:
+      1. Catálogo de costos Siigo (facturas de compra)
+      2. Registro manual en contabilidad_db (fallback)
+    Devuelve desglose detallado + totales por categoría.
+    """
     from app.services.siigo import listar_productos_combo_siigo, _precio_lista_siigo_producto
     from app.services.contabilidad_db import buscar_componente
 
+    # Intentar cargar el catálogo de costos (usa caché si está vigente)
+    try:
+        catalogo = construir_catalogo_costos()
+    except Exception:
+        catalogo = {}
+
     combos = listar_productos_combo_siigo()
-    combo = next((c for c in combos if (c.get("code") or "").strip().upper() == code.upper()), None)
+    combo = next(
+        (c for c in combos if (c.get("code") or "").strip().upper() == code.upper()),
+        None,
+    )
     if combo is None:
         return {"error": f"Combo '{code}' no encontrado en Siigo"}
 
@@ -149,15 +447,26 @@ def combo_costos_desglose(code: str) -> dict:
         nombre = (comp.get("name") or "").strip()
         cantidad = float(comp.get("quantity") or 1)
         cat = _categorizar(nombre)
-        stored = buscar_componente(nombre)
-        costo_unit = float(stored["costo_unitario"]) if stored else 0.0
+
+        # Fuente 1: facturas de compra Siigo
+        siigo_entry = _buscar_precio_componente(nombre, catalogo) if catalogo else None
+        costo_unit = float(siigo_entry["precio_compra"]) if siigo_entry else 0.0
+        fuente = "siigo" if siigo_entry else None
+        fecha_compra = siigo_entry.get("fecha_compra") if siigo_entry else None
+
+        # Fuente 2: registro manual (fallback)
+        if costo_unit == 0:
+            stored = buscar_componente(nombre)
+            if stored:
+                costo_unit = float(stored["costo_unitario"])
+                fuente = "manual"
+
         costo_total = costo_unit * cantidad
-        conocido = stored is not None
+        conocido = costo_unit > 0
 
         if not conocido:
             sin_costo += 1
 
-        # Acumular en el campo correcto
         if cat == "material":
             totales["costo_materiales"] += costo_total
         elif cat == "envase":
@@ -173,9 +482,11 @@ def combo_costos_desglose(code: str) -> dict:
             "nombre": nombre,
             "cantidad": cantidad,
             "categoria": cat,
-            "costo_unit": costo_unit,
+            "costo_unit": round(costo_unit, 4),
             "costo_total": round(costo_total, 2),
             "costo_conocido": conocido,
+            "fuente": fuente,
+            "fecha_compra": fecha_compra,
         })
 
     totales_rounded = {k: round(v, 2) for k, v in totales.items()}
@@ -190,6 +501,7 @@ def combo_costos_desglose(code: str) -> dict:
         "tax_included": tax_included,
         "componentes": componentes_out,
         "totales": totales_rounded,
+        "catalogo_vigente": bool(catalogo),
     }
 
 
@@ -197,7 +509,6 @@ def combo_costos_desglose(code: str) -> dict:
 
 def enviar_recordatorios_pagos() -> dict:
     """Envía al grupo de contabilidad recordatorios de servicios próximos a vencer."""
-    import os
     from app.services.contabilidad_db import servicios_proximos_vencimiento
     from app.utils import enviar_whatsapp_reporte
 
@@ -224,6 +535,57 @@ def enviar_recordatorios_pagos() -> dict:
     return {"enviados": len(proximos), "servicios": [s["empresa"] for s in proximos]}
 
 
+# ─── Productos ───────────────────────────────────────────────────────────────
+
+def listar_productos_rentabilidad() -> tuple[list, str | None]:
+    """Devuelve combos Siigo con componentes, precios e IVA para la calculadora."""
+    from app.services.siigo import listar_productos_combo_siigo, _precio_lista_siigo_producto
+
+    try:
+        combos = listar_productos_combo_siigo()
+    except Exception as e:
+        return [], str(e)
+
+    configs = _cargar_configs()
+    result = []
+
+    for c in combos:
+        code = (c.get("code") or "").strip()
+        if not code:
+            continue
+
+        precio = _precio_lista_siigo_producto(c)
+        iva_pct = 0.0
+        for tax in (c.get("taxes") or []):
+            if (tax.get("type") or "").upper() == "IVA":
+                iva_pct = float(tax.get("percentage") or 0) / 100
+                break
+
+        tax_included = bool(c.get("tax_included", False))
+        components = [
+            {
+                "id": comp.get("id"),
+                "name": (comp.get("name") or "").strip(),
+                "quantity": float(comp.get("quantity") or 1),
+            }
+            for comp in (c.get("components") or [])
+        ]
+        saved = configs.get(code.upper(), {})
+        result.append({
+            "code": code,
+            "name": (c.get("name") or "").strip(),
+            "precio_lista": precio,
+            "iva_pct": iva_pct,
+            "tax_included": tax_included,
+            "components": components,
+            "config_guardada": bool(saved),
+            "costos": saved if saved else None,
+        })
+
+    result.sort(key=lambda x: x["name"])
+    return result, None
+
+
 # ─── Calculadora ─────────────────────────────────────────────────────────────
 
 def calcular_rentabilidad(
@@ -239,39 +601,28 @@ def calcular_rentabilidad(
     margen_objetivo_pct: float | None = None,
 ) -> dict:
     """Calcula márgenes y utilidades para un producto dado sus costos."""
-
-    # Precio base sin IVA
     if tax_included and iva_pct > 0:
         precio_sin_iva = precio_lista / (1 + iva_pct)
     else:
         precio_sin_iva = precio_lista
 
     iva_valor = precio_lista - precio_sin_iva
-
-    # Costos
     costo_total = costo_materiales + costo_nomina + costo_envase + costo_etiqueta + otros_costos
-
-    # Ingreso tras comisión
     comision_valor = precio_sin_iva * comision_pct
     ingreso_neto = precio_sin_iva - comision_valor
-
-    # Utilidades
     utilidad_bruta = precio_sin_iva - costo_total
     utilidad_neta = ingreso_neto - costo_total
-
-    # Márgenes
     margen_bruto = (utilidad_bruta / precio_sin_iva * 100) if precio_sin_iva > 0 else 0.0
     margen_neto = (utilidad_neta / ingreso_neto * 100) if ingreso_neto > 0 else 0.0
 
-    # Precio sugerido para el margen objetivo
     precio_sugerido = None
     if margen_objetivo_pct is not None and 0 < margen_objetivo_pct < 100:
-        # ingreso_neto_sug * (1 - margen_obj) = costo_total
-        # precio_sin_iva_sug * (1 - comision) = ingreso_neto_sug
         margen_frac = margen_objetivo_pct / 100
         ingreso_neto_sug = costo_total / (1 - margen_frac)
         precio_sin_iva_sug = ingreso_neto_sug / (1 - comision_pct)
-        precio_sugerido = precio_sin_iva_sug * (1 + iva_pct) if (tax_included and iva_pct > 0) else precio_sin_iva_sug
+        precio_sugerido = (
+            precio_sin_iva_sug * (1 + iva_pct) if (tax_included and iva_pct > 0) else precio_sin_iva_sug
+        )
 
     return {
         "precio_lista": round(precio_lista, 2),
@@ -298,10 +649,7 @@ def calcular_rentabilidad(
 # ─── Análisis de período ─────────────────────────────────────────────────────
 
 def resumen_periodo(fecha_inicio: str, fecha_fin: str | None = None) -> dict:
-    """
-    Agrega facturas de venta Siigo en el rango dado.
-    Devuelve ingresos totales, conteos y top productos por facturación.
-    """
+    """Agrega facturas de venta Siigo en el rango dado."""
     from app.services.siigo import obtener_facturas_siigo_paginadas
 
     try:
@@ -310,15 +658,12 @@ def resumen_periodo(fecha_inicio: str, fecha_fin: str | None = None) -> dict:
         return {"error": str(e)}
 
     fin = fecha_fin or datetime.now().strftime("%Y-%m-%d")
-
     facturas_rango = [
         f for f in facturas
         if fecha_inicio <= (f.get("date") or "")[:10] <= fin
     ]
 
     total_con_iva = sum(float(f.get("total") or 0) for f in facturas_rango)
-
-    # IVA total sumando los valores de impuesto por ítem
     total_iva = 0.0
     for f in facturas_rango:
         for item in (f.get("items") or []):
@@ -326,8 +671,6 @@ def resumen_periodo(fecha_inicio: str, fecha_fin: str | None = None) -> dict:
                 total_iva += float(tax.get("value") or 0)
 
     total_sin_iva = total_con_iva - total_iva
-
-    # Agregado por producto
     productos: dict[str, dict] = {}
     for f in facturas_rango:
         for item in (f.get("items") or []):
@@ -344,17 +687,13 @@ def resumen_periodo(fecha_inicio: str, fecha_fin: str | None = None) -> dict:
 
     top_productos = sorted(productos.values(), key=lambda x: x["total"], reverse=True)[:20]
 
-    # Enriquecer top con margen si hay config guardada
     configs = _cargar_configs()
     for p in top_productos:
         cfg = configs.get(p["code"].upper())
         if cfg:
-            costo_t = (
-                float(cfg.get("costo_materiales") or 0)
-                + float(cfg.get("costo_nomina") or 0)
-                + float(cfg.get("costo_envase") or 0)
-                + float(cfg.get("costo_etiqueta") or 0)
-                + float(cfg.get("otros_costos") or 0)
+            costo_t = sum(
+                float(cfg.get(k) or 0)
+                for k in ("costo_materiales", "costo_nomina", "costo_envase", "costo_etiqueta", "otros_costos")
             )
             if costo_t > 0:
                 p["costo_unitario"] = costo_t

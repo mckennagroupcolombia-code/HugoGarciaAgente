@@ -228,6 +228,96 @@ function parsearComandoVoz(texto) {
  * - Si es nombre → busca en contactos.json
  * Devuelve null si no puede resolver.
  */
+const ALIASES_LID_PATH = path.join(__dirname, '..', 'app', 'data', 'wa_lid_aliases.json');
+
+function cargarAliasesLid() {
+    try {
+        return JSON.parse(fs.readFileSync(ALIASES_LID_PATH, 'utf8'));
+    } catch (_) {
+        return {};
+    }
+}
+
+function lidDesdeTelefono(digits) {
+    const phoneJid = `${digits}@c.us`;
+    const aliases = cargarAliasesLid();
+    for (const [lid, phone] of Object.entries(aliases)) {
+        if (phone === phoneJid) return lid;
+    }
+    return null;
+}
+
+function chatIdDesdeDigitos(digits) {
+    return digits.length > 15 ? `${digits}@g.us` : `${digits}@c.us`;
+}
+
+/** Candidatos de chatId para envío (prioriza @lid y wid de WhatsApp). */
+async function resolverCandidatosChatId(numero) {
+    const raw = String(numero || '').trim();
+    if (!raw) return [];
+
+    if (raw.includes('@')) {
+        if (raw.endsWith('@g.us') || raw.endsWith('@lid')) return [raw];
+        if (raw.endsWith('@c.us')) {
+            const digits = _normalizarNumero(raw.split('@')[0]);
+            const out = [];
+            const lid = lidDesdeTelefono(digits);
+            if (lid) out.push(lid);
+            if (sistemaListo) {
+                try {
+                    const wid = await client.getNumberId(digits);
+                    const ser = wid && (wid._serialized || (typeof wid === 'string' ? wid : ''));
+                    if (ser && !out.includes(ser)) out.unshift(ser);
+                } catch (e) {
+                    console.warn('[supervisor] getNumberId:', e.message);
+                }
+            }
+            out.push(raw);
+            return [...new Set(out)];
+        }
+        return [raw];
+    }
+
+    const digits = _normalizarNumero(raw);
+    if (digits.length < 7) return [];
+    if (digits.length > 15) return [`${digits}@g.us`];
+
+    const out = [];
+    const lid = lidDesdeTelefono(digits);
+    if (lid) out.push(lid);
+    if (sistemaListo) {
+        try {
+            const wid = await client.getNumberId(digits);
+            const ser = wid && (wid._serialized || (typeof wid === 'string' ? wid : ''));
+            if (ser && !out.includes(ser)) out.unshift(ser);
+        } catch (e) {
+            console.warn('[supervisor] getNumberId:', e.message);
+        }
+    }
+    out.push(chatIdDesdeDigitos(digits));
+    return [...new Set(out)];
+}
+
+async function enviarConResolucionLid(candidatos, sendFn) {
+    const lista = Array.isArray(candidatos) ? candidatos : [candidatos];
+    let lastErr;
+    for (const chatId of lista) {
+        try {
+            await sendFn(chatId);
+            return chatId;
+        } catch (err) {
+            lastErr = err;
+            const msg = (err && err.message) || '';
+            if (/no lid/i.test(msg) && lista.indexOf(chatId) < lista.length - 1) {
+                console.warn(`[supervisor] ${chatId} → reintento (${msg})`);
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw lastErr || new Error('No se pudo enviar');
+}
+
 function resolverDestino(destino) {
     const limpio = destino.trim();
 
@@ -235,9 +325,7 @@ function resolverDestino(destino) {
 
     const soloDigitos = limpio.replace(/[^0-9]/g, '');
     if (soloDigitos.length >= 7) {
-        return soloDigitos.length > 15
-            ? `${soloDigitos}@g.us`
-            : `${soloDigitos}@c.us`;
+        return chatIdDesdeDigitos(soloDigitos);
     }
 
     // Intentar en contactos
@@ -247,7 +335,7 @@ function resolverDestino(destino) {
     const numero = contactos[clave];
     if (numero) {
         const d = _normalizarNumero(numero);
-        return d.length > 15 ? `${d}@g.us` : `${d}@c.us`;
+        return chatIdDesdeDigitos(d);
     }
 
     return null;
@@ -404,11 +492,14 @@ client.on('message', async msg => {
             }
 
             const media = new MessageMedia(audioFinal.mimeType, audioFinal.audioBase64, 'voice.ogg');
-            await client.sendMessage(chatIdDestino, media, { sendAudioAsVoice: true });
+            const candidatos = await resolverCandidatosChatId(chatIdDestino);
+            const chatUsado = await enviarConResolucionLid(candidatos, (cid) =>
+                client.sendMessage(cid, media, { sendAudioAsVoice: true })
+            );
 
-            await msg.reply(`✅ Nota de voz enviada a *${destinoRaw}* (${chatIdDestino})`);
-            logActividad('SALIENTE', { para: chatIdDestino, tipo: 'PTT', texto: textoVoz.substring(0, 60) });
-            console.log(`🎙️ [supervisor] PTT enviado a: ${chatIdDestino}`);
+            await msg.reply(`✅ Nota de voz enviada a *${destinoRaw}* (${chatUsado})`);
+            logActividad('SALIENTE', { para: chatUsado, tipo: 'PTT', texto: textoVoz.substring(0, 60) });
+            console.log(`🎙️ [supervisor] PTT enviado a: ${chatUsado}`);
         } catch (err) {
             if (esErrorContextoPuppeteer(err)) {
                 await msg.reply('⏳ WhatsApp está reconectando. Espera ~15 s e intenta de nuevo.');
@@ -461,7 +552,7 @@ appExpress.post('/enviar-ptt', async (req, res) => {
         }
 
         const chatId = numero.includes('@') ? numero
-            : (_normalizarNumero(numero).length > 15 ? `${_normalizarNumero(numero)}@g.us` : `${_normalizarNumero(numero)}@c.us`);
+            : chatIdDesdeDigitos(_normalizarNumero(numero));
 
         // Convertir a OGG Opus si no lo es ya (WhatsApp requiere OGG para notas de voz)
         let finalB64  = audioBase64;
@@ -476,10 +567,13 @@ appExpress.post('/enviar-ptt', async (req, res) => {
         }
 
         const media = new MessageMedia(finalMime, finalB64, 'voice.ogg');
-        await client.sendMessage(chatId, media, { sendAudioAsVoice: true });
-        console.log(`🎙️ [supervisor] PTT (API) → ${chatId}`);
-        logActividad('SALIENTE', { para: chatId, tipo: 'PTT', origen: 'API' });
-        res.json({ status: 'success' });
+        const candidatos = await resolverCandidatosChatId(numero);
+        const chatUsado = await enviarConResolucionLid(candidatos, (cid) =>
+            client.sendMessage(cid, media, { sendAudioAsVoice: true })
+        );
+        console.log(`🎙️ [supervisor] PTT (API) → ${chatUsado}`);
+        logActividad('SALIENTE', { para: chatUsado, tipo: 'PTT', origen: 'API' });
+        res.json({ status: 'success', chatId: chatUsado });
     } catch (err) {
         if (esErrorContextoPuppeteer(err)) {
             console.error('[supervisor] PTT rechazado — WhatsApp reiniciando contexto Puppeteer:', err.message);
@@ -488,6 +582,12 @@ appExpress.post('/enviar-ptt', async (req, res) => {
             });
         }
         console.error('[supervisor] Error /enviar-ptt:', err.message);
+        if (/no lid/i.test(err.message)) {
+            return res.status(422).json({
+                error: 'WhatsApp no tiene LID para ese número en la sesión supervisor. '
+                     + 'Pide al cliente que escriba primero a este WhatsApp.',
+            });
+        }
         res.status(500).json({ error: err.message });
     }
 });
@@ -504,10 +604,13 @@ appExpress.post('/enviar', async (req, res) => {
         if (!sistemaListo) return res.status(503).json({ error: 'Sincronizando…' });
 
         const chatId = numero.includes('@') ? numero
-            : (_normalizarNumero(numero).length > 15 ? `${_normalizarNumero(numero)}@g.us` : `${_normalizarNumero(numero)}@c.us`);
-        await client.sendMessage(chatId, mensaje);
-        logActividad('SALIENTE', { para: chatId, texto: mensaje.substring(0, 60), origen: 'API' });
-        res.json({ status: 'success' });
+            : chatIdDesdeDigitos(_normalizarNumero(numero));
+        const candidatos = await resolverCandidatosChatId(numero);
+        const chatUsado = await enviarConResolucionLid(candidatos, (cid) =>
+            client.sendMessage(cid, mensaje)
+        );
+        logActividad('SALIENTE', { para: chatUsado, texto: mensaje.substring(0, 60), origen: 'API' });
+        res.json({ status: 'success', chatId: chatUsado });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

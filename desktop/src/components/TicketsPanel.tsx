@@ -8,7 +8,7 @@ import {
   mckennaAndroidBridge,
   webNotificationsAvailable,
 } from "../lib/androidApp";
-import { notifyNavChange, registerTicketsNavBridge } from "../lib/appBackNavigation";
+import { notifyNavChange, registerNestedBackHandler, registerTicketsNavBridge } from "../lib/appBackNavigation";
 import { onPanelResume } from "../lib/panelRefresh";
 import { useQuestTheme } from "../stores/questTheme";
 import { ProseTextarea } from "./ProseTextarea";
@@ -12150,6 +12150,44 @@ interface Adjunto {
   paso_id?: number | null;
 }
 
+function esImagenPortapapeles(f: File): boolean {
+  if (f.type.startsWith("image/")) return true;
+  if ((!f.type || f.type === "application/octet-stream") && f.size > 0) return true;
+  return /\.(png|jpe?g|gif|webp|bmp)$/i.test(f.name);
+}
+
+function normalizarImagenPegada(raw: File): File {
+  const mime = raw.type.startsWith("image/") ? raw.type : "image/png";
+  const ext = mime.split("/")[1]?.replace("jpeg", "jpg") || "png";
+  const nombre = raw.name && !/^image\.(png|jpe?g)$/i.test(raw.name)
+    ? raw.name
+    : `pegado-${Date.now()}.${ext}`;
+  if (raw.name === nombre && raw.type === mime) return raw;
+  return new File([raw], nombre, { type: mime });
+}
+
+function imagenDesdePortapapeles(cd: DataTransfer | null | undefined): File | null {
+  if (!cd) return null;
+  for (const item of Array.from(cd.items)) {
+    if (item.kind !== "file" && !item.type.startsWith("image/")) continue;
+    const f = item.getAsFile();
+    if (f && esImagenPortapapeles(f)) return normalizarImagenPegada(f);
+  }
+  for (const f of Array.from(cd.files)) {
+    if (esImagenPortapapeles(f)) return normalizarImagenPegada(f);
+  }
+  return null;
+}
+
+/** Imagen del portapapeles (Ctrl+V / captura). Devuelve null si no hay imagen. */
+function clipboardPastedImageFile(e: React.ClipboardEvent): File | null {
+  const file = imagenDesdePortapapeles(e.clipboardData);
+  if (!file) return null;
+  e.preventDefault();
+  e.stopPropagation();
+  return file;
+}
+
 interface ProtocoloPaso {
   descripcion: string;
   notas?: string | null;
@@ -12714,7 +12752,13 @@ function SolicitudCard({
   const [loadingComentarios, setLoadingComentarios] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [chatDraft, setChatDraft] = useState("");
+  const [archivoPendiente, setArchivoPendiente] = useState<File | null>(null);
+  const [archivoPreview, setArchivoPreview] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const interArchivoRef = useRef<HTMLInputElement>(null);
+  const chatArchivoRef = useRef<HTMLInputElement>(null);
   const [enviandoChat, setEnviandoChat] = useState(false);
+  const hayArchivoPendiente = !!archivoPendiente || !!archivoPreview;
 
   // Adjuntos
   const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
@@ -12780,11 +12824,12 @@ function SolicitudCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adjuntos, ticket.id]);
 
-  // Cargar pasos al iniciar (en proceso o supervisión del equipo)
+  // Cargar pasos al iniciar (en proceso o supervisión). En detalleAmpliado no los mostramos
+  // automáticamente: el usuario los abre desde "+ Opciones" para no saturar la vista de chat.
   useEffect(() => {
     if (ticket.estado === "en_proceso" || supervision) {
       void cargarPasos();
-      if (ticket.estado === "en_proceso") setShowPasos(true);
+      if (ticket.estado === "en_proceso" && !detalleAmpliado) setShowPasos(true);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket.id, ticket.estado, supervision]);
@@ -12796,6 +12841,12 @@ function SolicitudCard({
     void cargarComentarios();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detalleAmpliado, ticket.id]);
+
+  useEffect(() => {
+    limpiarArchivoPendiente();
+    setResolucionInter("");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket.id]);
 
   async function cargarPasos() {
     setLoadingPasos(true);
@@ -12843,6 +12894,85 @@ function SolicitudCard({
     } catch { /* no crítico */ } finally {
       setSubiendoAdjTicket(false);
     }
+  }
+
+  function asignarImagenPendiente(
+    file: File,
+    setFile: (f: File | null) => void,
+    preview: string | null,
+    setPreview: (u: string | null) => void,
+  ) {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(file);
+    setPreview(file.type.startsWith("image/") ? URL.createObjectURL(file) : null);
+  }
+
+  function quitarImagenPendiente(
+    setFile: (f: File | null) => void,
+    preview: string | null,
+    setPreview: (u: string | null) => void,
+  ) {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(null);
+    setPreview(null);
+  }
+
+  function limpiarArchivoPendiente() {
+    quitarImagenPendiente(setArchivoPendiente, archivoPreview, setArchivoPreview);
+  }
+
+  function asignarArchivoPendiente(file: File) {
+    asignarImagenPendiente(file, setArchivoPendiente, archivoPreview, setArchivoPreview);
+    if (puedeEnviarChat) setShowChat(true);
+  }
+
+  function handlePasteImagen(e: React.ClipboardEvent) {
+    const file = clipboardPastedImageFile(e);
+    if (!file) return;
+    if (showPedirAjustes) {
+      asignarImagenPendiente(file, setAjustesArchivo, ajustesArchivoPreview, setAjustesArchivoPreview);
+      return;
+    }
+    asignarArchivoPendiente(file);
+  }
+
+  function onArchivoInterSeleccionado(f: File | null) {
+    if (!f || !esImagenPortapapeles(f)) return;
+    asignarArchivoPendiente(normalizarImagenPegada(f));
+  }
+
+  // Escritorio: algunos navegadores no entregan bien paste en React — captura global en la tarjeta
+  useEffect(() => {
+    if (resuelta) return;
+    const onPaste = (e: ClipboardEvent) => {
+      if (!cardRef.current) return;
+      const activo = document.activeElement;
+      if (activo && !cardRef.current.contains(activo)) return;
+      const file = imagenDesdePortapapeles(e.clipboardData);
+      if (!file) return;
+      e.preventDefault();
+      if (showPedirAjustes) {
+        asignarImagenPendiente(file, setAjustesArchivo, ajustesArchivoPreview, setAjustesArchivoPreview);
+        return;
+      }
+      asignarArchivoPendiente(file);
+    };
+    window.addEventListener("paste", onPaste, true);
+    return () => window.removeEventListener("paste", onPaste, true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resuelta, showPedirAjustes, puedeEnviarChat]);
+
+  function vistaPreviaPegada(className = "") {
+    if (!archivoPreview || !archivoPendiente) return null;
+    return (
+      <div className={`flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/5 px-2 py-1.5 ${className}`}>
+        <img src={archivoPreview} alt="" className="h-12 w-12 rounded object-cover border border-border" />
+        <span className="min-w-0 flex-1 truncate text-xs text-muted">{archivoPendiente.name}</span>
+        <button type="button" onClick={limpiarArchivoPendiente} className="shrink-0 text-xs text-danger hover:underline">
+          Quitar
+        </button>
+      </div>
+    );
   }
 
   function iniciarEditPaso(p: Paso) {
@@ -12966,6 +13096,11 @@ function SolicitudCard({
 
   async function resolver() {
     if (!esAsignado || busy) return;
+    if (ticket.bloqueado_por) {
+      setMsg("No se puede terminar: hay una intervención pendiente de otro usuario.");
+      setTimeout(() => setMsg(""), 4000);
+      return;
+    }
     // Validación previa en el cliente usando contadores del ticket
     const total = ticket.pasos_total ?? 0;
     const hechos = ticket.pasos_completados ?? 0;
@@ -13102,21 +13237,33 @@ function SolicitudCard({
 
   async function resolverIntervencion() {
     if (!esAsignado || busy) return;
-    if (!resolucionInter.trim()) {
-      setMsg("Escribe tu respuesta antes de resolver la intervención.");
+    const texto = resolucionInter.trim();
+    const archivo = archivoPendiente;
+    if (!texto && !archivo) {
+      setMsg("Escribe tu respuesta o adjunta una imagen antes de resolver.");
       setTimeout(() => setMsg(""), 3000);
       return;
     }
     setBusy(true);
     try {
+      if (archivo) {
+        const fd = new FormData();
+        fd.append("archivo", archivo);
+        await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+        limpiarArchivoPendiente();
+        void cargarAdjuntos();
+      }
       await tapi(`/${ticket.id}/comentarios`, token, {
         method: "POST",
-        body: JSON.stringify({ texto: resolucionInter.trim() }),
+        body: JSON.stringify({
+          texto: texto || "📎 Resolución con imagen adjunta",
+        }),
       });
       await tapi(`/${ticket.id}/estado`, token, {
         method: "PUT",
         body: JSON.stringify({ estado: "resuelto" }),
       });
+      setResolucionInter("");
       onChanged();
     } catch (e: any) {
       setMsg(e.message ?? "Error");
@@ -13130,11 +13277,6 @@ function SolicitudCard({
     try {
       const nuevoEstado = ticket.estado === "en_proceso" ? "pendiente" : "en_proceso";
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: nuevoEstado }) });
-      if (nuevoEstado === "en_proceso") {
-        await cargarPasos();
-        setShowPasos(true);
-        setShowAddPaso(true);
-      }
       onChanged();
     } catch { /* ignore */ } finally { setBusy(false); }
   }
@@ -13215,13 +13357,25 @@ function SolicitudCard({
 
   async function enviarMensajeChat() {
     const texto = chatDraft.trim();
-    if (!texto || enviandoChat || !puedeEnviarChat) return;
+    const archivo = archivoPendiente;
+    if ((!texto && !archivo) || enviandoChat || !puedeEnviarChat) return;
+    const textoEnvio = texto || (archivo ? "📎 Imagen adjunta" : "");
     setEnviandoChat(true);
     try {
-      await tapi(`/${ticket.id}/comentarios`, token, {
-        method: "POST",
-        body: JSON.stringify({ texto }),
-      });
+      if (archivo) {
+        const fd = new FormData();
+        fd.append("archivo", archivo);
+        await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
+        limpiarArchivoPendiente();
+        void cargarAdjuntos();
+        setShowAdjuntos(true);
+      }
+      if (textoEnvio) {
+        await tapi(`/${ticket.id}/comentarios`, token, {
+          method: "POST",
+          body: JSON.stringify({ texto: textoEnvio }),
+        });
+      }
       setChatDraft("");
       await cargarComentarios();
       setShowChat(true);
@@ -13292,14 +13446,15 @@ function SolicitudCard({
   }
 
   async function vincularProtocolo() {
-    if (!protocoloVincularId) return;
+    const pid = protocoloVincularId;
+    if (!pid) return;
     setVinculandoProtocolo(true);
     setVincularProtocoloMsg("");
     try {
       await tapi(`/${ticket.id}/vincular-protocolo`, token, {
         method: "POST",
         body: JSON.stringify({
-          protocolo_id: protocoloVincularId,
+          protocolo_id: pid,
           reemplazar_pasos: reemplazarPasosProtocolo,
         }),
       });
@@ -13368,7 +13523,10 @@ function SolicitudCard({
 
   if (esSolicitudCompraDelegada(ticket)) {
     return (
-      <div className={`flex flex-col gap-2 rounded-xl border border-blue-400/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}>
+      <div
+        className={`flex flex-col gap-2 rounded-xl border border-blue-400/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
+        onPaste={handlePasteImagen}
+      >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <span className="text-sm font-bold text-ink">🛒 {ticket.titulo}</span>
@@ -13393,17 +13551,22 @@ function SolicitudCard({
   }
 
   return (
-    <div className={`flex flex-col gap-3 transition-opacity ${detalleAmpliado ? "rounded-2xl border-2 border-border bg-surface-panel p-5 shadow-paper-lg" : "gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm"} ${resuelta ? "opacity-60" : ""}`}>
+    <div
+      ref={cardRef}
+      className={`flex flex-col transition-opacity ${detalleAmpliado ? "gap-4 min-h-0" : "gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm"} ${resuelta ? "opacity-60" : ""}`}
+      onPaste={handlePasteImagen}
+    >
 
       {detalleAmpliado ? (
         /* ── Encabezado ampliado: número, título, quién ── */
-        <div className="space-y-2.5">
+        <div className="shrink-0 space-y-2">
+          {/* Fila: número + badges + acciones */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-[11px] font-black text-muted/60 tracking-widest">{shortNumero(ticket.numero)}</span>
+            <span className="font-mono text-[10px] font-bold text-muted/50 tracking-widest">{shortNumero(ticket.numero)}</span>
             <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${PRIORIDAD_COLOR[ticket.prioridad ?? "media"] ?? "bg-gray-200 text-gray-700"}`}>
               {ticket.prioridad ?? "media"}
             </span>
-            <span className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted">{ESTADO_LABEL[ticket.estado] ?? ticket.estado}</span>
+            <span className="rounded-full border border-border/60 bg-surface px-2 py-0.5 text-[10px] text-muted">{ESTADO_LABEL[ticket.estado] ?? ticket.estado}</span>
             <div className="ml-auto flex items-center gap-0.5">
               <button
                 type="button"
@@ -13440,24 +13603,26 @@ function SolicitudCard({
               )}
             </div>
           </div>
-          <h2 className="text-2xl font-extrabold text-ink leading-snug tracking-tight">{ticket.titulo}</h2>
+          {/* Título */}
+          <h2 className="text-lg font-bold text-ink leading-snug tracking-tight">{ticket.titulo}</h2>
           {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
-            <p className="text-sm leading-relaxed text-muted whitespace-pre-wrap">{ticket.descripcion}</p>
+            <p className="text-sm leading-relaxed text-muted/80 whitespace-pre-wrap">{ticket.descripcion}</p>
           )}
-          <p className="text-sm font-semibold text-muted leading-snug">
-            {esCreadoPorMi
-              ? <><span className="font-medium">Solicitado por </span><strong className="font-bold text-ink">ti</strong></>
-              : <><span className="font-medium">Solicitado por </span><strong className="font-bold text-ink">{ticket.creado_por_nombre ?? "?"}</strong></>}
-            <span className="mx-2 opacity-30">·</span>
-            <span className="font-medium">Para </span><strong className="font-bold text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</strong>
-          </p>
+          {/* De quién → para quién */}
+          <div className="flex items-center gap-2 text-xs text-muted flex-wrap">
+            <span className="font-medium text-ink/70">
+              {esCreadoPorMi ? "Tú" : (ticket.creado_por_nombre ?? "?")}
+            </span>
+            <svg className="h-3 w-3 text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <span className="font-semibold text-ink">{ticket.asignado_a_nombre ?? "Sin asignar"}</span>
+          </div>
           {(ticket.frecuencia || ticket.protocolo_titulo) && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-0.5">
               {ticket.frecuencia && (
                 <span className="inline-flex items-center gap-1 text-xs text-muted">♻️ {FREC_SHORT[ticket.frecuencia] ?? ticket.frecuencia}</span>
               )}
               {ticket.protocolo_titulo && (
-                <span className="inline-flex items-center gap-1 text-xs text-accent/90" title="Procedimiento vinculado">📋 {ticket.protocolo_titulo}</span>
+                <span className="inline-flex items-center gap-1 text-xs text-accent/80" title="Procedimiento vinculado">📋 {ticket.protocolo_titulo}</span>
               )}
             </div>
           )}
@@ -13691,62 +13856,99 @@ function SolicitudCard({
         </div>
       )}
 
-      {/* Conversación — solicitante, asignado y equipo */}
+      {/* Conversación — chat unificado */}
       {(showChat || detalleAmpliado) && puedeVerChat && (
-        <div className={`rounded-xl border border-border p-3 space-y-2 ${detalleAmpliado ? "bg-surface" : "bg-surface-hover"}`}>
-          <div className="flex items-center justify-between gap-2">
-            <span className={`flex items-center gap-1.5 font-bold text-ink ${detalleAmpliado ? "text-sm" : "text-xs"}`}>
-              <Icon name="chat" size={detalleAmpliado ? 16 : 14} weight="bold" />
-              {detalleAmpliado ? "Mensajes" : "Conversación"}
-              {supervision && (
-                <span className="font-normal text-muted">· equipo</span>
-              )}
-            </span>
-            {!detalleAmpliado && (
+        <div
+          className={detalleAmpliado
+            ? "flex flex-col flex-1 min-h-0 rounded-xl border border-border/50 overflow-hidden"
+            : "rounded-xl border border-border overflow-hidden bg-surface-hover"}
+          onPaste={handlePasteImagen}
+        >
+          {/* Cabecera solo en modo tarjeta */}
+          {!detalleAmpliado && (
+            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-surface">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-ink">
+                <Icon name="chat" size={13} weight="bold" />
+                Mensajes{supervision && <span className="font-normal text-muted/70"> · equipo</span>}
+              </span>
               <button type="button" onClick={() => setShowChat(false)} className="text-muted hover:text-ink text-xs">✕</button>
-            )}
-          </div>
-          <div className={`overflow-y-auto space-y-2 rounded-lg border border-border/50 bg-surface px-2 py-2 ${detalleAmpliado ? "min-h-[8rem] max-h-[45vh]" : "max-h-52"}`}>
+            </div>
+          )}
+
+          {/* Lista de mensajes */}
+          <div className={detalleAmpliado
+            ? "flex-1 min-h-0 overflow-y-auto bg-surface/50 px-3 pt-3 pb-1 space-y-1"
+            : "overflow-y-auto bg-surface px-3 py-3 max-h-52 space-y-1"}
+          >
             {loadingComentarios && comentarios.length === 0 && (
-              <p className="text-xs text-muted text-center py-2">Cargando mensajes…</p>
+              <p className="text-xs text-muted text-center py-4">Cargando mensajes…</p>
             )}
             {!loadingComentarios && comentarios.length === 0 && (
-              <p className="text-xs text-muted text-center py-3 italic">
-                Aún no hay mensajes. Escribe para coordinarte con quien solicitó o quien ejecuta la tarea.
+              <p className="text-xs text-muted text-center py-6 italic">
+                Aún no hay mensajes. Escribe abajo para empezar.
               </p>
             )}
-            {comentarios.map((c) => {
-              const esMio = c.usuario_id === user.id;
-              return (
-                <div key={c.id} className={`flex ${esMio ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[88%] rounded-2xl px-3 py-2 text-xs shadow-sm ${
+            {(() => {
+              const getDateLabel = (ts: string) => {
+                try {
+                  const d = new Date(ts.includes("T") || ts.includes("Z") ? ts : ts + "Z");
+                  const hoy = new Date();
+                  const ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
+                  if (d.toDateString() === hoy.toDateString()) return "Hoy";
+                  if (d.toDateString() === ayer.toDateString()) return "Ayer";
+                  return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+                } catch { return null; }
+              };
+              return comentarios.flatMap((c, idx) => {
+                const esMio = c.usuario_id === user.id;
+                const fechaLabel = c.creado_en ? getDateLabel(c.creado_en) : null;
+                const prevFechaLabel = comentarios[idx - 1]?.creado_en ? getDateLabel(comentarios[idx - 1].creado_en) : null;
+                const mostrarSep = fechaLabel && fechaLabel !== prevFechaLabel;
+                const horaStr = c.creado_en ? (() => {
+                  try { return new Date(c.creado_en.includes("T") || c.creado_en.includes("Z") ? c.creado_en : c.creado_en + "Z").toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }); }
+                  catch { return ""; }
+                })() : "";
+                const items = [];
+                if (mostrarSep) {
+                  items.push(
+                    <div key={`sep-${idx}`} className="flex items-center gap-2 py-2">
+                      <div className="flex-1 h-px bg-border/40" />
+                      <span className="text-[10px] text-muted/70 font-medium px-1">{fechaLabel}</span>
+                      <div className="flex-1 h-px bg-border/40" />
+                    </div>
+                  );
+                }
+                items.push(
+                  <div key={c.id} className={`flex ${esMio ? "justify-end" : "justify-start"} mb-1`}>
+                    <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs shadow-sm ${
                       esMio
-                        ? "rounded-br-md bg-accent text-white"
-                        : "rounded-bl-md border border-border bg-surface-panel text-ink"
-                    }`}
-                  >
-                    {!esMio && (
-                      <p className={`mb-0.5 text-[10px] font-bold ${esMio ? "text-white/80" : "text-muted"}`}>
-                        {c.autor_nombre}
-                      </p>
-                    )}
-                    <p className="whitespace-pre-wrap leading-relaxed">{c.texto}</p>
-                    <p className={`mt-1 text-[9px] ${esMio ? "text-white/70" : "text-muted"}`}>
-                      {new Date(c.creado_en).toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" })}
-                    </p>
+                        ? "rounded-br-sm bg-accent text-white"
+                        : "rounded-bl-sm border border-border bg-surface-panel text-ink"
+                    }`}>
+                      {!esMio && (
+                        <p className="mb-0.5 text-[10px] font-bold text-muted">{c.autor_nombre}</p>
+                      )}
+                      <p className="whitespace-pre-wrap leading-relaxed">{c.texto}</p>
+                      <p className={`mt-0.5 text-[9px] text-right ${esMio ? "text-white/60" : "text-muted/70"}`}>{horaStr}</p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+                return items;
+              });
+            })()}
           </div>
+
+          {/* Área de entrada — pegada al fondo */}
           {puedeEnviarChat ? (
-            <div className="flex gap-2 items-end">
-              <ProseInput
-                className="quest-input flex-1 text-sm"
-                placeholder="Escribe un mensaje…"
+            <div className="shrink-0 border-t border-border/40 bg-surface px-3 py-2.5 space-y-2">
+              {vistaPreviaPegada()}
+              <ProseTextarea
+                className="quest-input w-full text-sm resize-none"
+                rows={3}
+                placeholder="Escribe un mensaje… (Enter envía · Shift+Enter nueva línea)"
                 value={chatDraft}
                 onChange={(e) => setChatDraft(e.target.value)}
+                onPaste={handlePasteImagen}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -13755,25 +13957,49 @@ function SolicitudCard({
                 }}
                 maxLength={2000}
               />
-              <button
-                type="button"
-                disabled={enviandoChat || !chatDraft.trim()}
-                onClick={() => void enviarMensajeChat()}
-                className="quest-btn-primary shrink-0 px-3 py-2 text-xs disabled:opacity-40"
-              >
-                {enviandoChat ? "…" : "Enviar"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  title="Pegar / adjuntar imagen"
+                  onClick={() => chatArchivoRef.current?.click()}
+                  className="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-base text-muted hover:border-accent hover:text-accent transition-colors"
+                >
+                  📷
+                </button>
+                <input
+                  ref={chatArchivoRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0] ?? null;
+                    onArchivoInterSeleccionado(f);
+                    e.target.value = "";
+                  }}
+                />
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  disabled={enviandoChat || (!chatDraft.trim() && !hayArchivoPendiente)}
+                  onClick={() => void enviarMensajeChat()}
+                  className="quest-btn-primary shrink-0 px-5 py-2 text-sm font-bold disabled:opacity-40"
+                >
+                  {enviandoChat ? "…" : "Enviar"}
+                </button>
+              </div>
             </div>
           ) : (
-            <p className="text-[10px] text-center text-muted">
-              {resuelta ? "Solicitud cerrada — solo lectura." : "Conversación en pausa mientras hay una intervención activa."}
-            </p>
+            <div className="shrink-0 border-t border-border/40 bg-surface px-3 py-2.5">
+              <p className="text-[10px] text-center text-muted">
+                {resuelta ? "Solicitud cerrada — solo lectura." : "En pausa por intervención activa."}
+              </p>
+            </div>
           )}
         </div>
       )}
 
       {/* Adjuntos — visibles para todo el equipo (lectura); subir solo asignado/creador/supervisor */}
-      {(adjuntos.length > 0 || showAdjuntos) && (
+      {((!detalleAmpliado && adjuntos.length > 0) || showAdjuntos) && (
         <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-ink">
@@ -13781,7 +14007,7 @@ function SolicitudCard({
             </span>
             <div className="flex items-center gap-2">
               {puedeSubirAdjuntos && (
-                <label title="Subir archivo adjunto" className="cursor-pointer flex items-center gap-1 rounded-lg border border-border px-2 py-0.5 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
+                <label title="Subir archivo o pegar imagen (Ctrl+V)" className="cursor-pointer flex items-center gap-1 rounded-lg border border-border px-2 py-0.5 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent transition-colors">
                   {subiendoAdjTicket
                     ? <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
                     : <span>+ Subir</span>
@@ -13803,7 +14029,11 @@ function SolicitudCard({
           </div>
           {loadingAdjuntos && <p className="text-xs text-muted">Cargando…</p>}
           {!loadingAdjuntos && adjuntos.length === 0 && (
-            <p className="text-xs text-muted italic">Sin archivos adjuntos en esta solicitud.</p>
+            <p className="text-xs text-muted italic">
+              {puedeSubirAdjuntos
+                ? "Sin archivos adjuntos. Pegue una captura con Ctrl+V o use + Subir."
+                : "Sin archivos adjuntos en esta solicitud."}
+            </p>
           )}
           {lightboxUrl && <ImageLightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
           <div className="space-y-1">
@@ -14220,25 +14450,48 @@ function SolicitudCard({
 
       {/* ── Intervención: interfaz dedicada ── */}
       {!resuelta && esAsignado && !supervision && esIntervencion && (
-        <div className="space-y-2 pt-1">
+        <div className="space-y-2 pt-1" onPaste={handlePasteImagen}>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
           <ProseTextarea
             className="quest-input w-full resize-none text-sm"
             rows={3}
-            placeholder="Escribe tu respuesta o resolución aquí…"
+            placeholder="Escribe tu respuesta o resolución aquí… (Ctrl+V para pegar imagen)"
             value={resolucionInter}
             onChange={(e) => setResolucionInter(e.target.value)}
+            onPaste={handlePasteImagen}
           />
+          {vistaPreviaPegada("border-orange-400/40 bg-orange-50/30 dark:bg-orange-900/10")}
           <div className="flex gap-2">
             <button
               type="button"
-              disabled={busy || !resolucionInter.trim()}
+              disabled={busy || (!resolucionInter.trim() && !hayArchivoPendiente)}
               onClick={() => void resolverIntervencion()}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-orange-500 bg-orange-500 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] transition-colors hover:bg-orange-600 disabled:opacity-50"
             >
               <Icon name="check" size={15} weight="bold" />
               {busy ? "Resolviendo…" : "Resolver intervención"}
             </button>
+            <button
+              type="button"
+              title="Adjuntar imagen (o Ctrl+V)"
+              onClick={() => interArchivoRef.current?.click()}
+              className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${
+                hayArchivoPendiente ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-accent hover:border-accent"
+              }`}
+            >
+              📷
+            </button>
+            <input
+              ref={interArchivoRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                onArchivoInterSeleccionado(f);
+                e.target.value = "";
+              }}
+            />
             <button type="button"
               onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
               className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
@@ -14256,25 +14509,42 @@ function SolicitudCard({
         <div className="space-y-2 pt-1">
           {msg && <p className="text-xs text-red-400">{msg}</p>}
 
-          {/* Solicitud con protocolo → botón único que abre el wizard */}
+          {/* Solicitud con protocolo → botón único que abre el wizard + Listo secundario */}
           {onRegistrarEjecucion && ticket.protocolo_id ? (
             <div className="space-y-1.5">
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !!ticket.bloqueado_por}
                 onClick={() => onRegistrarEjecucion(ticket)}
+                title={ticket.bloqueado_por ? "Intervención pendiente — no disponible" : undefined}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-3 py-3 text-sm font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
               >
                 <Icon name="lightning" size={15} weight="bold" />
                 {ticket.estado === "en_proceso" ? "Continuar ejecución" : "Ejecutar procedimiento"}
               </button>
-              {ticket.estado === "en_proceso" && (
-                <button type="button" disabled={busy} onClick={iniciarPausar}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-yellow-400 bg-yellow-50 px-3 py-2 text-xs font-bold text-yellow-700 transition hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 disabled:opacity-40"
+              <div className="flex gap-2">
+                {ticket.estado === "en_proceso" && (
+                  <button type="button" disabled={busy} onClick={iniciarPausar}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-yellow-400 bg-yellow-50 px-3 py-2 text-xs font-bold text-yellow-700 transition hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 disabled:opacity-40"
+                  >
+                    <Icon name="clock" size={13} weight="bold" /> Pausar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={busy || !!ticket.bloqueado_por}
+                  onClick={resolver}
+                  title={ticket.bloqueado_por ? "Intervención pendiente — no disponible" : "Marcar como lista sin pasar por el protocolo"}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${
+                    ticket.bloqueado_por
+                      ? "border-border bg-surface-hover text-muted cursor-not-allowed"
+                      : "border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+                  }`}
                 >
-                  <Icon name="clock" size={13} weight="bold" /> Pausar
+                  <Icon name="check" size={13} weight="bold" />
+                  Listo
                 </button>
-              )}
+              </div>
             </div>
           ) : ticket.estado === "esperando_aprobacion" ? (
             /* En revisión — esperando al creador */
@@ -14308,17 +14578,19 @@ function SolicitudCard({
                   const total = ticket.pasos_total ?? 0;
                   const hechos = ticket.pasos_completados ?? 0;
                   const pasosFaltantes = total > 0 ? total - hechos : 0;
+                  const bloqueado = !!ticket.bloqueado_por;
+                  const noPermite = pasosFaltantes > 0 || bloqueado;
                   return (
-                    <button type="button" disabled={busy} onClick={resolver}
-                      title={pasosFaltantes > 0 ? `Faltan ${pasosFaltantes} paso(s) por completar` : undefined}
+                    <button type="button" disabled={busy || noPermite} onClick={resolver}
+                      title={bloqueado ? "Intervención pendiente — no disponible" : pasosFaltantes > 0 ? `Faltan ${pasosFaltantes} paso(s) por completar` : undefined}
                       className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
-                        pasosFaltantes > 0
+                        noPermite
                           ? "border-border bg-surface-hover text-muted cursor-not-allowed"
                           : "border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
                       }`}
                     >
                       <Icon name="check" size={15} weight="bold" />
-                      {pasosFaltantes > 0 ? `Listo (${hechos}/${total} pasos)` : "Listo"}
+                      {bloqueado ? "Listo 🔒" : pasosFaltantes > 0 ? `Listo (${hechos}/${total} pasos)` : "Listo"}
                     </button>
                   );
                 })()}
@@ -14476,7 +14748,7 @@ function SolicitudCard({
               {/* Adjuntar imagen */}
               <label className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-xs transition-colors ${ajustesArchivo ? "border-orange-400 bg-orange-50/30 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400" : "border-dashed border-border text-muted hover:border-orange-400/60 hover:text-orange-600"}`}>
                 <span>{ajustesArchivo ? "📎" : "🖼️"}</span>
-                <span className="flex-1 truncate">{ajustesArchivo ? ajustesArchivo.name : "Adjuntar imagen (opcional)"}</span>
+                <span className="flex-1 truncate">{ajustesArchivo ? ajustesArchivo.name : "Adjuntar imagen (opcional) — Ctrl+V"}</span>
                 {ajustesArchivo && (
                   <span
                     role="button"
@@ -15519,6 +15791,11 @@ function NuevaAccionWizard({
     }
   }
 
+  function handlePasteCierreArchivo(e: React.ClipboardEvent) {
+    const file = clipboardPastedImageFile(e);
+    if (file) onArchivoSeleccionado(file, setCierreArchivo, cierrePreview, setCierrePreview);
+  }
+
   const slide = wizardDir === "right" ? "mck-slide-right" : "mck-slide-left";
   const cronometroVisible = fase !== "titulo" && (!!ticketId || cronometroActivo || segBase > 0);
 
@@ -16205,13 +16482,16 @@ function NuevaAccionWizard({
             </div>
           )}
 
-          <div className="rounded-2xl border-2 border-dashed border-border bg-surface-panel p-4 space-y-3">
+          <div
+            className="rounded-2xl border-2 border-dashed border-border bg-surface-panel p-4 space-y-3"
+            onPasteCapture={handlePasteCierreArchivo}
+          >
             <p className="text-xs font-bold uppercase tracking-wide text-muted">Adjunto opcional</p>
-            <p className="text-xs text-muted">Foto o imagen de referencia (resultado, comprobante, etc.).</p>
+            <p className="text-xs text-muted">Foto o imagen de referencia (resultado, comprobante, etc.). Pegue con Ctrl+V.</p>
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-4 py-6 transition hover:border-accent">
               <TopicIcon value="📎" size={28} className="text-muted" />
               <span className="text-sm font-bold text-accent">
-                {cierreArchivo ? cierreArchivo.name : "Adjuntar captura o imagen"}
+                {cierreArchivo ? cierreArchivo.name : "Adjuntar captura o imagen (Ctrl+V)"}
               </span>
               <input
                 type="file"
@@ -16463,6 +16743,11 @@ function NuevaSolicitudWizard({
     );
   }
 
+  function handlePasteAdjunto(e: React.ClipboardEvent) {
+    const file = clipboardPastedImageFile(e);
+    if (file) setAdjuntoFile(file);
+  }
+
   async function crear() {
     const desc = descripcion.trim();
     if (!desc || asignados.length === 0) return;
@@ -16590,7 +16875,7 @@ function NuevaSolicitudWizard({
 
       {/* Paso 2A: Descripción (solicitud nueva) */}
       {fase === "descripcion" && (
-        <div key="sol-p2a" className={`space-y-6 ${slide}`}>
+        <div key="sol-p2a" className={`space-y-6 ${slide}`} onPasteCapture={handlePasteAdjunto}>
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
               Paso 2 de {totalPasos}
@@ -16609,6 +16894,7 @@ function NuevaSolicitudWizard({
                 rows={5}
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
+                onPaste={handlePasteAdjunto}
               />
               <SttInlineBtn
                 stt={stt}
@@ -16621,7 +16907,7 @@ function NuevaSolicitudWizard({
               ${adjuntoFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
               <span className="text-xl">{adjuntoFile ? "📎" : "📷"}</span>
               <span className="text-sm font-semibold text-muted truncate">
-                {adjuntoFile ? adjuntoFile.name : "Adjuntar foto o archivo (opcional)"}
+                {adjuntoFile ? adjuntoFile.name : "Adjuntar foto o archivo (opcional) — Ctrl+V"}
               </span>
               {adjuntoFile && (
                 <button
@@ -17986,6 +18272,39 @@ function SolicitudesView({
           setTimeout(() => setMsg(""), 3500);
         }}
       />
+    );
+  }
+
+  // Vista detalle de solicitud asignada — layout full-height tipo chat
+  if (tab === "asignadas" && asignadaDetalle) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0 h-full">
+        <div className="shrink-0 flex items-center gap-3 border-b border-border/50 bg-surface-panel px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => setAsignadaDetalle(null)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted text-lg font-bold hover:border-accent hover:text-accent transition"
+          >‹</button>
+          <span className="flex-1 truncate text-sm font-semibold text-ink">{asignadaDetalle.titulo}</span>
+          <span className="shrink-0 font-mono text-[11px] text-muted/50">{shortNumero(asignadaDetalle.numero)}</span>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-4">
+          <SolicitudCard
+            ticket={asignadaDetalle}
+            token={token}
+            user={user}
+            isAdmin={isAdmin}
+            protocolos={protocolos}
+            detalleAmpliado
+            onChanged={() => void load(true)}
+            onRegistrarEjecucion={
+              esSolicitudCompraDelegada(asignadaDetalle)
+                ? undefined
+                : (sol) => void iniciarEjecucionSolicitud(sol)
+            }
+          />
+        </div>
+      </div>
     );
   }
 
@@ -23687,6 +24006,7 @@ function AgenteMandoView({
   onToggleChatExpanded, onExpandChat, onSalir, onAbrirMenu, onIrInicio,
   onGoSolicitudes, onGoAcciones, onGoTablero, onGoHistorialAcciones, onGoImpresora,
   onGoRecordatorios, onGoTableroLabores, onGoPendientes, clearSubViewKey = 0,
+  isMobile = false,
 }: {
   token: string;
   user: TicketsUser;
@@ -23711,6 +24031,8 @@ function AgenteMandoView({
   onGoPendientes?: () => void;
   /** Incrementar este valor desde el padre limpia las sub-vistas activas (revisar, resolver, ejecución). */
   clearSubViewKey?: number;
+  /** En móvil full-screen: ajusta el header y comportamiento del botón de acción. */
+  isMobile?: boolean;
 }) {
   const { apiToken: chatApiToken } = useTicketsAuth();
   const verImpresora = puedeVerSeccionPanel(user, "etiquetas");
@@ -24558,25 +24880,38 @@ function AgenteMandoView({
 
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       {embedido ? (
-        <div className="flex shrink-0 items-center gap-3 border-b-2 border-border bg-surface-panel px-4 py-2.5 shadow-paper-sm">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-sm font-black text-white shadow">H</div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold leading-tight text-ink">Hugo García</p>
-            <p className="truncate text-xs font-bold text-muted">{previewAgente}</p>
-          </div>
+        <div className="flex shrink-0 items-center gap-3 border-b border-border/60 bg-surface-panel px-4 py-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-xs font-black text-white">H</div>
+          <p className="flex-1 text-sm font-bold text-ink leading-tight">Hugo García</p>
           {accionActual && (
             <span className="shrink-0 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[10px] font-extrabold text-accent">
               En curso
             </span>
           )}
-          <button
-            type="button"
-            onClick={onToggleChatExpanded}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-border text-muted transition hover:border-accent hover:text-accent"
-            aria-label="Cerrar chat"
-          >
-            ✕
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => onToggleChatExpanded?.()}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition hover:border-accent hover:text-accent"
+              aria-label="Minimizar chat"
+              title="Minimizar"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {isMobile && onAbrirMenu && (
+              <button
+                type="button"
+                onClick={onAbrirMenu}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition hover:border-accent hover:text-accent text-sm"
+                aria-label="Menú"
+                title="Menú"
+              >
+                ☰
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="flex shrink-0 items-center gap-3 border-b-2 border-border bg-surface-panel px-4 py-3 pt-safe shadow-paper-sm">
@@ -24622,7 +24957,17 @@ function AgenteMandoView({
       {/* ── Chat (área flexible) ───────────────────────────────────────────── */}
       {dockExpandido && (
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain bg-surface px-4 py-4 space-y-3">
-        {burbujas.map((b) => (
+        {burbujas
+          .filter(b => {
+            // En modo embebido (móvil full-screen), ocultar el saludo inicial cuando
+            // hay chips — el listado ya describe el contexto sin necesidad del texto.
+            if (embedido && modoInicio && lastChips && lastChips.length > 0) {
+              const hayMensajesUsuario = burbujas.some(x => x.rol === "usuario");
+              if (!hayMensajesUsuario && b.rol === "agente") return false;
+            }
+            return true;
+          })
+          .map((b) => (
           <div key={b.id} className={`flex flex-col ${b.rol === "usuario" ? "items-end" : "items-start"} gap-1.5`}>
             <div className={`hugo-bubble max-w-[90%] rounded-2xl px-4 py-3 whitespace-pre-wrap shadow-paper-sm ${
               b.rol === "usuario"
@@ -24645,7 +24990,7 @@ function AgenteMandoView({
           </div>
         ))}
         {lastChips && lastChips.length > 0 && !pensando && (
-          <div className="divide-y divide-border/50 rounded-xl border border-border/60 overflow-hidden mt-2">
+          <div className="rounded-xl overflow-hidden mt-2 border border-border/40 divide-y divide-border/30">
             {([] as typeof lastChips).concat(
               lastChips.filter(c => c.tipo === "accion_activa"),
               lastChips.filter(c => c.tipo === "solicitud_asignada"),
@@ -24657,46 +25002,36 @@ function AgenteMandoView({
               lastChips.filter(c => c.tipo === "solicitud_esperando"),
               lastChips.filter(c => !c.tipo || c.tipo === "util"),
             ).map((chip, i) => {
-              const tipoIcon: Record<string, string> = {
-                accion_activa: "⚡",
-                solicitud_asignada: "📋",
-                solicitud_aprobar: "⏳",
-                recordatorio: "🔔",
-                pendiente: "🗓️",
-                colaboracion: "👥",
-                labor_tablero: "🎯",
-                solicitud_esperando: "…",
-                util: "→",
+              const meta: Record<string, { icon: string; dot: string; bg: string; label: string }> = {
+                accion_activa:        { icon: "⚡", dot: "bg-teal-500",   bg: "bg-teal-50/70 dark:bg-teal-950/20",   label: "text-teal-700 dark:text-teal-300" },
+                solicitud_asignada:   { icon: "📋", dot: "bg-blue-400",   bg: "bg-blue-50/60 dark:bg-blue-950/20",   label: "text-blue-700 dark:text-blue-300" },
+                solicitud_aprobar:    { icon: "⏳", dot: "bg-amber-400",  bg: "bg-amber-50/60 dark:bg-amber-950/20", label: "text-amber-700 dark:text-amber-300" },
+                recordatorio:         { icon: "🔔", dot: "bg-violet-400", bg: "bg-violet-50/50 dark:bg-violet-950/20", label: "text-violet-700 dark:text-violet-300" },
+                pendiente:            { icon: "🗓️", dot: "bg-emerald-400", bg: "bg-emerald-50/50 dark:bg-emerald-950/20", label: "text-emerald-700 dark:text-emerald-300" },
+                colaboracion:         { icon: "👥", dot: "bg-violet-300", bg: "bg-violet-50/50 dark:bg-violet-950/20", label: "text-violet-700 dark:text-violet-300" },
+                labor_tablero:        { icon: "🎯", dot: "bg-stone-400",  bg: "bg-stone-50/60 dark:bg-stone-900/20",  label: "text-stone-700 dark:text-stone-300" },
+                solicitud_esperando:  { icon: "·",  dot: "bg-slate-300",  bg: "bg-slate-50/40 dark:bg-slate-900/10",  label: "text-slate-500 dark:text-slate-400" },
+                util:                 { icon: "→",  dot: "bg-border",     bg: "bg-surface",                            label: "text-ink" },
               };
-              const icon = tipoIcon[chip.tipo ?? "util"] ?? "→";
-              const clickable = chip.tipo !== "solicitud_esperando";
-              const colorClass = {
-                accion_activa: "text-accent",
-                solicitud_asignada: "text-blue-600 dark:text-blue-400",
-                solicitud_aprobar: "text-amber-600 dark:text-amber-400",
-                recordatorio: "text-violet-600 dark:text-violet-400",
-                pendiente: "text-emerald-600 dark:text-emerald-400",
-                colaboracion: "text-violet-600 dark:text-violet-400",
-                labor_tablero: "text-stone-600 dark:text-stone-400",
-                solicitud_esperando: "text-slate-500 dark:text-slate-400",
-                util: "text-muted",
-              }[chip.tipo ?? "util"] ?? "text-muted";
+              const t = chip.tipo ?? "util";
+              const m = meta[t] ?? meta.util;
+              const clickable = t !== "solicitud_esperando";
               const Tag = clickable ? "button" : "div";
               return (
                 <Tag
                   key={i}
                   {...(clickable ? { type: "button" as const, onClick: () => onChipTap(chip) } : {})}
-                  className={`flex w-full items-center gap-3 bg-surface px-3 py-2.5 text-left transition ${clickable ? "hover:bg-surface-hover active:scale-[0.99] cursor-pointer" : "opacity-60 cursor-default"}`}
+                  className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition ${m.bg} ${clickable ? "hover:brightness-95 dark:hover:brightness-110 active:scale-[0.99] cursor-pointer" : "opacity-50 cursor-default"}`}
                 >
-                  <span className={`text-base leading-none ${colorClass}`}>{icon}</span>
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${m.dot}`} />
                   <span className="min-w-0 flex-1">
-                    <span className={`block truncate text-sm font-semibold text-ink`}>{chip.label}</span>
+                    <span className={`block truncate text-sm font-semibold ${m.label}`}>{chip.label}</span>
                     {chip.subtitulo && (
-                      <span className="block truncate text-xs text-muted">{chip.subtitulo}</span>
+                      <span className="block truncate text-xs text-muted/70">{chip.subtitulo}</span>
                     )}
                   </span>
                   {clickable && (
-                    <svg className="h-3.5 w-3.5 shrink-0 text-muted/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <svg className="h-3.5 w-3.5 shrink-0 text-muted/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M9 18l6-6-6-6"/>
                     </svg>
                   )}
@@ -24894,6 +25229,16 @@ export default function TicketsPanel() {
   useEffect(() => { reloadCats(); }, [reloadCats]);
 
   useEffect(() => {
+    return registerNestedBackHandler(() => {
+      if (view === "home" && hugoChatExpanded) {
+        setHugoChatExpanded(false);
+        return true;
+      }
+      return false;
+    });
+  }, [view, hugoChatExpanded]);
+
+  useEffect(() => {
     if (!ticketsBootView) return;
     const bootNivel = user?.rol?.nivel ?? 1;
     if (ticketsBootView === "acciones" && accionesBootTab) {
@@ -25026,16 +25371,19 @@ export default function TicketsPanel() {
   return (
     <CategoriasCtx.Provider value={{ cats: categorias, reload: reloadCats }}>
     <div className={`quest-canvas relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden ${questDark ? "dark" : ""}`}>
-        <QuestNavBar
-          view={view}
-          nivel={nivel}
-          permisos={permisos}
-          hugoChatActive={view === "home" && hugoChatExpanded}
-          onInicio={goInicio}
-          onCentroMando={goCentroMando}
-          onSolicitudes={goSolicitudes}
-          onWorkload={goWorkload}
-        />
+        {/* En móvil, cuando Hugo está en pantalla completa (home), la nav bar se oculta */}
+        {!(isMobile && view === "home" && hugoChatExpanded) && (
+          <QuestNavBar
+            view={view}
+            nivel={nivel}
+            permisos={permisos}
+            hugoChatActive={view === "home" && hugoChatExpanded}
+            onInicio={goInicio}
+            onCentroMando={goCentroMando}
+            onSolicitudes={goSolicitudes}
+            onWorkload={goWorkload}
+          />
+        )}
         <InventarioCarritoModal
           token={token}
           nivel={nivel}
@@ -25078,7 +25426,8 @@ export default function TicketsPanel() {
               user={user}
               modoInicio
               embedido
-              chatExpanded={isMobile ? true : hugoChatExpanded}
+              isMobile={isMobile}
+              chatExpanded={hugoChatExpanded}
               onToggleChatExpanded={() => setHugoChatExpanded(false)}
               onExpandChat={() => setHugoChatExpanded(true)}
               onSalir={salirDeAgente}

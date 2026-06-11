@@ -692,6 +692,23 @@ _HOP_BY_HOP = frozenset([
     "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
     "te", "trailers", "transfer-encoding", "upgrade",
 ])
+_PROXY_TIMEOUT_DEFAULT = 30
+# TTS (Voicebox), sync pesado y chat IA pueden superar 30 s en agente_pro (:8081).
+_PROXY_TIMEOUT_LONG = 360
+_PROXY_LONG_PATH_MARKERS = (
+    "supervisor/bridge/enviar-voz",
+    "voz/enviar-supervisor",
+    "chat-panel",
+    "api/sync/",
+    "api/voz/",
+)
+
+
+def _proxy_timeout_for_path(path: str) -> int:
+    p = (path or "").lower()
+    if any(m in p for m in _PROXY_LONG_PATH_MARKERS):
+        return _PROXY_TIMEOUT_LONG
+    return _PROXY_TIMEOUT_DEFAULT
 
 
 def _proxy_to_agente(path: str):
@@ -704,6 +721,7 @@ def _proxy_to_agente(path: str):
         k: v for k, v in request.headers.items()
         if k.lower() not in _HOP_BY_HOP and k.lower() != "host"
     }
+    timeout = _proxy_timeout_for_path(path)
     try:
         upstream = _req.request(
             method=request.method,
@@ -711,10 +729,17 @@ def _proxy_to_agente(path: str):
             headers=headers,
             data=request.get_data(),
             allow_redirects=False,
-            timeout=30,
+            timeout=timeout,
         )
     except _req.exceptions.ConnectionError:
         return jsonify({"error": "Agente no disponible"}), 503
+    except _req.exceptions.Timeout:
+        return jsonify({
+            "error": (
+                "El agente tardó demasiado en responder. "
+                "Si era una nota de voz, espera un momento y revisa WhatsApp antes de reenviar."
+            ),
+        }), 504
 
     resp_headers = {
         k: v for k, v in upstream.headers.items()
