@@ -3,10 +3,13 @@ Gestión de publicaciones: sincronización entre SIIGO (cache), web y MeLi.
 """
 import json
 import os
+import re
 import requests as _req
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+_MELI_SITE_PREFIX = "MCO"
 
 _APP_DIR = Path(__file__).parent.parent          # app/
 _REPO_DIR = _APP_DIR.parent                      # /home/mckg/mi-agente
@@ -72,6 +75,36 @@ def _meli_token() -> Optional[str]:
         return None
 
 
+def normalizar_meli_item_id(item_id: str) -> str:
+    """Convierte IDs numéricos al formato API MeLi Colombia (MCO…)."""
+    raw = (item_id or "").strip().upper().replace(" ", "").replace("-", "")
+    if not raw:
+        return ""
+    if re.fullmatch(r"[A-Z]{3}\d+", raw):
+        return raw
+    if re.fullmatch(r"\d+", raw):
+        return f"{_MELI_SITE_PREFIX}{raw}"
+    return raw
+
+
+def _meli_id_efectivo_sku(
+    sku: str,
+    overrides: Optional[dict] = None,
+    cache: Optional[dict] = None,
+) -> str:
+    """ID MeLi efectivo: override manual tiene prioridad; si no, meli_id del cache.json."""
+    ov = (overrides if overrides is not None else _load_overrides()).get(sku, {})
+    if ov.get("meli_item_id"):
+        return normalizar_meli_item_id(str(ov["meli_item_id"]))
+    if cache is None:
+        cache = _load_cache()
+    raw = next(
+        (p for p in _products_flat(cache) if (p.get("ref") or p.get("rep_sku", "")) == sku),
+        None,
+    )
+    return normalizar_meli_item_id((raw or {}).get("meli_id") or "")
+
+
 def _meli_fetch_item(item_id: str) -> Optional[dict]:
     token = _meli_token()
     if not token or not item_id:
@@ -109,8 +142,11 @@ def _enrich(product: dict, overrides: dict) -> dict:
     p["foto_efectiva"] = ov.get("foto_url") or p.get("photo", "")
     raw_desc = ov.get("descripcion") or p.get("desc", "") or _desc_from_ficha(p)
     p["descripcion_efectiva"] = raw_desc
-    p["meli_id_efectivo"] = ov.get("meli_item_id") or p.get("meli_id", "")
+    p["meli_id_efectivo"] = normalizar_meli_item_id(
+        ov.get("meli_item_id") or p.get("meli_id", ""),
+    )
     p["caracteristicas"] = ov.get("caracteristicas", [])
+    p["estado_meli_config"] = (ov.get("estado_meli_config") or "").strip().lower()
     return p
 
 
@@ -136,6 +172,11 @@ def _status_web(ep: dict) -> dict:
 
 
 def _status_meli(ep: dict) -> dict:
+    estado = (ep.get("estado_meli_config") or "").strip().lower()
+    if estado == "omitir":
+        return {"status": "omitir", "mensaje": "Omitido en MeLi", "item_id": ""}
+    if estado == "por_publicar":
+        return {"status": "por_publicar", "mensaje": "Por publicar en MeLi", "item_id": ""}
     mid = ep.get("meli_id_efectivo", "")
     if not mid:
         return {"status": "no_listing", "mensaje": "Sin publicación MeLi", "item_id": ""}
@@ -168,6 +209,7 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
             "precio_web": ep.get("precio_num", 0),
             "foto_efectiva": ep.get("foto_efectiva", ""),
             "meli_id": ep.get("meli_id_efectivo", ""),
+            "estado_meli_config": ep.get("estado_meli_config", ""),
             "tiene_override": bool(ep.get("_ov")),
             "sync_web": _status_web(ep),
             "sync_meli": _status_meli(ep),
@@ -230,12 +272,21 @@ def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
 def actualizar_publicacion(sku: str, campos: dict) -> dict:
     overrides = _load_overrides()
     ov = dict(overrides.get(sku, {}))
-    allowed = {"descripcion", "foto_url", "meli_item_id", "caracteristicas", "oculto_web"}
+    allowed = {"descripcion", "foto_url", "meli_item_id", "caracteristicas", "oculto_web", "estado_meli_config"}
     for k, v in campos.items():
         if k not in allowed:
             continue
+        if k == "estado_meli_config":
+            estado = (str(v).strip().lower() if v is not None else "")
+            if estado in ("omitir", "por_publicar"):
+                ov[k] = estado
+            else:
+                ov.pop(k, None)
+            continue
         if v is None or v == "" or v == []:
             ov.pop(k, None)
+        elif k == "meli_item_id":
+            ov[k] = normalizar_meli_item_id(str(v))
         else:
             ov[k] = v
     if ov:

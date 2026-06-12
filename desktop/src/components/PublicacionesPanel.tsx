@@ -645,7 +645,17 @@ function ImagenesTab({
 
 // ── Panel de edición ───────────────────────────────────────────────────────
 
-function EditorPanel({ sku, onClose }: { sku: string; onClose: () => void }) {
+export function EditorPanel({
+  sku,
+  onClose,
+  layout: _layout,
+  onEstadoMarcado: _onEstadoMarcado,
+}: {
+  sku: string;
+  onClose: () => void;
+  layout?: string;
+  onEstadoMarcado?: (estado: "" | "omitir" | "por_publicar") => void;
+}) {
   const { data, isLoading, error, refetch } = usePublicacionDetalle(sku);
   const guardarMut = useGuardarPublicacion();
   const syncWebMut = useSyncWeb(sku);

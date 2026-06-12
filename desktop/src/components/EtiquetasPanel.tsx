@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type CSSProperties, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, resolvePanelApiUrl } from "../api/client";
 import { useAuthStore } from "../stores/auth";
@@ -11,6 +11,8 @@ import {
 } from "../lib/cmykColor";
 import { Icon } from "../icons";
 import { ProseTextarea } from "./ProseTextarea";
+import { EditorPanel } from "./PublicacionesPanel";
+import { useGuardarPublicacion } from "../hooks/usePublicaciones";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -58,6 +60,9 @@ const CODIGOS_INSTALAR_IMPRESORA = new Set([
 interface ImpResp {
   impresora: string;
   estado: string;
+  impresora_conectada?: boolean;
+  comunicacion_usb?: boolean;
+  niveles_tinta?: NivelesTintaResp;
 }
 
 interface DiagCheck {
@@ -108,10 +113,15 @@ function iconoDisco(icono?: DiscoItem["icono"]): string {
   }
 }
 
+type EstadoMeliConfig = "" | "omitir" | "por_publicar";
+type FiltroConfigProductos = "todos" | "con_meli" | "por_publicar" | "omitidos" | "pendientes";
+
 interface ComboSiigo {
   code: string;
   name: string;
   precio_lista: number;
+  meli_id?: string;
+  estado_meli_config?: EstadoMeliConfig;
 }
 
 interface SpanPDF {
@@ -2657,7 +2667,7 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
 
   const imprimirEditorMut = useMutation({
     mutationFn: (payload: ImpresionEtiquetaPayload) =>
-      api.post<PrintResult>("/api/etiquetas/imprimir", payload),
+      api.post<PrintResult>("/api/etiquetas/imprimir", payload, { timeoutMs: 90_000 }),
     onError: (err) => setErrorImpresion(errorDesdeExcepcion(err.message)),
   });
 
@@ -3104,18 +3114,18 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
 
 // ── Tab: Configurar Productos ─────────────────────────────────────────────────
 
-interface ConfiguradorProps {
-  onImprimirProducto: (datos: DatosEtiqueta) => void;
-}
-
-function TabConfigurar({ onImprimirProducto }: ConfiguradorProps) {
-  const qc = useQueryClient();
+function TabConfigurar() {
   const [busqueda, setBusqueda] = useState("");
   const busquedaDebounced = useDebounce(busqueda, 500);
   const [comboSeleccionado, setComboSeleccionado] = useState<ComboSiigo | null>(null);
-  const [eliminandoSku, setEliminandoSku] = useState<string | null>(null);
+  const [meliDraft, setMeliDraft] = useState<Record<string, string>>({});
+  const [meliVinculadoLocal, setMeliVinculadoLocal] = useState<Record<string, string>>({});
+  const [estadoLocal, setEstadoLocal] = useState<Record<string, EstadoMeliConfig>>({});
+  const [vinculandoSku, setVinculandoSku] = useState<string | null>(null);
+  const [errorVinculo, setErrorVinculo] = useState<{ sku: string; msg: string } | null>(null);
+  const [filtroCategoria, setFiltroCategoria] = useState<FiltroConfigProductos>("todos");
 
-  const { data: combosData, isLoading: cargandoCombos } = useQuery({
+  const { data: combosData, isLoading: cargandoCombos, error: errorCombos } = useQuery({
     queryKey: ["combos-siigo", busquedaDebounced],
     queryFn: () =>
       api.get<{ combos: ComboSiigo[]; total: number }>(
@@ -3124,93 +3134,190 @@ function TabConfigurar({ onImprimirProducto }: ConfiguradorProps) {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: datosData } = useQuery({
-    queryKey: ["etiquetas-datos"],
-    queryFn: () => api.get<{ datos: Record<string, DatosEtiqueta>; total: number }>("/api/etiquetas/datos"),
-    staleTime: 30 * 1000,
-  });
+  const guardarMut = useGuardarPublicacion();
 
-  const eliminarMut = useMutation({
-    mutationFn: (sku: string) => api.delete(`/api/etiquetas/datos/${sku}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["etiquetas-datos"] }); setEliminandoSku(null); },
-  });
+  function cfgCombo(c: ComboSiigo) {
+    const meli = meliVinculadoLocal[c.code] ?? c.meli_id ?? "";
+    const estado = estadoLocal[c.code] ?? c.estado_meli_config ?? "";
+    return { meli, estado };
+  }
 
   const combos = combosData?.combos ?? [];
-  const datos = datosData?.datos ?? {};
-  const totalConfigurados = Object.keys(datos).length;
+  const combosConMeli = combos.filter((c) => cfgCombo(c).meli);
+  const combosPorPublicar = combos.filter(
+    (c) => !cfgCombo(c).meli && cfgCombo(c).estado === "por_publicar",
+  );
+  const combosOmitidos = combos.filter(
+    (c) => !cfgCombo(c).meli && cfgCombo(c).estado === "omitir",
+  );
+  const combosPendientes = combos.filter((c) => {
+    const { meli, estado } = cfgCombo(c);
+    return !meli && estado !== "omitir" && estado !== "por_publicar";
+  });
 
-  const combosConfigurados = combos.filter((c) => datos[c.code]);
-  const combosNoConfigurados = combos.filter((c) => !datos[c.code]);
+  const combosVisibles = useMemo(() => {
+    switch (filtroCategoria) {
+      case "con_meli":
+        return combosConMeli;
+      case "por_publicar":
+        return combosPorPublicar;
+      case "omitidos":
+        return combosOmitidos;
+      case "pendientes":
+        return combosPendientes;
+      default:
+        return combos;
+    }
+  }, [filtroCategoria, combos, combosConMeli, combosPorPublicar, combosOmitidos, combosPendientes]);
 
-  const renderCombo = (c: ComboSiigo) => {
-    const config = datos[c.code];
-    const tieneConfig = !!config;
-    const tienePdf = !!config?.pdf_nombre;
+  function renderComboItem(c: ComboSiigo) {
+    const { meli, estado } = cfgCombo(c);
+    if (meli) return renderComboConfigurado(c);
+    if (estado === "por_publicar") return renderComboMarcado(c, "por_publicar");
+    if (estado === "omitir") return renderComboMarcado(c, "omitir");
+    return renderComboSinConfigurar(c);
+  }
+
+  function toggleFiltroCategoria(cat: FiltroConfigProductos) {
+    setFiltroCategoria((prev) => (prev === cat ? "todos" : cat));
+  }
+
+  function claseTarjetaFiltro(activo: boolean, extra = "") {
+    return `rounded-xl border px-4 py-3 text-center transition cursor-pointer select-none ${
+      activo
+        ? "border-accent bg-accent/10 ring-2 ring-accent/25 shadow-sm"
+        : "border-border bg-surface-panel hover:border-accent/40 hover:bg-surface-hover"
+    } ${extra}`;
+  }
+
+  async function vincularMeli(sku: string) {
+    const id = (meliDraft[sku] ?? "").trim();
+    if (!id) return;
+    setVinculandoSku(sku);
+    setErrorVinculo(null);
+    try {
+      const res = await guardarMut.mutateAsync({ sku, campos: { meli_item_id: id } });
+      const guardado =
+        (res as { override?: { meli_item_id?: string } })?.override?.meli_item_id?.trim() || id;
+      setMeliVinculadoLocal((prev) => ({ ...prev, [sku]: guardado }));
+      setMeliDraft((prev) => {
+        const next = { ...prev };
+        delete next[sku];
+        return next;
+      });
+    } catch (e) {
+      setErrorVinculo({ sku, msg: (e as Error)?.message ?? "No se pudo vincular" });
+    } finally {
+      setVinculandoSku(null);
+    }
+  }
+
+  function renderComboMarcado(c: ComboSiigo, tipo: "por_publicar" | "omitir") {
+    const esPorPublicar = tipo === "por_publicar";
+    return (
+      <div
+        key={c.code}
+        className={`flex items-center gap-3 rounded-xl border px-4 py-3 ${
+          esPorPublicar
+            ? "border-amber-200 bg-amber-50/50"
+            : "border-gray-200 bg-gray-50/60"
+        }`}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-ink">{c.name}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] text-muted">{c.code}</span>
+            <span
+              className={`text-[10px] font-semibold ${
+                esPorPublicar ? "text-amber-700" : "text-gray-600"
+              }`}
+            >
+              {esPorPublicar ? "Por publicar" : "Omitido"}
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setComboSeleccionado(c)}
+          className="shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-ink"
+        >
+          Más opciones
+        </button>
+      </div>
+    );
+  }
+
+  function renderComboConfigurado(c: ComboSiigo) {
+    const meliId = cfgCombo(c).meli;
 
     return (
       <div
         key={c.code}
-        className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 hover:bg-surface-hover transition cursor-pointer group"
+        className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 transition hover:bg-surface-hover group"
         onClick={() => setComboSeleccionado(c)}
       >
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-sm text-ink truncate">{config?.nombre_etiqueta || c.name}</span>
-            {config?.presentacion && (
-              <span className="text-xs px-1.5 py-0.5 rounded bg-surface-hover text-muted font-mono">{config.presentacion}</span>
-            )}
-          </div>
-          <div className="flex items-center gap-3 mt-0.5">
-            <span className="text-[10px] font-mono text-muted">{c.code}</span>
-            {tieneConfig && (
-              <>
-                {tienePdf
-                  ? <span className="text-[10px] text-green-600 font-medium">📄 {config.pdf_nombre}</span>
-                  : <span className="text-[10px] text-orange-500">Sin PDF</span>}
-                {config.lote_defecto && (
-                  <span className="text-[10px] text-muted">{config.lote_defecto}</span>
-                )}
-              </>
-            )}
-            {!tieneConfig && <span className="text-[10px] text-muted">Sin configurar</span>}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-ink">{c.name}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-[10px] text-muted">{c.code}</span>
+            <span className="text-[10px] font-medium text-blue-700">MeLi {meliId}</span>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {tieneConfig && tienePdf && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onImprimirProducto(config); }}
-              className="rounded-lg border border-green-500 bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 transition opacity-0 group-hover:opacity-100"
-            >
-              🖨
-            </button>
-          )}
-          {tieneConfig && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (eliminandoSku === c.code) {
-                  eliminarMut.mutate(c.code);
-                } else {
-                  setEliminandoSku(c.code);
-                  setTimeout(() => setEliminandoSku(null), 3000);
-                }
-              }}
-              className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition opacity-0 group-hover:opacity-100 ${
-                eliminandoSku === c.code
-                  ? "border-red-500 bg-red-500 text-white"
-                  : "border-border text-muted hover:border-red-400 hover:text-red-500"
-              }`}
-              title={eliminandoSku === c.code ? "Clic para confirmar" : "Eliminar configuración"}
-            >
-              {eliminandoSku === c.code ? "¿Eliminar?" : "✕"}
-            </button>
-          )}
-          <span className="text-xs text-muted group-hover:text-accent transition">Editar →</span>
-        </div>
+        <span className="text-xs text-muted transition group-hover:text-accent">Editar →</span>
       </div>
     );
-  };
+  }
+
+  function renderComboSinConfigurar(c: ComboSiigo) {
+    const { meli } = cfgCombo(c);
+    if (meli) return renderComboConfigurado(c);
+
+    const draft = meliDraft[c.code] ?? "";
+    const guardando = vinculandoSku === c.code && guardarMut.isPending;
+
+    return (
+      <div
+        key={c.code}
+        className="rounded-xl border border-orange-200 bg-orange-50/40 px-4 py-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-2 min-w-0">
+          <p className="truncate text-sm font-medium text-ink">{c.name}</p>
+          <span className="font-mono text-[10px] text-muted">{c.code}</span>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="text"
+            value={draft}
+            onChange={(e) => setMeliDraft((prev) => ({ ...prev, [c.code]: e.target.value }))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void vincularMeli(c.code);
+            }}
+            placeholder="ID publicación MeLi (MCO… o solo números)"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-ink outline-none placeholder:text-muted/50 focus:border-accent"
+          />
+          <button
+            type="button"
+            disabled={!draft.trim() || guardando}
+            onClick={() => void vincularMeli(c.code)}
+            className="shrink-0 rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white transition hover:bg-accent-hover disabled:opacity-40"
+          >
+            {guardando ? "Vinculando…" : "Vincular MeLi"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setComboSeleccionado(c)}
+            className="shrink-0 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-semibold text-muted transition hover:border-accent/40 hover:text-ink"
+          >
+            Más opciones
+          </button>
+        </div>
+        {errorVinculo?.sku === c.code && (
+          <p className="mt-1.5 text-xs text-danger">{errorVinculo.msg}</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -3240,24 +3347,79 @@ function TabConfigurar({ onImprimirProducto }: ConfiguradorProps) {
         )}
       </div>
 
-      {/* Resumen */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-xl border border-border bg-surface-panel px-4 py-3 text-center">
+      {/* Resumen — clic para filtrar lista */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <button
+          type="button"
+          onClick={() => setFiltroCategoria("todos")}
+          className={claseTarjetaFiltro(filtroCategoria === "todos")}
+        >
           <p className="text-xl font-extrabold text-ink">{combos.length}</p>
           <p className="text-xs text-muted mt-0.5">Combos SIIGO</p>
-        </div>
-        <div className="rounded-xl border border-border bg-surface-panel px-4 py-3 text-center">
-          <p className="text-xl font-extrabold text-green-600">{totalConfigurados}</p>
-          <p className="text-xs text-muted mt-0.5">Configurados</p>
-        </div>
-        <div className="rounded-xl border border-border bg-surface-panel px-4 py-3 text-center">
-          <p className="text-xl font-extrabold text-orange-500">{combosNoConfigurados.length}</p>
-          <p className="text-xs text-muted mt-0.5">Sin configurar</p>
-        </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleFiltroCategoria("con_meli")}
+          className={claseTarjetaFiltro(filtroCategoria === "con_meli")}
+        >
+          <p className="text-xl font-extrabold text-green-600">{combosConMeli.length}</p>
+          <p className="text-xs text-muted mt-0.5">Con MeLi</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleFiltroCategoria("por_publicar")}
+          className={claseTarjetaFiltro(filtroCategoria === "por_publicar")}
+        >
+          <p className="text-xl font-extrabold text-amber-600">{combosPorPublicar.length}</p>
+          <p className="text-xs text-muted mt-0.5">Por publicar</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleFiltroCategoria("omitidos")}
+          className={claseTarjetaFiltro(filtroCategoria === "omitidos")}
+        >
+          <p className="text-xl font-extrabold text-gray-500">{combosOmitidos.length}</p>
+          <p className="text-xs text-muted mt-0.5">Omitidos</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleFiltroCategoria("pendientes")}
+          className={claseTarjetaFiltro(filtroCategoria === "pendientes", "col-span-2 sm:col-span-1")}
+        >
+          <p className="text-xl font-extrabold text-orange-500">{combosPendientes.length}</p>
+          <p className="text-xs text-muted mt-0.5">Pendientes</p>
+        </button>
       </div>
 
+      {filtroCategoria !== "todos" && (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-accent/20 bg-accent/5 px-3 py-2">
+          <p className="text-xs text-ink">
+            Mostrando:{" "}
+            <span className="font-semibold">
+              {filtroCategoria === "con_meli" && "Con MeLi vinculado"}
+              {filtroCategoria === "por_publicar" && "Por publicar en MeLi"}
+              {filtroCategoria === "omitidos" && "Omitidos"}
+              {filtroCategoria === "pendientes" && "Pendientes"}
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setFiltroCategoria("todos")}
+            className="shrink-0 text-xs font-semibold text-accent hover:underline"
+          >
+            Ver todos
+          </button>
+        </div>
+      )}
+
+      {errorCombos && (
+        <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+          Error cargando productos: {(errorCombos as Error).message}
+        </div>
+      )}
+
       {/* Lista */}
-      {combos.length === 0 && !cargandoCombos && (
+      {combos.length === 0 && !cargandoCombos && !errorCombos && (
         <div className="rounded-xl border-2 border-dashed border-border py-12 text-center">
           <p className="text-sm text-muted">
             {busqueda ? `Sin resultados para "${busqueda}"` : "No se encontraron combos SIIGO"}
@@ -3265,31 +3427,35 @@ function TabConfigurar({ onImprimirProducto }: ConfiguradorProps) {
         </div>
       )}
 
-      {combosConfigurados.length > 0 && (
+      {combos.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Configurados</p>
-          {combosConfigurados.map(renderCombo)}
-        </div>
-      )}
-
-      {combosNoConfigurados.length > 0 && (
-        <div className="space-y-2">
-          {combosConfigurados.length > 0 && (
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Sin configurar</p>
+          {combosVisibles.length > 0 ? (
+            combosVisibles.map(renderComboItem)
+          ) : (
+            <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted">
+              {filtroCategoria === "con_meli" && "No hay productos con MeLi vinculado"}
+              {filtroCategoria === "por_publicar" && "No hay productos marcados por publicar"}
+              {filtroCategoria === "omitidos" && "No hay productos omitidos"}
+              {filtroCategoria === "pendientes" && "No hay productos pendientes"}
+            </p>
           )}
-          {combosNoConfigurados.map(renderCombo)}
         </div>
       )}
 
-      {/* Editor */}
+      {/* Editor de catálogo (condiciones, características, precios/stock) */}
       {comboSeleccionado && (
-        <EditorEtiqueta
-          combo={comboSeleccionado}
-          datosIniciales={datos[comboSeleccionado.code] ?? {}}
-          onGuardado={() => setComboSeleccionado(null)}
-          onImprimir={(d) => { onImprimirProducto(d); setComboSeleccionado(null); }}
-          onCerrar={() => setComboSeleccionado(null)}
-        />
+        <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/40 p-3 sm:p-6">
+          <div className="my-auto w-full max-w-2xl rounded-2xl border border-border bg-surface-panel p-4 shadow-2xl sm:p-5">
+            <EditorPanel
+              sku={comboSeleccionado.code}
+              layout="config-productos"
+              onClose={() => setComboSeleccionado(null)}
+              onEstadoMarcado={(estado: EstadoMeliConfig) =>
+                setEstadoLocal((prev) => ({ ...prev, [comboSeleccionado.code]: estado }))
+              }
+            />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -4663,9 +4829,10 @@ type PrecargarImpresion = Partial<DatosEtiqueta>;
 interface TabImprimirProps {
   precargar?: PrecargarImpresion | null;
   onPrecargarConsumido: () => void;
+  onIrInventarioTinta?: () => void;
 }
 
-function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
+function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: TabImprimirProps) {
   const qc = useQueryClient();
   const [producto, setProducto] = useState(ETIQUETAS_LISTA[0]);
   const [forma, setForma] = useState(FORMAS[0].value);
@@ -4754,7 +4921,7 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
 
   const imprimirMut = useMutation({
     mutationFn: (payload: ImpresionEtiquetaPayload) =>
-      api.post<PrintResult>("/api/etiquetas/imprimir", payload),
+      api.post<PrintResult>("/api/etiquetas/imprimir", payload, { timeoutMs: 90_000 }),
     onSuccess: (data) => {
       const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
       const err = errorDesdePrintResult(data);
@@ -4791,8 +4958,11 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
   }
 
   const estadoTxt = estadoData?.estado ?? "";
-  const impConectada = estadoTxt.length > 0 && !estadoTxt.toLowerCase().includes("error") && !estadoTxt.toLowerCase().includes("no encontrad");
+  const impConectada = impresoraConectadaDesdeEstado(estadoTxt, estadoData?.impresora_conectada);
   const impDeshabilitada = estadoTxt.toLowerCase().includes("deshabilitad") || estadoTxt.toLowerCase().includes("disabled");
+  const avisoRollo = estadoData?.niveles_tinta?.alerta_impresora?.codigo === "sin_papel"
+    && impConectada
+    && estadoData?.comunicacion_usb !== false;
 
   function handleImprimir() {
     if (!pdfSeleccionado) {
@@ -4848,10 +5018,12 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
           </div>
           <span className={`rounded-full px-3 py-1 text-[10px] font-semibold ${
             impDeshabilitada ? "bg-orange-200 text-orange-800"
-            : impConectada ? "bg-green-200 text-green-800"
+            : impConectada ? (avisoRollo ? "bg-amber-200 text-amber-900" : "bg-green-200 text-green-800")
             : "bg-red-200 text-red-800"
           }`}>
-            {impDeshabilitada ? "Desconectada" : impConectada ? "Impresora lista" : "Sin impresora"}
+            {impDeshabilitada ? "Desconectada"
+              : impConectada ? (avisoRollo ? "Conectada · revisa rollo" : "Impresora lista")
+              : "Sin impresora"}
           </span>
           <button
             type="button"
@@ -4873,13 +5045,25 @@ function TabImprimir({ precargar, onPrecargarConsumido }: TabImprimirProps) {
         {!impConectada && estadoTxt && !errorImpresion && (
           <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-orange-200 bg-orange-50 px-4 py-2">
             <p className="text-xs text-orange-700">
-              {impDeshabilitada ? "Conecta el cable USB e instala la impresora." : "Impresora no configurada."}
+              {impDeshabilitada
+                ? "Conecta el cable USB e instala la impresora."
+                : "Impresora no registrada en CUPS. Pulsa «Instalar impresora»."}
             </p>
             <button type="button" onClick={() => setMostrarInstalador(true)} className="rounded bg-orange-500 px-3 py-1 text-[10px] font-bold text-white hover:bg-orange-600">
-              Configurar
+              Instalar
             </button>
           </div>
         )}
+
+        {impConectada && avisoRollo && estadoData?.niveles_tinta?.alerta_impresora && !errorImpresion && (
+          <div className="flex flex-shrink-0 items-center justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-2">
+            <p className="text-xs text-amber-900">
+              {estadoData.niveles_tinta.alerta_impresora.error}
+            </p>
+          </div>
+        )}
+
+        <NivelesTintaImpresora compact onExpand={onIrInventarioTinta} />
 
         {/* Cinta — pestañas */}
         <RibbonTabs tabs={ribbonTabsImprimir} active={tabRibbon} onChange={setTabRibbon} />
@@ -5260,6 +5444,8 @@ interface CartuchoTinta {
   nivel?: number | null;
   raw?: string | null;
   origen?: "impresora" | "manual" | null;
+  estado_codigo?: string | null;
+  estado_etiqueta?: string | null;
 }
 
 interface AlertaImpresora {
@@ -5271,12 +5457,14 @@ interface AlertaImpresora {
 }
 
 interface NivelesTintaResp {
-  disponible: boolean;
+  disponible?: boolean;
   impresora?: string;
   status?: string;
   status_group?: string;
   estado_cups?: string;
   estado_ok?: boolean;
+  impresora_conectada?: boolean;
+  comunicacion_usb?: boolean;
   alerta_impresora?: AlertaImpresora | null;
   unsettled?: boolean;
   niveles_legibles?: boolean;
@@ -5289,6 +5477,7 @@ interface NivelesTintaResp {
   consultado_at?: string;
   origen_niveles?: "impresora" | "manual" | "mixto" | "ninguno";
   niveles_manuales?: Record<string, number>;
+  rapido?: boolean;
 }
 
 interface ImpresoraConTintasResp extends ImpResp {
@@ -5303,14 +5492,12 @@ const CARTUCHOS_TINTA_DEFAULT: CartuchoTinta[] = [
   { codigo: "MN", etiqueta: "Mantenimiento", color: "#6b7280", nombre: null, nivel: null },
 ];
 
-async function fetchNivelesTintaEtiquetas(): Promise<NivelesTintaResp> {
-  try {
-    return await api.get<NivelesTintaResp>("/api/etiquetas/niveles-tinta", { timeoutMs: 15_000 });
-  } catch {
-    const imp = await api.get<ImpresoraConTintasResp>("/api/etiquetas/impresora", { timeoutMs: 20_000 });
-    if (imp.niveles_tinta) return imp.niveles_tinta;
-    throw new Error("No se pudo leer los niveles de tinta. Reinicia el servicio agente-pro.");
-  }
+async function fetchNivelesTintaResumen(): Promise<NivelesTintaResp> {
+  return api.get<NivelesTintaResp>("/api/etiquetas/niveles-tinta");
+}
+
+async function fetchNivelesTintaUsb(): Promise<NivelesTintaResp> {
+  return api.get<NivelesTintaResp>("/api/etiquetas/niveles-tinta?refresh=1", { timeoutMs: 25_000 });
 }
 
 function nivelTintaBarraClase(pct: number | null | undefined): string {
@@ -5332,6 +5519,25 @@ function alertaImpresoraDesdeDatos(data?: NivelesTintaResp | null): AlertaImpres
     };
   }
   return null;
+}
+
+/** CUPS «inactiva» = idle (lista); solo falla si está deshabilitada o no registrada. */
+function impresoraConectadaDesdeEstado(estado: string, explicito?: boolean): boolean {
+  if (explicito === true) return true;
+  if (explicito === false) return false;
+  const el = estado.trim().toLowerCase();
+  if (!el || el.startsWith("error:")) return false;
+  if (
+    el.includes("unknown")
+    || el.includes("does not exist")
+    || el.includes("no existe")
+    || el.includes("deshabilitad")
+    || el.includes("disabled")
+    || el.includes("no encontrad")
+  ) {
+    return false;
+  }
+  return true;
 }
 
 function PanelAlertaEstadoImpresora({
@@ -5380,17 +5586,39 @@ function PanelAlertaEstadoImpresora({
   );
 }
 
-function NivelesTintaImpresora() {
+function NivelesTintaImpresora({
+  compact = false,
+  onExpand,
+}: {
+  compact?: boolean;
+  onExpand?: () => void;
+}) {
   const qc = useQueryClient();
   const [mostrarInstalador, setMostrarInstalador] = useState(false);
-  const [manualDraft, setManualDraft] = useState<Record<string, number>>({});
-  const { data, isFetching, isError, error, refetch } = useQuery({
+  const [leyendoUsb, setLeyendoUsb] = useState(false);
+  const [errorUsb, setErrorUsb] = useState<string | null>(null);
+  const [manualDraft, setManualDraft] = useState<Record<string, number>>(() =>
+    Object.fromEntries(CARTUCHOS_TINTA_DEFAULT.map((c) => [c.codigo, 50])),
+  );
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["etiquetas-niveles-tinta"],
-    queryFn: fetchNivelesTintaEtiquetas,
-    refetchInterval: 60_000,
-    retry: false,
-    staleTime: 15_000,
+    queryFn: fetchNivelesTintaResumen,
+    retry: 1,
+    staleTime: 30_000,
   });
+
+  async function leerImpresora() {
+    setLeyendoUsb(true);
+    setErrorUsb(null);
+    try {
+      const fresh = await fetchNivelesTintaUsb();
+      qc.setQueryData(["etiquetas-niveles-tinta"], fresh);
+    } catch (e) {
+      setErrorUsb((e as Error)?.message ?? "No se pudo leer la impresora");
+    } finally {
+      setLeyendoUsb(false);
+    }
+  }
 
   useEffect(() => {
     const lista = data?.cartuchos;
@@ -5407,55 +5635,124 @@ function NivelesTintaImpresora() {
 
   const guardarManualMut = useMutation({
     mutationFn: (niveles: Record<string, number>) =>
-      api.put<{ ok: boolean; cartuchos: CartuchoTinta[] }>("/api/etiquetas/niveles-tinta/manual", { niveles }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["etiquetas-niveles-tinta"] }),
+      api.put<{ ok: boolean; cartuchos: CartuchoTinta[]; origen_niveles?: string }>(
+        "/api/etiquetas/niveles-tinta/manual",
+        { niveles },
+      ),
+    onSuccess: (resp) => {
+      qc.setQueryData<NivelesTintaResp>(["etiquetas-niveles-tinta"], (prev) => ({
+        ...(prev ?? {}),
+        cartuchos: resp.cartuchos,
+        origen_niveles: (resp.origen_niveles as NivelesTintaResp["origen_niveles"]) ?? "manual",
+        niveles_legibles: true,
+        desde_cache: true,
+        rapido: true,
+      }));
+    },
   });
 
-  const cartuchos = (data?.cartuchos?.length ? data.cartuchos : CARTUCHOS_TINTA_DEFAULT);
-  const legibles = Boolean(data?.niveles_legibles);
-  const mostrarEditorManual = data?.origen_niveles !== "impresora";
+  const cartuchos = data?.cartuchos?.length ? data.cartuchos : CARTUCHOS_TINTA_DEFAULT;
+  const soloUsb = data?.origen_niveles === "impresora";
+  const mostrarEditorManual = !compact && !soloUsb;
   const alerta = alertaImpresoraDesdeDatos(data);
   const consultado = data?.consultado_at
     ? new Date(data.consultado_at).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
     : null;
 
+  function pctVisible(c: CartuchoTinta): number {
+    return c.nivel ?? manualDraft[c.codigo] ?? 50;
+  }
+
+  function barraAncho(c: CartuchoTinta): string {
+    const pct = pctVisible(c);
+    return `${Math.max(pct > 0 ? 4 : 0, pct)}%`;
+  }
+
+  if (compact) {
+    return (
+      <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-border bg-surface px-4 py-2">
+        <span className="text-[10px] font-bold uppercase tracking-wide text-muted">Tinta</span>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          {cartuchos.map((c) => {
+            const pct = pctVisible(c);
+            return (
+              <div key={c.codigo} className="flex min-w-[3.5rem] flex-col gap-0.5" title={`${c.etiqueta}: ${pct}%`}>
+                <span className="font-mono text-[9px] font-bold text-ink">{c.codigo} {pct}%</span>
+                <div className="h-1.5 w-14 overflow-hidden rounded-full bg-surface-panel ring-1 ring-border">
+                  <div
+                    className={`h-full rounded-full ${nivelTintaBarraClase(c.nivel ?? pct)}`}
+                    style={{ width: barraAncho(c), backgroundColor: c.nivel == null ? c.color : undefined }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {onExpand && (
+          <button
+            type="button"
+            onClick={onExpand}
+            className="shrink-0 rounded border border-border px-2 py-1 text-[10px] font-semibold hover:bg-surface-hover"
+          >
+            Inventario →
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <>
       {mostrarInstalador && (
-        <InstaladorWizard onCerrar={() => { setMostrarInstalador(false); refetch(); }} />
+        <InstaladorWizard onCerrar={() => { setMostrarInstalador(false); void leerImpresora(); }} />
       )}
-      <div className="rounded-xl border border-border bg-surface-panel p-4">
+      <div className="rounded-xl border-2 border-accent/30 bg-surface-panel p-4 shadow-paper-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-bold text-ink">Niveles en impresora</p>
           <p className="text-[10px] text-muted">
             Epson ColorWorks · {data?.impresora ?? "CW-C4000u"}
-            {consultado ? ` · lectura ${consultado}` : ""}
-            {data?.desde_cache ? " · caché" : ""}
-            {data?.origen_niveles === "manual" ? " · manual" : data?.origen_niveles === "impresora" ? " · impresora" : ""}
-            {data?.estado_ok === true ? " · lista" : ""}
+            {consultado ? ` · guardado ${consultado}` : ""}
+            {data?.origen_niveles === "manual"
+              ? " · manual (LCD)"
+              : data?.origen_niveles === "impresora"
+                ? " · leído de impresora"
+                : ""}
+            {leyendoUsb ? " · leyendo USB…" : ""}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          disabled={isFetching}
-          className="rounded-lg border border-border px-3 py-1 text-[10px] font-semibold hover:bg-surface-hover disabled:opacity-50"
-        >
-          {isFetching ? "Consultando…" : "Actualizar"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => void leerImpresora()}
+            disabled={leyendoUsb}
+            className="rounded-lg bg-accent px-3 py-1 text-[10px] font-bold text-white hover:bg-accent/90 disabled:opacity-50"
+          >
+            {leyendoUsb ? "Leyendo…" : "Leer impresora"}
+          </button>
+        </div>
       </div>
+
+      {isLoading && !data && (
+        <p className="mb-3 text-xs text-muted">Cargando niveles guardados…</p>
+      )}
 
       {isError && (
         <PanelAlertaEstadoImpresora
           alerta={{
-            error: (error as Error)?.message ?? "Error al consultar la impresora",
-            solucion: "Reinicia el servicio agente-pro y vuelve a pulsar Actualizar.",
+            error: (error as Error)?.message ?? "Error al cargar niveles",
+            solucion: "Recarga la página. Si persiste, reinicia agente-pro.",
             severidad: "error",
             codigo: "desconocido",
           }}
           onInstalar={() => setMostrarInstalador(true)}
         />
+      )}
+
+      {errorUsb && (
+        <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+          {errorUsb}
+        </p>
       )}
 
       {!isError && alerta && (
@@ -5471,47 +5768,55 @@ function NivelesTintaImpresora() {
         </p>
       )}
 
-      {mostrarEditorManual && !isError && (
-        <p className="mb-3 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-muted">
-          Sin lectura USB automática. Mira el <strong className="text-ink">panel LCD</strong> de la Epson, ajusta cada barra y pulsa <strong className="text-ink">Guardar</strong>.
+      {soloUsb && !isError && (
+        <p className="mb-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-900 dark:border-green-800 dark:bg-green-950/40 dark:text-green-100">
+          Niveles según el estado que reporta la Epson (misma lógica que las barras del LCD). Pulsa <strong>Leer impresora</strong> para actualizar.
         </p>
       )}
 
-      <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 ${isFetching && !data ? "opacity-60" : ""}`}>
+      {mostrarEditorManual && !isError && (
+        <p className="mb-3 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-muted">
+          Sin lectura USB. Mira el <strong className="text-ink">panel LCD</strong> de la Epson, ajusta las barras y pulsa <strong className="text-ink">Guardar</strong>.
+        </p>
+      )}
+
+      <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 ${isLoading && !data ? "opacity-70" : ""}`}>
         {cartuchos.map((c) => {
-          const pct = c.nivel ?? manualDraft[c.codigo] ?? 0;
-          const esManual = c.origen === "manual" || (c.nivel == null && mostrarEditorManual);
+          const pct = pctVisible(c);
           return (
           <div key={c.codigo} className="rounded-lg border border-border bg-surface px-3 py-2.5">
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <span className="text-xs font-bold text-ink">
                 <span
-                  className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/10"
+                  className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/20"
                   style={{ backgroundColor: c.color }}
                 />
                 {c.etiqueta}
                 {c.codigo !== "MN" ? (
                   <span className="ml-1 font-mono text-[10px] text-muted">({c.codigo})</span>
                 ) : null}
-                {c.origen === "manual" ? (
+                {c.estado_etiqueta ? (
+                  <span className="ml-1 rounded bg-surface-panel px-1 text-[9px] font-semibold text-muted">
+                    {c.estado_etiqueta}
+                  </span>
+                ) : c.origen === "manual" ? (
                   <span className="ml-1 rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">manual</span>
                 ) : c.origen === "impresora" ? (
-                  <span className="ml-1 rounded bg-green-100 px-1 text-[9px] font-bold text-green-800">auto</span>
+                  <span className="ml-1 rounded bg-green-100 px-1 text-[9px] font-bold text-green-800">USB</span>
                 ) : null}
               </span>
               <span className={`font-mono text-sm font-extrabold tabular-nums ${
-                pct <= 15 ? "text-red-600" : c.nivel != null ? "text-ink" : "text-muted"
+                pct <= 15 ? "text-red-600" : "text-ink"
               }`}>
-                {c.nivel != null ? `${c.nivel}%` : isFetching && !data ? "…" : esManual ? `${pct}%` : "—"}
+                {`${pct}%`}
               </span>
             </div>
-            <div className="h-2.5 overflow-hidden rounded-full bg-surface-panel">
+            <div className="h-3 overflow-hidden rounded-full bg-gray-200 ring-1 ring-border dark:bg-gray-700">
               <div
-                className={`h-full rounded-full transition-all ${nivelTintaBarraClase(c.nivel ?? (esManual ? pct : null))}`}
+                className={`h-full rounded-full transition-all ${nivelTintaBarraClase(c.nivel ?? pct)}`}
                 style={{
-                  width: `${c.nivel ?? (esManual ? pct : 0)}%`,
+                  width: barraAncho(c),
                   backgroundColor: c.nivel != null ? undefined : c.color,
-                  opacity: c.nivel != null || esManual ? 1 : 0.2,
                 }}
               />
             </div>
@@ -5736,6 +6041,17 @@ function TabInventarioPapelTinta() {
 function handoffDesdeDatos(datos: DatosEtiqueta): EtiquetasHandoff {
   return {
     tipo_etiqueta: datos.tipo_etiqueta,
+    forma: datos.forma,
+    calidad: datos.calidad,
+    rotacion: datos.rotacion,
+    pdf_ruta: datos.pdf_ruta,
+    pdf_nombre: datos.pdf_nombre,
+    lote_defecto: datos.lote_defecto,
+    vencimiento_defecto: datos.vencimiento_defecto,
+    lote_pos: datos.lote_pos,
+    lote_font: datos.lote_font,
+    lote_x_pct: datos.lote_x_pct,
+    lote_y_pct: datos.lote_y_pct,
     campos_texto: datos.campos_texto,
     lineas: datos.lineas,
     imagenes: datos.imagenes,
@@ -5754,25 +6070,17 @@ function handoffDesdePlantilla(p: PlantillaEtiqueta): EtiquetasHandoff {
   };
 }
 
-/** Panel lateral: configurar productos SIIGO ↔ PDF. */
+/** Panel lateral: configurar productos (MeLi, catálogo web). */
 export function ConfigurarProductosPanel() {
-  const setPanel = useAppStore((s) => s.setPanel);
-  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
-  const setHandoff = useAppStore((s) => s.setEtiquetasHandoff);
-
-  function irAImprimir(datos: DatosEtiqueta) {
-    setHandoff(handoffDesdeDatos(datos));
-    setEtiquetasTab("imprimir");
-    setPanel("etiquetas");
-  }
-
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-1 sm:px-0">
       <div>
         <h2 className="text-lg font-bold text-ink">Configurar productos</h2>
-        <p className="text-xs text-muted">Asocia PDF y datos por SKU SIIGO · al imprimir abre Impresora · Etiquetas</p>
+        <p className="text-xs text-muted">
+          Vincula el ID de publicación MeLi o edita condiciones, características, precios y stock
+        </p>
       </div>
-      <TabConfigurar onImprimirProducto={irAImprimir} />
+      <TabConfigurar />
     </div>
   );
 }
@@ -5828,6 +6136,7 @@ export default function EtiquetasPanel() {
         <TabImprimir
           precargar={precargarImpresion}
           onPrecargarConsumido={() => setPrecargarImpresion(null)}
+          onIrInventarioTinta={() => setTab("inventario")}
         />
       )}
       {tab === "plantillas" && (

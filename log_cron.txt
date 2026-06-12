@@ -1990,3 +1990,36 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-06-10 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
+[cursor/wa-metricas-panel bb80f1b] Auto-commit: actualizacion diaria 2026-06-11 23:00
+ 50 files changed, 40848 insertions(+), 1438 deletions(-)
+ create mode 100644 app/data/etiquetas_niveles_tinta_cache.json
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 desktop/src/components/LogisticaInternacionalPanel.tsx
+ create mode 100644 desktop/src/lib/logisticaAccess.ts
+ create mode 100644 importaciones_productos/FA268949 codigos siigo.xml
+ create mode 100644 importaciones_productos/FA268949 registro productos.xlsx
+ create mode 100644 uploads/tickets/08a1b222242e43deb3eed2dfc7c344b1.png
+ create mode 100644 uploads/tickets/4e8d046d16b54621952b9752647a4278.pdf
+ create mode 100644 uploads/tickets/543518518c67434ea78030e1d89ceaa4.png
+ create mode 100644 uploads/tickets/60e16638f2044571b2f58e5f2b5c0787.png
+ create mode 100644 uploads/tickets/6a7ebe754c354b56ad6dd3a80fd5bf5a.png
+ create mode 100644 uploads/tickets/6ca121182a944b5c9dc0259f2cb0d4d9.png
+ create mode 100644 uploads/tickets/6d092d450e2048e7a4e9581423f39201.png
+ create mode 100644 uploads/tickets/97dc90dee2ea4e4c8279b1c7a5a03017.png
+ create mode 100644 uploads/tickets/9895b458965945d18e4fe9935f3458cd.jpg
+ create mode 100644 uploads/tickets/9e516e4a836c4961b895da54fd8ddf01.png
+ create mode 100644 uploads/tickets/b66d7273dd694da7b6055ac11746fc96.pdf
+ create mode 100644 uploads/tickets/c55445133cc342a0a3d19376eaf6f22b.png
+ create mode 100644 uploads/tickets/eea968d96ee8460a95b70f7b9f9bf3a3.png
+ create mode 100644 uploads/tickets/f51ba10d9a3142ab9b91b3e2d5fe3ab7.png
+ create mode 100644 uploads/tickets/fbcea5ff843f45c9ba386848711a7fff.pdf
+ create mode 100644 uploads/tickets/fe697cc2b8ea4b87a9d80ff6702dbd85.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-06-11 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
