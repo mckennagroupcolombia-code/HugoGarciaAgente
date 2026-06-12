@@ -6930,6 +6930,625 @@ def register_routes(app):
             "codigo": codigo,
         }
 
+    _ELIOUD_PATH = "/opt/epson/epson-printer-io-community/elioud1"
+
+    def _elpu_binario_etiquetas() -> str:
+        import shutil as _shutil
+        if os.path.isfile(_ELPU_PATH):
+            return _ELPU_PATH
+        return _shutil.which("elpu") or ""
+
+    def _uri_dispositivo_etiquetas() -> str:
+        import subprocess as _sp
+        try:
+            r = _sp.run(
+                ["lpstat", "-v", _PRINTER_NAME],
+                capture_output=True, text=True, timeout=5,
+            )
+            for line in (r.stdout or "").splitlines():
+                ll = line.lower()
+                if "dispositivo para" in ll or "device for" in ll:
+                    partes = line.split(":", 1)
+                    if len(partes) > 1:
+                        return partes[1].strip()
+        except Exception:
+            pass
+        return ""
+
+    def _uri_epson_usb_desde_usb(uri: str) -> str:
+        uri = (uri or "").strip()
+        if uri.startswith("epsonUSB://"):
+            return uri
+        if uri.startswith("usb://"):
+            return "epsonUSB://" + uri[len("usb://"):]
+        return uri
+
+    def _reiniciar_elioud_etiquetas() -> bool:
+        """Reinicia el daemon Epson I/O (evita DaemonStop con instancias duplicadas)."""
+        import subprocess as _sp
+        import time as _time
+        if not os.path.isfile(_ELIOUD_PATH):
+            return False
+        try:
+            _sp.run(
+                ["pkill", "-f", "/opt/epson/epson-printer-io-community/elioud1"],
+                capture_output=True, text=True, timeout=3,
+            )
+            _time.sleep(0.4)
+            _sp.Popen(
+                [_ELIOUD_PATH],
+                stdout=_sp.DEVNULL,
+                stderr=_sp.DEVNULL,
+                start_new_session=True,
+            )
+            _time.sleep(1.0)
+            r = _sp.run(
+                ["pgrep", "-c", "/opt/epson/epson-printer-io-community/elioud1"],
+                capture_output=True, text=True, timeout=3,
+            )
+            return r.returncode == 0 and int((r.stdout or "0").strip() or 0) >= 1
+        except Exception:
+            return False
+
+    def _asegurar_elioud_etiquetas() -> bool:
+        return _reiniciar_elioud_etiquetas()
+
+    def _corregir_backend_epson_usb_etiquetas() -> tuple[str, bool]:
+        """Migra usb:// → epsonUSB:// (requerido por ELPU para leer tinta)."""
+        import subprocess as _sp
+
+        uri = _uri_dispositivo_etiquetas()
+        if not uri or uri.startswith("epsonUSB://"):
+            return uri, False
+        nueva = _uri_epson_usb_desde_usb(uri)
+        if nueva == uri:
+            return uri, False
+        try:
+            r = _sp.run(
+                ["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-v", nueva],
+                capture_output=True, text=True, timeout=15,
+            )
+            if r.returncode == 0:
+                _sp.run(["sudo", "-n", "cupsenable", _PRINTER_NAME], capture_output=True, timeout=10)
+                _sp.run(["sudo", "-n", "cupsaccept", _PRINTER_NAME], capture_output=True, timeout=10)
+                return nueva, True
+        except Exception:
+            pass
+        return uri, False
+
+    def _valor_linea_elpu(salida: str, clave: str) -> str | None:
+        pref = f"{clave}:"
+        for linea in (salida or "").splitlines():
+            linea = linea.strip()
+            if linea.startswith(pref):
+                return linea.split(":", 1)[1].strip()
+        return None
+
+    def _parsear_nivel_tinta_elpu(valor: str | None) -> int | None:
+        if not valor or valor.upper() in ("N/A", "-", ""):
+            return None
+        partes = valor.split()
+        if not partes:
+            return None
+        try:
+            if len(partes) >= 2:
+                actual, maximo = int(partes[0]), int(partes[1])
+                if actual < 0 or maximo <= 0:
+                    return None
+                return min(100, max(0, round(actual * 100 / maximo)))
+            actual = int(partes[0])
+            if actual < 0:
+                return None
+            if actual <= 100:
+                return actual
+        except (TypeError, ValueError):
+            pass
+        return None
+
+    _MAPA_ESTADO_ELPU_ETIQUETAS = {
+        "BeforeComm": (
+            "Sin comunicación con la impresora",
+            "Enciende la Epson CW-C4000u, conecta el cable USB directo al PC (sin hub) y espera 30 s. "
+            "Si persiste, pulsa «Instalar impresora» en la pestaña Imprimir.",
+            "sin_conexion",
+            "warning",
+        ),
+        "Status_Unsettled": (
+            "Impresora inicializando",
+            "Espera a que termine de cargar tinta y el panel LCD muestre «Listo». No desconectes el USB mientras parpadea.",
+            "inicializando",
+            "warning",
+        ),
+        "Status_CommError": (
+            "Error de comunicación con la impresora",
+            "Enciende la Epson CW-C4000u y espera a que el panel LCD muestre «Listo». "
+            "Reconecta el cable USB directo al PC (sin hub), pulsa «Instalar impresora» y luego Actualizar.",
+            "sin_conexion",
+            "error",
+        ),
+        "backend_incorrecto": (
+            "Backend USB incorrecto para monitoreo de tinta",
+            "Pulsa «Instalar impresora» para cambiar al backend epsonUSB (obligatorio en Linux para ver niveles de tinta).",
+            "backend_incorrecto",
+            "error",
+        ),
+        "Status_Offline": (
+            "Impresora apagada o desconectada",
+            "Enciende la impresora y verifica que el LED de encendido esté fijo. Reconecta el cable USB si hace falta.",
+            "sin_conexion",
+            "error",
+        ),
+        "Status_BadDevice": (
+            "Impresora no reconocida",
+            "Reinicia la impresora y el PC. Pulsa «Instalar impresora» para volver a registrar el driver en CUPS.",
+            "no_registrada",
+            "error",
+        ),
+        "FatalError": (
+            "Error grave de la impresora",
+            "Apaga la impresora 30 s, enciéndela de nuevo y revisa el mensaje en el panel LCD. Si persiste, contacta soporte Epson.",
+            "fatal",
+            "error",
+        ),
+        "Status_ER_CO": (
+            "Tapa o cabezal abierto",
+            "Cierra la tapa frontal hasta oír el clic. Espera a que el LED deje de parpadear en rojo.",
+            "tapa_abierta",
+            "error",
+        ),
+        "Status_ER_FE": (
+            "Sin etiquetas o rollo vacío",
+            "Carga un rollo nuevo y alinea las guías con el ancho del material. Verifica gap o blackmark según el tipo de etiqueta.",
+            "sin_papel",
+            "error",
+        ),
+        "Status_ER_IC": (
+            "Problema con cartucho de tinta",
+            "Retira y vuelve a insertar el cartucho indicado en el panel LCD. Usa cartuchos Epson SJIC41P originales.",
+            "mantenimiento",
+            "error",
+        ),
+        "Status_ER_MN": (
+            "Caja de mantenimiento llena o mal instalada",
+            "Reemplaza la caja de mantenimiento SJMB4000 siguiendo el manual. Reinicia la impresora tras el cambio.",
+            "mantenimiento",
+            "error",
+        ),
+        "Status_ER_LT": (
+            "Tinta baja",
+            "Sustituye el cartucho que indica el panel LCD antes de seguir imprimiendo lotes grandes.",
+            "tinta_baja",
+            "warning",
+        ),
+        "Status_ER_MF": (
+            "Error de alimentación de etiquetas",
+            "Revisa que el rollo gire libre y que el sensor (gap/blackmark) coincida con el tipo elegido en el panel.",
+            "sin_papel",
+            "error",
+        ),
+        "Status_IL_PAPF": (
+            "Atasco o error de papel",
+            "Abre la impresora, retira etiquetas atascadas con cuidado y vuelve a cargar el rollo alineado con las guías.",
+            "atasco",
+            "error",
+        ),
+        "Status_IL_PAPT_ER": (
+            "Tipo de etiqueta no reconocido",
+            "En el panel de impresión elige el formato correcto (troquelada gap/blackmark o continua) según tu rollo.",
+            "sin_papel",
+            "warning",
+        ),
+        "Status_PR": (
+            "Problema con el rollo de etiquetas",
+            "Verifica que el rollo esté bien colocado, que haya material y que el sensor detecte gap o marca negra.",
+            "sin_papel",
+            "error",
+        ),
+        "Status_WT": (
+            "Impresora ocupada",
+            "Espera a que termine la limpieza o carga de tinta. No apagues ni desconectes el USB.",
+            "inicializando",
+            "info",
+        ),
+        "Status_CL": (
+            "Limpieza de cabezal en curso",
+            "No interrumpas el proceso. Cuando termine, el panel volverá a «Listo».",
+            "inicializando",
+            "info",
+        ),
+    }
+
+    _ETIQUETAS_NIVELES_TINTA_CACHE_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_niveles_tinta_cache.json",
+    )
+
+    def _clave_status_elpu_etiquetas(valor: str) -> str:
+        if not valor:
+            return ""
+        partes = [p.strip() for p in valor.split(",") if p.strip()]
+        for parte in reversed(partes):
+            if not parte.isdigit():
+                return parte
+        return partes[-1] if partes else ""
+
+    def _alerta_impresora_etiquetas(
+        *,
+        salida_elpu: str = "",
+        estado_cups: str = "",
+        preflight: dict | None = None,
+    ) -> dict | None:
+        """Devuelve error/solución/código/severidad si hay problema; None si todo OK."""
+        uri_dev = _uri_dispositivo_etiquetas()
+        if uri_dev.startswith("usb://"):
+            err, sol, cod, sev = _MAPA_ESTADO_ELPU_ETIQUETAS["backend_incorrecto"]
+            return {
+                "error": err,
+                "solucion": sol,
+                "codigo": cod,
+                "severidad": sev,
+                "detalle": uri_dev,
+            }
+
+        if preflight:
+            return {
+                "error": preflight.get("error", "Error de impresora"),
+                "solucion": preflight.get("solucion", "Revisa la conexión USB y pulsa «Instalar impresora»."),
+                "codigo": preflight.get("codigo", "preflight"),
+                "severidad": "error",
+                "detalle": preflight.get("detalle", ""),
+            }
+
+        texto_cups = (estado_cups or "").strip()
+        tl_cups = texto_cups.lower()
+        err_cups, sol_cups, cod_cups = _interpretar_error_impresora_etiquetas(texto_cups)
+        if any(x in tl_cups for x in ("disabled", "deshabilitad", "paused", "en pausa", "pausad", "unknown", "no existe", "does not exist")):
+            return {
+                "error": err_cups,
+                "solucion": sol_cups,
+                "codigo": cod_cups,
+                "severidad": "error",
+                "detalle": texto_cups,
+            }
+
+        status = _valor_linea_elpu(salida_elpu, "status") or ""
+        status_group = _valor_linea_elpu(salida_elpu, "statusGroup") or ""
+        claves = (
+            _clave_status_elpu_etiquetas(status),
+            _clave_status_elpu_etiquetas(status_group),
+        )
+        texto_elpu = f"{status} {status_group}".lower()
+
+        for clave in claves:
+            if clave and clave in _MAPA_ESTADO_ELPU_ETIQUETAS:
+                err, sol, cod, sev = _MAPA_ESTADO_ELPU_ETIQUETAS[clave]
+                return {
+                    "error": err,
+                    "solucion": sol,
+                    "codigo": cod,
+                    "severidad": sev,
+                    "detalle": f"{status}; {status_group}".strip("; "),
+                }
+
+        for clave, (err, sol, cod, sev) in _MAPA_ESTADO_ELPU_ETIQUETAS.items():
+            if clave.lower() in texto_elpu:
+                return {
+                    "error": err,
+                    "solucion": sol,
+                    "codigo": cod,
+                    "severidad": sev,
+                    "detalle": f"{status}; {status_group}".strip("; "),
+                }
+
+        if "error" in texto_elpu or "fatal" in texto_elpu:
+            err, sol, cod = _interpretar_error_impresora_etiquetas(texto_elpu)
+            return {
+                "error": err,
+                "solucion": sol,
+                "codigo": cod,
+                "severidad": "error",
+                "detalle": f"{status}; {status_group}".strip("; "),
+            }
+
+        return None
+
+    def _estado_cups_etiquetas() -> str:
+        import subprocess as _sp
+        try:
+            r = _sp.run(
+                ["lpstat", "-p", _PRINTER_NAME],
+                capture_output=True, text=True, timeout=5,
+            )
+            return (r.stdout or r.stderr or "").strip()
+        except Exception as e:
+            return f"Error consultando CUPS: {e}"
+
+    _CODIGOS_TINTA_ETIQUETAS = frozenset({"K", "C", "M", "Y", "MN"})
+
+    def _load_datos_niveles_tinta_store() -> dict:
+        try:
+            with open(_ETIQUETAS_NIVELES_TINTA_CACHE_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return {"niveles_manuales": {}, "cartuchos": []}
+        except Exception:
+            return {"niveles_manuales": {}, "cartuchos": []}
+        if not isinstance(data, dict):
+            return {"niveles_manuales": {}, "cartuchos": []}
+        manuales = data.get("niveles_manuales")
+        if not isinstance(manuales, dict):
+            manuales = {}
+        return {**data, "niveles_manuales": manuales}
+
+    def _load_cache_niveles_tinta_etiquetas() -> dict | None:
+        data = _load_datos_niveles_tinta_store()
+        cartuchos = data.get("cartuchos")
+        if not isinstance(cartuchos, list) or not cartuchos:
+            return None
+        return data
+
+    def _save_datos_niveles_tinta_store(payload: dict) -> None:
+        os.makedirs(os.path.dirname(_ETIQUETAS_NIVELES_TINTA_CACHE_PATH), exist_ok=True)
+        prev = _load_datos_niveles_tinta_store()
+        merged = {**prev, **payload}
+        with open(_ETIQUETAS_NIVELES_TINTA_CACHE_PATH, "w", encoding="utf-8") as f:
+            json.dump(merged, f, ensure_ascii=False, indent=2)
+
+    def _save_cache_niveles_tinta_etiquetas(payload: dict) -> None:
+        _save_datos_niveles_tinta_store(payload)
+
+    def _normalizar_niveles_manuales_tinta(raw: dict) -> dict:
+        out: dict = {}
+        for codigo, val in (raw or {}).items():
+            c = str(codigo or "").strip().upper()
+            if c not in _CODIGOS_TINTA_ETIQUETAS:
+                continue
+            try:
+                out[c] = min(100, max(0, int(val)))
+            except (TypeError, ValueError):
+                continue
+        return out
+
+    def _fusionar_cartuchos_niveles_manuales(cartuchos: list, manuales: dict) -> tuple[list, bool, bool]:
+        manuales = _normalizar_niveles_manuales_tinta(manuales)
+        tiene_auto = False
+        tiene_manual = False
+        out = []
+        for c in cartuchos:
+            item = dict(c)
+            codigo = str(item.get("codigo") or "").upper()
+            if item.get("nivel") is not None:
+                item["origen"] = "impresora"
+                tiene_auto = True
+            elif codigo in manuales:
+                item["nivel"] = manuales[codigo]
+                item["origen"] = "manual"
+                tiene_manual = True
+            else:
+                item["origen"] = None
+            out.append(item)
+        return out, tiene_auto, tiene_manual
+
+    def _enriquecer_respuesta_niveles_tinta(resp: dict) -> dict:
+        store = _load_datos_niveles_tinta_store()
+        manuales = store.get("niveles_manuales") or {}
+        cartuchos, tiene_auto, tiene_manual = _fusionar_cartuchos_niveles_manuales(
+            resp.get("cartuchos") or [], manuales,
+        )
+        resp["cartuchos"] = cartuchos
+        resp["niveles_manuales"] = manuales
+        if tiene_auto:
+            resp["origen_niveles"] = "mixto" if tiene_manual else "impresora"
+            if tiene_auto and not resp.get("niveles_legibles"):
+                resp["niveles_legibles"] = True
+        elif tiene_manual:
+            resp["origen_niveles"] = "manual"
+            resp["niveles_legibles"] = True
+        else:
+            resp["origen_niveles"] = "ninguno"
+        return resp
+
+    def _ejecutar_elpu_etiquetas(opts: tuple[str, ...], *, usar_sudo: bool) -> tuple[str, int]:
+        import subprocess as _sp
+
+        elpu_bin = _elpu_binario_etiquetas()
+        if not elpu_bin:
+            return "", 127
+        cmd = ([elpu_bin] if not usar_sudo else ["sudo", "-n", elpu_bin]) + ["-p", _PRINTER_NAME]
+        for opt in opts:
+            cmd.extend(["-o", opt])
+        try:
+            r = _sp.run(cmd, capture_output=True, text=True, timeout=7)
+            return (r.stdout + r.stderr).strip(), r.returncode
+        except Exception:
+            return "", 1
+
+    def _salida_elpu_lista(salida: str) -> bool:
+        return bool(salida and "destination:" in salida.lower())
+
+    def _armar_cartuchos_tinta_elpu(salida: str) -> tuple[list, bool]:
+        cartuchos_def = (
+            ("K", "inkK", "inkNameK", "Negro", "#1a1a1a"),
+            ("C", "inkC", "inkNameC", "Cian", "#06b6d4"),
+            ("M", "inkM", "inkNameM", "Magenta", "#ec4899"),
+            ("Y", "inkY", "inkNameY", "Amarillo", "#eab308"),
+            ("MN", "inkMN", "inkNameMN", "Mantenimiento", "#6b7280"),
+        )
+        cartuchos = []
+        alguno_con_nivel = False
+        for codigo, ink_key, name_key, etiqueta, color in cartuchos_def:
+            ink_raw = _valor_linea_elpu(salida, ink_key)
+            nombre_raw = _valor_linea_elpu(salida, name_key)
+            nivel = _parsear_nivel_tinta_elpu(ink_raw)
+            nombre = None
+            if nombre_raw and nombre_raw.upper() not in ("N/A", "-", ""):
+                nombre = nombre_raw
+            if nivel is not None:
+                alguno_con_nivel = True
+            cartuchos.append({
+                "codigo": codigo,
+                "etiqueta": etiqueta,
+                "color": color,
+                "nombre": nombre,
+                "nivel": nivel,
+                "raw": ink_raw,
+            })
+        return cartuchos, alguno_con_nivel
+
+    def _consultar_niveles_tinta_etiquetas() -> dict:
+        """Lee niveles CMYK + caja de mantenimiento vía ELPU (Epson Label Printer Utility)."""
+        import time as _time
+
+        uri_migrada, migrado = _corregir_backend_epson_usb_etiquetas()
+        elioud_ok = _asegurar_elioud_etiquetas()
+        estado_cups = _estado_cups_etiquetas()
+        preflight = _verificar_impresora_etiquetas()
+
+        if not _elpu_binario_etiquetas():
+            cache = _load_cache_niveles_tinta_etiquetas()
+            alerta = _alerta_impresora_etiquetas(
+                estado_cups=estado_cups,
+                preflight=preflight or {
+                    "error": "Utilidad ELPU no instalada",
+                    "solucion": "Pulsa «Instalar impresora» en la pestaña Imprimir para instalar elpu.",
+                    "codigo": "elpu",
+                },
+            )
+            return _enriquecer_respuesta_niveles_tinta({
+                "disponible": False,
+                "error": alerta["error"] if alerta else "Utilidad ELPU no instalada",
+                "solucion": alerta["solucion"] if alerta else "Pulsa «Instalar impresora» en la pestaña Imprimir.",
+                "codigo": (alerta or {}).get("codigo", "elpu"),
+                "alerta_impresora": alerta,
+                "estado_cups": estado_cups,
+                "cartuchos": (cache or {}).get("cartuchos") or _armar_cartuchos_tinta_elpu("")[0],
+            })
+
+        opts = (
+            "inkK", "inkC", "inkM", "inkY", "inkMN",
+            "inkNameK", "inkNameC", "inkNameM", "inkNameY", "inkNameMN",
+            "status", "statusGroup",
+        )
+        def _elpu_necesita_reintento(salida_elpu: str) -> bool:
+            if not _salida_elpu_lista(salida_elpu):
+                return True
+            _, tiene_nivel = _armar_cartuchos_tinta_elpu(salida_elpu)
+            if tiene_nivel:
+                return False
+            status_try = (_valor_linea_elpu(salida_elpu, "status") or "").lower()
+            grupo_try = (_valor_linea_elpu(salida_elpu, "statusGroup") or "").lower()
+            return "beforecomm" in grupo_try or "unsettled" in status_try
+
+        salida, rc = _ejecutar_elpu_etiquetas(opts, usar_sudo=False)
+        if _elpu_necesita_reintento(salida):
+            _time.sleep(0.5)
+            salida_retry, rc_retry = _ejecutar_elpu_etiquetas(opts, usar_sudo=False)
+            if _salida_elpu_lista(salida_retry):
+                salida = salida_retry
+                rc = rc_retry
+
+        def _payload_niveles_tinta(**extra) -> dict:
+            alerta = _alerta_impresora_etiquetas(
+                salida_elpu=salida,
+                estado_cups=estado_cups,
+                preflight=preflight,
+            )
+            base = {
+                "impresora": _PRINTER_NAME,
+                "estado_cups": estado_cups,
+                "uri_dispositivo": _uri_dispositivo_etiquetas() or uri_migrada,
+                "backend_epson_usb": (_uri_dispositivo_etiquetas() or uri_migrada).startswith("epsonUSB://"),
+                "elioud_activo": elioud_ok,
+                "backend_corregido": migrado,
+                "alerta_impresora": alerta,
+                "estado_ok": alerta is None,
+            }
+            base.update(extra)
+            return base
+
+        if not _salida_elpu_lista(salida):
+            cache = _load_cache_niveles_tinta_etiquetas()
+            if cache:
+                return _enriquecer_respuesta_niveles_tinta(_payload_niveles_tinta(
+                    disponible=True,
+                    status=cache.get("status", ""),
+                    status_group=cache.get("status_group", ""),
+                    unsettled=True,
+                    niveles_legibles=True,
+                    desde_cache=True,
+                    mensaje="Impresora sin comunicación; mostrando última lectura guardada.",
+                    cartuchos=cache.get("cartuchos") or [],
+                    consultado_at=cache.get("consultado_at") or "",
+                ))
+            alerta = _alerta_impresora_etiquetas(
+                estado_cups=estado_cups,
+                preflight=preflight or {
+                    "error": "ELPU no respondió",
+                    "solucion": "Enciende la impresora, reconecta el USB y pulsa Actualizar.",
+                    "codigo": "elpu",
+                },
+            )
+            return _enriquecer_respuesta_niveles_tinta({
+                "disponible": False,
+                "error": alerta["error"] if alerta else "ELPU no respondió",
+                "solucion": alerta["solucion"] if alerta else "Enciende la impresora y pulsa Actualizar.",
+                "codigo": (alerta or {}).get("codigo", "elpu"),
+                "alerta_impresora": alerta,
+                "estado_cups": estado_cups,
+                "cartuchos": _armar_cartuchos_tinta_elpu("")[0],
+            })
+
+        status = _valor_linea_elpu(salida, "status") or ""
+        status_group = _valor_linea_elpu(salida, "statusGroup") or ""
+        status_lower = status.lower()
+        grupo_lower = status_group.lower()
+        unsettled = "unsettled" in status_lower or "beforecomm" in grupo_lower
+
+        cartuchos, alguno_con_nivel = _armar_cartuchos_tinta_elpu(salida)
+        consultado_at = _dt.now().isoformat(timespec="seconds")
+
+        if alguno_con_nivel:
+            _save_cache_niveles_tinta_etiquetas({
+                "cartuchos": cartuchos,
+                "status": status,
+                "status_group": status_group,
+                "consultado_at": consultado_at,
+            })
+            return _enriquecer_respuesta_niveles_tinta(_payload_niveles_tinta(
+                disponible=True,
+                status=status,
+                status_group=status_group,
+                unsettled=unsettled,
+                niveles_legibles=True,
+                desde_cache=False,
+                cartuchos=cartuchos,
+                consultado_at=consultado_at,
+            ))
+
+        cache = _load_cache_niveles_tinta_etiquetas()
+        if cache:
+            return _enriquecer_respuesta_niveles_tinta(_payload_niveles_tinta(
+                disponible=True,
+                status=status,
+                status_group=status_group,
+                unsettled=unsettled,
+                niveles_legibles=True,
+                desde_cache=True,
+                mensaje="Mostrando última lectura guardada de tinta.",
+                cartuchos=cache.get("cartuchos") or cartuchos,
+                consultado_at=cache.get("consultado_at") or consultado_at,
+            ))
+
+        return _enriquecer_respuesta_niveles_tinta(_payload_niveles_tinta(
+            disponible=True,
+            status=status,
+            status_group=status_group,
+            unsettled=unsettled,
+            niveles_legibles=False,
+            desde_cache=False,
+            cartuchos=cartuchos,
+            consultado_at=consultado_at,
+        ))
+
     _FILE_BROWSER_BLOQUEADOS = ("/proc", "/sys", "/dev")
     _ROOT_DIRS_UTILES = frozenset({
         "home", "media", "mnt", "opt", "srv", "tmp", "usr", "var", "run",
@@ -7136,6 +7755,21 @@ def register_routes(app):
             sudoers_detalle = str(e)
         chk("Sudo sin contraseña para elpu", sudoers_ok, sudoers_detalle)
 
+        uri_dev = _uri_dispositivo_etiquetas()
+        backend_ok = uri_dev.startswith("epsonUSB://")
+        chk(
+            "Backend epsonUSB (niveles de tinta)",
+            backend_ok,
+            uri_dev or "Impresora no registrada",
+        )
+
+        try:
+            r_el = _sp.run(["pgrep", "-f", "elioud1"], capture_output=True, text=True, timeout=3)
+            elioud_ok = r_el.returncode == 0
+            chk("Daemon elioud1 (Epson I/O)", elioud_ok, "Activo" if elioud_ok else "Inactivo — pulsa Instalar impresora")
+        except Exception as e:
+            chk("Daemon elioud1 (Epson I/O)", False, str(e))
+
         # Detectar USB de la impresora
         try:
             r = _sp.run(["lpinfo", "-v"], capture_output=True, text=True, timeout=10)
@@ -7144,6 +7778,8 @@ def register_routes(app):
                  if "usb" in line.lower() and ("epson" in line.lower() or "c4000" in line.lower())),
                 None,
             )
+            if usb_uri:
+                usb_uri = _uri_epson_usb_desde_usb(usb_uri)
         except Exception:
             usb_uri = None
 
@@ -7194,22 +7830,30 @@ def register_routes(app):
             log.append("⚠ PPD no encontrado — instala el driver Epson manualmente")
             errores.append("PPD no disponible")
 
-        # 3. Determinar URI USB
+        # 3. Determinar URI USB (backend epsonUSB obligatorio para niveles de tinta)
         try:
             r = _sp.run(["lpinfo", "-v"], capture_output=True, text=True, timeout=10)
             usb_uri = next(
                 (line.split()[1] for line in r.stdout.splitlines()
                  if "usb" in line.lower() and ("epson" in line.lower() or "c4000" in line.lower())),
-                "usb://EPSON/ColorWorks%20CW-C4000u",
+                "usb://EPSON/CW-C4000u",
             )
         except Exception:
-            usb_uri = "usb://EPSON/ColorWorks%20CW-C4000u"
-        log.append(f"▶ URI impresora: {usb_uri}")
+            usb_uri = "usb://EPSON/CW-C4000u"
+        usb_uri = _uri_epson_usb_desde_usb(usb_uri)
+        log.append(f"▶ URI impresora (epsonUSB): {usb_uri}")
 
-        # 4. Registrar impresora
+        # 4. Registrar o corregir impresora
         r_check = _sp.run(["lpstat", "-p", _PRINTER_NAME], capture_output=True, text=True, timeout=5)
+        uri_actual = _uri_dispositivo_etiquetas()
         if r_check.returncode == 0:
-            log.append(f"▶ Impresora {_PRINTER_NAME} ya registrada — omitiendo lpadmin")
+            if uri_actual != usb_uri:
+                run(
+                    f"Corregir backend epsonUSB en {_PRINTER_NAME}",
+                    ["sudo", "lpadmin", "-p", _PRINTER_NAME, "-v", usb_uri],
+                )
+            else:
+                log.append(f"▶ Impresora {_PRINTER_NAME} ya usa backend epsonUSB")
         elif ppd_usar:
             run(
                 f"Registrar impresora {_PRINTER_NAME}",
@@ -7219,6 +7863,13 @@ def register_routes(app):
         # 5. Habilitar y aceptar impresora
         run(f"Habilitar {_PRINTER_NAME}", ["sudo", "cupsenable", _PRINTER_NAME])
         run(f"Aceptar trabajos {_PRINTER_NAME}", ["sudo", "cupsaccept", _PRINTER_NAME])
+
+        # 5b. Daemon Epson I/O (elioud1) para monitoreo de tinta
+        if _asegurar_elioud_etiquetas():
+            log.append("▶ Daemon elioud1 activo (monitoreo USB Epson)")
+        else:
+            log.append("⚠ No se pudo iniciar elioud1 — verifica epson-printer-io-community")
+            errores.append("elioud1 no disponible")
 
         # 6. Instalar ELPU si falta
         elpu_local = os.path.join(_REPO_EPSON_DIR, "elpu")
@@ -7363,9 +8014,45 @@ def register_routes(app):
                 "impresora": _PRINTER_NAME,
                 "estado": estado,
                 "impresoras_disponibles": lista.stdout.strip(),
+                "niveles_tinta": _consultar_niveles_tinta_etiquetas(),
             })
         except Exception as e:
-            return jsonify({"impresora": _PRINTER_NAME, "estado": f"Error: {e}"}), 200
+            return jsonify({
+                "impresora": _PRINTER_NAME,
+                "estado": f"Error: {e}",
+                "niveles_tinta": _consultar_niveles_tinta_etiquetas(),
+            }), 200
+
+    @app.route("/api/etiquetas/niveles-tinta", methods=["GET"])
+    def api_etiquetas_niveles_tinta():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        return jsonify(_consultar_niveles_tinta_etiquetas())
+
+    @app.route("/api/etiquetas/niveles-tinta/manual", methods=["PUT", "PATCH"])
+    def api_etiquetas_niveles_tinta_manual():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        raw = body.get("niveles") if isinstance(body.get("niveles"), dict) else body
+        if not isinstance(raw, dict):
+            return jsonify({"error": "Envía niveles como objeto {K,C,M,Y,MN}"}), 400
+        niveles = _normalizar_niveles_manuales_tinta(raw)
+        if not niveles:
+            return jsonify({"error": "Sin niveles válidos (0–100)"}), 400
+        store = _load_datos_niveles_tinta_store()
+        store["niveles_manuales"] = niveles
+        store["niveles_manuales_at"] = _dt.now().isoformat(timespec="seconds")
+        _save_datos_niveles_tinta_store(store)
+        cartuchos, _, _ = _fusionar_cartuchos_niveles_manuales(
+            _armar_cartuchos_tinta_elpu("")[0], niveles,
+        )
+        return jsonify({
+            "ok": True,
+            "niveles_manuales": niveles,
+            "cartuchos": cartuchos,
+            "origen_niveles": "manual",
+        })
 
     def _pdf_a_imagen(ruta_pdf: str, dpi: int = 180) -> str:
         """Convierte la primera página del PDF a PNG (tmp). Retorna ruta al PNG."""

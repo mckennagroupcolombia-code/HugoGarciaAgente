@@ -137,6 +137,44 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <path d="M10 15h4" />
     </>
   ),
+  "logistica-importaciones": (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M4 12h16" />
+      <path d="M12 4a12 12 0 0 1 0 16" />
+      <path d="M3 7h5l2 5h4l2-5h5" />
+    </>
+  ),
+  "logistica-embarques": (
+    <>
+      <rect x="3" y="8" width="14" height="8" rx="1" />
+      <path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+      <circle cx="7" cy="18" r="1.5" />
+      <circle cx="17" cy="18" r="1.5" />
+    </>
+  ),
+  "logistica-aduanas": (
+    <>
+      <path d="M7 4h10v16l-2-1-2 1-2-1-2 1-2-1V4z" />
+      <path d="M10 9h6M10 13h6M10 17h4" />
+      <path d="M12 4v3" />
+    </>
+  ),
+  "logistica-proveedores": (
+    <>
+      <path d="M5 18v-4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4" />
+      <circle cx="12" cy="7" r="3" />
+      <path d="M8 11h8" />
+    </>
+  ),
+  "logistica-seguimiento": (
+    <>
+      <circle cx="6" cy="12" r="2" />
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="18" cy="12" r="2" />
+      <path d="M8 12h2M14 12h2" />
+    </>
+  ),
   settings: (
     <>
       <circle cx="12" cy="12" r="2.5" />

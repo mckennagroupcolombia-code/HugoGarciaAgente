@@ -20,6 +20,7 @@ import WhatsAppPanel from "./components/WhatsAppPanel";
 import SupervisorPanel from "./components/SupervisorPanel";
 import EtiquetasPanel, { ConfigurarProductosPanel } from "./components/EtiquetasPanel";
 import PublicacionesPanel from "./components/PublicacionesPanel";
+import LogisticaInternacionalPanel from "./components/LogisticaInternacionalPanel";
 import Settings from "./components/Settings";
 import PerfilPanel from "./components/PerfilPanel";
 import { usePanelTheme } from "./stores/panelTheme";
@@ -33,6 +34,7 @@ import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
 import { puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
+import { LOGISTICA_PANELS, puedeVerModuloLogistica } from "./lib/logisticaAccess";
 
 function PanelRouter() {
   const panel = useAppStore((s) => s.panel);
@@ -76,6 +78,12 @@ function PanelRouter() {
       return <ConfigurarProductosPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
+    case "logistica-importaciones":
+    case "logistica-embarques":
+    case "logistica-aduanas":
+    case "logistica-proveedores":
+    case "logistica-seguimiento":
+      return <LogisticaInternacionalPanel />;
     case "settings":
       return <Settings />;
     case "perfil":
@@ -173,10 +181,14 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 
 const NAV_ORDER: Panel[] = [
   "hugo", "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
-  "facturas", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config", "settings",
+  "facturas", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config",
+  ...LOGISTICA_PANELS,
+  "settings",
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
+  const logistica = puedeVerModuloLogistica(user, panel);
+  if (logistica !== null) return logistica;
   const contab = puedeVerModuloContabilidad(user, panel);
   if (contab !== null) return contab;
   if (panel === "etiquetas" || panel === "etiquetas-config") return true;
