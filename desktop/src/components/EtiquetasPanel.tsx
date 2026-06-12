@@ -48,6 +48,7 @@ const CODIGOS_INSTALAR_IMPRESORA = new Set([
   "deshabilitada",
   "pausada",
   "sin_conexion",
+  "backend_incorrecto",
   "elpu",
   "cups_inactivo",
   "sudo",
@@ -237,6 +238,7 @@ interface PlantillaEtiqueta {
 }
 
 type HerramientaPlantilla = "seleccionar" | "texto" | "linea" | "rectangulo";
+type ModoCreacionTexto = "clic" | "caja";
 type TipoElementoPlantilla = "texto" | "linea" | "imagen" | "rectangulo";
 type ItemPlantillaRef = { tipo: TipoElementoPlantilla; id: string };
 type SeleccionPlantilla = ItemPlantillaRef[];
@@ -297,8 +299,8 @@ function altoImagenPct(im: ImagenPlantilla): number {
 }
 
 function boundsTexto(c: CampoTexto): BoundsPct {
-  const w = c.ancho_caja_pct ?? 42;
-  const h = c.alto_caja_pct ?? 14;
+  const w = c.ancho_caja_pct ?? CAJA_TEXTO_CLIC_ANCHO_PCT;
+  const h = c.alto_caja_pct ?? CAJA_TEXTO_CLIC_ALTO_PCT;
   return {
     left: c.x_pct,
     top: c.y_pct,
@@ -599,6 +601,9 @@ const ETIQUETAS_MM: Record<string, [number, number]> = {
 
 const TAMANO_TEXTO_PT_MIN = 3;
 const TAMANO_TEXTO_PT_MAX = 40;
+/** Caja por defecto al crear texto con un clic (% del lienzo) */
+const CAJA_TEXTO_CLIC_ANCHO_PCT = 22;
+const CAJA_TEXTO_CLIC_ALTO_PCT = 6;
 
 function clampTamanoTextoPt(n: number): number {
   return Math.max(TAMANO_TEXTO_PT_MIN, Math.min(TAMANO_TEXTO_PT_MAX, Math.round(n)));
@@ -2580,8 +2585,8 @@ function nuevoCampo(): CampoTexto {
     color: "#000000",
     color_trazo: "#000000",
     grosor_trazo: 0,
-    ancho_caja_pct: 42,
-    alto_caja_pct: 14,
+    ancho_caja_pct: CAJA_TEXTO_CLIC_ANCHO_PCT,
+    alto_caja_pct: CAJA_TEXTO_CLIC_ALTO_PCT,
   };
 }
 
@@ -3301,6 +3306,7 @@ function EditorPlantillaCanvas({
   rectangulos,
   recursosThumb,
   herramienta,
+  modoCreacionTexto,
   seleccion,
   fontSize,
   onSeleccion,
@@ -3319,6 +3325,7 @@ function EditorPlantillaCanvas({
   rectangulos: RectanguloPlantilla[];
   recursosThumb: Record<string, string | null | undefined>;
   herramienta: HerramientaPlantilla;
+  modoCreacionTexto: ModoCreacionTexto;
   seleccion: SeleccionPlantilla;
   fontSize: number;
   onSeleccion: (s: SeleccionPlantilla) => void;
@@ -3333,11 +3340,16 @@ function EditorPlantillaCanvas({
   const textoEditRef = useRef<HTMLTextAreaElement>(null);
   const [dibujando, setDibujando] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [dibujandoRect, setDibujandoRect] = useState<{ x1: number; y1: number; x2: number; y2: number; proporcion?: boolean } | null>(null);
+  const [dibujandoTexto, setDibujandoTexto] = useState<{ x1: number; y1: number; x2: number; y2: number; proporcion?: boolean } | null>(null);
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [arrastrando, setArrastrando] = useState<ArrastrePlantilla | null>(null);
   const [redimensionando, setRedimensionando] = useState<RedimensionPlantilla | null>(null);
   const seleccionRef = useRef(seleccion);
   seleccionRef.current = seleccion;
+  const camposRef = useRef(campos);
+  camposRef.current = campos;
+  const fontSizeRef = useRef(fontSize);
+  fontSizeRef.current = fontSize;
   const unico = seleccionUnica(seleccion);
 
   useEffect(() => {
@@ -3610,6 +3622,43 @@ function EditorPlantillaCanvas({
     setRedimensionando(payload);
   }
 
+  function iniciarDibujoCajaTexto(clientX: number, clientY: number) {
+    const p = pctDesdeEvento(clientX, clientY);
+    let x1 = p.x;
+    let y1 = p.y;
+    let x2 = p.x;
+    let y2 = p.y;
+    let proporcion = false;
+    onSeleccion([]);
+    setDibujandoTexto({ x1, y1, x2, y2, proporcion });
+
+    function onMove(ev: MouseEvent) {
+      const pt = pctDesdeEvento(ev.clientX, ev.clientY);
+      x2 = pt.x;
+      y2 = pt.y;
+      proporcion = ev.shiftKey;
+      setDibujandoTexto({ x1, y1, x2, y2, proporcion });
+    }
+    function onUp(ev: MouseEvent) {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      setDibujandoTexto(null);
+      const box = rectNormalizado(x1, y1, x2, y2, proporcion || ev.shiftKey);
+      if (box.ancho_pct < 0.4 || box.alto_pct < 0.4) return;
+      const c = nuevoCampo();
+      c.x_pct = box.x_pct;
+      c.y_pct = box.y_pct;
+      c.ancho_caja_pct = box.ancho_pct;
+      c.alto_caja_pct = box.alto_pct;
+      c.texto = "Texto";
+      c.font_size = fontSizeRef.current;
+      onCamposChange([...camposRef.current, c]);
+      onSeleccion(seleccionarSolo({ tipo: "texto", id: c.id }));
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
   function onLienzoMouseDown(e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest("[data-pl-elem]")) return;
     const p = pctDesdeEvento(e.clientX, e.clientY);
@@ -3620,13 +3669,18 @@ function EditorPlantillaCanvas({
       setDibujando({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
       onSeleccion([]);
     } else if (herramienta === "texto") {
-      const c = nuevoCampo();
-      c.x_pct = p.x;
-      c.y_pct = p.y;
-      c.texto = "Texto";
-      c.font_size = fontSize;
-      onCamposChange([...campos, c]);
-      onSeleccion(seleccionarSolo({ tipo: "texto", id: c.id }));
+      if (modoCreacionTexto === "caja") {
+        e.preventDefault();
+        iniciarDibujoCajaTexto(e.clientX, e.clientY);
+      } else {
+        const c = nuevoCampo();
+        c.x_pct = clampLotePct(Math.min(p.x, 100 - CAJA_TEXTO_CLIC_ANCHO_PCT));
+        c.y_pct = clampLotePct(Math.min(p.y, 100 - CAJA_TEXTO_CLIC_ALTO_PCT));
+        c.texto = "Texto";
+        c.font_size = fontSize;
+        onCamposChange([...campos, c]);
+        onSeleccion(seleccionarSolo({ tipo: "texto", id: c.id }));
+      }
     } else {
       setMarquee({ x1: p.x, y1: p.y, x2: p.x, y2: p.y });
     }
@@ -3673,6 +3727,23 @@ function EditorPlantillaCanvas({
         return (
           <div
             className="pointer-events-none absolute z-30 border-2 border-dashed border-accent bg-accent/10"
+            style={{
+              left: `${box.x_pct}%`,
+              top: `${box.y_pct}%`,
+              width: `${box.ancho_pct}%`,
+              height: `${box.alto_pct}%`,
+            }}
+          />
+        );
+      })()}
+      {dibujandoTexto && (() => {
+        const box = rectNormalizado(
+          dibujandoTexto.x1, dibujandoTexto.y1, dibujandoTexto.x2, dibujandoTexto.y2,
+          dibujandoTexto.proporcion ?? false,
+        );
+        return (
+          <div
+            className="pointer-events-none absolute z-30 border-2 border-dashed border-accent bg-accent/5"
             style={{
               left: `${box.x_pct}%`,
               top: `${box.y_pct}%`,
@@ -3765,8 +3836,8 @@ function EditorPlantillaCanvas({
         const gTrazo = c.grosor_trazo ?? 0;
         const colorTrazo = c.color_trazo ?? "#000000";
         const sinTrazo = gTrazo <= 0 || esSinColor(colorTrazo);
-        const anchoCaja = c.ancho_caja_pct ?? 42;
-        const altoCaja = c.alto_caja_pct ?? 14;
+        const anchoCaja = c.ancho_caja_pct ?? CAJA_TEXTO_CLIC_ANCHO_PCT;
+        const altoCaja = c.alto_caja_pct ?? CAJA_TEXTO_CLIC_ALTO_PCT;
         const variante = varianteMontserratCampo(c);
         const estiloTexto: CSSProperties = {
           fontFamily: '"Montserrat", sans-serif',
@@ -4022,6 +4093,7 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
   const seleccionRef = useRef<SeleccionPlantilla>([]);
   const [actual, setActual] = useState<PlantillaEtiqueta>(() => plantillaVacia());
   const [herramienta, setHerramienta] = useState<HerramientaPlantilla>("seleccionar");
+  const [modoCreacionTexto, setModoCreacionTexto] = useState<ModoCreacionTexto>("clic");
   const [seleccion, setSeleccion] = useState<SeleccionPlantilla>([]);
   const [fontSize, setFontSize] = useState(9);
   seleccionRef.current = seleccion;
@@ -4339,9 +4411,40 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col items-center gap-3 overflow-y-auto p-4">
+          {herramienta === "texto" && (
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="text-[11px] font-semibold text-muted">Crear texto:</span>
+              <button
+                type="button"
+                onClick={() => setModoCreacionTexto("clic")}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                  modoCreacionTexto === "clic"
+                    ? "border-accent bg-accent text-white"
+                    : "border-border bg-surface text-ink hover:border-accent"
+                }`}
+              >
+                Por clic
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoCreacionTexto("caja")}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                  modoCreacionTexto === "caja"
+                    ? "border-accent bg-accent text-white"
+                    : "border-border bg-surface text-ink hover:border-accent"
+                }`}
+              >
+                Por ventana
+              </button>
+            </div>
+          )}
           <p className="text-center text-[11px] text-muted">
             {herramienta === "linea" && "Línea libre · Shift = recta H/V"}
-            {herramienta === "texto" && "Clic = nuevo texto · arrastra cualquier elemento para moverlo"}
+            {herramienta === "texto" && (
+              modoCreacionTexto === "caja"
+                ? "Arrastra en el lienzo para dibujar la caja · Shift = cuadrado"
+                : "Clic en el lienzo = texto compacto · doble clic en texto existente para editar"
+            )}
             {herramienta === "rectangulo" && "Arrastra ▭ rectángulo · Shift = cuadrado"}
             {herramienta === "seleccionar" && "Selecciona · arrastra caja para varios · Ctrl/Cmd o Shift+clic · alinear con 2+ · Suprimir elimina"}
             {" · "}{orientacion === "vertical" ? "▮ Vertical" : "▬ Horizontal"} · {aw}×{ah} mm
@@ -4356,6 +4459,7 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
             rectangulos={actual.rectangulos ?? []}
             recursosThumb={recursosThumb}
             herramienta={herramienta}
+            modoCreacionTexto={modoCreacionTexto}
             seleccion={seleccion}
             fontSize={fontSize}
             onSeleccion={setSeleccion}
@@ -5148,6 +5252,306 @@ interface InventarioConsumible {
   updated_at?: string;
 }
 
+interface CartuchoTinta {
+  codigo: string;
+  etiqueta: string;
+  color: string;
+  nombre?: string | null;
+  nivel?: number | null;
+  raw?: string | null;
+  origen?: "impresora" | "manual" | null;
+}
+
+interface AlertaImpresora {
+  error: string;
+  solucion: string;
+  codigo?: string;
+  severidad?: "error" | "warning" | "info";
+  detalle?: string;
+}
+
+interface NivelesTintaResp {
+  disponible: boolean;
+  impresora?: string;
+  status?: string;
+  status_group?: string;
+  estado_cups?: string;
+  estado_ok?: boolean;
+  alerta_impresora?: AlertaImpresora | null;
+  unsettled?: boolean;
+  niveles_legibles?: boolean;
+  desde_cache?: boolean;
+  mensaje?: string;
+  cartuchos?: CartuchoTinta[];
+  error?: string;
+  solucion?: string;
+  codigo?: string;
+  consultado_at?: string;
+  origen_niveles?: "impresora" | "manual" | "mixto" | "ninguno";
+  niveles_manuales?: Record<string, number>;
+}
+
+interface ImpresoraConTintasResp extends ImpResp {
+  niveles_tinta?: NivelesTintaResp;
+}
+
+const CARTUCHOS_TINTA_DEFAULT: CartuchoTinta[] = [
+  { codigo: "K", etiqueta: "Negro", color: "#1a1a1a", nombre: null, nivel: null },
+  { codigo: "C", etiqueta: "Cian", color: "#06b6d4", nombre: null, nivel: null },
+  { codigo: "M", etiqueta: "Magenta", color: "#ec4899", nombre: null, nivel: null },
+  { codigo: "Y", etiqueta: "Amarillo", color: "#eab308", nombre: null, nivel: null },
+  { codigo: "MN", etiqueta: "Mantenimiento", color: "#6b7280", nombre: null, nivel: null },
+];
+
+async function fetchNivelesTintaEtiquetas(): Promise<NivelesTintaResp> {
+  try {
+    return await api.get<NivelesTintaResp>("/api/etiquetas/niveles-tinta", { timeoutMs: 15_000 });
+  } catch {
+    const imp = await api.get<ImpresoraConTintasResp>("/api/etiquetas/impresora", { timeoutMs: 20_000 });
+    if (imp.niveles_tinta) return imp.niveles_tinta;
+    throw new Error("No se pudo leer los niveles de tinta. Reinicia el servicio agente-pro.");
+  }
+}
+
+function nivelTintaBarraClase(pct: number | null | undefined): string {
+  if (pct == null) return "bg-muted/40";
+  if (pct <= 15) return "bg-red-500";
+  if (pct <= 30) return "bg-orange-500";
+  return "bg-accent";
+}
+
+function alertaImpresoraDesdeDatos(data?: NivelesTintaResp | null): AlertaImpresora | null {
+  if (!data) return null;
+  if (data.alerta_impresora?.error) return data.alerta_impresora;
+  if (!data.disponible && data.error) {
+    return {
+      error: data.error,
+      solucion: data.solucion ?? "Revisa cable USB, rollo de etiquetas y pulsa «Instalar impresora».",
+      codigo: data.codigo,
+      severidad: "error",
+    };
+  }
+  return null;
+}
+
+function PanelAlertaEstadoImpresora({
+  alerta,
+  onInstalar,
+}: {
+  alerta: AlertaImpresora;
+  onInstalar?: () => void;
+}) {
+  const sev = alerta.severidad ?? "error";
+  const estilos =
+    sev === "info"
+      ? "border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100"
+      : sev === "warning"
+        ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
+        : "border-red-200 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100";
+  const mostrarInstalar = onInstalar && (!alerta.codigo || CODIGOS_INSTALAR_IMPRESORA.has(alerta.codigo));
+
+  return (
+    <div className={`mb-3 rounded-lg border px-3 py-3 text-xs ${estilos}`}>
+      <div className="flex flex-wrap items-start gap-3">
+        <span className="text-base leading-none" aria-hidden>
+          {sev === "info" ? "ℹ️" : sev === "warning" ? "⚠️" : "🛑"}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold">{alerta.error}</p>
+          <p className="mt-1.5 leading-relaxed">
+            <span className="font-semibold">Posible solución: </span>
+            {alerta.solucion}
+          </p>
+          {alerta.detalle ? (
+            <p className="mt-2 font-mono text-[10px] opacity-70">{alerta.detalle}</p>
+          ) : null}
+        </div>
+        {mostrarInstalar && (
+          <button
+            type="button"
+            onClick={onInstalar}
+            className="shrink-0 rounded border border-current/30 bg-white/80 px-2.5 py-1 text-[10px] font-bold hover:bg-white dark:bg-black/20"
+          >
+            Instalar impresora
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NivelesTintaImpresora() {
+  const qc = useQueryClient();
+  const [mostrarInstalador, setMostrarInstalador] = useState(false);
+  const [manualDraft, setManualDraft] = useState<Record<string, number>>({});
+  const { data, isFetching, isError, error, refetch } = useQuery({
+    queryKey: ["etiquetas-niveles-tinta"],
+    queryFn: fetchNivelesTintaEtiquetas,
+    refetchInterval: 60_000,
+    retry: false,
+    staleTime: 15_000,
+  });
+
+  useEffect(() => {
+    const lista = data?.cartuchos;
+    if (!lista) return;
+    setManualDraft((prev) => {
+      const next = { ...prev };
+      for (const c of lista) {
+        if (c.nivel != null) next[c.codigo] = c.nivel;
+        else if (next[c.codigo] == null) next[c.codigo] = 50;
+      }
+      return next;
+    });
+  }, [data?.cartuchos, data?.niveles_manuales, data?.consultado_at]);
+
+  const guardarManualMut = useMutation({
+    mutationFn: (niveles: Record<string, number>) =>
+      api.put<{ ok: boolean; cartuchos: CartuchoTinta[] }>("/api/etiquetas/niveles-tinta/manual", { niveles }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["etiquetas-niveles-tinta"] }),
+  });
+
+  const cartuchos = (data?.cartuchos?.length ? data.cartuchos : CARTUCHOS_TINTA_DEFAULT);
+  const legibles = Boolean(data?.niveles_legibles);
+  const mostrarEditorManual = data?.origen_niveles !== "impresora";
+  const alerta = alertaImpresoraDesdeDatos(data);
+  const consultado = data?.consultado_at
+    ? new Date(data.consultado_at).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  return (
+    <>
+      {mostrarInstalador && (
+        <InstaladorWizard onCerrar={() => { setMostrarInstalador(false); refetch(); }} />
+      )}
+      <div className="rounded-xl border border-border bg-surface-panel p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-bold text-ink">Niveles en impresora</p>
+          <p className="text-[10px] text-muted">
+            Epson ColorWorks · {data?.impresora ?? "CW-C4000u"}
+            {consultado ? ` · lectura ${consultado}` : ""}
+            {data?.desde_cache ? " · caché" : ""}
+            {data?.origen_niveles === "manual" ? " · manual" : data?.origen_niveles === "impresora" ? " · impresora" : ""}
+            {data?.estado_ok === true ? " · lista" : ""}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="rounded-lg border border-border px-3 py-1 text-[10px] font-semibold hover:bg-surface-hover disabled:opacity-50"
+        >
+          {isFetching ? "Consultando…" : "Actualizar"}
+        </button>
+      </div>
+
+      {isError && (
+        <PanelAlertaEstadoImpresora
+          alerta={{
+            error: (error as Error)?.message ?? "Error al consultar la impresora",
+            solucion: "Reinicia el servicio agente-pro y vuelve a pulsar Actualizar.",
+            severidad: "error",
+            codigo: "desconocido",
+          }}
+          onInstalar={() => setMostrarInstalador(true)}
+        />
+      )}
+
+      {!isError && alerta && (
+        <PanelAlertaEstadoImpresora
+          alerta={alerta}
+          onInstalar={() => setMostrarInstalador(true)}
+        />
+      )}
+
+      {!isError && data?.mensaje && !alerta && (
+        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+          {data.mensaje}
+        </p>
+      )}
+
+      {mostrarEditorManual && !isError && (
+        <p className="mb-3 rounded-lg border border-border bg-surface px-3 py-2 text-xs text-muted">
+          Sin lectura USB automática. Mira el <strong className="text-ink">panel LCD</strong> de la Epson, ajusta cada barra y pulsa <strong className="text-ink">Guardar</strong>.
+        </p>
+      )}
+
+      <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 ${isFetching && !data ? "opacity-60" : ""}`}>
+        {cartuchos.map((c) => {
+          const pct = c.nivel ?? manualDraft[c.codigo] ?? 0;
+          const esManual = c.origen === "manual" || (c.nivel == null && mostrarEditorManual);
+          return (
+          <div key={c.codigo} className="rounded-lg border border-border bg-surface px-3 py-2.5">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-ink">
+                <span
+                  className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full ring-1 ring-black/10"
+                  style={{ backgroundColor: c.color }}
+                />
+                {c.etiqueta}
+                {c.codigo !== "MN" ? (
+                  <span className="ml-1 font-mono text-[10px] text-muted">({c.codigo})</span>
+                ) : null}
+                {c.origen === "manual" ? (
+                  <span className="ml-1 rounded bg-amber-100 px-1 text-[9px] font-bold text-amber-800">manual</span>
+                ) : c.origen === "impresora" ? (
+                  <span className="ml-1 rounded bg-green-100 px-1 text-[9px] font-bold text-green-800">auto</span>
+                ) : null}
+              </span>
+              <span className={`font-mono text-sm font-extrabold tabular-nums ${
+                pct <= 15 ? "text-red-600" : c.nivel != null ? "text-ink" : "text-muted"
+              }`}>
+                {c.nivel != null ? `${c.nivel}%` : isFetching && !data ? "…" : esManual ? `${pct}%` : "—"}
+              </span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-surface-panel">
+              <div
+                className={`h-full rounded-full transition-all ${nivelTintaBarraClase(c.nivel ?? (esManual ? pct : null))}`}
+                style={{
+                  width: `${c.nivel ?? (esManual ? pct : 0)}%`,
+                  backgroundColor: c.nivel != null ? undefined : c.color,
+                  opacity: c.nivel != null || esManual ? 1 : 0.2,
+                }}
+              />
+            </div>
+            {(mostrarEditorManual || c.origen === "manual") && (
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={manualDraft[c.codigo] ?? pct}
+                onChange={(e) =>
+                  setManualDraft((d) => ({ ...d, [c.codigo]: Number(e.target.value) }))
+                }
+                className="mt-2 w-full accent-accent"
+                aria-label={`Nivel ${c.etiqueta}`}
+              />
+            )}
+            {c.nombre ? (
+              <p className="mt-1 truncate font-mono text-[10px] text-muted">{c.nombre}</p>
+            ) : null}
+          </div>
+          );
+        })}
+      </div>
+
+      {mostrarEditorManual && !isError && (
+        <button
+          type="button"
+          disabled={guardarManualMut.isPending}
+          onClick={() => guardarManualMut.mutate(manualDraft)}
+          className="mt-3 w-full rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent/90 disabled:opacity-50"
+        >
+          {guardarManualMut.isPending ? "Guardando…" : "Guardar niveles de tinta"}
+        </button>
+      )}
+    </div>
+    </>
+  );
+}
+
 function TabInventarioPapelTinta() {
   const qc = useQueryClient();
   const [tipoNuevo, setTipoNuevo] = useState<"papel" | "tinta">("papel");
@@ -5248,8 +5652,10 @@ function TabInventarioPapelTinta() {
     <div className="mx-auto max-w-3xl space-y-4">
       <div>
         <h2 className="text-lg font-bold text-ink">Inventario de papel y tinta</h2>
-        <p className="text-xs text-muted">Control de rollos de etiqueta y cartuchos para la Epson ColorWorks.</p>
+        <p className="text-xs text-muted">Niveles en vivo de la impresora y control manual de rollos y cartuchos.</p>
       </div>
+
+      <NivelesTintaImpresora />
 
       {isLoading && <p className="text-sm text-muted">Cargando inventario…</p>}
 

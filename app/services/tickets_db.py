@@ -5078,8 +5078,8 @@ def guardar_procedimiento_desde_accion(
         ).fetchone()
         if not t:
             return None, "Acción no encontrada"
-        if t["tipo"] != "accion":
-            return None, "Solo aplica a acciones"
+        if t["tipo"] not in ("accion", "solicitud"):
+            return None, "Solo aplica a acciones o solicitudes"
         if t["creado_por"] != usuario_id and t["asignado_a"] != usuario_id:
             return None, "Sin permiso para guardar este procedimiento"
         pasos_ejec, lista_parseada = _extraer_plantilla_desde_ticket(db, ticket_id)
@@ -5242,30 +5242,32 @@ def completar_accion_y_reportar_solicitud(
         if a["asignado_a"] != usuario_id and a["creado_por"] != usuario_id:
             return None, "Sin permiso"
         padre_id = a["ticket_padre_id"]
-        if padre_id and reporte:
+        if padre_id:
             padre = db.execute("SELECT id, tipo, creado_por, numero FROM tickets WHERE id=?", (padre_id,)).fetchone()
             if padre and padre["tipo"] == "solicitud":
-                u = db.execute("SELECT nombre FROM usuarios WHERE id=?", (usuario_id,)).fetchone()
-                nombre = u["nombre"] if u else "Operador"
-                msg = (
-                    f"📋 **Reporte de ejecución** — acción {a['numero']}\n"
-                    f"Por: {nombre}\n\n{reporte}"
-                )
-                db.execute(
-                    "INSERT INTO comentarios_tickets (ticket_id, usuario_id, texto, es_interno) "
-                    "VALUES (?,?,?,0)",
-                    (padre_id, usuario_id, msg),
-                )
-                _log(db, padre_id, usuario_id, "reporte_ejecucion",
-                     detalles=f"Desde acción {a['numero']}")
-                if marcar_solicitud_resuelta and padre["creado_por"]:
+                if reporte:
+                    u = db.execute("SELECT nombre FROM usuarios WHERE id=?", (usuario_id,)).fetchone()
+                    nombre = u["nombre"] if u else "Operador"
+                    msg = (
+                        f"📋 **Reporte de ejecución** — acción {a['numero']}\n"
+                        f"Por: {nombre}\n\n{reporte}"
+                    )
+                    db.execute(
+                        "INSERT INTO comentarios_tickets (ticket_id, usuario_id, texto, es_interno) "
+                        "VALUES (?,?,?,0)",
+                        (padre_id, usuario_id, msg),
+                    )
+                    _log(db, padre_id, usuario_id, "reporte_ejecucion",
+                         detalles=f"Desde acción {a['numero']}")
+                # Cerrar la solicitud padre siempre que se indique, independiente de si hay reporte
+                if marcar_solicitud_resuelta:
                     db.execute(
                         "UPDATE tickets SET estado='resuelto', actualizado_en=datetime('now') WHERE id=?",
                         (padre_id,),
                     )
                     _log(db, padre_id, usuario_id, "estado_cambiado",
                          val_ant="en_proceso", val_new="resuelto",
-                         detalles="Solicitud cerrada tras reporte de ejecución")
+                         detalles="Solicitud cerrada al terminar la acción asociada")
         db.execute(
             "UPDATE tickets SET estado='resuelto', actualizado_en=datetime('now') WHERE id=?",
             (accion_id,),
@@ -5586,11 +5588,16 @@ def actualizar_protocolo(protocolo_id: int, titulo: str, descripcion: str,
         return {"id": protocolo_id, "titulo": titulo}, None
 
 
-def eliminar_protocolo(protocolo_id: int, usuario_id: int) -> tuple:
+def eliminar_protocolo(protocolo_id: int, usuario_id: int, nivel: int = 2) -> tuple:
     with _conn() as db:
-        p = db.execute("SELECT id FROM protocolos WHERE id=? AND activo=1", (protocolo_id,)).fetchone()
+        p = db.execute(
+            "SELECT id, creado_por FROM protocolos WHERE id=? AND activo=1",
+            (protocolo_id,),
+        ).fetchone()
         if not p:
             return False, "Protocolo no encontrado"
+        if nivel < 2 and p["creado_por"] != usuario_id:
+            return False, "Solo el creador o un supervisor puede eliminar este procedimiento"
         db.execute("UPDATE protocolos SET activo=0 WHERE id=?", (protocolo_id,))
         db.commit()
         return True, None

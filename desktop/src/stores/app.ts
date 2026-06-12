@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { notifyNavChange } from "../lib/appBackNavigation";
+import { LOGISTICA_PANEL_LEGACY } from "../lib/logisticaAccess";
 
 export type Panel =
   | "hugo"
@@ -23,6 +24,11 @@ export type Panel =
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"
+  | "logistica-importaciones"
+  | "logistica-embarques"
+  | "logistica-aduanas"
+  | "logistica-proveedores"
+  | "logistica-seguimiento"
   | "settings"
   | "perfil";
 
@@ -83,7 +89,8 @@ export const useAppStore = create<AppState>()(
       centroMandoView: "home",
       setCentroMandoView: (centroMandoView) => set({ centroMandoView }),
       setPanel: (panel) => {
-        const next = panel === "tickets" ? "hugo" : panel;
+        let next = panel === "tickets" ? "hugo" : panel;
+        if ((next as string) === LOGISTICA_PANEL_LEGACY) next = "logistica-importaciones";
         set({ panel: next, sidebarOpen: false });
         queueMicrotask(() => notifyNavChange());
       },
@@ -105,6 +112,15 @@ export const useAppStore = create<AppState>()(
       etiquetasHandoff: null,
       setEtiquetasHandoff: (etiquetasHandoff) => set({ etiquetasHandoff }),
     }),
-    { name: "mckenna-app", partialize: (s) => ({ panel: s.panel }) },
+    {
+      name: "mckenna-app",
+      partialize: (s) => ({ panel: s.panel }),
+      migrate: (persisted) => {
+        const s = persisted as { panel?: string };
+        if (s?.panel === LOGISTICA_PANEL_LEGACY) s.panel = "logistica-importaciones";
+        return persisted as AppState;
+      },
+      version: 1,
+    },
   ),
 );

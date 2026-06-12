@@ -506,6 +506,55 @@ def register_tickets_routes(app):
         mine = next((o for o in data["operadores"] if o["usuario_id"] == uid), None)
         return jsonify({"fecha": data["fecha"], "resumen": mine}), 200
 
+    @app.route("/api/tickets/admin/metricas-acciones", methods=["GET"])
+    @_auth
+    def admin_metricas_acciones():
+        usuario = request.tickets_usuario
+        if (usuario.get("rol") or {}).get("nivel", 0) < 3:
+            return jsonify({"error": "Solo administradores"}), 403
+        try:
+            dias = max(1, min(90, int(request.args.get("dias", "7") or "7")))
+        except ValueError:
+            dias = 7
+        from app.services.tickets_db import _conn
+        with _conn() as db:
+            rows = db.execute("""
+                SELECT t.asignado_a AS uid, t.estado, t.tipo, COUNT(*) AS n
+                FROM tickets t
+                WHERE t.asignado_a IS NOT NULL
+                  AND t.tipo IN ('accion', 'solicitud')
+                  AND (
+                    t.estado IN ('pendiente', 'en_proceso', 'esperando_aprobacion')
+                    OR (t.estado IN ('resuelto', 'rechazado', 'completado')
+                        AND t.actualizado_en >= datetime('now', '-' || ? || ' days'))
+                  )
+                GROUP BY t.asignado_a, t.estado, t.tipo
+            """, (str(dias),)).fetchall()
+        by_user: dict = {}
+        for r in rows:
+            uid = r["uid"]
+            if uid not in by_user:
+                by_user[uid] = {
+                    "uid": uid,
+                    "acciones_activas": 0, "acciones_pendientes": 0, "acciones_resueltas": 0,
+                    "solicitudes_activas": 0, "solicitudes_resueltas": 0,
+                }
+            u = by_user[uid]
+            estado, tipo, n = r["estado"], r["tipo"], r["n"]
+            if tipo == "accion":
+                if estado == "en_proceso":
+                    u["acciones_activas"] += n
+                elif estado == "pendiente":
+                    u["acciones_pendientes"] += n
+                elif estado in ("resuelto", "rechazado", "completado"):
+                    u["acciones_resueltas"] += n
+            elif tipo == "solicitud":
+                if estado in ("pendiente", "en_proceso", "esperando_aprobacion"):
+                    u["solicitudes_activas"] += n
+                elif estado in ("resuelto", "rechazado", "completado"):
+                    u["solicitudes_resueltas"] += n
+        return jsonify({"dias": dias, "usuarios": list(by_user.values())}), 200
+
     @app.route("/api/tickets/auth/me/foto", methods=["POST"])
     @_auth
     def tickets_subir_foto_me():
@@ -2141,12 +2190,13 @@ def register_tickets_routes(app):
 
     @app.route("/api/tickets/protocolos/<int:protocolo_id>", methods=["DELETE"])
     @_auth
-    @_nivel_min(2)
     def tickets_eliminar_protocolo(protocolo_id):
         from app.services.tickets_db import eliminar_protocolo
-        ok, err = eliminar_protocolo(protocolo_id, request.tickets_usuario["id"])
+        nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 0)
+        ok, err = eliminar_protocolo(protocolo_id, request.tickets_usuario["id"], nivel=nivel)
         if err:
-            return jsonify({"error": err}), 404
+            code = 403 if "permisos" in err.lower() or "creador" in err.lower() or "supervisor" in err.lower() else 404
+            return jsonify({"error": err}), code
         return jsonify({"ok": True}), 200
 
     @app.route("/api/tickets/<int:ticket_id>/vincular-protocolo", methods=["POST"])

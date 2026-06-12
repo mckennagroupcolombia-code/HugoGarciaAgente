@@ -24,7 +24,9 @@
     "228960461930678@lid",
     "573162484731@c.us",
     "573114292482@c.us",
-    "52003631849707@lid"
+    "52003631849707@lid",
+    "23588077846694@lid",
+    "573207092059@c.us"
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
@@ -51,133 +53,145 @@
     "228960461930678@lid": 1781028611.6843252,
     "573162484731@c.us": 1781028611.6843252,
     "573114292482@c.us": 1781030730.2819347,
-    "52003631849707@lid": 1781030730.2819347
+    "52003631849707@lid": 1781030730.2819347,
+    "23588077846694@lid": 1781219346.8117368,
+    "573207092059@c.us": 1781219346.8117368
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1779607073.685289,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "108207892635657@lid": {
       "timestamp": 1779841391.5377421,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "120363023555909043@g.us": {
       "timestamp": 1779902999.5390468,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "web-test-handoff2": {
       "timestamp": 1779872652.346131,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "573013536788@c.us": {
       "timestamp": 1779890129.7563171,
       "razon": "men\u00fa autom\u00e1tico",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "73031707820119@lid": {
       "timestamp": 1779916294.9625869,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "49976306606124@lid": {
       "timestamp": 1779917580.1837876,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "71262147764245@lid": {
       "timestamp": 1779917739.2717392,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "259502091821270@lid": {
       "timestamp": 1779923371.8995585,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "web-a76f5496-4d30-4ccc-aa10-d230bdae18b3": {
       "timestamp": 1779972323.9718435,
       "razon": "web_pago_pedido",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "130975447179480@lid": {
       "timestamp": 1780963371.9493659,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "266855042285583@lid": {
       "timestamp": 1779998033.7324655,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "110213222891737@lid": {
       "timestamp": 1779998050.9782407,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "246827609772242@lid": {
       "timestamp": 1780071470.9523313,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "112145974988807@lid": {
       "timestamp": 1780406805.1967304,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "93167101677754@lid": {
       "timestamp": 1780502711.8209083,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "573214399939@c.us": {
       "timestamp": 1780752797.1591964,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "117832545226982@lid": {
       "timestamp": 1780752797.1591964,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "143842900717701@lid": {
       "timestamp": 1780752932.813542,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "573015416992@c.us": {
       "timestamp": 1780752932.813542,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "573174923920@c.us": {
       "timestamp": 1780963371.9493659,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "228960461930678@lid": {
       "timestamp": 1781028611.6843252,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "573162484731@c.us": {
       "timestamp": 1781028611.6843252,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "573114292482@c.us": {
       "timestamp": 1781030730.2819347,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     },
     "52003631849707@lid": {
       "timestamp": 1781030730.2819347,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Ok, en un rato le transfiero entonces"
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
+    },
+    "23588077846694@lid": {
+      "timestamp": 1781219346.8117368,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
+    },
+    "573207092059@c.us": {
+      "timestamp": 1781219346.8117368,
+      "razon": "r\u00e1faga de 6 mensajes en 120s",
+      "ultimo_mensaje": "Sino enviame la llave escrita porfa para copiar y pegar"
     }
   },
   "bot_global_activo": false,

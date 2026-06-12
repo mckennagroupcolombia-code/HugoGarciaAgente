@@ -1212,6 +1212,12 @@ function puedeCrearProtocolos(user: TicketsUser): boolean {
   return Boolean(user.permisos_secciones?.tickets_protocolos_crear);
 }
 
+function puedeEliminarProtocolo(user: TicketsUser, p: Protocolo): boolean {
+  const nivel = user.rol?.nivel ?? 1;
+  if (nivel >= 2) return true;
+  return p.creado_por != null && p.creado_por === user.id;
+}
+
 type View =
   | "home"
   | "list"
@@ -4208,6 +4214,21 @@ function CentroMandoHome({
       {/* Grid principal */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
+        {/* Acciones — primera y más importante */}
+        {pVer("acciones") && (
+          <HomeCard
+            onClick={onAcciones} p={paleta.acciones} topicIcon="⚡"
+            titulo="Acciones"
+            stat={<Stat s={stats.acciones} />}
+            desc="Lo que estás haciendo ahora mismo. Registra, ejecuta y termina acciones del día."
+            badge={stats.acciones.value != null && stats.acciones.value > 0 ? (
+              <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
+                {stats.acciones.value} en curso
+              </span>
+            ) : undefined}
+          />
+        )}
+
         {pVer("solicitudes") && (
           <HomeCard
             onClick={onSolicitudes} p={paleta.solicitudes} topicIcon="📋"
@@ -4226,22 +4247,18 @@ function CentroMandoHome({
         />
         )}
 
+        {/* Agenda: futuras + recordatorios unificados */}
         {pVer("acciones") && (
           <HomeCard
-            onClick={onAccionesFuturas} p={paleta.futuras} topicIcon="🗓️"
-            titulo="Acciones futuras"
-            stat={<Stat s={stats.pendientes} />}
-            desc="Ideas y tareas para más adelante. Solo anótalas — sin convertirlas en acción."
-          />
-        )}
-
-        {pVer("acciones") && (
-          <HomeCard
-            onClick={onRecordatorios} p={paleta.recordat} topicIcon="🔔"
-            titulo="Recordatorios"
-            stat={<Stat s={stats.recordatorios} />}
-            desc="Tareas con alerta en la fecha que elijas. Crea recordatorios puntuales o recurrentes."
-            badge={stats.recordatoriosHoy > 0 ? (
+            onClick={onAccionesFuturas} p={paleta.futuras} topicIcon="📅"
+            titulo="Agenda"
+            stat={
+              <span>
+                {(stats.pendientes.value ?? 0) + (stats.recordatorios.value ?? 0)}
+              </span>
+            }
+            desc="Acciones futuras y recordatorios en un solo lugar."
+            badge={(stats.recordatoriosHoy) > 0 ? (
               <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
                 {stats.recordatoriosHoy} para hoy
               </span>
@@ -6215,6 +6232,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "stock",     label: "Stock" },
                     { id: "fichas",    label: "Fichas técnicas" },
                     { id: "pedidos",   label: "Pedidos Web" },
+                    { id: "logistica-internacional", label: "Logística Internacional" },
                     { id: "etiquetas", label: "Impresora · Etiquetas" },
                     { id: "tickets",   label: "Centro de Mando" },
                   ];
@@ -11724,6 +11742,12 @@ async function warmAlarmCache(apiToken: string): Promise<boolean> {
   } catch { return false; }
 }
 
+/** Devuelve true si la hora local cae en horario de descanso (22:00–07:00). */
+function esHorarioSilencio(): boolean {
+  const hora = new Date().getHours();
+  return hora >= 22 || hora < 7;
+}
+
 async function playAlarmAudio(apiToken?: string) {
   // Intento 1: audio cacheado (generado previamente, sin latencia)
   if (_alarmCache && Date.now() < _alarmCacheExpiry) {
@@ -12188,6 +12212,38 @@ function clipboardPastedImageFile(e: React.ClipboardEvent): File | null {
   return file;
 }
 
+/** Pega captura en zona activa (fallback global cuando React no dispara onPaste). */
+function usePegarCapturaEnZona(
+  activo: boolean,
+  containerRef: React.RefObject<HTMLElement | null>,
+  onImagen: (file: File) => void,
+) {
+  const onImagenRef = useRef(onImagen);
+  onImagenRef.current = onImagen;
+
+  useEffect(() => {
+    if (!activo) return;
+    const onPaste = (e: ClipboardEvent) => {
+      if (!containerRef.current) return;
+      const el = document.activeElement;
+      if (el && !containerRef.current.contains(el)) return;
+      const file = imagenDesdePortapapeles(e.clipboardData);
+      if (!file) return;
+      e.preventDefault();
+      onImagenRef.current(normalizarImagenPegada(file));
+    };
+    window.addEventListener("paste", onPaste, true);
+    return () => window.removeEventListener("paste", onPaste, true);
+  }, [activo, containerRef]);
+}
+
+function manejarPasteCaptura(e: React.ClipboardEvent, onImagen: (file: File) => void): boolean {
+  const file = clipboardPastedImageFile(e);
+  if (!file) return false;
+  onImagen(normalizarImagenPegada(file));
+  return true;
+}
+
 interface ProtocoloPaso {
   descripcion: string;
   notas?: string | null;
@@ -12206,6 +12262,7 @@ interface Protocolo {
   ticket_origen?: number | null;
   ticket_origen_numero?: string | null;
   ticket_origen_titulo?: string | null;
+  creado_por?: number | null;
   creado_por_nombre?: string | null;
   creado_en: string;
 }
@@ -12688,7 +12745,7 @@ function shortNumero(numero: string): string {
 
 function SolicitudCard({
   ticket, token, user, onChanged, isAdmin, supervision, protocolos = [],
-  onRegistrarEjecucion, detalleAmpliado = false,
+  onRegistrarEjecucion, detalleAmpliado = false, onIrAIntervencion,
 }: {
   ticket: Ticket; token: string; user: TicketsUser;
   onChanged: () => void;
@@ -12700,6 +12757,8 @@ function SolicitudCard({
   onRegistrarEjecucion?: (ticket: Ticket) => void;
   /** Vista expandida: tipografía mayor y secciones visibles de inmediato. */
   detalleAmpliado?: boolean;
+  /** Abre el ticket hijo de intervención que bloquea esta solicitud. */
+  onIrAIntervencion?: (intervencionId: number) => void;
 }) {
   const nivel = (user.rol?.nivel ?? 1);
   const [busy, setBusy] = useState(false);
@@ -12754,11 +12813,15 @@ function SolicitudCard({
   const [chatDraft, setChatDraft] = useState("");
   const [archivoPendiente, setArchivoPendiente] = useState<File | null>(null);
   const [archivoPreview, setArchivoPreview] = useState<string | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [archivoListo, setArchivoListo] = useState(false);
+  const archivoPendienteRef = useRef<File | null>(null);
+  const intervencionZoneRef = useRef<HTMLDivElement>(null);
+  const chatMensajesRef = useRef<HTMLDivElement>(null);
   const interArchivoRef = useRef<HTMLInputElement>(null);
   const chatArchivoRef = useRef<HTMLInputElement>(null);
   const [enviandoChat, setEnviandoChat] = useState(false);
-  const hayArchivoPendiente = !!archivoPendiente || !!archivoPreview;
+  const hayArchivoPendiente = archivoListo || !!archivoPendiente || !!archivoPreview;
+  const puedeResolverIntervencion = !busy && (!!resolucionInter.trim() || hayArchivoPendiente);
 
   // Adjuntos
   const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
@@ -12766,6 +12829,8 @@ function SolicitudCard({
   const [showAdjuntos, setShowAdjuntos] = useState(false);
   const [eliminandoAdj, setEliminandoAdj] = useState<number | null>(null);
   const [subiendoAdjPaso, setSubiendoAdjPaso] = useState<number | null>(null);
+  const [pasoPasteId, setPasoPasteId] = useState<number | null>(null);
+  const pasosChecklistRef = useRef<HTMLDivElement>(null);
   const [subiendoAdjTicket, setSubiendoAdjTicket] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [showExtrasMenu, setShowExtrasMenu] = useState(false);
@@ -12793,6 +12858,9 @@ function SolicitudCard({
   const [protocoloForm, setProtocoloForm] = useState({ titulo: "", descripcion: "", categoria: "" });
   const [guardandoProtocolo, setGuardandoProtocolo] = useState(false);
   const [protocoloMsg, setProtocoloMsg] = useState("");
+  const [guardarComoProcedimiento, setGuardarComoProcedimiento] = useState(false);
+  const [alcanceProcedimiento, setAlcanceProcedimiento] = useState<"personal" | "global">("personal");
+  const [generandoProcedimiento, setGenerandoProcedimiento] = useState(false);
 
   // Enlazar protocolo existente
   const [showVincularProtocolo, setShowVincularProtocolo] = useState(false);
@@ -12884,6 +12952,11 @@ function SolicitudCard({
     }
   }
 
+  usePegarCapturaEnZona(showPasos && esAsignado && !supervision && !resuelta, pasosChecklistRef, (file) => {
+    const targetId = pasoPasteId ?? pasos.find((p) => !pasoEstaCompletado(p))?.id ?? pasos[0]?.id;
+    if (targetId) void subirAdjuntoPaso(targetId, file);
+  });
+
   async function subirAdjuntoTicket(file: File) {
     setSubiendoAdjTicket(true);
     try {
@@ -12918,11 +12991,18 @@ function SolicitudCard({
   }
 
   function limpiarArchivoPendiente() {
+    archivoPendienteRef.current = null;
     quitarImagenPendiente(setArchivoPendiente, archivoPreview, setArchivoPreview);
+    setArchivoListo(false);
   }
 
   function asignarArchivoPendiente(file: File) {
-    asignarImagenPendiente(file, setArchivoPendiente, archivoPreview, setArchivoPreview);
+    const norm = normalizarImagenPegada(file);
+    archivoPendienteRef.current = norm;
+    if (archivoPreview) URL.revokeObjectURL(archivoPreview);
+    setArchivoPendiente(norm);
+    setArchivoPreview(URL.createObjectURL(norm));
+    setArchivoListo(true);
     if (puedeEnviarChat) setShowChat(true);
   }
 
@@ -12938,36 +13018,30 @@ function SolicitudCard({
 
   function onArchivoInterSeleccionado(f: File | null) {
     if (!f || !esImagenPortapapeles(f)) return;
-    asignarArchivoPendiente(normalizarImagenPegada(f));
+    asignarArchivoPendiente(f);
   }
 
-  // Escritorio: algunos navegadores no entregan bien paste en React — captura global en la tarjeta
-  useEffect(() => {
-    if (resuelta) return;
-    const onPaste = (e: ClipboardEvent) => {
-      if (!cardRef.current) return;
-      const activo = document.activeElement;
-      if (activo && !cardRef.current.contains(activo)) return;
-      const file = imagenDesdePortapapeles(e.clipboardData);
-      if (!file) return;
-      e.preventDefault();
-      if (showPedirAjustes) {
-        asignarImagenPendiente(file, setAjustesArchivo, ajustesArchivoPreview, setAjustesArchivoPreview);
-        return;
-      }
-      asignarArchivoPendiente(file);
-    };
-    window.addEventListener("paste", onPaste, true);
-    return () => window.removeEventListener("paste", onPaste, true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resuelta, showPedirAjustes, puedeEnviarChat]);
+  usePegarCapturaEnZona(
+    !resuelta && esAsignado && !supervision && esIntervencion,
+    intervencionZoneRef,
+    asignarArchivoPendiente,
+  );
+  usePegarCapturaEnZona(
+    puedeEnviarChat && (showChat || detalleAmpliado),
+    chatMensajesRef,
+    asignarArchivoPendiente,
+  );
 
   function vistaPreviaPegada(className = "") {
-    if (!archivoPreview || !archivoPendiente) return null;
+    if (!hayArchivoPendiente) return null;
     return (
       <div className={`flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/5 px-2 py-1.5 ${className}`}>
-        <img src={archivoPreview} alt="" className="h-12 w-12 rounded object-cover border border-border" />
-        <span className="min-w-0 flex-1 truncate text-xs text-muted">{archivoPendiente.name}</span>
+        {archivoPreview ? (
+          <img src={archivoPreview} alt="" className="h-12 w-12 rounded object-cover border border-border" />
+        ) : (
+          <span className="flex h-12 w-12 items-center justify-center rounded border border-border bg-surface text-lg">📷</span>
+        )}
+        <span className="min-w-0 flex-1 truncate text-xs text-muted">{archivoPendiente?.name ?? "Imagen lista"}</span>
         <button type="button" onClick={limpiarArchivoPendiente} className="shrink-0 text-xs text-danger hover:underline">
           Quitar
         </button>
@@ -13119,6 +13193,10 @@ function SolicitudCard({
     if (!confirm(`¿Marcar "${ticket.titulo}" como lista?\n\nEsta acción no se puede deshacer.`)) return;
     setBusy(true);
     try {
+      if (guardarComoProcedimiento) {
+        if (pasos.length === 0 && (ticket.pasos_total ?? 0) > 0) await cargarPasos();
+        await guardarProcedimientoDesdeSolicitud();
+      }
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
       onChanged();
     } catch (e: any) {
@@ -13138,6 +13216,10 @@ function SolicitudCard({
     }
     setBusy(true);
     try {
+      if (guardarComoProcedimiento) {
+        if (pasos.length === 0 && (ticket.pasos_total ?? 0) > 0) await cargarPasos();
+        await guardarProcedimientoDesdeSolicitud();
+      }
       await tapi(`/${ticket.id}/estado`, token, {
         method: "PUT",
         body: JSON.stringify({
@@ -13238,7 +13320,7 @@ function SolicitudCard({
   async function resolverIntervencion() {
     if (!esAsignado || busy) return;
     const texto = resolucionInter.trim();
-    const archivo = archivoPendiente;
+    const archivo = archivoPendienteRef.current ?? archivoPendiente;
     if (!texto && !archivo) {
       setMsg("Escribe tu respuesta o adjunta una imagen antes de resolver.");
       setTimeout(() => setMsg(""), 3000);
@@ -13357,7 +13439,7 @@ function SolicitudCard({
 
   async function enviarMensajeChat() {
     const texto = chatDraft.trim();
-    const archivo = archivoPendiente;
+    const archivo = archivoPendienteRef.current ?? archivoPendiente;
     if ((!texto && !archivo) || enviandoChat || !puedeEnviarChat) return;
     const textoEnvio = texto || (archivo ? "📎 Imagen adjunta" : "");
     setEnviandoChat(true);
@@ -13445,6 +13527,44 @@ function SolicitudCard({
     } finally { setGuardandoProtocolo(false); }
   }
 
+  async function guardarProcedimientoDesdeSolicitud(alcance = alcanceProcedimiento) {
+    const itemsLista = compras
+      .filter((m) => m.nombre?.trim())
+      .map((m) => ({
+        n: m.nombre.trim(),
+        cantidad: String(m.cantidad ?? ""),
+        unidad: m.unidad || "und",
+        comprado: !!m.comprado,
+      }));
+    await tapi(`/${ticket.id}/guardar-procedimiento`, token, {
+      method: "POST",
+      body: JSON.stringify({ lista_compras: itemsLista, alcance }),
+    });
+  }
+
+  async function generarProcedimientoAhora() {
+    const totalPasos = pasos.length > 0 ? pasos.length : (ticket.pasos_total ?? 0);
+    if (totalPasos === 0) {
+      setMsg("Agrega al menos un paso antes de generar el procedimiento.");
+      setTimeout(() => setMsg(""), 4000);
+      return;
+    }
+    if (!confirm(`¿Generar procedimiento a partir de "${ticket.titulo}"?\n\nSe guardarán los pasos actuales para reutilizar.`)) return;
+    setGenerandoProcedimiento(true);
+    setProtocoloMsg("");
+    try {
+      if (pasos.length === 0) await cargarPasos();
+      await guardarProcedimientoDesdeSolicitud();
+      setProtocoloMsg("✓ Procedimiento generado — ver Acciones → Procedimientos");
+      setTimeout(() => setProtocoloMsg(""), 5000);
+    } catch (e: any) {
+      setMsg(e.message ?? "No se pudo generar el procedimiento");
+      setTimeout(() => setMsg(""), 4000);
+    } finally {
+      setGenerandoProcedimiento(false);
+    }
+  }
+
   async function vincularProtocolo() {
     const pid = protocoloVincularId;
     if (!pid) return;
@@ -13525,7 +13645,6 @@ function SolicitudCard({
     return (
       <div
         className={`flex flex-col gap-2 rounded-xl border border-blue-400/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
-        onPaste={handlePasteImagen}
       >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
@@ -13552,9 +13671,7 @@ function SolicitudCard({
 
   return (
     <div
-      ref={cardRef}
       className={`flex flex-col transition-opacity ${detalleAmpliado ? "gap-4 min-h-0" : "gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm"} ${resuelta ? "opacity-60" : ""}`}
-      onPaste={handlePasteImagen}
     >
 
       {detalleAmpliado ? (
@@ -13801,13 +13918,89 @@ function SolicitudCard({
         </div>
       )}
 
+      {/* Resolver intervención — arriba del chat para que sea visible de inmediato */}
+      {!resuelta && esAsignado && !supervision && esIntervencion && (
+        <div ref={intervencionZoneRef} className={`space-y-2 ${detalleAmpliado ? "shrink-0 rounded-xl border-2 border-orange-400/50 bg-orange-50/40 dark:bg-orange-900/15 p-3" : "pt-1"}`}>
+          {msg && <p className="text-xs text-red-400">{msg}</p>}
+          <ProseTextarea
+            className="quest-input w-full resize-none text-sm"
+            rows={3}
+            placeholder="Escribe tu respuesta o resolución aquí… (Ctrl+V o 📷 para adjuntar imagen)"
+            value={resolucionInter}
+            onChange={(e) => setResolucionInter(e.target.value)}
+            onPaste={handlePasteImagen}
+          />
+          {vistaPreviaPegada("border-orange-400/40 bg-orange-50/30 dark:bg-orange-900/10")}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={!puedeResolverIntervencion}
+              onClick={() => void resolverIntervencion()}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-orange-500 bg-orange-500 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Icon name="check" size={15} weight="bold" />
+              {busy ? "Resolviendo…" : "Resolver intervención"}
+            </button>
+            <button
+              type="button"
+              title="Adjuntar imagen (o Ctrl+V)"
+              onClick={() => interArchivoRef.current?.click()}
+              className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${
+                hayArchivoPendiente ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-accent hover:border-accent"
+              }`}
+            >
+              📷
+            </button>
+            <input
+              ref={interArchivoRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                onArchivoInterSeleccionado(f);
+                e.target.value = "";
+              }}
+            />
+            <button type="button"
+              onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
+              className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
+              📎
+            </button>
+          </div>
+          <p className="text-[10px] text-muted text-center">
+            {hayArchivoPendiente && !resolucionInter.trim()
+              ? "Imagen lista — pulsa Resolver intervención para enviar."
+              : !puedeResolverIntervencion
+                ? "Escribe un mensaje o adjunta una imagen (📷 / Ctrl+V) para habilitar el botón."
+                : "Tu respuesta quedará registrada y desbloqueará al compañero que la solicitó."}
+          </p>
+        </div>
+      )}
+
       {/* Bloqueado por intervención */}
       {ticket.bloqueado_por && (
-        <div className="rounded-lg border border-yellow-400/40 bg-yellow-50/50 dark:bg-yellow-900/10 px-3 py-2 text-xs text-yellow-700 dark:text-yellow-400 flex items-center gap-2">
-          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          Esperando intervención <strong>{ticket.bloqueado_por_numero}</strong>
+        <div className="rounded-lg border border-yellow-400/40 bg-yellow-50/50 dark:bg-yellow-900/10 px-3 py-2.5 text-xs text-yellow-700 dark:text-yellow-400 space-y-2">
+          <div className="flex items-center gap-2">
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>
+              Esperando intervención <strong>{ticket.bloqueado_por_numero}</strong>
+            </span>
+          </div>
+          {onIrAIntervencion && (
+            <button
+              type="button"
+              onClick={() => onIrAIntervencion(ticket.bloqueado_por!)}
+              className="w-full rounded-lg border border-yellow-500/60 bg-yellow-100/80 dark:bg-yellow-900/30 px-3 py-2 text-xs font-bold text-yellow-800 dark:text-yellow-200 hover:bg-yellow-200/80 transition-colors"
+            >
+              Ir a resolver {ticket.bloqueado_por_numero} →
+            </button>
+          )}
+          <p className="text-[10px] text-yellow-700/80 dark:text-yellow-300/70">
+            La solicitud se desbloquea cuando el asignado a esa intervención la resuelve.
+          </p>
         </div>
       )}
 
@@ -13862,7 +14055,6 @@ function SolicitudCard({
           className={detalleAmpliado
             ? "flex flex-col flex-1 min-h-0 rounded-xl border border-border/50 overflow-hidden"
             : "rounded-xl border border-border overflow-hidden bg-surface-hover"}
-          onPaste={handlePasteImagen}
         >
           {/* Cabecera solo en modo tarjeta */}
           {!detalleAmpliado && (
@@ -13940,7 +14132,7 @@ function SolicitudCard({
 
           {/* Área de entrada — pegada al fondo */}
           {puedeEnviarChat ? (
-            <div className="shrink-0 border-t border-border/40 bg-surface px-3 py-2.5 space-y-2">
+            <div ref={chatMensajesRef} className="shrink-0 border-t border-border/40 bg-surface px-3 py-2.5 space-y-2">
               {vistaPreviaPegada()}
               <ProseTextarea
                 className="quest-input w-full text-sm resize-none"
@@ -14081,12 +14273,24 @@ function SolicitudCard({
 
       {/* Checklist de pasos — con edición inline, agregar paso y botón de intervención por paso */}
       {showPasos && (
-        <div className="rounded-xl border border-border bg-surface-hover p-3 space-y-1.5">
+        <div
+          ref={pasosChecklistRef}
+          className="rounded-xl border border-border bg-surface-hover p-3 space-y-1.5"
+          onPaste={(e) => {
+            if (!esAsignado || supervision || resuelta) return;
+            const targetId = pasoPasteId ?? pasos.find((p) => !pasoEstaCompletado(p))?.id ?? pasos[0]?.id;
+            if (!targetId) return;
+            manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(targetId, file));
+          }}
+        >
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-bold text-ink flex items-center gap-1">
               Protocolo de pasos
               <InfoTooltip text="Manual de operación: marca cada paso al completarlo. Puedes editar o agregar pasos en cualquier momento. Si un paso necesita que otro usuario haga algo, usa el botón 🛑 para pedir intervención en ese paso específico." />
               {pasosTotal > 0 && <span className="text-muted font-normal">({pasosCompletados}/{pasosTotal})</span>}
+              {esAsignado && !supervision && !resuelta && (
+                <span className="text-[10px] font-normal text-muted">· Ctrl+V en un paso</span>
+              )}
               {ticket.protocolo_titulo && (
                 <span className="text-[10px] font-normal text-accent bg-accent/10 rounded-full px-2 py-0.5">
                   📋 {ticket.protocolo_titulo}
@@ -14142,7 +14346,14 @@ function SolicitudCard({
           )}
           <div className="space-y-1">
             {pasos.map((p) => (
-              <div key={p.id} className={`rounded-lg border px-2 py-1.5 transition-colors ${p.completado ? "border-transparent opacity-60" : "border-border/50 hover:bg-surface"}`}>
+              <div
+                key={p.id}
+                className={`rounded-lg border px-2 py-1.5 transition-colors ${
+                  pasoPasteId === p.id ? "border-accent/50 bg-accent/5" : p.completado ? "border-transparent opacity-60" : "border-border/50 hover:bg-surface"
+                }`}
+                onMouseEnter={() => setPasoPasteId(p.id)}
+                onFocusCapture={() => setPasoPasteId(p.id)}
+              >
                 {editandoPasoId === p.id ? (
                   /* Modo edición inline */
                   <div className="space-y-1.5">
@@ -14199,7 +14410,7 @@ function SolicitudCard({
                       )}
                       {/* Adjuntar archivo al paso — visible para el ejecutor en cualquier estado */}
                       {esAsignado && !supervision && (
-                        <label title="Adjuntar archivo a este paso" className="cursor-pointer text-muted hover:text-accent transition-colors p-0.5 shrink-0">
+                        <label title="Adjuntar archivo o Ctrl+V en este paso" className="cursor-pointer text-muted hover:text-accent transition-colors p-0.5 shrink-0">
                           {subiendoAdjPaso === p.id
                             ? <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
                             : <span className="text-[11px]">📎</span>
@@ -14448,66 +14659,63 @@ function SolicitudCard({
         </div>
       )}
 
-      {/* ── Intervención: interfaz dedicada ── */}
-      {!resuelta && esAsignado && !supervision && esIntervencion && (
-        <div className="space-y-2 pt-1" onPaste={handlePasteImagen}>
-          {msg && <p className="text-xs text-red-400">{msg}</p>}
-          <ProseTextarea
-            className="quest-input w-full resize-none text-sm"
-            rows={3}
-            placeholder="Escribe tu respuesta o resolución aquí… (Ctrl+V para pegar imagen)"
-            value={resolucionInter}
-            onChange={(e) => setResolucionInter(e.target.value)}
-            onPaste={handlePasteImagen}
-          />
-          {vistaPreviaPegada("border-orange-400/40 bg-orange-50/30 dark:bg-orange-900/10")}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={busy || (!resolucionInter.trim() && !hayArchivoPendiente)}
-              onClick={() => void resolverIntervencion()}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-orange-500 bg-orange-500 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] transition-colors hover:bg-orange-600 disabled:opacity-50"
-            >
-              <Icon name="check" size={15} weight="bold" />
-              {busy ? "Resolviendo…" : "Resolver intervención"}
-            </button>
-            <button
-              type="button"
-              title="Adjuntar imagen (o Ctrl+V)"
-              onClick={() => interArchivoRef.current?.click()}
-              className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${
-                hayArchivoPendiente ? "border-accent text-accent bg-accent/10" : "border-border text-muted hover:text-accent hover:border-accent"
-              }`}
-            >
-              📷
-            </button>
-            <input
-              ref={interArchivoRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={(e) => {
-                const f = e.target.files?.[0] ?? null;
-                onArchivoInterSeleccionado(f);
-                e.target.value = "";
-              }}
-            />
-            <button type="button"
-              onClick={() => { setShowAdjuntos(true); void cargarAdjuntos(); }}
-              className={`rounded-xl border px-3 py-2.5 text-sm transition-colors ${showAdjuntos ? "border-accent text-accent" : "border-border text-muted hover:text-accent hover:border-accent"}`}>
-              📎
-            </button>
-          </div>
-          <p className="text-[10px] text-muted text-center">
-            Tu respuesta quedará registrada y desbloqueará al compañero que la solicitó
-          </p>
-        </div>
-      )}
-
       {/* ── Solicitud normal: interfaz estándar ── */}
       {!resuelta && esAsignado && !supervision && !esIntervencion && !esSolicitudCompraDelegada(ticket) && (
         <div className="space-y-2 pt-1">
           {msg && <p className="text-xs text-red-400">{msg}</p>}
+          {protocoloMsg && <p className="text-xs font-semibold text-accent">{protocoloMsg}</p>}
+
+          {/* Generar procedimiento al contestar / cerrar */}
+          <div className="rounded-xl border-2 border-dashed border-accent/30 bg-accent/5 p-3 space-y-2">
+            <button
+              type="button"
+              onClick={() => setGuardarComoProcedimiento((v) => !v)}
+              className={`w-full flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition ${
+                guardarComoProcedimiento
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border bg-surface-panel text-muted hover:border-accent/50"
+              }`}
+            >
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 text-xs font-black transition ${
+                guardarComoProcedimiento ? "border-accent bg-accent text-white" : "border-border"
+              }`}>{guardarComoProcedimiento ? "✓" : ""}</span>
+              <div>
+                <p className="text-sm font-semibold text-ink">Guardar como procedimiento al cerrar</p>
+                <p className="text-[11px] text-muted">Al marcar lista o pedir revisión, queda en Procedimientos</p>
+              </div>
+            </button>
+            {guardarComoProcedimiento && (
+              <div className="flex gap-2 rounded-xl border border-accent/20 bg-surface-panel p-1">
+                <button
+                  type="button"
+                  onClick={() => setAlcanceProcedimiento("personal")}
+                  className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+                    alcanceProcedimiento === "personal" ? "bg-accent text-white shadow" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  🔒 Solo para mí
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAlcanceProcedimiento("global")}
+                  className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+                    alcanceProcedimiento === "global" ? "bg-accent text-white shadow" : "text-muted hover:text-ink"
+                  }`}
+                >
+                  🌐 Compartir equipo
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              disabled={generandoProcedimiento || busy || !!ticket.bloqueado_por}
+              onClick={() => void generarProcedimientoAhora()}
+              title={ticket.bloqueado_por ? "Intervención pendiente" : "Guardar pasos actuales sin cerrar la solicitud"}
+              className="w-full rounded-xl border border-accent/40 bg-surface-panel py-2 text-xs font-bold text-accent hover:bg-accent/10 transition-colors disabled:opacity-40"
+            >
+              {generandoProcedimiento ? "Generando…" : "📋 Generar procedimiento ahora"}
+            </button>
+          </div>
 
           {/* Solicitud con protocolo → botón único que abre el wizard + Listo secundario */}
           {onRegistrarEjecucion && ticket.protocolo_id ? (
@@ -14826,23 +15034,45 @@ function SolicitudCard({
         </div>
       )}
 
-      {/* Botón: guardar como protocolo (solo para tickets resueltos, nivel supervisor+) */}
-      {resuelta && puedeCrearProtocolos(user) && (
+      {/* Botón: guardar como protocolo (solicitudes resueltas) */}
+      {resuelta && (puedeCrearProtocolos(user) || esAsignado) && (
         <div className="pt-1 space-y-2">
           {protocoloMsg && (
             <p className="text-xs text-accent">{protocoloMsg}</p>
           )}
           {!showProtocoloForm ? (
-            <button
-              type="button"
-              onClick={() => {
-                setProtocoloForm({ titulo: ticket.titulo, descripcion: ticket.descripcion ?? "", categoria: ticket.categoria ?? "" });
-                setShowProtocoloForm(true);
-              }}
-              className="flex items-center gap-1.5 text-xs text-muted hover:text-accent border border-dashed border-border hover:border-accent rounded-lg px-3 py-1.5 w-full justify-center transition-colors"
-            >
-              📋 Guardar como procedimiento estándar
-            </button>
+            <div className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                disabled={guardandoProtocolo}
+                onClick={() => void (async () => {
+                  setGuardandoProtocolo(true);
+                  try {
+                    await guardarProcedimientoDesdeSolicitud("personal");
+                    setProtocoloMsg("✓ Procedimiento guardado");
+                    setTimeout(() => setProtocoloMsg(""), 4000);
+                  } catch (e: any) {
+                    setProtocoloMsg(e.message ?? "Error al guardar");
+                    setTimeout(() => setProtocoloMsg(""), 4000);
+                  } finally { setGuardandoProtocolo(false); }
+                })()}
+                className="flex items-center gap-1.5 text-xs text-muted hover:text-accent border border-dashed border-border hover:border-accent rounded-lg px-3 py-1.5 w-full justify-center transition-colors disabled:opacity-40"
+              >
+                {guardandoProtocolo ? "Guardando…" : "📋 Guardar como procedimiento"}
+              </button>
+              {puedeCrearProtocolos(user) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProtocoloForm({ titulo: ticket.titulo, descripcion: ticket.descripcion ?? "", categoria: ticket.categoria ?? "" });
+                    setShowProtocoloForm(true);
+                  }}
+                  className="flex items-center gap-1.5 text-xs text-muted hover:text-accent border border-dashed border-border hover:border-accent rounded-lg px-3 py-1.5 w-full justify-center transition-colors"
+                >
+                  ✏️ Personalizar nombre del procedimiento
+                </button>
+              )}
+            </div>
           ) : (
             <div className="rounded-xl border border-accent/40 bg-accent/5 p-3 space-y-2">
               <p className="text-xs font-bold text-accent flex items-center gap-1">
@@ -15256,6 +15486,9 @@ function NuevaAccionWizard({
   const [interPasoIdx, setInterPasoIdx] = useState<number | null>(null);
   const [interForm, setInterForm] = useState({ titulo: "", descripcion: "", asignado_a: "" });
   const [creandoInter, setCreandoInter] = useState(false);
+  const pasosWizardRef = useRef<HTMLDivElement>(null);
+
+  usePegarCapturaEnZona(fase === "pasos", pasosWizardRef, setPasoFoto);
 
   const inicioRef = useRef<number | null>(null);
   const [segBase, setSegBase] = useState(0);
@@ -15365,6 +15598,13 @@ function NuevaAccionWizard({
     }) as Ticket;
     const tid = ticket.id;
     setTicketId(tid);
+    return tid;
+  }
+
+  /** Inicia la corrida (cronómetro) solo cuando el usuario empieza a ejecutar la acción.
+   *  Separado de asegurarTicketIniciado para no contar el tiempo de llenado del wizard. */
+  async function iniciarCorridaSiNecesario(tid: number): Promise<void> {
+    if (corridaIdRef.current) return;
     const t0 = Date.now();
     inicioRef.current = t0;
     setSegLive(0);
@@ -15372,7 +15612,7 @@ function NuevaAccionWizard({
     try {
       const data = await tapi(`/${tid}/corridas/iniciar`, token, {
         method: "POST",
-        body: JSON.stringify({ segundos_previos: 0 }),
+        body: JSON.stringify({ segundos_previos: segBase }),
       }) as Ticket;
       if (data.corrida) {
         corridaIdRef.current = data.corrida.id ?? null;
@@ -15383,7 +15623,6 @@ function NuevaAccionWizard({
         }
       }
     } catch { /* cronómetro local sigue */ }
-    return tid;
   }
 
   async function avanzarDesdeTitulo() {
@@ -15562,6 +15801,7 @@ function NuevaAccionWizard({
           es_interno: false,
         }),
       }).catch(() => {});
+      await iniciarCorridaSiNecesario(tid); // El timer arranca al empezar la ejecución
       irFase("pasos");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error al cerrar compras");
@@ -15573,7 +15813,8 @@ function NuevaAccionWizard({
   async function saltarCompras() {
     setLoading(true);
     try {
-      await asegurarTicketIniciado();
+      const tid = await asegurarTicketIniciado();
+      await iniciarCorridaSiNecesario(tid); // El timer arranca al empezar la ejecución
       irFase("pasos");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error al continuar");
@@ -15628,6 +15869,7 @@ function NuevaAccionWizard({
     setLoading(true);
     try {
       const tid = ticketId ?? await asegurarTicketIniciado();
+      await iniciarCorridaSiNecesario(tid); // El timer arranca al registrar la ejecución
       const existentes = await tapi(`/${tid}/pasos`, token).catch(() => []) as Paso[];
       const nombresExistentes = new Map(
         (Array.isArray(existentes) ? existentes : [])
@@ -15733,6 +15975,8 @@ function NuevaAccionWizard({
     setError("");
     try {
       const tid = ticketId ?? await asegurarTicketIniciado();
+      // Garantizar que hay corrida antes de finalizar (fallback si falló iniciarCorridaSiNecesario)
+      await iniciarCorridaSiNecesario(tid);
       if (corridaIdRef.current) {
         try {
           await tapi(`/corridas/${corridaIdRef.current}/finalizar`, token, { method: "POST" });
@@ -16046,6 +16290,7 @@ function NuevaAccionWizard({
                         setError("Aún esperando que terminen las compras delegadas");
                       } else {
                         setBloqueoCompras(null);
+                        await iniciarCorridaSiNecesario(tid);
                         irFase("pasos");
                       }
                     } catch (e: unknown) {
@@ -16095,6 +16340,7 @@ function NuevaAccionWizard({
                       setError("Aún esperando las compras delegadas");
                     } else {
                       setBloqueoCompras(null);
+                      await iniciarCorridaSiNecesario(tid);
                       irFase("pasos");
                     }
                   } catch (e: unknown) {
@@ -16197,7 +16443,12 @@ function NuevaAccionWizard({
       )}
 
       {fase === "pasos" && (
-        <div key="acc-p3" className={`space-y-5 ${slide}`}>
+        <div
+          key="acc-p3"
+          ref={pasosWizardRef}
+          className={`space-y-5 ${slide}`}
+          onPaste={(e) => manejarPasteCaptura(e, setPasoFoto)}
+        >
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
               Paso {progresoActual} de {maxProgreso}
@@ -16205,7 +16456,7 @@ function NuevaAccionWizard({
             <h2 className="text-2xl font-extrabold text-ink leading-tight">
               Describe los pasos<br />de tu labor
             </h2>
-            <p className="mt-1 text-sm text-muted">Texto o voz — uno a la vez. Puedes pedir verificación en un paso.</p>
+            <p className="mt-1 text-sm text-muted">Texto, voz o Ctrl+V para pegar capturas en cada paso.</p>
           </div>
 
           {bloqueoCompras && pantallaEsperaCompras()}
@@ -16372,7 +16623,7 @@ function NuevaAccionWizard({
                 ${pasoFoto ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
                 <span className="text-lg">{pasoFoto ? "📎" : "📷"}</span>
                 <span className="text-sm font-semibold text-muted truncate">
-                  {pasoFoto ? pasoFoto.name : "Adjuntar foto, pantallazo o archivo (opcional)"}
+                  {pasoFoto ? pasoFoto.name : "Adjuntar archivo o Ctrl+V para pegar captura"}
                 </span>
                 {pasoFoto && (
                   <button
@@ -16594,9 +16845,28 @@ function ProtocolosView({
   onUsarProtocolo: (p: Protocolo) => void;
 }) {
   const [expandido, setExpandido] = useState<number | null>(null);
-  const [msg] = useState("");
+  const [delegarId, setDelegarId] = useState<number | null>(null);
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null);
+  const [msg, setMsg] = useState("");
 
-  void onRecargar; // usado externamente
+  async function eliminarProcedimiento(p: Protocolo) {
+    if (!confirm(`¿Eliminar el procedimiento "${p.titulo}"?\n\nLas solicitudes ya delegadas no se borran.`)) return;
+    setEliminandoId(p.id);
+    setMsg("");
+    try {
+      await tapi(`/protocolos/${p.id}`, token, { method: "DELETE" });
+      if (expandido === p.id) setExpandido(null);
+      if (delegarId === p.id) setDelegarId(null);
+      onRecargar();
+      setMsg("✓ Procedimiento eliminado");
+      setTimeout(() => setMsg(""), 4000);
+    } catch (e: any) {
+      setMsg(e.message ?? "No se pudo eliminar");
+      setTimeout(() => setMsg(""), 4000);
+    } finally {
+      setEliminandoId(null);
+    }
+  }
 
   if (loading) return <div className="py-8 text-center text-sm text-muted">Cargando procedimientos…</div>;
 
@@ -16653,15 +16923,56 @@ function ProtocolosView({
                   <span className="text-muted text-xs shrink-0">{expandido === p.id ? "▲" : "▼"}</span>
                 </div>
               </button>
-              <button
-                type="button"
-                onClick={() => onUsarProtocolo(p)}
-                title="Usar como plantilla en nueva solicitud"
-                className="shrink-0 rounded-lg border border-accent/40 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/10 transition-colors"
-              >
-                Usar
-              </button>
+              <div className="flex shrink-0 flex-col gap-1">
+                {puedeEliminarProtocolo(user, p) && (
+                  <button
+                    type="button"
+                    onClick={() => void eliminarProcedimiento(p)}
+                    disabled={eliminandoId === p.id}
+                    title="Eliminar procedimiento"
+                    className="flex h-7 w-full items-center justify-center rounded-lg border border-border text-xs text-muted transition hover:border-danger hover:text-danger disabled:opacity-40"
+                  >
+                    {eliminandoId === p.id ? "…" : "✕"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onUsarProtocolo(p)}
+                  title="Usar como plantilla en nueva solicitud"
+                  className="rounded-lg border border-accent/40 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/10 transition-colors"
+                >
+                  Usar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDelegarId(delegarId === p.id ? null : p.id)}
+                  title="Delegar a un aliado del equipo"
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
+                    delegarId === p.id
+                      ? "border-violet-500 bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                      : "border-violet-400/40 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10"
+                  }`}
+                >
+                  Delegar
+                </button>
+              </div>
             </div>
+
+            {delegarId === p.id && (
+              <div className="border-t border-border px-3 pb-3 pt-2">
+                <DelegarProcedimientoPanel
+                  protocolo={p}
+                  token={token}
+                  user={user}
+                  onCancel={() => setDelegarId(null)}
+                  onDelegado={(n) => {
+                    setDelegarId(null);
+                    setMsg(`✓ Delegado a ${n} aliado${n !== 1 ? "s" : ""} — ver Solicitudes → Por resolver`);
+                    setTimeout(() => setMsg(""), 5000);
+                  }}
+                />
+              </div>
+            )}
 
             {expandido === p.id && (
               <div className="border-t border-border px-3 pb-3 pt-2 space-y-1.5">
@@ -18105,6 +18416,18 @@ function SolicitudesView({
     if (tab !== "asignadas") setAsignadaDetalle(null);
   }, [tab]);
 
+  const abrirIntervencionBloqueante = useCallback((intervencionId: number) => {
+    const t = otrasAsignadas.find((x) => x.id === intervencionId)
+      ?? asignadas.find((x) => x.id === intervencionId);
+    setTab("asignadas");
+    if (t) {
+      setAsignadaDetalle(t);
+    } else {
+      setMsg(`La intervención no está en tu bandeja Por resolver. Pide al asignado que la cierre.`);
+      setTimeout(() => setMsg(""), 5000);
+    }
+  }, [otrasAsignadas, asignadas]);
+
   const equipoPorAsignado = useMemo(() => {
     const map = new Map<number, { nombre: string; items: Ticket[] }>();
     for (const t of enEquipo) {
@@ -18296,6 +18619,7 @@ function SolicitudesView({
             isAdmin={isAdmin}
             protocolos={protocolos}
             detalleAmpliado
+            onIrAIntervencion={abrirIntervencionBloqueante}
             onChanged={() => void load(true)}
             onRegistrarEjecucion={
               esSolicitudCompraDelegada(asignadaDetalle)
@@ -18645,6 +18969,7 @@ function SolicitudesView({
             isAdmin={isAdmin}
             protocolos={protocolos}
             detalleAmpliado
+            onIrAIntervencion={abrirIntervencionBloqueante}
             onChanged={() => void load(true)}
             onRegistrarEjecucion={
               esSolicitudCompraDelegada(asignadaDetalle)
@@ -18685,6 +19010,7 @@ function SolicitudesView({
               user={user}
               isAdmin={isAdmin}
               protocolos={protocolos}
+              onIrAIntervencion={abrirIntervencionBloqueante}
               onChanged={() => void load(true)}
               onRegistrarEjecucion={
                 esSolicitudCompraDelegada(t)
@@ -18782,6 +19108,9 @@ function RepetirAccionWizard({
   const [delegando, setDelegando] = useState(false);
   const [pasoFile, setPasoFile] = useState<File | null>(null);
   const [cierreFile, setCierreFile] = useState<File | null>(null);
+  const pasoEjecRef = useRef<HTMLDivElement>(null);
+
+  usePegarCapturaEnZona(fase === "paso", pasoEjecRef, (file) => setPasoFile(file));
 
   const inicioRef = useRef<number | null>(null);
   const corridaIdRef = useRef<number | null>(reanudar?.corridaId ?? null);
@@ -19252,7 +19581,12 @@ function RepetirAccionWizard({
 
       {/* ── Paso uno a uno ── */}
       {fase === "paso" && pasoActual && (
-        <div key={`rep-paso-${pasoIdx}`} className={`space-y-6 ${slide}`}>
+        <div
+          key={`rep-paso-${pasoIdx}`}
+          ref={pasoEjecRef}
+          className={`space-y-6 ${slide}`}
+          onPaste={(e) => manejarPasteCaptura(e, setPasoFile)}
+        >
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-accent/70 mb-2">
               {plantilla.titulo}
@@ -19301,7 +19635,7 @@ function RepetirAccionWizard({
             ${pasoFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
             <span className="text-xl">{pasoFile ? "📎" : "📷"}</span>
             <span className="text-sm font-semibold text-muted truncate">
-              {pasoFile ? pasoFile.name : "Adjuntar foto o archivo (opcional)"}
+              {pasoFile ? pasoFile.name : "Adjuntar foto o Ctrl+V para pegar captura"}
             </span>
             {pasoFile && (
               <button
@@ -20264,16 +20598,144 @@ function NuevoProcedimientoForm({
   );
 }
 
+// ── DelegarProcedimientoPanel ─────────────────────────────────────────────────
+
+function DelegarProcedimientoPanel({
+  protocolo,
+  token,
+  user,
+  onCancel,
+  onDelegado,
+}: {
+  protocolo: Protocolo;
+  token: string;
+  user: TicketsUser;
+  onCancel: () => void;
+  onDelegado: (cantidad: number) => void;
+}) {
+  const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
+  const [asignados, setAsignados] = useState<number[]>([]);
+  const [nota, setNota] = useState(protocolo.descripcion?.trim() ?? "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    tapi("/usuarios", token)
+      .then((data) => setUsuarios(Array.isArray(data) ? data.filter((u: UserInfo) => u.activo && u.id !== user.id) : []))
+      .catch(() => setUsuarios([]));
+  }, [token, user.id]);
+
+  function toggleAsignado(uid: number) {
+    setAsignados((prev) =>
+      prev.includes(uid) ? prev.filter((id) => id !== uid) : [...prev, uid],
+    );
+  }
+
+  async function enviar() {
+    if (asignados.length === 0) return;
+    setLoading(true);
+    setError("");
+    try {
+      const desc = nota.trim() || `Ejecutar procedimiento: ${protocolo.titulo}`;
+      await Promise.all(
+        asignados.map((uid) =>
+          tapi("/", token, {
+            method: "POST",
+            body: JSON.stringify({
+              titulo: protocolo.titulo,
+              descripcion: desc,
+              categoria: protocolo.categoria || "logistica",
+              prioridad: "media",
+              asignado_a: uid,
+              tipo: "solicitud",
+              protocolo_id: protocolo.id,
+            }),
+          }),
+        ),
+      );
+      onDelegado(asignados.length);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo delegar el procedimiento");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border-2 border-violet-400/40 bg-violet-50/30 dark:bg-violet-950/20 p-3 space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-xs font-extrabold text-ink">Delegar a un aliado</p>
+          <p className="text-[10px] text-muted mt-0.5 truncate">{protocolo.titulo}</p>
+        </div>
+        <button type="button" onClick={onCancel} className="text-xs text-muted hover:text-ink shrink-0">✕</button>
+      </div>
+      <ProseTextarea
+        className="quest-input w-full text-xs resize-none"
+        rows={2}
+        placeholder="Instrucciones para el aliado (opcional)…"
+        value={nota}
+        onChange={(e) => setNota(e.target.value)}
+      />
+      {usuarios.length === 0 ? (
+        <p className="text-xs text-muted">No hay aliados disponibles para asignar.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {usuarios.map((u) => (
+            <button
+              key={u.id}
+              type="button"
+              onClick={() => toggleAsignado(u.id)}
+              className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-xs font-semibold transition ${
+                asignados.includes(u.id)
+                  ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300"
+                  : "border-border text-muted hover:border-violet-400 hover:text-violet-600"
+              }`}
+            >
+              <span
+                className="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black text-white shrink-0"
+                style={{ background: u.departamento?.color || "#0c6069" }}
+              >
+                {u.nombre.charAt(0).toUpperCase()}
+              </span>
+              {u.nombre.split(" ")[0]}
+              {asignados.includes(u.id) && <Icon name="check" size={12} weight="bold" />}
+            </button>
+          ))}
+        </div>
+      )}
+      {asignados.length > 1 && (
+        <p className="text-[10px] text-muted">Se creará una solicitud por cada aliado seleccionado.</p>
+      )}
+      {error && <p className="text-xs text-danger">{error}</p>}
+      <button
+        type="button"
+        disabled={loading || asignados.length === 0}
+        onClick={() => void enviar()}
+        className="w-full rounded-xl bg-violet-600 py-2.5 text-xs font-bold text-white hover:bg-violet-700 disabled:opacity-40 transition-colors"
+      >
+        {loading
+          ? "Delegando…"
+          : asignados.length > 1
+            ? `Delegar a ${asignados.length} aliados`
+            : "Delegar procedimiento"}
+      </button>
+    </div>
+  );
+}
+
 // ── ProcedimientoCard ─────────────────────────────────────────────────────────
 
 function ProcedimientoCard({
   p,
   token,
+  user,
   onEjecutar,
   onActualizado,
 }: {
   p: Protocolo;
   token: string;
+  user: TicketsUser;
   onEjecutar: () => void;
   onActualizado: () => void;
 }) {
@@ -20298,9 +20760,18 @@ function ProcedimientoCard({
   const [msg, setMsg] = useState("");
   const [subiendoFoto, setSubiendoFoto] = useState<number | null>(null);
   const [lbUrl, setLbUrl] = useState<string | null>(null);
+  const [pasoPegarIdx, setPasoPegarIdx] = useState<number | null>(null);
+  const editPasosRef = useRef<HTMLDivElement>(null);
+
+  usePegarCapturaEnZona(editando, editPasosRef, (file) => {
+    const idx = pasoPegarIdx ?? Math.max(0, pasosDraft.length - 1);
+    if (pasosDraft.length > 0) void subirFotoPaso(idx, file);
+  });
 
   // Picker de visibilidad
   const [showPicker, setShowPicker] = useState(false);
+  const [showDelegar, setShowDelegar] = useState(false);
+  const [delegarMsg, setDelegarMsg] = useState("");
   const [pickerAlcance, setPickerAlcance] = useState<"personal" | "global" | "seleccionado">(alcanceActual);
   const [pickerUserIds, setPickerUserIds] = useState<number[]>(
     () => (p.usuarios_compartidos ?? []).map((u) => u.id)
@@ -20308,6 +20779,23 @@ function ProcedimientoCard({
   const [usuarios, setUsuarios] = useState<UserInfo[]>([]);
   const [loadingUsuarios, setLoadingUsuarios] = useState(false);
   const [savingPicker, setSavingPicker] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const puedeEliminar = puedeEliminarProtocolo(user, p);
+
+  async function eliminarProcedimiento() {
+    if (!confirm(`¿Eliminar el procedimiento "${p.titulo}"?\n\nLas solicitudes ya delegadas no se borran.`)) return;
+    setEliminando(true);
+    setMsg("");
+    try {
+      await tapi(`/protocolos/${p.id}`, token, { method: "DELETE" });
+      onActualizado();
+    } catch (e: any) {
+      setMsg(e.message ?? "No se pudo eliminar");
+      setTimeout(() => setMsg(""), 4000);
+    } finally {
+      setEliminando(false);
+    }
+  }
 
   async function subirFotoPaso(pasoIdx: number, file: File) {
     setSubiendoFoto(pasoIdx);
@@ -20426,19 +20914,32 @@ function ProcedimientoCard({
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={abrirPicker}
-            title="Cambiar visibilidad"
-            className={`shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border transition-colors hover:opacity-80
-              ${alcanceActual === "global"
-                ? "text-accent bg-accent/10 border-accent/25"
-                : alcanceActual === "seleccionado"
-                  ? "text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/25"
-                  : "text-muted bg-surface-hover border-border"
-              }`}>
-            {alcanceActual === "global" ? "🌐 Equipo" : alcanceActual === "seleccionado" ? "👤 Específico" : "🔒 Privado"}
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={abrirPicker}
+              title="Cambiar visibilidad"
+              className={`text-[10px] font-bold rounded-full px-2 py-0.5 border transition-colors hover:opacity-80
+                ${alcanceActual === "global"
+                  ? "text-accent bg-accent/10 border-accent/25"
+                  : alcanceActual === "seleccionado"
+                    ? "text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/25"
+                    : "text-muted bg-surface-hover border-border"
+                }`}>
+              {alcanceActual === "global" ? "🌐 Equipo" : alcanceActual === "seleccionado" ? "👤 Específico" : "🔒 Privado"}
+            </button>
+            {puedeEliminar && (
+              <button
+                type="button"
+                onClick={() => void eliminarProcedimiento()}
+                disabled={eliminando}
+                title="Eliminar procedimiento"
+                className="flex h-6 w-6 items-center justify-center rounded-lg border border-border text-xs text-muted transition hover:border-danger hover:text-danger disabled:opacity-40"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         /* Modo edición */
@@ -20454,12 +20955,24 @@ function ProcedimientoCard({
             />
           </div>
 
-          <div className="space-y-2">
+          <div ref={editPasosRef} className="space-y-2" onPaste={(e) => {
+            const idx = pasoPegarIdx ?? 0;
+            manejarPasteCaptura(e, (file) => void subirFotoPaso(idx, file));
+          }}>
             <label className="text-[10px] font-bold uppercase tracking-wide text-muted block">
               Pasos {pasosDraft.length > 0 && <span className="font-normal">({pasosDraft.length})</span>}
+              <span className="ml-2 normal-case font-normal text-muted/80">· Ctrl+V para pegar captura en el paso activo</span>
             </label>
             {pasosDraft.map((paso, i) => (
-              <div key={i} className="rounded-lg border border-border bg-surface p-2.5 space-y-2">
+              <div
+                key={i}
+                className={`rounded-lg border bg-surface p-2.5 space-y-2 transition-colors ${
+                  pasoPegarIdx === i ? "border-accent/60 ring-1 ring-accent/30" : "border-border"
+                }`}
+                onFocusCapture={() => setPasoPegarIdx(i)}
+                onMouseEnter={() => setPasoPegarIdx(i)}
+                onPaste={(e) => manejarPasteCaptura(e, (file) => void subirFotoPaso(i, file))}
+              >
                 <div className="flex items-start gap-2">
                   <span className="text-[10px] font-bold text-muted mt-2 shrink-0 w-4 text-center">{i + 1}</span>
                   <div className="flex-1 min-w-0 space-y-1.5">
@@ -20535,7 +21048,7 @@ function ProcedimientoCard({
                     }`}>
                     {subiendoFoto === i
                       ? <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
-                      : <><span>📷</span> Agregar foto de referencia</>
+                      : <><span>📷</span> Foto o Ctrl+V</>
                     }
                     <input
                       type="file"
@@ -20653,12 +21166,39 @@ function ProcedimientoCard({
         </div>
       )}
 
+      {delegarMsg && !editando && (
+        <p className="text-xs font-semibold text-violet-600 dark:text-violet-400">{delegarMsg}</p>
+      )}
+
+      {showDelegar && !editando && (
+        <DelegarProcedimientoPanel
+          protocolo={p}
+          token={token}
+          user={user}
+          onCancel={() => setShowDelegar(false)}
+          onDelegado={(n) => {
+            setShowDelegar(false);
+            setDelegarMsg(`✓ ${n} solicitud${n !== 1 ? "es" : ""} creada${n !== 1 ? "s" : ""} en Por resolver`);
+            setTimeout(() => setDelegarMsg(""), 5000);
+            onActualizado();
+          }}
+        />
+      )}
+
       {/* Botones de acción */}
-      {!editando && !showPicker && (
+      {!editando && !showPicker && !showDelegar && (
         <div className="flex gap-1.5 flex-wrap">
           <button type="button" onClick={onEjecutar}
             className="flex-1 rounded-xl bg-accent py-2 text-xs font-bold text-white hover:brightness-110 transition-all min-w-[70px]">
             ↻ Ejecutar
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowDelegar(true); setDelegarMsg(""); }}
+            className="rounded-xl border border-violet-400/50 bg-violet-500/10 px-2.5 py-2 text-xs font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-500/20 transition-colors"
+            title="Asignar este procedimiento a un aliado del equipo"
+          >
+            👥 Delegar
           </button>
           <button type="button" onClick={() => setEditando(true)}
             className="rounded-xl border border-border px-2.5 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent transition-colors"
@@ -20676,6 +21216,160 @@ function ProcedimientoCard({
   );
 }
 
+// ── AdminSubhomePanel — métricas de equipo para admins ────────────────────────
+
+interface AdminMetricaUsuario {
+  uid: number;
+  acciones_activas: number;
+  acciones_pendientes: number;
+  acciones_resueltas: number;
+  solicitudes_activas: number;
+  solicitudes_resueltas: number;
+}
+
+function AdminSubhomePanel({
+  token, acciones, usuarios, onVerActivas,
+}: {
+  token: string;
+  acciones: Ticket[];
+  usuarios: UserInfo[];
+  onVerActivas: () => void;
+}) {
+  const [metricas, setMetricas] = useState<AdminMetricaUsuario[]>([]);
+  const [dias, setDias] = useState(7);
+  const [loadingMetricas, setLoadingMetricas] = useState(true);
+
+  // Live stats from already-fetched acciones
+  const liveByUser = useMemo(() => {
+    const m: Record<number, { activas: number; pendientes: number }> = {};
+    for (const a of acciones) {
+      const uid = a.asignado_a;
+      if (!uid) continue;
+      if (!m[uid]) m[uid] = { activas: 0, pendientes: 0 };
+      if (a.estado === "en_proceso") m[uid].activas++;
+      else if (a.estado === "pendiente") m[uid].pendientes++;
+    }
+    return m;
+  }, [acciones]);
+
+  useEffect(() => {
+    setLoadingMetricas(true);
+    tapi(`/admin/metricas-acciones?dias=${dias}`, token)
+      .then((d: any) => { if (Array.isArray(d?.usuarios)) setMetricas(d.usuarios); })
+      .catch(() => {})
+      .finally(() => setLoadingMetricas(false));
+  }, [token, dias]);
+
+  const allUids = Array.from(new Set([
+    ...Object.keys(liveByUser).map(Number),
+    ...metricas.map((m) => m.uid),
+  ]));
+
+  const rows = allUids.map((uid) => {
+    const u = usuarios.find((x) => x.id === uid);
+    const live = liveByUser[uid] ?? { activas: 0, pendientes: 0 };
+    const hist = metricas.find((m) => m.uid === uid);
+    return {
+      uid,
+      nombre: u?.nombre ?? `Usuario #${uid}`,
+      activas: live.activas,
+      pendientes: live.pendientes,
+      resueltas: hist?.acciones_resueltas ?? 0,
+      solActivas: hist?.solicitudes_activas ?? 0,
+      solResueltas: hist?.solicitudes_resueltas ?? 0,
+    };
+  }).sort((a, b) => b.activas - a.activas || b.pendientes - a.pendientes || a.nombre.localeCompare(b.nombre));
+
+  const totalActivas = rows.reduce((s, r) => s + r.activas, 0);
+  const totalPendientes = rows.reduce((s, r) => s + r.pendientes, 0);
+  const totalResueltas = rows.reduce((s, r) => s + r.resueltas, 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Resumen global */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/40 p-4 text-center">
+          <p className="text-3xl font-black text-amber-600 dark:text-amber-400 tabular-nums leading-none">{totalActivas}</p>
+          <p className="text-xs font-bold text-muted mt-1.5">En proceso</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-700/40 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-center">
+          <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums leading-none">{totalPendientes}</p>
+          <p className="text-xs font-bold text-muted mt-1.5">Pendientes</p>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
+          <p className="text-3xl font-black text-ink dark:text-white tabular-nums leading-none">{totalResueltas}</p>
+          <p className="text-xs font-bold text-muted mt-1.5">Resueltas</p>
+        </div>
+      </div>
+
+      {/* Tabla por usuario */}
+      <div className="rounded-2xl border border-border overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 bg-surface border-b border-border">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted">Por operador</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted">Resueltas últimos</p>
+            <select
+              value={dias}
+              onChange={(e) => setDias(Number(e.target.value))}
+              className="quest-input py-0.5 px-2 text-xs"
+            >
+              {[1, 3, 7, 14, 30].map((d) => (
+                <option key={d} value={d}>{d} días</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {loadingMetricas && metricas.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-muted text-center">Cargando…</p>
+        ) : rows.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-muted text-center">Sin actividad registrada.</p>
+        ) : (
+          <div className="divide-y divide-border/50">
+            {rows.map((r) => (
+              <div key={r.uid} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-hover transition-colors">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-ink truncate">{r.nombre}</p>
+                  {(r.solActivas + r.solResueltas) > 0 && (
+                    <p className="text-[11px] text-muted">Solicitudes: {r.solActivas} activas · {r.solResueltas} resueltas</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  {r.activas > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400">
+                      ⚡ {r.activas}
+                    </span>
+                  )}
+                  {r.pendientes > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                      🗓 {r.pendientes}
+                    </span>
+                  )}
+                  {r.resueltas > 0 && (
+                    <span className="inline-flex items-center rounded-full bg-surface border border-border px-2 py-0.5 text-xs font-bold text-muted">
+                      ✓ {r.resueltas}
+                    </span>
+                  )}
+                  {r.activas === 0 && r.pendientes === 0 && r.resueltas === 0 && (
+                    <span className="text-xs text-muted italic">Sin actividad</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={onVerActivas}
+        className="w-full rounded-xl border-2 border-border py-3 text-sm font-bold text-ink hover:border-accent hover:text-accent transition"
+      >
+        Ver todas las acciones activas del equipo →
+      </button>
+    </div>
+  );
+}
+
 // ── AccionesView — paleta por subtab (nivel módulo, no depende de estado) ─────
 /** CTA compacto del hero en Centro de Mando (solicitudes / acciones / recordatorios). */
 const CENTRO_MANDO_CTA_BTN =
@@ -20684,6 +21378,7 @@ const CENTRO_MANDO_CTA_BTN =
 const ACCIONES_TAB_CFG = {
   subhome:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_2px_0_#b45309]",   ctaBase: true  },
   activas:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_2px_0_#b45309]",   ctaBase: true  },
+  agenda:         { card: "border-teal-200 dark:border-teal-700/60 bg-teal-50 dark:bg-teal-950/50",                   icon: "bg-teal-200/70 dark:bg-teal-800/60 text-teal-700 dark:text-teal-300",               emoji: "📅", titulo: "Agenda",            desc: "Tus acciones futuras y recordatorios en un solo lugar.",                                              btnCtaCls: "bg-teal-600 hover:bg-teal-700 shadow-[0_2px_0_#134e4a]",     ctaBase: false },
   pendientes:     { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_2px_0_#065f46]", ctaBase: false },
   recordatorios:  { card: "border-violet-200 dark:border-violet-700/60 bg-violet-50 dark:bg-violet-950/50",          icon: "bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300",         emoji: "🔔", titulo: "Recordatorios",     desc: "Tareas con alerta: te avisamos en la fecha. Crea recordatorios puntuales o recurrentes.",            btnCtaCls: "bg-violet-600 hover:bg-violet-700 shadow-[0_2px_0_#4c1d95]",  ctaBase: false },
   procedimientos: { card: "border-sky-200 dark:border-sky-700/60 bg-sky-50 dark:bg-sky-950/50",                      icon: "bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-sky-600 hover:bg-sky-700 shadow-[0_2px_0_#0c4a6e]",       ctaBase: false },
@@ -20702,7 +21397,7 @@ function AccionesView({
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
   onIrCompras?: () => void;
-  initialTab?: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial";
+  initialTab?: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" | "agenda";
   onInicio?: () => void;
   abrirFormRecordatorio?: boolean;
   abrirFormPendientes?: boolean;
@@ -20726,7 +21421,7 @@ function AccionesView({
   const [showRepetirWizard, setShowRepetirWizard] = useState(false);
   const [plantillaRepetir, setPlantillaRepetir] = useState<PlantillaAccion | undefined>();
   const [reanudarRepetir, setReanudarRepetir] = useState<ReanudarRepetirState | undefined>();
-  const [tabAcciones, setTabAcciones] = useState<"subhome" | "activas" | "historial" | "procedimientos" | "pendientes" | "recordatorios">(initialTab ?? "activas");
+  const [tabAcciones, setTabAcciones] = useState<"subhome" | "activas" | "historial" | "procedimientos" | "pendientes" | "recordatorios" | "agenda">(initialTab ?? "activas");
   const [historial, setHistorial] = useState<Ticket[]>([]);
   const [procedimientos, setProcedimientos] = useState<Protocolo[]>([]);
   const [pendientes, setPendientes] = useState<PendienteItem[]>([]);
@@ -20752,7 +21447,7 @@ function AccionesView({
     [acciones],
   );
   const [alarmaActiva, setAlarmaActiva] = useState(true);
-  const [alarmaMinutos, setAlarmaMinutos] = useState(5); // 1-60 min
+  const [alarmaMinutos, setAlarmaMinutos] = useState(15); // 1-60 min
   const [countdown, setCountdown]  = useState(0);        // segundos para próxima alarma
   const alarmaRef    = useRef(alarmaActiva);
   const minRef       = useRef(alarmaMinutos);
@@ -20896,7 +21591,8 @@ function AccionesView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-registrar push cuando cambia intervalo o estado de alarma
+  // Re-registrar push cuando cambia intervalo, estado de alarma, o hay tareas activas.
+  // El servidor solo envía pushes cuando active=true; desactivamos cuando no hay tareas.
   useEffect(() => {
     if (
       isMcKennaAndroidApp() ||
@@ -20906,8 +21602,8 @@ function AccionesView({
     ) {
       return;
     }
-    navigator.serviceWorker.ready.then((reg) => registrarPush(reg, alarmaMinutos, alarmaActiva)).catch(() => {});
-  }, [alarmaMinutos, alarmaActiva, registrarPush]);
+    navigator.serviceWorker.ready.then((reg) => registrarPush(reg, alarmaMinutos, alarmaActiva && hayEnProceso)).catch(() => {});
+  }, [alarmaMinutos, alarmaActiva, hayEnProceso, registrarPush]);
 
   // Pre-calentar caché web + nativo (WAV Voicebox) cuando la alarma está activa
   useEffect(() => {
@@ -20928,6 +21624,8 @@ function AccionesView({
     const hayTarea = accionesRef.current.some((t) => t.estado === "en_proceso");
     const solPendiente = solicitudesRef.current[0] ?? null;
     if (!forzar && (!alarmaRef.current || (!hayTarea && !solPendiente))) return;
+    // Silencio nocturno 22:00–07:00 — solo el botón "Probar" puede saltarlo
+    if (!forzar && esHorarioSilencio()) return;
     ultimaAlarmaRef.current = Date.now();
     if (!document.hidden) {
       if (solPendiente && !hayTarea) {
@@ -20955,7 +21653,11 @@ function AccionesView({
       if (Date.now() - ultimaAlarmaRef.current >= ms) void dispararAlarma();
     };
     const iv = setInterval(check, 10_000);
-    const onVisible = () => { if (!document.hidden) check(); };
+    // Al abrir la app reiniciamos el contador para no disparar la alarma inmediatamente.
+    // El usuario verá la alerta en el próximo intervalo normal, no al instante de entrar.
+    const onVisible = () => {
+      if (!document.hidden) ultimaAlarmaRef.current = Date.now();
+    };
     document.addEventListener("visibilitychange", onVisible);
     return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVisible); };
   }, [dispararAlarma]);
@@ -21179,8 +21881,8 @@ function AccionesView({
     if (tabAcciones === "historial" || tabAcciones === "procedimientos") {
       void cargarHistorialYProcedimientos();
     }
-    if (tabAcciones === "pendientes" || tabAcciones === "subhome") void cargarPendientes();
-    if (tabAcciones === "recordatorios" || tabAcciones === "subhome") void cargarRecordatorios();
+    if (tabAcciones === "pendientes" || tabAcciones === "subhome" || tabAcciones === "agenda") void cargarPendientes();
+    if (tabAcciones === "recordatorios" || tabAcciones === "subhome" || tabAcciones === "agenda") void cargarRecordatorios();
   }, [tabAcciones, cargarHistorialYProcedimientos, cargarPendientes, cargarRecordatorios]);
 
   // Historial/procedimientos: refresco periódico y al volver a la app (móvil en background no recibe el poll de activas)
@@ -21279,11 +21981,16 @@ function AccionesView({
   }
 
   async function onAccionCreada(_ticketId: number) {
+    // Parar alarma Android inmediatamente antes de que el usuario pueda salir de la app.
+    // load() es async; si el usuario cierra antes de que termine, la alarma quedaba activa.
+    sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, false, false);
     setShowWizard(false);
     setWizardTituloInicial("");
     setPlantillaWizard(undefined);
     setReanudarWizard(null);
     await load(false);
+    // Re-sincronizar con estado real por si quedan otras acciones en_proceso
+    sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, accionesRef.current.some((t) => t.estado === "en_proceso"), false);
     if (tabAcciones !== "activas") void cargarHistorialYProcedimientos();
     setMsg("Acción registrada");
     setTimeout(() => setMsg(""), 2500);
@@ -21355,14 +22062,17 @@ function AccionesView({
   const mostrarCtaCrear =
     tabAcciones === "pendientes"
     || tabAcciones === "recordatorios"
+    || tabAcciones === "agenda"
     || (tabAcciones === "procedimientos" && puedeCrearProtocolos(user));
   const labelCtaCrear =
     tabAcciones === "pendientes" ? "+ Nueva acción futura"
     : tabAcciones === "recordatorios" ? "+ Nuevo recordatorio"
+    : tabAcciones === "agenda" ? "+ Agregar"
     : "+ Nuevo procedimiento";
   function abrirFormularioCrear() {
     if (tabAcciones === "pendientes") setCrearPendienteSignal((n) => n + 1);
     else if (tabAcciones === "recordatorios") setCrearRecordatorioSignal((n) => n + 1);
+    else if (tabAcciones === "agenda") setCrearPendienteSignal((n) => n + 1);
     else if (tabAcciones === "procedimientos") setCrearProcedimientoSignal((n) => n + 1);
   }
 
@@ -21396,7 +22106,7 @@ function AccionesView({
             </div>
             <p className="mt-1 text-base font-bold text-ink/80 dark:text-white/90 leading-snug">
               {isAdmin && tabAcciones === "subhome"
-                ? "Supervisión: acciones del equipo (solo ver o eliminar). Las solicitudes están en Solicitudes."
+                ? "Panel de supervisión: acciones del equipo."
                 : tc.desc}
             </p>
           </div>
@@ -21476,8 +22186,18 @@ function AccionesView({
                 ))}
               </select>
 
+              {/* Silencio nocturno */}
+              {alarmaActiva && esHorarioSilencio() && (
+                <span
+                  className="text-[10px] text-muted font-semibold"
+                  title="Silencio nocturno activo (22:00–07:00). La alarma no sonará hasta las 7 AM."
+                >
+                  🌙 Silencio
+                </span>
+              )}
+
               {/* Countdown hasta próxima alarma */}
-              {alarmaActiva && countdown > 0 && (
+              {alarmaActiva && !esHorarioSilencio() && countdown > 0 && (
                 <span className="text-[10px] font-mono text-muted tabular-nums min-w-[36px] text-center">
                   {String(Math.floor(countdown / 60)).padStart(2, "0")}:{String(countdown % 60).padStart(2, "0")}
                 </span>
@@ -21592,6 +22312,16 @@ function AccionesView({
         </div>
       )}
 
+      {/* ── Sub-home de Acciones: métricas de equipo para admin ── */}
+      {isAdmin && tabAcciones === "subhome" && (
+        <AdminSubhomePanel
+          token={token}
+          acciones={acciones}
+          usuarios={usuarios}
+          onVerActivas={() => setTabAcciones("activas")}
+        />
+      )}
+
       {/* ── Sub-home de Acciones: cards por sección ── */}
       {!isAdmin && tabAcciones === "subhome" && (() => {
         const hoy = new Date().toISOString().slice(0, 10);
@@ -21618,34 +22348,24 @@ function AccionesView({
               <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Las acciones que tienes activas ahorita mismo.</p>
             </button>
 
-            <button type="button" onClick={() => setTabAcciones("pendientes")}
-              className={`${subCard} bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-700/60`}>
+            {/* Agenda unificada: futuras + recordatorios en una sola card */}
+            <button type="button" onClick={() => setTabAcciones("agenda")}
+              className={`${subCard} bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-700/60`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
-                  <TopicIcon value="🗓️" size={24} />
+                  <TopicIcon value="📅" size={24} />
                 </span>
                 <div className="text-right space-y-1">
-                  <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{pendientes.length}</span>
-                  {pendHoy > 0 && <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{pendHoy} para hoy</p>}
+                  <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">
+                    {pendientes.length + recordatorios.length}
+                  </span>
+                  {(pendHoy + recHoy) > 0 && (
+                    <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{pendHoy + recHoy} para hoy</p>
+                  )}
                 </div>
               </div>
-              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Acciones futuras</p>
-              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Ideas y tareas para más adelante. Solo anótalas aquí — sin convertirlas en acción.</p>
-            </button>
-
-            <button type="button" onClick={() => setTabAcciones("recordatorios")}
-              className={`${subCard} bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-700/60`}>
-              <div className="flex items-center justify-between gap-3">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
-                  <TopicIcon value="🔔" size={24} />
-                </span>
-                <div className="text-right space-y-1">
-                  <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{recordatorios.length}</span>
-                  {recHoy > 0 && <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{recHoy} para hoy</p>}
-                </div>
-              </div>
-              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Recordatorios</p>
-              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Tareas con alerta en la fecha que elijas. Crea recordatorios puntuales o recurrentes.</p>
+              <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Agenda</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Futuras y recordatorios en un solo lugar. Anota lo que viene sin arrancarlo aún.</p>
             </button>
 
             <button type="button" onClick={() => setTabAcciones("historial")}
@@ -21696,6 +22416,47 @@ function AccionesView({
           abrirFormSignal={crearRecordatorioSignal}
           onRecargar={() => void cargarRecordatorios()}
         />
+      )}
+
+      {tabAcciones === "agenda" && (
+        <div className="space-y-6">
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
+              🗓️ Acciones futuras
+              {pendientes.length > 0 && (
+                <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                  {pendientes.length}
+                </span>
+              )}
+            </p>
+            <PendientesPanel
+              token={token}
+              pendientes={pendientes}
+              loading={loadingPendientes}
+              abrirFormInicial={abrirFormPendientes}
+              abrirFormSignal={crearPendienteSignal}
+              onRecargar={() => void cargarPendientes()}
+            />
+          </div>
+          <div className="border-t border-border/50 pt-6">
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
+              🔔 Recordatorios
+              {recordatorios.length > 0 && (
+                <span className="rounded-full bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 text-[10px] font-bold text-violet-700 dark:text-violet-400">
+                  {recordatorios.length}
+                </span>
+              )}
+            </p>
+            <RecordatoriosPanel
+              token={token}
+              recordatorios={recordatorios}
+              loading={loadingRecordatorios}
+              abrirFormInicial={false}
+              abrirFormSignal={crearRecordatorioSignal}
+              onRecargar={() => void cargarRecordatorios()}
+            />
+          </div>
+        </div>
       )}
 
       {tabAcciones === "historial" && !isAdmin && (
@@ -21968,6 +22729,7 @@ function AccionesView({
                     key={p.id}
                     p={p}
                     token={token}
+                    user={user}
                     onEjecutar={() => {
                         const plantilla = plantillaDesdeProtocolo(p);
                         if (plantilla.pasos.length > 0 || plantilla.listaCompras.length > 0) {
@@ -21996,6 +22758,7 @@ function AccionesView({
                     key={p.id}
                     p={p}
                     token={token}
+                    user={user}
                     onEjecutar={() => {
                         const plantilla = plantillaDesdeProtocolo(p);
                         if (plantilla.pasos.length > 0 || plantilla.listaCompras.length > 0) {
@@ -22024,6 +22787,7 @@ function AccionesView({
                     key={p.id}
                     p={p}
                     token={token}
+                    user={user}
                     onEjecutar={() => {
                         const plantilla = plantillaDesdeProtocolo(p);
                         if (plantilla.pasos.length > 0 || plantilla.listaCompras.length > 0) {
@@ -24903,7 +25667,7 @@ function AgenteMandoView({
             {isMobile && onAbrirMenu && (
               <button
                 type="button"
-                onClick={onAbrirMenu}
+                onClick={() => { onToggleChatExpanded?.(); onAbrirMenu(); }}
                 className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-muted transition hover:border-accent hover:text-accent text-sm"
                 aria-label="Menú"
                 title="Menú"
@@ -25177,7 +25941,7 @@ export default function TicketsPanel() {
   const [abrirFormRecordatorio, setAbrirFormRecordatorio] = useState(false);
   const [abrirFormPendientes, setAbrirFormPendientes] = useState(false);
   const [abrirFormProcedimiento, setAbrirFormProcedimiento] = useState(false);
-  const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial">("activas");
+  const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" | "agenda">("activas");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -25329,7 +26093,7 @@ export default function TicketsPanel() {
     setHugoChatExpanded(false);
   }
 
-  function goAcciones(tab: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" = "activas") {
+  function goAcciones(tab: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" | "agenda" = "activas") {
     setAccionesInitialTab(tab);
     setAbrirFormRecordatorio(tab === "recordatorios");
     setAbrirFormPendientes(tab === "pendientes");
@@ -25411,12 +26175,12 @@ export default function TicketsPanel() {
                 user={user}
                 nivel={nivel}
                 permisos={permisos}
-                onAcciones={goAcciones}
+                onAcciones={() => goAcciones("activas")}
                 onSolicitudes={goSolicitudes}
                 onContratos={goContratos}
                 onTablero={goKingdom}
-                onAccionesFuturas={() => goAcciones("pendientes")}
-                onRecordatorios={() => goAcciones("recordatorios")}
+                onAccionesFuturas={() => goAcciones("agenda")}
+                onRecordatorios={() => goAcciones("agenda")}
                 onProcedimientos={() => goAcciones("procedimientos")}
                 onImpresora={goImpresora}
               />

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-09T12:14:14",
+  "updated_at": "2026-06-11T07:33:28",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -24,9 +24,35 @@
     "2026-06-05": 4,
     "2026-06-06": 3,
     "2026-06-07": 4,
-    "2026-06-09": 4
+    "2026-06-09": 4,
+    "2026-06-11": 1
   },
   "sessions": [
+    {
+      "session_id": "web-4ecb935d-3918-4d8b-9fc2-ee5ba78b31f8",
+      "started_at": "2026-06-11T07:33:28",
+      "last_at": "2026-06-11T07:33:28",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/recetario",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Hola deseo información de sus productos, tienen catálogo?",
+      "last_agent_reply": "Hola veci, ¿cómo vas? Claro que sí, puede ver todo nuestro catálogo de materias primas directamente en nuestra tienda virtual en mckennagroup.co/tienda. Ahí encuentra todo lo disponible.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-11T07:33:28",
+          "user_message": "Hola deseo información de sus productos, tienen catálogo?",
+          "agent_reply": "Hola veci, ¿cómo vas? Claro que sí, puede ver todo nuestro catálogo de materias primas directamente en nuestra tienda virtual en mckennagroup.co/tienda. Ahí encuentra todo lo disponible.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-e5dc85c5-62f9-4df4-bc93-a282e3494795",
       "started_at": "2026-06-09T12:12:57",

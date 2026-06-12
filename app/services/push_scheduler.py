@@ -6,6 +6,7 @@ Las suscripciones se persisten en la tabla push_subscriptions de la DB de ticket
 para sobrevivir reinicios del servidor.
 """
 import json, os, threading, time, logging
+from datetime import datetime
 
 log = logging.getLogger(__name__)
 
@@ -151,6 +152,12 @@ def push_disponible() -> bool:
     return bool(_VAPID_PEM and _VAPID_PUBLIC)
 
 
+def _en_horario_silencio() -> bool:
+    """No enviar pushes entre 22:00 y 07:00 hora local del servidor (Colombia UTC-5)."""
+    hora = datetime.now().hour
+    return hora >= 22 or hora < 7
+
+
 # ─── Hilo daemon que dispara pushes a tiempo ──────────────────────────────────
 def _loop():
     # Esperar a que la app esté lista antes de cargar desde DB
@@ -164,6 +171,9 @@ def _loop():
             stale = []
             for ep, sched in _schedules.items():
                 if not sched["active"] or now < sched["next_ts"]:
+                    continue
+                if _en_horario_silencio():
+                    # Posponer al horario laboral: no molestar de 22:00 a 07:00
                     continue
                 ok = _enviar_push(sched["subscription"])
                 if ok:

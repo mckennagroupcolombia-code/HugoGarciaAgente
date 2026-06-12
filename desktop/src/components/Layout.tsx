@@ -21,7 +21,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-surface">
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-ink/25 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-ink/25 backdrop-blur-sm lg:hidden"
           onClick={toggle}
         />
       )}
