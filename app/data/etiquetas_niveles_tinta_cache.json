@@ -1,11 +1,66 @@
 {
-  "niveles_manuales": {
-    "K": 75,
-    "C": 60,
-    "M": 80,
-    "Y": 55,
-    "MN": 40
+  "niveles_manuales": {},
+  "cartuchos": [
+    {
+      "codigo": "K",
+      "etiqueta": "Negro",
+      "color": "#1a1a1a",
+      "nombre": "SJIC41P-BK",
+      "nivel": 15,
+      "estado_codigo": "RL",
+      "estado_etiqueta": "Poco",
+      "raw": "0 21068"
+    },
+    {
+      "codigo": "C",
+      "etiqueta": "Cian",
+      "color": "#06b6d4",
+      "nombre": "SJIC41P-C",
+      "nivel": 18,
+      "estado_codigo": "RL",
+      "estado_etiqueta": "Poco",
+      "raw": "0 21068"
+    },
+    {
+      "codigo": "M",
+      "etiqueta": "Magenta",
+      "color": "#ec4899",
+      "nombre": "SJIC41P-M",
+      "nivel": 35,
+      "estado_codigo": "RM",
+      "estado_etiqueta": "Moderado",
+      "raw": "0 21069"
+    },
+    {
+      "codigo": "Y",
+      "etiqueta": "Amarillo",
+      "color": "#eab308",
+      "nombre": "SJIC41P-Y",
+      "nivel": 100,
+      "estado_codigo": "RH",
+      "estado_etiqueta": "Lleno",
+      "raw": "0 21064"
+    },
+    {
+      "codigo": "MN",
+      "etiqueta": "Mantenimiento",
+      "color": "#6b7280",
+      "nombre": "SJMB4000",
+      "nivel": 15,
+      "estado_codigo": "RN",
+      "estado_etiqueta": "Casi lleno",
+      "raw": "21070 21070"
+    }
+  ],
+  "codigos_estado_tinta": {
+    "K": "RL",
+    "C": "RL",
+    "M": "RM",
+    "Y": "RH",
+    "MN": "RN"
   },
-  "cartuchos": [],
-  "niveles_manuales_at": "2026-06-11T22:51:52"
+  "status": "40, Status_IL_PAPF_MNF",
+  "status_group": "5, Warning",
+  "consultado_at": "2026-06-11T23:43:29",
+  "ultima_alerta": null
 }

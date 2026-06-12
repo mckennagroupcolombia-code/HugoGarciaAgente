@@ -38,7 +38,17 @@ export type EtiquetasTab = "imprimir" | "plantillas" | "inventario";
 /** Datos para abrir Impresión con un producto o plantilla precargados. */
 export interface EtiquetasHandoff {
   tipo_etiqueta?: string;
+  forma?: string;
+  calidad?: string;
   rotacion?: string;
+  pdf_ruta?: string;
+  pdf_nombre?: string;
+  lote_defecto?: string;
+  vencimiento_defecto?: string;
+  lote_pos?: string;
+  lote_font?: number;
+  lote_x_pct?: number;
+  lote_y_pct?: number;
   campos_texto?: unknown[];
   lineas?: unknown[];
   imagenes?: unknown[];
