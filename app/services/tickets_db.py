@@ -3240,6 +3240,18 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
             return None, str(e)
 
 
+def usuario_tiene_accion_en_proceso(usuario_id: int) -> bool:
+    """True si el usuario tiene al menos una acción asignada en estado en_proceso."""
+    with _conn() as db:
+        row = db.execute(
+            """SELECT 1 FROM tickets
+               WHERE tipo='accion' AND estado='en_proceso' AND asignado_a=?
+               LIMIT 1""",
+            (usuario_id,),
+        ).fetchone()
+        return row is not None
+
+
 def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
     filtros = filtros or {}
     with _conn() as db:

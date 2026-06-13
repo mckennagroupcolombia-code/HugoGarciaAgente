@@ -21436,10 +21436,13 @@ function AccionesView({
   const stt = useStt(token, chatApiToken);
 
   // ── Alarma: voz periódica configurable ────────────────────────────────────
-  const hayEnProceso = useMemo(
-    () => acciones.some((t) => t.estado === "en_proceso"),
-    [acciones],
+  const hayMiAccionEnProceso = useCallback(
+    (lista: Ticket[]) => lista.some(
+      (t) => t.estado === "en_proceso" && uidEq(t.asignado_a, user.id),
+    ),
+    [user.id],
   );
+  const hayEnProceso = useMemo(() => hayMiAccionEnProceso(acciones), [acciones, hayMiAccionEnProceso]);
   const [alarmaActiva, setAlarmaActiva] = useState(true);
   const [alarmaMinutos, setAlarmaMinutos] = useState(15); // 1-60 min
   const [countdown, setCountdown]  = useState(0);        // segundos para próxima alarma
@@ -21449,12 +21452,15 @@ function AccionesView({
   const accionesRef  = useRef(acciones);
   const solicitudesRef = useRef<Ticket[]>([]);
   const tokenRef     = useRef(chatApiToken ?? token);
+  const ticketsTokenRef = useRef(token);
   const ultimaAlarmaRef = useRef(Date.now());
   const prevHayEnProcesoRef = useRef<boolean | null>(null);
+  const alarmaSincronizadaRef = useRef(false);
   useEffect(() => { alarmaRef.current = alarmaActiva; }, [alarmaActiva]);
   useEffect(() => { minRef.current = alarmaMinutos; }, [alarmaMinutos]);
   useEffect(() => { accionesRef.current = acciones; }, [acciones]);
   useEffect(() => { tokenRef.current = chatApiToken ?? token; }, [chatApiToken, token]);
+  useEffect(() => { ticketsTokenRef.current = token; }, [token]);
 
   // Polling de solicitudes asignadas para el mensaje de alarma
   useEffect(() => {
@@ -21526,15 +21532,32 @@ function AccionesView({
     return () => clearTimeout(tid);
   }, [chatApiToken, token, sincronizarTokenAndroid]);
 
+  // Al abrir: limpiar hay_tarea obsoleto en Android antes de cargar acciones del servidor
   useEffect(() => {
-    if (prevHayEnProcesoRef.current === null) {
+    sincronizarAlarmaAndroid(false, minRef.current, false, false);
+  }, [sincronizarAlarmaAndroid]);
+
+  useEffect(() => {
+    if (loading) return;
+    const tid = setTimeout(() => {
+      sincronizarAlarmaAndroid(
+        alarmaRef.current && hayEnProceso,
+        minRef.current,
+        hayEnProceso,
+        false,
+      );
+      alarmaSincronizadaRef.current = true;
       prevHayEnProcesoRef.current = hayEnProceso;
-      return;
-    }
+    }, 300);
+    return () => clearTimeout(tid);
+  }, [loading, hayEnProceso, sincronizarAlarmaAndroid]);
+
+  useEffect(() => {
+    if (!alarmaSincronizadaRef.current) return;
     if (prevHayEnProcesoRef.current === hayEnProceso) return;
     prevHayEnProcesoRef.current = hayEnProceso;
     const tid = setTimeout(
-      () => sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, hayEnProceso, false),
+      () => sincronizarAlarmaAndroid(alarmaRef.current && hayEnProceso, minRef.current, hayEnProceso, false),
       600,
     );
     return () => clearTimeout(tid);
@@ -21561,7 +21584,7 @@ function AccionesView({
       // Registrar programación en el servidor
       await fetch("/api/voz/push/subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokenRef.current}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${ticketsTokenRef.current}` },
         body: JSON.stringify({ subscription: sub.toJSON(), minutes: minutos, active: activa }),
       });
     } catch { /* push opcional — fallback al canal de SW message */ }
@@ -21579,7 +21602,7 @@ function AccionesView({
 
       const reg = await navigator.serviceWorker.register("/app/sw-alarm.js", { scope: "/app/" });
       await navigator.serviceWorker.ready;
-      await registrarPush(reg, alarmaMinutos, alarmaActiva);
+      await registrarPush(reg, alarmaMinutos, false);
     };
     init().catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -21599,23 +21622,23 @@ function AccionesView({
     navigator.serviceWorker.ready.then((reg) => registrarPush(reg, alarmaMinutos, alarmaActiva && hayEnProceso)).catch(() => {});
   }, [alarmaMinutos, alarmaActiva, hayEnProceso, registrarPush]);
 
-  // Pre-calentar caché web + nativo (WAV Voicebox) cuando la alarma está activa
+  // Pre-calentar caché web + nativo (WAV Voicebox) cuando hay acción propia en curso
   useEffect(() => {
-    if (!alarmaActiva || !chatApiToken) return;
+    if (!alarmaActiva || !chatApiToken || !hayEnProceso) return;
     const tok = chatApiToken;
     const tid = setTimeout(() => {
       void (async () => {
         await warmAlarmCache(tok);
-        sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, accionesRef.current.some((t) => t.estado === "en_proceso"), true);
+        sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, true, true);
       })();
     }, 14_000);
     return () => clearTimeout(tid);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alarmaActiva, chatApiToken, sincronizarAlarmaAndroid]);
+  }, [alarmaActiva, chatApiToken, hayEnProceso, sincronizarAlarmaAndroid]);
 
   // Dispara la alarma: audio si foreground, notificación + push si background
   const dispararAlarma = useCallback(async (forzar = false) => {
-    const hayTarea = accionesRef.current.some((t) => t.estado === "en_proceso");
+    const hayTarea = hayMiAccionEnProceso(accionesRef.current);
     const solPendiente = solicitudesRef.current[0] ?? null;
     if (!forzar && (!alarmaRef.current || (!hayTarea && !solPendiente))) return;
     // Silencio nocturno 22:00–07:00 — solo el botón "Probar" puede saltarlo
@@ -21638,7 +21661,7 @@ function AccionesView({
       // Canal B — push server-side (pantalla bloqueada) ya programado vía registrarPush.
       // El servidor dispara automáticamente al intervalo configurado.
     }
-  }, []);
+  }, [hayMiAccionEnProceso]);
 
   // Bucle principal: polling 10 s + visibilitychange para resistir throttling
   useEffect(() => {
@@ -21977,7 +22000,7 @@ function AccionesView({
     setReanudarWizard(null);
     await load(false);
     // Re-sincronizar con estado real por si quedan otras acciones en_proceso
-    sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, accionesRef.current.some((t) => t.estado === "en_proceso"), false);
+    sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, hayMiAccionEnProceso(accionesRef.current), false);
     if (tabAcciones !== "activas") void cargarHistorialYProcedimientos();
     setMsg("Acción registrada");
     setTimeout(() => setMsg(""), 2500);
@@ -22142,8 +22165,8 @@ function AccionesView({
                 onClick={() => {
                   const next = !alarmaActiva;
                   setAlarmaActiva(next);
-                  sincronizarAlarmaAndroid(next, minRef.current, hayEnProceso, next);
-                  if (next) { ultimaAlarmaRef.current = Date.now(); void dispararAlarma(true); }
+                  sincronizarAlarmaAndroid(next && hayEnProceso, minRef.current, hayEnProceso, next && hayEnProceso);
+                  if (next && hayEnProceso) { ultimaAlarmaRef.current = Date.now(); void dispararAlarma(true); }
                 }}
                 className={`flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors ${
                   alarmaActiva
@@ -24826,6 +24849,29 @@ function AgenteMandoView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearSubViewKey]);
 
+  // Descartar acción guardada en localStorage si ya no está en_proceso o no es del usuario
+  useEffect(() => {
+    if (!modoEjecucion) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const det = await tapi(`/${modoEjecucion.id}`, token) as Ticket;
+        if (cancelled) return;
+        const norm = normalizeTicketForList(det);
+        if (norm.estado !== "en_proceso" || !uidEq(norm.asignado_a, user.id)) {
+          localStorage.removeItem("mckenna-accion-activa");
+          setModoEjecucion(null);
+        }
+      } catch {
+        if (!cancelled) {
+          localStorage.removeItem("mckenna-accion-activa");
+          setModoEjecucion(null);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [modoEjecucion?.id, token, user.id]);
+
   const [solicitudesCount, setSolicitudesCount] = useState(0);
   const [accionesCount, setAccionesCount] = useState(0);
   const [pensando, setPensando] = useState(false);
@@ -25972,6 +26018,26 @@ export default function TicketsPanel() {
   }, [token]);
 
   useEffect(() => { reloadCats(); }, [reloadCats]);
+
+  // Sincronizar alarma nativa Android al abrir el panel (aunque no entren a Acciones)
+  useEffect(() => {
+    if (!token || !user) return;
+    const bridge = mckennaAndroidBridge();
+    bridge?.syncAlarma?.(false, 15, false, false);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const data = await tapi("/?tipo=accion", token) as Ticket[];
+        if (cancelled) return;
+        const list = Array.isArray(data) ? data.map(normalizeTicketForList) : [];
+        const hay = list.some(
+          (t) => t.estado === "en_proceso" && uidEq(t.asignado_a, user.id),
+        );
+        bridge?.syncAlarma?.(hay, 15, hay, false);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [token, user?.id]);
 
   useEffect(() => {
     return registerNestedBackHandler(() => {

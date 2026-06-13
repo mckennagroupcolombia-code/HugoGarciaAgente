@@ -19,8 +19,8 @@
     "path": "./mckenna.keystore",
     "alias": "mckenna"
   },
-  "appVersionCode": 35,
-  "appVersion": "1.0.0",
+  "appVersionCode": 38,
+  "appVersion": "1.2.0",
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://bot.mckennagroup.co/app/manifest.json",
@@ -32,5 +32,5 @@
   "isMetaQuest": false,
   "fullScopeUrl": "https://bot.mckennagroup.co/app",
   "minSdkVersion": 21,
-  "appVersionName": "1.0.0"
+  "appVersionName": "1.2.0"
 }
