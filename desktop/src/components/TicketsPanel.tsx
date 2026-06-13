@@ -26,7 +26,7 @@ import { useQuestBoardLayout, BOARD_ROOT_SECTION } from "../stores/questBoardLay
 import { Icon, TopicIcon, TopicIconLabel, TOPIC_ICON_PRESETS } from "../icons";
 import RecetasPanel from "./RecetasPanel";
 import TelefonosOperadoresSection from "./TelefonosOperadoresSection";
-import { CorridaCronometroBlock, fmtTiempo } from "./Cronometro";
+import { CorridaCronometroBlock, fmtTiempo, useTicketCronometro, AccionAlarmaRecordatorio, parseUtcTs } from "./Cronometro";
 import {
   InventarioCarritoBadge,
   InventarioCarritoModal,
@@ -245,6 +245,7 @@ interface TicketCorrida {
   segundos_transcurridos: number;
   segundos_acumulados: number;
   iniciada_en: string;
+  reanudada_en?: string | null;
   finalizada_en?: string | null;
 }
 
@@ -6947,6 +6948,7 @@ function CreateMisionEtapaFrames({
 interface Paso {
   id: number; ticket_id: number; orden: number; descripcion: string;
   notas?: string | null;
+  duracion_segundos?: number | null;
   completado: number | boolean; completado_en: string | null;
   completado_por?: number | null; completado_por_nombre: string | null;
   intervencion_pendiente_numero?: string | null;
@@ -11631,16 +11633,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return new Uint8Array([...raw].map((c) => c.charCodeAt(0)));
 }
 
-// Parsea timestamps UTC de SQLite: formato "YYYY-MM-DD HH:MM:SS" (espacio, sin Z).
-// Pasos: reemplazar espacio→T para ISO 8601, agregar Z si no hay zona horaria, NaN→now.
-function parseUtcTs(s: string): number {
-  if (!s) return Date.now();
-  const iso = s.replace(" ", "T");                              // "2026-05-25T21:45:00"
-  const withTz = /Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + "Z"; // agregar Z si falta
-  const ts = new Date(withTz).getTime();
-  if (isNaN(ts)) return Date.now();
-  return ts > Date.now() ? Date.now() : ts;                    // nunca futuro
-}
+// parseUtcTs importado desde ./Cronometro
 
 // ── Caché de audio de alarma ──────────────────────────────────────────────────
 // El audio TTS se genera una sola vez y se reutiliza en todas las alarmas del día.
@@ -11890,8 +11883,10 @@ function AccionCardOperativa({
   // Inicializado desde el servidor si la corrida ya estaba activa al montar.
   const inicioRef = useRef<number | null>(
     _timerStore.get(ticket.id) ??
-    (ticket.corrida?.estado === "activa" && ticket.corrida?.iniciada_en
-      ? parseUtcTs(ticket.corrida.iniciada_en)
+    (ticket.corrida?.estado === "activa"
+      ? (ticket.corrida.reanudada_en || ticket.corrida.iniciada_en
+        ? parseUtcTs(ticket.corrida.reanudada_en || ticket.corrida.iniciada_en!)
+        : null)
       : null)
   );
   const [resolucionInfo, setResolucionInfo] = useState<{ duracion: number; horario: string } | null>(null);
@@ -11939,8 +11934,8 @@ function AccionCardOperativa({
             setCorridaId(data.corrida.id);
             setSegBase(data.corrida.segundos_acumulados ?? 0);
             // Si el servidor reporta un inicio anterior al click local, sincronizar
-            if (data.corrida.iniciada_en) {
-              const srvTs = parseUtcTs(data.corrida.iniciada_en);
+            if (data.corrida.iniciada_en || data.corrida.reanudada_en) {
+              const srvTs = parseUtcTs(data.corrida.reanudada_en || data.corrida.iniciada_en);
               if (srvTs < t0 && t0 - srvTs < 30_000) { inicioRef.current = srvTs; _timerStore.set(ticket.id, srvTs); }
             }
           }
@@ -14382,7 +14377,10 @@ function SolicitudCard({
                           <span className="text-muted mr-1">{p.orden}.</span>{p.descripcion}
                         </span>
                         {pasoEstaCompletado(p) && p.completado_por_nombre && (
-                          <p className="text-[10px] text-muted">✓ {p.completado_por_nombre}</p>
+                          <p className="text-[10px] text-muted">
+                            ✓ {p.completado_por_nombre}
+                            {p.duracion_segundos ? ` · ⏱ ${fmtTiempo(p.duracion_segundos)}` : ""}
+                          </p>
                         )}
                       </div>
                       {/* Acciones del paso */}
@@ -15553,8 +15551,8 @@ function NuevaAccionWizard({
     if (t.corrida) {
       corridaIdRef.current = t.corrida.id ?? null;
       setSegBase(t.corrida.segundos_acumulados ?? t.segundos_trabajo ?? 0);
-      if (t.corrida.estado === "activa" && t.corrida.iniciada_en) {
-        const srvTs = parseUtcTs(t.corrida.iniciada_en);
+      if (t.corrida.estado === "activa" && (t.corrida.reanudada_en || t.corrida.iniciada_en)) {
+        const srvTs = parseUtcTs(t.corrida.reanudada_en || t.corrida.iniciada_en!);
         inicioRef.current = srvTs;
         _timerStore.set(reanudar.ticketId, srvTs);
         setCronometroActivo(true);
@@ -17997,6 +17995,7 @@ function HistorialSolicitudDetalle({
                         <p className="text-[10px] text-muted mt-0.5">
                           ✓ {p.completado_por_nombre}
                           {p.completado_en ? ` · ${_fmtFechaHist(p.completado_en)}` : ""}
+                          {p.duracion_segundos ? ` · ⏱ ${fmtTiempo(p.duracion_segundos)}` : ""}
                         </p>
                       )}
                     </div>
@@ -19095,7 +19094,6 @@ function RepetirAccionWizard({
   const [ticketId, setTicketId] = useState<number | null>(reanudar?.ticketId ?? null);
   const [pasosIds, setPasosIds] = useState<number[]>(reanudar?.pasosIds ?? []);
   const [pasoIdx, setPasoIdx] = useState(reanudar?.startPasoIdx ?? 0);
-  const [segBase] = useState(reanudar?.segundosBase ?? 0);
   const [reporteTexto, setReporteTexto] = useState("");
   const [completando, setCompletando] = useState(false);
   const [error, setError] = useState("");
@@ -19109,19 +19107,13 @@ function RepetirAccionWizard({
   const [pasoFile, setPasoFile] = useState<File | null>(null);
   const [cierreFile, setCierreFile] = useState<File | null>(null);
   const pasoEjecRef = useRef<HTMLDivElement>(null);
+  const pasoInicioRef = useRef(Date.now());
+  const corridaIdRef = useRef<number | null>(reanudar?.corridaId ?? null);
 
   usePegarCapturaEnZona(fase === "paso", pasoEjecRef, (file) => setPasoFile(file));
 
-  const inicioRef = useRef<number | null>(null);
-  const corridaIdRef = useRef<number | null>(reanudar?.corridaId ?? null);
-  const [seg, setSeg] = useState(reanudar?.segundosBase ?? 0);
-  useEffect(() => {
-    const iv = setInterval(() => {
-      if (inicioRef.current == null) return;
-      setSeg(segBase + Math.floor((Date.now() - inicioRef.current) / 1000));
-    }, 500);
-    return () => clearInterval(iv);
-  }, [segBase]);
+  const activeTicketId = ticketId ?? reanudar?.ticketId ?? 0;
+  const cronometro = useTicketCronometro(activeTicketId, token);
 
   const pasos = plantilla.pasos;
   const totalItems = pasos.length;
@@ -19129,12 +19121,9 @@ function RepetirAccionWizard({
   const pct = totalItems > 0 ? Math.round((posActual / totalItems) * 100) : 0;
   const todosComprados = listaCompras.every((m) => !m.n.trim() || m.comprado);
 
-  function fmtSeg(s: number) {
-    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-    return h > 0
-      ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
-      : `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
-  }
+  useEffect(() => {
+    if (fase === "paso") pasoInicioRef.current = Date.now();
+  }, [fase, pasoIdx]);
 
   useEffect(() => { void init(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -19148,13 +19137,8 @@ function RepetirAccionWizard({
   async function init() {
     // ── Reanudar acción existente ──
     if (reanudar) {
-      try {
-        const cr = await tapi(`/${reanudar.ticketId}/corridas/iniciar`, token, {
-          method: "POST", body: JSON.stringify({ segundos_previos: reanudar.segundosBase }),
-        }) as Ticket;
-        corridaIdRef.current = cr.corrida?.id ?? reanudar.corridaId;
-      } catch { /* usa corridaId del reanudar */ }
-      inicioRef.current = Date.now();
+      corridaIdRef.current = reanudar.corridaId;
+      pasoInicioRef.current = Date.now();
       if (reanudar.startPasoIdx >= pasos.length && pasos.length > 0) {
         setFase("cierre");
       } else if (pasos.length > 0) {
@@ -19187,8 +19171,8 @@ function RepetirAccionWizard({
           method: "POST", body: JSON.stringify({ segundos_previos: 0 }),
         }) as Ticket;
         corridaIdRef.current = cr.corrida?.id ?? null;
-      } catch { /* cronómetro local */ }
-      inicioRef.current = Date.now();
+      } catch { /* hook sincroniza */ }
+      pasoInicioRef.current = Date.now();
       const ids: number[] = [];
       for (const p of pasos) {
         try {
@@ -19230,6 +19214,8 @@ function RepetirAccionWizard({
 
   async function avanzarPaso() {
     const pid = pasosIds[pasoIdx];
+    const duracionSeg = Math.max(1, Math.floor((Date.now() - pasoInicioRef.current) / 1000));
+    pasoInicioRef.current = Date.now();
     if (pid && ticketId) {
       try {
         if (pasoFile) {
@@ -19242,7 +19228,7 @@ function RepetirAccionWizard({
           });
         }
         await tapi(`/${ticketId}/pasos/${pid}`, token, {
-          method: "PUT", body: JSON.stringify({ completado: 1 }),
+          method: "PUT", body: JSON.stringify({ completado: 1, duracion_segundos: duracionSeg }),
         });
       } catch { /* no crítico */ }
     }
@@ -19307,7 +19293,7 @@ function RepetirAccionWizard({
           await tapi(`/${solicitudPadreId}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
         }
       }
-      inicioRef.current = null;
+      if (activeTicketId) localStorage.removeItem(`mckenna-accion-alarma-${activeTicketId}`);
       setFase("completada");
     } catch (e: any) {
       setError(e.message ?? "Error al completar");
@@ -19358,7 +19344,7 @@ function RepetirAccionWizard({
           <div className="flex justify-center pt-1">
             <div className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-3 py-1">
               <span className="text-sm">⏱</span>
-              <span className="font-mono text-sm font-extrabold text-amber-700 dark:text-amber-400 tabular-nums">{fmtSeg(seg)}</span>
+              <span className="font-mono text-sm font-extrabold text-amber-700 dark:text-amber-400 tabular-nums">{cronometro.fmt(cronometro.segundos)}</span>
             </div>
           </div>
         </div>
@@ -19384,7 +19370,7 @@ function RepetirAccionWizard({
           onClick={async () => {
             if (!confirm("¿Cancelar? La acción iniciada seguirá en tu tablero como borrador.")) return;
             if (ticketId && corridaIdRef.current) {
-              try { await tapi(`/corridas/${corridaIdRef.current}/pausar`, token, { method: "POST" }); } catch { /* */ }
+              try { await cronometro.pausar(); } catch { /* */ }
             }
             onCancel();
           }}
@@ -19392,10 +19378,10 @@ function RepetirAccionWizard({
         >
           ← Salir
         </button>
-        {inicioRef.current != null && (
+        {cronometro.activo && (
           <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/8 px-3 py-1">
             <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-            <span className="font-mono text-sm font-extrabold text-accent tabular-nums">{fmtSeg(seg)}</span>
+            <span className="font-mono text-sm font-extrabold text-accent tabular-nums">{cronometro.fmt(cronometro.segundos)}</span>
           </div>
         )}
         {fase === "paso" && totalItems > 0 && (
@@ -19403,6 +19389,14 @@ function RepetirAccionWizard({
         )}
         {(fase === "cierre" || fase === "bienvenida" || fase === "compras_lista" || fase === "compras_tienda") && <span />}
       </div>
+
+      {activeTicketId > 0 && (
+        <AccionAlarmaRecordatorio
+          ticketId={activeTicketId}
+          tituloAccion={plantilla.titulo}
+          cronometroActivo={cronometro.activo}
+        />
+      )}
 
       {/* Barra de progreso — solo durante los pasos */}
       {totalItems > 0 && fase === "paso" && (
@@ -21741,13 +21735,6 @@ function AccionesView({
       setLoadingExtra(true);
       setMsg("");
       try {
-        const ticket = await tapi(`/${t.id}`, token) as any;
-        const segundosServidor = ticket.corrida?.segundos_acumulados ?? ticket.segundos_trabajo ?? 0;
-        const SECS_KEY = `mckenna-accion-secs-${t.id}`;
-        const localSecs = parseInt(localStorage.getItem(SECS_KEY) ?? "0") || 0;
-        if (segundosServidor > localSecs) {
-          localStorage.setItem(SECS_KEY, String(segundosServidor));
-        }
         localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: t.id, titulo: t.titulo }));
         onInicio();
         return;
@@ -23354,19 +23341,18 @@ function EjecucionAccionChat({
   onVolver: () => void;
   onTerminado: () => void;
 }) {
-  type Nota = { id: number; texto: string; fotoUrl?: string; tipo: "texto" | "foto" | "sistema"; serverItemId?: number; guardando?: boolean; errorGuarda?: boolean; eliminando?: boolean };
+  type Nota = { id: number; texto: string; fotoUrl?: string; tipo: "texto" | "foto" | "sistema"; duracionSeg?: number; serverItemId?: number; guardando?: boolean; errorGuarda?: boolean; eliminando?: boolean };
 
-  const SECS_KEY = `mckenna-accion-secs-${accion.id}`;
+  const { segundos, activo: cronometroActivo, pausar, fmt: fmtSeg } = useTicketCronometro(accion.id, token);
   const [notas, setNotas] = useState<Nota[]>([]);
   const [cargandoNotas, setCargandoNotas] = useState(true);
   const [inputNota, setInputNota] = useState("");
   const [terminando, setTerminando] = useState(false);
   const [error, setError] = useState("");
-  const [segundos, setSegundos] = useState(() => parseInt(localStorage.getItem(SECS_KEY) ?? "0") || 0);
   const [modoCompras, setModoCompras] = useState(false);
   const [numCompras, setNumCompras] = useState(0);
   const [lbUrl, setLbUrl] = useState<string | null>(null);
-  const t0 = useRef(Date.now() - segundos * 1000);
+  const pasoInicioRef = useRef(Date.now());
   const notaIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputNotaRef = useRef<HTMLTextAreaElement>(null);
@@ -23379,13 +23365,8 @@ function EjecucionAccionChat({
   }, [inputNota]);
 
   useEffect(() => {
-    const iv = setInterval(() => {
-      const s = Math.floor((Date.now() - t0.current) / 1000);
-      setSegundos(s);
-      localStorage.setItem(SECS_KEY, String(s));
-    }, 1000);
-    return () => clearInterval(iv);
-  }, [SECS_KEY]);
+    pasoInicioRef.current = Date.now();
+  }, [accion.id]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [notas]);
 
@@ -23472,19 +23453,14 @@ function EjecucionAccionChat({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accion.id]);
 
-  function fmtSeg(s: number) {
-    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sc = s % 60;
-    return h > 0
-      ? `${h}:${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}`
-      : `${String(m).padStart(2,"0")}:${String(sc).padStart(2,"0")}`;
-  }
-
   // Guarda cada ítem inmediatamente para preservar el orden cronológico real
   async function agregarNota(texto: string, fotoFile?: File, fotoUrl?: string) {
     if (!texto.trim() && !fotoFile) return;
+    const duracionSeg = Math.max(1, Math.floor((Date.now() - pasoInicioRef.current) / 1000));
+    pasoInicioRef.current = Date.now();
     const nid = ++notaIdRef.current;
     const tipo: "texto" | "foto" = fotoFile ? "foto" : "texto";
-    setNotas(prev => [...prev, { id: nid, texto: texto.trim(), fotoUrl, tipo, guardando: true }]);
+    setNotas(prev => [...prev, { id: nid, texto: texto.trim(), fotoUrl, tipo, duracionSeg, guardando: true }]);
     setInputNota("");
     try {
       let serverItemId: number | undefined;
@@ -23553,16 +23529,17 @@ function EjecucionAccionChat({
       await fetch(`/api/tickets/${accion.id}/completar-accion`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ reporte: `Duración: ${fmtSeg(segundos)}` }),
+        body: JSON.stringify({ reporte: `Duración total: ${fmtSeg(segundos)}` }),
       });
-      localStorage.removeItem(SECS_KEY);
+      localStorage.removeItem(`mckenna-accion-alarma-${accion.id}`);
       localStorage.removeItem("mckenna-accion-activa");
       onTerminado();
     } catch { setError("No se pudo cerrar. Intenta de nuevo."); }
     finally { setTerminando(false); }
   }
 
-  function guardarYVolver() {
+  async function guardarYVolver() {
+    await pausar();
     localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: accion.id, titulo: accion.titulo }));
     onVolver();
   }
@@ -23612,8 +23589,14 @@ function EjecucionAccionChat({
           <div className="shrink-0 flex items-center gap-1.5 bg-accent/10 rounded-full px-3 py-1">
             <span className="text-xs">⏱</span>
             <span className="text-sm font-black tabular-nums text-accent">{fmtSeg(segundos)}</span>
+            {cronometroActivo && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
           </div>
         </div>
+        <AccionAlarmaRecordatorio
+          ticketId={accion.id}
+          tituloAccion={accion.titulo}
+          cronometroActivo={cronometroActivo}
+        />
       </div>
 
       {/* Área de actividad */}
@@ -23645,10 +23628,15 @@ function EjecucionAccionChat({
             }
             if (nota.tipo === "texto") pasoNum++;
             const label = nota.tipo === "texto" ? `Paso ${pasoNum}` : null;
+            const durLabel = nota.duracionSeg ? fmtSeg(nota.duracionSeg) : null;
             return (
               <div key={nota.id} className="flex justify-end">
                 <div className="max-w-[88%] space-y-1">
-                  {label && <p className="text-right text-[10px] font-bold text-accent/70 uppercase tracking-wide">{label}</p>}
+                  {label && (
+                    <p className="text-right text-[10px] font-bold text-accent/70 uppercase tracking-wide">
+                      {label}{durLabel ? ` · ⏱ ${durLabel}` : ""}
+                    </p>
+                  )}
                   {nota.fotoUrl && (
                     <div className="relative group">
                       {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
@@ -25025,7 +25013,7 @@ function AgenteMandoView({
         tipo: "labor_tablero",
         label: `🎯 ${truncarTituloChip(l.titulo)}`,
         subtitulo: l.mision_titulo ? `${l.mision_titulo}${prog ? ` · ${prog}` : ""}` : prog,
-        onTap: onGoTableroLabores ?? onGoTablero,
+        onTap: onGoAcciones,
       });
     }
 
@@ -25214,13 +25202,6 @@ function AgenteMandoView({
   async function continuarAccion(a: any) {
     setPensando(true);
     try {
-      const ticket = await tapi(`/${a.id}`, token) as any;
-      const segundosServidor = ticket.corrida?.segundos_acumulados ?? ticket.segundos_trabajo ?? 0;
-      const SECS_KEY = `mckenna-accion-secs-${a.id}`;
-      const localSecs = parseInt(localStorage.getItem(SECS_KEY) ?? "0") || 0;
-      if (segundosServidor > localSecs) {
-        localStorage.setItem(SECS_KEY, String(segundosServidor));
-      }
       localStorage.setItem("mckenna-accion-activa", JSON.stringify({ id: a.id, titulo: a.titulo }));
       setModoEjecucion({ id: a.id, titulo: a.titulo });
     } catch {
@@ -26078,11 +26059,6 @@ export default function TicketsPanel() {
     setSelectedMisionId(null);
   }
 
-  function goKingdom() {
-    setNavScope({ kind: "all" });
-    setBoardRefreshKey((k) => k + 1);
-    setView("list");
-  }
   function irATickets(destino: Exclude<TicketsBootView, null>) {
     setView(destino);
   }
@@ -26178,7 +26154,7 @@ export default function TicketsPanel() {
                 onAcciones={() => goAcciones("activas")}
                 onSolicitudes={goSolicitudes}
                 onContratos={goContratos}
-                onTablero={goKingdom}
+                onTablero={() => goAcciones("activas")}
                 onAccionesFuturas={() => goAcciones("agenda")}
                 onRecordatorios={() => goAcciones("agenda")}
                 onProcedimientos={() => goAcciones("procedimientos")}
@@ -26203,7 +26179,7 @@ export default function TicketsPanel() {
               onGoHistorialAcciones={() => goAcciones("historial")}
               onGoImpresora={goImpresora}
               onGoRecordatorios={() => goAcciones("recordatorios")}
-              onGoTableroLabores={goKingdom}
+              onGoTableroLabores={() => goAcciones("activas")}
               onGoPendientes={() => goAcciones("pendientes")}
               clearSubViewKey={agenteClearKey}
             />

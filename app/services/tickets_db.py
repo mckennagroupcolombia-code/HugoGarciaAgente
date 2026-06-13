@@ -676,6 +676,13 @@ def _migrate_ticket_paso_notas():
         db.commit()
 
 
+def _migrate_ticket_paso_duracion():
+    """Segundos invertidos en cada paso del checklist."""
+    with _conn() as db:
+        _add_col(db, "ticket_pasos", "duracion_segundos", "INTEGER")
+        db.commit()
+
+
 def _migrate_ticket_tipo():
     """Columna tipo en tickets: 'ticket' (normal), 'accion' o 'solicitud'."""
     with _conn() as db:
@@ -852,6 +859,7 @@ def init_db():
     _safe_migrate(_migrate_mision_modo_ciclo)
     _safe_migrate(_migrate_ticket_frecuencia)
     _safe_migrate(_migrate_ticket_paso_notas)
+    _safe_migrate(_migrate_ticket_paso_duracion)
     from app.services.misiones_timing import _migrate_mision_corridas
     from app.services.ticket_timing import _migrate_ticket_corridas
     from app.services.recetas_ops import _migrate_recetas_ops
@@ -4070,6 +4078,7 @@ def completar_paso_ticket(ticket_id: int, paso_id: int, usuario_id: int) -> tupl
 
 def establecer_paso_completado(
     ticket_id: int, paso_id: int, usuario_id: int, completado: int,
+    duracion_segundos: int | None = None,
 ) -> tuple:
     """Marca o desmarca un paso (0/1) sin depender del toggle."""
     nuevo = 1 if int(completado or 0) else 0
@@ -4081,12 +4090,19 @@ def establecer_paso_completado(
         ).fetchone()
         if not row:
             return None, "Paso no encontrado en este ticket", False
+        dur_sql = ""
+        dur_params: list = []
+        if nuevo == 1 and duracion_segundos is not None:
+            dur = max(0, int(duracion_segundos))
+            dur_sql = ", duracion_segundos=?"
+            dur_params = [dur]
         db.execute(
-            "UPDATE ticket_pasos SET completado=?, completado_en=?, completado_por=? WHERE id=?",
+            f"UPDATE ticket_pasos SET completado=?, completado_en=?, completado_por=?{dur_sql} WHERE id=?",
             (
                 nuevo,
                 datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S") if nuevo else None,
                 usuario_id if nuevo else None,
+                *dur_params,
                 paso_id,
             ),
         )

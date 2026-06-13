@@ -1817,6 +1817,84 @@ def _normalizar_texto_busqueda_combo(texto: str) -> str:
     return re.sub(r"\s+", " ", t).strip()
 
 
+_STOPWORDS_BUSQUEDA_COMBO = frozenset(
+    {
+        "de",
+        "del",
+        "la",
+        "el",
+        "los",
+        "las",
+        "un",
+        "una",
+        "unos",
+        "unas",
+        "y",
+        "o",
+        "con",
+        "sin",
+        "para",
+        "por",
+        "en",
+        "al",
+        "a",
+        "hola",
+        "tienes",
+        "tiene",
+        "tienen",
+        "hay",
+        "manejan",
+        "venden",
+        "esencia",
+        "productos",
+        "producto",
+        "necesito",
+        "quiero",
+        "dame",
+        "mercadolibre",
+        "meli",
+        "enlace",
+        "link",
+        "favor",
+        "cas",
+        "lugar",
+        "otros",
+        "estos",
+        "estas",
+        "ese",
+        "esa",
+        "me",
+        "te",
+        "le",
+        "ya",
+        "dig",
+        "digo",
+        "ml",
+        "gr",
+        "gramos",
+        "mililitros",
+        "litros",
+    }
+)
+
+
+def _tokens_busqueda_combo(consulta_norm: str) -> list[str]:
+    """Tokens útiles para puntuar; excluye ruido conversacional."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for w in consulta_norm.split():
+        if len(w) < 2 or w in _STOPWORDS_BUSQUEDA_COMBO:
+            continue
+        if w not in seen:
+            seen.add(w)
+            out.append(w)
+    return out
+
+
+def _tokens_distintivos_combo(consulta_norm: str) -> list[str]:
+    return [w for w in _tokens_busqueda_combo(consulta_norm) if len(w) >= 4]
+
+
 def _combo_item_desde_raw(raw: dict) -> dict:
     code = (raw.get("code") or "").strip()
     name = (raw.get("name") or "").strip()
@@ -1840,11 +1918,13 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
         return [], "Consulta vacía."
 
     consulta_norm = _normalizar_texto_busqueda_combo(consulta)
-    palabras = [w for w in consulta_norm.split() if len(w) >= 3]
+    palabras = _tokens_busqueda_combo(consulta_norm)
     if not palabras:
         palabras = [w for w in consulta_norm.split() if len(w) >= 2]
     if not palabras:
         return [], f"No pude interpretar la búsqueda '{consulta}'."
+
+    distintivos = _tokens_distintivos_combo(consulta_norm)
 
     combos_raw = listar_productos_combo_siigo()
     if not combos_raw:
@@ -1874,7 +1954,31 @@ def buscar_combos_siigo_estructurado(consulta: str, max_items: int = 8) -> tuple
             "Solo vendemos presentaciones tipo combo registradas en SIIGO."
         )
 
+    if distintivos:
+        filtrados = [
+            (s, r)
+            for s, r in scored
+            if all(
+                d in _normalizar_texto_busqueda_combo(
+                    f"{r.get('name', '')} {r.get('code', '')}"
+                )
+                for d in distintivos
+            )
+        ]
+        if filtrados:
+            scored = filtrados
+        else:
+            return [], (
+                f"No encontré combo SIIGO activo para '{consulta}'. "
+                "Solo vendemos presentaciones tipo combo registradas en SIIGO."
+            )
+
     scored.sort(key=lambda x: (-x[0], x[1].get("name", "")))
+    if distintivos and scored[0][0] < len(distintivos) * 3:
+        return [], (
+            f"No encontré combo SIIGO activo para '{consulta}'. "
+            "Solo vendemos presentaciones tipo combo registradas en SIIGO."
+        )
     excl = _skus_excluidos_chat_web()
     items = []
     for _, raw in scored:

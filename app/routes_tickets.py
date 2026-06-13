@@ -1336,6 +1336,7 @@ def register_tickets_routes(app):
         completado = 1 if raw in (1, True, "1", "true") else 0
         pasos, err, auto = establecer_paso_completado(
             ticket_id, paso_id, uid, completado,
+            duracion_segundos=data.get("duracion_segundos"),
         )
         if err:
             return jsonify({"error": err}), 400

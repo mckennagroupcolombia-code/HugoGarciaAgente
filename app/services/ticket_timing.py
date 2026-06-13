@@ -117,8 +117,32 @@ def iniciar_corrida_ticket(
     with _conn() as db:
         if not db.execute("SELECT 1 FROM tickets WHERE id=?", (ticket_id,)).fetchone():
             return None, "Ticket no encontrado"
-        if _corrida_abierta_ticket(db, ticket_id, usuario_id):
-            return None, "Ya hay un cronómetro en curso para este ticket"
+        existente = _corrida_abierta_ticket(db, ticket_id, usuario_id)
+        if existente:
+            c = dict(existente)
+            seg_prev = max(0, int(segundos_previos or 0))
+            if c["estado"] == "pausada":
+                seg_acum = max(int(c.get("segundos_acumulados") or 0), seg_prev)
+                now = _now_iso()
+                db.execute(
+                    """
+                    UPDATE ticket_corridas
+                    SET estado='activa', reanudada_en=?, segundos_acumulados=?
+                    WHERE id=?
+                    """,
+                    (now, seg_acum, c["id"]),
+                )
+                db.commit()
+            elif seg_prev > int(c.get("segundos_acumulados") or 0):
+                db.execute(
+                    "UPDATE ticket_corridas SET segundos_acumulados=? WHERE id=?",
+                    (seg_prev, c["id"]),
+                )
+                db.commit()
+            row = db.execute(
+                "SELECT * FROM ticket_corridas WHERE id=?", (c["id"],),
+            ).fetchone()
+            return _corrida_ticket_dict(row), None
         seg0 = max(0, int(segundos_previos or 0))
         now = _now_iso()
         db.execute(
