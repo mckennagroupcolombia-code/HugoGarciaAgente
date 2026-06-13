@@ -1,5 +1,6 @@
 import base64
 import copy
+import functools
 import os
 import inspect
 import json
@@ -1058,6 +1059,8 @@ def _mensaje_pide_lista_productos_web(texto: str) -> bool:
         return True
     if re.search(r"\b(tienes|tiene|tienen)\s+(esta|esta|es)?\s*lista\b", low):
         return True
+    if re.search(r"\b(quiero|necesito)\s+(unos?|varios?|algunos?)\s+productos?\b", low):
+        return True
     return False
 
 
@@ -1067,6 +1070,273 @@ def _respuesta_pedir_lista_web() -> str:
         "(uno por línea o separados por coma) y le confirmo cuáles manejamos, "
         "presentaciones y precios."
     )
+
+
+def _mensaje_pide_enlace_meli_web(texto: str) -> bool:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    return bool(
+        re.search(r"\b(enlace|link|url)\b", low)
+        and re.search(r"\b(mercadolibre|meli)\b", low)
+    )
+
+
+def _extraer_producto_pedido_enlace_meli(texto: str) -> str:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    m = re.search(
+        r"\b(?:de|del|para|sobre)\s+(.+?)\s+(?:en|por)\s+(?:mercadolibre|meli)\b",
+        low,
+    )
+    if m:
+        return m.group(1).strip(" .")
+    m = re.search(r"\b(?:enlace|link)\s+(?:de|del|para)\s+(.+?)(?:\?|$)", low)
+    if m:
+        return m.group(1).strip(" .")
+    return re.sub(r"\b(enlace|link|url|mercadolibre|meli|por favor|dame|dame el)\b", " ", low).strip()
+
+
+def _mensaje_lista_multiproducto_web(texto: str) -> bool:
+    low = re.sub(r"\s+", " ", (texto or "").strip().lower())
+    if _mensaje_pide_lista_productos_web(texto):
+        return False
+    if re.search(r"\b(productos?|ingredientes?|materias?)\s*:", low):
+        return True
+    if low.count(",") >= 2 and re.search(
+        r"\b(necesito|requiero|quiero|productos?|ingredientes?)\b", low
+    ):
+        return True
+    return False
+
+
+def _extraer_items_lista_productos_web(texto: str) -> list[str]:
+    t = (texto or "").strip()
+    if ":" in t:
+        t = t.split(":", 1)[1]
+    t = re.sub(
+        r"\b(necesito|requiero|quiero|estos|estas|productos?|ingredientes?|materias?)\b",
+        " ",
+        t,
+        flags=re.I,
+    )
+    partes = re.split(r",|\s+y\s+", t)
+    items: list[str] = []
+    for p in partes:
+        p = re.sub(r"\bcas\s+[\d\-,\s]+", "", p, flags=re.I).strip(" .\"'")
+        p = re.sub(
+            r"\b\d+\s*(g|gr|ml|kg|l|litros?|gramos?|mililitros?)\b",
+            " ",
+            p,
+            flags=re.I,
+        )
+        p = re.sub(r"\s+", " ", p).strip(" .")
+        if len(p) >= 3:
+            items.append(p)
+    return items[:8]
+
+
+def _termino_busqueda_limpio_web(texto: str) -> str:
+    t = re.sub(r"\b(necesito|requiero|quiero)\b", " ", texto or "", flags=re.I)
+    t = re.sub(
+        r"\b\d+\s*(g|gr|ml|kg|l|litros?|gramos?|mililitros?)\b",
+        " ",
+        t,
+        flags=re.I,
+    )
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _extraer_nombres_producto_web(pregunta: str) -> list[str]:
+    """Extrae nombres concretos de mensajes largos (sustituciones, CAS, etc.)."""
+    names: list[str] = []
+    for m in re.finditer(r'["\']([^"\']+)["\']', pregunta or ""):
+        cand = m.group(1).strip()
+        if len(cand) >= 3:
+            names.append(cand)
+    for m in re.finditer(
+        r"\b(?:y\s+)?(?:del|de la)\s+([a-záéíóúüñ0-9\s\-]{4,45}?)(?:\s+cas\b|\s+y\b|$|\?)",
+        pregunta or "",
+        re.I,
+    ):
+        cand = re.sub(r"\bcas\s+[\d\-,\s]+", "", m.group(1), flags=re.I).strip(" .")
+        if len(cand) >= 3:
+            names.append(cand)
+    out: list[str] = []
+    seen: set[str] = set()
+    for n in names:
+        key = _normalizar_busqueda_combo_web(n)
+        if key and key not in seen:
+            seen.add(key)
+            out.append(n)
+    return out[:6]
+
+
+@functools.lru_cache(maxsize=1)
+def _indice_meli_cache_web() -> dict[str, str]:
+    """Ref/SKU → URL MercadoLibre desde cache del sitio."""
+    path = os.path.join(
+        os.path.dirname(__file__), "..", "PAGINA_WEB", "site", "data", "cache.json"
+    )
+    path = os.path.normpath(path)
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    idx: dict[str, str] = {}
+
+    def _ingest(obj):
+        if isinstance(obj, dict):
+            ref = (obj.get("ref") or obj.get("rep_sku") or "").strip().upper()
+            meli_id = (obj.get("meli_id") or "").strip()
+            if ref and meli_id.startswith("MCO"):
+                num = meli_id[3:]
+                idx[ref] = f"https://articulo.mercadolibre.com.co/MCO-{num}"
+            for v in obj.values():
+                _ingest(v)
+        elif isinstance(obj, list):
+            for v in obj:
+                _ingest(v)
+
+    _ingest(data)
+    return idx
+
+
+def _meli_url_desde_ref_web(ref: str) -> str:
+    return _indice_meli_cache_web().get((ref or "").strip().upper(), "")
+
+
+def _nota_producto_alternativo_web(consulta: str, items: list[dict] | None = None) -> str:
+    q = _normalizar_busqueda_combo_web(consulta)
+    if "btms" in q and re.search(r"\b25\b|btms25", q.replace("-", "")):
+        if items:
+            nombres = " ".join(
+                _normalizar_busqueda_combo_web(str(it.get("name") or "")) for it in items
+            )
+            if "btms" in nombres and "50" in nombres:
+                return (
+                    "BTMS-25 no está en catálogo web; la referencia más cercana es "
+                    "*BTMS 50* (distinta concentración)."
+                )
+        return (
+            "BTMS-25 no aparece en catálogo web; manejamos *BTMS 50* "
+            "(distinta concentración)."
+        )
+    if "cosgard" in q:
+        return "COSGARD no aparece en catálogo web; puede confirmar con un asesor por WhatsApp."
+    if "ylang" in q:
+        return "Ylang Ylang no aparece en catálogo web en este momento."
+    return ""
+
+
+def _respuesta_no_encontrado_catalogo_web(consulta: str = "") -> str:
+    display = _wa_publico_display()
+    nota = _nota_producto_alternativo_web(consulta)
+    base = (
+        f"Veci, no encontré esa presentación en nuestro catálogo web en este momento. "
+        f"Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo."
+    )
+    if nota:
+        base = f"{nota}\n\n{base}"
+    return f"{base} Si prefiere hablar con un asesor: WhatsApp {display}."
+
+
+def _formatear_bloque_producto_web(nombre_busqueda: str, items: list[dict]) -> str:
+    items = _filtrar_items_por_consulta_web(items, nombre_busqueda)
+    nota = _nota_producto_alternativo_web(nombre_busqueda, items)
+    if not items:
+        bloque = f"\n*{nombre_busqueda}*: no aparece en catálogo web."
+        return f"{bloque} {nota}".strip() if nota else bloque
+    if len(items) == 1:
+        it = items[0]
+        precio = (
+            f"${it['precio_web']:,.0f} COP"
+            if it.get("precio_web", 0) > 0
+            else "precio a confirmar"
+        )
+        meli = _meli_url_desde_ref_web(str(it.get("ref") or ""))
+        extra = f"\n   Comprar: {meli}" if meli else ""
+        linea = (
+            f"\n*{nombre_busqueda}* → *{it['name']}* — {precio} — Ref. {it['ref']}{extra}"
+        )
+        return f"{nota}\n{linea}".strip() if nota else linea
+    lineas = [f"\n*{nombre_busqueda}* — presentaciones:"]
+    if nota:
+        lineas.insert(0, nota)
+    for it in items[:4]:
+        precio = (
+            f"${it['precio_web']:,.0f} COP"
+            if it.get("precio_web", 0) > 0
+            else "consultar precio"
+        )
+        lineas.append(f"  • {it['name']} — {precio} — Ref. {it['ref']}")
+    return "\n".join(lineas)
+
+
+def _respuesta_multiproducto_web(pregunta: str) -> str | None:
+    if _mensaje_lista_multiproducto_web(pregunta):
+        nombres = _extraer_items_lista_productos_web(pregunta)
+    else:
+        nombres = _extraer_nombres_producto_web(pregunta)
+        if len(nombres) < 2 and "," in (pregunta or ""):
+            low = (pregunta or "").lower()
+            if "?" not in low and not re.match(r"^\s*hola\b", low):
+                partes = [
+                    _termino_busqueda_limpio_web(p)
+                    for p in (pregunta or "").split(",")
+                ]
+                partes = [
+                    p
+                    for p in partes
+                    if len(p) >= 3
+                    and not re.search(r"\b(tienes|tiene|tienen|hay|precio|cuesta)\b", p)
+                ]
+                if len(partes) >= 2:
+                    nombres = partes[:4]
+    if len(nombres) < 2:
+        return None
+    lineas = ["Claro veci. Le confirmo lo que tenemos en catálogo web:"]
+    for nombre in nombres:
+        termino = _termino_busqueda_limpio_web(nombre)
+        try:
+            items, _ = buscar_combos_siigo_estructurado(termino)
+        except Exception:
+            items = []
+        lineas.append(_formatear_bloque_producto_web(termino, items))
+    lineas.append("\n¿Cuáles presentaciones le sirven para armar el pedido?")
+    return "\n".join(lineas)
+
+
+def _respuesta_enlace_meli_web(pregunta: str) -> str | None:
+    if not _mensaje_pide_enlace_meli_web(pregunta):
+        return None
+    termino = _extraer_producto_pedido_enlace_meli(pregunta)
+    if len(termino) < 2:
+        return None
+    try:
+        items, _ = buscar_combos_siigo_estructurado(termino)
+    except Exception:
+        items = []
+    items = _filtrar_items_por_consulta_web(items, termino)
+    nota = _nota_producto_alternativo_web(termino, items)
+    if not items:
+        return _respuesta_no_encontrado_catalogo_web(termino)
+    it = items[0]
+    meli = _meli_url_desde_ref_web(str(it.get("ref") or ""))
+    precio = (
+        f"${it['precio_web']:,.0f} COP"
+        if it.get("precio_web", 0) > 0
+        else "precio a confirmar"
+    )
+    partes = []
+    if nota:
+        partes.append(nota)
+    partes.append(
+        f"Veci, para *{it['name']}* (Ref. {it['ref']}, {precio}):"
+    )
+    if meli:
+        partes.append(f"Comprar en MercadoLibre: {meli}")
+    else:
+        partes.append("Comprar en tienda: https://mckennagroup.co/tienda")
+    return "\n".join(partes)
 
 
 def _mensaje_parece_solicitud_documentos_web(texto: str) -> bool:
@@ -1158,19 +1428,58 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
 
 
 def _es_seleccion_presentacion_web(texto: str) -> bool:
-    """Cliente elige variante corta (ej. 'concentrada suero de leche')."""
+    """Cliente elige variante corta (ej. '250g', 'la grande') — no un producto nuevo."""
     low = (texto or "").strip().lower()
     if not low or len(low) > 70:
         return False
     if re.fullmatch(r"\d{1,2}", low):
-        return False
+        return True
     if _es_saludo_puro_web(texto):
         return False
     if _mensaje_parece_consulta_tecnica_web(texto):
         return False
     if any(w in low for w in ("?", "como ", "cómo ", "cuantos", "cuántos", "precio", "cuesta")):
         return False
-    return True
+    if _mensaje_pide_enlace_meli_web(texto):
+        return False
+    producto_nuevo = (
+        "aceite",
+        "esencia",
+        "acido",
+        "ácido",
+        "betaina",
+        "pantenol",
+        "btms",
+        "sharomix",
+        "cosgard",
+        "urea",
+        "niacinamida",
+        "girasol",
+        "ylang",
+        "quiero",
+        "necesito",
+        "dame",
+        "tienes",
+        "tienen",
+        "enlace",
+        "link",
+        "mercadolibre",
+        "meli",
+        " cas ",
+        "producto",
+        "lugar del",
+        "en vez del",
+    )
+    if any(s in f" {low} " for s in producto_nuevo):
+        return False
+    if re.search(r"\b\d+\s*(g|gr|ml|kg|l|litros?|gramos?|mililitros?)\b", low):
+        return True
+    if re.search(r"\b(grande|mediana|peque(n|ñ)a|kilo|kg|litro)\b", low):
+        return True
+    tokens = [t for t in re.findall(r"[a-záéíóúüñ0-9\-]+", low) if len(t) >= 2]
+    if 1 <= len(tokens) <= 2 and len(low) <= 28:
+        return True
+    return False
 
 
 def _mensaje_parece_consulta_producto(texto: str) -> bool:
@@ -1218,7 +1527,7 @@ def _termino_busqueda_producto_web(pregunta: str, messages: list) -> str:
             return f"{prod} {pregunta}".strip()
         return pregunta
     if _mensaje_parece_consulta_catalogo_web(pregunta):
-        return pregunta
+        return _termino_busqueda_limpio_web(pregunta) or pregunta
     if _mensaje_parece_consulta_tecnica_web(pregunta):
         prod = _extraer_producto_reciente_historial_web(messages)
         if prod:
@@ -1335,11 +1644,33 @@ def _filtrar_items_por_consulta_web(items: list[dict], consulta: str) -> list[di
         "vale",
         "tienen",
         "tiene",
+        "tienes",
+        "hay",
         "disponible",
         "disponibilidad",
         "stock",
         "catalogo",
         "catálogo",
+        "hola",
+        "esencia",
+        "productos",
+        "producto",
+        "necesito",
+        "quiero",
+        "dame",
+        "mercadolibre",
+        "meli",
+        "enlace",
+        "link",
+        "favor",
+        "cas",
+        "lugar",
+        "otros",
+        "estos",
+        "estas",
+        "ml",
+        "gr",
+        "gramos",
     }
     tokens = [t for t in q.split() if len(t) >= 4 and t not in stop and not t.isdigit()]
     if not tokens:
@@ -1349,7 +1680,7 @@ def _filtrar_items_por_consulta_web(items: list[dict], consulta: str) -> list[di
         return _normalizar_busqueda_combo_web(f"{it.get('name','')} {it.get('ref','')}")
 
     strict = [it for it in items if all(tok in blob(it) for tok in tokens)]
-    return strict or items
+    return strict
 
 
 def _normalizar_busqueda_combo_web(texto: str) -> str:
@@ -1368,10 +1699,10 @@ def _formatear_respuesta_directa_combos_web(
     items = _filtrar_items_por_consulta_web(items, consulta or pregunta_cliente or "")
     items = _filtrar_items_por_seleccion_cliente(items, pregunta_cliente or consulta)
     if not items:
-        return (
-            "Veci, por ahora no tenemos esa referencia publicada en el catálogo web. "
-            "Puede revisar mckennagroup.co o escribirnos por WhatsApp y le confirmamos."
-        )
+        return _respuesta_no_encontrado_catalogo_web(consulta or pregunta_cliente or "")
+    nota = _nota_producto_alternativo_web(
+        pregunta_cliente or consulta or "", items
+    )
     if len(items) == 1:
         it = items[0]
         precio = (
@@ -1379,11 +1710,14 @@ def _formatear_respuesta_directa_combos_web(
             if it.get("precio_web", 0) > 0
             else "precio a confirmar"
         )
-        return (
+        meli = _meli_url_desde_ref_web(str(it.get("ref") or ""))
+        extra = f"\nComprar: {meli}" if meli else ""
+        cuerpo = (
             f"Claro, veci. Tenemos *{it['name']}* como materia prima. "
-            f"Presentación: {precio} — Ref. {it['ref']}. "
+            f"Presentación: {precio} — Ref. {it['ref']}.{extra} "
             "¿Cuántas unidades necesita?"
         )
+        return f"{nota}\n\n{cuerpo}".strip() if nota else cuerpo
 
     pregunta_low = _normalizar_busqueda_combo_web(pregunta_cliente or consulta)
     es_pregunta_disponibilidad = bool(
@@ -1411,6 +1745,9 @@ def _formatear_respuesta_directa_combos_web(
 
     # Formato más visual para chat web (sin tablas).
     lineas = []
+    if nota:
+        lineas.append(nota)
+        lineas.append("")
     if es_pregunta_disponibilidad:
         lineas.append("Sí, veci ✅ Tenemos disponibilidad.")
         lineas.append("Le comparto las presentaciones más pedidas:")
@@ -1448,6 +1785,12 @@ def _respuesta_directa_web_si_combos(
         return None
     if _mensaje_parece_consulta_tecnica_web(pregunta):
         return None
+    enlace = _respuesta_enlace_meli_web(pregunta)
+    if enlace:
+        return enlace
+    multi = _respuesta_multiproducto_web(pregunta)
+    if multi:
+        return multi
     if not _mensaje_parece_consulta_catalogo_web(pregunta):
         return None
     termino = _termino_busqueda_producto_web(pregunta, messages)
@@ -1463,12 +1806,7 @@ def _respuesta_directa_web_si_combos(
             items, termino, pregunta_cliente=pregunta
         )
     if estado and "No encontré combo" in estado:
-        display = _wa_publico_display()
-        return (
-            f"Veci, no encontré esa presentación en nuestro catálogo web en este momento. "
-            f"Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. "
-            f"Si prefiere hablar con un asesor: WhatsApp {display}."
-        )
+        return _respuesta_no_encontrado_catalogo_web(termino)
     return None
 
 
@@ -1745,6 +2083,30 @@ def obtener_respuesta_ia(
             _historiales[usuario_id] = final_messages
             _guardar_historial_persistente(usuario_id, final_messages)
             return lista_out, final_messages
+
+        multi_out_raw = _respuesta_multiproducto_web(pregunta_visible)
+        if multi_out_raw:
+            multi_out = _sanitizar_respuesta_web_chat(multi_out_raw)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": multi_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return multi_out, final_messages
+
+        enlace_out_raw = _respuesta_enlace_meli_web(pregunta_visible)
+        if enlace_out_raw:
+            enlace_out = _sanitizar_respuesta_web_chat(enlace_out_raw)
+            messages.append(
+                {"role": "user", "content": f"Usuario_{usuario_id}: {pregunta_visible}"}
+            )
+            final_messages = messages + [{"role": "assistant", "content": enlace_out}]
+            final_messages = final_messages[-_MAX_HISTORIAL_PERSISTENTE:]
+            _historiales[usuario_id] = final_messages
+            _guardar_historial_persistente(usuario_id, final_messages)
+            return enlace_out, final_messages
 
         operativa = manejar_consulta_operativa_web(
             pregunta=pregunta_visible,

@@ -100,6 +100,26 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573146057489@c.us": {
+      "jid": "573146057489@c.us",
+      "primer_intencion_ts": 1781276047.0,
+      "primer_intencion_texto": "Me puedes ayudar con este pedido",
+      "ultima_human_ts": 1781277239.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1781276973.26069,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573232058352@c.us": {
+      "jid": "573232058352@c.us",
+      "primer_intencion_ts": 1781283611.0,
+      "primer_intencion_texto": "Deseo comprar esta presentación por favor",
+      "ultima_human_ts": 1781283793.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }

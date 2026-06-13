@@ -62,37 +62,8 @@ def _hoy_iso() -> str:
 
 
 def _labores_tablero_usuario(usuario_id: int) -> list[dict]:
-    """Etapas del tablero asignadas al usuario y aún abiertas."""
-    from app.services.tickets_db import _conn
-
-    with _conn() as db:
-        rows = db.execute(
-            """
-            SELECT t.id,
-                   t.titulo,
-                   t.estado,
-                   t.numero,
-                   m.id AS mision_id,
-                   m.titulo AS mision_titulo,
-                   (SELECT COUNT(*) FROM ticket_pasos tp WHERE tp.ticket_id = t.id)
-                       AS pasos_total,
-                   (SELECT COUNT(*) FROM ticket_pasos tp
-                    WHERE tp.ticket_id = t.id AND tp.completado = 1)
-                       AS pasos_completados
-            FROM tickets t
-            INNER JOIN etapas_mision e ON e.ticket_id = t.id
-            INNER JOIN misiones m ON m.id = e.mision_id
-            WHERE t.asignado_a = ?
-              AND t.estado NOT IN ('resuelto', 'rechazado')
-              AND m.estado IN ('activa', 'borrador')
-            ORDER BY
-              CASE t.estado WHEN 'en_proceso' THEN 0 WHEN 'pendiente' THEN 1 ELSE 2 END,
-              t.creado_en ASC
-            LIMIT 5
-            """,
-            (usuario_id,),
-        ).fetchall()
-    return [dict(r) for r in rows]
+    """Etapas del tablero Kingdom (deprecado). Ya no se exponen al agente ni al saludo."""
+    return []
 
 
 def construir_saludo_operativo(nombre: str, contexto: dict) -> str:
