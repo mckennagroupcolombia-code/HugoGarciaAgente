@@ -288,6 +288,11 @@ function guardarAlarmaConfig(ticketId: number, cfg: { activa: boolean; minutos: 
   localStorage.setItem(alarmaConfigKey(ticketId), JSON.stringify(cfg));
 }
 
+function esHorarioSilencioAlarma(): boolean {
+  const hora = new Date().getHours();
+  return hora >= 22 || hora < 7;
+}
+
 function beepRecordatorio() {
   try {
     const ctx = new AudioContext();
@@ -341,6 +346,10 @@ export function AccionAlarmaRecordatorio({
     }
     ultimaRef.current = Date.now();
     const check = () => {
+      if (esHorarioSilencioAlarma()) {
+        setCountdown(Math.max(0, Math.ceil((minRef.current * 60_000 - (Date.now() - ultimaRef.current)) / 1000)));
+        return;
+      }
       const ms = minRef.current * 60_000;
       const elapsed = Date.now() - ultimaRef.current;
       if (elapsed >= ms) {

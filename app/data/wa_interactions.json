@@ -1,42 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1780966075.4796739,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Tienes este?"
-    },
-    {
-      "ts": 1781013145.4090266,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Buen día, gracias"
-    },
-    {
-      "ts": 1781015405.747781,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1781015926.3063543,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Hola buenos días cómo estás"
-    },
-    {
-      "ts": 1781015946.8835473,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Para confirmar el pedido"
-    },
-    {
-      "ts": 1781015976.1991928,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Incluyes el pantenol"
-    },
-    {
       "ts": 1781016047.1456041,
       "tipo": "modo_humano",
       "sender": "573174923920@c.us",
@@ -1799,6 +1763,42 @@
       "tipo": "bot_pausado_global",
       "sender": "573014064965@c.us",
       "detalle": "Girardota - Antioquia"
+    },
+    {
+      "ts": 1781325904.7505546,
+      "tipo": "modo_humano",
+      "sender": "573232058352@c.us",
+      "detalle": "Gracias"
+    },
+    {
+      "ts": 1781326738.5732164,
+      "tipo": "bot_pausado_global",
+      "sender": "260532850405443@lid",
+      "detalle": "Hola"
+    },
+    {
+      "ts": 1781326816.1885252,
+      "tipo": "bot_pausado_global",
+      "sender": "260532850405443@lid",
+      "detalle": "I was recently in Bogota and I purchased a vitamin C product from a small shop near monsaratt in the building with all the small markets.\n\nI opened the vitamin C and it is yellow orange which usually "
+    },
+    {
+      "ts": 1781326841.6105437,
+      "tipo": "bot_pausado_global",
+      "sender": "260532850405443@lid",
+      "detalle": "I typically purchase my vitamin C serum from another company and then keep it on the fridge once I open it"
+    },
+    {
+      "ts": 1781326899.6272154,
+      "tipo": "bot_pausado_global",
+      "sender": "260532850405443@lid",
+      "detalle": "There is also a crusty edge around the screw cap area"
+    },
+    {
+      "ts": 1781326938.3097074,
+      "tipo": "bot_pausado_global",
+      "sender": "260532850405443@lid",
+      "detalle": "I would like you to send me a replacement product please \nTo Canada where I live"
     }
   ]
 }

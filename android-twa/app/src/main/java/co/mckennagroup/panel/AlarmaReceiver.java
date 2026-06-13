@@ -17,6 +17,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.util.Log;
 
+import java.util.Calendar;
+import java.util.TimeZone;
+
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
@@ -35,6 +38,13 @@ public class AlarmaReceiver extends BroadcastReceiver {
     static final String KEY_HAY_TAREA       = "hay_tarea";
     static final long   DEFAULT_INTERVAL_MS = 5 * 60_000L;
 
+    /** Horario de descanso 22:00–07:00 (America/Bogota). */
+    static boolean enHorarioSilencio() {
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/Bogota"));
+        int hora = cal.get(Calendar.HOUR_OF_DAY);
+        return hora >= 22 || hora < 7;
+    }
+
     @Override
     public void onReceive(Context context, Intent intent) {
         try {
@@ -48,17 +58,19 @@ public class AlarmaReceiver extends BroadcastReceiver {
             boolean hayTarea   = prefs.getBoolean(KEY_HAY_TAREA, false);
             long    intervalMs = prefs.getLong(KEY_INTERVAL, DEFAULT_INTERVAL_MS);
 
-            // Tras instalar/actualizar o reinicio: solo reprogramar, sin sonido ni notif.
+            // Tras instalar/actualizar o reinicio: solo reprogramar si hay tarea real
             if (bootOrUpdate) {
-                if (activa && intervalMs > 0) {
+                if (activa && hayTarea && intervalMs > 0) {
                     programar(context, intervalMs, true);
+                } else {
+                    programar(context, intervalMs, false);
                 }
                 return;
             }
 
             if (!activa || intervalMs <= 0) return;
 
-            if (hayTarea) {
+            if (hayTarea && !enHorarioSilencio()) {
                 mostrarNotificacion(context);
                 if (!AlarmAudioCache.playCached(context)) {
                     Log.i(TAG, "WAV no disponible — TTS de respaldo");
@@ -66,7 +78,7 @@ public class AlarmaReceiver extends BroadcastReceiver {
                 }
             }
 
-            programar(context, intervalMs, true);
+            programar(context, intervalMs, activa && hayTarea);
         } catch (Exception e) {
             Log.e(TAG, "Error en onReceive", e);
         }

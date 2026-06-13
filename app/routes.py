@@ -5009,10 +5009,22 @@ def register_routes(app):
         body = request.get_json(silent=True) or {}
         subscription = body.get("subscription")
         minutes      = max(1, min(60, int(body.get("minutes", 5))))
-        active       = bool(body.get("active", True))
+        active       = bool(body.get("active", False))
         if not subscription or not subscription.get("endpoint"):
             return jsonify({"error": "subscription requerida"}), 400
-        set_schedule(subscription["endpoint"], subscription, minutes, active)
+        usuario_id = None
+        try:
+            from app.api_auth import bearer_token_from_request as _btfr
+            from app.services.tickets_db import get_usuario_by_token as _gtu
+            tok = _btfr()
+            usuario = _gtu(tok) if tok else None
+            if usuario:
+                usuario_id = usuario["id"]
+        except Exception:
+            pass
+        if not usuario_id:
+            return jsonify({"error": "sesión de tickets requerida para push"}), 401
+        set_schedule(subscription["endpoint"], subscription, minutes, active, usuario_id)
         return jsonify({"ok": True, "minutes": minutes, "active": active})
 
     @app.route("/api/voz/transcribir", methods=["POST"])

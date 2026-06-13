@@ -17,7 +17,7 @@ _VAPID_PEM_RAW = os.getenv("VAPID_PRIVATE_PEM", "")
 # La clave privada viene en .env con \n literales; convertir a saltos de línea reales
 _VAPID_PEM = _VAPID_PEM_RAW.replace("\\n", "\n") if _VAPID_PEM_RAW else ""
 
-# ─── schedules: endpoint → { subscription, minutes, next_ts, active } ─────────
+# ─── schedules: endpoint → { subscription, minutes, next_ts, active, usuario_id } ─
 _schedules: dict[str, dict] = {}
 _lock = threading.Lock()
 _db_ready = False
@@ -41,27 +41,47 @@ def _ensure_table():
                     endpoint TEXT PRIMARY KEY,
                     subscription_json TEXT NOT NULL,
                     minutes INTEGER NOT NULL DEFAULT 5,
+                    usuario_id INTEGER,
+                    active INTEGER NOT NULL DEFAULT 0,
                     actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
                 )
             """)
+            for col, typedef in (
+                ("usuario_id", "INTEGER"),
+                ("active", "INTEGER NOT NULL DEFAULT 0"),
+            ):
+                try:
+                    db.execute(f"ALTER TABLE push_subscriptions ADD COLUMN {col} {typedef}")
+                except Exception:
+                    pass
             db.commit()
         _db_ready = True
     except Exception as exc:
         log.warning("[Push] No se pudo crear tabla push_subscriptions: %s", exc)
 
 
-def _db_upsert(endpoint: str, subscription: dict, minutes: int):
+def _db_upsert(endpoint: str, subscription: dict, minutes: int,
+               usuario_id: int | None = None, active: bool = False):
     try:
         _ensure_table()
         with _get_conn() as db:
             db.execute(
-                """INSERT INTO push_subscriptions (endpoint, subscription_json, minutes, actualizado_en)
-                   VALUES (?, ?, ?, datetime('now'))
+                """INSERT INTO push_subscriptions
+                   (endpoint, subscription_json, minutes, usuario_id, active, actualizado_en)
+                   VALUES (?, ?, ?, ?, ?, datetime('now'))
                    ON CONFLICT(endpoint) DO UPDATE SET
                      subscription_json=excluded.subscription_json,
                      minutes=excluded.minutes,
+                     usuario_id=excluded.usuario_id,
+                     active=excluded.active,
                      actualizado_en=excluded.actualizado_en""",
-                (endpoint, json.dumps(subscription, ensure_ascii=False), minutes),
+                (
+                    endpoint,
+                    json.dumps(subscription, ensure_ascii=False),
+                    minutes,
+                    usuario_id,
+                    1 if active else 0,
+                ),
             )
             db.commit()
     except Exception as exc:
@@ -77,33 +97,56 @@ def _db_delete(endpoint: str):
         log.warning("[Push] db_delete error: %s", exc)
 
 
+def _suscripcion_vigente(usuario_id: int | None) -> bool:
+    if not usuario_id:
+        return False
+    try:
+        from app.services.tickets_db import usuario_tiene_accion_en_proceso
+        return usuario_tiene_accion_en_proceso(usuario_id)
+    except Exception:
+        return False
+
+
 def _cargar_desde_db():
-    """Carga suscripciones persistidas y las añade al scheduler en memoria."""
+    """Carga suscripciones activas y válidas al scheduler en memoria."""
     try:
         _ensure_table()
         with _get_conn() as db:
             rows = db.execute(
-                "SELECT endpoint, subscription_json, minutes FROM push_subscriptions"
+                "SELECT endpoint, subscription_json, minutes, usuario_id, active "
+                "FROM push_subscriptions"
             ).fetchall()
         now = time.time()
         loaded = 0
+        stale: list[str] = []
         with _lock:
             for row in rows:
                 ep = row["endpoint"]
                 try:
                     sub = json.loads(row["subscription_json"])
                     mins = int(row["minutes"]) or 5
+                    uid = row["usuario_id"]
+                    active = bool(row["active"])
                 except Exception:
+                    stale.append(ep)
+                    continue
+                if not active or not _suscripcion_vigente(uid):
+                    stale.append(ep)
                     continue
                 _schedules[ep] = {
                     "subscription": sub,
                     "minutes":      mins,
-                    "next_ts":      now + mins * 60,  # primera vuelta tras reinicio
+                    "next_ts":      now + mins * 60,
                     "active":       True,
+                    "usuario_id":   uid,
                 }
                 loaded += 1
         if loaded:
             log.info("[Push] %d suscripción(es) restauradas desde DB", loaded)
+        if stale:
+            log.info("[Push] %d suscripción(es) obsoletas descartadas", len(stale))
+            for ep in stale:
+                threading.Thread(target=_db_delete, args=(ep,), daemon=True).start()
     except Exception as exc:
         log.warning("[Push] No se pudo cargar suscripciones desde DB: %s", exc)
 
@@ -128,10 +171,15 @@ def _enviar_push(subscription: dict) -> bool:
         return "410" not in msg and "404" not in msg
 
 
-def set_schedule(endpoint: str, subscription: dict, minutes: int, active: bool):
+def set_schedule(endpoint: str, subscription: dict, minutes: int, active: bool,
+                 usuario_id: int | None = None):
     """Registrar o actualizar programación de alarma para una suscripción."""
     with _lock:
-        if not active or minutes <= 0:
+        if not active or minutes <= 0 or not usuario_id:
+            _schedules.pop(endpoint, None)
+            threading.Thread(target=_db_delete, args=(endpoint,), daemon=True).start()
+            return
+        if not _suscripcion_vigente(usuario_id):
             _schedules.pop(endpoint, None)
             threading.Thread(target=_db_delete, args=(endpoint,), daemon=True).start()
             return
@@ -140,8 +188,13 @@ def set_schedule(endpoint: str, subscription: dict, minutes: int, active: bool):
             "minutes":      minutes,
             "next_ts":      time.time() + minutes * 60,
             "active":       True,
+            "usuario_id":   usuario_id,
         }
-    threading.Thread(target=_db_upsert, args=(endpoint, subscription, minutes), daemon=True).start()
+    threading.Thread(
+        target=_db_upsert,
+        args=(endpoint, subscription, minutes, usuario_id, True),
+        daemon=True,
+    ).start()
 
 
 def get_vapid_public_key() -> str:
@@ -171,6 +224,10 @@ def _loop():
             stale = []
             for ep, sched in _schedules.items():
                 if not sched["active"] or now < sched["next_ts"]:
+                    continue
+                uid = sched.get("usuario_id")
+                if not _suscripcion_vigente(uid):
+                    stale.append(ep)
                     continue
                 if _en_horario_silencio():
                     # Posponer al horario laboral: no molestar de 22:00 a 07:00
