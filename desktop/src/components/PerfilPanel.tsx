@@ -4,7 +4,8 @@ import { useAppStore } from "../stores/app";
 import { useProfilePhotoPending } from "../stores/profilePhotoPending";
 import { Icon } from "../icons";
 import UserAvatar from "./UserAvatar";
-import { uploadProfilePhoto, removeProfilePhoto, isImageFile } from "../lib/profilePhoto";
+import { uploadProfilePhoto, removeProfilePhoto, isImageFile, ticketsUploadUrl } from "../lib/profilePhoto";
+import ImageLightbox from "./ImageLightbox";
 
 function tapi(path: string, token: string, options: RequestInit = {}) {
   const isForm = options.body instanceof FormData;
@@ -58,7 +59,11 @@ function PerfilContent({
   const [fotoPendiente, setFotoPendiente] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState<string | null>(null);
   const fotoInputRef = useRef<HTMLInputElement>(null);
+
+  const fotoUrl =
+    previewUrl ?? (user.foto ? ticketsUploadUrl(user.foto, token, user.foto) : null);
 
   useEffect(() => {
     setNombre(user.nombre);
@@ -189,6 +194,7 @@ function PerfilContent({
 
   return (
     <div className="space-y-5 max-w-lg">
+      {fotoAmpliada && <ImageLightbox url={fotoAmpliada} onClose={() => setFotoAmpliada(null)} />}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -205,20 +211,43 @@ function PerfilContent({
 
       <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper-sm space-y-3">
         <div className="flex items-center gap-4">
-          <button
-            type="button"
-            title="Elegir foto"
-            disabled={uploadingFoto}
-            onClick={() => fotoInputRef.current?.click()}
-            className="relative shrink-0 rounded-full transition hover:opacity-90 disabled:opacity-60"
-          >
-            <UserAvatar user={user} token={token} size="lg" previewUrl={previewUrl} />
-            {uploadingFoto && (
-              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-[10px] font-bold text-white">
-                …
-              </span>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              title={fotoUrl ? "Ampliar foto" : "Elegir foto"}
+              disabled={uploadingFoto}
+              onClick={() => {
+                if (fotoUrl) setFotoAmpliada(fotoUrl);
+                else fotoInputRef.current?.click();
+              }}
+              className={`group relative rounded-full transition disabled:opacity-60 ${
+                fotoUrl ? "cursor-zoom-in hover:opacity-90" : "hover:opacity-90"
+              }`}
+            >
+              <UserAvatar user={user} token={token} size="lg" previewUrl={previewUrl} />
+              {uploadingFoto && (
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 text-[10px] font-bold text-white">
+                  …
+                </span>
+              )}
+              {fotoUrl && !uploadingFoto && (
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-black/0 opacity-0 transition group-hover:bg-black/25 group-hover:opacity-100">
+                  <Icon name="expand" size={22} weight="bold" className="text-white drop-shadow" />
+                </span>
+              )}
+            </button>
+            {fotoUrl && (
+              <button
+                type="button"
+                title="Cambiar foto"
+                disabled={uploadingFoto}
+                onClick={() => fotoInputRef.current?.click()}
+                className="absolute -bottom-0.5 -right-0.5 flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-panel bg-accent text-white shadow transition hover:bg-accent-hover disabled:opacity-50"
+              >
+                <Icon name="camera" size={14} weight="bold" />
+              </button>
             )}
-          </button>
+          </div>
           <div className="min-w-0 flex-1">
             <p className="font-extrabold text-ink">{nombre}</p>
             <p className="text-sm text-muted">@{user.username}</p>
@@ -316,6 +345,17 @@ function PerfilContent({
             >
               Elegir archivo
             </button>
+            {fotoUrl && (
+              <button
+                type="button"
+                disabled={uploadingFoto}
+                onClick={() => setFotoAmpliada(fotoUrl)}
+                className="inline-flex items-center gap-1.5 rounded-paper border-2 border-border px-3 py-1.5 text-xs font-bold text-ink transition hover:border-accent hover:text-accent disabled:opacity-50"
+              >
+                <Icon name="expand" size={14} weight="bold" className="shrink-0" />
+                Ampliar
+              </button>
+            )}
             {hayFotoPendiente && (
               <button
                 type="button"

@@ -6719,10 +6719,93 @@ def register_routes(app):
     # PDF apaisado → rotación por defecto al imprimir en rollo estrecho
     _ETIQUETAS_ROTACION = {"Lactato": "90"}
     _ETIQUETAS_MAX_MM = (108.0, 406.4)  # CW-C4000u: ancho × avance (PPD)
+
+    _ETIQUETAS_TIPOS_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_tipos.json",
+    )
+
+    def _default_etiquetas_tipos():
+        return [
+            {"nombre": k, "ancho_mm": float(v[0]), "alto_mm": float(v[1])}
+            for k, v in _ETIQUETAS.items()
+        ]
+
+    def _normalizar_tipos_etiquetas(items) -> list:
+        if not isinstance(items, list):
+            return _default_etiquetas_tipos()
+        max_ancho, max_alto = _ETIQUETAS_MAX_MM
+        out = []
+        seen = set()
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            nombre = (it.get("nombre") or "").strip()
+            if not nombre or nombre in seen:
+                continue
+            try:
+                ancho = float(it.get("ancho_mm") or 0)
+                alto = float(it.get("alto_mm") or 0)
+            except (TypeError, ValueError):
+                continue
+            if ancho <= 0 or alto <= 0 or ancho > max_ancho or alto > max_alto:
+                continue
+            seen.add(nombre)
+            out.append({
+                "nombre": nombre,
+                "ancho_mm": round(ancho, 2),
+                "alto_mm": round(alto, 2),
+            })
+        out.sort(key=lambda x: x["nombre"].lower())
+        return out or _default_etiquetas_tipos()
+
+    def _load_etiquetas_tipos() -> list:
+        try:
+            with open(_ETIQUETAS_TIPOS_PATH, encoding="utf-8") as f:
+                data = json.load(f)
+            tipos = data.get("tipos") if isinstance(data, dict) else None
+            if isinstance(tipos, list) and tipos:
+                return _normalizar_tipos_etiquetas(tipos)
+        except FileNotFoundError:
+            pass
+        except Exception:
+            pass
+        return _default_etiquetas_tipos()
+
+    def _save_etiquetas_tipos(tipos: list) -> list:
+        normalizados = _normalizar_tipos_etiquetas(tipos)
+        os.makedirs(os.path.dirname(_ETIQUETAS_TIPOS_PATH), exist_ok=True)
+        with open(_ETIQUETAS_TIPOS_PATH, "w", encoding="utf-8") as f:
+            json.dump({"tipos": normalizados}, f, ensure_ascii=False, indent=2)
+        return normalizados
+
+    def _etiquetas_tipos_map() -> dict:
+        return {t["nombre"]: (t["ancho_mm"], t["alto_mm"]) for t in _load_etiquetas_tipos()}
+
+    def _dimensiones_etiqueta(producto: str, ancho_mm=None, alto_mm=None):
+        try:
+            if ancho_mm is not None and alto_mm is not None:
+                a = float(ancho_mm)
+                h = float(alto_mm)
+                if a > 0 and h > 0:
+                    return a, h
+        except (TypeError, ValueError):
+            pass
+        mp = _etiquetas_tipos_map()
+        if producto in mp:
+            return mp[producto]
+        return _ETIQUETAS.get(producto)
+
     _MAPEO_FORMA = {
         "Diecut_Gap": "Diecut_Gap",
         "Diecut_Blackmark": "Diecut_Blackmark",
         "Contlabel_no_detection": "Contlabel_no_detection",
+    }
+    _MAPEO_FORM_DETECTION_ELPU = {
+        # Gap se controla solo vía CUPS MediaForm=Diecut_Gap (elpu Gap→N rompe detección).
+        "Diecut_Blackmark": "W",
+    }
+    _MAPEO_CALIDAD_ELPU = {
+        "MaxSpeed": "D", "Speed": "S", "Normal": "N", "Quality": "Q", "MaxQuality": "M",
     }
     _MAPEO_ROTACION = {"0": "3", "90": "4"}
     _LOTE_PREFIJO_ETI = "LOT."
@@ -6811,13 +6894,25 @@ def register_routes(app):
             "tapa_abierta",
         ),
         (
-            ("communication", "comunicación", "usb", "device not found", "i/o error",
-             "status_commerror", "commerror", "resources-are-not-ready",
-             "backend epsonusb returned status 1"),
+            ("communication", "comunicación", "device not found", "i/o error",
+             "status_commerror", "commerror"),
             "Error de comunicación USB",
             "Enciende la impresora, reconecta el cable USB (sin hub), reiníciala 30 s y pulsa «Instalar impresora». "
             "Si la cola tiene trabajos atascados, el panel los limpia al reintentar.",
             "sin_conexion",
+        ),
+        (
+            ("resources-are-not-ready",),
+            "Impresora no lista para imprimir",
+            "Espera a que termine de inicializar, cierra la tapa si está abierta y verifica que el rollo de etiquetas esté cargado.",
+            "sin_papel",
+        ),
+        (
+            ("backend epsonusb returned status 1", "backend epsonusb returned"),
+            "La impresora rechazó el trabajo de impresión",
+            "Carga el rollo de etiquetas, alinea las guías y elige el sensor correcto (gap o blackmark). "
+            "Si el LCD de la Epson muestra error, reiníciala 30 s.",
+            "backend_fallo",
         ),
         (
             ("filter failed", "document-format-not-supported", "unsupported document"),
@@ -6845,10 +6940,76 @@ def register_routes(app):
         ),
     )
 
-    def _interpretar_error_impresora_etiquetas(texto: str) -> tuple:
+    def _interpretar_error_impresora_etiquetas(
+        texto: str,
+        *,
+        producto: str = "",
+        forma: str = "",
+    ) -> tuple:
         """Devuelve (mensaje_corto, solucion, codigo) a partir de salida lp/elpu/CUPS."""
         t = (texto or "").strip()
         tl = t.lower()
+
+        def _fallo_backend_sin_error_lcd(salida_elpu: str) -> tuple:
+            """CUPS/epsonUSB falló pero ELPU no reporta Status_ER_* (LCD puede estar en Listo)."""
+            tam = _ETIQUETAS.get(producto, (102, 38))
+            sensor = {
+                "Diecut_Gap": "troquelada con gap (separación entre etiquetas)",
+                "Diecut_Blackmark": "troquelada con marca negra",
+                "Contlabel_no_detection": "continua sin detección",
+            }.get(forma, "troquelada gap o blackmark")
+            det_elpu = ""
+            if salida_elpu:
+                st = _valor_linea_elpu(salida_elpu, "status") or ""
+                fd = _valor_linea_elpu(salida_elpu, "formDetectionType") or ""
+                if st or fd:
+                    det_elpu = f" ELPU: {st}; sensor={fd or '?'}"
+            return (
+                "CUPS no pudo imprimir (impresora conectada, LCD sin error)",
+                (
+                    f"El driver rechazó el trabajo — no es un fallo USB. "
+                    f"Revisa en el panel: producto {producto or '30 mL'} ({tam[0]}×{tam[1]} mm), "
+                    f"sensor {sensor}. Prueba el otro tipo (Gap ↔ Blackmark) si no imprime. "
+                    f"Pulsa «Instalar impresora» y reintenta.{det_elpu}"
+                ),
+                "backend_fallo",
+            )
+
+        # Fallo del backend epsonUSB: no usar Status_IL_* (idle) como «sin rollo».
+        if "backend epsonusb returned" in tl:
+            _asegurar_elioud_etiquetas()
+            salida = _salida_elpu_status_etiquetas()
+            clave = _clave_status_elpu_etiquetas(_valor_linea_elpu(salida, "status") or "")
+            if clave.startswith("Status_IL_") or not clave.startswith("Status_ER_"):
+                if salida:
+                    alerta = _alerta_impresora_etiquetas(
+                        salida_elpu=salida,
+                        estado_cups=_estado_cups_etiquetas(),
+                    )
+                    if alerta and alerta.get("severidad") == "error":
+                        return (
+                            alerta.get("error", "La impresora rechazó el trabajo"),
+                            alerta.get("solucion", "Revisa el panel LCD de la Epson."),
+                            alerta.get("codigo", "backend_fallo"),
+                        )
+                return _fallo_backend_sin_error_lcd(salida)
+            if salida:
+                alerta = _alerta_impresora_etiquetas(
+                    salida_elpu=salida,
+                    estado_cups=_estado_cups_etiquetas(),
+                )
+                if alerta:
+                    return (
+                        alerta.get("error", "La impresora rechazó el trabajo"),
+                        alerta.get("solucion", "Revisa el panel LCD de la Epson."),
+                        alerta.get("codigo", "backend_fallo"),
+                    )
+            if _impresora_conectada_cups_etiquetas():
+                return _fallo_backend_sin_error_lcd(salida)
+            for patrones, error, solucion, codigo in _PATRONES_ERROR_IMPRESORA_ETI:
+                if any(p in tl for p in patrones):
+                    return error, solucion, codigo
+
         for patrones, error, solucion, codigo in _PATRONES_ERROR_IMPRESORA_ETI:
             if any(p in tl for p in patrones):
                 return error, solucion, codigo
@@ -6910,13 +7071,17 @@ def register_routes(app):
                     "codigo": "deshabilitada",
                     "detalle": estado,
                 }
-            if "paused" in el or "en pausa" in el or "pausad" in el:
-                return {
-                    "error": "Impresora en pausa",
-                    "solucion": "Pulsa «Instalar impresora» o ejecuta: sudo cupsenable CW-C4000u && sudo cupsaccept CW-C4000u",
-                    "codigo": "pausada",
-                    "detalle": estado,
-                }
+            if _cups_en_pausa_etiquetas(estado):
+                _despausar_impresora_etiquetas()
+                estado = _estado_cups_etiquetas()
+                el = estado.lower()
+                if _cups_en_pausa_etiquetas(estado):
+                    return {
+                        "error": "Impresora en pausa",
+                        "solucion": "Pulsa «Instalar impresora» o ejecuta: sudo cupsenable CW-C4000u && sudo cupsaccept CW-C4000u",
+                        "codigo": "pausada",
+                        "detalle": estado,
+                    }
             if "printer-state-reasons=" in el:
                 import re as _re_pf
                 m = _re_pf.search(r"printer-state-reasons=([^\s]+)", estado)
@@ -6947,8 +7112,16 @@ def register_routes(app):
 
         return None
 
-    def _respuesta_error_impresion_etiquetas(log_lines: list, texto: str) -> dict:
-        error, solucion, codigo = _interpretar_error_impresora_etiquetas(texto)
+    def _respuesta_error_impresion_etiquetas(
+        log_lines: list,
+        texto: str,
+        *,
+        producto: str = "",
+        forma: str = "",
+    ) -> dict:
+        error, solucion, codigo = _interpretar_error_impresora_etiquetas(
+            texto, producto=producto, forma=forma,
+        )
         return {
             "ok": False,
             "log": log_lines,
@@ -6982,6 +7155,15 @@ def register_routes(app):
             pass
         return ""
 
+    def _uri_usb_cups_desde_uri(uri: str) -> str:
+        """Normaliza a usb:// (CUPS imprime bien; epsonUSB:// falla con status 1)."""
+        uri = (uri or "").strip()
+        if uri.startswith("usb://"):
+            return uri
+        if uri.startswith("epsonUSB://"):
+            return "usb://" + uri[len("epsonUSB://"):]
+        return uri
+
     def _uri_epson_usb_desde_usb(uri: str) -> str:
         uri = (uri or "").strip()
         if uri.startswith("epsonUSB://"):
@@ -6989,6 +7171,60 @@ def register_routes(app):
         if uri.startswith("usb://"):
             return "epsonUSB://" + uri[len("usb://"):]
         return uri
+
+    def _asegurar_backend_usb_cups_etiquetas() -> tuple[str, bool]:
+        """CUPS debe usar usb://; epsonUSB:// provoca «Backend epsonUSB returned status 1»."""
+        import subprocess as _sp
+
+        uri = _uri_dispositivo_etiquetas()
+        nueva = _uri_usb_cups_desde_uri(uri)
+        if not nueva or nueva == uri:
+            return uri or nueva, False
+        try:
+            for cmd_base in (["sudo", "-n", "lpadmin"], ["sudo", "lpadmin"], ["lpadmin"]):
+                r = _sp.run(
+                    cmd_base + ["-p", _PRINTER_NAME, "-v", nueva],
+                    capture_output=True, text=True, timeout=15,
+                )
+                if r.returncode == 0:
+                    for en in (["sudo", "-n", "cupsenable"], ["cupsenable"]):
+                        _sp.run(en + [_PRINTER_NAME], capture_output=True, timeout=10)
+                    for ac in (["sudo", "-n", "cupsaccept"], ["cupsaccept"]):
+                        _sp.run(ac + [_PRINTER_NAME], capture_output=True, timeout=10)
+                    return nueva, True
+        except Exception:
+            pass
+        return uri, False
+
+    def _corregir_backend_epson_usb_etiquetas() -> tuple[str, bool]:
+        """Compat: delega en usb:// (epsonUSB ya no se fuerza — rompía la impresión)."""
+        return _asegurar_backend_usb_cups_etiquetas()
+
+    def _elioud_estado_etiquetas() -> tuple[int, int]:
+        """Devuelve (procesos totales, árboles raíz). Un árbol sano = 1 raíz + workers."""
+        import subprocess as _sp
+        try:
+            r = _sp.run(
+                ["pgrep", "-x", "elioud1"],
+                capture_output=True, text=True, timeout=3,
+            )
+            if r.returncode != 0:
+                return 0, 0
+            pids = {int(x) for x in (r.stdout or "").split() if x.strip().isdigit()}
+            if not pids:
+                return 0, 0
+            raices = 0
+            for pid in pids:
+                try:
+                    with open(f"/proc/{pid}/stat", encoding="utf-8", errors="replace") as f:
+                        ppid = int(f.read().split()[3])
+                    if ppid not in pids:
+                        raices += 1
+                except Exception:
+                    continue
+            return len(pids), raices
+        except Exception:
+            return 0, 0
 
     def _reiniciar_elioud_etiquetas() -> bool:
         """Reinicia el daemon Epson I/O (evita DaemonStop con instancias duplicadas)."""
@@ -6998,11 +7234,12 @@ def register_routes(app):
             return False
         try:
             for cmd in (
-                ["sudo", "-n", "pkill", "-f", "elioud1"],
-                ["pkill", "-f", "elioud1"],
+                ["sudo", "-n", "pkill", "-x", "elioud1"],
+                ["sudo", "pkill", "-x", "elioud1"],
+                ["pkill", "-x", "elioud1"],
             ):
                 _sp.run(cmd, capture_output=True, text=True, timeout=3)
-            _time.sleep(0.5)
+            _time.sleep(0.6)
             for cmd in (
                 ["sudo", "-n", _ELIOUD_PATH],
                 ["sudo", _ELIOUD_PATH],
@@ -7019,24 +7256,15 @@ def register_routes(app):
                 except Exception:
                     continue
             _time.sleep(1.2)
-            r = _sp.run(
-                ["pgrep", "-c", "elioud1"],
-                capture_output=True, text=True, timeout=3,
-            )
-            return r.returncode == 0 and int((r.stdout or "0").strip() or 0) >= 1
+            _, raices = _elioud_estado_etiquetas()
+            return raices == 1
         except Exception:
             return False
 
     def _elioud_corriendo_etiquetas() -> bool:
-        import subprocess as _sp
-        try:
-            r = _sp.run(
-                ["pgrep", "-c", "elioud1"],
-                capture_output=True, text=True, timeout=3,
-            )
-            return r.returncode == 0 and int((r.stdout or "0").strip() or 0) >= 1
-        except Exception:
-            return False
+        """True si hay un solo árbol elioud1 (no cero ni duplicados)."""
+        _, raices = _elioud_estado_etiquetas()
+        return raices == 1
 
     def _salida_elpu_fallo(salida: str) -> bool:
         """elpu suele devolver rc=0 aunque falle la comunicación USB."""
@@ -7175,28 +7403,139 @@ def register_routes(app):
                 return salida
         return ""
 
-    def _preflight_elpu_impresora_etiquetas() -> dict | None:
-        """Bloquea impresión si elioud/elpu reportan error grave (papel, USB, etc.)."""
+    _CODIGOS_ELPU_COMUNICACION_TRANSIENTE = frozenset({
+        "sin_conexion", "inicializando", "elpu", "backend_incorrecto",
+    })
+
+    def _preflight_elpu_impresora_etiquetas(
+        *,
+        omitir_comunicacion: bool = False,
+    ) -> tuple[dict | None, str | None]:
+        """Pre-vuelo ELPU. Devuelve (bloqueo, aviso). Bloquea solo errores físicos graves."""
+        import time as _time
+
+        _asegurar_backend_usb_cups_etiquetas()
+
         if not _asegurar_elioud_etiquetas():
+            if omitir_comunicacion:
+                return None, "elioud inactivo — se intentará imprimir vía CUPS"
             return {
                 "error": "Daemon Epson I/O (elioud) inactivo",
                 "solucion": "Pulsa «Instalar impresora» en el panel para iniciar elioud y registrar permisos sudo.",
                 "codigo": "elpu",
                 "detalle": _ELIOUD_PATH,
-            }
-        salida = _salida_elpu_status_etiquetas()
-        alerta = _alerta_impresora_etiquetas(
-            salida_elpu=salida,
-            estado_cups=_estado_cups_etiquetas(),
-        )
-        if alerta and alerta.get("severidad") == "error":
+            }, None
+
+        def _bloqueo_desde_salida(salida: str) -> dict | None:
+            alerta = _alerta_impresora_etiquetas(
+                salida_elpu=salida,
+                estado_cups=_estado_cups_etiquetas(),
+            )
+            if not alerta or alerta.get("severidad") != "error":
+                return None
+            codigo = alerta.get("codigo", "preflight")
+            if omitir_comunicacion and codigo in _CODIGOS_ELPU_COMUNICACION_TRANSIENTE:
+                return None
             return {
                 "error": alerta.get("error", "Error de impresora"),
                 "solucion": alerta.get("solucion", "Revisa la impresora y pulsa «Instalar impresora»."),
-                "codigo": alerta.get("codigo", "preflight"),
+                "codigo": codigo,
                 "detalle": alerta.get("detalle", salida),
             }
-        return None
+
+        salida = _salida_elpu_status_etiquetas()
+        bloqueo = _bloqueo_desde_salida(salida)
+        aviso = None
+        if bloqueo and bloqueo.get("codigo") in _CODIGOS_ELPU_COMUNICACION_TRANSIENTE:
+            _reiniciar_elioud_etiquetas()
+            _time.sleep(1.0)
+            salida = _salida_elpu_status_etiquetas()
+            bloqueo = _bloqueo_desde_salida(salida)
+
+        if not bloqueo and omitir_comunicacion:
+            tl = (salida or "").lower()
+            if any(
+                x in tl
+                for x in (
+                    "status_commerror",
+                    "beforecomm",
+                    "daemonstop",
+                    "communication error",
+                )
+            ):
+                aviso = "ELPU sin respuesta USB — se continúa con CUPS"
+
+        if bloqueo and omitir_comunicacion and bloqueo.get("codigo") in _CODIGOS_ELPU_COMUNICACION_TRANSIENTE:
+            aviso = bloqueo.get("error", "Comunicación ELPU inestable") + " — se continúa con CUPS"
+            return None, aviso
+
+        return bloqueo, aviso
+
+    def _suspender_elioud_impresion_etiquetas() -> None:
+        """Libera USB para el backend epsonUSB de CUPS durante lp."""
+        import subprocess as _sp
+        import time as _time
+
+        for cmd in (
+            ["sudo", "-n", "pkill", "-x", "elioud1"],
+            ["sudo", "pkill", "-x", "elioud1"],
+            ["pkill", "-x", "elioud1"],
+        ):
+            _sp.run(cmd, capture_output=True, text=True, timeout=3)
+        _time.sleep(0.4)
+
+    def _preparar_medio_elpu_etiquetas(
+        forma_val: str,
+        calidad_val: str,
+        ancho: int,
+        alto: int,
+        log_lines: list,
+    ) -> None:
+        """Sincroniza calidad en elpu; Gap va solo por CUPS MediaForm (no tocar formDetectionType)."""
+        import subprocess as _sp
+
+        cal_elpu = _MAPEO_CALIDAD_ELPU.get(calidad_val)
+        deteccion = _MAPEO_FORM_DETECTION_ELPU.get(forma_val)
+        opts: list[str] = []
+        if cal_elpu:
+            opts.append(f"printQuality={cal_elpu}")
+        if deteccion:
+            opts.append(f"formDetectionType={deteccion}")
+        if opts:
+            salida, _ = _ejecutar_elpu_etiquetas(tuple(opts), usar_sudo=True)
+            if not salida:
+                salida, _ = _ejecutar_elpu_etiquetas(tuple(opts), usar_sudo=False)
+            if salida and not _salida_elpu_fallo(salida):
+                log_lines.append(f"elpu: {', '.join(opts)}")
+        try:
+            _sp.run(
+                ["lpoptions", "-p", _PRINTER_NAME, "-o", f"MediaForm={forma_val}"],
+                capture_output=True, text=True, timeout=8,
+            )
+            log_lines.append(f"CUPS: MediaForm={forma_val} ({ancho}×{alto} mm)")
+        except Exception:
+            pass
+
+    def _limpiar_cola_impresora_etiquetas() -> list[str]:
+        """Cancela todos los trabajos pendientes de CW-C4000u."""
+        import subprocess as _sp
+
+        cancelados: list[str] = []
+        try:
+            r = _sp.run(["lpstat", "-o"], capture_output=True, text=True, timeout=8)
+            if r.returncode != 0:
+                return cancelados
+            for line in (r.stdout or "").splitlines():
+                parts = line.split()
+                if not parts or not parts[0].startswith(f"{_PRINTER_NAME}-"):
+                    continue
+                job = parts[0]
+                c = _sp.run(["cancel", job], capture_output=True, text=True, timeout=5)
+                if c.returncode == 0:
+                    cancelados.append(job)
+        except Exception:
+            pass
+        return cancelados
 
     def _ejecutar_elpu_offset_etiquetas(offset_v: float, log_lines: list) -> None:
         """Ajusta posición vertical con elpu (mejor esfuerzo; no bloquea la impresión)."""
@@ -7210,6 +7549,8 @@ def register_routes(app):
 
         def _intento() -> tuple[str, bool]:
             for cmd in (
+                ["sudo", "-n", elpu_bin, "-d", "-p", _PRINTER_NAME, "-o", f"printPositionV={offset_v}"],
+                ["sudo", elpu_bin, "-d", "-p", _PRINTER_NAME, "-o", f"printPositionV={offset_v}"],
                 ["sudo", "-n", elpu_bin, "-p", _PRINTER_NAME, "-o", f"printPositionV={offset_v}"],
                 ["sudo", elpu_bin, "-p", _PRINTER_NAME, "-o", f"printPositionV={offset_v}"],
             ):
@@ -7235,32 +7576,10 @@ def register_routes(app):
             log_lines.append(f"elpu: {salida or 'OK'}")
 
     def _asegurar_elioud_etiquetas() -> bool:
+        """Un solo elioud1; varias instancias provocan kELIO_Err_DaemonStop en elpu."""
         if _elioud_corriendo_etiquetas():
             return True
         return _reiniciar_elioud_etiquetas()
-
-    def _corregir_backend_epson_usb_etiquetas() -> tuple[str, bool]:
-        """Migra usb:// → epsonUSB:// (requerido por ELPU para leer tinta)."""
-        import subprocess as _sp
-
-        uri = _uri_dispositivo_etiquetas()
-        if not uri or uri.startswith("epsonUSB://"):
-            return uri, False
-        nueva = _uri_epson_usb_desde_usb(uri)
-        if nueva == uri:
-            return uri, False
-        try:
-            r = _sp.run(
-                ["sudo", "-n", "lpadmin", "-p", _PRINTER_NAME, "-v", nueva],
-                capture_output=True, text=True, timeout=15,
-            )
-            if r.returncode == 0:
-                _sp.run(["sudo", "-n", "cupsenable", _PRINTER_NAME], capture_output=True, timeout=10)
-                _sp.run(["sudo", "-n", "cupsaccept", _PRINTER_NAME], capture_output=True, timeout=10)
-                return nueva, True
-        except Exception:
-            pass
-        return uri, False
 
     def _valor_linea_elpu(salida: str, clave: str) -> str | None:
         pref = f"{clave}:"
@@ -7388,8 +7707,9 @@ def register_routes(app):
             "error",
         ),
         "backend_incorrecto": (
-            "Backend USB incorrecto para monitoreo de tinta",
-            "Pulsa «Instalar impresora» para cambiar al backend epsonUSB (obligatorio en Linux para ver niveles de tinta).",
+            "Backend CUPS incorrecto (epsonUSB)",
+            "Pulsa «Instalar impresora»: debe usar usb:// para imprimir. "
+            "El backend epsonUSB provoca fallos «status 1» aunque el LCD esté en Listo.",
             "backend_incorrecto",
             "error",
         ),
@@ -7507,7 +7827,7 @@ def register_routes(app):
     ) -> dict | None:
         """Devuelve error/solución/código/severidad si hay problema; None si todo OK."""
         uri_dev = _uri_dispositivo_etiquetas()
-        if uri_dev.startswith("usb://"):
+        if uri_dev.startswith("epsonUSB://"):
             err, sol, cod, sev = _MAPA_ESTADO_ELPU_ETIQUETAS["backend_incorrecto"]
             return {
                 "error": err,
@@ -7529,7 +7849,10 @@ def register_routes(app):
         texto_cups = (estado_cups or "").strip()
         tl_cups = texto_cups.lower()
         err_cups, sol_cups, cod_cups = _interpretar_error_impresora_etiquetas(texto_cups)
-        if any(x in tl_cups for x in ("disabled", "deshabilitad", "paused", "en pausa", "pausad", "unknown", "no existe", "does not exist")):
+        if any(
+            x in tl_cups
+            for x in ("disabled", "deshabilitad", "unknown", "no existe", "does not exist")
+        ) or _cups_en_pausa_etiquetas(texto_cups):
             return {
                 "error": err_cups,
                 "solucion": sol_cups,
@@ -7599,26 +7922,107 @@ def register_routes(app):
         except Exception as e:
             return f"Error consultando CUPS: {e}"
 
+    def _cups_en_pausa_etiquetas(estado: str = "") -> bool:
+        """True solo si CUPS reporta pausa real (no confundir con «inactiva» = idle)."""
+        import re as _re_pause
+
+        el = (estado or _estado_cups_etiquetas()).lower()
+        if _re_pause.search(r"\b(inactiva|idle)\b", el):
+            return False
+        if _re_pause.search(r"\b(en pausa|paused|pausada|pausado)\b", el):
+            return True
+        return "printer-state-reasons=paused" in el.replace(" ", "")
+
+    def _despausar_impresora_etiquetas() -> bool:
+        """cupsenable + cupsaccept (mejor esfuerzo)."""
+        import subprocess as _sp
+
+        try:
+            for cmd in (
+                ["sudo", "-n", "cupsenable", _PRINTER_NAME],
+                ["cupsenable", _PRINTER_NAME],
+            ):
+                _sp.run(cmd, capture_output=True, text=True, timeout=8)
+            for cmd in (
+                ["sudo", "-n", "cupsaccept", _PRINTER_NAME],
+                ["cupsaccept", _PRINTER_NAME],
+            ):
+                _sp.run(cmd, capture_output=True, text=True, timeout=8)
+            return not _cups_en_pausa_etiquetas()
+        except Exception:
+            return False
+
+    def _estado_cups_resumen_etiquetas(estado: str = "") -> dict:
+        """Interpreta lpstat en español/inglés para el panel."""
+        estado = (estado or _estado_cups_etiquetas()).strip()
+        el = estado.lower()
+        if not estado or "error consultando cups" in el:
+            return {
+                "codigo": "error",
+                "legible": "No se pudo consultar CUPS",
+                "conectada": False,
+                "en_pausa": False,
+            }
+        if any(x in el for x in ("unknown", "does not exist", "no existe")):
+            return {
+                "codigo": "no_registrada",
+                "legible": "No registrada — pulsa Instalar impresora",
+                "conectada": False,
+                "en_pausa": False,
+            }
+        if "disabled" in el or "deshabilitad" in el:
+            return {
+                "codigo": "deshabilitada",
+                "legible": "Deshabilitada — reconecta el USB",
+                "conectada": False,
+                "en_pausa": False,
+            }
+        if _cups_en_pausa_etiquetas(estado):
+            return {
+                "codigo": "pausada",
+                "legible": "En pausa",
+                "conectada": False,
+                "en_pausa": True,
+            }
+        if "imprim" in el or "printing" in el:
+            return {
+                "codigo": "imprimiendo",
+                "legible": "Imprimiendo…",
+                "conectada": True,
+                "en_pausa": False,
+            }
+        if "inactiva" in el or "idle" in el:
+            return {
+                "codigo": "lista",
+                "legible": "Lista para imprimir",
+                "conectada": True,
+                "en_pausa": False,
+            }
+        return {
+            "codigo": "ok",
+            "legible": "Conectada",
+            "conectada": True,
+            "en_pausa": False,
+        }
+
+    def _trabajos_cola_etiquetas() -> int:
+        import subprocess as _sp
+
+        try:
+            r = _sp.run(["lpstat", "-o"], capture_output=True, text=True, timeout=8)
+            if r.returncode != 0:
+                return 0
+            return sum(
+                1
+                for line in (r.stdout or "").splitlines()
+                if line.strip().startswith(f"{_PRINTER_NAME}-")
+            )
+        except Exception:
+            return 0
+
     def _impresora_conectada_cups_etiquetas() -> bool:
         """True si CUPS tiene la CW-C4000u registrada y habilitada (inactiva = idle, OK)."""
-        estado = _estado_cups_etiquetas().lower()
-        if not estado or "error consultando cups" in estado:
-            return False
-        if any(
-            x in estado
-            for x in (
-                "unknown",
-                "does not exist",
-                "no existe",
-                "disabled",
-                "deshabilitad",
-                "paused",
-                "en pausa",
-                "pausad",
-            )
-        ):
-            return False
-        return True
+        return bool(_estado_cups_resumen_etiquetas().get("conectada"))
 
     def _comunicacion_usb_etiquetas() -> bool:
         """True si elpu responde sin CommError (impresora accesible por USB)."""
@@ -7814,6 +8218,7 @@ def register_routes(app):
             "impresora_conectada": conectada,
             "comunicacion_usb": conectada and _comunicacion_usb_etiquetas(),
             "uri_dispositivo": uri,
+            "backend_usb_cups": (uri or "").startswith("usb://"),
             "backend_epson_usb": (uri or "").startswith("epsonUSB://"),
             "estado_cups": _estado_cups_etiquetas(),
             "cartuchos": cartuchos,
@@ -7833,7 +8238,7 @@ def register_routes(app):
         """Lee niveles CMYK + caja de mantenimiento vía ELPU (Epson Label Printer Utility)."""
         import time as _time
 
-        uri_migrada, migrado = _corregir_backend_epson_usb_etiquetas()
+        uri_migrada, migrado = _asegurar_backend_usb_cups_etiquetas()
         elioud_ok = _asegurar_elioud_etiquetas()
         estado_cups = _estado_cups_etiquetas()
         preflight = _verificar_impresora_etiquetas()
@@ -7894,6 +8299,7 @@ def register_routes(app):
                 "impresora_conectada": conectada,
                 "comunicacion_usb": conectada and bool(_salida_elpu_lista(salida)),
                 "uri_dispositivo": _uri_dispositivo_etiquetas() or uri_migrada,
+                "backend_usb_cups": (_uri_dispositivo_etiquetas() or uri_migrada).startswith("usb://"),
                 "backend_epson_usb": (_uri_dispositivo_etiquetas() or uri_migrada).startswith("epsonUSB://"),
                 "elioud_activo": elioud_ok,
                 "backend_corregido": migrado,
@@ -8213,17 +8619,32 @@ def register_routes(app):
         chk("Sudo sin contraseña para elpu", sudoers_ok, sudoers_detalle)
 
         uri_dev = _uri_dispositivo_etiquetas()
-        backend_ok = uri_dev.startswith("epsonUSB://")
+        backend_ok = uri_dev.startswith("usb://")
         chk(
-            "Backend epsonUSB (niveles de tinta)",
+            "Backend usb:// (impresión CUPS)",
             backend_ok,
             uri_dev or "Impresora no registrada",
         )
+        if uri_dev.startswith("epsonUSB://"):
+            chk(
+                "Sin backend epsonUSB (rompe impresión)",
+                False,
+                "Pulsa Instalar impresora para migrar a usb://",
+            )
 
         try:
-            r_el = _sp.run(["pgrep", "-f", "elioud1"], capture_output=True, text=True, timeout=3)
-            elioud_ok = r_el.returncode == 0
-            chk("Daemon elioud1 (Epson I/O)", elioud_ok, "Activo" if elioud_ok else "Inactivo — pulsa Instalar impresora")
+            total_el, raices_el = _elioud_estado_etiquetas()
+            if raices_el == 1:
+                det = f"Activo ({total_el} proc.)" if total_el > 1 else "Activo"
+                chk("Daemon elioud1 (Epson I/O)", True, det)
+            elif raices_el > 1:
+                chk(
+                    "Daemon elioud1 (Epson I/O)",
+                    False,
+                    f"{raices_el} daemons duplicados — pulsa Instalar impresora",
+                )
+            else:
+                chk("Daemon elioud1 (Epson I/O)", False, "Inactivo — pulsa Instalar impresora")
         except Exception as e:
             chk("Daemon elioud1 (Epson I/O)", False, str(e))
 
@@ -8236,7 +8657,7 @@ def register_routes(app):
                 None,
             )
             if usb_uri:
-                usb_uri = _uri_epson_usb_desde_usb(usb_uri)
+                usb_uri = _uri_usb_cups_desde_uri(usb_uri)
         except Exception:
             usb_uri = None
 
@@ -8287,7 +8708,7 @@ def register_routes(app):
             log.append("⚠ PPD no encontrado — instala el driver Epson manualmente")
             errores.append("PPD no disponible")
 
-        # 3. Determinar URI USB (backend epsonUSB obligatorio para niveles de tinta)
+        # 3. URI USB — usb:// para CUPS (epsonUSB:// falla al imprimir)
         try:
             r = _sp.run(["lpinfo", "-v"], capture_output=True, text=True, timeout=10)
             usb_uri = next(
@@ -8297,8 +8718,8 @@ def register_routes(app):
             )
         except Exception:
             usb_uri = "usb://EPSON/CW-C4000u"
-        usb_uri = _uri_epson_usb_desde_usb(usb_uri)
-        log.append(f"▶ URI impresora (epsonUSB): {usb_uri}")
+        usb_uri = _uri_usb_cups_desde_uri(usb_uri)
+        log.append(f"▶ URI impresora (usb://): {usb_uri}")
 
         # 4. Registrar o corregir impresora
         r_check = _sp.run(["lpstat", "-p", _PRINTER_NAME], capture_output=True, text=True, timeout=5)
@@ -8306,11 +8727,11 @@ def register_routes(app):
         if r_check.returncode == 0:
             if uri_actual != usb_uri:
                 run(
-                    f"Corregir backend epsonUSB en {_PRINTER_NAME}",
+                    f"Corregir backend usb:// en {_PRINTER_NAME}",
                     ["sudo", "lpadmin", "-p", _PRINTER_NAME, "-v", usb_uri],
                 )
             else:
-                log.append(f"▶ Impresora {_PRINTER_NAME} ya usa backend epsonUSB")
+                log.append(f"▶ Impresora {_PRINTER_NAME} ya usa backend usb://")
         elif ppd_usar:
             run(
                 f"Registrar impresora {_PRINTER_NAME}",
@@ -8320,6 +8741,10 @@ def register_routes(app):
         # 5. Habilitar y aceptar impresora
         run(f"Habilitar {_PRINTER_NAME}", ["sudo", "cupsenable", _PRINTER_NAME])
         run(f"Aceptar trabajos {_PRINTER_NAME}", ["sudo", "cupsaccept", _PRINTER_NAME])
+        run(
+            f"Sensor gap por defecto ({_PRINTER_NAME})",
+            ["lpoptions", "-p", _PRINTER_NAME, "-o", "MediaForm=Diecut_Gap"],
+        )
 
         # 5b. Daemon Epson I/O (elioud1) para monitoreo de tinta
         if _asegurar_elioud_etiquetas():
@@ -8473,10 +8898,22 @@ def register_routes(app):
             )
             estado = r.stdout.strip() or r.stderr.strip()
             lista = _sp.run(["lpstat", "-p"], capture_output=True, text=True, timeout=5)
-            conectada = _impresora_conectada_cups_etiquetas()
+            resumen = _estado_cups_resumen_etiquetas(estado)
+            if resumen.get("en_pausa"):
+                if _despausar_impresora_etiquetas():
+                    estado = _estado_cups_etiquetas()
+                    resumen = _estado_cups_resumen_etiquetas(estado)
+            cola = _trabajos_cola_etiquetas()
+            conectada = bool(resumen.get("conectada"))
+            legible = resumen.get("legible", "Conectada")
+            if cola > 0 and resumen.get("codigo") == "lista":
+                legible = f"{legible} · {cola} trabajo(s) en cola"
             return jsonify({
                 "impresora": _PRINTER_NAME,
                 "estado": estado,
+                "estado_legible": legible,
+                "cups_codigo": resumen.get("codigo", "ok"),
+                "trabajos_en_cola": cola,
                 "impresora_conectada": conectada,
                 "comunicacion_usb": conectada and _comunicacion_usb_etiquetas(),
                 "impresoras_disponibles": lista.stdout.strip(),
@@ -9012,8 +9449,11 @@ def register_routes(app):
         imagenes = data.get("imagenes") or []
         rectangulos = data.get("rectangulos") or []
 
-        if producto not in _ETIQUETAS:
-            return jsonify({"error": f"Producto desconocido: {producto}"}), 400
+        dims = _dimensiones_etiqueta(producto, data.get("ancho_mm"), data.get("alto_mm"))
+        if not dims:
+            return jsonify({
+                "error": f"Formato desconocido: {producto}. Indica ancho_mm y alto_mm.",
+            }), 400
         if forma not in _MAPEO_FORMA:
             return jsonify({"error": f"Forma no válida: {forma}"}), 400
         if calidad not in _MAPEO_CALIDAD:
@@ -9030,7 +9470,7 @@ def register_routes(app):
             code = 404 if "no encontrado" in err_pdf.lower() else 400
             return jsonify({"error": err_pdf}), code
 
-        ancho, alto = _ETIQUETAS[producto]
+        ancho, alto = dims
         max_ancho, max_alto = _ETIQUETAS_MAX_MM
         if ancho > max_ancho or alto > max_alto:
             return jsonify({
@@ -9049,6 +9489,7 @@ def register_routes(app):
 
         log_lines = []
         tmp_pdf = None
+        elioud_suspendido = False
         try:
             atascados = _cancelar_trabajos_atascados_etiquetas()
             if atascados:
@@ -9065,7 +9506,14 @@ def register_routes(app):
                     "codigo": preflight.get("codigo", "preflight"),
                 })
 
-            preflight_elpu = _preflight_elpu_impresora_etiquetas()
+            _asegurar_backend_usb_cups_etiquetas()
+            _reiniciar_elioud_etiquetas()
+
+            preflight_elpu, aviso_elpu = _preflight_elpu_impresora_etiquetas(
+                omitir_comunicacion=True,
+            )
+            if aviso_elpu:
+                log_lines.append(f"Pre-vuelo ELPU: aviso — {aviso_elpu}")
             if preflight_elpu:
                 log_lines.append(f"Pre-vuelo ELPU: {preflight_elpu.get('detalle', preflight_elpu['error'])}")
                 return jsonify({
@@ -9075,8 +9523,6 @@ def register_routes(app):
                     "solucion": preflight_elpu["solucion"],
                     "codigo": preflight_elpu.get("codigo", "preflight"),
                 })
-
-            _reiniciar_elioud_etiquetas()
 
             # Overlay de líneas, imágenes PNG, campos de texto + lote/vencimiento
             pdf_a_imprimir = ruta_pdf
@@ -9101,10 +9547,11 @@ def register_routes(app):
                     info.append(f"lote/vence ({lote_x_pct:.1f}%, {lote_y_pct:.1f}%)")
                 log_lines.append(f"Overlay aplicado: {', '.join(info)}")
 
-            # 1. Ajuste físico de posición (mejor esfuerzo; no bloquea si falla el offset)
+            _preparar_medio_elpu_etiquetas(forma_val, calidad_val, ancho, alto, log_lines)
             _ejecutar_elpu_offset_etiquetas(offset_v, log_lines)
+            _suspender_elioud_impresion_etiquetas()
+            elioud_suspendido = True
 
-            # 2. Imprimir con lp
             cmd = [
                 "lp", "-d", _PRINTER_NAME,
                 "-n", str(cantidad),
@@ -9122,7 +9569,9 @@ def register_routes(app):
             log_lines.append(f"lp: {salida_lp or 'OK'}")
 
             if r_lp.returncode != 0:
-                return jsonify(_respuesta_error_impresion_etiquetas(log_lines, salida_lp))
+                return jsonify(_respuesta_error_impresion_etiquetas(
+                    log_lines, salida_lp, producto=producto, forma=forma,
+                ))
 
             job_id = _id_trabajo_desde_lp(salida_lp)
             if job_id:
@@ -9130,14 +9579,22 @@ def register_routes(app):
                 ok_job, det_job = _esperar_trabajo_cups_etiquetas(job_id)
                 if not ok_job:
                     log_lines.append(f"CUPS: falló — {det_job[:240]}")
-                    return jsonify(_respuesta_error_impresion_etiquetas(log_lines, det_job))
+                    if _trabajo_cups_fallo(det_job.lower()):
+                        _sp.run(["cancel", job_id], capture_output=True, text=True, timeout=5)
+                    return jsonify(_respuesta_error_impresion_etiquetas(
+                        log_lines, det_job, producto=producto, forma=forma,
+                    ))
 
             return jsonify({"ok": True, "log": log_lines})
         except Exception as e:
             log_lines.append(f"Excepción: {e}")
-            err = _respuesta_error_impresion_etiquetas(log_lines, str(e))
+            err = _respuesta_error_impresion_etiquetas(
+                log_lines, str(e), producto=producto, forma=forma,
+            )
             return jsonify(err)
         finally:
+            if elioud_suspendido:
+                _reiniciar_elioud_etiquetas()
             if tmp_pdf and os.path.isfile(tmp_pdf):
                 try:
                     os.unlink(tmp_pdf)
@@ -9649,9 +10106,7 @@ def register_routes(app):
         import uuid as _uuid
         body = request.get_json(silent=True) or {}
         nombre = (body.get("nombre") or "").strip() or "Plantilla sin nombre"
-        tipo = body.get("tipo_etiqueta") or next(iter(_ETIQUETAS.keys()))
-        if tipo not in _ETIQUETAS:
-            tipo = next(iter(_ETIQUETAS.keys()))
+        tipo = (body.get("tipo_etiqueta") or "").strip() or next(iter(_ETIQUETAS.keys()))
         pid = (body.get("id") or "").strip() or _uuid.uuid4().hex[:12]
         orientacion = (body.get("orientacion") or "horizontal").strip().lower()
         if orientacion not in ("horizontal", "vertical"):
@@ -9867,6 +10322,18 @@ def register_routes(app):
         from flask import send_file
         mime = "image/jpeg" if nombre.lower().endswith((".jpg", ".jpeg", ".jpe")) else "image/png"
         return send_file(ruta, mimetype=mime, conditional=True)
+
+    # ── Etiquetas: catálogo de formatos (nombre + mm) ────────────────────────
+
+    @app.route("/api/etiquetas/tipos", methods=["GET", "PUT"])
+    def api_etiquetas_tipos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        if request.method == "GET":
+            return jsonify({"tipos": _load_etiquetas_tipos()})
+        body = request.get_json(silent=True) or {}
+        tipos = _save_etiquetas_tipos(body.get("tipos") or [])
+        return jsonify({"ok": True, "tipos": tipos})
 
     # ── Etiquetas: colores guardados ─────────────────────────────────────────
 
