@@ -204,18 +204,30 @@ def notificar_ticket_creado(ticket_id: int) -> None:
         asig = t.get("asignado_a")
         if not asig or asig == t.get("creado_por"):
             return
-        tipo = "compras" if (t.get("subtipo") or "").strip() == "compra" else (
-            "solicitud" if t["tipo"] == "solicitud" else "acción"
-        )
+        subtipo = (t.get("subtipo") or "").strip()
+        if subtipo == "compra":
+            tipo = "compras"
+        elif subtipo == "etiqueta":
+            tipo = "pedido de etiquetas"
+        else:
+            tipo = "solicitud" if t["tipo"] == "solicitud" else "acción"
         titulo = (t.get("titulo") or "una tarea").strip()
         descripcion = (t.get("descripcion") or "").strip()
         desc = descripcion if descripcion and descripcion.lower() != titulo.lower() else ""
-        guion = (
-            f"Hola. Te asignaron una nueva {tipo} en el panel: "
-            f"{titulo}. "
-            + (f"{desc}. " if desc else "")
-            + "Revisa solicitudes o acciones cuando puedas."
-        )
+        if subtipo == "etiqueta":
+            guion = (
+                f"Hola. Te llegó un pedido de etiquetas en Impresora · Etiquetas: "
+                f"{titulo}. "
+                + (f"{desc}. " if desc else "")
+                + "Abre el panel Impresora · Etiquetas → pestaña Imprimir."
+            )
+        else:
+            guion = (
+                f"Hola. Te asignaron una nueva {tipo} en el panel: "
+                f"{titulo}. "
+                + (f"{desc}. " if desc else "")
+                + "Revisa solicitudes o acciones cuando puedas."
+            )
         _programar(asig, guion)
 
 

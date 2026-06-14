@@ -302,10 +302,11 @@ export default function Sidebar() {
               <button
                 type="button"
                 title="Mi perfil"
+                aria-label="Abrir mi perfil"
                 onClick={() => setPanel("perfil")}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted transition hover:border-accent hover:bg-surface-hover hover:text-accent"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-accent/50 bg-accent/10 text-accent shadow-sm transition hover:border-accent hover:bg-accent/20"
               >
-                <Icon name="settings" size={18} weight="regular" />
+                <Icon name="settings" size={18} weight="duotone" />
               </button>
             </>
           ) : (

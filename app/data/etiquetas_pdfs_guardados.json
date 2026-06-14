@@ -1,6 +1,55 @@
 {
   "archivos": [
     {
+      "nombre": "ACIDO SALICILICO 50g.pdf",
+      "ruta": "Etiquetas McKenna/ACIDO SALICILICO 50g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO SALICILICO 50g.pdf",
+      "subido_at": "2026-06-13T22:59:29",
+      "bytes": 112520
+    },
+    {
+      "nombre": "ACEITE DE RICINO 250mL.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE DE RICINO 250mL.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE DE RICINO 250mL.pdf",
+      "subido_at": "2026-06-13T21:39:24",
+      "bytes": 463016
+    },
+    {
+      "nombre": "OXIDO DE ZINC 250g.pdf",
+      "ruta": "Etiquetas McKenna/OXIDO DE ZINC 250g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/OXIDO DE ZINC 250g.pdf",
+      "subido_at": "2026-06-13T20:57:54",
+      "bytes": 473886
+    },
+    {
+      "nombre": "CERA DE  ABEJAS NATURAL 500g.pdf",
+      "ruta": "Etiquetas McKenna/CERA DE  ABEJAS NATURAL 500g.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/CERA DE  ABEJAS NATURAL 500g.pdf",
+      "subido_at": "2026-06-13T20:11:39",
+      "bytes": 68295
+    },
+    {
+      "nombre": "AGUA DESTILADA 250mL.pdf",
+      "ruta": "Etiquetas McKenna/AGUA DESTILADA 250mL.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/AGUA DESTILADA 250mL.pdf",
+      "subido_at": "2026-06-13T19:54:54",
+      "bytes": 467703
+    },
+    {
+      "nombre": "ACEITE ARGAN 50mL.pdf",
+      "ruta": "Etiquetas McKenna/ACEITE ARGAN 50mL.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACEITE ARGAN 50mL.pdf",
+      "subido_at": "2026-06-13T18:45:11",
+      "bytes": 472853
+    },
+    {
+      "nombre": "ELASTINA 30 mL.pdf",
+      "ruta": "Etiquetas McKenna/ELASTINA 30 mL.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ELASTINA 30 mL.pdf",
+      "subido_at": "2026-06-13T18:39:01",
+      "bytes": 470760
+    },
+    {
       "nombre": "VITAMINA C 30 mL.pdf",
       "ruta": "Etiquetas McKenna/VITAMINA C 30 mL.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/VITAMINA C 30 mL.pdf",

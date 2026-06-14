@@ -1,84 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1781016047.1456041,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Si sr"
-    },
-    {
-      "ts": 1781016280.6182263,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1781016293.2304063,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Tienes alantoína?"
-    },
-    {
-      "ts": 1781016819.705704,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Ñ"
-    },
-    {
-      "ts": 1781016856.3279932,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Cera de abejas de cuál hay? No me pusiste el valor"
-    },
-    {
-      "ts": 1781016872.4889615,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Una porfa también dentro del pedido"
-    },
-    {
-      "ts": 1781016974.512718,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Ok, estoy pendiente para el pago"
-    },
-    {
-      "ts": 1781017141.984302,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Libra?"
-    },
-    {
-      "ts": 1781017162.9472563,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "1 libra natural por favor"
-    },
-    {
-      "ts": 1781017301.3369312,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Bueno, yo sumo"
-    },
-    {
-      "ts": 1781017891.6222558,
-      "tipo": "bot_pausado_global",
-      "sender": "573142939639@c.us",
-      "detalle": "Estoy atento"
-    },
-    {
-      "ts": 1781018002.641866,
-      "tipo": "bot_pausado_global",
-      "sender": "573142939639@c.us",
-      "detalle": "Adjunto mensajes anteriores"
-    },
-    {
-      "ts": 1781018004.69337,
-      "tipo": "bot_pausado_global",
-      "sender": "573142939639@c.us",
-      "detalle": "[6/5, 13:20] S: Hice una compra por mercado libre de un citrato de calcio\n[6/5, 13:20] S: Pero en el empaque no aparece el registro invima\n[6/5, 13:21] S: Me lo pueden enviar, por favor"
-    },
-    {
       "ts": 1781018763.6338382,
       "tipo": "bot_pausado_global",
       "sender": "573177388857@c.us",
@@ -1799,6 +1721,84 @@
       "tipo": "bot_pausado_global",
       "sender": "260532850405443@lid",
       "detalle": "I would like you to send me a replacement product please \nTo Canada where I live"
+    },
+    {
+      "ts": 1781355400.3706553,
+      "tipo": "bot_pausado_global",
+      "sender": "573014064965@c.us",
+      "detalle": "Gracias por ponerte en contacto con iMobile Colombia. Te responderemos en nuestro horario de atención, déjanos tu mensaje y tendrás respuesta cuanto antes.Síguenos y entérate de nuestras ofertas https"
+    },
+    {
+      "ts": 1781355491.1478195,
+      "tipo": "bot_pausado_global",
+      "sender": "573014064965@c.us",
+      "detalle": "Buen día"
+    },
+    {
+      "ts": 1781355515.6389415,
+      "tipo": "bot_pausado_global",
+      "sender": "573014064965@c.us",
+      "detalle": "Todas valen $15.000?"
+    },
+    {
+      "ts": 1781363128.1703792,
+      "tipo": "bot_pausado_global",
+      "sender": "573155513066@c.us",
+      "detalle": "Buenas tardes una pregunta cómo se toma el manecio"
+    },
+    {
+      "ts": 1781363753.5047457,
+      "tipo": "bot_pausado_global",
+      "sender": "573212542906@c.us",
+      "detalle": "Buen dia.Me envía el recibo sobre el ácido H de bajo peso y el sebo. gracias"
+    },
+    {
+      "ts": 1781370704.177071,
+      "tipo": "bot_pausado_global",
+      "sender": "573175764579@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1781370723.5658112,
+      "tipo": "bot_pausado_global",
+      "sender": "573175764579@c.us",
+      "detalle": "Si es tan amable para hacer un pedido"
+    },
+    {
+      "ts": 1781370791.4275296,
+      "tipo": "bot_pausado_global",
+      "sender": "573175764579@c.us",
+      "detalle": "Pago $48.800"
+    },
+    {
+      "ts": 1781370802.5742803,
+      "tipo": "bot_pausado_global",
+      "sender": "573175764579@c.us",
+      "detalle": "Factura a nombre de \nRED CHOCOLATE SAS\nNit 900614242-6\nCorreo para facturar: facturacion @redchocolate.net\n\nDirección envio:\nChía, vereda Fagua, vía Guanatá , es la empresa Red Chocolate frente a el a"
+    },
+    {
+      "ts": 1781370819.2850225,
+      "tipo": "bot_pausado_global",
+      "sender": "573175764579@c.us",
+      "detalle": "40.000"
+    },
+    {
+      "ts": 1781371156.5980725,
+      "tipo": "bot_pausado_global",
+      "sender": "573175764579@c.us",
+      "detalle": "Gracias"
+    },
+    {
+      "ts": 1781372347.8892484,
+      "tipo": "bot_pausado_global",
+      "sender": "573233273101@c.us",
+      "detalle": "Pensé que era mentira 😂 pero sí me dieron los $600.000, pruébalo\nhttps://hzlhf.buzz/zGUuTZP/co-es?0613486489411329077&s=wa&"
+    },
+    {
+      "ts": 1781374027.43713,
+      "tipo": "bot_pausado_global",
+      "sender": "573173006871@c.us",
+      "detalle": "Hola buenas tardes"
     }
   ]
 }

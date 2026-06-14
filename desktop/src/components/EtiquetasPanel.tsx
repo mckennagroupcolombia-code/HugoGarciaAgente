@@ -3,12 +3,26 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, resolvePanelApiUrl } from "../api/client";
 import { useAuthStore } from "../stores/auth";
 import { useTicketsAuth } from "../stores/ticketsAuth";
-import { useAppStore, type EtiquetasHandoff, type EtiquetasTab } from "../stores/app";
+import { useAppStore, type EtiquetasHandoff, type EtiquetasTab, type EtiquetasSolicitudActiva } from "../stores/app";
+import {
+  esSolicitudEtiqueta,
+  parseLineasPedidoEtiqueta,
+  inferirTipoEtiqueta,
+  type SolicitudEtiquetaBasica,
+} from "../lib/etiquetasSolicitudes";
 import {
   type CmykColor,
   hexToCmyk,
   CMYK_NEGRO,
 } from "../lib/cmykColor";
+import {
+  mmParaTipoEtiqueta,
+  TIPOS_ETIQUETA_DEFAULT,
+} from "../lib/etiquetasTipos";
+import {
+  SelectorFormatoEtiqueta,
+  type FormatoEtiquetaValor,
+} from "./etiquetas/SelectorFormatoEtiqueta";
 import { Icon } from "../icons";
 import { ProseTextarea } from "./ProseTextarea";
 import { EditorPanel } from "./PublicacionesPanel";
@@ -60,6 +74,9 @@ const CODIGOS_INSTALAR_IMPRESORA = new Set([
 interface ImpResp {
   impresora: string;
   estado: string;
+  estado_legible?: string;
+  cups_codigo?: string;
+  trabajos_en_cola?: number;
   impresora_conectada?: boolean;
   comunicacion_usb?: boolean;
   niveles_tinta?: NivelesTintaResp;
@@ -239,6 +256,8 @@ interface PlantillaEtiqueta {
   id: string;
   nombre: string;
   tipo_etiqueta: string;
+  ancho_mm?: number;
+  alto_mm?: number;
   orientacion?: OrientacionPlantilla;
   campos_texto: CampoTexto[];
   lineas: LineaPlantilla[];
@@ -532,6 +551,8 @@ interface DatosEtiqueta {
   lote_defecto?: string;
   vencimiento_defecto?: string;
   tipo_etiqueta?: string;
+  ancho_mm?: number;
+  alto_mm?: number;
   forma?: string;
   calidad?: string;
   rotacion?: string;
@@ -548,6 +569,8 @@ interface DatosEtiqueta {
 
 interface ImpresionEtiquetaPayload {
   producto: string;
+  ancho_mm?: number;
+  alto_mm?: number;
   forma: string;
   calidad: string;
   rotacion: string;
@@ -573,8 +596,11 @@ function payloadDesdeFormularioEtiqueta(
   offsetH = 0,
 ): ImpresionEtiquetaPayload | null {
   if (!form.pdf_ruta || !form.tipo_etiqueta) return null;
+  const [anchoFb, altoFb] = mmParaTipoEtiqueta(form.tipo_etiqueta, TIPOS_ETIQUETA_DEFAULT);
   return {
     producto: form.tipo_etiqueta,
+    ancho_mm: form.ancho_mm ?? anchoFb,
+    alto_mm: form.alto_mm ?? altoFb,
     forma: form.forma ?? "Diecut_Gap",
     calidad: form.calidad ?? "Normal",
     rotacion: rotacionValida(form.rotacion),
@@ -691,8 +717,15 @@ function orientacionPlantilla(p: PlantillaEtiqueta): OrientacionPlantilla {
   return p.orientacion === "vertical" ? "vertical" : "horizontal";
 }
 
-function dimensioensPlantillaMm(tipo: string, orientacion: OrientacionPlantilla): [number, number] {
-  const base = ETIQUETAS_MM[tipo] ?? [76, 66];
+function dimensioensPlantillaMm(
+  tipo: string,
+  orientacion: OrientacionPlantilla,
+  anchoOverride?: number,
+  altoOverride?: number,
+): [number, number] {
+  const base: [number, number] = anchoOverride && altoOverride
+    ? [anchoOverride, altoOverride]
+    : (ETIQUETAS_MM[tipo] ?? [76, 66]);
   if (orientacion === "vertical") return [base[1], base[0]];
   return base;
 }
@@ -2620,6 +2653,8 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     datosIniciales.lote_x_pct,
     datosIniciales.lote_y_pct,
   );
+  const tipoInit = datosIniciales.tipo_etiqueta ?? ETIQUETAS_LISTA[0];
+  const [mmInitW, mmInitH] = mmParaTipoEtiqueta(tipoInit, TIPOS_ETIQUETA_DEFAULT);
   const [form, setForm] = useState<DatosEtiqueta>({
     siigo_code: combo.code,
     siigo_name: combo.name,
@@ -2629,7 +2664,9 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     pdf_nombre: datosIniciales.pdf_nombre ?? "",
     lote_defecto: conPrefijoLote(datosIniciales.lote_defecto),
     vencimiento_defecto: conPrefijoExp(datosIniciales.vencimiento_defecto),
-    tipo_etiqueta: datosIniciales.tipo_etiqueta ?? ETIQUETAS_LISTA[0],
+    tipo_etiqueta: tipoInit,
+    ancho_mm: datosIniciales.ancho_mm ?? mmInitW,
+    alto_mm: datosIniciales.alto_mm ?? mmInitH,
     forma: datosIniciales.forma ?? "Diecut_Gap",
     calidad: datosIniciales.calidad ?? "Normal",
     rotacion: rotacionValida(datosIniciales.rotacion),
@@ -2917,20 +2954,23 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
               {tabEditor === "impresion" && (
                 <>
                   <RibbonGroup label="Formato">
-                    <div>
-                      <label className={RIB_LBL}>Tipo</label>
-                      <select
-                        value={form.tipo_etiqueta ?? ""}
-                        onChange={(e) => {
-                          const tipo = e.target.value;
-                          set("tipo_etiqueta", tipo);
-                          set("rotacion", rotacionDefaultEtiqueta(tipo));
-                        }}
-                        className={RIB_SEL}
-                      >
-                        {ETIQUETAS_LISTA.map((e) => <option key={e}>{e}</option>)}
-                      </select>
-                    </div>
+                    <SelectorFormatoEtiqueta
+                      value={{
+                        nombre: form.tipo_etiqueta ?? "",
+                        anchoMm: form.ancho_mm ?? mmInitW,
+                        altoMm: form.alto_mm ?? mmInitH,
+                      }}
+                      onChange={(v) => {
+                        set("tipo_etiqueta", v.nombre);
+                        set("ancho_mm", v.anchoMm);
+                        set("alto_mm", v.altoMm);
+                        set("rotacion", rotacionDefaultEtiqueta(v.nombre));
+                      }}
+                      inputClass={RIB_INP}
+                      selectClass={RIB_SEL}
+                      labelClass={RIB_LBL}
+                      compact
+                    />
                     <div>
                       <label className={RIB_LBL}>Sensor</label>
                       <select value={form.forma ?? "Diecut_Gap"} onChange={(e) => set("forma", e.target.value)} className={RIB_SEL}>
@@ -4316,7 +4356,7 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
   const recursos = recursosData?.recursos ?? [];
   const recursosThumb = Object.fromEntries(recursos.map((r) => [r.id, r.thumb_b64]));
   const orientacion = orientacionPlantilla(actual);
-  const [aw, ah] = dimensioensPlantillaMm(actual.tipo_etiqueta, orientacion);
+  const [aw, ah] = dimensioensPlantillaMm(actual.tipo_etiqueta, orientacion, actual.ancho_mm, actual.alto_mm);
   const unicoSel = seleccionUnica(seleccion);
   const campoSel = unicoSel?.tipo === "texto"
     ? actual.campos_texto.find((c) => c.id === unicoSel.id)
@@ -4479,13 +4519,22 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
             className="ml-auto min-w-[10rem] rounded border border-white/30 bg-white/10 px-2 py-1 text-xs text-white placeholder:text-white/50 focus:border-white focus:outline-none"
             placeholder="Nombre plantilla"
           />
-          <select
-            value={actual.tipo_etiqueta}
-            onChange={(e) => setActual((p) => ({ ...p, tipo_etiqueta: e.target.value }))}
-            className="rounded border border-white/30 bg-white/10 px-2 py-1 text-xs text-white focus:border-white focus:outline-none"
-          >
-            {ETIQUETAS_LISTA.map((e) => <option key={e} className="text-ink">{e}</option>)}
-          </select>
+          <SelectorFormatoEtiqueta
+            dark
+            value={{
+              nombre: actual.tipo_etiqueta,
+              anchoMm: actual.ancho_mm ?? mmParaTipoEtiqueta(actual.tipo_etiqueta, TIPOS_ETIQUETA_DEFAULT)[0],
+              altoMm: actual.alto_mm ?? mmParaTipoEtiqueta(actual.tipo_etiqueta, TIPOS_ETIQUETA_DEFAULT)[1],
+            }}
+            onChange={(v) => setActual((p) => ({
+              ...p,
+              tipo_etiqueta: v.nombre,
+              ancho_mm: v.anchoMm,
+              alto_mm: v.altoMm,
+            }))}
+            selectClass="max-w-[12rem] rounded border border-white/30 bg-white/10 px-1.5 py-1 text-xs text-white focus:border-white focus:outline-none"
+            inputClass="rounded border border-white/30 bg-white/10 px-1.5 py-1 text-xs text-white focus:border-white focus:outline-none"
+          />
         </div>
       </div>
 
@@ -4822,19 +4871,434 @@ function TabPlantillas({ onUsarEnImpresion }: TabPlantillasProps) {
   );
 }
 
+// ── Pedidos de etiquetas → Solicitudes ────────────────────────────────────────
+
+interface SolicitudEtiquetaRow extends SolicitudEtiquetaBasica {}
+
+async function ticketsApi(path: string, token: string, options: RequestInit = {}) {
+  const isForm = options.body instanceof FormData;
+  const hasJsonBody = options.body != null && options.body !== "" && !isForm;
+  const method = (options.method ?? "GET").toUpperCase();
+  let url = `/api/tickets${path}`;
+  if (method === "GET" || method === "HEAD") {
+    url += `${path.includes("?") ? "&" : "?"}_t=${Date.now()}`;
+  }
+  const r = await fetch(url, {
+    cache: "no-store",
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Pragma: "no-cache",
+      ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {}),
+    },
+  });
+  let data: unknown;
+  try {
+    data = await r.json();
+  } catch {
+    if (!r.ok) throw new Error(`Error ${r.status}`);
+    return {};
+  }
+  if (!r.ok) throw new Error((data as { error?: string })?.error || `Error ${r.status}`);
+  return data;
+}
+
+interface ItemPedidoEtiqueta {
+  id: number;
+  nombre: string;
+  cantidad: number;
+  unidad: string;
+  comprado: number;
+  notas: string | null;
+}
+
+function mapItemsPedido(raw: unknown[]): ItemPedidoEtiqueta[] {
+  return raw.map((row) => {
+    const r = row as ItemPedidoEtiqueta & { material_nombre?: string };
+    return {
+      ...r,
+      nombre: (r.nombre || r.material_nombre || "").trim(),
+    };
+  });
+}
+
+function ChecklistPedidoEtiquetas({
+  pedido,
+  token,
+  onVolver,
+  onActualizado,
+  onAplicarLinea,
+}: {
+  pedido: SolicitudEtiquetaRow;
+  token: string;
+  onVolver?: () => void;
+  onActualizado?: () => void;
+  onAplicarLinea?: (pedido: SolicitudEtiquetaRow, linea: ReturnType<typeof parseLineasPedidoEtiqueta>[number]) => void;
+}) {
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const [items, setItems] = useState<ItemPedidoEtiqueta[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [notaEditId, setNotaEditId] = useState<number | null>(null);
+  const [notaDraft, setNotaDraft] = useState("");
+  const resolviendoRef = useRef(false);
+
+  const activos = items.filter((i) => i.nombre.trim());
+  const hechos = activos.filter((i) => !!i.comprado).length;
+  const todosMarcados = activos.length > 0 && hechos === activos.length;
+
+  const cargarItems = useCallback(async () => {
+    setLoading(true);
+    setMsg("");
+    try {
+      let data = await ticketsApi(`/${pedido.id}/lista-compras`, token);
+      let raw = Array.isArray(data) ? data : [];
+      if (raw.length === 0 && pedido.descripcion?.trim()) {
+        const lineas = parseLineasPedidoEtiqueta(pedido.descripcion);
+        for (const linea of lineas) {
+          await ticketsApi(`/${pedido.id}/lista-compras`, token, {
+            method: "POST",
+            body: JSON.stringify({
+              nombre: linea.label,
+              cantidad: linea.cantidad || 1,
+              unidad: "und",
+            }),
+          });
+        }
+        data = await ticketsApi(`/${pedido.id}/lista-compras`, token);
+        raw = Array.isArray(data) ? data : [];
+      }
+      setItems(mapItemsPedido(raw));
+    } catch (e: unknown) {
+      setItems([]);
+      setMsg(e instanceof Error ? e.message : "No se pudo cargar la lista");
+    } finally {
+      setLoading(false);
+    }
+  }, [pedido.id, pedido.descripcion, token]);
+
+  useEffect(() => { void cargarItems(); }, [cargarItems]);
+
+  async function toggleItem(item: ItemPedidoEtiqueta) {
+    setBusy(true);
+    try {
+      const data = await ticketsApi(`/lista-compras/${item.id}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ comprado: item.comprado ? 0 : 1 }),
+      });
+      setItems(Array.isArray(data) ? mapItemsPedido(data) : items);
+      onActualizado?.();
+    } catch { /* ignore */ } finally { setBusy(false); }
+  }
+
+  async function guardarNota(itemId: number, notas: string) {
+    setBusy(true);
+    try {
+      const data = await ticketsApi(`/lista-compras/${itemId}`, token, {
+        method: "PUT",
+        body: JSON.stringify({ notas: notas.trim() || null }),
+      });
+      setItems(Array.isArray(data) ? mapItemsPedido(data) : items);
+      setNotaEditId(null);
+      onActualizado?.();
+    } catch { /* ignore */ } finally { setBusy(false); }
+  }
+
+  async function resolverPedido() {
+    if (!todosMarcados || resolviendoRef.current) return;
+    resolviendoRef.current = true;
+    setBusy(true);
+    try {
+      const nombre = ticketsUser?.nombre || "Operador";
+      await ticketsApi(`/${pedido.id}/comentarios`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          texto: `✅ Pedido de etiquetas completado por ${nombre} (${activos.length} ítem${activos.length !== 1 ? "s" : ""}).`,
+          es_interno: false,
+        }),
+      });
+      await ticketsApi(`/${pedido.id}/estado`, token, {
+        method: "PUT",
+        body: JSON.stringify({ estado: "resuelto" }),
+      });
+      onActualizado?.();
+      setMsg("✅ Pedido completado");
+    } catch (e: unknown) {
+      setMsg(e instanceof Error ? e.message : "Error al cerrar el pedido");
+    } finally {
+      setBusy(false);
+      resolviendoRef.current = false;
+    }
+  }
+
+  useEffect(() => {
+    if (loading || busy || !todosMarcados) return;
+    void resolverPedido();
+  }, [items, loading, busy, todosMarcados]);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-2">
+        {onVolver && (
+          <button type="button" onClick={onVolver} className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-bold text-muted hover:border-accent">
+            ←
+          </button>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-ink">{pedido.titulo || "Pedido de etiquetas"}</p>
+          <p className="text-[10px] text-muted">
+            {pedido.numero ?? `#${pedido.id}`}
+            {pedido.creado_por_nombre ? ` · de ${pedido.creado_por_nombre}` : ""}
+          </p>
+        </div>
+        {activos.length > 0 && (
+          <span className="shrink-0 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-black text-accent">
+            {hechos}/{activos.length}
+          </span>
+        )}
+      </div>
+
+      {loading && <p className="py-6 text-center text-sm text-muted italic">Cargando lista…</p>}
+
+      {!loading && activos.length === 0 && (
+        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted">
+          Este pedido no tiene ítems en la lista.
+        </p>
+      )}
+
+      {!loading && activos.map((item) => {
+        const linea = parseLineasPedidoEtiqueta(item.nombre)[0] ?? {
+          label: item.nombre,
+          cantidad: item.cantidad || 1,
+          tipoEtiqueta: inferirTipoEtiqueta(item.nombre),
+        };
+        const editandoNota = notaEditId === item.id;
+        return (
+          <div
+            key={item.id}
+            className={`rounded-xl border-2 transition ${item.comprado ? "border-accent/40 bg-accent/5" : "border-border bg-surface"}`}
+          >
+            <div className="flex items-start gap-3 px-3 py-3">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void toggleItem(item)}
+                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 text-sm font-bold transition
+                  ${item.comprado ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent"}`}
+              >
+                {item.comprado ? "✓" : ""}
+              </button>
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => onAplicarLinea?.(pedido, linea)}
+                  className="w-full text-left"
+                  title="Usar en impresión"
+                >
+                  <p className={`text-sm font-bold ${item.comprado ? "text-accent line-through" : "text-ink"}`}>
+                    {item.nombre}
+                  </p>
+                  {linea.tipoEtiqueta && (
+                    <p className="text-[10px] text-muted">Formato sugerido: {linea.tipoEtiqueta}</p>
+                  )}
+                </button>
+                {item.notas && !editandoNota && (
+                  <p className="mt-1 text-xs italic text-muted">📝 {item.notas}</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (editandoNota) {
+                    setNotaEditId(null);
+                    return;
+                  }
+                  setNotaEditId(item.id);
+                  setNotaDraft(item.notas || "");
+                }}
+                className={`shrink-0 rounded-lg px-2 py-1 text-xs font-bold transition
+                  ${editandoNota || item.notas ? "bg-accent/15 text-accent" : "text-muted hover:bg-surface-hover"}`}
+                title="Anotación"
+              >
+                📝
+              </button>
+            </div>
+            {editandoNota && (
+              <div className="border-t border-border/60 px-3 pb-3 pt-2">
+                <input
+                  type="text"
+                  autoFocus
+                  value={notaDraft}
+                  onChange={(e) => setNotaDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void guardarNota(item.id, notaDraft);
+                    }
+                    if (e.key === "Escape") setNotaEditId(null);
+                  }}
+                  onBlur={() => void guardarNota(item.id, notaDraft)}
+                  placeholder="Anotación sobre este ítem…"
+                  className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent"
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {msg && (
+        <p className={`text-center text-xs font-semibold ${msg.startsWith("✅") ? "text-accent" : "text-red-500"}`}>
+          {msg}
+        </p>
+      )}
+      {!loading && activos.length > 0 && (
+        <p className="text-center text-[10px] text-muted">
+          Marca cada ítem al imprimirlo · 📝 para anotar · al completar todos se cierra el pedido
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ModalPedidosEtiquetasEnCurso({
+  onCerrar,
+  onActualizado,
+  onAplicarLinea,
+}: {
+  onCerrar: () => void;
+  onActualizado?: () => void;
+  onAplicarLinea?: (pedido: SolicitudEtiquetaRow, linea: ReturnType<typeof parseLineasPedidoEtiqueta>[number]) => void;
+}) {
+  const token = panelBearerToken();
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const [pendientes, setPendientes] = useState<SolicitudEtiquetaRow[]>([]);
+  const [pedidoSel, setPedidoSel] = useState<SolicitudEtiquetaRow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const cargar = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      setError("Inicia sesión en el Centro de Mando para ver pedidos.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const sols = await ticketsApi("/?tipo=solicitud&activas=1", token) as SolicitudEtiquetaRow[];
+      const filtradas = (Array.isArray(sols) ? sols : [])
+        .filter(esSolicitudEtiqueta)
+        .filter((s) => !ticketsUser?.id || s.asignado_a === ticketsUser.id);
+      setPendientes(filtradas);
+      setPedidoSel((prev) => {
+        if (prev && filtradas.some((p) => p.id === prev.id)) return prev;
+        return filtradas.length === 1 ? filtradas[0] : null;
+      });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se pudieron cargar los pedidos");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, ticketsUser?.id]);
+
+  useEffect(() => { void cargar(); }, [cargar]);
+
+  function handleActualizado() {
+    void cargar();
+    onActualizado?.();
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4">
+      <div className="flex max-h-[88vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-border bg-surface-panel shadow-xl sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-border bg-accent px-4 py-3 text-white">
+          <div>
+            <p className="text-sm font-bold">{pedidoSel ? "Checklist del pedido" : "Pedidos en curso"}</p>
+            <p className="text-[10px] opacity-80">
+              {pedidoSel ? "Marca, anota y guarda el avance" : "Etiquetas asignadas a ti"}
+            </p>
+          </div>
+          <button type="button" onClick={onCerrar} className="rounded px-2 py-1 text-lg leading-none hover:bg-white/15">×</button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {error && (
+            <p className="mb-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">{error}</p>
+          )}
+          {loading && !pedidoSel && (
+            <p className="py-8 text-center text-sm text-muted italic">Cargando…</p>
+          )}
+          {!loading && !pedidoSel && pendientes.length === 0 && (
+            <p className="rounded-lg border border-dashed border-border px-3 py-8 text-center text-sm text-muted">
+              Sin pedidos de etiquetas en curso.
+            </p>
+          )}
+          {!loading && !pedidoSel && pendientes.length > 1 && (
+            <ul className="space-y-2">
+              {pendientes.map((s) => (
+                <li key={s.id}>
+                  <button
+                    type="button"
+                    onClick={() => setPedidoSel(s)}
+                    className="w-full rounded-xl border-2 border-border bg-surface px-4 py-3 text-left transition hover:border-accent"
+                  >
+                    <p className="truncate text-sm font-bold text-ink">{s.titulo || "Pedido de etiquetas"}</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      {s.numero ?? `#${s.id}`}
+                      {s.creado_por_nombre ? ` · de ${s.creado_por_nombre}` : ""}
+                    </p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {pedidoSel && token && (
+            <ChecklistPedidoEtiquetas
+              pedido={pedidoSel}
+              token={token}
+              onVolver={pendientes.length > 1 ? () => setPedidoSel(null) : undefined}
+              onActualizado={handleActualizado}
+              onAplicarLinea={(pedido, linea) => {
+                onAplicarLinea?.(pedido, linea);
+                onCerrar();
+              }}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Tab: Imprimir ─────────────────────────────────────────────────────────────
 
 type PrecargarImpresion = Partial<DatosEtiqueta>;
 
 interface TabImprimirProps {
   precargar?: PrecargarImpresion | null;
+  solicitudInicial?: EtiquetasSolicitudActiva | null;
   onPrecargarConsumido: () => void;
+  onSolicitudInicialConsumida?: () => void;
   onIrInventarioTinta?: () => void;
 }
 
-function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: TabImprimirProps) {
-  const qc = useQueryClient();
-  const [producto, setProducto] = useState(ETIQUETAS_LISTA[0]);
+function TabImprimir({
+  precargar,
+  solicitudInicial,
+  onPrecargarConsumido,
+  onSolicitudInicialConsumida,
+  onIrInventarioTinta,
+}: TabImprimirProps) {
+  const ticketsUser = useTicketsAuth((s) => s.user);
+  const ticketsToken = useTicketsAuth((s) => s.token);
+  const [formato, setFormato] = useState<FormatoEtiquetaValor>(() => {
+    const nombre = ETIQUETAS_LISTA[0];
+    const [anchoMm, altoMm] = mmParaTipoEtiqueta(nombre, TIPOS_ETIQUETA_DEFAULT);
+    return { nombre, anchoMm, altoMm };
+  });
   const [forma, setForma] = useState(FORMAS[0].value);
   const [calidad, setCalidad] = useState("Normal");
   const [rotacion, setRotacion] = useState("0");
@@ -4858,7 +5322,39 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
   const [mostrarInstalador, setMostrarInstalador] = useState(false);
   const [tabRibbon, setTabRibbon] = useState<ImprimirRibbonTab>("inicio");
   const [errorImpresion, setErrorImpresion] = useState<ErrorImpresora | null>(null);
+  const [mostrarPedidoEtiquetas, setMostrarPedidoEtiquetas] = useState(false);
+  const tokenTickets = ticketsToken || panelBearerToken();
 
+  const { data: solicitudesImprimir = [], refetch: refetchSolicitudesImprimir } = useQuery({
+    queryKey: ["etiquetas-solicitudes-imprimir", ticketsUser?.id],
+    queryFn: async () => {
+      if (!tokenTickets || !ticketsUser?.id) return [] as SolicitudEtiquetaRow[];
+      const sols = await ticketsApi("/?tipo=solicitud&activas=1", tokenTickets) as SolicitudEtiquetaRow[];
+      return (Array.isArray(sols) ? sols : [])
+        .filter(esSolicitudEtiqueta)
+        .filter((s) => s.asignado_a === ticketsUser.id);
+    },
+    refetchInterval: 20000,
+    enabled: !!tokenTickets && !!ticketsUser?.id,
+  });
+
+  useEffect(() => {
+    if (!solicitudInicial?.id) return;
+    const lineas = parseLineasPedidoEtiqueta(solicitudInicial.descripcion || "");
+    if (lineas.length > 0) {
+      const linea = lineas[0];
+      if (linea.tipoEtiqueta) {
+        const [anchoMm, altoMm] = mmParaTipoEtiqueta(linea.tipoEtiqueta, TIPOS_ETIQUETA_DEFAULT);
+        setFormato({ nombre: linea.tipoEtiqueta, anchoMm, altoMm });
+        setRotacion(rotacionDefaultEtiqueta(linea.tipoEtiqueta));
+      }
+      if (linea.cantidad > 0) setCantidad(Math.min(999, linea.cantidad));
+      setTabRibbon("inicio");
+    }
+    onSolicitudInicialConsumida?.();
+  }, [solicitudInicial, onSolicitudInicialConsumida]);
+
+  const qc = useQueryClient();
   const camposDebounced = useDebounce(camposTexto, 700);
   const lineasDebounced = useDebounce(lineasPlantilla, 700);
   const imagenesDebounced = useDebounce(imagenesPlantilla, 700);
@@ -4872,7 +5368,14 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
   // Precargar desde configuración de producto
   useEffect(() => {
     if (!precargar) return;
-    if (precargar.tipo_etiqueta) setProducto(precargar.tipo_etiqueta);
+    if (precargar.tipo_etiqueta) {
+      const [anchoMm, altoMm] = mmParaTipoEtiqueta(precargar.tipo_etiqueta, TIPOS_ETIQUETA_DEFAULT);
+      setFormato({
+        nombre: precargar.tipo_etiqueta,
+        anchoMm: precargar.ancho_mm ?? anchoMm,
+        altoMm: precargar.alto_mm ?? altoMm,
+      });
+    }
     if (precargar.forma) setForma(precargar.forma);
     if (precargar.calidad) setCalidad(precargar.calidad);
     if (precargar.rotacion) setRotacion(rotacionValida(precargar.rotacion));
@@ -4934,6 +5437,7 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
           : `[${ts}] ✅ Impresión enviada`,
       ]);
       refetchImpresora();
+      void refetchSolicitudesImprimir();
     },
     onError: (err) => {
       const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -4974,10 +5478,12 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
     const loteVal = loteParaEtiqueta(lote);
     const expVal = expParaEtiqueta(vencimiento);
     const loteInfo = (loteVal || expVal) ? ` · ${loteVal || "–"} / ${expVal || "–"}` : "";
-    setLog((prev) => [...prev, `[${ts}] ${cantidad} cop. · ${producto} · ${calidad}${loteInfo} · pos ${loteXPct.toFixed(1)}%,${loteYPct.toFixed(1)}%...`]);
+    setLog((prev) => [...prev, `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formato.anchoMm}×${formato.altoMm} mm) · ${calidad}${loteInfo} · pos ${loteXPct.toFixed(1)}%,${loteYPct.toFixed(1)}%...`]);
     setErrorImpresion(null);
     imprimirMut.mutate({
-      producto,
+      producto: formato.nombre,
+      ancho_mm: formato.anchoMm,
+      alto_mm: formato.altoMm,
       forma,
       calidad,
       rotacion,
@@ -4999,6 +5505,21 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
 
   return (
     <>
+      {mostrarPedidoEtiquetas && (
+        <ModalPedidosEtiquetasEnCurso
+          onCerrar={() => setMostrarPedidoEtiquetas(false)}
+          onActualizado={() => void refetchSolicitudesImprimir()}
+          onAplicarLinea={(_pedido, linea) => {
+            if (linea.tipoEtiqueta) {
+              const [anchoMm, altoMm] = mmParaTipoEtiqueta(linea.tipoEtiqueta, TIPOS_ETIQUETA_DEFAULT);
+              setFormato({ nombre: linea.tipoEtiqueta, anchoMm, altoMm });
+              setRotacion(rotacionDefaultEtiqueta(linea.tipoEtiqueta));
+            }
+            if (linea.cantidad > 0) setCantidad(Math.min(999, linea.cantidad));
+            setTabRibbon("inicio");
+          }}
+        />
+      )}
       {mostrarNavegador && (
         <NavegadorArchivos
           onSeleccionar={(item) => { setPdfSeleccionado(item); setMostrarNavegador(false); setTabRibbon("inicio"); }}
@@ -5025,6 +5546,19 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
               : impConectada ? (avisoRollo ? "Conectada · revisa rollo" : "Impresora lista")
               : "Sin impresora"}
           </span>
+          <button
+            type="button"
+            onClick={() => setMostrarPedidoEtiquetas(true)}
+            className="relative rounded border border-white/30 px-2.5 py-1 text-[10px] font-semibold hover:bg-white/15"
+            title="Ver pedidos de etiquetas en curso"
+          >
+            📋 En curso
+            {solicitudesImprimir.length > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[9px] font-black text-amber-950">
+                {solicitudesImprimir.length}
+              </span>
+            )}
+          </button>
           <button
             type="button"
             onClick={() => setMostrarInstalador(true)}
@@ -5074,20 +5608,18 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
             {tabRibbon === "inicio" && (
               <>
                 <RibbonGroup label="Formato">
-                  <div>
-                    <label className={RIB_LBL}>Producto</label>
-                    <select
-                      value={producto}
-                      onChange={(e) => {
-                        const tipo = e.target.value;
-                        setProducto(tipo);
-                        setRotacion(rotacionDefaultEtiqueta(tipo));
-                      }}
-                      className={RIB_SEL}
-                    >
-                      {ETIQUETAS_LISTA.map((e) => <option key={e}>{e}</option>)}
-                    </select>
-                  </div>
+                  <SelectorFormatoEtiqueta
+                    value={formato}
+                    onChange={(v) => {
+                      setFormato(v);
+                      setRotacion(rotacionDefaultEtiqueta(v.nombre));
+                    }}
+                    inputClass={RIB_INP}
+                    selectClass={RIB_SEL}
+                    labelClass={RIB_LBL}
+                    labelNombre="Producto"
+                    compact
+                  />
                   <div>
                     <label className={RIB_LBL}>Sensor</label>
                     <select value={forma} onChange={(e) => setForma(e.target.value)} className={RIB_SEL}>
@@ -5141,20 +5673,6 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
                     />
                     <button type="button" onClick={() => setCantidad((c) => Math.min(999, c + 1))} className="h-7 w-7 rounded border border-border text-sm font-bold hover:bg-surface-hover">+</button>
                   </div>
-                </RibbonGroup>
-                <RibbonGroup label="Archivo">
-                  <BotonSubirPdfEtiqueta
-                    compact
-                    label="📤 Subir"
-                    onSubido={seleccionarPdfSubido}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setTabRibbon("archivo")}
-                    className={`inline-flex h-8 max-w-[180px] items-center gap-1 truncate rounded border border-border bg-surface px-2.5 ${RIB_FONT_BTN} font-semibold text-ink hover:border-accent`}
-                  >
-                    📄 {pdfSeleccionado?.nombre ?? "Elegir PDF…"}
-                  </button>
                 </RibbonGroup>
               </>
             )}
@@ -5391,7 +5909,7 @@ function TabImprimir({ precargar, onPrecargarConsumido, onIrInventarioTinta }: T
         <div className="flex flex-shrink-0 flex-col items-center gap-2 border-t border-border bg-surface-panel px-4 py-4">
           <p className="max-w-lg truncate text-center text-[11px] text-muted">
             {pdfSeleccionado ? `📄 ${pdfSeleccionado.nombre}` : "Selecciona un PDF en la pestaña Archivo"}
-            {estadoData?.estado && ` · ${estadoData.estado.split("\n")[0]}`}
+            {estadoImpresoraLegible(estadoData) && ` · ${estadoImpresoraLegible(estadoData)}`}
           </p>
           <button
             type="button"
@@ -5537,7 +6055,20 @@ function impresoraConectadaDesdeEstado(estado: string, explicito?: boolean): boo
   ) {
     return false;
   }
+  if (/\b(en pausa|paused|pausada|pausado)\b/.test(el)) return false;
+  if (el.includes("inactiva") || el.includes("idle")) return true;
   return true;
+}
+
+function estadoImpresoraLegible(data?: ImpResp | null): string {
+  if (data?.estado_legible) return data.estado_legible;
+  const el = (data?.estado ?? "").trim().toLowerCase();
+  if (!el) return "";
+  if (el.includes("inactiva") || el.includes("idle")) return "Lista para imprimir";
+  if (/\b(en pausa|paused|pausada|pausado)\b/.test(el)) return "En pausa";
+  if (el.includes("imprim") || el.includes("printing")) return "Imprimiendo…";
+  if (el.includes("deshabilitad") || el.includes("disabled")) return "Deshabilitada";
+  return data?.estado.split("\n")[0] ?? "";
 }
 
 function PanelAlertaEstadoImpresora({
@@ -6062,6 +6593,8 @@ function handoffDesdeDatos(datos: DatosEtiqueta): EtiquetasHandoff {
 function handoffDesdePlantilla(p: PlantillaEtiqueta): EtiquetasHandoff {
   return {
     tipo_etiqueta: p.tipo_etiqueta,
+    ancho_mm: p.ancho_mm,
+    alto_mm: p.alto_mm,
     rotacion: rotacionDesdePlantilla(p),
     campos_texto: p.campos_texto,
     lineas: p.lineas,
@@ -6092,8 +6625,11 @@ export default function EtiquetasPanel() {
   const setStoreTab = useAppStore((s) => s.setEtiquetasTab);
   const handoff = useAppStore((s) => s.etiquetasHandoff);
   const setHandoff = useAppStore((s) => s.setEtiquetasHandoff);
+  const solicitudActivaStore = useAppStore((s) => s.etiquetasSolicitudActiva);
+  const setSolicitudActivaStore = useAppStore((s) => s.setEtiquetasSolicitudActiva);
   const [tab, setTabLocal] = useState<EtiquetasTab>(storeTab);
   const [precargarImpresion, setPrecargarImpresion] = useState<PrecargarImpresion | null>(null);
+  const [solicitudInicial, setSolicitudInicial] = useState<EtiquetasSolicitudActiva | null>(null);
 
   useEffect(() => {
     setTabLocal(storeTab);
@@ -6104,6 +6640,13 @@ export default function EtiquetasPanel() {
     setPrecargarImpresion(handoff as PrecargarImpresion);
     setHandoff(null);
   }, [handoff, setHandoff]);
+
+  useEffect(() => {
+    if (!solicitudActivaStore) return;
+    setSolicitudInicial(solicitudActivaStore);
+    setTab("imprimir");
+    setSolicitudActivaStore(null);
+  }, [solicitudActivaStore, setSolicitudActivaStore]);
 
   function setTab(t: EtiquetasTab) {
     setTabLocal(t);
@@ -6135,7 +6678,9 @@ export default function EtiquetasPanel() {
       {tab === "imprimir" && (
         <TabImprimir
           precargar={precargarImpresion}
+          solicitudInicial={solicitudInicial}
           onPrecargarConsumido={() => setPrecargarImpresion(null)}
+          onSolicitudInicialConsumida={() => setSolicitudInicial(null)}
           onIrInventarioTinta={() => setTab("inventario")}
         />
       )}

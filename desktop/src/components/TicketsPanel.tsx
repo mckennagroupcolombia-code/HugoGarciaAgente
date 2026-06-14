@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo, useId, createContext, useContext, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTicketsAuth, type TicketsUser } from "../stores/ticketsAuth";
-import { useAppStore, type TicketsBootView } from "../stores/app";
+import { useAppStore, type TicketsBootView, type SolicitudBoot } from "../stores/app";
 import {
   isAndroidMobileBrowser,
   isMcKennaAndroidApp,
@@ -33,6 +33,11 @@ import {
 } from "./InventarioCarrito";
 import MaterialCalculadora from "./MaterialCalculadora";
 import { puedeVerSeccionPanel } from "./Sidebar";
+import {
+  esSolicitudEtiqueta,
+  irAImprimirDesdeSolicitud,
+  parseLineasPedidoEtiqueta,
+} from "../lib/etiquetasSolicitudes";
 import { useInventarioCarrito } from "../stores/inventarioCarrito";
 import {
   ESTADO_STYLES,
@@ -3347,6 +3352,11 @@ function esSolicitudCompraDelegada(t: Ticket): boolean {
   const tit = (t.titulo || "").trim().toLowerCase();
   if (tit.startsWith("compras:") && (t.ticket_padre_id || (t.tipo || "") === "solicitud")) return true;
   return false;
+}
+
+/** Pedidos de etiquetas: se resuelven en Impresora · Etiquetas, no en Solicitudes. */
+function esSolicitudEtiquetaPanel(t: Ticket): boolean {
+  return esSolicitudEtiqueta(t);
 }
 
 async function tapiSafe(path: string, token: string, options: RequestInit = {}): Promise<unknown> {
@@ -12386,110 +12396,156 @@ function PantallaLogro({
   );
 }
 
-/** Vista mínima: solo checklist de compras para solicitudes delegadas (subtipo=compra). */
-function SolicitudCompraChecklist({
-  ticket, token, user, onChanged, onTerminado, supervision, pantallaCompleta,
+type SolicitudListaVariant = "compra" | "etiqueta";
+
+function mapItemsCompra(raw: unknown[]): ItemCompra[] {
+  return raw.map((row) => {
+    const r = row as ItemCompra & { material_nombre?: string };
+    return {
+      ...r,
+      nombre: (r.nombre || r.material_nombre || "").trim(),
+    };
+  });
+}
+
+/** Checklist con casillas: compras y etiquetas. Espacio/Enter agrega ítem; al marcar todos se resuelve sola. */
+function SolicitudListaChecklist({
+  ticket, token, user, onChanged, onTerminado, supervision, pantallaCompleta, variant,
 }: {
   ticket: Ticket; token: string; user: TicketsUser;
   onChanged: () => void;
   onTerminado?: () => void;
   supervision?: boolean;
   pantallaCompleta?: boolean;
+  variant: SolicitudListaVariant;
 }) {
+  const esEtiqueta = variant === "etiqueta";
   const [items, setItems] = useState<ItemCompra[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [facturaFile, setFacturaFile] = useState<File | null>(null);
+  const [nuevoNombre, setNuevoNombre] = useState("");
   const [estadoLocal, setEstadoLocal] = useState(ticket.estado);
   const [faseLogro, setFaseLogro] = useState(false);
+  const resolviendoRef = useRef(false);
   const esAsignado = uidEq(ticket.asignado_a, user.id);
   const puedeOperar = esAsignado && !supervision;
   const resuelta = estadoLocal === "resuelto" || estadoLocal === "rechazado";
   const itemsActivos = items.filter((i) => i.nombre.trim());
-  const todosComprados = itemsActivos.length > 0 && itemsActivos.every((i) => !!i.comprado);
-  const enCompras = estadoLocal === "en_proceso";
+  const todosMarcados = itemsActivos.length > 0 && itemsActivos.every((i) => !!i.comprado);
   const tieneProductos = itemsActivos.length > 0;
-  const mostrarChecklist = puedeOperar && !resuelta && enCompras && tieneProductos;
 
   useEffect(() => { setEstadoLocal(ticket.estado); }, [ticket.id, ticket.estado]);
+
+  async function asegurarEnProceso() {
+    if (estadoLocal === "en_proceso" || resuelta) return;
+    await tapi(`/${ticket.id}/estado`, token, {
+      method: "PUT",
+      body: JSON.stringify({ estado: "en_proceso" }),
+    });
+    setEstadoLocal("en_proceso");
+    onChanged();
+  }
 
   async function cargar() {
     setLoading(true);
     setMsg("");
     try {
-      const data = await tapi(`/${ticket.id}/lista-compras`, token);
-      const raw = Array.isArray(data) ? data : [];
-      setItems(raw.map((row) => {
-        const r = row as ItemCompra & { material_nombre?: string };
-        return {
-          ...r,
-          nombre: (r.nombre || r.material_nombre || "").trim(),
-        };
-      }));
+      let data = await tapi(`/${ticket.id}/lista-compras`, token);
+      let raw = Array.isArray(data) ? data : [];
+      if (raw.length === 0 && esEtiqueta && ticket.descripcion?.trim()) {
+        const lineas = parseLineasPedidoEtiqueta(ticket.descripcion);
+        if (lineas.length > 0) {
+          for (const linea of lineas) {
+            await tapi(`/${ticket.id}/lista-compras`, token, {
+              method: "POST",
+              body: JSON.stringify({
+                nombre: linea.label,
+                cantidad: linea.cantidad || 1,
+                unidad: "und",
+              }),
+            });
+          }
+          data = await tapi(`/${ticket.id}/lista-compras`, token);
+          raw = Array.isArray(data) ? data : [];
+        }
+      }
+      setItems(mapItemsCompra(raw));
     } catch (e: unknown) {
       setItems([]);
-      setMsg(e instanceof Error ? e.message : "No se pudo cargar la lista de compras");
+      setMsg(e instanceof Error ? e.message : "No se pudo cargar la lista");
     } finally { setLoading(false); }
   }
 
   useEffect(() => { void cargar(); }, [ticket.id, token]);
 
   async function toggleItem(item: ItemCompra) {
+    if (!puedeOperar || resuelta) return;
     try {
+      await asegurarEnProceso();
       const data = await tapi(`/lista-compras/${item.id}`, token, {
         method: "PUT",
         body: JSON.stringify({ comprado: item.comprado ? 0 : 1 }),
       });
-      setItems(Array.isArray(data) ? data : items);
+      setItems(Array.isArray(data) ? mapItemsCompra(data) : items);
     } catch { /* ignore */ }
   }
 
-  async function iniciar() {
+  async function agregarItem() {
+    const nombre = nuevoNombre.trim();
+    if (!nombre || !puedeOperar || resuelta) return;
     setBusy(true);
     setMsg("");
     try {
-      await tapi(`/${ticket.id}/estado`, token, {
-        method: "PUT",
-        body: JSON.stringify({ estado: "en_proceso" }),
+      await asegurarEnProceso();
+      const data = await tapi(`/${ticket.id}/lista-compras`, token, {
+        method: "POST",
+        body: JSON.stringify({ nombre, cantidad: 1, unidad: "und" }),
       });
-      setEstadoLocal("en_proceso");
-      onChanged();
+      setItems(Array.isArray(data) ? mapItemsCompra(data) : items);
+      setNuevoNombre("");
     } catch (e: unknown) {
-      setMsg(e instanceof Error ? e.message : "Error al iniciar");
+      setMsg(e instanceof Error ? e.message : "No se pudo agregar");
     } finally { setBusy(false); }
   }
 
-  async function terminarCompras() {
-    if (!todosComprados) {
-      setMsg("Marca todos los productos antes de terminar");
-      return;
+  function onNuevoItemKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if ((e.key === "Enter" || e.key === " ") && nuevoNombre.trim()) {
+      e.preventDefault();
+      void agregarItem();
     }
+  }
+
+  async function resolverLista() {
+    if (!todosMarcados || resuelta || resolviendoRef.current) return;
+    resolviendoRef.current = true;
     setBusy(true);
     setMsg("");
     try {
-      if (facturaFile) {
+      if (!esEtiqueta && facturaFile) {
         const fd = new FormData();
         fd.append("archivo", facturaFile);
         await tapi(`/${ticket.id}/adjuntos`, token, { method: "POST", body: fd });
       }
       const nombre = user.nombre || "Operador";
+      const n = itemsActivos.length;
+      const textoComentario = esEtiqueta
+        ? `✅ Pedido de etiquetas completado por ${nombre} (${n} ítem${n !== 1 ? "s" : ""}).`
+        : facturaFile
+          ? `✅ Compras terminadas por ${nombre} — factura adjunta.`
+          : `✅ Compras terminadas por ${nombre}.`;
       await tapi(`/${ticket.id}/comentarios`, token, {
         method: "POST",
-        body: JSON.stringify({
-          texto: facturaFile
-            ? `✅ Compras terminadas por ${nombre} — factura adjunta.`
-            : `✅ Compras terminadas por ${nombre}.`,
-          es_interno: false,
-        }),
+        body: JSON.stringify({ texto: textoComentario, es_interno: false }),
       });
       if (ticket.ticket_padre_id) {
+        const padreTxt = esEtiqueta
+          ? `🏷️ **Etiquetas listas** (${ticket.numero})\nPor: ${nombre}`
+          : `🛒 **Compras delegadas listas** (${ticket.numero})\nPor: ${nombre}`;
         await tapi(`/${ticket.ticket_padre_id}/comentarios`, token, {
           method: "POST",
-          body: JSON.stringify({
-            texto: `🛒 **Compras delegadas listas** (${ticket.numero})\nPor: ${nombre}`,
-            es_interno: false,
-          }),
+          body: JSON.stringify({ texto: padreTxt, es_interno: false }),
         }).catch(() => {});
       }
       await tapi(`/${ticket.id}/estado`, token, {
@@ -12505,14 +12561,23 @@ function SolicitudCompraChecklist({
       }
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : "Error al cerrar");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+      resolviendoRef.current = false;
+    }
   }
 
+  useEffect(() => {
+    if (loading || busy || resuelta || !puedeOperar || !todosMarcados) return;
+    void resolverLista();
+  }, [items, loading, busy, resuelta, puedeOperar, todosMarcados]);
+
   function fmtItem(it: ItemCompra) {
+    if (esEtiqueta) return "";
     const q = String(it.cantidad ?? "");
     const u = (it.unidad || "und").toLowerCase();
-    if (!q) return "";
-    return u === "g" ? `${q} g` : `${q} u`;
+    if (!q || q === "1") return "";
+    return u === "g" ? `${q} g` : `${q} ${u}`;
   }
 
   const wrapClass = pantallaCompleta ? "space-y-4" : "space-y-3 pt-1";
@@ -12521,14 +12586,14 @@ function SolicitudCompraChecklist({
     const n = itemsActivos.length;
     return (
       <PantallaLogro
-        emoji="🛒"
+        emoji={esEtiqueta ? "🏷️" : "🛒"}
         variant="green"
-        titulo="¡Compras completadas!"
+        titulo={esEtiqueta ? "¡Etiquetas completadas!" : "¡Compras completadas!"}
         subtitulo={ticket.titulo}
         detalle={
           ticket.ticket_padre_titulo
-            ? `${n} producto${n !== 1 ? "s" : ""} · Para: ${ticket.ticket_padre_titulo}`
-            : `${n} producto${n !== 1 ? "s" : ""} marcados en la lista`
+            ? `${n} ítem${n !== 1 ? "s" : ""} · Para: ${ticket.ticket_padre_titulo}`
+            : `${n} ítem${n !== 1 ? "s" : ""} marcados en la lista`
         }
         botonLabel="Listo →"
         onContinuar={() => {
@@ -12542,7 +12607,9 @@ function SolicitudCompraChecklist({
   return (
     <div className={wrapClass}>
       {pantallaCompleta && (
-        <p className="text-xs font-bold uppercase tracking-widest text-accent">Ir de compras</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-accent">
+          {esEtiqueta ? "Pedido de etiquetas" : "Ir de compras"}
+        </p>
       )}
       {ticket.ticket_padre_titulo && (
         <p className={pantallaCompleta ? "text-sm text-muted" : "text-xs text-muted"}>
@@ -12550,8 +12617,12 @@ function SolicitudCompraChecklist({
         </p>
       )}
       {loading && <p className="text-sm text-muted">Cargando lista…</p>}
-      {!loading && !tieneProductos && !msg && (
-        <p className="text-sm text-muted">Sin productos en la lista.</p>
+      {!loading && !tieneProductos && !msg && puedeOperar && !resuelta && (
+        <p className="text-sm text-muted">
+          {esEtiqueta
+            ? "Escribe un producto y pulsa Espacio para agregarlo."
+            : "Escribe un producto y pulsa Espacio para agregarlo a la lista."}
+        </p>
       )}
       {!loading && !tieneProductos && msg && (
         <div className="space-y-2">
@@ -12565,16 +12636,7 @@ function SolicitudCompraChecklist({
           </button>
         </div>
       )}
-      {!loading && tieneProductos && !enCompras && puedeOperar && (
-        <ul className="space-y-1 rounded-xl border border-border/60 bg-surface-panel/50 px-3 py-2">
-          {itemsActivos.map((it) => (
-            <li key={it.id} className="text-sm text-ink">
-              · {it.nombre}{fmtItem(it) ? ` (${fmtItem(it)})` : ""}
-            </li>
-          ))}
-        </ul>
-      )}
-      {!loading && mostrarChecklist && itemsActivos.map((it) => (
+      {!loading && tieneProductos && itemsActivos.map((it) => (
         <button
           key={it.id}
           type="button"
@@ -12597,53 +12659,63 @@ function SolicitudCompraChecklist({
         </button>
       ))}
 
-      {!resuelta && puedeOperar && tieneProductos && (
-        <>
-          {!enCompras && (
+      {!resuelta && puedeOperar && (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={nuevoNombre}
+            onChange={(e) => setNuevoNombre(e.target.value)}
+            onKeyDown={onNuevoItemKeyDown}
+            disabled={busy}
+            placeholder={esEtiqueta ? "Producto · presentación · cantidad…" : "Producto o material…"}
+            className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent"
+          />
+          <p className="text-[10px] text-center text-muted">
+            Espacio o Enter agrega un ítem · al marcar todos se cierra la solicitud
+          </p>
+          {!esEtiqueta && tieneProductos && (
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-3">
+              <span className="text-xs font-bold text-accent">
+                {facturaFile ? facturaFile.name : "📷 Factura de caja (opcional)"}
+              </span>
+              <input
+                type="file"
+                accept="image/*,.pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => setFacturaFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          )}
+          {esEtiqueta && puedeVerSeccionPanel(user, "etiquetas") && (
             <button
               type="button"
-              disabled={busy || loading}
-              onClick={() => void iniciar()}
-              className="w-full rounded-xl bg-accent py-3.5 text-sm font-extrabold text-white shadow-sm"
+              onClick={() => irAImprimirDesdeSolicitud({
+                id: ticket.id,
+                titulo: ticket.titulo,
+                descripcion: ticket.descripcion,
+                numero: ticket.numero,
+                creado_por_nombre: ticket.creado_por_nombre ?? undefined,
+              })}
+              className="w-full rounded-xl border-2 border-teal-500 py-2.5 text-sm font-bold text-teal-700 hover:bg-teal-50 dark:text-teal-300 dark:hover:bg-teal-950/30"
             >
-              {busy ? "Iniciando…" : "Iniciar compras"}
+              🖨 Abrir Impresora · Etiquetas
             </button>
           )}
-          {mostrarChecklist && (
-            <>
-              <p className="text-xs font-bold text-accent">Lista de compras — marca cada producto</p>
-              <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-4">
-                <span className="text-sm font-bold text-accent">
-                  {facturaFile ? facturaFile.name : "📷 Factura de caja (opcional)"}
-                </span>
-                <input
-                  type="file"
-                  accept="image/*,.pdf,application/pdf"
-                  className="sr-only"
-                  onChange={(e) => setFacturaFile(e.target.files?.[0] ?? null)}
-                />
-              </label>
-              <button
-                type="button"
-                disabled={busy || !todosComprados}
-                onClick={() => void terminarCompras()}
-                className="w-full rounded-2xl bg-accent py-4 text-base font-extrabold text-white disabled:opacity-40"
-              >
-                {busy ? "Guardando…" : "Terminé las compras ✓"}
-              </button>
-              {!todosComprados && (
-                <p className="text-center text-xs text-muted">Marca los {itemsActivos.length} productos</p>
-              )}
-            </>
-          )}
-        </>
+        </div>
       )}
-      {!resuelta && esAsignado && supervision && (
+      {!resuelta && esAsignado && supervision && tieneProductos && (
         <p className="text-[10px] text-center text-muted">Vista de supervisión</p>
       )}
-      {msg && <p className="text-xs text-accent font-semibold">{msg}</p>}
+      {busy && todosMarcados && !resuelta && (
+        <p className="text-xs text-center text-accent font-semibold">Cerrando solicitud…</p>
+      )}
+      {msg && !busy && <p className="text-xs text-accent font-semibold">{msg}</p>}
     </div>
   );
+}
+
+function SolicitudCompraChecklist(props: Omit<React.ComponentProps<typeof SolicitudListaChecklist>, "variant">) {
+  return <SolicitudListaChecklist {...props} variant="compra" />;
 }
 
 /** Pantalla dedicada: solo lista de compras (sin wizard de acción completa). */
@@ -13657,6 +13729,35 @@ function SolicitudCard({
           ticket={ticket}
           token={token}
           user={user}
+          onChanged={onChanged}
+          supervision={supervision}
+        />
+      </div>
+    );
+  }
+
+  if (esSolicitudEtiqueta(ticket)) {
+    return (
+      <div
+        className={`flex flex-col gap-2 rounded-xl border border-teal-400/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
+      >
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <span className="text-sm font-bold text-ink">🏷️ {ticket.titulo}</span>
+            <p className="mt-0.5 text-xs text-muted font-mono">{ticket.numero}</p>
+          </div>
+          <span className="shrink-0 rounded-full border border-border px-2 py-0.5 text-[10px]">
+            {ESTADO_LABEL[ticket.estado] ?? ticket.estado}
+          </span>
+        </div>
+        <p className="text-xs text-muted">
+          {esCreadoPorMi ? "Pediste estas etiquetas" : `Te las pidió ${ticket.creado_por_nombre ?? "?"}`}
+        </p>
+        <SolicitudListaChecklist
+          ticket={ticket}
+          token={token}
+          user={user}
+          variant="etiqueta"
           onChanged={onChanged}
           supervision={supervision}
         />
@@ -16996,14 +17097,30 @@ function ProtocolosView({
 
 // ── NuevaSolicitudWizard ──────────────────────────────────────────────────────
 
-type FaseSolicWizard = "tipo" | "descripcion" | "elegir_proc" | "asignados" | "confirmar";
-type TipoSolicWizard = "nueva" | "protocolo";
+type FaseSolicWizard = "tipo" | "descripcion" | "compras" | "elegir_proc" | "asignados" | "confirmar";
+type VarianteSolicitud = "nueva" | "etiqueta" | "compra" | "protocolo";
+
+const PLANTILLA_SOLICITUD_ETIQUETAS =
+  "Indica producto, presentación y cantidad de etiquetas que necesitas:\n\n• \n• \n";
+
+interface CompraDraftSolicitud {
+  nombre: string;
+  cantidad: string;
+  unidad: string;
+}
+
+function esBootEtiquetas(tituloInicial: string, descripcionInicial: string): boolean {
+  if (/etiqueta/i.test(tituloInicial)) return true;
+  return descripcionInicial.trim().length > 0 && /•|producto|presentaci/i.test(descripcionInicial);
+}
 
 function NuevaSolicitudWizard({
   token,
   user,
   protocolos,
   usuarios,
+  tituloInicial = "",
+  descripcionInicial = "",
   onCancel,
   onCreated,
 }: {
@@ -17011,16 +17128,36 @@ function NuevaSolicitudWizard({
   user: TicketsUser;
   protocolos: Protocolo[];
   usuarios: UserInfo[];
+  tituloInicial?: string;
+  descripcionInicial?: string;
   onCancel: () => void;
-  onCreated: () => void;
+  onCreated: (meta?: { subtipo?: string }) => void;
 }) {
+  const bootEtiqueta = esBootEtiquetas(tituloInicial, descripcionInicial);
+  const bootEtiquetaDraft = bootEtiqueta && descripcionInicial.trim()
+    ? parseLineasPedidoEtiqueta(descripcionInicial).map((l) => ({
+        nombre: l.label,
+        cantidad: String(l.cantidad || 1),
+        unidad: "und",
+      }))
+    : [];
   const { apiToken: chatApiToken } = useTicketsAuth();
   const stt = useStt(token, chatApiToken);
-  const [fase, setFase] = useState<FaseSolicWizard>("tipo");
+  const [fase, setFase] = useState<FaseSolicWizard>(
+    descripcionInicial.trim() ? "asignados" : "tipo",
+  );
   const [wizardDir, setWizardDir] = useState<"right" | "left">("right");
-  const [tipo, setTipo] = useState<TipoSolicWizard | null>(null);
-  const [titulo, setTitulo] = useState("");
-  const [descripcion, setDescripcion] = useState("");
+  const [variante, setVariante] = useState<VarianteSolicitud | null>(
+    descripcionInicial.trim() ? (bootEtiqueta ? "etiqueta" : "nueva") : null,
+  );
+  const [titulo, setTitulo] = useState(
+    tituloInicial || (bootEtiqueta ? "Pedido de etiquetas" : ""),
+  );
+  const [descripcion, setDescripcion] = useState(descripcionInicial);
+  const [listaComprasDraft, setListaComprasDraft] = useState<CompraDraftSolicitud[]>(bootEtiquetaDraft);
+  const [compraNombre, setCompraNombre] = useState("");
+  const [compraCantidad, setCompraCantidad] = useState("1");
+  const [compraUnidad, setCompraUnidad] = useState("und");
   const [protocoloId, setProtocoloId] = useState<number | null>(null);
   const [asignados, setAsignados] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
@@ -17031,9 +17168,22 @@ function NuevaSolicitudWizard({
   const protDisp = protocolos.filter((p) => p.alcance === "global" || !p.alcance || p.alcance === "seleccionado");
   const protSel = protDisp.find((p) => p.id === protocoloId) ?? null;
 
-  const pasoActual = fase === "tipo" ? 1 : (fase === "descripcion" || fase === "elegir_proc") ? 2 : fase === "asignados" ? 3 : 4;
+  const pasoActual = fase === "tipo" ? 1
+    : (fase === "descripcion" || fase === "compras" || fase === "elegir_proc") ? 2
+    : fase === "asignados" ? 3 : 4;
   const totalPasos = 4;
   const slide = wizardDir === "right" ? "mck-slide-right" : "mck-slide-left";
+
+  function faseAnterior(): FaseSolicWizard {
+    if (fase === "descripcion" || fase === "compras" || fase === "elegir_proc") return "tipo";
+    if (fase === "asignados") {
+      if (variante === "compra" || variante === "etiqueta") return "compras";
+      if (variante === "protocolo") return "elegir_proc";
+      return "descripcion";
+    }
+    if (fase === "confirmar") return "asignados";
+    return "tipo";
+  }
 
   function irFase(next: FaseSolicWizard, dir: "right" | "left" = "right") {
     setWizardDir(dir);
@@ -17041,9 +17191,43 @@ function NuevaSolicitudWizard({
     setError("");
   }
 
-  function elegirTipo(t: TipoSolicWizard) {
-    setTipo(t);
-    irFase(t === "nueva" ? "descripcion" : "elegir_proc");
+  function elegirVariante(v: VarianteSolicitud) {
+    setVariante(v);
+    setProtocoloId(null);
+    setAdjuntoFile(null);
+    if (v === "nueva") {
+      setTitulo("");
+      setDescripcion("");
+      irFase("descripcion");
+    } else if (v === "etiqueta") {
+      setTitulo("Pedido de etiquetas");
+      setDescripcion("");
+      setListaComprasDraft([]);
+      irFase("compras");
+    } else if (v === "compra") {
+      setTitulo("Solicitud de compras");
+      setDescripcion("");
+      setListaComprasDraft([]);
+      irFase("compras");
+    } else {
+      irFase("elegir_proc");
+    }
+  }
+
+  function agregarItemCompra() {
+    const nombre = compraNombre.trim();
+    if (!nombre) return;
+    setListaComprasDraft((prev) => [
+      ...prev,
+      { nombre, cantidad: compraCantidad.trim() || "1", unidad: compraUnidad.trim() || "und" },
+    ]);
+    setCompraNombre("");
+    setCompraCantidad("1");
+    setCompraUnidad("und");
+  }
+
+  function quitarItemCompra(idx: number) {
+    setListaComprasDraft((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function toggleAsignado(uid: number) {
@@ -17059,8 +17243,27 @@ function NuevaSolicitudWizard({
 
   async function crear() {
     const desc = descripcion.trim();
-    if (!desc || asignados.length === 0) return;
-    const tituloFinal = (titulo.trim() || desc.split(/\n/)[0]?.trim() || desc).slice(0, 150);
+    const esCompra = variante === "compra";
+    const esEtiquetaVar = variante === "etiqueta";
+    if (esCompra || esEtiquetaVar) {
+      if (listaComprasDraft.length === 0 || asignados.length === 0) return;
+    } else if (!desc || asignados.length === 0) {
+      return;
+    }
+    let tituloFinal = (titulo.trim() || desc.split(/\n/)[0]?.trim() || desc).slice(0, 150);
+    if (esEtiquetaVar && !titulo.trim()) tituloFinal = "Pedido de etiquetas";
+    if (esCompra) {
+      const resumen = listaComprasDraft.map((i) => i.nombre).join(", ");
+      tituloFinal = (`Compras: ${resumen}`).slice(0, 150);
+    }
+    if (esEtiquetaVar) {
+      const resumen = listaComprasDraft.map((i) => i.nombre).join(", ");
+      tituloFinal = resumen ? (`Etiquetas: ${resumen}`).slice(0, 150) : "Pedido de etiquetas";
+    }
+    const descripcionFinal = (esCompra || esEtiquetaVar)
+      ? listaComprasDraft.map((i) => `• ${i.nombre}${esCompra ? ` — ${i.cantidad} ${i.unidad}` : ""}`).join("\n")
+      : desc;
+    const subtipo = esEtiquetaVar ? "etiqueta" : esCompra ? "compra" : undefined;
     setLoading(true);
     setError("");
     try {
@@ -17070,17 +17273,34 @@ function NuevaSolicitudWizard({
             method: "POST",
             body: JSON.stringify({
               titulo: tituloFinal,
-              descripcion: desc,
+              descripcion: descripcionFinal,
               categoria: "logistica",
               prioridad: "media",
               asignado_a: uid,
               tipo: "solicitud",
+              subtipo,
               pasos: undefined,
               protocolo_id: protocoloId ?? undefined,
             }),
           }),
         ),
       ) as { id: number }[];
+      if (esCompra || esEtiquetaVar) {
+        await Promise.all(
+          tickets.flatMap((t) =>
+            listaComprasDraft.map((item) =>
+              tapi(`/${t.id}/lista-compras`, token, {
+                method: "POST",
+                body: JSON.stringify({
+                  nombre: item.nombre,
+                  cantidad: parseFloat(item.cantidad) || 1,
+                  unidad: esCompra ? (item.unidad || "und") : "und",
+                }),
+              }),
+            ),
+          ),
+        );
+      }
       if (adjuntoFile) {
         await Promise.all(tickets.map(async (t) => {
           const fd = new FormData();
@@ -17092,7 +17312,7 @@ function NuevaSolicitudWizard({
           });
         }));
       }
-      onCreated();
+      onCreated(variante === "etiqueta" ? { subtipo: "etiqueta" } : variante === "compra" ? { subtipo: "compra" } : undefined);
     } catch (e: any) {
       setError(e.message ?? "Error al crear la solicitud");
       setLoading(false);
@@ -17105,16 +17325,7 @@ function NuevaSolicitudWizard({
       <div className="mb-6 flex items-center justify-between">
         <button
           type="button"
-          onClick={fase === "tipo" ? onCancel : () => {
-            const prev: Record<FaseSolicWizard, FaseSolicWizard> = {
-              tipo: "tipo",
-              descripcion: "tipo",
-              elegir_proc: "tipo",
-              asignados: tipo === "nueva" ? "descripcion" : "elegir_proc",
-              confirmar: "asignados",
-            };
-            irFase(prev[fase], "left");
-          }}
+          onClick={fase === "tipo" ? onCancel : () => irFase(faseAnterior(), "left")}
           className="rounded-xl border-2 border-border px-3 py-2 text-sm font-bold text-muted transition hover:border-accent hover:text-accent"
         >
           {fase === "tipo" ? "✕ Cancelar" : "← Atrás"}
@@ -17156,33 +17367,54 @@ function NuevaSolicitudWizard({
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => elegirTipo("nueva")}
+              onClick={() => elegirVariante("etiqueta")}
               className="w-full text-left rounded-2xl border-2 border-border bg-surface px-5 py-5 transition hover:border-accent hover:bg-accent/5 group"
             >
               <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
-                ✍️ Solicitud nueva
+                🏷️ Solicitud de etiquetas
               </p>
               <p className="mt-1 text-sm text-muted">
-                Describir con tus palabras qué necesitas que alguien haga.
+                Pedir impresión de etiquetas: producto, presentación y cantidad.
               </p>
             </button>
             <button
               type="button"
-              onClick={() => elegirTipo("protocolo")}
+              onClick={() => elegirVariante("compra")}
               className="w-full text-left rounded-2xl border-2 border-border bg-surface px-5 py-5 transition hover:border-accent hover:bg-accent/5 group"
             >
               <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
-                📋 Delegar un procedimiento
+                🛒 Solicitud de compras
               </p>
               <p className="mt-1 text-sm text-muted">
-                Pedirle a alguien que ejecute un proceso que ya está creado.
+                Armar una lista de materiales o insumos para que alguien los compre.
               </p>
             </button>
+            <button
+              type="button"
+              onClick={() => elegirVariante("nueva")}
+              className="w-full text-left rounded-2xl border-2 border-border bg-surface px-5 py-5 transition hover:border-accent hover:bg-accent/5 group"
+            >
+              <p className="text-lg font-extrabold text-ink group-hover:text-accent transition-colors">
+                ✍️ Nueva solicitud
+              </p>
+              <p className="mt-1 text-sm text-muted">
+                Describir con tus palabras cualquier otra tarea que necesites delegar.
+              </p>
+            </button>
+            {protDisp.length > 0 && (
+              <button
+                type="button"
+                onClick={() => elegirVariante("protocolo")}
+                className="w-full text-center rounded-xl border border-dashed border-border px-4 py-3 text-sm font-semibold text-muted transition hover:border-accent hover:text-accent"
+              >
+                📋 O delegar un procedimiento existente →
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Paso 2A: Descripción (solicitud nueva) */}
+      {/* Paso 2A: Descripción (solicitud nueva / etiquetas) */}
       {fase === "descripcion" && (
         <div key="sol-p2a" className={`space-y-6 ${slide}`} onPasteCapture={handlePasteAdjunto}>
           <div>
@@ -17190,16 +17422,33 @@ function NuevaSolicitudWizard({
               Paso 2 de {totalPasos}
             </p>
             <h2 className="text-3xl font-extrabold text-ink leading-tight">
-              ¿Qué quieres<br />que haga?
+              {variante === "etiqueta"
+                ? <>¿Qué etiquetas<br />necesitas?</>
+                : <>¿Qué quieres<br />que haga?</>}
             </h2>
-            <p className="mt-2 text-sm text-muted">Redacta la tarea con todos los detalles necesarios.</p>
+            <p className="mt-2 text-sm text-muted">
+              {variante === "etiqueta"
+                ? "Lista cada producto con su presentación y cuántas etiquetas imprimir."
+                : "Redacta la tarea con todos los detalles necesarios."}
+            </p>
           </div>
           <div className="space-y-3">
+            {variante === "etiqueta" && (
+              <input
+                type="text"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Pedido de etiquetas"
+                className="w-full rounded-2xl border-2 border-border bg-surface-input px-5 py-3 text-base font-bold text-ink outline-none focus:border-accent"
+              />
+            )}
             <div className="flex gap-2 items-start">
               <ProseTextarea
                 autoFocus
                 className="w-full flex-1 rounded-2xl border-2 border-border bg-surface-input px-5 py-4 text-base text-ink outline-none focus:border-accent placeholder:text-muted/50 resize-none min-h-[140px]"
-                placeholder="Ej: Revisar el inventario de la bodega y enviarme un listado de lo que falta. Incluir referencias y cantidades."
+                placeholder={variante === "etiqueta"
+                  ? "• Elastina 30 ml × 50 u\n• Vitamina C 30 ml × 30 u\n• …"
+                  : "Ej: Revisar el inventario de la bodega y enviarme un listado de lo que falta. Incluir referencias y cantidades."}
                 rows={5}
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
@@ -17212,6 +17461,7 @@ function NuevaSolicitudWizard({
               />
             </div>
             <ProseHint />
+            {variante !== "etiqueta" && (
             <label className={`flex items-center gap-3 rounded-2xl border-2 cursor-pointer px-4 py-3 transition
               ${adjuntoFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
               <span className="text-xl">{adjuntoFile ? "📎" : "📷"}</span>
@@ -17234,13 +17484,18 @@ function NuevaSolicitudWizard({
                 onChange={(e) => setAdjuntoFile(e.target.files?.[0] ?? null)}
               />
             </label>
+            )}
           </div>
           <button
             type="button"
             disabled={!descripcion.trim()}
             onClick={() => {
               const d = descripcion.trim();
-              setTitulo(d.split(/\n/)[0]?.trim().slice(0, 150) ?? d.slice(0, 150));
+              if (variante !== "etiqueta") {
+                setTitulo(d.split(/\n/)[0]?.trim().slice(0, 150) ?? d.slice(0, 150));
+              } else if (!titulo.trim()) {
+                setTitulo("Pedido de etiquetas");
+              }
               irFase("asignados");
             }}
             className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
@@ -17250,7 +17505,114 @@ function NuevaSolicitudWizard({
         </div>
       )}
 
-      {/* Paso 2B: Elegir procedimiento */}
+      {/* Paso 2B: Lista de ítems (compras / etiquetas) */}
+      {fase === "compras" && (
+        <div key="sol-p2c" className={`space-y-6 ${slide}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
+              Paso 2 de {totalPasos}
+            </p>
+            <h2 className="text-3xl font-extrabold text-ink leading-tight">
+              {variante === "etiqueta"
+                ? <>¿Qué etiquetas<br />necesitas?</>
+                : <>¿Qué hay<br />que comprar?</>}
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              {variante === "etiqueta"
+                ? "Escribe cada producto y pulsa Espacio para agregarlo a la lista."
+                : "Agrega los productos o materiales de la lista."}
+            </p>
+          </div>
+          {listaComprasDraft.length > 0 && (
+            <ul className="space-y-2 rounded-2xl border-2 border-border bg-surface px-4 py-3">
+              {listaComprasDraft.map((item, idx) => (
+                <li key={`${item.nombre}-${idx}`} className="flex items-center gap-2 text-sm">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-border text-[10px] text-muted">☐</span>
+                  <span className="min-w-0 flex-1 truncate text-ink font-semibold">{item.nombre}</span>
+                  {variante === "compra" && (
+                    <span className="shrink-0 text-muted">{item.cantidad} {item.unidad}</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => quitarItemCompra(idx)}
+                    className="shrink-0 text-xs text-danger hover:underline"
+                  >
+                    Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="space-y-2 rounded-2xl border-2 border-dashed border-border px-4 py-4">
+            <input
+              type="text"
+              value={compraNombre}
+              onChange={(e) => setCompraNombre(e.target.value)}
+              placeholder={variante === "etiqueta"
+                ? "Ej: Elastina 30 ml × 50 u"
+                : "Nombre del producto o material"}
+              className="w-full rounded-xl border border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent"
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && compraNombre.trim()) {
+                  e.preventDefault();
+                  agregarItemCompra();
+                }
+              }}
+            />
+            {variante === "compra" && (
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={compraCantidad}
+                  onChange={(e) => setCompraCantidad(e.target.value)}
+                  placeholder="Cant."
+                  className="w-24 rounded-xl border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                />
+                <input
+                  type="text"
+                  value={compraUnidad}
+                  onChange={(e) => setCompraUnidad(e.target.value)}
+                  placeholder="Unidad"
+                  className="w-24 rounded-xl border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={agregarItemCompra}
+                  disabled={!compraNombre.trim()}
+                  className="flex-1 rounded-xl border-2 border-accent px-3 py-2 text-sm font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40"
+                >
+                  + Agregar
+                </button>
+              </div>
+            )}
+            {variante === "etiqueta" && (
+              <p className="text-[10px] text-center text-muted">Espacio o Enter agrega el ítem</p>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={listaComprasDraft.length === 0}
+            onClick={() => {
+              if (variante === "compra") {
+                const resumen = listaComprasDraft.map((i) => i.nombre).join(", ");
+                setTitulo(`Compras: ${resumen}`.slice(0, 150));
+              } else if (variante === "etiqueta") {
+                const resumen = listaComprasDraft.map((i) => i.nombre).join(", ");
+                setTitulo(resumen ? `Etiquetas: ${resumen}`.slice(0, 150) : "Pedido de etiquetas");
+              }
+              setDescripcion(listaComprasDraft.map((i) => `• ${i.nombre}${variante === "compra" ? ` — ${i.cantidad} ${i.unidad}` : ""}`).join("\n"));
+              irFase("asignados");
+            }}
+            className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
+
+      {/* Paso 2C: Elegir procedimiento */}
       {fase === "elegir_proc" && (
         <div key="sol-p2b" className={`space-y-6 ${slide}`}>
           <div>
@@ -17265,7 +17627,7 @@ function NuevaSolicitudWizard({
           {protDisp.length === 0 ? (
             <div className="rounded-2xl border-2 border-dashed border-border px-5 py-8 text-center text-sm text-muted">
               No hay procedimientos disponibles.<br />
-              <button type="button" onClick={() => elegirTipo("nueva")} className="mt-2 text-accent hover:underline text-sm font-semibold">
+              <button type="button" onClick={() => elegirVariante("nueva")} className="mt-2 text-accent hover:underline text-sm font-semibold">
                 Crear solicitud nueva en cambio →
               </button>
             </div>
@@ -17277,6 +17639,7 @@ function NuevaSolicitudWizard({
                   type="button"
                   onClick={() => {
                     setProtocoloId(p.id);
+                    setVariante("protocolo");
                     setTitulo(p.titulo);
                     setDescripcion(p.descripcion ?? "");
                     irFase("asignados");
@@ -17380,6 +17743,25 @@ function NuevaSolicitudWizard({
                 <p className="mt-1 text-sm text-muted">{descripcion.trim()}</p>
               )}
             </div>
+            {variante === "etiqueta" && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Tipo</p>
+                <p className="text-sm font-semibold text-accent">🏷️ Solicitud de etiquetas</p>
+              </div>
+            )}
+            {variante === "compra" && (
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Tipo</p>
+                <p className="text-sm font-semibold text-accent">🛒 Solicitud de compras</p>
+                {listaComprasDraft.length > 0 && (
+                  <ul className="mt-2 space-y-1 text-sm text-muted">
+                    {listaComprasDraft.map((item, idx) => (
+                      <li key={`${item.nombre}-${idx}`}>• {item.nombre} — {item.cantidad} {item.unidad}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
             {protSel && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Procedimiento</p>
@@ -18280,10 +18662,12 @@ const FRECUENCIA_OPTS: { value: Frecuencia; label: string }[] = [
 ];
 
 function SolicitudesView({
-  token, user, onInicio,
+  token, user, onInicio, boot, onBootConsumed,
 }: {
   token: string; user: TicketsUser;
   onInicio?: () => void;
+  boot?: SolicitudBoot | null;
+  onBootConsumed?: () => void;
 }) {
   const isAdmin = (user.rol?.nivel ?? 1) >= 3;
   const { apiToken: chatApiToken } = useTicketsAuth();
@@ -18292,6 +18676,7 @@ function SolicitudesView({
   const [showRepetirEjecWizard, setShowRepetirEjecWizard] = useState(false);
   const [plantillaRepetirEjec, setPlantillaRepetirEjec] = useState<PlantillaAccion | undefined>();
   const [showWizard, setShowWizard] = useState(false);
+  const [wizardPrefill, setWizardPrefill] = useState({ titulo: "", descripcion: "" });
   const [plantillaEjec, setPlantillaEjec] = useState<PlantillaAccion | undefined>();
   const [solicitudEjecId, setSolicitudEjecId] = useState<number | undefined>();
   const [tab, setTab] = useState<"subhome" | "asignadas" | "creadas" | "equipo" | "historial" | "protocolos">("subhome");
@@ -18356,6 +18741,18 @@ function SolicitudesView({
   }, [load]);
   useEffect(() => onPanelResume(() => { void load(true); }), [load]);
 
+  useEffect(() => {
+    if (!boot) return;
+    if (boot.abrirWizard) {
+      setWizardPrefill({
+        titulo: boot.prefillTitulo ?? "",
+        descripcion: boot.prefillDescripcion ?? "",
+      });
+      setShowWizard(true);
+    }
+    onBootConsumed?.();
+  }, [boot, onBootConsumed]);
+
   async function cargarProtocolos() {
     setLoadingProtocolos(true);
     try {
@@ -18383,7 +18780,10 @@ function SolicitudesView({
   const comprasPendientes = comprasDelegadas.length > 0
     ? comprasDelegadas
     : asignadas.filter(esSolicitudCompraDelegada);
-  const otrasAsignadas = asignadas.filter((t) => !esSolicitudCompraDelegada(t));
+  const etiquetasPendientes = asignadas.filter(esSolicitudEtiquetaPanel);
+  const otrasAsignadas = asignadas.filter(
+    (t) => !esSolicitudCompraDelegada(t) && !esSolicitudEtiquetaPanel(t),
+  );
   const creadas = solicitudes.filter(
     (t) => uidEq(t.creado_por, user.id) && t.estado !== "resuelto" && t.estado !== "rechazado",
   );
@@ -18528,12 +18928,20 @@ function SolicitudesView({
         user={user}
         protocolos={protocolos}
         usuarios={usuarios}
+        tituloInicial={wizardPrefill.titulo}
+        descripcionInicial={wizardPrefill.descripcion}
         onCancel={() => setShowWizard(false)}
-        onCreated={() => {
+        onCreated={(meta) => {
           setShowWizard(false);
           void load(false);
-          setMsg("Solicitud creada correctamente");
-          setTimeout(() => setMsg(""), 3000);
+          if (meta?.subtipo === "etiqueta") {
+            setMsg("Pedido enviado al apartado Impresora · Etiquetas del asignado");
+          } else if (meta?.subtipo === "compra") {
+            setMsg("Solicitud de compras creada correctamente");
+          } else {
+            setMsg("Solicitud creada correctamente");
+          }
+          setTimeout(() => setMsg(""), 4000);
         }}
       />
     );
@@ -18795,6 +19203,30 @@ function SolicitudesView({
               <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Procesos del equipo listos pa' delegar. Asígnale uno a alguien sin explicar todo desde cero.</p>
             </button>
 
+            {etiquetasPendientes.length > 0 && puedeVerSeccionPanel(user, "etiquetas") && (
+              <button
+                type="button"
+                onClick={() => {
+                  useAppStore.getState().setEtiquetasTab("imprimir");
+                  useAppStore.getState().setPanel("etiquetas");
+                }}
+                className={`${sc} bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700/60`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
+                    <TopicIcon value="🏷️" size={24} />
+                  </span>
+                  <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">
+                    {etiquetasPendientes.length}
+                  </span>
+                </div>
+                <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Pedidos de etiquetas</p>
+                <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">
+                  Te llegaron al apartado Impresora · Etiquetas. Abre Imprimir para ver la lista y ejecutar cada pedido.
+                </p>
+              </button>
+            )}
+
           </div>
         );
       })()}
@@ -18976,6 +19408,27 @@ function SolicitudesView({
                 : (sol) => void iniciarEjecucionSolicitud(sol)
             }
           />
+        </div>
+      )}
+
+      {tab === "asignadas" && !asignadaDetalle && !loading && etiquetasPendientes.length > 0 && puedeVerSeccionPanel(user, "etiquetas") && (
+        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 dark:bg-amber-950/30">
+          <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+            🏷️ {etiquetasPendientes.length} pedido{etiquetasPendientes.length !== 1 ? "s" : ""} de etiquetas
+          </p>
+          <p className="mt-1 text-xs text-amber-800 dark:text-amber-300/90">
+            Estos pedidos están en Impresora · Etiquetas, no en esta lista de solicitudes.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              useAppStore.getState().setEtiquetasTab("imprimir");
+              useAppStore.getState().setPanel("etiquetas");
+            }}
+            className="mt-2 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-700"
+          >
+            Abrir Impresora · Etiquetas →
+          </button>
         </div>
       )}
 
@@ -23321,7 +23774,7 @@ function PanelComprasEjecucion({
         {/* Fila producto */}
         <div className="flex gap-2">
           <input value={inputNombre} onChange={e => setInputNombre(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); void agregar(); } }}
+            onKeyDown={e => { if ((e.key === "Enter" || e.key === " ") && inputNombre.trim()) { e.preventDefault(); void agregar(); } }}
             placeholder="Producto…"
             className="flex-1 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/10 px-3 py-2.5 text-sm text-ink placeholder:text-gray-400 outline-none focus:border-accent/60 transition"/>
           <input value={inputCantidad} onChange={e => setInputCantidad(e.target.value)}
@@ -25960,6 +26413,8 @@ export default function TicketsPanel() {
   const setCentroMandoView = useAppStore((s) => s.setCentroMandoView);
   const ticketsBootView = useAppStore((s) => s.ticketsBootView);
   const setTicketsBootView = useAppStore((s) => s.setTicketsBootView);
+  const solicitudBoot = useAppStore((s) => s.solicitudBoot);
+  const setSolicitudBoot = useAppStore((s) => s.setSolicitudBoot);
   const accionesBootTab = useAppStore((s) => s.accionesBootTab);
   const setAccionesBootTab = useAppStore((s) => s.setAccionesBootTab);
   const questDark = useQuestTheme((s) => s.dark);
@@ -26073,6 +26528,13 @@ export default function TicketsPanel() {
     }
     setTicketsBootView(null);
   }, [ticketsBootView, accionesBootTab, setTicketsBootView, setAccionesBootTab, user?.rol?.nivel]);
+
+  useEffect(() => {
+    if (!solicitudBoot?.abrirTicketId) return;
+    setSelectedId(solicitudBoot.abrirTicketId);
+    setView("detail");
+    setSolicitudBoot(null);
+  }, [solicitudBoot, setSolicitudBoot]);
 
   useEffect(() => {
     if (!token) return;
@@ -26279,6 +26741,8 @@ export default function TicketsPanel() {
             token={token}
             user={user}
             onInicio={goInicio}
+            boot={solicitudBoot}
+            onBootConsumed={() => setSolicitudBoot(null)}
           />
         )}
         {view === "contratos" && nivel >= 3 && (

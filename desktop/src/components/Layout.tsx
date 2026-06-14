@@ -39,10 +39,10 @@ export default function Layout({ children }: { children: ReactNode }) {
             <Icon name="menu" size={24} weight="bold" aria-label="Abrir menú" />
           </button>
           <span className="flex-1 text-sm font-bold tracking-tight text-ink lg:hidden">
-            {hubIntegrado ? "Centro de Mando" : "McKenna"}
+            {panel === "perfil" ? "Mi perfil" : hubIntegrado ? "Centro de Mando" : "McKenna"}
           </span>
           <span className="hidden flex-1 text-sm font-bold tracking-tight text-ink lg:inline">
-            {hubIntegrado ? "Hugo · Centro de Mando" : "Panel de operaciones"}
+            {panel === "perfil" ? "Mi perfil" : hubIntegrado ? "Hugo · Centro de Mando" : "Panel de operaciones"}
           </span>
         </header>
 

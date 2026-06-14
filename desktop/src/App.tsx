@@ -187,6 +187,7 @@ const NAV_ORDER: Panel[] = [
 ];
 
 function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
+  if (panel === "perfil") return true;
   const logistica = puedeVerModuloLogistica(user, panel);
   if (logistica !== null) return logistica;
   const contab = puedeVerModuloContabilidad(user, panel);
