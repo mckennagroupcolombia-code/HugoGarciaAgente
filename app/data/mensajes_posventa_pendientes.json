@@ -1,26 +1,5 @@
 {
-  "pendientes": {
-    "2000016700990404": {
-      "pack_id": "2000016700990404",
-      "codigo": "0404",
-      "comprador": "Comprador 1043231384",
-      "from_id": "1043231384",
-      "texto": "Buenas tardes! Ustedes venden carbonato de calcio de grado alimenticio?",
-      "msg_id": "019ec2cc94e773d6a1d900c51198a20c",
-      "productos": "  • Albumina De Huevo 500g",
-      "timestamp": "2026-06-13T16:04:15"
-    },
-    "0404": {
-      "pack_id": "2000016700990404",
-      "codigo": "0404",
-      "comprador": "Comprador 1043231384",
-      "from_id": "1043231384",
-      "texto": "Buenas tardes! Ustedes venden carbonato de calcio de grado alimenticio?",
-      "msg_id": "019ec2cc94e773d6a1d900c51198a20c",
-      "productos": "  • Albumina De Huevo 500g",
-      "timestamp": "2026-06-13T16:04:15"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019e8f06669f7c0d8c0b5ca31a4655dd",
     "019e2bdfc2027211bc25873b4f1e4cbc",

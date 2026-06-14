@@ -46,7 +46,8 @@ function esComandoMeliOperativo(textoLower) {
     return (
         textoLower.startsWith('posventa ') ||
         textoLower.startsWith('resp preventa ') ||
-        /^resp\s+\d{2,}:/.test(textoLower)
+        /^resp\s+\d{2,}:/.test(textoLower) ||
+        /^ok\s+\d{3,}$/.test(textoLower)
     );
 }
 
@@ -94,19 +95,24 @@ async function obtenerChatIdComandoAsync(msg) {
 async function expandirComandoDesdeCita(msg, textoNorm) {
     if (!msg.hasQuotedMsg) return textoNorm;
     const t = textoNorm.toLowerCase();
-    if (t.startsWith('posventa ') || t.startsWith('resp ')) return textoNorm;
+    if (t.startsWith('posventa ') || t.startsWith('resp ') || /^ok\s+\d/.test(t)) return textoNorm;
     try {
         const quoted = await msg.getQuotedMessage();
         const qb = String((quoted && quoted.body) || '');
         const codigo =
             (qb.match(/c[oó]digo[:\s*]*\*?(\d{3,8})\*?/i) || [])[1] ||
             (qb.match(/posventa\s+(\d{3,8})\s*:/i) || [])[1] ||
-            (qb.match(/resp\s+(\d{3,12})\s*:/i) || [])[1];
+            (qb.match(/resp\s+(\d{3,12})\s*:/i) || [])[1] ||
+            (qb.match(/\*ok\s+(\d{3,})\*/i) || [])[1] ||
+            (qb.match(/ok\s+(\d{3,})/i) || [])[1];
         if (!codigo) return textoNorm;
         if (/SUPERVISOR POSTVENTA|MENSAJE POSTVENTA/i.test(qb)) {
             return `posventa ${codigo}: ${textoNorm.trim()}`;
         }
-        if (/SUPERVISOR PREVENTA|MENSAJE PREVENTA|pregunta.*meli/i.test(qb)) {
+        if (/SUPERVISOR PREVENTA|MENSAJE PREVENTA|BORRADOR IA|pregunta.*meli/i.test(qb)) {
+            if (/^ok\s*$/i.test(textoNorm.trim())) {
+                return `ok ${codigo}`;
+            }
             return `resp preventa ${codigo}: ${textoNorm.trim()}`;
         }
     } catch (e) {

@@ -1,0 +1,14 @@
+{
+  "tipos": [
+    {
+      "nombre": "30 mL",
+      "ancho_mm": 102.0,
+      "alto_mm": 38.0
+    },
+    {
+      "nombre": "50g",
+      "ancho_mm": 102.0,
+      "alto_mm": 32.0
+    }
+  ]
+}

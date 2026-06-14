@@ -233,7 +233,9 @@ export function SelectorFormatoEtiqueta({
         setMsgGuardar("✓ Guardado");
         setTimeout(() => setMsgGuardar(""), 2000);
       },
-      onError: () => setMsgGuardar("Error al guardar"),
+      onError: (err: Error) => {
+        setMsgGuardar(err?.message?.trim() || "Error al guardar");
+      },
     });
   }
 

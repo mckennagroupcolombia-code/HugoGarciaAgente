@@ -50,9 +50,20 @@ export function inferirTipoEtiqueta(texto: string): string | undefined {
 export function esSolicitudEtiqueta(t: SolicitudEtiquetaBasica): boolean {
   const st = (t.subtipo || "").trim().toLowerCase();
   if (st === "etiqueta" || st === "etiquetas") return true;
+  if (st && st !== "etiqueta" && st !== "etiquetas") return false;
+
   const tit = (t.titulo || "").trim().toLowerCase();
-  if (tit === "etiquetas" || tit.includes("pedido de etiqueta")) return true;
-  return /\betiqueta/.test(tit);
+  if (!tit) return false;
+  if (tit === "etiquetas" || tit === "etiqueta") return true;
+  if (tit.startsWith("etiquetas:") || tit.startsWith("etiqueta:")) return true;
+  if (tit.includes("pedido de etiqueta")) return true;
+
+  return false;
+}
+
+export function esLineaProsaPedidoEtiqueta(linea: string): boolean {
+  if (linea.length > 100 && !/\d+\s*(ml|g|gr|lt|mm)\b/i.test(linea)) return true;
+  return /^(buenos|hola|por favor|mil gracias|estas x|quedó atenta|gracias)/i.test(linea);
 }
 
 export function parseLineasPedidoEtiqueta(texto: string): LineaPedidoEtiqueta[] {
@@ -61,6 +72,7 @@ export function parseLineasPedidoEtiqueta(texto: string): LineaPedidoEtiqueta[] 
     .map((l) => l.replace(/^[\s•\-*]+/, "").trim())
     .filter(Boolean)
     .filter((l) => !/^(pdf|lote|vencimiento|agrega)/i.test(l))
+    .filter((l) => !esLineaProsaPedidoEtiqueta(l))
     .map((label) => {
       const cantMatch = label.match(/(?:×|x|\*)\s*(\d+)|(\d+)\s*(?:u(?:nidades?)?|etiquetas?)\b/i);
       const cantidad = cantMatch ? parseInt(cantMatch[1] || cantMatch[2], 10) : 1;

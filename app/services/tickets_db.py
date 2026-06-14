@@ -3392,6 +3392,25 @@ def get_ticket(ticket_id: int, usuario: dict) -> dict | None:
         return adjuntar_corrida_ticket(d, usuario["id"])
 
 
+def _es_solicitud_etiqueta_ticket(t: dict) -> bool:
+    """Solicitud de impresión de etiquetas (checklist de productos, no pasos de protocolo)."""
+    st = (t.get("subtipo") or "").strip().lower()
+    if st in ("etiqueta", "etiquetas"):
+        return True
+    if st:
+        return False
+    tit = (t.get("titulo") or "").strip().lower()
+    if not tit:
+        return False
+    if tit in ("etiquetas", "etiqueta"):
+        return True
+    if tit.startswith("etiquetas:") or tit.startswith("etiqueta:"):
+        return True
+    if "pedido de etiqueta" in tit:
+        return True
+    return False
+
+
 def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str = "") -> tuple:
     valid = {"pendiente", "en_proceso", "esperando_aprobacion", "resuelto", "rechazado"}
     if nuevo_estado not in valid:
@@ -3426,6 +3445,21 @@ def cambiar_estado(ticket_id: int, nuevo_estado: str, usuario: dict, motivo: str
                 ).fetchone()["n"]
                 if pend:
                     return False, f"Faltan {pend} producto(s) por marcar en la lista de compras"
+            elif _es_solicitud_etiqueta_ticket(t):
+                n_lista = db.execute(
+                    "SELECT COUNT(*) AS n FROM lista_compras_ticket WHERE ticket_id=?",
+                    (ticket_id,),
+                ).fetchone()["n"]
+                if n_lista > 0:
+                    pend = db.execute(
+                        "SELECT COUNT(*) AS n FROM lista_compras_ticket "
+                        "WHERE ticket_id=? AND comprado=0",
+                        (ticket_id,),
+                    ).fetchone()["n"]
+                    if pend:
+                        return False, (
+                            f"Faltan {pend} producto(s) por marcar como impreso en el pedido"
+                        )
             # Solicitudes con pasos: todos deben estar completados antes de resolver
             elif t["tipo"] == "solicitud" and _pasos_checklist_completo is not None:
                 total = db.execute(

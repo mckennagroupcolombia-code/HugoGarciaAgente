@@ -48,9 +48,14 @@ def _guardar_state_posventa(data: dict) -> None:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def _sufijo_pack(pack_id: str) -> str:
+def sufijo_pack_postventa(pack_id: str) -> str:
+    """Últimos 3 dígitos del pack/orden — código corto para posventa {sufijo}: …"""
     digits = re.sub(r"\D", "", str(pack_id))
-    return digits[-4:] if len(digits) >= 4 else digits
+    return digits[-3:] if len(digits) >= 3 else digits
+
+
+def _sufijo_pack(pack_id: str) -> str:
+    return sufijo_pack_postventa(pack_id)
 
 
 def _pack_id_desde_payload_mensaje(msg_data: dict) -> str:
@@ -262,7 +267,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                         state["pendientes"].pop(sufijo, None)
                         notif_auto = (
                             f"🤖 *Auto-respuesta postventa (FT/COA)*\n\n"
-                            f"📦 Pack: `{pack_id}` _(código {sufijo})_\n"
+                            f"🔢 Código: *{sufijo}*\n"
                             f"👤 {nombre_comprador}\n"
                             f"🗣 Solicitud: {texto[:180]}{'…' if len(texto) > 180 else ''}\n\n"
                             f"_Enlaces enviados al comprador en MeLi. Revisa el hilo si falta algún producto._"
@@ -361,7 +366,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
 
                 notif = (
                     f"💬 *MENSAJE POSTVENTA MELI*\n\n"
-                    f"📦 *Pack:* `{pack_id}`  _(código: *{sufijo}*)_\n"
+                    f"🔢 *Código:* *{sufijo}*\n"
                     f"👤 *Comprador:* {nombre_comprador}\n"
                 )
                 if productos_str:
