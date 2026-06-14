@@ -55,6 +55,38 @@ def diagnosticar_sufijo_preventa(sufijo: str):
         return {"matches": [], "count": 0}
 
 
+def _intentar_ok_preventa(texto: str) -> bool:
+    """
+    Procesa 'ok {sufijo}' cuando hay pregunta preventa pendiente con ese sufijo.
+    Retorna True si el comando fue reconocido (con o sin borrador IA).
+    """
+    t = _normalizar_comando_grupo(texto).lower().strip()
+    m = re.match(r"^ok\s+(\d{3,})$", t)
+    if not m:
+        return False
+    sufijo = m.group(1)
+    qid = encontrar_question_id_por_sufijo(sufijo)
+    if not qid:
+        return False
+
+    from app.services.meli_preventa import obtener_borrador_ia
+
+    borrador = obtener_borrador_ia(qid)
+    if borrador:
+        spawn_thread(_procesar_respuesta_preventa, args=(qid, borrador))
+        return True
+
+    spawn_thread(
+        enviar_whatsapp_reporte,
+        args=(
+            f"⚠️ No hay borrador IA para el código *{sufijo}*.\n"
+            f"Usa: *resp {sufijo}: tu respuesta*",
+            jid_grupo_preventa_wa(),
+        ),
+    )
+    return True
+
+
 def detectar_comando_preventa(texto: str):
     """
     Detecta comandos de respuesta preventa en dos formatos:
@@ -112,6 +144,48 @@ _POSVENTA_STATE_PATH = os.path.join(
 )
 
 
+def _pendientes_postventa_por_sufijo(sufijo: str) -> list[dict]:
+    """Pendientes únicos por pack_id cuyo código corto coincide con sufijo (3+ dígitos)."""
+    sufijo = re.sub(r"\D", "", (sufijo or "").strip())
+    if len(sufijo) < 3:
+        return []
+    try:
+        from app.meli_postventa_notif import sufijo_pack_postventa
+
+        with open(_POSVENTA_STATE_PATH, "r", encoding="utf-8") as _f:
+            pendientes = json.load(_f).get("pendientes", {})
+    except Exception:
+        return []
+
+    vistos: set[str] = set()
+    matches: list[dict] = []
+    for v in pendientes.values():
+        if not isinstance(v, dict):
+            continue
+        pack_id = str(v.get("pack_id") or "").strip()
+        if not pack_id or pack_id in vistos:
+            continue
+        cod = re.sub(r"\D", "", str(v.get("codigo") or ""))
+        pack_digits = re.sub(r"\D", "", pack_id)
+        cod_corto = sufijo_pack_postventa(pack_id)
+        if (
+            sufijo == cod
+            or sufijo == cod_corto
+            or pack_id.endswith(sufijo)
+            or pack_digits.endswith(sufijo)
+            or cod.endswith(sufijo)
+        ):
+            vistos.add(pack_id)
+            matches.append(v)
+    return matches
+
+
+def _diagnosticar_sufijo_postventa(sufijo: str) -> dict:
+    matches = _pendientes_postventa_por_sufijo(sufijo)
+    pack_ids = [str(m.get("pack_id") or "") for m in matches if m.get("pack_id")]
+    return {"matches": pack_ids, "count": len(pack_ids)}
+
+
 def _resolver_pack_por_sufijo_en_meli(codigo: str) -> dict | None:
     """
     Último recurso si la cola JSON quedó vacía: busca pack reciente por sufijo (ej. 2174).
@@ -120,6 +194,7 @@ def _resolver_pack_por_sufijo_en_meli(codigo: str) -> dict | None:
     if len(digits) < 3:
         return None
     try:
+        from app.meli_postventa_notif import sufijo_pack_postventa
         from app.utils import refrescar_token_meli, obtener_seller_id_meli
 
         token = refrescar_token_meli()
@@ -135,25 +210,37 @@ def _resolver_pack_por_sufijo_en_meli(codigo: str) -> dict | None:
         if r.status_code != 200:
             return None
         codigo_stripped = (codigo or "").strip()
+        candidatos: list[dict] = []
         for orden in r.json().get("results", []) or []:
             pack_id = str(orden.get("pack_id") or orden.get("id") or "").strip()
             if not pack_id:
                 continue
             pack_digits = re.sub(r"\D", "", pack_id)
-            sufijo = pack_digits[-4:] if len(pack_digits) >= 4 else pack_digits
+            sufijo = sufijo_pack_postventa(pack_id)
             if (
                 pack_id == codigo_stripped
                 or pack_id.endswith(digits)
+                or pack_digits.endswith(digits)
                 or sufijo == digits
             ):
                 buyer = orden.get("buyer") or {}
                 comprador = str(buyer.get("nickname") or buyer.get("first_name") or "")
-                return {
-                    "pack_id": pack_id,
-                    "codigo": sufijo,
-                    "comprador": comprador,
-                    "from_id": str(buyer.get("id") or "") or None,
-                }
+                candidatos.append(
+                    {
+                        "pack_id": pack_id,
+                        "codigo": sufijo,
+                        "comprador": comprador,
+                        "from_id": str(buyer.get("id") or "") or None,
+                    }
+                )
+        if len(candidatos) == 1:
+            return candidatos[0]
+        if len(candidatos) > 1:
+            print(
+                f"⚠️ [POSVENTA] Sufijo {codigo} ambiguo en MeLi "
+                f"({len(candidatos)} packs recientes)"
+            )
+            return None
     except Exception as _e:
         print(f"⚠️ [POSVENTA] Error buscando pack por sufijo {codigo}: {_e}")
     return None
@@ -161,7 +248,7 @@ def _resolver_pack_por_sufijo_en_meli(codigo: str) -> dict | None:
 
 def _resolver_entrada_postventa(codigo: str):
     """
-    Busca entrada pendiente por código corto, pack_id o clave en JSON.
+    Busca entrada pendiente por código corto (3 dígitos), pack_id o clave en JSON.
     Retorna (entrada dict|None, clave_pendiente str|None).
     """
     codigo = (codigo or "").strip()
@@ -178,6 +265,15 @@ def _resolver_entrada_postventa(codigo: str):
             if entrada:
                 clave_pendiente = candidato
                 break
+
+        if not entrada and re.fullmatch(r"\d{3,8}", codigo):
+            matches = _pendientes_postventa_por_sufijo(codigo)
+            if len(matches) == 1:
+                entrada = matches[0]
+                clave_pendiente = str(entrada.get("pack_id") or codigo)
+            elif len(matches) > 1:
+                return None, None
+
         if not entrada:
             sufijo_busqueda = codigo.upper()
             for k, v in pendientes.items():
@@ -247,8 +343,9 @@ def _listar_postventa_pendientes_api() -> list[dict]:
         vistos.add(pack_id)
         codigo = str(v.get("codigo") or "").strip()
         if not codigo:
-            digits = re.sub(r"\D", "", pack_id)
-            codigo = digits[-4:] if len(digits) >= 4 else pack_id
+            from app.meli_postventa_notif import sufijo_pack_postventa
+
+            codigo = sufijo_pack_postventa(pack_id)
         productos = v.get("productos") or ""
         if isinstance(productos, str):
             productos_lista = [
@@ -311,14 +408,22 @@ def _ejecutar_respuesta_postventa(
         comprador_id = entrada.get("from_id")
 
     if not pack_id:
-        if codigo.isdigit() and len(codigo) > 8:
+        diag = _diagnosticar_sufijo_postventa(codigo)
+        if diag["count"] > 1:
+            ids = ", ".join(f"…{p[-6:]}" for p in diag["matches"][:5])
+            err = (
+                f"Código *{codigo}* ambiguo: hay {diag['count']} mensajes pendientes "
+                f"({ids}). Usa el pack completo o responde en MeLi."
+            )
+        elif codigo.isdigit() and len(codigo) > 8:
             pack_id = codigo
+            err = None
         else:
             err = f"No hay mensaje postventa pendiente con código {codigo}"
+        if err:
             if notificar_grupo:
                 enviar_whatsapp_reporte(
-                    f"⚠️ No encontré mensaje postventa pendiente con código *{codigo}*.\n"
-                    f"Verifica el código en la alerta original o responde directo en MeLi.",
+                    f"⚠️ {err}",
                     numero_destino=grupo_posventa,
                 )
             return {"ok": False, "error": err}
@@ -391,7 +496,7 @@ def _procesar_comando_posventa_wa(texto_cmd: str) -> None:
     if not m:
         enviar_whatsapp_reporte(
             "⚠️ Formato: *posventa <código>: tu respuesta*\n"
-            "Ejemplo: posventa 3240: Hola, su pedido ya fue despachado.",
+            "Ejemplo: posventa 404: Hola, su pedido ya fue despachado.",
             numero_destino=jid_grupo_postventa_wa(),
         )
         return
@@ -1639,7 +1744,7 @@ def register_routes(app):
         except Exception:
             sender_id = sender_raw
         reply_to_wa = str(data.get("reply_to") or sender_raw or sender_id).strip()
-        message_text = data.get("mensaje", "").strip()
+        message_text = _normalizar_comando_grupo(data.get("mensaje", "").strip())
         is_after_sale = data.get("es_postventa", False)
         order_id = data.get("order_id", sender_id)
 
@@ -1686,6 +1791,10 @@ def register_routes(app):
         _msg_norm = _normalizar_comando_grupo(message_text)
         if _msg_norm.lower().startswith("posventa "):
             spawn_thread(_procesar_comando_posventa_wa, args=(_msg_norm,))
+            return jsonify({"status": "ok", "respuesta": None})
+
+        # ok {sufijo} — aprobar borrador IA preventa (desde cualquier chat/grupo)
+        if _intentar_ok_preventa(message_text):
             return jsonify({"status": "ok", "respuesta": None})
 
         # --- Comandos pedidos web: facturar / envio (varios grupos operativos) ---
@@ -1808,36 +1917,6 @@ def register_routes(app):
                         args=(
                             f"⚠️ No encontré pago pendiente con código {sufijo}.",
                             grupo_contabilidad,
-                        ),
-                    )
-                return jsonify({"status": "ok", "respuesta": None})
-
-            # Aprobar borrador IA de preventa: "ok [sufijo]" desde el grupo preventa
-            if es_grupo_preventa_cmd and re.match(r"^ok\s+\d{3,}$", msg_lower.strip()):
-                _sufijo_ok = msg_lower.split()[1]
-                _qid_ok = encontrar_question_id_por_sufijo(_sufijo_ok)
-                if _qid_ok:
-                    from app.services.meli_preventa import obtener_borrador_ia
-                    _borrador_ok = obtener_borrador_ia(_qid_ok)
-                    if _borrador_ok:
-                        spawn_thread(
-                            _procesar_respuesta_preventa, args=(_qid_ok, _borrador_ok)
-                        )
-                    else:
-                        spawn_thread(
-                            enviar_whatsapp_reporte,
-                            args=(
-                                f"⚠️ No hay borrador IA para el código *{_sufijo_ok}*.\n"
-                                f"Usa: *resp {_sufijo_ok}: tu respuesta*",
-                                grupo_preventa,
-                            ),
-                        )
-                else:
-                    spawn_thread(
-                        enviar_whatsapp_reporte,
-                        args=(
-                            f"⚠️ No encontré pregunta pendiente con código *{_sufijo_ok}*.",
-                            grupo_preventa,
                         ),
                     )
                 return jsonify({"status": "ok", "respuesta": None})
@@ -2395,29 +2474,52 @@ def register_routes(app):
 
         # --- Flujo de Aprobación para Mensajes de Posventa ---
         if message_text.lower().startswith("hugo dale ok"):
-            target_order_id = message_text.split()[-1]
-            if target_order_id in borradores_aprobacion:
-                message_to_send = borradores_aprobacion.pop(target_order_id)
+            token_ok = message_text.split()[-1].strip()
+            target_order_id = None
+            message_to_send = None
 
-                # Delegar el envío real a la función correspondiente.
+            if token_ok in borradores_aprobacion:
+                target_order_id = token_ok
+                message_to_send = borradores_aprobacion.pop(token_ok)
+            else:
+                from app.meli_postventa_notif import sufijo_pack_postventa
+
+                matches = []
+                for pack_key, borrador in list(borradores_aprobacion.items()):
+                    digits = re.sub(r"\D", "", str(pack_key))
+                    if (
+                        pack_key == token_ok
+                        or pack_key.endswith(token_ok)
+                        or digits.endswith(token_ok)
+                        or sufijo_pack_postventa(pack_key) == token_ok
+                    ):
+                        matches.append((pack_key, borrador))
+                if len(matches) == 1:
+                    target_order_id, message_to_send = matches[0]
+                    borradores_aprobacion.pop(target_order_id, None)
+
+            if target_order_id and message_to_send:
                 resultado_envio = responder_mensaje_posventa(
                     target_order_id, message_to_send
                 )
                 print(f"Resultado del envío a posventa: {resultado_envio}")
-
+                sufijo = sufijo_pack_postventa(target_order_id)
                 return jsonify(
                     {
                         "status": "sent",
-                        "respuesta": f"¡Listo! Mensaje enviado para la orden {target_order_id}.",
+                        "respuesta": f"¡Listo! Mensaje enviado (código {sufijo}).",
                     }
                 )
-            else:
-                return jsonify(
-                    {
-                        "status": "error",
-                        "respuesta": f"No encontré un borrador pendiente de aprobación para la orden '{target_order_id}'.",
-                    }
-                )
+
+            return jsonify(
+                {
+                    "status": "error",
+                    "respuesta": (
+                        f"No encontré borrador pendiente para el código '{token_ok}'. "
+                        "Usa los 3 últimos dígitos del pack."
+                    ),
+                }
+            )
 
         # --- Control para Evitar Duplicados ---
         if is_after_sale and order_id in borradores_aprobacion:
@@ -2484,12 +2586,14 @@ def register_routes(app):
             # Si es posventa, no respondemos de inmediato. Guardamos como borrador.
             borradores_aprobacion[order_id] = respuesta_ia
 
-            # Notificar al canal de control para que un humano apruebe.
+            from app.meli_postventa_notif import sufijo_pack_postventa
+
+            codigo_corto = sufijo_pack_postventa(order_id)
             mensaje_aprobacion = (
                 f"🔔 *RESPUESTA PENDIENTE DE APROBACIÓN*\n"
-                f"📦 Orden: `{order_id}`\n"
+                f"🔢 Código: *{codigo_corto}*\n"
                 f"🤖 Mensaje propuesto: _{respuesta_ia}_\n\n"
-                f"Para enviar, responde al bot: `hugo dale ok {order_id}`"
+                f"Para enviar: *hugo dale ok {codigo_corto}*"
             )
             enviar_whatsapp_reporte(mensaje_aprobacion, numero_destino=grupo_posventa)
 
@@ -6730,9 +6834,9 @@ def register_routes(app):
             for k, v in _ETIQUETAS.items()
         ]
 
-    def _normalizar_tipos_etiquetas(items) -> list:
+    def _normalizar_tipos_etiquetas(items, *, fallback_default: bool = True) -> list:
         if not isinstance(items, list):
-            return _default_etiquetas_tipos()
+            return _default_etiquetas_tipos() if fallback_default else []
         max_ancho, max_alto = _ETIQUETAS_MAX_MM
         out = []
         seen = set()
@@ -6756,7 +6860,9 @@ def register_routes(app):
                 "alto_mm": round(alto, 2),
             })
         out.sort(key=lambda x: x["nombre"].lower())
-        return out or _default_etiquetas_tipos()
+        if out:
+            return out
+        return _default_etiquetas_tipos() if fallback_default else []
 
     def _load_etiquetas_tipos() -> list:
         try:
@@ -6771,12 +6877,20 @@ def register_routes(app):
             pass
         return _default_etiquetas_tipos()
 
-    def _save_etiquetas_tipos(tipos: list) -> list:
-        normalizados = _normalizar_tipos_etiquetas(tipos)
+    def _save_etiquetas_tipos(tipos: list) -> tuple[list | None, str | None]:
+        if not isinstance(tipos, list) or not tipos:
+            return None, "Envía al menos un formato en «tipos»"
+        normalizados = _normalizar_tipos_etiquetas(tipos, fallback_default=False)
+        if not normalizados:
+            max_ancho, max_alto = _ETIQUETAS_MAX_MM
+            return None, (
+                f"Ningún formato válido. Nombre obligatorio; "
+                f"ancho 1–{max_ancho:g} mm y alto 1–{max_alto:g} mm."
+            )
         os.makedirs(os.path.dirname(_ETIQUETAS_TIPOS_PATH), exist_ok=True)
         with open(_ETIQUETAS_TIPOS_PATH, "w", encoding="utf-8") as f:
             json.dump({"tipos": normalizados}, f, ensure_ascii=False, indent=2)
-        return normalizados
+        return normalizados, None
 
     def _etiquetas_tipos_map() -> dict:
         return {t["nombre"]: (t["ancho_mm"], t["alto_mm"]) for t in _load_etiquetas_tipos()}
@@ -10326,13 +10440,16 @@ def register_routes(app):
     # ── Etiquetas: catálogo de formatos (nombre + mm) ────────────────────────
 
     @app.route("/api/etiquetas/tipos", methods=["GET", "PUT"])
+    @app.route("/app/api/etiquetas/tipos", methods=["GET", "PUT"])
     def api_etiquetas_tipos():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         if request.method == "GET":
             return jsonify({"tipos": _load_etiquetas_tipos()})
         body = request.get_json(silent=True) or {}
-        tipos = _save_etiquetas_tipos(body.get("tipos") or [])
+        tipos, err = _save_etiquetas_tipos(body.get("tipos") or [])
+        if err:
+            return jsonify({"error": err}), 400
         return jsonify({"ok": True, "tipos": tipos})
 
     # ── Etiquetas: colores guardados ─────────────────────────────────────────

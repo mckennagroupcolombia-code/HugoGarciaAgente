@@ -6,6 +6,7 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useAppStore, type EtiquetasHandoff, type EtiquetasTab, type EtiquetasSolicitudActiva } from "../stores/app";
 import {
   esSolicitudEtiqueta,
+  esLineaProsaPedidoEtiqueta,
   parseLineasPedidoEtiqueta,
   inferirTipoEtiqueta,
   type SolicitudEtiquetaBasica,
@@ -4944,10 +4945,15 @@ function ChecklistPedidoEtiquetas({
   const [notaEditId, setNotaEditId] = useState<number | null>(null);
   const [notaDraft, setNotaDraft] = useState("");
   const resolviendoRef = useRef(false);
+  const autoCierreRef = useRef(false);
 
-  const activos = items.filter((i) => i.nombre.trim());
+  const activos = items.filter((i) => i.nombre.trim() && !esLineaProsaPedidoEtiqueta(i.nombre));
   const hechos = activos.filter((i) => !!i.comprado).length;
   const todosMarcados = activos.length > 0 && hechos === activos.length;
+
+  useEffect(() => {
+    autoCierreRef.current = false;
+  }, [pedido.id]);
 
   const cargarItems = useCallback(async () => {
     setLoading(true);
@@ -5006,16 +5012,18 @@ function ChecklistPedidoEtiquetas({
     } catch { /* ignore */ } finally { setBusy(false); }
   }
 
-  async function resolverPedido() {
-    if (!todosMarcados || resolviendoRef.current) return;
+  async function resolverPedido(force = false) {
+    if (resolviendoRef.current) return;
+    if (!force && activos.length > 0 && !todosMarcados) return;
     resolviendoRef.current = true;
     setBusy(true);
+    setMsg("");
     try {
       const nombre = ticketsUser?.nombre || "Operador";
       await ticketsApi(`/${pedido.id}/comentarios`, token, {
         method: "POST",
         body: JSON.stringify({
-          texto: `✅ Pedido de etiquetas completado por ${nombre} (${activos.length} ítem${activos.length !== 1 ? "s" : ""}).`,
+          texto: `✅ Pedido de etiquetas completado por ${nombre} (${activos.length || 1} ítem${activos.length !== 1 ? "s" : ""}).`,
           es_interno: false,
         }),
       });
@@ -5026,6 +5034,7 @@ function ChecklistPedidoEtiquetas({
       onActualizado?.();
       setMsg("✅ Pedido completado");
     } catch (e: unknown) {
+      autoCierreRef.current = false;
       setMsg(e instanceof Error ? e.message : "Error al cerrar el pedido");
     } finally {
       setBusy(false);
@@ -5034,7 +5043,8 @@ function ChecklistPedidoEtiquetas({
   }
 
   useEffect(() => {
-    if (loading || busy || !todosMarcados) return;
+    if (loading || busy || !todosMarcados || autoCierreRef.current) return;
+    autoCierreRef.current = true;
     void resolverPedido();
   }, [items, loading, busy, todosMarcados]);
 
@@ -5154,10 +5164,31 @@ function ChecklistPedidoEtiquetas({
           {msg}
         </p>
       )}
-      {!loading && activos.length > 0 && (
-        <p className="text-center text-[10px] text-muted">
-          Marca cada ítem al imprimirlo · 📝 para anotar · al completar todos se cierra el pedido
-        </p>
+      {!loading && (
+        <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
+          {activos.length > 0 && (
+            <p className="text-center text-[10px] text-muted">
+              Marca cada ítem al imprimirlo · 📝 para anotar
+              {todosMarcados ? " · listo para cerrar" : ` · ${hechos}/${activos.length} impresos`}
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              if (activos.length > 0 && !todosMarcados) {
+                const faltan = activos.length - hechos;
+                if (!window.confirm(`Faltan ${faltan} ítem${faltan !== 1 ? "s" : ""} sin marcar. ¿Cerrar el pedido igual?`)) return;
+                void resolverPedido(true);
+                return;
+              }
+              void resolverPedido(true);
+            }}
+            className="w-full rounded-xl bg-accent py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {busy ? "Cerrando…" : "✅ Cerrar pedido"}
+          </button>
+        </div>
       )}
     </div>
   );
