@@ -66,6 +66,17 @@ export function esLineaProsaPedidoEtiqueta(linea: string): boolean {
   return /^(buenos|hola|por favor|mil gracias|estas x|quedó atenta|gracias)/i.test(linea);
 }
 
+export function lineaDescripcionEtiqueta(nombre: string, cantidad: number): string {
+  const c = Math.max(1, Math.floor(cantidad || 1));
+  const n = (nombre || "").trim();
+  return c > 1 ? `• ${n} × ${c} u` : `• ${n}`;
+}
+
+export function fmtUnidadesEtiqueta(cantidad: number | string | undefined): string {
+  const c = Math.floor(Number(cantidad) || 1);
+  return c > 1 ? `${c} u` : "";
+}
+
 export function parseLineasPedidoEtiqueta(texto: string): LineaPedidoEtiqueta[] {
   return (texto || "")
     .split("\n")

@@ -37,6 +37,8 @@ import {
   esSolicitudEtiqueta,
   irAImprimirDesdeSolicitud,
   parseLineasPedidoEtiqueta,
+  lineaDescripcionEtiqueta,
+  fmtUnidadesEtiqueta,
 } from "../lib/etiquetasSolicitudes";
 import { useInventarioCarrito } from "../stores/inventarioCarrito";
 import {
@@ -12426,6 +12428,7 @@ function SolicitudListaChecklist({
   const [msg, setMsg] = useState("");
   const [facturaFile, setFacturaFile] = useState<File | null>(null);
   const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoCantidad, setNuevoCantidad] = useState("1");
   const [estadoLocal, setEstadoLocal] = useState(ticket.estado);
   const [faseLogro, setFaseLogro] = useState(false);
   const resolviendoRef = useRef(false);
@@ -12495,16 +12498,18 @@ function SolicitudListaChecklist({
   async function agregarItem() {
     const nombre = nuevoNombre.trim();
     if (!nombre || !puedeOperar || resuelta) return;
+    const cantidad = Math.max(1, Math.floor(parseFloat(nuevoCantidad) || 1));
     setBusy(true);
     setMsg("");
     try {
       await asegurarEnProceso();
       const data = await tapi(`/${ticket.id}/lista-compras`, token, {
         method: "POST",
-        body: JSON.stringify({ nombre, cantidad: 1, unidad: "und" }),
+        body: JSON.stringify({ nombre, cantidad, unidad: esEtiqueta ? "u" : "und" }),
       });
       setItems(Array.isArray(data) ? mapItemsCompra(data) : items);
       setNuevoNombre("");
+      setNuevoCantidad("1");
     } catch (e: unknown) {
       setMsg(e instanceof Error ? e.message : "No se pudo agregar");
     } finally { setBusy(false); }
@@ -12573,7 +12578,9 @@ function SolicitudListaChecklist({
   }, [items, loading, busy, resuelta, puedeOperar, todosMarcados]);
 
   function fmtItem(it: ItemCompra) {
-    if (esEtiqueta) return "";
+    if (esEtiqueta) {
+      return fmtUnidadesEtiqueta(it.cantidad);
+    }
     const q = String(it.cantidad ?? "");
     const u = (it.unidad || "und").toLowerCase();
     if (!q || q === "1") return "";
@@ -12667,11 +12674,38 @@ function SolicitudListaChecklist({
             onChange={(e) => setNuevoNombre(e.target.value)}
             onKeyDown={onNuevoItemKeyDown}
             disabled={busy}
-            placeholder={esEtiqueta ? "Producto · presentación · cantidad…" : "Producto o material…"}
+            placeholder={esEtiqueta ? "Producto y presentación…" : "Producto o material…"}
             className="w-full rounded-xl border-2 border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent"
           />
+          {esEtiqueta && (
+            <div className="flex gap-2">
+              <label className="flex flex-1 flex-col gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Unidades</span>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={nuevoCantidad}
+                  onChange={(e) => setNuevoCantidad(e.target.value)}
+                  disabled={busy}
+                  placeholder="Cant."
+                  className="w-full rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void agregarItem()}
+                disabled={busy || !nuevoNombre.trim()}
+                className="mt-auto rounded-xl border-2 border-accent px-4 py-2 text-sm font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40"
+              >
+                + Agregar
+              </button>
+            </div>
+          )}
           <p className="text-[10px] text-center text-muted">
-            Espacio o Enter agrega un ítem · al marcar todos se cierra la solicitud
+            {esEtiqueta
+              ? "Espacio o Enter agrega el ítem · indica cuántas etiquetas imprimir"
+              : "Espacio o Enter agrega un ítem · al marcar todos se cierra la solicitud"}
           </p>
           {!esEtiqueta && tieneProductos && (
             <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-3">
@@ -17138,7 +17172,7 @@ function NuevaSolicitudWizard({
     ? parseLineasPedidoEtiqueta(descripcionInicial).map((l) => ({
         nombre: l.label,
         cantidad: String(l.cantidad || 1),
-        unidad: "und",
+        unidad: "u",
       }))
     : [];
   const { apiToken: chatApiToken } = useTicketsAuth();
@@ -17261,7 +17295,10 @@ function NuevaSolicitudWizard({
       tituloFinal = resumen ? (`Etiquetas: ${resumen}`).slice(0, 150) : "Pedido de etiquetas";
     }
     const descripcionFinal = (esCompra || esEtiquetaVar)
-      ? listaComprasDraft.map((i) => `• ${i.nombre}${esCompra ? ` — ${i.cantidad} ${i.unidad}` : ""}`).join("\n")
+      ? listaComprasDraft.map((i) => {
+          if (esCompra) return `• ${i.nombre} — ${i.cantidad} ${i.unidad}`;
+          return lineaDescripcionEtiqueta(i.nombre, parseFloat(i.cantidad) || 1);
+        }).join("\n")
       : desc;
     const subtipo = esEtiquetaVar ? "etiqueta" : esCompra ? "compra" : undefined;
     setLoading(true);
@@ -17294,7 +17331,7 @@ function NuevaSolicitudWizard({
                 body: JSON.stringify({
                   nombre: item.nombre,
                   cantidad: parseFloat(item.cantidad) || 1,
-                  unidad: esCompra ? (item.unidad || "und") : "und",
+                  unidad: esCompra ? (item.unidad || "und") : "u",
                 }),
               }),
             ),
@@ -17374,7 +17411,7 @@ function NuevaSolicitudWizard({
                 🏷️ Solicitud de etiquetas
               </p>
               <p className="mt-1 text-sm text-muted">
-                Pedir impresión de etiquetas: producto, presentación y cantidad.
+                Pedir impresión de etiquetas: producto, presentación y unidades.
               </p>
             </button>
             <button
@@ -17519,7 +17556,7 @@ function NuevaSolicitudWizard({
             </h2>
             <p className="mt-2 text-sm text-muted">
               {variante === "etiqueta"
-                ? "Escribe cada producto y pulsa Espacio para agregarlo a la lista."
+                ? "Producto, presentación y cuántas etiquetas imprimir."
                 : "Agrega los productos o materiales de la lista."}
             </p>
           </div>
@@ -17531,6 +17568,9 @@ function NuevaSolicitudWizard({
                   <span className="min-w-0 flex-1 truncate text-ink font-semibold">{item.nombre}</span>
                   {variante === "compra" && (
                     <span className="shrink-0 text-muted">{item.cantidad} {item.unidad}</span>
+                  )}
+                  {variante === "etiqueta" && fmtUnidadesEtiqueta(item.cantidad) && (
+                    <span className="shrink-0 font-semibold text-accent">{fmtUnidadesEtiqueta(item.cantidad)}</span>
                   )}
                   <button
                     type="button"
@@ -17549,7 +17589,7 @@ function NuevaSolicitudWizard({
               value={compraNombre}
               onChange={(e) => setCompraNombre(e.target.value)}
               placeholder={variante === "etiqueta"
-                ? "Ej: Elastina 30 ml × 50 u"
+                ? "Ej: Elastina 30 ml"
                 : "Nombre del producto o material"}
               className="w-full rounded-xl border border-border bg-surface-input px-4 py-3 text-sm text-ink outline-none focus:border-accent"
               onKeyDown={(e) => {
@@ -17559,6 +17599,30 @@ function NuevaSolicitudWizard({
                 }
               }}
             />
+            {variante === "etiqueta" && (
+              <div className="flex gap-2">
+                <label className="flex flex-1 flex-col gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Unidades</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={compraCantidad}
+                    onChange={(e) => setCompraCantidad(e.target.value)}
+                    placeholder="Cant."
+                    className="w-full rounded-xl border border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={agregarItemCompra}
+                  disabled={!compraNombre.trim()}
+                  className="mt-auto flex-1 rounded-xl border-2 border-accent px-3 py-2 text-sm font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-40"
+                >
+                  + Agregar
+                </button>
+              </div>
+            )}
             {variante === "compra" && (
               <div className="flex gap-2">
                 <input
@@ -17588,7 +17652,7 @@ function NuevaSolicitudWizard({
               </div>
             )}
             {variante === "etiqueta" && (
-              <p className="text-[10px] text-center text-muted">Espacio o Enter agrega el ítem</p>
+              <p className="text-[10px] text-center text-muted">Espacio o Enter agrega el ítem con las unidades indicadas</p>
             )}
           </div>
           <button
@@ -17602,7 +17666,10 @@ function NuevaSolicitudWizard({
                 const resumen = listaComprasDraft.map((i) => i.nombre).join(", ");
                 setTitulo(resumen ? `Etiquetas: ${resumen}`.slice(0, 150) : "Pedido de etiquetas");
               }
-              setDescripcion(listaComprasDraft.map((i) => `• ${i.nombre}${variante === "compra" ? ` — ${i.cantidad} ${i.unidad}` : ""}`).join("\n"));
+              setDescripcion(listaComprasDraft.map((i) => {
+                if (variante === "compra") return `• ${i.nombre} — ${i.cantidad} ${i.unidad}`;
+                return lineaDescripcionEtiqueta(i.nombre, parseFloat(i.cantidad) || 1);
+              }).join("\n"));
               irFase("asignados");
             }}
             className="w-full rounded-2xl bg-accent py-4 text-lg font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
@@ -17747,6 +17814,16 @@ function NuevaSolicitudWizard({
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted mb-0.5">Tipo</p>
                 <p className="text-sm font-semibold text-accent">🏷️ Solicitud de etiquetas</p>
+                {listaComprasDraft.length > 0 && (
+                  <ul className="mt-2 space-y-1 text-sm text-muted">
+                    {listaComprasDraft.map((item, idx) => (
+                      <li key={`${item.nombre}-${idx}`}>
+                        • {item.nombre}
+                        {fmtUnidadesEtiqueta(item.cantidad) ? ` — ${fmtUnidadesEtiqueta(item.cantidad)}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
             {variante === "compra" && (
