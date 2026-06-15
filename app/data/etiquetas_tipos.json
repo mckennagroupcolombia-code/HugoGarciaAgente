@@ -1,14 +1,69 @@
 {
   "tipos": [
     {
+      "nombre": "1 Lt",
+      "ancho_mm": 108.0,
+      "alto_mm": 76.0
+    },
+    {
+      "nombre": "100 g",
+      "ancho_mm": 69.0,
+      "alto_mm": 51.0
+    },
+    {
+      "nombre": "125 g",
+      "ancho_mm": 70.0,
+      "alto_mm": 70.0
+    },
+    {
+      "nombre": "250 g",
+      "ancho_mm": 76.0,
+      "alto_mm": 66.0
+    },
+    {
       "nombre": "30 mL",
       "ancho_mm": 102.0,
       "alto_mm": 38.0
     },
     {
+      "nombre": "5 g",
+      "ancho_mm": 50.0,
+      "alto_mm": 42.0
+    },
+    {
+      "nombre": "5 mL",
+      "ancho_mm": 66.0,
+      "alto_mm": 22.0
+    },
+    {
       "nombre": "50g",
       "ancho_mm": 102.0,
       "alto_mm": 32.0
+    },
+    {
+      "nombre": "54mm",
+      "ancho_mm": 54.0,
+      "alto_mm": 58.0
+    },
+    {
+      "nombre": "Circular",
+      "ancho_mm": 55.0,
+      "alto_mm": 55.0
+    },
+    {
+      "nombre": "Circular 70",
+      "ancho_mm": 70.0,
+      "alto_mm": 70.0
+    },
+    {
+      "nombre": "Lactato",
+      "ancho_mm": 38.0,
+      "alto_mm": 140.0
+    },
+    {
+      "nombre": "Pastillero",
+      "ancho_mm": 54.0,
+      "alto_mm": 58.0
     }
   ]
 }

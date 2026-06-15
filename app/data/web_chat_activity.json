@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-12T23:58:25",
+  "updated_at": "2026-06-14T17:18:39",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -26,9 +26,51 @@
     "2026-06-07": 4,
     "2026-06-09": 4,
     "2026-06-11": 1,
-    "2026-06-12": 28
+    "2026-06-12": 28,
+    "2026-06-14": 3
   },
   "sessions": [
+    {
+      "session_id": "web-fa466230-aab5-409c-8b0a-c9272fe49871",
+      "started_at": "2026-06-14T17:16:48",
+      "last_at": "2026-06-14T17:18:39",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/424.4.924152415 Mobile/15E148 Safari/604.1",
+      "last_user_message": "ya lo compré",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-14T17:16:48",
+          "user_message": "Hola, el aceite de ricino es libre de hexano y prensado en frío? Gracias",
+          "agent_reply": "Claro que sí, veci. Nuestro aceite de ricino es puro, prensado en frío y, por lo tanto, completamente libre de hexano.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-14T17:17:25",
+          "user_message": "Perfecto, muchas gracias",
+          "agent_reply": "Claro veci. Le confirmo lo que tenemos en catálogo web: *Perfecto*: no aparece en catálogo web. *muchas gracias*: no aparece en catálogo web. ¿Cuáles presentaciones le sirven para armar el pedido?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-14T17:18:39",
+          "user_message": "ya lo compré",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-720aab63-e1d6-43f3-8e8b-cdeb985179eb",
       "started_at": "2026-06-12T23:58:25",

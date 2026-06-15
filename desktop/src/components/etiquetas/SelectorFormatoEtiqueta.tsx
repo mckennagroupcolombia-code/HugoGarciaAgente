@@ -199,7 +199,7 @@ export function SelectorFormatoEtiqueta({
   const guardar = useGuardarTiposEtiqueta();
   const [msgGuardar, setMsgGuardar] = useState("");
 
-  const tipos: TipoEtiqueta[] = data?.tipos?.length ? data.tipos : TIPOS_ETIQUETA_DEFAULT;
+  const tipos: TipoEtiqueta[] = data?.tipos ?? TIPOS_ETIQUETA_DEFAULT;
 
   const nombreEnCatalogo = useMemo(
     () => tipos.some((t) => t.nombre === value.nombre.trim()),

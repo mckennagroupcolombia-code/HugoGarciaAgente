@@ -9699,7 +9699,19 @@ def register_routes(app):
                         log_lines, det_job, producto=producto, forma=forma,
                     ))
 
-            return jsonify({"ok": True, "log": log_lines})
+            desc_inv = _descontar_inventario_papel_etiquetas(ancho, alto, cantidad, producto)
+            if desc_inv.get("ok"):
+                log_lines.append(
+                    f"Inventario: −{desc_inv['descontadas']} etiquetas · {desc_inv.get('ref')} · "
+                    f"quedan {desc_inv.get('restantes')} ({desc_inv.get('rollos')} rollos + "
+                    f"{desc_inv.get('etiquetas_sueltas')} sueltas)"
+                )
+                if desc_inv.get("agotado"):
+                    log_lines.append("Inventario: ⚠️ sin etiquetas de este tamaño")
+            else:
+                log_lines.append(f"Inventario: {desc_inv.get('mensaje', 'sin descuento')}")
+
+            return jsonify({"ok": True, "log": log_lines, "inventario": desc_inv})
         except Exception as e:
             log_lines.append(f"Excepción: {e}")
             err = _respuesta_error_impresion_etiquetas(
@@ -10557,6 +10569,221 @@ def register_routes(app):
         os.path.dirname(os.path.abspath(__file__)), "data", "etiquetas_inventario_consumibles.json",
     )
 
+    def _mm_a_pulgadas_etiquetas(mm) -> float:
+        try:
+            return round(float(mm) / 25.4, 3)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _etiquetas_total_papel_item(it: dict) -> int:
+        try:
+            rollos = max(0.0, float(it.get("rollos", it.get("cantidad", 0)) or 0))
+        except (TypeError, ValueError):
+            rollos = 0.0
+        try:
+            upr = max(0, int(it.get("unidades_por_rollo") or 0))
+        except (TypeError, ValueError):
+            upr = 0
+        try:
+            sueltas = max(0, int(it.get("etiquetas_sueltas") or 0))
+        except (TypeError, ValueError):
+            sueltas = 0
+        if upr > 0:
+            return int(rollos * upr) + sueltas
+        try:
+            return max(0, int(float(it.get("cantidad") or 0)))
+        except (TypeError, ValueError):
+            return 0
+
+    def _nombre_display_papel_inventario(it: dict) -> str:
+        ref = (it.get("ref") or "").strip()
+        try:
+            aw = float(it.get("ancho_mm") or 0)
+            ah = float(it.get("alto_mm") or 0)
+        except (TypeError, ValueError):
+            aw, ah = 0.0, 0.0
+        if ref and aw > 0 and ah > 0:
+            return f"{ref} · {aw:g}×{ah:g} mm"
+        return (it.get("nombre") or ref or "Papel").strip()[:120]
+
+    def _migrar_item_papel_inventario(it: dict) -> dict:
+        """Enriquece registros legacy de papel con ref, medidas y stock por rollo."""
+        out = dict(it)
+        nombre = (out.get("nombre") or "").strip()
+        notas = (out.get("notas") or "").strip()
+        if not (out.get("ref") or "").strip():
+            if " · " in nombre:
+                out["ref"] = nombre.split(" · ", 1)[0].strip()[:40]
+            else:
+                m_ref = re.search(r"\b([A-Z0-9][A-Z0-9\-_/]{1,30})\b", nombre, re.I)
+                out["ref"] = (m_ref.group(1) if m_ref else nombre.split()[0] if nombre else "PAPEL")[:40]
+
+        try:
+            aw = float(out.get("ancho_mm") or 0)
+            ah = float(out.get("alto_mm") or 0)
+        except (TypeError, ValueError):
+            aw, ah = 0.0, 0.0
+        if aw <= 0 or ah <= 0:
+            m_mm = re.search(r"(\d+(?:[.,]\d+)?)\s*[×x*]\s*(\d+(?:[.,]\d+)?)\s*mm", nombre, re.I)
+            if m_mm:
+                aw = float(m_mm.group(1).replace(",", "."))
+                ah = float(m_mm.group(2).replace(",", "."))
+            else:
+                m_mm2 = re.search(r"(\d+(?:[.,]\d+)?)\s*[×x*]\s*(\d+(?:[.,]\d+)?)", nombre)
+                if m_mm2:
+                    aw = float(m_mm2.group(1).replace(",", "."))
+                    ah = float(m_mm2.group(2).replace(",", "."))
+            out["ancho_mm"] = aw
+            out["alto_mm"] = ah
+
+        if not out.get("unidades_por_rollo"):
+            m_upr = re.search(r"(\d{2,5})\s*$", notas.replace(" ", ""))
+            if m_upr:
+                out["unidades_por_rollo"] = int(m_upr.group(1))
+            elif re.search(r"\*\s*(\d{2,5})", notas):
+                out["unidades_por_rollo"] = int(re.search(r"\*\s*(\d{2,5})", notas).group(1))
+            else:
+                try:
+                    upr_try = int(out.get("unidades_por_rollo") or 0)
+                except (TypeError, ValueError):
+                    upr_try = 0
+                if upr_try <= 0:
+                    out["unidades_por_rollo"] = 500
+
+        try:
+            aw = float(out.get("ancho_mm") or 0)
+            ah = float(out.get("alto_mm") or 0)
+        except (TypeError, ValueError):
+            aw, ah = 0.0, 0.0
+        if aw > 0 and ah > 0:
+            if not out.get("ancho_pulg"):
+                out["ancho_pulg"] = _mm_a_pulgadas_etiquetas(aw)
+            if not out.get("alto_pulg"):
+                out["alto_pulg"] = _mm_a_pulgadas_etiquetas(ah)
+
+        upr = int(out.get("unidades_por_rollo") or 500)
+        out["unidades_por_rollo"] = max(1, upr)
+        if out.get("rollos") is None and out.get("etiquetas_sueltas") is None:
+            try:
+                legacy = max(0.0, float(out.get("cantidad") or 0))
+            except (TypeError, ValueError):
+                legacy = 0.0
+            unidad = (out.get("unidad") or "").strip().lower()
+            if legacy > upr or unidad != "rollos":
+                total = int(legacy)
+                out["rollos"] = total // upr
+                out["etiquetas_sueltas"] = total % upr
+            else:
+                out["rollos"] = legacy
+                out["etiquetas_sueltas"] = 0
+        else:
+            try:
+                out["rollos"] = max(0.0, float(out.get("rollos", out.get("cantidad", 0)) or 0))
+            except (TypeError, ValueError):
+                out["rollos"] = 0.0
+            try:
+                out["etiquetas_sueltas"] = max(0, int(out.get("etiquetas_sueltas") or 0))
+            except (TypeError, ValueError):
+                out["etiquetas_sueltas"] = 0
+
+        try:
+            out["minimo_rollos"] = max(0.0, float(out.get("minimo_rollos", out.get("minimo", 0)) or 0))
+        except (TypeError, ValueError):
+            out["minimo_rollos"] = 0.0
+
+        out["formato_etiqueta"] = (out.get("formato_etiqueta") or "").strip()[:60]
+        out["notas"] = (out.get("notas") or "").strip()[:500]
+        out["nombre"] = _nombre_display_papel_inventario(out)
+        out["cantidad"] = float(out.get("rollos") or 0)
+        out["minimo"] = float(out.get("minimo_rollos") or 0)
+        out["unidad"] = "rollos"
+        out["total_etiquetas"] = _etiquetas_total_papel_item(out)
+        return out
+
+    def _serializar_papel_inventario_json(it: dict) -> dict | None:
+        item_id = str(it.get("id") or "").strip()
+        if not item_id:
+            return None
+        m = _migrar_item_papel_inventario({**it, "id": item_id, "tipo": "papel"})
+        return {
+            "id": item_id,
+            "tipo": "papel",
+            "ref": (m.get("ref") or "").strip()[:40],
+            "nombre": (m.get("nombre") or "").strip()[:120],
+            "ancho_mm": round(float(m.get("ancho_mm") or 0), 2),
+            "alto_mm": round(float(m.get("alto_mm") or 0), 2),
+            "ancho_pulg": round(float(m.get("ancho_pulg") or 0), 3),
+            "alto_pulg": round(float(m.get("alto_pulg") or 0), 3),
+            "unidades_por_rollo": max(1, int(m.get("unidades_por_rollo") or 500)),
+            "rollos": max(0.0, float(m.get("rollos") or 0)),
+            "etiquetas_sueltas": max(0, int(m.get("etiquetas_sueltas") or 0)),
+            "minimo_rollos": max(0.0, float(m.get("minimo_rollos") or 0)),
+            "minimo": max(0.0, float(m.get("minimo_rollos") or m.get("minimo") or 0)),
+            "formato_etiqueta": (m.get("formato_etiqueta") or "").strip()[:60],
+            "notas": (m.get("notas") or "").strip()[:500],
+            "cantidad": max(0.0, float(m.get("rollos") or 0)),
+            "unidad": "rollos",
+            "total_etiquetas": _etiquetas_total_papel_item(m),
+            "updated_at": (it.get("updated_at") or _dt.now().isoformat(timespec="seconds")),
+        }
+
+    def _papel_inventario_incompleto_en_disco(it: dict) -> bool:
+        if (it.get("tipo") or "").strip().lower() != "papel":
+            return False
+        faltan = (
+            "ref", "ancho_mm", "alto_mm", "unidades_por_rollo", "rollos", "etiquetas_sueltas",
+        )
+        return any(k not in it for k in faltan)
+
+    def _serializar_tinta_inventario_json(it: dict) -> dict | None:
+        item_id = str(it.get("id") or "").strip()
+        if not item_id:
+            return None
+        m = _normalizar_item_tinta_inventario(it)
+        return {
+            "id": item_id,
+            "tipo": "tinta",
+            "nombre": m.get("nombre") or "",
+            "cantidad": m.get("cantidad", 0),
+            "unidad": m.get("unidad") or "cartuchos",
+            "minimo": m.get("minimo", 0),
+            "notas": m.get("notas") or "",
+            "updated_at": (it.get("updated_at") or _dt.now().isoformat(timespec="seconds")),
+        }
+
+    def _normalizar_item_tinta_inventario(it: dict) -> dict:
+        out = dict(it)
+        out["nombre"] = (out.get("nombre") or "").strip()[:120]
+        try:
+            out["cantidad"] = max(0.0, float(out.get("cantidad", 0)))
+        except (TypeError, ValueError):
+            out["cantidad"] = 0.0
+        try:
+            out["minimo"] = max(0.0, float(out.get("minimo", 0)))
+        except (TypeError, ValueError):
+            out["minimo"] = 0.0
+        out["unidad"] = (out.get("unidad") or "cartuchos").strip()[:40]
+        out["notas"] = (out.get("notas") or "").strip()[:500]
+        return out
+
+    def _normalizar_item_inventario_etiquetas(it: dict) -> dict | None:
+        if not isinstance(it, dict):
+            return None
+        tipo = (it.get("tipo") or "").strip().lower()
+        if tipo not in ("papel", "tinta"):
+            return None
+        item_id = str(it.get("id") or "").strip()
+        if not item_id:
+            return None
+        if tipo == "papel":
+            out = _migrar_item_papel_inventario(it)
+        else:
+            out = _normalizar_item_tinta_inventario(it)
+        out["id"] = item_id
+        out["tipo"] = tipo
+        out["updated_at"] = it.get("updated_at") or ""
+        return out
+
     def _load_etiquetas_inventario() -> dict:
         try:
             with open(_ETIQUETAS_INVENTARIO_PATH, encoding="utf-8") as f:
@@ -10569,42 +10796,161 @@ def register_routes(app):
         if not isinstance(items, list):
             return {"items": []}
         out = []
+        reparar_disco = False
+        for it in items:
+            if _papel_inventario_incompleto_en_disco(it):
+                reparar_disco = True
+            norm = _normalizar_item_inventario_etiquetas(it)
+            if norm:
+                out.append(norm)
+        if reparar_disco and out:
+            _save_etiquetas_inventario(out)
+        return {"items": out}
+
+    def _save_etiquetas_inventario(items: list) -> None:
+        persistidos = []
         for it in items:
             if not isinstance(it, dict):
                 continue
             tipo = (it.get("tipo") or "").strip().lower()
-            if tipo not in ("papel", "tinta"):
-                continue
-            nombre = (it.get("nombre") or "").strip()
-            if not nombre:
-                continue
-            try:
-                cantidad = float(it.get("cantidad", 0))
-            except (TypeError, ValueError):
-                cantidad = 0.0
-            try:
-                minimo = float(it.get("minimo", 0))
-            except (TypeError, ValueError):
-                minimo = 0.0
-            out.append({
-                "id": str(it.get("id") or ""),
-                "tipo": tipo,
-                "nombre": nombre[:120],
-                "cantidad": max(0.0, cantidad),
-                "unidad": (it.get("unidad") or ("rollos" if tipo == "papel" else "cartuchos")).strip()[:40],
-                "minimo": max(0.0, minimo),
-                "notas": (it.get("notas") or "").strip()[:500],
-                "updated_at": it.get("updated_at") or "",
-            })
-        out = [x for x in out if x["id"]]
-        return {"items": out}
-
-    def _save_etiquetas_inventario(items: list) -> None:
+            if tipo == "papel":
+                ser = _serializar_papel_inventario_json(it)
+            else:
+                ser = _serializar_tinta_inventario_json(it)
+            if ser:
+                persistidos.append(ser)
         os.makedirs(os.path.dirname(_ETIQUETAS_INVENTARIO_PATH), exist_ok=True)
         with open(_ETIQUETAS_INVENTARIO_PATH, "w", encoding="utf-8") as f:
-            json.dump({"items": items[:200]}, f, ensure_ascii=False, indent=2)
+            json.dump({"items": persistidos[:200]}, f, ensure_ascii=False, indent=2)
+
+    def _parse_papel_inventario_body(body: dict, tipo: str) -> tuple[dict | None, str | None]:
+        if tipo != "papel":
+            return None, None
+        ref = (body.get("ref") or body.get("nombre") or "").strip()[:40]
+        if not ref:
+            return None, "Falta ref del papel"
+        try:
+            ancho_mm = float(body.get("ancho_mm"))
+            alto_mm = float(body.get("alto_mm"))
+        except (TypeError, ValueError):
+            return None, "Indica ancho_mm y alto_mm válidos"
+        if ancho_mm <= 0 or alto_mm <= 0:
+            return None, "Las medidas en mm deben ser mayores a 0"
+        try:
+            unidades_por_rollo = max(1, int(body.get("unidades_por_rollo")))
+        except (TypeError, ValueError):
+            return None, "unidades_por_rollo debe ser un entero ≥ 1"
+        try:
+            rollos = max(0.0, float(body.get("rollos", body.get("cantidad", 0))))
+        except (TypeError, ValueError):
+            rollos = 0.0
+        try:
+            etiquetas_sueltas = max(0, int(body.get("etiquetas_sueltas", 0)))
+        except (TypeError, ValueError):
+            etiquetas_sueltas = 0
+        if etiquetas_sueltas >= unidades_por_rollo:
+            rollos += etiquetas_sueltas // unidades_por_rollo
+            etiquetas_sueltas = etiquetas_sueltas % unidades_por_rollo
+        try:
+            ancho_pulg = float(body.get("ancho_pulg")) if body.get("ancho_pulg") not in (None, "") else _mm_a_pulgadas_etiquetas(ancho_mm)
+        except (TypeError, ValueError):
+            ancho_pulg = _mm_a_pulgadas_etiquetas(ancho_mm)
+        try:
+            alto_pulg = float(body.get("alto_pulg")) if body.get("alto_pulg") not in (None, "") else _mm_a_pulgadas_etiquetas(alto_mm)
+        except (TypeError, ValueError):
+            alto_pulg = _mm_a_pulgadas_etiquetas(alto_mm)
+        try:
+            minimo_rollos = max(0.0, float(body.get("minimo_rollos", body.get("minimo", 0))))
+        except (TypeError, ValueError):
+            minimo_rollos = 0.0
+        entry = {
+            "ref": ref,
+            "ancho_mm": round(ancho_mm, 2),
+            "alto_mm": round(alto_mm, 2),
+            "ancho_pulg": round(ancho_pulg, 3),
+            "alto_pulg": round(alto_pulg, 3),
+            "unidades_por_rollo": unidades_por_rollo,
+            "rollos": rollos,
+            "etiquetas_sueltas": etiquetas_sueltas,
+            "minimo_rollos": minimo_rollos,
+            "formato_etiqueta": (body.get("formato_etiqueta") or "").strip()[:60],
+            "notas": (body.get("notas") or "").strip()[:500],
+        }
+        entry["nombre"] = _nombre_display_papel_inventario(entry)
+        entry["cantidad"] = rollos
+        entry["minimo"] = minimo_rollos
+        entry["unidad"] = "rollos"
+        entry["total_etiquetas"] = _etiquetas_total_papel_item(entry)
+        return entry, None
+
+    def _descontar_inventario_papel_etiquetas(
+        ancho_mm: float,
+        alto_mm: float,
+        cantidad: int,
+        producto: str = "",
+    ) -> dict:
+        try:
+            cant = max(0, int(cantidad))
+        except (TypeError, ValueError):
+            return {"ok": False, "mensaje": "Cantidad inválida para inventario"}
+        if cant <= 0:
+            return {"ok": False, "mensaje": "Sin etiquetas que descontar"}
+        items = _load_etiquetas_inventario().get("items") or []
+        tol = 1.0
+        target_a = float(ancho_mm)
+        target_b = float(alto_mm)
+
+        def _dims_match(it: dict) -> bool:
+            try:
+                aw = float(it.get("ancho_mm") or 0)
+                ah = float(it.get("alto_mm") or 0)
+            except (TypeError, ValueError):
+                return False
+            if aw <= 0 or ah <= 0:
+                return False
+            return (
+                (abs(aw - target_a) <= tol and abs(ah - target_b) <= tol)
+                or (abs(aw - target_b) <= tol and abs(ah - target_a) <= tol)
+            )
+
+        candidatos = [it for it in items if it.get("tipo") == "papel" and _dims_match(it)]
+        prod = (producto or "").strip().lower()
+        if prod:
+            por_fmt = [
+                it for it in candidatos
+                if (it.get("formato_etiqueta") or "").strip().lower() == prod
+            ]
+            if por_fmt:
+                candidatos = por_fmt
+        if not candidatos:
+            return {
+                "ok": False,
+                "mensaje": f"No hay rollo registrado para {target_a:g}×{target_b:g} mm",
+            }
+        idx = next(i for i, it in enumerate(items) if it.get("id") == candidatos[0]["id"])
+        it = dict(items[idx])
+        total_antes = _etiquetas_total_papel_item(it)
+        total_despues = max(0, total_antes - cant)
+        upr = max(1, int(it.get("unidades_por_rollo") or 1))
+        it["rollos"] = total_despues // upr
+        it["etiquetas_sueltas"] = total_despues % upr
+        it["cantidad"] = float(it["rollos"])
+        it["total_etiquetas"] = total_despues
+        it["updated_at"] = _dt.now().isoformat(timespec="seconds")
+        items[idx] = _normalizar_item_inventario_etiquetas({**it, "tipo": "papel", "id": it["id"]})
+        _save_etiquetas_inventario(items)
+        return {
+            "ok": True,
+            "ref": it.get("ref") or it.get("nombre"),
+            "descontadas": cant,
+            "restantes": total_despues,
+            "rollos": it["rollos"],
+            "etiquetas_sueltas": it["etiquetas_sueltas"],
+            "agotado": total_despues == 0,
+        }
 
     @app.route("/api/etiquetas/inventario-consumibles", methods=["GET", "POST"])
+    @app.route("/app/api/etiquetas/inventario-consumibles", methods=["GET", "POST"])
     def api_etiquetas_inventario_consumibles():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -10614,36 +10960,54 @@ def register_routes(app):
 
         body = request.get_json(silent=True) or {}
         tipo = (body.get("tipo") or "").strip().lower()
-        nombre = (body.get("nombre") or "").strip()
         if tipo not in ("papel", "tinta"):
-            return jsonify({"error": "tipo debe ser papel o tinta"}), 400
-        if not nombre:
-            return jsonify({"error": "Falta nombre"}), 400
-        try:
-            cantidad = max(0.0, float(body.get("cantidad", 0)))
-        except (TypeError, ValueError):
-            cantidad = 0.0
-        try:
-            minimo = max(0.0, float(body.get("minimo", 0)))
-        except (TypeError, ValueError):
-            minimo = 0.0
+            if body.get("ref") or (body.get("ancho_mm") and body.get("alto_mm")):
+                tipo = "papel"
+            else:
+                return jsonify({"error": "tipo debe ser papel o tinta"}), 400
         import uuid as _uuid_inv
         items = _load_etiquetas_inventario().get("items") or []
-        entry = {
-            "id": _uuid_inv.uuid4().hex[:12],
-            "tipo": tipo,
-            "nombre": nombre[:120],
-            "cantidad": cantidad,
-            "unidad": (body.get("unidad") or ("rollos" if tipo == "papel" else "cartuchos")).strip()[:40],
-            "minimo": minimo,
-            "notas": (body.get("notas") or "").strip()[:500],
-            "updated_at": _dt.now().isoformat(timespec="seconds"),
-        }
+        if tipo == "papel":
+            papel, err = _parse_papel_inventario_body(body, tipo)
+            if err:
+                return jsonify({"error": err}), 400
+            entry = {
+                "id": _uuid_inv.uuid4().hex[:12],
+                "tipo": "papel",
+                **papel,
+                "updated_at": _dt.now().isoformat(timespec="seconds"),
+            }
+            entry = _serializar_papel_inventario_json(entry)
+            if not entry:
+                return jsonify({"error": "No se pudo guardar el papel"}), 500
+        else:
+            nombre = (body.get("nombre") or "").strip()
+            if not nombre:
+                return jsonify({"error": "Falta nombre"}), 400
+            try:
+                cantidad = max(0.0, float(body.get("cantidad", 0)))
+            except (TypeError, ValueError):
+                cantidad = 0.0
+            try:
+                minimo = max(0.0, float(body.get("minimo", 0)))
+            except (TypeError, ValueError):
+                minimo = 0.0
+            entry = {
+                "id": _uuid_inv.uuid4().hex[:12],
+                "tipo": "tinta",
+                "nombre": nombre[:120],
+                "cantidad": cantidad,
+                "unidad": (body.get("unidad") or "cartuchos").strip()[:40],
+                "minimo": minimo,
+                "notas": (body.get("notas") or "").strip()[:500],
+                "updated_at": _dt.now().isoformat(timespec="seconds"),
+            }
         items.insert(0, entry)
         _save_etiquetas_inventario(items)
         return jsonify({"ok": True, "item": entry})
 
     @app.route("/api/etiquetas/inventario-consumibles/<item_id>", methods=["PUT", "PATCH", "DELETE"])
+    @app.route("/app/api/etiquetas/inventario-consumibles/<item_id>", methods=["PUT", "PATCH", "DELETE"])
     def api_etiquetas_inventario_item(item_id: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -10658,19 +11022,39 @@ def register_routes(app):
             return jsonify({"ok": True})
         body = request.get_json(silent=True) or {}
         it = dict(items[idx])
-        for key in ("nombre", "unidad", "notas"):
-            if key in body and body[key] is not None:
-                it[key] = str(body[key]).strip()[:500 if key == "notas" else 120]
-        for key in ("cantidad", "minimo"):
-            if key in body:
-                try:
-                    it[key] = max(0.0, float(body[key]))
-                except (TypeError, ValueError):
-                    pass
+        es_papel = (
+            it.get("tipo") == "papel"
+            or body.get("tipo") == "papel"
+            or bool(it.get("ref"))
+            or bool(body.get("ref"))
+            or (body.get("ancho_mm") and body.get("alto_mm"))
+        )
+        if es_papel:
+            merged = {**it, **body, "tipo": "papel"}
+            papel, err = _parse_papel_inventario_body(merged, "papel")
+            if err:
+                return jsonify({"error": err}), 400
+            it = {**it, **papel, "tipo": "papel", "id": item_id}
+        else:
+            for key in ("nombre", "unidad", "notas"):
+                if key in body and body[key] is not None:
+                    it[key] = str(body[key]).strip()[:500 if key == "notas" else 120]
+            for key in ("cantidad", "minimo"):
+                if key in body:
+                    try:
+                        it[key] = max(0.0, float(body[key]))
+                    except (TypeError, ValueError):
+                        pass
         it["updated_at"] = _dt.now().isoformat(timespec="seconds")
-        items[idx] = it
+        if es_papel:
+            norm = _serializar_papel_inventario_json({**it, "id": item_id, "tipo": "papel"})
+        else:
+            norm = _serializar_tinta_inventario_json({**it, "id": item_id, "tipo": "tinta"})
+        if not norm:
+            return jsonify({"error": "Datos inválidos"}), 400
+        items[idx] = _normalizar_item_inventario_etiquetas(norm) or norm
         _save_etiquetas_inventario(items)
-        return jsonify({"ok": True, "item": it})
+        return jsonify({"ok": True, "item": items[idx]})
 
     # ── Etiquetas: datos de productos ────────────────────────────────────────
 
