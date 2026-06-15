@@ -1,30 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1781018763.6338382,
-      "tipo": "bot_pausado_global",
-      "sender": "573177388857@c.us",
-      "detalle": "buenos dias"
-    },
-    {
-      "ts": 1781018835.95922,
-      "tipo": "bot_pausado_global",
-      "sender": "573177388857@c.us",
-      "detalle": "estoy buscando las siguientes materias primas"
-    },
-    {
-      "ts": 1781018836.1269076,
-      "tipo": "bot_pausado_global",
-      "sender": "573177388857@c.us",
-      "detalle": "a ver si de algunas manejan"
-    },
-    {
-      "ts": 1781018837.1279702,
-      "tipo": "bot_pausado_global",
-      "sender": "573177388857@c.us",
-      "detalle": "MATERIA PRIMAS.xlsx"
-    },
-    {
       "ts": 1781019019.1618948,
       "tipo": "modo_humano",
       "sender": "573174923920@c.us",
@@ -1799,6 +1775,30 @@
       "tipo": "bot_pausado_global",
       "sender": "573173006871@c.us",
       "detalle": "Hola buenas tardes"
+    },
+    {
+      "ts": 1781441130.2527187,
+      "tipo": "bot_pausado_global",
+      "sender": "573207640451@c.us",
+      "detalle": "Hola"
+    },
+    {
+      "ts": 1781459626.8215418,
+      "tipo": "bot_pausado_global",
+      "sender": "573207640451@c.us",
+      "detalle": "Hola buen día te puedo hacer por favor un pedido?"
+    },
+    {
+      "ts": 1781481839.5418959,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Buenas noches"
+    },
+    {
+      "ts": 1781482595.0374482,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": ""
     }
   ]
 }

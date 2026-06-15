@@ -21,6 +21,23 @@ export const TIPOS_ETIQUETA_DEFAULT: TipoEtiqueta[] = [
   { nombre: "54mm", ancho_mm: 54, alto_mm: 58 },
 ];
 
+export function mergeTiposEtiqueta(apiTipos?: TipoEtiqueta[]): TipoEtiqueta[] {
+  const map = new Map<string, TipoEtiqueta>();
+  for (const t of TIPOS_ETIQUETA_DEFAULT) {
+    map.set(t.nombre, { ...t });
+  }
+  for (const t of apiTipos ?? []) {
+    const nombre = (t.nombre || "").trim();
+    if (!nombre) continue;
+    map.set(nombre, {
+      nombre,
+      ancho_mm: Number(t.ancho_mm) || map.get(nombre)?.ancho_mm || 0,
+      alto_mm: Number(t.alto_mm) || map.get(nombre)?.alto_mm || 0,
+    });
+  }
+  return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+}
+
 export function tiposEtiquetaMap(tipos: TipoEtiqueta[]): Record<string, [number, number]> {
   const m: Record<string, [number, number]> = {};
   for (const t of tipos) {
@@ -39,7 +56,10 @@ export function mmParaTipoEtiqueta(nombre: string, tipos: TipoEtiqueta[]): [numb
 export function useTiposEtiqueta() {
   return useQuery({
     queryKey: ["etiquetas-tipos"],
-    queryFn: () => api.get<{ tipos: TipoEtiqueta[] }>("/api/etiquetas/tipos"),
+    queryFn: async () => {
+      const data = await api.get<{ tipos: TipoEtiqueta[] }>("/api/etiquetas/tipos");
+      return { tipos: mergeTiposEtiqueta(data.tipos) };
+    },
     staleTime: 60_000,
   });
 }

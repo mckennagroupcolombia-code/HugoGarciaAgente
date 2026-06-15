@@ -12,6 +12,22 @@ import {
   type SolicitudEtiquetaBasica,
 } from "../lib/etiquetasSolicitudes";
 import {
+  type InventarioConsumible,
+  type InventarioPapel,
+  type InventarioTinta,
+  esInventarioPapel,
+  mmAPulgadas,
+  totalEtiquetasPapel,
+  papelBajoMinimo,
+  bodyPapelInventario,
+  papelDesdeItem,
+  inventarioPapelCompleto,
+  normalizarInventarioItems,
+  guardarCachePapelInventario,
+  eliminarCachePapelInventario,
+  PAPEL_VACIO,
+} from "../lib/etiquetasInventarioPapel";
+import {
   type CmykColor,
   hexToCmyk,
   CMYK_NEGRO,
@@ -19,6 +35,7 @@ import {
 import {
   mmParaTipoEtiqueta,
   TIPOS_ETIQUETA_DEFAULT,
+  useTiposEtiqueta,
 } from "../lib/etiquetasTipos";
 import {
   SelectorFormatoEtiqueta,
@@ -2715,7 +2732,10 @@ function EditorEtiqueta({ combo, datosIniciales, onGuardado, onImprimir, onCerra
     void imprimirEditorMut.mutateAsync(payload).then((res) => {
       const err = errorDesdePrintResult(res);
       setErrorImpresion(err);
-      if (!err) onImprimir(form);
+      if (!err) {
+        qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
+        onImprimir(form);
+      }
     });
   }
 
@@ -5469,6 +5489,7 @@ function TabImprimir({
       ]);
       refetchImpresora();
       void refetchSolicitudesImprimir();
+      if (!err) qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
     },
     onError: (err) => {
       const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -5974,17 +5995,6 @@ function TabImprimir({
 
 // ── Inventario papel y tinta ──────────────────────────────────────────────────
 
-interface InventarioConsumible {
-  id: string;
-  tipo: "papel" | "tinta";
-  nombre: string;
-  cantidad: number;
-  unidad: string;
-  minimo: number;
-  notas?: string;
-  updated_at?: string;
-}
-
 interface CartuchoTinta {
   codigo: string;
   etiqueta: string;
@@ -6419,55 +6429,371 @@ function NivelesTintaImpresora({
   );
 }
 
+function FormularioPapelInventario({
+  inicial,
+  formatos,
+  onGuardar,
+  onCancelar,
+  busy,
+  titulo,
+}: {
+  inicial: typeof PAPEL_VACIO;
+  formatos: string[];
+  onGuardar: (datos: typeof PAPEL_VACIO) => void;
+  onCancelar?: () => void;
+  busy?: boolean;
+  titulo: string;
+}) {
+  const [draft, setDraft] = useState(inicial);
+
+  useEffect(() => {
+    setDraft(inicial);
+  }, [inicial]);
+
+  function setMm(ancho: number, alto: number) {
+    setDraft((d) => ({
+      ...d,
+      ancho_mm: ancho,
+      alto_mm: alto,
+      ancho_pulg: mmAPulgadas(ancho),
+      alto_pulg: mmAPulgadas(alto),
+    }));
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-surface p-3">
+      <p className="mb-3 text-xs font-bold text-ink">{titulo}</p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="text-[10px] text-muted sm:col-span-2">
+          Ref. papel
+          <input
+            type="text"
+            value={draft.ref}
+            onChange={(e) => setDraft((d) => ({ ...d, ref: e.target.value }))}
+            placeholder="Ej. ETQ-5ML-22x60"
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted">
+          Ancho (mm)
+          <input
+            type="number"
+            min={1}
+            step={0.1}
+            value={draft.ancho_mm || ""}
+            onChange={(e) => setMm(Number(e.target.value), draft.alto_mm)}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted">
+          Alto (mm)
+          <input
+            type="number"
+            min={1}
+            step={0.1}
+            value={draft.alto_mm || ""}
+            onChange={(e) => setMm(draft.ancho_mm, Number(e.target.value))}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted">
+          Ancho (pulg)
+          <input
+            type="number"
+            min={0}
+            step={0.001}
+            value={draft.ancho_pulg || ""}
+            onChange={(e) => setDraft((d) => ({ ...d, ancho_pulg: Number(e.target.value) }))}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted">
+          Alto (pulg)
+          <input
+            type="number"
+            min={0}
+            step={0.001}
+            value={draft.alto_pulg || ""}
+            onChange={(e) => setDraft((d) => ({ ...d, alto_pulg: Number(e.target.value) }))}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted">
+          Etiquetas por rollo
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={draft.unidades_por_rollo || ""}
+            onChange={(e) => setDraft((d) => ({ ...d, unidades_por_rollo: Number(e.target.value) }))}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted">
+          Rollos en stock
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={draft.rollos ?? ""}
+            onChange={(e) => setDraft((d) => ({ ...d, rollos: Number(e.target.value) }))}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted">
+          Sueltas (rollo abierto)
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={draft.etiquetas_sueltas ?? ""}
+            onChange={(e) => setDraft((d) => ({ ...d, etiquetas_sueltas: Number(e.target.value) }))}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted">
+          Mín. rollos
+          <input
+            type="number"
+            min={0}
+            step={1}
+            value={draft.minimo_rollos ?? ""}
+            onChange={(e) => setDraft((d) => ({ ...d, minimo_rollos: Number(e.target.value) }))}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+        <label className="text-[10px] text-muted sm:col-span-2">
+          Formato vinculado (opcional)
+          <select
+            value={draft.formato_etiqueta || ""}
+            onChange={(e) => {
+              const fmt = e.target.value;
+              setDraft((d) => ({ ...d, formato_etiqueta: fmt }));
+              if (fmt && ETIQUETAS_MM[fmt]) {
+                const [aw, ah] = ETIQUETAS_MM[fmt];
+                setMm(aw, ah);
+              }
+            }}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          >
+            <option value="">— Sin vincular —</option>
+            {formatos.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-[10px] text-muted sm:col-span-2">
+          Notas
+          <input
+            type="text"
+            value={draft.notas || ""}
+            onChange={(e) => setDraft((d) => ({ ...d, notas: e.target.value }))}
+            className="mt-1 w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs text-ink"
+          />
+        </label>
+      </div>
+      <p className="mt-2 text-[10px] text-muted">
+        Total disponible: <strong>{totalEtiquetasPapel(draft)}</strong> etiquetas
+        {draft.unidades_por_rollo > 0 ? ` (${draft.rollos} rollos + ${draft.etiquetas_sueltas} sueltas)` : ""}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={busy || !draft.ref.trim() || draft.ancho_mm <= 0 || draft.alto_mm <= 0}
+          onClick={() => onGuardar(draft)}
+          className="rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent/90 disabled:opacity-50"
+        >
+          {busy ? "Guardando…" : "Guardar"}
+        </button>
+        {onCancelar && (
+          <button type="button" onClick={onCancelar} className="rounded-lg border border-border px-4 py-2 text-xs font-semibold text-muted hover:bg-surface-hover">
+            Cancelar
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TabInventarioPapelTinta() {
   const qc = useQueryClient();
+  const { data: tiposData } = useTiposEtiqueta();
+  const nombresFormatos = useMemo(
+    () => (tiposData?.tipos?.length ? tiposData.tipos.map((t) => t.nombre) : ETIQUETAS_LISTA),
+    [tiposData?.tipos],
+  );
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [nuevoPapel, setNuevoPapel] = useState({ ...PAPEL_VACIO });
   const [tipoNuevo, setTipoNuevo] = useState<"papel" | "tinta">("papel");
-  const [nombreNuevo, setNombreNuevo] = useState("");
-  const [cantNuevo, setCantNuevo] = useState(1);
-  const [minNuevo, setMinNuevo] = useState(1);
-  const [notasNuevo, setNotasNuevo] = useState("");
+  const [nombreTintaNuevo, setNombreTintaNuevo] = useState("");
+  const [cantTintaNuevo, setCantTintaNuevo] = useState(1);
+  const [minTintaNuevo, setMinTintaNuevo] = useState(1);
+  const [notasTintaNuevo, setNotasTintaNuevo] = useState("");
+  const [errorInventario, setErrorInventario] = useState("");
+  const [okInventario, setOkInventario] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["etiquetas-inventario-consumibles"],
-    queryFn: () => api.get<{ items: InventarioConsumible[] }>("/api/etiquetas/inventario-consumibles"),
+    queryFn: async () => {
+      const res = await api.get<{ items: InventarioConsumible[] }>("/api/etiquetas/inventario-consumibles");
+      return { items: normalizarInventarioItems(res.items ?? []) };
+    },
   });
 
   const crearMut = useMutation({
     mutationFn: (body: Partial<InventarioConsumible>) =>
       api.post<{ ok: boolean; item: InventarioConsumible }>("/api/etiquetas/inventario-consumibles", body),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      setErrorInventario("");
+      setOkInventario("Ítem guardado correctamente.");
+      if (res?.item?.tipo === "papel") guardarCachePapelInventario(res.item);
       qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
-      setNombreNuevo("");
-      setCantNuevo(1);
-      setMinNuevo(1);
-      setNotasNuevo("");
+      setNuevoPapel({ ...PAPEL_VACIO });
+      setNombreTintaNuevo("");
+      setCantTintaNuevo(1);
+      setMinTintaNuevo(1);
+      setNotasTintaNuevo("");
     },
+    onError: (e: Error) => setErrorInventario(e.message || "No se pudo guardar el ítem"),
   });
 
   const patchMut = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: Partial<InventarioConsumible> }) =>
       api.put<{ ok: boolean; item: InventarioConsumible }>(`/api/etiquetas/inventario-consumibles/${id}`, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] }),
+    onSuccess: (res) => {
+      setErrorInventario("");
+      setOkInventario("Ítem guardado correctamente.");
+      if (res?.item?.tipo === "papel") guardarCachePapelInventario(res.item);
+      qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
+      setEditandoId(null);
+    },
+    onError: (e: Error) => setErrorInventario(e.message || "No se pudo actualizar el ítem"),
   });
 
   const eliminarMut = useMutation({
     mutationFn: (id: string) => api.delete(`/api/etiquetas/inventario-consumibles/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] }),
+    onSuccess: (_data, id) => {
+      eliminarCachePapelInventario(id);
+      setErrorInventario("");
+      setOkInventario("Ítem eliminado.");
+      qc.invalidateQueries({ queryKey: ["etiquetas-inventario-consumibles"] });
+      setEditandoId(null);
+    },
+    onError: (e: Error) => setErrorInventario(e.message || "No se pudo eliminar el ítem"),
   });
 
   const items = data?.items ?? [];
-  const papeles = items.filter((i) => i.tipo === "papel");
-  const tintas = items.filter((i) => i.tipo === "tinta");
+  const papeles = items.filter(esInventarioPapel);
+  const tintas = items.filter((i): i is InventarioTinta => i.tipo === "tinta");
 
-  function renderLista(titulo: string, lista: InventarioConsumible[], emoji: string) {
-    return (
+  function papelADraft(p: InventarioPapel): typeof PAPEL_VACIO {
+    return papelDesdeItem(p);
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-4">
+      <div>
+        <h2 className="text-lg font-bold text-ink">Inventario de papel y tinta</h2>
+        <p className="text-xs text-muted">
+          Registra rollos por ref. y medida. Al imprimir, el sistema descuenta etiquetas del rollo que coincida con el tamaño.
+        </p>
+      </div>
+
+      <NivelesTintaImpresora />
+
+      {errorInventario && (
+        <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
+          {errorInventario}
+        </p>
+      )}
+      {okInventario && (
+        <p className="rounded-lg border border-green-300 bg-green-50 px-3 py-2 text-xs font-semibold text-green-800">
+          {okInventario}
+        </p>
+      )}
+
+      {isLoading && <p className="text-sm text-muted">Cargando inventario…</p>}
+
       <div className="rounded-xl border border-border bg-surface-panel p-4">
-        <p className="mb-3 text-sm font-bold text-ink">{emoji} {titulo}</p>
-        {lista.length === 0 ? (
+        <p className="mb-3 text-sm font-bold text-ink">📄 Papel / etiquetas</p>
+        {papeles.length === 0 ? (
+          <p className="mb-3 text-xs text-muted">Sin rollos registrados.</p>
+        ) : (
+          <div className="space-y-2">
+            {papeles.map((p) => {
+              const v = inventarioPapelCompleto(p);
+              const total = v.total_etiquetas ?? totalEtiquetasPapel(v);
+              const bajo = papelBajoMinimo(v);
+              const editando = editandoId === p.id;
+              return (
+                <div key={p.id} className={`rounded-lg border ${bajo ? "border-orange-300 bg-orange-50" : "border-border bg-surface"}`}>
+                  {editando ? (
+                    <div className="p-2">
+                      <FormularioPapelInventario
+                        titulo={`Editar ${v.ref || v.nombre || "rollo"}`}
+                        inicial={papelADraft(v)}
+                        formatos={nombresFormatos}
+                        busy={patchMut.isPending}
+                        onCancelar={() => setEditandoId(null)}
+                        onGuardar={(datos) => {
+                          const patch = bodyPapelInventario(datos);
+                          guardarCachePapelInventario({ ...p, ...patch, id: p.id, tipo: "papel" });
+                          patchMut.mutate({ id: p.id, patch });
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-start gap-2 px-3 py-2 text-xs">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-ink">{v.ref}</p>
+                        <p className="mt-0.5 text-muted">
+                          {v.ancho_mm}×{v.alto_mm} mm · {v.ancho_pulg}×{v.alto_pulg} in
+                        </p>
+                        <p className="mt-0.5 text-muted">
+                          {v.unidades_por_rollo} u/rollo · {v.rollos} rollos
+                          {v.etiquetas_sueltas ? ` + ${v.etiquetas_sueltas} sueltas` : ""}
+                        </p>
+                        <p className={`mt-1 font-mono font-semibold ${bajo ? "text-orange-700" : "text-accent"}`}>
+                          {total} etiquetas disponibles
+                        </p>
+                        {v.formato_etiqueta && (
+                          <p className="text-[10px] text-muted">Formato impresión: {v.formato_etiqueta}</p>
+                        )}
+                        {v.notas && <p className="text-[10px] text-muted">{v.notas}</p>}
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditandoId(p.id)}
+                          className="rounded border border-border px-2 py-1 font-semibold hover:bg-surface-hover"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          title="Eliminar"
+                          onClick={() => eliminarMut.mutate(p.id)}
+                          className="rounded px-2 py-1 text-muted hover:bg-danger/10 hover:text-danger"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface-panel p-4">
+        <p className="mb-3 text-sm font-bold text-ink">🖨 Tintas</p>
+        {tintas.length === 0 ? (
           <p className="text-xs text-muted">Sin registros.</p>
         ) : (
           <div className="space-y-2">
-            {lista.map((it) => {
+            {tintas.map((it) => {
               const bajo = it.minimo > 0 && it.cantidad <= it.minimo;
               return (
                 <div
@@ -6512,89 +6838,78 @@ function TabInventarioPapelTinta() {
           </div>
         )}
       </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <div>
-        <h2 className="text-lg font-bold text-ink">Inventario de papel y tinta</h2>
-        <p className="text-xs text-muted">Niveles en vivo de la impresora y control manual de rollos y cartuchos.</p>
-      </div>
-
-      <NivelesTintaImpresora />
-
-      {isLoading && <p className="text-sm text-muted">Cargando inventario…</p>}
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {renderLista("Papel / etiquetas", papeles, "📄")}
-        {renderLista("Tintas", tintas, "🖨")}
-      </div>
 
       <div className="rounded-xl border border-border bg-surface-panel p-4">
-        <p className="mb-3 text-sm font-bold text-ink">Agregar ítem</p>
-        <div className="flex flex-wrap gap-2">
-          <select
-            value={tipoNuevo}
-            onChange={(e) => setTipoNuevo(e.target.value as "papel" | "tinta")}
-            className="rounded border border-border bg-surface px-2 py-1.5 text-xs"
-          >
-            <option value="papel">Papel / etiquetas</option>
-            <option value="tinta">Tinta</option>
-          </select>
-          <input
-            type="text"
-            value={nombreNuevo}
-            onChange={(e) => setNombreNuevo(e.target.value)}
-            placeholder={tipoNuevo === "papel" ? "Ej. Rollo 30 mL die-cut" : "Ej. Cartucho negro"}
-            className="min-w-[10rem] flex-1 rounded border border-border bg-surface px-2 py-1.5 text-xs"
-          />
-          <label className="flex items-center gap-1 text-xs text-muted">
-            Cant.
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={cantNuevo}
-              onChange={(e) => setCantNuevo(Number(e.target.value))}
-              className="w-16 rounded border border-border bg-surface px-2 py-1 text-xs"
-            />
-          </label>
-          <label className="flex items-center gap-1 text-xs text-muted">
-            Mín.
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={minNuevo}
-              onChange={(e) => setMinNuevo(Number(e.target.value))}
-              className="w-16 rounded border border-border bg-surface px-2 py-1 text-xs"
-            />
-          </label>
-        </div>
-        <input
-          type="text"
-          value={notasNuevo}
-          onChange={(e) => setNotasNuevo(e.target.value)}
-          placeholder="Notas (opcional)"
-          className="mt-2 w-full rounded border border-border bg-surface px-2 py-1.5 text-xs"
-        />
-        <button
-          type="button"
-          disabled={!nombreNuevo.trim() || crearMut.isPending}
-          onClick={() =>
-            crearMut.mutate({
-              tipo: tipoNuevo,
-              nombre: nombreNuevo.trim(),
-              cantidad: cantNuevo,
-              minimo: minNuevo,
-              notas: notasNuevo.trim() || undefined,
-            })
-          }
-          className="mt-3 rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent/90 disabled:opacity-50"
+        <p className="mb-3 text-sm font-bold text-ink">Registrar nuevo ítem</p>
+        <select
+          value={tipoNuevo}
+          onChange={(e) => setTipoNuevo(e.target.value as "papel" | "tinta")}
+          className="mb-3 rounded border border-border bg-surface px-2 py-1.5 text-xs"
         >
-          {crearMut.isPending ? "Guardando…" : "Agregar"}
-        </button>
+          <option value="papel">Papel / etiquetas</option>
+          <option value="tinta">Tinta</option>
+        </select>
+        {tipoNuevo === "papel" ? (
+          <FormularioPapelInventario
+            titulo="Nuevo rollo de papel"
+            inicial={nuevoPapel}
+            formatos={nombresFormatos}
+            busy={crearMut.isPending}
+            onGuardar={(datos) => {
+              const body = bodyPapelInventario(datos);
+              crearMut.mutate(body, {
+                onSuccess: (res) => {
+                  if (res?.item?.id) {
+                    guardarCachePapelInventario({ ...body, id: res.item.id, tipo: "papel" });
+                  }
+                },
+              });
+            }}
+          />
+        ) : (
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={nombreTintaNuevo}
+              onChange={(e) => setNombreTintaNuevo(e.target.value)}
+              placeholder="Ej. Cartucho negro"
+              className="w-full rounded border border-border bg-surface px-2 py-1.5 text-xs"
+            />
+            <div className="flex flex-wrap gap-2">
+              <label className="flex items-center gap-1 text-xs text-muted">
+                Cant.
+                <input type="number" min={0} value={cantTintaNuevo} onChange={(e) => setCantTintaNuevo(Number(e.target.value))} className="w-16 rounded border border-border bg-surface px-2 py-1 text-xs" />
+              </label>
+              <label className="flex items-center gap-1 text-xs text-muted">
+                Mín.
+                <input type="number" min={0} value={minTintaNuevo} onChange={(e) => setMinTintaNuevo(Number(e.target.value))} className="w-16 rounded border border-border bg-surface px-2 py-1 text-xs" />
+              </label>
+            </div>
+            <input
+              type="text"
+              value={notasTintaNuevo}
+              onChange={(e) => setNotasTintaNuevo(e.target.value)}
+              placeholder="Notas (opcional)"
+              className="w-full rounded border border-border bg-surface px-2 py-1.5 text-xs"
+            />
+            <button
+              type="button"
+              disabled={!nombreTintaNuevo.trim() || crearMut.isPending}
+              onClick={() =>
+                crearMut.mutate({
+                  tipo: "tinta",
+                  nombre: nombreTintaNuevo.trim(),
+                  cantidad: cantTintaNuevo,
+                  minimo: minTintaNuevo,
+                  notas: notasTintaNuevo.trim() || undefined,
+                })
+              }
+              className="rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent/90 disabled:opacity-50"
+            >
+              {crearMut.isPending ? "Guardando…" : "Agregar tinta"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

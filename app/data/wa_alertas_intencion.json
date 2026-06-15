@@ -130,6 +130,16 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573207640451@c.us": {
+      "jid": "573207640451@c.us",
+      "primer_intencion_ts": 1781459626.0,
+      "primer_intencion_texto": "Hola buen día te puedo hacer por favor un pedido?",
+      "ultima_human_ts": null,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1781460570.2742505,
+      "cancelada": false,
+      "cancelada_razon": null
     }
   }
 }
