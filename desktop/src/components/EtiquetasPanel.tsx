@@ -9,6 +9,7 @@ import {
   esLineaProsaPedidoEtiqueta,
   parseLineasPedidoEtiqueta,
   inferirTipoEtiqueta,
+  fmtUnidadesEtiqueta,
   type SolicitudEtiquetaBasica,
 } from "../lib/etiquetasSolicitudes";
 import {
@@ -5099,9 +5100,9 @@ function ChecklistPedidoEtiquetas({
       )}
 
       {!loading && activos.map((item) => {
-        const linea = parseLineasPedidoEtiqueta(item.nombre)[0] ?? {
+        const linea = {
           label: item.nombre,
-          cantidad: item.cantidad || 1,
+          cantidad: Math.max(1, Math.floor(Number(item.cantidad) || 1)),
           tipoEtiqueta: inferirTipoEtiqueta(item.nombre),
         };
         const editandoNota = notaEditId === item.id;
@@ -5129,6 +5130,9 @@ function ChecklistPedidoEtiquetas({
                 >
                   <p className={`text-sm font-bold ${item.comprado ? "text-accent line-through" : "text-ink"}`}>
                     {item.nombre}
+                    {fmtUnidadesEtiqueta(item.cantidad) && (
+                      <span className="ml-1.5 font-semibold text-accent">· {fmtUnidadesEtiqueta(item.cantidad)}</span>
+                    )}
                   </p>
                   {linea.tipoEtiqueta && (
                     <p className="text-[10px] text-muted">Formato sugerido: {linea.tipoEtiqueta}</p>
