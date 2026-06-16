@@ -5,6 +5,31 @@ import {
 } from "./etiquetasNormativa";
 import type { CatalogoStudioFila } from "../components/etiquetas/EtiquetasStudioCatalogo";
 
+/** Parsea "250 g", "1 Kg", "50 mL" → contenido, unidad y tipo. */
+export function presentacionDesdeTipoEtiqueta(tipo: string): Partial<EtiquetaStudioDatos> {
+  const raw = (tipo || "").trim();
+  if (!raw) return {};
+  const m =
+    raw.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|ml|mL|lt|l)\b/i) ||
+    raw.match(/(\d+(?:[.,]\d+)?)\s*(Kg)/);
+  if (!m) return { tipo_etiqueta: raw };
+  const neto = m[1].replace(",", ".");
+  const u = m[2];
+  if (u.toLowerCase() === "kg" || u === "Kg") {
+    if (parseFloat(neto) === 1) {
+      return { contenido_neto: "1", unidad: "Kg", tipo_etiqueta: "1 Kg" };
+    }
+    return { contenido_neto: neto, unidad: "Kg", tipo_etiqueta: `${neto} Kg` };
+  }
+  if (u.toLowerCase() === "ml") {
+    return { contenido_neto: neto, unidad: "mL", tipo_etiqueta: `${neto} mL` };
+  }
+  if (u.toLowerCase() === "lt" || u.toLowerCase() === "l") {
+    return { contenido_neto: neto, unidad: "L", tipo_etiqueta: `${neto} L` };
+  }
+  return { contenido_neto: neto, unidad: "g", tipo_etiqueta: `${neto} g` };
+}
+
 export function inferirPresentacionSku(sku: string): Partial<EtiquetaStudioDatos> {
   const raw = sku.trim();
   if (!raw) return {};

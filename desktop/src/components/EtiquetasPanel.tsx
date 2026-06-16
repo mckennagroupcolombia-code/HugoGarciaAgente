@@ -49,7 +49,7 @@ import {
   ETIQUETA_STUDIO_DEFAULT,
   type EtiquetaStudioDatos,
 } from "../lib/etiquetasNormativa";
-import { studioDatosDesdeCatalogo } from "../lib/etiquetasStudioHelpers";
+import { studioDatosDesdeCatalogo, presentacionDesdeTipoEtiqueta } from "../lib/etiquetasStudioHelpers";
 import { Icon } from "../icons";
 import { ProseTextarea } from "./ProseTextarea";
 import { EditorPanel } from "./PublicacionesPanel";
@@ -5474,11 +5474,51 @@ function TabImprimir({
     { id: "lote", label: "Lote" },
   ];
 
-  const studioDatosImpresion = useMemo((): EtiquetaStudioDatos => ({
-    ...studioDatos,
-    lote: loteParaEtiqueta(lote) || studioDatos.lote,
-    vencimiento: expParaEtiqueta(vencimiento) || studioDatos.vencimiento,
-  }), [studioDatos, lote, vencimiento]);
+  const studioDatosImpresion = useMemo((): EtiquetaStudioDatos => {
+    const pres = presentacionDesdeTipoEtiqueta(formato.nombre);
+    return {
+      ...studioDatos,
+      tipo_etiqueta: formato.nombre,
+      ancho_mm: formato.anchoMm,
+      alto_mm: formato.altoMm,
+      contenido_neto: pres.contenido_neto ?? studioDatos.contenido_neto,
+      unidad: pres.unidad ?? studioDatos.unidad,
+      lote: loteParaEtiqueta(lote) || studioDatos.lote,
+      vencimiento: expParaEtiqueta(vencimiento) || studioDatos.vencimiento,
+    };
+  }, [studioDatos, formato, lote, vencimiento]);
+
+  useEffect(() => {
+    if (vistaImpresion !== "documento" || !studioDatosImpresion.sku.trim()) return;
+    const t = window.setTimeout(() => {
+      const p = new URLSearchParams({
+        sku: studioDatosImpresion.sku,
+        nombre_producto: studioDatosImpresion.nombre_producto,
+        ingrediente: studioDatosImpresion.ingrediente,
+        contenido_neto: studioDatosImpresion.contenido_neto,
+        unidad: studioDatosImpresion.unidad,
+        tipo_etiqueta: studioDatosImpresion.tipo_etiqueta,
+      });
+      void api
+        .get<{ archivo_ai?: string | null }>(`/api/etiquetas/studio/resolver-ai?${p.toString()}`)
+        .then((r) => {
+          if (!r.archivo_ai) return;
+          const ai = r.archivo_ai;
+          setStudioDatos((d) => (d.archivo_ai === ai ? d : { ...d, archivo_ai: ai }));
+          setFilaActiva((f) => (f && f.archivo_ai !== ai ? { ...f, archivo_ai: ai } : f));
+        })
+        .catch(() => {});
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [
+    vistaImpresion,
+    studioDatosImpresion.sku,
+    studioDatosImpresion.tipo_etiqueta,
+    studioDatosImpresion.contenido_neto,
+    studioDatosImpresion.unidad,
+    studioDatosImpresion.nombre_producto,
+    studioDatosImpresion.ingrediente,
+  ]);
 
   // Precargar desde configuración de producto
   useEffect(() => {
@@ -5789,6 +5829,16 @@ function TabImprimir({
                     onChange={(v) => {
                       setFormato(v);
                       setRotacion(rotacionDefaultEtiqueta(v.nombre));
+                      const pres = presentacionDesdeTipoEtiqueta(v.nombre);
+                      setStudioDatos((d) => ({
+                        ...d,
+                        tipo_etiqueta: v.nombre,
+                        ancho_mm: v.anchoMm,
+                        alto_mm: v.altoMm,
+                        contenido_neto: pres.contenido_neto ?? d.contenido_neto,
+                        unidad: pres.unidad ?? d.unidad,
+                        archivo_ai: undefined,
+                      }));
                     }}
                     inputClass={RIB_INP}
                     selectClass={RIB_SEL}
@@ -5899,6 +5949,7 @@ function TabImprimir({
             {productoListo ? (
               <EtiquetaMckennaPreview
                 datos={studioDatosImpresion}
+                marcoFormato
                 className="w-full max-w-[420px]"
               />
             ) : (
