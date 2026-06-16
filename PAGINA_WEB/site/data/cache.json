@@ -664,8 +664,8 @@
           "precio_num": 17451.5,
           "lista_num": 20900.0,
           "ahorro": "$3.448",
-          "photo": "https://http2.mlstatic.com/D_640368-MCO93625600032_102025-O.jpg",
-          "meli_id": "MCO1336703989",
+          "photo": "",
+          "meli_id": "",
           "cat": "Ácidos",
           "cat_color": "#143D36",
           "desc": "",
@@ -772,8 +772,6 @@
           "buyable": true,
           "is_combo": true,
           "precio_canal_label": "Lista",
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
           "family_slug": "c-acihiaaltpes85p30ml"
         },
         {
@@ -19431,8 +19429,8 @@
       "precio_num": 17451.5,
       "lista_num": 20900.0,
       "ahorro": "$3.448",
-      "photo": "https://http2.mlstatic.com/D_640368-MCO93625600032_102025-O.jpg",
-      "meli_id": "MCO1336703989",
+      "photo": "",
+      "meli_id": "",
       "cat": "Ácidos",
       "cat_color": "#143D36",
       "desc": "",
@@ -19539,8 +19537,6 @@
       "buyable": true,
       "is_combo": true,
       "precio_canal_label": "Lista",
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
       "family_slug": "c-acihiaaltpes85p30ml"
     },
     {
