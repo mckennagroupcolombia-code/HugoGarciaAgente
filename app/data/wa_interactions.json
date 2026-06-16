@@ -1,30 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1781019019.1618948,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Ya te transfiero el restante"
-    },
-    {
-      "ts": 1781019019.6957197,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Oye una pregunta ustedes donde están ubicados"
-    },
-    {
-      "ts": 1781019253.7300606,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Aaa ok no podría pasar a recoger"
-    },
-    {
-      "ts": 1781019737.4748561,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": ""
-    },
-    {
       "ts": 1781020174.0860004,
       "tipo": "modo_humano",
       "sender": "573174923920@c.us",
@@ -1799,6 +1775,30 @@
       "tipo": "modo_humano",
       "sender": "573174923920@c.us",
       "detalle": ""
+    },
+    {
+      "ts": 1781548467.3954804,
+      "tipo": "bot_pausado_global",
+      "sender": "573334315268@c.us",
+      "detalle": "Disuxlpamd venden dextrosa ?"
+    },
+    {
+      "ts": 1781572490.4196906,
+      "tipo": "bot_pausado_global",
+      "sender": "573003916813@c.us",
+      "detalle": "Buenas estoy interesada en el cloruro"
+    },
+    {
+      "ts": 1781576934.794459,
+      "tipo": "bot_pausado_global",
+      "sender": "573003916813@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1781577374.310516,
+      "tipo": "bot_pausado_global",
+      "sender": "573003916813@c.us",
+      "detalle": "Y si lo pido ya cuando llega?"
     }
   ]
 }

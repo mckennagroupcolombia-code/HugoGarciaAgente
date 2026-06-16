@@ -9563,11 +9563,6 @@ def register_routes(app):
         imagenes = data.get("imagenes") or []
         rectangulos = data.get("rectangulos") or []
 
-        dims = _dimensiones_etiqueta(producto, data.get("ancho_mm"), data.get("alto_mm"))
-        if not dims:
-            return jsonify({
-                "error": f"Formato desconocido: {producto}. Indica ancho_mm y alto_mm.",
-            }), 400
         if forma not in _MAPEO_FORMA:
             return jsonify({"error": f"Forma no válida: {forma}"}), 400
         if calidad not in _MAPEO_CALIDAD:
@@ -9576,13 +9571,44 @@ def register_routes(app):
             return jsonify({"error": f"Rotación no válida: {rotacion}"}), 400
         if not isinstance(cantidad, int) or cantidad < 1 or cantidad > 999:
             return jsonify({"error": "Cantidad debe ser un entero entre 1 y 999"}), 400
-        if not ruta_pdf:
-            return jsonify({"error": "Debe especificar ruta_pdf"}), 400
 
-        ruta_pdf, err_pdf = _ruta_pdf_etiquetas_ok(ruta_pdf)
-        if err_pdf:
-            code = 404 if "no encontrado" in err_pdf.lower() else 400
-            return jsonify({"error": err_pdf}), code
+        studio_datos = data.get("studio_datos")
+        usar_studio = isinstance(studio_datos, dict) and bool(
+            (studio_datos.get("nombre_producto") or "").strip()
+            or (studio_datos.get("sku") or "").strip()
+        )
+        tmp_studio_dir = None
+        if usar_studio:
+            from app.tools.etiquetas_studio import generar_pdf_temporal_para_impresion
+
+            sd = dict(studio_datos)
+            if lote:
+                sd["lote"] = lote
+            if vencimiento:
+                sd["vencimiento"] = vencimiento
+            try:
+                ruta_pdf, _meta_studio = generar_pdf_temporal_para_impresion(sd)
+                tmp_studio_dir = os.path.dirname(ruta_pdf)
+            except Exception as e:
+                return jsonify({"error": f"No se pudo generar PDF desde plantilla: {e}"}), 400
+            producto = sd.get("tipo_etiqueta") or producto
+            dims = _dimensiones_etiqueta(producto, sd.get("ancho_mm"), sd.get("alto_mm"))
+            if not dims:
+                return jsonify({
+                    "error": f"Formato desconocido: {producto}. Indica ancho_mm y alto_mm.",
+                }), 400
+        elif not ruta_pdf:
+            return jsonify({"error": "Debe especificar ruta_pdf o studio_datos"}), 400
+        else:
+            ruta_pdf, err_pdf = _ruta_pdf_etiquetas_ok(ruta_pdf)
+            if err_pdf:
+                code = 404 if "no encontrado" in err_pdf.lower() else 400
+                return jsonify({"error": err_pdf}), code
+            dims = _dimensiones_etiqueta(producto, data.get("ancho_mm"), data.get("alto_mm"))
+            if not dims:
+                return jsonify({
+                    "error": f"Formato desconocido: {producto}. Indica ancho_mm y alto_mm.",
+                }), 400
 
         ancho, alto = dims
         max_ancho, max_alto = _ETIQUETAS_MAX_MM
@@ -9640,7 +9666,11 @@ def register_routes(app):
 
             # Overlay de líneas, imágenes PNG, campos de texto + lote/vencimiento
             pdf_a_imprimir = ruta_pdf
-            if lote or vencimiento or campos_texto or lineas or imagenes or rectangulos:
+            if usar_studio:
+                ai_arch = (studio_datos or {}).get("archivo_ai") or "plantilla SVG"
+                log_lines.append(f"Etiqueta desde plantilla: {ai_arch}")
+            overlay_lote = not usar_studio and (lote or vencimiento)
+            if overlay_lote or campos_texto or lineas or imagenes or rectangulos:
                 lote_font_val = max(3, min(40, lote_font))
                 tmp_pdf = _pdf_con_campos_texto(
                     ruta_pdf, campos_texto, lote, vencimiento, "custom", lote_font_val,
@@ -9657,9 +9687,10 @@ def register_routes(app):
                     info.append(f"{len(imagenes)} imagen(es)")
                 if campos_texto:
                     info.append(f"{len(campos_texto)} campo(s) de texto")
-                if lote or vencimiento:
+                if overlay_lote:
                     info.append(f"lote/vence ({lote_x_pct:.1f}%, {lote_y_pct:.1f}%)")
-                log_lines.append(f"Overlay aplicado: {', '.join(info)}")
+                if info:
+                    log_lines.append(f"Overlay aplicado: {', '.join(info)}")
 
             _preparar_medio_elpu_etiquetas(forma_val, calidad_val, ancho, alto, log_lines)
             _ejecutar_elpu_offset_etiquetas(offset_v, log_lines)
@@ -9724,6 +9755,11 @@ def register_routes(app):
             if tmp_pdf and os.path.isfile(tmp_pdf):
                 try:
                     os.unlink(tmp_pdf)
+                except Exception:
+                    pass
+            if tmp_studio_dir and os.path.isdir(tmp_studio_dir):
+                try:
+                    _shutil.rmtree(tmp_studio_dir, ignore_errors=True)
                 except Exception:
                     pass
 
@@ -11152,6 +11188,145 @@ def register_routes(app):
                     "estado_meli_config": (ov.get("estado_meli_config") or "").strip().lower(),
                 })
             return jsonify({"combos": resultado, "total": len(resultado)})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/studio/catalogo", methods=["GET"])
+    @app.route("/app/api/etiquetas/studio/catalogo", methods=["GET"])
+    def api_etiquetas_studio_catalogo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_studio import listar_catalogo_studio
+
+        q = (request.args.get("q") or "").strip()
+        solo_sin_ai = request.args.get("solo_sin_ai", "").lower() in ("1", "true", "yes")
+        solo_con_meli = request.args.get("solo_con_meli", "").lower() in ("1", "true", "yes")
+        limite = min(int(request.args.get("limite") or 500), 1000)
+        return jsonify(listar_catalogo_studio(
+            q=q,
+            solo_sin_ai=solo_sin_ai,
+            solo_con_meli=solo_con_meli,
+            limite=limite,
+        ))
+
+    @app.route("/api/etiquetas/studio/resolver-ai", methods=["GET"])
+    @app.route("/app/api/etiquetas/studio/resolver-ai", methods=["GET"])
+    def api_etiquetas_studio_resolver_ai():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_ai_engine import resolver_plantilla_ai
+
+        datos = {
+            "sku": (request.args.get("sku") or "").strip(),
+            "nombre_producto": (request.args.get("nombre_producto") or "").strip(),
+            "ingrediente": (request.args.get("ingrediente") or "").strip(),
+            "contenido_neto": (request.args.get("contenido_neto") or "").strip(),
+            "unidad": (request.args.get("unidad") or "").strip(),
+            "tipo_etiqueta": (request.args.get("tipo_etiqueta") or "").strip(),
+            "archivo_ai": (request.args.get("archivo_ai") or "").strip(),
+        }
+        q = (request.args.get("q") or "").strip()
+        limite = min(int(request.args.get("limite") or 20), 80)
+        return jsonify(resolver_plantilla_ai(datos, q=q, limite=limite))
+
+    @app.route("/api/etiquetas/studio/plantillas", methods=["GET"])
+    @app.route("/app/api/etiquetas/studio/plantillas", methods=["GET"])
+    def api_etiquetas_studio_plantillas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_ai_engine import listar_plantillas_ai
+        from app.tools.etiquetas_svg_engine import listar_plantillas_svg
+
+        plantillas_ai = listar_plantillas_ai(limite=10_000)
+        return jsonify({
+            "plantillas": listar_plantillas_svg(),
+            "plantillas_ai": plantillas_ai[:400],
+            "total_ai": len(plantillas_ai),
+        })
+
+    @app.route("/api/etiquetas/studio/preview", methods=["POST"])
+    @app.route("/app/api/etiquetas/studio/preview", methods=["POST"])
+    def api_etiquetas_studio_preview():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import base64 as _b64
+        import os as _os
+        import shutil as _shutil
+
+        from app.tools.etiquetas_svg_engine import exportar_png_temporal, renderizar_svg
+
+        body = request.get_json(silent=True) or {}
+        formato = (body.get("formato") or "png").lower()
+        try:
+            if formato == "svg":
+                svg, meta = renderizar_svg(body)
+                return jsonify({"svg": svg, "meta": meta})
+            png_path, meta = exportar_png_temporal(body, width_px=int(body.get("ancho_px") or 720))
+            try:
+                img_bytes = open(png_path, "rb").read()
+            finally:
+                tmp_dir = _os.path.dirname(png_path)
+                if tmp_dir and _os.path.isdir(tmp_dir):
+                    _shutil.rmtree(tmp_dir, ignore_errors=True)
+            return jsonify({
+                "imagen": _b64.b64encode(img_bytes).decode(),
+                "mime": "image/png",
+                "meta": meta,
+            })
+        except (ValueError, FileNotFoundError) as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/studio/<path:sku>", methods=["GET", "POST"])
+    @app.route("/app/api/etiquetas/studio/<path:sku>", methods=["GET", "POST"])
+    def api_etiquetas_studio_sku(sku: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_studio import guardar_studio_sku, obtener_studio_sku
+
+        if request.method == "GET":
+            datos = obtener_studio_sku(sku)
+            return jsonify({"datos": datos})
+
+        body = request.get_json(silent=True) or {}
+        try:
+            entry = guardar_studio_sku(sku, body)
+            return jsonify({"ok": True, "datos": entry})
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/studio/exportar-pdf", methods=["POST"])
+    @app.route("/app/api/etiquetas/studio/exportar-pdf", methods=["POST"])
+    def api_etiquetas_studio_exportar_pdf():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_studio import exportar_pdf_studio
+
+        body = request.get_json(silent=True) or {}
+        try:
+            result = exportar_pdf_studio(body)
+            sku = (body.get("sku") or "").strip()
+            if sku and result.get("pdf_ruta"):
+                try:
+                    datos = _load_etiquetas_datos()
+                    entry = dict(datos.get(sku, {}))
+                    entry["pdf_ruta"] = result["pdf_ruta"]
+                    entry["pdf_nombre"] = result.get("pdf_nombre", "")
+                    entry["nombre_etiqueta"] = body.get("nombre_producto") or entry.get("nombre_etiqueta", "")
+                    entry["tipo_etiqueta"] = body.get("tipo_etiqueta") or entry.get("tipo_etiqueta", "")
+                    entry["studio"] = True
+                    entry["updated_at"] = _dt.now().isoformat()
+                    datos[sku] = entry
+                    _save_etiquetas_datos(datos)
+                    result["etiquetas_datos_vinculado"] = True
+                except Exception:
+                    pass
+            return jsonify(result)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 

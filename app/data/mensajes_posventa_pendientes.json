@@ -1,26 +1,5 @@
 {
-  "pendientes": {
-    "2000009659316417": {
-      "pack_id": "2000009659316417",
-      "codigo": "6417",
-      "comprador": "Comprador 285655215",
-      "from_id": "285655215",
-      "texto": "Q cuesta cada uno quiero 4 y un ácido hialurónico",
-      "msg_id": "019ec8f29a81774ba7506e381186d065",
-      "productos": "",
-      "timestamp": "2026-06-14T20:43:29"
-    },
-    "6417": {
-      "pack_id": "2000009659316417",
-      "codigo": "6417",
-      "comprador": "Comprador 285655215",
-      "from_id": "285655215",
-      "texto": "Q cuesta cada uno quiero 4 y un ácido hialurónico",
-      "msg_id": "019ec8f29a81774ba7506e381186d065",
-      "productos": "",
-      "timestamp": "2026-06-14T20:43:29"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "019e8f06669f7c0d8c0b5ca31a4655dd",
     "019e2bdfc2027211bc25873b4f1e4cbc",
@@ -30,8 +9,8 @@
     "019dc5afdfa872edb346ef0cd8c43729",
     "019eb22ad9a574a4a3a370bda9ecffa2",
     "019e602f4dc671659e04dd155354073d",
-    "019eb22aa5717e8eaaa87fd56fc37341",
     "019e6c6e7e4f7480a32101a5d2317b4c",
+    "019eb22aa5717e8eaaa87fd56fc37341",
     "019e1851c1857f1ab04e3a6b41a7a8de",
     "019de3d444907dc7a8276336b81760e3",
     "019e8ee2d5a07c0591a163acc974e5f8",
@@ -64,8 +43,8 @@
     "019e03f09d1a795f824867cbac1c4534",
     "019e4c0614a673b2ba50aa6a2c9fd321",
     "019dea7998ca722c8c6ec34fdd87ba50",
-    "019e4f9756bb715e8e0bba71de607356",
     "019e4b1912a17488add4046dc570355d",
+    "019e4f9756bb715e8e0bba71de607356",
     "019dc9c057097511a8fb8ec0d271186b",
     "019de3d404ae71bf8882faee8f46febe",
     "019e415056e57d1b8192bf8cec734596",
@@ -201,6 +180,7 @@
     "019ec857f9e27d6a958b1f406be8d000",
     "019e4621022b71d69c62239dc40fda58",
     "019db08c46a979eca054bceaa9c6e709",
+    "019ece67c3227853bb9784b3d1f14c00",
     "019e933af0047e66bc56760c08b2b606",
     "019df4f04e967407be3b0d9c7c685963",
     "019e602b488176239afb5e3b189761a6",

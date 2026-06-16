@@ -3690,6 +3690,949 @@
       "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE56701926.zip",
       "timestamp": "2026-06-11T18:47:51.395133",
       "bootstrap": true
+    },
+    "19eb7f7b6ccad04b:ANGjdJ9Jjxk9rARvVA9-jSCb-XTksFfwmEKHIY6KL0bS29HSPr_CYwxHWUsffxHddLRA9q6GDzVhB6LSplFOMIDYsSV53-bFiB0D4JnDO5lrX0LCD9zRnr7pQ103uV3mCMIgSc4zis80nQvtDqyuHNTRu6Qt7GRqpSeZIAC8djfBbkPJj_5wVT6iM3HITkhSV4ZmV2IgsOQ2Xu1WpTfMlPXXBpXGTGus82z16T-DuIXCjTf4dmBiDTaHIWdXALW4YLMx7-oqmHzQ4EdHi3ZgbbK8Gu9JMYFSgSP77WCVxFzzB_ef9iUHH4glQnu2kUD3bh_yp2yq3w6YcZCcX6M4HftqYlYsKOM9NBGnQjikcQCkmAnWpwYYMpFmn5nffULn4-sweE-cCIF-qcCRdLDLcGgcSi6DM9fBxhkNgcnWqA:ad08000778280002600304097.zip": {
+      "msg_id": "19eb7f7b6ccad04b",
+      "att_id": "ANGjdJ9Jjxk9rARvVA9-jSCb-XTksFfwmEKHIY6KL0bS29HSPr_CYwxHWUsffxHddLRA9q6GDzVhB6LSplFOMIDYsSV53-bFiB0D4JnDO5lrX0LCD9zRnr7pQ103uV3mCMIgSc4zis80nQvtDqyuHNTRu6Qt7GRqpSeZIAC8djfBbkPJj_5wVT6iM3HITkhSV4ZmV2IgsOQ2Xu1WpTfMlPXXBpXGTGus82z16T-DuIXCjTf4dmBiDTaHIWdXALW4YLMx7-oqmHzQ4EdHi3ZgbbK8Gu9JMYFSgSP77WCVxFzzB_ef9iUHH4glQnu2kUD3bh_yp2yq3w6YcZCcX6M4HftqYlYsKOM9NBGnQjikcQCkmAnWpwYYMpFmn5nffULn4-sweE-cCIF-qcCRdLDLcGgcSi6DM9fBxhkNgcnWqA",
+      "filename": "ad08000778280002600304097.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/ad08000778280002600304097.zip",
+      "timestamp": "2026-06-15T13:51:11.764461",
+      "bootstrap": true
+    },
+    "19e84cdcec109611:ANGjdJ-GXyry0zLkxzus5gdlYFMnWqxnclRcUGvt3Sg8gfEQgc7pSfMhUPKJ9GB8A7RazTwampzK0NtLC-aCbnXp_UrpPW5-sErDRdr6aADJXRk8rOCRV8DLvlMmBXNBBE7CMhp26fc3eE700KNkBjC_YlvdPjJbn0H4LzoAXZGElJvHJ3Xv67uSOwc-Sj0NdZcVv3uwkjszVoVAWOzc3a4uDS4sTRvhWlNPikKOqv_XBcleRxltx8Al815aY3fjgWiv1-VYwe8w_hWTfcE4atQKPcT973_WZR26eGwzNWAky8vpRQtqOoPcLl6jRVTLPnuy2rTlGAWfnepabr63x6jVUFPH3lKb2LEmxHg0b_YtoFQbT0wrvNBOMwFoRZjWebzEO0jqR2nktkXG5-Zu:ad09011471810512602433358.zip": {
+      "msg_id": "19e84cdcec109611",
+      "att_id": "ANGjdJ-GXyry0zLkxzus5gdlYFMnWqxnclRcUGvt3Sg8gfEQgc7pSfMhUPKJ9GB8A7RazTwampzK0NtLC-aCbnXp_UrpPW5-sErDRdr6aADJXRk8rOCRV8DLvlMmBXNBBE7CMhp26fc3eE700KNkBjC_YlvdPjJbn0H4LzoAXZGElJvHJ3Xv67uSOwc-Sj0NdZcVv3uwkjszVoVAWOzc3a4uDS4sTRvhWlNPikKOqv_XBcleRxltx8Al815aY3fjgWiv1-VYwe8w_hWTfcE4atQKPcT973_WZR26eGwzNWAky8vpRQtqOoPcLl6jRVTLPnuy2rTlGAWfnepabr63x6jVUFPH3lKb2LEmxHg0b_YtoFQbT0wrvNBOMwFoRZjWebzEO0jqR2nktkXG5-Zu",
+      "filename": "ad09011471810512602433358.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/ad09011471810512602433358.zip",
+      "timestamp": "2026-06-15T13:51:12.004501",
+      "bootstrap": true
+    },
+    "19e2c2e4174cbde7:ANGjdJ8oZbYnufDBKUm1bztwuBahuAXt9TfCadcL9GWD4gp9RVZniYidkyBzK4Lq-e17eAZf2D837a9YSjai3ElQ1qPwxwKyRxi286Z_Mh7MFIMepCYjFxRTo8k-MbwZnk7F-JbFpcYEtm2Wr-y3JGLvrsgwknvGcDje4fNQS7jqutNOZC2QNH2mluz_2lJONfAGv8IdjA_99re_Xy47HzIWeS2wGtd2pxb7XP8mIb_qbXQ_uanh8OuJoFH-00MoPUrQAUwgKRQv7GsTD9LjbkeU7JGt_IvCGYE2xPW6coPnuFKEESsSLqlbvtIqjNpKjnFpOI79hX7mL475IPtPogqkJX6NZJSHQNKC89WKmUW8HcCrNiwc0t6_NWZSoRhX4ylOfsSuCaBkCBgks7VZePPDNBJynRzFjwjKBhAC-A:z08110254460122600048CF6.zip": {
+      "msg_id": "19e2c2e4174cbde7",
+      "att_id": "ANGjdJ8oZbYnufDBKUm1bztwuBahuAXt9TfCadcL9GWD4gp9RVZniYidkyBzK4Lq-e17eAZf2D837a9YSjai3ElQ1qPwxwKyRxi286Z_Mh7MFIMepCYjFxRTo8k-MbwZnk7F-JbFpcYEtm2Wr-y3JGLvrsgwknvGcDje4fNQS7jqutNOZC2QNH2mluz_2lJONfAGv8IdjA_99re_Xy47HzIWeS2wGtd2pxb7XP8mIb_qbXQ_uanh8OuJoFH-00MoPUrQAUwgKRQv7GsTD9LjbkeU7JGt_IvCGYE2xPW6coPnuFKEESsSLqlbvtIqjNpKjnFpOI79hX7mL475IPtPogqkJX6NZJSHQNKC89WKmUW8HcCrNiwc0t6_NWZSoRhX4ylOfsSuCaBkCBgks7VZePPDNBJynRzFjwjKBhAC-A",
+      "filename": "z08110254460122600048CF6.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08110254460122600048CF6.zip",
+      "timestamp": "2026-06-15T13:51:12.233987",
+      "bootstrap": true
+    },
+    "19e1785a44750af7:ANGjdJ98FhAoI-8E7uXhDlXEha3G8T3Dp9i_-Z4JegYa_epVuUw60aStolbbiQ2AcuqL8P-a6L5RvGG0v2_K5hNWen-XOG2_NcU_aVUkkVeYdVWu2Cx24KfWwx1N5Kdjsz6sBIllyoLg0m6WwfOdAN8NYFuuTzbiH5y46wheIcQaIGbF6ypmYKWVj3VFiRbrvu4PJWy5i-XH4vJUkDq5GOAnoKTBNDLVXuSbDMgir7HWAnA6xS0gTeCNa23wEirO1n5OUeZ3EnSChy4HT-8dbXxRxguZ1ONmK_uOi-Cr-638-viupu-gvz5V4WbRyEU_hyQdZeSXhCfbACElwRncUC8yTb0Rro0OBQ4a-nJBa1OUbbhP9eWa4070hpWJTp6UE_JZjmAxA_E6FxNrGjKG:z08001372240002600268949.zip": {
+      "msg_id": "19e1785a44750af7",
+      "att_id": "ANGjdJ98FhAoI-8E7uXhDlXEha3G8T3Dp9i_-Z4JegYa_epVuUw60aStolbbiQ2AcuqL8P-a6L5RvGG0v2_K5hNWen-XOG2_NcU_aVUkkVeYdVWu2Cx24KfWwx1N5Kdjsz6sBIllyoLg0m6WwfOdAN8NYFuuTzbiH5y46wheIcQaIGbF6ypmYKWVj3VFiRbrvu4PJWy5i-XH4vJUkDq5GOAnoKTBNDLVXuSbDMgir7HWAnA6xS0gTeCNa23wEirO1n5OUeZ3EnSChy4HT-8dbXxRxguZ1ONmK_uOi-Cr-638-viupu-gvz5V4WbRyEU_hyQdZeSXhCfbACElwRncUC8yTb0Rro0OBQ4a-nJBa1OUbbhP9eWa4070hpWJTp6UE_JZjmAxA_E6FxNrGjKG",
+      "filename": "z08001372240002600268949.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600268949.zip",
+      "timestamp": "2026-06-15T13:51:12.453902",
+      "bootstrap": true
+    },
+    "19e17411dd169c4a:ANGjdJ_PIbxse1kpkeyFUd2i-Nyakr-blbYmttdRhsZRqmKl_yrfCXPD0E7dDu9qYazTjyOVslI476kurg1-BuzLTFBgeAFeDvLiFG_VlMoBOd_oXaluDyOg3TiNrsx8Xdp4avBSKVUo3kph9aISRO3EzpAcz_f40Qo-E_4RtddyLYyjIO8GswR5WS4MKRS9UuyLN7MM76wnLEs9ObA4F78_Y6q3iCnfYB3Gb1xC3oe6AYhEi51mVToviVmxie9yRF_hE0Lzmu2WRYGkKtzaiKXquI3-2nPdAk2EuJADRpqiA_5QFIGyQ5qJz19RBijHnCQx9judyyvmGse1JP5yr-ByPTqfCFyK5VVEeaol1EPtdaG6Vu8mH_vMDDTyW2m0LTTt4douvXWUEKa3Y_-4:z08001372240002600268937.zip": {
+      "msg_id": "19e17411dd169c4a",
+      "att_id": "ANGjdJ_PIbxse1kpkeyFUd2i-Nyakr-blbYmttdRhsZRqmKl_yrfCXPD0E7dDu9qYazTjyOVslI476kurg1-BuzLTFBgeAFeDvLiFG_VlMoBOd_oXaluDyOg3TiNrsx8Xdp4avBSKVUo3kph9aISRO3EzpAcz_f40Qo-E_4RtddyLYyjIO8GswR5WS4MKRS9UuyLN7MM76wnLEs9ObA4F78_Y6q3iCnfYB3Gb1xC3oe6AYhEi51mVToviVmxie9yRF_hE0Lzmu2WRYGkKtzaiKXquI3-2nPdAk2EuJADRpqiA_5QFIGyQ5qJz19RBijHnCQx9judyyvmGse1JP5yr-ByPTqfCFyK5VVEeaol1EPtdaG6Vu8mH_vMDDTyW2m0LTTt4douvXWUEKa3Y_-4",
+      "filename": "z08001372240002600268937.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600268937.zip",
+      "timestamp": "2026-06-15T13:51:12.655548",
+      "bootstrap": true
+    },
+    "19e04345c0a11185:ANGjdJ-ZuKVU3UA9QuZLXx8hpCGXXSI7YTI87V47cypIIQ_f73HmmxGSSjbjhxtRQiIb4gxopK_-7scxYeqemnkosc7wKa5YOFWXkj7cNEGqCiSJdDm8hXhm7MegLOTL2j1PAhQpgdJAjvvstXUnlly0x4CC4Q93WhniVuy84LoMiQmvCQ_-e1RLM2KV8tzxXNdQfKSn0Imv1-r2WodmVn6ITzcIBTcN2klacU5jmwMntx5OPLKtsLVas1UBS5QAxxoqdkIyRYFfTtMMb-KZIirQzsrIZ-Lz7BhvXJ1BpBZyAfm3wH-mq1ZW073sXysB250l-rpE9O2gPrUf3HsAe1thC6wYqQLkPrXm5DEc124A07APjuH_nei7WefnoDc2pnp-d_MRo6nE1TCpaXdex5ePVUglC8X3IRfaQniLZA:ad08000778280002600181960.zip": {
+      "msg_id": "19e04345c0a11185",
+      "att_id": "ANGjdJ-ZuKVU3UA9QuZLXx8hpCGXXSI7YTI87V47cypIIQ_f73HmmxGSSjbjhxtRQiIb4gxopK_-7scxYeqemnkosc7wKa5YOFWXkj7cNEGqCiSJdDm8hXhm7MegLOTL2j1PAhQpgdJAjvvstXUnlly0x4CC4Q93WhniVuy84LoMiQmvCQ_-e1RLM2KV8tzxXNdQfKSn0Imv1-r2WodmVn6ITzcIBTcN2klacU5jmwMntx5OPLKtsLVas1UBS5QAxxoqdkIyRYFfTtMMb-KZIirQzsrIZ-Lz7BhvXJ1BpBZyAfm3wH-mq1ZW073sXysB250l-rpE9O2gPrUf3HsAe1thC6wYqQLkPrXm5DEc124A07APjuH_nei7WefnoDc2pnp-d_MRo6nE1TCpaXdex5ePVUglC8X3IRfaQniLZA",
+      "filename": "ad08000778280002600181960.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/ad08000778280002600181960.zip",
+      "timestamp": "2026-06-15T13:51:12.942652",
+      "bootstrap": true
+    },
+    "19dc5c6755bf941b:ANGjdJ8UNq-IChIegcQr3K4AzVXAQfCg7TdWygmm8SJnUwEckw1N_y409GiTic1KJiUs1wutgi__8V1NwEYO7TRaBL6p3vcG7vWTkM7Qa5OPWrnQbT8Mv_-RDlrvsPVrnIwHBnYFo1BmUa8zvkyqnRKF4XKrZmvVdrT1gZELKDuHWPJss6-SuOeioJMOXJ7wUduZTTJCGaw5QTptvri-nMI6xaukA4p9ftnDtyEbsDN4HZYR7CPtp5Z3mhihMF6Sdaf0cpQJCrh4MwOREEAJW9agpVHJMmoJXAf-Ykx5-yUQsLXaLwDKwDQIfZ5qpbnL_-Hcd9e4RYRonvClSl4nAQ6TwrMCVs3MilLh8WryBFZipmrpZzR7fsiU0mJisC49R-WDfLYGJcPZEjecNKj4:090027696202126G1V0132591.zip": {
+      "msg_id": "19dc5c6755bf941b",
+      "att_id": "ANGjdJ8UNq-IChIegcQr3K4AzVXAQfCg7TdWygmm8SJnUwEckw1N_y409GiTic1KJiUs1wutgi__8V1NwEYO7TRaBL6p3vcG7vWTkM7Qa5OPWrnQbT8Mv_-RDlrvsPVrnIwHBnYFo1BmUa8zvkyqnRKF4XKrZmvVdrT1gZELKDuHWPJss6-SuOeioJMOXJ7wUduZTTJCGaw5QTptvri-nMI6xaukA4p9ftnDtyEbsDN4HZYR7CPtp5Z3mhihMF6Sdaf0cpQJCrh4MwOREEAJW9agpVHJMmoJXAf-Ykx5-yUQsLXaLwDKwDQIfZ5qpbnL_-Hcd9e4RYRonvClSl4nAQ6TwrMCVs3MilLh8WryBFZipmrpZzR7fsiU0mJisC49R-WDfLYGJcPZEjecNKj4",
+      "filename": "090027696202126G1V0132591.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/090027696202126G1V0132591.zip",
+      "timestamp": "2026-06-15T13:51:13.187351",
+      "bootstrap": true
+    },
+    "19dc5c56052291c2:ANGjdJ_M4caCXa0xYlMq1yPZjFG94u2dwgLwUZzZ8Bgq2XIMptpC_7aiMDEduscco3ipQUkrDS3tUtyb4imd9_0PUOFQrpp-MGkwWrsDsz5douMCi-2a0qDFj58-Z89av45fcLUfdWyigHKCf4xkPHzFfHPnrKhzz0qRz93en-OiQVz-mRYBC0dxP592R27_wm_8ZOMgx0mdH2kGowia47UpUQxpV8u9BwLLlGdGYP73HknoEr6FRtwkoiyGXCmc3sQM9D7FX_nI8U0KoC50P_4nsB5QsYP3iOGg7aZPBk2wpDOkqBLexjOwNWT3f8oRDeDbcGVdrZcChuA5sb4cPB9907gydqWcSv7M3ZtkAi2lqXOxAyNyTzrSA-dtoHRU9gq8Oyr1q-cfJ2j9W6B6:090027696202126G1V0132590.zip": {
+      "msg_id": "19dc5c56052291c2",
+      "att_id": "ANGjdJ_M4caCXa0xYlMq1yPZjFG94u2dwgLwUZzZ8Bgq2XIMptpC_7aiMDEduscco3ipQUkrDS3tUtyb4imd9_0PUOFQrpp-MGkwWrsDsz5douMCi-2a0qDFj58-Z89av45fcLUfdWyigHKCf4xkPHzFfHPnrKhzz0qRz93en-OiQVz-mRYBC0dxP592R27_wm_8ZOMgx0mdH2kGowia47UpUQxpV8u9BwLLlGdGYP73HknoEr6FRtwkoiyGXCmc3sQM9D7FX_nI8U0KoC50P_4nsB5QsYP3iOGg7aZPBk2wpDOkqBLexjOwNWT3f8oRDeDbcGVdrZcChuA5sb4cPB9907gydqWcSv7M3ZtkAi2lqXOxAyNyTzrSA-dtoHRU9gq8Oyr1q-cfJ2j9W6B6",
+      "filename": "090027696202126G1V0132590.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/090027696202126G1V0132590.zip",
+      "timestamp": "2026-06-15T13:51:13.385885",
+      "bootstrap": true
+    },
+    "19db014bd30f496e:ANGjdJ97h_6s7gJFB5nAnCP470TisbP5oORb6Nk6xrpKtPPe0gw7lNNgg5x2udOj--amzTvMdyavFV4cUGLnUI0d3_nr8FcOnGoqyDkwyZ9JgeFsVpNm-y2OgbTPMPKx_6aNE1EKaNISDuIAUgFm4Qz_WNZyiuKVx-P6-ZQzqGK7ATmDZ33AWZqgnmECWW9XzfyUfIInb8SpNp1iM2dfjRQjaLlu0pguZDzbSe30LqNXtROImTAbV6UP6Y2OMyIYXrGZhAT_MKCFee4ABr4PLTOwM9B2aE4jS4nqwzvjVFUvJZKsjoPlcsD51Cq1Dk55Fd7FPqFH_z0b3cAK1qFEwiO3PRVd8gG-KInmzQWgEgu2givSNlJqoTgWgiNQ9oDQHG8mTl7X5GhxZtW_Ii15:z08001372240002600268227.zip": {
+      "msg_id": "19db014bd30f496e",
+      "att_id": "ANGjdJ97h_6s7gJFB5nAnCP470TisbP5oORb6Nk6xrpKtPPe0gw7lNNgg5x2udOj--amzTvMdyavFV4cUGLnUI0d3_nr8FcOnGoqyDkwyZ9JgeFsVpNm-y2OgbTPMPKx_6aNE1EKaNISDuIAUgFm4Qz_WNZyiuKVx-P6-ZQzqGK7ATmDZ33AWZqgnmECWW9XzfyUfIInb8SpNp1iM2dfjRQjaLlu0pguZDzbSe30LqNXtROImTAbV6UP6Y2OMyIYXrGZhAT_MKCFee4ABr4PLTOwM9B2aE4jS4nqwzvjVFUvJZKsjoPlcsD51Cq1Dk55Fd7FPqFH_z0b3cAK1qFEwiO3PRVd8gG-KInmzQWgEgu2givSNlJqoTgWgiNQ9oDQHG8mTl7X5GhxZtW_Ii15",
+      "filename": "z08001372240002600268227.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600268227.zip",
+      "timestamp": "2026-06-15T13:51:13.599751",
+      "bootstrap": true
+    },
+    "19d9171dcb3e0610:ANGjdJ8jOKe1aiws8OWgteIymj6w0jLXuJQT8_lAZ7KGy_PjZvLIEDMy7J44vWvdRBHqc3-MDRHSr9VyDqAA965xi5ffWHmHl9VSJ8y4IPV1hLzzq_-rmnTxbQSCr4CAqsisdRwZZexqvatskhRaQZXiIgnH4A2Uk0RI1QA7smSgMz8tuDJUkbiU12Lowzs37sDmfLPmJy0Ss2j98-1xQWHtUHA8t_8CtyPERvtZl9rsO9ETUOa3GycLc03tdR8--NEUi3hQj8v5opDFS2IDOZ5YgYU_0qVFI6gr9_z484fYDEAJqLkDrIENOah8LyFlirocxKVbdc8M0JqxEsIijBsw8lZyhOsEsJuAIDZ182E6dqAbwfGsemfqyaZ-Qwkis9v3QY91rQRU86ZJRSlI:z08001372240002600268042.zip": {
+      "msg_id": "19d9171dcb3e0610",
+      "att_id": "ANGjdJ8jOKe1aiws8OWgteIymj6w0jLXuJQT8_lAZ7KGy_PjZvLIEDMy7J44vWvdRBHqc3-MDRHSr9VyDqAA965xi5ffWHmHl9VSJ8y4IPV1hLzzq_-rmnTxbQSCr4CAqsisdRwZZexqvatskhRaQZXiIgnH4A2Uk0RI1QA7smSgMz8tuDJUkbiU12Lowzs37sDmfLPmJy0Ss2j98-1xQWHtUHA8t_8CtyPERvtZl9rsO9ETUOa3GycLc03tdR8--NEUi3hQj8v5opDFS2IDOZ5YgYU_0qVFI6gr9_z484fYDEAJqLkDrIENOah8LyFlirocxKVbdc8M0JqxEsIijBsw8lZyhOsEsJuAIDZ182E6dqAbwfGsemfqyaZ-Qwkis9v3QY91rQRU86ZJRSlI",
+      "filename": "z08001372240002600268042.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600268042.zip",
+      "timestamp": "2026-06-15T13:51:13.849274",
+      "bootstrap": true
+    },
+    "19d8881b65ac839d:ANGjdJ_Armv85Aohl1eRrip3tabIbvuygcsKzCQqJnW_zoUBpE_PZRmmQISPaBOKHKece1oKamoMuIsnBJSiJdZPKH7j6TI5CeKdUMjBTED517piHnMyZfJF8-ja0f3S2VsDI9juh8Jvs5Gh2yaDwiSXNI25usvIymh1fuvpG1aGbXWaoAmobTZlB8H98grUQ-RCFZ4yZ9Cp4R28QGcLZyl_K2yHRls-ob5avqf64Cb9ls1nx-j-cY61Lihs7uUQXavTV1FH_1boaGkacAVf4EaqvgQGW4U3sUWT_CNktIDPwmlg0aop4Ttlh6674Xh2OivIDUEHMFPisqLuque8KsaqgM_wwMR-BV8SI_jV_1Gk2gEc1zSrsT9AC2Mh9Fny_0xd5D55yA2ZGo7UwWYNcB6mRkeC_Vgfl5CwSKqyPA:ad0800041075000260000000304.zip": {
+      "msg_id": "19d8881b65ac839d",
+      "att_id": "ANGjdJ_Armv85Aohl1eRrip3tabIbvuygcsKzCQqJnW_zoUBpE_PZRmmQISPaBOKHKece1oKamoMuIsnBJSiJdZPKH7j6TI5CeKdUMjBTED517piHnMyZfJF8-ja0f3S2VsDI9juh8Jvs5Gh2yaDwiSXNI25usvIymh1fuvpG1aGbXWaoAmobTZlB8H98grUQ-RCFZ4yZ9Cp4R28QGcLZyl_K2yHRls-ob5avqf64Cb9ls1nx-j-cY61Lihs7uUQXavTV1FH_1boaGkacAVf4EaqvgQGW4U3sUWT_CNktIDPwmlg0aop4Ttlh6674Xh2OivIDUEHMFPisqLuque8KsaqgM_wwMR-BV8SI_jV_1Gk2gEc1zSrsT9AC2Mh9Fny_0xd5D55yA2ZGo7UwWYNcB6mRkeC_Vgfl5CwSKqyPA",
+      "filename": "ad0800041075000260000000304.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/ad0800041075000260000000304.zip",
+      "timestamp": "2026-06-15T13:51:14.039357",
+      "bootstrap": true
+    },
+    "19d7d08d2ffc0a1e:ANGjdJ-SBStDqGci1HDC5q2tNhO44VCI43CZKojrc5UlyBD5BQSXNEhfo43E2Ow_8SCpI6T9v_ZmdL4zcltOAnGvtyPQb06jQ9JOR5GxbjC_zBq1DO7mompmPmDGqN93VMW2sagCO2UUd8gFWbD7EKIJKI6KP5XpsZmt9Q1ipieoyyf3ZxSgyFoow3GPYejkbyGgRfHA5ng6YWSjWMN9sWECyAImrv3jQA-s5LOSn8XHh1G48yPy-gK4izX5Ft-PJkPTR9hZLotZJhrixcp0rLZ0A62wQFP7x1evM1Ygh_X-4XHZqBaOGON5nxIwRgDf_Fay7UM4y7vEpRl7bG2RLfq91Bwpns_Oyz46kwXY-8rErJ6KvGKtz6R_FpTkv2nHwS1NBXloS1ReSiHcBhta:ad08000778280002600095334.zip": {
+      "msg_id": "19d7d08d2ffc0a1e",
+      "att_id": "ANGjdJ-SBStDqGci1HDC5q2tNhO44VCI43CZKojrc5UlyBD5BQSXNEhfo43E2Ow_8SCpI6T9v_ZmdL4zcltOAnGvtyPQb06jQ9JOR5GxbjC_zBq1DO7mompmPmDGqN93VMW2sagCO2UUd8gFWbD7EKIJKI6KP5XpsZmt9Q1ipieoyyf3ZxSgyFoow3GPYejkbyGgRfHA5ng6YWSjWMN9sWECyAImrv3jQA-s5LOSn8XHh1G48yPy-gK4izX5Ft-PJkPTR9hZLotZJhrixcp0rLZ0A62wQFP7x1evM1Ygh_X-4XHZqBaOGON5nxIwRgDf_Fay7UM4y7vEpRl7bG2RLfq91Bwpns_Oyz46kwXY-8rErJ6KvGKtz6R_FpTkv2nHwS1NBXloS1ReSiHcBhta",
+      "filename": "ad08000778280002600095334.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/ad08000778280002600095334.zip",
+      "timestamp": "2026-06-15T13:51:14.220953",
+      "bootstrap": true
+    },
+    "19d304e4566e96ae:ANGjdJ8u7ywAQ4VApkKq9sE--k0MIaa0UVlewQzvcPJDFat3-a1Lyrm1u9YWL_Th_CVfXlg6PeOqhHaVwcfvdDIfxoXC342C21nbHbNuOAK8F-GkEt3dtNmDT3KIYHSiiAJxJfoE2SnFnlDsLIikTASslf_GPGtlcVU4EMtxQ3PO39nCs2vtdDVCSBdEPbj0NaRM4BdRPwzhA3IGLsXOpegOn3fbMFCP9TfeoI5yWrJ3_QCDYleEk7fRdx32ymHmUOgilpgGiIiRKZMu_hTz5Y-JHGSPuDYdfU_pLrGoQUtGwQoIEQ-3VWaxk58bQoOcMOCr6rMi3IdErB6cv7MklUr9bIT5iox4Trq0H0u9HbL8zlYIPtmxpMWsP1pKUWb6Imjgr3GgIbwkPKDi8Ajm:089090060802126UR6832023.zip": {
+      "msg_id": "19d304e4566e96ae",
+      "att_id": "ANGjdJ8u7ywAQ4VApkKq9sE--k0MIaa0UVlewQzvcPJDFat3-a1Lyrm1u9YWL_Th_CVfXlg6PeOqhHaVwcfvdDIfxoXC342C21nbHbNuOAK8F-GkEt3dtNmDT3KIYHSiiAJxJfoE2SnFnlDsLIikTASslf_GPGtlcVU4EMtxQ3PO39nCs2vtdDVCSBdEPbj0NaRM4BdRPwzhA3IGLsXOpegOn3fbMFCP9TfeoI5yWrJ3_QCDYleEk7fRdx32ymHmUOgilpgGiIiRKZMu_hTz5Y-JHGSPuDYdfU_pLrGoQUtGwQoIEQ-3VWaxk58bQoOcMOCr6rMi3IdErB6cv7MklUr9bIT5iox4Trq0H0u9HbL8zlYIPtmxpMWsP1pKUWb6Imjgr3GgIbwkPKDi8Ajm",
+      "filename": "089090060802126UR6832023.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/089090060802126UR6832023.zip",
+      "timestamp": "2026-06-15T13:51:14.424577",
+      "bootstrap": true
+    },
+    "19d216a9ef59cbe5:ANGjdJ_Iv7cdqmo-VYwEUltPUhuKjxnuLxfQcqxiJNTu_yrGBKNceyOoqhrc5yf7OV2D7olbQl9-w7PdWna3aZf0VPC8a6fMZU8xe0IwZz7O11pQH-x3YQjoZzumH0MQWQ0uAnTtwYHdFucFXWMp19VH1ZK_gcTRUqmt3908jKb6tx3vByIUsEsnAKipoU3N00je5FTyKDOWi1PDfd3IJit7EHFePybaFMJeOpdZTknnmfNhE79Pv__1HIBTCX_nXXLtHsWj7nszs8KfksF_XOErGR6QsT8rl8ZSAF8eyEOtGhxxG14KuKO0Ieh2hGPl8wPQK2j45Q-As6WHOjoMN7TP8mWFUJKFLNLRMNRvmJC4Lz1Fwt29wmUz2dhXnkunXz0eC_KLVPCznUZjZgTCWU4o-UOdYk7KjGMYz2WIQA:z080025156905426FE63639568.zip": {
+      "msg_id": "19d216a9ef59cbe5",
+      "att_id": "ANGjdJ_Iv7cdqmo-VYwEUltPUhuKjxnuLxfQcqxiJNTu_yrGBKNceyOoqhrc5yf7OV2D7olbQl9-w7PdWna3aZf0VPC8a6fMZU8xe0IwZz7O11pQH-x3YQjoZzumH0MQWQ0uAnTtwYHdFucFXWMp19VH1ZK_gcTRUqmt3908jKb6tx3vByIUsEsnAKipoU3N00je5FTyKDOWi1PDfd3IJit7EHFePybaFMJeOpdZTknnmfNhE79Pv__1HIBTCX_nXXLtHsWj7nszs8KfksF_XOErGR6QsT8rl8ZSAF8eyEOtGhxxG14KuKO0Ieh2hGPl8wPQK2j45Q-As6WHOjoMN7TP8mWFUJKFLNLRMNRvmJC4Lz1Fwt29wmUz2dhXnkunXz0eC_KLVPCznUZjZgTCWU4o-UOdYk7KjGMYz2WIQA",
+      "filename": "z080025156905426FE63639568.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE63639568.zip",
+      "timestamp": "2026-06-15T13:51:14.616415",
+      "bootstrap": true
+    },
+    "19d2060910ea2fd2:ANGjdJ9rMpcUgHMogrHooleaIm56oxSR3v9iV8dZQ-0jmTn5ENvvXAozYSl7u_TWtUTngW7kDdAUQfRFwdvThE0qVH2UVqkJr01vV_az2qBsxLbS-adHK25cxCSEjoZRXHfEfw8sFKL88vL1NRGG0SfWarQmNcwDKejH4UtOAY_MJt2ZT-cObXn2LiGZAhSwJIunZFT3gRQ8GhGYcELGZtIf6-nKvVm1H6KlzQNjL4adsO9WTTdSVZstVWHL6la5nRzqMiAaxmTw72B59mfmtQlQ8wlk9g8IA8Pq2D3pzgeT_QhFxUvbIzA0MmYngXywW7960zNeoDIX4rHevLd83MhAUfVsGoEH03--I25UP-9i3KJ0JkeuN932DrVMJF_nvrIuJdxmwCtz8q2tDAxl:fv09017759460002600011294.zip": {
+      "msg_id": "19d2060910ea2fd2",
+      "att_id": "ANGjdJ9rMpcUgHMogrHooleaIm56oxSR3v9iV8dZQ-0jmTn5ENvvXAozYSl7u_TWtUTngW7kDdAUQfRFwdvThE0qVH2UVqkJr01vV_az2qBsxLbS-adHK25cxCSEjoZRXHfEfw8sFKL88vL1NRGG0SfWarQmNcwDKejH4UtOAY_MJt2ZT-cObXn2LiGZAhSwJIunZFT3gRQ8GhGYcELGZtIf6-nKvVm1H6KlzQNjL4adsO9WTTdSVZstVWHL6la5nRzqMiAaxmTw72B59mfmtQlQ8wlk9g8IA8Pq2D3pzgeT_QhFxUvbIzA0MmYngXywW7960zNeoDIX4rHevLd83MhAUfVsGoEH03--I25UP-9i3KJ0JkeuN932DrVMJF_nvrIuJdxmwCtz8q2tDAxl",
+      "filename": "fv09017759460002600011294.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/fv09017759460002600011294.zip",
+      "timestamp": "2026-06-15T13:51:14.810688",
+      "bootstrap": true
+    },
+    "19d0d25f4d88db89:ANGjdJ__ZYY8owJ6nqpi4k_vKUKZoOc6R_hB0afr_AzfySPFmNQEkEHBV2rD0FnsOWTV4gZn9hAS1ka903SpNzoT_J0mCAKJS_rWBDtM7HUsDZWIuYAioEE8Wi79BW4kkwB8WLEMk6TqHaGRe2ztgY53P-eKKFWd7CT2ZgoQTWAL9golyA2Givt33r-b-5m-SO62WVJ4G3zL5qmFZ-JOMcCK-dobFvLIZ0S9noCSt5M1FQgLiORLukFKtP9cvoJ1lN1ozf6fkjlXvCV7gmhFyvRWkGeaYmRjUzOeMhU6a7uUp3oN0b9KRCIGQ-l36GXqJcjeqeCNPFfqvWLJ1eyZ6RTYSjxM5ac87MQ0RSANwDMND_4vJaT4cAYikVEb86CQq_0UPo55_-q4JGoNMn9USVWeS-9ubxMv0wRka6LA8A:1065b5fc-bdba-4821-921a-304a5e02e8a4.zip": {
+      "msg_id": "19d0d25f4d88db89",
+      "att_id": "ANGjdJ__ZYY8owJ6nqpi4k_vKUKZoOc6R_hB0afr_AzfySPFmNQEkEHBV2rD0FnsOWTV4gZn9hAS1ka903SpNzoT_J0mCAKJS_rWBDtM7HUsDZWIuYAioEE8Wi79BW4kkwB8WLEMk6TqHaGRe2ztgY53P-eKKFWd7CT2ZgoQTWAL9golyA2Givt33r-b-5m-SO62WVJ4G3zL5qmFZ-JOMcCK-dobFvLIZ0S9noCSt5M1FQgLiORLukFKtP9cvoJ1lN1ozf6fkjlXvCV7gmhFyvRWkGeaYmRjUzOeMhU6a7uUp3oN0b9KRCIGQ-l36GXqJcjeqeCNPFfqvWLJ1eyZ6RTYSjxM5ac87MQ0RSANwDMND_4vJaT4cAYikVEb86CQq_0UPo55_-q4JGoNMn9USVWeS-9ubxMv0wRka6LA8A",
+      "filename": "1065b5fc-bdba-4821-921a-304a5e02e8a4.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/1065b5fc-bdba-4821-921a-304a5e02e8a4.zip",
+      "timestamp": "2026-06-15T13:51:15.004513",
+      "bootstrap": true
+    },
+    "19d0d0cc5e248662:ANGjdJ909T_fq_ZwJpPSHH9EUB_rIe0Fnw5U4ixnTmorZq8tMIb2vczUQpi3fg-_KICr2deG3rdefc7Fw4cL8I_YqcQSXc1pJL-r8XuUa_ktSdA0wpsI3u5awD--k5VdMPG4LKdyfJYyxr0_CjtNp9512wqrPjVORx4oF6Pv0UOHpWBdp94Bh7pss7kWPNb0n0DuyiNAmerMLtgl9P2feQuHQUYjpH60Z_rZVGdP0_R-7xZg7apynZGd2WCaMES-LUjPJBDa9RaBqpF8Rbnbk9rZn5k76g9f5tBmanc9ilwdUhoGnAeVIkoYGvE7tSVkyesqsWdDHQ7ILIF10hQw50NrEgDW9TpZmTijkXlpMJlne3NlbAMiQ4VQIGfMB6xooFe1Z2-nYHaRLbD_lRKIfvftHhxpchGFhk1edeZWLQ:z080025156905426FE63464306.zip": {
+      "msg_id": "19d0d0cc5e248662",
+      "att_id": "ANGjdJ909T_fq_ZwJpPSHH9EUB_rIe0Fnw5U4ixnTmorZq8tMIb2vczUQpi3fg-_KICr2deG3rdefc7Fw4cL8I_YqcQSXc1pJL-r8XuUa_ktSdA0wpsI3u5awD--k5VdMPG4LKdyfJYyxr0_CjtNp9512wqrPjVORx4oF6Pv0UOHpWBdp94Bh7pss7kWPNb0n0DuyiNAmerMLtgl9P2feQuHQUYjpH60Z_rZVGdP0_R-7xZg7apynZGd2WCaMES-LUjPJBDa9RaBqpF8Rbnbk9rZn5k76g9f5tBmanc9ilwdUhoGnAeVIkoYGvE7tSVkyesqsWdDHQ7ILIF10hQw50NrEgDW9TpZmTijkXlpMJlne3NlbAMiQ4VQIGfMB6xooFe1Z2-nYHaRLbD_lRKIfvftHhxpchGFhk1edeZWLQ",
+      "filename": "z080025156905426FE63464306.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE63464306.zip",
+      "timestamp": "2026-06-15T13:51:15.217058",
+      "bootstrap": true
+    },
+    "19d035ef82e52b55:ANGjdJ_aBOB3hVrHhA2WKtH9llyo8IBmKoSvjI57bQFcVJJasvYRcTJ1GM9sORCtsnJ0S4FuRNrhTbwepWm021XudPS4hAqquzLkL9naNV2N7mWhSytrj9UtTOWg0xNcquwMBRewsMDTNNNprNU_rNH_JRWZN8YKjRnz7K0nhnSmBji-ALxERl-Z2PZNvSyWhC_Kg-rxxnuloqIdFSj0ECUAsjDmiXLFVPZiLecbpCO6z3xmEFhfF6HQOfFfQZiaymdHlFHQzQCjIAe5r8UBqivHocvgwJ6tyxLfZEMQ6SSJ5ZcGCwYqnkx0Pe_OwlMe4VnJVzXThjlLU4tZw2m8_UT_t8USf3IXRTTV6iqejiWGRbRchRrRyGZDJDFiwqIMAI0e44yqjNz7eekBK3t28JDjOQB69n2DikJUrYEBSQ:z080025156905426FE63256624.zip": {
+      "msg_id": "19d035ef82e52b55",
+      "att_id": "ANGjdJ_aBOB3hVrHhA2WKtH9llyo8IBmKoSvjI57bQFcVJJasvYRcTJ1GM9sORCtsnJ0S4FuRNrhTbwepWm021XudPS4hAqquzLkL9naNV2N7mWhSytrj9UtTOWg0xNcquwMBRewsMDTNNNprNU_rNH_JRWZN8YKjRnz7K0nhnSmBji-ALxERl-Z2PZNvSyWhC_Kg-rxxnuloqIdFSj0ECUAsjDmiXLFVPZiLecbpCO6z3xmEFhfF6HQOfFfQZiaymdHlFHQzQCjIAe5r8UBqivHocvgwJ6tyxLfZEMQ6SSJ5ZcGCwYqnkx0Pe_OwlMe4VnJVzXThjlLU4tZw2m8_UT_t8USf3IXRTTV6iqejiWGRbRchRrRyGZDJDFiwqIMAI0e44yqjNz7eekBK3t28JDjOQB69n2DikJUrYEBSQ",
+      "filename": "z080025156905426FE63256624.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE63256624.zip",
+      "timestamp": "2026-06-15T13:51:15.431272",
+      "bootstrap": true
+    },
+    "19cfd80e13306044:ANGjdJ-1DXKgl8nyP_hBIVIvfiBlikEgIUP4NiN78R0i_aCKXRy9ZxGU6bTLLHIRQ8t2fnZhfsv06DvdFooxpHie-Ee2TMleHNDAJRfRA12Bgh-6_1iISUWgB2kdTDcIaupjVvsQntQdI8CfTscqzHkjN3KFCODs2JMCLQXvtluaCJYMteRtdkomE6AOIjgWZeIztYGxEOCeqgyLIalMBCNf0-ExwsWs4whModd0TxG8GGIbMotcKYezpUmEZ-OYI1ubd-mQIeR8EhC5s3fZ8mYbcAtvS45cJiqUacCSOWHVuQPjp56y9fD4tmqKh2n8n2fIx46Pk273wVhtue-PAEzi9o7nZS7xl1Eq4cJxzDKQnBQRQs76qdKvqKGvhf-h4jaQWbWsF0fY3fdkV8KyeFk-eFeVue_Kc9VWgKeJiA:z080025156905426FE63161027.zip": {
+      "msg_id": "19cfd80e13306044",
+      "att_id": "ANGjdJ-1DXKgl8nyP_hBIVIvfiBlikEgIUP4NiN78R0i_aCKXRy9ZxGU6bTLLHIRQ8t2fnZhfsv06DvdFooxpHie-Ee2TMleHNDAJRfRA12Bgh-6_1iISUWgB2kdTDcIaupjVvsQntQdI8CfTscqzHkjN3KFCODs2JMCLQXvtluaCJYMteRtdkomE6AOIjgWZeIztYGxEOCeqgyLIalMBCNf0-ExwsWs4whModd0TxG8GGIbMotcKYezpUmEZ-OYI1ubd-mQIeR8EhC5s3fZ8mYbcAtvS45cJiqUacCSOWHVuQPjp56y9fD4tmqKh2n8n2fIx46Pk273wVhtue-PAEzi9o7nZS7xl1Eq4cJxzDKQnBQRQs76qdKvqKGvhf-h4jaQWbWsF0fY3fdkV8KyeFk-eFeVue_Kc9VWgKeJiA",
+      "filename": "z080025156905426FE63161027.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE63161027.zip",
+      "timestamp": "2026-06-15T13:51:15.771398",
+      "bootstrap": true
+    },
+    "19cfd7232e7445ec:ANGjdJ_yd-S4hkwTd7COJS3hnOveFxzkNgrlw9d00cPjGwU9OeVyWhKETp4jyqQEgs-JxcwY6-aKb2B2ZgfryKtbsm2M78Stkdjvu9Zm2jjLTFhGry-DohDoBdknRza7eLOdgflwhr7TOTZ8yyToPWJAirntDV_le_w_XZkFFQvfhaHjSsAvQz5kYIek1M3koNlTmarHLD7MZk43RB6AT27_dkOZG7-Nhh6HG08elwlzGFGOYM0hDnNrvb3D3Irbg74OaJWH2pT5Ts_7OGksnPJ5TwCxlSd-oYER1rr0WECet3k5uVvcjRNu-QZ1PsNNUXb_5RuC8WSjwsEov85RXkzc5rJ40EmxudS0fpXz0iSLfWKLfeOelIr2342TbtNUDPyKPGLsYR5KXNDhrzL80OmIyOc2DNPAypGnQSrgBQ:z080025156905426FE63157517.zip": {
+      "msg_id": "19cfd7232e7445ec",
+      "att_id": "ANGjdJ_yd-S4hkwTd7COJS3hnOveFxzkNgrlw9d00cPjGwU9OeVyWhKETp4jyqQEgs-JxcwY6-aKb2B2ZgfryKtbsm2M78Stkdjvu9Zm2jjLTFhGry-DohDoBdknRza7eLOdgflwhr7TOTZ8yyToPWJAirntDV_le_w_XZkFFQvfhaHjSsAvQz5kYIek1M3koNlTmarHLD7MZk43RB6AT27_dkOZG7-Nhh6HG08elwlzGFGOYM0hDnNrvb3D3Irbg74OaJWH2pT5Ts_7OGksnPJ5TwCxlSd-oYER1rr0WECet3k5uVvcjRNu-QZ1PsNNUXb_5RuC8WSjwsEov85RXkzc5rJ40EmxudS0fpXz0iSLfWKLfeOelIr2342TbtNUDPyKPGLsYR5KXNDhrzL80OmIyOc2DNPAypGnQSrgBQ",
+      "filename": "z080025156905426FE63157517.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE63157517.zip",
+      "timestamp": "2026-06-15T13:51:15.968997",
+      "bootstrap": true
+    },
+    "19cfcda66324af3a:ANGjdJ_ZmZiscTJMbPPwzNjtRA6_W5x3wn5c3eZipEcOr806R3yAAukbqnb_19g1dWSsZgpbr7aJ3nXdkjBnHX1ae0-SNV1_DsbBl7YtStWTYj35W8emwOchotpngwysGAzZ2X1uMgoNduG0PECf3JReB-hHJw2eIJlL7egpZlqJKVFhNkyt0d4HTJt168xU6pdo5GK-00ZN1LQ6o0lO0lNy6QUX2lVF7p-IrULFjzVyGzA7EtkdGFL5SMo0bStJbTRGkerzgP8q3MsJPwJWCOf88Amp9uyYtfQeupUCAWDO9t8uP8vDEYlD0H57dFWKaVMBudeJxyPcqnCF6RXjOCZaZ184hWnvZMtaBzuukmvL-pQ3ycJ2kw4PBw1XWKKB1fHpgXQTBpeD3miJEbDXwSOTODFh1x9CYKl9Oo0piw:z09013160160082600000070.zip": {
+      "msg_id": "19cfcda66324af3a",
+      "att_id": "ANGjdJ_ZmZiscTJMbPPwzNjtRA6_W5x3wn5c3eZipEcOr806R3yAAukbqnb_19g1dWSsZgpbr7aJ3nXdkjBnHX1ae0-SNV1_DsbBl7YtStWTYj35W8emwOchotpngwysGAzZ2X1uMgoNduG0PECf3JReB-hHJw2eIJlL7egpZlqJKVFhNkyt0d4HTJt168xU6pdo5GK-00ZN1LQ6o0lO0lNy6QUX2lVF7p-IrULFjzVyGzA7EtkdGFL5SMo0bStJbTRGkerzgP8q3MsJPwJWCOf88Amp9uyYtfQeupUCAWDO9t8uP8vDEYlD0H57dFWKaVMBudeJxyPcqnCF6RXjOCZaZ184hWnvZMtaBzuukmvL-pQ3ycJ2kw4PBw1XWKKB1fHpgXQTBpeD3miJEbDXwSOTODFh1x9CYKl9Oo0piw",
+      "filename": "z09013160160082600000070.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z09013160160082600000070.zip",
+      "timestamp": "2026-06-15T13:51:16.176944",
+      "bootstrap": true
+    },
+    "19cf8854e9f2d095:ANGjdJ8X-tebEUxcWqXPwPUxeNNjEQwVvZidwsN9v8JtxVzhPU-feoioS6OcnCfLrociPVQddFptfPzNRZjiMhaY-8BsZsDyVYEv1B9i3Na9qlcPTwJ4ewwZBdz9Ux2TxRNfFKFEA0XJW0leBLC7ig3uQMlNed2OL_o2Sftteh5CBF0K7al47nhyq-I-lACE0Ft771-rILxJILHZ44rezYnfLAERRiLhTMNnnTm-CTWND6q76KEG4I-1c1j4P9QJRLTAv5V5Pkb0lfkTVSYZaLm6rpEtO8GyAmq638QMnIBOzRg7VRxgK_C1p8X6z4r_-oRFm2AD8E0LU3nYXA7Wudta-833MXEM5V57ykk8wNPgTEzesMlJVuKIZeU0zujIGRHF0ckn_VEt3zQhbDIpBFlNSWXHI7mm3Fv4yYIQPA:z080025156905426FE63056695.zip": {
+      "msg_id": "19cf8854e9f2d095",
+      "att_id": "ANGjdJ8X-tebEUxcWqXPwPUxeNNjEQwVvZidwsN9v8JtxVzhPU-feoioS6OcnCfLrociPVQddFptfPzNRZjiMhaY-8BsZsDyVYEv1B9i3Na9qlcPTwJ4ewwZBdz9Ux2TxRNfFKFEA0XJW0leBLC7ig3uQMlNed2OL_o2Sftteh5CBF0K7al47nhyq-I-lACE0Ft771-rILxJILHZ44rezYnfLAERRiLhTMNnnTm-CTWND6q76KEG4I-1c1j4P9QJRLTAv5V5Pkb0lfkTVSYZaLm6rpEtO8GyAmq638QMnIBOzRg7VRxgK_C1p8X6z4r_-oRFm2AD8E0LU3nYXA7Wudta-833MXEM5V57ykk8wNPgTEzesMlJVuKIZeU0zujIGRHF0ckn_VEt3zQhbDIpBFlNSWXHI7mm3Fv4yYIQPA",
+      "filename": "z080025156905426FE63056695.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE63056695.zip",
+      "timestamp": "2026-06-15T13:51:16.370106",
+      "bootstrap": true
+    },
+    "19cf86c8ebbe89ac:ANGjdJ8dnC6uY-Ef4syajI9HLo-LB9jvPDZ5B-owfCQYMOo3xsUctSQBaEjhKIqi8lkz80hcgPO75NSZvZlXvJV8lRJ-_DYo01KjhmfnGytwUOPYm4wfFhXqsvCF65-btxQdyD_vf-sbObM2ogK6x_JxOcA-Vy2smY_T6u2qEypceaVPd_NIYI2gRKCarKZeJQhVog1e3Z_vwu-_X9jJFyR4T8gi6PTh71oOGqo9V6oBSyowpCnuZzG-KaykPLhkdfDpt6pv1sLkyWGfFHAmCNk6aTFj0zk4bJgScPv6JMO4Z81vGJII8VGF3xbkByDjo2_ZHuZcrECFz_VuNiWsQ1x-LjOtJyQoIjPru1Q-mKTt-x9YXFeNg5peoISy7OraESHa63J56tkT5m5TsoXV9wT0qanXhmOVxLb0U93O7Q:z080025156905426FE63050145.zip": {
+      "msg_id": "19cf86c8ebbe89ac",
+      "att_id": "ANGjdJ8dnC6uY-Ef4syajI9HLo-LB9jvPDZ5B-owfCQYMOo3xsUctSQBaEjhKIqi8lkz80hcgPO75NSZvZlXvJV8lRJ-_DYo01KjhmfnGytwUOPYm4wfFhXqsvCF65-btxQdyD_vf-sbObM2ogK6x_JxOcA-Vy2smY_T6u2qEypceaVPd_NIYI2gRKCarKZeJQhVog1e3Z_vwu-_X9jJFyR4T8gi6PTh71oOGqo9V6oBSyowpCnuZzG-KaykPLhkdfDpt6pv1sLkyWGfFHAmCNk6aTFj0zk4bJgScPv6JMO4Z81vGJII8VGF3xbkByDjo2_ZHuZcrECFz_VuNiWsQ1x-LjOtJyQoIjPru1Q-mKTt-x9YXFeNg5peoISy7OraESHa63J56tkT5m5TsoXV9wT0qanXhmOVxLb0U93O7Q",
+      "filename": "z080025156905426FE63050145.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE63050145.zip",
+      "timestamp": "2026-06-15T13:51:16.579224",
+      "bootstrap": true
+    },
+    "19ced88ff2c3e238:ANGjdJ8nT3Ok-UfCWtO1WWlFgprin0-N4Pi3fjqlj0OFMOY_XJtUCtfs6Q5LKMoAYaKj59-AqMlZGVaTs4fn3kMz3-RerHUGBh3pZHhJdH4tGO4KkjWL8VQCBHKTvYSiQALD1vmfKfKW4MEKk_PTBDPFUqJiM0NehlEdxaG4b8fIDfPO6_DGRshSHIh7mYcXpvEYlm7zCAtE851rDK8xjjNiJTMeXPTZM4AnIhsgVDj_KrZtTW5iRzLy1sHfzKyi7hOq8VJKwNhWEoF-AwTAUFk1c6PzM63v057vbVNsIiYgPNGM8D5bFYia2zoYEd6ecRS2Xq3YwUhnopZ-ULvotNI7S-3OUFHcfHrybSawHWJimj2piLMnzw3EzQq3cF2iahV55nD44SlZfM4-Gmph:z080025156905426FE62939974.zip": {
+      "msg_id": "19ced88ff2c3e238",
+      "att_id": "ANGjdJ8nT3Ok-UfCWtO1WWlFgprin0-N4Pi3fjqlj0OFMOY_XJtUCtfs6Q5LKMoAYaKj59-AqMlZGVaTs4fn3kMz3-RerHUGBh3pZHhJdH4tGO4KkjWL8VQCBHKTvYSiQALD1vmfKfKW4MEKk_PTBDPFUqJiM0NehlEdxaG4b8fIDfPO6_DGRshSHIh7mYcXpvEYlm7zCAtE851rDK8xjjNiJTMeXPTZM4AnIhsgVDj_KrZtTW5iRzLy1sHfzKyi7hOq8VJKwNhWEoF-AwTAUFk1c6PzM63v057vbVNsIiYgPNGM8D5bFYia2zoYEd6ecRS2Xq3YwUhnopZ-ULvotNI7S-3OUFHcfHrybSawHWJimj2piLMnzw3EzQq3cF2iahV55nD44SlZfM4-Gmph",
+      "filename": "z080025156905426FE62939974.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62939974.zip",
+      "timestamp": "2026-06-15T13:51:16.771018",
+      "bootstrap": true
+    },
+    "19ce8d5d955b1104:ANGjdJ-HWkPFOYN-6woM3P2efxz_Z9kS4fnKYbEbJ1x288c14YBEgDTSrItVSmsYS17j1J0c3DTwDjhhLFmK7mB8QhLqQj-v-KSpDMM_y3_yDLXY6LljsoGQviLVhvRBGZs04ajBCUuWlcjMkrqpZqR6k3kdGSnTEphBVPua5bXP3UQb-NTJvRwTagkA31FvrvSPFPBnqfrDpUTAWCtBCl3wh-TXFsDVfVoB3YqyqTJWlAf9Hstdr_3RAw1c2aUrLR0SXlJJEOqSK02zXFb-9WABQRWcRlWrM6obAenWYDBHXZ1EN5SNeQ6GF3RLMyIuApUhFPq6v8dO17jk0COWPoa8wOpRsYG6pPfmOtTvJvUx1N7nFHeV_cyP1MYQbjFWsYwmNGyAiRI7PWOlv6aHRJq4r4cAvyfKHo5JHCR93A:z080025156905426FE62843301.zip": {
+      "msg_id": "19ce8d5d955b1104",
+      "att_id": "ANGjdJ-HWkPFOYN-6woM3P2efxz_Z9kS4fnKYbEbJ1x288c14YBEgDTSrItVSmsYS17j1J0c3DTwDjhhLFmK7mB8QhLqQj-v-KSpDMM_y3_yDLXY6LljsoGQviLVhvRBGZs04ajBCUuWlcjMkrqpZqR6k3kdGSnTEphBVPua5bXP3UQb-NTJvRwTagkA31FvrvSPFPBnqfrDpUTAWCtBCl3wh-TXFsDVfVoB3YqyqTJWlAf9Hstdr_3RAw1c2aUrLR0SXlJJEOqSK02zXFb-9WABQRWcRlWrM6obAenWYDBHXZ1EN5SNeQ6GF3RLMyIuApUhFPq6v8dO17jk0COWPoa8wOpRsYG6pPfmOtTvJvUx1N7nFHeV_cyP1MYQbjFWsYwmNGyAiRI7PWOlv6aHRJq4r4cAvyfKHo5JHCR93A",
+      "filename": "z080025156905426FE62843301.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62843301.zip",
+      "timestamp": "2026-06-15T13:51:16.977765",
+      "bootstrap": true
+    },
+    "19ce3b3fe6572f67:ANGjdJ8numLWBJYUWRgtIrfrpkfwRFwjg9AZVIHUrwRMM8h1l2QTmkj2g6KmSHSaMFgMPxyEhY2MXFH40NPxnuUzpnvNLpF0oViVjmrEKtLboDMAiiaYOv7uEjtFSl6rt4y7J5hTByQxsWQ4iVM4Cp2FVjefwkE3BYhjSn3j-lWus31pBizCTMoSRljK4VjcL0s95JqJTZex4CAUmDjkKibe151KUansXwcgdyBKhOX38v9h5HK5A0o-ZWMOHQ6zIJqoJ5kyXvBBdMvuJzMyXcZGe2_kn3uhXX8lP7Du62RL43_9OL8zl6uB8UPcfwtHse1y6dsxAtGHbORgDAdYsGT4yvN7qJZH6hZ0_BDwR86WSv7Euu4UDC_Wt87GALMEheqVHNn-6AofBnBHC6bRlRQ_UE8ayI5lhipZWU1-iw:z080025156905426FE62752962.zip": {
+      "msg_id": "19ce3b3fe6572f67",
+      "att_id": "ANGjdJ8numLWBJYUWRgtIrfrpkfwRFwjg9AZVIHUrwRMM8h1l2QTmkj2g6KmSHSaMFgMPxyEhY2MXFH40NPxnuUzpnvNLpF0oViVjmrEKtLboDMAiiaYOv7uEjtFSl6rt4y7J5hTByQxsWQ4iVM4Cp2FVjefwkE3BYhjSn3j-lWus31pBizCTMoSRljK4VjcL0s95JqJTZex4CAUmDjkKibe151KUansXwcgdyBKhOX38v9h5HK5A0o-ZWMOHQ6zIJqoJ5kyXvBBdMvuJzMyXcZGe2_kn3uhXX8lP7Du62RL43_9OL8zl6uB8UPcfwtHse1y6dsxAtGHbORgDAdYsGT4yvN7qJZH6hZ0_BDwR86WSv7Euu4UDC_Wt87GALMEheqVHNn-6AofBnBHC6bRlRQ_UE8ayI5lhipZWU1-iw",
+      "filename": "z080025156905426FE62752962.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62752962.zip",
+      "timestamp": "2026-06-15T13:51:17.217274",
+      "bootstrap": true
+    },
+    "19cde721997d1ec1:ANGjdJ9dS_jv2VwETZVyaUTml2KTf__E1TUqhHgqOQzguyOLSxr_tGzsf6oG78Q-BWfa8yFP-g3jj6b10HiWV6FbEdWFyOwR1ENzw0HCyA3DSWEPZNFr_eHf2chmCpkGPgQLeBK9ceyDELMd-uhcr_A2iq7jvIEYjmkyNHpaxPIX7efIm0M8ItFE2sRD6IqC3szZP2I0TB4m5_m1wuwM9n7J4U_ksmaLuRWIGL_IcgvtkCvFxeZJ-GezSK2PQnmw8BZy44L2wuIb9BuehARpYptng7rHSRxF2vkPcq3QCcoh0ac8q7khCbs_HBLShD4nSAhgPeCRW6QWyZsMiXakwsUDgfcene7aaqbxXB5xITdDr5Kma3p4BMm6kM6rLfWVs2qfEb4X0TUc0aHTQeVtnj6TgzdGDZprNHaMccTx0w:z080025156905426FE62653734.zip": {
+      "msg_id": "19cde721997d1ec1",
+      "att_id": "ANGjdJ9dS_jv2VwETZVyaUTml2KTf__E1TUqhHgqOQzguyOLSxr_tGzsf6oG78Q-BWfa8yFP-g3jj6b10HiWV6FbEdWFyOwR1ENzw0HCyA3DSWEPZNFr_eHf2chmCpkGPgQLeBK9ceyDELMd-uhcr_A2iq7jvIEYjmkyNHpaxPIX7efIm0M8ItFE2sRD6IqC3szZP2I0TB4m5_m1wuwM9n7J4U_ksmaLuRWIGL_IcgvtkCvFxeZJ-GezSK2PQnmw8BZy44L2wuIb9BuehARpYptng7rHSRxF2vkPcq3QCcoh0ac8q7khCbs_HBLShD4nSAhgPeCRW6QWyZsMiXakwsUDgfcene7aaqbxXB5xITdDr5Kma3p4BMm6kM6rLfWVs2qfEb4X0TUc0aHTQeVtnj6TgzdGDZprNHaMccTx0w",
+      "filename": "z080025156905426FE62653734.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62653734.zip",
+      "timestamp": "2026-06-15T13:51:17.423890",
+      "bootstrap": true
+    },
+    "19cd9a6408df495a:ANGjdJ9rFgPN8EHiBZAwWPCUQZxvwZk9TxV44PC_-Tw601J51RvArXRDLlsMsZOPabjC8X9BZLx9lBwgeerY25FmwaHqO3QWH9r47tLkPY26y23Wg0oroLfHsjYBxmvU_1RN0ZIJ1_Bu53OSRHZknQuAQoYw2lVO6o_iLT5dHAUOAm6GG4P24Lt4_47pl0EIDdm3U8Ot46zuoUtOUoG3hqP_eqF3lf9qZEXHXm4rWMBxtCWPzOqI6b0PslE3gpGziwI3toqPTBu-TYKpIzPja4NhnQkahkzVUtNeDTRsy8roGLPlzNB68dgfCD2CCAUhJYMcA-VgvY_fTxQkLM38fHzaFlS0qj1m1Zbpym-fJbhVFui3H0ITStdh8kUwQ1Tj8QODWR3B0FDdnndAbap4:z08001372240002600266947.zip": {
+      "msg_id": "19cd9a6408df495a",
+      "att_id": "ANGjdJ9rFgPN8EHiBZAwWPCUQZxvwZk9TxV44PC_-Tw601J51RvArXRDLlsMsZOPabjC8X9BZLx9lBwgeerY25FmwaHqO3QWH9r47tLkPY26y23Wg0oroLfHsjYBxmvU_1RN0ZIJ1_Bu53OSRHZknQuAQoYw2lVO6o_iLT5dHAUOAm6GG4P24Lt4_47pl0EIDdm3U8Ot46zuoUtOUoG3hqP_eqF3lf9qZEXHXm4rWMBxtCWPzOqI6b0PslE3gpGziwI3toqPTBu-TYKpIzPja4NhnQkahkzVUtNeDTRsy8roGLPlzNB68dgfCD2CCAUhJYMcA-VgvY_fTxQkLM38fHzaFlS0qj1m1Zbpym-fJbhVFui3H0ITStdh8kUwQ1Tj8QODWR3B0FDdnndAbap4",
+      "filename": "z08001372240002600266947.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600266947.zip",
+      "timestamp": "2026-06-15T13:51:17.617201",
+      "bootstrap": true
+    },
+    "19cd998057f27980:ANGjdJ_JfXmIlDD0qKA271o19YcSYx8aQ1AKQvGaVmG6jrx-hQcA7ET_5_oR2byxwopnuBSN7UNE3srFGp8hzWLSkxjeQvTjNrVABJM41SfbdT0S4sVqNjpp6K3b03EsD__qgtvd22K8SCm7Kh-VdNCepFB519sD0B1qn47tPzTnki_1J8WBk4z91e-N-oKgzLy1GcSd3u7W0yh2Ka3q3VfPIZpayOkmf2v27BlG9LR0SH3Hsu9EA9Lr1Cjq8BhaSVbrf9B43CLEqW8lUt8U-6lwPOk25Sdw5ZqcBSWBM8JBn8Nz2NDiR6fKEK--7AduyMsqCnKBME-vLEK0OGZYW-bRcZXFU2wrTCHn0WLtWbIWJ6tUEiyV1Hzb3sxs1K-K8Os2DSaZGyVxplvux38ow9M_EtnVjt0EAsvP_8xQAA:z080025156905426FE62562532.zip": {
+      "msg_id": "19cd998057f27980",
+      "att_id": "ANGjdJ_JfXmIlDD0qKA271o19YcSYx8aQ1AKQvGaVmG6jrx-hQcA7ET_5_oR2byxwopnuBSN7UNE3srFGp8hzWLSkxjeQvTjNrVABJM41SfbdT0S4sVqNjpp6K3b03EsD__qgtvd22K8SCm7Kh-VdNCepFB519sD0B1qn47tPzTnki_1J8WBk4z91e-N-oKgzLy1GcSd3u7W0yh2Ka3q3VfPIZpayOkmf2v27BlG9LR0SH3Hsu9EA9Lr1Cjq8BhaSVbrf9B43CLEqW8lUt8U-6lwPOk25Sdw5ZqcBSWBM8JBn8Nz2NDiR6fKEK--7AduyMsqCnKBME-vLEK0OGZYW-bRcZXFU2wrTCHn0WLtWbIWJ6tUEiyV1Hzb3sxs1K-K8Os2DSaZGyVxplvux38ow9M_EtnVjt0EAsvP_8xQAA",
+      "filename": "z080025156905426FE62562532.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62562532.zip",
+      "timestamp": "2026-06-15T13:51:17.808644",
+      "bootstrap": true
+    },
+    "19cd4573804fb211:ANGjdJ9bXwGQSflPr-NAOa8lEYov_EnJbs0zH3Tm3Y6lrEpl-6ja26TwXaMdyHOAnvVaTPEWYDxvs2Knc4hdeojzbjL8WBSPH9OI5tuUVFgtMub0SkEuvDQvVt45OiVwgpajCCzlz5xhcgN281qgS0QKUGHD-Mhexrn96-bCXe1izLg--NaVkLAXoyDXFIsEtTc2VKCqoDstQ411QzajJjNJvuz0kBiQmTnoyuhkwICUexkR3buc7AUO0Af-Xru2LnqlR-CsPgZ7g_SOY9et8JlMw9vQ_au86Pson1MNYlMSCofcv4WMvbTYbycd1J0stJnSDY7Q_3KpCq1d43rPaw9LVfwMFODG7KgTx0AP346aRiCuGLYj3xLfwCm8BjVDopoSgI6TVva-miAZdhok_cE1SkYP3S2ImCK3i8VKYQ:z080025156905426FE62440480.zip": {
+      "msg_id": "19cd4573804fb211",
+      "att_id": "ANGjdJ9bXwGQSflPr-NAOa8lEYov_EnJbs0zH3Tm3Y6lrEpl-6ja26TwXaMdyHOAnvVaTPEWYDxvs2Knc4hdeojzbjL8WBSPH9OI5tuUVFgtMub0SkEuvDQvVt45OiVwgpajCCzlz5xhcgN281qgS0QKUGHD-Mhexrn96-bCXe1izLg--NaVkLAXoyDXFIsEtTc2VKCqoDstQ411QzajJjNJvuz0kBiQmTnoyuhkwICUexkR3buc7AUO0Af-Xru2LnqlR-CsPgZ7g_SOY9et8JlMw9vQ_au86Pson1MNYlMSCofcv4WMvbTYbycd1J0stJnSDY7Q_3KpCq1d43rPaw9LVfwMFODG7KgTx0AP346aRiCuGLYj3xLfwCm8BjVDopoSgI6TVva-miAZdhok_cE1SkYP3S2ImCK3i8VKYQ",
+      "filename": "z080025156905426FE62440480.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62440480.zip",
+      "timestamp": "2026-06-15T13:51:18.063031",
+      "bootstrap": true
+    },
+    "19cd4428832f159d:ANGjdJ-L-1BgcQl1evpzR1h7pnEyY-WRU1AehJ7SINyhGvGlzuxgP_J2_erJKJIXMCrXBVTCMkj7LF61sz5Q_HZeitIEG3DcK62Drn-q4coZUBd2qpxCkVlVLqQisL3nepbVTCG2MpDWMq02fNzzHoHWr9UJoKv4NlNdKZawvvZU3A2Ya339ojdIpUjoeCaxGLCqkCv5qFEjIhfFe83uPnK_rqc7ykTmTLwv3yTyED_mdLL-hOjMRjRXCTFTaF-jJduJhDRrUVT9xFJH4YGTxWpf8c9YTlAGunn8wO7KfHvI5q-OvdoqhUFX-STuRGDjr-xWLepHZ75s_Q8CE5eMEIbdbLGK0J72syqaEaX1-EN4OtYH3g0rH-T34B6suALBAf1OsnZqJHsWFwhaMihOIv9w1vSbb4nL_9B242WLlA:z0901069098008260000003b.zip": {
+      "msg_id": "19cd4428832f159d",
+      "att_id": "ANGjdJ-L-1BgcQl1evpzR1h7pnEyY-WRU1AehJ7SINyhGvGlzuxgP_J2_erJKJIXMCrXBVTCMkj7LF61sz5Q_HZeitIEG3DcK62Drn-q4coZUBd2qpxCkVlVLqQisL3nepbVTCG2MpDWMq02fNzzHoHWr9UJoKv4NlNdKZawvvZU3A2Ya339ojdIpUjoeCaxGLCqkCv5qFEjIhfFe83uPnK_rqc7ykTmTLwv3yTyED_mdLL-hOjMRjRXCTFTaF-jJduJhDRrUVT9xFJH4YGTxWpf8c9YTlAGunn8wO7KfHvI5q-OvdoqhUFX-STuRGDjr-xWLepHZ75s_Q8CE5eMEIbdbLGK0J72syqaEaX1-EN4OtYH3g0rH-T34B6suALBAf1OsnZqJHsWFwhaMihOIv9w1vSbb4nL_9B242WLlA",
+      "filename": "z0901069098008260000003b.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z0901069098008260000003b.zip",
+      "timestamp": "2026-06-15T13:51:18.254299",
+      "bootstrap": true
+    },
+    "19cd2ced0c2b41fa:ANGjdJ_NM3r6aJMWewtOA4DB59ha-zHt5YWqyO7IotFCDDKWEY_AUux5gw5Tk-ebc9xkcyu_TtrmfApGHlvWP57Xp1xEqNHMNc68IbAZIVxfOFO4yJZxHXeRnsFSuhm6vt1D-5lTSztSVGJ6gWaox6UmvsFmK-n7E6lEaEkWrA-NQk_84GwOAzxbnbJtH5x9FyJEfwhn0n9q2OSxSq-Yfq71g83f4KTxKziNB3ogIbW351xrtfsDSeca0ttzx2-ZOejn5S76xPl5Xv5KgUkc1PJuz9aqbHG9uso_UC8pFfowsRELCV6Jl_3sQ_wQFXBmrq1Cwn8jdyAj-vQB3XEq6tMrxqUcT3I45eE3gnyyitM1L7KXc6Ch28PI7Ok_d2-CKF-DdHQDrvFJSMYaOAP8:z08001372240002600266863.zip": {
+      "msg_id": "19cd2ced0c2b41fa",
+      "att_id": "ANGjdJ_NM3r6aJMWewtOA4DB59ha-zHt5YWqyO7IotFCDDKWEY_AUux5gw5Tk-ebc9xkcyu_TtrmfApGHlvWP57Xp1xEqNHMNc68IbAZIVxfOFO4yJZxHXeRnsFSuhm6vt1D-5lTSztSVGJ6gWaox6UmvsFmK-n7E6lEaEkWrA-NQk_84GwOAzxbnbJtH5x9FyJEfwhn0n9q2OSxSq-Yfq71g83f4KTxKziNB3ogIbW351xrtfsDSeca0ttzx2-ZOejn5S76xPl5Xv5KgUkc1PJuz9aqbHG9uso_UC8pFfowsRELCV6Jl_3sQ_wQFXBmrq1Cwn8jdyAj-vQB3XEq6tMrxqUcT3I45eE3gnyyitM1L7KXc6Ch28PI7Ok_d2-CKF-DdHQDrvFJSMYaOAP8",
+      "filename": "z08001372240002600266863.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600266863.zip",
+      "timestamp": "2026-06-15T13:51:18.457293",
+      "bootstrap": true
+    },
+    "19cc965ab98baf98:ANGjdJ9XmpUcOLyrwuQVRNbl5wpyeilwPl1FTNJoI13YOAQ8FojdXXn0QHW-IWHcE22lU-YKxEV6PtpNyBtTL6zKD7-POvFhUJVvj4a6eKWdnyuvelViGyJppsDItGk1XZOEMaBAfceh8ngRLbl6vAeYcQOECViS5Ea7VqEmtZX8Q4nRe77aIUIV8LQgOOXxdKD5JCXuib5fmud3QKtbYI5Mh01Ub5P4BX9uoW7qGEC2DcfQE2-yAkEdLAF7oYn1I5yj17BeNJCWfzO4zu-uCIsEH7jktaRPEEff6BJAiIE6vmbNr4MW1Bzxg-SHCRIxLZz_j95UF3vh2dr5lKSOHR4BQzDLhveyq30DW7v07-Qw6UfxX3vgtCz9UU1-M3Fb3P-cOngDaekkxosdu6OkpdBQsYL39Em6rjAjyCX1Tw:z080025156905426FE62330623.zip": {
+      "msg_id": "19cc965ab98baf98",
+      "att_id": "ANGjdJ9XmpUcOLyrwuQVRNbl5wpyeilwPl1FTNJoI13YOAQ8FojdXXn0QHW-IWHcE22lU-YKxEV6PtpNyBtTL6zKD7-POvFhUJVvj4a6eKWdnyuvelViGyJppsDItGk1XZOEMaBAfceh8ngRLbl6vAeYcQOECViS5Ea7VqEmtZX8Q4nRe77aIUIV8LQgOOXxdKD5JCXuib5fmud3QKtbYI5Mh01Ub5P4BX9uoW7qGEC2DcfQE2-yAkEdLAF7oYn1I5yj17BeNJCWfzO4zu-uCIsEH7jktaRPEEff6BJAiIE6vmbNr4MW1Bzxg-SHCRIxLZz_j95UF3vh2dr5lKSOHR4BQzDLhveyq30DW7v07-Qw6UfxX3vgtCz9UU1-M3Fb3P-cOngDaekkxosdu6OkpdBQsYL39Em6rjAjyCX1Tw",
+      "filename": "z080025156905426FE62330623.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62330623.zip",
+      "timestamp": "2026-06-15T13:51:18.657745",
+      "bootstrap": true
+    },
+    "19cc8f8e71005d92:ANGjdJ8GEHEGyWiB2I3CQhSSIwBGW0ovpaTqJx0FJ3AzuHBqRD4XpoJ-sA4-s1YH6465Aj8c4lkPnj2LNxQkdfQmdGnyCjfLUdbLZUIJqZuUT6S_YnMmRdVdmoNnM9sihRWZWwIKIQtjZA62nU86agknFuKjX4ohcsPkZWp3syP7c6plCt0X6Znu8n5-_alvsJQ_Zbf8WXaJN-Bef8ZpTqvPtf0hnPlSAYsqeio7M05-K6YMSPFtRsEIvyWw423pIoOueVw1_3mJKZJ5uWQwF9WK5JWCYIUQOabwZVdXaoTSt0NCUAeb-tcYb-y6W-veOv4eYF6EZko15H6OgzxGoPF29E_eRzi3HDqWQvgLbyui-2aM4Rqt-zwLGNIN4JS-Mkedihcc9SGPRZ8Md5XoZDrgfrLKqDx7aM8pJgc0QQ:z0902024439008260000000a.zip": {
+      "msg_id": "19cc8f8e71005d92",
+      "att_id": "ANGjdJ8GEHEGyWiB2I3CQhSSIwBGW0ovpaTqJx0FJ3AzuHBqRD4XpoJ-sA4-s1YH6465Aj8c4lkPnj2LNxQkdfQmdGnyCjfLUdbLZUIJqZuUT6S_YnMmRdVdmoNnM9sihRWZWwIKIQtjZA62nU86agknFuKjX4ohcsPkZWp3syP7c6plCt0X6Znu8n5-_alvsJQ_Zbf8WXaJN-Bef8ZpTqvPtf0hnPlSAYsqeio7M05-K6YMSPFtRsEIvyWw423pIoOueVw1_3mJKZJ5uWQwF9WK5JWCYIUQOabwZVdXaoTSt0NCUAeb-tcYb-y6W-veOv4eYF6EZko15H6OgzxGoPF29E_eRzi3HDqWQvgLbyui-2aM4Rqt-zwLGNIN4JS-Mkedihcc9SGPRZ8Md5XoZDrgfrLKqDx7aM8pJgc0QQ",
+      "filename": "z0902024439008260000000a.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z0902024439008260000000a.zip",
+      "timestamp": "2026-06-15T13:51:18.853762",
+      "bootstrap": true
+    },
+    "19cc4bcd703e2030:ANGjdJ8arBVJy-KAhIziXFdD0CCTLqh87E5-BsBVv0ySisjrfkZvNyLFmb2FKxi6Xj3otILGqFVwkPT5DF44Ql_lhDXt0DyZ4cfvwRu9Tp_8GrYQsklib3IGp0xUlhWzN7_qQfIP9NlF77AkHacxNwWh9KGmm9AiInKIfOSCu9-umk3lQ7wHQJKg51Bx0dTlFyXEIhWrCD0gwZ-IAXAiwlPKEQffZ5T0vBEJiryMOlu1uxKPAXXa4dk7DFkJjah08QQRnDEWgg-9pqMq0lruirwf_-rQX9oq9si50-BTb6vJ_1GrZVjIAZ_rC8Zg_ELQrWifEaVMIyeKFNSmh87kmloc9xItHJwPlTWqMjcN-Yzoqo9-Y7rzHVLPx8ajV5CaKAmF4vZLSh0pPNnLgYydPehhRWl5bl1mN_v1DavHlg:z080025156905426FE62230514.zip": {
+      "msg_id": "19cc4bcd703e2030",
+      "att_id": "ANGjdJ8arBVJy-KAhIziXFdD0CCTLqh87E5-BsBVv0ySisjrfkZvNyLFmb2FKxi6Xj3otILGqFVwkPT5DF44Ql_lhDXt0DyZ4cfvwRu9Tp_8GrYQsklib3IGp0xUlhWzN7_qQfIP9NlF77AkHacxNwWh9KGmm9AiInKIfOSCu9-umk3lQ7wHQJKg51Bx0dTlFyXEIhWrCD0gwZ-IAXAiwlPKEQffZ5T0vBEJiryMOlu1uxKPAXXa4dk7DFkJjah08QQRnDEWgg-9pqMq0lruirwf_-rQX9oq9si50-BTb6vJ_1GrZVjIAZ_rC8Zg_ELQrWifEaVMIyeKFNSmh87kmloc9xItHJwPlTWqMjcN-Yzoqo9-Y7rzHVLPx8ajV5CaKAmF4vZLSh0pPNnLgYydPehhRWl5bl1mN_v1DavHlg",
+      "filename": "z080025156905426FE62230514.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62230514.zip",
+      "timestamp": "2026-06-15T13:51:19.038018",
+      "bootstrap": true
+    },
+    "19cc3452d1db72f0:ANGjdJ9K7trL8rvawCpIqaGGQq5Z_2CPY-R63n0d8UCE8s2iH1iJK2IWiv0ININhWtiQMqAdZ2O-azo18eube_6ji4wtyEIGWd2GOEPKfBqRVx2iJlFLY7-jV0r99TRz9DlWO91173Dthf0m3bLXeoSG78J3mG6S6T_0c1WRrtFtx9x4mPqmKGS0VTbAfSrSs64BZrxKUhUnjhv_V2-yukvZs3O_CttPRnaZHjD5lwHzfYUJh8C0SqetsIFn9V2uiIRFtcNlJLN2LmSEeVGjue25yqDqc40EbNbFuwqsv2XGzoLhox8govhaTjqOvpAYosAHsFcSwuZI4vGky3N82mCpvtVBZ9I0i9GOsNPAQjHNaLDCF65ILdypcv5uWrJKZNeMR4dJyFPHikE0Pix3n7ThjCBC_HkLCLpiPuI0cg:z0901018160008260000076f.zip": {
+      "msg_id": "19cc3452d1db72f0",
+      "att_id": "ANGjdJ9K7trL8rvawCpIqaGGQq5Z_2CPY-R63n0d8UCE8s2iH1iJK2IWiv0ININhWtiQMqAdZ2O-azo18eube_6ji4wtyEIGWd2GOEPKfBqRVx2iJlFLY7-jV0r99TRz9DlWO91173Dthf0m3bLXeoSG78J3mG6S6T_0c1WRrtFtx9x4mPqmKGS0VTbAfSrSs64BZrxKUhUnjhv_V2-yukvZs3O_CttPRnaZHjD5lwHzfYUJh8C0SqetsIFn9V2uiIRFtcNlJLN2LmSEeVGjue25yqDqc40EbNbFuwqsv2XGzoLhox8govhaTjqOvpAYosAHsFcSwuZI4vGky3N82mCpvtVBZ9I0i9GOsNPAQjHNaLDCF65ILdypcv5uWrJKZNeMR4dJyFPHikE0Pix3n7ThjCBC_HkLCLpiPuI0cg",
+      "filename": "z0901018160008260000076f.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z0901018160008260000076f.zip",
+      "timestamp": "2026-06-15T13:51:19.245652",
+      "bootstrap": true
+    },
+    "19cbfa6a6338a02c:ANGjdJ8eFqoNlwKbhqPwvgwk9ZPwi_s-LrBdEpITykYjM5PYwdqOyP04EAojKy8hekyVE85scjxyCdidrpmQfTRiUPx7e5vjtHWojrxzLGC9DKCtht8MVm-LhCFxrcHSbA37DPJAz62eJhZ8NyNK1ov1UT-lA8UdlVJoJ5aijllDSk0l7tU10_1bUBceZ8OHxbw0-de_TfBT2apH0t_fMHBl9Mc9l0pakgHLkqvwdyWnk5x4ODrblGcw_MAWbbmI1pW2K-t1GVAAjRtVZ0rGQXAEq1OeYOusOAaUJjjhR-gyVSwvwTwEXvFj42m25vIFMXUcO2xFAG69Lqzx3BECgfFbIu1QhBR3WoKg7t29MBfB0U6vDhEY7E5XShvdceypFK564vDKZuYOtiSBpMC6fl8KaW2SbQ6gQnWyG25YSQ:z080025156905426FE62101107.zip": {
+      "msg_id": "19cbfa6a6338a02c",
+      "att_id": "ANGjdJ8eFqoNlwKbhqPwvgwk9ZPwi_s-LrBdEpITykYjM5PYwdqOyP04EAojKy8hekyVE85scjxyCdidrpmQfTRiUPx7e5vjtHWojrxzLGC9DKCtht8MVm-LhCFxrcHSbA37DPJAz62eJhZ8NyNK1ov1UT-lA8UdlVJoJ5aijllDSk0l7tU10_1bUBceZ8OHxbw0-de_TfBT2apH0t_fMHBl9Mc9l0pakgHLkqvwdyWnk5x4ODrblGcw_MAWbbmI1pW2K-t1GVAAjRtVZ0rGQXAEq1OeYOusOAaUJjjhR-gyVSwvwTwEXvFj42m25vIFMXUcO2xFAG69Lqzx3BECgfFbIu1QhBR3WoKg7t29MBfB0U6vDhEY7E5XShvdceypFK564vDKZuYOtiSBpMC6fl8KaW2SbQ6gQnWyG25YSQ",
+      "filename": "z080025156905426FE62101107.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62101107.zip",
+      "timestamp": "2026-06-15T13:51:19.449525",
+      "bootstrap": true
+    },
+    "19cbf8eba98c0ca5:ANGjdJ-VjH7ZYIXygUlKWhDM6sw9TYx5YV7n-_7eexDGkSIBao6rqoPAlqf3VNwUNzpyZrDZH63Kb4zpdjstsHMFdkH_rJLcxvqS-_Ya5FEbOZD3ji_TeEHyNv_mwg16h0I0zhLRjIz_lxbLGFj8bHcnxAA3jaoV8m9yQSJ-bSRl9lXDZ8ztv7hkXSfLwRTYHhOzRdp2nKrQfRwUiP_XqlFI0SmBOswhAwKDt5BeNwsGV60_p5o7z_Y9L1NLaDXVMHz02tp_eolo_jVQsqqLyzG4YQbQYGKZRkFq3loqBKZOq23cOj6n2fkEtN96wqNmko8yG4IEsVK5TpM5oAMrew7ALW1fT3GumUK-fbMEULlhqPDr-uCAGGqa-z5gjFbhMqy9dW3UhldLYJsjhczQv-g4fEBivRh4FqHai1zY_g:z080025156905426FE62095593.zip": {
+      "msg_id": "19cbf8eba98c0ca5",
+      "att_id": "ANGjdJ-VjH7ZYIXygUlKWhDM6sw9TYx5YV7n-_7eexDGkSIBao6rqoPAlqf3VNwUNzpyZrDZH63Kb4zpdjstsHMFdkH_rJLcxvqS-_Ya5FEbOZD3ji_TeEHyNv_mwg16h0I0zhLRjIz_lxbLGFj8bHcnxAA3jaoV8m9yQSJ-bSRl9lXDZ8ztv7hkXSfLwRTYHhOzRdp2nKrQfRwUiP_XqlFI0SmBOswhAwKDt5BeNwsGV60_p5o7z_Y9L1NLaDXVMHz02tp_eolo_jVQsqqLyzG4YQbQYGKZRkFq3loqBKZOq23cOj6n2fkEtN96wqNmko8yG4IEsVK5TpM5oAMrew7ALW1fT3GumUK-fbMEULlhqPDr-uCAGGqa-z5gjFbhMqy9dW3UhldLYJsjhczQv-g4fEBivRh4FqHai1zY_g",
+      "filename": "z080025156905426FE62095593.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE62095593.zip",
+      "timestamp": "2026-06-15T13:51:19.628807",
+      "bootstrap": true
+    },
+    "19cbaa112ac27014:ANGjdJ-7bDY7sP-bdLTQ_5BHOvWIV3KbDpZnoJ3CIU8Q_0CoYzgk_34qugWNh7z_CWjtNmkDrOdPPFRFiDo0EpU7JOaZN6V6Te7JVFkHQLK2YyxJ6GRGrKE8QDi9sNWnV6QrQodsKv0Zmu1eUay8FzyoN-0oD4Rh5aEB1JBgAcW0IGKNnxgN4ZWj0jmvJFOtUHpD9NNPBeFEY4eA4XjRS43Mtec1jHr8iiCV8m99dV3WAloyr7XH_K85WFsRFd_FbBYUphyChVfOg_mRpDxPu_ASQuBiiVsRiEVDY_qe5-lkNp3_YESanFNvnhYl5Iq6NgFL0cuWjZc98QQyi2f2Wk1qIpoHS5ipPeKQLC1bMmM8I4Mgix_eTLTGRzogLsutvLIbI5-zswxfubT1bnfBz_JGW-lUyEnjx7pmfTal_A:z080025156905426FE61996976.zip": {
+      "msg_id": "19cbaa112ac27014",
+      "att_id": "ANGjdJ-7bDY7sP-bdLTQ_5BHOvWIV3KbDpZnoJ3CIU8Q_0CoYzgk_34qugWNh7z_CWjtNmkDrOdPPFRFiDo0EpU7JOaZN6V6Te7JVFkHQLK2YyxJ6GRGrKE8QDi9sNWnV6QrQodsKv0Zmu1eUay8FzyoN-0oD4Rh5aEB1JBgAcW0IGKNnxgN4ZWj0jmvJFOtUHpD9NNPBeFEY4eA4XjRS43Mtec1jHr8iiCV8m99dV3WAloyr7XH_K85WFsRFd_FbBYUphyChVfOg_mRpDxPu_ASQuBiiVsRiEVDY_qe5-lkNp3_YESanFNvnhYl5Iq6NgFL0cuWjZc98QQyi2f2Wk1qIpoHS5ipPeKQLC1bMmM8I4Mgix_eTLTGRzogLsutvLIbI5-zswxfubT1bnfBz_JGW-lUyEnjx7pmfTal_A",
+      "filename": "z080025156905426FE61996976.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE61996976.zip",
+      "timestamp": "2026-06-15T13:51:19.859080",
+      "bootstrap": true
+    },
+    "19cb8c79e23ac8f3:ANGjdJ96svqpE1c0SLCDht1Raccc7te76u4uupqNBVtQZEBCqR3hM0UL3BrRjKLdhUWALUZKkIYskPp9Y4p-XFM4dZvj6ZQ-1Z_9kudo7bMGwmqDxXLtT0Da0R5IaNOZXdu74C9Ggw_Jf6l37l7VMA8J0DR8fp1faRFp108o34PQsE5ZO4wmUzjO_EqY4JoK2FaR8gS71FS1LAlNuplBrgN0SOufKct64ntMHeaVCgkC9o2Xjgxil3dp3jNjDEUkZFoc4dTVvlRtmwokCb2naTTlt5mKukEdJxg4e-26XITq1ZsNMn5rMh2qDqlciAY56rGRiEyMmZxIsOY8kuwyGzNC5uewCV377W-me0KxcWSL5PyJwaTbtK0vg9f6oyc3eTMfZE3Lk5Qb77xDwnnwr0RSBvToXWF2tclTaRCnIw:ad08000778280002600012677.zip": {
+      "msg_id": "19cb8c79e23ac8f3",
+      "att_id": "ANGjdJ96svqpE1c0SLCDht1Raccc7te76u4uupqNBVtQZEBCqR3hM0UL3BrRjKLdhUWALUZKkIYskPp9Y4p-XFM4dZvj6ZQ-1Z_9kudo7bMGwmqDxXLtT0Da0R5IaNOZXdu74C9Ggw_Jf6l37l7VMA8J0DR8fp1faRFp108o34PQsE5ZO4wmUzjO_EqY4JoK2FaR8gS71FS1LAlNuplBrgN0SOufKct64ntMHeaVCgkC9o2Xjgxil3dp3jNjDEUkZFoc4dTVvlRtmwokCb2naTTlt5mKukEdJxg4e-26XITq1ZsNMn5rMh2qDqlciAY56rGRiEyMmZxIsOY8kuwyGzNC5uewCV377W-me0KxcWSL5PyJwaTbtK0vg9f6oyc3eTMfZE3Lk5Qb77xDwnnwr0RSBvToXWF2tclTaRCnIw",
+      "filename": "ad08000778280002600012677.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/ad08000778280002600012677.zip",
+      "timestamp": "2026-06-15T13:51:20.044415",
+      "bootstrap": true
+    },
+    "19cb569b761903ab:ANGjdJ-UZJPpdCek03RIPvOH0Js2MwDpC9_ZZ4mNiRO2o90W-KB0Ysk1bNX4pkldoYsCf7jamFGNIe5WWSz-yXBZUIXwOMoZQt_Lo8RFCbXd4NluQxdvJ2R_Qb27UOEI6X-7J2OslEpwcXOfP97VFbgYSAWD-rS7KIeCEfeOWwT0RNCTfpMHARnDD2TqAT2U0e9gpNI8scDh_rwbka8uIkelHwc6D-1qF9B8DQIYiL-LERIhv-0-bdz5EAJcsarLHtH3hAzVLl0-RSzRsF3NDcXb_VA4qqEFtxJKiiwf6xQu1UcKBubjJPvHEc_V7C4E06sue67HenFOjorS4BmnTLfAcsoo_GWeZRW1Aa191_ps3_IRzg3zLyWsZQN9ir2LOEYqlqN4WplkgmlUZlc-2G5Fk5HOy5GxwlAiHeDY0w:z080025156905426FE61888254.zip": {
+      "msg_id": "19cb569b761903ab",
+      "att_id": "ANGjdJ-UZJPpdCek03RIPvOH0Js2MwDpC9_ZZ4mNiRO2o90W-KB0Ysk1bNX4pkldoYsCf7jamFGNIe5WWSz-yXBZUIXwOMoZQt_Lo8RFCbXd4NluQxdvJ2R_Qb27UOEI6X-7J2OslEpwcXOfP97VFbgYSAWD-rS7KIeCEfeOWwT0RNCTfpMHARnDD2TqAT2U0e9gpNI8scDh_rwbka8uIkelHwc6D-1qF9B8DQIYiL-LERIhv-0-bdz5EAJcsarLHtH3hAzVLl0-RSzRsF3NDcXb_VA4qqEFtxJKiiwf6xQu1UcKBubjJPvHEc_V7C4E06sue67HenFOjorS4BmnTLfAcsoo_GWeZRW1Aa191_ps3_IRzg3zLyWsZQN9ir2LOEYqlqN4WplkgmlUZlc-2G5Fk5HOy5GxwlAiHeDY0w",
+      "filename": "z080025156905426FE61888254.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE61888254.zip",
+      "timestamp": "2026-06-15T13:51:20.254317",
+      "bootstrap": true
+    },
+    "19cb56184cec44a4:ANGjdJ_wikk1OgedOML-pOJRh6QU1ktwLGoZZYYUOR6M7CWgzs-w-6q_UeZrg1nnt8d5KOhvZEac4Npg-idVETR4r1bZpIRkeF_NwFaylEmYCnML9VcNLuq_h-Wv5Jd7f7awmUSc5-4z07HF7m7Pv6HeTGeYBrhBaENzYYitgA0f4TJXiymUqQnZ1xr3PfJVCIfLdYTmx5NZXwWjs0uwQAcOd6lgct9rtrA-KfdeF2HbAGuvhDSBTKFCx72G52dom3mo8EAwtQ6oI1trv5YqDKPX6eB6MOpun6qFOHfA_pfpuTFDgPCkXKE7ioHFwuJjGpbdtGdF_M981juamgcmSUpFN_iiS4INHnhLlUq3q-BjM-VWzbUljo1vLtXGqWVSzzQi13G1HkgtzDN489NjbR_DGzzs3ER7Q-bX2gmuvg:z080025156905426FE61886448.zip": {
+      "msg_id": "19cb56184cec44a4",
+      "att_id": "ANGjdJ_wikk1OgedOML-pOJRh6QU1ktwLGoZZYYUOR6M7CWgzs-w-6q_UeZrg1nnt8d5KOhvZEac4Npg-idVETR4r1bZpIRkeF_NwFaylEmYCnML9VcNLuq_h-Wv5Jd7f7awmUSc5-4z07HF7m7Pv6HeTGeYBrhBaENzYYitgA0f4TJXiymUqQnZ1xr3PfJVCIfLdYTmx5NZXwWjs0uwQAcOd6lgct9rtrA-KfdeF2HbAGuvhDSBTKFCx72G52dom3mo8EAwtQ6oI1trv5YqDKPX6eB6MOpun6qFOHfA_pfpuTFDgPCkXKE7ioHFwuJjGpbdtGdF_M981juamgcmSUpFN_iiS4INHnhLlUq3q-BjM-VWzbUljo1vLtXGqWVSzzQi13G1HkgtzDN489NjbR_DGzzs3ER7Q-bX2gmuvg",
+      "filename": "z080025156905426FE61886448.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE61886448.zip",
+      "timestamp": "2026-06-15T13:51:20.444633",
+      "bootstrap": true
+    },
+    "19cb01f879ee4e2e:ANGjdJ_8wggnaf0aqGLGccij6AD1Ne1-BLBaOuvfxirMkua1-5FcobN12fOk0Eg_smJi9EakAom9EwfdjHw1dbjMHxDdG0HEeum-ZjwN8zAPQ6zUgYLfI82q4dFeiXvvy9hSQi9OxTfP_8butBX4LYixkCninG9BBRX2KaWZOKf5xYYBZ1zua3fPq006aSBDUwRmpzZgXKyxWbu8tkeM1Pd8vrJHyV1KWH451ZmJuu1DJnJDRhbx4-I0SHGZk2czW7tLHmAyCqPW4oPDpASVDwMx3qCkakFxOVjOFPWFEEy_mhEEzp-RxjRg02R2Vl1rXpdB_OvsfR64Nvf2CFr2ukPu_CTbu12i7vfSnM3z7Ld0hqwZeF83qUSHL-MzEIriApt5tR_NmG7x1nKxYnqJC5AoDZI95hokZw6qdim-BQ:z080025156905426FE61768039.zip": {
+      "msg_id": "19cb01f879ee4e2e",
+      "att_id": "ANGjdJ_8wggnaf0aqGLGccij6AD1Ne1-BLBaOuvfxirMkua1-5FcobN12fOk0Eg_smJi9EakAom9EwfdjHw1dbjMHxDdG0HEeum-ZjwN8zAPQ6zUgYLfI82q4dFeiXvvy9hSQi9OxTfP_8butBX4LYixkCninG9BBRX2KaWZOKf5xYYBZ1zua3fPq006aSBDUwRmpzZgXKyxWbu8tkeM1Pd8vrJHyV1KWH451ZmJuu1DJnJDRhbx4-I0SHGZk2czW7tLHmAyCqPW4oPDpASVDwMx3qCkakFxOVjOFPWFEEy_mhEEzp-RxjRg02R2Vl1rXpdB_OvsfR64Nvf2CFr2ukPu_CTbu12i7vfSnM3z7Ld0hqwZeF83qUSHL-MzEIriApt5tR_NmG7x1nKxYnqJC5AoDZI95hokZw6qdim-BQ",
+      "filename": "z080025156905426FE61768039.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE61768039.zip",
+      "timestamp": "2026-06-15T13:51:20.650693",
+      "bootstrap": true
+    },
+    "19caadabaa656e4d:ANGjdJ94X65uHL-lNIdct38ISo1gepmlAmEuA8mxxdncuydSpwty85MHpaUze31EsqyXyalrzJH3FKmPIdyMS7A7bu_Be1NmHCzMmT-_HH536KyPE8vyvv6OY9t9mr8ohDZvMixDrshdiEyoDKaodsxmMDgEyuhv1CYqh6qHpQVzux2CcGb_W8Ewb0zJjS1_QOqnFPlC2-KoiRDu3QNReTG7j2s3Q9iHv4iZn8E9pjXxNsjoI8yUH3Dj8zfTa0jIhT4HN8w4nsL8w60SCORai1NgMa4IYgRUxhDEDok-h28tAnZah-B_2Z1J-IJgAGZQXSEJrDF92pjlMJNE_zkOeI-qu1qCpiWYM9DW24KXNfl03J54TgiHKxeajt3AgDpKW7Lpvc-9AzpwLgmc7223:0800242106021261009100274879.zip": {
+      "msg_id": "19caadabaa656e4d",
+      "att_id": "ANGjdJ94X65uHL-lNIdct38ISo1gepmlAmEuA8mxxdncuydSpwty85MHpaUze31EsqyXyalrzJH3FKmPIdyMS7A7bu_Be1NmHCzMmT-_HH536KyPE8vyvv6OY9t9mr8ohDZvMixDrshdiEyoDKaodsxmMDgEyuhv1CYqh6qHpQVzux2CcGb_W8Ewb0zJjS1_QOqnFPlC2-KoiRDu3QNReTG7j2s3Q9iHv4iZn8E9pjXxNsjoI8yUH3Dj8zfTa0jIhT4HN8w4nsL8w60SCORai1NgMa4IYgRUxhDEDok-h28tAnZah-B_2Z1J-IJgAGZQXSEJrDF92pjlMJNE_zkOeI-qu1qCpiWYM9DW24KXNfl03J54TgiHKxeajt3AgDpKW7Lpvc-9AzpwLgmc7223",
+      "filename": "0800242106021261009100274879.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/0800242106021261009100274879.zip",
+      "timestamp": "2026-06-15T13:51:20.829043",
+      "bootstrap": true
+    },
+    "19ca563d135e7aea:ANGjdJ-xmSIOfZPivwbTsPcic_HrGcvm0SXIyKknQ_UrVgzDtdxCvRD-m_fmjcjnic-pBKNwvGCFEEodd_XT-P3N-4uBq9BQCqImIFrDFy1qYJAP3TmpY5C919HOEeinIlVGRz2FV374dbWS7am2w7FXv5pn9tBf-MKngLfxEstAAiPEJ2Khi8OEY6ehbiq4RTAOFMI2cmyEW8kgtCJ3n2CbZ5XD_3a1BFetBx5lx0Wtmk_GqJZsk4qPAKg9YCnRNYLkl60mr2ZAthzjyb_mTiNmVu58VGeduHQzuPg5gnDAyUmfjG_z6phfLgGvJJ63u8nYnasJwLNcS1ch6uiMY_xZjPjKSoA897OZ7_M9bIEaBIRxgDfvbk5uKPCDKyeA4tvpXXqtk-JgqE0CS5bC62HCL-WkjXEymGRg0iD7rQ:z080025156905426FE61666286.zip": {
+      "msg_id": "19ca563d135e7aea",
+      "att_id": "ANGjdJ-xmSIOfZPivwbTsPcic_HrGcvm0SXIyKknQ_UrVgzDtdxCvRD-m_fmjcjnic-pBKNwvGCFEEodd_XT-P3N-4uBq9BQCqImIFrDFy1qYJAP3TmpY5C919HOEeinIlVGRz2FV374dbWS7am2w7FXv5pn9tBf-MKngLfxEstAAiPEJ2Khi8OEY6ehbiq4RTAOFMI2cmyEW8kgtCJ3n2CbZ5XD_3a1BFetBx5lx0Wtmk_GqJZsk4qPAKg9YCnRNYLkl60mr2ZAthzjyb_mTiNmVu58VGeduHQzuPg5gnDAyUmfjG_z6phfLgGvJJ63u8nYnasJwLNcS1ch6uiMY_xZjPjKSoA897OZ7_M9bIEaBIRxgDfvbk5uKPCDKyeA4tvpXXqtk-JgqE0CS5bC62HCL-WkjXEymGRg0iD7rQ",
+      "filename": "z080025156905426FE61666286.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE61666286.zip",
+      "timestamp": "2026-06-15T13:51:21.017923",
+      "bootstrap": true
+    },
+    "19c9b87232b020a2:ANGjdJ_joP-FbxWSHcA7semjYqrdepp3wgqvU7V_2TdtF6JiQ5PkT_CBhunPq-of34At05mPsdaRUU5vm-bi1yXnJ4fzpZpOk3iDFKmNvQczhHzrhXMdSbKAxqAdro5Mcm8q2QgwlrGoYf15Cxt0GOPiuYXM_KNVIZ81w5DEkW94_FMcCbIcoTQLFqlEHW_PE7FPNVVenSidN-55h4z7SVBWzLDK_Drca-5Ow32AOt0eRkCFCfVTfenjPiIDkGqARRp1XYWUpXmwChbIV4itGnpoeV0R2PE7d3ZWtFP382Ku2HOMBYjOSsTR7i9QhKgpYc69MXusNosjedrIAmXQ96CPMh4HfjTIIN9eruMhgY01H49B6q2wCIMTfzkmLgOr7gl166dC0eR-3pRbqZcoIX3U0KEjr6qPVJrN0bf13A:z080025156905426FE61460043.zip": {
+      "msg_id": "19c9b87232b020a2",
+      "att_id": "ANGjdJ_joP-FbxWSHcA7semjYqrdepp3wgqvU7V_2TdtF6JiQ5PkT_CBhunPq-of34At05mPsdaRUU5vm-bi1yXnJ4fzpZpOk3iDFKmNvQczhHzrhXMdSbKAxqAdro5Mcm8q2QgwlrGoYf15Cxt0GOPiuYXM_KNVIZ81w5DEkW94_FMcCbIcoTQLFqlEHW_PE7FPNVVenSidN-55h4z7SVBWzLDK_Drca-5Ow32AOt0eRkCFCfVTfenjPiIDkGqARRp1XYWUpXmwChbIV4itGnpoeV0R2PE7d3ZWtFP382Ku2HOMBYjOSsTR7i9QhKgpYc69MXusNosjedrIAmXQ96CPMh4HfjTIIN9eruMhgY01H49B6q2wCIMTfzkmLgOr7gl166dC0eR-3pRbqZcoIX3U0KEjr6qPVJrN0bf13A",
+      "filename": "z080025156905426FE61460043.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE61460043.zip",
+      "timestamp": "2026-06-15T13:51:21.238546",
+      "bootstrap": true
+    },
+    "19c9624f09635c43:ANGjdJ_R61TaTESbSRB9vcqvqqYPaKTQ4-faH6fabaqPA3g8KivuJ863SruNS2icDYLV3vWXF2pO7r2s5FbfZQ2MRPM0ZFdgHHe7q4GbE3rNmFjlQFa2mBG6ngjQzM9OIxDXX9Q0_cy2hshpcbEFCUjkmhBuySsinqb8tzAjfyUGpVlGzOGLVQ5lTEpHCBCoOUJfrtX0_MKpUGk8WBFGIdAd0-DJjeqcaj7vKGxNh7vlSkkJeSGp2Ru-YGboJJ8eXVa03thB5rfxz7VmNoq-V-UQdXGVk6Vs-A1fFCE2_-q0_Cu8JwbJ5NcQMoT6MMARniic1onmgOQkIR6Wyg1jz0jTG1rYYQUyjsAesLNQ4EChjoYmOSR9D39uK5Gi7lM3JgN-LTb7z38tuN6M3wm0zC2sqseP7Exrq7qF8pud3Q:z080025156905426FE61337318.zip": {
+      "msg_id": "19c9624f09635c43",
+      "att_id": "ANGjdJ_R61TaTESbSRB9vcqvqqYPaKTQ4-faH6fabaqPA3g8KivuJ863SruNS2icDYLV3vWXF2pO7r2s5FbfZQ2MRPM0ZFdgHHe7q4GbE3rNmFjlQFa2mBG6ngjQzM9OIxDXX9Q0_cy2hshpcbEFCUjkmhBuySsinqb8tzAjfyUGpVlGzOGLVQ5lTEpHCBCoOUJfrtX0_MKpUGk8WBFGIdAd0-DJjeqcaj7vKGxNh7vlSkkJeSGp2Ru-YGboJJ8eXVa03thB5rfxz7VmNoq-V-UQdXGVk6Vs-A1fFCE2_-q0_Cu8JwbJ5NcQMoT6MMARniic1onmgOQkIR6Wyg1jz0jTG1rYYQUyjsAesLNQ4EChjoYmOSR9D39uK5Gi7lM3JgN-LTb7z38tuN6M3wm0zC2sqseP7Exrq7qF8pud3Q",
+      "filename": "z080025156905426FE61337318.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE61337318.zip",
+      "timestamp": "2026-06-15T13:51:21.434248",
+      "bootstrap": true
+    },
+    "19c8c110f69941f3:ANGjdJ_UBVPERSINJO6JmOl_83ExI06GFjrGd0-fWkrZyzmd-U18_xPL4XQYrbXx5c-44taelQDVkgopygoi3aiqbhBJed2bqsfoOorLOMeHD1USRLxx0uzhfwaah0LJeOFlgja5zpSeG7x1X-Jy0GTdUbAXsEsZXgnm0piSCxsrC-9ExSFHtp6OIcOHn31CJ89TKMzRTl18xLhG-1UIBZ0zYilLcuLzxmTMga3U07y7iXnTmVuxcj0VZ_OLNYkSMboqz52Bzxw76DL1GfenDAeCvffbaJvbp0AlvD7TQnQxU1HqPlEZDQBkHgC2DDuINddd61Hu_0Tux5yQv88_IfWaOE7TI6yggeAIcAUXv6wnchwAordpf_MR4kxEfYpULWjO2R7DQq2JygjtrF6T535-jo_ccdJ14ucd3rGFNw:z080025156905426FE61124438.zip": {
+      "msg_id": "19c8c110f69941f3",
+      "att_id": "ANGjdJ_UBVPERSINJO6JmOl_83ExI06GFjrGd0-fWkrZyzmd-U18_xPL4XQYrbXx5c-44taelQDVkgopygoi3aiqbhBJed2bqsfoOorLOMeHD1USRLxx0uzhfwaah0LJeOFlgja5zpSeG7x1X-Jy0GTdUbAXsEsZXgnm0piSCxsrC-9ExSFHtp6OIcOHn31CJ89TKMzRTl18xLhG-1UIBZ0zYilLcuLzxmTMga3U07y7iXnTmVuxcj0VZ_OLNYkSMboqz52Bzxw76DL1GfenDAeCvffbaJvbp0AlvD7TQnQxU1HqPlEZDQBkHgC2DDuINddd61Hu_0Tux5yQv88_IfWaOE7TI6yggeAIcAUXv6wnchwAordpf_MR4kxEfYpULWjO2R7DQq2JygjtrF6T535-jo_ccdJ14ucd3rGFNw",
+      "filename": "z080025156905426FE61124438.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE61124438.zip",
+      "timestamp": "2026-06-15T13:51:21.621854",
+      "bootstrap": true
+    },
+    "19c7cfae25b581d1:ANGjdJ9BNqhMNRO8QlFKgX4M4snKog8_x-EbvYjQanUcJdnLQ0WV2fsgB3LKJ2KNF3RO2L6OzglAk5QnZtFO-rOcXIlF9HCBUH7qj9800N5j2xR-NUxJSAfuIfG9MAE5rhzwIMsOFWdW450k-Va_7mHNx-hep5d0kDaXJBHq72JLquqB29TUzH0awCXgfojL8frcTWWQQTWO3DvOy8onr5J14-DK_vckQxt8Now06TRlzTrF9X2HEBuY5_etzfj_o-54stcA2YN5dpudO7TFt8KXIdmbpagMTQfDWzamrzHKBWeVd56TwWoPBKfW4LDOgbjHc1F-pp9vtzNA1ewSLLaCL6fp1hQHBY07adGYSTHwdr940HsHVo_rIcw6X3kTzK_uK8GXUrXsnqCsbMcLMg_Ch601B_TqFDqREycpKg:z083007677801426000028de.zip": {
+      "msg_id": "19c7cfae25b581d1",
+      "att_id": "ANGjdJ9BNqhMNRO8QlFKgX4M4snKog8_x-EbvYjQanUcJdnLQ0WV2fsgB3LKJ2KNF3RO2L6OzglAk5QnZtFO-rOcXIlF9HCBUH7qj9800N5j2xR-NUxJSAfuIfG9MAE5rhzwIMsOFWdW450k-Va_7mHNx-hep5d0kDaXJBHq72JLquqB29TUzH0awCXgfojL8frcTWWQQTWO3DvOy8onr5J14-DK_vckQxt8Now06TRlzTrF9X2HEBuY5_etzfj_o-54stcA2YN5dpudO7TFt8KXIdmbpagMTQfDWzamrzHKBWeVd56TwWoPBKfW4LDOgbjHc1F-pp9vtzNA1ewSLLaCL6fp1hQHBY07adGYSTHwdr940HsHVo_rIcw6X3kTzK_uK8GXUrXsnqCsbMcLMg_Ch601B_TqFDqREycpKg",
+      "filename": "z083007677801426000028de.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z083007677801426000028de.zip",
+      "timestamp": "2026-06-15T13:51:21.837855",
+      "bootstrap": true
+    },
+    "19c77c72ee3f4828:ANGjdJ9bNgS5dfWw8Krw58-z9qWXwVsd1Qf75eBqrIgvAQClr3TFRM6JAHspeZXirUHtS0oD9Yc6Mq1Va_hVboeYZtvkvCcPhOobm38Scveq8ynVyJEIirm1uu8RyeLEva8IP--Kl4vHsJGc7wHVv8pZeUwCDgs46RSDPJh_rEJF4las0ZA-n6v_Ys-T9waThKkq0YebNq9KwO1cctDHrASgAzPy1JJ9sGe6KOj0LrL7Q11jwlGrNE0H7KIazO0-lerjUnSL509xICoX2MsINrkWWdMtCyLszlGTX3Fvc6sxuq27X3IAJ722ZxUonpvgbK-DjKsf6IdKmYYAhDMKWtjokcbmiAarPxoLKXdGVYA_FclrdeM_MP56nmiwh36K6XRw9EjwKRzSrzkHLl_hdY-7ifypNouq_2vE2OUB-g:z09007293910082600000182.zip": {
+      "msg_id": "19c77c72ee3f4828",
+      "att_id": "ANGjdJ9bNgS5dfWw8Krw58-z9qWXwVsd1Qf75eBqrIgvAQClr3TFRM6JAHspeZXirUHtS0oD9Yc6Mq1Va_hVboeYZtvkvCcPhOobm38Scveq8ynVyJEIirm1uu8RyeLEva8IP--Kl4vHsJGc7wHVv8pZeUwCDgs46RSDPJh_rEJF4las0ZA-n6v_Ys-T9waThKkq0YebNq9KwO1cctDHrASgAzPy1JJ9sGe6KOj0LrL7Q11jwlGrNE0H7KIazO0-lerjUnSL509xICoX2MsINrkWWdMtCyLszlGTX3Fvc6sxuq27X3IAJ722ZxUonpvgbK-DjKsf6IdKmYYAhDMKWtjokcbmiAarPxoLKXdGVYA_FclrdeM_MP56nmiwh36K6XRw9EjwKRzSrzkHLl_hdY-7ifypNouq_2vE2OUB-g",
+      "filename": "z09007293910082600000182.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z09007293910082600000182.zip",
+      "timestamp": "2026-06-15T13:51:22.036471",
+      "bootstrap": true
+    },
+    "19c77c29b0b8a156:ANGjdJ96zp13gFAl1A8cRzm7XkH-ka3VNP0eOHgZmWtSRd98bxrvYwjmM8n6qiIwyXavAuv8TjtOuU7g5bvxBuuxp1Cf4P9Sqo5lSjMWEIeUAV0FqNiojZtjWu_DlpWJKLSiOx2oZ8cWPkuhCDXJQQyFXdaoRPqS9PFd5MuRnMoq5QE8xndoMCIhiC6bEtQGU4rJzK-mdHDbgS3RoVxbhzowOr_XgP3pLaNJdPFXiMSyTigeI8GtGY9xtfAJueCsEty1-fjZAT81agIzJAH8dwWZzpV47HuPYtC1N99A-q1WVExvVaoGCSRDX0c1tbqcJYcw8fgCjiU3hxsK9seBnlreiF16JpLsqcU_geQ1DHiUehhSVHwQaK_Fxu5CBEgVc3MHZtelj3u5KZEyKjjqyNaRYlAdGQxmdaE96Zee3Q:z09007293910082600000181.zip": {
+      "msg_id": "19c77c29b0b8a156",
+      "att_id": "ANGjdJ96zp13gFAl1A8cRzm7XkH-ka3VNP0eOHgZmWtSRd98bxrvYwjmM8n6qiIwyXavAuv8TjtOuU7g5bvxBuuxp1Cf4P9Sqo5lSjMWEIeUAV0FqNiojZtjWu_DlpWJKLSiOx2oZ8cWPkuhCDXJQQyFXdaoRPqS9PFd5MuRnMoq5QE8xndoMCIhiC6bEtQGU4rJzK-mdHDbgS3RoVxbhzowOr_XgP3pLaNJdPFXiMSyTigeI8GtGY9xtfAJueCsEty1-fjZAT81agIzJAH8dwWZzpV47HuPYtC1N99A-q1WVExvVaoGCSRDX0c1tbqcJYcw8fgCjiU3hxsK9seBnlreiF16JpLsqcU_geQ1DHiUehhSVHwQaK_Fxu5CBEgVc3MHZtelj3u5KZEyKjjqyNaRYlAdGQxmdaE96Zee3Q",
+      "filename": "z09007293910082600000181.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z09007293910082600000181.zip",
+      "timestamp": "2026-06-15T13:51:22.227650",
+      "bootstrap": true
+    },
+    "19c77b249015fd93:ANGjdJ_7yttiCtJwUJt9xKIb--EL7nTt-1UHLRfs3ehTC9FXH7A45tySmZQ-v86X0TKfHP5WWbIt3NLJa8gSdeIZWGhZO1oH8-yfii49OzU6Lu52g7B0YdAlEcHYonj3utsD7qQPUKSzZv65tw4ZLx0uO1JAmdgDNZcCWyVMEyEGgbtER0x-i0_KMiOiHUGZWlfLH6Sw2jsvJmqHv5mtREGfU_tIab5zU7td7sy4P9f7_324T62-jTRIRH-7TXTzreJRMIU1vaNn2gy0Lop0Mw6CbGDSuv1hrDocYJHyfXwAefw6lvD5g-Zz-TCJ5EVdbm0iRvTQbxEU6_eTGdz5JPeZrRys417bUJpbUKQbaYJ1ln26DB8Uc_PwL8gkUYyX879pbOdyls4DeeV2YqcsOYLzlNh4BYqCB9xNvbsXXg:z080025156905426FE60840712.zip": {
+      "msg_id": "19c77b249015fd93",
+      "att_id": "ANGjdJ_7yttiCtJwUJt9xKIb--EL7nTt-1UHLRfs3ehTC9FXH7A45tySmZQ-v86X0TKfHP5WWbIt3NLJa8gSdeIZWGhZO1oH8-yfii49OzU6Lu52g7B0YdAlEcHYonj3utsD7qQPUKSzZv65tw4ZLx0uO1JAmdgDNZcCWyVMEyEGgbtER0x-i0_KMiOiHUGZWlfLH6Sw2jsvJmqHv5mtREGfU_tIab5zU7td7sy4P9f7_324T62-jTRIRH-7TXTzreJRMIU1vaNn2gy0Lop0Mw6CbGDSuv1hrDocYJHyfXwAefw6lvD5g-Zz-TCJ5EVdbm0iRvTQbxEU6_eTGdz5JPeZrRys417bUJpbUKQbaYJ1ln26DB8Uc_PwL8gkUYyX879pbOdyls4DeeV2YqcsOYLzlNh4BYqCB9xNvbsXXg",
+      "filename": "z080025156905426FE60840712.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE60840712.zip",
+      "timestamp": "2026-06-15T13:51:22.425436",
+      "bootstrap": true
+    },
+    "19c77a1be78b8139:ANGjdJ_rWo3DHfieg1QHxoM5pLL-iIZAOCA7TdOK4DWQwCVCcVXWW7Eb8C1Je1Uadh5FuZ21ucFGJkWglerrTNS_paghicfZT2nWG_iQpbL5se7XwUthMzM3zz3n-rGKxg7OI-0_hUcGdO_WEOFao3YrQXWJU9nPRgonVh3G_1ICDmrky9NryKa-n9bG66Ewf1sW0dxSfWW8mUwy0nFxDXN-hNa7AAuLQqPlM96frsSlhWyiE0v2BJkilWMXKoIM7-uGWYiNIUxAIVW80RwFWZgZTOu-MdkaUsfdMtyfg_S9LlPiOi0ZMb4NOHL0XHRRcYmqejC9x3P2IeF6rlu2HngJI9dTfZHbr6ZuH7nco7uRz_s69cQzXqzOG5ZJaOdZPVFZdvyd-JNDZvI6BkGiZT9xkeODXqOZhNiV3jn7wg:z080025156905426FE60836683.zip": {
+      "msg_id": "19c77a1be78b8139",
+      "att_id": "ANGjdJ_rWo3DHfieg1QHxoM5pLL-iIZAOCA7TdOK4DWQwCVCcVXWW7Eb8C1Je1Uadh5FuZ21ucFGJkWglerrTNS_paghicfZT2nWG_iQpbL5se7XwUthMzM3zz3n-rGKxg7OI-0_hUcGdO_WEOFao3YrQXWJU9nPRgonVh3G_1ICDmrky9NryKa-n9bG66Ewf1sW0dxSfWW8mUwy0nFxDXN-hNa7AAuLQqPlM96frsSlhWyiE0v2BJkilWMXKoIM7-uGWYiNIUxAIVW80RwFWZgZTOu-MdkaUsfdMtyfg_S9LlPiOi0ZMb4NOHL0XHRRcYmqejC9x3P2IeF6rlu2HngJI9dTfZHbr6ZuH7nco7uRz_s69cQzXqzOG5ZJaOdZPVFZdvyd-JNDZvI6BkGiZT9xkeODXqOZhNiV3jn7wg",
+      "filename": "z080025156905426FE60836683.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE60836683.zip",
+      "timestamp": "2026-06-15T13:51:22.608698",
+      "bootstrap": true
+    },
+    "19c728871df1fb0e:ANGjdJ9FG6OBBVn4fr6-a7SgrAzceFTKdr49guyKJHVCpDONwarz1q37IVblu39C5SsQfTK1FP93OLCchGBnyTzaSTmb9C2PwUegefGE_nHdnkXr-8sleCWendROPUGo3BWYq2A8f2x0KK7boQH_BfKmNdPDkMWuwjrWppWZzDIlI5r2_HS1D8uXdsqsQYg7KAapyYIwsfcHG9dyvAut4zIDZUjlYrHnTARPZbOgucJrtrQ92-Iyx23oYKhG-OcXyBQlLgWEXm6EI46Y8iNnZRCc7vxhVSqVU1wSqu4KVVdMHV2CQNMUgrm_n-ruvRYg-uFQDnSMaqO4_ikz6sBCYaMoLjyisL6t7kMlylDMNmKpio6UyfgLifKvVcFJgB6v0SodPCiV_m2D-iArAjerxc_5TguFWFuoQGB8bNWkFA:z08110006080152600000805.zip": {
+      "msg_id": "19c728871df1fb0e",
+      "att_id": "ANGjdJ9FG6OBBVn4fr6-a7SgrAzceFTKdr49guyKJHVCpDONwarz1q37IVblu39C5SsQfTK1FP93OLCchGBnyTzaSTmb9C2PwUegefGE_nHdnkXr-8sleCWendROPUGo3BWYq2A8f2x0KK7boQH_BfKmNdPDkMWuwjrWppWZzDIlI5r2_HS1D8uXdsqsQYg7KAapyYIwsfcHG9dyvAut4zIDZUjlYrHnTARPZbOgucJrtrQ92-Iyx23oYKhG-OcXyBQlLgWEXm6EI46Y8iNnZRCc7vxhVSqVU1wSqu4KVVdMHV2CQNMUgrm_n-ruvRYg-uFQDnSMaqO4_ikz6sBCYaMoLjyisL6t7kMlylDMNmKpio6UyfgLifKvVcFJgB6v0SodPCiV_m2D-iArAjerxc_5TguFWFuoQGB8bNWkFA",
+      "filename": "z08110006080152600000805.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08110006080152600000805.zip",
+      "timestamp": "2026-06-15T13:51:22.923598",
+      "bootstrap": true
+    },
+    "19c7258777cdfed3:ANGjdJ-h9vyZ_Zlo-tCBWztQ0_vmx4ZXl2cBDc60WZ1wkzM61uP7ys7H8EzT-fEPX4o4BiuhDLaHrUk_BZWjibP7a1mLl44nMGDkIvRjuSUKpEGQvVeXNRlA3qyhGUUG_BpPHFx-BTiU-rdiduiIaxRgNCRba4eJasX9SlRBKpXhn_-P1L7VqbcrZlahSCjgAomaDDIESHuks-cr_2FvQ2R-Hx-VoDmE3OoSKF8UMhTy6Y3bAqKYlnnwX2KgJVv9gyjUv0fC5wckefzhUil7nxksLxDufssyXwnJVbwQNaURn4V8YdjxhE9sXYYvdrdNwVDEiQh4vPLStJQH80ALJQmL4shS-LWJfc_oxTLRxP8ZeD3kFeta623NRvMRJJ58_W85YI6wD6ixiao5N9182uCFhoWLBySJnlMg9vROFw:z080025156905426FE60725925.zip": {
+      "msg_id": "19c7258777cdfed3",
+      "att_id": "ANGjdJ-h9vyZ_Zlo-tCBWztQ0_vmx4ZXl2cBDc60WZ1wkzM61uP7ys7H8EzT-fEPX4o4BiuhDLaHrUk_BZWjibP7a1mLl44nMGDkIvRjuSUKpEGQvVeXNRlA3qyhGUUG_BpPHFx-BTiU-rdiduiIaxRgNCRba4eJasX9SlRBKpXhn_-P1L7VqbcrZlahSCjgAomaDDIESHuks-cr_2FvQ2R-Hx-VoDmE3OoSKF8UMhTy6Y3bAqKYlnnwX2KgJVv9gyjUv0fC5wckefzhUil7nxksLxDufssyXwnJVbwQNaURn4V8YdjxhE9sXYYvdrdNwVDEiQh4vPLStJQH80ALJQmL4shS-LWJfc_oxTLRxP8ZeD3kFeta623NRvMRJJ58_W85YI6wD6ixiao5N9182uCFhoWLBySJnlMg9vROFw",
+      "filename": "z080025156905426FE60725925.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE60725925.zip",
+      "timestamp": "2026-06-15T13:51:23.123098",
+      "bootstrap": true
+    },
+    "19c71eb078fe1827:ANGjdJ_n7BiryMGkKl6maYJ_9oszCQNYzhtCThT1ytnRnQ19-2b0Lo88vmnSaIhqH186c1hM5oFSU4z5O3CPAavbzJ_uRl0P-HB5lsFKhUGfPp0Rq6BZA70Bxs9LWZS59jP2bULOCo5CqlN6mlg9fU9v5OXwhw-Tj95zwHYccNIEopubZkrOj7tgP2zbgW5ztVBLsuPJ-JmtXTurP1Ovj9f_6UaHXpTcT1E1HGEMjeUPfWPqffvUm9GtDqMaf4iWnYrKPPw47IPtB4jmR2GvP_pT4PsMjtyxR4DX9sk-bi8EZqhgMvTriB4yJcMbWN9Dm-gvq_s5Wf68sldAYzDe54KghT4_CJ-VDqzHKAlEZEyoalKT5LAOozMNrl7QWzKySwIFXnjXi81cBWxv-jnlE7fsFUm2FM94ljkDiMlZcQ:dd9348e9-303f-40a1-885e-6d4b21605fcf.zip": {
+      "msg_id": "19c71eb078fe1827",
+      "att_id": "ANGjdJ_n7BiryMGkKl6maYJ_9oszCQNYzhtCThT1ytnRnQ19-2b0Lo88vmnSaIhqH186c1hM5oFSU4z5O3CPAavbzJ_uRl0P-HB5lsFKhUGfPp0Rq6BZA70Bxs9LWZS59jP2bULOCo5CqlN6mlg9fU9v5OXwhw-Tj95zwHYccNIEopubZkrOj7tgP2zbgW5ztVBLsuPJ-JmtXTurP1Ovj9f_6UaHXpTcT1E1HGEMjeUPfWPqffvUm9GtDqMaf4iWnYrKPPw47IPtB4jmR2GvP_pT4PsMjtyxR4DX9sk-bi8EZqhgMvTriB4yJcMbWN9Dm-gvq_s5Wf68sldAYzDe54KghT4_CJ-VDqzHKAlEZEyoalKT5LAOozMNrl7QWzKySwIFXnjXi81cBWxv-jnlE7fsFUm2FM94ljkDiMlZcQ",
+      "filename": "dd9348e9-303f-40a1-885e-6d4b21605fcf.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/dd9348e9-303f-40a1-885e-6d4b21605fcf.zip",
+      "timestamp": "2026-06-15T13:51:23.309685",
+      "bootstrap": true
+    },
+    "19c717dc332a3b9b:ANGjdJ_3rojLLTn8fdy34KE5TMrCJqI8Q7DCj9ZMRixhLnt_60EAeyHCh4XAaKTjojowWq8mGYZf43jxvdq1sLb3iV-cEk-SzJ89qJburUF7cDKOILJoRV1tkELw0wZaLurALY_3SvPyi2bW5Bi0NKXRRF1wIOEgz36Is1MIKOT-EwngzWV8nGixFk01-LpuwFHehAQ1RZsT8s2Nlxq3vJbMGIdbKlSjmTy2jY_sZhluU6udF4p-q5YQeXjYmlzM618Huf8rTBssdKJzyRNtWIDR2bnw3vg7U5UZHgc-g1d1V5cnrmrsl8ahOSc4BicdGiJmm9DHPu2hSbmeU529b8NhoAi-MNFpofrSACwZ2yejh-JgZ4Hij1emcQGkq3ISG37TO6p9EPKtmPCYFr4M2C_8OPFd9M9VhHC5AQi4PQ:z0901316016008260000f71a.zip": {
+      "msg_id": "19c717dc332a3b9b",
+      "att_id": "ANGjdJ_3rojLLTn8fdy34KE5TMrCJqI8Q7DCj9ZMRixhLnt_60EAeyHCh4XAaKTjojowWq8mGYZf43jxvdq1sLb3iV-cEk-SzJ89qJburUF7cDKOILJoRV1tkELw0wZaLurALY_3SvPyi2bW5Bi0NKXRRF1wIOEgz36Is1MIKOT-EwngzWV8nGixFk01-LpuwFHehAQ1RZsT8s2Nlxq3vJbMGIdbKlSjmTy2jY_sZhluU6udF4p-q5YQeXjYmlzM618Huf8rTBssdKJzyRNtWIDR2bnw3vg7U5UZHgc-g1d1V5cnrmrsl8ahOSc4BicdGiJmm9DHPu2hSbmeU529b8NhoAi-MNFpofrSACwZ2yejh-JgZ4Hij1emcQGkq3ISG37TO6p9EPKtmPCYFr4M2C_8OPFd9M9VhHC5AQi4PQ",
+      "filename": "z0901316016008260000f71a.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z0901316016008260000f71a.zip",
+      "timestamp": "2026-06-15T13:51:23.500841",
+      "bootstrap": true
+    },
+    "19c6c8c6d8cfc06d:ANGjdJ-Jvzu-Ydjj5uNk_91HeHuXhS7t_wOwPy2bg8yU_IshjgPEXctR_LffOzsbzKQ_fsR5ihmzcm2x3C9EG4MokM92H_6lzQUBk6tiLRzlJTzgfyTOe9--wJBzqQ2HsdSH7MOK5L3rgVHRRwUusisEII-8oEfyUOQ_Tii5LpuAPk-wJHICuAStCSgZCiAYL2t3FUUDlHOAa58cY4Pp7WZMSM5t1JpOmP2XbiGTHRWTL-RrJ-0uItJink8bDIICeEty2WXcEoDcTAzuejREoh5sEuxMR8RH7BOWg8ZBmKjJkTuA7YRsCFYclWpm5nhdZFP-roxLANw_nwJBX5oE8x99hvnCnXcAyjy0PvSVPekXpoKxIfcYNnkXSF3pGHMa23Fux2fBgK_tvsC6bOI5O2o53ir6gaVbToRqpo9SyQ:z00418978420082600000061.zip": {
+      "msg_id": "19c6c8c6d8cfc06d",
+      "att_id": "ANGjdJ-Jvzu-Ydjj5uNk_91HeHuXhS7t_wOwPy2bg8yU_IshjgPEXctR_LffOzsbzKQ_fsR5ihmzcm2x3C9EG4MokM92H_6lzQUBk6tiLRzlJTzgfyTOe9--wJBzqQ2HsdSH7MOK5L3rgVHRRwUusisEII-8oEfyUOQ_Tii5LpuAPk-wJHICuAStCSgZCiAYL2t3FUUDlHOAa58cY4Pp7WZMSM5t1JpOmP2XbiGTHRWTL-RrJ-0uItJink8bDIICeEty2WXcEoDcTAzuejREoh5sEuxMR8RH7BOWg8ZBmKjJkTuA7YRsCFYclWpm5nhdZFP-roxLANw_nwJBX5oE8x99hvnCnXcAyjy0PvSVPekXpoKxIfcYNnkXSF3pGHMa23Fux2fBgK_tvsC6bOI5O2o53ir6gaVbToRqpo9SyQ",
+      "filename": "z00418978420082600000061.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z00418978420082600000061.zip",
+      "timestamp": "2026-06-15T13:51:23.687770",
+      "bootstrap": true
+    },
+    "19c6c7734e33bc73:ANGjdJ-zab_JhLNsWOCupiPmIrrXyHLBPnRPkVJAnWiXe3IDcqOHNg8Hvr1oLNLQQLvNB4WVxjGU4cYKgcIA70X3CXWH5b9o3eABxo2acUo4tWTZC1UnRW4VXBlsLa8xp4myRf4t-F8Ox3Qy4AAKimR66t8eZSi2SIyfqePrWLRFu1cg35m5JXNuSKeUK9TuyltkKRpMYjXKZNINBNmA4b41xEHAA_mNA7Wl371uPqPJs_K0gT7XmojjzbRtVVsWkeztis-PPvIsMw9dDjc6uhfWjJx3jGTrSxCX0xwJ2AneZ5XBubEzg9j89_CLI4mwbmmpwrhPFUYOhoIhyZeRd5Gno4WSdcR7aNWMQzmcZt6Y0jT4dcNs3OfqXKfxGAUAdUhVpzBC_C7oi7x-MSpZXVN_6VzHJ93OFq7xtEmqLQ:z090080496300826000052fd.zip": {
+      "msg_id": "19c6c7734e33bc73",
+      "att_id": "ANGjdJ-zab_JhLNsWOCupiPmIrrXyHLBPnRPkVJAnWiXe3IDcqOHNg8Hvr1oLNLQQLvNB4WVxjGU4cYKgcIA70X3CXWH5b9o3eABxo2acUo4tWTZC1UnRW4VXBlsLa8xp4myRf4t-F8Ox3Qy4AAKimR66t8eZSi2SIyfqePrWLRFu1cg35m5JXNuSKeUK9TuyltkKRpMYjXKZNINBNmA4b41xEHAA_mNA7Wl371uPqPJs_K0gT7XmojjzbRtVVsWkeztis-PPvIsMw9dDjc6uhfWjJx3jGTrSxCX0xwJ2AneZ5XBubEzg9j89_CLI4mwbmmpwrhPFUYOhoIhyZeRd5Gno4WSdcR7aNWMQzmcZt6Y0jT4dcNs3OfqXKfxGAUAdUhVpzBC_C7oi7x-MSpZXVN_6VzHJ93OFq7xtEmqLQ",
+      "filename": "z090080496300826000052fd.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z090080496300826000052fd.zip",
+      "timestamp": "2026-06-15T13:51:23.874003",
+      "bootstrap": true
+    },
+    "19c6850710cfb6cb:ANGjdJ9OWPN6I6ZnippQZqBeEPLgWLDGcnBynPQ1D2XcxNNL6w9UU4Euu0UvFFArdd4PwG3x8egezPB0B28f64J5PpR7RDLudSQz8r9RvmOjnr5NIzS0kqT0RCxkrzpYBKFq85hePRaoFrZX6h0rOCP__pMJ_29MYxEBXCz-6KFQVbS7IqywZrLX2BAiGNsErLi05G0SIzZlwPzjVj5r3o8ySyDR9JKIYGm1oxuWPlW07NbOE7hQ-pUwt5_ajgJaH5srmNIKX11Nb-GZqj0a5_6GGvHJEtCQ20dRLDh_h4OJxwpbPrv2VicLCLYtdpCWKtj8nLpXftmu9v-VQL1JaaD9GPgH2DuEaviaSqRN9FiGBoTX3FQBjEzTG6dDl0iEPNuf-P0MNYNHYAjV0cC4e_1xXgTQmUmUOlgjNoBy5Q:z080025156905426FE60520905.zip": {
+      "msg_id": "19c6850710cfb6cb",
+      "att_id": "ANGjdJ9OWPN6I6ZnippQZqBeEPLgWLDGcnBynPQ1D2XcxNNL6w9UU4Euu0UvFFArdd4PwG3x8egezPB0B28f64J5PpR7RDLudSQz8r9RvmOjnr5NIzS0kqT0RCxkrzpYBKFq85hePRaoFrZX6h0rOCP__pMJ_29MYxEBXCz-6KFQVbS7IqywZrLX2BAiGNsErLi05G0SIzZlwPzjVj5r3o8ySyDR9JKIYGm1oxuWPlW07NbOE7hQ-pUwt5_ajgJaH5srmNIKX11Nb-GZqj0a5_6GGvHJEtCQ20dRLDh_h4OJxwpbPrv2VicLCLYtdpCWKtj8nLpXftmu9v-VQL1JaaD9GPgH2DuEaviaSqRN9FiGBoTX3FQBjEzTG6dDl0iEPNuf-P0MNYNHYAjV0cC4e_1xXgTQmUmUOlgjNoBy5Q",
+      "filename": "z080025156905426FE60520905.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE60520905.zip",
+      "timestamp": "2026-06-15T13:51:24.072913",
+      "bootstrap": true
+    },
+    "19c58b16e960358c:ANGjdJ-ebBS5B-KkfW-gG4z6Dw8w6_KDMDEzPkbYxlE0bo3S0jwBOq6_LaF3FulpkSq8DDRxTKO90OkocLJnuHsypT206GMjTSfdBoJZ-u8LHQuswabodMuIDUtDuQpIg9Q0oP0tdSOPJqQBY-Bi4A7htKCO8Ct1hoNDnAvDhQbAIXV56PEqkLDr40eB-2HGSuw8fU-cqmF6oHZQ1QexSCuTb7ccqRo9xa_NVxovSwVYpVry41y7oSAkw8U_BPjwKTypaSWAePfEqPaViuySxZbv-GO62NkHUvuQmrWQ1J1EOJiudlFj3tSJS6NDHSEeCQO2P8Uw9r7z7d2iP7URZRgLHpIVQc3oWrDPpoyhP67HUfjOdV9-cIkjXqLJZKLeBdBu7ZYTZ-QQfnnvI6TghKWxbk7KtZIPJXeodpQ3XQ:z080025156905426FE60290074.zip": {
+      "msg_id": "19c58b16e960358c",
+      "att_id": "ANGjdJ-ebBS5B-KkfW-gG4z6Dw8w6_KDMDEzPkbYxlE0bo3S0jwBOq6_LaF3FulpkSq8DDRxTKO90OkocLJnuHsypT206GMjTSfdBoJZ-u8LHQuswabodMuIDUtDuQpIg9Q0oP0tdSOPJqQBY-Bi4A7htKCO8Ct1hoNDnAvDhQbAIXV56PEqkLDr40eB-2HGSuw8fU-cqmF6oHZQ1QexSCuTb7ccqRo9xa_NVxovSwVYpVry41y7oSAkw8U_BPjwKTypaSWAePfEqPaViuySxZbv-GO62NkHUvuQmrWQ1J1EOJiudlFj3tSJS6NDHSEeCQO2P8Uw9r7z7d2iP7URZRgLHpIVQc3oWrDPpoyhP67HUfjOdV9-cIkjXqLJZKLeBdBu7ZYTZ-QQfnnvI6TghKWxbk7KtZIPJXeodpQ3XQ",
+      "filename": "z080025156905426FE60290074.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE60290074.zip",
+      "timestamp": "2026-06-15T13:51:24.302853",
+      "bootstrap": true
+    },
+    "19c53693b87284ac:ANGjdJ-vBBTWQUO43DKqac4OTfqmrDAIDpu_gwvSO5KArwiXMwpAW5tY1mO5gQ_a82at-0DmK1v608iSYrfdE0fn0iWEiDzzFX4WndnekuH1UikSyZ7jKqO1ws9Dx0n9Nys-Z_641-s9ikHOpgpeCJcHfkP7NDrwM70EZFAGMwXZ4I4C0Ebxyf5ObzmWzuxisDo3v0JxSD1uBcJ1Kvbyn_U0y9pwSF-Eq0lyOWuUYPNjmIk6TDZIGgH5yf4Et4aTbfIHJIyvsqStQPmbJM-pW8-dsuetaix9SV-sEKSOG76e-dyZ9YyAW2DYZeADAvszjGqv-vPiTS-RFFlfskPqNMxm-DYCGyo2FEdw-zB3Y9m51759rK1ToDXFMVk_S5hRP26IStGYfr_Kdkk3pOC0Or-VUYnJ-QABh8VZzC-chw:z080025156905426FE60183942.zip": {
+      "msg_id": "19c53693b87284ac",
+      "att_id": "ANGjdJ-vBBTWQUO43DKqac4OTfqmrDAIDpu_gwvSO5KArwiXMwpAW5tY1mO5gQ_a82at-0DmK1v608iSYrfdE0fn0iWEiDzzFX4WndnekuH1UikSyZ7jKqO1ws9Dx0n9Nys-Z_641-s9ikHOpgpeCJcHfkP7NDrwM70EZFAGMwXZ4I4C0Ebxyf5ObzmWzuxisDo3v0JxSD1uBcJ1Kvbyn_U0y9pwSF-Eq0lyOWuUYPNjmIk6TDZIGgH5yf4Et4aTbfIHJIyvsqStQPmbJM-pW8-dsuetaix9SV-sEKSOG76e-dyZ9YyAW2DYZeADAvszjGqv-vPiTS-RFFlfskPqNMxm-DYCGyo2FEdw-zB3Y9m51759rK1ToDXFMVk_S5hRP26IStGYfr_Kdkk3pOC0Or-VUYnJ-QABh8VZzC-chw",
+      "filename": "z080025156905426FE60183942.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE60183942.zip",
+      "timestamp": "2026-06-15T13:51:24.491804",
+      "bootstrap": true
+    },
+    "19c4f01ba84ab945:ANGjdJ-OI4CgmcH7qFykJfYTWmvCWz3QQnxcohNj2tMiGbIMTQebvKYfmBiEgYQ_3z734Lg2E2kJJFHCw0a0ijPIRAUk76yiXQYY_WLLrnE1V1KJvlevtxk3tminax4bgIwS3k5LRvlG-VnM_hjRnP91sb_awULt-_jPXQEgPsOhgEW2rLl9cUtpfwH3hUsgfSrs3S7d80bwjutjQAGGKDOpDxIxLe1F5DW5-Tq4OFCtIQBUsIjl_LRN_-jY2H1ReCFvJ6JthQAJiDHNR6URSYLtZyFWdsAJ4jVQMDKUEcEC1UEYe3AGcvzZTaQ_XGD6S006gPHu8hW8pBjfo3h4ne5y-JdMw-AO5qYoJm73pVZId8W2tLJFn9P-MBzdT5beiS2s0gNUt2Nc4ZfmIeKGwIvSgYCxUgG7E8uzfPbymA:z0901316016008260000f648.zip": {
+      "msg_id": "19c4f01ba84ab945",
+      "att_id": "ANGjdJ-OI4CgmcH7qFykJfYTWmvCWz3QQnxcohNj2tMiGbIMTQebvKYfmBiEgYQ_3z734Lg2E2kJJFHCw0a0ijPIRAUk76yiXQYY_WLLrnE1V1KJvlevtxk3tminax4bgIwS3k5LRvlG-VnM_hjRnP91sb_awULt-_jPXQEgPsOhgEW2rLl9cUtpfwH3hUsgfSrs3S7d80bwjutjQAGGKDOpDxIxLe1F5DW5-Tq4OFCtIQBUsIjl_LRN_-jY2H1ReCFvJ6JthQAJiDHNR6URSYLtZyFWdsAJ4jVQMDKUEcEC1UEYe3AGcvzZTaQ_XGD6S006gPHu8hW8pBjfo3h4ne5y-JdMw-AO5qYoJm73pVZId8W2tLJFn9P-MBzdT5beiS2s0gNUt2Nc4ZfmIeKGwIvSgYCxUgG7E8uzfPbymA",
+      "filename": "z0901316016008260000f648.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z0901316016008260000f648.zip",
+      "timestamp": "2026-06-15T13:51:24.682974",
+      "bootstrap": true
+    },
+    "19c4e99764666b40:ANGjdJ_jdYQMQKSwbn2c_iwJDB6PvJXRdGYJDeo8l7VSXLjPGBXWUhjxf063PdXlr7iV_uMN0zKNjovVzc8exbR1prgjaZqYLzZpreNNMZFQkJLvDXJGSX9fpG8x6GOb2dgfWt8UDChBUEc2a-GANDrcfhRzS1nqVssh3BJSKq6_9eRCUWiAEe0LIoPaSff_P6FnKu9NFUay4PpK51DbmsNRlPKYtksIY0Wiw9LkSa69R18bCXdG_tVzBsYqp1v7_vQDMX2xHiZiAXje_hqGFIh1Q64lhsLsC3Zfh5sAqr8C26aYbvIiLpcuEZ-jzGg4wGAqJ6_Dx15tQ-sNSIFLak63G0vKANkzGYjOg-8Y4RsyoQ0cnroarZu9IRqzjpeFW_SD3b6fzAwLj9TuPIgiQ1Nlx2GFoSBYvh7YPOmAOA:ad0800041075000260000000247.zip": {
+      "msg_id": "19c4e99764666b40",
+      "att_id": "ANGjdJ_jdYQMQKSwbn2c_iwJDB6PvJXRdGYJDeo8l7VSXLjPGBXWUhjxf063PdXlr7iV_uMN0zKNjovVzc8exbR1prgjaZqYLzZpreNNMZFQkJLvDXJGSX9fpG8x6GOb2dgfWt8UDChBUEc2a-GANDrcfhRzS1nqVssh3BJSKq6_9eRCUWiAEe0LIoPaSff_P6FnKu9NFUay4PpK51DbmsNRlPKYtksIY0Wiw9LkSa69R18bCXdG_tVzBsYqp1v7_vQDMX2xHiZiAXje_hqGFIh1Q64lhsLsC3Zfh5sAqr8C26aYbvIiLpcuEZ-jzGg4wGAqJ6_Dx15tQ-sNSIFLak63G0vKANkzGYjOg-8Y4RsyoQ0cnroarZu9IRqzjpeFW_SD3b6fzAwLj9TuPIgiQ1Nlx2GFoSBYvh7YPOmAOA",
+      "filename": "ad0800041075000260000000247.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/ad0800041075000260000000247.zip",
+      "timestamp": "2026-06-15T13:51:24.865770",
+      "bootstrap": true
+    },
+    "19c492c3eb88425b:ANGjdJ-oEUTIn0-MFupkoGwXzUmXpOasZtoO6-CPWRxOE_BEPQSdumLMcUFEy61IeUG7a2N7Ql5MBt0lHxaNl33WFNyRr9qr2AdjdOtXldDg0A6j3d7Mh3ofFvUzQEdk6cHMYh2MY7kz3dT2DPGlzhRvAyMVucQzrKx7AvFZIQbKpKL9MEWtduANU9ruEOa3FYorhnKuYdtV06sRtRkjjnse6LXHDx8Uq6khvIpAFKgr739YxUH1HUuM329GXLH17Wg9HJ0ynXUQOhdihTLmpaqT_xml8f4NafANuj2zvCC4Q1loPg1FS168uOo2e7zt_FSLqnVS9swKiOqkAFvSAAznY8lWeHkIbzM6T62wsld7h1zOxwc8ihcLQavG3fp8zBoCaNd1JxXe3QRrSx9M_Q6V9bt0OYBBKvcGOfPJtA:z080025156905426FE59972711.zip": {
+      "msg_id": "19c492c3eb88425b",
+      "att_id": "ANGjdJ-oEUTIn0-MFupkoGwXzUmXpOasZtoO6-CPWRxOE_BEPQSdumLMcUFEy61IeUG7a2N7Ql5MBt0lHxaNl33WFNyRr9qr2AdjdOtXldDg0A6j3d7Mh3ofFvUzQEdk6cHMYh2MY7kz3dT2DPGlzhRvAyMVucQzrKx7AvFZIQbKpKL9MEWtduANU9ruEOa3FYorhnKuYdtV06sRtRkjjnse6LXHDx8Uq6khvIpAFKgr739YxUH1HUuM329GXLH17Wg9HJ0ynXUQOhdihTLmpaqT_xml8f4NafANuj2zvCC4Q1loPg1FS168uOo2e7zt_FSLqnVS9swKiOqkAFvSAAznY8lWeHkIbzM6T62wsld7h1zOxwc8ihcLQavG3fp8zBoCaNd1JxXe3QRrSx9M_Q6V9bt0OYBBKvcGOfPJtA",
+      "filename": "z080025156905426FE59972711.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59972711.zip",
+      "timestamp": "2026-06-15T13:51:25.066550",
+      "bootstrap": true
+    },
+    "19c43f64013bf9ac:ANGjdJ9rbir8UGPgVpFjd1iJkZGng2us1ULS9SpwB4HJeTQHNv6R7V-T5LwbDQ4QKDw0LoFi6QBmwZ0umGsMJuBZ8FoWyEAD3k4NJpMRD3J5LoDLAtB4I_Kv93wee74bMEddf6qnZHFn6J2FDzDrSUipCzrSz67yKy8pp4EyTiI1K6Gx8xqzIxK_ZZkEa04ib-5XCkbMOr9IxnwvlX8G5rDKMs3e3I_R1kviEs_geXXVtckxaHYMuOsZwQNF7vWZp2Fae0Dx2DCkC-ehvN5_IAIU2vlR9ztmpeyILCvfr8AHVYTnBEFtZXjVS5JjYp98xWXbxIMNFuDaAx7LZbC0GyQutZw4g1tPczs6lPHUZkDg6lmpuw9hbjzOFghYlvz654vbjdvJ7T8fD95FQQEIKMRMUZlFbjGwQxgdrynWGg:z080025156905426FE59851175.zip": {
+      "msg_id": "19c43f64013bf9ac",
+      "att_id": "ANGjdJ9rbir8UGPgVpFjd1iJkZGng2us1ULS9SpwB4HJeTQHNv6R7V-T5LwbDQ4QKDw0LoFi6QBmwZ0umGsMJuBZ8FoWyEAD3k4NJpMRD3J5LoDLAtB4I_Kv93wee74bMEddf6qnZHFn6J2FDzDrSUipCzrSz67yKy8pp4EyTiI1K6Gx8xqzIxK_ZZkEa04ib-5XCkbMOr9IxnwvlX8G5rDKMs3e3I_R1kviEs_geXXVtckxaHYMuOsZwQNF7vWZp2Fae0Dx2DCkC-ehvN5_IAIU2vlR9ztmpeyILCvfr8AHVYTnBEFtZXjVS5JjYp98xWXbxIMNFuDaAx7LZbC0GyQutZw4g1tPczs6lPHUZkDg6lmpuw9hbjzOFghYlvz654vbjdvJ7T8fD95FQQEIKMRMUZlFbjGwQxgdrynWGg",
+      "filename": "z080025156905426FE59851175.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59851175.zip",
+      "timestamp": "2026-06-15T13:51:25.253786",
+      "bootstrap": true
+    },
+    "19c3946708911c49:ANGjdJ9j21IuvFi_3Ma2ubC_MlokL-A_kIZKAqj25xUAChLix-qhRh-jj7iEwdFKSxuEdMQco-5LcMRXZ1eaL2XUkd3zN9F6gsMlvL1F0CLD_M4beKG1ZlXLYoUMS5nrY1rXqh_UhUP1sW5vN3Mcc1IbMBeRsXgD4LQWXJ_kie8UjKkdQpro0jrc0CwQEhemIX88Rh5yhLNl4p_Z4GeMIIVTSLIVvhwDi5coLP1DfaiSy7gOD2_CtZnZ_xKL6OT0jh9EwPSSddLvm2IfrmBAC6uDzUniXcajEo2Q2opaYn8DTBbdN-QPy09FvRfR67p17hy_CWnHvFIBcNtbE4PIyaYxqkxhaLA9lCDvqhiphUeCP_6pf8aL3QGUV9vUmc7_NAm5cLaax1vTpPhXRDQPrigRp5pNqdk6_kcKO5wI7w:z080025156905426FE59748186.zip": {
+      "msg_id": "19c3946708911c49",
+      "att_id": "ANGjdJ9j21IuvFi_3Ma2ubC_MlokL-A_kIZKAqj25xUAChLix-qhRh-jj7iEwdFKSxuEdMQco-5LcMRXZ1eaL2XUkd3zN9F6gsMlvL1F0CLD_M4beKG1ZlXLYoUMS5nrY1rXqh_UhUP1sW5vN3Mcc1IbMBeRsXgD4LQWXJ_kie8UjKkdQpro0jrc0CwQEhemIX88Rh5yhLNl4p_Z4GeMIIVTSLIVvhwDi5coLP1DfaiSy7gOD2_CtZnZ_xKL6OT0jh9EwPSSddLvm2IfrmBAC6uDzUniXcajEo2Q2opaYn8DTBbdN-QPy09FvRfR67p17hy_CWnHvFIBcNtbE4PIyaYxqkxhaLA9lCDvqhiphUeCP_6pf8aL3QGUV9vUmc7_NAm5cLaax1vTpPhXRDQPrigRp5pNqdk6_kcKO5wI7w",
+      "filename": "z080025156905426FE59748186.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59748186.zip",
+      "timestamp": "2026-06-15T13:51:25.459108",
+      "bootstrap": true
+    },
+    "19c345dadeee17c5:ANGjdJ-joY__rT1qlsyoY-U7U5CDaLO1oxanTN6hHBBc18oEtgHqNCk5x2rqu47ttwuq7hlymrcOVfxqDvHCSVjbHu-c0KLh_BwhD6XTLS7fLgU1DfSKRK_yofSdU9D4gmYcS0tTsajFrh2rsCaEpwiO-IuFBYggoi74Isqyd5PrnQOGHXAWSWLFSXR2RQ0z4JV1ZyN64IeRJD7IzcJhV7Wm-XHK8NaaC034yVV3_F0veJuwmdzrbG25l9KnPrVgaXEWHSGJEdr9oPHpAs-vOuOdMxR1AQsXJeU9C8It8sLmEyC3mTFdW-grempp_Ghd2I5s1025PZcMK2RI4Ftb4cwuouBZ7V-BqntJj-LF11l8tGajCRz0y-Sh3jU1SwrYbhrlccgJ7hfYuB3yw6AsKHmRiI4eVd83qhWBMUEs3A:z080025156905426FE59637232.zip": {
+      "msg_id": "19c345dadeee17c5",
+      "att_id": "ANGjdJ-joY__rT1qlsyoY-U7U5CDaLO1oxanTN6hHBBc18oEtgHqNCk5x2rqu47ttwuq7hlymrcOVfxqDvHCSVjbHu-c0KLh_BwhD6XTLS7fLgU1DfSKRK_yofSdU9D4gmYcS0tTsajFrh2rsCaEpwiO-IuFBYggoi74Isqyd5PrnQOGHXAWSWLFSXR2RQ0z4JV1ZyN64IeRJD7IzcJhV7Wm-XHK8NaaC034yVV3_F0veJuwmdzrbG25l9KnPrVgaXEWHSGJEdr9oPHpAs-vOuOdMxR1AQsXJeU9C8It8sLmEyC3mTFdW-grempp_Ghd2I5s1025PZcMK2RI4Ftb4cwuouBZ7V-BqntJj-LF11l8tGajCRz0y-Sh3jU1SwrYbhrlccgJ7hfYuB3yw6AsKHmRiI4eVd83qhWBMUEs3A",
+      "filename": "z080025156905426FE59637232.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59637232.zip",
+      "timestamp": "2026-06-15T13:51:25.668114",
+      "bootstrap": true
+    },
+    "19c2f58229682b95:ANGjdJ-NJIFkWzLcG7OX6FyYHGLpEUBcKAkU2q9P0z8ZeP-QmaR34lbX8w57yPxSMVOdHtsjiiHDia-s2AhaGmFUg4h9sUw8k36qaagY1koZKXR01nQUsqCbiaGvCgXL642z-k-4lPipnpukbJzcx_dh_KjHoT-xhHLi2_aI0sxL2t5yDgEgkKEpg3YUp5mX0OZQRt1okmLizLPJlld5xOjChBeOg6YIeXW0q3qbgYm9f7YZT8JWsv6n_tJ-NGPa02wOu23QdY0GQYmSfnV9vhReHoHb43Je1eOpGUQpwAUFnIQcwDM9klqxltKipR9jw3TVZH3-uzHM9PGWohUGQ7jbTMKhaORo9rRSa8rd_Mkz3ZtYjulQGO47UOwCAXXdAkQFeI6pD_Xmu5fEi3Ooglb3GE6msyK2UmExtklZVA:z080025156905426FE59531794.zip": {
+      "msg_id": "19c2f58229682b95",
+      "att_id": "ANGjdJ-NJIFkWzLcG7OX6FyYHGLpEUBcKAkU2q9P0z8ZeP-QmaR34lbX8w57yPxSMVOdHtsjiiHDia-s2AhaGmFUg4h9sUw8k36qaagY1koZKXR01nQUsqCbiaGvCgXL642z-k-4lPipnpukbJzcx_dh_KjHoT-xhHLi2_aI0sxL2t5yDgEgkKEpg3YUp5mX0OZQRt1okmLizLPJlld5xOjChBeOg6YIeXW0q3qbgYm9f7YZT8JWsv6n_tJ-NGPa02wOu23QdY0GQYmSfnV9vhReHoHb43Je1eOpGUQpwAUFnIQcwDM9klqxltKipR9jw3TVZH3-uzHM9PGWohUGQ7jbTMKhaORo9rRSa8rd_Mkz3ZtYjulQGO47UOwCAXXdAkQFeI6pD_Xmu5fEi3Ooglb3GE6msyK2UmExtklZVA",
+      "filename": "z080025156905426FE59531794.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59531794.zip",
+      "timestamp": "2026-06-15T13:51:25.855551",
+      "bootstrap": true
+    },
+    "19c2f5386c4d8002:ANGjdJ9T4dwKnmTj1ZuxaihHMRS8MAbCxnu-u5VlEjbIFYfOQYUYal3F3uB4_t9AjRbeuYBVri1DL5smTyKQLeyAVFH65W8kRvn7eU1qFRhon7duFha7kWazd63AoJNMgNKtNfQYNZoVhX8pO41paHYOjlI9DviC0_di8AUYJETgAye3ggAJL6Wyr3p5020pCUJ3XAb_CcKOwgEy1uvHtJLxCvdL7SIKMHIukoqXgSJRPcwq4yCXo84PKvgOgNr4Op95hiMWwewrPpElOHSe5_E9D5sFJTa7jEc3jFzJAaGvl9P7ZlYx3MYenD1kw8TSjIQ43-2jG-JcGhrs-57dGj82sGc09nlskPIIkwzu4wpEgakIqahD6YrKLhTfObLZPpFSgOQ6T1npCRTlmkXAKgNNLmkBluF3RlKBCFcVJQ:z080025156905426FE59530693.zip": {
+      "msg_id": "19c2f5386c4d8002",
+      "att_id": "ANGjdJ9T4dwKnmTj1ZuxaihHMRS8MAbCxnu-u5VlEjbIFYfOQYUYal3F3uB4_t9AjRbeuYBVri1DL5smTyKQLeyAVFH65W8kRvn7eU1qFRhon7duFha7kWazd63AoJNMgNKtNfQYNZoVhX8pO41paHYOjlI9DviC0_di8AUYJETgAye3ggAJL6Wyr3p5020pCUJ3XAb_CcKOwgEy1uvHtJLxCvdL7SIKMHIukoqXgSJRPcwq4yCXo84PKvgOgNr4Op95hiMWwewrPpElOHSe5_E9D5sFJTa7jEc3jFzJAaGvl9P7ZlYx3MYenD1kw8TSjIQ43-2jG-JcGhrs-57dGj82sGc09nlskPIIkwzu4wpEgakIqahD6YrKLhTfObLZPpFSgOQ6T1npCRTlmkXAKgNNLmkBluF3RlKBCFcVJQ",
+      "filename": "z080025156905426FE59530693.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59530693.zip",
+      "timestamp": "2026-06-15T13:51:26.045740",
+      "bootstrap": true
+    },
+    "19c2b90ae7d9c9ec:ANGjdJ_rdTWxNskOB0Pt7W_CGrp85DBH2NUjk2XHADZTdnKPB1f8ukGXpIB1UF8b2mZqQNRDHK8S3M3dS0U56oVu0JaLDhhAZXyWUwaOxm_geLlWM8j5K_TiAld7DC6X7c-xmkbE11DGR83UczAR_yhdze504fR_fQaboAApj0SlG7GTC0zr-N5lusbSGtrMtxIgrxJNd5VJ2bma-rGD7_7hf6ueuNeGjsB2NgLoQE3g4Z2J0WIKTujFpQskQ6mQmdt3729Ibzq-3BM9VaxXTeJZCvC5aR-ahSoTd5yf-SQsEN6vu9gvWR0Otac_jOZ87VGNFvYOOP3Y0g9lv_HhrpFiHQ3jfuTHrCY1rg_J22LUW3GI2xyGp1ahi4QeItHtAIu7V6NGkqrg0EiX97_bqdPxKu1bALlJaYu8UAQzdw:z080025156905426FE59480824.zip": {
+      "msg_id": "19c2b90ae7d9c9ec",
+      "att_id": "ANGjdJ_rdTWxNskOB0Pt7W_CGrp85DBH2NUjk2XHADZTdnKPB1f8ukGXpIB1UF8b2mZqQNRDHK8S3M3dS0U56oVu0JaLDhhAZXyWUwaOxm_geLlWM8j5K_TiAld7DC6X7c-xmkbE11DGR83UczAR_yhdze504fR_fQaboAApj0SlG7GTC0zr-N5lusbSGtrMtxIgrxJNd5VJ2bma-rGD7_7hf6ueuNeGjsB2NgLoQE3g4Z2J0WIKTujFpQskQ6mQmdt3729Ibzq-3BM9VaxXTeJZCvC5aR-ahSoTd5yf-SQsEN6vu9gvWR0Otac_jOZ87VGNFvYOOP3Y0g9lv_HhrpFiHQ3jfuTHrCY1rg_J22LUW3GI2xyGp1ahi4QeItHtAIu7V6NGkqrg0EiX97_bqdPxKu1bALlJaYu8UAQzdw",
+      "filename": "z080025156905426FE59480824.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59480824.zip",
+      "timestamp": "2026-06-15T13:51:26.254473",
+      "bootstrap": true
+    },
+    "19c2a633652e1220:ANGjdJ-h3gb3Eg2gb__TV1bzN33NKjJRxdDpwrK7gVUophpMDWlfEqapM_CBSQ07MNmlhZEi9io551sBRhVKF07AzysOvXIrOYh2p_WYpkZgahSKU69bPSn1sLX2m2bZq5_6GKxdIFj0eQ-2Xs6b_VXifKx9jRLaqdmuR4MvxPHceIChmM-Y38astsFMriCGkIUbvuv5EBKC7tmM9xRCLV5UrRKnNNzqq6Xlv51mbB-W5CZ_ocy__m_6T00bjE5m54frYwnI_dErE2k_2Robi1OCxAqxlL_qk5g3Jb1MQfrSvE0MjGduzgt-Gd_A810KgECBpZaKRnAKyBQCOh44HFrvst5d9_GDqn4-5wRprgKIazxaKYSV44BR_MthH4zgIHUxNQHOrq_ua3gfc0CJwxDIMsFXLDFkvxtyl0kDQA:z080025156905426FE59434319.zip": {
+      "msg_id": "19c2a633652e1220",
+      "att_id": "ANGjdJ-h3gb3Eg2gb__TV1bzN33NKjJRxdDpwrK7gVUophpMDWlfEqapM_CBSQ07MNmlhZEi9io551sBRhVKF07AzysOvXIrOYh2p_WYpkZgahSKU69bPSn1sLX2m2bZq5_6GKxdIFj0eQ-2Xs6b_VXifKx9jRLaqdmuR4MvxPHceIChmM-Y38astsFMriCGkIUbvuv5EBKC7tmM9xRCLV5UrRKnNNzqq6Xlv51mbB-W5CZ_ocy__m_6T00bjE5m54frYwnI_dErE2k_2Robi1OCxAqxlL_qk5g3Jb1MQfrSvE0MjGduzgt-Gd_A810KgECBpZaKRnAKyBQCOh44HFrvst5d9_GDqn4-5wRprgKIazxaKYSV44BR_MthH4zgIHUxNQHOrq_ua3gfc0CJwxDIMsFXLDFkvxtyl0kDQA",
+      "filename": "z080025156905426FE59434319.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59434319.zip",
+      "timestamp": "2026-06-15T13:51:26.447216",
+      "bootstrap": true
+    },
+    "19c255a5ad623a4f:ANGjdJ8Nc4cihcBfaDOG-wWzP7sTpxrCjqcYAJEh9lCN0giMMTYGwIMXeipLiw9_WuUMswK2s2HpqMRzB-dtvh6HCX7w0uJy9e87RxY5uBg8J5K99dq1DGkqRhjJ6ITqwZ0b2sFcng5Q4HwxpmFitZnS4r-8vkMQYxcZ-VLOGRP-Xu8Wpdt9jvAhMsY344Qge7COxiyvlIe5vlysR6aYLBcLLbnZXv-GOUI8goImZBECBhdV-CCIxnUuMVLnRsWhdJvG3mP29BXAiqKdO5WH4RxX_bHQ4A4MQpz9F6_41ERGshpM1F2YepDftgAJGFST7FzXVDnYjhAdbfxiukdMHp4QmR3hqSHJoR-5r311bp1m80ZklmQfDKwOH2ILR2jdTIQTjSBocqDy1fmgT6M7vR4NNYIfSDAHkKSEW2o69g:z080025156905426FE59330372.zip": {
+      "msg_id": "19c255a5ad623a4f",
+      "att_id": "ANGjdJ8Nc4cihcBfaDOG-wWzP7sTpxrCjqcYAJEh9lCN0giMMTYGwIMXeipLiw9_WuUMswK2s2HpqMRzB-dtvh6HCX7w0uJy9e87RxY5uBg8J5K99dq1DGkqRhjJ6ITqwZ0b2sFcng5Q4HwxpmFitZnS4r-8vkMQYxcZ-VLOGRP-Xu8Wpdt9jvAhMsY344Qge7COxiyvlIe5vlysR6aYLBcLLbnZXv-GOUI8goImZBECBhdV-CCIxnUuMVLnRsWhdJvG3mP29BXAiqKdO5WH4RxX_bHQ4A4MQpz9F6_41ERGshpM1F2YepDftgAJGFST7FzXVDnYjhAdbfxiukdMHp4QmR3hqSHJoR-5r311bp1m80ZklmQfDKwOH2ILR2jdTIQTjSBocqDy1fmgT6M7vR4NNYIfSDAHkKSEW2o69g",
+      "filename": "z080025156905426FE59330372.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59330372.zip",
+      "timestamp": "2026-06-15T13:51:26.628635",
+      "bootstrap": true
+    },
+    "19c20063410391d5:ANGjdJ_WMrXO0goZkGMyywTzB3t5JJF9JRQDsbqttpFOQKpcwWOwAHhORCkVBDjlfnFq7xPu6r4HvBE0CSsdfhg5TgWYRKgJFodKaye4rbgj3i-L7WIGNSKdmbbq7feDYWMO7U9deUSj13i6SFQc0lXRe-7Vjg9BtqXQPWoXAOJsejTs3fPH7Pf4Ypwso6u4UrFY33x7vvac0ANM6ZMpFFsRaltCKj10i3cOnq1XQEbGqwTr2L1qfpDckPVvce2kbSY6UcOETh95H50GwM1ZRbJymtoCpzbbuMsWmzUZzm9NdsWBnAVoZTZ707MBpl6nCW4deJ4vB5y68Rm3szweubWIJW_KvQQzTIfHYK_SdEy1O9laLkEQXfnwbfqcrM2IQhmATIVi4XSeuZRHnlBsra83E3IKoOeaOtfdE02GIg:z080025156905426FE59223376.zip": {
+      "msg_id": "19c20063410391d5",
+      "att_id": "ANGjdJ_WMrXO0goZkGMyywTzB3t5JJF9JRQDsbqttpFOQKpcwWOwAHhORCkVBDjlfnFq7xPu6r4HvBE0CSsdfhg5TgWYRKgJFodKaye4rbgj3i-L7WIGNSKdmbbq7feDYWMO7U9deUSj13i6SFQc0lXRe-7Vjg9BtqXQPWoXAOJsejTs3fPH7Pf4Ypwso6u4UrFY33x7vvac0ANM6ZMpFFsRaltCKj10i3cOnq1XQEbGqwTr2L1qfpDckPVvce2kbSY6UcOETh95H50GwM1ZRbJymtoCpzbbuMsWmzUZzm9NdsWBnAVoZTZ707MBpl6nCW4deJ4vB5y68Rm3szweubWIJW_KvQQzTIfHYK_SdEy1O9laLkEQXfnwbfqcrM2IQhmATIVi4XSeuZRHnlBsra83E3IKoOeaOtfdE02GIg",
+      "filename": "z080025156905426FE59223376.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59223376.zip",
+      "timestamp": "2026-06-15T13:51:26.837837",
+      "bootstrap": true
+    },
+    "19c1615f7d22bfcc:ANGjdJ84aqk7lHzNHo2kXZ90-625OfK0Vy0DaiCItCn_kDFpXgjNt-S1FF3xJ0UvYq8Hr7DGdpDmcnouA1R9HWXjGMao4EwqPDJk84qZhxpCQpQYt6NBq2jTCRrxfJJN7e9enhYqzZm287fJvZbFd8MVVbf_d-AYk_TtMob1Rcd4_OLN3gWyfxQgaTXQzuGyRzoOhnrwhyKkJFIyYMLQhJXLV5WpJ9RB8zEHJTVHpOD1LK0_ioakGOG3k2EElEl6K-q97QG1RKo2gAYrQuDz98-AYLkiJaPuA_a3PxeTOUPex8ct51scrkskb7fB9wNYnO4xebvQ85hC7x6KWSOsyOovJrSgDL4krmcZMMjXjK5da9uRR6PkSZAzPd2x3-tjmLaUrayRKxAqugBXV4Fb:080024210602126NC4169676.zip": {
+      "msg_id": "19c1615f7d22bfcc",
+      "att_id": "ANGjdJ84aqk7lHzNHo2kXZ90-625OfK0Vy0DaiCItCn_kDFpXgjNt-S1FF3xJ0UvYq8Hr7DGdpDmcnouA1R9HWXjGMao4EwqPDJk84qZhxpCQpQYt6NBq2jTCRrxfJJN7e9enhYqzZm287fJvZbFd8MVVbf_d-AYk_TtMob1Rcd4_OLN3gWyfxQgaTXQzuGyRzoOhnrwhyKkJFIyYMLQhJXLV5WpJ9RB8zEHJTVHpOD1LK0_ioakGOG3k2EElEl6K-q97QG1RKo2gAYrQuDz98-AYLkiJaPuA_a3PxeTOUPex8ct51scrkskb7fB9wNYnO4xebvQ85hC7x6KWSOsyOovJrSgDL4krmcZMMjXjK5da9uRR6PkSZAzPd2x3-tjmLaUrayRKxAqugBXV4Fb",
+      "filename": "080024210602126NC4169676.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/080024210602126NC4169676.zip",
+      "timestamp": "2026-06-15T13:51:27.084098",
+      "bootstrap": true
+    },
+    "19c1613e245dbe4f:ANGjdJ8dccHKa8_pcmNDaEz6B6J-p1BeUWr2C7o9FlMo2bj0nqeqyrerbWBKQfFUynC-ko3SsnGOv-3UB0zLv4OYvRya9f1Gr2OzPUlY1ez-rArXP7U8s04-G59smvZkyAUuQMKfD0m1LHobFIwlJsU6k03QcwxuHHoX_J8PhkD0qiePiZ8pl3uuXnMwfBtm-wjkeBZZC1E7hbYsQG83ozQkbjSoXIlLY3Zb3DTYPPQ7MaTgjuzOdSJHT4DdHHZl3rKIlVLzC_lB3gGuXCi27l0wDHWkf-Y-zHys-effljhgcCO9SEiOapU-X4TX_IgiXObrORJrJS4V6yzqPHv8rmDzsVqPG_TqRCS6gepcnljXSAt0bJweX2OvPS8ORQxtKrR_f8Je1NNUoZjrCryJ:0800242106021261011100228602.zip": {
+      "msg_id": "19c1613e245dbe4f",
+      "att_id": "ANGjdJ8dccHKa8_pcmNDaEz6B6J-p1BeUWr2C7o9FlMo2bj0nqeqyrerbWBKQfFUynC-ko3SsnGOv-3UB0zLv4OYvRya9f1Gr2OzPUlY1ez-rArXP7U8s04-G59smvZkyAUuQMKfD0m1LHobFIwlJsU6k03QcwxuHHoX_J8PhkD0qiePiZ8pl3uuXnMwfBtm-wjkeBZZC1E7hbYsQG83ozQkbjSoXIlLY3Zb3DTYPPQ7MaTgjuzOdSJHT4DdHHZl3rKIlVLzC_lB3gGuXCi27l0wDHWkf-Y-zHys-effljhgcCO9SEiOapU-X4TX_IgiXObrORJrJS4V6yzqPHv8rmDzsVqPG_TqRCS6gepcnljXSAt0bJweX2OvPS8ORQxtKrR_f8Je1NNUoZjrCryJ",
+      "filename": "0800242106021261011100228602.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/0800242106021261011100228602.zip",
+      "timestamp": "2026-06-15T13:51:27.281798",
+      "bootstrap": true
+    },
+    "19c15193d5de40be:ANGjdJ-Lx0nNNLH4xbVrN33SV_1cB_RP9OcSzYjt-OoSoLjyckAb3qhufC0NbtVJLubonmnpYdkjQZGScwPlxe4QN-6PmCffhyOoIfSufAKCbB54P7LIDmpk_eqaa9hdLHjd826iuxNncJwI6cJeFW7V-lBxtYAkodUXNv7fFDOSA6iIkukPlts5eaksSetAEePz_SBb3u-heIAb2raSDoT417CmlBv2iakYcFTpc-bbRk5ACsPmeHJOzFsjm0V7cYY4LW-VSwTEqdedzx7-EL2Sf9C0hW1B9LbaaAJ4AOcdFg47ZXwqPIb2z9a-A70CqjLdQNNxf0i00egCmQwDGlbbnEYwwDFZ-peA71T-EgfRrXTeQI4bWTuJkLjgYk0Ns5ItSF03ldU2s8B2eeDI-yDZxZN8M1XJXGkDOsLL0g:z080025156905426FE59114303.zip": {
+      "msg_id": "19c15193d5de40be",
+      "att_id": "ANGjdJ-Lx0nNNLH4xbVrN33SV_1cB_RP9OcSzYjt-OoSoLjyckAb3qhufC0NbtVJLubonmnpYdkjQZGScwPlxe4QN-6PmCffhyOoIfSufAKCbB54P7LIDmpk_eqaa9hdLHjd826iuxNncJwI6cJeFW7V-lBxtYAkodUXNv7fFDOSA6iIkukPlts5eaksSetAEePz_SBb3u-heIAb2raSDoT417CmlBv2iakYcFTpc-bbRk5ACsPmeHJOzFsjm0V7cYY4LW-VSwTEqdedzx7-EL2Sf9C0hW1B9LbaaAJ4AOcdFg47ZXwqPIb2z9a-A70CqjLdQNNxf0i00egCmQwDGlbbnEYwwDFZ-peA71T-EgfRrXTeQI4bWTuJkLjgYk0Ns5ItSF03ldU2s8B2eeDI-yDZxZN8M1XJXGkDOsLL0g",
+      "filename": "z080025156905426FE59114303.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE59114303.zip",
+      "timestamp": "2026-06-15T13:51:27.483689",
+      "bootstrap": true
+    },
+    "19c10ba7549474c1:ANGjdJ_jMSCyKjNbIPm93Rs43IJPAd9FJN_yRWDt73179euju3GPhM2Yy4jxTofFztv9t_l7S6kyBTs0D3IHa_iBW0K7n4Fj3s9fRnBOWF1nmB2Jo3g_q3AFuQQpQ_zcRXXhnQIA_HVyylMiDhvOXaSxAzEmxgw4vr2PYF_cxywxfW21LKmOEhlk95rv_I75QNawTCsyMk_MCFIep_FGeYTIsKdULNCwIajcxqi5L7w9F4FRY-W7b2DjNoL2f3I7ZrHfNkRMccbSw9O0zOm9m9vGTKTTjh5DVyRM_XDrbUUdMOTCQMvFZBJMJWCCljp7Pic4INckeI_SLVqCC0Oc1M8fujCOPjuWjVBw5oZbIq_TLWVnErlkxnovX-AMNNFpa6aiJXc7odQ_rNhbkj2hwdrg18p6Hf-zVwOeBMDuaw:z0830062441008260000039a.zip": {
+      "msg_id": "19c10ba7549474c1",
+      "att_id": "ANGjdJ_jMSCyKjNbIPm93Rs43IJPAd9FJN_yRWDt73179euju3GPhM2Yy4jxTofFztv9t_l7S6kyBTs0D3IHa_iBW0K7n4Fj3s9fRnBOWF1nmB2Jo3g_q3AFuQQpQ_zcRXXhnQIA_HVyylMiDhvOXaSxAzEmxgw4vr2PYF_cxywxfW21LKmOEhlk95rv_I75QNawTCsyMk_MCFIep_FGeYTIsKdULNCwIajcxqi5L7w9F4FRY-W7b2DjNoL2f3I7ZrHfNkRMccbSw9O0zOm9m9vGTKTTjh5DVyRM_XDrbUUdMOTCQMvFZBJMJWCCljp7Pic4INckeI_SLVqCC0Oc1M8fujCOPjuWjVBw5oZbIq_TLWVnErlkxnovX-AMNNFpa6aiJXc7odQ_rNhbkj2hwdrg18p6Hf-zVwOeBMDuaw",
+      "filename": "z0830062441008260000039a.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z0830062441008260000039a.zip",
+      "timestamp": "2026-06-15T13:51:27.680428",
+      "bootstrap": true
+    },
+    "19c0f28e65d2e2d7:ANGjdJ8qaS_olNOvAsfBiszEEIZrUWGDru2mvM2n8HkTKG_pwJvJT6wXExfIgbjT7vCgU3WxzoMM3p0sZEkRKfAfJiFVGfFgt3aEU4VNzc7NVaDzo7YXogeVQs4Q3dBd3eILakEqvm8i8spTADcjZbnIu31-U6FjWjnuHaqj3pazvlLVm2_aa4sRKND_93s7CB8t0LskTUe-j0zCChDVl2fpb6zFM_qEbEIOaXitToQjnroUv9C_ffJxKCV-onjBOJn6rPrUR8rsyuKjotjI7wauVlqZNFeXxqA2pQDGBrUkPIUz0vJNAsmdJtjP3ek8ZSw5L4Ag93yEQ8rgBEqbnjBBHNpKGcC6GWhHsuhf8gKdO3Fx7uG1rfzaQ9njm8cAdcDCX4_19fj7ObudGXTxHiZ6QyshvefS3OSp6iD13g:z090131598100826000001dd.zip": {
+      "msg_id": "19c0f28e65d2e2d7",
+      "att_id": "ANGjdJ8qaS_olNOvAsfBiszEEIZrUWGDru2mvM2n8HkTKG_pwJvJT6wXExfIgbjT7vCgU3WxzoMM3p0sZEkRKfAfJiFVGfFgt3aEU4VNzc7NVaDzo7YXogeVQs4Q3dBd3eILakEqvm8i8spTADcjZbnIu31-U6FjWjnuHaqj3pazvlLVm2_aa4sRKND_93s7CB8t0LskTUe-j0zCChDVl2fpb6zFM_qEbEIOaXitToQjnroUv9C_ffJxKCV-onjBOJn6rPrUR8rsyuKjotjI7wauVlqZNFeXxqA2pQDGBrUkPIUz0vJNAsmdJtjP3ek8ZSw5L4Ag93yEQ8rgBEqbnjBBHNpKGcC6GWhHsuhf8gKdO3Fx7uG1rfzaQ9njm8cAdcDCX4_19fj7ObudGXTxHiZ6QyshvefS3OSp6iD13g",
+      "filename": "z090131598100826000001dd.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z090131598100826000001dd.zip",
+      "timestamp": "2026-06-15T13:51:27.859746",
+      "bootstrap": true
+    },
+    "19c0acf2cbf81251:ANGjdJ9JQUl0oy5x-0vVI5oETcBuhNoNCeRhtH1LJz6x1GvQOBagLJW1xgGQ5vOn3GqAeNaaN3Z5R2roexYPICQsxp3FzAPDlbMIx7MSM7ruLdpC0oODpDiDKciY9JwE52tGvxNfhH1VOgy62ur9TSMgKvJoaYsCyA05UiUs8BW3qXFcftzDaLX-IiLsac6vxJflffs2CiKgxb9vWmjOJn60U3lYmqxPu2zhNIsRYJ1vkiiYO4pGOjiW7cie6zUqDG6QI0QwN9QZZFBYv-lSPA-L9NFuTuZO9Jj1AHRFG22_czF7HZ2VZuLV8lsFncrJrBalr8aQiUK3bPI5b9LwoNbgF3V4uIELAwboMr7uaCRU1meiyTbTfnz5db7jBgKcRbTgktS3ZZymT3VpFjX3aFFZr6opHftv_WYDOkvFNg:z080025156905426FE58844739.zip": {
+      "msg_id": "19c0acf2cbf81251",
+      "att_id": "ANGjdJ9JQUl0oy5x-0vVI5oETcBuhNoNCeRhtH1LJz6x1GvQOBagLJW1xgGQ5vOn3GqAeNaaN3Z5R2roexYPICQsxp3FzAPDlbMIx7MSM7ruLdpC0oODpDiDKciY9JwE52tGvxNfhH1VOgy62ur9TSMgKvJoaYsCyA05UiUs8BW3qXFcftzDaLX-IiLsac6vxJflffs2CiKgxb9vWmjOJn60U3lYmqxPu2zhNIsRYJ1vkiiYO4pGOjiW7cie6zUqDG6QI0QwN9QZZFBYv-lSPA-L9NFuTuZO9Jj1AHRFG22_czF7HZ2VZuLV8lsFncrJrBalr8aQiUK3bPI5b9LwoNbgF3V4uIELAwboMr7uaCRU1meiyTbTfnz5db7jBgKcRbTgktS3ZZymT3VpFjX3aFFZr6opHftv_WYDOkvFNg",
+      "filename": "z080025156905426FE58844739.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE58844739.zip",
+      "timestamp": "2026-06-15T13:51:28.073122",
+      "bootstrap": true
+    },
+    "19c051874ec26f43:ANGjdJ_0Bj8ERBAGrZGeILTwuHgZiRi2EUCZsBVcH-pgCJ748nTxFHZHpa510sLdpuQaxNuQiDmCMxln2elYaT7Wi62x6H_wj5365DcIRpOcmz5u6kxs7LG9pyPXB6FFDYp_FZUZ4-fj89lHtfglngAvUcUYc6IKrh1lMYN3Zo7Ae-8QB2kUv8krUKK5y1tXAwmxbHfdwXdtb2bQfCS8FumDDg9zBf-UkQV4daODl6BWg2blqYY5XlrCgV0cPLv8WOa2breCiNpQn-B3E6B0hf-ToDMQN8z7h0BtukKFssNGqKswITYkoJbK31Rdr-8bq6i-0RlC2ATpLXtY9ivudD-um7TCtxoqcVmCWXm5In86mpZfTtZdfPn4Q_yFROXFHNEXD0oYEsOogK9OaOE3NCje4AC-ryIwgtqdsgYyiA:z090072939100826000000be.zip": {
+      "msg_id": "19c051874ec26f43",
+      "att_id": "ANGjdJ_0Bj8ERBAGrZGeILTwuHgZiRi2EUCZsBVcH-pgCJ748nTxFHZHpa510sLdpuQaxNuQiDmCMxln2elYaT7Wi62x6H_wj5365DcIRpOcmz5u6kxs7LG9pyPXB6FFDYp_FZUZ4-fj89lHtfglngAvUcUYc6IKrh1lMYN3Zo7Ae-8QB2kUv8krUKK5y1tXAwmxbHfdwXdtb2bQfCS8FumDDg9zBf-UkQV4daODl6BWg2blqYY5XlrCgV0cPLv8WOa2breCiNpQn-B3E6B0hf-ToDMQN8z7h0BtukKFssNGqKswITYkoJbK31Rdr-8bq6i-0RlC2ATpLXtY9ivudD-um7TCtxoqcVmCWXm5In86mpZfTtZdfPn4Q_yFROXFHNEXD0oYEsOogK9OaOE3NCje4AC-ryIwgtqdsgYyiA",
+      "filename": "z090072939100826000000be.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z090072939100826000000be.zip",
+      "timestamp": "2026-06-15T13:51:28.258105",
+      "bootstrap": true
+    },
+    "19c03457a3f880c5:ANGjdJ8xpegmU7NM4CfoNvjv3-tRAwSLi0UCrCQJ2c352noKFNJBimOF05_AgaiZFPFiZStJofN9n4D9kPyQsMKUSbPd-TjYybZoy9C8lYpUgIeQMWbQXeINkNC7Icwc6GA-p2FBMPu76gUkGsglgifHIDG1AX7Xsu3CULpWowP5hAGmlDfZd0UycJo8ZMfDAfyFMIXRIwva7ai16m0lfGrSEjfbRxQrld4O6IO401gRQM_eZsLNkbEyPIr7T0hvKs6pQ2GxCrYpAZnDdxr2fTfpmmwU79BD8Hy0ypS1NNOsKaqw9pVUQHrpcXDGVpaD5FmFSKr8fupYem5YpiL_LUMOF8Vqs3Bqr_YP5r6QLckMfNjshH-Tzg8FDKE1FzeXT1NZJCv_3GS_JCcSM8r4RMyw0fVqpqKen5IJHTzCBg:z080025156905426FE58714781.zip": {
+      "msg_id": "19c03457a3f880c5",
+      "att_id": "ANGjdJ8xpegmU7NM4CfoNvjv3-tRAwSLi0UCrCQJ2c352noKFNJBimOF05_AgaiZFPFiZStJofN9n4D9kPyQsMKUSbPd-TjYybZoy9C8lYpUgIeQMWbQXeINkNC7Icwc6GA-p2FBMPu76gUkGsglgifHIDG1AX7Xsu3CULpWowP5hAGmlDfZd0UycJo8ZMfDAfyFMIXRIwva7ai16m0lfGrSEjfbRxQrld4O6IO401gRQM_eZsLNkbEyPIr7T0hvKs6pQ2GxCrYpAZnDdxr2fTfpmmwU79BD8Hy0ypS1NNOsKaqw9pVUQHrpcXDGVpaD5FmFSKr8fupYem5YpiL_LUMOF8Vqs3Bqr_YP5r6QLckMfNjshH-Tzg8FDKE1FzeXT1NZJCv_3GS_JCcSM8r4RMyw0fVqpqKen5IJHTzCBg",
+      "filename": "z080025156905426FE58714781.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE58714781.zip",
+      "timestamp": "2026-06-15T13:51:28.451905",
+      "bootstrap": true
+    },
+    "19c00e3655753542:ANGjdJ9xzx92xuizBEcktdiV3Bi4sXjFFnjVEAxq9GkU7bTXNpPb-O85Y9MCuIQVLMKszVNmfCrK3ThWNfTjrGnmUm7B5cflsDJ88GeyrqNKFZZEnCFFdVff5aemJiKdhgW4eq_sbM9UwJEq68sfi8gBLoRx7ct2NeLWfH3MOCKDmQLRZqIMM5WkIz6y58Ece8IbQM0wNyz1iMz4HujgUrvR6aGor8i65tq-xyRUWwUTZCPTf4vAXbhJnIaFE_a19mcsudOqR-QkL_Cwn7DSxxyxe8gcjHCaupJDEaVPtJWlR_RRJ0GIVfxkrla7ti0Deb38R8xhWs9zicVLVbJA02CiSmNEiwI-dyI6-PadTYIdiKPgL4xiRg83L-YlPsfAUBEIbpdqJpYHVzVjqEL2b-hjKQF48saAy5WFXitCJA:z080025156905426FE58643630.zip": {
+      "msg_id": "19c00e3655753542",
+      "att_id": "ANGjdJ9xzx92xuizBEcktdiV3Bi4sXjFFnjVEAxq9GkU7bTXNpPb-O85Y9MCuIQVLMKszVNmfCrK3ThWNfTjrGnmUm7B5cflsDJ88GeyrqNKFZZEnCFFdVff5aemJiKdhgW4eq_sbM9UwJEq68sfi8gBLoRx7ct2NeLWfH3MOCKDmQLRZqIMM5WkIz6y58Ece8IbQM0wNyz1iMz4HujgUrvR6aGor8i65tq-xyRUWwUTZCPTf4vAXbhJnIaFE_a19mcsudOqR-QkL_Cwn7DSxxyxe8gcjHCaupJDEaVPtJWlR_RRJ0GIVfxkrla7ti0Deb38R8xhWs9zicVLVbJA02CiSmNEiwI-dyI6-PadTYIdiKPgL4xiRg83L-YlPsfAUBEIbpdqJpYHVzVjqEL2b-hjKQF48saAy5WFXitCJA",
+      "filename": "z080025156905426FE58643630.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE58643630.zip",
+      "timestamp": "2026-06-15T13:51:28.629270",
+      "bootstrap": true
+    },
+    "19c009c66bab0525:ANGjdJ8Gedj5CluusPfkLf6C-jZbIG8G2kV5LjfwK7ThKJV_IXn5eLVMlfwRbu_T4lhhvk-5IOO1K8NaWUESfF0rVIMp_kYb-soiDvoGPLACEULldUM281F7DoanyAV2A3vZjFhqx3nHYaJf0-p0_iiz0xNT4SA7UQtwCOCvPiATIVl1byvC-BJBY0xAXh0yVPjovmvjE8SCbe14i9cmK_BuLyeknao9B5sWP1xz3inwjK8auLf8PQnhL-Vvb26BqIoXhbJ4j0PTZVzRdtkcaxBAlTQbZJLeAqyRhxX4OkbYbUM-tmInCiHswWcfTcGdJowuCOA_iPY8N6BHpgRHL8TYdZx0iE66TWA3cxwRs9n4uzaCYspJdU-ZTgGNYpP3UIOQ3sSunUGWfLLKcouoV2wA9m0LfeGlO9YLyQyvTQ:af539dc8-4d78-45de-b69d-292ffe670060.zip": {
+      "msg_id": "19c009c66bab0525",
+      "att_id": "ANGjdJ8Gedj5CluusPfkLf6C-jZbIG8G2kV5LjfwK7ThKJV_IXn5eLVMlfwRbu_T4lhhvk-5IOO1K8NaWUESfF0rVIMp_kYb-soiDvoGPLACEULldUM281F7DoanyAV2A3vZjFhqx3nHYaJf0-p0_iiz0xNT4SA7UQtwCOCvPiATIVl1byvC-BJBY0xAXh0yVPjovmvjE8SCbe14i9cmK_BuLyeknao9B5sWP1xz3inwjK8auLf8PQnhL-Vvb26BqIoXhbJ4j0PTZVzRdtkcaxBAlTQbZJLeAqyRhxX4OkbYbUM-tmInCiHswWcfTcGdJowuCOA_iPY8N6BHpgRHL8TYdZx0iE66TWA3cxwRs9n4uzaCYspJdU-ZTgGNYpP3UIOQ3sSunUGWfLLKcouoV2wA9m0LfeGlO9YLyQyvTQ",
+      "filename": "af539dc8-4d78-45de-b69d-292ffe670060.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/af539dc8-4d78-45de-b69d-292ffe670060.zip",
+      "timestamp": "2026-06-15T13:51:28.834534",
+      "bootstrap": true
+    },
+    "19bfce043f981f01:ANGjdJ_5-lAbJZLYlQ1Izqf8I6cMCDIgg1_3xs3tQPOBMCUExYrJgt48yuGDJw_s84_81Bjyg5o4GmecZnAuefSi_MjWJBeg6Dfk5OhvAfcUvHaJnYCS24d9ZStdk3CosWWujmXJx2vrKHDfaHKv065ZHX9zuKta6vNpZhnlpfvv3RLw1kxC7-7r-glKXh_5L44eCCBVB2r21poUq14WBVNMp3Q_sm-WWGUm6WRae-VoTXjYp2OP8OLeG2eevoc88DidHROE2IZGOssUFR-wr87l_klDaStOA5P0G0FYb9PVjdYuaoJrF_c0E6Sw9GVkNrX7PSmHs33xtMeq9lXW285DejtGjTmydGqL0zZnkeyeqCJ1YxZWo8hrcr7MLT5FYG_gdVnmvddC61H4SkLpNqP4CXy-gGSPE6B68eV8JQ:z080025156905426FE58492568.zip": {
+      "msg_id": "19bfce043f981f01",
+      "att_id": "ANGjdJ_5-lAbJZLYlQ1Izqf8I6cMCDIgg1_3xs3tQPOBMCUExYrJgt48yuGDJw_s84_81Bjyg5o4GmecZnAuefSi_MjWJBeg6Dfk5OhvAfcUvHaJnYCS24d9ZStdk3CosWWujmXJx2vrKHDfaHKv065ZHX9zuKta6vNpZhnlpfvv3RLw1kxC7-7r-glKXh_5L44eCCBVB2r21poUq14WBVNMp3Q_sm-WWGUm6WRae-VoTXjYp2OP8OLeG2eevoc88DidHROE2IZGOssUFR-wr87l_klDaStOA5P0G0FYb9PVjdYuaoJrF_c0E6Sw9GVkNrX7PSmHs33xtMeq9lXW285DejtGjTmydGqL0zZnkeyeqCJ1YxZWo8hrcr7MLT5FYG_gdVnmvddC61H4SkLpNqP4CXy-gGSPE6B68eV8JQ",
+      "filename": "z080025156905426FE58492568.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE58492568.zip",
+      "timestamp": "2026-06-15T13:51:29.019338",
+      "bootstrap": true
+    },
+    "19bf11c2ea1a0188:ANGjdJ__gCqJRfszGamZuEAs1FJkZBAenYizjctIaKRCNUMMlGai1gwzRj6oGQr2GxlRdO4NrbVWataqs-iMvlDZ3tQVGfJaHRLFjt_BgJ-n4cTmsSj3jjefLPQEotHbhB-htAMAVHg6OBcv5rhjDbr_Y0sS5SD2CYxNzMPOnUHu1tbSAXgoXoW6sjNxEnuXlBdQkyMv1po27bHYLISRxJBbZoUpcqy6IQdq0gM8vgRToJAXSW1aymxexG23RuU9necRW1t4TObfHlWnqhFT6-arEVODomc6U7Zun6q9wChQ4fJYC4qTsYPTa1olMn22ZEXGVxcqAwe_852mXCRuI9bEoRuBJC31mq0x-EoWmESi0JZaDmOP-KuuTFdZXRUiuLbzVblmdmgbIt3JrG7c:z080025156905426FE58341455.zip": {
+      "msg_id": "19bf11c2ea1a0188",
+      "att_id": "ANGjdJ__gCqJRfszGamZuEAs1FJkZBAenYizjctIaKRCNUMMlGai1gwzRj6oGQr2GxlRdO4NrbVWataqs-iMvlDZ3tQVGfJaHRLFjt_BgJ-n4cTmsSj3jjefLPQEotHbhB-htAMAVHg6OBcv5rhjDbr_Y0sS5SD2CYxNzMPOnUHu1tbSAXgoXoW6sjNxEnuXlBdQkyMv1po27bHYLISRxJBbZoUpcqy6IQdq0gM8vgRToJAXSW1aymxexG23RuU9necRW1t4TObfHlWnqhFT6-arEVODomc6U7Zun6q9wChQ4fJYC4qTsYPTa1olMn22ZEXGVxcqAwe_852mXCRuI9bEoRuBJC31mq0x-EoWmESi0JZaDmOP-KuuTFdZXRUiuLbzVblmdmgbIt3JrG7c",
+      "filename": "z080025156905426FE58341455.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE58341455.zip",
+      "timestamp": "2026-06-15T13:51:29.211082",
+      "bootstrap": true
+    },
+    "19bed973f7611820:ANGjdJ9vvVo9C74R2kL4cb8JBPXXbnv560UKk-slHJSQK-WSmCU2VPHJBhHqpqCMWm4rphWWBu7pAHZrANhxL6-IOhoWqnGagVUZUgZCe_aOTAnHYr9R5j2211K0wsBbcHoLsSSiXKIuy4gIY2CGTm1DIOc6UavlMQgwbU8dGMFXZgt2_Oz0TYpTn4OFEixTmdGojD6mBlB3uTLITaICx7hIaoMbKVpIxIC1itJPUTFs-5XrpqJDj0kcwN-inna_vyM2oc_A1Ka7D5t57DrAS1oA17Vqunek5ve9dx4HG8wRQcmgtZsj1QmGCnauCRwqHk2jCbf8rU3MnWx2TyjJGRHj3k_jeRDTg4H1tRCiJUYS4I-ZW2iqShBypUlFA4D1zJxpK8ePGMGmt1EArW_lHkIeWQqZicP1mvlpThaizQ:z080025156905426FE58304612.zip": {
+      "msg_id": "19bed973f7611820",
+      "att_id": "ANGjdJ9vvVo9C74R2kL4cb8JBPXXbnv560UKk-slHJSQK-WSmCU2VPHJBhHqpqCMWm4rphWWBu7pAHZrANhxL6-IOhoWqnGagVUZUgZCe_aOTAnHYr9R5j2211K0wsBbcHoLsSSiXKIuy4gIY2CGTm1DIOc6UavlMQgwbU8dGMFXZgt2_Oz0TYpTn4OFEixTmdGojD6mBlB3uTLITaICx7hIaoMbKVpIxIC1itJPUTFs-5XrpqJDj0kcwN-inna_vyM2oc_A1Ka7D5t57DrAS1oA17Vqunek5ve9dx4HG8wRQcmgtZsj1QmGCnauCRwqHk2jCbf8rU3MnWx2TyjJGRHj3k_jeRDTg4H1tRCiJUYS4I-ZW2iqShBypUlFA4D1zJxpK8ePGMGmt1EArW_lHkIeWQqZicP1mvlpThaizQ",
+      "filename": "z080025156905426FE58304612.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE58304612.zip",
+      "timestamp": "2026-06-15T13:51:29.396389",
+      "bootstrap": true
+    },
+    "19bec4dcf6caca00:ANGjdJ8A9RGT8iBJNwbcyd1TkE0b0i2uBKtT1z4Kx4-x2NsOx_3wk9Bs4t2Gm4s46fXRIyP5oeUFzeT-7-B3Dv30MpBnoAyedGz14cMBBcXhsWTioYNg2w_e5R9nDKZA9s3MBzfmfa1Ca4-HPNvfcQAmkTrytUs9EsOxjI90F4yZo5fRqL009YISvukRHuM6haUTX44ExrEG_FpLSD8VwIqvP2XK9Hqs0QYJYE2Ll02TaEKdoPigSFqiknZflYgtfW_UvE2xGWNUTUrzya0y5nxSpzDltEgaMcqWEq1scnALWHlhXNM5EvjTcv-jNmyABKXCXCAR2lSdR8V4rV2BP6dp_lJVxLR4tb1BEhbYDKLd6a5kXcFwtI0Qz-UkAHpXZHMjb3XgaYmyF6PUAt8g0c6quXLwHAn1_iouWlvd2w:z080025156905426FE58264355.zip": {
+      "msg_id": "19bec4dcf6caca00",
+      "att_id": "ANGjdJ8A9RGT8iBJNwbcyd1TkE0b0i2uBKtT1z4Kx4-x2NsOx_3wk9Bs4t2Gm4s46fXRIyP5oeUFzeT-7-B3Dv30MpBnoAyedGz14cMBBcXhsWTioYNg2w_e5R9nDKZA9s3MBzfmfa1Ca4-HPNvfcQAmkTrytUs9EsOxjI90F4yZo5fRqL009YISvukRHuM6haUTX44ExrEG_FpLSD8VwIqvP2XK9Hqs0QYJYE2Ll02TaEKdoPigSFqiknZflYgtfW_UvE2xGWNUTUrzya0y5nxSpzDltEgaMcqWEq1scnALWHlhXNM5EvjTcv-jNmyABKXCXCAR2lSdR8V4rV2BP6dp_lJVxLR4tb1BEhbYDKLd6a5kXcFwtI0Qz-UkAHpXZHMjb3XgaYmyF6PUAt8g0c6quXLwHAn1_iouWlvd2w",
+      "filename": "z080025156905426FE58264355.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE58264355.zip",
+      "timestamp": "2026-06-15T13:51:29.577549",
+      "bootstrap": true
+    },
+    "19beafd3af6b27bf:ANGjdJ8wOSqqUujf0r92DKRgqgSBggBh1mMUoq2q8gkBQZ5NT2lqCkOKdeYOfFLUcQTr_DnJdiFfHOfu-ieXf1YkpgcGprxypoTCMMAUKJQ2r90g36tzCaIpBpdUnxGRl3DFJNmqRLYei6CvzTRE2w4H7o1To7vzbq5mjS26kzLMoqPF2EWhjXAjP_bkjlbW71qQqFlrcnIINS3Z_VX_4KkDiQhwpntEnHR4oOFyWNDqejpxq_1uh6ffT9_MdpX5pcDX0ewcWb8Rg9TJE6S4aVKj_ooAe7TPixofqGeV_oUZVlcCplhu0tIJVXBCt4b1x3MI-O_NF8ChoQ6FOzkEuF56GTVRWoeVftDnGPDP-hysFgWXb6qFe3F0MMkSkdJ3j3k_N2-XCHQf3g1FK7j8:z08001372240002600265489.zip": {
+      "msg_id": "19beafd3af6b27bf",
+      "att_id": "ANGjdJ8wOSqqUujf0r92DKRgqgSBggBh1mMUoq2q8gkBQZ5NT2lqCkOKdeYOfFLUcQTr_DnJdiFfHOfu-ieXf1YkpgcGprxypoTCMMAUKJQ2r90g36tzCaIpBpdUnxGRl3DFJNmqRLYei6CvzTRE2w4H7o1To7vzbq5mjS26kzLMoqPF2EWhjXAjP_bkjlbW71qQqFlrcnIINS3Z_VX_4KkDiQhwpntEnHR4oOFyWNDqejpxq_1uh6ffT9_MdpX5pcDX0ewcWb8Rg9TJE6S4aVKj_ooAe7TPixofqGeV_oUZVlcCplhu0tIJVXBCt4b1x3MI-O_NF8ChoQ6FOzkEuF56GTVRWoeVftDnGPDP-hysFgWXb6qFe3F0MMkSkdJ3j3k_N2-XCHQf3g1FK7j8",
+      "filename": "z08001372240002600265489.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600265489.zip",
+      "timestamp": "2026-06-15T13:51:29.779558",
+      "bootstrap": true
+    },
+    "19beafd0299dc42b:ANGjdJ9To671aSyYMFTYjXsAJ1Unmy61hwFoLrIZQYwmoOsbwjNZrUoDv9eJ1h8iyzkH2vVuJdUMEc5wtHJm9rsj-AxgWNbHVYtxf01JpbcZUxZW21G_psold-jlZiS3UK4mNLhQ0RdjYr9aZfdnMCg13WxrnjIG0m4LGC7mFhkV93qzExTtvDDqGohqmjhKB7eLSNa9ymGFOV_QgU3uxGD9w7tBztF6jZE7bODOmsUpkJ2Mg5C5Uk2tV2D-LSSEDsxVDqXWvxmI9IvG40vIAgTdrfryfuTXTCyLiYhWLXfLTlIj746AOySuZfd4CIFO95LqgemJQPlyr0SDVEXKEWzj2Ho1p_otH0UZ7HafGQr_x_tYN3iU6ghxnfcrZrI30DarDXzmWdxfkQx3HRqr:z08001372240002600265488.zip": {
+      "msg_id": "19beafd0299dc42b",
+      "att_id": "ANGjdJ9To671aSyYMFTYjXsAJ1Unmy61hwFoLrIZQYwmoOsbwjNZrUoDv9eJ1h8iyzkH2vVuJdUMEc5wtHJm9rsj-AxgWNbHVYtxf01JpbcZUxZW21G_psold-jlZiS3UK4mNLhQ0RdjYr9aZfdnMCg13WxrnjIG0m4LGC7mFhkV93qzExTtvDDqGohqmjhKB7eLSNa9ymGFOV_QgU3uxGD9w7tBztF6jZE7bODOmsUpkJ2Mg5C5Uk2tV2D-LSSEDsxVDqXWvxmI9IvG40vIAgTdrfryfuTXTCyLiYhWLXfLTlIj746AOySuZfd4CIFO95LqgemJQPlyr0SDVEXKEWzj2Ho1p_otH0UZ7HafGQr_x_tYN3iU6ghxnfcrZrI30DarDXzmWdxfkQx3HRqr",
+      "filename": "z08001372240002600265488.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600265488.zip",
+      "timestamp": "2026-06-15T13:51:29.980995",
+      "bootstrap": true
+    },
+    "19be22ffdebf5ae9:ANGjdJ_gx14R_VpXn-x7W7rtVhXFPOLQECPU_Tv16BMz0MY7GQGqYIFWRogVzi8UTA1Ufg5mFb0GGSeighvq_Z-bCOsAum7fQcDu54JicDt0dXH9JEWvd3CglFMo7xygW6HiKSF8Vp0Y22aNVhLDs1_QyILaHOkdLQSAd6yhpqOSni-8z_RaoAapUkkK1ESM-zJmYWtEGHCr7GP2JqY4r94Nva6mZAuR0c9VgjIykOgMXpjY2py0So6McoZEnOGYolCvLEv9v90Wj0ngXqGnHrQAg2wBrnIuR80poFttMkruPBam-mU7VguaqcayeJmN-98Z5hPB1mFKl-Q1t8aqIAXqR6sskfctIl7H3uIQL9Rndpb62Pl4X96SO3_zyS2H9_5ZvBF5HoER7pPWzXruxHTN72z_dKXSl3XTd_5Ruw:ad08000778280002600001158.zip": {
+      "msg_id": "19be22ffdebf5ae9",
+      "att_id": "ANGjdJ_gx14R_VpXn-x7W7rtVhXFPOLQECPU_Tv16BMz0MY7GQGqYIFWRogVzi8UTA1Ufg5mFb0GGSeighvq_Z-bCOsAum7fQcDu54JicDt0dXH9JEWvd3CglFMo7xygW6HiKSF8Vp0Y22aNVhLDs1_QyILaHOkdLQSAd6yhpqOSni-8z_RaoAapUkkK1ESM-zJmYWtEGHCr7GP2JqY4r94Nva6mZAuR0c9VgjIykOgMXpjY2py0So6McoZEnOGYolCvLEv9v90Wj0ngXqGnHrQAg2wBrnIuR80poFttMkruPBam-mU7VguaqcayeJmN-98Z5hPB1mFKl-Q1t8aqIAXqR6sskfctIl7H3uIQL9Rndpb62Pl4X96SO3_zyS2H9_5ZvBF5HoER7pPWzXruxHTN72z_dKXSl3XTd_5Ruw",
+      "filename": "ad08000778280002600001158.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/ad08000778280002600001158.zip",
+      "timestamp": "2026-06-15T13:51:30.167291",
+      "bootstrap": true
+    },
+    "19be221dd4b5fe39:ANGjdJ8edt18ZOVP4dOtLX8UFRoDzC0g74T6qyLUAfo3HQ0N_yVI_EwEeHzzTUwZVoDQ-KQ2NFqQsYMaQllL7kZ09f8ZlFS3JKzSm-Vp9M46l7TZhjnsSRIgq_Qw_PCP1mdP-KFXOpq13yx-LL7K4o1tW1ki0e8IKDl34BWhONBcuncjgm1t5EtfWSmsZo5Xzp1mk3Kugq_4MLwWvONjnCpsUXYZb0DO_xesA0RBTNSHT6mKXVvwvwSHTcvclj02hOD96eDASU4KJBzFogotT7YHGeBIM8y-1X-V9LdBbUD94cvV__eWmgOLDDQK-66633lsqsiqryCO_nlfU_DKtX2OUickr2WTPuwc7FjBDO0osUVMmakSwtKXf-5e3S1F8QAmex8ZRRBtSdDqJJWuTXC7YzZWaRkzlK9g2J3dxA:z080025156905426FE58092368.zip": {
+      "msg_id": "19be221dd4b5fe39",
+      "att_id": "ANGjdJ8edt18ZOVP4dOtLX8UFRoDzC0g74T6qyLUAfo3HQ0N_yVI_EwEeHzzTUwZVoDQ-KQ2NFqQsYMaQllL7kZ09f8ZlFS3JKzSm-Vp9M46l7TZhjnsSRIgq_Qw_PCP1mdP-KFXOpq13yx-LL7K4o1tW1ki0e8IKDl34BWhONBcuncjgm1t5EtfWSmsZo5Xzp1mk3Kugq_4MLwWvONjnCpsUXYZb0DO_xesA0RBTNSHT6mKXVvwvwSHTcvclj02hOD96eDASU4KJBzFogotT7YHGeBIM8y-1X-V9LdBbUD94cvV__eWmgOLDDQK-66633lsqsiqryCO_nlfU_DKtX2OUickr2WTPuwc7FjBDO0osUVMmakSwtKXf-5e3S1F8QAmex8ZRRBtSdDqJJWuTXC7YzZWaRkzlK9g2J3dxA",
+      "filename": "z080025156905426FE58092368.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE58092368.zip",
+      "timestamp": "2026-06-15T13:51:30.338274",
+      "bootstrap": true
+    },
+    "19bd7b8ecea154a7:ANGjdJ8NQxo8dzF-LpjdSZVkX00pPrTS-Z0wnMU_ZxlWtXPMmLg3phwNe8brbyOswG2wWz7ziJKwjkP0NHZ9PegQqmURhob0o1UoiqQQreTrNKkGeWs7TQ5QrFLJTa7f7tIRwbJ3I_Zk6olxEJsYFNddDrFUXbn5815c6I-3Dkxc2J1heoUN0382foZSnzoviAP2LL7Nrr6s42qo7y-I8aR8K0oXmGl0MoGR_ttqP3XP9WByBagvuBgLn0q1NBgsWUV7YCHtV8rBWUxIXJeWIYR2kUrtDthqXPwz3vjJ6DQWBGKMAk5ZwVPiLfcXKgbCeTXq1NtaY541-706f6JdyUqQVlDk7DghvaRlIQcaJAYNGYQ66TSGMppPiqf8vJxs4XbHF3usDQ3Mi8j8F87mdge3kkPZY0hemC3EFAoLog:z080025156905426FE57908725.zip": {
+      "msg_id": "19bd7b8ecea154a7",
+      "att_id": "ANGjdJ8NQxo8dzF-LpjdSZVkX00pPrTS-Z0wnMU_ZxlWtXPMmLg3phwNe8brbyOswG2wWz7ziJKwjkP0NHZ9PegQqmURhob0o1UoiqQQreTrNKkGeWs7TQ5QrFLJTa7f7tIRwbJ3I_Zk6olxEJsYFNddDrFUXbn5815c6I-3Dkxc2J1heoUN0382foZSnzoviAP2LL7Nrr6s42qo7y-I8aR8K0oXmGl0MoGR_ttqP3XP9WByBagvuBgLn0q1NBgsWUV7YCHtV8rBWUxIXJeWIYR2kUrtDthqXPwz3vjJ6DQWBGKMAk5ZwVPiLfcXKgbCeTXq1NtaY541-706f6JdyUqQVlDk7DghvaRlIQcaJAYNGYQ66TSGMppPiqf8vJxs4XbHF3usDQ3Mi8j8F87mdge3kkPZY0hemC3EFAoLog",
+      "filename": "z080025156905426FE57908725.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57908725.zip",
+      "timestamp": "2026-06-15T13:51:30.515695",
+      "bootstrap": true
+    },
+    "19bce31a7e59b75b:ANGjdJ-L3qY1Sltw712EDirZJJJ2ZV9qpBqMstHZZ5KoAavZAnC71CMnX1Exayov3TcxxkExMV05lBiiIjMPgsOa48GxMwI3AaXEiMr6D94DM0_F_g2BkgNi1Iv4pcrNzaq95jp3PMktHZC6JFlWHtNB3Aau9V8dI-oHeuJeZCe5rvTaXc1ZQMarIMqvzXmFU4Gj2wtNCrXQRUjCQq3leDOkAp0aYMVIuNz8zgONtJBNuL9a-LHw5O4OnxSF9ca0hgazz4At0xBjpZNYh5YVVIYRZirOVD552SFBZhh86cDgftKPnql90WJefH-4-NtVzuB9G80VPtMR_TW8nAwOaDHamRLKqXOlWIB-QqRzPuG3hA_qmgFBYNhknGYbIBxoD2f5XYmLtbHvEXV6-_Xw:0800242106021261004100339835.zip": {
+      "msg_id": "19bce31a7e59b75b",
+      "att_id": "ANGjdJ-L3qY1Sltw712EDirZJJJ2ZV9qpBqMstHZZ5KoAavZAnC71CMnX1Exayov3TcxxkExMV05lBiiIjMPgsOa48GxMwI3AaXEiMr6D94DM0_F_g2BkgNi1Iv4pcrNzaq95jp3PMktHZC6JFlWHtNB3Aau9V8dI-oHeuJeZCe5rvTaXc1ZQMarIMqvzXmFU4Gj2wtNCrXQRUjCQq3leDOkAp0aYMVIuNz8zgONtJBNuL9a-LHw5O4OnxSF9ca0hgazz4At0xBjpZNYh5YVVIYRZirOVD552SFBZhh86cDgftKPnql90WJefH-4-NtVzuB9G80VPtMR_TW8nAwOaDHamRLKqXOlWIB-QqRzPuG3hA_qmgFBYNhknGYbIBxoD2f5XYmLtbHvEXV6-_Xw",
+      "filename": "0800242106021261004100339835.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/0800242106021261004100339835.zip",
+      "timestamp": "2026-06-15T13:51:30.724366",
+      "bootstrap": true
+    },
+    "19bcd0db73568691:ANGjdJ-zShjCsHC74TxkTXSJmleiIImtjPls6K64WCzbjde6BKGniWgYSkFlZ_jodws-mIx3AQ5bcLTymEQEBTb4AKxRNNaxU2wsr3zhw0Qd8Owh3QWQA5cocT_cCcsXX3sZV-PvNIG-aFl14lQYt_LMN7XLf9gMcChCR8Gt7Kdz294wzsBEc1RpwFDVeyH2BnZv7lRRld8pex2OqyCDWdP6A63p9Vlu1AhmSjLXLReX_nFHvkv3XYHia9pEGc46sJInpjxH6SGZfjK82iFdJDzxoGpps_GVlvySvZr9nyxntHdnmBPhhZtf0UL96ihAPmv5I9wjmO85usTTgeugbNwPon3BkudUe5XYZQtZAyJK1TUAgaxCy4S_JsfikFqAFfPV1kYOuoMKCfdLcO0wdSP4XhdDXXU98F6VMTneGw:z080025156905426FE57776450.zip": {
+      "msg_id": "19bcd0db73568691",
+      "att_id": "ANGjdJ-zShjCsHC74TxkTXSJmleiIImtjPls6K64WCzbjde6BKGniWgYSkFlZ_jodws-mIx3AQ5bcLTymEQEBTb4AKxRNNaxU2wsr3zhw0Qd8Owh3QWQA5cocT_cCcsXX3sZV-PvNIG-aFl14lQYt_LMN7XLf9gMcChCR8Gt7Kdz294wzsBEc1RpwFDVeyH2BnZv7lRRld8pex2OqyCDWdP6A63p9Vlu1AhmSjLXLReX_nFHvkv3XYHia9pEGc46sJInpjxH6SGZfjK82iFdJDzxoGpps_GVlvySvZr9nyxntHdnmBPhhZtf0UL96ihAPmv5I9wjmO85usTTgeugbNwPon3BkudUe5XYZQtZAyJK1TUAgaxCy4S_JsfikFqAFfPV1kYOuoMKCfdLcO0wdSP4XhdDXXU98F6VMTneGw",
+      "filename": "z080025156905426FE57776450.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57776450.zip",
+      "timestamp": "2026-06-15T13:51:30.921694",
+      "bootstrap": true
+    },
+    "19bccd443cb7082a:ANGjdJ-Koyv2OXjis1s-Mg5vwdY86F9OqabVi0-7SNoJaHb6Kqcn9VHe0ETEEmPd8eDXmvKO-mA3NoQ3dPJIM7LOClT5X0o68vjJmV5Augimfj-IcHk3r_JTexnF30olQIJS7XZPQ2XSh_cIvbcYHDJ8ie_AXBpdWW5tdcVPnDAU0IsNi27PfMwx2nFit2LP3B2auuqg2OcEYtOHupSy1EybXH9MeiX5Q5mYglWj5xAuxKfnkqqwEtHvndMj_bsyWZFNd32FZDHRyOFfkif-UGbsaR4fvR9t3k7tPiYzWi7C2UX0ONhBRSM3PPn7V-Brag3c27z8se5hN090j_oIm8htA9t3ECSP3s1p4LmcPjdwqZqWECj6cjGdqPNXuOWCMBWLWXNdlLtuDcpJ-X0FCjLCHsC82vmF_CcbgFIjvA:z080025156905426FE57760527.zip": {
+      "msg_id": "19bccd443cb7082a",
+      "att_id": "ANGjdJ-Koyv2OXjis1s-Mg5vwdY86F9OqabVi0-7SNoJaHb6Kqcn9VHe0ETEEmPd8eDXmvKO-mA3NoQ3dPJIM7LOClT5X0o68vjJmV5Augimfj-IcHk3r_JTexnF30olQIJS7XZPQ2XSh_cIvbcYHDJ8ie_AXBpdWW5tdcVPnDAU0IsNi27PfMwx2nFit2LP3B2auuqg2OcEYtOHupSy1EybXH9MeiX5Q5mYglWj5xAuxKfnkqqwEtHvndMj_bsyWZFNd32FZDHRyOFfkif-UGbsaR4fvR9t3k7tPiYzWi7C2UX0ONhBRSM3PPn7V-Brag3c27z8se5hN090j_oIm8htA9t3ECSP3s1p4LmcPjdwqZqWECj6cjGdqPNXuOWCMBWLWXNdlLtuDcpJ-X0FCjLCHsC82vmF_CcbgFIjvA",
+      "filename": "z080025156905426FE57760527.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57760527.zip",
+      "timestamp": "2026-06-15T13:51:31.136629",
+      "bootstrap": true
+    },
+    "19bc88cca7543f0d:ANGjdJ_-zyz-5Fzm4iSkh-ulJafup59k4XbWYK3Di419TIcdRI9kyOY0lb6yQXRhH8EcVQ-1W_4NnYGzM2YQ61aWQeQWqbBXJD5lV5jJ_l5Hbx4XuVQAZEtUCNs7LTbtEkyg9FZrZFUV88gITzDaeiWU-lNzTs3dJCVUTNG4gAIWVprUPXYYM5SXX9pRSiDlYftU8lz9SCU43c5fZJifFd3kw9WDYLrqpv71Wo5NfBVZGGyXeiv2-dwTSWSObTqqmJ48KcFDqSWkizxjHKb3PzL-Xgr9CXxL3oWF_5SJTIaE_ZFuoZUUbKcwfGVXm3kqZ7BMbB9jSCmIIRfV2xijDROYmyAOmkxyBatO8miqg2Mqw6UI3C21EVepnwZ5RVNm-iPcYK9doEyE0i_DIU4VX1DbSaprYIoCrx5r25Zidw:z08300624410082600000179.zip": {
+      "msg_id": "19bc88cca7543f0d",
+      "att_id": "ANGjdJ_-zyz-5Fzm4iSkh-ulJafup59k4XbWYK3Di419TIcdRI9kyOY0lb6yQXRhH8EcVQ-1W_4NnYGzM2YQ61aWQeQWqbBXJD5lV5jJ_l5Hbx4XuVQAZEtUCNs7LTbtEkyg9FZrZFUV88gITzDaeiWU-lNzTs3dJCVUTNG4gAIWVprUPXYYM5SXX9pRSiDlYftU8lz9SCU43c5fZJifFd3kw9WDYLrqpv71Wo5NfBVZGGyXeiv2-dwTSWSObTqqmJ48KcFDqSWkizxjHKb3PzL-Xgr9CXxL3oWF_5SJTIaE_ZFuoZUUbKcwfGVXm3kqZ7BMbB9jSCmIIRfV2xijDROYmyAOmkxyBatO8miqg2Mqw6UI3C21EVepnwZ5RVNm-iPcYK9doEyE0i_DIU4VX1DbSaprYIoCrx5r25Zidw",
+      "filename": "z08300624410082600000179.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08300624410082600000179.zip",
+      "timestamp": "2026-06-15T13:51:31.342083",
+      "bootstrap": true
+    },
+    "19bc8450969afeb4:ANGjdJ-u3hMt1UI5xmm8MWizQkDUVGVgojc67I-YbDMJ2kiuW-NmuAngEvSCq32LA4MuvOC4fqNEwFzQKITomu-bFAdJ2jJB2x0P5wtTXjku0jV-P_z_CXADA-LW9zdMcBy7le1_IAnJcEv6TEd3X5ESUBz9eLFXLLo5b9q2TR2x8C_7kLURweUSh7-FQ3HPmZhj_2vYIaVRAROXwdxJ5hYYMxx7oA87yiBss9dCtMPY2S7-Yzxn1TvKfQTcMxSBfuhR-bIw5WluoXJb6h-t3m9T_p3l1SWGewNZlz77sGD7nenp1dZrrZ9UpMTFhWdDqDA8NvfevFZ6DV8fG_hjy6jDizfaElRvv_CAVmm7vO2Ob_8-u0SrpCeFBpyjtuvWRVDNlt0S1KEEXUsrQEAGd4HRGhcJT4PFHHvJQp1sGA:z080025156905426FE57573344.zip": {
+      "msg_id": "19bc8450969afeb4",
+      "att_id": "ANGjdJ-u3hMt1UI5xmm8MWizQkDUVGVgojc67I-YbDMJ2kiuW-NmuAngEvSCq32LA4MuvOC4fqNEwFzQKITomu-bFAdJ2jJB2x0P5wtTXjku0jV-P_z_CXADA-LW9zdMcBy7le1_IAnJcEv6TEd3X5ESUBz9eLFXLLo5b9q2TR2x8C_7kLURweUSh7-FQ3HPmZhj_2vYIaVRAROXwdxJ5hYYMxx7oA87yiBss9dCtMPY2S7-Yzxn1TvKfQTcMxSBfuhR-bIw5WluoXJb6h-t3m9T_p3l1SWGewNZlz77sGD7nenp1dZrrZ9UpMTFhWdDqDA8NvfevFZ6DV8fG_hjy6jDizfaElRvv_CAVmm7vO2Ob_8-u0SrpCeFBpyjtuvWRVDNlt0S1KEEXUsrQEAGd4HRGhcJT4PFHHvJQp1sGA",
+      "filename": "z080025156905426FE57573344.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57573344.zip",
+      "timestamp": "2026-06-15T13:51:31.546464",
+      "bootstrap": true
+    },
+    "19bc8376b42be4a6:ANGjdJ_mlecmyIbndbBjT9j9joIU9nV17og5FluIdwdL5bXArDuqx2oolNFMJM4Aj28YWCFFANSgVmgN00_0VeusI5rNAaNZV0hG3fIfrbVDgqKSAprOevXEMKLo2JW6BY9KydMSlzr-hrNM4KbktAVGmw329KTDNXkagBi6Wi7Z4_QsTZvzcN0HAWlou3oI0dys0Q8-JdNADeO7NdC-xjSxh6d5aZyXOELoRUNl7LjAXDudB9i55YzA_LxluHWsH6aClonUihK44BPdE1qdi-CjwHGU-pIBR1vnuN9_9tXre-h0qF6xg5HjHAZ61sQVZnSbwI1SwrWYzXiB5aoyQVzcYmBgyv6ntof3oDSWaJtuWYos260M_99EsJcQXmrH0ZFl9ELsZUDjmln0buTiGEaxMoW2Qt4nQIMLSC72Jg:z080025156905426FE57570926.zip": {
+      "msg_id": "19bc8376b42be4a6",
+      "att_id": "ANGjdJ_mlecmyIbndbBjT9j9joIU9nV17og5FluIdwdL5bXArDuqx2oolNFMJM4Aj28YWCFFANSgVmgN00_0VeusI5rNAaNZV0hG3fIfrbVDgqKSAprOevXEMKLo2JW6BY9KydMSlzr-hrNM4KbktAVGmw329KTDNXkagBi6Wi7Z4_QsTZvzcN0HAWlou3oI0dys0Q8-JdNADeO7NdC-xjSxh6d5aZyXOELoRUNl7LjAXDudB9i55YzA_LxluHWsH6aClonUihK44BPdE1qdi-CjwHGU-pIBR1vnuN9_9tXre-h0qF6xg5HjHAZ61sQVZnSbwI1SwrWYzXiB5aoyQVzcYmBgyv6ntof3oDSWaJtuWYos260M_99EsJcQXmrH0ZFl9ELsZUDjmln0buTiGEaxMoW2Qt4nQIMLSC72Jg",
+      "filename": "z080025156905426FE57570926.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57570926.zip",
+      "timestamp": "2026-06-15T13:51:31.739175",
+      "bootstrap": true
+    },
+    "19bc3767a886ac8d:ANGjdJ9hlX2EDwR-qMDnn0Z_JWxpcKPL-vFpMguYnEbSuD4nhmysyn9Jgr_p4UXVm2VQOlpEjOkP5f4DkTlDXms6XeyTKkMsVF96HY4vGo-mbIA4RP9oVB4osGK0SJUGwUaWRJBPBXM5MJRoKPDfvEn9AGJNIOpiiggex3dprfdsDfEdeFOeMuiCYxiNbSjbyWsm05gz2V-XYWYtJIOqN4MjuHabez4zYgjm55_MIvBuFAbmxz4liw1C_xMSzmhbiAvF0yCW9ENIRI1VUMD5EKvP4KweFSLXEc7cXNRsLDB_fwa3McUixmWcKwOyrcuCz_YNs9xj5OeTSegz3WbIIsCT-eoIumKH-801TTp1X6m4UX4h4G-H3oOy-IiUUQFLONppAFTJWgtkVLwtKNMaQCS_oAQaXaex-oFeYCebDQ:z08300624410082600000149.zip": {
+      "msg_id": "19bc3767a886ac8d",
+      "att_id": "ANGjdJ9hlX2EDwR-qMDnn0Z_JWxpcKPL-vFpMguYnEbSuD4nhmysyn9Jgr_p4UXVm2VQOlpEjOkP5f4DkTlDXms6XeyTKkMsVF96HY4vGo-mbIA4RP9oVB4osGK0SJUGwUaWRJBPBXM5MJRoKPDfvEn9AGJNIOpiiggex3dprfdsDfEdeFOeMuiCYxiNbSjbyWsm05gz2V-XYWYtJIOqN4MjuHabez4zYgjm55_MIvBuFAbmxz4liw1C_xMSzmhbiAvF0yCW9ENIRI1VUMD5EKvP4KweFSLXEc7cXNRsLDB_fwa3McUixmWcKwOyrcuCz_YNs9xj5OeTSegz3WbIIsCT-eoIumKH-801TTp1X6m4UX4h4G-H3oOy-IiUUQFLONppAFTJWgtkVLwtKNMaQCS_oAQaXaex-oFeYCebDQ",
+      "filename": "z08300624410082600000149.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08300624410082600000149.zip",
+      "timestamp": "2026-06-15T13:51:31.914967",
+      "bootstrap": true
+    },
+    "19bc375a7aaff9cf:ANGjdJ-qJT4kuJVkD84AFDt7gmh1krRwtExYqM3w4KXYKyHugHu-NkniPVhBkRc5KjX8e0j39wSQnQ4pD8UKk13a8L4zr8Bx8NqMyRV33uUvrC2o-s1tTd9aAIbC-cDL34SyvsmmGfBFh8XFBJV796bmhqbXbcwbqzjiq_zrucP1N19HnF5LnhiOQxttzNwoWc_4ml8LJmMwb5F2FZ8BOHd7WKLvRCFjDwTgwGeSE9CMiRQSKyXSVkSKlvT4e8cqe5Xult4HNtXyuGNVDwS2C4kt64kSSDoRjPTob0UNw6JoBeh4EQrOFsABrJ5IBbL9vZhSwyg_M8TOah0JkX7Wx0dZIaOBzZeSUs6xusvffbRd8gKdQkajt13lGDeFM2FecuPsNtziyo9eaLzCZi5DGRctSpSqX9Tz8N1RdBkeUg:z08300624410082600000141.zip": {
+      "msg_id": "19bc375a7aaff9cf",
+      "att_id": "ANGjdJ-qJT4kuJVkD84AFDt7gmh1krRwtExYqM3w4KXYKyHugHu-NkniPVhBkRc5KjX8e0j39wSQnQ4pD8UKk13a8L4zr8Bx8NqMyRV33uUvrC2o-s1tTd9aAIbC-cDL34SyvsmmGfBFh8XFBJV796bmhqbXbcwbqzjiq_zrucP1N19HnF5LnhiOQxttzNwoWc_4ml8LJmMwb5F2FZ8BOHd7WKLvRCFjDwTgwGeSE9CMiRQSKyXSVkSKlvT4e8cqe5Xult4HNtXyuGNVDwS2C4kt64kSSDoRjPTob0UNw6JoBeh4EQrOFsABrJ5IBbL9vZhSwyg_M8TOah0JkX7Wx0dZIaOBzZeSUs6xusvffbRd8gKdQkajt13lGDeFM2FecuPsNtziyo9eaLzCZi5DGRctSpSqX9Tz8N1RdBkeUg",
+      "filename": "z08300624410082600000141.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08300624410082600000141.zip",
+      "timestamp": "2026-06-15T13:51:32.109442",
+      "bootstrap": true
+    },
+    "19bc22049dd3ab6d:ANGjdJ_1FsmVeGJLHKbVtvxUx0MllQVcO60O_RCfE2lyN5T5-h5P0KGiyo6Zd3cfGec2YE6TCFi3-0yvTwibWVeDdwvUkqwi4lX839mh7UkxuIV_3vAeP0dtU0OlwiJD3yEK4wXHYS6cc3-gs2I2ae4LQ0va1UAcEcS6k8nD34PcOxZUZHtYBVuBL2d2-M4UXpln8IN-egNrEaCRpFZftA0eSnAutWmhwqzpcnXtNuzlSIU4tlI61FSc5NjN7eCQhOnDasWrnPhH3v0CCW_LzSn3HMbCBzvp6bz9peY1uWfWOgeQaoLZ5h3zipeQPX4A-9PIyDjon8nWjt-tseQHdeJC5hDFfP9q02qKqVY8f3iAS6a3MKVTsF7W8_vC4LC5t5op_DKDhNRu3w-HSg2_rife_jVbJ8PuDhDg6P60gA:z080025156905426FE57483708.zip": {
+      "msg_id": "19bc22049dd3ab6d",
+      "att_id": "ANGjdJ_1FsmVeGJLHKbVtvxUx0MllQVcO60O_RCfE2lyN5T5-h5P0KGiyo6Zd3cfGec2YE6TCFi3-0yvTwibWVeDdwvUkqwi4lX839mh7UkxuIV_3vAeP0dtU0OlwiJD3yEK4wXHYS6cc3-gs2I2ae4LQ0va1UAcEcS6k8nD34PcOxZUZHtYBVuBL2d2-M4UXpln8IN-egNrEaCRpFZftA0eSnAutWmhwqzpcnXtNuzlSIU4tlI61FSc5NjN7eCQhOnDasWrnPhH3v0CCW_LzSn3HMbCBzvp6bz9peY1uWfWOgeQaoLZ5h3zipeQPX4A-9PIyDjon8nWjt-tseQHdeJC5hDFfP9q02qKqVY8f3iAS6a3MKVTsF7W8_vC4LC5t5op_DKDhNRu3w-HSg2_rife_jVbJ8PuDhDg6P60gA",
+      "filename": "z080025156905426FE57483708.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57483708.zip",
+      "timestamp": "2026-06-15T13:51:32.296392",
+      "bootstrap": true
+    },
+    "19bbec6316887566:ANGjdJ9jwqCYMdV5ESfnSvfvmyJX3Q0Vh-OamGryCn07vR7eH_ldUYqLSKY6xEKAm2M6seStJHhsO4cVLzb2-t9ULDb4u3NRceZy9yrTY3t64zMKwnEW18HnfG-SOrT_Q1_b97SQ2ljUGNR6DnkD29hV-3GehFgUhLespDLOsEHYQ5U6qCkL8QuX4Qj7tr3TU6rrBDtrbrpVvWbFUyWWTuz-XwIiv1j_Z1Rd9iVIuGdoSrNoVY8Fp0G5Vdgzs8nOhMendOf5eo5Co4Zb-DQcF4piZlBdBNmAsOF7MqpnhINV3skDbfSXUXdoft04Hn5rdWw8X5PXOGrT2mXl3RezlhTN6nAwsQotEkvhTWmKAgnufm1WYvT6WnA9bEwgMLpo_IWmE-SkxzGLzf72LTeV:0800242106021261014100256238.zip": {
+      "msg_id": "19bbec6316887566",
+      "att_id": "ANGjdJ9jwqCYMdV5ESfnSvfvmyJX3Q0Vh-OamGryCn07vR7eH_ldUYqLSKY6xEKAm2M6seStJHhsO4cVLzb2-t9ULDb4u3NRceZy9yrTY3t64zMKwnEW18HnfG-SOrT_Q1_b97SQ2ljUGNR6DnkD29hV-3GehFgUhLespDLOsEHYQ5U6qCkL8QuX4Qj7tr3TU6rrBDtrbrpVvWbFUyWWTuz-XwIiv1j_Z1Rd9iVIuGdoSrNoVY8Fp0G5Vdgzs8nOhMendOf5eo5Co4Zb-DQcF4piZlBdBNmAsOF7MqpnhINV3skDbfSXUXdoft04Hn5rdWw8X5PXOGrT2mXl3RezlhTN6nAwsQotEkvhTWmKAgnufm1WYvT6WnA9bEwgMLpo_IWmE-SkxzGLzf72LTeV",
+      "filename": "0800242106021261014100256238.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/0800242106021261014100256238.zip",
+      "timestamp": "2026-06-15T13:51:32.486141",
+      "bootstrap": true
+    },
+    "19bbdec7a675d40c:ANGjdJ-yp8NitSRTy0GYONP6Z57diiVx6EaETPRY32pp0nemolkJ3gGDFhXHKaUGMJRlewrHYmj5IqkxiqdNJBeUCcsgTSPOuIJ7Ta37BnTTQVTzNr7cICqunTKbLeoW517I54NeF4UclG7xgAMLzC5O7lN89MAM9bF-W93UaKCaUmOebLixPaErmJiUeusKfzCmSHl-CU7vtYZP3YP-ldc1-sP8iTeBiWmF7xqxSU3JeVBsYDWWbCCh-mujmJf2kVboydUENW4QouT0q7yHu2pswQvKxEeY5ECo5YvtIVeQ8zCdP6Vo6IkZOXyLqWTAfUsFP4gXLNNJd-NH_IXlIzBVFXLs5bhzQ3OuxoNhxzmdr_ZLLkwxQuaM4AZqNjmKi_QGkGjhuM3m1RwPY-IGeg-4A1vastWvY9Lh1iaP0g:z080025156905426FE57424499.zip": {
+      "msg_id": "19bbdec7a675d40c",
+      "att_id": "ANGjdJ-yp8NitSRTy0GYONP6Z57diiVx6EaETPRY32pp0nemolkJ3gGDFhXHKaUGMJRlewrHYmj5IqkxiqdNJBeUCcsgTSPOuIJ7Ta37BnTTQVTzNr7cICqunTKbLeoW517I54NeF4UclG7xgAMLzC5O7lN89MAM9bF-W93UaKCaUmOebLixPaErmJiUeusKfzCmSHl-CU7vtYZP3YP-ldc1-sP8iTeBiWmF7xqxSU3JeVBsYDWWbCCh-mujmJf2kVboydUENW4QouT0q7yHu2pswQvKxEeY5ECo5YvtIVeQ8zCdP6Vo6IkZOXyLqWTAfUsFP4gXLNNJd-NH_IXlIzBVFXLs5bhzQ3OuxoNhxzmdr_ZLLkwxQuaM4AZqNjmKi_QGkGjhuM3m1RwPY-IGeg-4A1vastWvY9Lh1iaP0g",
+      "filename": "z080025156905426FE57424499.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57424499.zip",
+      "timestamp": "2026-06-15T13:51:32.671422",
+      "bootstrap": true
+    },
+    "19bb9388abdb2e4e:ANGjdJ-XQ6TBRTRJz1sN3aBB_tMVCD-IPufB9XB3Cnm2P-4BcFrdSZxe8ENv4tPEV8Utjh6olbWVijwfLCLGaRt2nq-PNkrJALprEMWAy8gQA1bX2Vec10W6JrDMn1mKR_CXSh3YuOOJlkdfNBsFp1AHM0uvPaWeCUHZiEWBJGhA95z0NyTGw4AE35bzHvElnBrgpUwlBOPUOiI48wtBXSGsl4H2gh2eYHUl6qYyDyuT2nhx4bqxoXOf7d0blCa8LHIWKZ0jDy90IApCr6V89mUU6MoGBiL9noWoRoNeZRqTamNU-7ZLawPnf8efQgw32uzDQ5XdL-IijXI4FUHEv15QenzD23lgeAqRJx2MfKfKIGHJNPlDDw6fGF-0uIhpjpNiEce9vHn26cmcl38Ums-CO0BCCwT9Ux1CACC1lA:z080025156905426FE57356910.zip": {
+      "msg_id": "19bb9388abdb2e4e",
+      "att_id": "ANGjdJ-XQ6TBRTRJz1sN3aBB_tMVCD-IPufB9XB3Cnm2P-4BcFrdSZxe8ENv4tPEV8Utjh6olbWVijwfLCLGaRt2nq-PNkrJALprEMWAy8gQA1bX2Vec10W6JrDMn1mKR_CXSh3YuOOJlkdfNBsFp1AHM0uvPaWeCUHZiEWBJGhA95z0NyTGw4AE35bzHvElnBrgpUwlBOPUOiI48wtBXSGsl4H2gh2eYHUl6qYyDyuT2nhx4bqxoXOf7d0blCa8LHIWKZ0jDy90IApCr6V89mUU6MoGBiL9noWoRoNeZRqTamNU-7ZLawPnf8efQgw32uzDQ5XdL-IijXI4FUHEv15QenzD23lgeAqRJx2MfKfKIGHJNPlDDw6fGF-0uIhpjpNiEce9vHn26cmcl38Ums-CO0BCCwT9Ux1CACC1lA",
+      "filename": "z080025156905426FE57356910.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57356910.zip",
+      "timestamp": "2026-06-15T13:51:32.868192",
+      "bootstrap": true
+    },
+    "19baed3145671487:ANGjdJ8IVBbprnW9f1c0OniqvxdzI9pOBQfXYws5bQh82tEVVfdVm_ro0jKRTm82wUZq_DTaonvJSpUm3R5gSYyZgHLWz7OJg2NUmCANYaDCDQXj2wk4WIttEH9iYnMHstJiMj-4rghbUcFtvgBcjXea5cXY3st5oI_sk8p3y7R_kNEHgW3BLqCkdwnmWXsWxmSk61HkTEELvmam-QbfE43JzGfqob_wUPYxFhj03kpkOy2lIlWJ7kThteTliUgbM339thS548vLh-U0WdgkYDLDI6zkPlG0nJ7YITcRHMXQneco0hj78OfD3VJ2prBLOGySY_P1eo5Z0pT4glOPFe019zwRpWNibAZscez67F5dNyaqbji8AzaTTJOSBsoO8kSZKvCEYOgyNLutOEqZ:0800242106021261006100415351.zip": {
+      "msg_id": "19baed3145671487",
+      "att_id": "ANGjdJ8IVBbprnW9f1c0OniqvxdzI9pOBQfXYws5bQh82tEVVfdVm_ro0jKRTm82wUZq_DTaonvJSpUm3R5gSYyZgHLWz7OJg2NUmCANYaDCDQXj2wk4WIttEH9iYnMHstJiMj-4rghbUcFtvgBcjXea5cXY3st5oI_sk8p3y7R_kNEHgW3BLqCkdwnmWXsWxmSk61HkTEELvmam-QbfE43JzGfqob_wUPYxFhj03kpkOy2lIlWJ7kThteTliUgbM339thS548vLh-U0WdgkYDLDI6zkPlG0nJ7YITcRHMXQneco0hj78OfD3VJ2prBLOGySY_P1eo5Z0pT4glOPFe019zwRpWNibAZscez67F5dNyaqbji8AzaTTJOSBsoO8kSZKvCEYOgyNLutOEqZ",
+      "filename": "0800242106021261006100415351.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/0800242106021261006100415351.zip",
+      "timestamp": "2026-06-15T13:51:33.045117",
+      "bootstrap": true
+    },
+    "19ba9006c4d8c498:ANGjdJ-phGq3xZc7OcwkF614Xe_KAZ1za6vyT1bi3YCZIhpkU7uk3KkSjrPiqzfdY_noehQUOHgGJz-slBORRaSYUCcxQmAjK8_tkYuD9vQHOaTf-Cn1Ywf_PZAE0W-QAyqzTkMS5wRXxIRtfL22Hx5FgDd0BFw10dSkm_p5zkabFtQv-BSW_2Ba-O90E7Rr_Z3v86IdW1x11KbbIsN4lHdzX8tJyAuYfFC9ohed16j94yWAfHSQZRB0sTR0VKHi3UX057_zr5THBxNaYcVdQVaKhC6HRj-070QsvTfnNMJDwahcMlx_oU5oNOUsXRQ-K5XSYetS6zN0FWsHBWCxe0iip4tOcDqT-nbCCSuNZtyegyTpEVK052t6FELZguTpBrWisUU55MBsBZp3e3A1hNJyfHW3C8CulgzC25E_uA:z080025156905426FE57266610.zip": {
+      "msg_id": "19ba9006c4d8c498",
+      "att_id": "ANGjdJ-phGq3xZc7OcwkF614Xe_KAZ1za6vyT1bi3YCZIhpkU7uk3KkSjrPiqzfdY_noehQUOHgGJz-slBORRaSYUCcxQmAjK8_tkYuD9vQHOaTf-Cn1Ywf_PZAE0W-QAyqzTkMS5wRXxIRtfL22Hx5FgDd0BFw10dSkm_p5zkabFtQv-BSW_2Ba-O90E7Rr_Z3v86IdW1x11KbbIsN4lHdzX8tJyAuYfFC9ohed16j94yWAfHSQZRB0sTR0VKHi3UX057_zr5THBxNaYcVdQVaKhC6HRj-070QsvTfnNMJDwahcMlx_oU5oNOUsXRQ-K5XSYetS6zN0FWsHBWCxe0iip4tOcDqT-nbCCSuNZtyegyTpEVK052t6FELZguTpBrWisUU55MBsBZp3e3A1hNJyfHW3C8CulgzC25E_uA",
+      "filename": "z080025156905426FE57266610.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57266610.zip",
+      "timestamp": "2026-06-15T13:51:33.221802",
+      "bootstrap": true
+    },
+    "19ba8ed36dddc612:ANGjdJ-osB4qwZUA0TgS64lGBmYSfFHAQhe-9G0toB58hKx-aB1t2AhqT1_mNAsjARm1KFPlQHM22BHCtvOPOsDq7ByuF7KfuctbuH6MZKM7DrKbuFWyA2HJ11VsWzrIj_brgQ_bQ6w0Ei_FDo5dQJ8Ibc11Hip-GPS29c9bNCCEhd-Z1yk_dZHTZlcpnWTMJd7XEEi-6ajdAqigoXD3eI9wGwPN73sPlS4GcmwId-m7dYsKLOyl1yJYxJFFdUeMNNZAVkwESrikxICg4eJ4sxWy0VEaoH8n8XUyROBRBPB_WyNg1J9mN94LH2n27Nn_D_fZ3P0PTFP-W4PtBfyueb2SMcecEUkXjG9kBV0214P0WOc8ruBvtpRam2Si2vJXUYQ6aWKcXLW9Gx-J_wqSRdESIf-6qXfekvB3U_qReQ:z080025156905426FE57263624.zip": {
+      "msg_id": "19ba8ed36dddc612",
+      "att_id": "ANGjdJ-osB4qwZUA0TgS64lGBmYSfFHAQhe-9G0toB58hKx-aB1t2AhqT1_mNAsjARm1KFPlQHM22BHCtvOPOsDq7ByuF7KfuctbuH6MZKM7DrKbuFWyA2HJ11VsWzrIj_brgQ_bQ6w0Ei_FDo5dQJ8Ibc11Hip-GPS29c9bNCCEhd-Z1yk_dZHTZlcpnWTMJd7XEEi-6ajdAqigoXD3eI9wGwPN73sPlS4GcmwId-m7dYsKLOyl1yJYxJFFdUeMNNZAVkwESrikxICg4eJ4sxWy0VEaoH8n8XUyROBRBPB_WyNg1J9mN94LH2n27Nn_D_fZ3P0PTFP-W4PtBfyueb2SMcecEUkXjG9kBV0214P0WOc8ruBvtpRam2Si2vJXUYQ6aWKcXLW9Gx-J_wqSRdESIf-6qXfekvB3U_qReQ",
+      "filename": "z080025156905426FE57263624.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE57263624.zip",
+      "timestamp": "2026-06-15T13:51:33.409024",
+      "bootstrap": true
+    },
+    "19ba4180bd7721ba:ANGjdJ88rqo-B-m0N6zM930j-mhgff3m4_99u_n0WuVnUcfI-rjNZ9jsP3Rp9aJSWll9vw2AiGj4uKHcePT26AZJAh0vjGd3aShwXTUdmLcVi9-ZQiyaLYe3BnTSXBncrtXpDUHHC3f-dm2FGgNRiy2CiF8lXpT-aqTh0AuRTMuJNydwR-CgsJ5OHMJq3Ij-9MhLNis5anPoGNxvpnVHutQmjOW9PxqSQ_8eOvpMxcp1raE-OxYNdzlq2l-NYjwU_0luHmlRLCSwd1XeJK2_OIK0eZMMKVVI4NzVMPw3YtJB7Cj_5fERgKYa_9atuO4gp0MSCq1W-9ASuqLW5TVq7hhY-JWQvHF6taKLF4stCBaAD70jgBsGJS5_Je-836nUZ5J7lGFqeq2Q3TJrlNTyAmPiowcNSYUneeoL22uODw:z08605026090142600001724.zip": {
+      "msg_id": "19ba4180bd7721ba",
+      "att_id": "ANGjdJ88rqo-B-m0N6zM930j-mhgff3m4_99u_n0WuVnUcfI-rjNZ9jsP3Rp9aJSWll9vw2AiGj4uKHcePT26AZJAh0vjGd3aShwXTUdmLcVi9-ZQiyaLYe3BnTSXBncrtXpDUHHC3f-dm2FGgNRiy2CiF8lXpT-aqTh0AuRTMuJNydwR-CgsJ5OHMJq3Ij-9MhLNis5anPoGNxvpnVHutQmjOW9PxqSQ_8eOvpMxcp1raE-OxYNdzlq2l-NYjwU_0luHmlRLCSwd1XeJK2_OIK0eZMMKVVI4NzVMPw3YtJB7Cj_5fERgKYa_9atuO4gp0MSCq1W-9ASuqLW5TVq7hhY-JWQvHF6taKLF4stCBaAD70jgBsGJS5_Je-836nUZ5J7lGFqeq2Q3TJrlNTyAmPiowcNSYUneeoL22uODw",
+      "filename": "z08605026090142600001724.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08605026090142600001724.zip",
+      "timestamp": "2026-06-15T13:51:33.594405",
+      "bootstrap": true
+    },
+    "19b9aef88c75abf8:ANGjdJ9j5ns77KT8POeQOTvdNIYnulI-hwS382QZnh2Gdc_eG9dJUB45BGhzq0RVJ_GZ2HsDvaetbrXGESR76QtEWSAuJytLNNoCSG5R5n_O_6V6oNq9JMWi4MA5qnUVcCoZTEvFo5M6dkh8rNpk10RQNdfE9yUYVwrYdFLsM7R1jFhcWo21pOuMSPFxpjE_aSayLK9pvui-3EVgdp-xAJolqrl8TgwtPtKEVhsGdrsAiYXF8aw0jccQoq3ovZy3WgIXEcaKqHEv4JTBo99VdBKBz3oblmoAyaLtpuE3UHkIDBJ-13YoFvUM7wFWUCKhm_-nGWcuJ0McV44zFb1vAOZtg_Fx7mTUqSw0tCwMlJ7Y-6AhH5mM3UYAelfm9rcVaFfJUizcnEpDmnTEojHhdkWpabYfaW_KsZyEE34MEQ:z080025156905426FE56990152.zip": {
+      "msg_id": "19b9aef88c75abf8",
+      "att_id": "ANGjdJ9j5ns77KT8POeQOTvdNIYnulI-hwS382QZnh2Gdc_eG9dJUB45BGhzq0RVJ_GZ2HsDvaetbrXGESR76QtEWSAuJytLNNoCSG5R5n_O_6V6oNq9JMWi4MA5qnUVcCoZTEvFo5M6dkh8rNpk10RQNdfE9yUYVwrYdFLsM7R1jFhcWo21pOuMSPFxpjE_aSayLK9pvui-3EVgdp-xAJolqrl8TgwtPtKEVhsGdrsAiYXF8aw0jccQoq3ovZy3WgIXEcaKqHEv4JTBo99VdBKBz3oblmoAyaLtpuE3UHkIDBJ-13YoFvUM7wFWUCKhm_-nGWcuJ0McV44zFb1vAOZtg_Fx7mTUqSw0tCwMlJ7Y-6AhH5mM3UYAelfm9rcVaFfJUizcnEpDmnTEojHhdkWpabYfaW_KsZyEE34MEQ",
+      "filename": "z080025156905426FE56990152.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE56990152.zip",
+      "timestamp": "2026-06-15T13:51:33.804183",
+      "bootstrap": true
+    },
+    "19b9a21e99e1ad5f:ANGjdJ-Q__F0DTRT19s0xkYwJoB2Jz7RX642Z80-JvgvKxH1yT2g69wvHnwaPrX8oiQ9ctbPQrSnCHbNK4umRTaHV8vXHfnglk4OTkljyN-15wLfPMmgk7BYfYybqbFPDIN67Mk4SFZhRtQbGl0a9Mdpu3Bu9_BrP8PRS1v6voN53s6xt_CgG-lyeYJvpZ-03pw2Dtst4y3XojYWlDIL-2vNQ4Cy2TjbMLmgJkS_3YYP_oO5zAVw8nhGqZOsU5QQD_M-aYtBViFDkXWZYhfgO5pfKKseEg-NRNcKgH1fkEuW4d3IK_IlUmQLWgY_z81a_RmgthZqHzNWBTmlzuW-ZjpAFmxz6CUuTMzM0L8KHl08WgQikWcofeihBQ2D11MS3uwAQlbqf3C_8l7jCGWmdykb3FJaDF4F_C6PDrOMSw:z08110254460122600000159.zip": {
+      "msg_id": "19b9a21e99e1ad5f",
+      "att_id": "ANGjdJ-Q__F0DTRT19s0xkYwJoB2Jz7RX642Z80-JvgvKxH1yT2g69wvHnwaPrX8oiQ9ctbPQrSnCHbNK4umRTaHV8vXHfnglk4OTkljyN-15wLfPMmgk7BYfYybqbFPDIN67Mk4SFZhRtQbGl0a9Mdpu3Bu9_BrP8PRS1v6voN53s6xt_CgG-lyeYJvpZ-03pw2Dtst4y3XojYWlDIL-2vNQ4Cy2TjbMLmgJkS_3YYP_oO5zAVw8nhGqZOsU5QQD_M-aYtBViFDkXWZYhfgO5pfKKseEg-NRNcKgH1fkEuW4d3IK_IlUmQLWgY_z81a_RmgthZqHzNWBTmlzuW-ZjpAFmxz6CUuTMzM0L8KHl08WgQikWcofeihBQ2D11MS3uwAQlbqf3C_8l7jCGWmdykb3FJaDF4F_C6PDrOMSw",
+      "filename": "z08110254460122600000159.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08110254460122600000159.zip",
+      "timestamp": "2026-06-15T13:51:33.982667",
+      "bootstrap": true
+    },
+    "19b9a1cfce17be82:ANGjdJ96Mly9EJpNgxOa15j7E7jXOwBl7uJoEUbwaISqYubwGG9zrdyCjdCUauv_faRsEhk8Ed_MD2cRXHVMlngmcPxYuFV5pZyknAKZWB-p-_y4nS0rFbc2pRAvMp6k2aWcTCvtBS5IKVFb6QKR1cLx-ddXuE4el_0J8OzhS9sUU_-YQsDCp-JPmi4PMska7uC4EKMt_s09_Wotce7f9E-qopGWohi84mcYyyWTqv5NYdqI8QLVwypoGzHEmGOJgOhTCMM80qiC6dZAKk3nMEC_uiET5-JvZGffTngHxOwnIRPloQ1n496uDxfkE_6uM4PIbxELU-q1rPNhShys6EDgPZNzca2lTBA5wCg6MxssEK6k27r3s7RBSUGaxHDb848tZIHzgKGCaVwRglvnihYrJ4bhZT73rZxEjhg5fw:z080025156905426FE56959452.zip": {
+      "msg_id": "19b9a1cfce17be82",
+      "att_id": "ANGjdJ96Mly9EJpNgxOa15j7E7jXOwBl7uJoEUbwaISqYubwGG9zrdyCjdCUauv_faRsEhk8Ed_MD2cRXHVMlngmcPxYuFV5pZyknAKZWB-p-_y4nS0rFbc2pRAvMp6k2aWcTCvtBS5IKVFb6QKR1cLx-ddXuE4el_0J8OzhS9sUU_-YQsDCp-JPmi4PMska7uC4EKMt_s09_Wotce7f9E-qopGWohi84mcYyyWTqv5NYdqI8QLVwypoGzHEmGOJgOhTCMM80qiC6dZAKk3nMEC_uiET5-JvZGffTngHxOwnIRPloQ1n496uDxfkE_6uM4PIbxELU-q1rPNhShys6EDgPZNzca2lTBA5wCg6MxssEK6k27r3s7RBSUGaxHDb848tZIHzgKGCaVwRglvnihYrJ4bhZT73rZxEjhg5fw",
+      "filename": "z080025156905426FE56959452.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE56959452.zip",
+      "timestamp": "2026-06-15T13:51:34.163844",
+      "bootstrap": true
+    },
+    "19b94f370a1c882b:ANGjdJ8YvjMKSVaB0A-MaYK641_-EUStO8LF1huDoU729mITYGNyZwFMWKdsqDduRUb7TfBAXhIlVewyuL3kQarb7B-dEfgfshAXn7BX-3Lx1Y5dv174TLs9iEJJSu-7xIA7zAjBH_Sxb4DZ0d4DPYIbU7AIDfhW0_SWl36PRmDuUtekpjHbIWbEutkJBlq51UI7Albz-qniwV_9VUviivbLE3w1nWJM8V2kVCCpKdNCqwc51wtz1Ki3R-rGMSZBO7yPULtqExvPVK7YpLyU7LXO8Ezd-CE6HRTkWTK8_qCUhHX7ZCuejQXCZh0dfftO7n7RvVzTtVwybtoPHgeI9aJsvktRTWryuFPJksykJgn0d286vBOr-bxL2GeDboTVtE9ejSHtBq7Ehv4BnAe614wGUX4Hjj-CxTlWC5NDvA:z09016501070892600000007.zip": {
+      "msg_id": "19b94f370a1c882b",
+      "att_id": "ANGjdJ8YvjMKSVaB0A-MaYK641_-EUStO8LF1huDoU729mITYGNyZwFMWKdsqDduRUb7TfBAXhIlVewyuL3kQarb7B-dEfgfshAXn7BX-3Lx1Y5dv174TLs9iEJJSu-7xIA7zAjBH_Sxb4DZ0d4DPYIbU7AIDfhW0_SWl36PRmDuUtekpjHbIWbEutkJBlq51UI7Albz-qniwV_9VUviivbLE3w1nWJM8V2kVCCpKdNCqwc51wtz1Ki3R-rGMSZBO7yPULtqExvPVK7YpLyU7LXO8Ezd-CE6HRTkWTK8_qCUhHX7ZCuejQXCZh0dfftO7n7RvVzTtVwybtoPHgeI9aJsvktRTWryuFPJksykJgn0d286vBOr-bxL2GeDboTVtE9ejSHtBq7Ehv4BnAe614wGUX4Hjj-CxTlWC5NDvA",
+      "filename": "z09016501070892600000007.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z09016501070892600000007.zip",
+      "timestamp": "2026-06-15T13:51:34.381334",
+      "bootstrap": true
+    },
+    "19b8ffb5ed41eda5:ANGjdJ_4B0I_uqGF1bIro8ZSoU61BvuiU6wJIjbz9tIxmDCwafOYiW7P204ATMENPJRG7Diti4ceAwOSHhRXXn154OnATWOqzyLRqBfmrJBkNKE6DNSQpvlrYYrA0SzZmSY7LeSA1SSvJ3j4sJ88A8PC79ixov7RKHjGgYb9c2eiDFpNKWsJEwmFlWQmHE9M83R3BEN_ITjFP2woZk6D-LWA4rlokmLVYNqc_ft_OFgBVo4zPF2rQhBNXdKK2VHQheBvTEBruWjDN6647YUXvOVFRwFj3vzbn-64-5UoKjqEzaP82DlHAlhLHy-7bsicehxoALHzuq54eU0NbGYO9ZOf_hZuY5S-mtCzRD1y38iOaDFgIiKNBWC5NaAmb44_raWAVX3dObuEqyQMvBJbMyp-3L7vHGBgOoftaLwykQ:z080025156905426FE56835019.zip": {
+      "msg_id": "19b8ffb5ed41eda5",
+      "att_id": "ANGjdJ_4B0I_uqGF1bIro8ZSoU61BvuiU6wJIjbz9tIxmDCwafOYiW7P204ATMENPJRG7Diti4ceAwOSHhRXXn154OnATWOqzyLRqBfmrJBkNKE6DNSQpvlrYYrA0SzZmSY7LeSA1SSvJ3j4sJ88A8PC79ixov7RKHjGgYb9c2eiDFpNKWsJEwmFlWQmHE9M83R3BEN_ITjFP2woZk6D-LWA4rlokmLVYNqc_ft_OFgBVo4zPF2rQhBNXdKK2VHQheBvTEBruWjDN6647YUXvOVFRwFj3vzbn-64-5UoKjqEzaP82DlHAlhLHy-7bsicehxoALHzuq54eU0NbGYO9ZOf_hZuY5S-mtCzRD1y38iOaDFgIiKNBWC5NaAmb44_raWAVX3dObuEqyQMvBJbMyp-3L7vHGBgOoftaLwykQ",
+      "filename": "z080025156905426FE56835019.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE56835019.zip",
+      "timestamp": "2026-06-15T13:51:34.568006",
+      "bootstrap": true
+    },
+    "19b8febb3325f93f:ANGjdJ-il3zMEW8GPOrui8dHIhiuy9EW0AjJ0XtDN3xu4W5A7B2MDG9WU8eXfAdr2RYIvHLPQaHlMrweZWmtiKXdQEufVEXo2HVRVAAmmzgWE4kAc_ZqFyofSo-lEl4ZOXgoXYDgU1Q0V01iRXy6uNbTEtoCljs3kXMZblQkCbKrnBaSlSKA0Q5GSN60z-cnnmUtQsCubI_FjhNYV4BOEupCiY34CdTAJSOAFgLg9TBffUfHtbXN_VM3lnAWGDnmmJfLyUZu_5TXyqLjzsGChdPmpp-AtWMkxHLJJhozzFwyNsWtV4VSn_rO61qKHExkc6jysLpKesEByI797VqhNVWBPmYb1eLGZsAjMEJoPKLKxAxxwS-1En8b3ejYTuRoSqfF9cNlY-TCIqkMnkevk6vZbLInvAkUf57qk16_LA:z080025156905426FE56832789.zip": {
+      "msg_id": "19b8febb3325f93f",
+      "att_id": "ANGjdJ-il3zMEW8GPOrui8dHIhiuy9EW0AjJ0XtDN3xu4W5A7B2MDG9WU8eXfAdr2RYIvHLPQaHlMrweZWmtiKXdQEufVEXo2HVRVAAmmzgWE4kAc_ZqFyofSo-lEl4ZOXgoXYDgU1Q0V01iRXy6uNbTEtoCljs3kXMZblQkCbKrnBaSlSKA0Q5GSN60z-cnnmUtQsCubI_FjhNYV4BOEupCiY34CdTAJSOAFgLg9TBffUfHtbXN_VM3lnAWGDnmmJfLyUZu_5TXyqLjzsGChdPmpp-AtWMkxHLJJhozzFwyNsWtV4VSn_rO61qKHExkc6jysLpKesEByI797VqhNVWBPmYb1eLGZsAjMEJoPKLKxAxxwS-1En8b3ejYTuRoSqfF9cNlY-TCIqkMnkevk6vZbLInvAkUf57qk16_LA",
+      "filename": "z080025156905426FE56832789.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE56832789.zip",
+      "timestamp": "2026-06-15T13:51:34.790320",
+      "bootstrap": true
+    },
+    "19b8050078990a03:ANGjdJ-VK-awDDij4p7fGMsoFzJ4R4ewmqSWzI7JbkcTjbgEZrIIp2G5nvx9h3wX28d29YQqxtOm_CmpeTrjYK1IWvKyKVADjKurhBjLsvj1gFmzRhNtI2wJRONatcCubhpBaJ0WrcXKdjDasTcbqvCbmpnWfxg21P_TFnO7LUiAS5Z9jMGbPi58zUQWE1Mo0UWlwjm5F9lh-vWrM5xQXy2q_zSIRDeTAKFXmY2T4o0-B3_tjDJZ9q837lwZEObtimhidvCN0NBGmvsdFXOMUMyvFBLXii9i0LYBVgF4wlF4ANSJBWQixsgatRDkQe0OOxeEPdU242Ff7HjbdjySsrveVOj-MDeYRoqosyEVB66lRYSxPpAE0AVduj3koV02omlr7g6dpt0GIPTZ3p-_zInbsxgCvrKrSzxuOVTTpw:z09010181600082600000006.zip": {
+      "msg_id": "19b8050078990a03",
+      "att_id": "ANGjdJ-VK-awDDij4p7fGMsoFzJ4R4ewmqSWzI7JbkcTjbgEZrIIp2G5nvx9h3wX28d29YQqxtOm_CmpeTrjYK1IWvKyKVADjKurhBjLsvj1gFmzRhNtI2wJRONatcCubhpBaJ0WrcXKdjDasTcbqvCbmpnWfxg21P_TFnO7LUiAS5Z9jMGbPi58zUQWE1Mo0UWlwjm5F9lh-vWrM5xQXy2q_zSIRDeTAKFXmY2T4o0-B3_tjDJZ9q837lwZEObtimhidvCN0NBGmvsdFXOMUMyvFBLXii9i0LYBVgF4wlF4ANSJBWQixsgatRDkQe0OOxeEPdU242Ff7HjbdjySsrveVOj-MDeYRoqosyEVB66lRYSxPpAE0AVduj3koV02omlr7g6dpt0GIPTZ3p-_zInbsxgCvrKrSzxuOVTTpw",
+      "filename": "z09010181600082600000006.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z09010181600082600000006.zip",
+      "timestamp": "2026-06-15T13:51:34.976876",
+      "bootstrap": true
+    },
+    "19b8042cc4b8dfb6:ANGjdJ_HmLQvr75FJo_WmflKaEoxJCrToTTOlQivr89drkRx132ol30KDzyfMnCeph2rM0SnGkaZHd0bwSSmRwVkYFXaqHBL_QaynFdzhAEaCeauK5x0_5txhD9uvF11oSJzOd62WqD94mC0t9K9IruA6JRT5TTA0zygK4vg5BeeDjeyeA1ixy4lBu80rv9odOD-g4YvCHOuNNp_i5VyI-y68zYmQhfOZmxaD2tud-KWvbTSff7JH53aZDrqDjz_WhgG0cMoFRx0m4gDPeVhaab2q4leTaGk6nq10YdCDVyf3rosWLgmAXNgEa2gAkvPy2T9v0Kx-hNdIKjJ5O82XPDSU3QvUYWGaIxvvuKwiaGBLRdIqKXC1ETFL45AzVYuag4gWxjgZMjP0FMz7driUei55Ogtg7WSvYSPdcwrfw:z080025156905426FE56701926.zip": {
+      "msg_id": "19b8042cc4b8dfb6",
+      "att_id": "ANGjdJ_HmLQvr75FJo_WmflKaEoxJCrToTTOlQivr89drkRx132ol30KDzyfMnCeph2rM0SnGkaZHd0bwSSmRwVkYFXaqHBL_QaynFdzhAEaCeauK5x0_5txhD9uvF11oSJzOd62WqD94mC0t9K9IruA6JRT5TTA0zygK4vg5BeeDjeyeA1ixy4lBu80rv9odOD-g4YvCHOuNNp_i5VyI-y68zYmQhfOZmxaD2tud-KWvbTSff7JH53aZDrqDjz_WhgG0cMoFRx0m4gDPeVhaab2q4leTaGk6nq10YdCDVyf3rosWLgmAXNgEa2gAkvPy2T9v0Kx-hNdIKjJ5O82XPDSU3QvUYWGaIxvvuKwiaGBLRdIqKXC1ETFL45AzVYuag4gWxjgZMjP0FMz7driUei55Ogtg7WSvYSPdcwrfw",
+      "filename": "z080025156905426FE56701926.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z080025156905426FE56701926.zip",
+      "timestamp": "2026-06-15T13:51:35.154939",
+      "bootstrap": true
+    },
+    "19ebc00bedf318ff:ANGjdJ9mID5X_lesIODgOqWWSdbWbMF0J440bvWmt_xjxCCjBKsDwZnu8LesDwjmc3E5InR95pewWrTUNB8luMzA0V1iEg8k-xsteb0efLuXoGmJqB-63RK4aC8nSHB_glp_P6HvqSA8N-ZaJF_RVqYog95lWw2mKqunvvEJbvizunta_KReQVTtQFxeQP8H3_ed3kpxPmX80a_CxbPkD7ZtE5RGX6B1JpMxYdGvAEdmNAQxeVenlCblgI5Cp8vY84a5EDc2we4sJm8-RwQmAbC0-9KCO_3FI9rnVX_nuyW9qAogbG1vElZds4Eb3hwl3YUPVX29r-MpFOp9Z1H2ZhuiHkEwKFUbsxgxRPy9sYzU-YBqgFXVFiMNMA5g8Xi1nR7Uk605K6sSQ6EP3i6_:z08001372240002600269967.zip": {
+      "msg_id": "19ebc00bedf318ff",
+      "att_id": "ANGjdJ9mID5X_lesIODgOqWWSdbWbMF0J440bvWmt_xjxCCjBKsDwZnu8LesDwjmc3E5InR95pewWrTUNB8luMzA0V1iEg8k-xsteb0efLuXoGmJqB-63RK4aC8nSHB_glp_P6HvqSA8N-ZaJF_RVqYog95lWw2mKqunvvEJbvizunta_KReQVTtQFxeQP8H3_ed3kpxPmX80a_CxbPkD7ZtE5RGX6B1JpMxYdGvAEdmNAQxeVenlCblgI5Cp8vY84a5EDc2we4sJm8-RwQmAbC0-9KCO_3FI9rnVX_nuyW9qAogbG1vElZds4Eb3hwl3YUPVX29r-MpFOp9Z1H2ZhuiHkEwKFUbsxgxRPy9sYzU-YBqgFXVFiMNMA5g8Xi1nR7Uk605K6sSQ6EP3i6_",
+      "filename": "z08001372240002600269967.zip",
+      "zip_path": "/home/mckg/mi-agente/facturas_descargadas/z08001372240002600269967.zip",
+      "timestamp": "2026-06-15T13:51:36.873033"
     }
   }
 }

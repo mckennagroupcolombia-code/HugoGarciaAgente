@@ -38,10 +38,18 @@ import {
   TIPOS_ETIQUETA_DEFAULT,
   useTiposEtiqueta,
 } from "../lib/etiquetasTipos";
+import { SelectorFormatoEtiqueta, type FormatoEtiquetaValor } from "./etiquetas/SelectorFormatoEtiqueta";
+import { EtiquetasStudioPanel } from "./etiquetas/EtiquetasStudioPanel";
 import {
-  SelectorFormatoEtiqueta,
-  type FormatoEtiquetaValor,
-} from "./etiquetas/SelectorFormatoEtiqueta";
+  EtiquetasStudioCatalogo,
+  type CatalogoStudioFila,
+} from "./etiquetas/EtiquetasStudioCatalogo";
+import { EtiquetaMckennaPreview } from "./etiquetas/EtiquetaMckennaPreview";
+import {
+  ETIQUETA_STUDIO_DEFAULT,
+  type EtiquetaStudioDatos,
+} from "../lib/etiquetasNormativa";
+import { studioDatosDesdeCatalogo } from "../lib/etiquetasStudioHelpers";
 import { Icon } from "../icons";
 import { ProseTextarea } from "./ProseTextarea";
 import { EditorPanel } from "./PublicacionesPanel";
@@ -596,7 +604,8 @@ interface ImpresionEtiquetaPayload {
   cantidad: number;
   offset_v: number;
   offset_h: number;
-  ruta_pdf: string;
+  ruta_pdf?: string;
+  studio_datos?: EtiquetaStudioDatos;
   campos_texto?: CampoTexto[];
   lineas?: LineaPlantilla[];
   imagenes?: ImagenPlantilla[];
@@ -1764,7 +1773,7 @@ const PREVIEW_CONTAINER_LARGE =
 const PREVIEW_DPI = 180;
 
 type EditorRibbonTab = "inicio" | "lote" | "impresion" | "texto" | "editar-pdf";
-type ImprimirRibbonTab = "inicio" | "lote" | "archivo";
+type ImprimirRibbonTab = "inicio" | "lote";
 
 /** Tipografía cinta — legible en pantalla */
 const RIB_FONT_INP = "text-[13.3px]";
@@ -5332,6 +5341,55 @@ function ModalPedidosEtiquetasEnCurso({
 
 type PrecargarImpresion = Partial<DatosEtiqueta>;
 
+function normNombreEtiquetaPdf(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/\.(ai|pdf)$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolverPdfDesdeCatalogo(
+  fila: CatalogoStudioFila,
+  pdfs: PdfItem[],
+  datos?: { pdf_ruta?: string; pdf_nombre?: string },
+): PdfItem | null {
+  const vistos = new Set<string>();
+  const uniq = pdfs.filter((p) => {
+    if (vistos.has(p.ruta_completa)) return false;
+    vistos.add(p.ruta_completa);
+    return true;
+  });
+  const rutaDatos = (datos?.pdf_ruta || "").trim();
+  if (rutaDatos) {
+    const hit = uniq.find(
+      (p) => p.ruta_completa === rutaDatos || p.ruta === rutaDatos || p.nombre === datos?.pdf_nombre,
+    );
+    if (hit) return hit;
+    if (datos?.pdf_nombre) {
+      return {
+        nombre: datos.pdf_nombre,
+        ruta: rutaDatos,
+        ruta_completa: rutaDatos,
+        guardado: true,
+      };
+    }
+  }
+  const hints = [fila.archivo_ai?.replace(/\.ai$/i, ""), fila.nombre, fila.sku]
+    .map((h) => normNombreEtiquetaPdf(h || ""))
+    .filter(Boolean);
+  for (const hint of hints) {
+    const hit = uniq.find((p) => {
+      const np = normNombreEtiquetaPdf(p.nombre);
+      return np.includes(hint) || hint.includes(np);
+    });
+    if (hit) return hit;
+  }
+  return null;
+}
+
 interface TabImprimirProps {
   precargar?: PrecargarImpresion | null;
   solicitudInicial?: EtiquetasSolicitudActiva | null;
@@ -5360,9 +5418,10 @@ function TabImprimir({
   const [cantidad, setCantidad] = useState(1);
   const [offsetV, setOffsetV] = useState(0.0);
   const [offsetH, setOffsetH] = useState(0.0);
-  const [pdfSeleccionado, setPdfSeleccionado] = useState<{ nombre: string; ruta_completa: string } | null>(null);
-  const [busquedaRapida, setBusquedaRapida] = useState("");
-  const [mostrarNavegador, setMostrarNavegador] = useState(false);
+  const [vistaImpresion, setVistaImpresion] = useState<"catalogo" | "documento">("catalogo");
+  const [skuActivoImpresion, setSkuActivoImpresion] = useState("");
+  const [filaActiva, setFilaActiva] = useState<CatalogoStudioFila | null>(null);
+  const [studioDatos, setStudioDatos] = useState<EtiquetaStudioDatos>({ ...ETIQUETA_STUDIO_DEFAULT });
   const [lote, setLote] = useState(LOTE_PREFIJO);
   const [vencimiento, setVencimiento] = useState(EXP_PREFIJO);
   const [lotePos, setLotePos] = useState("bottom-left");
@@ -5410,15 +5469,16 @@ function TabImprimir({
   }, [solicitudInicial, onSolicitudInicialConsumida]);
 
   const qc = useQueryClient();
-  const camposDebounced = useDebounce(camposTexto, 700);
-  const lineasDebounced = useDebounce(lineasPlantilla, 700);
-  const imagenesDebounced = useDebounce(imagenesPlantilla, 700);
-  const rectangulosDebounced = useDebounce(rectangulosPlantilla, 700);
   const ribbonTabsImprimir: { id: ImprimirRibbonTab; label: string }[] = [
     { id: "inicio", label: "Inicio" },
     { id: "lote", label: "Lote" },
-    { id: "archivo", label: "Archivo" },
   ];
+
+  const studioDatosImpresion = useMemo((): EtiquetaStudioDatos => ({
+    ...studioDatos,
+    lote: loteParaEtiqueta(lote) || studioDatos.lote,
+    vencimiento: expParaEtiqueta(vencimiento) || studioDatos.vencimiento,
+  }), [studioDatos, lote, vencimiento]);
 
   // Precargar desde configuración de producto
   useEffect(() => {
@@ -5441,9 +5501,6 @@ function TabImprimir({
     setLoteYPct(pct.y);
     setLote(conPrefijoLote(precargar.lote_defecto));
     setVencimiento(conPrefijoExp(precargar.vencimiento_defecto));
-    if (precargar.pdf_ruta && precargar.pdf_nombre) {
-      setPdfSeleccionado({ nombre: precargar.pdf_nombre, ruta_completa: precargar.pdf_ruta });
-    }
     if (precargar.campos_texto) setCamposTexto(precargar.campos_texto);
     if (precargar.lineas) setLineasPlantilla(precargar.lineas);
     if (precargar.imagenes) setImagenesPlantilla(precargar.imagenes);
@@ -5455,26 +5512,6 @@ function TabImprimir({
     queryKey: ["etiquetas-impresora"],
     queryFn: () => api.get<ImpResp>("/api/etiquetas/impresora"),
     refetchInterval: 30000,
-  });
-
-  const { data: pdfsData, isLoading: cargandoPdfs } = useQuery({
-    queryKey: ["etiquetas-pdfs"],
-    queryFn: () => api.get<PdfsResp>("/api/etiquetas/pdfs"),
-  });
-  const [arrastrandoPdf, setArrastrandoPdf] = useState(false);
-
-  const { data: previewData, isFetching: previewLoading } = useQuery({
-    queryKey: ["etiquetas-preview", pdfSeleccionado?.ruta_completa, camposDebounced, lineasDebounced, imagenesDebounced, rectangulosDebounced],
-    queryFn: () =>
-      api.post<PreviewResp>("/api/etiquetas/preview", {
-        ruta_pdf: pdfSeleccionado!.ruta_completa,
-        campos_texto: camposDebounced.length ? camposDebounced : undefined,
-        lineas: lineasDebounced.length ? lineasDebounced : undefined,
-        imagenes: imagenesDebounced.length ? imagenesDebounced : undefined,
-        rectangulos: rectangulosDebounced.length ? rectangulosDebounced : undefined,
-      }),
-    enabled: !!pdfSeleccionado,
-    staleTime: 0,
   });
 
   const imprimirMut = useMutation({
@@ -5503,19 +5540,74 @@ function TabImprimir({
     },
   });
 
-  const filtroPdf = (p: PdfItem) =>
-    !busquedaRapida.trim() || p.nombre.toLowerCase().includes(busquedaRapida.toLowerCase());
+  async function seleccionarDesdeCatalogo(fila: CatalogoStudioFila) {
+    setSkuActivoImpresion(fila.sku);
+    setFilaActiva(fila);
+    let datos: Partial<DatosEtiqueta> = {};
+    let guardado: Partial<EtiquetaStudioDatos> | null = null;
+    try {
+      datos = await api.get<Partial<DatosEtiqueta>>(`/api/etiquetas/datos/${encodeURIComponent(fila.sku)}`);
+    } catch {
+      datos = {};
+    }
+    try {
+      const r = await api.get<{ datos: EtiquetaStudioDatos | null }>(
+        `/api/etiquetas/studio/${encodeURIComponent(fila.sku)}`,
+      );
+      guardado = r.datos;
+    } catch {
+      guardado = null;
+    }
 
-  const pdfsGuardados = (pdfsData?.guardados ?? []).filter(filtroPdf);
-  const rutasGuardadas = new Set(pdfsGuardados.map((p) => p.ruta_completa));
-  const pdfsOtros = (pdfsData?.pdfs ?? []).filter(
-    (p) => filtroPdf(p) && !rutasGuardadas.has(p.ruta_completa),
-  );
+    const base = studioDatosDesdeCatalogo(fila, guardado);
+    if (datos.lote_defecto) base.lote = datos.lote_defecto;
+    if (datos.vencimiento_defecto) base.vencimiento = datos.vencimiento_defecto;
+    setStudioDatos(base);
 
-  function seleccionarPdfSubido(item: PdfItem) {
-    setPdfSeleccionado({ nombre: item.nombre, ruta_completa: item.ruta_completa });
+    const tipo = datos.tipo_etiqueta || fila.tipo_etiqueta || base.tipo_etiqueta;
+    if (tipo) {
+      const [anchoMm, altoMm] = mmParaTipoEtiqueta(tipo, TIPOS_ETIQUETA_DEFAULT);
+      setFormato({ nombre: tipo, anchoMm, altoMm });
+      setRotacion(rotacionDefaultEtiqueta(tipo));
+    }
+    if (datos.forma) setForma(datos.forma);
+    if (datos.calidad) setCalidad(datos.calidad);
+    if (datos.rotacion) setRotacion(rotacionValida(datos.rotacion));
+    if (datos.lote_pos) setLotePos(datos.lote_pos);
+    if (datos.lote_font) setLoteFont(datos.lote_font);
+    const pct = lotePctInicial(datos.lote_pos, datos.lote_x_pct, datos.lote_y_pct);
+    setLoteXPct(pct.x);
+    setLoteYPct(pct.y);
+    setLote(conPrefijoLote(datos.lote_defecto || base.lote));
+    setVencimiento(conPrefijoExp(datos.vencimiento_defecto || base.vencimiento));
+    setVistaImpresion("documento");
     setTabRibbon("inicio");
   }
+
+  const tabsVistaImpresion = (
+    <div className="flex gap-1 rounded-lg border border-white/30 bg-white/10 p-0.5">
+      <button
+        type="button"
+        onClick={() => setVistaImpresion("catalogo")}
+        className={`rounded-md px-3 py-1 text-[10px] font-semibold ${
+          vistaImpresion === "catalogo" ? "bg-white text-accent" : "text-white/90 hover:bg-white/15"
+        }`}
+      >
+        Catálogo
+      </button>
+      <button
+        type="button"
+        onClick={() => setVistaImpresion("documento")}
+        className={`rounded-md px-3 py-1 text-[10px] font-semibold ${
+          vistaImpresion === "documento" ? "bg-white text-accent" : "text-white/90 hover:bg-white/15"
+        }`}
+      >
+        Ajustar
+      </button>
+    </div>
+  );
+
+  const productoListo = !!studioDatosImpresion.sku.trim() && !!studioDatosImpresion.nombre_producto.trim();
 
   const estadoTxt = estadoData?.estado ?? "";
   const impConectada = impresoraConectadaDesdeEstado(estadoTxt, estadoData?.impresora_conectada);
@@ -5525,16 +5617,20 @@ function TabImprimir({
     && estadoData?.comunicacion_usb !== false;
 
   function handleImprimir() {
-    if (!pdfSeleccionado) {
+    if (!productoListo) {
       const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      setLog((prev) => [...prev, `[${ts}] ⚠️  Selecciona un PDF primero`]);
+      setLog((prev) => [...prev, `[${ts}] ⚠️  Selecciona un producto del catálogo primero`]);
       return;
     }
     const ts = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     const loteVal = loteParaEtiqueta(lote);
     const expVal = expParaEtiqueta(vencimiento);
     const loteInfo = (loteVal || expVal) ? ` · ${loteVal || "–"} / ${expVal || "–"}` : "";
-    setLog((prev) => [...prev, `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formato.anchoMm}×${formato.altoMm} mm) · ${calidad}${loteInfo} · pos ${loteXPct.toFixed(1)}%,${loteYPct.toFixed(1)}%...`]);
+    const plantilla = filaActiva?.archivo_ai || studioDatosImpresion.archivo_ai || "SVG";
+    setLog((prev) => [
+      ...prev,
+      `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formato.anchoMm}×${formato.altoMm} mm) · ${calidad}${loteInfo} · ${plantilla}...`,
+    ]);
     setErrorImpresion(null);
     imprimirMut.mutate({
       producto: formato.nombre,
@@ -5546,11 +5642,7 @@ function TabImprimir({
       cantidad,
       offset_v: offsetV,
       offset_h: offsetH,
-      ruta_pdf: pdfSeleccionado.ruta_completa,
-      campos_texto: camposTexto.length ? camposTexto : undefined,
-      lineas: lineasPlantilla.length ? lineasPlantilla : undefined,
-      imagenes: imagenesPlantilla.length ? imagenesPlantilla : undefined,
-      rectangulos: rectangulosPlantilla.length ? rectangulosPlantilla : undefined,
+      studio_datos: studioDatosImpresion,
       lote: loteParaEtiqueta(lote),
       vencimiento: expParaEtiqueta(vencimiento),
       lote_font: loteFont,
@@ -5576,23 +5668,52 @@ function TabImprimir({
           }}
         />
       )}
-      {mostrarNavegador && (
-        <NavegadorArchivos
-          onSeleccionar={(item) => { setPdfSeleccionado(item); setMostrarNavegador(false); setTabRibbon("inicio"); }}
-          onCerrar={() => setMostrarNavegador(false)}
-        />
-      )}
       {mostrarInstalador && (
         <InstaladorWizard onCerrar={() => { setMostrarInstalador(false); refetchImpresora(); }} />
       )}
 
+      {vistaImpresion === "catalogo" ? (
+        <div className="overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-sm">
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-accent/30 bg-accent px-4 py-2 text-white">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold">Impresión de etiquetas</p>
+              <p className="text-[10px] opacity-75">Catálogo SKU · MeLi · plantilla .ai</p>
+            </div>
+            {tabsVistaImpresion}
+            <button
+              type="button"
+              onClick={() => setMostrarPedidoEtiquetas(true)}
+              className="relative rounded border border-white/30 px-2.5 py-1 text-[10px] font-semibold hover:bg-white/15"
+            >
+              📋 En curso
+              {solicitudesImprimir.length > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-amber-300 px-1 text-[9px] font-black text-amber-950">
+                  {solicitudesImprimir.length}
+                </span>
+              )}
+            </button>
+          </div>
+          <div className="p-4">
+            <EtiquetasStudioCatalogo
+              onSeleccionar={(f) => void seleccionarDesdeCatalogo(f)}
+              skuActivo={skuActivoImpresion}
+              modoSeleccion="fila"
+              accionLabel={null}
+            />
+          </div>
+        </div>
+      ) : (
       <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface-panel shadow-paper-sm">
         {/* Barra de título — estilo Word */}
         <div className="flex flex-shrink-0 flex-wrap items-center gap-3 border-b border-accent/30 bg-accent px-4 py-2 text-white">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold">Impresión de etiquetas</p>
-            <p className="text-[10px] opacity-75">Epson ColorWorks CW-C4000u · MCKG Suite</p>
+            <p className="text-[10px] opacity-75">
+              Epson ColorWorks CW-C4000u · MCKG Suite
+              {skuActivoImpresion ? ` · ${skuActivoImpresion}` : ""}
+            </p>
           </div>
+          {tabsVistaImpresion}
           <span className={`rounded-full px-3 py-1 text-[10px] font-semibold ${
             impDeshabilitada ? "bg-orange-200 text-orange-800"
             : impConectada ? (avisoRollo ? "bg-amber-200 text-amber-900" : "bg-green-200 text-green-800")
@@ -5659,9 +5780,8 @@ function TabImprimir({
         <RibbonTabs tabs={ribbonTabsImprimir} active={tabRibbon} onChange={setTabRibbon} />
 
         {/* Cinta — herramientas */}
-        {tabRibbon !== "archivo" && (
-          <div className="flex flex-shrink-0 overflow-x-auto border-b border-border bg-surface">
-            {tabRibbon === "inicio" && (
+        <div className="flex flex-shrink-0 overflow-x-auto border-b border-border bg-surface">
+          {tabRibbon === "inicio" && (
               <>
                 <RibbonGroup label="Formato">
                   <SelectorFormatoEtiqueta
@@ -5756,205 +5876,41 @@ function TabImprimir({
                     />
                   </div>
                 </RibbonGroup>
-                <RibbonGroup label="Posición">
-                  <div>
-                    <label className={RIB_LBL}>X %</label>
-                    <input type="number" min={0} max={98} step={0.5} value={loteXPct} onChange={(e) => setLoteXPct(Number(e.target.value))} className={`${RIB_INP} w-16`} />
-                  </div>
-                  <div>
-                    <label className={RIB_LBL}>Y %</label>
-                    <input type="number" min={0} max={98} step={0.5} value={loteYPct} onChange={(e) => setLoteYPct(Number(e.target.value))} className={`${RIB_INP} w-16`} />
-                  </div>
-                  <p className={`max-w-[110px] self-center ${RIB_FONT_HINT} leading-tight text-muted`}>Arrastra en la vista previa</p>
-                </RibbonGroup>
-                <RibbonGroup label="Tipografía">
-                  <div className="flex min-w-[150px] flex-col gap-0.5">
-                    <label className={RIB_LBL}>Montserrat Light</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="range"
-                        min={TAMANO_TEXTO_PT_MIN}
-                        max={TAMANO_TEXTO_PT_MAX}
-                        step={1}
-                        value={clampTamanoTextoPt(loteFont)}
-                        onChange={(e) => setLoteFont(clampTamanoTextoPt(Number(e.target.value)))}
-                        className="w-24 accent-accent"
-                      />
-                      <span className={`${RIB_FONT_BTN} font-bold text-ink`}>{clampTamanoTextoPt(loteFont)}pt</span>
-                    </div>
-                  </div>
+                <RibbonGroup label="Plantilla">
+                  <p className={`max-w-[220px] self-center ${RIB_FONT_HINT} leading-tight text-muted`}>
+                    Lote y vencimiento se aplican en la posición original del archivo .ai
+                  </p>
                 </RibbonGroup>
               </>
             )}
-          </div>
-        )}
-
-        {/* Panel Archivo — lista PDF bajo la cinta */}
-        {tabRibbon === "archivo" && (
-          <div
-            className={`flex-shrink-0 border-b px-4 py-3 transition-colors ${
-              arrastrandoPdf ? "border-accent bg-accent/5" : "border-border bg-surface"
-            }`}
-            onDragOver={(e) => { e.preventDefault(); setArrastrandoPdf(true); }}
-            onDragLeave={() => setArrastrandoPdf(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setArrastrandoPdf(false);
-              const f = e.dataTransfer.files?.[0];
-              if (!f) return;
-              const fd = new FormData();
-              fd.append("archivo", f);
-              void api.upload<{ nombre: string; ruta: string; ruta_completa: string }>(
-                "/api/etiquetas/subir-pdf",
-                fd,
-              ).then((data) => {
-                void qc.invalidateQueries({ queryKey: ["etiquetas-pdfs"] });
-                seleccionarPdfSubido({
-                  nombre: data.nombre,
-                  ruta: data.ruta,
-                  ruta_completa: data.ruta_completa,
-                  guardado: true,
-                });
-              }).catch(() => {});
-            }}
-          >
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <BotonSubirPdfEtiqueta compact onSubido={seleccionarPdfSubido} />
-              <button
-                type="button"
-                onClick={() => setMostrarNavegador(true)}
-                className={`inline-flex h-8 items-center gap-1 rounded border border-border bg-surface-panel px-3 ${RIB_FONT_BTN} font-semibold hover:border-accent`}
-              >
-                📂 Explorar
-              </button>
-              <input
-                type="text"
-                placeholder="Buscar PDF…"
-                value={busquedaRapida}
-                onChange={(e) => setBusquedaRapida(e.target.value)}
-                className={`${RIB_INP} min-w-[12rem] flex-1`}
-              />
-              {pdfSeleccionado && (
-                <button type="button" onClick={() => setPdfSeleccionado(null)} className={`${RIB_FONT_BTN} text-muted hover:text-danger`}>
-                  Quitar PDF
-                </button>
-              )}
-            </div>
-            <p className="mb-2 text-[11px] text-muted">
-              Los PDF subidos se guardan en <strong>Documentos/Etiquetas McKenna</strong> y quedan disponibles siempre.
-              {arrastrandoPdf && " · Suelta el archivo aquí"}
-            </p>
-            <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-surface-panel">
-              {cargandoPdfs ? (
-                <p className="p-3 text-xs text-muted">Cargando…</p>
-              ) : pdfsGuardados.length === 0 && pdfsOtros.length === 0 ? (
-                <div className="flex flex-col items-center gap-2 py-6">
-                  <p className="text-xs text-muted">Sin PDF guardados</p>
-                  <BotonSubirPdfEtiqueta label="📤 Subir primer PDF" onSubido={seleccionarPdfSubido} />
-                </div>
-              ) : (
-                <>
-                  {pdfsGuardados.length > 0 && (
-                    <>
-                      <p className="sticky top-0 border-b border-border bg-surface-panel px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">
-                        Guardados ({pdfsGuardados.length})
-                      </p>
-                      {pdfsGuardados.map((p) => (
-                        <button
-                          key={`g-${p.ruta_completa}`}
-                          type="button"
-                          onClick={() => seleccionarPdfSubido(p)}
-                          className={`block w-full px-3 py-2 text-left text-xs transition ${
-                            pdfSeleccionado?.ruta_completa === p.ruta_completa
-                              ? "bg-accent text-white"
-                              : "text-ink hover:bg-surface-hover"
-                          }`}
-                        >
-                          📌 {p.nombre}
-                        </button>
-                      ))}
-                    </>
-                  )}
-                  {pdfsOtros.length > 0 && (
-                    <>
-                      {pdfsGuardados.length > 0 && (
-                        <p className="sticky top-0 border-b border-border bg-surface-panel px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-muted">
-                          Otros en Documentos
-                        </p>
-                      )}
-                      {pdfsOtros.map((p) => (
-                        <button
-                          key={p.ruta}
-                          type="button"
-                          onClick={() => seleccionarPdfSubido(p)}
-                          className={`block w-full px-3 py-2 text-left text-xs transition ${
-                            pdfSeleccionado?.ruta_completa === p.ruta_completa
-                              ? "bg-accent text-white"
-                              : "text-ink hover:bg-surface-hover"
-                          }`}
-                        >
-                          {p.nombre}
-                        </button>
-                      ))}
-                    </>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        </div>
 
         {/* Lienzo — vista previa */}
         <div className="flex min-h-[min(55vh,520px)] flex-col bg-surface-hover/20">
           <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-surface-panel/80 px-4 py-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Documento</span>
-            <div className="flex items-center gap-2">
-              {pdfSeleccionado && (
-                <span className="font-mono text-[10px] text-muted">
-                  X {loteXPct.toFixed(1)}% · Y {loteYPct.toFixed(1)}%
-                </span>
-              )}
-              {previewLoading && (
-                <span className="flex items-center gap-1 text-[10px] text-muted">
-                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                  actualizando…
-                </span>
-              )}
-            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Vista previa</span>
+            {filaActiva?.archivo_ai && (
+              <span className="truncate font-mono text-[10px] text-muted" title={filaActiva.archivo_ai}>
+                {filaActiva.archivo_ai}
+              </span>
+            )}
           </div>
           <div className="relative flex flex-1 items-center justify-center overflow-auto p-3">
-            {pdfSeleccionado ? (
-              <>
-                <VistaPreviaConLote
-                  imagen={previewData?.imagen}
-                  mime={previewData?.mime}
-                  loading={previewLoading}
-                  emptyText="Generando vista previa..."
-                  loteText={loteParaEtiqueta(lote)}
-                  vencText={expParaEtiqueta(vencimiento)}
-                  loteFont={loteFont}
-                  xPct={loteXPct}
-                  yPct={loteYPct}
-                  imgClassName={PREVIEW_IMG_LARGE}
-                  containerClassName={PREVIEW_CONTAINER_LARGE}
-                  onPositionChange={(x, y) => {
-                    setLoteXPct(x);
-                    setLoteYPct(y);
-                    setLotePos("custom");
-                  }}
-                />
-                {previewLoading && previewData?.imagen && (
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-surface/40">
-                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-                  </div>
-                )}
-              </>
+            {productoListo ? (
+              <EtiquetaMckennaPreview
+                datos={studioDatosImpresion}
+                className="w-full max-w-[420px]"
+              />
             ) : (
               <div className="flex flex-col items-center gap-3 px-6 text-center">
                 <span className="text-4xl opacity-40">🏷️</span>
-                <p className="text-sm font-medium text-muted">Sin PDF seleccionado</p>
-                <button type="button" onClick={() => setTabRibbon("archivo")} className="rounded-lg border-2 border-accent px-4 py-2 text-xs font-bold text-accent hover:bg-accent hover:text-white">
-                  📂 Elegir PDF
+                <p className="text-sm font-medium text-muted">Sin producto seleccionado</p>
+                <button
+                  type="button"
+                  onClick={() => setVistaImpresion("catalogo")}
+                  className="rounded-lg border-2 border-accent px-4 py-2 text-xs font-bold text-accent hover:bg-accent hover:text-white"
+                >
+                  Elegir del catálogo
                 </button>
               </div>
             )}
@@ -5964,13 +5920,15 @@ function TabImprimir({
         {/* Barra inferior — imprimir */}
         <div className="flex flex-shrink-0 flex-col items-center gap-2 border-t border-border bg-surface-panel px-4 py-4">
           <p className="max-w-lg truncate text-center text-[11px] text-muted">
-            {pdfSeleccionado ? `📄 ${pdfSeleccionado.nombre}` : "Selecciona un PDF en la pestaña Archivo"}
+            {productoListo
+              ? `${skuActivoImpresion} · ${filaActiva?.archivo_ai || studioDatosImpresion.archivo_ai || "plantilla SVG"}`
+              : "Selecciona un producto en el catálogo"}
             {estadoImpresoraLegible(estadoData) && ` · ${estadoImpresoraLegible(estadoData)}`}
           </p>
           <button
             type="button"
             onClick={handleImprimir}
-            disabled={imprimirMut.isPending || !pdfSeleccionado}
+            disabled={imprimirMut.isPending || !productoListo}
             className="w-full max-w-md rounded-xl border-2 border-green-600 bg-green-600 py-4 text-center text-lg font-extrabold tracking-wide text-white shadow-[0_4px_0_#15803d] transition hover:bg-green-700 active:translate-y-0.5 active:shadow-none disabled:opacity-40 disabled:shadow-none"
           >
             {imprimirMut.isPending ? "Imprimiendo…" : "🖨 IMPRIMIR"}
@@ -5993,6 +5951,7 @@ function TabImprimir({
           </div>
         )}
       </div>
+      )}
     </>
   );
 }
@@ -7012,13 +6971,16 @@ export default function EtiquetasPanel() {
     `flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t ? "bg-accent text-white shadow" : "text-ink-secondary hover:bg-surface-hover"}`;
 
   return (
-    <div className={`space-y-4 px-1 sm:px-0 ${tab === "imprimir" || tab === "plantillas" ? "mx-auto max-w-[min(100%,1440px)]" : "mx-auto max-w-6xl"}`}>
+    <div className={`space-y-4 px-1 sm:px-0 ${tab === "studio" || tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : tab === "plantillas" ? "mx-auto max-w-[min(100%,1440px)]" : "mx-auto max-w-6xl"}`}>
       <div className="flex gap-2 rounded-xl border border-border bg-surface-panel p-1">
         <button type="button" onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
           🖨 Imprimir
         </button>
         <button type="button" onClick={() => setTab("plantillas")} className={tabCls("plantillas")}>
           📐 Plantillas
+        </button>
+        <button type="button" onClick={() => setTab("studio")} className={tabCls("studio")}>
+          ✨ Studio
         </button>
         <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
           📦 Inventario de papel y tinta
@@ -7037,6 +6999,7 @@ export default function EtiquetasPanel() {
       {tab === "plantillas" && (
         <TabPlantillas onUsarEnImpresion={irAImprimirPlantilla} />
       )}
+      {tab === "studio" && <EtiquetasStudioPanel />}
       {tab === "inventario" && <TabInventarioPapelTinta />}
     </div>
   );

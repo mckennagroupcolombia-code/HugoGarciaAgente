@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useAppStore, type Panel } from "./stores/app";
 import { useTicketsAuth, type TicketsUser } from "./stores/ticketsAuth";
+import MobileHub, { useMobileLayout } from "./components/MobileHub";
 import Layout from "./components/Layout";
 import Dashboard from "./components/Dashboard";
 import Chat from "./components/Chat";
@@ -238,6 +239,11 @@ export default function App() {
   const panel = useAppStore((s) => s.panel);
   const setPanel = useAppStore((s) => s.setPanel);
   const lastAppliedPrefs = useRef<string | null>(null);
+  const isMobile = useMobileLayout();
+  const [forceDesktop, setForceDesktop] = useState(
+    () => typeof localStorage !== "undefined" && localStorage.getItem("mck-force-desktop") === "1"
+  );
+  const showMobile = isMobile && !forceDesktop;
 
   useEffect(() => {
     applyTheme();
@@ -334,6 +340,17 @@ export default function App() {
           if (puedeVerPanel(u, "hugo")) {
             useAppStore.getState().setPanel("hugo");
           }
+        }}
+      />
+    );
+  }
+
+  if (showMobile) {
+    return (
+      <MobileHub
+        onSwitchDesktop={() => {
+          localStorage.setItem("mck-force-desktop", "1");
+          setForceDesktop(true);
         }}
       />
     );
