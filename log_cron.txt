@@ -2070,3 +2070,301 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-06-14 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
+[cursor/wa-metricas-panel e88a510] Auto-commit: actualizacion diaria 2026-06-15 23:00
+ 310 files changed, 1052447 insertions(+), 469 deletions(-)
+ create mode 100644 .cursor/assets/etiqueta_ACIDO_SALICILICO_50g.png
+ create mode 100644 .cursor/assets/etiqueta_OXIDO_DE_ZINC_250g.png
+ create mode 100644 .cursor/assets/etiqueta_VITAMINA_C_30_mL.png
+ create mode 100755 Etiquetas Modelo SVG/ACEITE ARBOL DE TE 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE ARGAN 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE ARGAN 50mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE CASTOR 10mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE GIRASOL 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE LINAZA  250mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE NEEM 120mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE NEEM 250mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE NEEM 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE NEEM 60mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE RICINO 250mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE RICINO 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE DE RICINO LT.ai
+ create mode 100755 Etiquetas Modelo SVG/ACEITE MINERAL 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACETATO DE SODIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO ACETICO GLACIAL Lt.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO ALFA ARBUTINA 10g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO ASCORBICO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO ASCORBICO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO ASCORBICO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO AZELAICO 10g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO BENZOICO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO BORICO 1000g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO BORICO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO BORICO Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO CITRICO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO CITRICO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO CITRICO Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO ESTEARICO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO FUMARICO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO GLICOLICO 50P 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO HIALURONICO 30mL ALTO PESO MOLECULAR.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO HIALURONICO 30mL BAJO PESO MOLECULAR.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO HIALURONICO 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO KOJICO 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO KOJICO D PALMITATO  30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO LACTICO 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO MALICO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO MANDELICO 5g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO SALICILICO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO SALICILICO 20P 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO SALICILICO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO SALICILICO 50g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO SORBICO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO SORBICO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO SORBICO Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/ACIDO TRANEXAMICO 10g.ai
+ create mode 100755 Etiquetas Modelo SVG/AGAR AGAR 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/AGUA DE ROSAS 250mL.ai
+ create mode 100755 Etiquetas Modelo SVG/AGUA DESTILADA 250mL.ai
+ create mode 100755 Etiquetas Modelo SVG/AGUA DESTILADA 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/AGUA DESTILADA Lt.ai
+ create mode 100755 Etiquetas Modelo SVG/AGUA DESTILADA gL.ai
+ create mode 100755 Etiquetas Modelo SVG/ALANTOINA 250g.ai
+ create mode 100755 "Etiquetas Modelo SVG/ALANTO\303\215NA 100g.ai"
+ create mode 100755 Etiquetas Modelo SVG/ALBUMINA DE  HUEVO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALCOHOL CETILICO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALCOHOL CETILICO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALCOHOL CETO ESTEARILICO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALCOHOL CETO ESTEARILICO 500 g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALGINATO DE SODIO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALGINATO DE SODIO 50g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALOE VERA 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ALULOSA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALULOSA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALULOSA Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/ALUMBRE DE POTASIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ALUMBRE DE POTASIO Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/ARANDANOS DESHIDRATADOS 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ARCILLA AMARILLA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/ARCILLA AMARILLA Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/ARCILLA BLANC 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ARCILLA BLANCA Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/ARCILLA ROJA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/ARCILLA VERDE 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/AZUFRE MICRONIZADO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/AZUL DE METILENO 30 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/BCAA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/BCAA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/BENZOATO DE SODIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/BETAINA DE COCO 250mL.ai
+ create mode 100755 Etiquetas Modelo SVG/BETAINA DE COCO 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/BETAINA DE COCO Lt.ai
+ create mode 100755 Etiquetas Modelo SVG/BICARBONATO DE SODIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/BORAX 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/BTMS 125g.ai
+ create mode 100755 Etiquetas Modelo SVG/BTMS 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/BTMS 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CAFEINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/CAFEINA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/CAFEINA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CARBON ACTIVADO PELLETS 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CARBON ACTIVADO PELLETS 800g.ai
+ create mode 100755 Etiquetas Modelo SVG/CARBONATO DE CALCIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CARBONATO DE MAGNESIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CELULOSA MICROCRISTALINA  101 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CELULOSA MICROCRISTALINA 101 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CELULOSA MICROCRISTALINA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CELULOSA PH 102 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CERA CARNAUBA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/CERA CARNAUBA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CERA DE  ABEJAS NATURAL 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CERA DE  ABEJAS REFINADA AMARILLA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CERA DE  ABEJAS REFINADA AMARILLA Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/CIRUELAS DESHIDRATADAS 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CITRATO DE CALCIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CITRATO MAGNESIO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/CITRATO MAGNESIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CITRATO MAGNESIO Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/CITRATO POTASIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CITRATO POTASIO Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/CITRATO ZINC 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CLORURO CALCIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CLORURO DE CALCIO 50g.ai
+ create mode 100755 Etiquetas Modelo SVG/CLORURO DE MAGNESIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CLORURO DE MAGNESIO Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/COCOAMIDA 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/COLAGENO 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/COLORANTE AZUL BRILLANTE 50g Falta  codigo.ai
+ create mode 100755 Etiquetas Modelo SVG/COLORANTE ROJO ERITROSINA 50g Falta  codigo.ai
+ create mode 100755 "Etiquetas Modelo SVG/COL\303\201GENO HIDROLIZADO 250g.ai"
+ create mode 100755 "Etiquetas Modelo SVG/COL\303\201GENO HIDROLIZADO 500g.ai"
+ create mode 100755 Etiquetas Modelo SVG/CREATINA MONOHIDRATO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/CREATINA MONOHIDRATO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/CREMOR TARTARO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/D PANTENOL 120mL.ai
+ create mode 100755 Etiquetas Modelo SVG/D PANTENOL 50 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/DEXTROSA Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/DIOXIDO DE TITANIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/DIPROPILENGLICOL 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/DL METIONINA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/DMSO 30 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/DMSO 30ML.ai
+ create mode 100755 Etiquetas Modelo SVG/ELASTINA 30 m.ai
+ create mode 100755 Etiquetas Modelo SVG/ELASTINA 30 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/EMBRION DE PATO 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ERITRITOL 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL ALBAHACA 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL ARBOL DE TE 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL BERGAMOTA 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL CANELA 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL CLAVOS 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL EUCALIPTO 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL GERANIO 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL HIERBABUENA 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL JAZMIN 5ML.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL JENGIBRE 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL LAVANDA 5 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL LIMON 5ML.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL MANDARINA 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL MANZANILLA 5 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL MARACUYA 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL MENTA 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL NARANJA 5 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL PINO 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL ROMERO 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL ROSA MOSQUETA 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL ROSAS 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL TOMILLO 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESENCIAL YLANG YLANG 5mL.ai
+ create mode 100755 Etiquetas Modelo SVG/ESTEARATO DE MAGNESIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ETIQUETAS MARCOS 160925.ai
+ create mode 100755 Etiquetas Modelo SVG/EXTRACTO DE MALTA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/EXTRACTO GLICOLICO LAVANDA 120mL.ai
+ create mode 100755 Etiquetas Modelo SVG/EXTRACTO GLICOLICO LAVANDA 60mL.ai
+ create mode 100755 Etiquetas Modelo SVG/FLOR DE JAMAICA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/FLORES  SECAS CALENDULA 50g.ai
+ create mode 100755 Etiquetas Modelo SVG/FLORES  SECAS LAVANDA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/FRAGANCIA HIDRO FRAMBUESA.ai
+ create mode 100755 Etiquetas Modelo SVG/FRAGANCIA LIPO NECTAR SANDIA 250mL.ai
+ create mode 100755 Etiquetas Modelo SVG/FRUCTOSA 500 g.ai
+ create mode 100755 Etiquetas Modelo SVG/FRUCTOSA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/GELATINA SIN SABOR  DOTCHI 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/GLICERINA 250 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/GLICERINA 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/GLICERINA Lt.ai
+ create mode 100755 Etiquetas Modelo SVG/GLICERINA gL.ai
+ create mode 100755 Etiquetas Modelo SVG/GLICINATO DE MAGNESIO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/GLUTAMATO MONOSODICO 1000g.ai
+ create mode 100755 Etiquetas Modelo SVG/GLUTAMATO MONOSODICO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/GLUTARALDEHIDO 2P 500ML.ai
+ create mode 100755 Etiquetas Modelo SVG/GOMA ARABIGA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/GOMA GUAR 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/GOMA XANTHAN 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/GUSANO DE SEDA  30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/HARINA DE ALGARROBA 500g.ai
+ create mode 100755 "Etiquetas Modelo SVG/HARINA DE TRIGO PANIFICACI\303\223N 00 Kg.ai"
+ create mode 100755 Etiquetas Modelo SVG/INULINA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/INULINA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/INULINA Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/JABON ESPUMA JACUZZI 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/JABON POTASICO 250mL.ai
+ create mode 100755 Etiquetas Modelo SVG/JABON POTASICO Lt.ai
+ create mode 100755 Etiquetas Modelo SVG/L ALGINATO DE SODIO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L ARGININA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L CARNITINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L CITRULINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L FENILALANINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L GLUTAMINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L LISINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L ORNITINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L PROLINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L TEANINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/L TRIPTOFANO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/LACTATO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/LACTATO DE CALCIO 50g.ai
+ create mode 100755 Etiquetas Modelo SVG/LANOLINA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/LANOLINA 40g.ai
+ create mode 100755 Etiquetas Modelo SVG/LECITINA DE SOYA 500 g.ai
+ create mode 100755 Etiquetas Modelo SVG/LECITINA DE SOYA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/MALTODEXTRINA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/MANI 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/MANTECA DE CACAO NATURAL 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/MANTECA DE CACAO REFINADA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/MANTECA DE CACAO REFINADA Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/MANTECA KARITE  BLANCA  125g.ai
+ create mode 100755 Etiquetas Modelo SVG/MANTECA KARITE 125g.ai
+ create mode 100755 Etiquetas Modelo SVG/MANTECA MANGO 120g.ai
+ create mode 100755 Etiquetas Modelo SVG/MELATONINA 100 g.ai
+ create mode 100755 Etiquetas Modelo SVG/MENTOL CRISTAL 100G.ai
+ create mode 100755 Etiquetas Modelo SVG/METABISULFITO DE SODIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/MOLIBDATO DE AMONIO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/NIACINAMIDA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/NONILFENOL Lt.ai
+ create mode 100755 Etiquetas Modelo SVG/NUEZ DEL  BRASIL 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/ORELLANA AZUL SECA 50g.ai
+ create mode 100755 Etiquetas Modelo SVG/ORELLANA ROSADA SECA 50g.ai
+ create mode 100755 Etiquetas Modelo SVG/OXIDO DE ZINC 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/PAPAINA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/POLISORBATO 80 500 ML X CREAR  CODIGO DE BARRAS.ai
+ create mode 100755 Etiquetas Modelo SVG/PROTEINA AISLADA DE SOYA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/PROTEINA AISLADA DE SOYA Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/PROTEINA SUERO LECHE 80% 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/PROTEINA SUERO LECHE 80% Kg CREAR CODIGO.ai
+ create mode 100755 Etiquetas Modelo SVG/RESINA EPOXI 500 mL A4.ai
+ create mode 100755 Etiquetas Modelo SVG/RESINA EPOXI 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/RETINOL 5P 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/SABOR CARNE AHUMADA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/SCI 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/SCI 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/SEBO DE  CORDERO 150g.ai
+ create mode 100755 Etiquetas Modelo SVG/SHAROMIX  250 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/SHAROMIX 500mL.ai
+ create mode 100755 Etiquetas Modelo SVG/SHAROMIX 705 50mL.ai
+ create mode 100755 Etiquetas Modelo SVG/SORBATO DE POTASIO 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/SORBATO DE POTASIO 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/SORBATO DE POTASIO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/SORBITOL Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/SUCRALOSA 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/SUCRALOSA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/SUERO DE LECHE 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/SUERO DE LECHE Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/SULFATO DE  HIERRO 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/SULFATO DE COBRE 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/Semilla de  Uva 120mL.ai
+ create mode 100755 Etiquetas Modelo SVG/Silica gel  ARENA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/Silica gel  ARENA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/Silica gel 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/TAURINA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/TENSOSIL COCO 500mL FALTA CODIGO BARRAS.ai
+ create mode 100755 Etiquetas Modelo SVG/TRIETANOLAMINA  Lt.ai
+ create mode 100755 Etiquetas Modelo SVG/UREA 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/UREA 500g.ai
+ create mode 100755 Etiquetas Modelo SVG/VASELINA  Kg.ai
+ create mode 100755 Etiquetas Modelo SVG/VASELINA 400g.ai
+ create mode 100755 Etiquetas Modelo SVG/VERDE  MALAQUITA 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/VIOLETA DE GENCIANA 30mL.ai
+ create mode 100755 Etiquetas Modelo SVG/VITAMINA B12 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/VITAMINA C 30 mL.ai
+ create mode 100755 Etiquetas Modelo SVG/VITAMINA D3 250g.ai
+ create mode 100755 Etiquetas Modelo SVG/VITAMINA E 100g.ai
+ create mode 100755 Etiquetas Modelo SVG/VITAMINA E 30mL.ai
+ create mode 100644 app/data/etiquetas_studio.json
+ create mode 100644 app/data/etiquetas_svg_plantillas.json
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/tools/etiquetas_ai_engine.py
+ create mode 100644 app/tools/etiquetas_studio.py
+ create mode 100644 app/tools/etiquetas_svg_engine.py
+ create mode 100644 desktop/src/components/MobileHub.tsx
+ create mode 100644 desktop/src/components/etiquetas/EtiquetaMckennaPreview.tsx
+ create mode 100644 desktop/src/components/etiquetas/EtiquetasStudioCatalogo.tsx
+ create mode 100644 desktop/src/components/etiquetas/EtiquetasStudioPanel.tsx
+ create mode 100644 desktop/src/lib/etiquetasNormativa.ts
+ create mode 100644 desktop/src/lib/etiquetasStudioHelpers.ts
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-06-15 23:00:08] ERROR en el push. Revisar credenciales o conflictos.

@@ -1,12 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1781020174.0860004,
-      "tipo": "modo_humano",
-      "sender": "573174923920@c.us",
-      "detalle": "Porfa es súper urgente"
-    },
-    {
       "ts": 1781020764.7241185,
       "tipo": "modo_humano",
       "sender": "573174923920@c.us",
@@ -1799,6 +1793,12 @@
       "tipo": "bot_pausado_global",
       "sender": "573003916813@c.us",
       "detalle": "Y si lo pido ya cuando llega?"
+    },
+    {
+      "ts": 1781583244.9950857,
+      "tipo": "bot_pausado_global",
+      "sender": "573003916813@c.us",
+      "detalle": "Bogota"
     }
   ]
 }
