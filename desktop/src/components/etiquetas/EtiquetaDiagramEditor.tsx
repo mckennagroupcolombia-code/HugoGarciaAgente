@@ -649,10 +649,14 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
                       ? "pointer-events-none opacity-0"
                       : activo
                       ? c.kind === "grafico"
-                        ? "border-2 border-violet-500 bg-violet-500/10"
+                        ? soloLineas
+                          ? "border-0 bg-transparent"
+                          : "border-2 border-violet-500 bg-violet-500/10"
                         : "border-2 border-accent bg-accent/10"
                       : c.kind === "grafico"
-                        ? "border border-dashed border-violet-400/60 bg-transparent hover:bg-violet-500/5"
+                        ? soloLineas
+                          ? "border-0 bg-transparent"
+                          : "border border-dashed border-violet-400/60 bg-transparent hover:bg-violet-500/5"
                         : "border border-dashed border-accent/50 bg-transparent hover:bg-accent/5"
                   }`}
                   style={{

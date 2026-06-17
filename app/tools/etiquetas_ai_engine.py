@@ -1880,7 +1880,7 @@ def _ocultar_trazos_punteados_svg(svg: str) -> str:
     return out
 
 
-_GRAFICOS_EXCLUIDOS = {"g3"}
+_GRAFICOS_EXCLUIDOS: set[str] = set()
 
 
 def _quitar_graficos_excluidos_svg(svg: str) -> str:
