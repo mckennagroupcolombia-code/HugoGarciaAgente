@@ -1,0 +1,53 @@
+{
+  "publicaciones": [
+    {
+      "id": "b625b0a6-9a8",
+      "item_id": "MCO4074246724",
+      "sku": "C-CITMAG500g",
+      "nombre": "Citrato de Magnesio",
+      "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
+      "item_origen_id": "MCO2613588008",
+      "referencia_competidor": "citrato_magnesio",
+      "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
+      "categoria_catalogo": "",
+      "creado_en": "2026-06-16T18:09:40",
+      "ultima_revision": "2026-06-16T18:12:09",
+      "estado_actual": "active",
+      "sub_status": [],
+      "nivel_riesgo": "bajo",
+      "score_riesgo": 2,
+      "seguimiento_activo": true,
+      "notas": "Creada por compliance monitor — publicación nueva",
+      "historial": [
+        {
+          "fecha": "2026-06-16T18:09:42",
+          "status": "paused",
+          "sub_status": [
+            "out_of_stock"
+          ],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 2,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
+          "señales": [
+            "sal de magnesio"
+          ]
+        },
+        {
+          "fecha": "2026-06-16T18:12:09",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 2,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
+          "señales": [
+            "sal de magnesio"
+          ]
+        }
+      ],
+      "alertas_enviadas": []
+    }
+  ],
+  "ultima_revision_global": "2026-06-16T18:12:09"
+}

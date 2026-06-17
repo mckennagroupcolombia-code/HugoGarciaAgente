@@ -190,6 +190,16 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
     overrides = _load_overrides()
     products = _products_flat(cache)
 
+    compliance_idx: dict[str, dict] = {}
+    try:
+        from app.tools.meli_compliance_monitor import indice_reemplazos, permalink_meli, resumen_reemplazo
+        compliance_idx = indice_reemplazos().get("by_sku", {})
+        _permalink_meli = permalink_meli
+        _resumen_reemplazo = resumen_reemplazo
+    except Exception:
+        _permalink_meli = lambda iid, pl="": f"https://articulo.mercadolibre.com.co/{iid}" if iid else ""
+        _resumen_reemplazo = lambda e: None
+
     items = []
     for p in products:
         ep = _enrich(p, overrides)
@@ -199,6 +209,13 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
             continue
         if categoria and ep.get("cat", "") != categoria:
             continue
+        reemplazo = _resumen_reemplazo(compliance_idx.get(sku_val))
+        meli_id = ep.get("meli_id_efectivo", "")
+        meli_url = ""
+        if reemplazo and reemplazo.get("url_meli"):
+            meli_url = reemplazo["url_meli"]
+        elif meli_id:
+            meli_url = _permalink_meli(meli_id)
         items.append({
             "sku": sku_val,
             "nombre": nombre,
@@ -208,7 +225,9 @@ def listar_publicaciones(buscar: str = "", categoria: str = "") -> dict:
             "precio_lista": ep.get("lista_num", 0),
             "precio_web": ep.get("precio_num", 0),
             "foto_efectiva": ep.get("foto_efectiva", ""),
-            "meli_id": ep.get("meli_id_efectivo", ""),
+            "meli_id": meli_id,
+            "meli_url": meli_url,
+            "meli_compliance_reemplazo": reemplazo,
             "estado_meli_config": ep.get("estado_meli_config", ""),
             "tiene_override": bool(ep.get("_ov")),
             "sync_web": _status_web(ep),
@@ -236,8 +255,22 @@ def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
     if live_meli and ep.get("meli_id_efectivo"):
         meli_live = _meli_fetch_item(ep["meli_id_efectivo"])
 
+    sku_val = ep.get("ref") or ep.get("rep_sku", "")
+    reemplazo = None
+    meli_url = ""
+    try:
+        from app.tools.meli_compliance_monitor import indice_reemplazos, permalink_meli, resumen_reemplazo
+        reemplazo = resumen_reemplazo(indice_reemplazos().get("by_sku", {}).get(sku_val))
+        if reemplazo and reemplazo.get("url_meli"):
+            meli_url = reemplazo["url_meli"]
+        elif ep.get("meli_id_efectivo"):
+            meli_url = permalink_meli(ep["meli_id_efectivo"])
+    except Exception:
+        if ep.get("meli_id_efectivo"):
+            meli_url = f"https://articulo.mercadolibre.com.co/{ep['meli_id_efectivo']}"
+
     return {
-        "sku": ep.get("ref") or ep.get("rep_sku", ""),
+        "sku": sku_val,
         "nombre": ep.get("name", ""),
         "categoria": ep.get("cat", ""),
         "cat_color": ep.get("cat_color", ""),
@@ -257,6 +290,8 @@ def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
         "meli_item_id_cache": ep.get("meli_id", ""),
         "meli_item_id_override": ov.get("meli_item_id", ""),
         "meli_id_efectivo": ep.get("meli_id_efectivo", ""),
+        "meli_url": meli_url,
+        "meli_compliance_reemplazo": reemplazo,
         "meli_live": meli_live,
         "en_vitrina": ep.get("solo_vitrina", False),
         "buyable": ep.get("buyable", True),

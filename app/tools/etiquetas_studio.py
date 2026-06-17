@@ -33,20 +33,117 @@ def obtener_studio_sku(sku: str) -> dict | None:
     sku = (sku or "").strip()
     if not sku:
         return None
-    return _load_studio_all().get(sku)
+    entry = _load_studio_all().get(sku)
+    if not isinstance(entry, dict):
+        return None
+    versiones = entry.get("_versiones")
+    if isinstance(versiones, dict):
+        alt = versiones.get("alternativa")
+        if isinstance(alt, dict):
+            return alt
+        org = versiones.get("original")
+        return org if isinstance(org, dict) else None
+    return entry
 
 
-def guardar_studio_sku(sku: str, datos: dict) -> dict:
+def obtener_studio_sku_version(sku: str, version: str = "alternativa") -> dict | None:
+    sku = (sku or "").strip()
+    if not sku:
+        return None
+    version = (version or "alternativa").strip().lower()
+    entry = _load_studio_all().get(sku)
+    if not isinstance(entry, dict):
+        return None
+    versiones = entry.get("_versiones")
+    if isinstance(versiones, dict):
+        data = versiones.get(version)
+        return data if isinstance(data, dict) else None
+    return entry if version == "alternativa" else None
+
+
+def listar_versiones_studio_sku(sku: str) -> list[str]:
+    sku = (sku or "").strip()
+    if not sku:
+        return []
+    entry = _load_studio_all().get(sku)
+    if not isinstance(entry, dict):
+        return []
+    versiones = entry.get("_versiones")
+    if isinstance(versiones, dict):
+        return [k for k, v in versiones.items() if isinstance(v, dict)]
+    return ["alternativa"]
+
+
+def guardar_studio_sku(sku: str, datos: dict, version: str = "alternativa") -> dict:
     sku = (sku or "").strip()
     if not sku:
         raise ValueError("SKU obligatorio")
+    version = (version or "alternativa").strip().lower()
+    if version not in {"original", "alternativa"}:
+        raise ValueError("version inválida (usa 'original' o 'alternativa')")
     all_data = _load_studio_all()
-    entry = dict(datos)
-    entry["sku"] = sku
-    entry["updated_at"] = datetime.now().isoformat(timespec="seconds")
-    all_data[sku] = entry
+    prev = all_data.get(sku)
+    now = datetime.now().isoformat(timespec="seconds")
+    payload = dict(datos)
+    payload["sku"] = sku
+    payload["updated_at"] = now
+
+    if isinstance(prev, dict) and isinstance(prev.get("_versiones"), dict):
+        versiones = dict(prev["_versiones"])
+    else:
+        legacy = prev if isinstance(prev, dict) else {}
+        versiones = {
+            "original": dict(legacy) if legacy else {},
+            "alternativa": dict(legacy) if legacy else {},
+        }
+
+    versiones[version] = payload
+    all_data[sku] = {
+        "_versiones": versiones,
+        "updated_at": now,
+    }
     _save_studio_all(all_data)
-    return entry
+    return payload
+
+
+def copiar_version_studio_sku(
+    sku: str,
+    origen: str = "original",
+    destino: str = "alternativa",
+    *,
+    sobrescribir: bool = True,
+) -> dict:
+    sku = (sku or "").strip()
+    if not sku:
+        raise ValueError("SKU obligatorio")
+    origen = (origen or "").strip().lower()
+    destino = (destino or "").strip().lower()
+    if origen not in {"original", "alternativa"} or destino not in {"original", "alternativa"}:
+        raise ValueError("Versiones inválidas")
+    if origen == destino:
+        raise ValueError("origen y destino no pueden ser iguales")
+
+    all_data = _load_studio_all()
+    entry = all_data.get(sku)
+    if not isinstance(entry, dict):
+        raise ValueError("SKU sin datos de studio")
+    versiones = entry.get("_versiones")
+    if not isinstance(versiones, dict):
+        legacy = dict(entry)
+        versiones = {"original": dict(legacy), "alternativa": dict(legacy)}
+    src = versiones.get(origen)
+    if not isinstance(src, dict):
+        raise ValueError(f"No existe versión '{origen}'")
+    if not sobrescribir and isinstance(versiones.get(destino), dict):
+        raise ValueError(f"La versión '{destino}' ya existe")
+    now = datetime.now().isoformat(timespec="seconds")
+    dst = dict(src)
+    dst["sku"] = sku
+    dst["updated_at"] = now
+    versiones[destino] = dst
+    all_data[sku] = {"_versiones": versiones, "updated_at": now}
+    _save_studio_all(all_data)
+    return dst
 
 
 def exportar_pdf_studio(datos: dict) -> dict[str, Any]:
@@ -64,6 +161,18 @@ def generar_pdf_temporal_para_impresion(datos: dict) -> tuple[str, dict]:
     from app.tools.etiquetas_svg_engine import _inkscape_export, renderizar_svg
 
     svg, meta = renderizar_svg(datos)
+    req_w = float(datos.get("ancho_mm") or 0) if str(datos.get("ancho_mm") or "").strip() else 0.0
+    req_h = float(datos.get("alto_mm") or 0) if str(datos.get("alto_mm") or "").strip() else 0.0
+    got_w = float(meta.get("ancho_mm") or 0) if meta.get("ancho_mm") else 0.0
+    got_h = float(meta.get("alto_mm") or 0) if meta.get("alto_mm") else 0.0
+    if req_w and req_h and got_w and got_h and (abs(req_w - got_w) > 0.2 or abs(req_h - got_h) > 0.2):
+        raise ValueError(
+            f"Dimensiones bloqueadas: solicitadas {req_w}x{req_h} mm, plantilla {got_w}x{got_h} mm"
+        )
+    pf = (meta or {}).get("preflight") or {}
+    if pf and not pf.get("ok", True):
+        errs = "; ".join(pf.get("errors") or ["Layout inválido"])
+        raise ValueError(f"Preflight layout falló: {errs}")
     tmp = tempfile.mkdtemp(prefix="mckg_etq_print_")
     svg_path = os.path.join(tmp, "etiqueta.svg")
     pdf_path = os.path.join(tmp, "etiqueta.pdf")
@@ -110,7 +219,7 @@ def listar_catalogo_studio(
         if solo_con_meli and not meli_id:
             continue
 
-        studio = studio_all.get(code) or {}
+        studio = obtener_studio_sku(code) or {}
         forzar_svg = studio.get("forzar_plantilla_svg") in (True, 1, "1", "true")
         datos_resolucion = {
             "sku": code,
@@ -168,3 +277,44 @@ def listar_catalogo_studio(
         "stats": stats,
         "plantillas_sin_producto": sin_producto[:80],
     }
+
+
+_DIAG_FORMATOS_PATH = _REPO / "app" / "data" / "etiquetas_diagramacion_formatos.json"
+
+
+def _load_diagramacion_formatos() -> dict:
+    if not _DIAG_FORMATOS_PATH.exists():
+        return {}
+    try:
+        with open(_DIAG_FORMATOS_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_diagramacion_formatos(data: dict) -> None:
+    _DIAG_FORMATOS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(_DIAG_FORMATOS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def obtener_diagramacion_formato(tipo_etiqueta: str) -> dict | None:
+    tipo = (tipo_etiqueta or "").strip()
+    if not tipo:
+        return None
+    entry = _load_diagramacion_formatos().get(tipo)
+    return entry if isinstance(entry, dict) else None
+
+
+def guardar_diagramacion_formato(tipo_etiqueta: str, datos: dict) -> dict:
+    tipo = (tipo_etiqueta or "").strip()
+    if not tipo:
+        raise ValueError("tipo_etiqueta obligatorio")
+    all_data = _load_diagramacion_formatos()
+    payload = dict(datos)
+    payload["tipo_etiqueta"] = tipo
+    payload["updated_at"] = datetime.now().isoformat(timespec="seconds")
+    all_data[tipo] = payload
+    _save_diagramacion_formatos(all_data)
+    return payload

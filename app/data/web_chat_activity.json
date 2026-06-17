@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-14T17:18:39",
+  "updated_at": "2026-06-16T16:39:30",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -27,9 +27,68 @@
     "2026-06-09": 4,
     "2026-06-11": 1,
     "2026-06-12": 28,
-    "2026-06-14": 3
+    "2026-06-14": 3,
+    "2026-06-16": 3
   },
   "sessions": [
+    {
+      "session_id": "web-10bf0c57-93f5-447d-a2ff-8fcd6d3d0b5e",
+      "started_at": "2026-06-16T16:39:30",
+      "last_at": "2026-06-16T16:39:30",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "Buenas tardes, tienes Dimetil Sulfoxido al 99%?",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-16T16:39:30",
+          "user_message": "Buenas tardes, tienes Dimetil Sulfoxido al 99%?",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-412633d7-1555-4406-b512-50ac4a71a974",
+      "started_at": "2026-06-16T14:02:17",
+      "last_at": "2026-06-16T14:02:30",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/producto/c-acdsal20p30m",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0",
+      "last_user_message": "Para comprar Acido salicilico 30% - 30ml",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-16T14:02:17",
+          "user_message": "Buenas tardes",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-16T14:02:30",
+          "user_message": "Para comprar Acido salicilico 30% - 30ml",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-fa466230-aab5-409c-8b0a-c9272fe49871",
       "started_at": "2026-06-14T17:16:48",

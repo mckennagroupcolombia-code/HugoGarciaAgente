@@ -96,17 +96,25 @@ def _valor_campo(datos: dict, campo: str) -> str:
     if campo == "peso":
         return neto
     if campo == "cas_linea":
+        if datos.get("mostrar_cas") is False:
+            return ""
         if not cas:
             return "# CAS: —"
         return f"# CAS: {cas}" if not cas.startswith("#") else cas
     if campo == "concentracion_formula":
-        base = f"Concentración: {conc}"
-        if formula:
-            base += f"Fórmula molecular: {formula}"
-        return base
+        partes: list[str] = []
+        if datos.get("mostrar_concentracion", True) is not False:
+            partes.append(f"Concentración: {conc}")
+        if formula and datos.get("mostrar_formula_molecular", True) is not False:
+            partes.append(f"Fórmula molecular: {formula}")
+        return "".join(partes)
     if campo == "concentracion":
+        if datos.get("mostrar_concentracion", True) is False:
+            return ""
         return f"Concentración: {conc}"
     if campo == "formula":
+        if datos.get("mostrar_formula_molecular", True) is False:
+            return ""
         return f"Fórmula molecular: {formula}" if formula else ""
     if campo == "formula_resto":
         if not formula:
@@ -152,13 +160,237 @@ def _reemplazos_desde_datos(datos: dict, spec: dict) -> list[tuple[str, str]]:
     return pares
 
 
-def _aplicar_reemplazos_texto(svg: str, pares: list[tuple[str, str]]) -> str:
+def _normalizar_fuentes_svg_web(svg: str) -> str:
+    """Mapea familias de Inkscape a Montserrat cargada en el panel (sin mover texto)."""
+    svg = re.sub(
+        r"font-family:'Montserrat Medium'",
+        "font-family:Montserrat",
+        svg,
+        flags=re.I,
+    )
+    svg = re.sub(
+        r"font-family:'Montserrat SemiBold'",
+        "font-family:Montserrat",
+        svg,
+        flags=re.I,
+    )
+    svg = re.sub(
+        r"font-family:Geomanist\b",
+        "font-family:Montserrat",
+        svg,
+        flags=re.I,
+    )
+    return svg
+
+
+def _aplicar_reemplazos_texto(svg: str, pares: list[tuple[str, str]], *, fiel: bool = False) -> str:
     out = svg
-    # Ordenar por longitud descendente para no romper subcadenas
     for muestra, valor in sorted(pares, key=lambda x: -len(x[0])):
-        if muestra and muestra in out:
-            out = out.replace(muestra, _escape_xml_text(valor))
+        if muestra:
+            out, _ = _reemplazar_texto_en_svg(out, muestra, valor, fiel=fiel)
     return out
+
+
+_RE_TSPAN_INNER = re.compile(r"<tspan(\s[^>]*)>([^<]*)</tspan>", re.DOTALL)
+
+
+def _normalizar_texto_svg(texto: str) -> str:
+    return re.sub(r"\s+", " ", (texto or "").strip())
+
+
+_RE_TITULO_SECCION_ETIQUETA = re.compile(
+    r"^\s{0,4}(?:informaci[oó]n t[eé]cnica|nota legal|est[aá]ndar de calidad|cumplimiento normativo|[A-ZÁÉÍÓÚÑ][^:]{2,58}:)\s*$",
+    re.I,
+)
+
+
+def _normalizar_linea_ortografia_puntuacion(linea: str) -> str:
+    """Limpia espacios y puntuación de una línea de descripción B1."""
+    s = re.sub(r"[ \t]+", " ", (linea or "").strip())
+    if not s:
+        return s
+    if _RE_TITULO_SECCION_ETIQUETA.match(s) or (s.endswith(":") and len(s) < 72):
+        return s
+    s = re.sub(r"\s+([,;:.!?…])(?=\s|$|[^\d])", r"\1", s)
+    s = re.sub(r"([,;:])(?=[^\s)\]0-9])", r"\1 ", s)
+    s = re.sub(r"([.!?])(?=[A-ZÁÉÍÓÚÑa-záéíóúñ])", r"\1 ", s)
+    s = re.sub(r"\s*·\s*", " · ", s)
+    s = re.sub(r"\(\s+", "(", s)
+    s = re.sub(r"\s+\)", ")", s)
+    s = re.sub(r"(\d)\s*%", r"\1 %", s)
+    s = re.sub(r" {2,}", " ", s)
+    return s.strip()
+
+
+def _normalizar_ortografia_puntuacion_etiqueta(texto: str) -> str:
+    """Normaliza ortografía tipográfica del bloque B1 (espacios, puntuación, párrafos)."""
+    raw = (texto or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not raw:
+        return ""
+    bloques = re.split(r"\n\s*\n", raw)
+    out_bloques: list[str] = []
+    for bloque in bloques:
+        filas = [_normalizar_linea_ortografia_puntuacion(ln) for ln in bloque.split("\n")]
+        filas = [ln for ln in filas if ln is not None]
+        while filas and not filas[0].strip():
+            filas.pop(0)
+        while filas and not filas[-1].strip():
+            filas.pop()
+        if filas:
+            out_bloques.append("\n".join(filas))
+    return "\n\n".join(out_bloques)
+
+
+def _es_linea_titulo_seccion_descripcion(linea: str) -> bool:
+    s = (linea or "").strip()
+    if not s:
+        return False
+    if s.startswith("•"):
+        return True
+    if _RE_TITULO_SECCION_ETIQUETA.match(s):
+        return True
+    if s.endswith(":") and len(s) < 72:
+        return True
+    return False
+
+
+def _debe_justificar_linea_descripcion(linea: str) -> bool:
+    s = (linea or "").strip()
+    if not s or _es_linea_titulo_seccion_descripcion(s):
+        return False
+    if s.endswith("…") or len(s.split()) < 2:
+        return False
+    return True
+
+
+def _ancho_palabra_aprox(palabra: str, fs: float) -> float:
+    """Ancho visual conservador (Montserrat ~0.56 em/carácter a 5px)."""
+    return len(palabra) * fs * 0.56
+
+
+def _tspans_linea_descripcion(
+    linea: str,
+    *,
+    max_width: float,
+    fs: float,
+    lh: float,
+    es_primera_del_bloque: bool,
+    justificar: bool,
+) -> list[str]:
+    contenido = (linea or "").strip()
+    if not contenido:
+        dy = lh * 0.45
+        if es_primera_del_bloque:
+            return [f'<tspan x="0" y="0"> </tspan>']
+        return [f'<tspan x="0" dy="{dy:.4f}"> </tspan>']
+
+    palabras = contenido.split()
+    if not justificar or len(palabras) < 2 or max_width <= 0:
+        esc = _escape_xml_text(contenido)
+        if es_primera_del_bloque:
+            return [f'<tspan x="0" y="0">{esc}</tspan>']
+        return [f'<tspan x="0" dy="{lh:.4f}">{esc}</tspan>']
+
+    anchos = [_ancho_palabra_aprox(w, fs) for w in palabras]
+    espacio_min = fs * 0.18
+    huecos = len(palabras) - 1
+    suma = sum(anchos)
+    if suma >= max_width:
+        gap = espacio_min
+    else:
+        gap = (max_width - suma) / huecos
+
+    out: list[str] = []
+    x = 0.0
+    for i, (palabra, ancho) in enumerate(zip(palabras, anchos)):
+        esc = _escape_xml_text(palabra)
+        if i == 0:
+            if es_primera_del_bloque:
+                out.append(f'<tspan x="0" y="0">{esc}</tspan>')
+            else:
+                out.append(f'<tspan x="0" dy="{lh:.4f}">{esc}</tspan>')
+        else:
+            out.append(f'<tspan x="{x:.4f}">{esc}</tspan>')
+        x += ancho + gap
+    return out
+
+
+_MARGEN_DER_B1_ANTES_SEP = 2.5
+
+
+def _unificar_cuerpo_parrafo_b1(texto_parrafo: str) -> str:
+    """Un párrafo B1: une saltos simples en un solo flujo de texto."""
+    filas = [ln.strip() for ln in (texto_parrafo or "").split("\n") if ln.strip()]
+    return re.sub(r"\s+", " ", " ".join(filas)).strip()
+
+
+def _tiene_x_por_caracter(attrs: str) -> bool:
+    return bool(re.search(r'\sx="[^"]*\s[^"]+"', attrs))
+
+
+def _limpiar_posicion_tspan(attrs: str) -> str:
+    """Quita posicionamiento por carácter de Illustrator que rompe al cambiar el texto."""
+    attrs = re.sub(r'\s+x="[^"]*"', "", attrs)
+    attrs = re.sub(r'\s+dx="[^"]*"', "", attrs)
+    return attrs
+
+
+def _ancho_visual_tspan(attrs: str) -> float | None:
+    """Ancho visual aproximado del tspan según coords x de Illustrator."""
+    m = re.search(r'\sx="([^"]*)"', attrs)
+    if not m:
+        return None
+    vals: list[float] = []
+    for part in m.group(1).split():
+        try:
+            vals.append(float(part))
+        except ValueError:
+            continue
+    if len(vals) >= 2:
+        return vals[-1] + 4.0
+    return None
+
+
+def _attrs_tspan_ajustado(attrs: str, *, conservar_ancho: bool) -> str:
+    ancho = _ancho_visual_tspan(attrs) if conservar_ancho else None
+    attrs_out = _limpiar_posicion_tspan(attrs)
+    if ancho and ancho > 8:
+        attrs_out += f' textLength="{ancho:.2f}" lengthAdjust="spacingAndGlyphs"'
+        if 'x="' not in attrs_out:
+            attrs_out += ' x="0"'
+    return attrs_out
+
+
+def _reemplazar_texto_en_svg(
+    svg: str, muestra: str, valor: str, *, fiel: bool = False, conservar_ancho: bool = False
+) -> tuple[str, int]:
+    """Reemplaza texto en <tspan>. Modo fiel: conserva kerning Illustrator (x por carácter)."""
+    if not muestra:
+        return svg, 0
+    esc = _escape_xml_text(valor)
+    muestra_norm = _normalizar_texto_svg(muestra)
+    count = 0
+
+    def _repl(m: re.Match[str]) -> str:
+        nonlocal count
+        attrs, inner = m.group(1), m.group(2)
+        if _normalizar_texto_svg(inner) != muestra_norm:
+            return m.group(0)
+        if fiel:
+            if _normalizar_texto_svg(inner) == _normalizar_texto_svg(valor):
+                return m.group(0)
+            if _tiene_x_por_caracter(attrs) and len(valor) != len(inner):
+                return m.group(0)
+            count += 1
+            return f"<tspan{attrs}>{esc}</tspan>"
+        count += 1
+        return f"<tspan{_attrs_tspan_ajustado(attrs, conservar_ancho=conservar_ancho)}>{esc}</tspan>"
+
+    out = _RE_TSPAN_INNER.sub(_repl, svg)
+    if count == 0 and muestra in svg and not fiel:
+        out = svg.replace(muestra, esc, 1)
+        count = 1
+    return out, count
 
 
 def _ajustar_viewbox_export(svg: str, spec: dict) -> str:
@@ -370,9 +602,14 @@ def _lineas_lote_vencimiento(datos: dict) -> list[str]:
 
 
 def _codigo_barras_valor(datos: dict) -> str:
-    raw = (datos.get("codigo_barras") or datos.get("sku") or "").strip()
-    limpio = re.sub(r"[^\x20-\x7E]", "", raw)
-    return limpio[:48]
+    raw = (datos.get("codigo_barras") or "").strip()
+    sku = (datos.get("sku") or "").strip()
+    if not raw or raw.upper() == sku.upper():
+        return ""
+    digitos = re.sub(r"\D", "", raw)
+    if len(digitos) >= 8:
+        return digitos[:48]
+    return ""
 
 
 def _texto_legal_bloque(datos: dict) -> str:
@@ -394,24 +631,162 @@ def _texto_legal_bloque(datos: dict) -> str:
     return " · ".join(partes)
 
 
-def _barcode_png_base64(valor: str) -> str:
+def _trim_image_rgba(img):
+    from PIL import Image
+
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+    bbox = img.getbbox()
+    if not bbox:
+        return img
+    return img.crop(bbox)
+
+
+def _bbox_tinta_rgb(img) -> tuple[int, int, int, int] | None:
+    """Bbox de píxeles no blancos (barras + dígitos del PNG embebido en el .ai)."""
+    rgb = img.convert("RGB")
+    w, h = rgb.size
+    px = rgb.load()
+    y0, y1, x0, x1 = h, 0, w, 0
+    found = False
+    for y in range(h):
+        for x in range(w):
+            r, g, b = px[x, y]
+            if r < 245 or g < 245 or b < 245:
+                found = True
+                y0 = min(y0, y)
+                y1 = max(y1, y)
+                x0 = min(x0, x)
+                x1 = max(x1, x)
+    if not found:
+        return None
+    return x0, y0, x1, y1
+
+
+def _barcode_png_como_plantilla(plantilla_b64: str, valor: str) -> str:
+    """Genera barcode en el mismo slot (tamaño y bbox) que el PNG del .ai."""
+    import base64
+    import io
+    import os
+    import shutil
+    import tempfile
+
+    from PIL import Image, ImageDraw, ImageFont
     from reportlab.graphics import renderSVG
     from reportlab.graphics.barcode import createBarcodeDrawing
+
+    orig = Image.open(io.BytesIO(base64.b64decode(plantilla_b64)))
+    w, h = orig.size
+    bbox = _bbox_tinta_rgb(orig)
+    if not bbox:
+        return _barcode_png_base64(valor, canvas=(w, h))
+
+    x0, y0, x1, y1 = bbox
+    ink_w, ink_h = x1 - x0 + 1, y1 - y0 + 1
+    target_w = max(120, ink_w - 4)
+    bars_h = max(14, int(ink_h * 0.52))
+    digit_h = max(10, int(ink_h * 0.11))
+    n_mod = max(20, len(valor) * 11 + 35)
+    bar_width = min(0.42, max(0.18, target_w / (n_mod * 2.75)))
+
+    canvas = Image.new("RGB", (w, h), (255, 255, 255))
 
     d = createBarcodeDrawing(
         "Code128",
         value=valor,
-        barHeight=12,
-        barWidth=0.28,
-        humanReadable=1,
+        barHeight=bars_h,
+        barWidth=bar_width,
+        humanReadable=0,
+    )
+    tmp = tempfile.mkdtemp(prefix="mckg_bc_tpl_")
+    try:
+        svg_path = os.path.join(tmp, "bc.svg")
+        png_path = os.path.join(tmp, "bc.png")
+        renderSVG.drawToFile(d, svg_path)
+        _inkscape_export(svg_path, png_path, "png", width_px=target_w)
+        bar_img = _trim_image_rgba(Image.open(png_path))
+        scale = min(1.0, target_w / max(bar_img.width, 1), bars_h / max(bar_img.height, 1))
+        if scale < 1.0:
+            bar_img = bar_img.resize(
+                (max(1, int(bar_img.width * scale)), max(1, int(bar_img.height * scale)))
+            )
+        paste_x = x0 + (ink_w - bar_img.width) // 2
+        paste_y = y0 + max(0, (bars_h - bar_img.height) // 2)
+        if bar_img.mode == "RGBA":
+            canvas.paste(bar_img.convert("RGB"), (paste_x, paste_y), bar_img)
+        else:
+            canvas.paste(bar_img, (paste_x, paste_y))
+        draw = ImageDraw.Draw(canvas)
+        fs = max(8, digit_h)
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", fs)
+        except Exception:
+            font = ImageFont.load_default()
+        bb = draw.textbbox((0, 0), valor, font=font)
+        tw = bb[2] - bb[0]
+        ty = min(y1 - fs, y0 + bars_h + 2)
+        draw.text((x0 + (ink_w - tw) // 2, ty), valor, fill=(0, 0, 0), font=font)
+        out = os.path.join(tmp, "out.png")
+        canvas.save(out, format="PNG")
+        return base64.b64encode(open(out, "rb").read()).decode("ascii")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _barcode_png_base64(valor: str, canvas: tuple[int, int] | None = None) -> str:
+    from PIL import Image, ImageDraw, ImageFont
+    from reportlab.graphics import renderSVG
+    from reportlab.graphics.barcode import createBarcodeDrawing
+
+    usar_canvas = canvas is not None and canvas[0] > 0 and canvas[1] > 0
+    d = createBarcodeDrawing(
+        "Code128",
+        value=valor,
+        barHeight=14 if usar_canvas else 12,
+        barWidth=0.32 if usar_canvas else 0.28,
+        humanReadable=0 if usar_canvas else 1,
     )
     tmp = tempfile.mkdtemp(prefix="mckg_bc_")
     try:
         svg_path = os.path.join(tmp, "bc.svg")
         png_path = os.path.join(tmp, "bc.png")
         renderSVG.drawToFile(d, svg_path)
-        _inkscape_export(svg_path, png_path, "png", width_px=320)
-        return base64.b64encode(open(png_path, "rb").read()).decode("ascii")
+        export_w = int(canvas[0]) if usar_canvas else 320
+        _inkscape_export(svg_path, png_path, "png", width_px=export_w)
+        if not usar_canvas:
+            return base64.b64encode(open(png_path, "rb").read()).decode("ascii")
+
+        from PIL import Image
+
+        w_canvas, h_canvas = canvas
+        bar_img = _trim_image_rgba(Image.open(png_path))
+        canvas_img = Image.new("RGBA", (w_canvas, h_canvas), (0, 0, 0, 0))
+        # Slot Illustrator 800×480: tinta del .ai entre ~17% y ~87% del alto.
+        y_top = int(h_canvas * 80 / 480)
+        y_bot = int(h_canvas * 418 / 480)
+        avail_h = max(24, y_bot - y_top)
+        max_w = int(w_canvas * 0.88)
+        max_h = int(avail_h * 0.62)
+        scale = min(max_w / max(bar_img.width, 1), max_h / max(bar_img.height, 1))
+        new_size = (max(1, int(bar_img.width * scale)), max(1, int(bar_img.height * scale)))
+        bar_img = bar_img.resize(new_size)
+        x0 = (w_canvas - new_size[0]) // 2
+        y0 = y_top
+        canvas_img.paste(bar_img, (x0, y0), bar_img)
+        draw = ImageDraw.Draw(canvas_img)
+        font_size = max(9, int(h_canvas * 0.034))
+        try:
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+        except Exception:
+            font = ImageFont.load_default()
+        bbox = draw.textbbox((0, 0), valor, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        digit_y = min(y0 + new_size[1] + 3, y_bot - th)
+        draw.text(((w_canvas - tw) // 2, digit_y), valor, fill=(0, 0, 0), font=font)
+        out = os.path.join(tmp, "bc_canvas.png")
+        canvas_img.save(out, format="PNG")
+        return base64.b64encode(open(out, "rb").read()).decode("ascii")
     finally:
         try:
             import shutil
@@ -568,6 +943,190 @@ def _escape_xml_text(text: str) -> str:
     )
 
 
+def _compactar_texto(texto: str, max_chars: int) -> str:
+    t = re.sub(r"\s+", " ", (texto or "").strip())
+    if len(t) <= max_chars:
+        return t
+    cut = t[: max(1, max_chars - 1)]
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.rstrip(" .,;:") + "…"
+
+
+def _compactar_texto_multilinea(texto: str, max_chars: int) -> str:
+    """Compacta sin perder saltos de línea (secciones de descripción alternativa)."""
+    raw = (texto or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    lineas = [re.sub(r"[ \t]+", " ", ln).strip() for ln in raw.split("\n")]
+    out = "\n".join(ln for ln in lineas if ln is not None)
+    out = re.sub(r"\n{3,}", "\n\n", out)
+    if len(out) <= max_chars:
+        return out
+    cut = out[: max(1, max_chars - 1)]
+    if "\n" in cut:
+        cut = cut.rsplit("\n", 1)[0]
+    elif " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.rstrip(" .,;:\n") + "…"
+
+
+def normalizar_datos_layout(datos: dict) -> dict:
+    """Recorta campos largos para evitar desbordes al reemplazar texto fijo."""
+    d = dict(datos or {})
+    d["nombre_producto"] = _compactar_texto(str(d.get("nombre_producto") or ""), 64)
+    d["ingrediente"] = _compactar_texto(str(d.get("ingrediente") or ""), 64)
+    d["subtitulo"] = _compactar_texto(str(d.get("subtitulo") or ""), 92)
+    d["descripcion_etiqueta"] = _compactar_texto_multilinea(str(d.get("descripcion_etiqueta") or ""), 3200)
+    d["aplicaciones"] = _compactar_texto(str(d.get("aplicaciones") or ""), 160)
+    d["notas_tecnicas"] = _compactar_texto(str(d.get("notas_tecnicas") or ""), 92)
+    d["texto_cuchara"] = _compactar_texto(str(d.get("texto_cuchara") or ""), 70)
+    d["concentracion"] = _compactar_texto(str(d.get("concentracion") or ""), 24)
+    d["formula_molecular"] = _compactar_texto(str(d.get("formula_molecular") or ""), 32)
+
+    blob = " ".join(
+        str(d.get(k) or "")
+        for k in ("nombre_producto", "sku", "archivo_ai", "ingrediente")
+    ).lower()
+    if ("aceite" in blob or "esencial" in blob) and _texto_es_copia_generica_polvo_layout(
+        f"{d.get('subtitulo', '')} {d.get('descripcion_etiqueta', '')}"
+    ):
+        if "polvo" in str(d.get("subtitulo") or "").lower():
+            d["subtitulo"] = ""
+        if "polvo fino" in str(d.get("descripcion_etiqueta") or "").lower():
+            d["descripcion_etiqueta"] = ""
+    return d
+
+
+def _texto_es_copia_generica_polvo_layout(texto: str) -> bool:
+    low = (texto or "").lower()
+    return "polvo fino" in low or "insumo alimentario 100% puro en polvo" in low
+
+
+def _parse_matrix(matrix: str) -> tuple[float, float, float, float]:
+    nums = [float(x) for x in re.findall(r"[-+]?\d*\.?\d+", matrix or "")]
+    if len(nums) >= 6:
+        return nums[0], nums[3], nums[4], nums[5]
+    return 1.0, 1.0, 0.0, 0.0
+
+
+def _overlap(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    x1 = max(ax, bx)
+    y1 = max(ay, by)
+    x2 = min(ax + aw, bx + bw)
+    y2 = min(ay + ah, by + bh)
+    if x2 <= x1 or y2 <= y1:
+        return 0.0
+    return (x2 - x1) * (y2 - y1)
+
+
+def _preflight_layout_svg(svg: str) -> dict[str, Any]:
+    """Detecta solapes y cajas fuera del área visible."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    boxes: list[dict[str, Any]] = []
+    try:
+        root = ET.fromstring(svg)
+    except Exception as e:
+        return {"ok": False, "errors": [f"SVG inválido: {e}"], "warnings": [], "collisions": []}
+
+    vb = root.attrib.get("viewBox", "")
+    vb_vals = [float(x) for x in re.findall(r"[-+]?\d*\.?\d+", vb)]
+    bounds = tuple(vb_vals[:4]) if len(vb_vals) >= 4 else None
+    ns = {"svg": _SVG_NS}
+
+    for el in root.findall(".//svg:text", ns):
+        txt = "".join(el.itertext()).strip()
+        if not txt:
+            continue
+        tr = el.attrib.get("transform", "")
+        sx, sy, tx, ty = _parse_matrix(tr)
+        fs_raw = re.sub(r"[^\d.]", "", el.attrib.get("font-size", "10")) or "10"
+        if not fs_raw:
+            style = el.attrib.get("style", "")
+            m_fs = re.search(r"font-size:\s*([\d.]+)px", style)
+            fs_raw = m_fs.group(1) if m_fs else "10"
+        fs = float(fs_raw)
+        eid = el.attrib.get("id") or ""
+        lines = max(1, txt.count("\n") + sum(1 for c in txt if c == "•"))
+        if eid == "text18" or txt.strip().startswith("RSN "):
+            width = fs * 1.4
+            height = max(8.0, len(txt) * fs * 0.52)
+        elif eid == "mckenna-lote-recuadro":
+            width = 30.0
+            height = lines * fs * 1.35
+        elif eid == "text78" or "devolución" in txt.lower():
+            width = min(120.0, max(4.0, len(txt) * fs * 0.42))
+            height = max(3.0, lines * fs * 1.18)
+        else:
+            width = max(4.0, len(txt) * fs * 0.50 * max(0.7, abs(sx)))
+            height = max(3.0, lines * fs * 1.18 * max(0.7, abs(sy)))
+        boxes.append({
+            "kind": "text",
+            "id": eid,
+            "bbox": (tx, ty - height, width, height),
+        })
+
+    for el in root.findall(".//svg:image", ns):
+        tr = el.attrib.get("transform", "")
+        sx, sy, tx, ty = _parse_matrix(tr)
+        x = float(el.attrib.get("x", "0"))
+        y = float(el.attrib.get("y", "0"))
+        w = float(el.attrib.get("width", "0"))
+        h = float(el.attrib.get("height", "0"))
+        bx = tx + x * sx
+        by = ty + y * sy
+        bw = abs(w * sx) if sx else w
+        bh = abs(h * sy) if sy else h
+        if bw > 0 and bh > 0:
+            boxes.append({"kind": "image", "id": el.attrib.get("id") or "", "bbox": (bx, by, bw, bh)})
+
+    for el in root.findall(".//svg:rect", ns):
+        x = float(el.attrib.get("x", "0"))
+        y = float(el.attrib.get("y", "0"))
+        w = float(el.attrib.get("width", "0"))
+        h = float(el.attrib.get("height", "0"))
+        if w > 0 and h > 0:
+            boxes.append({"kind": "rect", "id": el.attrib.get("id") or "", "bbox": (x, y, w, h)})
+
+    collisions: list[dict[str, Any]] = []
+    protected_tokens = ("barras", "barcode", "legal", "lote", "venc")
+    for i in range(len(boxes)):
+        for j in range(i + 1, len(boxes)):
+            a = boxes[i]
+            b = boxes[j]
+            area = _overlap(a["bbox"], b["bbox"])
+            if area < 9.0:
+                continue
+            aid = (a.get("id") or "").lower()
+            bid = (b.get("id") or "").lower()
+            protected = any(t in aid for t in protected_tokens) or any(t in bid for t in protected_tokens)
+            if protected and (a["kind"] == "text" or b["kind"] == "text"):
+                pair = {aid, bid}
+                if pair == {"text78", "mckenna-lote-recuadro"}:
+                    continue
+                if pair == {"text18", "mckenna-lote-recuadro"}:
+                    continue
+                collisions.append({"a": aid or a["kind"], "b": bid or b["kind"], "area": round(area, 2)})
+
+    if bounds:
+        vx, vy, vw, vh = bounds
+        for b in boxes:
+            x, y, w, h = b["bbox"]
+            if x < vx - 1 or y < vy - 1 or x + w > vx + vw + 1 or y + h > vy + vh + 1:
+                if b["kind"] == "text":
+                    warnings.append("Texto potencialmente fuera del área imprimible")
+                    break
+
+    if collisions:
+        errors.append(f"Solapamiento detectado en {len(collisions)} zona(s) crítica(s)")
+
+    if not boxes:
+        warnings.append("No se detectaron cajas para validar layout")
+
+    return {"ok": not errors, "errors": errors, "warnings": warnings, "collisions": collisions}
+
+
 def _ruta_plantilla(tipo: str) -> tuple[Path, dict]:
     spec = _spec_para_tipo(tipo)
     if not spec:
@@ -580,13 +1139,15 @@ def _ruta_plantilla(tipo: str) -> tuple[Path, dict]:
 
 
 def renderizar_svg(datos: dict) -> tuple[str, dict]:
+    datos = normalizar_datos_layout(datos)
     if datos.get("forzar_plantilla_svg") not in (True, 1, "1", "true"):
         try:
             from app.tools.etiquetas_ai_engine import buscar_plantilla_ai, renderizar_desde_ai
 
             ai_path = buscar_plantilla_ai(datos)
             if ai_path:
-                return renderizar_desde_ai(datos, ai_path)
+                modo = (datos.get("modo_etiqueta") or datos.get("version") or "alternativa").strip().lower()
+                return renderizar_desde_ai(datos, ai_path, modo=modo)
         except FileNotFoundError:
             pass
         except RuntimeError:
@@ -626,6 +1187,7 @@ def renderizar_svg(datos: dict) -> tuple[str, dict]:
         )
     svg = _ajustar_viewbox_export(svg, spec)
     lineas_lv = _lineas_lote_vencimiento(datos)
+    preflight = _preflight_layout_svg(svg)
     meta = {
         "fuente": "svg",
         "tipo_etiqueta": tipo,
@@ -637,6 +1199,7 @@ def renderizar_svg(datos: dict) -> tuple[str, dict]:
         "bloque_legal": bool(_texto_legal_bloque(datos)),
         "lote_vencimiento": lineas_lv if lineas_lv else None,
         "export_area": spec.get("export_area"),
+        "preflight": preflight,
     }
     return svg, meta
 
@@ -647,6 +1210,8 @@ def _inkscape_export(
     export_type: str,
     width_px: int | None = None,
     export_area: list[float] | None = None,
+    *,
+    fondo_blanco: bool = True,
 ) -> None:
     cmd = [
         "inkscape",
@@ -656,6 +1221,8 @@ def _inkscape_export(
     ]
     if width_px:
         cmd.extend(["-w", str(width_px)])
+    if fondo_blanco and export_type == "png":
+        cmd.extend(["--export-background=#ffffff", "--export-background-opacity=1"])
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if proc.returncode != 0:
         err = (proc.stderr or proc.stdout or "inkscape falló").strip()
@@ -688,6 +1255,17 @@ def exportar_pdf_desde_svg(datos: dict) -> dict[str, Any]:
         raise ValueError("Nombre de producto obligatorio para exportar")
 
     svg, meta = renderizar_svg(datos)
+    req_w = float(datos.get("ancho_mm") or 0) if str(datos.get("ancho_mm") or "").strip() else 0.0
+    req_h = float(datos.get("alto_mm") or 0) if str(datos.get("alto_mm") or "").strip() else 0.0
+    got_w = float(meta.get("ancho_mm") or 0) if meta.get("ancho_mm") else 0.0
+    got_h = float(meta.get("alto_mm") or 0) if meta.get("alto_mm") else 0.0
+    if req_w and req_h and got_w and got_h and (abs(req_w - got_w) > 0.2 or abs(req_h - got_h) > 0.2):
+        raise ValueError(
+            f"Dimensiones bloqueadas: solicitadas {req_w}x{req_h} mm, plantilla {got_w}x{got_h} mm"
+        )
+    pf = (meta or {}).get("preflight") or {}
+    if pf and not pf.get("ok", True):
+        raise ValueError("Layout inválido: " + "; ".join(pf.get("errors") or ["solapamiento"]))
     _DOC_ETIQUETAS.mkdir(parents=True, exist_ok=True)
     fname = f"{_nombre_pdf_seguro(nombre)}.pdf"
     dest = _DOC_ETIQUETAS / fname

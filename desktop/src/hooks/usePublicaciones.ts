@@ -11,6 +11,20 @@ export interface SyncStatus {
   item_id?: string;
 }
 
+export interface MeliComplianceReemplazo {
+  item_id: string;
+  permalink?: string;
+  url_meli: string;
+  estado_actual: string;
+  sub_status?: string[];
+  item_origen_id?: string;
+  sku?: string;
+  nombre?: string;
+  ultima_revision?: string | null;
+  creado_en?: string;
+  nivel_riesgo?: string | null;
+}
+
 export interface PublicacionItem {
   sku: string;
   nombre: string;
@@ -21,6 +35,8 @@ export interface PublicacionItem {
   precio_web: number;
   foto_efectiva: string;
   meli_id: string;
+  meli_url?: string;
+  meli_compliance_reemplazo?: MeliComplianceReemplazo | null;
   tiene_override: boolean;
   sync_web: SyncStatus;
   sync_meli: SyncStatus;

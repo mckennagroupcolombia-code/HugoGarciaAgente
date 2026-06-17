@@ -1,5 +1,26 @@
 {
-  "pendientes": {},
+  "pendientes": {
+    "2000016700990404": {
+      "pack_id": "2000016700990404",
+      "codigo": "0404",
+      "comprador": "Comprador 1043231384",
+      "from_id": "1043231384",
+      "texto": "No lo pude encontrar, me puedes enviar el enlace por favor?",
+      "msg_id": "019ed2e7f8df7885a568b7e4a2a8a1a3",
+      "productos": "  • Albumina De Huevo 500g",
+      "timestamp": "2026-06-16T19:08:02"
+    },
+    "0404": {
+      "pack_id": "2000016700990404",
+      "codigo": "0404",
+      "comprador": "Comprador 1043231384",
+      "from_id": "1043231384",
+      "texto": "No lo pude encontrar, me puedes enviar el enlace por favor?",
+      "msg_id": "019ed2e7f8df7885a568b7e4a2a8a1a3",
+      "productos": "  • Albumina De Huevo 500g",
+      "timestamp": "2026-06-16T19:08:02"
+    }
+  },
   "procesados": [
     "019e8f06669f7c0d8c0b5ca31a4655dd",
     "019e2bdfc2027211bc25873b4f1e4cbc",
@@ -72,12 +93,13 @@
     "019de3f9a3ae77b38fc4b771ce2835db",
     "019dd9d50c437ce2a8c5bdc6b09d5d54",
     "019e8465d8e37b66ac89cf1f74b6145d",
+    "019e608e734d79188e25bc9cb314122a",
     "019e66cbaef478258b97309fcfbf5c7c",
     "019de416a2ab7bd5a1456f8d6c43d09a",
-    "019e1daf5ade7785bba33ffa3f2fb973",
-    "019e608e734d79188e25bc9cb314122a",
     "019eb313bf4871dbbe7fc8765e4c9ad4",
     "019e70c2604e7158bb017c483d45b3a2",
+    "019e1daf5ade7785bba33ffa3f2fb973",
+    "019ed1af4c22705ba6dbb3fadb6b5149",
     "019df4f2548a76309c7290af638658c9",
     "019e9eab709e76eb8cccbf4a12bfdee6",
     "019e6a2f3bf176b595e45fe1246bc0d0",
@@ -129,6 +151,7 @@
     "019dd9c118e87b3c87722cbd1b10584e",
     "019e65a562a57cfa9f39ec62e26d1743",
     "019ebc7aa960772592fffcf88d264c09",
+    "019ed2e7f8df7885a568b7e4a2a8a1a3",
     "019e8ee2784e73c49898b8efba4eecd8",
     "019e03da66fd7a11a29c696f285c5166",
     "019e7082218579d78c2365f0bf070ba4",

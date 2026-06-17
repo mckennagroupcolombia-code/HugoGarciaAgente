@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { usePreventa, useResponderPreventa } from "../hooks/usePreventa";
+import PanelHelp from "./PanelHelp";
 
 export default function PreventaPanel() {
   const { data, isLoading, refetch } = usePreventa();
@@ -27,9 +28,10 @@ export default function PreventaPanel() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
+      <PanelHelp panelId="preventa" />
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ink">
-          Preventa MeLi
+        <h2 className="text-xl font-extrabold text-ink">
+          🛒 Preventa MeLi
           {data && (
             <span className="ml-2 text-sm font-normal text-muted">
               ({data.total} pendiente{data.total !== 1 ? "s" : ""})

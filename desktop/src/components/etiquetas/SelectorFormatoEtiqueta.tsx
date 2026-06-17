@@ -183,6 +183,8 @@ interface SelectorFormatoEtiquetaProps {
   labelClass?: string;
   compact?: boolean;
   dark?: boolean;
+  /** Barra horizontal en vista previa Studio */
+  previewBar?: boolean;
 }
 
 export function SelectorFormatoEtiqueta({
@@ -194,6 +196,7 @@ export function SelectorFormatoEtiqueta({
   labelClass = "",
   compact = false,
   dark = false,
+  previewBar = false,
 }: SelectorFormatoEtiquetaProps) {
   const { data, isLoading } = useTiposEtiqueta();
   const guardar = useGuardarTiposEtiqueta();
@@ -296,6 +299,76 @@ export function SelectorFormatoEtiqueta({
       deleting={guardar.isPending}
     />
   );
+
+  if (previewBar) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2">
+        <span className="shrink-0 text-xs font-semibold text-ink-secondary">Formato impresión</span>
+        <div className="min-w-[10rem] flex-1">
+          {menuDropdown}
+        </div>
+        {medidasActuales}
+        {(selectValue === CUSTOM_KEY || !nombreEnCatalogo) && (
+          <>
+            <input
+              type="text"
+              value={value.nombre}
+              onChange={(e) => {
+                setMsgGuardar("");
+                onChange({ ...value, nombre: e.target.value });
+              }}
+              placeholder="Nombre formato"
+              className="w-24 rounded-lg border border-border bg-surface-panel px-2 py-1 text-xs"
+            />
+            <input
+              type="number"
+              min={1}
+              max={108}
+              step={0.1}
+              value={value.anchoMm}
+              onChange={(e) => {
+                setMsgGuardar("");
+                onChange({ ...value, anchoMm: parseFloat(e.target.value) || 0 });
+              }}
+              className="w-14 rounded-lg border border-border bg-surface-panel px-1 py-1 text-center text-xs"
+              title="Ancho mm"
+            />
+            <span className="text-[10px] text-muted">×</span>
+            <input
+              type="number"
+              min={1}
+              max={406}
+              step={0.1}
+              value={value.altoMm}
+              onChange={(e) => {
+                setMsgGuardar("");
+                onChange({ ...value, altoMm: parseFloat(e.target.value) || 0 });
+              }}
+              className="w-14 rounded-lg border border-border bg-surface-panel px-1 py-1 text-center text-xs"
+              title="Alto mm"
+            />
+            <button
+              type="button"
+              onClick={guardarEnCatalogo}
+              disabled={guardar.isPending}
+              className="rounded-lg border border-accent px-2 py-1 text-[10px] font-bold text-accent hover:bg-accent hover:text-white disabled:opacity-50"
+              title="Guardar en catálogo de formatos"
+            >
+              💾
+            </button>
+          </>
+        )}
+        {msgGuardar && (
+          <span className={`text-[10px] font-semibold ${msgGuardar.startsWith("✓") ? "text-accent" : "text-red-500"}`}>
+            {msgGuardar}
+          </span>
+        )}
+        {nombreEnCatalogo && !msgGuardar && (
+          <span className="text-[10px] text-muted">En catálogo</span>
+        )}
+      </div>
+    );
+  }
 
   if (dark) {
     return (

@@ -1,0 +1,179 @@
+import type { CampoDiagramacion, CampoDiagramacionId, DiagramacionEtiqueta } from "../../lib/etiquetasDiagramacion";
+import { ALINEACIONES_TEXTO, labelCampoDiagramacion, patchDiagramacion } from "../../lib/etiquetasDiagramacion";
+
+interface Props {
+  campoId: CampoDiagramacionId | null;
+  campoLabel?: string;
+  cfg?: CampoDiagramacion;
+  colorFallback: string;
+  escala: number;
+  b1AnchoPct?: number;
+  tx: number;
+  ty: number;
+  onPatch: (patch: CampoDiagramacion) => void;
+  compact?: boolean;
+  /** Solo controles X/Y (líneas y recuadros). */
+  soloPosicion?: boolean;
+}
+
+function clampEscala(n: number) {
+  return Math.max(0.6, Math.min(1.8, Math.round(n * 100) / 100));
+}
+
+function clampPct(n: number) {
+  return Math.max(50, Math.min(100, Math.round(n)));
+}
+
+/** Barra de herramientas tipográficas sobre la vista previa. */
+export function EtiquetaTextoToolbar({
+  campoId,
+  campoLabel,
+  cfg,
+  colorFallback,
+  escala,
+  b1AnchoPct,
+  tx,
+  ty,
+  onPatch,
+  compact = false,
+  soloPosicion = false,
+}: Props) {
+  const disabled = !campoId && !soloPosicion;
+  const color = (cfg?.color ?? colorFallback).match(/^#[0-9A-Fa-f]{6}$/)
+    ? (cfg?.color ?? colorFallback)
+    : "#000000";
+  const alineacion = cfg?.alineacion ?? (campoId === "b1" ? "justify" : "left");
+
+  return (
+    <div
+      className={`flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 ${
+        disabled ? "opacity-60" : ""
+      }`}
+    >
+      <span className="min-w-[7rem] text-[10px] font-semibold text-ink">
+        {soloPosicion
+          ? "Posición"
+          : disabled
+            ? "Selecciona un bloque"
+            : campoLabel ?? labelCampoDiagramacion(campoId!)}
+      </span>
+
+      {!soloPosicion && (
+        <>
+      <span className="hidden h-5 w-px bg-border sm:block" aria-hidden />
+
+      <div className="flex items-center gap-0.5" title="Alineación">
+        {ALINEACIONES_TEXTO.map((a) => (
+          <button
+            key={a.id}
+            type="button"
+            disabled={disabled}
+            title={a.title}
+            onClick={() => onPatch({ alineacion: a.id })}
+            className={`rounded border px-1.5 py-0.5 text-sm font-bold disabled:cursor-not-allowed ${
+              alineacion === a.id
+                ? "border-accent bg-accent text-white"
+                : "border-border text-ink-secondary hover:bg-surface-hover"
+            }`}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+
+      <span className="hidden h-5 w-px bg-border sm:block" aria-hidden />
+
+      <label className="flex items-center gap-1.5 text-[10px]" title="Color">
+        <span className="text-muted">Color</span>
+        <input
+          type="color"
+          disabled={disabled}
+          value={color}
+          onChange={(e) => onPatch({ color: e.target.value })}
+          className="h-7 w-8 cursor-pointer rounded border border-border bg-white p-0 disabled:cursor-not-allowed"
+        />
+      </label>
+
+      <label className="flex min-w-[120px] flex-1 items-center gap-1.5 text-[10px]" title="Tamaño">
+        <span className="shrink-0 text-muted">Tamaño</span>
+        <input
+          type="range"
+          min={0.6}
+          max={1.8}
+          step={0.05}
+          disabled={disabled}
+          value={cfg?.escala ?? escala}
+          onChange={(e) => onPatch({ escala: clampEscala(parseFloat(e.target.value)) })}
+          className="min-w-[72px] flex-1 accent-accent disabled:opacity-50"
+        />
+        <span className="w-8 font-mono text-[9px]">{(cfg?.escala ?? escala).toFixed(2)}</span>
+      </label>
+
+      {campoId === "b1" && b1AnchoPct != null && (
+        <label className="flex items-center gap-1 text-[10px]" title="Ancho columna B1">
+          <span className="text-muted">Ancho</span>
+          <input
+            type="range"
+            min={50}
+            max={100}
+            step={1}
+            disabled={disabled}
+            value={b1AnchoPct}
+            onChange={(e) => onPatch({ ancho_pct: clampPct(parseInt(e.target.value, 10)) })}
+            className="w-16 accent-accent"
+          />
+          <span className="font-mono">{b1AnchoPct}%</span>
+        </label>
+      )}
+        </>
+      )}
+
+      {(soloPosicion || !compact) && (
+        <>
+          <label className="flex items-center gap-1 text-[10px]">
+            <span className="text-muted">X</span>
+            <input
+              type="number"
+              step={0.1}
+              disabled={disabled}
+              value={cfg?.x ?? tx}
+              onChange={(e) => {
+                const x = parseFloat(e.target.value);
+                if (Number.isFinite(x)) onPatch({ x });
+              }}
+              className="w-14 rounded border border-border bg-white px-1 py-0.5 font-mono text-[10px]"
+            />
+          </label>
+          <label className="flex items-center gap-1 text-[10px]">
+            <span className="text-muted">Y</span>
+            <input
+              type="number"
+              step={0.1}
+              disabled={disabled}
+              value={cfg?.y ?? ty}
+              onChange={(e) => {
+                const y = parseFloat(e.target.value);
+                if (Number.isFinite(y)) onPatch({ y });
+              }}
+              className="w-14 rounded border border-border bg-white px-1 py-0.5 font-mono text-[10px]"
+            />
+          </label>
+        </>
+      )}
+
+      {!soloPosicion && (
+      <span className="ml-auto hidden text-[9px] text-muted lg:inline">
+        Arrastra el bloque en la etiqueta para mover
+      </span>
+      )}
+    </div>
+  );
+}
+
+export function patchCampoToolbar(
+  diagramacion: DiagramacionEtiqueta | undefined,
+  campoId: CampoDiagramacionId,
+  patch: CampoDiagramacion,
+): DiagramacionEtiqueta {
+  return patchDiagramacion(diagramacion, campoId, patch);
+}

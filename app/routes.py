@@ -10012,6 +10012,197 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    # ── Compliance MeLi — diagnóstico, corrección y autopublicación ─────────
+
+    @app.route("/api/meli/compliance/pausadas", methods=["GET"])
+    def api_meli_compliance_pausadas():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance import buscar_publicaciones_pausadas
+        incluir_cerradas = request.args.get("cerradas", "1") == "1"
+        incluir_pausadas = request.args.get("pausadas", "0") == "1"
+        try:
+            return jsonify(buscar_publicaciones_pausadas(
+                incluir_cerradas=incluir_cerradas,
+                incluir_pausadas=incluir_pausadas,
+            ))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/diagnosticar", methods=["POST"])
+    def api_meli_compliance_diagnosticar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance import diagnosticar_riesgo
+        body = request.get_json(silent=True) or {}
+        try:
+            return jsonify(diagnosticar_riesgo(
+                sku=body.get("sku", ""),
+                nombre=body.get("nombre", ""),
+                titulo_meli=body.get("titulo_meli", ""),
+                descripcion=body.get("descripcion", ""),
+                texto_etiqueta=body.get("texto_etiqueta", ""),
+                atributos_meli=body.get("atributos_meli"),
+            ))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/generar", methods=["POST"])
+    def api_meli_compliance_generar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance import generar_contenido_compliance
+        body = request.get_json(silent=True) or {}
+        sku = (body.get("sku") or "").strip()
+        nombre = (body.get("nombre") or "").strip()
+        presentacion = (body.get("presentacion") or "").strip()
+        if not nombre:
+            return jsonify({"error": "Campo 'nombre' requerido"}), 400
+        try:
+            return jsonify(generar_contenido_compliance(
+                sku=sku,
+                nombre=nombre,
+                presentacion=presentacion or "250g",
+                perfil=body.get("perfil", "materia_prima_alimentaria"),
+                ficha_tecnica=body.get("ficha_tecnica", ""),
+                titulo_actual=body.get("titulo_actual", ""),
+                descripcion_actual=body.get("descripcion_actual", ""),
+            ))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/republicar", methods=["POST"])
+    def api_meli_compliance_republicar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance import republicar_desde_diagnostico
+        body = request.get_json(silent=True) or {}
+        item_id = (body.get("item_id") or "").strip()
+        nombre = (body.get("nombre") or "").strip()
+        if not item_id or not nombre:
+            return jsonify({"error": "Campos 'item_id' y 'nombre' requeridos"}), 400
+        try:
+            return jsonify(republicar_desde_diagnostico(
+                item_id=item_id,
+                sku=body.get("sku", ""),
+                nombre=nombre,
+                presentacion=body.get("presentacion", "250g"),
+                precio=float(body.get("precio", 0) or 0),
+                perfil=body.get("perfil", "materia_prima_alimentaria"),
+                ficha_tecnica=body.get("ficha_tecnica", ""),
+                dry_run=bool(body.get("dry_run", False)),
+            ))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/autopublicar", methods=["POST"])
+    def api_meli_compliance_autopublicar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance import autopublicar_producto
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or "").strip()
+        if not nombre:
+            return jsonify({"error": "Campo 'nombre' requerido"}), 400
+        try:
+            return jsonify(autopublicar_producto(
+                sku=body.get("sku", ""),
+                nombre=nombre,
+                presentacion=body.get("presentacion", "250g"),
+                precio=float(body.get("precio", 0) or 0),
+                perfil=body.get("perfil", "materia_prima_alimentaria"),
+                ficha_tecnica=body.get("ficha_tecnica", ""),
+                titulo_actual=body.get("titulo_actual", ""),
+                descripcion_actual=body.get("descripcion_actual", ""),
+                texto_etiqueta=body.get("texto_etiqueta", ""),
+                stock=int(body.get("stock", 10) or 10),
+                foto_url=body.get("foto_url") or None,
+                dry_run=bool(body.get("dry_run", False)),
+            ))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/crear-nueva", methods=["POST"])
+    def api_meli_compliance_crear_nueva():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance_monitor import crear_publicacion_nueva_compliance
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or "").strip()
+        if not nombre:
+            return jsonify({"error": "Campo 'nombre' requerido"}), 400
+        precio = float(body.get("precio", 0) or 0)
+        if precio <= 0 and not body.get("dry_run"):
+            return jsonify({"error": "Campo 'precio' requerido"}), 400
+        try:
+            return jsonify(crear_publicacion_nueva_compliance(
+                sku=body.get("sku", ""),
+                nombre=nombre,
+                presentacion=body.get("presentacion", "250g"),
+                precio=precio,
+                perfil=body.get("perfil", "materia_prima_alimentaria"),
+                ficha_tecnica=body.get("ficha_tecnica", ""),
+                titulo_actual=body.get("titulo_actual", ""),
+                descripcion_actual=body.get("descripcion_actual", ""),
+                item_origen_id=body.get("item_origen_id", ""),
+                referencia=body.get("referencia", "citrato_magnesio"),
+                foto_url=body.get("foto_url") or None,
+                stock=int(body.get("stock", 10) or 10),
+                contenido_generado=body.get("contenido_generado"),
+                categoria_catalogo=body.get("categoria_catalogo", ""),
+                dry_run=bool(body.get("dry_run", False)),
+            ))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/reemplazos", methods=["GET"])
+    def api_meli_compliance_reemplazos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance_monitor import indice_reemplazos
+        try:
+            idx = indice_reemplazos()
+            return jsonify({
+                "publicaciones": idx.get("todas", []),
+                "total": len(idx.get("todas", [])),
+                "by_sku": {k: v.get("item_id") for k, v in idx.get("by_sku", {}).items()},
+                "by_origen": {k: v.get("item_id") for k, v in idx.get("by_origen", {}).items()},
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/watchlist", methods=["GET"])
+    def api_meli_compliance_watchlist():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance_monitor import listar_watchlist
+        solo = request.args.get("activos", "1") == "1"
+        try:
+            return jsonify(listar_watchlist(solo_activos=solo))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/watchlist/revisar", methods=["POST"])
+    def api_meli_compliance_watchlist_revisar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance_monitor import revisar_watchlist_diaria
+        body = request.get_json(silent=True) or {}
+        try:
+            return jsonify(revisar_watchlist_diaria(
+                enviar_whatsapp=bool(body.get("whatsapp", False)),
+            ))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/meli/compliance/referencia", methods=["GET"])
+    def api_meli_compliance_referencia():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.meli_compliance_monitor import obtener_plantilla_referencia
+        clave = request.args.get("clave", "citrato_magnesio")
+        return jsonify(obtener_plantilla_referencia(clave))
+
     # ── Etiquetas: edición directa de texto en PDF ───────────────────────────
 
     def _color_int_to_hex(color_int: int) -> str:
@@ -11191,6 +11382,22 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/etiquetas/studio/descripcion-ficha", methods=["GET"])
+    @app.route("/app/api/etiquetas/studio/descripcion-ficha", methods=["GET"])
+    def api_etiquetas_studio_descripcion_ficha():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_ficha import generar_descripcion_etiqueta_desde_ficha
+
+        return jsonify(
+            generar_descripcion_etiqueta_desde_ficha(
+                sku=(request.args.get("sku") or "").strip(),
+                nombre_producto=(request.args.get("nombre_producto") or request.args.get("nombre") or "").strip(),
+                ingrediente=(request.args.get("ingrediente") or "").strip(),
+                perfil=(request.args.get("perfil") or "materia_prima_alimentaria").strip(),
+            )
+        )
+
     @app.route("/api/etiquetas/studio/catalogo", methods=["GET"])
     @app.route("/app/api/etiquetas/studio/catalogo", methods=["GET"])
     def api_etiquetas_studio_catalogo():
@@ -11208,6 +11415,117 @@ def register_routes(app):
             solo_con_meli=solo_con_meli,
             limite=limite,
         ))
+
+    @app.route("/api/etiquetas/studio/escanear-diagramacion", methods=["POST"])
+    @app.route("/app/api/etiquetas/studio/escanear-diagramacion", methods=["POST"])
+    def api_etiquetas_studio_escanear_diagramacion():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_ai_engine import escanear_diagramacion_plantilla
+        from app.tools.etiquetas_studio import guardar_diagramacion_formato
+
+        body = request.get_json(silent=True) or {}
+        archivo_ai = (body.get("archivo_ai") or "").strip() or None
+        tipo_etiqueta = (body.get("tipo_etiqueta") or "500 g").strip()
+        ancho_mm = body.get("ancho_mm")
+        alto_mm = body.get("alto_mm")
+        guardar = body.get("guardar", True) not in (False, 0, "0", "false")
+        try:
+            result = escanear_diagramacion_plantilla(
+                archivo_ai=archivo_ai,
+                tipo_etiqueta=tipo_etiqueta,
+                ancho_mm=ancho_mm,
+                alto_mm=alto_mm,
+            )
+            if guardar:
+                guardar_diagramacion_formato(tipo_etiqueta, {
+                    k: result[k]
+                    for k in (
+                        "archivo_ai",
+                        "tipo_etiqueta",
+                        "ancho_mm",
+                        "alto_mm",
+                        "diagramacion",
+                        "diagramacion_graficos",
+                        "muestras",
+                        "campos_detectados",
+                        "graficos_detectados",
+                        "export_area",
+                    )
+                    if k in result
+                })
+            return jsonify(result)
+        except FileNotFoundError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/etiquetas/studio/diagramacion-formato/<path:tipo>", methods=["GET", "PUT"])
+    @app.route("/app/api/etiquetas/studio/diagramacion-formato/<path:tipo>", methods=["GET", "PUT"])
+    def api_etiquetas_studio_diagramacion_formato(tipo: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_ai_engine import preview_diagramacion_plantilla
+        from app.tools.etiquetas_studio import guardar_diagramacion_formato, obtener_diagramacion_formato
+
+        if request.method == "PUT":
+            body = request.get_json(silent=True) or {}
+            prev = obtener_diagramacion_formato(tipo) or {}
+            payload = dict(prev)
+            for k in (
+                "archivo_ai",
+                "ancho_mm",
+                "alto_mm",
+                "diagramacion",
+                "diagramacion_graficos",
+                "muestras",
+                "campos_detectados",
+                "graficos_detectados",
+                "export_area",
+            ):
+                if k in body:
+                    payload[k] = body[k]
+            archivo = (payload.get("archivo_ai") or prev.get("archivo_ai") or "UREA 500g.ai")
+            try:
+                preview = preview_diagramacion_plantilla(
+                    archivo_ai=archivo,
+                    tipo_etiqueta=tipo,
+                    diagramacion=payload.get("diagramacion"),
+                    diagramacion_graficos=payload.get("diagramacion_graficos"),
+                    muestras=payload.get("muestras"),
+                    export_area=payload.get("export_area"),
+                    ancho_mm=payload.get("ancho_mm"),
+                    alto_mm=payload.get("alto_mm"),
+                )
+                payload["export_area"] = preview.get("export_area") or payload.get("export_area")
+                saved = guardar_diagramacion_formato(tipo, payload)
+                saved["svg"] = preview.get("svg", "")
+                return jsonify(saved)
+            except FileNotFoundError as e:
+                return jsonify({"error": str(e)}), 404
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+        entry = obtener_diagramacion_formato(tipo)
+        if not entry:
+            return jsonify({"error": f"Sin diagramación guardada para «{tipo}»"}), 404
+        incluir_svg = request.args.get("incluir_svg", "").lower() in ("1", "true", "yes")
+        if incluir_svg:
+            try:
+                preview = preview_diagramacion_plantilla(
+                    archivo_ai=entry.get("archivo_ai") or "UREA 500g.ai",
+                    tipo_etiqueta=tipo,
+                    diagramacion=entry.get("diagramacion"),
+                    diagramacion_graficos=entry.get("diagramacion_graficos"),
+                    muestras=entry.get("muestras"),
+                    export_area=entry.get("export_area"),
+                    ancho_mm=entry.get("ancho_mm"),
+                    alto_mm=entry.get("alto_mm"),
+                )
+                entry = {**entry, "svg": preview.get("svg", "")}
+            except Exception as e:
+                entry = {**entry, "svg_error": str(e)}
+        return jsonify(entry)
 
     @app.route("/api/etiquetas/studio/resolver-ai", methods=["GET"])
     @app.route("/app/api/etiquetas/studio/resolver-ai", methods=["GET"])
@@ -11252,12 +11570,38 @@ def register_routes(app):
         import base64 as _b64
         import os as _os
         import shutil as _shutil
+        import tempfile as _tempfile
 
-        from app.tools.etiquetas_svg_engine import exportar_png_temporal, renderizar_svg
+        from app.tools.etiquetas_svg_engine import exportar_png_temporal, renderizar_svg, _inkscape_export
 
         body = request.get_json(silent=True) or {}
         formato = (body.get("formato") or "png").lower()
+        modo_render = (body.get("modo_render") or "").lower()
+
         try:
+            # Modo raw: renderiza el .ai tal cual sale de Inkscape, sin ningún procesamiento
+            if modo_render == "raw":
+                from app.tools.etiquetas_ai_engine import buscar_plantilla_ai, _ai_a_svg
+                ai_path = buscar_plantilla_ai(body)
+                if not ai_path:
+                    return jsonify({"error": "No se encontró plantilla .ai para este producto"}), 404
+                svg_raw = _ai_a_svg(ai_path)
+                tmp = _tempfile.mkdtemp(prefix="mckg_raw_")
+                try:
+                    svg_path = _os.path.join(tmp, "raw.svg")
+                    png_path = _os.path.join(tmp, "raw.png")
+                    with open(svg_path, "w", encoding="utf-8") as f:
+                        f.write(svg_raw)
+                    _inkscape_export(svg_path, png_path, "png", width_px=int(body.get("ancho_px") or 1400))
+                    img_bytes = open(png_path, "rb").read()
+                finally:
+                    _shutil.rmtree(tmp, ignore_errors=True)
+                return jsonify({
+                    "imagen": _b64.b64encode(img_bytes).decode(),
+                    "mime": "image/png",
+                    "meta": {"fuente": "ai_raw", "archivo": str(ai_path.name)},
+                })
+
             if formato == "svg":
                 svg, meta = renderizar_svg(body)
                 return jsonify({"svg": svg, "meta": meta})
@@ -11283,16 +11627,36 @@ def register_routes(app):
     def api_etiquetas_studio_sku(sku: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        from app.tools.etiquetas_studio import guardar_studio_sku, obtener_studio_sku
+        from app.tools.etiquetas_studio import (
+            copiar_version_studio_sku,
+            guardar_studio_sku,
+            listar_versiones_studio_sku,
+            obtener_studio_sku,
+            obtener_studio_sku_version,
+        )
 
         if request.method == "GET":
-            datos = obtener_studio_sku(sku)
-            return jsonify({"datos": datos})
+            version = (request.args.get("version") or "").strip().lower()
+            datos = obtener_studio_sku_version(sku, version) if version else obtener_studio_sku(sku)
+            return jsonify({"datos": datos, "versiones": listar_versiones_studio_sku(sku)})
 
         body = request.get_json(silent=True) or {}
+        accion = (body.get("accion") or "").strip().lower()
+        if accion == "copiar_version":
+            origen = (body.get("origen") or "original").strip().lower()
+            destino = (body.get("destino") or "alternativa").strip().lower()
+            try:
+                copied = copiar_version_studio_sku(sku, origen=origen, destino=destino, sobrescribir=True)
+                return jsonify({"ok": True, "datos": copied, "version": destino, "versiones": listar_versiones_studio_sku(sku)})
+            except ValueError as e:
+                return jsonify({"error": str(e)}), 400
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+        version = (body.get("version") or "alternativa").strip().lower()
+        payload = {k: v for k, v in body.items() if k not in {"version", "accion", "origen", "destino"}}
         try:
-            entry = guardar_studio_sku(sku, body)
-            return jsonify({"ok": True, "datos": entry})
+            entry = guardar_studio_sku(sku, payload, version=version)
+            return jsonify({"ok": True, "datos": entry, "version": version, "versiones": listar_versiones_studio_sku(sku)})
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
         except Exception as e:

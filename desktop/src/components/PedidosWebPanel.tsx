@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import PanelHelp from "./PanelHelp";
 
 interface OrderItem {
   id?: string;
@@ -364,6 +365,7 @@ export default function PedidosWebPanel() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-4">
+      <PanelHelp panelId="pedidos" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

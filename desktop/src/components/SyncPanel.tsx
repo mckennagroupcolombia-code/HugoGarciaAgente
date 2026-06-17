@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
+import PanelHelp from "./PanelHelp";
 
 interface ActionDef {
   id: string;
@@ -414,9 +415,8 @@ export default function SyncPanel() {
 
   return (
     <div className="flex flex-col gap-4" style={{ minHeight: 0 }}>
-      <h2 className="text-lg font-semibold text-ink shrink-0">
-        Sincronización y Operaciones
-      </h2>
+      <PanelHelp panelId="sync" />
+      <h2 className="text-xl font-extrabold text-ink shrink-0">🔄 Sincronización y Operaciones</h2>
 
       <div className="flex flex-col lg:flex-row gap-4" style={{ minHeight: 0 }}>
         <div className="w-full lg:w-72 xl:w-80 shrink-0 flex flex-col gap-3 overflow-y-auto">

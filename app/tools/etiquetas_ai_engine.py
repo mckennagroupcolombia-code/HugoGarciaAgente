@@ -130,6 +130,312 @@ def _reemplazar_barcode_embebido(svg: str, b64: str) -> str:
     return _RE_BARCODE_EMBED.sub(_sub, svg, count=1)
 
 
+def _dimensiones_barcode_embebido(svg: str) -> tuple[int, int] | None:
+    import base64
+    import io
+
+    from PIL import Image
+
+    m = re.search(
+        r'id="g12"[^>]*>.*?xlink:href="data:image/[^;]+;base64,([^"]+)"',
+        svg,
+        re.S | re.I,
+    )
+    if not m:
+        m = re.search(r'xlink:href="data:image/[^;]+;base64,([^"]+)"', svg, re.I)
+    if not m:
+        return None
+    try:
+        img = Image.open(io.BytesIO(base64.b64decode(m.group(1))))
+        w, h = img.size
+        if w >= 120 and h >= 80:
+            return w, h
+    except Exception:
+        return None
+    return None
+
+
+def _transform_desarrollado_original(bloque: str) -> tuple[float, float]:
+    m = re.search(r'transform="matrix\(1,0,0,-1,([\d.]+),([\d.]+)\)"', bloque, re.I)
+    if m:
+        return float(m.group(1)), float(m.group(2))
+    return 154.3784, 44.7813
+
+
+def _partir_lineas_desarrollado(lineas: list[str]) -> list[str]:
+    out: list[str] = []
+    for ln in lineas:
+        if ln.startswith("Descarga ficha técnica en:"):
+            out.append("Descarga ficha técnica en:")
+        elif len(ln) > 28 and " " in ln and ln.startswith("www."):
+            out.append(ln)
+        else:
+            out.append(ln)
+    return out
+
+
+def _limpiar_x_por_caracter_en_bloque(bloque: str) -> str:
+    """Quita x por carácter en tspans sin cambiar transform ni interlineado."""
+
+    def _sub(m: re.Match[str]) -> str:
+        apertura = m.group(1) + m.group(2)
+        if not re.search(r'\sx="[^"]*\s[^"]+"', apertura):
+            return m.group(0)
+        apertura = re.sub(r'\sx="[^"]*"', "", apertura)
+        if 'x="' not in apertura:
+            apertura = apertura.replace("<tspan", '<tspan x="0"', 1)
+        return apertura + m.group(3)
+
+    return re.sub(r"(<tspan)(\s[^>]*>)([^<]*</tspan>)", _sub, bloque)
+
+
+def _normalizar_bloque_desarrollado_ai(svg: str) -> str:
+    """Solo corrige tspans ilegibles (x por carácter); conserva posición Illustrator."""
+    marker = "Desarrollado por:"
+    pos = svg.find(marker)
+    if pos < 0:
+        return svg
+    start = svg.rfind("<text", 0, pos)
+    end = svg.find("</text>", pos)
+    if start < 0 or end < 0:
+        return svg
+    end += len("</text>")
+    bloque = svg[start:end]
+    if not re.search(r'x="[^"]*\s[^"]+"', bloque):
+        return svg
+    nuevo = _limpiar_x_por_caracter_en_bloque(bloque)
+    return svg[:start] + nuevo + svg[end:]
+
+
+def _extraer_path_svg(svg: str, element_id: str) -> tuple[str, str]:
+    m = re.search(rf'<path\b[^>]*\bid="{re.escape(element_id)}"[^>]*/>', svg, re.I | re.S)
+    if not m:
+        return svg, ""
+    bloque = m.group(0)
+    return svg[: m.start()] + svg[m.end() :], bloque
+
+
+def _reinsertar_barcode_antes_lote_ai(svg: str) -> str:
+    """CMYK → barcode (g12) → recuadro LOT; solo z-order dentro de la columna derecha."""
+    svg, g12 = _extraer_elemento_svg(svg, "g12", "g")
+    if not g12:
+        return svg
+
+    rec = _recuadro_lote_plantilla_ai(svg)
+    if not rec:
+        idx = svg.rfind("</svg>")
+        return svg[:idx] + g12 + svg[idx:] if idx >= 0 else svg
+
+    lot_id_m = re.search(r'\bid="([^"]+)"', rec[0].group(0))
+    lot_id = lot_id_m.group(1) if lot_id_m else ""
+    if not lot_id:
+        return svg + g12
+    svg, lot_blk = _extraer_path_svg(svg, lot_id)
+    if not lot_blk:
+        return svg + g12
+
+    last_cmyk = 0
+    for cm in re.finditer(r"<path\b[^>]*/>", svg, re.I | re.S):
+        blob = cm.group(0)
+        if re.search(
+            r"fill:#(?:642682|d60c53|1e72b9|189dd9|3daa36|00a199|f9b333|5c268f|d9115a|"
+            r"3972c2|46a0de|41b93d|3baa9a|f9a82b)",
+            blob,
+            re.I,
+        ):
+            last_cmyk = cm.end()
+    if last_cmyk <= 0:
+        return svg[: rec[0].start()] + g12 + lot_blk + svg[rec[0].start() :]
+    return svg[:last_cmyk] + g12 + lot_blk + svg[last_cmyk:]
+
+
+def _extraer_elemento_svg(svg: str, element_id: str, tag: str) -> tuple[str, str]:
+    from app.tools.etiquetas_svg_engine import _pos_cierre_desde_apertura
+
+    m = re.search(rf'<{tag}\b[^>]*\bid="{re.escape(element_id)}"', svg, re.I)
+    if not m:
+        return svg, ""
+    start = m.start()
+    if tag == "g":
+        end = _pos_cierre_desde_apertura(svg, start)
+        if end < 0:
+            return svg, ""
+        bloque = svg[start : end + 4]
+        return svg[:start] + svg[end + 4 :], bloque
+    end = svg.find("</text>", start)
+    if end < 0:
+        return svg, ""
+    end += len("</text>")
+    return svg[:start] + svg[end:], svg[start:end]
+
+
+def _normalizar_texto_rsn_ai(svg: str) -> str:
+    m = re.search(r'(<text\b[^>]*id="text18"[\s\S]*?</text>)', svg, re.I)
+    if not m:
+        return svg
+    bloque = m.group(1)
+    if not re.search(r'x="[^"]*\s[^"]+"', bloque):
+        return svg
+    nuevo = _limpiar_x_por_caracter_en_bloque(bloque)
+    return svg[: m.start()] + nuevo + svg[m.end() :]
+
+
+def _elevar_elementos_columna_derecha_svg(svg: str) -> str:
+    """Fija z-order columna derecha: barcode → CMYK/lote → RSN → Desarrollado."""
+    from app.tools.etiquetas_svg_engine import _pos_cierre_desde_apertura
+
+    bloques: list[str] = []
+    # g12 (barcode) → barras CMYK → RSN → Desarrollado (texto siempre encima).
+    for eid, tag in (("g12", "g"), ("g116", "g"), ("text18", "text")):
+        svg, blk = _extraer_elemento_svg(svg, eid, tag)
+        if blk:
+            bloques.append(blk)
+
+    marker = "Desarrollado por:"
+    pos = svg.find(marker)
+    if pos >= 0:
+        start = svg.rfind("<text", 0, pos)
+        end = svg.find("</text>", pos)
+        if start >= 0 and end >= 0:
+            end += len("</text>")
+            bloques.append(svg[start:end])
+            svg = svg[:start] + svg[end:]
+
+    if not bloques:
+        return svg
+
+    layer_m = re.search(r'<g\b[^>]*inkscape:groupmode="layer"[^>]*>', svg, re.I)
+    if not layer_m:
+        idx = svg.rfind("</svg>")
+        return svg[:idx] + "".join(bloques) + svg[idx:] if idx >= 0 else svg
+
+    close_pos = _pos_cierre_desde_apertura(svg, layer_m.start())
+    if close_pos < 0:
+        return svg
+    return svg[:close_pos] + "".join(bloques) + svg[close_pos:]
+
+
+def _recuadro_lote_plantilla_ai(svg: str) -> tuple[re.Match[str], float, float, float] | None:
+    """Localiza el recuadro naranja LOT/EXP de la plantilla (sin mover otros elementos)."""
+    pat = re.compile(
+        r'<path\b([^>]*)\bd="m\s*([\d.]+),([\d.]+)\s+h\s*(-?[\d.]+)\s+v\s*([\d.]+)\s+h\s*[\d.]+\s+z"([^>]*)>',
+        re.I,
+    )
+    candidatos: list[tuple[float, float, re.Match[str], float, float]] = []
+    for m in pat.finditer(svg):
+        blob = m.group(1) + m.group(6)
+        if not re.search(r"stroke:#f(?:9b233|68712|39200)", blob, re.I):
+            continue
+        x0, y0 = float(m.group(2)), float(m.group(3))
+        dw, dh = float(m.group(4)), float(m.group(5))
+        w, h = abs(dw), abs(dh)
+        if w < 18 or h < 6 or h > 22:
+            continue
+        x_lo = x0 - w if dw < 0 else x0
+        if x_lo < 100:
+            continue
+        y_lo, y_hi = (y0, y0 + h) if dh > 0 else (y0 - h, y0)
+        cx = x_lo + w / 2
+        candidatos.append((y_lo, cx, m, y_lo, y_hi))
+    if not candidatos:
+        return None
+    candidatos.sort(key=lambda c: c[0])
+    _, cx, m, y_lo, y_hi = candidatos[0]
+    return m, cx, y_lo, y_hi
+
+
+def _inyectar_lote_exp_recuadro_ai(svg: str, datos: dict) -> str:
+    """LOT/EXP dentro del recuadro naranja que ya trae el .ai (coords derivadas del path)."""
+    from app.tools.etiquetas_svg_engine import _escape_xml_text, _lineas_lote_vencimiento
+
+    if datos.get("mostrar_lote_vencimiento") is False or "mckenna-lote-recuadro" in svg:
+        return svg
+    lineas = _lineas_lote_vencimiento(datos)
+    if not lineas:
+        return svg
+
+    rec = _recuadro_lote_plantilla_ai(svg)
+    if not rec:
+        return svg
+    m_path, cx, y_lo, y_hi = rec
+    altura = y_hi - y_lo
+    fs = max(2.0, min(3.4, altura * 0.21))
+    dy = fs * 1.05
+    lineas_n = 1 + (1 if len(lineas) > 1 and lineas[1] else 0)
+    bloque_h = fs + (lineas_n - 1) * dy
+    ay = y_lo + bloque_h + max(0.4, altura * 0.08)
+    ay = min(ay, y_hi - fs * 0.25)
+
+    tspans = [
+        f'<tspan x="0" y="0" text-anchor="middle" sodipodi:role="line">{_escape_xml_text(lineas[0])}</tspan>',
+    ]
+    if len(lineas) > 1 and lineas[1]:
+        tspans.append(
+            f'<tspan x="0" dy="{dy:.2f}" text-anchor="middle" sodipodi:role="line">'
+            f"{_escape_xml_text(lineas[1])}</tspan>"
+        )
+    bloque = (
+        f'<text xml:space="preserve" id="mckenna-lote-recuadro" '
+        f'transform="matrix(1,0,0,-1,{cx:.4f},{ay:.4f})" '
+        f'style="font-size:{fs}px;font-family:Geomanist;text-anchor:middle;fill:#1d1d1b;stroke:none">'
+        + "".join(tspans)
+        + "</text>"
+    )
+    return svg[: m_path.end()] + bloque + svg[m_path.end() :]
+
+
+def _perfil_layout_etiqueta_ai(svg: str) -> str:
+    """Detecta perfil de plantilla .ai para no aplicar coords de 5 mL en 30 mL."""
+    if 'd="m 181.858,1.897 h -32.342 v 10.822 h 32.342 z"' in svg:
+        return "aceite_5ml"
+    if 'd="m 278.679,6.288 h -49.313 v 16.5 h 49.313 z"' in svg:
+        return "aceite_30ml"
+    m = re.search(r'viewBox="0 0 ([0-9.]+)', svg)
+    if m:
+        ancho = float(m.group(1))
+        if ancho > 200:
+            return "aceite_30ml"
+        if ancho < 120:
+            return "aceite_5ml"
+    return "otro"
+
+
+def _ajustar_pie_y_columna_ai(svg: str) -> str:
+    """Baja el pie legal naranja (text78) para no chocar con la descripción."""
+    svg = re.sub(
+        r'(<text\b[^>]*transform="matrix\(1,0,0,-1,[^,]+,)([0-9.]+)(\)"[^>]*id="text78")',
+        r"\g<1>3.1500\3",
+        svg,
+        count=1,
+    )
+    return svg
+
+
+def _ajustar_columna_derecha_ai(svg: str) -> str:
+    """Reposiciona columna derecha solo en plantillas aceite 5 mL (coords calibradas)."""
+    if _perfil_layout_etiqueta_ai(svg) != "aceite_5ml":
+        return svg
+    # Lote path124 y≈1.9–12.7 · barcode y≈16.2–24 · CMYK y≈25.2 · URL y≈36+
+    svg = re.sub(
+        r'(id="g12"\s+)transform="matrix\([^"]+\)"',
+        r'\1transform="matrix(28.0,0,0,7.8,153.0,16.2)"',
+        svg,
+        count=1,
+    )
+    svg = re.sub(
+        r'(transform="matrix\(0,1,1,0,)([0-9.]+)(,)([0-9.]+)(\)"[^>]*id="text18")',
+        lambda m: f"{m.group(1)}191.50{m.group(3)}{m.group(4)}{m.group(5)}",
+        svg,
+        count=1,
+    )
+    svg = re.sub(
+        r'(d="m [0-9.]+,)(30\.365)( h -[0-9.]+ v [0-9.]+ h)',
+        r"\g<1>26.000\3",
+        svg,
+    )
+    return svg
+
+
 def _bonus_nombre_ai(nombre: str, nom_ai: str, datos: dict) -> int:
     bonus = 0
     blob = f"{datos.get('subtitulo', '')} {datos.get('nombre_producto', '')}".lower()
@@ -404,21 +710,1199 @@ def _ai_a_svg(ai_path: Path) -> str:
 
 
 _MARCAS_NO_TITULO = ("MCKENNA", "GROUP", "NO GHS", "®", "S.A.S")
+_RE_RSN = re.compile(r"^RSN\s+\d", re.I)
+_RE_NIT = re.compile(r"^NIT\.?\s*\d", re.I)
+_RE_ADVERTENCIA = re.compile(
+    r"diluya|irritaci[oó]n|devoluci[oó]n|no se acepta|est[eé] en perfectas|condiciones antes",
+    re.I,
+)
+_TEXTO_POLVO_GENERICO = (
+    "polvo fino",
+    "materia prima alimentaria para formulación",
+    "insumo alimentario 100% puro en polvo",
+)
 
 
-def _reemplazos_in_place_ai(datos: dict, muestras: dict[str, str]) -> list[tuple[str, str]]:
+def _tspans_detalle(svg: str) -> list[dict[str, Any]]:
+    filas: list[dict[str, Any]] = []
+    for m in re.finditer(
+        r'<text\b[^>]*transform="matrix\(([^)]+)\)"[^>]*>(.*?)</text>',
+        svg,
+        re.S | re.I,
+    ):
+        _sx, _sy, tx, ty = _parse_matrix_translate(m.group(1))
+        for tm in re.finditer(r">([^<>]*)</tspan>", m.group(2)):
+            t = re.sub(r"\s+", " ", tm.group(1)).strip()
+            if t:
+                filas.append({"x": tx, "y": ty, "text": t})
+    return filas
+
+
+def _es_linea_protegida_ai(texto: str, y: float = 0.0) -> bool:
+    t = (texto or "").strip()
+    if not t:
+        return True
+    if y < 12:
+        return True
+    if _RE_RSN.match(t) or _RE_NIT.match(t):
+        return True
+    if _RE_ADVERTENCIA.search(t):
+        return True
+    low = t.lower()
+    if "desarrollado por" in low or "mckennagroup" in low:
+        return True
+    if t.startswith("Descarga ficha") or t.startswith("www."):
+        return True
+    if "BOGOTÁ" in t.upper() or "BOGOTA" in t.upper():
+        return True
+    return False
+
+
+def _es_titulo_producto_ai(texto: str) -> bool:
+    t = (texto or "").strip()
+    if not (3 <= len(t) <= 48):
+        return False
+    if t != t.upper():
+        return False
+    if _RE_RSN.match(t) or _RE_NIT.match(t):
+        return False
+    if re.search(r"\d{5,}", t):
+        return False
+    if any(m in t.upper() for m in _MARCAS_NO_TITULO):
+        return False
+    if t.startswith(("•", "#", "LOT", "EXP", "GHS")):
+        return False
+    if "MATERIA PRIMA" in t or "CALIDAD:" in t:
+        return False
+    if any(x in t for x in ("BOGOTÁ", "BOGOTA", "COLOMBIA", "DESARROLLADO", "DESCARGA", "WWW.", "FICHA")):
+        return False
+    if "GROUP" in t or "S.A.S" in t:
+        return False
+    return bool(re.search(r"[A-ZÁÉÍÓÚÑ]{2,}", t))
+
+
+def _es_texto_bloque_desarrollado(texto: str) -> bool:
+    t = (texto or "").upper()
+    return any(
+        x in t
+        for x in (
+            "BOGOTÁ", "BOGOTA", "COLOMBIA", "DESARROLLADO", "MCKENNA",
+            "WWW.", "MCKENNAGROUP", "FICHA TÉCNICA", "FICHA TECNICA", "DESCARGA",
+        )
+    )
+
+
+def _titulo_compacto_para_ai(datos: dict, titulo_muestra: str) -> str:
+    """Título corto que cabe en la caja del .ai; si no cabe, conservar el original."""
+    raw = (datos.get("nombre_producto") or "").strip().upper()
+    neto = f"{datos.get('contenido_neto', '')} {datos.get('unidad', '')}".strip().upper()
+    if neto:
+        raw = re.sub(rf"\s*{re.escape(neto)}\s*$", "", raw, flags=re.I).strip()
+    if not raw or raw == titulo_muestra.upper():
+        return ""
+    max_len = max(len(titulo_muestra), int(len(titulo_muestra) * 1.32))
+    if len(raw) > max_len:
+        return ""
+    return raw
+
+
+def _es_subtitulo_corto_ai(texto: str) -> bool:
+    t = (texto or "").strip()
+    if not (4 <= len(t) <= 72):
+        return False
+    if t.endswith(":") and len(t) > 48:
+        return False
+    if t.lower().startswith("aceite esencial extraído"):
+        return False
+    if "mediante el proceso" in t.lower() or "melaleuca" in t.lower():
+        return False
+    return True
+
+
+def _es_metadata_campo_ai(texto: str) -> bool:
+    t = (texto or "").strip()
+    if t.startswith("# CAS") or t.startswith("Concentración:") or t.startswith("Fórmula molecular:"):
+        return True
+    if _RE_PESO_TSPAN.match(t):
+        return True
+    if t.startswith("Incluye cuchara"):
+        return True
+    return t in {"GHS", "NO GHS", "MgO", "•"}
+
+
+_RE_FRAG_ADVERTENCIA = re.compile(
+    r"al[eé]rgica|digestivos|perfectas condiciones|lugar fresco|humedad|abrirlo|alejado de la luz",
+    re.I,
+)
+
+
+def _seleccionar_lineas_descripcion(tspans: list[dict[str, Any]], titulo: str, subtitulo: str) -> list[str]:
+    candidatos: list[dict[str, Any]] = []
+    for row in tspans:
+        t, y = row["text"], row["y"]
+        if t in (titulo, subtitulo) or _es_linea_protegida_ai(t, y):
+            continue
+        if _es_metadata_campo_ai(t) or _es_titulo_producto_ai(t):
+            continue
+        if _RE_FRAG_ADVERTENCIA.search(t):
+            continue
+        if "mckenna" in t.lower() and len(t) < 28:
+            continue
+        if len(t) < 4 and t != "•":
+            continue
+        candidatos.append(row)
+
+    anchor_y = _anchor_y_encabezado(tspans, titulo, subtitulo)
+    if anchor_y is not None:
+        candidatos = [r for r in candidatos if r["y"] < anchor_y - 1.5]
+
+    if not candidatos:
+        return []
+
+    bandas: dict[int, list[str]] = {}
+    banda_y: dict[int, float] = {}
+    for row in candidatos:
+        banda = int(round(row["y"] / 4.0) * 4)
+        bandas.setdefault(banda, []).append(row["text"])
+        banda_y[banda] = max(banda_y.get(banda, 0.0), float(row["y"]))
+
+    ordenadas = sorted(
+        ((banda_y.get(b, float(b)), sum(len(ln) for ln in bloque), bloque) for b, bloque in bandas.items()),
+        reverse=True,
+    )
+
+    lineas: list[str] = []
+    tope_y: float | None = None
+    for y, total, bloque in ordenadas:
+        if total < 24 and not lineas:
+            continue
+        if tope_y is None:
+            tope_y = y
+            lineas = list(bloque)
+            continue
+        if tope_y - y <= 10:
+            lineas.extend(bloque)
+            continue
+        break
+    return lineas
+
+
+def _texto_es_copia_generica_polvo(texto: str) -> bool:
+    low = (texto or "").lower()
+    return any(m in low for m in _TEXTO_POLVO_GENERICO)
+
+
+def _plantilla_sugiere_aceite(svg: str) -> bool:
+    return "aceite" in svg.lower()
+
+
+def _anchor_y_encabezado(tspans: list[dict[str, Any]], titulo: str, subtitulo: str) -> float | None:
+    for row in tspans:
+        if subtitulo and row["text"] == subtitulo:
+            return float(row["y"])
+    for row in tspans:
+        if titulo and row["text"] == titulo:
+            return float(row["y"])
+    return None
+
+
+def _subtitulos_compatibles(muestra: str, nuevo: str) -> bool:
+    m, n = muestra.lower(), nuevo.lower()
+    if ("aceite" in m or "esencial" in m) and "polvo" in n:
+        return False
+    if "polvo" in m and "aceite" in n and "esencial" in n:
+        return False
+    return True
+
+
+def _distribuir_en_lineas(texto: str, presupuestos: list[int]) -> list[str]:
+    texto = (texto or "").strip().replace("\r\n", "\n").replace("\r", "\n")
+    parrafos = [re.sub(r"[ \t]+", " ", p.strip()) for p in re.split(r"\n+", texto) if p.strip()]
+    palabras: list[str] = []
+    for i, para in enumerate(parrafos):
+        palabras.extend(para.split())
+        if i < len(parrafos) - 1:
+            palabras.append("|")  # preferir corte de línea entre párrafos/secciones
+    if not palabras or not presupuestos:
+        return []
+    out: list[str] = []
+    wi = 0
+    for budget in presupuestos:
+        if wi >= len(palabras):
+            out.append("")
+            continue
+        chunk: list[str] = []
+        chars = 0
+        limite = budget
+        while wi < len(palabras):
+            w = palabras[wi]
+            if w == "|":
+                wi += 1
+                if chunk:
+                    break
+                continue
+            add = len(w) + (1 if chunk else 0)
+            if chunk and chars + add > limite:
+                break
+            chunk.append(w)
+            chars += add
+            wi += 1
+        out.append(" ".join(chunk))
+    if wi < len(palabras):
+        resto = " ".join(w for w in palabras[wi:] if w != "|")
+        for i in range(len(out) - 1, -1, -1):
+            if not out[i]:
+                continue
+            lim = presupuestos[i]
+            combined = f"{out[i]} {resto}".strip()
+            out[i] = combined if len(combined) <= lim else (
+                combined[: max(1, lim - 1)].rsplit(" ", 1)[0].rstrip(" .,;:") + "…"
+            )
+            break
+    return out
+
+
+def _detectar_separador_x_ai(svg: str) -> float | None:
+    m = re.search(
+        r'transform="translate\(([0-9.]+)[^"]*\)"[^>]*>\s*<path[^>]*d="M 0,0 V ',
+        svg,
+        re.S,
+    )
+    if m:
+        return float(m.group(1))
+    return None
+
+
+def _guia_izquierda_b1_ai(svg: str, tx_detectado: float) -> float:
+    """Alinea B1 a la misma guía izquierda que subtítulo/título de la plantilla."""
+    for pat in (
+        r'id="text128"[^>]*transform="matrix\([^,]+,[^,]+,[^,]+,[^,]+,([0-9.]+)',
+        r'id="mckenna-subtitulo"[^>]*transform="matrix\([^,]+,[^,]+,[^,]+,[^,]+,([0-9.]+)',
+        r'id="text148"[^>]*transform="matrix\([^,]+,[^,]+,[^,]+,[^,]+,([0-9.]+)',
+        r'transform="matrix\([^,]+,[^,]+,[^,]+,[^,]+,([0-9.]+),155',
+    ):
+        m = re.search(pat, svg)
+        if m:
+            return float(m.group(1))
+    return tx_detectado if tx_detectado > 0 else 3.5
+
+
+def _ancho_util_b1_ai(svg: str, tx: float) -> float | None:
+    """Ancho útil de B1: desde guía izquierda hasta la línea vertical (~66 %)."""
+    sep_x = _detectar_separador_x_ai(svg)
+    if sep_x is None:
+        return None
+    from app.tools.etiquetas_svg_engine import _MARGEN_DER_B1_ANTES_SEP
+
+    return max(80.0, sep_x - tx - _MARGEN_DER_B1_ANTES_SEP)
+
+
+def _calcular_piso_descripcion_ai(svg: str) -> float:
+    """Límite inferior (coord. SVG) del área de descripción, encima del pie/cuchara."""
+    ci = svg.find("Incluye cuchara")
+    if ci > 0:
+        start = svg.rfind("<text", 0, ci)
+        m = re.search(
+            r"matrix\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,([0-9.]+)\)",
+            svg[start:ci],
+        )
+        if m:
+            return float(m.group(1)) + 7.5
+    return 11.0
+
+
+def _meta_bloque_descripcion_ai(
+    svg: str, primera_linea: str, *, texto_len: int = 0
+) -> dict[str, Any] | None:
+    if not primera_linea or primera_linea not in svg:
+        return None
+    idx = svg.find(primera_linea)
+    start = svg.rfind("<text", 0, idx)
+    end = svg.find("</text>", idx)
+    if start < 0 or end < 0:
+        return None
+    bloque = svg[start : end + len("</text>")]
+
+    m_tr = re.search(r'transform="matrix\(([^)]+)\)"', bloque)
+    if not m_tr:
+        return None
+    nums = [float(x) for x in re.findall(r"[-+]?\d*\.?\d+", m_tr.group(1))]
+    if len(nums) < 6:
+        return None
+    tx, ty = nums[4], nums[5]
+    tx = _guia_izquierda_b1_ai(svg, tx)
+
+    fs_m = re.search(r"font-size:([0-9.]+)px", bloque)
+    fs = float(fs_m.group(1)) if fs_m else 5.0
+    ff_m = re.search(r"font-family:([^;'\"]+)", bloque)
+    fill_m = re.search(r"fill:([^;'\"]+)", bloque)
+    ff = (ff_m.group(1).strip() if ff_m else "Geomanist")
+    fill = (fill_m.group(1).strip() if fill_m else "#000000")
+
+    ys = sorted({float(y) for y in re.findall(r'\sy="([0-9.]+)"', bloque) if float(y) > 0})
+    lh = (ys[1] - ys[0]) if len(ys) >= 2 else max(fs * 1.16, 5.5)
+    lineas_plantilla = bloque.count("<tspan")
+
+    max_x_local = 0.0
+    for xm in re.finditer(r'\sx="([^"]*)"', bloque):
+        vals = [float(v) for v in xm.group(1).split() if v]
+        if vals:
+            max_x_local = max(max_x_local, max(vals))
+
+    sep_x = _detectar_separador_x_ai(svg)
+    ancho_util = _ancho_util_b1_ai(svg, tx)
+    if ancho_util:
+        max_width = ancho_util
+    elif sep_x:
+        max_width = max(90.0, sep_x - tx - 2.5)
+    else:
+        max_width = max(90.0, max_x_local + 2.0)
+
+    # Textos largos: tipografía más compacta para aprovechar el espacio vertical libre
+    if texto_len > 750:
+        fs = max(4.55, fs - 0.45)
+        lh = max(4.75, lh - 0.85)
+    elif texto_len > 500:
+        fs = max(4.75, fs - 0.25)
+        lh = max(5.0, lh - 0.45)
+
+    piso_y = _calcular_piso_descripcion_ai(svg)
+    budget_y = max(90.0, ty - piso_y)
+    max_lineas = max(lineas_plantilla, int(budget_y / lh) - 1)
+
+    por_ancho = max(30, int(max_width / max(fs * 0.56, 2.4)))
+    max_chars = max(32, min(por_ancho, 50))
+
+    return {
+        "tx": tx,
+        "ty": ty,
+        "font_size": fs,
+        "line_height": lh,
+        "font_family": ff,
+        "fill": fill,
+        "max_lines": max_lineas,
+        "max_chars": max_chars,
+        "max_width": max_width,
+        "max_width_full": max_width,
+        "sep_x": sep_x,
+        "piso_y": piso_y,
+    }
+
+
+_RE_BULLET_SECCION_AI = re.compile(r"^\s{0,8}([A-ZÁÉÍÓÚÑ][^:\n]{3,72}):\s*(.*)$", re.S)
+_RE_INICIO_REGULATORIO_AI = re.compile(
+    r"informaci[oó]n t[eé]cnica|nota legal|est[aá]ndar de calidad|cumplimiento normativo|resoluci[oó]n\s+2674",
+    re.I,
+)
+
+
+def _recortar_priorizando_regulatorio(lineas: list[str], max_lineas: int) -> list[str]:
+    """Si no cabe todo, conserva la cola regulatoria (USP, Res. 2674, nota legal)."""
+    if len(lineas) <= max_lineas:
+        return lineas
+
+    reg_idx = next(
+        (
+            i
+            for i, ln in enumerate(lineas)
+            if ln.strip() and _RE_INICIO_REGULATORIO_AI.search(ln)
+        ),
+        None,
+    )
+    if reg_idx is None:
+        out = lineas[: max_lineas - 1]
+        if out and len(" ".join(lineas)) > len(" ".join(out)):
+            out.append("…")
+        return out
+
+    cola = [ln for ln in lineas[reg_idx:] if ln is not None]
+    while cola and not cola[0].strip():
+        cola.pop(0)
+    presupuesto_cabeza = max_lineas - len(cola)
+    if presupuesto_cabeza < 5:
+        return cola[:max_lineas]
+
+    cabeza = lineas[:reg_idx]
+    while cabeza and not cabeza[-1].strip():
+        cabeza.pop()
+    cabeza = cabeza[:presupuesto_cabeza]
+    if len(cabeza) < reg_idx:
+        cabeza.append("…")
+    return cabeza + cola[: max_lineas - len(cabeza)]
+
+
+def _partir_cuerpo_unico_b1(raw: str, max_chars: int, max_lineas: int) -> list[str]:
+    """Flujo continuo: solo \\n\\n separa párrafos; el resto es un solo cuerpo."""
+    from app.tools.etiquetas_svg_engine import _partir_lineas_texto, _unificar_cuerpo_parrafo_b1
+
+    out: list[str] = []
+    parrafos = [p for p in re.split(r"\n\s*\n", (raw or "").strip()) if p.strip()]
+    for pi, parrafo in enumerate(parrafos):
+        if pi > 0 and len(out) < max_lineas:
+            out.append("")
+        unificado = _unificar_cuerpo_parrafo_b1(parrafo)
+        if not unificado:
+            continue
+        restantes = max_lineas - len(out)
+        if restantes <= 0:
+            break
+        out.extend(_partir_lineas_texto(unificado, max_chars, restantes))
+    return out
+
+
+def _formatear_cuerpo_unico_b1_alternativa(
+    raw: str, max_chars: int, max_lineas: int
+) -> list[str]:
+    """B1 alternativa: un solo cuerpo por párrafo, guía izquierda + ancho hasta separador."""
+    m = _RE_INICIO_REGULATORIO_AI.search(raw)
+    if m and m.start() > 80:
+        cabeza = raw[: m.start()].strip()
+        cola = raw[m.start() :].strip()
+        n_cola = max(6, max_lineas // 2)
+        cola_fmt = _partir_cuerpo_unico_b1(cola, max_chars, n_cola)
+        cola_fmt = [ln for ln in cola_fmt if ln is not None]
+        n_cabeza = max(4, max_lineas - len(cola_fmt) - 1)
+        cabeza_fmt = _partir_cuerpo_unico_b1(cabeza, max_chars, n_cabeza)
+        while cabeza_fmt and not cabeza_fmt[-1].strip():
+            cabeza_fmt.pop()
+        unido: list[str] = list(cabeza_fmt)
+        if unido and cola_fmt:
+            unido.append("")
+        unido.extend(cola_fmt)
+        return _recortar_priorizando_regulatorio(unido, max_lineas)
+    return _recortar_priorizando_regulatorio(
+        _partir_cuerpo_unico_b1(raw, max_chars, max_lineas), max_lineas
+    )
+
+
+def _formatear_descripcion_etiqueta_ai(
+    texto: str,
+    max_chars: int,
+    max_lineas: int,
+    *,
+    compacto: bool = False,
+    alternativa: bool = True,
+) -> list[str]:
+    from app.tools.etiquetas_svg_engine import (
+        _normalizar_ortografia_puntuacion_etiqueta,
+        _partir_lineas_texto,
+    )
+
+    bruto = (texto or "").replace("\r\n", "\n").replace("\r", "\n")
+    raw = _normalizar_ortografia_puntuacion_etiqueta(bruto) if alternativa else bruto.strip()
+    if not raw or max_lineas <= 0:
+        return []
+
+    if alternativa and not compacto:
+        return _formatear_cuerpo_unico_b1_alternativa(raw, max_chars, max_lineas)
+
+    if not compacto:
+        tiene_reg = _RE_INICIO_REGULATORIO_AI.search(raw)
+        if tiene_reg and tiene_reg.start() > 80:
+            return _formatear_con_cola_regulatoria(raw, max_chars, max_lineas, alternativa=alternativa)
+
+    parrafos = [p.strip() for p in re.split(r"\n\s*\n", raw) if p.strip()]
+    out: list[str] = []
+    gap_parrafos = 0 if compacto else 1
+    limite_blando = max_lineas + (6 if compacto else 0)
+
+    def _push(line: str) -> bool:
+        line = re.sub(r"\s+", " ", (line or "").strip())
+        if not line:
+            return len(out) < limite_blando
+        if len(out) >= limite_blando:
+            return False
+        if len(line) <= max_chars:
+            out.append(line)
+            return True
+        restantes = limite_blando - len(out)
+        for w in _partir_lineas_texto(line, max_chars, restantes):
+            if len(out) >= limite_blando:
+                return False
+            out.append(w)
+        return len(out) < limite_blando
+
+    for pi, parrafo in enumerate(parrafos):
+        if pi > 0 and gap_parrafos and len(out) < limite_blando:
+            out.append("")
+        for fila in [ln.strip() for ln in parrafo.split("\n") if ln.strip()]:
+            m = _RE_BULLET_SECCION_AI.match(fila)
+            if m:
+                titulo = f"{m.group(1).strip()}:"
+                cuerpo = (m.group(2) or "").strip()
+                if not _push(titulo):
+                    break
+                if cuerpo and not _push(cuerpo):
+                    break
+                continue
+            if (
+                len(fila) < 52
+                and not fila.endswith(".")
+                and fila[0].isupper()
+                and " " in fila
+                and fila.count(":") == 0
+            ):
+                if not _push(fila):
+                    break
+                continue
+            if not _push(fila):
+                break
+        if len(out) >= limite_blando:
+            break
+
+    while out and not out[-1].strip():
+        out.pop()
+    return _recortar_priorizando_regulatorio(out, max_lineas)
+
+
+def _formatear_con_cola_regulatoria(
+    raw: str, max_chars: int, max_lineas: int, *, alternativa: bool = True
+) -> list[str]:
+    m = _RE_INICIO_REGULATORIO_AI.search(raw)
+    if not m:
+        return _formatear_descripcion_etiqueta_ai(
+            raw, max_chars, max_lineas, compacto=True, alternativa=alternativa
+        )
+
+    cabeza = raw[: m.start()].strip()
+    cola = raw[m.start() :].strip()
+    cola_fmt = _formatear_descripcion_etiqueta_ai(
+        cola, max_chars, max(6, max_lineas // 2), compacto=True, alternativa=alternativa
+    )
+    cola_fmt = [ln for ln in cola_fmt if ln.strip()]
+    n_cola = len(cola_fmt)
+    n_cabeza = max(4, max_lineas - n_cola - 1)
+    cabeza_fmt = _formatear_descripcion_etiqueta_ai(
+        cabeza, max_chars, n_cabeza, compacto=True, alternativa=alternativa
+    )
+    while cabeza_fmt and not cabeza_fmt[-1].strip():
+        cabeza_fmt.pop()
+    unido: list[str] = list(cabeza_fmt)
+    if unido and cola_fmt:
+        unido.append("")
+    unido.extend(cola_fmt)
+    return _recortar_priorizando_regulatorio(unido, max_lineas)
+
+
+def _construir_bloque_descripcion_ai(
+    meta: dict[str, Any], lineas: list[str], *, alternativa: bool = True
+) -> str:
+    from app.tools.etiquetas_svg_engine import (
+        _debe_justificar_linea_descripcion,
+        _escape_xml_text,
+        _tspans_linea_descripcion,
+    )
+
+    tx, ty = float(meta["tx"]), float(meta["ty"])
+    fs = float(meta["font_size"])
+    lh = float(meta["line_height"])
+    ff = meta.get("font_family") or "Geomanist"
+    fill = meta.get("fill") or "#000000"
+    max_width = float(meta.get("max_width") or 0.0)
+
+    tspans: list[str] = []
+    first = True
+    for i, ln in enumerate(lineas):
+        if not alternativa:
+            contenido = _escape_xml_text(ln.strip()) if ln.strip() else " "
+            if first:
+                tspans.append(f'<tspan x="0" y="0">{contenido}</tspan>')
+                first = False
+                continue
+            dy = lh * (0.45 if not ln.strip() else 1.0)
+            tspans.append(f'<tspan x="0" dy="{dy:.4f}">{contenido}</tspan>')
+            continue
+
+        justificar = max_width > 0 and _debe_justificar_linea_descripcion(ln)
+        al_b1 = str(meta.get("alineacion_b1") or "justify").lower()
+        if al_b1 != "justify":
+            justificar = False
+        tspans.extend(
+            _tspans_linea_descripcion(
+                ln,
+                max_width=max_width,
+                fs=fs,
+                lh=lh if ln.strip() else lh * 0.45,
+                es_primera_del_bloque=first,
+                justificar=justificar,
+            )
+        )
+        if first:
+            first = False
+
+    anchor_map = {"left": "start", "center": "middle", "right": "end", "justify": "start"}
+    al_b1 = str(meta.get("alineacion_b1") or "justify").lower()
+    text_anchor = anchor_map.get(al_b1, "start")
+
+    return (
+        f'<text data-mckenna-campo="b1" transform="matrix(1,0,0,-1,{tx:.4f},{ty:.4f})" '
+        f'text-anchor="{text_anchor}" '
+        f'style="font-variant:normal;font-weight:normal;font-size:{fs}px;'
+        f"font-stretch:normal;font-family:{ff};fill:{fill};"
+        f'stroke:none;stroke-width:0.4">'
+        f'{"".join(tspans)}</text>'
+    )
+
+
+def _b1_ancho_pct_efectivo(datos: dict) -> float:
+    diag = datos.get("diagramacion")
+    if isinstance(diag, dict):
+        b1 = diag.get("b1")
+        if isinstance(b1, dict) and b1.get("ancho_pct") is not None:
+            try:
+                pct = float(b1["ancho_pct"])
+                return max(50.0, min(100.0, pct))
+            except (TypeError, ValueError):
+                pass
+    try:
+        raw = datos.get("b1_ancho_pct")
+        pct = 100.0 if raw is None else float(raw)
+    except (TypeError, ValueError):
+        pct = 100.0
+    return max(50.0, min(100.0, pct))
+
+
+def _marcar_texto_campo_ai(svg: str, muestra: str, campo: str) -> str:
+    """Añade data-mckenna-campo al <text> que contiene la muestra."""
+    if not muestra or not campo:
+        return svg
+    fragmentos = [muestra]
+    if len(muestra) > 24:
+        fragmentos.append(muestra[:24])
+    search_from = 0
+    for frag in fragmentos:
+        while True:
+            idx = svg.find(frag, search_from)
+            if idx < 0:
+                break
+            start = svg.rfind("<text", 0, idx)
+            if start < 0:
+                search_from = idx + 1
+                continue
+            end_text = svg.find("</text>", idx)
+            if end_text < 0 or end_text < idx:
+                search_from = idx + 1
+                continue
+            end_tag = svg.find(">", start)
+            if end_tag < 0:
+                return svg
+            tag = svg[start : end_tag + 1]
+            if f'data-mckenna-campo="{campo}"' in tag:
+                return svg
+            new_tag = tag[:-1] + f' data-mckenna-campo="{campo}"' + ">"
+            return svg[:start] + new_tag + svg[end_tag + 1 :]
+    return svg
+
+
+def _insertar_attr_grafico(tag: str, gid: str) -> str:
+    if "data-mckenna-grafico=" in tag:
+        return tag
+    ins = f' data-mckenna-grafico="{gid}"'
+    if tag.rstrip().endswith("/>"):
+        return tag.rstrip()[:-2] + ins + " />"
+    if tag.endswith(">"):
+        return tag[:-1] + ins + ">"
+    return tag + ins
+
+
+def _es_grafico_arrastrable(tag: str) -> bool:
+    if "data-mckenna-grafico=" in tag or "data-mckenna-campo=" in tag:
+        return False
+    if re.search(
+        r'id=["\']([^"\']*(?:mckenna-b1-guia|barcode|codigo.?barras))',
+        tag,
+        re.I,
+    ):
+        return False
+    low = tag.lower()
+    if "<rect" in low:
+        wm = re.search(r'width="([0-9.]+)"', tag)
+        hm = re.search(r'height="([0-9.]+)"', tag)
+        if wm and hm:
+            w, h = float(wm.group(1)), float(hm.group(1))
+            if w > 160 and h > 160:
+                return False
+    return True
+
+
+def _marcar_graficos_diagramacion_ai(svg: str) -> str:
+    """Marca líneas y recuadros decorativos para arrastrar en el Studio."""
+    idx = 0
+
+    def mark(m: re.Match[str]) -> str:
+        nonlocal idx
+        tag = m.group(0)
+        if not _es_grafico_arrastrable(tag):
+            return tag
+        gid = f"g{idx}"
+        idx += 1
+        return _insertar_attr_grafico(tag, gid)
+
+    out = re.sub(r"<line\s[^>]*/?>", mark, svg, flags=re.I)
+    out = re.sub(r"<rect\s[^>]*/?>", mark, out, flags=re.I)
+    return out
+
+
+def _offset_attr_tag(tag: str, attr: str, delta: float) -> str:
+    m = re.search(rf'({attr})="([0-9.+-]+)"', tag)
+    if not m:
+        return tag
+    v = float(m.group(2)) + delta
+    return tag.replace(m.group(0), f'{m.group(1)}="{v:.4f}"', 1)
+
+
+def _aplicar_offset_grafico_tag(tag: str, dx: float, dy: float) -> str:
+    low = tag.lower()
+    if low.startswith("<line"):
+        out = tag
+        for a in ("x1", "y1", "x2", "y2"):
+            out = _offset_attr_tag(out, a, dx if a.startswith("x") else dy)
+        return out
+    if low.startswith("<rect"):
+        out = _offset_attr_tag(tag, "x", dx)
+        return _offset_attr_tag(out, "y", dy)
+    return tag
+
+
+def _aplicar_graficos_diagramacion_ai(svg: str, datos: dict) -> str:
+    graficos = datos.get("diagramacion_graficos")
+    if not isinstance(graficos, dict) or not graficos:
+        return svg
+    out = svg
+    for gid, cfg in graficos.items():
+        if not isinstance(cfg, dict):
+            continue
+        try:
+            dx = float(cfg.get("x") or 0)
+            dy = float(cfg.get("y") or 0)
+        except (TypeError, ValueError):
+            continue
+        if abs(dx) < 0.001 and abs(dy) < 0.001:
+            continue
+        marker = f'data-mckenna-grafico="{gid}"'
+        pos = 0
+        while True:
+            idx = out.find(marker, pos)
+            if idx < 0:
+                break
+            start = out.rfind("<", 0, idx)
+            end = out.find(">", idx)
+            if start < 0 or end < 0:
+                break
+            tag = out[start : end + 1]
+            nuevo = _aplicar_offset_grafico_tag(tag, dx, dy)
+            out = out[:start] + nuevo + out[end + 1 :]
+            pos = start + len(nuevo)
+    return out
+
+
+def _marcar_campos_diagramacion_ai(svg: str, muestras: dict[str, Any], datos: dict) -> str:
+    out = svg
+    for campo, key in (
+        ("titulo", "titulo"),
+        ("subtitulo", "subtitulo"),
+        ("cas", "cas_linea"),
+        ("concentracion", "concentracion"),
+        ("formula", "formula"),
+        ("peso", "peso"),
+        ("cuchara", "cuchara"),
+    ):
+        muestra = muestras.get(key)
+        if muestra:
+            out = _marcar_texto_campo_ai(out, muestra, campo)
+
+    sub_datos = (datos.get("subtitulo") or "").strip()
+    if sub_datos and f'data-mckenna-campo="subtitulo"' not in out:
+        out = _marcar_texto_campo_ai(out, sub_datos[: min(32, len(sub_datos))], "subtitulo")
+
+    if 'data-mckenna-campo="legal"' not in out and 'id="mckenna-bloque-legal"' in out:
+        out = re.sub(
+            r'(<g id="mckenna-bloque-legal">[\s\S]*?<text)(\s)',
+            r'\1 data-mckenna-campo="legal"\2',
+            out,
+            count=1,
+        )
+
+    if 'data-mckenna-campo="lote"' not in out:
+        m_lote = re.search(r"(LOT\.[^<]{0,40})", out)
+        if m_lote:
+            out = _marcar_texto_campo_ai(out, m_lote.group(1), "lote")
+        elif 'id="mckenna-lote-vencimiento"' in out:
+            out = re.sub(
+                r'(<g id="mckenna-lote-vencimiento">[\s\S]*?<text)(\s)',
+                r'\1 data-mckenna-campo="lote"\2',
+                out,
+                count=1,
+            )
+
+    return out
+
+
+def _aplicar_xy_color_campo_tag(tag: str, cfg: dict[str, Any]) -> str:
+    out = tag
+    color = cfg.get("color")
+    if isinstance(color, str) and re.match(r"^#[0-9A-Fa-f]{6}$", color.strip()):
+        c = color.strip()
+        if "fill:" in out:
+            out = re.sub(r"fill:[^;'\"]+", f"fill:{c}", out)
+        elif 'fill="' in out:
+            out = re.sub(r'fill="[^"]*"', f'fill="{c}"', out)
+        else:
+            out = out.replace("<text", f'<text fill="{c}"', 1)
+
+    al = cfg.get("alineacion")
+    if isinstance(al, str):
+        anchor_map = {"left": "start", "center": "middle", "right": "end", "justify": "start"}
+        anchor = anchor_map.get(al.strip().lower())
+        if anchor:
+            if 'text-anchor="' in out:
+                out = re.sub(r'text-anchor="[^"]*"', f'text-anchor="{anchor}"', out)
+            elif "text-anchor:" in out:
+                out = re.sub(r"text-anchor:[^;'\"]+", f"text-anchor:{anchor}", out)
+            else:
+                out = out.replace("<text", f'<text text-anchor="{anchor}"', 1)
+
+    x = cfg.get("x")
+    y = cfg.get("y")
+    if x is not None or y is not None:
+        m = re.search(r'transform="matrix\(([^)]+)\)"', out)
+        if m:
+            nums = [float(n) for n in re.findall(r"[-+]?\d*\.?\d+", m.group(1))]
+            if len(nums) >= 6:
+                if x is not None:
+                    nums[4] = float(x)
+                if y is not None:
+                    nums[5] = float(y)
+                nueva = (
+                    f'transform="matrix({nums[0]},{nums[1]},{nums[2]},'
+                    f"{nums[3]},{nums[4]},{nums[5]})\""
+                )
+                out = out[: m.start()] + nueva + out[m.end() :]
+    return out
+
+
+def _aplicar_escala_bloque_texto(bloque: str, escala: float) -> str:
+    escala = max(0.6, min(1.8, float(escala)))
+
+    def _fs_style(m: re.Match[str]) -> str:
+        return f"font-size:{float(m.group(1)) * escala:.3f}px"
+
+    def _fs_attr(m: re.Match[str]) -> str:
+        return f'font-size="{float(m.group(1)) * escala:.3f}px"'
+
+    def _dy(m: re.Match[str]) -> str:
+        return f'dy="{float(m.group(1)) * escala:.3f}"'
+
+    out = re.sub(r"font-size:([0-9.]+)px", _fs_style, bloque)
+    out = re.sub(r'font-size="([0-9.]+)px"', _fs_attr, out)
+    out = re.sub(r'dy="([0-9.]+)"', _dy, out)
+    return out
+
+
+def _aplicar_diagramacion_ai(svg: str, datos: dict) -> str:
+    diag = datos.get("diagramacion")
+    if not isinstance(diag, dict) or not diag:
+        return svg
+    out = svg
+    for campo, cfg in diag.items():
+        if not isinstance(cfg, dict):
+            continue
+        marker = f'data-mckenna-campo="{campo}"'
+        idx = out.find(marker)
+        if idx < 0:
+            continue
+        start = out.rfind("<text", 0, idx)
+        end = out.find("</text>", idx)
+        if start < 0 or end < 0:
+            continue
+        end += len("</text>")
+        tag_end = out.find(">", start)
+        if tag_end < 0:
+            continue
+        tag = out[start : tag_end + 1]
+        nuevo_tag = _aplicar_xy_color_campo_tag(tag, cfg)
+        out = out[:start] + nuevo_tag + out[tag_end + 1 :]
+        if cfg.get("color"):
+            c = str(cfg["color"])
+            bloque = out[start:end]
+            bloque = re.sub(r"fill:([^;'\"]+)", f"fill:{c}", bloque)
+            bloque = re.sub(r'fill="[^"]*"', f'fill="{c}"', bloque)
+            out = out[:start] + bloque + out[end:]
+        escala = cfg.get("escala")
+        if escala is not None:
+            try:
+                bloque = out[start:end]
+                bloque = _aplicar_escala_bloque_texto(bloque, float(escala))
+                out = out[:start] + bloque + out[end:]
+            except (TypeError, ValueError):
+                pass
+    return out
+
+
+def _quitar_guia_b1_ai(svg: str) -> str:
+    return re.sub(
+        r'<rect[^>]*\bid=["\']mckenna-b1-guia["\'][^>]*/>\s*',
+        "",
+        svg,
+        flags=re.I,
+    )
+
+
+def _fragmento_guia_b1_ai(
+    meta: dict[str, Any],
+    lineas: list[str],
+    *,
+    ancho_pct: float = 100.0,
+) -> str:
+    tx = float(meta["tx"])
+    ty = float(meta["ty"])
+    lh = float(meta["line_height"])
+    w = float(meta.get("max_width") or 90)
+    w_full = float(meta.get("max_width_full") or w)
+    piso = float(meta.get("piso_y") or 11.0)
+    n = max(1, len([ln for ln in lineas if ln.strip() and ln.strip() != "•"]))
+    h = max(lh * 1.15 * n, ty - piso)
+    y_top = piso
+    return (
+        f'<rect id="mckenna-b1-guia" data-ancho-full="{w_full:.4f}" '
+        f'data-ancho-pct="{ancho_pct:.1f}" '
+        f'x="{tx:.4f}" y="{y_top:.4f}" width="{w:.4f}" height="{h:.4f}" '
+        f'fill="none" stroke="none" opacity="0"/>'
+    )
+
+def _sustituir_bloque_descripcion_ai(
+    svg: str,
+    muestra: str,
+    meta: dict[str, Any],
+    lineas: list[str],
+    *,
+    alternativa: bool = True,
+    ancho_pct: float = 100.0,
+) -> tuple[str, int]:
+    if not muestra or muestra not in svg:
+        return svg, 0
+    idx = svg.find(muestra)
+    start = svg.rfind("<text", 0, idx)
+    end = svg.find("</text>", idx)
+    if start < 0 or end < 0:
+        return svg, 0
+    end += len("</text>")
+    nuevo = _construir_bloque_descripcion_ai(meta, lineas, alternativa=alternativa)
+    out = svg[:start] + nuevo + svg[end:]
+    out = _quitar_guia_b1_ai(out)
+    if alternativa:
+        frag = _fragmento_guia_b1_ai(meta, lineas, ancho_pct=ancho_pct)
+        out = out[: start + len(nuevo)] + frag + out[start + len(nuevo) :]
+    return out, len([ln for ln in lineas if ln.strip()])
+
+
+def _aplicar_descripcion_multiline_ai(
+    svg: str,
+    datos: dict,
+    lineas: list[str],
+    *,
+    fiel: bool = True,
+    alternativa: bool = True,
+) -> tuple[str, int]:
+    nuevo = (datos.get("descripcion_etiqueta") or "").strip()
+    if not nuevo or not lineas:
+        return svg, 0
+    if _texto_es_copia_generica_polvo(nuevo) and _plantilla_sugiere_aceite(svg):
+        return svg, 0
+    if _plantilla_sugiere_aceite(svg) and len(lineas) >= 4:
+        return svg, 0
+
+    lineas_utiles = [ln for ln in lineas if ln.strip() and ln.strip() != "•"]
+    if not lineas_utiles:
+        return svg, 0
+
+    meta = _meta_bloque_descripcion_ai(svg, lineas_utiles[0], texto_len=len(nuevo))
+    if meta:
+        ancho_pct = _b1_ancho_pct_efectivo(datos)
+        max_w_full = float(meta["max_width"])
+        meta["max_width_full"] = max_w_full
+        meta["max_width"] = max_w_full * (ancho_pct / 100.0)
+        diag = datos.get("diagramacion")
+        if isinstance(diag, dict) and isinstance(diag.get("b1"), dict):
+            al = diag["b1"].get("alineacion")
+            if isinstance(al, str) and al.strip():
+                meta["alineacion_b1"] = al.strip().lower()
+        por_ancho = max(30, int(meta["max_width"] / max(meta["font_size"] * 0.56, 2.4)))
+        meta["max_chars"] = max(32, min(por_ancho, 50))
+        formateadas = _formatear_descripcion_etiqueta_ai(
+            nuevo,
+            int(meta["max_chars"]),
+            int(meta["max_lines"]),
+            alternativa=alternativa,
+        )
+        if formateadas:
+            return _sustituir_bloque_descripcion_ai(
+                svg,
+                lineas_utiles[0],
+                meta,
+                formateadas,
+                alternativa=alternativa,
+                ancho_pct=ancho_pct,
+            )
+
+    # Fallback: reemplazo in-place línea a línea (plantillas sin bloque detectable)
+    from app.tools.etiquetas_svg_engine import _reemplazar_texto_en_svg
+
+    presupuestos = [len(ln) for ln in lineas_utiles]
+    fragmentos = _distribuir_en_lineas(nuevo, presupuestos)
+    out = svg
+    count = 0
+    for i, orig in enumerate(lineas_utiles):
+        lim = len(orig)
+        frag = (fragmentos[i] if i < len(fragmentos) else "")[:lim]
+        if frag:
+            out, n = _reemplazar_texto_en_svg(out, orig, frag, fiel=fiel, conservar_ancho=False)
+            count += n
+        elif not fiel:
+            out, n = _reemplazar_texto_en_svg(out, orig, "", fiel=False, conservar_ancho=False)
+            count += n
+    return out, count
+
+
+def _modo_etiqueta(datos: dict) -> str:
+    v = (datos.get("modo_etiqueta") or datos.get("version") or "alternativa").strip().lower()
+    return "original" if v == "original" else "alternativa"
+
+
+def _reemplazar_subtitulo_alternativa(svg: str, muestra: str, nuevo: str) -> tuple[str, int]:
+    from app.tools.etiquetas_svg_engine import _compactar_texto, _reemplazar_texto_en_svg
+
+    if not muestra or not nuevo or muestra.strip() == nuevo.strip():
+        return svg, 0
+    lim = max(20, min(len(nuevo), int(len(muestra) * 1.12)))
+    corto = _compactar_texto(nuevo, lim)
+    return _reemplazar_texto_en_svg(svg, muestra, corto, fiel=False, conservar_ancho=True)
+
+
+_RE_FORMULA_CHAR_AI = re.compile(
+    r'<text\b[^>]*transform="matrix\(1,0,0,-1,([0-9.]+),16[0-6]\.[0-9]+\)"[^>]*>\s*'
+    r'<tspan[^>]*>[^<]{1,2}</tspan>\s*</text>\s*',
+    re.DOTALL,
+)
+
+
+def _quitar_formula_chars_ai(svg: str) -> str:
+    """Quita nodos de un carácter de la fórmula molecular (C6H8O7, etc.)."""
+
+    def _sub(m: re.Match[str]) -> str:
+        try:
+            x = float(m.group(1))
+        except ValueError:
+            return m.group(0)
+        if 85.0 <= x <= 125.0:
+            return ""
+        return m.group(0)
+
+    return _RE_FORMULA_CHAR_AI.sub(_sub, svg)
+
+
+def _omitir_metadata_sensible_ai(svg: str, datos: dict, muestras: dict[str, Any]) -> str:
+    from app.tools.etiquetas_svg_engine import _reemplazar_texto_en_svg
+
+    out = svg
+    if datos.get("mostrar_cas") is False:
+        cas_m = muestras.get("cas_linea")
+        if cas_m:
+            out, _ = _reemplazar_texto_en_svg(out, cas_m, "", fiel=False)
+
+    if datos.get("mostrar_formula_molecular") is False:
+        if muestras.get("formula"):
+            out, _ = _reemplazar_texto_en_svg(out, muestras["formula"], "", fiel=False, conservar_ancho=True)
+        out = re.sub(r"<tspan[^>]*>Fórmula molecular:[^<]*</tspan>", "", out)
+        out = _quitar_formula_chars_ai(out)
+        out = re.sub(
+            r'<text\b[^>]*transform="matrix\(1,0,0,-1,[0-9.]+,163\.8999\)"[^>]*>.*?</text>\s*',
+            "",
+            out,
+            flags=re.DOTALL,
+        )
+
+    if datos.get("mostrar_concentracion") is False:
+        conc_m = muestras.get("concentracion")
+        if conc_m:
+            out, _ = _reemplazar_texto_en_svg(out, conc_m, "", fiel=False)
+
+    return out
+
+
+def _inyectar_bloque_legal_ai(svg: str, datos: dict, spec: dict) -> str:
+    if datos.get("mostrar_bloque_legal", True) is False:
+        return svg
+    if _svg_tiene_legal_embebido(svg):
+        return svg
+    from app.tools.etiquetas_svg_engine import _fragmento_legal
+
+    frag = _fragmento_legal(spec, datos)
+    if not frag:
+        return svg
+    idx = svg.rfind("</svg>")
+    if idx == -1:
+        return svg
+    return svg[:idx] + frag + svg[idx:]
+
+
+_CORRECCIONES_TYPO_AI = (
+    ("seste en perfectas", "esté en perfectas"),
+    ("envase seste", "envase esté"),
+)
+
+
+def _corregir_typos_plantilla_ai(svg: str) -> str:
+    out = svg
+    for mal, bien in _CORRECCIONES_TYPO_AI:
+        if mal in out:
+            out = out.replace(mal, bien)
+    return out
+
+
+def _reemplazos_in_place_ai(datos: dict, muestras: dict[str, Any]) -> list[tuple[str, str]]:
     """Solo sustituye texto que ya existe en el .ai; no altera cajas ni posiciones."""
-    from app.tools.etiquetas_svg_engine import _reemplazos_desde_datos
+    from app.tools.etiquetas_svg_engine import _reemplazos_desde_datos, _valor_campo
 
-    pares = _reemplazos_desde_datos(datos, {"muestras": muestras})
+    muestras_seguras = {
+        k: v for k, v in muestras.items()
+        if k not in ("descripcion_inicio", "_descripcion_lineas")
+    }
+    pares = _reemplazos_desde_datos(datos, {"muestras": muestras_seguras})
     out: list[tuple[str, str]] = []
     for muestra, valor in pares:
         if muestra.startswith("Desarrollado por:"):
             continue
+        if _es_linea_protegida_ai(muestra) or _es_texto_bloque_desarrollado(muestra):
+            continue
         titulo_muestra = muestras.get("titulo") or ""
         if muestra == titulo_muestra and any(m in muestra.upper() for m in _MARCAS_NO_TITULO):
             continue
-        out.append((muestra, valor))
+        mlen = max(8, len(muestra))
+        v = re.sub(r"\s+", " ", (valor or "").strip())
+        limite = int(mlen * 1.55)
+        if len(v) > limite:
+            v = v[: max(1, limite - 1)].rsplit(" ", 1)[0].rstrip(" .,;:") + "…"
+        out.append((muestra, v))
+
+    tit_m = muestras.get("titulo")
+    if tit_m and _es_titulo_producto_ai(tit_m):
+        tit_nuevo = _titulo_compacto_para_ai(datos, tit_m)
+        if tit_nuevo and tit_nuevo.upper() != tit_m.upper():
+            out.append((tit_m, tit_nuevo))
+
+    sub_m = muestras.get("subtitulo")
+    if sub_m and _es_subtitulo_corto_ai(sub_m):
+        sub_nuevo = _valor_campo(datos, "subtitulo")
+        if (
+            sub_nuevo
+            and sub_nuevo.strip() != sub_m.strip()
+            and _subtitulos_compatibles(sub_m, sub_nuevo)
+            and not _texto_es_copia_generica_polvo(sub_nuevo)
+        ):
+            lim = max(len(sub_m), min(len(sub_nuevo), int(len(sub_m) * 1.4)))
+            out.append((sub_m, sub_nuevo[:lim]))
+
     return out
 
 
@@ -453,14 +1937,14 @@ def _aplicar_lote_exp_inplace(svg: str, datos: dict) -> str:
     return out
 
 
-def _detectar_muestras_ai(svg: str) -> dict[str, str]:
+def _detectar_muestras_ai(svg: str) -> dict[str, Any]:
+    tspans = _tspans_detalle(svg)
     textos: list[str] = []
-    for m in _RE_TSPAN_TEXT.finditer(svg):
-        t = re.sub(r"\s+", " ", m.group(1)).strip()
-        if t and t not in textos:
-            textos.append(t)
+    for row in tspans:
+        if row["text"] not in textos:
+            textos.append(row["text"])
 
-    muestras: dict[str, str] = {}
+    muestras: dict[str, Any] = {}
     for t in textos:
         if t.startswith("# CAS:") or t.startswith("# CAS :"):
             muestras["cas_linea"] = t
@@ -468,29 +1952,38 @@ def _detectar_muestras_ai(svg: str) -> dict[str, str]:
             muestras["concentracion"] = t
         elif t.startswith("Fórmula molecular:"):
             muestras["formula"] = t
-        elif "Materia prima" in t or t.lower().startswith("aceite "):
-            muestras.setdefault("subtitulo", t)
-        elif re.match(r"^\d+\s*(g|mL|ml)$", t, re.I) or _RE_PESO_TSPAN.match(t):
+        elif _RE_PESO_TSPAN.match(t):
             muestras["peso"] = t
         elif t.startswith("Incluye cuchara"):
             muestras["cuchara"] = t
-        elif t.startswith("Desarrollado por:"):
-            pass  # no reemplazar: rompe tspan/centering del Illustrator
-        elif len(t) > 80 and "descripcion_inicio" not in muestras:
-            muestras["descripcion_inicio"] = t[:220]
 
-    # Título: línea corta en mayúsculas (nombre producto)
-    candidatos = [
-        t for t in textos
-        if 4 <= len(t) <= 52
-        and t == t.upper()
-        and not t.startswith(("•", "#", "LOT", "EXP"))
-        and not any(m in t.upper() for m in _MARCAS_NO_TITULO)
-        and "MATERIA PRIMA" not in t.upper()
-        and "CALIDAD:" not in t.upper()
+    candidatos_titulo = [
+        (row["y"], row["text"])
+        for row in tspans
+        if _es_titulo_producto_ai(row["text"])
     ]
-    if candidatos:
-        muestras["titulo"] = candidatos[0]
+    if candidatos_titulo:
+        candidatos_titulo.sort(key=lambda x: -x[0])
+        muestras["titulo"] = candidatos_titulo[0][1]
+
+    titulo = muestras.get("titulo", "")
+    for row in sorted(tspans, key=lambda r: -r["y"]):
+        t = row["text"]
+        if t == titulo:
+            continue
+        if _es_subtitulo_corto_ai(t) and (
+            "Materia prima" in t
+            or "%" in t
+            or "esencial" in t.lower()
+            or "grado" in t.lower()
+        ):
+            muestras["subtitulo"] = t
+            break
+
+    subtitulo = muestras.get("subtitulo", "")
+    desc_lineas = _seleccionar_lineas_descripcion(tspans, titulo, subtitulo)
+    if desc_lineas:
+        muestras["_descripcion_lineas"] = desc_lineas
 
     return muestras
 
@@ -538,19 +2031,36 @@ def _inyectar_en_grupo_plantilla(svg: str, fragmentos: list[str], marcador: str 
     return svg[:idx] + bloque + svg[idx:]
 
 
-def renderizar_desde_ai(datos: dict, ai_path: Path | None = None) -> tuple[str, dict[str, Any]]:
+def _b64_barcode_embebido(svg: str) -> str | None:
+    m = re.search(
+        r'id="g12"[^>]*>[\s\S]*?xlink:href="data:image/[^;]+;base64,([^"]+)"',
+        svg,
+        re.I,
+    )
+    if not m:
+        m = re.search(r'xlink:href="data:image/[^;]+;base64,([^"]+)"', svg, re.I)
+    return m.group(1) if m else None
+
+
+def renderizar_desde_ai(datos: dict, ai_path: Path | None = None, modo: str | None = None) -> tuple[str, dict[str, Any]]:
     """
-    Render conservador: respeta el layout Illustrator tal cual.
-    Solo reemplaza textos/código de barras que ya existen en el .ai (in-place).
-    No inyecta overlays (LOT/EXP, legal, barras) en coordenadas genéricas.
+    Convierte .ai → SVG y sustituye datos in-place.
+    modo=original: solo reemplazos mínimos (texto/barcode/lote).
+    modo=alternativa: subtítulo MeLi-safe, descripción sanitizada, omite farmacológico.
     """
     from app.tools.etiquetas_svg_engine import (
         _aplicar_reemplazos_texto,
-        _barcode_png_base64,
+        _barcode_png_como_plantilla,
         _codigo_barras_valor,
         _lineas_lote_vencimiento,
+        _normalizar_fuentes_svg_web,
         _spec_para_tipo,
+        normalizar_datos_layout,
     )
+    datos = normalizar_datos_layout(datos)
+    modo_eff = (modo or _modo_etiqueta(datos)).strip().lower()
+    if modo_eff not in {"original", "alternativa"}:
+        modo_eff = "alternativa"
 
     path = ai_path or buscar_plantilla_ai(datos)
     if not path or not path.is_file():
@@ -558,18 +2068,56 @@ def renderizar_desde_ai(datos: dict, ai_path: Path | None = None) -> tuple[str, 
 
     svg = _ai_a_svg(path)
     muestras = _detectar_muestras_ai(svg)
+    plantilla_bc = _b64_barcode_embebido(svg)
     tipo = (datos.get("tipo_etiqueta") or "250 g").strip()
     spec = _spec_para_tipo(tipo) or {}
 
     pares = _reemplazos_in_place_ai(datos, muestras)
-    svg = _aplicar_reemplazos_texto(svg, pares)
+    svg = _aplicar_reemplazos_texto(svg, pares, fiel=True)
+
+    cambios_alternativa = 0
+    desc_reemplazos = 0
+    desc_recibida_chars = len((datos.get("descripcion_etiqueta") or "").strip())
+    legal_inyectado = False
+    if modo_eff == "alternativa":
+        sub_m = muestras.get("subtitulo")
+        sub_nuevo = (datos.get("subtitulo") or "").strip()
+        debe_cambiar_sub = bool(
+            sub_m
+            and (
+                "farmacol" in sub_m.lower()
+                or "ph. eur" in sub_m.lower()
+                or (sub_nuevo and sub_m.strip() != sub_nuevo.strip())
+            )
+        )
+        if debe_cambiar_sub:
+            destino = sub_nuevo if sub_nuevo and not _texto_es_copia_generica_polvo(sub_nuevo) else (
+                "Insumo alimentario 100% puro · Res. 2674/2013 Art. 37-3"
+            )
+            svg, n = _reemplazar_subtitulo_alternativa(svg, sub_m, destino)
+            cambios_alternativa += n
+
+        desc_lineas = muestras.get("_descripcion_lineas") or []
+        if desc_lineas and (datos.get("descripcion_etiqueta") or "").strip():
+            # B1: justificación + ortografía tipográfica solo en propuesta alternativa MeLi
+            svg, n = _aplicar_descripcion_multiline_ai(
+                svg, datos, desc_lineas, fiel=False, alternativa=True
+            )
+            desc_reemplazos = n
+            cambios_alternativa += n
+
+        svg = _omitir_metadata_sensible_ai(svg, datos, muestras)
+        antes_legal = svg
+        svg = _inyectar_bloque_legal_ai(svg, datos, spec)
+        legal_inyectado = svg != antes_legal
+
     svg = _aplicar_lote_exp_inplace(svg, datos)
 
     barcode_reemplazado = False
     valor_cb = _codigo_barras_valor(datos)
-    if valor_cb:
+    if valor_cb and plantilla_bc:
         try:
-            b64 = _barcode_png_base64(valor_cb)
+            b64 = _barcode_png_como_plantilla(plantilla_bc, valor_cb)
             nuevo = _reemplazar_barcode_embebido(svg, b64)
             if nuevo != svg:
                 svg = nuevo
@@ -580,18 +2128,377 @@ def renderizar_desde_ai(datos: dict, ai_path: Path | None = None) -> tuple[str, 
     lineas_lv = _lineas_lote_vencimiento(datos) if "LOT." in svg or "EXP." in svg else []
     meta = {
         "fuente": "ai",
-        "modo": "in_place",
+        "modo": f"ai_{modo_eff}",
         "tipo_etiqueta": tipo,
         "archivo": path.name,
         "archivo_ai": path.name,
         "ancho_mm": spec.get("ancho_mm") or datos.get("ancho_mm"),
         "alto_mm": spec.get("alto_mm") or datos.get("alto_mm"),
         "reemplazos": len(pares),
+        "cambios_alternativa": cambios_alternativa,
+        "descripcion_recibida_chars": desc_recibida_chars,
+        "descripcion_reemplazos": desc_reemplazos,
         "muestras_detectadas": list(muestras.keys()),
-        "overlays_inyectados": False,
+        "overlays_inyectados": legal_inyectado,
         "codigo_barras": valor_cb or None,
         "codigo_barras_reemplazado": barcode_reemplazado,
-        "bloque_legal": "2674" in svg or "REENVASE" in svg.upper(),
+        "bloque_legal": _svg_tiene_legal_embebido(svg),
         "lote_vencimiento": lineas_lv if lineas_lv else None,
     }
+    svg = _normalizar_fuentes_svg_web(svg)
+    svg = _marcar_campos_diagramacion_ai(svg, muestras, datos)
+    svg = _marcar_graficos_diagramacion_ai(svg)
+    svg = _aplicar_diagramacion_ai(svg, datos)
+    svg = _aplicar_graficos_diagramacion_ai(svg, datos)
     return svg, meta
+
+
+_ESCALA_BASE_CAMPO: dict[str, float] = {
+    "titulo": 12.0,
+    "subtitulo": 6.8724,
+    "b1": 4.5,
+    "cas": 4.5,
+    "concentracion": 4.5,
+    "formula": 4.5,
+    "peso": 11.0,
+    "cuchara": 4.5,
+    "legal": 2.0,
+    "lote": 4.2,
+}
+
+_FORMATO_DIM_MM: dict[str, tuple[int, int]] = {
+    "500 g": (76, 66),
+    "250 g": (76, 66),
+    "50g": (101, 32),
+    "50 g": (101, 32),
+    "30 mL": (101, 38),
+    "50 mL": (101, 38),
+    "1 Kg": (76, 66),
+}
+
+_REFERENCIA_AI_500G = "UREA 500g.ai"
+
+
+def _parse_matrix_transform(tag: str) -> tuple[float, float, float, float, float, float]:
+    m = re.search(r'transform="matrix\(([^)]+)\)"', tag, re.I)
+    if not m:
+        return 1.0, 0.0, 0.0, 1.0, 0.0, 0.0
+    nums = [float(n) for n in re.findall(r"[-+]?\d*\.?\d+", m.group(1))]
+    if len(nums) >= 6:
+        return nums[0], nums[1], nums[2], nums[3], nums[4], nums[5]
+    return 1.0, 0.0, 0.0, 1.0, 0.0, 0.0
+
+
+def _inner_a_outer(
+    xi: float,
+    yi: float,
+    a: float,
+    b: float,
+    c: float,
+    d: float,
+    e: float,
+    f: float,
+) -> tuple[float, float]:
+    return a * xi + c * yi + e, b * xi + d * yi + f
+
+
+def _detectar_export_area_ai(svg: str) -> list[float] | None:
+    """Recorta al área de etiqueta (clipPath M 0,H H W V 0) en coords del SVG raíz."""
+    m = re.search(r'd="M 0,([0-9.]+) H ([0-9.]+) V 0 H 0 Z"', svg)
+    if not m:
+        return None
+    inner_h = float(m.group(1))
+    inner_w = float(m.group(2))
+    gm = _RE_GRUPO_PLANTILLA.search(svg)
+    if not gm:
+        return None
+    a, b, c, d, e, f = _parse_matrix_transform(gm.group(0))
+    xs: list[float] = []
+    ys: list[float] = []
+    for xi, yi in ((0.0, 0.0), (inner_w, 0.0), (0.0, inner_h), (inner_w, inner_h)):
+        xo, yo = _inner_a_outer(xi, yi, a, b, c, d, e, f)
+        xs.append(xo)
+        ys.append(yo)
+    x0, x1 = min(xs), max(xs)
+    y0, y1 = min(ys), max(ys)
+    if x1 <= x0 or y1 <= y0:
+        return None
+    pad = 0.5
+    return [x0 - pad, y0 - pad, x1 + pad, y1 + pad]
+
+
+def _recortar_svg_etiqueta_ai(svg: str) -> tuple[str, list[float] | None]:
+    area = _detectar_export_area_ai(svg)
+    if not area:
+        return svg, None
+    from app.tools.etiquetas_svg_engine import _ajustar_viewbox_export
+
+    return _ajustar_viewbox_export(svg, {"export_area": area}), area
+
+
+def _encajar_svg_en_marco_formato(svg: str, ancho_mm: float, alto_mm: float) -> str:
+    """Centra el arte recortado dentro del marco del formato de impresión (mm)."""
+    m = re.search(r'viewBox="([^"]+)"', svg)
+    if not m:
+        return svg
+    parts = [float(x) for x in re.split(r"[\s,]+", m.group(1).strip()) if x]
+    if len(parts) != 4:
+        return svg
+    x0, y0, aw, ah = parts
+    if aw <= 0 or ah <= 0 or ancho_mm <= 0 or alto_mm <= 0:
+        return svg
+    scale = min(ancho_mm / aw, alto_mm / ah)
+    ox = (ancho_mm - aw * scale) / 2.0
+    oy = (alto_mm - ah * scale) / 2.0
+    open_m = re.search(r"(<svg[^>]*>)", svg, re.I | re.S)
+    if not open_m:
+        return svg
+    close_idx = svg.rfind("</svg>")
+    if close_idx < 0:
+        return svg
+    inner = svg[open_m.end() : close_idx]
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'viewBox="0 0 {ancho_mm:.4f} {alto_mm:.4f}" '
+        f'width="{ancho_mm:.4f}mm" height="{alto_mm:.4f}mm" '
+        f'preserveAspectRatio="xMidYMid meet">'
+        f'<g transform="translate({ox:.4f},{oy:.4f}) scale({scale:.6f}) '
+        f'translate({-x0:.4f},{-y0:.4f})">{inner}</g></svg>'
+    )
+
+
+def _dims_formato(
+    tipo: str,
+    ancho_mm: float | int | None = None,
+    alto_mm: float | int | None = None,
+) -> tuple[float, float]:
+    if ancho_mm and alto_mm:
+        try:
+            w, h = float(ancho_mm), float(alto_mm)
+            if w > 0 and h > 0:
+                return w, h
+        except (TypeError, ValueError):
+            pass
+    fb = _FORMATO_DIM_MM.get((tipo or "").strip(), (76, 66))
+    return float(fb[0]), float(fb[1])
+
+
+def _svg_preview_diagramacion(svg: str, datos: dict) -> str:
+    """SVG marcado con diagramación aplicada para vista canvas."""
+    out = _marcar_graficos_diagramacion_ai(svg)
+    out = _aplicar_diagramacion_ai(out, datos)
+    out = _aplicar_graficos_diagramacion_ai(out, datos)
+    return out
+
+
+def _norm_color_hex(val: str | None) -> str | None:
+    if not val:
+        return None
+    v = val.strip()
+    if re.match(r"^#[0-9A-Fa-f]{6}$", v):
+        return v.upper()
+    if re.match(r"^[0-9A-Fa-f]{6}$", v):
+        return f"#{v.upper()}"
+    return None
+
+
+def _cfg_desde_bloque_text(svg: str, marker: str) -> dict[str, Any] | None:
+    idx = svg.find(marker)
+    if idx < 0:
+        return None
+    start = svg.rfind("<text", 0, idx)
+    end = svg.find("</text>", idx)
+    if start < 0 or end < 0:
+        return None
+    tag_end = svg.find(">", start)
+    if tag_end < 0:
+        return None
+    tag = svg[start : tag_end + 1]
+    bloque = svg[start : end + len("</text>")]
+    campo_m = re.search(r'data-mckenna-campo="([^"]+)"', tag)
+    campo = campo_m.group(1) if campo_m else ""
+
+    cfg: dict[str, Any] = {}
+    m = re.search(r'transform="matrix\(([^)]+)\)"', tag)
+    if m:
+        nums = [float(n) for n in re.findall(r"[-+]?\d*\.?\d+", m.group(1))]
+        if len(nums) >= 6:
+            cfg["x"] = round(nums[4], 4)
+            cfg["y"] = round(nums[5], 4)
+
+    sm = re.search(r"fill:([^;'\"]+)", tag) or re.search(r'fill="([^"]+)"', tag)
+    if sm:
+        c = _norm_color_hex(sm.group(1).strip())
+        if c:
+            cfg["color"] = c
+
+    fs_m = re.search(r"font-size:([0-9.]+)px", bloque) or re.search(
+        r'font-size="([0-9.]+)px"', bloque
+    )
+    if fs_m:
+        fs = float(fs_m.group(1))
+        base = _ESCALA_BASE_CAMPO.get(campo, fs)
+        if base > 0:
+            cfg["escala"] = round(max(0.6, min(1.8, fs / base)), 3)
+
+    am = re.search(r'text-anchor="([^"]+)"', tag) or re.search(
+        r"text-anchor:([^;'\"]+)", tag
+    )
+    if am:
+        anchor_map = {"start": "left", "middle": "center", "end": "right"}
+        cfg["alineacion"] = anchor_map.get(am.group(1).strip(), "left")
+
+    return cfg or None
+
+
+def _extraer_diagramacion_desde_svg(svg: str) -> dict[str, Any]:
+    diagramacion: dict[str, Any] = {}
+    for m in re.finditer(r'data-mckenna-campo="([^"]+)"', svg):
+        campo = m.group(1)
+        if campo in diagramacion:
+            continue
+        cfg = _cfg_desde_bloque_text(svg, m.group(0))
+        if cfg:
+            diagramacion[campo] = cfg
+
+    b1 = diagramacion.get("b1")
+    if isinstance(b1, dict):
+        tx = float(b1.get("x") or 0)
+        sep_x = _detectar_separador_x_ai(svg)
+        if sep_x and tx:
+            from app.tools.etiquetas_svg_engine import _MARGEN_DER_B1_ANTES_SEP
+
+            util = sep_x - tx - _MARGEN_DER_B1_ANTES_SEP
+            inner_w = 215.0
+            b1["ancho_pct"] = round(max(50.0, min(100.0, util / inner_w * 100.0)), 1)
+
+    return diagramacion
+
+
+def _extraer_graficos_offsets(svg: str) -> dict[str, Any]:
+    return {gid: {"x": 0, "y": 0} for gid in re.findall(r'data-mckenna-grafico="(g\d+)"', svg)}
+
+
+def escanear_diagramacion_plantilla(
+    *,
+    archivo_ai: str | None = None,
+    tipo_etiqueta: str = "500 g",
+    ancho_mm: float | int | None = None,
+    alto_mm: float | int | None = None,
+) -> dict[str, Any]:
+    """
+    Lee posiciones y estilos de una plantilla .ai (modo canvas) para persistir diagramación por formato.
+  """
+    tipo = (tipo_etiqueta or "500 g").strip()
+    archivo = (archivo_ai or _REFERENCIA_AI_500G).strip()
+    path = _AI_DIR / archivo
+    if not path.is_file():
+        raise FileNotFoundError(f"Plantilla .ai no encontrada: {archivo}")
+
+    svg_raw = _ai_a_svg(path)
+    muestras = _detectar_muestras_ai(svg_raw)
+    svg = _marcar_campos_diagramacion_ai(svg_raw, muestras, {})
+
+    desc_lineas = muestras.get("_descripcion_lineas") or []
+    if desc_lineas and 'data-mckenna-campo="b1"' not in svg:
+        svg = _marcar_texto_campo_ai(svg, desc_lineas[0], "b1")
+
+    if 'data-mckenna-campo="legal"' not in svg:
+        m_legal = re.search(r"(Reenvase de materia prima[^<]{0,80})", svg, re.I)
+        if m_legal:
+            svg = _marcar_texto_campo_ai(svg, m_legal.group(1)[:40], "legal")
+
+    svg = _marcar_graficos_diagramacion_ai(svg)
+    diagramacion = _extraer_diagramacion_desde_svg(svg)
+    diagramacion_graficos = _extraer_graficos_offsets(svg)
+    w_mm, h_mm = _dims_formato(tipo, ancho_mm, alto_mm)
+    muestras_pub = {k: v for k, v in muestras.items() if not str(k).startswith("_")}
+
+    svg_crop, export_area = _recortar_svg_etiqueta_ai(svg)
+    datos_preview = {
+        "diagramacion": diagramacion,
+        "diagramacion_graficos": diagramacion_graficos,
+    }
+    svg_preview = _encajar_svg_en_marco_formato(
+        _svg_preview_diagramacion(svg_crop, datos_preview),
+        w_mm,
+        h_mm,
+    )
+
+    return {
+        "ok": True,
+        "archivo_ai": archivo,
+        "tipo_etiqueta": tipo,
+        "ancho_mm": w_mm,
+        "alto_mm": h_mm,
+        "diagramacion": diagramacion,
+        "diagramacion_graficos": diagramacion_graficos,
+        "muestras": muestras_pub,
+        "campos_detectados": sorted(diagramacion.keys()),
+        "graficos_detectados": sorted(diagramacion_graficos.keys()),
+        "export_area": export_area,
+        "svg": svg_preview,
+    }
+
+
+def preview_diagramacion_plantilla(
+    *,
+    archivo_ai: str,
+    tipo_etiqueta: str = "500 g",
+    diagramacion: dict | None = None,
+    diagramacion_graficos: dict | None = None,
+    muestras: dict | None = None,
+    export_area: list[float] | None = None,
+    ancho_mm: float | int | None = None,
+    alto_mm: float | int | None = None,
+) -> dict[str, Any]:
+    """Regenera SVG recortado con diagramación guardada (vista canvas)."""
+    archivo = (archivo_ai or _REFERENCIA_AI_500G).strip()
+    path = _AI_DIR / archivo
+    if not path.is_file():
+        raise FileNotFoundError(f"Plantilla .ai no encontrada: {archivo}")
+
+    tipo = (tipo_etiqueta or "500 g").strip()
+    w_mm, h_mm = _dims_formato(tipo, ancho_mm, alto_mm)
+    muestras_eff = muestras if isinstance(muestras, dict) else {}
+
+    svg_raw = _ai_a_svg(path)
+    if not muestras_eff:
+        muestras_eff = {k: v for k, v in _detectar_muestras_ai(svg_raw).items() if not str(k).startswith("_")}
+
+    svg = _marcar_campos_diagramacion_ai(svg_raw, muestras_eff, {})
+    desc_lineas = _detectar_muestras_ai(svg_raw).get("_descripcion_lineas") or []
+    if desc_lineas and 'data-mckenna-campo="b1"' not in svg:
+        svg = _marcar_texto_campo_ai(svg, desc_lineas[0], "b1")
+    if 'data-mckenna-campo="legal"' not in svg:
+        m_legal = re.search(r"(Reenvase de materia prima[^<]{0,80})", svg, re.I)
+        if m_legal:
+            svg = _marcar_texto_campo_ai(svg, m_legal.group(1)[:40], "legal")
+
+    svg = _marcar_graficos_diagramacion_ai(svg)
+    from app.tools.etiquetas_svg_engine import _ajustar_viewbox_export
+
+    if isinstance(export_area, list) and len(export_area) == 4:
+        svg_crop = _ajustar_viewbox_export(svg, {"export_area": export_area})
+        area_out = export_area
+    else:
+        svg_crop, area_out = _recortar_svg_etiqueta_ai(svg)
+    datos_preview = {
+        "diagramacion": diagramacion or {},
+        "diagramacion_graficos": diagramacion_graficos or {},
+    }
+    svg_preview = _encajar_svg_en_marco_formato(
+        _svg_preview_diagramacion(svg_crop, datos_preview),
+        w_mm,
+        h_mm,
+    )
+
+    return {
+        "ok": True,
+        "archivo_ai": archivo,
+        "tipo_etiqueta": tipo,
+        "ancho_mm": w_mm,
+        "alto_mm": h_mm,
+        "export_area": area_out,
+        "svg": svg_preview,
+    }
