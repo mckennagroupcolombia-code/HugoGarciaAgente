@@ -1850,8 +1850,40 @@ def _insertar_attr_grafico(tag: str, gid: str) -> str:
     return tag + ins
 
 
+def _es_trazo_punteado(tag: str) -> bool:
+    """Detecta líneas/recuadros guía con trazo punteado que no deben diagramarse."""
+    low = tag.lower()
+    if "stroke-dasharray" in low:
+        # Excluimos cualquier dasharray distinto de "none"/vacío.
+        m = re.search(r"stroke-dasharray\s*:\s*([^;'\"]+)", low)
+        if m:
+            val = m.group(1).strip()
+            if val and val not in ("none", "0", "0,0"):
+                return True
+        m2 = re.search(r'stroke-dasharray\s*=\s*"([^"]+)"', low)
+        if m2:
+            val = m2.group(1).strip()
+            if val and val not in ("none", "0", "0,0"):
+                return True
+    return False
+
+
+def _ocultar_trazos_punteados_svg(svg: str) -> str:
+    """Elimina elementos con stroke-dasharray para no mostrarlos en el escáner."""
+    def _keep_or_drop(m: re.Match[str]) -> str:
+        tag = m.group(0)
+        return "" if _es_trazo_punteado(tag) else tag
+
+    out = re.sub(r"<path\b[^>]*(?:/>|>)", _keep_or_drop, svg, flags=re.I)
+    out = re.sub(r"<line\s[^>]*/?>", _keep_or_drop, out, flags=re.I)
+    out = re.sub(r"<rect\s[^>]*/?>", _keep_or_drop, out, flags=re.I)
+    return out
+
+
 def _es_grafico_arrastrable(tag: str) -> bool:
     if "data-mckenna-grafico=" in tag or "data-mckenna-campo=" in tag:
+        return False
+    if _es_trazo_punteado(tag):
         return False
     if re.search(
         r'id=["\']([^"\']*(?:mckenna-b1-guia|barcode|codigo.?barras))',
@@ -2837,6 +2869,7 @@ def _svg_preview_diagramacion(
     """SVG marcado con diagramación aplicada para vista canvas."""
     if solo_lineas and vista_completa:
         out = svg if "data-mckenna-grafico=" in svg else _marcar_lineas_diagramacion_ai(svg)
+        out = _ocultar_trazos_punteados_svg(out)
         out = _aplicar_graficos_diagramacion_ai(out, datos)
         return out
     out = _marcar_lineas_diagramacion_ai(svg) if solo_lineas else _marcar_graficos_diagramacion_ai(svg)
