@@ -249,7 +249,7 @@ export function EtiquetaDiagramacionWorkspace({
   } | null>(null);
   const resizeRef = useRef<{
     handle: ResizeHandle;
-    id: CampoDiagramacionId;
+    id: string;
     startX: number;
     startY: number;
     startW: number;
@@ -463,7 +463,7 @@ export function EtiquetaDiagramacionWorkspace({
     };
   }, [diagramacion, onPatchDiagramacion, onPatchDatos]);
 
-type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" };
+type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
 
   const seleccionado = useMemo((): CampoMedidoTexto | null => {
     const c = campos.find((c) => c.id === seleccion && c.presente);
@@ -475,10 +475,7 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
     return c ?? null;
   }, [campos, seleccion]);
 
-  const cfgSel =
-    seleccion && !esIdGrafico(seleccion)
-      ? diagramacion?.[seleccion as CampoDiagramacionId]
-      : undefined;
+  const cfgSel = seleccion && !esIdGrafico(seleccion) ? diagramacion?.[seleccion] : undefined;
   const editorTexto =
     seleccion && !esIdGrafico(seleccion) ? editorTextoCampo(seleccion) : undefined;
   const escalaSel =
@@ -486,7 +483,7 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
       ? escalaEfectiva(diagramacion, seleccion as CampoDiagramacionId)
       : 1;
 
-  const edicionInlineActiva = Boolean(panelExterno && onPatchDatos && !soloLineas);
+  const edicionInlineActiva = Boolean(panelExterno && onPatchDatos);
 
   const abrirEdicionTexto = useCallback(
     (campoId: string) => {
@@ -519,12 +516,59 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
     eliminarCampoTexto(seleccion);
   }, [seleccion, eliminarCampoTexto]);
 
+  const anadirCajaTexto = useCallback(() => {
+    if (!onPatchDatos) return;
+    const existentes = new Set(Object.keys(diagramacion ?? {}));
+    let n = 1;
+    while (existentes.has(`txt_${n}`)) n += 1;
+    const id = `txt_${n}`;
+    onPatchDiagramacion(
+      patchDiagramacion(diagramacion, id, {
+        x: 20,
+        y: 40,
+        color: "#111111",
+        escala: 1,
+        alineacion: "left",
+      }),
+    );
+    onPatchDatos({
+      textos_campo: {
+        ...(datos.textos_campo ?? {}),
+        [id]: "Nuevo texto",
+      },
+    });
+    setSeleccion(id);
+    setTextoEditando(id);
+  }, [diagramacion, datos.textos_campo, onPatchDatos, onPatchDiagramacion]);
+
+  const escrituraMagica = useCallback(() => {
+    if (!seleccion || esIdGrafico(seleccion) || !onPatchDatos) return;
+    const editor = editorTextoCampo(seleccion);
+    if (!editor) return;
+    const raw = editor.getTexto(datos);
+    const lineas = raw
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const normalizadas = lineas.map((l) => l.replace(/^[-•*]\s*/, "• "));
+    const next = normalizadas.join("\n");
+    onPatchDatos(editor.patchTexto(next, datos));
+    onPatchDiagramacion(
+      patchDiagramacion(diagramacion, seleccion, {
+        mayusculas: false,
+        listado: true,
+        interlineado: cfgSel?.interlineado ?? 1.15,
+        interletrado: cfgSel?.interletrado ?? 0.1,
+      }),
+    );
+  }, [seleccion, onPatchDatos, datos, onPatchDiagramacion, diagramacion, cfgSel?.interlineado, cfgSel?.interletrado]);
+
   useEffect(() => {
     setTextoEditando(null);
   }, [svgKey]);
 
   useEffect(() => {
-    if (!panelExterno || soloLineas || !seleccion || esIdGrafico(seleccion)) return;
+    if (!panelExterno || !seleccion || esIdGrafico(seleccion)) return;
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key !== "Delete" && ev.key !== "Backspace") return;
       if (textoEditando) return;
@@ -569,6 +613,29 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
           </li>
         );
       })}
+      {campos
+        .filter((c) => c.kind === "texto" && c.id.startsWith("txt_") && c.presente)
+        .map((c) => {
+          const activo = seleccion === c.id;
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => setSeleccion(c.id)}
+                className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-left transition ${
+                  activo
+                    ? "bg-accent/15 font-semibold text-accent"
+                    : "hover:bg-surface-hover text-ink"
+                }`}
+              >
+                <span className="truncate">{labelCampoDiagramacion(c.id)}</span>
+                {variant === "sidebar" ? (
+                  <span className="text-[9px] text-muted">Texto libre</span>
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
     </ul>
   );
 
@@ -700,7 +767,7 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
                 />
               );
             })}
-          {seleccionado && panelExterno && !soloLineas && (() => {
+          {seleccionado && panelExterno && (() => {
             const svgEl = containerRef.current?.querySelector("svg") ?? null;
             const pos = overlayPosicionCampo(seleccionado, svgEl, diagramacion, diagramacionGraficos);
             return (
@@ -900,13 +967,15 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
       <div className="flex h-full min-h-[min(72vh,900px)] flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <EtiquetaTextoToolbar
-            campoId={seleccion && !esIdGrafico(seleccion) ? (seleccion as CampoDiagramacionId) : null}
+            campoId={seleccion && !esIdGrafico(seleccion) ? seleccion : null}
             cfg={cfgSel}
             colorFallback={seleccionado?.color ?? "#000000"}
             escala={escalaSel}
             b1AnchoPct={seleccion === "b1" ? b1Pct : undefined}
             tx={cfgSel?.x ?? seleccionado?.tx ?? graficoSel?.tx ?? 0}
             ty={cfgSel?.y ?? seleccionado?.ty ?? graficoSel?.ty ?? 0}
+            onAnadirCajaTexto={panelExterno ? anadirCajaTexto : undefined}
+            onEscrituraMagica={panelExterno ? escrituraMagica : undefined}
             onPatch={(p) => {
               if (!seleccion) return;
               if (esIdGrafico(seleccion)) {
@@ -918,7 +987,7 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
                 );
                 return;
               }
-              onPatchDiagramacion(patchCampoToolbar(diagramacion, seleccion as CampoDiagramacionId, p));
+              onPatchDiagramacion(patchCampoToolbar(diagramacion, seleccion, p));
               if (p.ancho_pct != null) onPatchDatos?.({ b1_ancho_pct: p.ancho_pct });
             }}
           />

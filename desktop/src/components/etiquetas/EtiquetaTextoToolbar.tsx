@@ -1,8 +1,8 @@
-import type { CampoDiagramacion, CampoDiagramacionId, DiagramacionEtiqueta } from "../../lib/etiquetasDiagramacion";
+import type { CampoDiagramacion, DiagramacionEtiqueta } from "../../lib/etiquetasDiagramacion";
 import { ALINEACIONES_TEXTO, FUENTE_ETIQUETA, labelCampoDiagramacion, patchDiagramacion } from "../../lib/etiquetasDiagramacion";
 
 interface Props {
-  campoId: CampoDiagramacionId | null;
+  campoId: string | null;
   campoLabel?: string;
   cfg?: CampoDiagramacion;
   colorFallback: string;
@@ -11,6 +11,8 @@ interface Props {
   tx: number;
   ty: number;
   onPatch: (patch: CampoDiagramacion) => void;
+  onAnadirCajaTexto?: () => void;
+  onEscrituraMagica?: () => void;
   compact?: boolean;
   /** Solo controles X/Y (líneas y recuadros). */
   soloPosicion?: boolean;
@@ -35,6 +37,8 @@ export function EtiquetaTextoToolbar({
   tx,
   ty,
   onPatch,
+  onAnadirCajaTexto,
+  onEscrituraMagica,
   compact = false,
   soloPosicion = false,
 }: Props) {
@@ -42,7 +46,8 @@ export function EtiquetaTextoToolbar({
   const color = (cfg?.color ?? colorFallback).match(/^#[0-9A-Fa-f]{6}$/)
     ? (cfg?.color ?? colorFallback)
     : "#000000";
-  const alineacion = cfg?.alineacion ?? (campoId === "b1" ? "justify" : "left");
+  const esB1 = campoId === "b1" || campoId?.startsWith("b1_");
+  const alineacion = cfg?.alineacion ?? (esB1 ? "justify" : "left");
 
   return (
     <div
@@ -60,6 +65,29 @@ export function EtiquetaTextoToolbar({
 
       {!soloPosicion && (
         <>
+      <div className="flex items-center gap-1">
+        {onAnadirCajaTexto && (
+          <button
+            type="button"
+            onClick={onAnadirCajaTexto}
+            className="rounded border border-border px-2 py-0.5 text-[10px] font-semibold text-ink hover:bg-surface-hover"
+            title="Crear caja de texto libre"
+          >
+            + Caja de texto
+          </button>
+        )}
+        {onEscrituraMagica && (
+          <button
+            type="button"
+            onClick={onEscrituraMagica}
+            className="rounded border border-border px-2 py-0.5 text-[10px] font-semibold text-ink hover:bg-surface-hover"
+            title="Aplicar formato inteligente al texto seleccionado"
+          >
+            Escritura magica
+          </button>
+        )}
+      </div>
+
       <span className="hidden h-5 w-px bg-border sm:block" aria-hidden />
 
       <div className="flex items-center gap-0.5" title="Alineación">
@@ -109,7 +137,63 @@ export function EtiquetaTextoToolbar({
         <span className="w-8 font-mono text-[9px]">{(cfg?.escala ?? escala).toFixed(2)}</span>
       </label>
 
-      {campoId === "b1" && b1AnchoPct != null && (
+      <label className="flex items-center gap-1 text-[10px]" title="Interlineado">
+        <span className="text-muted">Interlineado</span>
+        <input
+          type="number"
+          min={0.6}
+          max={2.2}
+          step={0.05}
+          disabled={disabled}
+          value={cfg?.interlineado ?? 1}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value);
+            if (Number.isFinite(v)) onPatch({ interlineado: Math.max(0.6, Math.min(2.2, v)) });
+          }}
+          className="w-14 rounded border border-border bg-white px-1 py-0.5 font-mono text-[10px]"
+        />
+      </label>
+
+      <label className="flex items-center gap-1 text-[10px]" title="Interletrado">
+        <span className="text-muted">Interletrado</span>
+        <input
+          type="number"
+          min={-1.5}
+          max={8}
+          step={0.1}
+          disabled={disabled}
+          value={cfg?.interletrado ?? 0}
+          onChange={(e) => {
+            const v = parseFloat(e.target.value);
+            if (Number.isFinite(v)) onPatch({ interletrado: Math.max(-1.5, Math.min(8, v)) });
+          }}
+          className="w-14 rounded border border-border bg-white px-1 py-0.5 font-mono text-[10px]"
+        />
+      </label>
+
+      <label className="flex items-center gap-1 text-[10px]" title="Mayúsculas">
+        <input
+          type="checkbox"
+          disabled={disabled}
+          checked={Boolean(cfg?.mayusculas)}
+          onChange={(e) => onPatch({ mayusculas: e.target.checked })}
+        />
+        <span className="text-muted">MAYUS</span>
+      </label>
+
+      <label className="flex items-center gap-1 text-[10px]" title="Lista con viñetas">
+        <input
+          type="checkbox"
+          disabled={disabled}
+          checked={Boolean(cfg?.listado)}
+          onChange={(e) => onPatch({ listado: e.target.checked })}
+        />
+        <span className="text-muted">Listado</span>
+      </label>
+
+      <span className="text-[9px] text-muted">Fuente: Montserrat</span>
+
+      {esB1 && b1AnchoPct != null && (
         <label className="flex items-center gap-1 text-[10px]" title="Ancho columna B1">
           <span className="text-muted">Ancho</span>
           <input
@@ -172,7 +256,7 @@ export function EtiquetaTextoToolbar({
 
 export function patchCampoToolbar(
   diagramacion: DiagramacionEtiqueta | undefined,
-  campoId: CampoDiagramacionId,
+  campoId: string,
   patch: CampoDiagramacion,
 ): DiagramacionEtiqueta {
   return patchDiagramacion(diagramacion, campoId, patch);
