@@ -187,7 +187,8 @@ export function CatalogoDiagramacionScanner({
     setDiagramacion(g.diagramacion ?? {});
     setDiagramacionGraficos(g.diagramacion_graficos ?? {});
     setDatosExtra(datosDesdeMuestras(g.muestras ?? {}));
-    setSvgMarkup(g.svg?.trim() ? g.svg : null);
+    // En Plantillas (solo_lineas), forzamos preview live para evitar SVG cacheado obsoleto.
+    setSvgMarkup(g.solo_lineas ? null : (g.svg?.trim() ? g.svg : null));
     setDirty(false);
   }, []);
 
