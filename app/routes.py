@@ -11641,7 +11641,17 @@ def register_routes(app):
         limite = min(int(request.args.get("limite") or 10_000), 10_000)
         incluir_catalogo = request.args.get("incluir_catalogo", "").lower() in ("1", "true", "yes")
         relacionar = request.args.get("relacionar", "").lower() in ("1", "true", "yes")
+        solo_titulo_plantilla = request.args.get("solo_titulo_plantilla", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
         fuente = (request.args.get("fuente") or "").strip().lower()
+        plantillas_svg_sync = None
+        if solo_titulo_plantilla:
+            from app.tools.etiquetas_svg_engine import sincronizar_plantillas_svg_titulo_desde_disco
+
+            plantillas_svg_sync = sincronizar_plantillas_svg_titulo_desde_disco()
         plantillas_ai = listar_plantillas_ai(limite=limite, q=q)
         plantillas_pdf = listar_plantillas_pdf(limite=limite, q=q)
         vinculos_ai: dict[str, dict[str, str]] = {}
@@ -11663,6 +11673,7 @@ def register_routes(app):
             limite=limite,
             q=q,
             vinculos_ai=vinculos_ai,
+            solo_titulo_plantilla=solo_titulo_plantilla,
         )
         if incluir_catalogo:
             for p in plantillas_relacionadas:
@@ -11685,6 +11696,8 @@ def register_routes(app):
             "total_pdf": len(plantillas_pdf),
             "total_relacionadas": len(plantillas_relacionadas),
         }
+        if plantillas_svg_sync is not None:
+            payload["plantillas_svg_sync"] = plantillas_svg_sync
         if relacionar or fuente == "relacionadas":
             payload["plantillas_modelo"] = plantillas_relacionadas
             payload["total_modelo"] = len(plantillas_relacionadas)

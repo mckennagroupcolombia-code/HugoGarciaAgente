@@ -58,6 +58,39 @@ def listar_plantillas_svg() -> list[dict[str, Any]]:
     return out
 
 
+def sincronizar_plantillas_svg_titulo_desde_disco() -> dict[str, Any]:
+    """Relaciona archivos titulados «plantilla» en disco → etiquetas_svg_plantillas.json."""
+    from app.tools.etiquetas_ai_engine import (
+        _archivos_titulo_plantilla,
+        _dims_desde_stem_plantilla,
+        _es_titulo_plantilla,
+    )
+
+    plantillas = _load_plantillas()
+    agregados = 0
+    for path in _archivos_titulo_plantilla():
+        if path.suffix.lower() != ".svg" or not _es_titulo_plantilla(path.name):
+            continue
+        w_mm, h_mm = _dims_desde_stem_plantilla(path.stem)
+        if w_mm and h_mm:
+            key = f"{int(w_mm)} x {int(h_mm)} mm"
+        else:
+            key = path.stem.strip()
+        spec = {
+            "archivo": path.name,
+            "ancho_mm": w_mm or 76,
+            "alto_mm": h_mm or 66,
+        }
+        if plantillas.get(key) != spec:
+            plantillas[key] = spec
+            agregados += 1
+    if agregados:
+        _PLANTILLAS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(_PLANTILLAS_PATH, "w", encoding="utf-8") as f:
+            json.dump(plantillas, f, ensure_ascii=False, indent=2)
+    return {"plantillas": plantillas, "agregados": agregados, "total": len(plantillas)}
+
+
 def _spec_para_tipo(tipo: str) -> dict | None:
     tipo = (tipo or "").strip()
     plantillas = _load_plantillas()

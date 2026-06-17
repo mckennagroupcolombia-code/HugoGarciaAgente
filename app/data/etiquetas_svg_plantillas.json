@@ -1,1 +1,12 @@
-{}
+{
+  "76 x 66 mm": {
+    "archivo": "PLANTILLA  76 * 66.svg",
+    "ancho_mm": 76.0,
+    "alto_mm": 66.0
+  },
+  "plantilla 1": {
+    "archivo": "plantilla 1.svg",
+    "ancho_mm": 76,
+    "alto_mm": 66
+  }
+}

@@ -524,8 +524,41 @@ def _archivo_plantilla_id(path: Path) -> str:
         return path.name
 
 
+_RE_TITULO_PLANTILLA = re.compile(r"plantilla", re.I)
+
+
+def _es_titulo_plantilla(nombre: str) -> bool:
+    """True si el nombre del archivo contiene «plantilla» (p. ej. PLANTILLA 76*66.svg)."""
+    return bool(_RE_TITULO_PLANTILLA.search(Path(nombre).stem))
+
+
+def _dims_desde_stem_plantilla(stem: str) -> tuple[float | None, float | None]:
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*[*x×X]\s*(\d+(?:[.,]\d+)?)", stem or "")
+    if not m:
+        return None, None
+    return float(m.group(1).replace(",", ".")), float(m.group(2).replace(",", "."))
+
+
+@lru_cache(maxsize=1)
+def _archivos_titulo_plantilla() -> list[Path]:
+    paths: list[Path] = []
+    if _AI_DIR.is_dir():
+        for path in sorted(_AI_DIR.iterdir()):
+            if (
+                path.is_file()
+                and path.suffix.lower() in {".svg", ".ai"}
+                and _es_titulo_plantilla(path.name)
+            ):
+                paths.append(path)
+    if _PDF_DIR.is_dir():
+        for path in sorted(_PDF_DIR.glob("*.pdf")):
+            if _es_titulo_plantilla(path.name):
+                paths.append(path)
+    return paths
+
+
 def resolver_ruta_plantilla(archivo: str) -> Path:
-    """Resuelve .ai en raíz o .pdf en PDF/ (acepta «PDF/foo.pdf» o solo nombre)."""
+    """Resuelve .svg/.ai en raíz o .pdf en PDF/ (acepta «PDF/foo.pdf» o solo nombre)."""
     explicito = (archivo or "").strip()
     if not explicito:
         raise FileNotFoundError("Archivo de plantilla vacío")
@@ -537,6 +570,9 @@ def resolver_ruta_plantilla(archivo: str) -> Path:
         _AI_DIR / nombre,
     ]
     low = explicito.lower()
+    if not low.endswith(".svg"):
+        candidatos.append(_AI_DIR / f"{explicito}.svg")
+        candidatos.append(_AI_DIR / f"{nombre}.svg")
     if not low.endswith(".ai"):
         candidatos.append(_AI_DIR / f"{explicito}.ai")
         candidatos.append(_AI_DIR / f"{nombre}.ai")
@@ -822,13 +858,57 @@ def _filas_relacion_ai_pdf() -> list[dict[str, Any]]:
     return out
 
 
+def _listar_solo_titulo_plantilla(limite: int = 10_000, *, q: str = "") -> list[dict[str, Any]]:
+    """Solo archivos de Etiquetas Modelo SVG cuyo nombre contiene «plantilla»."""
+    ql = (q or "").strip().lower()
+    out: list[dict[str, Any]] = []
+    for path in _archivos_titulo_plantilla():
+        stem = path.stem.strip()
+        ext = path.suffix.lower()
+        w_mm, h_mm = _dims_desde_stem_plantilla(stem)
+        fmt = f"{int(w_mm)} x {int(h_mm)} mm" if w_mm and h_mm else ""
+        if ext == ".pdf":
+            archivo = _archivo_plantilla_id(path)
+        else:
+            archivo = path.name
+        if ql and ql not in stem.lower() and ql not in archivo.lower() and ql not in fmt.lower():
+            continue
+        try:
+            nbytes = path.stat().st_size
+        except OSError:
+            nbytes = 0
+        out.append({
+            "archivo": archivo,
+            "archivo_ai": path.name if ext == ".ai" else None,
+            "archivo_pdf": _archivo_plantilla_id(path) if ext == ".pdf" else None,
+            "archivo_svg": path.name if ext == ".svg" else None,
+            "nombre": stem,
+            "formato": fmt,
+            "ancho_mm": w_mm,
+            "alto_mm": h_mm,
+            "ruta": str(path),
+            "bytes": nbytes,
+            "disponible": True,
+            "tiene_ai": ext == ".ai",
+            "tiene_pdf": ext == ".pdf",
+            "tiene_svg": ext == ".svg",
+            "es_plantilla_base": True,
+        })
+        if len(out) >= limite:
+            break
+    return out
+
+
 def listar_plantillas_modelo_relacionadas(
     limite: int = 10_000,
     *,
     q: str = "",
     vinculos_ai: dict[str, dict[str, str]] | None = None,
+    solo_titulo_plantilla: bool = False,
 ) -> list[dict[str, Any]]:
     """Lista unificada .ai + PDF de Etiquetas Modelo SVG con archivo de escaneo preferido."""
+    if solo_titulo_plantilla:
+        return _listar_solo_titulo_plantilla(limite=limite, q=q)
     ql = (q or "").strip().lower()
     vinculos = vinculos_ai or {}
     out: list[dict[str, Any]] = []
@@ -837,7 +917,8 @@ def listar_plantillas_modelo_relacionadas(
         pdf_path: Path | None = rel.get("pdf")
         archivo_ai = ai_path.name if ai_path else None
         archivo_pdf = _archivo_plantilla_id(pdf_path) if pdf_path else None
-        archivo_escaneo = archivo_pdf or archivo_ai
+        # En modo relacionado priorizamos .ai (SVG original) y usamos PDF como respaldo.
+        archivo_escaneo = archivo_ai or archivo_pdf
         if not archivo_escaneo:
             continue
         nom = str(rel.get("nombre") or "")
@@ -883,6 +964,12 @@ def _cache_path(ai_path: Path) -> Path:
     h = hashlib.sha256(key.encode()).hexdigest()[:14]
     safe = re.sub(r"[^\w.\-]+", "_", ai_path.stem)[:48]
     return _CACHE_DIR / f"{safe}_{h}.svg"
+
+
+def _plantilla_a_svg(path: Path) -> str:
+    if path.suffix.lower() == ".svg":
+        return path.read_text(encoding="utf-8")
+    return _ai_a_svg(path)
 
 
 def _ai_a_svg(ai_path: Path) -> str:
@@ -2737,7 +2824,7 @@ def _dims_formato(
 
 def _es_plantilla_pdf(archivo: str) -> bool:
     a = (archivo or "").strip().lower()
-    return a.endswith(".pdf") or a.startswith("pdf/")
+    return a.endswith(".pdf") or a.startswith("pdf/") or a.endswith(".svg")
 
 
 def _svg_preview_diagramacion(
@@ -2953,7 +3040,7 @@ def escanear_diagramacion_plantilla(
     archivo_id = _archivo_plantilla_id(path)
     vista_pdf = _es_plantilla_pdf(archivo_id) if vista_completa is None else bool(vista_completa)
 
-    svg_raw = _ai_a_svg(path)
+    svg_raw = _plantilla_a_svg(path)
     if solo_lineas and vista_pdf:
         svg = _marcar_lineas_diagramacion_ai(svg_raw)
         muestras: dict[str, Any] = {}
@@ -3034,7 +3121,7 @@ def preview_diagramacion_plantilla(
     w_mm, h_mm = _dims_formato(tipo, ancho_mm, alto_mm)
     muestras_eff = muestras if isinstance(muestras, dict) else {}
 
-    svg_raw = _ai_a_svg(path)
+    svg_raw = _plantilla_a_svg(path)
     if solo_lineas and vista_pdf:
         svg = _marcar_lineas_diagramacion_ai(svg_raw)
     else:

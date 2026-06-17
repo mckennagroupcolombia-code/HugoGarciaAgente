@@ -76,6 +76,11 @@ const ZOOM_LIENZO_DEFAULT = 140;
 /** Plantillas: diagramación solo de líneas divisorias (no textos editables). */
 const SOLO_LINEAS_PLANTILLAS = true;
 
+function esPlantillaSvg(archivo?: string): boolean {
+  const a = (archivo || "").trim().toLowerCase();
+  return a.endsWith(".svg");
+}
+
 function esPlantillaPdf(archivo?: string): boolean {
   const a = (archivo || "").trim().toLowerCase();
   return a.endsWith(".pdf") || a.startsWith("pdf/");
@@ -137,7 +142,7 @@ export function CatalogoDiagramacionScanner({
   const autoScanHechoRef = useRef<string | null>(null);
 
   const tipoFormato = formato?.nombre ?? "";
-  const vistaCompletaEfectiva = vistaCompleta ?? esPlantillaPdf(target?.archivo_ai);
+  const vistaCompletaEfectiva = vistaCompleta ?? (esPlantillaPdf(target?.archivo_ai) || esPlantillaSvg(target?.archivo_ai));
 
   const { data: guardada, isFetching: cargandoGuardada } = useQuery({
     queryKey: ["diagramacion-formato", tipoFormato, target?.archivo_ai],
@@ -215,7 +220,7 @@ export function CatalogoDiagramacionScanner({
         ancho_mm: tgt.ancho_mm,
         alto_mm: tgt.alto_mm,
         solo_lineas: SOLO_LINEAS_PLANTILLAS,
-        vista_completa: vistaCompleta ?? esPlantillaPdf(tgt.archivo_ai),
+        vista_completa: vistaCompleta ?? (esPlantillaPdf(tgt.archivo_ai) || esPlantillaSvg(tgt.archivo_ai)),
         guardar: false,
       }, { timeoutMs: 120_000 }),
     onSuccess: (res, tgt) => {
