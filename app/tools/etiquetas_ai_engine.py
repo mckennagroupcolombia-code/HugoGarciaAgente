@@ -1880,6 +1880,33 @@ def _ocultar_trazos_punteados_svg(svg: str) -> str:
     return out
 
 
+_GRAFICOS_EXCLUIDOS = {"g1", "g2", "g3"}
+
+
+def _quitar_graficos_excluidos_svg(svg: str) -> str:
+    """Elimina por completo los gráficos excluidos del lienzo/preview."""
+    if not _GRAFICOS_EXCLUIDOS:
+        return svg
+
+    def _drop_if_excluded(m: re.Match[str]) -> str:
+        tag = m.group(0)
+        gid_m = re.search(r'data-mckenna-grafico="(g\d+)"', tag)
+        if gid_m and gid_m.group(1) in _GRAFICOS_EXCLUIDOS:
+            return ""
+        return tag
+
+    out = re.sub(r"<path\b[^>]*(?:/>|>)", _drop_if_excluded, svg, flags=re.I)
+    out = re.sub(r"<line\s[^>]*/?>", _drop_if_excluded, out, flags=re.I)
+    out = re.sub(r"<rect\s[^>]*/?>", _drop_if_excluded, out, flags=re.I)
+    out = re.sub(
+        r'<g\b[^>]*>\s*(?:<path\b[^>]*data-mckenna-grafico="(?:g1|g2|g3)"[^>]*(?:/>|>)\s*)</g>',
+        "",
+        out,
+        flags=re.I,
+    )
+    return out
+
+
 def _es_grafico_arrastrable(tag: str) -> bool:
     if "data-mckenna-grafico=" in tag or "data-mckenna-campo=" in tag:
         return False
@@ -2008,6 +2035,8 @@ def _aplicar_graficos_diagramacion_ai(svg: str, datos: dict) -> str:
         return svg
     out = svg
     for gid, cfg in graficos.items():
+        if gid in _GRAFICOS_EXCLUIDOS:
+            continue
         if not isinstance(cfg, dict):
             continue
         try:
@@ -2870,15 +2899,18 @@ def _svg_preview_diagramacion(
     if solo_lineas and vista_completa:
         out = svg if "data-mckenna-grafico=" in svg else _marcar_lineas_diagramacion_ai(svg)
         out = _ocultar_trazos_punteados_svg(out)
+        out = _quitar_graficos_excluidos_svg(out)
         out = _aplicar_graficos_diagramacion_ai(out, datos)
         return out
     out = _marcar_lineas_diagramacion_ai(svg) if solo_lineas else _marcar_graficos_diagramacion_ai(svg)
     if solo_lineas:
         out = _ocultar_textos_svg_diagramacion(out)
+        out = _quitar_graficos_excluidos_svg(out)
     out = _aplicar_diagramacion_ai(out, datos)
     out = _aplicar_graficos_diagramacion_ai(out, datos)
     if solo_lineas:
         out = _lienzo_solo_lineas_svg(out)
+        out = _quitar_graficos_excluidos_svg(out)
     return out
 
 
@@ -3050,7 +3082,11 @@ def _preparar_svg_diagramacion_plantilla(
 
 
 def _extraer_graficos_offsets(svg: str) -> dict[str, Any]:
-    return {gid: {"x": 0, "y": 0} for gid in re.findall(r'data-mckenna-grafico="(g\d+)"', svg)}
+    return {
+        gid: {"x": 0, "y": 0}
+        for gid in re.findall(r'data-mckenna-grafico="(g\d+)"', svg)
+        if gid not in _GRAFICOS_EXCLUIDOS
+    }
 
 
 def escanear_diagramacion_plantilla(
