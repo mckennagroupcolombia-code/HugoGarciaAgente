@@ -182,6 +182,81 @@ def generar_pdf_temporal_para_impresion(datos: dict) -> tuple[str, dict]:
     return pdf_path, meta
 
 
+def mapa_sku_por_archivo_ai() -> dict[str, dict[str, str]]:
+    """Archivo .ai en Etiquetas Modelo SVG → SKU/nombre Siigo (catálogo Studio)."""
+    from app.services.siigo import listar_productos_combo_siigo
+    from app.tools.etiquetas_ai_engine import resolver_plantilla_ai
+
+    out: dict[str, dict[str, str]] = {}
+    for c in listar_productos_combo_siigo():
+        code = (c.get("code") or "").strip()
+        name = (c.get("name") or "").strip()
+        if not code:
+            continue
+        studio = obtener_studio_sku(code) or {}
+        forzar_svg = studio.get("forzar_plantilla_svg") in (True, 1, "1", "true")
+        if forzar_svg:
+            continue
+        datos_resolucion = {
+            "sku": code,
+            "nombre_producto": studio.get("nombre_producto") or name,
+            "ingrediente": studio.get("ingrediente") or name,
+            "contenido_neto": studio.get("contenido_neto") or "",
+            "unidad": studio.get("unidad") or "",
+            "tipo_etiqueta": studio.get("tipo_etiqueta") or "",
+            "archivo_ai": studio.get("archivo_ai") or "",
+            "forzar_plantilla_svg": forzar_svg,
+        }
+        archivo = (studio.get("archivo_ai") or resolver_plantilla_ai(datos_resolucion, limite=1).get("archivo_ai") or "").strip()
+        if not archivo:
+            continue
+        prev = out.get(archivo)
+        if not prev or len(code) < len(prev.get("sku") or ""):
+            out[archivo] = {"sku": code, "nombre": name}
+    return out
+
+
+def mapa_sku_por_archivo_pdf() -> dict[str, dict[str, str]]:
+    """PDF en Etiquetas Modelo SVG/PDF/ → SKU vinculado (vía .ai emparejado o nombre)."""
+    from app.tools.etiquetas_ai_engine import (
+        _archivo_plantilla_id,
+        _clave_relacion_plantilla,
+        _filas_relacion_ai_pdf,
+        _indice_pdf,
+    )
+
+    ai_map = mapa_sku_por_archivo_ai()
+    out: dict[str, dict[str, str]] = {}
+
+    for rel in _filas_relacion_ai_pdf():
+        ai_path = rel.get("ai")
+        pdf_path = rel.get("pdf")
+        if not pdf_path:
+            continue
+        pdf_id = _archivo_plantilla_id(pdf_path)
+        info = ai_map.get(ai_path.name) if ai_path else None
+        if info:
+            out[pdf_id] = info
+            out[pdf_path.name] = info
+            continue
+        for archivo_ai, sku_info in ai_map.items():
+            if _clave_relacion_plantilla(Path(archivo_ai).stem) == rel.get("clave"):
+                out[pdf_id] = sku_info
+                out[pdf_path.name] = sku_info
+                break
+
+    pdf_por_clave: dict[str, str] = {}
+    for _nom, _fmt, path in _indice_pdf():
+        pdf_por_clave[_clave_relacion_plantilla(path.stem)] = _archivo_plantilla_id(path)
+
+    for archivo_ai, info in ai_map.items():
+        pdf_id = pdf_por_clave.get(_clave_relacion_plantilla(Path(archivo_ai).stem))
+        if pdf_id and pdf_id not in out:
+            out[pdf_id] = info
+            out[Path(pdf_id).name] = info
+    return out
+
+
 def listar_catalogo_studio(
     *,
     q: str = "",
@@ -212,8 +287,6 @@ def listar_catalogo_studio(
         name = (c.get("name") or "").strip()
         if not code:
             continue
-        if ql and ql not in code.lower() and ql not in name.lower():
-            continue
 
         meli_id = _meli_id_efectivo_sku(code, overrides=overrides, cache=cache)
         if solo_con_meli and not meli_id:
@@ -234,6 +307,23 @@ def listar_catalogo_studio(
         res = resolver_plantilla_ai(datos_resolucion, limite=3)
         inferido = res.get("inferido") or {}
         archivo_ai = (studio.get("archivo_ai") or res.get("archivo_ai") or "").strip() or None
+
+        if ql:
+            coincide = ql in code.lower() or ql in name.lower()
+            if not coincide and archivo_ai:
+                coincide = ql in archivo_ai.lower()
+            if not coincide:
+                tipo_eff = (studio.get("tipo_etiqueta") or inferido.get("tipo_etiqueta") or "")
+                coincide = ql in str(tipo_eff).lower()
+            if not coincide:
+                for cand in res.get("candidatos") or []:
+                    arch = (cand.get("archivo") or "").lower()
+                    if ql in arch:
+                        coincide = True
+                        break
+            if not coincide:
+                continue
+
         if solo_sin_ai and archivo_ai and not forzar_svg:
             continue
 
@@ -259,6 +349,8 @@ def listar_catalogo_studio(
 
     todas_ai = {p["archivo"] for p in listar_plantillas_ai(limite=10_000)}
     sin_producto = sorted(todas_ai - archivos_usados)
+    if ql:
+        sin_producto = [a for a in sin_producto if ql in a.lower()]
 
     stats = {
         "total_productos": len(filas),

@@ -11430,12 +11430,18 @@ def register_routes(app):
         ancho_mm = body.get("ancho_mm")
         alto_mm = body.get("alto_mm")
         guardar = body.get("guardar", True) not in (False, 0, "0", "false")
+        solo_lineas = body.get("solo_lineas", True) not in (False, 0, "0", "false")
+        vista_completa = body.get("vista_completa")
+        if vista_completa is not None:
+            vista_completa = vista_completa not in (False, 0, "0", "false")
         try:
             result = escanear_diagramacion_plantilla(
                 archivo_ai=archivo_ai,
                 tipo_etiqueta=tipo_etiqueta,
                 ancho_mm=ancho_mm,
                 alto_mm=alto_mm,
+                solo_lineas=solo_lineas,
+                vista_completa=vista_completa,
             )
             if guardar:
                 guardar_diagramacion_formato(tipo_etiqueta, {
@@ -11445,6 +11451,8 @@ def register_routes(app):
                         "tipo_etiqueta",
                         "ancho_mm",
                         "alto_mm",
+                        "solo_lineas",
+                        "vista_completa",
                         "diagramacion",
                         "diagramacion_graficos",
                         "muestras",
@@ -11460,47 +11468,110 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/etiquetas/studio/preview-diagramacion", methods=["POST"])
+    @app.route("/app/api/etiquetas/studio/preview-diagramacion", methods=["POST"])
+    def api_etiquetas_studio_preview_diagramacion():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.etiquetas_ai_engine import preview_diagramacion_plantilla
+
+        body = request.get_json(silent=True) or {}
+        archivo_ai = (body.get("archivo_ai") or "").strip()
+        if not archivo_ai:
+            return jsonify({"error": "archivo_ai obligatorio"}), 400
+        solo_lineas = body.get("solo_lineas", True) not in (False, 0, "0", "false")
+        vista_completa = body.get("vista_completa")
+        if vista_completa is not None:
+            vista_completa = vista_completa not in (False, 0, "0", "false")
+        try:
+            result = preview_diagramacion_plantilla(
+                archivo_ai=archivo_ai,
+                tipo_etiqueta=(body.get("tipo_etiqueta") or "500 g").strip(),
+                diagramacion=body.get("diagramacion"),
+                diagramacion_graficos=body.get("diagramacion_graficos"),
+                muestras=body.get("muestras"),
+                export_area=body.get("export_area"),
+                ancho_mm=body.get("ancho_mm"),
+                alto_mm=body.get("alto_mm"),
+                solo_lineas=solo_lineas,
+                vista_completa=vista_completa,
+            )
+            return jsonify(result)
+        except FileNotFoundError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    def _persistir_diagramacion_formato_studio(tipo: str, body: dict) -> dict:
+        from app.tools.etiquetas_ai_engine import preview_diagramacion_plantilla
+        from app.tools.etiquetas_studio import guardar_diagramacion_formato, obtener_diagramacion_formato
+
+        prev = obtener_diagramacion_formato(tipo) or {}
+        payload = dict(prev)
+        for k in (
+            "archivo_ai",
+            "ancho_mm",
+            "alto_mm",
+            "solo_lineas",
+            "vista_completa",
+            "diagramacion",
+            "diagramacion_graficos",
+            "muestras",
+            "campos_detectados",
+            "graficos_detectados",
+            "export_area",
+        ):
+            if k in body:
+                payload[k] = body[k]
+        archivo = (payload.get("archivo_ai") or prev.get("archivo_ai") or "UREA 500g.ai")
+        solo_lineas = payload.get("solo_lineas", prev.get("solo_lineas", True)) not in (False, 0, "0", "false")
+        vista_completa = payload.get("vista_completa", prev.get("vista_completa"))
+        if vista_completa is not None:
+            vista_completa = vista_completa not in (False, 0, "0", "false")
+        preview = preview_diagramacion_plantilla(
+            archivo_ai=archivo,
+            tipo_etiqueta=tipo,
+            diagramacion=payload.get("diagramacion"),
+            diagramacion_graficos=payload.get("diagramacion_graficos"),
+            muestras=payload.get("muestras"),
+            export_area=payload.get("export_area"),
+            ancho_mm=payload.get("ancho_mm"),
+            alto_mm=payload.get("alto_mm"),
+            solo_lineas=solo_lineas,
+            vista_completa=vista_completa,
+        )
+        payload["export_area"] = preview.get("export_area") or payload.get("export_area")
+        saved = guardar_diagramacion_formato(tipo, payload)
+        saved["svg"] = preview.get("svg", "")
+        return saved
+
+    @app.route("/api/etiquetas/studio/guardar-diagramacion-formato", methods=["POST"])
+    @app.route("/app/api/etiquetas/studio/guardar-diagramacion-formato", methods=["POST"])
+    def api_etiquetas_studio_guardar_diagramacion_formato():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        tipo = (body.get("tipo_etiqueta") or "").strip()
+        if not tipo:
+            return jsonify({"error": "tipo_etiqueta obligatorio"}), 400
+        try:
+            return jsonify(_persistir_diagramacion_formato_studio(tipo, body))
+        except FileNotFoundError as e:
+            return jsonify({"error": str(e)}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/etiquetas/studio/diagramacion-formato/<path:tipo>", methods=["GET", "PUT"])
     @app.route("/app/api/etiquetas/studio/diagramacion-formato/<path:tipo>", methods=["GET", "PUT"])
     def api_etiquetas_studio_diagramacion_formato(tipo: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        from app.tools.etiquetas_ai_engine import preview_diagramacion_plantilla
-        from app.tools.etiquetas_studio import guardar_diagramacion_formato, obtener_diagramacion_formato
+        from app.tools.etiquetas_studio import obtener_diagramacion_formato
 
         if request.method == "PUT":
             body = request.get_json(silent=True) or {}
-            prev = obtener_diagramacion_formato(tipo) or {}
-            payload = dict(prev)
-            for k in (
-                "archivo_ai",
-                "ancho_mm",
-                "alto_mm",
-                "diagramacion",
-                "diagramacion_graficos",
-                "muestras",
-                "campos_detectados",
-                "graficos_detectados",
-                "export_area",
-            ):
-                if k in body:
-                    payload[k] = body[k]
-            archivo = (payload.get("archivo_ai") or prev.get("archivo_ai") or "UREA 500g.ai")
             try:
-                preview = preview_diagramacion_plantilla(
-                    archivo_ai=archivo,
-                    tipo_etiqueta=tipo,
-                    diagramacion=payload.get("diagramacion"),
-                    diagramacion_graficos=payload.get("diagramacion_graficos"),
-                    muestras=payload.get("muestras"),
-                    export_area=payload.get("export_area"),
-                    ancho_mm=payload.get("ancho_mm"),
-                    alto_mm=payload.get("alto_mm"),
-                )
-                payload["export_area"] = preview.get("export_area") or payload.get("export_area")
-                saved = guardar_diagramacion_formato(tipo, payload)
-                saved["svg"] = preview.get("svg", "")
-                return jsonify(saved)
+                return jsonify(_persistir_diagramacion_formato_studio(tipo, body))
             except FileNotFoundError as e:
                 return jsonify({"error": str(e)}), 404
             except Exception as e:
@@ -11511,6 +11582,7 @@ def register_routes(app):
             return jsonify({"error": f"Sin diagramación guardada para «{tipo}»"}), 404
         incluir_svg = request.args.get("incluir_svg", "").lower() in ("1", "true", "yes")
         if incluir_svg:
+            from app.tools.etiquetas_ai_engine import preview_diagramacion_plantilla
             try:
                 preview = preview_diagramacion_plantilla(
                     archivo_ai=entry.get("archivo_ai") or "UREA 500g.ai",
@@ -11521,6 +11593,8 @@ def register_routes(app):
                     export_area=entry.get("export_area"),
                     ancho_mm=entry.get("ancho_mm"),
                     alto_mm=entry.get("alto_mm"),
+                    solo_lineas=entry.get("solo_lineas", True) not in (False, 0, "0", "false"),
+                    vista_completa=entry.get("vista_completa"),
                 )
                 entry = {**entry, "svg": preview.get("svg", "")}
             except Exception as e:
@@ -11552,15 +11626,75 @@ def register_routes(app):
     def api_etiquetas_studio_plantillas():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        from app.tools.etiquetas_ai_engine import listar_plantillas_ai
+        from app.tools.etiquetas_ai_engine import (
+            carpeta_plantillas_ai,
+            carpeta_plantillas_modelo,
+            carpeta_plantillas_pdf,
+            listar_plantillas_ai,
+            listar_plantillas_modelo_relacionadas,
+            listar_plantillas_pdf,
+        )
+        from app.tools.etiquetas_studio import mapa_sku_por_archivo_ai, mapa_sku_por_archivo_pdf
         from app.tools.etiquetas_svg_engine import listar_plantillas_svg
 
-        plantillas_ai = listar_plantillas_ai(limite=10_000)
-        return jsonify({
+        q = (request.args.get("q") or "").strip()
+        limite = min(int(request.args.get("limite") or 10_000), 10_000)
+        incluir_catalogo = request.args.get("incluir_catalogo", "").lower() in ("1", "true", "yes")
+        relacionar = request.args.get("relacionar", "").lower() in ("1", "true", "yes")
+        fuente = (request.args.get("fuente") or "").strip().lower()
+        plantillas_ai = listar_plantillas_ai(limite=limite, q=q)
+        plantillas_pdf = listar_plantillas_pdf(limite=limite, q=q)
+        vinculos_ai: dict[str, dict[str, str]] = {}
+        vinculos_pdf: dict[str, dict[str, str]] = {}
+        if incluir_catalogo:
+            vinculos_ai = mapa_sku_por_archivo_ai()
+            for p in plantillas_ai:
+                v = vinculos_ai.get(p.get("archivo") or "")
+                if v:
+                    p["sku_vinculado"] = v.get("sku")
+                    p["producto_vinculado"] = v.get("nombre")
+            vinculos_pdf = mapa_sku_por_archivo_pdf()
+            for p in plantillas_pdf:
+                v = vinculos_pdf.get(p.get("archivo") or "")
+                if v:
+                    p["sku_vinculado"] = v.get("sku")
+                    p["producto_vinculado"] = v.get("nombre")
+        plantillas_relacionadas = listar_plantillas_modelo_relacionadas(
+            limite=limite,
+            q=q,
+            vinculos_ai=vinculos_ai,
+        )
+        if incluir_catalogo:
+            for p in plantillas_relacionadas:
+                if p.get("sku_vinculado"):
+                    continue
+                arch = p.get("archivo_pdf") or p.get("archivo") or ""
+                v = vinculos_pdf.get(arch) or vinculos_pdf.get(arch.split("/")[-1] if arch else "")
+                if v:
+                    p["sku_vinculado"] = v.get("sku")
+                    p["producto_vinculado"] = v.get("nombre")
+        payload: dict = {
+            "carpeta": carpeta_plantillas_modelo(),
+            "carpeta_ai": carpeta_plantillas_ai(),
+            "carpeta_pdf": carpeta_plantillas_pdf(),
             "plantillas": listar_plantillas_svg(),
-            "plantillas_ai": plantillas_ai[:400],
+            "plantillas_ai": plantillas_ai,
+            "plantillas_pdf": plantillas_pdf,
+            "plantillas_relacionadas": plantillas_relacionadas,
             "total_ai": len(plantillas_ai),
-        })
+            "total_pdf": len(plantillas_pdf),
+            "total_relacionadas": len(plantillas_relacionadas),
+        }
+        if relacionar or fuente == "relacionadas":
+            payload["plantillas_modelo"] = plantillas_relacionadas
+            payload["total_modelo"] = len(plantillas_relacionadas)
+        elif fuente == "pdf":
+            payload["plantillas_modelo"] = plantillas_pdf
+            payload["total_modelo"] = len(plantillas_pdf)
+        elif fuente == "ai":
+            payload["plantillas_modelo"] = plantillas_ai
+            payload["total_modelo"] = len(plantillas_ai)
+        return jsonify(payload)
 
     @app.route("/api/etiquetas/studio/preview", methods=["POST"])
     @app.route("/app/api/etiquetas/studio/preview", methods=["POST"])

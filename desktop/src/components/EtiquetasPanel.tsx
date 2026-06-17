@@ -39,7 +39,6 @@ import {
   useTiposEtiqueta,
 } from "../lib/etiquetasTipos";
 import { SelectorFormatoEtiqueta, type FormatoEtiquetaValor } from "./etiquetas/SelectorFormatoEtiqueta";
-import { EtiquetasStudioPanel } from "./etiquetas/EtiquetasStudioPanel";
 import { TabPlantillasPanel } from "./etiquetas/TabPlantillasPanel";
 import {
   EtiquetasStudioCatalogo,
@@ -4373,6 +4372,8 @@ function TabImprimir({
               skuActivo={skuActivoImpresion}
               modoSeleccion="fila"
               accionLabel={null}
+              mostrarDiagramacion={false}
+              layout="stack"
             />
           </div>
         </div>
@@ -5613,8 +5614,13 @@ export default function EtiquetasPanel() {
   const [solicitudInicial, setSolicitudInicial] = useState<EtiquetasSolicitudActiva | null>(null);
 
   useEffect(() => {
-    setTabLocal(storeTab);
-  }, [storeTab]);
+    if (storeTab === "imprimir" || storeTab === "plantillas" || storeTab === "inventario") {
+      setTabLocal(storeTab);
+      return;
+    }
+    setTabLocal("imprimir");
+    setStoreTab("imprimir");
+  }, [storeTab, setStoreTab]);
 
   useEffect(() => {
     if (!handoff) return;
@@ -5638,13 +5644,13 @@ export default function EtiquetasPanel() {
     `flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t ? "bg-accent text-white shadow" : "text-ink-secondary hover:bg-surface-hover"}`;
 
   return (
-    <div className={`space-y-4 px-1 sm:px-0 ${tab === "studio" || tab === "imprimir" || tab === "plantillas" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"}`}>
+    <div className={`space-y-4 px-1 sm:px-0 ${tab === "imprimir" || tab === "plantillas" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"}`}>
       <div className="flex gap-2 rounded-xl border border-border bg-surface-panel p-1">
         <button type="button" onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
           🖨 Imprimir
         </button>
-        <button type="button" onClick={() => setTab("studio")} className={tabCls("studio")}>
-          🧩 Diseño (Plantillas + Studio)
+        <button type="button" onClick={() => setTab("plantillas")} className={tabCls("plantillas")}>
+          📐 Plantillas
         </button>
         <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
           📦 Inventario de papel y tinta
@@ -5660,35 +5666,7 @@ export default function EtiquetasPanel() {
           onIrInventarioTinta={() => setTab("inventario")}
         />
       )}
-      {(tab === "studio" || tab === "plantillas") && (
-        <div className="space-y-3">
-          <div className="flex gap-2 rounded-lg border border-border bg-surface-panel p-1">
-            <button
-              type="button"
-              onClick={() => setTab("plantillas")}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold ${
-                tab === "plantillas" ? "bg-accent text-white" : "text-ink-secondary hover:bg-surface-hover"
-              }`}
-            >
-              📐 Plantillas
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("studio")}
-              className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold ${
-                tab === "studio" ? "bg-accent text-white" : "text-ink-secondary hover:bg-surface-hover"
-              }`}
-            >
-              ✨ Studio
-            </button>
-          </div>
-          {tab === "plantillas" ? (
-            <TabPlantillasPanel onIrStudio={() => setTab("studio")} />
-          ) : (
-            <EtiquetasStudioPanel />
-          )}
-        </div>
-      )}
+      {tab === "plantillas" && <TabPlantillasPanel />}
       {tab === "inventario" && <TabInventarioPapelTinta />}
     </div>
   );

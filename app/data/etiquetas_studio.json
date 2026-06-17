@@ -1,99 +1,206 @@
 {
-  "C-CITMAG250g": {
-    "sku": "C-CITMAG250g",
-    "nombre_producto": "Citrato De Magnesio",
-    "subtitulo": "Insumo alimentario 100% puro en polvo",
-    "perfil": "materia_prima_alimentaria",
-    "ingrediente": "Citrato de magnesio",
-    "contenido_neto": "250",
-    "unidad": "g",
-    "presentacion_extra": "",
-    "aplicaciones": "Formulación alimentaria, cosmética e industrial",
-    "descripcion_etiqueta": "Polvo fino blanco. Materia prima alimentaria (sal de magnesio y ácido cítrico) para formulación. No es suplemento dietario terminado ni medicamento.",
-    "cas": "3344-18-1",
-    "codigo_barras": "C-CITMAG250g",
-    "concentracion": "99 %",
-    "formula_molecular": "C6H6MgO7",
-    "pureza": "100% puro",
-    "tipo_etiqueta": "250 g",
-    "ancho_mm": 76,
-    "alto_mm": 66,
-    "mostrar_bloque_legal": true,
-    "mostrar_res_2674": true,
-    "incluye_cuchara": false,
-    "distribuidor": "MCKENNA GROUP S.A.S",
-    "nit": "901316016-3",
-    "ciudad": "Bogotá — Colombia",
-    "notas_tecnicas": "COA y ficha técnica en www.mckennagroup.co",
-    "updated_at": "2026-06-15T20:50:00"
-  },
-  "TEST-STUDIO": {
-    "sku": "TEST-STUDIO",
-    "nombre_producto": "Citrato De Magnesio",
-    "subtitulo": "Insumo alimentario 100% puro",
-    "ingrediente": "Citrato de magnesio",
-    "contenido_neto": "250",
-    "unidad": "g",
-    "aplicaciones": "Alimentos, formulación",
-    "ancho_mm": 76,
-    "alto_mm": 66,
-    "mostrar_bloque_legal": true,
-    "mostrar_res_2674": true,
-    "updated_at": "2026-06-15T15:44:57"
-  },
-  "C-CITCAL500g": {
+  "preview-diagramacion": {
     "_versiones": {
       "original": {},
       "alternativa": {
-        "sku": "C-CITCAL500g",
-        "nombre_producto": "CITRATO CALCIO 500g",
-        "subtitulo": "Insumo alimentario 100% puro en polvo",
-        "perfil": "materia_prima_alimentaria",
-        "ingrediente": "CITRATO CALCIO 500g",
-        "contenido_neto": "500",
-        "unidad": "g",
-        "presentacion_extra": "",
-        "aplicaciones": "Alimentos, formulación, cosmética e industria",
-        "descripcion_etiqueta": "Materia prima alimentaria para formulación industrial y alimentaria. Reenvase Res. 2674/2013 Art. 37-3. No es suplemento dietario terminado ni medicamento. Es una sal (hidratada), está compuesto por magnesio y ácido cítrico, en una relación de magnesio: citrato de 3: 2, está compuesta por magnesio y ácido cítrico, en una proporción de 3:2 de magnesio a citrato, esto significa que, por cada 3 partes de magnesio, hay 2 partes de citrato. El citrato de magnesio se usa comúnmente en la industria de alimentos y bebidas como aditivo para mejorar el sabor y como suplemento nutritivo debido a que es de fácil absorción. Nota: El producto cumple con el estándar USP 32.",
-        "cas": "",
-        "concentracion": "99 %",
-        "formula_molecular": "",
-        "pureza": "100% puro",
-        "lote": "",
-        "vencimiento": "",
-        "mostrar_lote_vencimiento": true,
-        "placeholders_lote_vencimiento": true,
-        "codigo_barras": "",
-        "incluye_cuchara": false,
-        "texto_cuchara": "Cuchara incluida para dosificación en formulación",
-        "mostrar_bloque_legal": true,
-        "mostrar_res_2674": true,
-        "distribuidor": "MCKENNA GROUP S.A.S",
-        "nit": "901316016-3",
-        "ciudad": "Bogotá — Colombia",
-        "notas_tecnicas": "COA y ficha técnica en www.mckennagroup.co",
+        "archivo_ai": "ACEITE DE GIRASOL 500mL.ai",
         "tipo_etiqueta": "500 g",
         "ancho_mm": 76,
         "alto_mm": 66,
-        "mostrar_formula_molecular": true,
-        "mostrar_cas": true,
-        "mostrar_concentracion": true,
-        "modo_etiqueta": "alternativa",
-        "archivo_ai": "CITRATO DE CALCIO 500g.ai",
-        "forzar_plantilla_svg": false,
-        "updated_at": "2026-06-16T16:31:57"
+        "diagramacion": {
+          "b1": {
+            "ancho_pct": 63.3,
+            "color": "#231F20",
+            "escala": 1.111,
+            "x": 1.78,
+            "y": 141.11,
+            "visible": false
+          },
+          "b1_10": {
+            "color": "#171717",
+            "escala": 1,
+            "x": 160.71,
+            "y": 133.69,
+            "visible": false
+          },
+          "b1_11": {
+            "color": "#171717",
+            "escala": 1,
+            "x": 160.8887,
+            "y": 77.1465,
+            "visible": false
+          },
+          "b1_2": {
+            "color": "#231F20",
+            "escala": 1,
+            "x": 3.3486,
+            "y": 110.8633,
+            "visible": false
+          },
+          "b1_3": {
+            "color": "#231F20",
+            "escala": 1,
+            "x": 2.48,
+            "y": 115.67,
+            "visible": false
+          },
+          "b1_4": {
+            "color": "#231F20",
+            "escala": 1,
+            "x": 1.61,
+            "y": 101.95,
+            "visible": false
+          },
+          "b1_5": {
+            "color": "#231F20",
+            "escala": 1,
+            "x": 3.3486,
+            "y": 74.8633,
+            "visible": false
+          },
+          "b1_6": {
+            "color": "#231F20",
+            "escala": 1,
+            "x": 4.92,
+            "y": 31.72,
+            "visible": false
+          },
+          "b1_7": {
+            "color": "#231F20",
+            "escala": 1,
+            "x": 3.3486,
+            "y": 32.8633,
+            "visible": false
+          },
+          "b1_8": {
+            "color": "#231F20",
+            "escala": 1,
+            "x": 30.36,
+            "y": 20.76,
+            "visible": false
+          },
+          "b1_9": {
+            "color": "#231F20",
+            "escala": 1,
+            "x": 3.3486,
+            "y": 20.8633,
+            "visible": false
+          },
+          "cas": {
+            "color": "#171717",
+            "escala": 1.222,
+            "x": 143.9326,
+            "y": 137.5342,
+            "visible": false
+          },
+          "concentracion": {
+            "color": "#171717",
+            "escala": 1.222,
+            "x": 144.46,
+            "y": 151.92,
+            "visible": false
+          },
+          "cuchara": {
+            "color": "#F9A72B",
+            "escala": 1.111,
+            "x": 27.0503,
+            "y": 163.5029,
+            "visible": false
+          },
+          "legal": {
+            "color": "#171717",
+            "escala": 1.8,
+            "x": 121.33,
+            "y": 94.84,
+            "visible": false
+          },
+          "legal_2": {
+            "color": "#171717",
+            "escala": 1,
+            "x": 160.8887,
+            "y": 113.1465,
+            "visible": false
+          },
+          "legal_3": {
+            "color": "#171717",
+            "escala": 1,
+            "x": 159.32,
+            "y": 111.08,
+            "visible": false
+          },
+          "legal_4": {
+            "color": "#171717",
+            "escala": 1,
+            "x": 160.8887,
+            "y": 93.1465,
+            "visible": false
+          },
+          "legal_5": {
+            "color": "#171717",
+            "escala": 1,
+            "x": 160.8887,
+            "y": 73.1465,
+            "visible": false
+          },
+          "peso": {
+            "color": "#171717",
+            "escala": 0.6,
+            "x": 168,
+            "y": -38.42,
+            "visible": false
+          },
+          "subtitulo": {
+            "color": "#F9A72B",
+            "escala": 0.883,
+            "x": 3.6045,
+            "y": 154.3252,
+            "visible": false
+          },
+          "titulo": {
+            "color": "#F9A72B",
+            "escala": 0.917,
+            "x": 14.34,
+            "y": 169.14,
+            "visible": false
+          }
+        },
+        "diagramacion_graficos": {},
+        "muestras": {
+          "b1": "Líquido límpido, viscoso, con olor característico y ligeramente amarillo, extraído mediante el proceso de prensado en frío, sin aditivos. Es un aceite obtenido de distintas variedades de la semilla de girasol Helianthus Annus.",
+          "b1_10": "• Puede causar reacción",
+          "b1_11": "la luz, el calor y la",
+          "b1_2": "Propiedades:",
+          "b1_3": "• Fuente de vitamina E. • Contiene ácidos grasos esenciales, como el ácido linoleico, que es un tipo de ácido graso omega-6. Estos ácidos grasos son necesarios para el funcionamiento",
+          "b1_4": "adecuado del cuerpo y se consideran beneﬁciosos",
+          "b1_5": "para la salud cardiovascular. • Los ácidos grasos monoinsaturados y poliinsaturados presentes en el aceite de girasol pueden ayudar a reducir los niveles de colesterol LDL (colesterol &quot;malo&quot;) en la sangre, lo que a su vez puede disminuir el riesgo de enfermedades cardíacas.",
+          "b1_6": "• Antiinﬂamatorio: Algunos estudios sugieren que el",
+          "b1_7": "aceite de girasol puede tener propiedades",
+          "b1_8": "antiinﬂamatorias. Esto puede deberse a su contenido",
+          "b1_9": "de vitamina E y otros compuestos bioactivos.",
+          "cas": "# CAS: 8001-21-6",
+          "cas_linea": "# CAS: 8001-21-6",
+          "concentracion": "Concentración: 99 %",
+          "cuchara": "Incluye copa medidora de 30 mL/g",
+          "descripcion": "Líquido límpido, viscoso, con olor característico y\nligeramente amarillo, extraído mediante el proceso de\nprensado en frío, sin aditivos. Es un aceite obtenido de\ndistintas variedades de la semilla de girasol Helianthus\nAnnus.",
+          "legal": "alérgica o problemas",
+          "legal_2": "digestivos. • No es comedogénico. • Revise que el envase",
+          "legal_3": "esté en perfectas condiciones antes de",
+          "legal_4": "abrirlo. • Mantenga el empaque bien cerrado, en un lugar fresco y seco, alejado de",
+          "legal_5": "humedad.",
+          "peso": "500 mL/g",
+          "subtitulo": "Materia prima vegetal grado farmacológico Ph. Eur. JPC. USP; COA",
+          "titulo": "ACEITE DE GIRASOL"
+        },
+        "export_area": [
+          -0.5,
+          -0.4999970970999925,
+          287.7439928189,
+          249.94933
+        ],
+        "sku": "preview-diagramacion",
+        "updated_at": "2026-06-17T00:55:59"
       }
     },
-    "updated_at": "2026-06-16T16:31:57"
-  },
-  "C-CITMAG500g": {
-    "_versiones": {
-      "original": {},
-      "alternativa": {
-        "sku": "C-CITMAG500g",
-        "updated_at": "2026-06-16T22:07:35"
-      }
-    },
-    "updated_at": "2026-06-16T22:07:35"
+    "updated_at": "2026-06-17T00:55:59"
   }
 }

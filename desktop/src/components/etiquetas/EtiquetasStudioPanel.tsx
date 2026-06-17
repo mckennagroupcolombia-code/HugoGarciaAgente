@@ -44,7 +44,7 @@ interface ResolverAiResponse {
   }>;
 }
 
-type PanelExtra = "plantilla" | "meli" | null;
+type PanelExtra = "meli" | null;
 
 function inferirPresentacionSku(sku: string): Partial<EtiquetaStudioDatos> {
   const raw = sku.trim();
@@ -474,7 +474,7 @@ export function EtiquetasStudioPanel() {
     }
   }
 
-  const extraBtnCls = (t: "plantilla" | "meli") =>
+  const extraBtnCls = (t: "meli") =>
     `rounded-md px-2.5 py-1 text-[10px] font-semibold ${
       panelExtra === t ? "bg-accent text-white" : "border border-border hover:bg-surface-hover"
     }`;
@@ -577,7 +577,11 @@ export function EtiquetasStudioPanel() {
           )}
 
           <div className="ml-auto flex flex-wrap items-center gap-1.5">
-            <button type="button" onClick={() => setPanelExtra(panelExtra === "plantilla" ? null : "plantilla")} className={extraBtnCls("plantilla")}>
+            <button type="button" onClick={() => {
+              setPanelExtra(null);
+              setMostrarCatalogo(true);
+              setCatalogoModoEscaneo(true);
+            }} className="rounded-md border border-violet-400 bg-violet-50 px-2.5 py-1 text-[10px] font-semibold text-violet-800 hover:bg-violet-100">
               Plantilla
             </button>
             <button type="button" onClick={() => setPanelExtra(panelExtra === "meli" ? null : "meli")} className={extraBtnCls("meli")}>
@@ -622,12 +626,15 @@ export function EtiquetasStudioPanel() {
 
       {mostrarCatalogo && (
         <EtiquetasStudioCatalogo
+          layout={catalogoModoEscaneo ? "workbench" : "stack"}
           onSeleccionar={editarDesdeCatalogo}
           skuActivo={datos.sku}
           accionLabel="Abrir"
           modoEscaneo={catalogoModoEscaneo}
           skuEscaneoInicial={catalogoModoEscaneo ? datos.sku : undefined}
           onModoEscaneoChange={setCatalogoModoEscaneo}
+          formatoInicial={datos.tipo_etiqueta || undefined}
+          modoModeloSvg={catalogoModoEscaneo}
         />
       )}
 
@@ -677,46 +684,7 @@ export function EtiquetasStudioPanel() {
           )}
         </section>
 
-        {panelExtra === "plantilla" ? (
-          <aside className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface-panel p-3">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-ink">Plantilla .ai</h3>
-              <button type="button" onClick={() => setPanelExtra(null)} className="text-xs text-muted hover:text-ink">✕</button>
-            </div>
-            <div className="space-y-3 overflow-y-auto">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={!!datos.forzar_plantilla_svg}
-                  onChange={(e) => {
-                    const on = e.target.checked;
-                    setPlantillaAiManual(false);
-                    patch({ forzar_plantilla_svg: on, ...(on ? { archivo_ai: "" } : {}) });
-                  }}
-                />
-                SVG genérico
-              </label>
-              {!datos.forzar_plantilla_svg && (
-                <>
-                  <select
-                    className="w-full rounded-lg border border-border bg-surface px-2 py-2 text-xs font-mono"
-                    value={datos.archivo_ai || ""}
-                    onChange={(e) => {
-                      setPlantillaAiManual(!!e.target.value);
-                      patch({ archivo_ai: e.target.value, forzar_plantilla_svg: false });
-                    }}
-                  >
-                    <option value="">Automático</option>
-                    {candidatosAi.map((c) => (
-                      <option key={c.archivo} value={c.archivo}>{c.archivo}</option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-muted font-mono">{plantillaActiva}</p>
-                </>
-              )}
-            </div>
-          </aside>
-        ) : panelExtra === "meli" ? (
+        {panelExtra === "meli" ? (
           <aside className="flex flex-col overflow-hidden rounded-xl border border-border bg-surface-panel p-3">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm font-bold text-ink">Borrador MeLi</h3>

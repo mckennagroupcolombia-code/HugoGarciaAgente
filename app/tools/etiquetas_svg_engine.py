@@ -161,25 +161,19 @@ def _reemplazos_desde_datos(datos: dict, spec: dict) -> list[tuple[str, str]]:
 
 
 def _normalizar_fuentes_svg_web(svg: str) -> str:
-    """Mapea familias de Inkscape a Montserrat cargada en el panel (sin mover texto)."""
-    svg = re.sub(
-        r"font-family:'Montserrat Medium'",
-        "font-family:Montserrat",
-        svg,
-        flags=re.I,
+    """Mapea familias de plantilla .ai/Inkscape a Montserrat (panel y preview web)."""
+    patrones = (
+        (r"font-family:\s*['\"]?Montserrat\s+Medium['\"]?", "font-family:Montserrat"),
+        (r"font-family:\s*['\"]?Montserrat\s+SemiBold['\"]?", "font-family:Montserrat"),
+        (r"font-family:\s*['\"]?Montserrat\s+Bold['\"]?", "font-family:Montserrat"),
+        (r"font-family:\s*['\"]?Geomanist[^;'\"]*['\"]?", "font-family:Montserrat"),
+        (r'font-family="Geomanist[^"]*"', 'font-family="Montserrat"'),
+        (r"font-family='Geomanist[^']*'", "font-family='Montserrat'"),
+        (r"font-family:\s*['\"]?Arial[^;'\"]*['\"]?", "font-family:Montserrat"),
+        (r"font-family:\s*['\"]?Helvetica[^;'\"]*['\"]?", "font-family:Montserrat"),
     )
-    svg = re.sub(
-        r"font-family:'Montserrat SemiBold'",
-        "font-family:Montserrat",
-        svg,
-        flags=re.I,
-    )
-    svg = re.sub(
-        r"font-family:Geomanist\b",
-        "font-family:Montserrat",
-        svg,
-        flags=re.I,
-    )
+    for patron, reemplazo in patrones:
+        svg = re.sub(patron, reemplazo, svg, flags=re.I)
     return svg
 
 

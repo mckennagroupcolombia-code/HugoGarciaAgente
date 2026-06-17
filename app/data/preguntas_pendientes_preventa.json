@@ -799,6 +799,14 @@
       "pregunta": "Se puede emplear para consumo humano?",
       "timestamp": "2026-06-16T14:31:29.368583",
       "respondida": true
+    },
+    {
+      "question_id": "13605327206",
+      "titulo_producto": "Ácido Azelaico Polvo 10 G Todo Tipo De Piel",
+      "pregunta": "Buenas me interesa una pregunta se puede mezclar con el acetato de aluminio",
+      "timestamp": "2026-06-17T00:22:53.064405",
+      "respondida": false,
+      "borrador_ia": "¡Hola veci! Con gusto le colaboro.\n\nLa información del producto no especifica la compatibilidad directa con el acetato de aluminio. Nuestro ácido azelaico en polvo está diseñado para ser incorporado en un vehículo, como una crema o un suero de base neutra, para asegurar su correcta aplicación y estabilidad en la piel.\n\nPara garantizar su efectividad y buena absorción, es importante que la fórmula final tenga un pH controlado, idealmente entre 4.5 y 5.5. Esto ayuda a mantener las propiedades del activo y a minimizar el riesgo de irritación.\n\nRecuerde siempre aplicar la mezcla sobre el rostro completamente seco, esperando unos minutos después de lavarlo. Esto previene el picor intenso que puede ocurrir si la piel está húmeda."
     }
   ]
 }

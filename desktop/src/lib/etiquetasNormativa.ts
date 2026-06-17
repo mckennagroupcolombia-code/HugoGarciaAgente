@@ -60,6 +60,10 @@ export interface EtiquetaStudioDatos {
   diagramacion?: DiagramacionEtiqueta;
   /** Posición de líneas y recuadros decorativos. */
   diagramacion_graficos?: DiagramacionGraficos;
+  /** Área de recorte detectada al escanear la plantilla .ai (coords SVG). */
+  export_area?: number[] | null;
+  /** Texto por bloque extra detectado en plantilla (b1_2, legal_3, txt_0…). */
+  textos_campo?: Record<string, string>;
 }
 
 export const ETIQUETA_STUDIO_DEFAULT: EtiquetaStudioDatos = {

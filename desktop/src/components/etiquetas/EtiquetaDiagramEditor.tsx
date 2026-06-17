@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -21,6 +22,13 @@ import {
   labelCampoDiagramacion,
   labelElementoEditor,
   formatoCanvasPx,
+  FUENTE_ETIQUETA,
+  FUENTE_ETIQUETA_FAMILY,
+  leerTextoCampoSvg,
+  pesoFuenteCampoSvg,
+  alineacionCssEditor,
+  ocultarCampoDiagramacion,
+  campoDiagramacionOculto,
   patchDiagramacion,
   patchDiagramacionGraficos,
   esIdGrafico,
@@ -33,6 +41,9 @@ type CampoMedido = {
   top: number;
   width: number;
   height: number;
+  /** Posición SVG original (sin overrides de diagramación). */
+  baseTx: number;
+  baseTy: number;
   tx: number;
   ty: number;
   color: string;
@@ -59,6 +70,8 @@ interface Props {
   onSeleccionChange?: (id: string | null) => void;
   /** Oculta capas/toolbar/contenido internos (panel de textos aparte) */
   panelExterno?: boolean;
+  /** Solo líneas decorativas: sin overlays ni edición de texto */
+  soloLineas?: boolean;
   onCamposPresentesChange?: (ids: Set<CampoDiagramacionId>) => void;
   onGraficosPresentesChange?: (ids: string[]) => void;
 }
@@ -83,7 +96,7 @@ function screenRectFromSvgEl(
   root: HTMLElement,
   svg: SVGSVGElement,
   el: SVGGraphicsElement,
-): Omit<CampoMedido, "id" | "presente" | "kind"> | null {
+): Omit<CampoMedido, "id" | "kind" | "presente"> | null {
   const rootRect = root.getBoundingClientRect();
   const ctm = el.getScreenCTM();
   if (!ctm) return null;
@@ -106,6 +119,8 @@ function screenRectFromSvgEl(
     top: tl.y - rootRect.top,
     width: Math.max(12, br.x - tl.x),
     height: Math.max(10, br.y - tl.y),
+    baseTx: mtx.tx,
+    baseTy: mtx.ty,
     tx: mtx.tx,
     ty: mtx.ty,
     color: parseFill(el),
@@ -125,6 +140,42 @@ function deltaScreenToSvg(svg: SVGSVGElement, dx: number, dy: number): { dx: num
   const d = pt.matrixTransform(inv);
   return { dx: d.x - o.x, dy: d.y - o.y };
 }
+
+function svgDeltaToScreen(svg: SVGSVGElement, dx: number, dy: number): { dx: number; dy: number } {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return { dx: 0, dy: 0 };
+  const pt = svg.createSVGPoint();
+  pt.x = 0;
+  pt.y = 0;
+  const o = pt.matrixTransform(ctm);
+  pt.x = dx;
+  pt.y = dy;
+  const d = pt.matrixTransform(ctm);
+  return { dx: d.x - o.x, dy: d.y - o.y };
+}
+
+function overlayPosicionCampo(
+  c: CampoMedido,
+  svg: SVGSVGElement | null,
+  diagramacion?: DiagramacionEtiqueta,
+  diagramacionGraficos?: DiagramacionGraficos,
+): { left: number; top: number } {
+  if (!svg) return { left: c.left, top: c.top };
+  if (c.kind === "grafico") {
+    const ov = diagramacionGraficos?.[c.id];
+    const d = svgDeltaToScreen(svg, ov?.x ?? 0, ov?.y ?? 0);
+    return { left: c.left + d.dx, top: c.top + d.dy };
+  }
+  const ov = diagramacion?.[c.id as CampoDiagramacionId];
+  const d = svgDeltaToScreen(
+    svg,
+    (ov?.x ?? c.baseTx) - c.baseTx,
+    (ov?.y ?? c.baseTy) - c.baseTy,
+  );
+  return { left: c.left + d.dx, top: c.top + d.dy };
+}
+
+const UMBRAL_ARRASTRE_PX = 4;
 
 function clampPct(n: number) {
   return Math.max(50, Math.min(100, Math.round(n)));
@@ -169,10 +220,11 @@ export function EtiquetaDiagramacionWorkspace({
   seleccion: seleccionProp,
   onSeleccionChange,
   panelExterno = false,
+  soloLineas = false,
   onCamposPresentesChange,
   onGraficosPresentesChange,
 }: Props) {
-  const [seleccionLocal, setSeleccionLocal] = useState<string | null>("b1");
+  const [seleccionLocal, setSeleccionLocal] = useState<string | null>(null);
   const seleccion = seleccionProp !== undefined ? seleccionProp : seleccionLocal;
   const setSeleccion = useCallback(
     (id: string | null) => {
@@ -182,6 +234,7 @@ export function EtiquetaDiagramacionWorkspace({
     [seleccionProp, onSeleccionChange],
   );
   const [arrastrando, setArrastrando] = useState(false);
+  const [textoEditando, setTextoEditando] = useState<string | null>(null);
   const [capasVisibles, setCapasVisibles] = useState(variant !== "inline" && !panelExterno);
   const [campos, setCampos] = useState<CampoMedido[]>([]);
   const dragRef = useRef<{
@@ -192,6 +245,7 @@ export function EtiquetaDiagramacionWorkspace({
     baseTx: number;
     baseTy: number;
     pointerId: number;
+    moved: boolean;
   } | null>(null);
   const resizeRef = useRef<{
     handle: ResizeHandle;
@@ -223,10 +277,12 @@ export function EtiquetaDiagramacionWorkspace({
     }
 
     const medidos: CampoMedido[] = [];
+    if (!soloLineas) {
     const vistosTexto = new Set<string>();
     svg.querySelectorAll<SVGGraphicsElement>("[data-mckenna-campo]").forEach((el) => {
       const id = el.getAttribute("data-mckenna-campo");
       if (!id || vistosTexto.has(id)) return;
+      if (campoDiagramacionOculto(diagramacion, id)) return;
       vistosTexto.add(id);
       const rect = screenRectFromSvgEl(root, svg, el);
       if (!rect) return;
@@ -238,12 +294,15 @@ export function EtiquetaDiagramacionWorkspace({
         top: rect.top,
         width: rect.width,
         height: rect.height,
+        baseTx: rect.tx,
+        baseTy: rect.ty,
         tx: ov?.x ?? rect.tx,
         ty: ov?.y ?? rect.ty,
         color: ov?.color ?? rect.color,
         presente: true,
       });
     });
+    }
 
     svg.querySelectorAll<SVGGraphicsElement>("[data-mckenna-grafico]").forEach((el) => {
       const id = el.getAttribute("data-mckenna-grafico");
@@ -258,6 +317,8 @@ export function EtiquetaDiagramacionWorkspace({
         top: rect.top,
         width: rect.width,
         height: rect.height,
+        baseTx: 0,
+        baseTy: 0,
         tx: ov?.x ?? 0,
         ty: ov?.y ?? 0,
         color: "#64748b",
@@ -265,6 +326,7 @@ export function EtiquetaDiagramacionWorkspace({
       });
     });
 
+    if (!soloLineas) {
     for (const def of CAMPOS_DIAGRAMACION) {
       if (!medidos.some((c) => c.id === def.id)) {
         medidos.push({
@@ -274,6 +336,8 @@ export function EtiquetaDiagramacionWorkspace({
           top: 0,
           width: 0,
           height: 0,
+          baseTx: 0,
+          baseTy: 0,
           tx: 0,
           ty: 0,
           color: "#000000",
@@ -281,8 +345,9 @@ export function EtiquetaDiagramacionWorkspace({
         });
       }
     }
+    }
     setCampos(medidos);
-    if (onCamposPresentesChange) {
+    if (!soloLineas && onCamposPresentesChange) {
       onCamposPresentesChange(
         new Set(
           medidos
@@ -304,6 +369,7 @@ export function EtiquetaDiagramacionWorkspace({
     svgKey,
     onCamposPresentesChange,
     onGraficosPresentesChange,
+    soloLineas,
   ]);
 
   useEffect(() => {
@@ -324,6 +390,12 @@ export function EtiquetaDiagramacionWorkspace({
     const onMove = (ev: PointerEvent) => {
       const d = dragRef.current;
       if (!d || ev.pointerId !== d.pointerId) return;
+      const dist = Math.hypot(ev.clientX - d.startX, ev.clientY - d.startY);
+      if (!d.moved && dist < UMBRAL_ARRASTRE_PX) return;
+      if (!d.moved) {
+        d.moved = true;
+        setArrastrando(true);
+      }
       const delta = deltaScreenToSvg(svg, ev.clientX - d.startX, ev.clientY - d.startY);
       const nx = Math.round((d.baseTx + delta.dx) * 100) / 100;
       const ny = Math.round((d.baseTy + delta.dy) * 100) / 100;
@@ -408,11 +480,62 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
       ? diagramacion?.[seleccion as CampoDiagramacionId]
       : undefined;
   const editorTexto =
-    seleccion && !esIdGrafico(seleccion) ? editorTextoCampo(seleccion as CampoDiagramacionId) : undefined;
+    seleccion && !esIdGrafico(seleccion) ? editorTextoCampo(seleccion) : undefined;
   const escalaSel =
     seleccion && !esIdGrafico(seleccion)
       ? escalaEfectiva(diagramacion, seleccion as CampoDiagramacionId)
       : 1;
+
+  const edicionInlineActiva = Boolean(panelExterno && onPatchDatos && !soloLineas);
+
+  const abrirEdicionTexto = useCallback(
+    (campoId: string) => {
+      if (!edicionInlineActiva) return;
+      const editor = editorTextoCampo(campoId);
+      if (!editor || editor.readonly) return;
+      const actual = editor.getTexto(datos).trim();
+      if (!actual) {
+        const desdeSvg = leerTextoCampoSvg(containerRef.current, campoId);
+        if (desdeSvg) onPatchDatos!(editor.patchTexto(desdeSvg, datos));
+      }
+      setSeleccion(campoId);
+      setTextoEditando(campoId);
+    },
+    [edicionInlineActiva, datos, containerRef, onPatchDatos, setSeleccion],
+  );
+
+  const eliminarCampoTexto = useCallback(
+    (campoId: string) => {
+      if (!panelExterno || esIdGrafico(campoId)) return;
+      onPatchDiagramacion(ocultarCampoDiagramacion(diagramacion, campoId));
+      if (seleccion === campoId) setSeleccion(null);
+      if (textoEditando === campoId) setTextoEditando(null);
+    },
+    [panelExterno, diagramacion, onPatchDiagramacion, seleccion, textoEditando, setSeleccion],
+  );
+
+  const eliminarSeleccionado = useCallback(() => {
+    if (!seleccion || esIdGrafico(seleccion)) return;
+    eliminarCampoTexto(seleccion);
+  }, [seleccion, eliminarCampoTexto]);
+
+  useEffect(() => {
+    setTextoEditando(null);
+  }, [svgKey]);
+
+  useEffect(() => {
+    if (!panelExterno || soloLineas || !seleccion || esIdGrafico(seleccion)) return;
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== "Delete" && ev.key !== "Backspace") return;
+      if (textoEditando) return;
+      const tag = (ev.target as HTMLElement | null)?.tagName ?? "";
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      ev.preventDefault();
+      eliminarSeleccionado();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panelExterno, seleccion, textoEditando, eliminarSeleccionado]);
 
   if (!enabled) {
     return <div className="h-full overflow-auto">{children}</div>;
@@ -482,28 +605,49 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
   ) : null;
 
   const canvasBlock = (
-    <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-[#e8eaed] p-3">
-      <div className="flex min-h-full items-center justify-center">
+    <div
+      className={
+        panelExterno
+          ? "flex min-h-0 flex-1 items-center justify-center overflow-auto"
+          : "min-h-0 flex-1 overflow-auto rounded-lg bg-[#e8eaed] p-3"
+      }
+    >
+      <div className={panelExterno ? "flex min-h-full w-full items-center justify-center" : "flex min-h-full items-center justify-center"}>
         <div
           ref={containerRef}
-          className={`relative shrink-0 overflow-hidden rounded-sm border border-border/80 bg-white shadow-md ${
+          className={`relative shrink-0 overflow-hidden rounded-sm border border-border/80 bg-white shadow-md ${FUENTE_ETIQUETA} ${
             variant === "inline" ? "" : "mx-auto max-w-[920px]"
           }`}
-          style={{ width: `${canvas.width}px`, height: `${canvas.height}px`, minWidth: "160px" }}
+          style={{
+            width: `${canvas.width}px`,
+            height: `${canvas.height}px`,
+            minWidth: "160px",
+            fontFamily: FUENTE_ETIQUETA_FAMILY,
+          }}
         >
           {children}
           {campos
-            .filter((c) => c.presente)
+            .filter((c) => c.presente && !campoDiagramacionOculto(diagramacion, c.id))
             .map((c) => {
               const activo = seleccion === c.id;
               const label = c.kind === "grafico" ? labelElementoEditor(c.id) : labelCampoDiagramacion(c.id as CampoDiagramacionId);
+              const editandoEste = textoEditando === c.id;
+              const svgEl = containerRef.current?.querySelector("svg") ?? null;
+              const pos = overlayPosicionCampo(c, svgEl, diagramacion, diagramacionGraficos);
               return (
                 <button
                   key={`${c.kind}-${c.id}`}
                   type="button"
                   aria-label={label}
+                  title={
+                    c.kind === "texto" && edicionInlineActiva
+                      ? `${label} · arrastra para mover · doble clic para editar`
+                      : `${label} · arrastra para mover`
+                  }
                   className={`absolute z-20 touch-none select-none ${
-                    activo
+                    editandoEste
+                      ? "pointer-events-none opacity-0"
+                      : activo
                       ? c.kind === "grafico"
                         ? "border-2 border-violet-500 bg-violet-500/10"
                         : "border-2 border-accent bg-accent/10"
@@ -512,26 +656,32 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
                         : "border border-dashed border-accent/50 bg-transparent hover:bg-accent/5"
                   }`}
                   style={{
-                    left: c.left,
-                    top: c.top,
+                    left: pos.left,
+                    top: pos.top,
                     width: c.width,
                     height: c.height,
                     cursor: arrastrando && activo ? "grabbing" : "grab",
                   }}
+                  onDoubleClick={(ev) => {
+                    if (c.kind !== "texto" || !edicionInlineActiva) return;
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    abrirEdicionTexto(c.id as CampoDiagramacionId);
+                  }}
                   onPointerDown={(ev) => {
+                    if (editandoEste) return;
                     ev.preventDefault();
                     ev.stopPropagation();
                     (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
                     setSeleccion(c.id);
-                    setArrastrando(true);
                     const baseTx =
                       c.kind === "grafico"
                         ? (diagramacionGraficos?.[c.id]?.x ?? 0)
-                        : (diagramacion?.[c.id as CampoDiagramacionId]?.x ?? c.tx);
+                        : (diagramacion?.[c.id as CampoDiagramacionId]?.x ?? c.baseTx);
                     const baseTy =
                       c.kind === "grafico"
                         ? (diagramacionGraficos?.[c.id]?.y ?? 0)
-                        : (diagramacion?.[c.id as CampoDiagramacionId]?.y ?? c.ty);
+                        : (diagramacion?.[c.id as CampoDiagramacionId]?.y ?? c.baseTy);
                     dragRef.current = {
                       id: c.id,
                       kind: c.kind,
@@ -540,14 +690,124 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
                       baseTx,
                       baseTy,
                       pointerId: ev.pointerId,
+                      moved: false,
                     };
                   }}
                 />
               );
             })}
+          {seleccionado && panelExterno && !soloLineas && (() => {
+            const svgEl = containerRef.current?.querySelector("svg") ?? null;
+            const pos = overlayPosicionCampo(seleccionado, svgEl, diagramacion, diagramacionGraficos);
+            return (
+            <button
+              type="button"
+              title="Eliminar caja de texto (Supr)"
+              aria-label="Eliminar caja de texto"
+              className="absolute z-40 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-red-600 text-[11px] font-bold leading-none text-white shadow"
+              style={{
+                left: pos.left + seleccionado.width - 6,
+                top: pos.top - 8,
+              }}
+              onClick={(ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                eliminarCampoTexto(seleccionado.id);
+              }}
+            >
+              ×
+            </button>
+            );
+          })()}
+          {textoEditando && edicionInlineActiva && (() => {
+            const c = campos.find(
+              (x) => x.id === textoEditando && x.presente && x.kind === "texto",
+            );
+            if (!c) return null;
+            const campoId = textoEditando;
+            const editor = editorTextoCampo(campoId);
+            if (!editor) return null;
+            const cfg = diagramacion?.[campoId];
+            const escalaCampo = escalaEfectiva(diagramacion, campoId);
+            const valor = editor.getTexto(datos);
+            const lineas = Math.max(1, valor.split("\n").length);
+            const fontSize = Math.max(7, Math.min(34, (c.height / lineas) * 0.9 * escalaCampo));
+            const colorRaw = cfg?.color ?? c.color;
+            const color = colorRaw.match(/^#[0-9A-Fa-f]{6}$/i) ? colorRaw : "#000000";
+            const svgEl = containerRef.current?.querySelector("svg") ?? null;
+            const pos = overlayPosicionCampo(c, svgEl, diagramacion, diagramacionGraficos);
+            const estilo: CSSProperties = {
+              position: "absolute",
+              left: pos.left,
+              top: pos.top,
+              width: Math.max(c.width, 40),
+              height: Math.max(c.height, fontSize + 8),
+              zIndex: 50,
+              fontFamily: FUENTE_ETIQUETA_FAMILY,
+              fontSize: `${fontSize}px`,
+              fontWeight: pesoFuenteCampoSvg(containerRef.current, campoId),
+              lineHeight: editor.multiline ? `${Math.round(fontSize * 1.12)}px` : `${fontSize}px`,
+              color,
+              textAlign: alineacionCssEditor(cfg?.alineacion, campoId),
+              background: "rgba(255,255,255,0.94)",
+              border: "2px solid #016d82",
+              borderRadius: 2,
+              padding: "1px 3px",
+              margin: 0,
+              resize: "none",
+              outline: "none",
+              boxSizing: "border-box",
+              overflow: "auto",
+            };
+            const commit = (texto: string) => onPatchDatos!(editor.patchTexto(texto, datos));
+            const cerrar = () => setTextoEditando(null);
+            if (editor.multiline) {
+              return (
+                <textarea
+                  key={`edit-${campoId}`}
+                  autoFocus
+                  value={valor}
+                  onChange={(e) => commit(e.target.value)}
+                  onBlur={cerrar}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      cerrar();
+                    }
+                  }}
+                  style={estilo}
+                  spellCheck={false}
+                />
+              );
+            }
+            return (
+              <input
+                key={`edit-${campoId}`}
+                type="text"
+                autoFocus
+                value={valor}
+                onChange={(e) => commit(e.target.value)}
+                onBlur={cerrar}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    cerrar();
+                  }
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    cerrar();
+                  }
+                }}
+                style={estilo}
+                spellCheck={false}
+              />
+            );
+          })()}
           {seleccionado &&
             HANDLES.map((h) => {
-              const pos = handlePos(h.id, seleccionado);
+              const svgEl = containerRef.current?.querySelector("svg") ?? null;
+              const selPos = overlayPosicionCampo(seleccionado, svgEl, diagramacion, diagramacionGraficos);
+              const pos = handlePos(h.id, { ...seleccionado, left: selPos.left, top: selPos.top });
               return (
                 <button
                   key={h.id}
@@ -626,8 +886,8 @@ type CampoMedidoTexto = CampoMedido & { id: CampoDiagramacionId; kind: "texto" }
   if (variant === "inline") {
     if (panelExterno) {
       return (
-        <div className="flex h-full min-h-[min(60vh,800px)] flex-col gap-2">
-          {zoomBar && <div className="flex justify-end">{zoomBar}</div>}
+        <div className="flex h-full min-h-0 w-full flex-col">
+          {zoomBar && <div className="flex shrink-0 justify-end px-1 pb-1">{zoomBar}</div>}
           {canvasBlock}
         </div>
       );

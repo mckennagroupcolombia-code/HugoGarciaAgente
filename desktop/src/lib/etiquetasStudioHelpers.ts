@@ -24,7 +24,7 @@ export interface EscaneoDiagramacionTarget {
 }
 
 function tipoDesdeNombrePlantilla(archivoAi: string): string | undefined {
-  const stem = archivoAi.replace(/\.ai$/i, "");
+  const stem = archivoAi.replace(/\.(ai|pdf)$/i, "").replace(/^PDF\//i, "");
   const m = stem.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|ml|mL|lt|l)\b/i) || stem.match(/(\d+)(kg|g|ml)$/i);
   if (!m) return undefined;
   return presentacionDesdeTipoEtiqueta(`${m[1]} ${m[2]}`).tipo_etiqueta;
