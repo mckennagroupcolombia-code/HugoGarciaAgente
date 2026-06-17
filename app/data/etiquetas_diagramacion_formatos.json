@@ -1,0 +1,87 @@
+{
+  "500 g": {
+    "archivo_ai": "UREA 500g.ai",
+    "tipo_etiqueta": "500 g",
+    "ancho_mm": 76,
+    "alto_mm": 66,
+    "diagramacion": {
+      "peso": {
+        "x": 172.6621,
+        "y": 2.2666,
+        "color": "#181918",
+        "escala": 0.6
+      },
+      "cuchara": {
+        "x": 30.0127,
+        "y": 2.3154,
+        "color": "#5E2590",
+        "escala": 1.111
+      },
+      "b1": {
+        "x": 4.5869,
+        "y": 143.1982,
+        "color": "#231F20",
+        "escala": 1.333,
+        "ancho_pct": 63.2
+      },
+      "concentracion": {
+        "x": 145.1719,
+        "y": 143.6978,
+        "color": "#171717",
+        "escala": 1.222
+      },
+      "formula": {
+        "x": 32.8877,
+        "y": 161.4351,
+        "color": "#5E2590",
+        "escala": 1.111
+      },
+      "subtitulo": {
+        "x": 4.8428,
+        "y": 152.6797,
+        "color": "#8D198F",
+        "escala": 1.0
+      },
+      "cas": {
+        "x": 144.2246,
+        "y": 134.9844,
+        "color": "#171717",
+        "escala": 1.222
+      },
+      "titulo": {
+        "x": 52.2769,
+        "y": 169.8389,
+        "color": "#5E2590",
+        "escala": 1.0
+      }
+    },
+    "diagramacion_graficos": {},
+    "muestras": {
+      "peso": "500 g",
+      "cuchara": "Incluye cuchara medidora de 5 g.",
+      "concentracion": "Concentración: 99 %",
+      "formula": "Fórmula molecular: CO(NH",
+      "cas_linea": "# CAS: 57-13-6",
+      "titulo": "UREA",
+      "subtitulo": "Materia prima grado farmacológico Ph. Eur. JPC. USP; COA"
+    },
+    "campos_detectados": [
+      "b1",
+      "cas",
+      "concentracion",
+      "cuchara",
+      "formula",
+      "peso",
+      "subtitulo",
+      "titulo"
+    ],
+    "graficos_detectados": [],
+    "export_area": [
+      -0.5,
+      -0.4999970970999925,
+      287.7439928189,
+      249.94933
+    ],
+    "updated_at": "2026-06-16T22:39:58"
+  }
+}

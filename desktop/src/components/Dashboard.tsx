@@ -3,6 +3,7 @@ import { useStatus } from "../hooks/useStatus";
 import { usePreventa } from "../hooks/usePreventa";
 import { usePanelMetricas, usePanelMiResumen } from "../hooks/usePanelMetricas";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import PanelHelp from "./PanelHelp";
 
 function StatCard({
   label,
@@ -52,10 +53,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <PanelHelp panelId="dashboard" />
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-ink">Métricas</h2>
+        <h2 className="text-xl font-extrabold text-ink">📊 Métricas del día</h2>
         {m?.fecha && (
-          <span className="text-xs text-muted">{m.fecha}</span>
+          <span className="rounded-full bg-surface-panel border border-border px-3 py-1 text-xs font-semibold text-muted">{m.fecha}</span>
         )}
       </div>
 

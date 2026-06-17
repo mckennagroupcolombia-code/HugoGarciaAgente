@@ -40,5 +40,60 @@
     "mostrar_bloque_legal": true,
     "mostrar_res_2674": true,
     "updated_at": "2026-06-15T15:44:57"
+  },
+  "C-CITCAL500g": {
+    "_versiones": {
+      "original": {},
+      "alternativa": {
+        "sku": "C-CITCAL500g",
+        "nombre_producto": "CITRATO CALCIO 500g",
+        "subtitulo": "Insumo alimentario 100% puro en polvo",
+        "perfil": "materia_prima_alimentaria",
+        "ingrediente": "CITRATO CALCIO 500g",
+        "contenido_neto": "500",
+        "unidad": "g",
+        "presentacion_extra": "",
+        "aplicaciones": "Alimentos, formulación, cosmética e industria",
+        "descripcion_etiqueta": "Materia prima alimentaria para formulación industrial y alimentaria. Reenvase Res. 2674/2013 Art. 37-3. No es suplemento dietario terminado ni medicamento. Es una sal (hidratada), está compuesto por magnesio y ácido cítrico, en una relación de magnesio: citrato de 3: 2, está compuesta por magnesio y ácido cítrico, en una proporción de 3:2 de magnesio a citrato, esto significa que, por cada 3 partes de magnesio, hay 2 partes de citrato. El citrato de magnesio se usa comúnmente en la industria de alimentos y bebidas como aditivo para mejorar el sabor y como suplemento nutritivo debido a que es de fácil absorción. Nota: El producto cumple con el estándar USP 32.",
+        "cas": "",
+        "concentracion": "99 %",
+        "formula_molecular": "",
+        "pureza": "100% puro",
+        "lote": "",
+        "vencimiento": "",
+        "mostrar_lote_vencimiento": true,
+        "placeholders_lote_vencimiento": true,
+        "codigo_barras": "",
+        "incluye_cuchara": false,
+        "texto_cuchara": "Cuchara incluida para dosificación en formulación",
+        "mostrar_bloque_legal": true,
+        "mostrar_res_2674": true,
+        "distribuidor": "MCKENNA GROUP S.A.S",
+        "nit": "901316016-3",
+        "ciudad": "Bogotá — Colombia",
+        "notas_tecnicas": "COA y ficha técnica en www.mckennagroup.co",
+        "tipo_etiqueta": "500 g",
+        "ancho_mm": 76,
+        "alto_mm": 66,
+        "mostrar_formula_molecular": true,
+        "mostrar_cas": true,
+        "mostrar_concentracion": true,
+        "modo_etiqueta": "alternativa",
+        "archivo_ai": "CITRATO DE CALCIO 500g.ai",
+        "forzar_plantilla_svg": false,
+        "updated_at": "2026-06-16T16:31:57"
+      }
+    },
+    "updated_at": "2026-06-16T16:31:57"
+  },
+  "C-CITMAG500g": {
+    "_versiones": {
+      "original": {},
+      "alternativa": {
+        "sku": "C-CITMAG500g",
+        "updated_at": "2026-06-16T22:07:35"
+      }
+    },
+    "updated_at": "2026-06-16T22:07:35"
   }
 }

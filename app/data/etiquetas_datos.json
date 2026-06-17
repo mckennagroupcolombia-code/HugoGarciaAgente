@@ -15,5 +15,18 @@
     "lote_pos": "bottom-left",
     "lote_font": 7,
     "updated_at": "2026-06-08T00:00:00"
+  },
+  "C-CITMAG500g": {
+    "pdf_ruta": "Etiquetas McKenna/CITRATO MAGNESIO 500g.pdf",
+    "pdf_nombre": "CITRATO MAGNESIO 500g.pdf",
+    "nombre_etiqueta": "CITRATO MAGNESIO 500g",
+    "tipo_etiqueta": "250 g",
+    "studio": true,
+    "updated_at": "2026-06-16T22:08:01.040838",
+    "siigo_code": "C-CITMAG500g",
+    "siigo_name": "CITRATO MAGNESIO 500g",
+    "presentacion": "250g",
+    "lote_defecto": "LOT.",
+    "vencimiento_defecto": "EXP."
   }
 }

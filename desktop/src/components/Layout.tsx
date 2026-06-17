@@ -5,6 +5,8 @@ import { useAppStore } from "../stores/app";
 import { useTicketsAuth } from "../stores/ticketsAuth";
 import { usePanelSession } from "../hooks/usePanelSession";
 import { Icon } from "../icons";
+import { PANEL_INFO } from "../lib/panelInfo";
+import { useUiMode } from "../stores/uiMode";
 
 export default function Layout({ children }: { children: ReactNode }) {
   usePanelSession();
@@ -13,9 +15,18 @@ export default function Layout({ children }: { children: ReactNode }) {
   const sidebarOpen = useAppStore((s) => s.sidebarOpen);
   const toggle = useAppStore((s) => s.toggleSidebar);
   const isAdmin = (useTicketsAuth((s) => s.user)?.rol?.nivel ?? 0) >= 3;
+  const { advanced } = useUiMode();
   const isCentroMando = panel === "hugo" || panel === "tickets";
-  const hubIntegrado =
-    isCentroMando && centroMandoView === "home";
+  const hubIntegrado = isCentroMando && centroMandoView === "home";
+
+  const panelInfo = PANEL_INFO[panel];
+  const headerTitle = panel === "perfil"
+    ? "Mi perfil"
+    : hubIntegrado
+    ? "Hugo · Centro de Mando"
+    : panelInfo
+    ? `${panelInfo.emoji} ${panelInfo.label}`
+    : "Panel de operaciones";
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
@@ -33,17 +44,19 @@ export default function Layout({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={toggle}
-            className="rounded-full p-1 text-muted transition hover:bg-surface-hover hover:text-ink lg:hidden"
+            className="rounded-full p-1.5 text-muted transition hover:bg-surface-hover hover:text-ink lg:hidden"
             aria-label="Abrir menú"
           >
-            <Icon name="menu" size={24} weight="bold" aria-label="Abrir menú" />
+            <Icon name="menu" size={22} weight="bold" aria-label="Abrir menú" />
           </button>
-          <span className="flex-1 text-sm font-bold tracking-tight text-ink lg:hidden">
-            {panel === "perfil" ? "Mi perfil" : hubIntegrado ? "Centro de Mando" : "McKenna"}
+          <span className="flex-1 text-sm font-bold tracking-tight text-ink">
+            {headerTitle}
           </span>
-          <span className="hidden flex-1 text-sm font-bold tracking-tight text-ink lg:inline">
-            {panel === "perfil" ? "Mi perfil" : hubIntegrado ? "Hugo · Centro de Mando" : "Panel de operaciones"}
-          </span>
+          {advanced && (
+            <span className="hidden rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 lg:inline">
+              Modo avanzado
+            </span>
+          )}
         </header>
 
         <div className="flex flex-1 flex-col overflow-hidden">

@@ -12,6 +12,7 @@ export const TIPOS_ETIQUETA_DEFAULT: TipoEtiqueta[] = [
   { nombre: "5 mL", ancho_mm: 66, alto_mm: 22 },
   { nombre: "125 g", ancho_mm: 70, alto_mm: 70 },
   { nombre: "250 g", ancho_mm: 76, alto_mm: 66 },
+  { nombre: "500 g", ancho_mm: 76, alto_mm: 66 },
   { nombre: "1 Lt", ancho_mm: 108, alto_mm: 76 },
   { nombre: "100 g", ancho_mm: 69, alto_mm: 51 },
   { nombre: "Lactato", ancho_mm: 38, alto_mm: 140 },

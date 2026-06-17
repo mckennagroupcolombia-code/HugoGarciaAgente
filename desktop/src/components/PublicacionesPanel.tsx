@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ProseTextarea } from "./ProseTextarea";
+import MeliComplianceTab from "./MeliComplianceTab";
 import {
   usePublicaciones,
   usePublicacionDetalle,
@@ -141,17 +142,39 @@ function ProductoCard({
           </div>
         </div>
 
-        {/* Precio */}
-        <div className="shrink-0 text-right">
+        {/* Precio + enlace MeLi */}
+        <div className="shrink-0 text-right space-y-1">
           <p className="text-sm font-bold text-ink">
             {item.precio_web > 0
               ? `$${item.precio_web.toLocaleString("es-CO")}`
               : "—"}
           </p>
+          {item.meli_compliance_reemplazo?.url_meli ? (
+            <a
+              href={item.meli_compliance_reemplazo.url_meli}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-0.5 rounded border border-teal-300 bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-teal-800 hover:bg-teal-100"
+              title={`Reemplazo compliance · ${item.meli_compliance_reemplazo.estado_actual}`}
+            >
+              ↗ MeLi {item.meli_compliance_reemplazo.estado_actual === "active" ? "✓" : "!"}
+            </a>
+          ) : item.meli_url ? (
+            <a
+              href={item.meli_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-0.5 rounded border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 hover:bg-blue-100"
+            >
+              ↗ MeLi
+            </a>
+          ) : null}
           {!webOk || !meliOk ? (
-            <span className="text-[10px] text-warning">⚠ Incompleto</span>
+            <p className="text-[10px] text-warning">⚠ Incompleto</p>
           ) : (
-            <span className="text-[10px] text-green-600">✓ Listo</span>
+            <p className="text-[10px] text-green-600">✓ Listo</p>
           )}
         </div>
       </div>
@@ -758,6 +781,28 @@ export function EditorPanel({
         </button>
       </div>
 
+      {data.meli_compliance_reemplazo?.url_meli && (
+        <div className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 space-y-2">
+          <p className="text-xs font-bold text-teal-900">Publicación de reemplazo (compliance MeLi)</p>
+          <p className="text-[11px] text-teal-800">
+            {data.meli_compliance_reemplazo.item_id}
+            {" · "}
+            <span className="font-semibold">{data.meli_compliance_reemplazo.estado_actual}</span>
+            {data.meli_compliance_reemplazo.item_origen_id && (
+              <> · sustituye {data.meli_compliance_reemplazo.item_origen_id}</>
+            )}
+          </p>
+          <a
+            href={data.meli_compliance_reemplazo.url_meli}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-lg border border-teal-400 bg-white px-3 py-1.5 text-xs font-bold text-teal-900 hover:bg-teal-100"
+          >
+            ↗ Abrir en MeLi y verificar que siga activa
+          </a>
+        </div>
+      )}
+
       {/* Indicadores de estado */}
       <div className="grid grid-cols-3 gap-2">
         <div className="rounded-lg border border-border bg-surface px-3 py-2 text-center">
@@ -1131,7 +1176,10 @@ export function EditorPanel({
 
 // ── Panel principal ────────────────────────────────────────────────────────
 
+type MainView = "catalogo" | "compliance";
+
 export default function PublicacionesPanel() {
+  const [mainView, setMainView] = useState<MainView>("catalogo");
   const [buscar, setBuscar] = useState("");
   const [buscarDebounced, setBuscarDebounced] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
@@ -1161,7 +1209,41 @@ export default function PublicacionesPanel() {
   const sinMeli = items.filter((i) => i.sync_meli.status === "no_listing").length;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      {/* Switcher de vista principal */}
+      <div className="flex shrink-0 gap-1 rounded-xl border border-border bg-surface p-1">
+        <button
+          onClick={() => setMainView("catalogo")}
+          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+            mainView === "catalogo"
+              ? "bg-accent text-white shadow-sm"
+              : "text-muted hover:text-ink"
+          }`}
+        >
+          🗂 Catálogo
+        </button>
+        <button
+          onClick={() => setMainView("compliance")}
+          className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+            mainView === "compliance"
+              ? "bg-orange-500 text-white shadow-sm"
+              : "text-muted hover:text-ink"
+          }`}
+        >
+          🛡 Republicar en MeLi
+        </button>
+      </div>
+
+      {/* Vista compliance */}
+      {mainView === "compliance" && (
+        <div className="flex-1 min-h-0">
+          <MeliComplianceTab />
+        </div>
+      )}
+
+      {/* Vista catálogo — existente */}
+      {mainView === "catalogo" && (
+      <div className="flex flex-1 min-h-0 flex-col gap-4 lg:flex-row">
       {/* Columna izquierda: lista */}
       <div
         className={`flex flex-col gap-3 lg:w-[420px] lg:shrink-0 ${selectedSku ? "hidden lg:flex" : "flex"}`}
@@ -1290,6 +1372,8 @@ export default function PublicacionesPanel() {
             <p className="mt-2 text-sm">Selecciona un producto para editar</p>
           </div>
         </div>
+      )}
+      </div>
       )}
     </div>
   );

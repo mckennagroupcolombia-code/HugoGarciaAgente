@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../api/client";
+import PanelHelp from "./PanelHelp";
 
 interface StockResult {
   status: string;
@@ -35,7 +36,8 @@ export default function StockPanel() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h2 className="text-lg font-semibold text-ink">Stock e Inventario</h2>
+      <PanelHelp panelId="stock" />
+      <h2 className="text-xl font-extrabold text-ink">📦 Stock e Inventario</h2>
 
       {/* Search product */}
       <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-3">

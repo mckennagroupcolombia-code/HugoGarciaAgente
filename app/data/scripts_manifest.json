@@ -10,6 +10,7 @@
     {"path": "app/core.py", "nota": "Claude + herramientas"},
     {"path": "app/cli.py", "nota": "Menú consola del agente"},
     {"path": "scripts/auditar_scripts_cron.py", "nota": "Cron auditoría"},
+    {"path": "scripts/meli_compliance_monitor_cron.py", "nota": "Cron seguimiento publicaciones MeLi compliance"},
     {"path": "scripts/postventa_cola_meli.py", "nota": "Cola postventa MeLi puntual (list/limpiar/enviar)"},
     {"path": "app/tools/generar_catalogo.py", "nota": "Módulo catálogo PDF"},
     {"path": "scripts/generar_catalogo.py", "nota": "CLI catálogo scripts/"},

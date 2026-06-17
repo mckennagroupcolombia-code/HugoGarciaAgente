@@ -1499,6 +1499,18 @@
       "pregunta": "Acabo de comprar uno, pero quiero agregar otros de sus productos y de paso sale gratis el envío. Cómo puedo hacer?",
       "respuesta": "Cordial saludo veci, debes verificar que el costo de envio de la plataforma sea gratis dependiendo del valor de la compra y de los productos a elegir.",
       "timestamp": "2026-06-15T22:44:02.932344"
+    },
+    {
+      "producto": "Aceite De Neem  60 Ml Puro Prensado En Frío",
+      "pregunta": "No tengo claridad con esa respuesta. Me di cuenta de otros productos cuando ya había pagado.",
+      "respuesta": "Cordial saludo veci, lo que pasa es que tu pregunta es algo ambigua, ya que preguntabas la manera de que el envio te salga gratis, pero es el sistema de Meli el que te dice si te cobra el envio o no dependiendo de lo que lleves. Si el sistema te cobra el envio, tendrias que pagar el envio. Lamento la confiusion.",
+      "timestamp": "2026-06-16T05:06:51.467941"
+    },
+    {
+      "producto": "Azul De Metileno 30 Ml Mckenna Group Antiséptico Farmacéutico",
+      "pregunta": "Se puede emplear para consumo humano?",
+      "respuesta": "Cordial saludo veci, no encuentro este uso registrado. Generalmente se usa para pesceras.",
+      "timestamp": "2026-06-16T14:44:54.941222"
     }
   ]
 }

@@ -17,6 +17,8 @@ El orquestador lee este indice, consulta memoria si aplica, carga solo la ficha/
 | Memoria agente (Tricap) | `docs/agentic/modules/agent-orchestrator.md` | `app/memory/working.py`, `app/memory/episodic.py`, `app/memory/semantic.py`, `app/memory/compressor.py` | import + `pytest tests/ -q` |
 | Stock/facturas | `docs/agentic/modules/sync-stock.md` | `app/sync.py`, `app/services/meli.py`, `app/services/siigo.py` | tests puros/mocks + auditoria |
 | Panel React | `docs/agentic/modules/desktop-panel.md` | `desktop/src/api/client.ts`, hooks, panel afectado, `app/routes.py` | `cd desktop && npm run qa:full` |
+| Etiquetas MeLi / materia prima | `docs/agentic/modules/meli-materia-prima.md` | `desktop/src/lib/etiquetasNormativa.ts`, `app/tools/etiquetas_ficha.py`, `EtiquetasStudioPanel.tsx` | Studio → Alternativa + checklist prompt |
+| Monitor compliance MeLi | `docs/agentic/modules/meli-compliance-monitor.md` | `app/tools/meli_compliance_monitor.py`, `scripts/meli_compliance_monitor_cron.py` | crear-nueva dry_run + cron |
 | Operacion/systemd | `docs/agentic/modules/ops-systemd.md` | `scripts/systemd/*`, `scripts/*.sh`, `start.sh` | diagnostico en maquina destino |
 | Tests/CI | `docs/agentic/modules/backend-qa.md` | `tests/*`, `.github/workflows/*`, `app/tools/script_audit.py` | `pytest`, workflow local si aplica |
 | Contratos API | `docs/agentic/CONTRACTS.md` | `app/routes.py`, `webhook_meli.py`, `desktop/src/api/client.ts` | smoke + cliente afectado |

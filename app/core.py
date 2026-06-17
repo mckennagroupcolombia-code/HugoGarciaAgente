@@ -83,6 +83,12 @@ from app.tools.pipeline_contenido_facebook import publicar_contenido_redes_socia
 from app.utils import refrescar_token_meli, enviar_whatsapp_reporte
 from app.observability import log_json, spawn_thread
 from app.tools.script_audit import auditar_scripts
+from app.tools.meli_compliance import (
+    diagnosticar_riesgo as diagnosticar_riesgo_meli,
+    buscar_publicaciones_pausadas,
+    autopublicar_producto as autopublicar_producto_meli,
+    republicar_desde_diagnostico,
+)
 from app.tools.sede_sur import (
     crear_ticket_sede_sur,
     resolver_ticket_sede_sur,
@@ -729,6 +735,10 @@ def configurar_ia(app):
             crear_ticket_sede_sur,
             resolver_ticket_sede_sur,
             listar_tickets_sede_sur,
+            diagnosticar_riesgo_meli,
+            buscar_publicaciones_pausadas,
+            autopublicar_producto_meli,
+            republicar_desde_diagnostico,
         ]
 
         _tools_map = {fn.__name__: fn for fn in todas_las_herramientas}
