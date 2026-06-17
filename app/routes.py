@@ -11442,6 +11442,7 @@ def register_routes(app):
                 alto_mm=alto_mm,
                 solo_lineas=solo_lineas,
                 vista_completa=vista_completa,
+                textos_campo=body.get("textos_campo"),
             )
             if guardar:
                 guardar_diagramacion_formato(tipo_etiqueta, {
@@ -11489,6 +11490,7 @@ def register_routes(app):
                 tipo_etiqueta=(body.get("tipo_etiqueta") or "500 g").strip(),
                 diagramacion=body.get("diagramacion"),
                 diagramacion_graficos=body.get("diagramacion_graficos"),
+                textos_campo=body.get("textos_campo"),
                 muestras=body.get("muestras"),
                 export_area=body.get("export_area"),
                 ancho_mm=body.get("ancho_mm"),
@@ -11516,6 +11518,7 @@ def register_routes(app):
             "vista_completa",
             "diagramacion",
             "diagramacion_graficos",
+            "textos_campo",
             "muestras",
             "campos_detectados",
             "graficos_detectados",
@@ -11533,6 +11536,7 @@ def register_routes(app):
             tipo_etiqueta=tipo,
             diagramacion=payload.get("diagramacion"),
             diagramacion_graficos=payload.get("diagramacion_graficos"),
+            textos_campo=payload.get("textos_campo"),
             muestras=payload.get("muestras"),
             export_area=payload.get("export_area"),
             ancho_mm=payload.get("ancho_mm"),
@@ -11589,6 +11593,7 @@ def register_routes(app):
                     tipo_etiqueta=tipo,
                     diagramacion=entry.get("diagramacion"),
                     diagramacion_graficos=entry.get("diagramacion_graficos"),
+                    textos_campo=entry.get("textos_campo"),
                     muestras=entry.get("muestras"),
                     export_area=entry.get("export_area"),
                     ancho_mm=entry.get("ancho_mm"),

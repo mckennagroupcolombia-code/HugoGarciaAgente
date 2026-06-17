@@ -2166,6 +2166,106 @@ def _aplicar_escala_bloque_texto(bloque: str, escala: float) -> str:
     return out
 
 
+def _normalizar_lineas_texto_cfg(texto: str, cfg: dict[str, Any]) -> list[str]:
+    lineas = [ln.strip() for ln in (texto or "").split("\n")]
+    lineas = [ln for ln in lineas if ln]
+    if cfg.get("mayusculas"):
+        lineas = [ln.upper() for ln in lineas]
+    if cfg.get("listado"):
+        lineas = [ln if ln.startswith("• ") else f"• {ln}" for ln in lineas]
+    return lineas or [""]
+
+
+def _aplicar_estilo_tipografico_bloque_texto(bloque: str, cfg: dict[str, Any]) -> str:
+    out = bloque
+    interlineado = cfg.get("interlineado")
+    if interlineado is not None:
+        try:
+            mult = max(0.6, min(2.2, float(interlineado)))
+            out = re.sub(
+                r'dy="([0-9.]+)"',
+                lambda m: f'dy="{float(m.group(1)) * mult:.3f}"',
+                out,
+            )
+        except (TypeError, ValueError):
+            pass
+    interletrado = cfg.get("interletrado")
+    if interletrado is not None:
+        try:
+            ls = max(-1.5, min(8.0, float(interletrado)))
+            if "letter-spacing:" in out:
+                out = re.sub(r"letter-spacing:[^;'\"]+", f"letter-spacing:{ls:.3f}px", out)
+            else:
+                out = out.replace("stroke-width:0.4;", f"stroke-width:0.4;letter-spacing:{ls:.3f}px;", 1)
+        except (TypeError, ValueError):
+            pass
+    if cfg.get("mayusculas") or cfg.get("listado"):
+        lineas: list[str] = []
+        for m in re.finditer(r"<tspan\b[^>]*>(.*?)</tspan>", out, re.S | re.I):
+            txt = re.sub(r"<[^>]+>", "", m.group(1) or "").strip()
+            if txt:
+                lineas.append(txt)
+        if lineas:
+            lineas_cfg = _normalizar_lineas_texto_cfg("\n".join(lineas), cfg)
+            tspans = re.findall(r"(<tspan\b[^>]*>)(.*?)(</tspan>)", out, re.S | re.I)
+            if tspans:
+                reemplazos: list[str] = []
+                for i, (opn, _mid, cls) in enumerate(tspans):
+                    txt = lineas_cfg[min(i, len(lineas_cfg) - 1)]
+                    reemplazos.append(f"{opn}{txt}{cls}")
+                out = re.sub(
+                    r"<tspan\b[^>]*>.*?</tspan>",
+                    lambda _m, it=iter(reemplazos): next(it),
+                    out,
+                    count=len(reemplazos),
+                    flags=re.S | re.I,
+                )
+    return out
+
+
+def _inyectar_campos_texto_extra_ai(svg: str, datos: dict) -> str:
+    diag = datos.get("diagramacion")
+    textos = datos.get("textos_campo")
+    if not isinstance(diag, dict) or not isinstance(textos, dict):
+        return svg
+    extras: list[str] = []
+    for campo, cfg in diag.items():
+        if not (isinstance(campo, str) and campo.startswith("txt_") and isinstance(cfg, dict)):
+            continue
+        if cfg.get("visible") is False:
+            continue
+        texto = str(textos.get(campo) or "").strip()
+        if not texto:
+            continue
+        x = float(cfg.get("x") or 20)
+        y = float(cfg.get("y") or 40)
+        color = str(cfg.get("color") or "#111111")
+        escala = float(cfg.get("escala") or 1.0)
+        fs = max(7.0, min(40.0, 9.0 * escala))
+        anchor_map = {"left": "start", "center": "middle", "right": "end", "justify": "start"}
+        anchor = anchor_map.get(str(cfg.get("alineacion") or "left"), "start")
+        lineas = _normalizar_lineas_texto_cfg(texto, cfg)
+        tspans: list[str] = []
+        for i, ln in enumerate(lineas):
+            if i == 0:
+                tspans.append(f'<tspan x="0" y="0">{ln}</tspan>')
+            else:
+                dy = fs * 1.12
+                tspans.append(f'<tspan x="0" dy="{dy:.3f}">{ln}</tspan>')
+        bloque = (
+            f'<text data-mckenna-campo="{campo}" transform="matrix(1,0,0,-1,{x:.4f},{y:.4f})" '
+            f'text-anchor="{anchor}" '
+            f'style="font-variant:normal;font-weight:normal;font-size:{fs:.3f}px;'
+            f'font-stretch:normal;font-family:{_FUENTE_ETIQUETA};fill:{color};stroke:none;stroke-width:0.4;">'
+            f'{"".join(tspans)}</text>'
+        )
+        bloque = _aplicar_estilo_tipografico_bloque_texto(bloque, cfg)
+        extras.append(bloque)
+    if not extras:
+        return svg
+    return svg.replace("</svg>", "".join(extras) + "</svg>")
+
+
 def _aplicar_diagramacion_ai(svg: str, datos: dict) -> str:
     diag = datos.get("diagramacion")
     if not isinstance(diag, dict) or not diag:
@@ -2213,10 +2313,16 @@ def _aplicar_diagramacion_ai(svg: str, datos: dict) -> str:
                     bloque = out[start:end]
                     bloque = _aplicar_escala_bloque_texto(bloque, float(escala))
                     out = out[:start] + bloque + out[end:]
+                    end = start + len(bloque)
                 except (TypeError, ValueError):
                     pass
+            bloque = out[start:end]
+            bloque2 = _aplicar_estilo_tipografico_bloque_texto(bloque, cfg)
+            if bloque2 != bloque:
+                out = out[:start] + bloque2 + out[end:]
+                end = start + len(bloque2)
             pos = end
-    return out
+    return _inyectar_campos_texto_extra_ai(out, datos)
 
 
 def _quitar_guia_b1_ai(svg: str) -> str:
@@ -2900,6 +3006,7 @@ def _svg_preview_diagramacion(
         out = svg if "data-mckenna-grafico=" in svg else _marcar_lineas_diagramacion_ai(svg)
         out = _ocultar_trazos_punteados_svg(out)
         out = _quitar_graficos_excluidos_svg(out)
+        out = _aplicar_diagramacion_ai(out, datos)
         out = _aplicar_graficos_diagramacion_ai(out, datos)
         return out
     out = _marcar_lineas_diagramacion_ai(svg) if solo_lineas else _marcar_graficos_diagramacion_ai(svg)
@@ -3097,6 +3204,7 @@ def escanear_diagramacion_plantilla(
     alto_mm: float | int | None = None,
     solo_lineas: bool = False,
     vista_completa: bool | None = None,
+    textos_campo: dict | None = None,
 ) -> dict[str, Any]:
     """
     Lee posiciones de plantilla para diagramación por formato.
@@ -3133,6 +3241,7 @@ def escanear_diagramacion_plantilla(
     datos_preview = {
         "diagramacion": diagramacion,
         "diagramacion_graficos": diagramacion_graficos,
+        "textos_campo": textos_campo or {},
     }
     from app.tools.etiquetas_svg_engine import _normalizar_fuentes_svg_web
 
@@ -3179,6 +3288,7 @@ def preview_diagramacion_plantilla(
     alto_mm: float | int | None = None,
     solo_lineas: bool = False,
     vista_completa: bool | None = None,
+    textos_campo: dict | None = None,
 ) -> dict[str, Any]:
     """Regenera SVG recortado con diagramación guardada (vista canvas)."""
     archivo = (archivo_ai or _REFERENCIA_AI_500G).strip()
@@ -3209,6 +3319,7 @@ def preview_diagramacion_plantilla(
     datos_preview = {
         "diagramacion": diagramacion or {},
         "diagramacion_graficos": diagramacion_graficos or {},
+        "textos_campo": textos_campo or {},
     }
     svg_preview = _normalizar_fuentes_svg_web(
         _encajar_svg_en_marco_formato(

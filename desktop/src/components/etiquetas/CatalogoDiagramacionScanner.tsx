@@ -40,6 +40,7 @@ interface DiagramacionFormatoGuardada {
   alto_mm?: number;
   diagramacion?: DiagramacionEtiqueta;
   diagramacion_graficos?: DiagramacionGraficos;
+  textos_campo?: Record<string, string>;
   campos_detectados?: string[];
   graficos_detectados?: string[];
   muestras?: Record<string, string>;
@@ -186,7 +187,10 @@ export function CatalogoDiagramacionScanner({
     });
     setDiagramacion(g.diagramacion ?? {});
     setDiagramacionGraficos(g.diagramacion_graficos ?? {});
-    setDatosExtra(datosDesdeMuestras(g.muestras ?? {}));
+    setDatosExtra({
+      ...datosDesdeMuestras(g.muestras ?? {}),
+      textos_campo: g.textos_campo ?? {},
+    });
     // En Plantillas (solo_lineas), forzamos preview live para evitar SVG cacheado obsoleto.
     setSvgMarkup(g.solo_lineas ? null : (g.svg?.trim() ? g.svg : null));
     setDirty(false);
@@ -294,6 +298,7 @@ export function CatalogoDiagramacionScanner({
           alto_mm: meta.alto_mm,
           diagramacion,
           diagramacion_graficos: diagramacionGraficos,
+          textos_campo: datosCanvas.textos_campo ?? {},
           solo_lineas: SOLO_LINEAS_PLANTILLAS,
           vista_completa: meta.vista_completa ?? vistaCompletaEfectiva,
           muestras: meta.muestras,
@@ -353,6 +358,7 @@ export function CatalogoDiagramacionScanner({
       meta?.tipo_etiqueta,
       JSON.stringify(diagramacion),
       JSON.stringify(diagramacionGraficos),
+      JSON.stringify(datosCanvas.textos_campo ?? {}),
       JSON.stringify(meta?.export_area),
     ],
     queryFn: () =>
@@ -363,6 +369,7 @@ export function CatalogoDiagramacionScanner({
         alto_mm: meta!.alto_mm,
         diagramacion,
         diagramacion_graficos: diagramacionGraficos,
+        textos_campo: datosCanvas.textos_campo ?? {},
         solo_lineas: meta?.solo_lineas ?? SOLO_LINEAS_PLANTILLAS,
         vista_completa: meta?.vista_completa ?? vistaCompletaEfectiva,
         muestras: meta!.muestras,

@@ -27,6 +27,14 @@ export interface CampoDiagramacion {
   ancho_pct?: number;
   /** Escala tipográfica del bloque (0.6–1.8). */
   escala?: number;
+  /** Forzar mayúsculas en el bloque. */
+  mayusculas?: boolean;
+  /** Convertir líneas en listado (viñetas). */
+  listado?: boolean;
+  /** Ajuste de interlineado (0.6–2.2). */
+  interlineado?: number;
+  /** Ajuste de interletrado en px (-1.5–8). */
+  interletrado?: number;
   /** Alineación del texto en el bloque. */
   alineacion?: AlineacionTexto;
   visible?: boolean;
