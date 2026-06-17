@@ -68,6 +68,10 @@ export interface PlantillaModeloFila {
   disponible?: boolean;
   tiene_ai?: boolean;
   tiene_pdf?: boolean;
+  tiene_svg?: boolean;
+  es_plantilla_base?: boolean;
+  ancho_mm?: number;
+  alto_mm?: number;
   sku_vinculado?: string;
   producto_vinculado?: string;
 }
@@ -164,6 +168,7 @@ export function EtiquetasStudioCatalogo({
       p.set("limite", "10000");
       if (modoModeloRelacionado) {
         p.set("relacionar", "1");
+        p.set("solo_titulo_plantilla", "1");
       } else if (modoModeloPdf) {
         p.set("fuente", "pdf");
       }
@@ -278,12 +283,12 @@ export function EtiquetasStudioCatalogo({
       ? (dataModelo?.total_pdf ?? "—")
       : (dataModelo?.total_ai ?? "—");
   const tituloModelo = modoModeloRelacionado
-    ? "Modelos SVG"
+    ? "Plantillas base"
     : modoModeloPdf
       ? "Modelos PDF"
       : "Modelo SVG";
   const resumenModelo = modoModeloRelacionado
-    ? `${dataModelo?.total_ai ?? "—"} .ai · ${dataModelo?.total_pdf ?? "—"} PDF · ${totalModelo} rel.`
+    ? `${totalModelo} tituladas plantilla`
     : `${totalModelo} ${modoModeloPdf ? ".pdf" : ".ai"}`;
 
   const pasoActual = !formatoImpresion ? 1 : !escaneoTarget ? 2 : 3;
@@ -330,7 +335,12 @@ export function EtiquetasStudioCatalogo({
                 {p.nombre || p.archivo.replace(/^PDF\//i, "")}
                 {modoModeloRelacionado && (
                   <span className="ml-1 text-[8px] font-sans text-muted">
-                    {p.tiene_ai ? ".ai" : ""}{p.tiene_ai && p.tiene_pdf ? "+" : ""}{p.tiene_pdf ? "PDF" : ""}
+                    {p.tiene_svg ? ".svg" : ""}{p.tiene_ai ? ".ai" : ""}{p.tiene_pdf ? " PDF" : ""}
+                  </span>
+                )}
+                {modoModeloRelacionado && (
+                  <span className="ml-1 text-[8px] font-sans text-muted">
+                    · {p.archivo_ai || p.archivo_pdf || p.archivo}
                   </span>
                 )}
                 {!modoModeloRelacionado && (
