@@ -43,7 +43,7 @@ export const ALINEACIONES_TEXTO: {
   { id: "justify", label: "≡", title: "Justificado" },
 ];
 
-export type DiagramacionEtiqueta = Partial<Record<CampoDiagramacionId, CampoDiagramacion>>;
+export type DiagramacionEtiqueta = Partial<Record<string, CampoDiagramacion>>;
 
 /** Desplazamiento de líneas / recuadros decorativos (ids g0, g1… del SVG). */
 export interface OffsetGrafico {
@@ -61,10 +61,14 @@ export function esIdGrafico(id: string): boolean {
 
 export function labelElementoEditor(id: string): string {
   if (esIdGrafico(id)) return `Gráfico · ${id}`;
-  return labelCampoDiagramacion(id as CampoDiagramacionId);
+  return labelCampoDiagramacion(id);
 }
 
 /** Pixels por mm a 96 dpi (zoom 100% ≈ tamaño impresión en pantalla). */
+/** Montserrat en editor y lienzo (cargada vía index.html / Google Fonts). */
+export const FUENTE_ETIQUETA = 'font-["Montserrat",system-ui,sans-serif]';
+export const FUENTE_ETIQUETA_FAMILY = '"Montserrat", system-ui, sans-serif';
+
 export function mmAPx(mm: number, zoomPct = 100): number {
   return Math.round(mm * (96 / 25.4) * (zoomPct / 100));
 }
@@ -98,8 +102,23 @@ export const CAMPOS_DIAGRAMACION: {
   { id: "legal", label: "D1 · Legal", zona: "Pie" },
 ];
 
-export function labelCampoDiagramacion(id: CampoDiagramacionId): string {
-  return CAMPOS_DIAGRAMACION.find((c) => c.id === id)?.label ?? id;
+export function labelCampoDiagramacion(id: CampoDiagramacionId | string): string {
+  const known = CAMPOS_DIAGRAMACION.find((c) => c.id === id);
+  if (known) return known.label;
+  const m = id.match(/^([a-z0-9]+)_(\d+)$/i);
+  if (m) {
+    const base = CAMPOS_DIAGRAMACION.find((c) => c.id === m[1]);
+    if (base) return `${base.label} (${m[2]})`;
+  }
+  if (id.startsWith("txt_")) return `Texto · ${id.slice(4)}`;
+  const cromo: Record<string, string> = {
+    ghs: "GHS / clasificación",
+    marca: "Marca",
+    marca_reg: "®",
+    pie_distribuidor: "Pie · Distribuidor",
+  };
+  if (cromo[id]) return cromo[id];
+  return String(id);
 }
 
 export function b1AnchoPctEfectivo(
@@ -113,12 +132,12 @@ export function b1AnchoPctEfectivo(
 
 export function patchDiagramacion(
   base: DiagramacionEtiqueta | undefined,
-  campo: CampoDiagramacionId,
+  campo: CampoDiagramacionId | string,
   patch: CampoDiagramacion,
 ): DiagramacionEtiqueta {
   return {
     ...(base ?? {}),
-    [campo]: { ...(base?.[campo] ?? {}), ...patch },
+    [campo]: { ...(base?.[campo as CampoDiagramacionId] ?? {}), ...patch },
   };
 }
 
@@ -135,7 +154,7 @@ export function patchDiagramacionGraficos(
 
 export function escalaEfectiva(
   diagramacion: DiagramacionEtiqueta | undefined,
-  campo: CampoDiagramacionId,
+  campo: CampoDiagramacionId | string,
 ): number {
   const raw = diagramacion?.[campo]?.escala;
   if (raw == null || !Number.isFinite(raw)) return 1;
@@ -253,7 +272,80 @@ export const TEXTO_POR_CAMPO: Partial<Record<CampoDiagramacionId, CampoTextoEdit
 };
 
 export function editorTextoCampo(
-  id: CampoDiagramacionId,
+  id: CampoDiagramacionId | string,
 ): CampoTextoEditor | undefined {
-  return TEXTO_POR_CAMPO[id];
+  const known = TEXTO_POR_CAMPO[id as CampoDiagramacionId];
+  if (known) return known;
+  const m = id.match(/^([a-z0-9]+)_(\d+)$/i);
+  if (m) {
+    const base = TEXTO_POR_CAMPO[m[1] as CampoDiagramacionId];
+    if (base) {
+      return {
+        ...base,
+        hint: `${labelCampoDiagramacion(id)} (bloque adicional)`,
+      };
+    }
+  }
+  return {
+    multiline: true,
+    filas: 3,
+    hint: labelCampoDiagramacion(id),
+    getTexto: (d) => d.textos_campo?.[id] ?? "",
+    patchTexto: (t, d) => ({
+      textos_campo: { ...(d.textos_campo ?? {}), [id]: t },
+    }),
+  };
+}
+
+export function campoDiagramacionOculto(
+  diagramacion: DiagramacionEtiqueta | undefined,
+  campo: string,
+): boolean {
+  return diagramacion?.[campo]?.visible === false;
+}
+
+export function ocultarCampoDiagramacion(
+  diagramacion: DiagramacionEtiqueta | undefined,
+  campo: CampoDiagramacionId | string,
+): DiagramacionEtiqueta {
+  return patchDiagramacion(diagramacion, campo, { visible: false });
+}
+
+/** Lee el texto visible de un bloque marcado en el SVG del lienzo. */
+export function leerTextoCampoSvg(root: HTMLElement | null, campoId: string): string {
+  if (!root) return "";
+  const textEl = root.querySelector(`[data-mckenna-campo="${campoId}"]`);
+  if (!textEl) return "";
+  const tspans = textEl.querySelectorAll("tspan");
+  if (tspans.length > 0) {
+    return Array.from(tspans)
+      .map((t) => (t.textContent ?? "").trim())
+      .filter(Boolean)
+      .join("\n");
+  }
+  return (textEl.textContent ?? "").trim();
+}
+
+export function pesoFuenteCampoSvg(root: HTMLElement | null, campoId: string): number {
+  if (!root) return campoId === "titulo" ? 700 : 400;
+  const textEl = root.querySelector(`[data-mckenna-campo="${campoId}"]`);
+  const style = textEl?.getAttribute("style") ?? "";
+  const fw = style.match(/font-weight:\s*(\d+|bold)/i);
+  if (fw) {
+    if (fw[1].toLowerCase() === "bold") return 700;
+    const n = parseInt(fw[1], 10);
+    if (Number.isFinite(n)) return n;
+  }
+  return campoId === "titulo" ? 700 : 400;
+}
+
+export function alineacionCssEditor(
+  al?: AlineacionTexto,
+  campoId?: CampoDiagramacionId | string,
+): "left" | "center" | "right" {
+  const base = typeof campoId === "string" && campoId.startsWith("b1") ? "b1" : campoId;
+  const eff = al ?? (base === "b1" ? "justify" : "left");
+  if (eff === "center") return "center";
+  if (eff === "right") return "right";
+  return "left";
 }

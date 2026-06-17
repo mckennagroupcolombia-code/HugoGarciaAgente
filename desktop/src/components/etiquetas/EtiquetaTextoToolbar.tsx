@@ -1,5 +1,5 @@
 import type { CampoDiagramacion, CampoDiagramacionId, DiagramacionEtiqueta } from "../../lib/etiquetasDiagramacion";
-import { ALINEACIONES_TEXTO, labelCampoDiagramacion, patchDiagramacion } from "../../lib/etiquetasDiagramacion";
+import { ALINEACIONES_TEXTO, FUENTE_ETIQUETA, labelCampoDiagramacion, patchDiagramacion } from "../../lib/etiquetasDiagramacion";
 
 interface Props {
   campoId: CampoDiagramacionId | null;
@@ -46,7 +46,7 @@ export function EtiquetaTextoToolbar({
 
   return (
     <div
-      className={`flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 ${
+      className={`flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5 ${FUENTE_ETIQUETA} ${
         disabled ? "opacity-60" : ""
       }`}
     >

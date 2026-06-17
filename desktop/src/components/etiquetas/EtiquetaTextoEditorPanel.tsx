@@ -3,6 +3,7 @@ import type { EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
 import { subtituloAlternativo } from "../../lib/etiquetasNormativa";
 import {
   CAMPOS_DIAGRAMACION,
+  FUENTE_ETIQUETA,
   type CampoDiagramacionId,
   type DiagramacionEtiqueta,
   type DiagramacionGraficos,
@@ -31,6 +32,8 @@ interface Props {
   onCompletarFicha?: () => void;
   fichaPendiente?: boolean;
   fichaMsg?: string | null;
+  /** Vista workbench plantillas: selector compacto, sin cabecera repetida. */
+  compacto?: boolean;
 }
 
 const ZONAS = ["Encabezado", "Columna izq.", "Columna der.", "Pie"] as const;
@@ -50,6 +53,7 @@ export function EtiquetaTextoEditorPanel({
   onCompletarFicha,
   fichaPendiente = false,
   fichaMsg,
+  compacto = false,
 }: Props) {
   const campoId = seleccion ?? "b1";
   const esGrafico = esIdGrafico(campoId);
@@ -76,13 +80,37 @@ export function EtiquetaTextoEditorPanel({
     items: CAMPOS_DIAGRAMACION.filter((c) => c.zona === zona),
   }));
 
+  const camposVisibles = CAMPOS_DIAGRAMACION.filter(
+    (c) => !camposPresentes || camposPresentes.has(c.id),
+  );
+
+  const selectorBloque = (
+    <select
+      className="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-xs"
+      value={campoId}
+      onChange={(e) => onSeleccion(e.target.value)}
+    >
+      {camposVisibles.map((c) => (
+        <option key={c.id} value={c.id}>{c.label}</option>
+      ))}
+      {graficosPresentes.map((gid) => (
+        <option key={gid} value={gid}>{labelElementoEditor(gid)}</option>
+      ))}
+    </select>
+  );
+
   return (
-    <aside className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface-panel">
+    <aside className={`flex h-full flex-col overflow-hidden ${FUENTE_ETIQUETA} ${compacto ? "" : "rounded-xl border border-border bg-surface-panel"}`}>
+      {!compacto && (
       <div className="border-b border-border bg-surface px-3 py-2">
         <h3 className="text-sm font-bold text-ink">Editor de textos</h3>
         <p className="text-[10px] text-muted">Arrastra en la etiqueta o elige un bloque aquí</p>
       </div>
+      )}
 
+      {compacto ? (
+        <div className="border-b border-border p-2">{selectorBloque}</div>
+      ) : (
       <div className="border-b border-border p-2">
         <p className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-wide text-muted">Bloques</p>
         <div className="max-h-[11rem] space-y-2 overflow-y-auto">
@@ -149,6 +177,7 @@ export function EtiquetaTextoEditorPanel({
           </div>
         )}
       </div>
+      )}
 
       <div className="flex-1 space-y-3 overflow-y-auto p-3">
         {soloLectura && (
@@ -158,6 +187,7 @@ export function EtiquetaTextoEditorPanel({
         )}
 
         <section className="space-y-1.5">
+          {!compacto && (
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-ink">
               {esGrafico ? labelElementoEditor(campoId) : `Contenido · ${labelCampoDiagramacion(campoId as CampoDiagramacionId)}`}
@@ -173,16 +203,19 @@ export function EtiquetaTextoEditorPanel({
               </button>
             )}
           </div>
+          )}
           {fichaMsg && campoId === "b1" && (
             <p className="text-[10px] text-blue-700">{fichaMsg}</p>
           )}
           {esGrafico ? (
+            !compacto && (
             <p className="text-xs text-muted">
               Arrastra la línea o el recuadro en la etiqueta, o ajusta X/Y abajo.
             </p>
+            )
           ) : editorTexto ? (
             <>
-              {editorTexto.hint && (
+              {!compacto && editorTexto.hint && (
                 <p className="text-[10px] leading-snug text-muted">{editorTexto.hint}</p>
               )}
               {editorTexto.multiline ? (
@@ -191,7 +224,7 @@ export function EtiquetaTextoEditorPanel({
                   onChange={(e) => onPatchDatos(editorTexto.patchTexto(e.target.value, datos))}
                   readOnly={soloLectura || editorTexto.readonly}
                   rows={editorTexto.filas ?? 4}
-                  className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 font-mono text-[13px] leading-relaxed focus:border-accent focus:outline-none disabled:opacity-70"
+                  className={`w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-[13px] leading-relaxed focus:border-accent focus:outline-none disabled:opacity-70 ${FUENTE_ETIQUETA}`}
                   spellCheck={false}
                 />
               ) : (
@@ -200,7 +233,7 @@ export function EtiquetaTextoEditorPanel({
                   value={editorTexto.getTexto(datos)}
                   onChange={(e) => onPatchDatos(editorTexto.patchTexto(e.target.value, datos))}
                   readOnly={soloLectura || editorTexto.readonly}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none disabled:opacity-70"
+                  className={`w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-accent focus:outline-none disabled:opacity-70 ${FUENTE_ETIQUETA}`}
                 />
               )}
             </>
@@ -210,8 +243,10 @@ export function EtiquetaTextoEditorPanel({
         </section>
 
         {!esGrafico && (
-        <section className="space-y-2 rounded-lg border border-border bg-surface p-2">
+        <section className={`space-y-2 ${compacto ? "" : "rounded-lg border border-border bg-surface p-2"}`}>
+          {!compacto && (
           <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Tipografía</p>
+          )}
           <EtiquetaTextoToolbar
             campoId={soloLectura ? null : (campoId as CampoDiagramacionId)}
             cfg={cfg}
