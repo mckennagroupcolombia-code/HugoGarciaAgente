@@ -1880,7 +1880,7 @@ def _ocultar_trazos_punteados_svg(svg: str) -> str:
     return out
 
 
-_GRAFICOS_EXCLUIDOS = {"g1", "g2", "g3"}
+_GRAFICOS_EXCLUIDOS = {"g3"}
 
 
 def _quitar_graficos_excluidos_svg(svg: str) -> str:
@@ -1899,7 +1899,7 @@ def _quitar_graficos_excluidos_svg(svg: str) -> str:
     out = re.sub(r"<line\s[^>]*/?>", _drop_if_excluded, out, flags=re.I)
     out = re.sub(r"<rect\s[^>]*/?>", _drop_if_excluded, out, flags=re.I)
     out = re.sub(
-        r'<g\b[^>]*>\s*(?:<path\b[^>]*data-mckenna-grafico="(?:g1|g2|g3)"[^>]*(?:/>|>)\s*)</g>',
+        r'<g\b[^>]*>\s*(?:<path\b[^>]*data-mckenna-grafico="(?:g3)"[^>]*(?:/>|>)\s*)</g>',
         "",
         out,
         flags=re.I,
