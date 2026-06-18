@@ -1,8 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useTicketsAuth } from "../stores/ticketsAuth";
-import { useAppStore } from "../stores/app";
+import { useAppStore, type Panel } from "../stores/app";
 import { usePanelChatMutation } from "../hooks/useChat";
 import { cerrarSesionPanel } from "../hooks/usePanelSession";
+import { IllustrationIcon } from "../icons/IllustrationIcon";
+import { PanelIcon } from "../icons/PanelIcon";
+import { Icon, type UiIconName } from "../icons";
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -66,19 +69,20 @@ interface ChatMessage {
 interface QuickCategory {
   slug: string;
   label: string;
-  emoji: string;
+  icon: UiIconName;
+  tone: "plum" | "sky" | "leaf" | "sun" | "rose" | "neutral";
   color: string;
 }
 
 // ── Quick categories ───────────────────────────────────────────────────────────
 
 const QUICK_CATS: QuickCategory[] = [
-  { slug: "etiquetas",    label: "Etiquetas",   emoji: "🏷️",  color: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200" },
-  { slug: "inventario",   label: "Inventario",  emoji: "📦",  color: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200" },
-  { slug: "logistica",    label: "Logística",   emoji: "🚚",  color: "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200" },
-  { slug: "sistemas",     label: "Sistemas",    emoji: "⚙️",  color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200" },
-  { slug: "mantenimiento",label: "Mantenim.",   emoji: "🔧",  color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200" },
-  { slug: "general",      label: "General",     emoji: "💬",  color: "bg-gray-100 text-gray-600 dark:bg-surface-input dark:text-muted" },
+  { slug: "etiquetas",    label: "Etiquetas",   icon: "tag",       tone: "plum",   color: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200" },
+  { slug: "inventario",   label: "Inventario",  icon: "package",   tone: "sky",    color: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200" },
+  { slug: "logistica",    label: "Logística",   icon: "truck",     tone: "leaf",   color: "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200" },
+  { slug: "sistemas",     label: "Sistemas",    icon: "nut",       tone: "sun",    color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200" },
+  { slug: "mantenimiento",label: "Mantenim.",   icon: "wrench",    tone: "rose",   color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200" },
+  { slug: "general",      label: "General",     icon: "chat",      tone: "neutral",color: "bg-gray-100 text-gray-600 dark:bg-surface-input dark:text-muted" },
 ];
 
 const ESTADO_COLOR: Record<string, string> = {
@@ -165,8 +169,8 @@ function NuevaSolicitudSheet({
         <div className="overflow-y-auto px-5 pb-8 pt-2">
           {done ? (
             <div className="flex flex-col items-center gap-3 py-10">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl dark:bg-green-900/30">
-                ✓
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                <Icon name="check" size={32} weight="duotone" className="text-green-600 dark:text-green-400" />
               </div>
               <p className="text-center font-bold text-ink">Solicitud enviada</p>
               <p className="text-center text-sm text-muted">El equipo la recibirá pronto</p>
@@ -190,7 +194,7 @@ function NuevaSolicitudSheet({
                           : "bg-surface text-muted border border-border hover:border-accent/40"
                       }`}
                     >
-                      <span>{c.emoji}</span>
+                      <IllustrationIcon name={c.icon} size={22} tone={c.tone} bubble={false} />
                       {c.label}
                     </button>
                   ))}
@@ -244,17 +248,17 @@ interface ActionResult {
 // ── HomeTab ────────────────────────────────────────────────────────────────────
 
 function HomeTab({
-  token, userName, onNewSolicitud, onSolicitudCreated,
+  token, userName, onNewSolicitud, onSolicitudCreated, onNavigateTo,
 }: {
   token: string;
   userName: string;
   onNewSolicitud: (cat?: string) => void;
   onSolicitudCreated: number;
+  onNavigateTo: (p: Panel) => void;
 }) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [status, setStatus] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
-  const setPanel = useAppStore((s) => s.setPanel);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -274,10 +278,10 @@ function HomeTab({
   useEffect(() => { load(); }, [load, onSolicitudCreated]);
 
   const quickActions = [
-    { emoji: "📋", label: "Nueva\nsolicitud", cat: "", action: () => onNewSolicitud(), color: "bg-accent text-white", shadow: "shadow-[0_4px_0_rgba(2,45,51,0.3)]" },
-    { emoji: "💬", label: "Chat con\nHugo", cat: "", action: () => setPanel("hugo"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
-    { emoji: "📦", label: "Stock &\ninventario", cat: "", action: () => setPanel("stock"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
-    { emoji: "🏷️", label: "Imprimir\netiquetas", cat: "etiquetas", action: () => onNewSolicitud("etiquetas"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
+    { icon: "listChecks" as UiIconName, tone: "accent" as const, label: "Nueva\nsolicitud", cat: "", action: () => onNewSolicitud(), color: "bg-accent text-white", shadow: "shadow-[0_4px_0_rgba(2,45,51,0.3)]" },
+    { icon: "chat" as UiIconName, tone: "plum" as const, label: "Chat con\nHugo", cat: "", action: () => onNavigateTo("hugo"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
+    { icon: "package" as UiIconName, tone: "sky" as const, label: "Stock &\ninventario", cat: "", action: () => onNavigateTo("stock"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
+    { icon: "tag" as UiIconName, tone: "plum" as const, label: "Imprimir\netiquetas", cat: "etiquetas", action: () => onNewSolicitud("etiquetas"), color: "bg-surface-panel border-2 border-border text-ink", shadow: "shadow-paper" },
   ];
 
   return (
@@ -285,7 +289,10 @@ function HomeTab({
       {/* Greeting */}
       <div className="px-4 pb-5">
         <p className="text-xs font-semibold text-muted">{greeting()},</p>
-        <h1 className="text-2xl font-extrabold leading-tight text-ink">{userName.split(" ")[0]} 👋</h1>
+        <h1 className="text-2xl font-extrabold leading-tight text-ink flex items-center gap-2">
+          {userName.split(" ")[0]}
+          <Icon name="wave" size={22} weight="duotone" className="text-accent" />
+        </h1>
       </div>
 
       {/* Quick action grid */}
@@ -299,7 +306,7 @@ function HomeTab({
               onClick={a.action}
               className={`flex min-h-[100px] flex-col items-start justify-between rounded-2xl p-4 text-left transition-all active:scale-95 ${a.color} ${a.shadow}`}
             >
-              <span className="text-2xl">{a.emoji}</span>
+              <IllustrationIcon name={a.icon} size={32} tone={a.tone} />
               <span className="mt-2 whitespace-pre-line text-sm font-bold leading-tight">{a.label}</span>
             </button>
           ))}
@@ -312,7 +319,7 @@ function HomeTab({
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Mis solicitudes</p>
           <button
             type="button"
-            onClick={() => setPanel("hugo")}
+            onClick={() => onNavigateTo("hugo")}
             className="text-xs font-semibold text-accent"
           >
             Ver todas →
@@ -327,7 +334,7 @@ function HomeTab({
           </div>
         ) : tickets.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border py-8 text-center">
-            <span className="text-3xl">🎉</span>
+            <IllustrationIcon name="star" size={40} tone="sun" />
             <p className="text-sm font-semibold text-muted">Sin solicitudes pendientes</p>
           </div>
         ) : (
@@ -336,7 +343,7 @@ function HomeTab({
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setPanel("hugo")}
+                onClick={() => onNavigateTo("hugo")}
                 className="flex w-full items-center gap-3 rounded-2xl bg-surface-panel px-4 py-3 text-left shadow-paper-sm transition-all active:scale-[0.98]"
               >
                 <div className="flex-1 min-w-0">
@@ -518,7 +525,8 @@ function ChatTab() {
 // ── AccionesTab ────────────────────────────────────────────────────────────────
 
 interface QuickAction {
-  emoji: string;
+  icon: UiIconName;
+  tone: "sun" | "sky" | "plum" | "rose";
   label: string;
   sub: string;
   endpoint: string;
@@ -526,16 +534,15 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { emoji: "⚡", label: "Sync facturas hoy",   sub: "Últimas 24 horas",   endpoint: "/api/sync/hoy",   method: "POST" },
-  { emoji: "📊", label: "Reporte de stock",    sub: "Envía por WhatsApp", endpoint: "/api/sync/stock", method: "POST" },
-  { emoji: "🤖", label: "Aprendizaje IA",      sub: "Q&A MeLi",           endpoint: "/api/sync/aprendizaje", method: "POST" },
-  { emoji: "📧", label: "Facturas de compra",  sub: "Registrar desde Gmail", endpoint: "/api/sync/gmail", method: "POST" },
+  { icon: "lightning", label: "Sync facturas hoy",   sub: "Últimas 24 horas",   endpoint: "/api/sync/hoy",   method: "POST", tone: "sun" },
+  { icon: "chartBar",  label: "Reporte de stock",    sub: "Envía por WhatsApp", endpoint: "/api/sync/stock", method: "POST", tone: "sky" },
+  { icon: "robot",     label: "Aprendizaje IA",      sub: "Q&A MeLi",           endpoint: "/api/sync/aprendizaje", method: "POST", tone: "plum" },
+  { icon: "envelope",  label: "Facturas de compra",  sub: "Registrar desde Gmail", endpoint: "/api/sync/gmail", method: "POST", tone: "rose" },
 ];
 
-function AccionesTab({ apiToken }: { apiToken: string }) {
+function AccionesTab({ apiToken, onNavigateTo }: { apiToken: string; onNavigateTo: (p: Panel) => void }) {
   const [results, setResults] = useState<Record<number, ActionResult | "loading">>({});
   const [preventa, setPreventa] = useState<number | null>(null);
-  const setPanel = useAppStore((s) => s.setPanel);
 
   useEffect(() => {
     if (!apiToken) return;
@@ -572,10 +579,10 @@ function AccionesTab({ apiToken }: { apiToken: string }) {
       {preventa != null && preventa > 0 && (
         <button
           type="button"
-          onClick={() => setPanel("preventa")}
+          onClick={() => onNavigateTo("preventa")}
           className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/40 px-4 py-3.5 text-left transition-all active:scale-[0.98]"
         >
-          <span className="text-2xl">❓</span>
+          <IllustrationIcon name="question" size={28} tone="sun" />
           <div className="flex-1">
             <p className="font-bold text-amber-800 dark:text-amber-200">{preventa} pregunta{preventa > 1 ? "s" : ""} sin responder</p>
             <p className="text-sm text-amber-600 dark:text-amber-400">Preventa MercadoLibre · Toca para ver</p>
@@ -595,7 +602,7 @@ function AccionesTab({ apiToken }: { apiToken: string }) {
               disabled={res === "loading"}
               className="flex w-full items-center gap-4 rounded-2xl bg-surface-panel px-4 py-4 text-left shadow-paper-sm transition-all active:scale-[0.98] disabled:opacity-60"
             >
-              <span className="text-2xl">{a.emoji}</span>
+              <IllustrationIcon name={a.icon} size={28} tone={a.tone} />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-ink">{a.label}</p>
                 {res === "loading" ? (
@@ -622,18 +629,18 @@ function AccionesTab({ apiToken }: { apiToken: string }) {
       <p className="mb-3 mt-6 text-xs font-semibold uppercase tracking-wider text-muted">Ir a panel</p>
       <div className="grid grid-cols-2 gap-2.5">
         {([
-          { emoji: "🏪", label: "Preventa MeLi", panel: "preventa" },
-          { emoji: "📦", label: "Stock",          panel: "stock" },
-          { emoji: "🧾", label: "Facturas",       panel: "facturas" },
-          { emoji: "📬", label: "Pedidos web",    panel: "pedidos" },
-        ] as const).map((s) => (
+          { panel: "preventa" as Panel, label: "Preventa MeLi" },
+          { panel: "stock" as Panel, label: "Stock" },
+          { panel: "facturas" as Panel, label: "Facturas" },
+          { panel: "pedidos" as Panel, label: "Pedidos web" },
+        ]).map((s) => (
           <button
             key={s.panel}
             type="button"
-            onClick={() => setPanel(s.panel)}
+            onClick={() => onNavigateTo(s.panel)}
             className="flex items-center gap-2.5 rounded-xl border border-border bg-surface-panel px-3 py-3 text-sm font-semibold text-ink transition-all active:scale-95 hover:border-accent/40"
           >
-            <span className="text-xl">{s.emoji}</span>
+            <PanelIcon panel={s.panel} size={24} />
             {s.label}
           </button>
         ))}
@@ -644,9 +651,8 @@ function AccionesTab({ apiToken }: { apiToken: string }) {
 
 // ── PerfilTab ──────────────────────────────────────────────────────────────────
 
-function PerfilTab({ onSwitchDesktop }: { onSwitchDesktop: () => void }) {
+function PerfilTab({ onSwitchDesktop, onNavigateTo }: { onSwitchDesktop: () => void; onNavigateTo: (p: Panel) => void }) {
   const { user, token } = useTicketsAuth();
-  const setPanel = useAppStore((s) => s.setPanel);
 
   return (
     <div className="overflow-y-auto pb-24 pt-6 px-4">
@@ -667,9 +673,9 @@ function PerfilTab({ onSwitchDesktop }: { onSwitchDesktop: () => void }) {
       {/* Menu */}
       <div className="space-y-2">
         {[
-          { emoji: "⚙️", label: "Ajustes y preferencias", action: () => setPanel("settings") },
-          { emoji: "👤", label: "Mi perfil",               action: () => setPanel("perfil") },
-          { emoji: "🖥️", label: "Cambiar a vista escritorio", action: onSwitchDesktop },
+          { icon: "nut" as UiIconName, label: "Ajustes y preferencias", action: () => onNavigateTo("settings") },
+          { icon: "user" as UiIconName, label: "Mi perfil", action: () => onNavigateTo("perfil") },
+          { icon: "monitor" as UiIconName, label: "Cambiar a vista escritorio", action: onSwitchDesktop },
         ].map((item, i) => (
           <button
             key={i}
@@ -677,7 +683,7 @@ function PerfilTab({ onSwitchDesktop }: { onSwitchDesktop: () => void }) {
             onClick={item.action}
             className="flex w-full items-center gap-3 rounded-2xl bg-surface-panel px-4 py-4 text-left shadow-paper-sm transition-all active:scale-[0.98]"
           >
-            <span className="text-xl">{item.emoji}</span>
+            <IllustrationIcon name={item.icon} size={24} tone="neutral" />
             <span className="flex-1 text-sm font-semibold text-ink">{item.label}</span>
             <span className="text-muted text-sm">→</span>
           </button>
@@ -688,7 +694,7 @@ function PerfilTab({ onSwitchDesktop }: { onSwitchDesktop: () => void }) {
           onClick={() => { if (token) cerrarSesionPanel(token); }}
           className="flex w-full items-center gap-3 rounded-2xl bg-red-50 dark:bg-red-950/30 px-4 py-4 text-left transition-all active:scale-[0.98]"
         >
-          <span className="text-xl">🚪</span>
+          <IllustrationIcon name="signOut" size={24} tone="rose" />
           <span className="flex-1 text-sm font-semibold text-red-600 dark:text-red-400">Cerrar sesión</span>
         </button>
       </div>
@@ -698,43 +704,11 @@ function PerfilTab({ onSwitchDesktop }: { onSwitchDesktop: () => void }) {
 
 // ── BottomNav ──────────────────────────────────────────────────────────────────
 
-const NAV_ITEMS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  {
-    id: "home",
-    label: "Inicio",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1z" /><path d="M9 21V12h6v9" />
-      </svg>
-    ),
-  },
-  {
-    id: "chat",
-    label: "Hugo",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-      </svg>
-    ),
-  },
-  {
-    id: "acciones",
-    label: "Acciones",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-      </svg>
-    ),
-  },
-  {
-    id: "yo",
-    label: "Yo",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
-  },
+const NAV_ITEMS: { id: Tab; label: string; icon: UiIconName }[] = [
+  { id: "home", label: "Inicio", icon: "home" },
+  { id: "chat", label: "Hugo", icon: "chat" },
+  { id: "acciones", label: "Acciones", icon: "lightning" },
+  { id: "yo", label: "Yo", icon: "user" },
 ];
 
 function BottomNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
@@ -751,7 +725,9 @@ function BottomNav({ active, onChange }: { active: Tab; onChange: (t: Tab) => vo
               isActive ? "text-accent" : "text-muted"
             }`}
           >
-            <span className={`transition-transform ${isActive ? "scale-110" : ""}`}>{item.icon}</span>
+            <span className={`transition-transform ${isActive ? "scale-110" : ""}`}>
+              <Icon name={item.icon} size={22} weight={isActive ? "bold" : "duotone"} />
+            </span>
             <span className={`text-[10px] font-bold ${isActive ? "text-accent" : "text-muted"}`}>{item.label}</span>
           </button>
         );
@@ -771,9 +747,7 @@ function FAB({ onClick }: { onClick: () => void }) {
       style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}
       aria-label="Nueva solicitud"
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-      </svg>
+      <Icon name="plus" size={24} weight="bold" />
     </button>
   );
 }
@@ -782,10 +756,20 @@ function FAB({ onClick }: { onClick: () => void }) {
 
 export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => void }) {
   const { user, token, apiToken } = useTicketsAuth();
+  const setPanel = useAppStore((s) => s.setPanel);
   const [tab, setTab] = useState<Tab>("home");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetCat, setSheetCat] = useState("");
   const [solicitudCreated, setSolicitudCreated] = useState(0);
+
+  const navigateTo = useCallback((p: Panel) => {
+    setPanel(p);
+    if (p === "hugo" || p === "tickets") {
+      setTab("chat");
+    } else {
+      onSwitchDesktop();
+    }
+  }, [setPanel, onSwitchDesktop, setTab]);
 
   function openSheet(cat = "") {
     setSheetCat(cat);
@@ -824,11 +808,12 @@ export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => 
             userName={nombre}
             onNewSolicitud={openSheet}
             onSolicitudCreated={solicitudCreated}
+            onNavigateTo={navigateTo}
           />
         )}
         {tab === "chat" && <ChatTab />}
-        {tab === "acciones" && <AccionesTab apiToken={apiToken ?? token ?? ""} />}
-        {tab === "yo" && <PerfilTab onSwitchDesktop={onSwitchDesktop} />}
+        {tab === "acciones" && <AccionesTab apiToken={apiToken ?? token ?? ""} onNavigateTo={navigateTo} />}
+        {tab === "yo" && <PerfilTab onSwitchDesktop={onSwitchDesktop} onNavigateTo={navigateTo} />}
       </div>
 
       {/* FAB — only on home & acciones */}

@@ -5,9 +5,9 @@ import type { Panel } from "../../../stores/app";
 export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
   hugo: (
     <>
-      <rect x="9" y="4" width="6" height="9" rx="3" />
-      <path d="M7 12a5 5 0 0 0 10 0" />
-      <path d="M12 17v2" />
+      <path d="M4 11l8-6 8 6" />
+      <path d="M6 10v9h12v-9" />
+      <path d="M10 19v-4h4v4" />
     </>
   ),
   dashboard: (
@@ -37,8 +37,8 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
   ),
   whatsapp: (
     <>
-      <rect x="8" y="5" width="8" height="14" rx="2" />
-      <path d="M11 18h2" />
+      <path d="M6 6a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 6v7a1.5 1.5 0 0 1-1.5 1.5H10L6 18v-4.5H7.5A1.5 1.5 0 0 1 6 12V6z" />
+      <path d="M9.5 10.5c.5 1.5 2 3 3.5 3.5" />
     </>
   ),
   supervisor: (
@@ -130,27 +130,31 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <rect x="7" y="14" width="10" height="5" rx="1" />
     </>
   ),
+  "plantillas-visuales": (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M8 8h8M8 12h5M8 16h6" />
+      <circle cx="17" cy="7" r="2" />
+    </>
+  ),
   publicaciones: (
     <>
-      <path d="M5 11h14v8a1.5 1.5 0 0 1-1.5 1.5H6.5A1.5 1.5 0 0 1 5 19v-8z" />
-      <path d="M5 11l2-4h10l2 4" />
-      <path d="M10 15h4" />
+      <path d="M5 10v4a2 2 0 0 0 2 2h1l5 4V6L8 10H7a2 2 0 0 0-2 2z" />
+      <path d="M16 9a3 3 0 0 1 0 6" />
     </>
   ),
   "logistica-importaciones": (
     <>
-      <circle cx="12" cy="12" r="8" />
-      <path d="M4 12h16" />
-      <path d="M12 4a12 12 0 0 1 0 16" />
-      <path d="M3 7h5l2 5h4l2-5h5" />
+      <path d="M4 16l2-5h12l2 5" />
+      <path d="M3 18h18" />
+      <path d="M12 4v7" />
+      <path d="M9 7l3-3 3 3" />
     </>
   ),
   "logistica-embarques": (
     <>
-      <rect x="3" y="8" width="14" height="8" rx="1" />
-      <path d="M7 8V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
-      <circle cx="7" cy="18" r="1.5" />
-      <circle cx="17" cy="18" r="1.5" />
+      <path d="M3 12h5l2-4 2 8 2-8 2 4h5" />
+      <path d="M12 8v8" />
     </>
   ),
   "logistica-aduanas": (

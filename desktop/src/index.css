@@ -1157,14 +1157,59 @@
     }
   }
 
-  /* Iconos SVG McKenna — solo línea, heredan color del texto */
+  /* Iconos SVG McKenna — línea minimalista + duotono suave (UI illustration) */
   .mck-icon {
     display: inline-block;
     flex-shrink: 0;
     color: inherit;
   }
   .mck-icon * {
-    fill: none;
     vector-effect: non-scaling-stroke;
   }
+  .mck-icon *:not(.mck-icon__duotone-bg) {
+    fill: none;
+  }
+  .mck-icon--duotone .mck-icon__duotone-bg {
+    fill: currentColor;
+    opacity: 0.14;
+    stroke: none;
+  }
+
+  /* Contenedor illustration — burbuja pastel redondeada */
+  .mck-illus-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: rgb(var(--mck-accent));
+  }
+  .mck-illus-icon__bubble {
+    position: absolute;
+    inset: 0;
+    border-radius: 32%;
+    background: currentColor;
+    opacity: 0.14;
+  }
+  .mck-illus-icon__glyph {
+    position: relative;
+    z-index: 1;
+  }
+  .mck-illus-icon--plain .mck-illus-icon__bubble {
+    display: none;
+  }
+  .mck-illus-icon--on-accent .mck-illus-icon__bubble {
+    opacity: 0.22;
+    background: #fff;
+  }
+  .mck-illus-icon--on-accent {
+    color: #fff;
+  }
+  .mck-illus-icon--accent  { color: rgb(var(--mck-accent)); }
+  .mck-illus-icon--sky     { color: rgb(var(--mck-accent-sky)); }
+  .mck-illus-icon--leaf    { color: rgb(var(--mck-accent-leaf)); }
+  .mck-illus-icon--rose    { color: rgb(var(--mck-accent-rose)); }
+  .mck-illus-icon--plum    { color: rgb(var(--mck-accent-plum)); }
+  .mck-illus-icon--sun     { color: rgb(var(--mck-accent-sun)); }
+  .mck-illus-icon--neutral { color: rgb(var(--mck-ink-secondary)); }
 }

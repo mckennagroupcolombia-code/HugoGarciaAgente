@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  McKenna Group S.A.S. — Plantilla de etiqueta 76 × 66 mm
+  Motor: EtiquetaDiagramEditor (data-mckenna-campo / data-mckenna-grafico)
+  Coordenadas de texto: matrix(1,0,0,-1,X,Y)  →  Y = dist. desde FONDO del canvas
+  Líneas/recuadros: coordenadas SVG estándar  →  Y = dist. desde TOPE del canvas
+-->
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 76 66"
+     width="76mm"
+     height="66mm"
+     preserveAspectRatio="xMidYMid meet">
+
+  <!-- ── Fondo ────────────────────────────────────────────────────── -->
+  <rect x="0" y="0" width="76" height="66" fill="#ffffff"/>
+
+  <!-- ── Banda cromática superior (fija, no editable) ─────────────── -->
+  <rect x="58.5" y="4.2" width="2.4" height="1.6" fill="#5c268f"/>
+  <rect x="61.1" y="4.2" width="2.4" height="1.6" fill="#d9115a"/>
+  <rect x="63.7" y="4.2" width="2.4" height="1.6" fill="#3972c2"/>
+  <rect x="66.3" y="4.2" width="2.4" height="1.6" fill="#46a0de"/>
+  <rect x="68.9" y="4.2" width="2.4" height="1.6" fill="#3baa9a"/>
+  <rect x="71.5" y="4.2" width="2.4" height="1.6" fill="#41b93d"/>
+
+  <!-- ── Divisores y recuadros (ajustables en Studio) ──────────────── -->
+  <!-- g0: línea vertical cuerpo (separa columna B1 de columna CAS/datos) -->
+  <line data-mckenna-grafico="g0"
+        x1="50" y1="14" x2="50" y2="52"
+        stroke="#016d82" stroke-width="0.35"/>
+  <!-- g1: línea horizontal sup. cuerpo -->
+  <line data-mckenna-grafico="g1"
+        x1="3.5" y1="14" x2="72.5" y2="14"
+        stroke="#016d82" stroke-width="0.35"/>
+  <!-- g2: recuadro lote/vencimiento (pie izquierdo) -->
+  <rect data-mckenna-grafico="g2"
+        x="4" y="52.5" width="34" height="7.5"
+        fill="none" stroke="#016d82" stroke-width="0.35"/>
+  <!-- g3: línea horizontal inf. cuerpo -->
+  <line data-mckenna-grafico="g3"
+        x1="3.5" y1="52" x2="72.5" y2="52"
+        stroke="#016d82" stroke-width="0.35"/>
+
+  <!-- ── Iconos GHS (diamantes + pictogramas, ajustables en Studio) ── -->
+  <!-- GHS07 — Signo de exclamación (irritante / nocivo) -->
+  <path data-mckenna-grafico="g4"
+        d="M 62 10 L 58.5 13.5 L 62 17 L 65.5 13.5 Z"
+        fill="#ffffff" stroke="#c01c2e" stroke-width="0.4"/>
+  <text transform="matrix(1,0,0,-1,62,15.8)" text-anchor="middle"
+        style="font-weight:900;font-size:4.5px;font-family:Montserrat,sans-serif;fill:#c01c2e;stroke:none">
+    <tspan x="0" y="0">!</tspan>
+  </text>
+
+  <!-- GHS02 — Llama (inflamable; bloque visual) -->
+  <path data-mckenna-grafico="g5"
+        d="M 68 10 L 64.5 13.5 L 68 17 L 71.5 13.5 Z"
+        fill="#ffffff" stroke="#c01c2e" stroke-width="0.4"/>
+  <!-- llama simplificada -->
+  <path data-mckenna-grafico="g5"
+        d="M 68 12.2 C 67.5 12.8 67.1 13.5 67.4 14.2
+           C 67.0 13.9 66.8 13.3 67.0 12.7
+           C 66.5 13.2 66.4 13.9 66.7 14.5
+           C 66.7 15.3 67.4 15.8 68 15.8
+           C 68.6 15.8 69.3 15.3 69.3 14.5
+           C 69.6 13.9 69.5 13.2 69.0 12.7
+           C 69.2 13.3 69.0 13.9 68.6 14.2
+           C 68.9 13.5 68.5 12.8 68 12.2 Z"
+        fill="none" stroke="#c01c2e" stroke-width="0.25"
+        stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- GHS08 — Peligro para la salud (símbolo salud) -->
+  <path data-mckenna-grafico="g6"
+        d="M 62 18.5 L 58.5 22 L 62 25.5 L 65.5 22 Z"
+        fill="#ffffff" stroke="#c01c2e" stroke-width="0.4"/>
+  <!-- signo más / cruz (salud simplificada) -->
+  <line x1="62" y1="19.9" x2="62" y2="24.1" stroke="#c01c2e" stroke-width="0.5"/>
+  <line x1="59.8" y1="22"  x2="64.2" y2="22"  stroke="#c01c2e" stroke-width="0.5"/>
+
+  <!-- ── Marca McKenna Group (fija) ────────────────────────────────── -->
+  <text transform="matrix(1,0,0,-1,28,62.5)" text-anchor="middle"
+        style="font-variant:normal;font-weight:700;font-size:5.5px;
+               font-family:Montserrat,sans-serif;fill:#016d82;stroke:none">
+    <tspan x="0" y="0">MCKENNA GROUP</tspan>
+  </text>
+  <text transform="matrix(1,0,0,-1,48.5,62.2)" text-anchor="start"
+        style="font-variant:normal;font-weight:bold;font-size:3px;
+               font-family:Montserrat,sans-serif;fill:#016d82;stroke:none">
+    <tspan x="0" y="0">&#174;</tspan>
+  </text>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       CAMPOS EDITABLES  (data-mckenna-campo)
+       Zona ENCABEZADO (entre tope y línea g1 SVG y=14)
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <!-- legal — aviso INVIMA / uso externo (zona superior, debajo de la banda) -->
+  <text data-mckenna-campo="legal"
+        transform="matrix(1,0,0,-1,4,6.5)" text-anchor="start"
+        style="font-variant:normal;font-weight:normal;font-size:4.2px;
+               font-family:Montserrat,sans-serif;fill:#231F20;stroke:none">
+    <tspan x="0" y="0">Producto cosm&#233;tico de uso externo. INVIMA notificado.</tspan>
+    <tspan x="0" dy="2.6">Reenvase de materia prima. No es medicamento.</tspan>
+    <tspan x="0" dy="2.6">McKenna Group S.A.S. &#183; Bogot&#225;, Colombia</tspan>
+  </text>
+
+  <!-- titulo — nombre del producto -->
+  <text data-mckenna-campo="titulo"
+        transform="matrix(1,0,0,-1,4,11.5)" text-anchor="start"
+        style="font-variant:normal;font-weight:bold;font-size:11px;
+               font-family:Montserrat,sans-serif;fill:#231F20;stroke:none">
+    <tspan x="0" y="0">&#193;CIDO ASC&#211;RBICO</tspan>
+  </text>
+
+  <!-- subtitulo — descripción corta / INCI / grado -->
+  <text data-mckenna-campo="subtitulo"
+        transform="matrix(1,0,0,-1,4,16.5)" text-anchor="start"
+        style="font-variant:normal;font-weight:normal;font-size:7.5px;
+               font-family:Montserrat,sans-serif;fill:#016d82;stroke:none">
+    <tspan x="0" y="0">Vitamina C &#183; Grado cosm&#233;tico</tspan>
+  </text>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       COLUMNA IZQUIERDA — B1 (entre g1 y g3)
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <!-- b1 — descripción / uso / precauciones (4-6 líneas) -->
+  <text data-mckenna-campo="b1"
+        transform="matrix(1,0,0,-1,4,49.5)" text-anchor="start"
+        style="font-variant:normal;font-weight:normal;font-size:5.2px;
+               font-family:Montserrat,sans-serif;fill:#231F20;stroke:none">
+    <tspan x="0" y="0">Antioxidante soluble en agua para formulaciones</tspan>
+    <tspan x="0" dy="3.1">cosm&#233;ticas. Protege contra radicales libres y</tspan>
+    <tspan x="0" dy="3.1">ayuda a uniformar el tono de piel.</tspan>
+    <tspan x="0" dy="3.1">Uso t&#243;pico externo. No ingerir.</tspan>
+    <tspan x="0" dy="3.1">Mantener fuera del alcance de ni&#241;os.</tspan>
+    <tspan x="0" dy="3.1">Conservar en lugar fresco, seco y sin luz.</tspan>
+  </text>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       COLUMNA DERECHA — datos técnicos (entre g1 y g3)
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <!-- cas — número CAS -->
+  <text data-mckenna-campo="cas"
+        transform="matrix(1,0,0,-1,51.5,47)" text-anchor="start"
+        style="font-variant:normal;font-weight:normal;font-size:5px;
+               font-family:Montserrat,sans-serif;fill:#231F20;stroke:none">
+    <tspan x="0" y="0">CAS: 50-81-7</tspan>
+  </text>
+
+  <!-- concentracion -->
+  <text data-mckenna-campo="concentracion"
+        transform="matrix(1,0,0,-1,51.5,42)" text-anchor="start"
+        style="font-variant:normal;font-weight:normal;font-size:5px;
+               font-family:Montserrat,sans-serif;fill:#231F20;stroke:none">
+    <tspan x="0" y="0">Concentraci&#243;n: 99&#160;%</tspan>
+  </text>
+
+  <!-- formula — fórmula molecular -->
+  <text data-mckenna-campo="formula"
+        transform="matrix(1,0,0,-1,51.5,37)" text-anchor="start"
+        style="font-variant:normal;font-weight:normal;font-size:5px;
+               font-family:Montserrat,sans-serif;fill:#231F20;stroke:none">
+    <tspan x="0" y="0">F&#243;rmula: C</tspan><tspan style="font-size:3.5px;baseline-shift:sub">6</tspan><tspan style="font-size:5px">H</tspan><tspan style="font-size:3.5px;baseline-shift:sub">8</tspan><tspan style="font-size:5px">O</tspan><tspan style="font-size:3.5px;baseline-shift:sub">6</tspan>
+  </text>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       PIE — peso, cuchara, lote
+       ══════════════════════════════════════════════════════════════════ -->
+
+  <!-- lote — número de lote y fecha de vencimiento (dentro del recuadro g2) -->
+  <text data-mckenna-campo="lote"
+        transform="matrix(1,0,0,-1,5.5,57.5)" text-anchor="start"
+        style="font-variant:normal;font-weight:normal;font-size:5px;
+               font-family:Montserrat,sans-serif;fill:#231F20;stroke:none">
+    <tspan x="0" y="0">LOT. ______ EXP. ______</tspan>
+  </text>
+
+  <!-- peso — peso neto del producto -->
+  <text data-mckenna-campo="peso"
+        transform="matrix(1,0,0,-1,56,59)" text-anchor="start"
+        style="font-variant:normal;font-weight:bold;font-size:12px;
+               font-family:Montserrat,sans-serif;fill:#231F20;stroke:none">
+    <tspan x="0" y="0">500 g</tspan>
+  </text>
+
+  <!-- cuchara — equivalencia de medida (opcional, ocultar si no aplica) -->
+  <text data-mckenna-campo="cuchara"
+        transform="matrix(1,0,0,-1,51.5,55.5)" text-anchor="start"
+        style="font-variant:normal;font-weight:normal;font-size:4.5px;
+               font-family:Montserrat,sans-serif;fill:#016d82;stroke:none">
+    <tspan x="0" y="0">1 cuchara &#8776; 5 g</tspan>
+  </text>
+
+</svg>

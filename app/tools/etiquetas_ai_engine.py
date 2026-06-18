@@ -1428,13 +1428,44 @@ def _partir_cuerpo_unico_b1(raw: str, max_chars: int, max_lineas: int) -> list[s
     for pi, parrafo in enumerate(parrafos):
         if pi > 0 and len(out) < max_lineas:
             out.append("")
-        unificado = _unificar_cuerpo_parrafo_b1(parrafo)
-        if not unificado:
+        filas = [ln.strip() for ln in parrafo.split("\n") if ln.strip()]
+        segmentos: list[str] = []
+        hay_secciones = False
+        for fila in filas:
+            m = _RE_BULLET_SECCION_AI.match(fila)
+            if m:
+                hay_secciones = True
+                titulo = f"{m.group(1).strip()}:"
+                cuerpo = re.sub(r"\s+", " ", (m.group(2) or "").strip())
+                segmentos.append(titulo)
+                if cuerpo:
+                    segmentos.append(cuerpo)
+            else:
+                segmentos.append(fila)
+        if not hay_secciones:
+            unificado = _unificar_cuerpo_parrafo_b1(parrafo)
+            if unificado:
+                restantes = max_lineas - len(out)
+                if restantes <= 0:
+                    break
+                out.extend(_partir_lineas_texto(unificado, max_chars, restantes))
+            if len(out) >= max_lineas:
+                break
             continue
-        restantes = max_lineas - len(out)
-        if restantes <= 0:
+        for si, seg in enumerate(segmentos):
+            unificado = _unificar_cuerpo_parrafo_b1(seg)
+            if not unificado:
+                continue
+            restantes = max_lineas - len(out)
+            if restantes <= 0:
+                break
+            out.extend(_partir_lineas_texto(unificado, max_chars, restantes))
+            if si < len(segmentos) - 1:
+                prox = segmentos[si + 1].strip()
+                if _RE_INICIO_REGULATORIO_AI.search(prox) and len(out) < max_lineas:
+                    out.append("")
+        if len(out) >= max_lineas:
             break
-        out.extend(_partir_lineas_texto(unificado, max_chars, restantes))
     return out
 
 
@@ -1610,7 +1641,7 @@ def _construir_bloque_descripcion_ai(
                 ln,
                 max_width=max_width,
                 fs=fs,
-                lh=lh if ln.strip() else lh * 0.45,
+                lh=lh,
                 es_primera_del_bloque=first,
                 justificar=justificar,
             )
@@ -2176,6 +2207,34 @@ def _normalizar_lineas_texto_cfg(texto: str, cfg: dict[str, Any]) -> list[str]:
     return lineas or [""]
 
 
+def _partir_texto_por_ancho(linea: str, fs: float, ancho_max: float) -> list[str]:
+    if not linea.strip() or ancho_max <= 0 or fs <= 0:
+        return [linea]
+    # Aproximación compatible con Montserrat: ancho medio por carácter.
+    max_chars = max(6, int(ancho_max / max(1.0, fs * 0.52)))
+    palabras = linea.split()
+    if not palabras:
+        return [linea]
+    out: list[str] = []
+    cur = palabras[0]
+    for p in palabras[1:]:
+        cand = f"{cur} {p}"
+        if len(cand) <= max_chars:
+            cur = cand
+        else:
+            out.append(cur)
+            cur = p
+    out.append(cur)
+    return out or [linea]
+
+
+def _envolver_lineas_caja_texto(lineas: list[str], fs: float, ancho_max: float) -> list[str]:
+    out: list[str] = []
+    for ln in lineas:
+        out.extend(_partir_texto_por_ancho(ln, fs, ancho_max))
+    return out or [""]
+
+
 def _aplicar_estilo_tipografico_bloque_texto(bloque: str, cfg: dict[str, Any]) -> str:
     out = bloque
     interlineado = cfg.get("interlineado")
@@ -2245,6 +2304,20 @@ def _inyectar_campos_texto_extra_ai(svg: str, datos: dict) -> str:
         anchor_map = {"left": "start", "center": "middle", "right": "end", "justify": "start"}
         anchor = anchor_map.get(str(cfg.get("alineacion") or "left"), "start")
         lineas = _normalizar_lineas_texto_cfg(texto, cfg)
+        try:
+            ancho_caja = float(cfg.get("ancho_caja") or 0.0)
+        except (TypeError, ValueError):
+            ancho_caja = 0.0
+        try:
+            alto_caja = float(cfg.get("alto_caja") or 0.0)
+        except (TypeError, ValueError):
+            alto_caja = 0.0
+        if campo.startswith("txt_") and ancho_caja > 0:
+            lineas = _envolver_lineas_caja_texto(lineas, fs, ancho_caja)
+            if alto_caja > 0:
+                lh = fs * max(0.6, min(2.2, float(cfg.get("interlineado") or 1.12)))
+                max_lineas = max(1, int(alto_caja / max(1.0, lh)))
+                lineas = lineas[:max_lineas]
         tspans: list[str] = []
         for i, ln in enumerate(lineas):
             if i == 0:
@@ -2263,7 +2336,19 @@ def _inyectar_campos_texto_extra_ai(svg: str, datos: dict) -> str:
         extras.append(bloque)
     if not extras:
         return svg
-    return svg.replace("</svg>", "".join(extras) + "</svg>")
+    # Renderiza los textos extra en una capa superior (frente) pero con el mismo
+    # transform base de la plantilla, para evitar que queden en "fondo" y para
+    # conservar coordenadas/orientación consistentes con el arte AI/PDF.
+    gm = _RE_GRUPO_PLANTILLA.search(svg)
+    tr = ""
+    if gm:
+        mtr = re.search(r'transform="([^"]+)"', gm.group(0), re.I)
+        if mtr:
+            tr = mtr.group(1)
+    bloque_textos = "".join(extras)
+    if tr:
+        bloque_textos = f'<g transform="{tr}">{bloque_textos}</g>'
+    return svg.replace("</svg>", bloque_textos + "</svg>")
 
 
 def _aplicar_diagramacion_ai(svg: str, datos: dict) -> str:

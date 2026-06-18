@@ -74,8 +74,10 @@ function datosDesdeMuestras(m: Record<string, string>): Partial<EtiquetaStudioDa
 }
 
 const ZOOM_LIENZO_DEFAULT = 140;
-/** Plantillas: diagramación solo de líneas divisorias (no textos editables). */
+/** Plantillas: fase 1 escanea solo líneas divisorias; fase 2 edita textos. */
 const SOLO_LINEAS_PLANTILLAS = true;
+
+type FasePlantilla = "escaneo" | "texto";
 
 function esPlantillaSvg(archivo?: string): boolean {
   const a = (archivo || "").trim().toLowerCase();
@@ -138,6 +140,7 @@ export function CatalogoDiagramacionScanner({
   const [diagramacionGraficos, setDiagramacionGraficos] = useState<DiagramacionGraficos>({});
   const [datosExtra, setDatosExtra] = useState<Partial<EtiquetaStudioDatos>>({});
   const [dirty, setDirty] = useState(false);
+  const [fase, setFase] = useState<FasePlantilla>("escaneo");
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const sesionEscaneoRef = useRef(false);
   const autoScanHechoRef = useRef<string | null>(null);
@@ -166,6 +169,7 @@ export function CatalogoDiagramacionScanner({
     setDirty(false);
     setSaveMsg(null);
     setSeleccion(null);
+    setFase("escaneo");
   }, []);
 
   const hidratarDesdeGuardada = useCallback((
@@ -193,6 +197,8 @@ export function CatalogoDiagramacionScanner({
     });
     // En Plantillas (solo_lineas), forzamos preview live para evitar SVG cacheado obsoleto.
     setSvgMarkup(g.solo_lineas ? null : (g.svg?.trim() ? g.svg : null));
+    const tieneTextosExtra = Object.keys(g.textos_campo ?? {}).some((k) => k.startsWith("txt_"));
+    setFase(!g.solo_lineas || tieneTextosExtra ? "texto" : "escaneo");
     setDirty(false);
   }, []);
 
@@ -257,6 +263,7 @@ export function CatalogoDiagramacionScanner({
       });
       setDatosExtra({});
       setSvgMarkup(res.svg);
+      setFase("escaneo");
       setDirty(false);
     },
   });
@@ -284,6 +291,10 @@ export function CatalogoDiagramacionScanner({
     escanearMut,
   ]);
 
+  const activo = meta !== null;
+  const modoEdicionTexto = fase === "texto";
+  const soloLineasActivo = !modoEdicionTexto;
+
   const puedeGuardar = Boolean(target && meta && Object.keys(diagramacionGraficos).length > 0);
 
   const guardarMut = useMutation({
@@ -299,7 +310,7 @@ export function CatalogoDiagramacionScanner({
           diagramacion,
           diagramacion_graficos: diagramacionGraficos,
           textos_campo: datosCanvas.textos_campo ?? {},
-          solo_lineas: SOLO_LINEAS_PLANTILLAS,
+          solo_lineas: soloLineasActivo,
           vista_completa: meta.vista_completa ?? vistaCompletaEfectiva,
           muestras: meta.muestras,
           campos_detectados: meta.campos_detectados,
@@ -319,8 +330,15 @@ export function CatalogoDiagramacionScanner({
     },
   });
 
-  const activo = meta !== null;
   const cargando = escanearMut.isPending || (cargandoGuardada && !meta);
+
+  const avanzarATexto = useCallback(() => {
+    setFase("texto");
+    setMeta((m) => (m ? { ...m, solo_lineas: false } : m));
+    setDirty(true);
+    setSaveMsg(null);
+    setSeleccion(null);
+  }, []);
 
   const datosCanvas = useMemo<EtiquetaStudioDatos>(() => ({
     ...ETIQUETA_STUDIO_DEFAULT,
@@ -356,6 +374,7 @@ export function CatalogoDiagramacionScanner({
       "diagramacion-live-preview",
       meta?.archivo_ai,
       meta?.tipo_etiqueta,
+      fase,
       JSON.stringify(diagramacion),
       JSON.stringify(diagramacionGraficos),
       JSON.stringify(datosCanvas.textos_campo ?? {}),
@@ -370,7 +389,7 @@ export function CatalogoDiagramacionScanner({
         diagramacion,
         diagramacion_graficos: diagramacionGraficos,
         textos_campo: datosCanvas.textos_campo ?? {},
-        solo_lineas: meta?.solo_lineas ?? SOLO_LINEAS_PLANTILLAS,
+        solo_lineas: soloLineasActivo,
         vista_completa: meta?.vista_completa ?? vistaCompletaEfectiva,
         muestras: meta!.muestras,
         export_area: meta!.export_area ?? undefined,
@@ -458,7 +477,9 @@ export function CatalogoDiagramacionScanner({
             {barraZoom}
             {activo && (
               <span className="hidden text-[9px] text-muted sm:inline">
-                Arrastra las líneas decorativas
+                {modoEdicionTexto
+                  ? "Añade y edita cajas de texto"
+                  : "Arrastra las líneas decorativas"}
               </span>
             )}
           </>
@@ -480,6 +501,29 @@ export function CatalogoDiagramacionScanner({
             <span className="rounded bg-amber-100 px-2 py-1 text-[10px] font-medium text-amber-900">
               Sin guardar
             </span>
+          )}
+          {activo && svgMostrar && !modoEdicionTexto && (
+            <button
+              type="button"
+              onClick={avanzarATexto}
+              className="rounded-lg bg-accent px-3 py-1.5 text-[11px] font-bold text-white hover:bg-accent/90"
+            >
+              Siguiente →
+            </button>
+          )}
+          {modoEdicionTexto && (
+            <button
+              type="button"
+              onClick={() => {
+                setFase("escaneo");
+                setMeta((m) => (m ? { ...m, solo_lineas: true } : m));
+                setDirty(true);
+                setSeleccion(null);
+              }}
+              className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-[11px] font-semibold hover:bg-surface-hover"
+            >
+              ← Líneas
+            </button>
           )}
           <button
             type="button"
@@ -527,8 +571,10 @@ export function CatalogoDiagramacionScanner({
           setSeleccion={setSeleccion}
           patchDiagramacion={patchDiagramacion}
           patchGraficos={patchGraficos}
-          patchDatos={patchDatos}
+          patchDatos={modoEdicionTexto ? patchDatos : undefined}
+          soloLineas={soloLineasActivo}
           ocultarZoom={embedded}
+          modoEdicionTexto={modoEdicionTexto}
         />
       </div>
     </section>
@@ -551,7 +597,9 @@ function CanvasArea({
   patchDiagramacion,
   patchGraficos,
   patchDatos,
+  soloLineas,
   ocultarZoom = false,
+  modoEdicionTexto = false,
 }: {
   canvasRef: RefObject<HTMLDivElement | null>;
   zoomPct: number;
@@ -574,8 +622,10 @@ function CanvasArea({
   setSeleccion: (id: string | null) => void;
   patchDiagramacion: (next: DiagramacionEtiqueta) => void;
   patchGraficos: (next: DiagramacionGraficos) => void;
-  patchDatos: (patch: Partial<EtiquetaStudioDatos>) => void;
+  patchDatos?: (patch: Partial<EtiquetaStudioDatos>) => void;
+  soloLineas: boolean;
   ocultarZoom?: boolean;
+  modoEdicionTexto?: boolean;
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col p-2">
@@ -616,7 +666,9 @@ function CanvasArea({
             panelExterno
             onPatchDiagramacion={patchDiagramacion}
             onPatchGraficos={patchGraficos}
-            soloLineas={meta?.solo_lineas ?? SOLO_LINEAS_PLANTILLAS}
+            onPatchDatos={patchDatos}
+            soloLineas={soloLineas}
+            soloTextosLibres={modoEdicionTexto}
           >
             <SvgEnFormato svg={svgMostrar} />
           </EtiquetaDiagramacionWorkspace>
@@ -625,6 +677,7 @@ function CanvasArea({
       {activo && meta && !ocultarZoom && (
         <p className="mt-1.5 text-center text-[10px] text-muted">
           {meta.ancho_mm}×{meta.alto_mm} mm · {meta.graficos_detectados.length} líneas
+          {modoEdicionTexto ? " · edición de texto" : " · ajuste de líneas"}
         </p>
       )}
     </div>

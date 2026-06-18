@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Panel } from "../stores/app";
 import { type TicketsUser } from "../stores/ticketsAuth";
-import { Icon } from "../icons";
+import { Icon, IllustrationIcon } from "../icons";
 
 export const CONTABILIDAD_NAV: { id: Panel; label: string }[] = [
   { id: "facturas", label: "Facturas de compra" },
@@ -56,7 +56,7 @@ export default function ContabilidadSidebarGroup({
             : "border-transparent text-ink-secondary hover:bg-surface-hover"
         }`}
       >
-        <Icon name="receipt" size={20} weight={childActive ? "bold" : "regular"} className="shrink-0 opacity-80" />
+        <IllustrationIcon name="receipt" size={22} tone="sun" bubble={false} className="shrink-0" />
         <span className="min-w-0 flex-1 truncate">Contabilidad</span>
         {facturasPendientes > 0 && (
           <span className="shrink-0 rounded-full bg-yellow-500 px-2 py-0.5 text-[11px] font-bold text-black">

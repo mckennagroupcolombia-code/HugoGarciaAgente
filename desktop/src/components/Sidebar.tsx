@@ -16,6 +16,9 @@ import { puedeVerModuloContabilidad } from "../lib/contabilidadAccess";
 import { puedeVerModuloLogistica } from "../lib/logisticaAccess";
 import { useUiMode } from "../stores/uiMode";
 import { PANEL_INFO, type PanelTier } from "../lib/panelInfo";
+import { IllustrationIcon } from "../icons/IllustrationIcon";
+import { PanelIcon } from "../icons/PanelIcon";
+import { Icon } from "../icons";
 
 // ── Access control ─────────────────────────────────────────────────────────────
 
@@ -28,7 +31,7 @@ function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
   if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
   if ((user.rol?.nivel ?? 0) >= 3) return true;
   if (seccion === "settings") return true;
-  if (seccion === "etiquetas" || seccion === "etiquetas-config") return true;
+  if (seccion === "etiquetas" || seccion === "etiquetas-config" || seccion === "plantillas-visuales") return true;
   const p = user.permisos_secciones;
   if (!p) return new Set(["tickets", "etiquetas"]).has(seccion);
   if (seccion === "postventa" && p.preventa) return true;
@@ -66,7 +69,6 @@ function NavItem({
   const info = PANEL_INFO[id];
   const active = panel === id || (id === "hugo" && panel === "tickets");
   const badge = badges[id] ?? 0;
-  const emoji = info?.emoji ?? "•";
   const label = info?.label ?? id;
   const description = info?.description ?? "";
 
@@ -83,9 +85,7 @@ function NavItem({
             : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
         }`}
       >
-        <span className={`shrink-0 text-lg leading-none ${active ? "opacity-100" : "opacity-75 group-hover:opacity-100"}`}>
-          {emoji}
-        </span>
+        <PanelIcon panel={id} size={28} active={active} className="shrink-0" />
         <span className="min-w-0 flex-1 text-sm font-semibold leading-none truncate">{label}</span>
         {badge > 0 && (
           <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${active ? "bg-white/20 text-white" : "bg-danger text-white"}`}>
@@ -100,7 +100,10 @@ function NavItem({
       {/* Tooltip on hover (desktop only) — shows description */}
       {hovered && description && !active && (
         <div className="pointer-events-none absolute left-full top-0 z-50 ml-2 w-64 rounded-xl border border-border bg-surface-panel p-3 shadow-paper-lg">
-          <p className="mb-1 text-xs font-bold text-ink">{emoji} {label}</p>
+          <p className="mb-1 flex items-center gap-2 text-xs font-bold text-ink">
+            <IllustrationIcon name={id} size={20} bubble={false} tone="accent" />
+            {label}
+          </p>
           <p className="text-xs leading-relaxed text-ink-secondary">{description}</p>
           {info?.tips?.[0] && (
             <p className="mt-2 border-t border-border pt-2 text-[11px] text-muted">
@@ -142,7 +145,9 @@ function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: (
           : "text-muted hover:bg-surface-hover hover:text-ink"
       }`}
     >
-      <span className="text-base">{advanced ? "🔬" : "🔒"}</span>
+      <span className="text-base">
+        <Icon name={advanced ? "flask" : "lock"} size={18} weight="duotone" />
+      </span>
       <span className="flex-1">{advanced ? "Modo avanzado activo" : "Activar modo avanzado"}</span>
       <span
         className={`relative h-5 w-9 rounded-full transition-colors ${
@@ -366,13 +371,14 @@ export default function Sidebar() {
         )}
 
         {/* INVENTARIO */}
-        {(puedeVerSeccion(user, "stock") || puedeVerSeccion(user, "etiquetas")) && (
+        {(puedeVerSeccion(user, "stock") || puedeVerSeccion(user, "etiquetas") || puedeVerSeccion(user, "plantillas-visuales")) && (
           <>
             <SectionLabel>Inventario</SectionLabel>
             <div className="space-y-0.5">
               <NavItem id="stock"            panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
               <NavItem id="etiquetas"        panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
               <NavItem id="fichas"           panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
+              <NavItem id="plantillas-visuales" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
               <NavItem id="etiquetas-config" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="advanced" />
             </div>
             <Divider />

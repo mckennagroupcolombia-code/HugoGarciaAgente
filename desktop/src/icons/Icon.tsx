@@ -9,7 +9,7 @@ import type { IconProps } from "./types";
 export function Icon({
   name,
   size = 20,
-  weight = "regular",
+  weight = "duotone",
   className,
   ...rest
 }: IconProps) {

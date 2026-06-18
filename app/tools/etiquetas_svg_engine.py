@@ -306,7 +306,7 @@ def _tspans_linea_descripcion(
 ) -> list[str]:
     contenido = (linea or "").strip()
     if not contenido:
-        dy = lh * 0.45
+        dy = lh * 0.95
         if es_primera_del_bloque:
             return [f'<tspan x="0" y="0"> </tspan>']
         return [f'<tspan x="0" dy="{dy:.4f}"> </tspan>']
@@ -314,9 +314,10 @@ def _tspans_linea_descripcion(
     palabras = contenido.split()
     if not justificar or len(palabras) < 2 or max_width <= 0:
         esc = _escape_xml_text(contenido)
+        dy_txt = lh * (1.08 if _es_linea_titulo_seccion_descripcion(contenido) else 1.0)
         if es_primera_del_bloque:
             return [f'<tspan x="0" y="0">{esc}</tspan>']
-        return [f'<tspan x="0" dy="{lh:.4f}">{esc}</tspan>']
+        return [f'<tspan x="0" dy="{dy_txt:.4f}">{esc}</tspan>']
 
     anchos = [_ancho_palabra_aprox(w, fs) for w in palabras]
     espacio_min = fs * 0.18

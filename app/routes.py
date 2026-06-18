@@ -10488,6 +10488,163 @@ def register_routes(app):
         _save_etiquetas_plantillas(items)
         return jsonify({"ok": True})
 
+    # ── Editor Plantillas Visuales ───────────────────────────────────────────
+
+    @app.route("/api/plantillas-visuales", methods=["GET", "POST"])
+    @app.route("/app/api/plantillas-visuales", methods=["GET", "POST"])
+    def api_plantillas_visuales():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_visuales import guardar_plantilla, listar_plantillas
+
+        if request.method == "GET":
+            q = (request.args.get("q") or "").strip()
+            items = listar_plantillas(q=q)
+            return jsonify({"plantillas": items, "total": len(items)})
+
+        body = request.get_json(silent=True) or {}
+        try:
+            entry = guardar_plantilla(body)
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, "plantilla": entry})
+
+    @app.route("/api/plantillas-visuales/<plantilla_id>", methods=["GET", "DELETE"])
+    @app.route("/app/api/plantillas-visuales/<plantilla_id>", methods=["GET", "DELETE"])
+    def api_plantillas_visuales_id(plantilla_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_visuales import eliminar_plantilla, obtener_plantilla
+
+        if request.method == "GET":
+            p = obtener_plantilla(plantilla_id)
+            if not p:
+                return jsonify({"error": "No encontrada"}), 404
+            return jsonify({"plantilla": p})
+
+        ok = eliminar_plantilla(plantilla_id)
+        if not ok:
+            return jsonify({"error": "No encontrada"}), 404
+        return jsonify({"ok": True})
+
+    @app.route("/api/plantillas-visuales/exportar", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/exportar", methods=["POST"])
+    def api_plantillas_visuales_exportar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import base64 as _b64
+
+        from app.tools.plantillas_visuales import exportar_pdf, exportar_raster, obtener_plantilla
+
+        body = request.get_json(silent=True) or {}
+        formato = (body.get("formato") or "png").strip().lower()
+        plantilla = body.get("plantilla")
+        if not isinstance(plantilla, dict) and body.get("id"):
+            plantilla = obtener_plantilla(str(body.get("id")))
+        if not isinstance(plantilla, dict):
+            return jsonify({"error": "Plantilla inválida"}), 400
+
+        nombre = (plantilla.get("nombre") or "plantilla").strip()
+        safe = re.sub(r"[^\w\-]+", "_", nombre)[:60] or "plantilla"
+
+        try:
+            if formato == "pdf":
+                blob = exportar_pdf(plantilla)
+                b64 = _b64.b64encode(blob).decode("ascii")
+                return jsonify({"ok": True, "formato": "pdf", "nombre": f"{safe}.pdf", "base64": b64})
+            if formato in ("jpg", "jpeg"):
+                blob = exportar_raster(plantilla, "jpeg")
+                b64 = _b64.b64encode(blob).decode("ascii")
+                return jsonify({"ok": True, "formato": "jpeg", "nombre": f"{safe}.jpg", "base64": b64})
+            blob = exportar_raster(plantilla, "png")
+            b64 = _b64.b64encode(blob).decode("ascii")
+            return jsonify({"ok": True, "formato": "png", "nombre": f"{safe}.png", "base64": b64})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/api/plantillas-visuales/assets", methods=["GET", "POST"])
+    @app.route("/app/api/plantillas-visuales/assets", methods=["GET", "POST"])
+    def api_plantillas_visuales_assets_upload():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_visuales import guardar_asset, listar_assets
+
+        if request.method == "GET":
+            items = listar_assets()
+            return jsonify({"recursos": items, "total": len(items)})
+
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or "imagen.png").strip()
+        data = body.get("data") or body.get("base64") or ""
+        if not data:
+            return jsonify({"error": "Sin imagen"}), 400
+        try:
+            meta = guardar_asset(nombre, data)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"ok": True, **meta})
+
+    @app.route("/api/plantillas-visuales/assets/<path:nombre>", methods=["GET", "DELETE"])
+    def api_plantillas_visuales_assets_get(nombre: str):
+        from app.tools.plantillas_visuales import eliminar_asset, ruta_asset
+
+        if request.method == "DELETE":
+            if not _api_token_valido():
+                return jsonify({"error": "No autorizado"}), 401
+            if not eliminar_asset(nombre):
+                return jsonify({"error": "No encontrado"}), 404
+            return jsonify({"ok": True})
+
+        path = ruta_asset(nombre)
+        if not path:
+            return jsonify({"error": "No encontrado"}), 404
+        ext = path.suffix.lower()
+        mime = "image/png"
+        if ext in (".jpg", ".jpeg", ".jpe"):
+            mime = "image/jpeg"
+        elif ext == ".webp":
+            mime = "image/webp"
+        elif ext == ".gif":
+            mime = "image/gif"
+        return send_file(path, mimetype=mime)
+
+    @app.route("/api/plantillas-visuales/texto-sugerir", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/texto-sugerir", methods=["POST"])
+    def api_plantillas_visuales_texto_sugerir():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_texto_ia import iniciar_sugerencia_texto_job
+
+        body = request.get_json(silent=True) or {}
+        fragmento = (body.get("fragmento") or body.get("texto") or "").strip()
+        max_chars = int(body.get("max_chars") or 2600)
+        try:
+            job_id = iniciar_sugerencia_texto_job(fragmento, max_chars=max_chars)
+            return jsonify({"ok": True, "status": "pending", "job_id": job_id}), 202
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc), "sugerencias": []}), 500
+
+    @app.route("/api/plantillas-visuales/texto-sugerir/<job_id>", methods=["GET"])
+    @app.route("/app/api/plantillas-visuales/texto-sugerir/<job_id>", methods=["GET"])
+    def api_plantillas_visuales_texto_sugerir_job(job_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_texto_ia import estado_sugerencia_texto_job
+
+        job = estado_sugerencia_texto_job(job_id)
+        if not job:
+            return jsonify({"ok": False, "error": "Trabajo no encontrado o expirado"}), 404
+        if job.get("status") == "error":
+            return jsonify({
+                "ok": False,
+                "status": "error",
+                "error": job.get("error") or "Error al generar texto",
+            }), 500
+        if job.get("status") == "done":
+            result = job.get("result") or {}
+            return jsonify({"ok": True, "status": "done", **result})
+        return jsonify({"ok": True, "status": "pending"})
+
     # ── Etiquetas: biblioteca PNG ────────────────────────────────────────────
 
     _PNG_RECURSOS_SUBDIR = "Recursos PNG"

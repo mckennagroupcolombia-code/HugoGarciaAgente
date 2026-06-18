@@ -2403,3 +2403,7 @@ ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
 ayuda: before pushing again.
 ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-06-16 23:00:02] ERROR en el push. Revisar credenciales o conflictos.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Token de Mercado Libre refrescado exitosamente.
+✅ Reporte enviado a WhatsApp con éxito.
+[meli_compliance_monitor] revisadas=1 activas=0 problemas=1 alertas_wa=1

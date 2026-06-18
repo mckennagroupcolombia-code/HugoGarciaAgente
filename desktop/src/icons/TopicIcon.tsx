@@ -19,7 +19,7 @@ export function TopicIcon({
   value,
   fallback = "circle",
   size = 16,
-  weight = "regular",
+  weight = "duotone",
   className,
   showEmojiFallback = false,
 }: TopicIconProps) {
