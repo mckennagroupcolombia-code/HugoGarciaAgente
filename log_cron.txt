@@ -2407,3 +2407,37 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Reporte enviado a WhatsApp con éxito.
 [meli_compliance_monitor] revisadas=1 activas=0 problemas=1 alertas_wa=1
+[cursor/wa-metricas-panel d2bb8c1] Auto-commit: actualizacion diaria 2026-06-17 23:00
+ 73 files changed, 8545 insertions(+), 675 deletions(-)
+ create mode 100644 Etiquetas Modelo SVG/PLANTILLA 76*66 ACIDO ASCORBICO.svg
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CITMAG500g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CITMAG500g_2.png
+ create mode 100644 app/data/plantillas_visuales.json
+ create mode 100644 app/data/wa_chats.db-shm
+ create mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/tools/plantillas_texto_ia.py
+ create mode 100644 app/tools/plantillas_visuales.py
+ delete mode 100644 desktop/src/components/etiquetas/TabPlantillasPanel.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/GaleriaImagenesModal.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/ImagenCanvasElement.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/PlantillasVisualesPanel.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/SelectorFormatoCanvas.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/SugerenciasTextoMagico.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/VisualCanvasEditor.tsx
+ create mode 100644 desktop/src/icons/IllustrationIcon.tsx
+ create mode 100644 desktop/src/icons/PanelIcon.tsx
+ create mode 100644 desktop/src/lib/autoCorregirTexto.ts
+ create mode 100644 desktop/src/lib/plantillasVisuales.ts
+ create mode 100644 desktop/src/lib/plantillasVisualesExport.ts
+ create mode 100644 desktop/src/lib/plantillasVisualesImagen.ts
+ create mode 100644 desktop/src/lib/textoMagicoApi.ts
+ create mode 100644 uploads/tickets/5a177193192044c5b12cc34cc3260d88.pdf
+ create mode 100644 uploads/tickets/6db02882c14f43b196d437c7951912f2.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-06-17 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
