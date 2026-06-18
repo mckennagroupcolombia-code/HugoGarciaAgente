@@ -1,9 +1,8 @@
 {
-  "fecha": "2026-06-17",
-  "mensajes_whatsapp": 69,
-  "preguntas_meli": 8,
+  "fecha": "2026-06-18",
+  "mensajes_whatsapp": 0,
+  "preguntas_meli": 0,
   "pagos_confirmados": 0,
   "ordenes_sincronizadas": 0,
-  "ordenes_meli": 216,
-  "mensajes_posventa": 11
+  "ordenes_meli": 16
 }
