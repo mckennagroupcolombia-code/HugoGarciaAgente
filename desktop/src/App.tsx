@@ -20,6 +20,7 @@ import WebChatPanel from "./components/WebChatPanel";
 import WhatsAppPanel from "./components/WhatsAppPanel";
 import SupervisorPanel from "./components/SupervisorPanel";
 import EtiquetasPanel, { ConfigurarProductosPanel } from "./components/EtiquetasPanel";
+import PlantillasVisualesPanel from "./components/plantillas-visuales/PlantillasVisualesPanel";
 import PublicacionesPanel from "./components/PublicacionesPanel";
 import LogisticaInternacionalPanel from "./components/LogisticaInternacionalPanel";
 import Settings from "./components/Settings";
@@ -77,6 +78,8 @@ function PanelRouter() {
       return <EtiquetasPanel />;
     case "etiquetas-config":
       return <ConfigurarProductosPanel />;
+    case "plantillas-visuales":
+      return <PlantillasVisualesPanel />;
     case "publicaciones":
       return <PublicacionesPanel />;
     case "logistica-importaciones":
@@ -182,7 +185,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 
 const NAV_ORDER: Panel[] = [
   "hugo", "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
-  "facturas", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config",
+  "facturas", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config", "plantillas-visuales",
   ...LOGISTICA_PANELS,
   "settings",
 ];
@@ -193,7 +196,7 @@ function puedeVerPanel(user: TicketsUser, panel: Panel): boolean {
   if (logistica !== null) return logistica;
   const contab = puedeVerModuloContabilidad(user, panel);
   if (contab !== null) return contab;
-  if (panel === "etiquetas" || panel === "etiquetas-config") return true;
+  if (panel === "etiquetas" || panel === "etiquetas-config" || panel === "plantillas-visuales") return true;
   if (panel === "hugo" || panel === "tickets") {
     if ((user.rol?.nivel ?? 0) >= 3) return true;
     const p = user.permisos_secciones;

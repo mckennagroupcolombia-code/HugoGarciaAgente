@@ -37,6 +37,10 @@ export interface CampoDiagramacion {
   interletrado?: number;
   /** Alineación del texto en el bloque. */
   alineacion?: AlineacionTexto;
+  /** Ancho de caja para texto libre (coords SVG). */
+  ancho_caja?: number;
+  /** Alto de caja para texto libre (coords SVG). */
+  alto_caja?: number;
   visible?: boolean;
 }
 

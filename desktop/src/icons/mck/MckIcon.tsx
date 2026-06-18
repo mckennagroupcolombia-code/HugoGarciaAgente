@@ -16,6 +16,10 @@ export function MckIconFrame({
   ...rest
 }: MckIconFrameProps) {
   const strokeWidth = MCK_STROKE[weight];
+  const duotone = weight === "duotone";
+  const cls = ["mck-icon", duotone ? "mck-icon--duotone" : "", className]
+    .filter(Boolean)
+    .join(" ");
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -27,10 +31,11 @@ export function MckIconFrame({
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className ? `mck-icon ${className}` : "mck-icon"}
+      className={cls}
       aria-hidden={rest["aria-label"] ? undefined : true}
       {...rest}
     >
+      {duotone && <circle cx="12" cy="12" r="9.5" className="mck-icon__duotone-bg" />}
       {children}
     </svg>
   );

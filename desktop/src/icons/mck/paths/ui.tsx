@@ -487,4 +487,30 @@ export const MCK_UI_PATHS: Record<string, ReactNode> = {
       <circle cx="16" cy="13.5" r="1" />
     </>
   ),
+  monitor: (
+    <>
+      <rect x="4" y="5" width="16" height="11" rx="1.5" />
+      <path d="M9 19h6M12 16v3" />
+    </>
+  ),
+  megaphone: (
+    <>
+      <path d="M5 10v4a2 2 0 0 0 2 2h1l5 4V6L8 10H7a2 2 0 0 0-2 2z" />
+      <path d="M16 9a3 3 0 0 1 0 6" />
+    </>
+  ),
+  ship: (
+    <>
+      <path d="M4 16l2-5h12l2 5" />
+      <path d="M3 18h18" />
+      <path d="M12 4v7" />
+      <path d="M9 7l3-3 3 3" />
+    </>
+  ),
+  plane: (
+    <>
+      <path d="M3 12h5l2-4 2 8 2-8 2 4h5" />
+      <path d="M12 8v8" />
+    </>
+  ),
 };

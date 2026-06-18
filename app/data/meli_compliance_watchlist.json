@@ -11,11 +11,13 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
       "categoria_catalogo": "",
       "creado_en": "2026-06-16T18:09:40",
-      "ultima_revision": "2026-06-16T18:12:09",
-      "estado_actual": "active",
-      "sub_status": [],
+      "ultima_revision": "2026-06-17T08:30:03",
+      "estado_actual": "under_review",
+      "sub_status": [
+        "waiting_for_patch"
+      ],
       "nivel_riesgo": "bajo",
-      "score_riesgo": 2,
+      "score_riesgo": 0,
       "seguimiento_activo": true,
       "notas": "Creada por compliance monitor — publicación nueva",
       "historial": [
@@ -44,10 +46,24 @@
           "señales": [
             "sal de magnesio"
           ]
+        },
+        {
+          "fecha": "2026-06-17T08:30:03",
+          "status": "under_review",
+          "sub_status": [
+            "waiting_for_patch"
+          ],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": true,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
+          "señales": []
         }
       ],
-      "alertas_enviadas": []
+      "alertas_enviadas": [
+        "MCO4074246724:under_review"
+      ]
     }
   ],
-  "ultima_revision_global": "2026-06-16T18:12:09"
+  "ultima_revision_global": "2026-06-17T08:30:03"
 }

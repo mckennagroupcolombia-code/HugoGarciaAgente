@@ -202,5 +202,59 @@
       }
     },
     "updated_at": "2026-06-17T00:55:59"
+  },
+  "C-CITMAG500g": {
+    "_versiones": {
+      "original": {},
+      "alternativa": {
+        "sku": "C-CITMAG500g",
+        "nombre_producto": "CITRATO MAGNESIO 500g",
+        "subtitulo": "Insumo alimentario 100% puro en polvo",
+        "perfil": "materia_prima_alimentaria",
+        "ingrediente": "CITRATO MAGNESIO 500g",
+        "contenido_neto": "500",
+        "unidad": "g",
+        "presentacion_extra": "",
+        "aplicaciones": "Alimentos, formulación, cosmética e industria",
+        "descripcion_etiqueta": "materia prima pura de grado alimentario e industrial que se presenta como una sal hidratada con una relación molecular exacta de 3:2 (tres partes de magnesio por cada dos de ácido cítrico). Debido a su alta solubilidad y a que es una de las fuentes de magnesio con mayor biodisponibilidad y fácil absorción, es un insumo idóneo para la fortificación mineral, la regulación de acidez y la estabilización del pH en la industria de bebidas (jugos e isotónicos), lácteos, panadería y la creación de premezclas nutricionales.\n\nEste producto de alta pureza cumple estrictamente con el estándar de calidad USP 32, garantizando su idoneidad para procesos de manufactura exigentes. Su comercialización se realiza bajo la modalidad de reenvase, en total cumplimiento con la Resolución 2674 de 2013, Artículo 37, Numeral 3 de la normativa sanitaria colombiana.\n\n\n",
+        "cas": "",
+        "concentracion": "99 %",
+        "formula_molecular": "",
+        "pureza": "100% puro",
+        "lote": "LOT.",
+        "vencimiento": "EXP.",
+        "mostrar_lote_vencimiento": true,
+        "placeholders_lote_vencimiento": true,
+        "codigo_barras": "",
+        "incluye_cuchara": false,
+        "texto_cuchara": "Cuchara incluida para dosificación en formulación",
+        "mostrar_bloque_legal": true,
+        "mostrar_res_2674": true,
+        "distribuidor": "MCKENNA GROUP S.A.S",
+        "nit": "901316016-3",
+        "ciudad": "Bogotá — Colombia",
+        "notas_tecnicas": "COA y ficha técnica en www.mckennagroup.co",
+        "tipo_etiqueta": "500 g",
+        "ancho_mm": 76,
+        "alto_mm": 66,
+        "mostrar_formula_molecular": false,
+        "mostrar_cas": true,
+        "mostrar_concentracion": true,
+        "modo_etiqueta": "alternativa",
+        "b1_ancho_pct": 100,
+        "archivo_ai": "CITRATO MAGNESIO 500g.ai",
+        "forzar_plantilla_svg": false,
+        "updated_at": "2026-06-17T04:19:15",
+        "diagramacion": {
+          "b1": {
+            "escala": 1.05,
+            "listado": false,
+            "interletrado": 0.1,
+            "interlineado": 1.2
+          }
+        }
+      }
+    },
+    "updated_at": "2026-06-17T04:19:15"
   }
 }

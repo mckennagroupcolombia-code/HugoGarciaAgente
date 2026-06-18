@@ -87,7 +87,11 @@ export type UiIconName =
   | "eye"
   | "ticket"
   | "wave"
-  | "palette";
+  | "palette"
+  | "monitor"
+  | "megaphone"
+  | "ship"
+  | "plane";
 
 export type IconName = Panel | UiIconName;
 

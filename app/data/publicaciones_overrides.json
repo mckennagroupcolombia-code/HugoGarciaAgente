@@ -228,5 +228,13 @@
   "C-ACEGIR500mL": {
     "meli_item_id": "MCO581494276",
     "updated_at": "2026-06-12T01:50:31.602033"
+  },
+  "C-CITMAG500g": {
+    "imagenes_web": [
+      "C-CITMAG500g.png",
+      "C-CITMAG500g_2.png"
+    ],
+    "updated_at": "2026-06-17T04:34:33.072279",
+    "meli_item_id": "MCO4074246724"
   }
 }

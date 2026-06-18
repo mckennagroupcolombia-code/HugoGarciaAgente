@@ -234,6 +234,17 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tier: "advanced",
     category: "inventario",
   },
+  "plantillas-visuales": {
+    emoji: "🎨",
+    label: "Plantillas visuales",
+    description: "Editor tipo Canva para crear etiquetas, fichas técnicas, imágenes de Mercado Libre, banners y piezas gráficas reutilizables.",
+    tips: [
+      "Elige primero el formato de lienzo según el uso (etiqueta, MeLi, banner, etc.).",
+      "Las plantillas se guardan como JSON editable y puedes exportarlas a PDF, PNG o JPG.",
+    ],
+    tier: "standard",
+    category: "contenido",
+  },
   "logistica-importaciones": {
     emoji: "🚢",
     label: "Importaciones",

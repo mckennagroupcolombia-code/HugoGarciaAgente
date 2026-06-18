@@ -43,6 +43,11 @@ PALABRAS_RIESGO = [
     "invima", "registro sanitario",
 ]
 
+_RE_SAL_DE_MINERAL = re.compile(
+    r"\bsal\s+de\s+(magnesio|calcio|zinc|potasio|sodio)\b",
+    re.I,
+)
+
 PERFILES = {
     "materia_prima_alimentaria": {
         "subtitulo_etiqueta": "Insumo alimentario 100% puro · Res. 2674/2013 Art. 37-3",
@@ -265,6 +270,7 @@ Perfil: {perfil} — {perfil_info['subtitulo_etiqueta']}
 
 REGLAS ESTRICTAS:
 - NO mencionar: dosis, consumo, absorción, salud ósea/muscular/cardiovascular, farmacológico, Ph.Eur, USP, INVIMA, laxante, antiácido, magnesio elemental, % elemental
+- NO usar frases tipo "sal de magnesio/sal de calcio/sal de zinc" (usar "citrato de X", "compuesto de X con citrato" o "materia prima mineral")
 - SÍ incluir: "materia prima", "insumo para formulación", "Res. 2674/2013 Art. 37-3", "no es suplemento terminado"
 - Título MeLi máx 60 chars, formato: "{{Ingrediente}} En Polvo Puro {{presentación}} — Materia Prima"
 - LINE MeLi: "{perfil_info['linea_meli']}"
@@ -299,6 +305,8 @@ El bloque_etiqueta es el texto completo para imprimir en la etiqueta física alt
         else:
             data = json.loads(texto or "")
 
+        data = _sanear_salida_compliance(data)
+
         # Agregar checklist automático
         data["checklist"] = _evaluar_checklist(
             data.get("titulo", ""),
@@ -313,10 +321,82 @@ El bloque_etiqueta es el texto completo para imprimir en la etiqueta física alt
         return {"error": f"La IA no devolvió JSON válido: {e}", "texto_raw": texto}
 
 
+def _sanear_texto_compliance(texto: str) -> str:
+    t = (texto or "").strip()
+    if not t:
+        return t
+    def _repl_sal(m: re.Match[str]) -> str:
+        base = f"citrato de {m.group(1).lower()}"
+        return base.capitalize() if m.group(0)[:1].isupper() else base
+
+    t = _RE_SAL_DE_MINERAL.sub(_repl_sal, t)
+    t = re.sub(r"\s{2,}", " ", t)
+    return t
+
+
+def _sanear_salida_compliance(data: dict) -> dict:
+    out = dict(data or {})
+    for campo in ("titulo", "descripcion", "subtitulo_etiqueta", "bloque_etiqueta"):
+        if isinstance(out.get(campo), str):
+            out[campo] = _sanear_texto_compliance(out[campo])
+    atrs = out.get("atributos")
+    if isinstance(atrs, dict):
+        atrs = dict(atrs)
+        for k in ("LINE", "INGREDIENTS"):
+            if isinstance(atrs.get(k), str):
+                atrs[k] = _sanear_texto_compliance(atrs[k])
+        out["atributos"] = atrs
+    out = _forzar_clausulas_obligatorias(out)
+    return out
+
+
+def _forzar_clausulas_obligatorias(data: dict) -> dict:
+    out = dict(data or {})
+    desc = str(out.get("descripcion") or "").strip()
+    bloque = str(out.get("bloque_etiqueta") or "").strip()
+    req_res = "Res. 2674/2013 Art. 37-3"
+    req_nosup = "no es suplemento terminado"
+
+    if desc:
+        desc_low = desc.lower()
+        anexos: list[str] = []
+        if "2674" not in desc_low:
+            anexos.append(
+                "Marco regulatorio: materia prima para formulación conforme a la "
+                f"{req_res}."
+            )
+        if "suplemento terminado" not in desc_low:
+            anexos.append("Este producto no es suplemento terminado ni medicamento.")
+        if anexos:
+            out["descripcion"] = f"{desc}\n\n" + "\n".join(anexos)
+
+    if bloque:
+        bloque_low = bloque.lower()
+        anexos_b: list[str] = []
+        if "2674" not in bloque_low:
+            anexos_b.append(f"Marco regulatorio: {req_res}.")
+        if "suplemento terminado" not in bloque_low:
+            anexos_b.append("No es suplemento terminado ni medicamento.")
+        if anexos_b:
+            out["bloque_etiqueta"] = f"{bloque}\n" + "\n".join(anexos_b)
+
+    # Refuerzo del subtítulo para publicaciones nuevas / alternativas
+    subt = str(out.get("subtitulo_etiqueta") or "").strip()
+    if subt:
+        subt_low = subt.lower()
+        if "2674" not in subt_low:
+            subt = f"{subt} · {req_res}"
+        if "suplemento terminado" not in subt_low:
+            subt = f"{subt} · No es suplemento terminado"
+        out["subtitulo_etiqueta"] = subt
+    return out
+
+
 def _evaluar_checklist(titulo: str, descripcion: str, atributos: dict) -> dict:
     texto = (titulo + " " + descripcion).lower()
     return {
         "titulo_nombre_quimico_correcto": "sal de" not in titulo.lower(),
+        "descripcion_sin_sal_de": "sal de" not in descripcion.lower(),
         "titulo_incluye_materia_prima": any(
             kw in titulo.lower() for kw in ["materia prima", "insumo"]
         ),

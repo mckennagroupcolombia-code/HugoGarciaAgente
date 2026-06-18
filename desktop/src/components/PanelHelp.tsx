@@ -1,6 +1,9 @@
 import { useState } from "react";
+import type { Panel } from "../stores/app";
 import { PANEL_INFO } from "../lib/panelInfo";
 import { useUiMode } from "../stores/uiMode";
+import { PanelIcon } from "../icons/PanelIcon";
+import { Icon } from "../icons";
 
 /**
  * Banner de ayuda contextual para cada panel.
@@ -22,7 +25,9 @@ export default function PanelHelp({ panelId }: { panelId: string }) {
         title={`¿Qué es ${info.label}?`}
         className="mb-4 flex items-center gap-1.5 rounded-full border border-border bg-surface-panel px-3 py-1 text-xs font-semibold text-muted shadow-paper-sm transition hover:border-accent hover:text-accent"
       >
-        <span>ⓘ</span>
+        <span className="mt-0.5 shrink-0">
+          <Icon name="question" size={14} weight="duotone" />
+        </span>
         ¿Cómo funciona esto?
       </button>
     );
@@ -31,7 +36,7 @@ export default function PanelHelp({ panelId }: { panelId: string }) {
   return (
     <div className="mb-5 overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10 shadow-paper-sm">
       <div className="flex items-start gap-3 px-5 py-4">
-        <span className="mt-0.5 shrink-0 text-2xl">{info.emoji}</span>
+        <PanelIcon panel={panelId as Panel} size={36} className="mt-0.5 shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="font-extrabold text-ink">{info.label}</h3>
@@ -73,7 +78,7 @@ export default function PanelHelp({ panelId }: { panelId: string }) {
           className="shrink-0 rounded-full p-1 text-muted transition hover:bg-surface-hover hover:text-ink"
           aria-label="Cerrar ayuda"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="mck-icon">
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
@@ -104,7 +109,10 @@ export function PanelHelpInline({ panelId }: { panelId: string }) {
       </button>
       {show && (
         <div className="absolute left-7 top-0 z-50 w-72 rounded-xl border border-border bg-surface-panel p-3 shadow-paper-lg text-xs text-ink-secondary leading-relaxed">
-          <p className="font-bold text-ink mb-1">{info.emoji} {info.label}</p>
+          <p className="font-bold text-ink mb-1 flex items-center gap-2">
+            <PanelIcon panel={panelId as Panel} size={20} bubble={false} />
+            {info.label}
+          </p>
           <p>{info.description}</p>
           {info.tips.length > 0 && (
             <ul className="mt-2 space-y-1">

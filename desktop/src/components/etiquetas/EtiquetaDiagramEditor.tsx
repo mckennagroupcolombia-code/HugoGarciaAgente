@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
 import { EtiquetaTextoToolbar, patchCampoToolbar } from "./EtiquetaTextoToolbar";
@@ -72,6 +73,8 @@ interface Props {
   panelExterno?: boolean;
   /** Solo líneas decorativas: sin overlays ni edición de texto */
   soloLineas?: boolean;
+  /** En edición desde cero, solo detecta/edita campos txt_* */
+  soloTextosLibres?: boolean;
   onCamposPresentesChange?: (ids: Set<CampoDiagramacionId>) => void;
   onGraficosPresentesChange?: (ids: string[]) => void;
 }
@@ -107,18 +110,32 @@ function screenRectFromSvgEl(
     return null;
   }
   const pt = svg.createSVGPoint();
-  pt.x = bbox.x;
-  pt.y = bbox.y;
-  const tl = pt.matrixTransform(ctm);
-  pt.x = bbox.x + bbox.width;
-  pt.y = bbox.y + bbox.height;
-  const br = pt.matrixTransform(ctm);
+  // Soporta matrices invertidas/rotadas (AI/PDF): usamos las 4 esquinas y
+  // calculamos caja por min/max para que overlays y nodos no se descuadren.
+  const corners: Array<{ x: number; y: number }> = [];
+  for (const [x, y] of [
+    [bbox.x, bbox.y],
+    [bbox.x + bbox.width, bbox.y],
+    [bbox.x, bbox.y + bbox.height],
+    [bbox.x + bbox.width, bbox.y + bbox.height],
+  ]) {
+    pt.x = x;
+    pt.y = y;
+    const p = pt.matrixTransform(ctm);
+    corners.push({ x: p.x, y: p.y });
+  }
+  const xs = corners.map((p) => p.x);
+  const ys = corners.map((p) => p.y);
+  const left = Math.min(...xs);
+  const right = Math.max(...xs);
+  const top = Math.min(...ys);
+  const bottom = Math.max(...ys);
   const mtx = parseMatrix(el) ?? { tx: 0, ty: 0 };
   return {
-    left: tl.x - rootRect.left,
-    top: tl.y - rootRect.top,
-    width: Math.max(12, br.x - tl.x),
-    height: Math.max(10, br.y - tl.y),
+    left: left - rootRect.left,
+    top: top - rootRect.top,
+    width: Math.max(12, right - left),
+    height: Math.max(10, bottom - top),
     baseTx: mtx.tx,
     baseTy: mtx.ty,
     tx: mtx.tx,
@@ -152,6 +169,37 @@ function svgDeltaToScreen(svg: SVGSVGElement, dx: number, dy: number): { dx: num
   pt.y = dy;
   const d = pt.matrixTransform(ctm);
   return { dx: d.x - o.x, dy: d.y - o.y };
+}
+
+function svgPointToScreen(
+  root: HTMLElement,
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+): { left: number; top: number } | null {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const pt = svg.createSVGPoint();
+  pt.x = x;
+  pt.y = y;
+  const p = pt.matrixTransform(ctm);
+  const rootRect = root.getBoundingClientRect();
+  return { left: p.x - rootRect.left, top: p.y - rootRect.top };
+}
+
+function screenPointToSvg(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number,
+): { x: number; y: number } | null {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
+  const inv = ctm.inverse();
+  const pt = svg.createSVGPoint();
+  pt.x = clientX;
+  pt.y = clientY;
+  const p = pt.matrixTransform(inv);
+  return { x: p.x, y: p.y };
 }
 
 function overlayPosicionCampo(
@@ -221,6 +269,7 @@ export function EtiquetaDiagramacionWorkspace({
   onSeleccionChange,
   panelExterno = false,
   soloLineas = false,
+  soloTextosLibres = false,
   onCamposPresentesChange,
   onGraficosPresentesChange,
 }: Props) {
@@ -234,6 +283,13 @@ export function EtiquetaDiagramacionWorkspace({
     [seleccionProp, onSeleccionChange],
   );
   const [arrastrando, setArrastrando] = useState(false);
+  const [modoDibujoCaja, setModoDibujoCaja] = useState(false);
+  const [cajaPreview, setCajaPreview] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [textoEditando, setTextoEditando] = useState<string | null>(null);
   const [capasVisibles, setCapasVisibles] = useState(variant !== "inline" && !panelExterno);
   const [campos, setCampos] = useState<CampoMedido[]>([]);
@@ -255,6 +311,8 @@ export function EtiquetaDiagramacionWorkspace({
     startW: number;
     startH: number;
     baseEscala: number;
+    baseAnchoCaja?: number;
+    baseAltoCaja?: number;
     fullW?: number;
     baseAnchoPct?: number;
   } | null>(null);
@@ -282,11 +340,44 @@ export function EtiquetaDiagramacionWorkspace({
     svg.querySelectorAll<SVGGraphicsElement>("[data-mckenna-campo]").forEach((el) => {
       const id = el.getAttribute("data-mckenna-campo");
       if (!id || vistosTexto.has(id)) return;
+      if (soloTextosLibres && !id.startsWith("txt_")) return;
       if (campoDiagramacionOculto(diagramacion, id)) return;
       vistosTexto.add(id);
       const rect = screenRectFromSvgEl(root, svg, el);
       if (!rect) return;
       const ov = diagramacion?.[id as CampoDiagramacionId];
+      if (id.startsWith("txt_") && ov?.ancho_caja && ov?.alto_caja) {
+        const escala = Math.max(0.6, Math.min(1.8, Number(ov.escala ?? 1)));
+        const fs = 9 * escala;
+        const p0 = svgPointToScreen(root, svg, ov.x ?? rect.tx, ov.y ?? rect.ty);
+        const d = svgDeltaToScreen(svg, Number(ov.ancho_caja) || 0, Number(ov.alto_caja) || 0);
+        const width = Math.max(24, Math.abs(d.dx));
+        const height = Math.max(14, Math.abs(d.dy));
+        const anchor = ov.alineacion ?? "left";
+        const baseLeft = p0?.left ?? rect.left;
+        const left =
+          anchor === "center"
+            ? baseLeft - width * 0.5
+            : anchor === "right"
+              ? baseLeft - width
+              : baseLeft;
+        const top = (p0?.top ?? rect.top) - fs - 0.8;
+        medidos.push({
+          id,
+          kind: "texto",
+          left,
+          top,
+          width,
+          height,
+          baseTx: rect.tx,
+          baseTy: rect.ty,
+          tx: ov.x ?? rect.tx,
+          ty: ov.y ?? rect.ty,
+          color: ov.color ?? rect.color,
+          presente: true,
+        });
+        return;
+      }
       medidos.push({
         id,
         kind: "texto",
@@ -326,7 +417,7 @@ export function EtiquetaDiagramacionWorkspace({
       });
     });
 
-    if (!soloLineas) {
+    if (!soloLineas && !soloTextosLibres) {
     for (const def of CAMPOS_DIAGRAMACION) {
       if (!medidos.some((c) => c.id === def.id)) {
         medidos.push({
@@ -345,6 +436,44 @@ export function EtiquetaDiagramacionWorkspace({
         });
       }
     }
+    }
+    // Permite crear/arrastrar txt_* inmediatamente, incluso antes de que el
+    // preview backend reinyecte el nodo <text data-mckenna-campo="txt_n">.
+    for (const [id, cfgRaw] of Object.entries(diagramacion ?? {})) {
+      if (!id.startsWith("txt_")) continue;
+      if (medidos.some((c) => c.id === id)) continue;
+      if (campoDiagramacionOculto(diagramacion, id)) continue;
+      const cfg = (cfgRaw ?? {}) as CampoDiagramacion;
+      const tx = Number(cfg.x);
+      const ty = Number(cfg.y);
+      if (!Number.isFinite(tx) || !Number.isFinite(ty)) continue;
+      const pos = svgPointToScreen(root, svg, tx, ty);
+      if (!pos) continue;
+      const escala = Math.max(0.6, Math.min(1.8, Number(cfg.escala ?? 1)));
+      const ancho = Math.max(60, Number(cfg.ancho_caja) || 120 * escala);
+      const alto = Math.max(18, Number(cfg.alto_caja) || 28 * escala);
+      const alineacion = cfg.alineacion ?? "left";
+      const left =
+        alineacion === "center"
+          ? pos.left - ancho * 0.5
+          : alineacion === "right"
+            ? pos.left - ancho
+            : pos.left;
+      const top = pos.top - alto * 0.8;
+      medidos.push({
+        id,
+        kind: "texto",
+        left,
+        top,
+        width: ancho,
+        height: alto,
+        baseTx: tx,
+        baseTy: ty,
+        tx,
+        ty,
+        color: cfg.color ?? "#111111",
+        presente: true,
+      });
     }
     setCampos(medidos);
     if (!soloLineas && onCamposPresentesChange) {
@@ -370,6 +499,7 @@ export function EtiquetaDiagramacionWorkspace({
     onCamposPresentesChange,
     onGraficosPresentesChange,
     soloLineas,
+    soloTextosLibres,
   ]);
 
   useEffect(() => {
@@ -440,8 +570,13 @@ export function EtiquetaDiagramacionWorkspace({
       scaleX = Math.max(0.4, scaleX);
       scaleY = Math.max(0.4, scaleY);
       const factor = clampEscala(r.baseEscala * (scaleX + scaleY) / 2);
-
-      const patches: CampoDiagramacion = { escala: factor };
+      const esTextoLibre = r.id.startsWith("txt_");
+      const patches: CampoDiagramacion = esTextoLibre
+        ? {
+            ancho_caja: Math.max(18, (r.baseAnchoCaja ?? r.startW) * scaleX),
+            alto_caja: Math.max(10, (r.baseAltoCaja ?? r.startH) * scaleY),
+          }
+        : { escala: factor };
       if (r.id === "b1" && r.fullW && r.baseAnchoPct != null) {
         let newW = r.startW;
         if (r.handle.includes("e")) newW = r.startW + dx;
@@ -516,19 +651,47 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
     eliminarCampoTexto(seleccion);
   }, [seleccion, eliminarCampoTexto]);
 
-  const anadirCajaTexto = useCallback(() => {
+  const crearCajaTexto = useCallback((opts?: {
+    x?: number;
+    y?: number;
+    escala?: number;
+    alineacion?: "left" | "center" | "right";
+    anchoCaja?: number;
+    altoCaja?: number;
+  }) => {
     if (!onPatchDatos) return;
     const existentes = new Set(Object.keys(diagramacion ?? {}));
     let n = 1;
     while (existentes.has(`txt_${n}`)) n += 1;
     const id = `txt_${n}`;
+    let xInicial = 20;
+    let yInicial = 40;
+    const svg = containerRef.current?.querySelector("svg");
+    if (svg) {
+      // Inserta nuevas cajas en el centro del área visible para evitar que
+      // aparezcan "pegadas" al fondo/esquinas en plantillas con transforms AI.
+      const vb = svg.viewBox?.baseVal;
+      if (vb && vb.width > 0 && vb.height > 0) {
+        xInicial = vb.x + vb.width * 0.5;
+        yInicial = vb.y + vb.height * 0.5;
+      } else {
+        const w = Number(svg.getAttribute("width")?.replace(/mm$/i, "") || "");
+        const h = Number(svg.getAttribute("height")?.replace(/mm$/i, "") || "");
+        if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+          xInicial = w * 0.5;
+          yInicial = h * 0.5;
+        }
+      }
+    }
     onPatchDiagramacion(
       patchDiagramacion(diagramacion, id, {
-        x: 20,
-        y: 40,
+        x: Math.round((opts?.x ?? xInicial) * 1000) / 1000,
+        y: Math.round((opts?.y ?? yInicial) * 1000) / 1000,
         color: "#111111",
-        escala: 1,
-        alineacion: "left",
+        escala: clampEscala(opts?.escala ?? 1),
+        alineacion: opts?.alineacion ?? "center",
+        ancho_caja: opts?.anchoCaja,
+        alto_caja: opts?.altoCaja,
       }),
     );
     onPatchDatos({
@@ -538,8 +701,82 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
       },
     });
     setSeleccion(id);
-    setTextoEditando(id);
+    // Tipo Canva: crear caja y permitir mover/redimensionar primero.
+    // La edición del contenido entra con doble clic.
+    setTextoEditando(null);
+    return id;
   }, [diagramacion, datos.textos_campo, onPatchDatos, onPatchDiagramacion]);
+
+  const anadirCajaTexto = useCallback(() => {
+    if (!onPatchDatos) return;
+    setModoDibujoCaja((v) => !v);
+    setCajaPreview(null);
+  }, [onPatchDatos]);
+
+  const onCanvasPointerDownCrearCaja = useCallback((ev: ReactPointerEvent<HTMLDivElement>) => {
+    if (!modoDibujoCaja || !onPatchDatos) return;
+    const target = ev.target as HTMLElement | null;
+    if (target?.closest("button,input,textarea,select")) return;
+    const root = containerRef.current;
+    const svg = root?.querySelector("svg");
+    if (!root || !svg) return;
+
+    ev.preventDefault();
+    ev.stopPropagation();
+    const rootRect = root.getBoundingClientRect();
+    const sx = ev.clientX - rootRect.left;
+    const sy = ev.clientY - rootRect.top;
+    setCajaPreview({ left: sx, top: sy, width: 0, height: 0 });
+
+    const onMove = (mv: PointerEvent) => {
+      const cx = mv.clientX - rootRect.left;
+      const cy = mv.clientY - rootRect.top;
+      const left = Math.min(sx, cx);
+      const top = Math.min(sy, cy);
+      const width = Math.abs(cx - sx);
+      const height = Math.abs(cy - sy);
+      setCajaPreview({ left, top, width, height });
+    };
+
+    const onUp = (up: PointerEvent) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+
+      setModoDibujoCaja(false);
+      setCajaPreview(null);
+
+      const a = screenPointToSvg(svg, ev.clientX, ev.clientY);
+      const b = screenPointToSvg(svg, up.clientX, up.clientY);
+      if (!a || !b) {
+        crearCajaTexto();
+        return;
+      }
+      const minX = Math.min(a.x, b.x);
+      const minY = Math.min(a.y, b.y);
+      const w = Math.abs(b.x - a.x);
+      const h = Math.abs(b.y - a.y);
+      // Evita el salto a tamaño 1.8; la altura de la ventana solo ajusta suave.
+      const escala = clampEscala(Math.max(0.9, Math.min(1.25, h / 14)));
+      const fs = 9 * escala;
+      // En matrix(1,0,0,-1,x,y) y es línea base; para quedar dentro de la
+      // ventana dibujada ubicamos baseline cerca del borde superior.
+      const xTexto = minX + 0.8;
+      const yTexto = minY + fs + 0.8;
+      crearCajaTexto({
+        x: xTexto,
+        y: yTexto,
+        escala,
+        alineacion: "left",
+        anchoCaja: Math.max(18, w - 1.6),
+        altoCaja: Math.max(10, h - 1.6),
+      });
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }, [modoDibujoCaja, onPatchDatos, containerRef, crearCajaTexto]);
 
   const escrituraMagica = useCallback(() => {
     if (!seleccion || esIdGrafico(seleccion) || !onPatchDatos) return;
@@ -565,6 +802,8 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
 
   useEffect(() => {
     setTextoEditando(null);
+    setModoDibujoCaja(false);
+    setCajaPreview(null);
   }, [svgKey]);
 
   useEffect(() => {
@@ -690,9 +929,22 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
             height: `${canvas.height}px`,
             minWidth: "160px",
             fontFamily: FUENTE_ETIQUETA_FAMILY,
+            cursor: modoDibujoCaja ? "crosshair" : undefined,
           }}
+          onPointerDown={onCanvasPointerDownCrearCaja}
         >
           {children}
+          {cajaPreview && (
+            <div
+              className="pointer-events-none absolute z-50 border-2 border-accent/90 bg-accent/10"
+              style={{
+                left: cajaPreview.left,
+                top: cajaPreview.top,
+                width: Math.max(1, cajaPreview.width),
+                height: Math.max(1, cajaPreview.height),
+              }}
+            />
+          )}
           {campos
             .filter((c) => c.presente && !campoDiagramacionOculto(diagramacion, c.id))
             .map((c) => {
@@ -898,6 +1150,8 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
                       startW: seleccionado.width,
                       startH: seleccionado.height,
                       baseEscala,
+                      baseAnchoCaja: Number(diagramacion?.[seleccionado.id]?.ancho_caja) || seleccionado.width,
+                      baseAltoCaja: Number(diagramacion?.[seleccionado.id]?.alto_caja) || seleccionado.height,
                     };
                     if (seleccionado.id === "b1") {
                       const guia = containerRef.current?.querySelector(
@@ -958,6 +1212,40 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
     if (panelExterno) {
       return (
         <div className="flex h-full min-h-0 w-full flex-col">
+          {!soloLineas && onPatchDatos && (
+            <div className="flex shrink-0 flex-wrap items-center gap-2 px-1 pb-1">
+              <EtiquetaTextoToolbar
+                campoId={seleccion && !esIdGrafico(seleccion) ? seleccion : null}
+                cfg={cfgSel}
+                colorFallback={seleccionado?.color ?? "#000000"}
+                escala={escalaSel}
+                b1AnchoPct={seleccion === "b1" ? b1Pct : undefined}
+                tx={cfgSel?.x ?? seleccionado?.tx ?? graficoSel?.tx ?? 0}
+                ty={cfgSel?.y ?? seleccionado?.ty ?? graficoSel?.ty ?? 0}
+                onAnadirCajaTexto={anadirCajaTexto}
+                onEscrituraMagica={escrituraMagica}
+                onPatch={(p) => {
+                  if (!seleccion) return;
+                  if (esIdGrafico(seleccion)) {
+                    onPatchGraficos?.(
+                      patchDiagramacionGraficos(diagramacionGraficos, seleccion, {
+                        x: p.x,
+                        y: p.y,
+                      }),
+                    );
+                    return;
+                  }
+                  onPatchDiagramacion(patchCampoToolbar(diagramacion, seleccion, p));
+                  if (p.ancho_pct != null) onPatchDatos({ b1_ancho_pct: p.ancho_pct });
+                }}
+              />
+              {modoDibujoCaja && (
+                <span className="text-[10px] font-semibold text-accent">
+                  Arrastra en el lienzo para crear la caja
+                </span>
+              )}
+            </div>
+          )}
           {zoomBar && <div className="flex shrink-0 justify-end px-1 pb-1">{zoomBar}</div>}
           {canvasBlock}
         </div>
