@@ -3,3 +3,4 @@
 {"tipo": "publicacion_nueva", "item_id": "MCO4074246724", "sku": "C-CITMAG500g", "origen": "MCO2613588008", "ts": "2026-06-16T18:09:42"}
 {"tipo": "revision_diaria", "revisadas": 1, "alertas": 0, "activas": 1, "problemas": 0, "ts": "2026-06-16T18:12:09"}
 {"tipo": "revision_diaria", "revisadas": 1, "alertas": 1, "activas": 0, "problemas": 1, "ts": "2026-06-17T08:30:03"}
+{"tipo": "revision_diaria", "revisadas": 1, "alertas": 0, "activas": 1, "problemas": 0, "ts": "2026-06-18T08:30:03"}

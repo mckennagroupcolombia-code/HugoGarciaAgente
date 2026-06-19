@@ -11,8 +11,10 @@ import {
 } from "react";
 import {
   alinearElementos,
+  agruparElementosPorIds,
   boundsElemento,
   clonarElementoIndependiente,
+  desagruparElementosPorIds,
   esFuenteMontserrat,
   FUENTE_MONTSERRAT_FAMILY,
   elementoImagenDefecto,
@@ -28,16 +30,24 @@ import {
   patchMoverElemento,
   posicionNuevoElemento,
   pesoMontserratVariante,
+  resolverSeleccionAlClic,
+  seleccionTieneGrupo,
   snapLinea90,
   unionBounds,
   VARIANTES_MONTSERRAT,
   varianteDesdeFontWeight,
   zoomAjusteLienzo,
   pesoFontWeightCss,
+  nuevoGroupId,
   type AlineacionObjetos,
   type ElementoTexto,
   type ElementoVisual,
   type PlantillaVisualDoc,
+  type RolTextoCapa,
+  contextoCapasParaDescripcion,
+  esCapaDescripcionMateriaPrima,
+  inferirRolTextoCapa,
+  labelRolTextoCapa,
 } from "../../lib/plantillasVisuales";
 import { dimensionesImagenParaLienzo } from "../../lib/plantillasVisualesImagen";
 import {
@@ -92,7 +102,7 @@ function ToolSep({ className = "" }: { className?: string }) {
   return <div className={`bg-border ${className}`} />;
 }
 
-type DragMode = "move" | "resize-se" | "resize-line-end" | null;
+type DragMode = "move" | "resize-se" | "resize-line-end" | "rotate" | null;
 
 function estiloElemento(el: ElementoVisual): React.CSSProperties {
   const base: React.CSSProperties = {
@@ -109,33 +119,6 @@ function estiloElemento(el: ElementoVisual): React.CSSProperties {
   return base;
 }
 
-function BotonCandadoElemento({
-  locked,
-  onToggle,
-}: {
-  locked?: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      title={locked ? "Desbloquear posición" : "Bloquear posición"}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation();
-        onToggle();
-      }}
-      className={`absolute left-0.5 top-0.5 z-30 flex h-2 w-2 items-center justify-center rounded-sm border p-0 text-[7px] leading-none shadow-sm transition ${
-        locked
-          ? "border-amber-300 bg-amber-50 text-amber-700 opacity-100 dark:border-amber-700 dark:bg-amber-950/80 dark:text-amber-200"
-          : "border-border/80 bg-white/95 text-muted opacity-0 group-hover/elem:opacity-100 dark:bg-zinc-900/95"
-      }`}
-    >
-      {locked ? "🔒" : "🔓"}
-    </button>
-  );
-}
-
 function mostrandoCajaArrastre(
   elId: string,
   sel: boolean,
@@ -150,7 +133,10 @@ function mostrandoCajaArrastre(
     esPrincipal &&
     !!drag &&
     drag.ids.includes(elId) &&
-    (drag.mode === "move" || drag.mode === "resize-se")
+    (drag.mode === "move" ||
+      drag.mode === "resize-se" ||
+      drag.mode === "rotate" ||
+      drag.mode === "resize-line-end")
   );
 }
 
@@ -174,8 +160,11 @@ export default function VisualCanvasEditor({
     startX: number;
     startY: number;
     origs: Map<string, ElementoVisual>;
+    rotateStartAngle?: number;
+    rotateOrig?: number;
   } | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [galeriaAbierta, setGaleriaAbierta] = useState(false);
   const suppressDeselectRef = useRef(false);
   const contenidoTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -312,9 +301,27 @@ export default function VisualCanvasEditor({
       copia.zIndex = maxZ + 1 + i;
       return copia;
     });
+    if (copias.length > 1) {
+      const gid = nuevoGroupId();
+      copias.forEach((c) => {
+        c.groupId = gid;
+      });
+    }
     patchElementos((els) => [...els, ...copias]);
-    setSeleccionIds(copias.length === 1 ? [copias[0].id] : copias.map((c) => c.id));
+    setSeleccionIds(copias.map((c) => c.id));
   };
+
+  const agruparSeleccion = useCallback(() => {
+    const ids = seleccionIds.filter((id) => doc.elementos.some((e) => e.id === id));
+    if (ids.length < 2) return;
+    patchElementos((els) => agruparElementosPorIds(els, ids));
+  }, [doc.elementos, patchElementos, seleccionIds]);
+
+  const desagruparSeleccion = useCallback(() => {
+    const ids = seleccionIds.filter((id) => doc.elementos.some((e) => e.id === id));
+    if (!ids.length) return;
+    patchElementos((els) => desagruparElementosPorIds(els, ids));
+  }, [doc.elementos, patchElementos, seleccionIds]);
 
   const traerAdelante = () => {
     if (!seleccionIds.length) return;
@@ -344,33 +351,69 @@ export default function VisualCanvasEditor({
     [doc.elementos, doc.formato.ancho_px, doc.formato.alto_px, patchElementos, seleccionIds],
   );
 
+  const punteroEnLienzo = useCallback(
+    (ev: { clientX: number; clientY: number }) => {
+      const node = canvasRef.current;
+      if (!node) return null;
+      const rect = node.getBoundingClientRect();
+      return {
+        x: (ev.clientX - rect.left) / zoom,
+        y: (ev.clientY - rect.top) / zoom,
+      };
+    },
+    [zoom],
+  );
+
   const onPointerDownEl = (e: ReactPointerEvent, el: ElementoVisual, mode: DragMode) => {
     e.stopPropagation();
 
-    if (e.shiftKey) {
-      const nextIds = seleccionIds.includes(el.id)
-        ? seleccionIds.filter((id) => id !== el.id)
-        : [...seleccionIds, el.id];
-      setSeleccionIds(nextIds);
-      if (!nextIds.includes(el.id)) return;
-    } else {
-      setSeleccionIds([el.id]);
-    }
+    const nextIds = resolverSeleccionAlClic(el, doc.elementos, seleccionIds, e.shiftKey);
+    setSeleccionIds(nextIds);
+    if (!nextIds.includes(el.id)) return;
 
     if (el.locked) return;
 
+    const idsDrag =
+      mode === "move"
+        ? nextIds.filter((id) => {
+            const o = doc.elementos.find((x) => x.id === id);
+            return o && !o.locked;
+          })
+        : [el.id];
+
+    if (!idsDrag.length) return;
+
     const origs = new Map<string, ElementoVisual>();
-    const found = doc.elementos.find((x) => x.id === el.id);
-    if (found) origs.set(el.id, structuredClone(found));
+    for (const id of idsDrag) {
+      const found = doc.elementos.find((x) => x.id === id);
+      if (found) origs.set(id, structuredClone(found));
+    }
 
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    setDrag({
-      ids: [el.id],
+
+    const dragBase = {
+      ids: mode === "move" ? idsDrag : [el.id],
       mode,
       startX: e.clientX,
       startY: e.clientY,
       origs,
-    });
+    };
+
+    if (mode === "rotate") {
+      const pt = punteroEnLienzo(e);
+      const o = origs.get(el.id);
+      if (!pt || !o) return;
+      const cx = o.x + o.width / 2;
+      const cy = o.y + o.height / 2;
+      setDrag({
+        ...dragBase,
+        rotateStartAngle: (Math.atan2(pt.y - cy, pt.x - cx) * 180) / Math.PI,
+        rotateOrig: o.rotation || 0,
+      });
+      return;
+    }
+
+    setDrag(dragBase);
   };
 
   useEffect(() => {
@@ -408,6 +451,23 @@ export default function VisualCanvasEditor({
           width: Math.max(20, o.width + dx),
           height: Math.max(12, o.height + dy),
         });
+      } else if (drag!.mode === "rotate" && o.type === "rect") {
+        const pt = punteroEnLienzo(ev);
+        if (
+          !pt ||
+          drag!.rotateStartAngle === undefined ||
+          drag!.rotateOrig === undefined
+        ) {
+          return;
+        }
+        const cx = o.x + o.width / 2;
+        const cy = o.y + o.height / 2;
+        const angle = (Math.atan2(pt.y - cy, pt.x - cx) * 180) / Math.PI;
+        let next = drag!.rotateOrig + (angle - drag!.rotateStartAngle);
+        if (ev.shiftKey) {
+          next = Math.round(next / 15) * 15;
+        }
+        patchElemento(id, { rotation: next });
       }
     }
     function onUp() {
@@ -420,7 +480,7 @@ export default function VisualCanvasEditor({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [drag, patchElemento, patchElementos, zoom]);
+  }, [drag, patchElemento, patchElementos, punteroEnLienzo, zoom]);
 
   useEffect(() => {
     function onKey(ev: KeyboardEvent) {
@@ -430,13 +490,64 @@ export default function VisualCanvasEditor({
         setSeleccionIds([]);
         return;
       }
+      if (
+        !editando &&
+        (ev.ctrlKey || ev.metaKey) &&
+        ev.key.toLowerCase() === "g" &&
+        !ev.shiftKey &&
+        seleccionIds.length >= 2
+      ) {
+        ev.preventDefault();
+        agruparSeleccion();
+        return;
+      }
+      if (
+        !editando &&
+        (ev.ctrlKey || ev.metaKey) &&
+        ev.shiftKey &&
+        ev.key.toLowerCase() === "g" &&
+        seleccionIds.length > 0 &&
+        seleccionTieneGrupo(doc.elementos, seleccionIds)
+      ) {
+        ev.preventDefault();
+        desagruparSeleccion();
+        return;
+      }
       if ((ev.key === "Delete" || ev.key === "Backspace") && !editando && seleccionIds.length) {
-        eliminarSeleccion();
+        ev.preventDefault();
+        const quitar = new Set(seleccionIds);
+        patchElementos((els) => els.filter((e) => !quitar.has(e.id)));
+        setSeleccionIds([]);
+        return;
+      }
+      if (
+        (ev.key === "ArrowUp" ||
+          ev.key === "ArrowDown" ||
+          ev.key === "ArrowLeft" ||
+          ev.key === "ArrowRight") &&
+        !editando &&
+        seleccionIds.length
+      ) {
+        ev.preventDefault();
+        const paso = ev.shiftKey ? 10 : 1;
+        let dx = 0;
+        let dy = 0;
+        if (ev.key === "ArrowLeft") dx = -paso;
+        if (ev.key === "ArrowRight") dx = paso;
+        if (ev.key === "ArrowUp") dy = -paso;
+        if (ev.key === "ArrowDown") dy = paso;
+        const ids = new Set(seleccionIds);
+        patchElementos((els) =>
+          els.map((e) => {
+            if (!ids.has(e.id) || e.locked) return e;
+            return { ...e, ...patchMoverElemento(e, dx, dy) } as ElementoVisual;
+          }),
+        );
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [seleccionIds]);
+  }, [agruparSeleccion, desagruparSeleccion, doc.elementos, patchElementos, seleccionIds]);
 
   const canvasW = doc.formato.ancho_px;
   const canvasH = doc.formato.alto_px;
@@ -484,6 +595,9 @@ export default function VisualCanvasEditor({
 
   function labelCapa(el: ElementoVisual): string {
     if (el.type === "text") {
+      const rol = inferirRolTextoCapa(el, doc.elementos);
+      if (rol === "descripcion") return "Capa 1 · Descripción MP";
+      if (rol && rol !== "otro") return labelRolTextoCapa(rol);
       const t = (el.content || "Texto").trim().replace(/\s+/g, " ");
       return t.length > 22 ? `${t.slice(0, 22)}…` : t;
     }
@@ -570,6 +684,16 @@ export default function VisualCanvasEditor({
             <ToolBtn title="Duplicar selección" onClick={duplicarSeleccion}>
               <span className="text-base">⎘</span>
             </ToolBtn>
+            {seleccionIds.length >= 2 && (
+              <ToolBtn title="Agrupar (Ctrl+G)" onClick={agruparSeleccion}>
+                <span className="text-base">⊞</span>
+              </ToolBtn>
+            )}
+            {seleccionTieneGrupo(doc.elementos, seleccionIds) && (
+              <ToolBtn title="Desagrupar (Ctrl+Shift+G)" onClick={desagruparSeleccion}>
+                <span className="text-base">⊟</span>
+              </ToolBtn>
+            )}
             <ToolBtn title="Traer al frente" onClick={traerAdelante}>
               <span className="text-base">⇡</span>
             </ToolBtn>
@@ -673,7 +797,8 @@ export default function VisualCanvasEditor({
             />
             <div className="absolute left-0 top-0 z-20 h-[18px] w-[18px] border-b border-r border-border/70 bg-surface/90" />
             <div
-              className="relative origin-top-left overflow-hidden rounded-sm shadow-2xl ring-1 ring-black/20"
+              ref={canvasRef}
+              className="relative origin-top-left overflow-visible rounded-sm shadow-2xl ring-1 ring-black/20"
               style={{
                 position: "absolute",
                 left: reglaPx,
@@ -733,10 +858,6 @@ export default function VisualCanvasEditor({
                           }
                         }}
                       >
-                        <BotonCandadoElemento
-                          locked={el.locked}
-                          onToggle={() => alternarBloqueo(el.id)}
-                        />
                         {el.content}
                         {(mostrandoCaja || (sel && esPrincipal)) && !el.locked && (
                           <span
@@ -750,6 +871,11 @@ export default function VisualCanvasEditor({
                     );
                   }
                   if (el.type === "rect") {
+                    const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
+                    const manijasVisibles =
+                      mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100";
+                    const mostrarManijas =
+                      (mostrandoCaja || (sel && esPrincipal)) && !el.locked;
                     return (
                       <div
                         key={el.id}
@@ -757,21 +883,34 @@ export default function VisualCanvasEditor({
                         style={{
                           ...estiloElemento(el),
                           background: el.fill,
-                          border: `${el.strokeWidth}px solid ${el.stroke}`,
+                          border:
+                            el.strokeWidth > 0
+                              ? `${el.strokeWidth}px solid ${el.stroke}`
+                              : undefined,
                           borderRadius: el.borderRadius,
-                          outline: sel && esPrincipal ? "2px solid #0891b2" : undefined,
+                          outline: mostrandoCaja ? OUTLINE_CAJA_ARRASTRE : undefined,
+                          overflow: "visible",
                         }}
                         onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                       >
-                        <BotonCandadoElemento
-                          locked={el.locked}
-                          onToggle={() => alternarBloqueo(el.id)}
-                        />
-                        {sel && esPrincipal && !el.locked && (
-                          <span
-                            className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent"
-                            onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
-                          />
+                        {mostrarManijas && (
+                          <>
+                            <span
+                              aria-hidden
+                              className={`pointer-events-none absolute left-1/2 z-10 w-px -translate-x-1/2 bg-accent/50 ${manijasVisibles}`}
+                              style={{ top: -22, height: 22 }}
+                            />
+                            <span
+                              title="Rotar (mantén Shift para 15°)"
+                              className={`absolute left-1/2 z-20 h-3.5 w-3.5 -translate-x-1/2 cursor-grab rounded-full border border-white/80 bg-accent shadow-sm active:cursor-grabbing ${manijasVisibles}`}
+                              style={{ top: -30 }}
+                              onPointerDown={(e) => onPointerDownEl(e, el, "rotate")}
+                            />
+                            <span
+                              className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${manijasVisibles}`}
+                              onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
+                            />
+                          </>
                         )}
                       </div>
                     );
@@ -791,6 +930,15 @@ export default function VisualCanvasEditor({
                     const lx2 = x2 - minX + pad;
                     const ly2 = y2 - minY + pad;
                     const hitStroke = Math.max(14, el.strokeWidth + 10);
+                    const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
+                    const manijasVisibles =
+                      mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100";
+                    const mostrarManijas =
+                      (mostrandoCaja || (sel && esPrincipal)) && !el.locked;
+                    const nodoLinea =
+                      "absolute z-10 flex h-2 w-2 -translate-x-1/2 -translate-y-1/2 items-center justify-center";
+                    const puntoLinea =
+                      "h-1.5 w-1.5 rounded-full border border-accent/35 bg-white/90 shadow-sm dark:border-accent/50 dark:bg-zinc-900/90";
                     return (
                       <div
                         key={el.id}
@@ -804,10 +952,6 @@ export default function VisualCanvasEditor({
                           zIndex: el.zIndex,
                         }}
                       >
-                        <BotonCandadoElemento
-                          locked={el.locked}
-                          onToggle={() => alternarBloqueo(el.id)}
-                        />
                         <svg
                           style={{
                             position: "absolute",
@@ -839,18 +983,22 @@ export default function VisualCanvasEditor({
                             pointerEvents="none"
                           />
                         </svg>
-                        {sel && esPrincipal && !el.locked && (
+                        {mostrarManijas && (
                           <>
                             <span
-                              className="absolute z-10 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 cursor-move rounded-full border border-white/80 bg-accent/90 shadow-sm"
+                              className={`${nodoLinea} cursor-move ${manijasVisibles}`}
                               style={{ left: el.x - (minX - pad), top: el.y - (minY - pad) }}
                               onPointerDown={(e) => onPointerDownEl(e, el, "move")}
-                            />
+                            >
+                              <span className={puntoLinea} />
+                            </span>
                             <span
-                              className="absolute z-10 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 cursor-crosshair rounded-full border border-white/80 bg-accent/90 shadow-sm"
+                              className={`${nodoLinea} cursor-crosshair ${manijasVisibles}`}
                               style={{ left: x2 - (minX - pad), top: y2 - (minY - pad) }}
                               onPointerDown={(e) => onPointerDownEl(e, el, "resize-line-end")}
-                            />
+                            >
+                              <span className={puntoLinea} />
+                            </span>
                           </>
                         )}
                       </div>
@@ -869,10 +1017,6 @@ export default function VisualCanvasEditor({
                         }}
                         onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                       >
-                        <BotonCandadoElemento
-                          locked={el.locked}
-                          onToggle={() => alternarBloqueo(el.id)}
-                        />
                         <div className="h-full w-full overflow-hidden">
                           <ImagenCanvasElement src={el.src} objectFit={el.objectFit} />
                         </div>
@@ -913,15 +1057,13 @@ export default function VisualCanvasEditor({
                     <button
                       type="button"
                       onClick={(e) => {
-                        if (e.shiftKey) {
-                          setSeleccionIds((prev) =>
-                            prev.includes(el.id)
-                              ? prev.filter((id) => id !== el.id)
-                              : [...prev, el.id],
-                          );
-                        } else {
-                          setSeleccionIds([el.id]);
-                        }
+                        const next = resolverSeleccionAlClic(
+                          el,
+                          doc.elementos,
+                          seleccionIds,
+                          e.shiftKey,
+                        );
+                        setSeleccionIds(next);
                       }}
                       className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition ${
                         activa
@@ -932,6 +1074,7 @@ export default function VisualCanvasEditor({
                       <span className="shrink-0 font-bold opacity-80">{icon}</span>
                       <span className="min-w-0 truncate">
                         {el.locked ? "🔒 " : ""}
+                        {el.groupId ? "⊞ " : ""}
                         {labelCapa(el)}
                       </span>
                     </button>
@@ -953,10 +1096,31 @@ export default function VisualCanvasEditor({
         </label>
 
         {seleccionIds.length > 1 ? (
-          <p className="text-sm text-muted">
-            {seleccionIds.length} elementos seleccionados. Usa los botones de alineación a la
-            izquierda; cada uno se edita y mueve de forma independiente.
-          </p>
+          <div className="space-y-2 text-sm text-muted">
+            <p>
+              {seleccionIds.length} elementos seleccionados. Arrastra para moverlos juntos; alinea
+              con los botones de la barra lateral.
+            </p>
+            <div className="flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={agruparSeleccion}
+                className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover"
+              >
+                ⊞ Agrupar
+              </button>
+              {seleccionTieneGrupo(doc.elementos, seleccionIds) && (
+                <button
+                  type="button"
+                  onClick={desagruparSeleccion}
+                  className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover"
+                >
+                  ⊟ Desagrupar
+                </button>
+              )}
+            </div>
+            <p className="text-[10px]">Ctrl+G agrupar · Ctrl+Shift+G desagrupar</p>
+          </div>
         ) : !seleccionado ? (
           <p className="text-sm text-muted">
             {capasOrdenadas.length > 0
@@ -995,6 +1159,19 @@ export default function VisualCanvasEditor({
               </div>
             </div>
 
+            {seleccionado.groupId && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
+                <span className="text-[10px] text-muted">⊞ En grupo</span>
+                <button
+                  type="button"
+                  onClick={desagruparSeleccion}
+                  className="rounded border border-border px-2 py-0.5 text-[10px] hover:bg-surface-hover"
+                >
+                  Desagrupar
+                </button>
+              </div>
+            )}
+
             <label className="flex items-center justify-between gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
               <span className="text-xs text-muted">Bloquear posición</span>
               <button
@@ -1029,6 +1206,42 @@ export default function VisualCanvasEditor({
 
             {seleccionado.type === "text" && (
               <>
+                {(() => {
+                  const rolTexto = inferirRolTextoCapa(seleccionado, doc.elementos);
+                  const esDescripcion = esCapaDescripcionMateriaPrima(
+                    seleccionado,
+                    doc.elementos,
+                  );
+                  return (
+                    <>
+                      <label>
+                        <span className="text-xs text-muted">Rol de capa</span>
+                        <select
+                          value={seleccionado.textRole ?? rolTexto ?? "otro"}
+                          onChange={(e) =>
+                            patchElemento(seleccionado.id, {
+                              textRole: e.target.value as RolTextoCapa,
+                            })
+                          }
+                          className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
+                        >
+                          <option value="descripcion">Capa 1 · Descripción materia prima</option>
+                          <option value="titulo">Título producto</option>
+                          <option value="subtitulo">Subtítulo / línea</option>
+                          <option value="otro">Otro texto</option>
+                        </select>
+                      </label>
+                      {esDescripcion && (
+                        <p className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-2 py-1.5 text-[10px] leading-snug text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+                          Texto de descripción para etiqueta: describe la materia prima en tono
+                          técnico de formulación. Evita repetir título/subtítulo y claims de
+                          consumo (dosis, suplemento, salud) que MeLi puede marcar como
+                          infracción.
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
                 <label>
                   <span className="text-xs text-muted">Contenido</span>
                   <textarea
@@ -1055,6 +1268,14 @@ export default function VisualCanvasEditor({
                   />
                   <SugerenciasTextoMagico
                     fragmento={seleccionado.content}
+                    modoDescripcionMateriaPrima={esCapaDescripcionMateriaPrima(
+                      seleccionado,
+                      doc.elementos,
+                    )}
+                    contextoCapas={contextoCapasParaDescripcion(
+                      doc.elementos,
+                      seleccionado.id,
+                    )}
                     onElegir={(texto) =>
                       patchElemento(seleccionado.id, {
                         content: autoCorregirTextoContenido(texto),
@@ -1176,7 +1397,12 @@ export default function VisualCanvasEditor({
                   <input
                     type="color"
                     value={seleccionado.stroke.startsWith("#") ? seleccionado.stroke : "#0e7490"}
-                    onChange={(e) => patchElemento(seleccionado.id, { stroke: e.target.value })}
+                    onChange={(e) =>
+                      patchElemento(seleccionado.id, {
+                        stroke: e.target.value,
+                        ...(seleccionado.strokeWidth === 0 ? { strokeWidth: 2 } : {}),
+                      })
+                    }
                     className="h-8 w-full cursor-pointer rounded border border-border"
                   />
                 </label>
@@ -1218,21 +1444,35 @@ export default function VisualCanvasEditor({
             )}
 
             {seleccionado.type === "rect" && (
-              <label>
-                <span className="text-xs text-muted">Grosor borde</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={20}
-                  value={seleccionado.strokeWidth}
-                  onChange={(e) =>
-                    patchElemento(seleccionado.id, {
-                      strokeWidth: Math.max(0, Number(e.target.value)),
-                    })
-                  }
-                  className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
-                />
-              </label>
+              <>
+                <label>
+                  <span className="text-xs text-muted">Rotación (°)</span>
+                  <input
+                    type="number"
+                    step={1}
+                    value={Math.round(seleccionado.rotation || 0)}
+                    onChange={(e) =>
+                      patchElemento(seleccionado.id, { rotation: Number(e.target.value) })
+                    }
+                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
+                  />
+                </label>
+                <label>
+                  <span className="text-xs text-muted">Grosor borde</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={seleccionado.strokeWidth}
+                    onChange={(e) =>
+                      patchElemento(seleccionado.id, {
+                        strokeWidth: Math.max(0, Number(e.target.value)),
+                      })
+                    }
+                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
+                  />
+                </label>
+              </>
             )}
 
             {seleccionado.type === "line" && (

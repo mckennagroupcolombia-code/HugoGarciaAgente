@@ -100,6 +100,36 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573163883668@c.us": {
+      "jid": "573163883668@c.us",
+      "primer_intencion_ts": 1781800938.0,
+      "primer_intencion_texto": "Hola cómo estás Buenos días mira me gustaría comprar estas dos cosas",
+      "ultima_human_ts": 1781801008.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573143343325@c.us": {
+      "jid": "573143343325@c.us",
+      "primer_intencion_ts": 1778170989.0,
+      "primer_intencion_texto": "Me gustaría comprar esos dos",
+      "ultima_human_ts": 1778171016.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573124105826@c.us": {
+      "jid": "573124105826@c.us",
+      "primer_intencion_ts": 1781821767.0,
+      "primer_intencion_texto": "Mira hice un pedido por mercado libre y uno me llego completo",
+      "ultima_human_ts": 1781824079.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1781822698.9780054,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }

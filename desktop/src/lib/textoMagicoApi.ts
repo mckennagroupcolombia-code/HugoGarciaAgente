@@ -14,9 +14,20 @@ function esperar(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+export interface ContextoCapasTexto {
+  titulo?: string;
+  subtitulo?: string;
+}
+
 export async function solicitarTextoMagico(
   fragmento: string,
-  opts: { max_chars?: number; palabras_por_parrafo?: number },
+  opts: {
+    max_chars?: number;
+    palabras_por_parrafo?: number;
+    contexto_capas?: ContextoCapasTexto;
+    /** Refuerza prompt MeLi + validación estricta (default true en plantillas). */
+    modo_descripcion_mp?: boolean;
+  },
   signal?: AbortSignal,
 ): Promise<TextoMagicoRespuesta> {
   const inicio = await api.post<TextoMagicoRespuesta>(
@@ -25,6 +36,8 @@ export async function solicitarTextoMagico(
       fragmento,
       max_chars: opts.max_chars,
       palabras_por_parrafo: opts.palabras_por_parrafo,
+      contexto_capas: opts.contexto_capas,
+      modo_descripcion_mp: opts.modo_descripcion_mp ?? true,
     },
   );
 

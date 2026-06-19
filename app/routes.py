@@ -10618,8 +10618,15 @@ def register_routes(app):
         body = request.get_json(silent=True) or {}
         fragmento = (body.get("fragmento") or body.get("texto") or "").strip()
         max_chars = int(body.get("max_chars") or 2600)
+        contexto_capas = body.get("contexto_capas")
+        if contexto_capas is not None and not isinstance(contexto_capas, dict):
+            contexto_capas = None
         try:
-            job_id = iniciar_sugerencia_texto_job(fragmento, max_chars=max_chars)
+            job_id = iniciar_sugerencia_texto_job(
+                fragmento,
+                max_chars=max_chars,
+                contexto_capas=contexto_capas,
+            )
             return jsonify({"ok": True, "status": "pending", "job_id": job_id}), 202
         except Exception as exc:
             return jsonify({"ok": False, "error": str(exc), "sugerencias": []}), 500

@@ -30,7 +30,11 @@ export interface ElementoBase {
   rotation: number;
   zIndex: number;
   locked?: boolean;
+  /** Agrupa elementos para seleccionarlos y moverlos juntos. */
+  groupId?: string;
 }
+
+export type RolTextoCapa = "descripcion" | "titulo" | "subtitulo" | "otro";
 
 export interface ElementoTexto extends ElementoBase {
   type: "text";
@@ -40,6 +44,8 @@ export interface ElementoTexto extends ElementoBase {
   fontWeight: string;
   color: string;
   align: "left" | "center" | "right" | "justify";
+  /** Capa semántica en plantillas de etiqueta (p. ej. descripción materia prima = capa 1). */
+  textRole?: RolTextoCapa;
 }
 
 export interface ElementoRect extends ElementoBase {
@@ -270,6 +276,7 @@ export function clonarElementoIndependiente(
 ): ElementoVisual {
   const copia = structuredClone(el) as ElementoVisual;
   copia.id = nuevoId();
+  delete copia.groupId;
   copia.x += offset.x;
   copia.y += offset.y;
   if (copia.type === "line" && el.type === "line") {
@@ -399,7 +406,7 @@ export function elementoRectDefecto(x = 60, y = 120): ElementoRect {
     zIndex: 1,
     fill: "#0891b2",
     stroke: "#0e7490",
-    strokeWidth: 2,
+    strokeWidth: 0,
     borderRadius: 0,
   };
 }
@@ -564,4 +571,121 @@ export function alinearElementos(
     if (!dx && !dy) return el;
     return { ...el, ...patchMoverElemento(el, dx, dy) } as ElementoVisual;
   });
+}
+
+export function inferirRolTextoCapa(
+  el: ElementoTexto,
+  elementos: ElementoVisual[],
+): RolTextoCapa | null {
+  if (el.textRole) return el.textRole;
+  const textos = elementos.filter((e): e is ElementoTexto => e.type === "text");
+  if (textos.length === 0) return null;
+  if (textos.length === 1) return "descripcion";
+
+  const sortedByZ = [...textos].sort((a, b) => a.zIndex - b.zIndex);
+  const sortedByFont = [...textos].sort((a, b) => {
+    const wb = parseInt(b.fontWeight, 10) || 400;
+    const wa = parseInt(a.fontWeight, 10) || 400;
+    return wb - wa || b.fontSize - a.fontSize;
+  });
+
+  const candidatoDesc = sortedByZ[0];
+  const pareceDescripcion =
+    el.id === candidatoDesc.id &&
+    (el.align === "justify" || (el.content?.trim().length ?? 0) > 80);
+  if (pareceDescripcion) return "descripcion";
+  if (el.id === sortedByFont[0]?.id) return "titulo";
+  if (el.id === sortedByFont[1]?.id) return "subtitulo";
+  return "otro";
+}
+
+export function esCapaDescripcionMateriaPrima(
+  el: ElementoVisual,
+  elementos: ElementoVisual[],
+): boolean {
+  if (el.type !== "text") return false;
+  return inferirRolTextoCapa(el, elementos) === "descripcion";
+}
+
+export function contextoCapasParaDescripcion(
+  elementos: ElementoVisual[],
+  excluirId: string,
+): { titulo?: string; subtitulo?: string } {
+  const out: { titulo?: string; subtitulo?: string } = {};
+  for (const e of elementos) {
+    if (e.type !== "text" || e.id === excluirId) continue;
+    const rol = inferirRolTextoCapa(e, elementos);
+    const txt = (e.content || "").trim();
+    if (!txt) continue;
+    if (rol === "titulo") out.titulo = txt;
+    if (rol === "subtitulo") out.subtitulo = txt;
+  }
+  return out;
+}
+
+export function labelRolTextoCapa(rol: RolTextoCapa | null): string {
+  switch (rol) {
+    case "descripcion":
+      return "Descripción MP";
+    case "titulo":
+      return "Título";
+    case "subtitulo":
+      return "Subtítulo";
+    default:
+      return "Texto";
+  }
+}
+
+export function nuevoGroupId(): string {
+  return `g-${nuevoId()}`;
+}
+
+export function idsGrupo(elementos: ElementoVisual[], groupId: string): string[] {
+  return elementos.filter((e) => e.groupId === groupId).map((e) => e.id);
+}
+
+export function resolverSeleccionAlClic(
+  el: ElementoVisual,
+  elementos: ElementoVisual[],
+  prevIds: string[],
+  shiftKey: boolean,
+): string[] {
+  if (shiftKey) {
+    return prevIds.includes(el.id)
+      ? prevIds.filter((id) => id !== el.id)
+      : [...prevIds, el.id];
+  }
+  if (el.groupId) {
+    return idsGrupo(elementos, el.groupId);
+  }
+  return [el.id];
+}
+
+export function agruparElementosPorIds(
+  elementos: ElementoVisual[],
+  ids: string[],
+): ElementoVisual[] {
+  const valid = new Set(ids.filter((id) => elementos.some((e) => e.id === id)));
+  if (valid.size < 2) return elementos;
+  const gid = nuevoGroupId();
+  return elementos.map((e) => (valid.has(e.id) ? { ...e, groupId: gid } : e));
+}
+
+export function desagruparElementosPorIds(
+  elementos: ElementoVisual[],
+  ids: string[],
+): ElementoVisual[] {
+  const quitar = new Set(ids);
+  return elementos.map((e) => {
+    if (!quitar.has(e.id) || !e.groupId) return e;
+    const { groupId: _g, ...rest } = e;
+    return rest as ElementoVisual;
+  });
+}
+
+export function seleccionTieneGrupo(
+  elementos: ElementoVisual[],
+  ids: string[],
+): boolean {
+  return ids.some((id) => elementos.find((e) => e.id === id)?.groupId);
 }
