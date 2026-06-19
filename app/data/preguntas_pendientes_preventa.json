@@ -846,6 +846,22 @@
       "pregunta": "Buena tarde tienes citrato de calcio en presentaciónes de mass de 500g? 1 kilo 2",
       "timestamp": "2026-06-18T17:53:42.389909",
       "respondida": true
+    },
+    {
+      "question_id": "13605949543",
+      "titulo_producto": "D-pantenol Vitamina B5 75%",
+      "pregunta": "Lo puedo utilizar en mi cueir o cabelludo, después de haberme arrancado las costras y haberme hecho una quemadura?",
+      "timestamp": "2026-06-19T00:12:40.684456",
+      "respondida": true
+    },
+    {
+      "question_id": "13606703454",
+      "titulo_producto": "Ácido Azelaico Polvo 10 G Todo Tipo De Piel",
+      "pregunta": "Una pregunta, vendes propanediol?",
+      "timestamp": "2026-06-19T01:42:44.427982",
+      "respondida": true,
+      "borrador_ia": "¡Hola veci! Con gusto le colaboro.\n\nLe confirmo que esta publicación corresponde únicamente al Ácido Azelaico en Polvo de 10 g, ideal para todo tipo de piel. Toda la información que manejamos se centra exclusivamente en este producto.\n\nSi su consulta es sobre cómo preparar o en qué vehículo disolver nuestro ácido azelaico, le comento que lo ideal es incorporarlo en una crema hidratante o un suero de base neutra. De esta forma, puede crear su propia mezcla personalizada de manera segura.\n\nAsí, podrá aprovechar sus excelentes propiedades para calmar el enrojecimiento, tratar manchas y controlar el crecimiento de la bacteria que causa el acné, logrando un equilibrio ideal entre resultados visibles y baja irritación.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-06-19"
     }
   ]
 }

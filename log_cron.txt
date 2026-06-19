@@ -2443,3 +2443,16 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 [2026-06-17 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
+[cursor/wa-metricas-panel 64b79df] Auto-commit: actualizacion diaria 2026-06-18 23:00
+ 26 files changed, 37148 insertions(+), 674 deletions(-)
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 uploads/tickets/059d93091e7546879c9493f6bfe073fa.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-06-18 23:00:03] ERROR en el push. Revisar credenciales o conflictos.
