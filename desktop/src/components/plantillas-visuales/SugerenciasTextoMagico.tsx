@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { solicitarTextoMagico } from "../../lib/textoMagicoApi";
+import { solicitarTextoMagico, type ContextoCapasTexto } from "../../lib/textoMagicoApi";
 
 export interface SugerenciaTextoMagico {
   texto: string;
@@ -10,6 +10,9 @@ export interface SugerenciaTextoMagico {
 interface Props {
   fragmento: string;
   onElegir: (texto: string) => void;
+  /** Descripción materia prima (capa 1): tono MeLi-safe y sin repetir título/subtítulo. */
+  modoDescripcionMateriaPrima?: boolean;
+  contextoCapas?: ContextoCapasTexto;
 }
 
 const MAX_CHARS_CATALOGO = 2600;
@@ -25,7 +28,12 @@ function previewTexto(texto: string, expandido: boolean): string {
   return `${texto.slice(0, 520).trim()}…`;
 }
 
-export default function SugerenciasTextoMagico({ fragmento, onElegir }: Props) {
+export default function SugerenciasTextoMagico({
+  fragmento,
+  onElegir,
+  modoDescripcionMateriaPrima,
+  contextoCapas,
+}: Props) {
   const [activo, setActivo] = useState(false);
   const [sugerencias, setSugerencias] = useState<SugerenciaTextoMagico[]>([]);
   const [fichas, setFichas] = useState<{ titulo?: string; fuente?: string }[]>([]);
@@ -68,7 +76,12 @@ export default function SugerenciasTextoMagico({ fragmento, onElegir }: Props) {
 
     void solicitarTextoMagico(
       fragmento,
-      { max_chars: MAX_CHARS_CATALOGO, palabras_por_parrafo: PALABRAS_POR_PARRAFO },
+      {
+        max_chars: MAX_CHARS_CATALOGO,
+        palabras_por_parrafo: PALABRAS_POR_PARRAFO,
+        contexto_capas: contextoCapas,
+        modo_descripcion_mp: modoDescripcionMateriaPrima ?? true,
+      },
       ctrl.signal,
     )
       .then((res) => {
@@ -92,7 +105,7 @@ export default function SugerenciasTextoMagico({ fragmento, onElegir }: Props) {
       .finally(() => {
         if (reqId === reqIdRef.current) setCargando(false);
       });
-  }, [cargando, fragmento, puedeGenerar]);
+  }, [cargando, contextoCapas, fragmento, modoDescripcionMateriaPrima, puedeGenerar]);
 
   return (
     <div className="mt-2">
@@ -127,7 +140,7 @@ export default function SugerenciasTextoMagico({ fragmento, onElegir }: Props) {
         <div className="mt-2 rounded-lg border border-accent/25 bg-accent/5 p-2">
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wide text-accent">
-              Sugerencias · catálogo
+              Sugerencias · {modoDescripcionMateriaPrima ? "descripción MP" : "catálogo"}
             </span>
             {cargando && (
               <span className="animate-pulse text-[10px] text-muted">
@@ -137,8 +150,9 @@ export default function SugerenciasTextoMagico({ fragmento, onElegir }: Props) {
           </div>
 
           <p className="mb-1.5 text-[10px] leading-snug text-muted">
-            2 párrafos de ~{PALABRAS_POR_PARRAFO} palabras cada uno, tono neutro de materia
-            prima.
+            2 párrafos técnicos (~{PALABRAS_POR_PARRAFO} palabras c/u). Si el subtítulo indica
+            insumo alimentario, la redacción se centra en formulación alimentaria industrial
+            (sin repetir el subtítulo ni claims de consumidor).
           </p>
 
           {fichas.length > 0 && (
