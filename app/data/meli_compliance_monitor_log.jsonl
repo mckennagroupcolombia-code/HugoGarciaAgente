@@ -4,3 +4,6 @@
 {"tipo": "revision_diaria", "revisadas": 1, "alertas": 0, "activas": 1, "problemas": 0, "ts": "2026-06-16T18:12:09"}
 {"tipo": "revision_diaria", "revisadas": 1, "alertas": 1, "activas": 0, "problemas": 1, "ts": "2026-06-17T08:30:03"}
 {"tipo": "revision_diaria", "revisadas": 1, "alertas": 0, "activas": 1, "problemas": 0, "ts": "2026-06-18T08:30:03"}
+{"tipo": "revision_diaria", "revisadas": 1, "alertas": 0, "activas": 1, "problemas": 0, "ts": "2026-06-19T08:30:02"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4083547534", "sku": "C-CITMAGKg", "ts": "2026-06-19T20:57:16"}
+{"tipo": "registro_seguimiento", "item_id": "MCO4083548736", "sku": "C-CITMAG250g", "ts": "2026-06-19T21:09:27"}

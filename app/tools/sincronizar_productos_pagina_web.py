@@ -1,75 +1,77 @@
-import requests
 import os
+import sys
+from pathlib import Path
 
 
-def sincronizar_productos_pagina_web(productos_meli: list):
+def sincronizar_productos_pagina_web(productos_meli: list) -> str:
     """
-    Sincroniza los productos de MercadoLibre con la página web de McKenna.
-    Esta función utiliza una API REST para actualizar el stock y precios.
+    Sincroniza precios hacia la tienda web McKenna.
 
-    Args:
-        productos_meli (list): Una lista de diccionarios, cada uno representando un producto
-                               obtenido de MercadoLibre (ej. [{"sku": "AS-123", "stock": 50, "precio": 15000}]).
+    Si WEB_API_URL está configurada, hace PUT por SKU.
+    Si no, regenera `PAGINA_WEB/site/data/cache.json` desde Siigo (fuente real del catálogo).
     """
-    # ========================================================
-    # CONFIGURACIÓN DE LA API DE LA PÁGINA WEB
-    # TODO: Configurar estas variables en el archivo .env
-    # ========================================================
-    API_URL_BASE = os.getenv("WEB_API_URL", "https://api.tupaginaweb.com/v1")
-    API_KEY = os.getenv("WEB_API_KEY", "tu_api_key_aqui")
+    api_url = (os.getenv("WEB_API_URL") or "").strip().rstrip("/")
+    api_key = (os.getenv("WEB_API_KEY") or "").strip()
 
-    headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
+    if api_url and api_key and "tupaginaweb.com" not in api_url:
+        return _sync_via_api_rest(productos_meli, api_url, api_key)
+    return _rebuild_catalogo_web_cache()
 
-    print(
-        f"\n🌐 [WEB SYNC] Iniciando sincronización de {len(productos_meli)} productos hacia la página web..."
-    )
 
+def _sync_via_api_rest(productos_meli: list, api_url: str, api_key: str) -> str:
+    import requests
+
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     resultados = []
-    exitos = 0
-    errores = 0
+    exitos = errores = 0
 
     for producto in productos_meli:
         sku = producto.get("sku")
-
         if not sku:
-            msg = "⚠️ [WEB SYNC] Producto sin SKU ignorado."
-            print(msg)
-            resultados.append(msg)
+            resultados.append("⚠️ [WEB SYNC] Producto sin SKU ignorado.")
             errores += 1
             continue
-
-        # Aquí construimos el payload según lo que requiera la API de la web.
-        # Esto es solo un ejemplo.
         payload = {
             "sku": sku,
             "stock": producto.get("stock", 0),
             "price": producto.get("precio", 0),
         }
-
         try:
-            # Ejemplo de endpoint PUT para actualizar producto por SKU
-            endpoint = f"{API_URL_BASE}/products/{sku}"
-            response = requests.put(endpoint, json=payload, headers=headers, timeout=10)
-
+            response = requests.put(
+                f"{api_url}/products/{sku}",
+                json=payload,
+                headers=headers,
+                timeout=10,
+            )
             if response.status_code in (200, 201):
-                msg = f"✅ [WEB SYNC] SKU {sku} actualizado correctamente."
-                print(msg)
-                resultados.append(msg)
+                resultados.append(f"✅ [WEB SYNC] SKU {sku} actualizado.")
                 exitos += 1
             else:
-                msg = f"❌ [WEB SYNC] Error al actualizar SKU {sku}: HTTP {response.status_code} - {response.text}"
-                print(msg)
-                resultados.append(msg)
+                resultados.append(
+                    f"❌ [WEB SYNC] SKU {sku}: HTTP {response.status_code} — {response.text[:120]}"
+                )
                 errores += 1
-
         except requests.exceptions.RequestException as e:
-            msg = f"❌ [WEB SYNC] Error de conexión al actualizar SKU {sku}: {e}"
-            print(msg)
-            resultados.append(msg)
+            resultados.append(f"❌ [WEB SYNC] SKU {sku}: {e}")
             errores += 1
 
-    resumen = f"\n✅ Sincronización completada. Éxitos: {exitos}, Errores: {errores}"
-    print(resumen)
-    resultados.append(resumen)
-
+    resultados.append(f"Éxitos: {exitos}, Errores: {errores}")
     return "\n".join(resultados)
+
+
+def _rebuild_catalogo_web_cache() -> str:
+    """Regenera cache.json del sitio desde combos Siigo (precio web = lista × 0.835)."""
+    root = Path(__file__).resolve().parents[2]
+    site_dir = root / "PAGINA_WEB" / "site"
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+    try:
+        os.chdir(site_dir)
+        from website import get_catalog  # noqa: WPS433 — módulo Flask del sitio
+
+        get_catalog(force=True)
+        cache = site_dir / "data" / "cache.json"
+        return f"✅ Catálogo web regenerado desde Siigo ({cache})"
+    except Exception as e:
+        return f"❌ Error regenerando catálogo web: {e}"

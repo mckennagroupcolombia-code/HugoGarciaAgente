@@ -69,8 +69,7 @@ WA_NUMBER   = "573195183596"
 SITE_URL    = "https://mckennagroup.co"
 
 # Comisión real de MercadoLibre Colombia (~16.5%)
-# El precio web = precio_meli × (1 - MELI_COMMISSION)
-# El cliente ahorra la comisión; el envío se cobra por separado (≤ ahorro)
+# Precio público = MeLi = Siigo lista. Web = referencia × (1 - comisión); envío en apartado checkout.
 MELI_COMMISSION = 0.165
 
 SIIGO_PHOTO_REQUIRED_SKUS = {
@@ -1589,8 +1588,12 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
     if lista <= 0:
         log.info("Combo SIIGO omitido sin precio público: %s %s", code, nombre)
         return None
-    precio_web = lista * (1 - MELI_COMMISSION) if lista > 0 else 0.0
-    ahorro = lista * MELI_COMMISSION if lista > 0 else 0.0
+
+    from app.services.precios_canales import precios_catalogo_web_desde_siigo
+
+    px = precios_catalogo_web_desde_siigo(code, lista, nombre)
+    precio_web = px["precio_web_num"]
+    ahorro = px["ahorro_num"]
     slug = _slug_from_key(code.lower())
     cat = _combo_category_from_siigo(code, nombre)
     return {
@@ -1602,7 +1605,12 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
         "precio_meli": _fmt_precio(lista) if lista > 0 else "—",
         "precio_num": round(precio_web, 2),
         "lista_num": round(lista, 2),
+        "precio_meli_num": round(lista, 2),
         "ahorro": _fmt_precio(ahorro) if ahorro > 0 else "—",
+        "ahorro_num": round(ahorro, 2),
+        "envio_gratis_web": True,
+        "envio_referencia": px["envio_referencia"],
+        "precio_canal_label": "Directo web",
         "photo": "",
         "meli_id": "",
         "cat": cat,
@@ -1612,7 +1620,6 @@ def _combo_dict_desde_siigo_raw(raw: dict) -> dict | None:
         "solo_vitrina": False,
         "buyable": True,
         "is_combo": True,
-        "precio_canal_label": "Lista",
     }
 
 
@@ -2402,6 +2409,7 @@ def carrito_agregar():
             "qty":   qty,
             "photo": p.get("photo", ""),
             "slug":  cart_key,
+            "envio_gratis_web": bool(p.get("envio_gratis_web", False)),
         }
     session["cart"] = cart
     session.modified = True
@@ -2451,12 +2459,14 @@ def checkout():
     locked_email = ""
     if site_auth.google_oauth_configured():
         locked_email = (session.get(site_auth.SESSION_CUSTOMER_EMAIL) or "").strip()
+    envio_gratis_directo = False
     return render_template(
         "checkout.html",
         cart=cart,
         total=total,
         ref=ref,
         checkout_locked_email=locked_email,
+        envio_gratis_directo=envio_gratis_directo,
     )
 
 

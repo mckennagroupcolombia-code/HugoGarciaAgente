@@ -295,6 +295,134 @@ def actualizar_stock_meli(sku: str, nuevo_stock: int) -> str:
         return f"❌ Error inesperado actualizando stock en MeLi (SKU: {sku}): {e}"
 
 
+def _item_ids_meli_por_sku(sku: str, seller_id, headers: dict) -> list[str]:
+    """Resuelve item_ids MeLi: búsqueda por seller_sku, variantes de caso y fallbacks locales."""
+    sku = (sku or "").strip()
+    if not sku:
+        return []
+
+    seen: set[str] = set()
+    item_ids: list[str] = []
+
+    def _add(ids: list) -> None:
+        for iid in ids or []:
+            iid = str(iid).strip()
+            if iid and iid not in seen:
+                seen.add(iid)
+                item_ids.append(iid)
+
+    variants: list[str] = []
+    for v in (sku, sku.upper(), sku.lower()):
+        if v and v not in variants:
+            variants.append(v)
+
+    for variant in variants:
+        for status in ("active", "paused"):
+            try:
+                res = requests.get(
+                    f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+                    params={"seller_sku": variant, "status": status},
+                    headers=headers,
+                    timeout=12,
+                )
+                if res.status_code == 200:
+                    _add(res.json().get("results") or [])
+            except requests.RequestException:
+                pass
+        if item_ids:
+            return item_ids
+
+    try:
+        from app.services.publicaciones import _meli_id_efectivo_sku
+
+        mid = _meli_id_efectivo_sku(sku)
+        if mid:
+            _add([mid])
+    except Exception:
+        pass
+
+    if not item_ids:
+        try:
+            from app.tools.meli_compliance_monitor import indice_reemplazos
+
+            for key in (sku, sku.upper(), sku.lower()):
+                entry = indice_reemplazos().get("by_sku", {}).get(key) or {}
+                mid = (entry.get("item_id") or "").strip()
+                if mid:
+                    _add([mid])
+                    break
+        except Exception:
+            pass
+
+    return item_ids
+
+
+def actualizar_precio_meli_por_sku(sku: str, nuevo_precio: float) -> dict:
+    """
+    Busca publicaciones en MeLi por SKU (y fallbacks) y actualiza su precio.
+    Retorna {"ok": bool, "msg": str, "items": list}.
+    """
+    token = refrescar_token_meli()
+    if not token:
+        return {"ok": False, "msg": "No se pudo obtener token MeLi"}
+
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    try:
+        res_me = requests.get("https://api.mercadolibre.com/users/me", headers=headers, timeout=10)
+        if res_me.status_code != 200:
+            return {"ok": False, "msg": f"Error obteniendo seller_id: {res_me.status_code}"}
+        seller_id = res_me.json().get("id")
+
+        item_ids = _item_ids_meli_por_sku(sku, seller_id, headers)
+        if not item_ids:
+            return {
+                "ok": False,
+                "msg": (
+                    f"SKU '{sku}' sin publicación MeLi vinculada "
+                    "(revisa SELLER_SKU en la publicación o vínculo en Publicaciones)."
+                ),
+            }
+
+        resultados = []
+        all_ok = True
+        precio_meli = int(round(float(nuevo_precio)))
+        for item_id in item_ids:
+            res_put = requests.put(
+                f"https://api.mercadolibre.com/items/{item_id}",
+                json={"price": precio_meli},
+                headers=headers,
+                timeout=15,
+            )
+            ok = res_put.status_code in (200, 201)
+            err = ""
+            if not ok:
+                all_ok = False
+                try:
+                    err = res_put.json().get("message") or res_put.text[:180]
+                except Exception:
+                    err = (res_put.text or "")[:180]
+            resultados.append(
+                {
+                    "item_id": item_id,
+                    "ok": ok,
+                    "status": res_put.status_code,
+                    "error": err or None,
+                }
+            )
+
+        ok_count = sum(1 for r in resultados if r["ok"])
+        msg = f"{ok_count}/{len(resultados)} publicaciones actualizadas en MeLi"
+        if not all_ok:
+            detalle = next((r["error"] for r in resultados if not r["ok"] and r.get("error")), "")
+            if detalle:
+                msg = f"{msg} — {detalle}"
+        return {"ok": all_ok, "msg": msg, "items": resultados}
+
+    except requests.RequestException as e:
+        return {"ok": False, "msg": f"Error de red MeLi: {e}"}
+
+
 def buscar_ventas_acordar_entrega(dias: int = 3):
     """
     Busca ventas con envío 'A acordar con el comprador' en los últimos días.
