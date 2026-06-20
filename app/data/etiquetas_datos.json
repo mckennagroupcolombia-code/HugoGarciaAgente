@@ -28,5 +28,15 @@
     "presentacion": "250g",
     "lote_defecto": "LOT.",
     "vencimiento_defecto": "EXP."
+  },
+  "C-ALUKg": {
+    "siigo_code": "C-ALUKg",
+    "siigo_name": "ALULOSA Kg",
+    "nombre_etiqueta": "ALULOSA Kg",
+    "presentacion": "500g",
+    "tipo_etiqueta": "500 g",
+    "lote_defecto": "LOT.",
+    "vencimiento_defecto": "EXP.",
+    "updated_at": "2026-06-19T22:42:42.471148"
   }
 }

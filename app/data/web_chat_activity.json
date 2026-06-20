@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-17T20:00:49",
+  "updated_at": "2026-06-19T17:02:35",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -29,9 +29,175 @@
     "2026-06-12": 28,
     "2026-06-14": 3,
     "2026-06-16": 3,
-    "2026-06-17": 5
+    "2026-06-17": 5,
+    "2026-06-19": 10
   },
   "sessions": [
+    {
+      "session_id": "web-7d2a44b7-5dfc-4e5c-b6bb-4b949b24ab4e",
+      "started_at": "2026-06-19T17:01:57",
+      "last_at": "2026-06-19T17:02:35",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Gracias",
+      "last_agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-19T17:01:57",
+          "user_message": "Hola en que categoría encuentro la soda cáustica, gracias",
+          "agent_reply": "Hola veci, claro que sí. La soda cáustica la encuentras en la categoría de **Reguladores de pH**.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-19T17:02:35",
+          "user_message": "Gracias",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-1781904054159-15a8622e8bf17",
+      "started_at": "2026-06-19T16:20:58",
+      "last_at": "2026-06-19T16:21:18",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "http://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Gracias",
+      "last_agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-19T16:20:58",
+          "user_message": "Hola muy buenas tardes, ustedes por casualidad venden acido hialurico en polvo de medio peso?",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-19T16:21:18",
+          "user_message": "Gracias",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-d4db8662-fb7c-44ac-9dc6-6f0a083b3c6f",
+      "started_at": "2026-06-19T11:08:28",
+      "last_at": "2026-06-19T11:10:14",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/?cat=Aceites",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/425.6.927981711 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Gracias",
+      "last_agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-19T11:08:28",
+          "user_message": "Hola buenos días , me puedo aplicar este aceite directamente en el rostro para hacer masajes faciales o yoga facial",
+          "agent_reply": "¡Hola, veci! Para darle el dato exacto, ¿me confirma a cuál de nuestros aceites se refiere? Le adelanto que la mayoría de aceites vegetales puros son excelentes para masajes faciales. Sin embargo, como vendemos la materia prima 100% pura, siempre es una buena práctica hacer una pequeña prueba en el antebrazo antes de usarlo en toda la cara, solo para descartar cualquier sensibilidad. Quedo atento para darle la recomendación precisa.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-19T11:09:08",
+          "user_message": "El aceite de jojoba",
+          "agent_reply": "Claro, veci. Tenemos *ACEITE JOJOBA 30mL* como materia prima. Presentación: $23,296 COP — Ref. C-ACEIJOJ30mL.\nComprar: https://articulo.mercadolibre.com.co/MCO-657561094 ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-19T11:09:44",
+          "user_message": "Si me lo puedo aplicar directamente en la cara",
+          "agent_reply": "Claro que sí, veci. El aceite de jojoba es ideal para aplicarlo puro en la cara. De hecho, es uno de los más recomendados porque su composición es muy parecida al sebo natural de la piel, entonces no suele tapar los poros. Como le decía, por ser una materia prima pura, no está de más que haga una pequeña prueba en el antebrazo antes de usarlo en todo el rostro, solo por pura precaución.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-19T11:10:14",
+          "user_message": "Gracias",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-de876265-c0ea-43d7-a19b-777d057ba145",
+      "started_at": "2026-06-19T09:18:27",
+      "last_at": "2026-06-19T09:18:27",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Hola buenos días",
+      "last_agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-19T09:18:27",
+          "user_message": "Hola buenos días",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-9ff383f2-68b9-4528-a442-a00a19f21830",
+      "started_at": "2026-06-19T08:52:49",
+      "last_at": "2026-06-19T08:52:49",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Safari/605.1.15",
+      "last_user_message": "Buenos dias estoy interesado en AGUA BI DESTILADA.",
+      "last_agent_reply": "Claro que sí, veci. Le confirmo, manejamos las siguientes presentaciones de Agua Bidestilada Desionizada USP: - **1 Litro:** $9.900 Link de compra: https://articulo.mercadolibre.com.co/MCO-608487842-agua-bidestilada-desionizada-usp-x-1000-ml-1-litro-_JM - **5 Litros (Galón):** $24.900 Link de compra: https://articulo.mercadolibre.com.co/MCO-598911139-agua-bidestilada-desionizada-usp-x-5000-ml-galon-_JM - **20 Litros (Garrafa):** $69.900 Link de compra: https://articulo.mercadolibre.com.co/MCO-616147779-agua-bidestilada-desionizada-usp-x-20-lts-garrafa-_JM",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-19T08:52:49",
+          "user_message": "Buenos dias estoy interesado en AGUA BI DESTILADA.",
+          "agent_reply": "Claro que sí, veci. Le confirmo, manejamos las siguientes presentaciones de Agua Bidestilada Desionizada USP: - **1 Litro:** $9.900 Link de compra: https://articulo.mercadolibre.com.co/MCO-608487842-agua-bidestilada-desionizada-usp-x-1000-ml-1-litro-_JM - **5 Litros (Galón):** $24.900 Link de compra: https://articulo.mercadolibre.com.co/MCO-598911139-agua-bidestilada-desionizada-usp-x-5000-ml-galon-_JM - **20 Litros (Garrafa):** $69.900 Link de compra: https://articulo.mercadolibre.com.co/MCO-616147779-agua-bidestilada-desionizada-usp-x-20-lts-garrafa-_JM",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-4d609f33-6bfd-46a2-93fa-adf5ad8c6eda",
       "started_at": "2026-06-17T19:57:49",

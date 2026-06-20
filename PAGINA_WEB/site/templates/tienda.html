@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Catálogo Abril 2026 — McKenna Group{% endblock %}
+{% block title %}Catálogo de Materias Primas — McKenna Group{% endblock %}
 {% block description %}Catálogo de materias primas farmacéuticas y cosméticas. Stock permanente, despachos a todo Colombia.{% endblock %}
 
 {% block content %}
@@ -7,51 +7,27 @@
 {% for s in sections %}{% set total_n.n = total_n.n + s.products|length %}{% endfor %}
 
 <!-- ════════════════════════════════════════════════════════
-     HERO — SPLIT (idéntico al de guia-kit-acidos.html)
+     CABECERA COMPACTA DE LA TIENDA
 ════════════════════════════════════════════════════════ -->
-<section class="cat-hero">
-  <div class="cat-hero-left">
-    <div class="cat-hero-pulse"></div>
-    <img src="{{ url_for('static', filename='img/isotipo.png') }}" alt="" class="cat-hero-watermark" aria-hidden="true">
-    <span class="hero-badge">Catálogo Oficial · Abril 2026</span>
-    <h1 class="hero-title">
-      Materias<br><em>Primas</em><br>Colombia
-    </h1>
-    <p class="hero-subtitle">
-      {{ total_n.n }} referencias de grado farmacéutico y cosmético.
-      Stock permanente · Despachos a todo Colombia.
-    </p>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;position:relative;z-index:1;">
-      <a href="#cat-nav" class="hero-scroll">
-        Explorar catálogo
-      </a>
+<div class="shop-header">
+  <div class="shop-header-inner">
+    <div>
+      <span class="section-eyebrow" style="color:var(--green-light);margin-bottom:10px;display:block;">McKenna Group S.A.S.</span>
+      <h1>Catálogo de <em style="font-style:italic;font-weight:300;color:var(--green-light);">Materias Primas</em></h1>
+      <p class="shop-header-sub">
+        {{ total_n.n }} referencias disponibles &nbsp;·&nbsp; Stock permanente &nbsp;·&nbsp; Envío a todo Colombia &nbsp;·&nbsp; 10% descuento web
+      </p>
     </div>
-  </div>
-
-  <div class="cat-hero-right">
-    <div class="cat-hero-brand-stamp">
-      <img src="{{ url_for('static', filename='img/isotipo.png') }}" alt="McKenna Group">
-    </div>
-    <p class="hero-right-label">Resumen del catálogo</p>
-    <div class="cat-hero-stats">
-      {% for s in sections[:6] %}
-      <a href="#cat-{{ s.name|lower|replace(' ','-')|replace('/','-') }}"
-         class="cat-hero-stat">
-        <span class="cat-hero-stat-n">{{ s.products|length }}</span>
-        <span class="cat-hero-stat-l">{{ s.name }}</span>
-      </a>
-      {% endfor %}
-    </div>
-    <div class="cat-hero-badges">
+    <div class="shop-header-badges">
       <span><i class="ph ph-certificate"></i> Grado farmacéutico</span>
       <span><i class="ph ph-truck"></i> Envío 24–48 h</span>
-      <span><i class="ph ph-tag"></i> 10% descuento web</span>
+      <span><i class="ph ph-seal-check"></i> COA + Ficha técnica</span>
     </div>
   </div>
-</section>
+</div>
 
 <!-- ════════════════════════════════════════════════════════
-     STICKY NAV
+     FILTRO POR CATEGORÍA (sticky)
 ════════════════════════════════════════════════════════ -->
 <nav class="cat-sticky-nav" id="cat-nav">
   <a href="{{ url_for('catalogo') }}"
@@ -64,182 +40,85 @@
 </nav>
 
 <!-- ════════════════════════════════════════════════════════
-     INTRO
-════════════════════════════════════════════════════════ -->
-{% if not cat_filter %}
-<div class="cat-intro-section">
-  <div class="section-header" style="margin-bottom:0;">
-    <div class="section-number">00</div>
-    <div>
-      <span class="section-eyebrow">McKenna Group S.A.S.</span>
-      <h2 class="section-title">
-        Catálogo de <em>productos</em>
-      </h2>
-      <p class="section-lead">
-        Selección completa de materias primas de alta pureza para laboratorios farmacéuticos,
-        cosméticos y nutracéuticos. Todos los productos cuentan con visto bueno de importación
-        INVIMA, certificado de análisis (COA) y ficha técnica (TDS) por lote.
-      </p>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<!-- ════════════════════════════════════════════════════════
-     SECCIONES POR CATEGORÍA
+     SECCIONES POR CATEGORÍA — GRID E-COMMERCE
 ════════════════════════════════════════════════════════ -->
 {% for section in sections %}
 <div id="cat-{{ section.name|lower|replace(' ','-')|replace('/','-') }}"
-     class="cat-section">
-  <div class="cat-section-inner">
+     class="shop-section">
 
-    <!-- Header de categoría -->
-    <div class="section-header">
-      <div class="section-number">{{ '%02d'|format(loop.index) }}</div>
-      <div>
-        <span class="section-eyebrow">Categoría</span>
-        <h2 class="section-title">{{ section.name }}</h2>
-        <p class="section-lead">
-          {{ section.products|length }}
-          referencia{% if section.products|length != 1 %}s{% endif %}
-          con stock permanente
-        </p>
-      </div>
-    </div>
+  <div class="shop-section-header">
+    <h2>{{ section.name }}</h2>
+    <span class="shop-section-count">
+      {{ section.products|length }} producto{% if section.products|length != 1 %}s{% endif %}
+    </span>
+  </div>
 
-    <!-- Lista de productos — estilo acid-card de la guía -->
+  <div class="shop-grid">
     {% for p in section.products %}
-    <div class="acid-card" style="margin-bottom:{% if not loop.last %}48px{% else %}0{% endif %};">
+    <div class="shop-card reveal reveal-delay-{{ loop.index0 % 3 }}">
 
-      <!-- Sidebar oscura -->
-      <div class="acid-card-sidebar" style="background:{{ p.cat_color }};">
-        <div class="acid-img-wrap">
+      <!-- Imagen — clic lleva a detalle -->
+      <a href="{{ url_for('producto', slug=p.slug) }}" class="shop-card-img-link">
+        <div class="shop-card-img">
           {% if p.photo %}
           <img src="{{ p.photo }}" alt="{{ p.name }}" loading="lazy">
           {% else %}
-          <div class="acid-img-ph"><i class="ph ph-flask"></i></div>
+          <div class="shop-card-img-ph"><i class="ph ph-flask"></i></div>
           {% endif %}
         </div>
-        <div class="acid-sidebar-body">
-          <div class="acid-product-name">{{ p.name }}</div>
-          <div class="acid-product-ref">{% if p.solo_vitrina %}Catálogo{% else %}Ref.{% endif %} {{ p.ref }}</div>
-          <table class="acid-ft-table">
-            {% if p.solo_vitrina %}
-            <tr>
-              <td>Precio</td>
-              <td>{{ p.precio }}</td>
-            </tr>
-            <tr>
-              <td>Compra</td>
-              <td class="acid-ft-saving">Solo combos SIIGO</td>
-            </tr>
-            {% else %}
-            <tr>
-              <td>Precio web</td>
-              <td>{{ p.precio }}</td>
-            </tr>
-            <tr>
-              <td>{{ p.get('precio_canal_label', 'MeLi') }}</td>
-              <td class="acid-ft-strike">{{ p.precio_meli }}</td>
-            </tr>
-            <tr>
-              <td>Ahorras</td>
-              <td class="acid-ft-saving">{{ p.ahorro }}</td>
-            </tr>
-            {% endif %}
-          </table>
-        </div>
-      </div>
+        <span class="shop-card-cat-label">{{ p.cat }}</span>
+      </a>
 
-      <!-- Cuerpo blanco -->
-      <div class="acid-card-body">
+      <!-- Cuerpo -->
+      <div class="shop-card-body">
+        <div class="shop-card-name">{{ p.name }}</div>
+        <div class="shop-card-ref">Ref: {{ p.ref }}</div>
 
-        {% if p.desc %}
-        <div class="acid-section-label">Descripción</div>
-        <p class="acid-body-text">{{ p.desc }}</p>
-        {% else %}
-        <div class="acid-section-label">Materia prima</div>
-        <p class="acid-body-text">
-          Materia prima importada de alta pureza con visto bueno de importación INVIMA,
-          disponible en stock permanente para uso farmacéutico, cosmético y nutracéutico.
-          Incluye certificado de análisis (COA) y ficha técnica (TDS) por lote.
-        </p>
-        {% endif %}
-
-        <div class="acid-protocol-grid">
-          <div class="acid-protocol-box">
-            <h4><i class="ph ph-package"></i> Disponibilidad</h4>
-            <p>Stock permanente · Despacho en 24–48 h hábiles a todo Colombia</p>
-          </div>
-          <div class="acid-protocol-box">
-            <h4><i class="ph ph-certificate"></i> Calidad</h4>
-            <p>Visto bueno de importación INVIMA · COA y TDS por lote</p>
-          </div>
+        <!-- Precio -->
+        <div class="shop-card-price-row">
+          <span class="shop-card-price">{{ p.precio }}</span>
+          {% if not p.solo_vitrina %}
+          <span class="shop-card-price-old">{{ p.precio_meli }}</span>
+          <span class="shop-card-saving">{{ p.ahorro }}</span>
+          {% endif %}
         </div>
 
-        <div class="acid-warning-box">
-          <strong>Uso profesional.</strong>
-          Destinado a uso en formulación y laboratorio. Consulta la ficha técnica
-          completa antes de usar. Nuestro equipo técnico está disponible para asesoría.
-        </div>
-
-        <div class="acid-actions">
+        <!-- CTAs -->
+        <div class="shop-card-actions">
           {% if p.solo_vitrina %}
           <a href="{{ url_for('producto', slug=p.slug) }}#referencias-combo"
-             class="btn btn-primary btn-sm">
-            <i class="ph ph-list"></i> Referencias y compra
+             class="btn btn-primary btn-sm shop-card-btn-sole">
+            <i class="ph ph-list"></i> Ver referencias
           </a>
           {% else %}
-          <form method="POST" action="{{ url_for('carrito_agregar') }}"
-                style="display:inline-flex;">
+          <form method="POST" action="{{ url_for('carrito_agregar') }}" style="flex:1;display:flex;">
             <input type="hidden" name="slug" value="{{ p.slug }}">
             <input type="hidden" name="qty" value="1">
             <input type="hidden" name="next" value="{{ request.url }}">
-            <button type="submit" class="btn btn-primary btn-sm">
+            <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;">
               <i class="ph ph-shopping-cart"></i> Agregar
             </button>
           </form>
           {% endif %}
-          <a href="{{ url_for('producto', slug=p.slug) }}"
-             class="btn btn-outline btn-sm">
-            <i class="ph ph-flask"></i> Ficha técnica
+          <a href="{{ url_for('producto', slug=p.slug) }}" class="shop-card-link" title="Ver detalle">
+            Ver <i class="ph ph-arrow-right"></i>
           </a>
-          <a href="{{ wa_link(p) }}" target="_blank" rel="noopener"
-             class="btn btn-wa btn-sm">
-            <i class="ph ph-whatsapp-logo"></i> WhatsApp
-          </a>
-          {% set guia = guide_for_product(p.rep_sku or p.ref) %}
-          {% if guia %}
-          <a href="{{ guia.url }}" target="_blank" rel="noopener"
-             class="btn btn-guide btn-sm">
-            <i class="ph ph-book-open"></i> Guía de uso
-          </a>
-          {% endif %}
-          {% if p.meli_id %}
-          <a href="https://articulo.mercadolibre.com.co/{{ p.meli_id }}"
-             target="_blank" rel="noopener"
-             class="btn btn-ghost-dark btn-sm">
-            <i class="ph ph-storefront"></i> MeLi
-          </a>
-          {% endif %}
         </div>
-
       </div>
-    </div><!-- /.acid-card -->
-    {% endfor %}
 
-  </div><!-- /.cat-section-inner -->
-</div><!-- /.cat-section -->
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
 {% endfor %}
 
 <!-- ════════════════════════════════════════════════════════
-     CTA FINAL — fondo oscuro (igual que combo-section)
+     CTA FINAL
 ════════════════════════════════════════════════════════ -->
-<section class="cat-cta-section">
+<section class="cat-cta-section" style="margin-top:32px;">
   <div class="cat-cta-inner">
-    <div class="section-number" style="color:rgba(255,255,255,0.06);">
-      {{ (sections|length + 1)|string.zfill(2) if false else '★' }}
-    </div>
+    <div class="section-number" style="color:rgba(255,255,255,0.06);">★</div>
     <div>
       <span class="hero-badge" style="margin-bottom:28px;">Atención Personalizada</span>
       <h2 class="cat-cta-title">
@@ -276,12 +155,12 @@
       if (e.isIntersecting) {
         const id = e.target.id.replace('cat-','');
         links.forEach(l => {
-          const lc = l.dataset.cat.toLowerCase().replace(/[ \/]/g,'-');
+          const lc = (l.dataset.cat || '').toLowerCase().replace(/[ \/]/g,'-');
           l.classList.toggle('active', lc === id);
         });
       }
     });
-  }, { rootMargin: '-15% 0px -70% 0px' });
+  }, { rootMargin: '-10% 0px -75% 0px' });
   sections.forEach(s => obs.observe(s));
 })();
 </script>
