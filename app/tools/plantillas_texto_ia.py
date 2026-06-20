@@ -65,10 +65,14 @@ ANTI-REPETICIÓN (obligatorio):
 
 Contenido a integrar de forma natural (sin títulos ni viñetas):
 
-PÁRRAFO 1 (descriptivo técnico; NO incluir instrucciones de almacenamiento, caducidad ni conservación):
-1) Descripción física inicial: apariencia, estado físico, color, olor si aplica, solubilidad y estabilidad frente al aire, humedad, luz o temperatura (como propiedad del material, no como recomendación de guardado).
-2) Descripción funcional: qué tipo de sustancia es y cuál es su función principal (p. ej. antioxidante, acidulante, humectante, conservante, emulsionante, espesante, solvente, activo cosmético, fuente de proteínas, fuente mineral).
-3) Rol técnico en formulación: función en matrices alimentarias, cosméticas o industriales, sin fisiología humana ni metabolismo celular.
+PÁRRAFO 1 — ORDEN OBLIGATORIO (desarrolla cada bloque con datos de la ficha; si falta un dato, omítelo sin inventar):
+A) APARIENCIA FÍSICA: estado (polvo, líquido, granulado, cristalino), color, textura u organolépticas visuales si constan. Usa redacción explícita («se presenta como…», «en apariencia…»).
+B) SOLUBILIDAD: medios de disolución o dispersión (agua, alcohol, aceites, etc.) con redacción explícita («es soluble en…», «se dispersa en…», «presenta solubilidad…»). Este punto es obligatorio si la ficha lo menciona.
+C) PROPIEDADES Y BENEFICIOS COMO MATERIA PRIMA: función técnica, rol en formulación, ventajas de proceso (estabilidad, textura, compatibilidad reológica, pureza) — sin claims de salud al consumidor.
+D) Comportamiento en matrices industriales según diseño de fórmula, equipo y condiciones de elaboración.
+E) Estabilidad frente al aire, humedad, luz o temperatura solo como propiedad del material, no como recomendación de guardado.
+
+NO incluir instrucciones de almacenamiento, caducidad ni conservación en el párrafo 1.
 
 PÁRRAFO 2 (aplicaciones):
 - Aplicaciones por industria (alimentaria, farmacéutica, cosmética, química/laboratorio si aplica en fichas).
@@ -385,8 +389,9 @@ def _terminos_ancla_repeticion(
     add(_nombre_materia_prima(titulo_ficha or ctx.get("titulo") or fragmento))
     add(fragmento)
     add(ctx.get("subtitulo"))
+    titulo_norm = _norm(titulo_ficha or ctx.get("titulo") or "")
     for palabra in _palabras_clave(fragmento, min_len=4):
-        if len(palabra) >= 5:
+        if len(palabra) >= 5 and palabra not in titulo_norm:
             add(palabra)
     anclas.sort(key=len, reverse=True)
     return anclas
@@ -853,6 +858,13 @@ def _quitar_especificaciones(texto: str) -> str:
 
 def _prosa_olor_sabor(texto: str) -> str:
     t = texto or ""
+    m = re.search(r"Olor y sabor:\s*([^.;]+)", t, re.I)
+    if m:
+        frag = _sanitizar_campo_ficha(m.group(1))
+        if frag:
+            if re.search(r"inodor", frag, re.I):
+                return "Es inodoro."
+            return f"Presenta {frag[0].lower()}{frag[1:].rstrip('.')}."
     if not re.search(r"olor|sabor", t, re.I):
         return ""
     notas: list[str] = []
@@ -862,8 +874,6 @@ def _prosa_olor_sabor(texto: str) -> str:
         notas.append("olor láctico suave")
     elif re.search(r"olor caracter[ií]stico", t, re.I):
         notas.append("olor característico")
-    if re.search(r"libre de olores", t, re.I):
-        notas.append("libre de olores extraños")
     if not notas:
         return ""
     return "Presenta " + " y ".join(notas) + "."
@@ -991,9 +1001,9 @@ def _apertura_p1(
 ) -> str:
     if segmento == "alimentario":
         if titulo_en_capa:
-            return "Insumo alimentario de grado técnico para formulación en planta."
+            return "Ingrediente alimentario de grado técnico para formulación en planta."
         return (
-            f"El {nombre} es un insumo alimentario de grado técnico "
+            f"El {nombre} es un ingrediente alimentario de grado técnico "
             f"para formulación en planta."
         )
     if segmento == "cosmetico":
@@ -1130,12 +1140,13 @@ def _plantilla_respaldo_catalogo(
     p1_ini = _apertura_p1(seg, titulo_en_capa, "insumo").rstrip(".")
     if seg == "alimentario":
         p1 = (
-            f"{p1_ini}. Se presenta en forma acorde a su perfil físico-químico, "
-            "con buena dispersión en mezclas húmedas o secas de la industria de "
-            "alimentos. Se incorpora como ingrediente funcional en matrices "
-            "alimentarias, donde aporta estabilidad de proceso, solubilidad y "
-            "comportamiento en la mezcla final según la fórmula, el equipamiento "
-            "de planta y las condiciones de elaboración definidas por el fabricante."
+            f"{p1_ini}. Se presenta con apariencia y color característicos del "
+            "ingrediente, en forma acorde a su perfil físico-químico. Es soluble o "
+            "dispersable en medios acuosos y en mezclas húmedas o secas de la "
+            "industria de alimentos. Como materia prima aporta estabilidad de "
+            "proceso, solubilidad en la matriz y comportamiento organoléptico "
+            "predecible según la fórmula, el equipamiento de planta y las "
+            "condiciones de elaboración definidas por el fabricante."
         )
         p2 = (
             "En la industria de alimentos y bebidas se emplea en premezclas, bases "
@@ -1145,9 +1156,11 @@ def _plantilla_respaldo_catalogo(
         )
     elif seg == "cosmetico":
         p1 = (
-            f"{p1_ini}. Se presenta con características físico-químicas propias de "
-            "insumos cosméticos industriales. Se incorpora en emulsiones, geles y "
-            "bases según el diseño de la fórmula y el proceso de elaboración."
+            f"{p1_ini}. Se presenta con apariencia y estado físico propios de "
+            "insumos cosméticos industriales. Es soluble o dispersable en los "
+            "medios de formulación habituales (fase acuosa u oleosa según perfil). "
+            "Como materia prima aporta propiedades funcionales que condicionan "
+            "textura, estabilidad y compatibilidad en emulsiones, geles y bases."
         )
         p2 = (
             "En la industria cosmética se emplea como componente de formulación "
@@ -1156,9 +1169,10 @@ def _plantilla_respaldo_catalogo(
         )
     elif seg == "farmaceutico":
         p1 = (
-            f"{p1_ini}. Se presenta con características acordes a su uso en "
-            "formulación farmacéutica industrial. Su incorporación condiciona "
-            "el comportamiento de la mezcla según el diseño de la fórmula."
+            f"{p1_ini}. Se presenta con apariencia y pureza acordes a su uso en "
+            "formulación farmacéutica industrial. Es soluble o dispersable en "
+            "vehículos de formulación según su perfil químico. Como materia prima "
+            "aporta comportamiento reológico y compatibilidad en la mezcla final."
         )
         p2 = (
             "En la industria farmacéutica se emplea como excipiente o activo "
@@ -1167,13 +1181,12 @@ def _plantilla_respaldo_catalogo(
         )
     else:
         p1 = (
-            f"{p1_ini}. Se presenta como polvo de uso industrial con solubilidad "
-            "acorde a su naturaleza química y buena compatibilidad con procesos de "
-            "mezcla en planta. Actúa como ingrediente técnico en matrices "
-            "alimentarias, cosméticas o farmacéuticas. Su incorporación condiciona "
-            "textura, estabilidad y comportamiento de la mezcla final según el "
-            "diseño de la fórmula, el equipo de proceso y las condiciones de "
-            "elaboración establecidas por el fabricante."
+            f"{p1_ini}. Se presenta con apariencia y estado físico definidos para "
+            "uso industrial (polvo, granular o líquido según presentación). Es "
+            "soluble o dispersable en los medios habituales de formulación, con "
+            "buena compatibilidad en procesos de mezcla en planta. Como materia "
+            "prima aporta propiedades funcionales que condicionan textura, "
+            "estabilidad de proceso y comportamiento reológico de la matriz final."
         )
         p2 = (
             "En la industria alimentaria, cosmética y química, se incorpora como "
@@ -1200,7 +1213,12 @@ def _contexto_ficha_para_ia(ficha: dict) -> str:
     parsed = _parsear_ficha_estructurada(ficha.get("texto") or "")
     blob = ficha.get("texto") or ""
     lineas = [f"Título: {ficha.get('titulo', '')}"]
-    if parsed.get("fisica"):
+    ap, sol = _extraer_apariencia_solubilidad_blob(blob)
+    if ap:
+        lineas.append(f"Apariencia física: {ap}")
+    if sol:
+        lineas.append(f"Solubilidad: {sol}")
+    if parsed.get("fisica") and not ap and not sol:
         lineas.append(f"Descripción física: {parsed['fisica']}")
     if parsed.get("organoleptica"):
         lineas.append(f"Olor y sabor: {parsed['organoleptica']}")
@@ -1209,6 +1227,9 @@ def _contexto_ficha_para_ia(ficha: dict) -> str:
     estab = _estabilidad_material(blob)
     if estab:
         lineas.append(f"Estabilidad del material: {estab}")
+    props = _seccion_ficha(blob, "PROPIEDADES")
+    if props:
+        lineas.append(f"Propiedades como materia prima: {props[:420]}")
     if parsed.get("origen"):
         lineas.append(f"Tipo y origen: {parsed['origen']}")
     funcional = _inferir_funcional(blob + " " + parsed.get("origen", ""), parsed.get("titulo") or "")
@@ -1239,6 +1260,7 @@ def _seccion_ficha(texto: str, nombre: str) -> str:
     resto = m.group(1).strip()
     fin = _SECCION_RE.search(resto)
     cuerpo = resto[: fin.start()].strip() if fin else resto
+    cuerpo = re.sub(r"^[:\-\s]+", "", cuerpo)
     return _sanitizar_campo_ficha(cuerpo)
 
 
@@ -1310,6 +1332,92 @@ def _parsear_ficha_estructurada(cuerpo: str) -> dict[str, str]:
                 break
 
     return out
+
+
+def _extraer_apariencia_solubilidad_blob(cuerpo: str) -> tuple[str, str]:
+    """Devuelve (apariencia, solubilidad) como texto limpio desde la ficha."""
+    t = re.sub(r"\s+", " ", (cuerpo or "").replace("\r\n", "\n")).strip()
+    ap = ""
+    sol = ""
+    m_ap = re.search(
+        r"Apariencia:\s*(.+?)(?=Olor y sabor|Solubilidad:|Libre de|\bPROPIEDADES\b|\bAPLICACIONES\b|\bDESCRIPCI\b|$)",
+        t,
+        re.I,
+    )
+    if m_ap:
+        ap = _sanitizar_campo_ficha(m_ap.group(1))
+    m_sol = re.search(
+        r"Solubilidad:\s*(.+?)(?=Olor y sabor|Libre de|\bPROPIEDADES\b|\bAPLICACIONES\b|\bDESCRIPCI\b|$)",
+        t,
+        re.I,
+    )
+    if m_sol:
+        sol = _sanitizar_campo_ficha(m_sol.group(1))
+    return ap, sol
+
+
+def _oracion_apariencia_fisica(ap: str, blob: str) -> str:
+    if ap:
+        if re.match(
+            r"^(polvo|l[ií]quido|granul|cristal|escama|hojuela|gel|pasta|flor|semilla)",
+            ap,
+            re.I,
+        ):
+            return f"Se presenta en forma de {ap[0].lower()}{ap[1:].rstrip('.')}."
+        return f"En apariencia, {ap[0].lower()}{ap[1:].rstrip('.')}."
+    if re.search(r"\bpolvo\b", blob, re.I):
+        color = ""
+        m = re.search(
+            r"color\s+(?:blanco|amarill|incolor|crema|característico[^.;]*)",
+            blob,
+            re.I,
+        )
+        if m:
+            color = f" de {m.group(0).replace('color ', '').strip().rstrip('.')}"
+        return f"Se presenta como polvo fino{color}."
+    if re.search(r"\bl[ií]quido\b", blob, re.I):
+        return "Se presenta en estado líquido de uso industrial."
+    if re.search(r"\bgranul", blob, re.I):
+        return "Se presenta en forma granular de uso industrial."
+    return ""
+
+
+def _oracion_solubilidad(sol: str, blob: str) -> str:
+    if sol:
+        if re.search(r"solubl", sol, re.I):
+            return f"{sol[0].upper()}{sol[1:].rstrip('.')}."
+        return f"Presenta solubilidad {sol[0].lower()}{sol[1:].rstrip('.')}."
+    m = re.search(r"\bSoluble en\s+[^.;]+", blob, re.I)
+    if m:
+        return f"{m.group(0).strip().rstrip('.')}."
+    m = re.search(r"dispersable en[^.;]+", blob, re.I)
+    if m:
+        frag = m.group(0).strip().rstrip(".")
+        return f"Es {frag[0].lower()}{frag[1:]}."
+    return ""
+
+
+def _oracion_propiedades_mp(blob: str, parsed: dict[str, str], nombre: str) -> str:
+    props = _seccion_ficha(blob, "PROPIEDADES")
+    if props:
+        safe = _oraciones_seguras_ficha(props, max_oraciones=1, max_palabras=45)
+        if safe and _oracion_apta_descripcion_mp(safe):
+            lead = safe.lstrip(": ").strip()
+            if re.match(r"^fuente de", lead, re.I):
+                lead = f"Actúa como {lead[0].lower()}{lead[1:]}"
+            elif not re.match(r"^como materia prima", lead, re.I):
+                lead = f"Como materia prima, {lead[0].lower()}{lead[1:]}"
+            return lead if lead.endswith((".", "!", "?")) else f"{lead}."
+    funcional = _inferir_funcional(blob + " " + parsed.get("origen", ""), nombre)
+    mecanismo = _inferir_mecanismo(parsed.get("alimentaria", ""), parsed.get("origen", ""), nombre)
+    if funcional and mecanismo and funcional != mecanismo:
+        return f"{funcional.rstrip('.')}. {mecanismo.rstrip('.')}."
+    if funcional:
+        return funcional
+    return (
+        "Como materia prima aporta propiedades funcionales que condicionan "
+        "textura, estabilidad y comportamiento de la mezcla final."
+    )
 
 
 def _oraciones_desde_ficha(cuerpo: str) -> list[str]:
@@ -1468,15 +1576,24 @@ def _fallback_catalogo(
         (contexto_capas or {}).get("titulo")
         and _norm((contexto_capas or {}).get("titulo") or "") in _norm(titulo)
     )
+    ap, sol = _extraer_apariencia_solubilidad_blob(blob)
     p1_partes = [_apertura_p1(segmento, titulo_en_capa, nombre)]
-    if fisica:
+    or_ap = _oracion_apariencia_fisica(ap, blob)
+    if or_ap:
+        p1_partes.append(or_ap)
+    elif fisica and not ap:
         fp = _oraciones_seguras_ficha(fisica, max_oraciones=1, max_palabras=35)
         if fp:
             p1_partes.append(f"Se presenta como {fp[0].lower()}{fp[1:].rstrip('.')}.")
         elif not _contiene_riesgo_meli(fisica) and not _contiene_basura_ficha(fisica):
             p1_partes.append(f"Se presenta como {fisica[0].lower()}{fisica[1:].rstrip('.')}.")
+    or_sol = _oracion_solubilidad(sol, blob)
+    if or_sol:
+        p1_partes.append(or_sol)
     if organo and _oracion_apta_descripcion_mp(organo):
-        p1_partes.append(organo)
+        ya_libre = re.search(r"libre de olores", " ".join(p1_partes), re.I)
+        if not (ya_libre and re.search(r"libre de olores", organo, re.I)):
+            p1_partes.append(organo)
     if alergenos and _oracion_apta_descripcion_mp(alergenos):
         p1_partes.append(alergenos)
     estab_mat = _estabilidad_material(blob)
@@ -1487,8 +1604,7 @@ def _fallback_catalogo(
         p1_partes.append(
             origen_safe if origen_safe.endswith((".", "!", "?")) else f"{origen_safe}."
         )
-    p1_partes.append(_inferir_funcional(blob + " " + origen, nombre))
-    p1_partes.append(_inferir_mecanismo("", origen, nombre))
+    p1_partes.append(_oracion_propiedades_mp(blob, parsed, nombre))
     p1 = _ampliar_parrafo_si_corto(
         _ajustar_parrafo_longitud(" ".join(p1_partes)),
         _relleno_p1(segmento),
@@ -1499,6 +1615,10 @@ def _fallback_catalogo(
         if re.search(r"^en la industria", alim_safe, re.I):
             usos = [
                 alim_safe if alim_safe.endswith((".", "!", "?")) else f"{alim_safe}."
+            ]
+        elif re.search(r"^industria ", alim_safe, re.I):
+            usos = [
+                f"Se emplea en la {alim_safe[0].lower()}{alim_safe[1:].rstrip('.')}."
             ]
         else:
             pref = "En la industria alimentaria"

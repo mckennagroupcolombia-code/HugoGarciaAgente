@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from "react";
 import { EtiquetaTextoToolbar, patchCampoToolbar } from "./EtiquetaTextoToolbar";
+import { solicitarTextoMagico } from "../../lib/textoMagicoApi";
 import type { EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
 import {
   CAMPOS_DIAGRAMACION,
@@ -33,6 +34,10 @@ import {
   patchDiagramacion,
   patchDiagramacionGraficos,
   esIdGrafico,
+  boundsPx,
+  deltaAlinearBounds,
+  ALINEACIONES_LIENZO,
+  type AlineacionLienzo,
 } from "../../lib/etiquetasDiagramacion";
 
 type CampoMedido = {
@@ -235,6 +240,11 @@ function clampEscala(n: number) {
 
 type ResizeHandle = "nw" | "ne" | "sw" | "se";
 
+/** Nodos estilo Illustrator: cuadrado pequeño, área de agarre amplia. */
+const NODO_VIS_PX = 6;
+const NODO_HIT_PX = 14;
+const MARCO_SELECCION_CSS = "1px solid rgba(1, 109, 130, 0.82)";
+
 const HANDLES: { id: ResizeHandle; cursor: string }[] = [
   { id: "nw", cursor: "nw-resize" },
   { id: "ne", cursor: "ne-resize" },
@@ -242,13 +252,48 @@ const HANDLES: { id: ResizeHandle; cursor: string }[] = [
   { id: "se", cursor: "se-resize" },
 ];
 
-function handlePos(h: ResizeHandle, box: CampoMedido) {
-  const s = 6;
+function posicionAsaRedimension(h: ResizeHandle, box: CampoMedido) {
+  const half = NODO_HIT_PX / 2;
   return {
-    left: h.includes("w") ? box.left - s : box.left + box.width - s,
-    top: h.includes("n") ? box.top - s : box.top + box.height - s,
+    left: h.includes("w") ? box.left - half : box.left + box.width - half,
+    top: h.includes("n") ? box.top - half : box.top + box.height - half,
   };
 }
+
+function AsaRedimension({
+  id,
+  cursor,
+  pos,
+  onPointerDown,
+}: {
+  id: string;
+  cursor: string;
+  pos: { left: number; top: number };
+  onPointerDown: (ev: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`Redimensionar ${id}`}
+      className="absolute z-30 flex items-center justify-center border-0 bg-transparent p-0 touch-none"
+      style={{
+        left: pos.left,
+        top: pos.top,
+        width: NODO_HIT_PX,
+        height: NODO_HIT_PX,
+        cursor,
+      }}
+      onPointerDown={onPointerDown}
+    >
+      <span
+        className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)] transition-[transform,border-color] hover:scale-110 hover:border-[#016d82]"
+        style={{ width: NODO_VIS_PX, height: NODO_VIS_PX }}
+      />
+    </button>
+  );
+}
+
+type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
 
 /** Workspace: panel de capas + canvas con bloques arrastrables. */
 export function EtiquetaDiagramacionWorkspace({
@@ -291,6 +336,8 @@ export function EtiquetaDiagramacionWorkspace({
     height: number;
   } | null>(null);
   const [textoEditando, setTextoEditando] = useState<string | null>(null);
+  const [hoverCampo, setHoverCampo] = useState<string | null>(null);
+  const [escrituraMagicaCargando, setEscrituraMagicaCargando] = useState(false);
   const [capasVisibles, setCapasVisibles] = useState(variant !== "inline" && !panelExterno);
   const [campos, setCampos] = useState<CampoMedido[]>([]);
   const dragRef = useRef<{
@@ -598,7 +645,45 @@ export function EtiquetaDiagramacionWorkspace({
     };
   }, [diagramacion, onPatchDiagramacion, onPatchDatos]);
 
-type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
+  const padAsa = NODO_HIT_PX / 2;
+
+  const iniciarRedimension = useCallback(
+    (campo: CampoMedidoTexto, h: ResizeHandle, ev: ReactPointerEvent<HTMLButtonElement>) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setSeleccion(campo.id);
+      const baseEscala = escalaEfectiva(diagramacion, campo.id);
+      const next: NonNullable<typeof resizeRef.current> = {
+        handle: h,
+        id: campo.id,
+        startX: ev.clientX,
+        startY: ev.clientY,
+        startW: campo.width,
+        startH: campo.height,
+        baseEscala,
+        baseAnchoCaja: Number(diagramacion?.[campo.id]?.ancho_caja) || campo.width,
+        baseAltoCaja: Number(diagramacion?.[campo.id]?.alto_caja) || campo.height,
+      };
+      if (campo.id === "b1") {
+        const guia = containerRef.current?.querySelector("#mckenna-b1-guia") as SVGGraphicsElement | null;
+        const root = containerRef.current;
+        const svg = root?.querySelector("svg");
+        if (guia && root && svg) {
+          const rect = screenRectFromSvgEl(root, svg, guia);
+          if (rect) {
+            const dataFull = parseFloat(guia.getAttribute("data-ancho-full") || "");
+            next.fullW =
+              Number.isFinite(dataFull) && dataFull > 0
+                ? (rect.width / b1Pct) * 100
+                : rect.width / (b1Pct / 100);
+            next.baseAnchoPct = b1Pct;
+          }
+        }
+      }
+      resizeRef.current = next;
+    },
+    [b1Pct, containerRef, diagramacion, setSeleccion],
+  );
 
   const seleccionado = useMemo((): CampoMedidoTexto | null => {
     const c = campos.find((c) => c.id === seleccion && c.presente);
@@ -650,6 +735,52 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
     if (!seleccion || esIdGrafico(seleccion)) return;
     eliminarCampoTexto(seleccion);
   }, [seleccion, eliminarCampoTexto]);
+
+  const alinearSeleccionAlLienzo = useCallback(
+    (modo: AlineacionLienzo) => {
+      if (!seleccion) return;
+      const root = containerRef.current;
+      const svg = root?.querySelector("svg");
+      if (!root || !svg) return;
+      const campo = campos.find((c) => c.id === seleccion && c.presente);
+      if (!campo) return;
+
+      const pos = overlayPosicionCampo(campo, svg, diagramacion, diagramacionGraficos);
+      const objeto = boundsPx(pos.left, pos.top, campo.width, campo.height);
+      const lienzo = boundsPx(0, 0, root.clientWidth, root.clientHeight);
+      const { dx: dxScreen, dy: dyScreen } = deltaAlinearBounds(objeto, lienzo, modo);
+      const { dx, dy } = deltaScreenToSvg(svg, dxScreen, dyScreen);
+
+      const currentX =
+        campo.kind === "grafico"
+          ? (diagramacionGraficos?.[campo.id]?.x ?? 0)
+          : (diagramacion?.[campo.id]?.x ?? campo.tx);
+      const currentY =
+        campo.kind === "grafico"
+          ? (diagramacionGraficos?.[campo.id]?.y ?? 0)
+          : (diagramacion?.[campo.id]?.y ?? campo.ty);
+
+      const x = Math.round((currentX + dx) * 100) / 100;
+      const y = Math.round((currentY + dy) * 100) / 100;
+
+      if (campo.kind === "grafico") {
+        onPatchGraficos?.(patchDiagramacionGraficos(diagramacionGraficos, campo.id, { x, y }));
+      } else {
+        onPatchDiagramacion(patchDiagramacion(diagramacion, campo.id, { x, y }));
+      }
+      requestAnimationFrame(() => medir());
+    },
+    [
+      seleccion,
+      campos,
+      containerRef,
+      diagramacion,
+      diagramacionGraficos,
+      onPatchDiagramacion,
+      onPatchGraficos,
+      medir,
+    ],
+  );
 
   const crearCajaTexto = useCallback((opts?: {
     x?: number;
@@ -778,11 +909,53 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
     window.addEventListener("pointercancel", onUp);
   }, [modoDibujoCaja, onPatchDatos, containerRef, crearCajaTexto]);
 
-  const escrituraMagica = useCallback(() => {
+  const escrituraMagica = useCallback(async () => {
     if (!seleccion || esIdGrafico(seleccion) || !onPatchDatos) return;
     const editor = editorTextoCampo(seleccion);
     if (!editor) return;
     const raw = editor.getTexto(datos);
+    const esDescripcion =
+      seleccion === "b1" || seleccion.startsWith("b1_") || seleccion.startsWith("b1");
+
+    if (esDescripcion) {
+      const fragmento =
+        [datos.ingrediente, datos.nombre_producto].filter(Boolean).join(" ").trim() ||
+        raw.split(/\s+/).slice(0, 8).join(" ");
+      const palabras = fragmento
+        .toLowerCase()
+        .match(/[a-záéíóúüñ0-9]{3,}/gi);
+      if (!palabras || palabras.length < 2) return;
+
+      setEscrituraMagicaCargando(true);
+      try {
+        const res = await solicitarTextoMagico(fragmento, {
+          max_chars: 2600,
+          contexto_capas: {
+            titulo: datos.nombre_producto,
+            subtitulo: datos.subtitulo,
+          },
+          modo_descripcion_mp: true,
+        });
+        const texto = res.sugerencias?.[0]?.texto?.trim();
+        if (texto) {
+          onPatchDatos(editor.patchTexto(texto, datos));
+          onPatchDiagramacion(
+            patchDiagramacion(diagramacion, seleccion, {
+              mayusculas: false,
+              listado: false,
+              interlineado: cfgSel?.interlineado ?? 1.12,
+              interletrado: cfgSel?.interletrado ?? 0.1,
+            }),
+          );
+        }
+      } catch {
+        /* conservar texto actual si falla la IA */
+      } finally {
+        setEscrituraMagicaCargando(false);
+      }
+      return;
+    }
+
     const lineas = raw
       .split("\n")
       .map((l) => l.trim())
@@ -798,7 +971,15 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
         interletrado: cfgSel?.interletrado ?? 0.1,
       }),
     );
-  }, [seleccion, onPatchDatos, datos, onPatchDiagramacion, diagramacion, cfgSel?.interlineado, cfgSel?.interletrado]);
+  }, [
+    seleccion,
+    onPatchDatos,
+    datos,
+    onPatchDiagramacion,
+    diagramacion,
+    cfgSel?.interlineado,
+    cfgSel?.interletrado,
+  ]);
 
   useEffect(() => {
     setTextoEditando(null);
@@ -932,16 +1113,18 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
             cursor: modoDibujoCaja ? "crosshair" : undefined,
           }}
           onPointerDown={onCanvasPointerDownCrearCaja}
+          onPointerLeave={() => setHoverCampo(null)}
         >
           {children}
           {cajaPreview && (
             <div
-              className="pointer-events-none absolute z-50 border-2 border-accent/90 bg-accent/10"
+              className="pointer-events-none absolute z-50 bg-accent/[0.06]"
               style={{
                 left: cajaPreview.left,
                 top: cajaPreview.top,
                 width: Math.max(1, cajaPreview.width),
                 height: Math.max(1, cajaPreview.height),
+                border: MARCO_SELECCION_CSS,
               }}
             />
           )}
@@ -953,30 +1136,108 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
               const editandoEste = textoEditando === c.id;
               const svgEl = containerRef.current?.querySelector("svg") ?? null;
               const pos = overlayPosicionCampo(c, svgEl, diagramacion, diagramacionGraficos);
+              const esTexto = c.kind === "texto";
+              const resaltado = esTexto && (activo || hoverCampo === c.id);
+              const mostrarAsas = esTexto && resaltado && !editandoEste;
+
+              const onPointerDownCampo = (ev: ReactPointerEvent<HTMLButtonElement>) => {
+                if (editandoEste) return;
+                ev.preventDefault();
+                ev.stopPropagation();
+                (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
+                setSeleccion(c.id);
+                const baseTx =
+                  c.kind === "grafico"
+                    ? (diagramacionGraficos?.[c.id]?.x ?? 0)
+                    : (diagramacion?.[c.id as CampoDiagramacionId]?.x ?? c.baseTx);
+                const baseTy =
+                  c.kind === "grafico"
+                    ? (diagramacionGraficos?.[c.id]?.y ?? 0)
+                    : (diagramacion?.[c.id as CampoDiagramacionId]?.y ?? c.baseTy);
+                dragRef.current = {
+                  id: c.id,
+                  kind: c.kind,
+                  startX: ev.clientX,
+                  startY: ev.clientY,
+                  baseTx,
+                  baseTy,
+                  pointerId: ev.pointerId,
+                  moved: false,
+                };
+              };
+
+              if (esTexto) {
+                const campoTexto = c as CampoMedidoTexto;
+                return (
+                  <div
+                    key={`${c.kind}-${c.id}`}
+                    className="absolute z-20 touch-none"
+                    style={{
+                      left: pos.left - padAsa,
+                      top: pos.top - padAsa,
+                      width: c.width + NODO_HIT_PX,
+                      height: c.height + NODO_HIT_PX,
+                      overflow: "visible",
+                    }}
+                    onPointerEnter={() => setHoverCampo(c.id)}
+                    onPointerLeave={(ev) => {
+                      if (hoverCampo !== c.id) return;
+                      const next = ev.relatedTarget as Node | null;
+                      if (next && ev.currentTarget.contains(next)) return;
+                      setHoverCampo(null);
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-label={label}
+                      title={`${label} · arrastra para mover${edicionInlineActiva ? " · doble clic para editar" : ""}`}
+                      className="absolute touch-none select-none border-0 bg-transparent p-0"
+                      style={{
+                        left: padAsa,
+                        top: padAsa,
+                        width: c.width,
+                        height: c.height,
+                        cursor: arrastrando && activo ? "grabbing" : "grab",
+                        border: resaltado ? MARCO_SELECCION_CSS : "1px solid transparent",
+                        boxSizing: "border-box",
+                      }}
+                      onDoubleClick={(ev) => {
+                        if (!edicionInlineActiva) return;
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        abrirEdicionTexto(c.id as CampoDiagramacionId);
+                      }}
+                      onPointerDown={onPointerDownCampo}
+                    />
+                    {mostrarAsas &&
+                      HANDLES.map((h) => {
+                        const posAsa = posicionAsaRedimension(h.id, {
+                          ...campoTexto,
+                          left: padAsa,
+                          top: padAsa,
+                        });
+                        return (
+                          <AsaRedimension
+                            key={h.id}
+                            id={h.id}
+                            cursor={h.cursor}
+                            pos={posAsa}
+                            onPointerDown={(ev) => iniciarRedimension(campoTexto, h.id, ev)}
+                          />
+                        );
+                      })}
+                  </div>
+                );
+              }
+
               return (
                 <button
                   key={`${c.kind}-${c.id}`}
                   type="button"
                   aria-label={label}
-                  title={
-                    c.kind === "texto" && edicionInlineActiva
-                      ? `${label} · arrastra para mover · doble clic para editar`
-                      : `${label} · arrastra para mover`
-                  }
-                  className={`absolute z-20 touch-none select-none ${
-                    editandoEste
-                      ? "pointer-events-none opacity-0"
-                      : activo
-                      ? c.kind === "grafico"
-                        ? soloLineas
-                          ? "border-0 bg-transparent"
-                          : "border-2 border-violet-500 bg-violet-500/10"
-                        : "border-2 border-accent bg-accent/10"
-                      : c.kind === "grafico"
-                        ? soloLineas
-                          ? "border-0 bg-transparent"
-                          : "border border-dashed border-violet-400/60 bg-transparent hover:bg-violet-500/5"
-                        : "border border-dashed border-accent/50 bg-transparent hover:bg-accent/5"
+                  title={`${label} · arrastra para mover`}
+                  className={`absolute z-20 touch-none select-none border-0 bg-transparent ${
+                    editandoEste ? "pointer-events-none opacity-0" : activo ? "" : "opacity-0 hover:opacity-100"
                   }`}
                   style={{
                     left: pos.left,
@@ -984,38 +1245,16 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
                     width: c.width,
                     height: c.height,
                     cursor: arrastrando && activo ? "grabbing" : "grab",
+                    ...(activo && !editandoEste
+                      ? {
+                          border: MARCO_SELECCION_CSS,
+                          background: soloLineas ? "transparent" : "rgba(139, 92, 246, 0.04)",
+                        }
+                      : !editandoEste
+                        ? { outline: "1px dashed rgba(1, 109, 130, 0.28)", outlineOffset: 0 }
+                        : {}),
                   }}
-                  onDoubleClick={(ev) => {
-                    if (c.kind !== "texto" || !edicionInlineActiva) return;
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                    abrirEdicionTexto(c.id as CampoDiagramacionId);
-                  }}
-                  onPointerDown={(ev) => {
-                    if (editandoEste) return;
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                    (ev.currentTarget as HTMLElement).setPointerCapture(ev.pointerId);
-                    setSeleccion(c.id);
-                    const baseTx =
-                      c.kind === "grafico"
-                        ? (diagramacionGraficos?.[c.id]?.x ?? 0)
-                        : (diagramacion?.[c.id as CampoDiagramacionId]?.x ?? c.baseTx);
-                    const baseTy =
-                      c.kind === "grafico"
-                        ? (diagramacionGraficos?.[c.id]?.y ?? 0)
-                        : (diagramacion?.[c.id as CampoDiagramacionId]?.y ?? c.baseTy);
-                    dragRef.current = {
-                      id: c.id,
-                      kind: c.kind,
-                      startX: ev.clientX,
-                      startY: ev.clientY,
-                      baseTx,
-                      baseTy,
-                      pointerId: ev.pointerId,
-                      moved: false,
-                    };
-                  }}
+                  onPointerDown={onPointerDownCampo}
                 />
               );
             })}
@@ -1027,7 +1266,7 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
               type="button"
               title="Eliminar caja de texto (Supr)"
               aria-label="Eliminar caja de texto"
-              className="absolute z-40 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-red-600 text-[11px] font-bold leading-none text-white shadow"
+              className="absolute z-40 flex h-4 w-4 items-center justify-center rounded-full border border-white/90 bg-red-500/90 text-[9px] font-bold leading-none text-white opacity-85 shadow-sm hover:opacity-100"
               style={{
                 left: pos.left + seleccionado.width - 6,
                 top: pos.top - 8,
@@ -1073,7 +1312,7 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
               color,
               textAlign: alineacionCssEditor(cfg?.alineacion, campoId),
               background: "rgba(255,255,255,0.94)",
-              border: "2px solid #016d82",
+              border: "1px solid rgba(1, 109, 130, 0.85)",
               borderRadius: 2,
               padding: "1px 3px",
               margin: 0,
@@ -1126,58 +1365,6 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
               />
             );
           })()}
-          {seleccionado &&
-            HANDLES.map((h) => {
-              const svgEl = containerRef.current?.querySelector("svg") ?? null;
-              const selPos = overlayPosicionCampo(seleccionado, svgEl, diagramacion, diagramacionGraficos);
-              const pos = handlePos(h.id, { ...seleccionado, left: selPos.left, top: selPos.top });
-              return (
-                <button
-                  key={h.id}
-                  type="button"
-                  aria-label={`Redimensionar ${h.id}`}
-                  className="absolute z-30 h-3 w-3 rounded-full border-2 border-white bg-accent shadow"
-                  style={{ ...pos, cursor: h.cursor }}
-                  onPointerDown={(ev) => {
-                    ev.preventDefault();
-                    ev.stopPropagation();
-                    const baseEscala = escalaEfectiva(diagramacion, seleccionado.id);
-                    const next: NonNullable<typeof resizeRef.current> = {
-                      handle: h.id,
-                      id: seleccionado.id,
-                      startX: ev.clientX,
-                      startY: ev.clientY,
-                      startW: seleccionado.width,
-                      startH: seleccionado.height,
-                      baseEscala,
-                      baseAnchoCaja: Number(diagramacion?.[seleccionado.id]?.ancho_caja) || seleccionado.width,
-                      baseAltoCaja: Number(diagramacion?.[seleccionado.id]?.alto_caja) || seleccionado.height,
-                    };
-                    if (seleccionado.id === "b1") {
-                      const guia = containerRef.current?.querySelector(
-                        "#mckenna-b1-guia",
-                      ) as SVGGraphicsElement | null;
-                      const root = containerRef.current;
-                      const svg = root?.querySelector("svg");
-                      if (guia && root && svg) {
-                        const rect = screenRectFromSvgEl(root, svg, guia);
-                        if (rect) {
-                          const dataFull = parseFloat(
-                            guia.getAttribute("data-ancho-full") || "",
-                          );
-                          next.fullW =
-                            Number.isFinite(dataFull) && dataFull > 0
-                              ? (rect.width / b1Pct) * 100
-                              : rect.width / (b1Pct / 100);
-                          next.baseAnchoPct = b1Pct;
-                        }
-                      }
-                    }
-                    resizeRef.current = next;
-                  }}
-                />
-              );
-            })}
         </div>
       </div>
     </div>
@@ -1212,7 +1399,7 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
     if (panelExterno) {
       return (
         <div className="flex h-full min-h-0 w-full flex-col">
-          {!soloLineas && onPatchDatos && (
+          {(onPatchDatos || seleccion) && (
             <div className="flex shrink-0 flex-wrap items-center gap-2 px-1 pb-1">
               <EtiquetaTextoToolbar
                 campoId={seleccion && !esIdGrafico(seleccion) ? seleccion : null}
@@ -1222,8 +1409,12 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
                 b1AnchoPct={seleccion === "b1" ? b1Pct : undefined}
                 tx={cfgSel?.x ?? seleccionado?.tx ?? graficoSel?.tx ?? 0}
                 ty={cfgSel?.y ?? seleccionado?.ty ?? graficoSel?.ty ?? 0}
-                onAnadirCajaTexto={anadirCajaTexto}
-                onEscrituraMagica={escrituraMagica}
+                soloPosicion={soloLineas || (!!seleccion && esIdGrafico(seleccion))}
+                elementoSeleccionado={!!seleccion}
+                onAlinearLienzo={alinearSeleccionAlLienzo}
+                onAnadirCajaTexto={onPatchDatos ? anadirCajaTexto : undefined}
+                onEscrituraMagica={onPatchDatos ? escrituraMagica : undefined}
+                escrituraMagicaCargando={escrituraMagicaCargando}
                 onPatch={(p) => {
                   if (!seleccion) return;
                   if (esIdGrafico(seleccion)) {
@@ -1236,7 +1427,7 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
                     return;
                   }
                   onPatchDiagramacion(patchCampoToolbar(diagramacion, seleccion, p));
-                  if (p.ancho_pct != null) onPatchDatos({ b1_ancho_pct: p.ancho_pct });
+                  if (p.ancho_pct != null) onPatchDatos?.({ b1_ancho_pct: p.ancho_pct });
                 }}
               />
               {modoDibujoCaja && (
@@ -1262,8 +1453,12 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
             b1AnchoPct={seleccion === "b1" ? b1Pct : undefined}
             tx={cfgSel?.x ?? seleccionado?.tx ?? graficoSel?.tx ?? 0}
             ty={cfgSel?.y ?? seleccionado?.ty ?? graficoSel?.ty ?? 0}
+            soloPosicion={soloLineas || (!!seleccion && esIdGrafico(seleccion))}
+            elementoSeleccionado={!!seleccion}
+            onAlinearLienzo={alinearSeleccionAlLienzo}
             onAnadirCajaTexto={panelExterno ? anadirCajaTexto : undefined}
             onEscrituraMagica={panelExterno ? escrituraMagica : undefined}
+            escrituraMagicaCargando={escrituraMagicaCargando}
             onPatch={(p) => {
               if (!seleccion) return;
               if (esIdGrafico(seleccion)) {
@@ -1487,6 +1682,21 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
               </label>
             </div>
 
+            <div className="grid grid-cols-3 gap-1" title="Alinear al lienzo">
+              {ALINEACIONES_LIENZO.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  title={a.title}
+                  aria-label={a.title}
+                  onClick={() => alinearSeleccionAlLienzo(a.id)}
+                  className="flex h-8 items-center justify-center rounded border border-border text-sm hover:bg-surface-hover"
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+
             <button
               type="button"
               onClick={() => {
@@ -1498,6 +1708,60 @@ type CampoMedidoTexto = CampoMedido & { id: string; kind: "texto" };
             >
               Restablecer posición/color
             </button>
+          </div>
+        )}
+
+        {graficoSel && !seleccionado && (
+          <div className="mt-1 space-y-2 rounded border border-border bg-surface-panel p-2">
+            <p className="font-semibold text-ink">{labelElementoEditor(graficoSel.id)}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className="text-[10px] text-muted">X</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={diagramacionGraficos?.[graficoSel.id]?.x ?? graficoSel.tx}
+                  onChange={(e) => {
+                    const x = parseFloat(e.target.value);
+                    if (!Number.isFinite(x)) return;
+                    onPatchGraficos?.(
+                      patchDiagramacionGraficos(diagramacionGraficos, graficoSel.id, { x }),
+                    );
+                  }}
+                  className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] text-muted">Y</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={diagramacionGraficos?.[graficoSel.id]?.y ?? graficoSel.ty}
+                  onChange={(e) => {
+                    const y = parseFloat(e.target.value);
+                    if (!Number.isFinite(y)) return;
+                    onPatchGraficos?.(
+                      patchDiagramacionGraficos(diagramacionGraficos, graficoSel.id, { y }),
+                    );
+                  }}
+                  className="mt-0.5 w-full rounded border border-border bg-white px-1.5 py-1 font-mono text-[10px]"
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-3 gap-1" title="Alinear al lienzo">
+              {ALINEACIONES_LIENZO.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  title={a.title}
+                  aria-label={a.title}
+                  onClick={() => alinearSeleccionAlLienzo(a.id)}
+                  className="flex h-8 items-center justify-center rounded border border-border text-sm hover:bg-surface-hover"
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </aside>

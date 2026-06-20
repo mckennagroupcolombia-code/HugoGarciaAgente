@@ -39,7 +39,6 @@ import {
   useTiposEtiqueta,
 } from "../lib/etiquetasTipos";
 import { SelectorFormatoEtiqueta, type FormatoEtiquetaValor } from "./etiquetas/SelectorFormatoEtiqueta";
-import { EtiquetasStudioPanel } from "./etiquetas/EtiquetasStudioPanel";
 import {
   EtiquetasStudioCatalogo,
   type CatalogoStudioFila,
@@ -833,7 +832,9 @@ type RedimensionPlantilla =
       orig: { x1: number; y1: number; x2: number; y2: number };
     };
 
-const ASA_TAM_PX = 10;
+const ASA_VIS_PX = 6;
+const ASA_HIT_PX = 14;
+const MARCO_SELECCION_CSS = "1px solid rgba(1, 109, 130, 0.82)";
 
 const ASAS_REDIMENSION: { id: AsaRedimensionId; cursor: string }[] = [
   { id: "nw", cursor: "nw-resize" },
@@ -850,49 +851,72 @@ const ASAS_LATERALES: { id: AsaRedimensionId; cursor: string }[] = [
 ];
 
 function estiloAsaEsquina(id: AsaRedimensionId): CSSProperties {
+  const half = ASA_HIT_PX / 2;
   const base: CSSProperties = {
     position: "absolute",
-    width: ASA_TAM_PX,
-    height: ASA_TAM_PX,
+    width: ASA_HIT_PX,
+    height: ASA_HIT_PX,
     margin: 0,
     padding: 0,
     boxSizing: "border-box",
     zIndex: 40,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "transparent",
+    border: "none",
   };
   switch (id) {
     case "nw":
-      return { ...base, left: 0, top: 0, transform: "translate(-50%, -50%)" };
+      return { ...base, left: 0, top: 0, transform: `translate(-${half}px, -${half}px)` };
     case "ne":
-      return { ...base, left: "100%", top: 0, transform: "translate(-50%, -50%)" };
+      return { ...base, left: "100%", top: 0, transform: `translate(-${half}px, -${half}px)` };
     case "sw":
-      return { ...base, left: 0, top: "100%", transform: "translate(-50%, -50%)" };
+      return { ...base, left: 0, top: "100%", transform: `translate(-${half}px, -${half}px)` };
     case "se":
-      return { ...base, left: "100%", top: "100%", transform: "translate(-50%, -50%)" };
+      return { ...base, left: "100%", top: "100%", transform: `translate(-${half}px, -${half}px)` };
     default:
       return base;
   }
 }
 
 function estiloAsaLado(id: AsaRedimensionId): CSSProperties {
+  const half = ASA_HIT_PX / 2;
   const base: CSSProperties = {
     position: "absolute",
+    width: ASA_HIT_PX,
+    height: ASA_HIT_PX,
     margin: 0,
     padding: 0,
     boxSizing: "border-box",
     zIndex: 40,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "transparent",
+    border: "none",
   };
   switch (id) {
     case "n":
-      return { ...base, left: "50%", top: 0, width: 14, height: 8, transform: "translate(-50%, -50%)" };
+      return { ...base, left: "50%", top: 0, transform: `translate(-${half}px, -${half}px)` };
     case "s":
-      return { ...base, left: "50%", top: "100%", width: 14, height: 8, transform: "translate(-50%, -50%)" };
+      return { ...base, left: "50%", top: "100%", transform: `translate(-${half}px, -${half}px)` };
     case "e":
-      return { ...base, left: "100%", top: "50%", width: 8, height: 14, transform: "translate(-50%, -50%)" };
+      return { ...base, left: "100%", top: "50%", transform: `translate(-${half}px, -${half}px)` };
     case "w":
-      return { ...base, left: 0, top: "50%", width: 8, height: 14, transform: "translate(-50%, -50%)" };
+      return { ...base, left: 0, top: "50%", transform: `translate(-${half}px, -${half}px)` };
     default:
       return base;
   }
+}
+
+function estiloNodoVisualAsa(id: AsaRedimensionId): CSSProperties {
+  const esLado = id === "n" || id === "s" || id === "e" || id === "w";
+  if (esLado) {
+    if (id === "n" || id === "s") return { width: 8, height: 5 };
+    return { width: 5, height: 8 };
+  }
+  return { width: ASA_VIS_PX, height: ASA_VIS_PX };
 }
 
 function estiloAsaRedimension(id: AsaRedimensionId): CSSProperties {
@@ -1447,19 +1471,16 @@ function BtnIconoToolbar({
 function MarcoSeleccionSimple({ onMover }: { onMover?: (e: React.MouseEvent) => void }) {
   return (
     <div
-      className="pointer-events-none absolute inset-0 box-border border-2 border-dashed border-accent/80"
-      style={{ overflow: "visible" }}
+      className="pointer-events-none absolute inset-0 box-border"
+      style={{ overflow: "visible", border: MARCO_SELECCION_CSS }}
     >
       {onMover && (
         <button
           type="button"
           title="Mover"
-          className="pointer-events-auto absolute z-50 m-0 flex h-5 w-5 cursor-move items-center justify-center rounded border border-accent bg-white p-0 text-[9px] text-accent shadow-sm hover:bg-accent/10"
-          style={{ left: 4, top: 4 }}
+          className="pointer-events-auto absolute inset-0 z-40 m-0 cursor-move border-0 bg-transparent p-0"
           onMouseDown={onMover}
-        >
-          ⠿
-        </button>
+        />
       )}
     </div>
   );
@@ -1516,27 +1537,29 @@ function MarcoRedimensionable({
   const asas = redimensionLibre ? [...ASAS_REDIMENSION, ...ASAS_LATERALES] : ASAS_REDIMENSION;
   const marco = (
     <div
-      className="pointer-events-none absolute inset-0 box-border border-2 border-accent"
-      style={{ overflow: "visible" }}
+      className="pointer-events-none absolute inset-0 box-border"
+      style={{ overflow: "visible", border: MARCO_SELECCION_CSS }}
     >
       <button
         type="button"
         title="Mover"
-        className="pointer-events-auto absolute z-50 m-0 flex h-5 w-5 cursor-move items-center justify-center rounded border border-accent bg-white p-0 text-[9px] text-accent shadow-sm hover:bg-accent/10"
-        style={{ left: 4, top: 4 }}
+        className="pointer-events-auto absolute inset-0 z-30 m-0 cursor-move border-0 bg-transparent p-0"
         onMouseDown={onMover}
-      >
-        ⠿
-      </button>
+      />
       {asas.map((a) => (
         <button
           key={a.id}
           type="button"
           title={redimensionLibre ? `Redimensionar ${a.id}` : `Redimensionar esquina ${a.id}`}
-          className="pointer-events-auto m-0 block appearance-none border-2 border-accent bg-white p-0 shadow-sm hover:bg-accent/20"
+          className="pointer-events-auto m-0 block appearance-none border-0 bg-transparent p-0"
           style={{ ...estiloAsaRedimension(a.id), cursor: a.cursor }}
           onMouseDown={(e) => onRedimensionar(e, a.id)}
-        />
+        >
+          <span
+            className="block shrink-0 rounded-[1px] border border-[#016d82]/85 bg-white shadow-[0_0_0_0.5px_rgba(255,255,255,0.95)]"
+            style={estiloNodoVisualAsa(a.id)}
+          />
+        </button>
       ))}
     </div>
   );

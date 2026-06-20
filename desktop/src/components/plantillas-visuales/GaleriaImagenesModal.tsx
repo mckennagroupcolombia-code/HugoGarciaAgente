@@ -116,12 +116,80 @@ interface Props {
   onElegir: (src: string) => void;
 }
 
+interface ProgresoCarpeta {
+  total: number;
+  done: number;
+  errores: string[];
+  terminado: boolean;
+}
+
 export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Props) {
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const inputCarpetaRef = useRef<HTMLInputElement>(null);
   const [buscar, setBuscar] = useState("");
   const [errorSubida, setErrorSubida] = useState<string | null>(null);
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
+  const [progresoCarpeta, setProgresoCarpeta] = useState<ProgresoCarpeta | null>(null);
+
+  // webkitdirectory no está en los tipos estándar — el input solo existe cuando abierta=true
+  useEffect(() => {
+    if (!abierta) return;
+    const id = requestAnimationFrame(() => {
+      const el = inputCarpetaRef.current;
+      if (!el) return;
+      el.setAttribute("webkitdirectory", "");
+      el.setAttribute("directory", "");
+      el.setAttribute("multiple", "");
+    });
+    return () => cancelAnimationFrame(id);
+  }, [abierta]);
+
+  async function subirArchivos(validos: File[], opts?: { elegirUltima?: boolean }) {
+    if (validos.length === 0) {
+      setErrorSubida("No hay imágenes JPG o PNG para subir.");
+      return;
+    }
+    setErrorSubida(null);
+    setProgresoCarpeta({ total: validos.length, done: 0, errores: [], terminado: false });
+
+    const errores: string[] = [];
+    let ultimoSubido: (RecursoPng & { ok: boolean }) | null = null;
+    for (let i = 0; i < validos.length; i++) {
+      const file = validos[i];
+      try {
+        const fd = new FormData();
+        fd.append("archivo", file);
+        ultimoSubido = await api.upload<RecursoPng & { ok: boolean }>(
+          "/api/etiquetas/recursos-png",
+          fd,
+        );
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Error de subida";
+        errores.push(`${file.name}: ${msg}`);
+      }
+      setProgresoCarpeta({
+        total: validos.length,
+        done: i + 1,
+        errores: [...errores],
+        terminado: false,
+      });
+    }
+
+    await qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+    setProgresoCarpeta({
+      total: validos.length,
+      done: validos.length,
+      errores,
+      terminado: true,
+    });
+
+    if (opts?.elegirUltima && ultimoSubido && errores.length === 0) {
+      const src = `/api/etiquetas/recursos-png/archivo/${encodeURIComponent(ultimoSubido.nombre)}`;
+      onElegir(src);
+      onCerrar();
+    }
+  }
 
   const { data: recursosData, isLoading: loadingRecursos } = useQuery({
     queryKey: ["etiquetas-recursos-png"],
@@ -189,14 +257,20 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
   });
 
   const subirMut = useMutation({
-    mutationFn: (file: File) => {
-      if (!esImagenPngJpg(file)) throw new Error("Solo JPG o PNG.");
-      const fd = new FormData();
-      fd.append("archivo", file);
-      return api.upload<RecursoPng & { ok: boolean }>("/api/etiquetas/recursos-png", fd);
+    mutationFn: async (files: File[]) => {
+      const validos = files.filter(esImagenPngJpg);
+      if (validos.length === 0) throw new Error("Solo JPG o PNG.");
+      if (validos.length === 1) {
+        const fd = new FormData();
+        fd.append("archivo", validos[0]);
+        return api.upload<RecursoPng & { ok: boolean }>("/api/etiquetas/recursos-png", fd);
+      }
+      await subirArchivos(validos);
+      return null;
     },
     onSuccess: (data) => {
       setErrorSubida(null);
+      if (!data) return;
       void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
       const src = `/api/etiquetas/recursos-png/archivo/${encodeURIComponent(data.nombre)}`;
       onElegir(src);
@@ -204,6 +278,15 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
     },
     onError: (err: Error) => setErrorSubida(err.message),
   });
+
+  async function subirCarpeta(files: FileList) {
+    const validos = Array.from(files).filter(esImagenPngJpg);
+    if (validos.length === 0) {
+      setErrorSubida("La carpeta no contiene imágenes JPG o PNG.");
+      return;
+    }
+    await subirArchivos(validos);
+  }
 
   if (!abierta) return null;
 
@@ -239,29 +322,109 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
             placeholder="Buscar imagen…"
             className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
           />
+
+          {/* Subir una o varias imágenes */}
           <input
             ref={inputRef}
             type="file"
             accept="image/jpeg,image/jpg,image/png,.jpg,.jpeg,.png"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) subirMut.mutate(f);
+              const files = e.target.files ? Array.from(e.target.files) : [];
+              if (files.length > 0) subirMut.mutate(files);
               e.target.value = "";
             }}
           />
           <button
             type="button"
-            disabled={subirMut.isPending}
+            disabled={
+              subirMut.isPending || (!!progresoCarpeta && !progresoCarpeta.terminado)
+            }
             onClick={() => inputRef.current?.click()}
             className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+            title="Selecciona una o varias imágenes JPG/PNG (Ctrl+clic o Shift+clic)"
           >
-            {subirMut.isPending ? "Subiendo…" : "+ Subir imagen"}
+            {subirMut.isPending || (!!progresoCarpeta && !progresoCarpeta.terminado)
+              ? "Subiendo…"
+              : "+ Imágenes"}
+          </button>
+
+          {/* Subir carpeta completa */}
+          <input
+            ref={inputCarpetaRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && files.length > 0) void subirCarpeta(files);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            disabled={
+              subirMut.isPending || (!!progresoCarpeta && !progresoCarpeta.terminado)
+            }
+            onClick={() => {
+              setProgresoCarpeta(null);
+              inputCarpetaRef.current?.click();
+            }}
+            className="shrink-0 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+            title="Selecciona una carpeta para subir todas sus imágenes JPG/PNG"
+          >
+            📁 Carpeta
           </button>
         </div>
 
+        {/* Progreso carga de carpeta */}
+        {progresoCarpeta && (
+          <div className="border-b border-border px-4 py-2">
+            {!progresoCarpeta.terminado ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-ink">
+                    Subiendo {progresoCarpeta.done} / {progresoCarpeta.total}…
+                  </span>
+                  <span className="text-muted">
+                    {Math.round((progresoCarpeta.done / progresoCarpeta.total) * 100)}%
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-surface-hover">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all duration-300"
+                    style={{ width: `${(progresoCarpeta.done / progresoCarpeta.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs">
+                  <span className="font-semibold text-green-700 dark:text-green-400">
+                    ✓ {progresoCarpeta.total - progresoCarpeta.errores.length} imágenes subidas
+                  </span>
+                  {progresoCarpeta.errores.length > 0 && (
+                    <span className="ml-2 text-red-600 dark:text-red-400">
+                      · {progresoCarpeta.errores.length} error{progresoCarpeta.errores.length > 1 ? "es" : ""}
+                      {" "}({progresoCarpeta.errores.slice(0, 3).join(", ")}
+                      {progresoCarpeta.errores.length > 3 ? "…" : ""})
+                    </span>
+                  )}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setProgresoCarpeta(null)}
+                  className="shrink-0 text-xs text-muted hover:text-ink"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {errorSubida && (
-          <p className="border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
+          <p className="border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
             {errorSubida}
           </p>
         )}
