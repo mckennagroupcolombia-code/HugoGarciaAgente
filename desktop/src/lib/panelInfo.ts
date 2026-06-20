@@ -236,8 +236,8 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   },
   "plantillas-visuales": {
     emoji: "🎨",
-    label: "Studio Etiquetas",
-    description: "Crea y edita plantillas visuales de etiquetas. Compara la etiqueta original con la alternativa en construcción.",
+    label: "Studio",
+    description: "Editor visual de plantillas y etiquetas. Lienzo tipo Illustrator con capas e inspector.",
     tips: [
       "Usa el comparador para ver la etiqueta original y la alternativa una al lado de la otra.",
       "Las plantillas se guardan como JSON editable y puedes exportarlas a PDF, PNG o JPG.",

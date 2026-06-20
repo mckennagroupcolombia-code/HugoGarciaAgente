@@ -293,9 +293,10 @@ def exportar_pdf(plantilla: dict) -> bytes:
     return buf.getvalue()
 
 
-def exportar_raster(plantilla: dict, formato: str = "png") -> bytes:
+def exportar_raster(plantilla: dict, formato: str = "png", escala: float = 1.0) -> bytes:
     from PIL import Image, ImageDraw, ImageFont
 
+    escala = max(0.25, min(8.0, float(escala or 1)))
     fmt = plantilla.get("formato") or {}
     w = int(fmt.get("ancho_px") or 800)
     h = int(fmt.get("alto_px") or 600)
@@ -377,6 +378,11 @@ def exportar_raster(plantilla: dict, formato: str = "png") -> bytes:
                 img.paste(piece, (x, y), piece)
             except Exception:
                 continue
+
+    if escala != 1.0:
+        new_w = max(1, int(round(w * escala)))
+        new_h = max(1, int(round(h * escala)))
+        img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
     out = io.BytesIO()
     formato = (formato or "png").lower()

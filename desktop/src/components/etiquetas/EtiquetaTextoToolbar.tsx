@@ -1,5 +1,12 @@
 import type { CampoDiagramacion, DiagramacionEtiqueta } from "../../lib/etiquetasDiagramacion";
-import { ALINEACIONES_TEXTO, FUENTE_ETIQUETA, labelCampoDiagramacion, patchDiagramacion } from "../../lib/etiquetasDiagramacion";
+import {
+  ALINEACIONES_LIENZO,
+  ALINEACIONES_TEXTO,
+  FUENTE_ETIQUETA,
+  labelCampoDiagramacion,
+  patchDiagramacion,
+  type AlineacionLienzo,
+} from "../../lib/etiquetasDiagramacion";
 
 interface Props {
   campoId: string | null;
@@ -13,9 +20,13 @@ interface Props {
   onPatch: (patch: CampoDiagramacion) => void;
   onAnadirCajaTexto?: () => void;
   onEscrituraMagica?: () => void;
+  escrituraMagicaCargando?: boolean;
   compact?: boolean;
   /** Solo controles X/Y (líneas y recuadros). */
   soloPosicion?: boolean;
+  /** Hay un bloque o gráfico seleccionado en el lienzo. */
+  elementoSeleccionado?: boolean;
+  onAlinearLienzo?: (modo: AlineacionLienzo) => void;
 }
 
 function clampEscala(n: number) {
@@ -39,10 +50,13 @@ export function EtiquetaTextoToolbar({
   onPatch,
   onAnadirCajaTexto,
   onEscrituraMagica,
+  escrituraMagicaCargando = false,
   compact = false,
   soloPosicion = false,
+  elementoSeleccionado = false,
+  onAlinearLienzo,
 }: Props) {
-  const disabled = !campoId && !soloPosicion;
+  const disabled = !campoId && !soloPosicion && !elementoSeleccionado;
   const color = (cfg?.color ?? colorFallback).match(/^#[0-9A-Fa-f]{6}$/)
     ? (cfg?.color ?? colorFallback)
     : "#000000";
@@ -80,10 +94,15 @@ export function EtiquetaTextoToolbar({
           <button
             type="button"
             onClick={onEscrituraMagica}
-            className="rounded border border-border px-2 py-0.5 text-[10px] font-semibold text-ink hover:bg-surface-hover"
-            title="Aplicar formato inteligente al texto seleccionado"
+            disabled={escrituraMagicaCargando}
+            className="rounded border border-border px-2 py-0.5 text-[10px] font-semibold text-ink hover:bg-surface-hover disabled:opacity-50"
+            title={
+              esB1
+                ? "Generar descripción desde ficha técnica (IA)"
+                : "Aplicar formato inteligente al texto seleccionado"
+            }
           >
-            Escritura magica
+            {escrituraMagicaCargando ? "Generando…" : "Escritura magica"}
           </button>
         )}
       </div>
@@ -214,6 +233,28 @@ export function EtiquetaTextoToolbar({
 
       {(soloPosicion || !compact) && (
         <>
+          {onAlinearLienzo && elementoSeleccionado && (
+            <>
+              <div
+                className="flex items-center gap-0.5"
+                title="Alinear al lienzo"
+              >
+                {ALINEACIONES_LIENZO.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    title={a.title}
+                    aria-label={a.title}
+                    onClick={() => onAlinearLienzo(a.id)}
+                    className="flex h-7 w-7 items-center justify-center rounded border border-border text-sm text-ink-secondary transition hover:border-accent/40 hover:bg-surface-hover hover:text-ink"
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+              <span className="hidden h-5 w-px bg-border sm:block" aria-hidden />
+            </>
+          )}
           <label className="flex items-center gap-1 text-[10px]">
             <span className="text-muted">X</span>
             <input

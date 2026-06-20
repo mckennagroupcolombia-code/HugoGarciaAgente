@@ -361,3 +361,70 @@ export function alineacionCssEditor(
   if (eff === "right") return "right";
   return "left";
 }
+
+/** Alineación del objeto respecto al lienzo (artboard). */
+export type AlineacionLienzo = "izq" | "centro-h" | "der" | "arriba" | "medio-v" | "abajo";
+
+export interface BoundsPx {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+  centerX: number;
+  centerY: number;
+}
+
+export const ALINEACIONES_LIENZO: { id: AlineacionLienzo; label: string; title: string }[] = [
+  { id: "izq", label: "⫷", title: "Alinear izquierda al lienzo" },
+  { id: "centro-h", label: "↔", title: "Centrar horizontalmente en el lienzo" },
+  { id: "der", label: "⫸", title: "Alinear derecha al lienzo" },
+  { id: "arriba", label: "⫠", title: "Alinear arriba al lienzo" },
+  { id: "medio-v", label: "↕", title: "Centrar verticalmente en el lienzo" },
+  { id: "abajo", label: "⫡", title: "Alinear abajo al lienzo" },
+];
+
+export function boundsPx(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+): BoundsPx {
+  return {
+    left,
+    top,
+    right: left + width,
+    bottom: top + height,
+    centerX: left + width / 2,
+    centerY: top + height / 2,
+  };
+}
+
+export function deltaAlinearBounds(
+  objeto: BoundsPx,
+  referencia: BoundsPx,
+  modo: AlineacionLienzo,
+): { dx: number; dy: number } {
+  let dx = 0;
+  let dy = 0;
+  switch (modo) {
+    case "izq":
+      dx = referencia.left - objeto.left;
+      break;
+    case "der":
+      dx = referencia.right - objeto.right;
+      break;
+    case "centro-h":
+      dx = referencia.centerX - objeto.centerX;
+      break;
+    case "arriba":
+      dy = referencia.top - objeto.top;
+      break;
+    case "abajo":
+      dy = referencia.bottom - objeto.bottom;
+      break;
+    case "medio-v":
+      dy = referencia.centerY - objeto.centerY;
+      break;
+  }
+  return { dx, dy };
+}

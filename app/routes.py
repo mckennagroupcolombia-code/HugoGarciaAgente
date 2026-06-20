@@ -10724,6 +10724,7 @@ def register_routes(app):
 
         nombre = (plantilla.get("nombre") or "plantilla").strip()
         safe = re.sub(r"[^\w\-]+", "_", nombre)[:60] or "plantilla"
+        escala = max(0.25, min(8.0, float(body.get("escala") or 1)))
 
         try:
             if formato == "pdf":
@@ -10731,12 +10732,14 @@ def register_routes(app):
                 b64 = _b64.b64encode(blob).decode("ascii")
                 return jsonify({"ok": True, "formato": "pdf", "nombre": f"{safe}.pdf", "base64": b64})
             if formato in ("jpg", "jpeg"):
-                blob = exportar_raster(plantilla, "jpeg")
+                blob = exportar_raster(plantilla, "jpeg", escala=escala)
                 b64 = _b64.b64encode(blob).decode("ascii")
-                return jsonify({"ok": True, "formato": "jpeg", "nombre": f"{safe}.jpg", "base64": b64})
-            blob = exportar_raster(plantilla, "png")
+                suf = f"@{escala:g}x" if escala != 1 else ""
+                return jsonify({"ok": True, "formato": "jpeg", "nombre": f"{safe}{suf}.jpg", "base64": b64})
+            blob = exportar_raster(plantilla, "png", escala=escala)
             b64 = _b64.b64encode(blob).decode("ascii")
-            return jsonify({"ok": True, "formato": "png", "nombre": f"{safe}.png", "base64": b64})
+            suf = f"@{escala:g}x" if escala != 1 else ""
+            return jsonify({"ok": True, "formato": "png", "nombre": f"{safe}{suf}.png", "base64": b64})
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
 
@@ -10829,6 +10832,117 @@ def register_routes(app):
             result = job.get("result") or {}
             return jsonify({"ok": True, "status": "done", **result})
         return jsonify({"ok": True, "status": "pending"})
+
+    # ── Plantillas: generación con IA ────────────────────────────────────────
+
+    @app.route("/api/plantillas-visuales/generar-ia", methods=["POST"])
+    @app.route("/app/api/plantillas-visuales/generar-ia", methods=["POST"])
+    def api_plantillas_visuales_generar_ia():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import json as _json
+        import anthropic
+
+        body = request.get_json(silent=True) or {}
+        descripcion = (body.get("descripcion") or "").strip()
+        canvas_w = int(body.get("canvas_w") or 350)
+        canvas_h = int(body.get("canvas_h") or 550)
+        categoria = (body.get("categoria") or "etiqueta").strip()
+
+        if not descripcion:
+            return jsonify({"ok": False, "error": "Descripción requerida"}), 400
+
+        SYSTEM = f"""Eres un diseñador gráfico experto en etiquetas de materias primas farmacéuticas y cosméticas para McKenna Group Colombia.
+
+Genera un documento de plantilla (PlantillaVisualDoc) en JSON puro, sin markdown ni explicaciones.
+
+ESQUEMA EXACTO:
+{{
+  "id": "nuevo",
+  "nombre": "Nombre de la plantilla",
+  "categoria": "{categoria}",
+  "fondo": "#ffffff",
+  "formato": {{"width": {canvas_w}, "height": {canvas_h}}},
+  "elementos": [
+    {{
+      "id": "t1",           // IDs únicos cortos: t1,t2... r1,r2... l1,l2...
+      "type": "text",
+      "x": 0, "y": 0,
+      "width": 200, "height": 40,
+      "rotation": 0,
+      "zIndex": 2,
+      "content": "Texto aquí",
+      "fontSize": 20,
+      "fontFamily": "Montserrat, sans-serif",
+      "fontWeight": "700",
+      "color": "#1a1a1a",
+      "align": "center"
+    }},
+    {{
+      "id": "r1",
+      "type": "rect",
+      "x": 0, "y": 0,
+      "width": {canvas_w}, "height": 60,
+      "rotation": 0,
+      "zIndex": 1,
+      "fill": "#DA291C",
+      "stroke": "transparent",
+      "strokeWidth": 0,
+      "borderRadius": 0
+    }},
+    {{
+      "id": "l1",
+      "type": "line",
+      "x": 20, "y": 200,
+      "x2": {canvas_w - 20}, "y2": 200,
+      "width": 0, "height": 0,
+      "rotation": 0,
+      "zIndex": 3,
+      "stroke": "#DA291C",
+      "strokeWidth": 1
+    }}
+  ]
+}}
+
+REGLAS:
+- Canvas: {canvas_w}px ancho × {canvas_h}px alto. Todos los valores en px.
+- zIndex: 1=fondo, mayor=frente. No repitas el mismo zIndex.
+- Colores McKenna: rojo #DA291C, negro #1a1a1a, gris claro #f4f4f4, blanco #ffffff.
+- fontWeight: "400" normal · "600" semibold · "700" bold · "900" black.
+- align: "left" | "center" | "right".
+- fontFamily: "Montserrat, sans-serif" para títulos | "Inter, sans-serif" para cuerpo.
+- Estructura típica: franja de color superior, nombre producto (grande), separador, SKU, descripción técnica, datos empresa abajo.
+- NO incluyas elementos type "image" (las imágenes las añade el usuario).
+- USA PLACEHOLDERS REALES de texto según la descripción del producto.
+- Responde ÚNICAMENTE con el JSON válido, sin texto adicional."""
+
+        user_msg = f"Genera plantilla para: {descripcion}"
+
+        try:
+            client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+            msg = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4096,
+                system=SYSTEM,
+                messages=[{"role": "user", "content": user_msg}],
+            )
+            text = (msg.content[0].text or "").strip()
+            # Quitar bloques de código markdown si los hay
+            if text.startswith("```"):
+                parts = text.split("```", 2)
+                text = parts[1]
+                if text.startswith("json"):
+                    text = text[4:]
+                if "```" in text:
+                    text = text.rsplit("```", 1)[0]
+                text = text.strip()
+            doc = _json.loads(text)
+            doc["id"] = "nuevo"
+            return jsonify({"ok": True, "plantilla": doc})
+        except _json.JSONDecodeError as exc:
+            return jsonify({"ok": False, "error": f"IA generó JSON inválido: {exc}"}), 500
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 500
 
     # ── Etiquetas: biblioteca PNG ────────────────────────────────────────────
 

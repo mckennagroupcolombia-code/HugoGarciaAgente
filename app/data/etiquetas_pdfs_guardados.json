@@ -1,6 +1,20 @@
 {
   "archivos": [
     {
+      "nombre": "PLANTILLA_1000g_AZUL.pdf",
+      "ruta": "Etiquetas McKenna/PLANTILLA_1000g_AZUL.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_1000g_AZUL.pdf",
+      "subido_at": "2026-06-20T01:43:30",
+      "bytes": 3336
+    },
+    {
+      "nombre": "PLANTILLA_500g_AZUL.pdf",
+      "ruta": "Etiquetas McKenna/PLANTILLA_500g_AZUL.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_500g_AZUL.pdf",
+      "subido_at": "2026-06-20T01:41:01",
+      "bytes": 3331
+    },
+    {
       "nombre": "ACIDO SALICILICO 50g.pdf",
       "ruta": "Etiquetas McKenna/ACIDO SALICILICO 50g.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/ACIDO SALICILICO 50g.pdf",

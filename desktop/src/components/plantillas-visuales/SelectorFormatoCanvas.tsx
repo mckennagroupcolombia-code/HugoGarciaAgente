@@ -70,37 +70,35 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar }: Props) {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-ink">Elegir formato de lienzo</h2>
-          <p className="mt-1 text-sm text-muted">
-            Selecciona un tamaño predefinido o define dimensiones personalizadas.
-          </p>
+          <h2 className="text-base font-bold text-ink">Nuevo lienzo</h2>
+          <p className="mt-0.5 text-sm text-muted">Formato predefinido o dimensiones a medida.</p>
         </div>
         <button
           type="button"
           onClick={onCancelar}
-          className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm text-muted hover:bg-surface-hover"
+          className="rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-surface-hover hover:text-ink"
         >
-          Volver
+          Cancelar
         </button>
       </div>
 
-      <div className="mb-5 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap gap-1.5">
         {categorias.map((cat) => (
           <button
             key={cat.id}
             type="button"
             onClick={() => setCategoriaActiva(cat.id)}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
               categoriaActiva === cat.id
-                ? "bg-accent text-white shadow-sm"
-                : "border border-border bg-surface-panel text-ink-secondary hover:bg-surface-hover"
+                ? "bg-accent text-white"
+                : "text-muted hover:bg-surface-hover hover:text-ink"
             }`}
           >
             <IllustrationIcon
               name={CAT_ICONS[cat.id] ?? "palette"}
-              size={22}
+              size={18}
               bubble={false}
               tone={categoriaActiva === cat.id ? "neutral" : "accent"}
               className={categoriaActiva === cat.id ? "text-white" : undefined}
@@ -138,11 +136,11 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar }: Props) {
                 key={fmt.id}
                 type="button"
                 onClick={() => elegirPreset(fmt)}
-                className="group rounded-xl border-2 border-border bg-surface-panel p-4 text-left transition hover:border-accent hover:shadow-paper"
+                className="group rounded-lg border border-border bg-surface-panel p-3 text-left transition hover:border-accent/50"
               >
-                <div className="mb-3 flex min-h-[108px] items-center justify-center rounded-lg bg-zinc-100 p-2 dark:bg-zinc-800/50">
+                <div className="mb-2 flex min-h-[96px] items-center justify-center rounded bg-[#525659] p-2">
                   <div
-                    className="rounded-sm bg-white shadow-md ring-1 ring-black/15 transition group-hover:ring-accent/50"
+                    className="rounded-sm bg-white shadow-md ring-1 ring-black/20 transition group-hover:ring-accent/40"
                     style={{ width: thumb.width, height: thumb.height }}
                   />
                 </div>
@@ -163,8 +161,8 @@ export default function SelectorFormatoCanvas({ onElegir, onCancelar }: Props) {
         </div>
       )}
 
-      <div className="mt-8 rounded-xl border-2 border-dashed border-border bg-surface-panel p-5">
-        <h3 className="mb-3 font-semibold text-ink">✏️ Tamaño personalizado</h3>
+      <div className="mt-6 rounded-lg border border-dashed border-border bg-surface-panel/50 p-4">
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">Personalizado</h3>
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
             <span className="mb-1 block text-xs text-muted">Nombre</span>

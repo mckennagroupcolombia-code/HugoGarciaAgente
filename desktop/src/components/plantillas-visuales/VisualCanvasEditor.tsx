@@ -29,6 +29,7 @@ import {
   labelFormato,
   patchMoverElemento,
   posicionNuevoElemento,
+  presetsResolucionExport,
   pesoMontserratVariante,
   resolverSeleccionAlClic,
   seleccionTieneGrupo,
@@ -54,17 +55,22 @@ import {
   autoCorregirConSeleccion,
   autoCorregirTextoContenido,
 } from "../../lib/autoCorregirTexto";
+import { GHSIconsPicker } from "../GHSIconsPicker";
+import { CodigoBarrasEAN13 } from "../CodigoBarrasEAN13";
 import GaleriaImagenesModal from "./GaleriaImagenesModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import SugerenciasTextoMagico from "./SugerenciasTextoMagico";
+import { studio } from "./studioUi";
 
 interface Props {
   doc: PlantillaVisualDoc;
   onChange: (doc: PlantillaVisualDoc) => void;
   onGuardar: () => void;
   onVolver: () => void;
-  onExportar: (formato: "png" | "jpeg" | "pdf") => void;
+  onExportar: (formato: "png" | "jpeg" | "pdf", escala: number) => void;
+  onGuardarEnGaleria?: (formato: "jpeg" | "pdf", escala: number) => void;
   guardando?: boolean;
+  guardandoGaleria?: "jpeg" | "pdf" | null;
   exportando?: boolean;
 }
 
@@ -73,12 +79,14 @@ function ToolBtn({
   onClick,
   children,
   danger,
+  active,
   className = "",
 }: {
   title: string;
   onClick: () => void;
   children: ReactNode;
   danger?: boolean;
+  active?: boolean;
   className?: string;
 }) {
   return (
@@ -86,20 +94,17 @@ function ToolBtn({
       type="button"
       title={title}
       aria-label={title}
+      data-active={active || undefined}
       onClick={onClick}
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-[15px] leading-none transition ${
-        danger
-          ? "border-red-300/80 text-red-600 hover:border-red-400 hover:bg-red-50"
-          : "border-border text-ink-secondary hover:border-accent/40 hover:bg-surface-hover hover:text-ink"
-      } ${className}`}
+      className={`${danger ? studio.toolBtnDanger : studio.toolBtn} ${className}`}
     >
       {children}
     </button>
   );
 }
 
-function ToolSep({ className = "" }: { className?: string }) {
-  return <div className={`bg-border ${className}`} />;
+function ToolSep() {
+  return <div className={`my-1 h-px w-6 ${studio.sep}`} />;
 }
 
 type DragMode = "move" | "resize-se" | "resize-line-end" | "rotate" | null;
@@ -141,6 +146,7 @@ function mostrandoCajaArrastre(
 }
 
 const OUTLINE_CAJA_ARRASTRE = "1px solid rgba(8, 145, 178, 0.45)";
+const SOMBRA_HOVER = "0 0 0 2px rgba(99,102,241,0.75)";
 
 export default function VisualCanvasEditor({
   doc,
@@ -148,7 +154,9 @@ export default function VisualCanvasEditor({
   onGuardar,
   onVolver,
   onExportar,
+  onGuardarEnGaleria,
   guardando,
+  guardandoGaleria,
   exportando,
 }: Props) {
   const [seleccionIds, setSeleccionIds] = useState<string[]>([]);
@@ -166,9 +174,43 @@ export default function VisualCanvasEditor({
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [galeriaAbierta, setGaleriaAbierta] = useState(false);
+  const presetsExport = useMemo(() => presetsResolucionExport(doc.formato), [doc.formato]);
+  const [escalaExportId, setEscalaExportId] = useState("1x");
+  const escalaExport = useMemo(
+    () => presetsExport.find((p) => p.id === escalaExportId)?.escala ?? 1,
+    [presetsExport, escalaExportId],
+  );
+  const presetExportActivo = useMemo(
+    () => presetsExport.find((p) => p.id === escalaExportId) ?? presetsExport[0],
+    [presetsExport, escalaExportId],
+  );
+  useEffect(() => {
+    setEscalaExportId("1x");
+  }, [doc.id]);
+  const [ghsAbierto, setGhsAbierto] = useState(false);
+  const [ean13Abierto, setEan13Abierto] = useState(false);
+  const [panelTab, setPanelTab] = useState<"capas" | "propiedades">("capas");
   const suppressDeselectRef = useRef(false);
   const contenidoTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const contenidoSeleccionRef = useRef<{ start: number; end: number } | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [editandoInlineId, setEditandoInlineId] = useState<string | null>(null);
+  const [editandoInlineTexto, setEditandoInlineTexto] = useState("");
+  const editandoInlineRef = useRef<HTMLTextAreaElement | null>(null);
+
+  function commitEditInline() {
+    if (editandoInlineId) {
+      patchElemento(editandoInlineId, {
+        content: autoCorregirTextoContenido(editandoInlineTexto),
+      });
+    }
+    setEditandoInlineId(null);
+    setEditandoInlineTexto("");
+  }
+  function cancelEditInline() {
+    setEditandoInlineId(null);
+    setEditandoInlineTexto("");
+  }
 
   const seleccionado = useMemo(() => {
     if (seleccionIds.length !== 1) return null;
@@ -596,10 +638,11 @@ export default function VisualCanvasEditor({
   function labelCapa(el: ElementoVisual): string {
     if (el.type === "text") {
       const rol = inferirRolTextoCapa(el, doc.elementos);
-      if (rol === "descripcion") return "Capa 1 · Descripción MP";
+      if (rol === "descripcion") return "Descripción MP";
       if (rol && rol !== "otro") return labelRolTextoCapa(rol);
-      const t = (el.content || "Texto").trim().replace(/\s+/g, " ");
-      return t.length > 22 ? `${t.slice(0, 22)}…` : t;
+      const palabras = (el.content || "").trim().split(/\s+/).filter(Boolean);
+      if (palabras.length === 0) return "Texto";
+      return palabras.slice(0, 2).join(" ");
     }
     if (el.type === "image") return "Imagen";
     if (el.type === "rect") return "Rectángulo";
@@ -615,156 +658,206 @@ export default function VisualCanvasEditor({
       suppressDeselectRef.current = false;
       return;
     }
-    if (e.target === viewportRef.current) setSeleccionIds([]);
+    if (e.target === viewportRef.current) { setSeleccionIds([]); cancelEditInline(); }
   }
 
+  useEffect(() => {
+    if (seleccionIds.length > 0) setPanelTab("propiedades");
+  }, [seleccionIds.length]);
+
+  const alineacionBtns = (
+    [
+      ["izquierda", "⫷", "Alinear izquierda"],
+      ["centro-h", "↔", "Centro horizontal"],
+      ["derecha", "⫸", "Alinear derecha"],
+      ["arriba", "⫠", "Arriba"],
+      ["centro-v", "↕", "Centro vertical"],
+      ["abajo", "⫡", "Abajo"],
+    ] as const
+  ).map(([tipo, icono, titulo]) => (
+    <button
+      key={tipo}
+      type="button"
+      title={titulo}
+      aria-label={titulo}
+      onClick={() => aplicarAlineacion(tipo)}
+      className="flex h-7 w-7 items-center justify-center rounded text-xs text-ink-secondary hover:bg-surface-hover hover:text-ink"
+    >
+      {icono}
+    </button>
+  ));
+
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-[520px] flex-col gap-3 lg:flex-row">
-      {/* Toolbar izquierda — solo iconos */}
-      <aside className="order-1 flex shrink-0 flex-row flex-wrap items-start gap-1 rounded-xl border border-border bg-surface-panel p-1.5 lg:w-12 lg:flex-col lg:flex-nowrap">
-        <ToolBtn title="Volver a biblioteca" onClick={onVolver}>
-          <span className="text-lg">←</span>
+    <div className={`flex h-full min-h-0 flex-col ${studio.workspace}`}>
+      {/* Barra superior */}
+      <header className={`flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2 ${studio.topbar}`}>
+        <ToolBtn title="Volver a biblioteca" onClick={onVolver} className="!h-7 !w-7">
+          <span className="text-sm">←</span>
         </ToolBtn>
-
-        <ToolSep className="mx-1 hidden h-px w-6 lg:mx-0 lg:block lg:h-px lg:w-full" />
-
-        <ToolBtn title="Agregar texto" onClick={agregarTexto}>
-          <span className="font-bold">T</span>
-        </ToolBtn>
-        <ToolBtn title="Agregar rectángulo" onClick={agregarRect}>
-          <span className="text-lg">▢</span>
-        </ToolBtn>
-        <ToolBtn title="Agregar línea" onClick={agregarLinea}>
-          <span className="text-xl leading-none">─</span>
-        </ToolBtn>
-        <ToolBtn title="Agregar imagen" onClick={() => setGaleriaAbierta(true)}>
-          <span className="text-base">🖼</span>
-        </ToolBtn>
-        <GaleriaImagenesModal
-          abierta={galeriaAbierta}
-          onCerrar={() => setGaleriaAbierta(false)}
-          onElegir={insertarImagen}
+        <input
+          value={doc.nombre}
+          onChange={(e) => onChange({ ...doc, nombre: e.target.value })}
+          className="min-w-[8rem] flex-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-sm font-medium text-white outline-none focus:border-accent/50"
         />
-
-        {seleccionIds.length > 0 && (
-          <>
-            <ToolSep className="mx-1 hidden h-px w-6 lg:mx-0 lg:block lg:h-px lg:w-full" />
-
-            <div
-              className="grid grid-cols-3 gap-1 lg:grid-cols-1"
-              title={
-                seleccionIds.length > 1
-                  ? "Alinear selección (Shift + clic para varios)"
-                  : "Alinear al lienzo"
-              }
-            >
-              {(
-                [
-                  ["izquierda", "⫷", "Alinear izquierda"],
-                  ["centro-h", "↔", "Centro horizontal"],
-                  ["derecha", "⫸", "Alinear derecha"],
-                  ["arriba", "⫠", "Alinear arriba"],
-                  ["centro-v", "↕", "Centro vertical"],
-                  ["abajo", "⫡", "Alinear abajo"],
-                ] as const
-              ).map(([tipo, icono, titulo]) => (
-                <button
-                  key={tipo}
-                  type="button"
-                  title={titulo}
-                  aria-label={titulo}
-                  onClick={() => aplicarAlineacion(tipo)}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-sm text-ink-secondary transition hover:border-accent/40 hover:bg-surface-hover hover:text-ink lg:h-10 lg:w-10"
-                >
-                  {icono}
-                </button>
-              ))}
-            </div>
-
-            <ToolBtn title="Duplicar selección" onClick={duplicarSeleccion}>
-              <span className="text-base">⎘</span>
-            </ToolBtn>
-            {seleccionIds.length >= 2 && (
-              <ToolBtn title="Agrupar (Ctrl+G)" onClick={agruparSeleccion}>
-                <span className="text-base">⊞</span>
-              </ToolBtn>
-            )}
-            {seleccionTieneGrupo(doc.elementos, seleccionIds) && (
-              <ToolBtn title="Desagrupar (Ctrl+Shift+G)" onClick={desagruparSeleccion}>
-                <span className="text-base">⊟</span>
-              </ToolBtn>
-            )}
-            <ToolBtn title="Traer al frente" onClick={traerAdelante}>
-              <span className="text-base">⇡</span>
-            </ToolBtn>
-            <ToolBtn title="Eliminar selección" onClick={eliminarSeleccion} danger>
-              <span className="text-base">✕</span>
-            </ToolBtn>
-          </>
-        )}
-      </aside>
-
-      {/* Lienzo central — en móvil va debajo del panel de propiedades */}
-      <div className="order-3 flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface-panel lg:order-2">
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
-          <input
-            value={doc.nombre}
-            onChange={(e) => onChange({ ...doc, nombre: e.target.value })}
-            className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-semibold"
-          />
-          <span className="hidden text-xs text-muted sm:inline">{labelFormato(doc.formato)}</span>
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={() => setZoomManual((z) => Math.max(0.5, z - 0.1))} className="rounded border border-border px-2 py-1 text-sm hover:bg-surface-hover">−</button>
-            <span className="w-12 text-center text-xs text-muted">{Math.round(zoom * 100)}%</span>
-            <button type="button" onClick={() => setZoomManual((z) => Math.min(4, z + 0.1))} className="rounded border border-border px-2 py-1 text-sm hover:bg-surface-hover">+</button>
-            <button
-              type="button"
-              onClick={() => {
-                zoomManualRef.current = false;
-                aplicarZoomAjuste();
-              }}
-              className="rounded border border-border px-2 py-1 text-xs hover:bg-surface-hover"
-              title="Ajustar lienzo al área visible"
-            >
-              Ajustar
-            </button>
-          </div>
+        <span className="hidden text-[11px] text-neutral-400 sm:inline">{labelFormato(doc.formato)}</span>
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setZoomManual((z) => Math.max(0.25, z - 0.1))}
+            className="rounded px-2 py-1 text-sm text-neutral-300 hover:bg-white/10"
+          >
+            −
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              zoomManualRef.current = false;
+              aplicarZoomAjuste();
+            }}
+            className="min-w-[3rem] rounded px-1 py-1 text-center text-[11px] text-neutral-300 hover:bg-white/10"
+            title="Clic para ajustar al lienzo"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomManual((z) => Math.min(4, z + 0.1))}
+            className="rounded px-2 py-1 text-sm text-neutral-300 hover:bg-white/10"
+          >
+            +
+          </button>
           <button
             type="button"
             onClick={onGuardar}
             disabled={guardando}
-            className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="ml-2 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
           >
-            {guardando ? "Guardando…" : "Guardar"}
+            {guardando ? "…" : "Guardar"}
           </button>
-          <div className="relative group">
+          {onGuardarEnGaleria && (
+            <div className="relative group/galeria">
+              <button
+                type="button"
+                disabled={!!guardandoGaleria}
+                title="Guardar render del lienzo en la galería (JPG en imágenes del Studio, PDF en biblioteca Etiquetas)"
+                className="rounded-md border border-white/15 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-white/10 disabled:opacity-50"
+              >
+                {guardandoGaleria ? "…" : "En galería"}
+              </button>
+              <div className="absolute right-0 top-full z-30 hidden min-w-[140px] rounded-md border border-border bg-surface-panel py-1 text-ink shadow-xl group-hover/galeria:block group-focus-within/galeria:block">
+                <button
+                  type="button"
+                  disabled={guardandoGaleria === "jpeg"}
+                  onClick={() => onGuardarEnGaleria("jpeg", escalaExport)}
+                  title={`JPG · ${presetExportActivo?.hint ?? "resolución del export"}`}
+                  className="block w-full px-3 py-1.5 text-left text-xs font-medium text-ink hover:bg-surface-hover disabled:opacity-50"
+                >
+                  JPG
+                </button>
+                <button
+                  type="button"
+                  disabled={guardandoGaleria === "pdf"}
+                  onClick={() => onGuardarEnGaleria("pdf", escalaExport)}
+                  title="PDF · tamaño físico del formato (mm)"
+                  className="block w-full px-3 py-1.5 text-left text-xs font-medium text-ink hover:bg-surface-hover disabled:opacity-50"
+                >
+                  PDF
+                </button>
+              </div>
+            </div>
+          )}
+          <label
+            className="flex max-w-[11rem] items-center gap-1 rounded-md border border-white/15 px-2 py-1"
+            title="Escala proporcional: mismo diseño, más píxeles (sin deformar)"
+          >
+            <span className="shrink-0 text-[10px] text-neutral-400">Export</span>
+            <select
+              value={escalaExportId}
+              onChange={(e) => setEscalaExportId(e.target.value)}
+              className="min-w-0 flex-1 cursor-pointer truncate bg-transparent text-[11px] font-medium text-neutral-200 outline-none"
+            >
+              {presetsExport.map((p) => (
+                <option key={p.id} value={p.id} className="text-ink">
+                  {p.label} · {p.hint}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="relative group/export">
             <button
               type="button"
               disabled={exportando}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm font-semibold hover:bg-surface-hover disabled:opacity-50"
+              title={`Descargar a ${presetExportActivo?.hint ?? "resolución del lienzo"}`}
+              className="rounded-md border border-white/15 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-white/10 disabled:opacity-50"
             >
-              {exportando ? "Exportando…" : "Exportar ▾"}
+              {exportando ? "…" : "Descargar"}
             </button>
-            <div className="absolute right-0 top-full z-20 hidden min-w-[120px] rounded-lg border border-border bg-surface-panel py-1 shadow-paper group-hover:block group-focus-within:block">
+            <div className="absolute right-0 top-full z-30 hidden min-w-[120px] rounded-md border border-border bg-surface-panel py-1 text-ink shadow-xl group-hover/export:block group-focus-within/export:block">
               {(["png", "jpeg", "pdf"] as const).map((fmt) => (
                 <button
                   key={fmt}
                   type="button"
-                  onClick={() => onExportar(fmt)}
-                  className="block w-full px-3 py-1.5 text-left text-sm hover:bg-surface-hover"
+                  onClick={() => onExportar(fmt, escalaExport)}
+                  className="block w-full px-3 py-1.5 text-left text-xs font-medium text-ink hover:bg-surface-hover"
                 >
-                  {fmt.toUpperCase()}
+                  {fmt === "jpeg" ? "JPG" : fmt.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
         </div>
+      </header>
 
-        <div
-          ref={viewportRef}
-          className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-zinc-200/70 p-2 dark:bg-zinc-900/60"
-          onClick={deseleccionarViewport}
-        >
+      <div className="flex min-h-0 flex-1">
+        {/* Herramientas — columna izquierda */}
+        <aside className={`flex w-11 shrink-0 flex-col items-center gap-0.5 border-r py-2 ${studio.toolbar}`}>
+          <ToolBtn title="Texto (T)" onClick={agregarTexto}>
+            <span className="text-xs font-bold">T</span>
+          </ToolBtn>
+          <ToolBtn title="Rectángulo" onClick={agregarRect}>
+            <span className="text-sm">▢</span>
+          </ToolBtn>
+          <ToolBtn title="Línea" onClick={agregarLinea}>
+            <span className="text-sm leading-none">─</span>
+          </ToolBtn>
+          <ToolBtn title="Imagen" onClick={() => setGaleriaAbierta(true)} active={galeriaAbierta}>
+            <span className="text-xs">▣</span>
+          </ToolBtn>
+          <GaleriaImagenesModal
+            abierta={galeriaAbierta}
+            onCerrar={() => setGaleriaAbierta(false)}
+            onElegir={insertarImagen}
+          />
+          <ToolSep />
+          <ToolBtn
+            title="Pictogramas GHS"
+            onClick={() => {
+              setGhsAbierto((v) => !v);
+              setEan13Abierto(false);
+            }}
+            active={ghsAbierto}
+          >
+            <span className="text-[8px] font-black text-red-400">GHS</span>
+          </ToolBtn>
+          <ToolBtn
+            title="Código EAN-13"
+            onClick={() => {
+              setEan13Abierto((v) => !v);
+              setGhsAbierto(false);
+            }}
+            active={ean13Abierto}
+          >
+            <span className="text-[8px] font-black">EAN</span>
+          </ToolBtn>
+        </aside>
+
+        {/* Lienzo */}
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+          <div
+            ref={viewportRef}
+            className={`flex min-h-0 flex-1 items-center justify-center overflow-auto p-6 ${studio.canvasBg}`}
+            onClick={deseleccionarViewport}
+          >
           <div
             className="relative shrink-0"
             style={{
@@ -775,7 +868,7 @@ export default function VisualCanvasEditor({
           >
             {/* Regla horizontal */}
             <div
-              className="absolute left-[18px] top-0 z-20 h-[18px] border-b border-border/70 bg-surface/90"
+              className="absolute left-[18px] top-0 z-20 h-[18px] border-b border-white/10 bg-[#3a3a3a]"
               style={{
                 width: canvasW * zoom,
                 backgroundImage: [
@@ -786,7 +879,7 @@ export default function VisualCanvasEditor({
             />
             {/* Regla vertical */}
             <div
-              className="absolute left-0 top-[18px] z-20 w-[18px] border-r border-border/70 bg-surface/90"
+              className="absolute left-0 top-[18px] z-20 w-[18px] border-r border-white/10 bg-[#3a3a3a]"
               style={{
                 height: canvasH * zoom,
                 backgroundImage: [
@@ -795,10 +888,41 @@ export default function VisualCanvasEditor({
                 ].join(", "),
               }}
             />
-            <div className="absolute left-0 top-0 z-20 h-[18px] w-[18px] border-b border-r border-border/70 bg-surface/90" />
+            <div className="absolute left-0 top-0 z-20 h-[18px] w-[18px] border-b border-r border-white/10 bg-[#3a3a3a]" />
             <div
               ref={canvasRef}
               className="relative origin-top-left overflow-visible rounded-sm shadow-2xl ring-1 ring-black/20"
+              onDragOver={(e) => {
+                if (e.dataTransfer.types.includes("application/ghs-icon")) {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "copy";
+                }
+              }}
+              onDrop={(e) => {
+                const svg = e.dataTransfer.getData("application/ghs-icon");
+                if (!svg || !canvasRef.current) return;
+                e.preventDefault();
+                const rect = canvasRef.current.getBoundingClientRect();
+                const px = (e.clientX - rect.left) / zoom;
+                const py = (e.clientY - rect.top) / zoom;
+                // EAN-13 SVGs have monospace text — wide aspect ratio, base on canvas width
+                const isEAN = svg.includes("monospace") && svg.includes("<rect");
+                const w = isEAN ? canvasW * 0.80 : Math.min(canvasW, canvasH) * 0.18;
+                const h = isEAN ? w * (114 / 339) : w;
+                const src = (() => {
+                  try {
+                    return "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+                  } catch {
+                    return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+                  }
+                })();
+                const el = elementoImagenDefecto(src, px - w / 2, py - h / 2);
+                el.width = w;
+                el.height = h;
+                el.zIndex = maxZ + 1;
+                patchElementos((els) => [...els, el]);
+                setSeleccionIds([el.id]);
+              }}
               style={{
                 position: "absolute",
                 left: reglaPx,
@@ -828,44 +952,102 @@ export default function VisualCanvasEditor({
                 .slice()
                 .sort((a, b) => a.zIndex - b.zIndex)
                 .map((el) => {
+                  if (el.visible === false) return null;
                   const sel = seleccionIds.includes(el.id);
                   const esPrincipal = el.id === seleccionPrincipalId;
                   if (el.type === "text") {
                     const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
+                    const editandoEste = editandoInlineId === el.id;
+                    const esHover = hoveredId === el.id && !sel && !drag && !editandoEste;
+                    const estiloTexto: React.CSSProperties = {
+                      ...estiloElemento(el),
+                      color: el.color,
+                      fontSize: `${el.fontSize}px`,
+                      fontFamily: el.fontFamily,
+                      fontWeight: pesoFontWeightCss(el.fontWeight),
+                      textAlign: el.align,
+                      lineHeight: 1.2,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      outline: mostrandoCaja && !editandoEste ? OUTLINE_CAJA_ARRASTRE : undefined,
+                      boxShadow: esHover ? SOMBRA_HOVER : undefined,
+                    };
                     return (
                       <div
                         key={el.id}
                         className="group/elem"
-                        style={{
-                          ...estiloElemento(el),
-                          color: el.color,
-                          fontSize: `${el.fontSize}px`,
-                          fontFamily: el.fontFamily,
-                          fontWeight: pesoFontWeightCss(el.fontWeight),
-                          textAlign: el.align,
-                          whiteSpace: "pre-wrap",
-                          outline: mostrandoCaja ? OUTLINE_CAJA_ARRASTRE : undefined,
+                        style={estiloTexto}
+                        onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
+                        onPointerLeave={() => setHoveredId(null)}
+                        onPointerDown={(e) => {
+                          if (editandoEste) { e.stopPropagation(); return; }
+                          onPointerDownEl(e, el, "move");
                         }}
-                        onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                         onDoubleClick={(e) => {
                           e.stopPropagation();
                           if (el.locked) return;
-                          const txt = prompt("Editar texto:", el.content);
-                          if (txt != null) {
-                            patchElemento(el.id, {
-                              content: autoCorregirTextoContenido(txt),
-                            });
-                          }
+                          setEditandoInlineId(el.id);
+                          setEditandoInlineTexto(el.content);
+                          setTimeout(() => {
+                            const ta = editandoInlineRef.current;
+                            if (ta) { ta.focus(); ta.select(); }
+                          }, 0);
                         }}
                       >
-                        {el.content}
-                        {(mostrandoCaja || (sel && esPrincipal)) && !el.locked && (
-                          <span
-                            className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${
-                              mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
-                            }`}
-                            onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
+                        {esHover && (
+                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
+                            className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            T · {labelCapa(el)}
+                          </div>
+                        )}
+                        {editandoEste ? (
+                          <textarea
+                            ref={editandoInlineRef}
+                            value={editandoInlineTexto}
+                            onChange={(e) => setEditandoInlineTexto(e.target.value)}
+                            onBlur={commitEditInline}
+                            onKeyDown={(e) => {
+                              e.stopPropagation();
+                              if (e.key === "Escape") { e.preventDefault(); cancelEditInline(); }
+                              if (e.key === "Enter" && e.ctrlKey) { e.preventDefault(); commitEditInline(); }
+                              // Enter solo inserta línea nueva (comportamiento nativo del textarea)
+                            }}
+                            style={{
+                              position: "absolute",
+                              inset: 0,
+                              width: "100%",
+                              height: "100%",
+                              color: el.color,
+                              fontSize: `${el.fontSize}px`,
+                              fontFamily: el.fontFamily,
+                              fontWeight: pesoFontWeightCss(el.fontWeight),
+                              textAlign: el.align,
+                              whiteSpace: "pre-wrap",
+                              lineHeight: 1.2,
+                              wordBreak: "break-word",
+                              resize: "none",
+                              background: "rgba(255,255,255,0.93)",
+                              border: "2px solid #6366f1",
+                              borderRadius: "2px",
+                              outline: "none",
+                              padding: 0,
+                              margin: 0,
+                              overflow: "hidden",
+                              zIndex: 9999,
+                            }}
                           />
+                        ) : (
+                          <>
+                            {el.content}
+                            {(mostrandoCaja || (sel && esPrincipal)) && !el.locked && (
+                              <span
+                                className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${
+                                  mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100"
+                                }`}
+                                onPointerDown={(e) => onPointerDownEl(e, el, "resize-se")}
+                              />
+                            )}
+                          </>
                         )}
                       </div>
                     );
@@ -876,6 +1058,7 @@ export default function VisualCanvasEditor({
                       mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100";
                     const mostrarManijas =
                       (mostrandoCaja || (sel && esPrincipal)) && !el.locked;
+                    const esHover = hoveredId === el.id && !sel && !drag;
                     return (
                       <div
                         key={el.id}
@@ -889,10 +1072,19 @@ export default function VisualCanvasEditor({
                               : undefined,
                           borderRadius: el.borderRadius,
                           outline: mostrandoCaja ? OUTLINE_CAJA_ARRASTRE : undefined,
+                          boxShadow: esHover ? SOMBRA_HOVER : undefined,
                           overflow: "visible",
                         }}
+                        onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
+                        onPointerLeave={() => setHoveredId(null)}
                         onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                       >
+                        {esHover && (
+                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
+                            className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            ▢ · {labelCapa(el)}
+                          </div>
+                        )}
                         {mostrarManijas && (
                           <>
                             <span
@@ -939,6 +1131,7 @@ export default function VisualCanvasEditor({
                       "absolute z-10 flex h-2 w-2 -translate-x-1/2 -translate-y-1/2 items-center justify-center";
                     const puntoLinea =
                       "h-1.5 w-1.5 rounded-full border border-accent/35 bg-white/90 shadow-sm dark:border-accent/50 dark:bg-zinc-900/90";
+                    const esHoverLinea = hoveredId === el.id && !sel && !drag;
                     return (
                       <div
                         key={el.id}
@@ -952,6 +1145,12 @@ export default function VisualCanvasEditor({
                           zIndex: el.zIndex,
                         }}
                       >
+                        {esHoverLinea && (
+                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
+                            className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            ─ · {labelCapa(el)}
+                          </div>
+                        )}
                         <svg
                           style={{
                             position: "absolute",
@@ -971,6 +1170,8 @@ export default function VisualCanvasEditor({
                             strokeLinecap="round"
                             style={{ cursor: el.locked ? "default" : "move" }}
                             onPointerDown={(e) => onPointerDownEl(e, el, "move")}
+                            onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
+                            onPointerLeave={() => setHoveredId(null)}
                           />
                           <line
                             x1={lx1}
@@ -1006,6 +1207,7 @@ export default function VisualCanvasEditor({
                   }
                   if (el.type === "image") {
                     const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
+                    const esHover = hoveredId === el.id && !sel && !drag;
                     return (
                       <div
                         key={el.id}
@@ -1014,9 +1216,18 @@ export default function VisualCanvasEditor({
                           ...estiloElemento(el),
                           overflow: "visible",
                           outline: mostrandoCaja ? OUTLINE_CAJA_ARRASTRE : undefined,
+                          boxShadow: esHover ? SOMBRA_HOVER : undefined,
                         }}
+                        onPointerEnter={(e) => { e.stopPropagation(); setHoveredId(el.id); }}
+                        onPointerLeave={() => setHoveredId(null)}
                         onPointerDown={(e) => onPointerDownEl(e, el, "move")}
                       >
+                        {esHover && (
+                          <div style={{ position:"absolute", bottom:"100%", left:0, marginBottom:3, pointerEvents:"none", zIndex:9999, whiteSpace:"nowrap" }}
+                            className="rounded bg-indigo-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white shadow">
+                            🖼 · {labelCapa(el)}
+                          </div>
+                        )}
                         <div className="h-full w-full overflow-hidden">
                           <ImagenCanvasElement src={el.src} objectFit={el.objectFit} />
                         </div>
@@ -1035,129 +1246,161 @@ export default function VisualCanvasEditor({
                 })}
             </div>
           </div>
+          </div>
+
+          {ghsAbierto && (
+            <div className="absolute bottom-4 left-14 z-40 max-h-[min(420px,70vh)] overflow-auto rounded-lg border border-border bg-surface-panel shadow-xl">
+              <GHSIconsPicker
+                compact
+                onCerrar={() => setGhsAbierto(false)}
+                onInsertar={(src) => {
+                  const size = Math.min(canvasW, canvasH) * 0.18;
+                  const el = elementoImagenDefecto(src, canvasW / 2 - size / 2, canvasH / 2 - size / 2);
+                  el.width = size;
+                  el.height = size;
+                  el.zIndex = maxZ + 1;
+                  patchElementos((els) => [...els, el]);
+                  setSeleccionIds([el.id]);
+                  setGhsAbierto(false);
+                }}
+              />
+            </div>
+          )}
+          {ean13Abierto && (
+            <div className="absolute bottom-4 left-14 z-40 rounded-lg border border-border bg-surface-panel p-3 shadow-xl">
+              <CodigoBarrasEAN13
+                onCerrar={() => setEan13Abierto(false)}
+                onInsertar={(src) => {
+                  const w = canvasW * 0.8;
+                  const h = w * (114 / 339);
+                  const el = elementoImagenDefecto(src, canvasW / 2 - w / 2, canvasH / 2 - h / 2);
+                  el.width = w;
+                  el.height = h;
+                  el.zIndex = maxZ + 1;
+                  patchElementos((els) => [...els, el]);
+                  setSeleccionIds([el.id]);
+                  setEan13Abierto(false);
+                }}
+              />
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Propiedades — siempre visible; en móvil queda arriba del lienzo */}
-      <aside className="order-2 max-h-[38vh] w-full shrink-0 overflow-y-auto rounded-xl border border-border bg-surface-panel p-4 lg:order-3 lg:max-h-[calc(100vh-8rem)] lg:w-64">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-muted">Propiedades</h3>
-
-        {capasOrdenadas.length > 0 && (
-          <div className="mb-4">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted">
-              Capas ({capasOrdenadas.length})
-            </p>
-            <ul className="max-h-36 space-y-1 overflow-y-auto rounded-lg border border-border bg-surface p-1">
-              {capasOrdenadas.map((el) => {
-                const activa = seleccionIds.includes(el.id);
-                const icon =
-                  el.type === "text" ? "T" : el.type === "rect" ? "▢" : el.type === "line" ? "─" : "🖼";
-                return (
-                  <li key={el.id}>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        const next = resolverSeleccionAlClic(
-                          el,
-                          doc.elementos,
-                          seleccionIds,
-                          e.shiftKey,
-                        );
-                        setSeleccionIds(next);
-                      }}
-                      className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition ${
-                        activa
-                          ? "bg-accent text-white"
-                          : "text-ink-secondary hover:bg-surface-hover hover:text-ink"
-                      }`}
-                    >
-                      <span className="shrink-0 font-bold opacity-80">{icon}</span>
-                      <span className="min-w-0 truncate">
-                        {el.locked ? "🔒 " : ""}
-                        {el.groupId ? "⊞ " : ""}
-                        {labelCapa(el)}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+        {/* Panel derecho */}
+        <aside className={`flex w-60 shrink-0 flex-col border-l ${studio.panel}`}>
+          <div className="flex shrink-0 border-b border-border">
+            <button
+              type="button"
+              onClick={() => setPanelTab("capas")}
+              className={`flex-1 px-3 py-2 text-xs ${panelTab === "capas" ? studio.tabActive : studio.tabIdle}`}
+            >
+              Capas
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanelTab("propiedades")}
+              className={`flex-1 px-3 py-2 text-xs ${panelTab === "propiedades" ? studio.tabActive : studio.tabIdle}`}
+            >
+              Inspector
+            </button>
           </div>
-        )}
 
-        <label className="mb-3 block text-sm">
-          <span className="mb-1 block text-xs text-muted">Fondo lienzo</span>
-          <input
-            type="color"
-            value={doc.fondo.startsWith("#") ? doc.fondo : "#ffffff"}
-            onChange={(e) => onChange({ ...doc, fondo: e.target.value })}
-            className="h-9 w-full cursor-pointer rounded border border-border"
-          />
-        </label>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {panelTab === "capas" ? (
+              <>
+                {capasOrdenadas.length === 0 ? (
+                  <p className="py-6 text-center text-xs text-muted">
+                    Usa las herramientas de la izquierda para añadir elementos.
+                  </p>
+                ) : (
+                  <ul className="space-y-0.5">
+                    {capasOrdenadas.map((el) => {
+                      const activa = seleccionIds.includes(el.id);
+                      const oculto = el.visible === false;
+                      const icon =
+                        el.type === "text" ? "T" : el.type === "rect" ? "▢" : el.type === "line" ? "─" : "▣";
+                      return (
+                        <li key={el.id} className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              const next = resolverSeleccionAlClic(
+                                el,
+                                doc.elementos,
+                                seleccionIds,
+                                e.shiftKey,
+                              );
+                              setSeleccionIds(next);
+                            }}
+                            className={`flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition ${
+                              activa
+                                ? "bg-accent/15 text-accent font-medium"
+                                : oculto
+                                  ? "text-muted/40 hover:bg-surface-hover"
+                                  : "text-ink-secondary hover:bg-surface-hover"
+                            }`}
+                          >
+                            <span className="w-3 shrink-0 text-center text-[10px] font-bold opacity-70">{icon}</span>
+                            <span className={`min-w-0 truncate ${oculto ? "line-through" : ""}`}>
+                              {labelCapa(el)}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            title={oculto ? "Mostrar" : "Ocultar"}
+                            onClick={() => patchElemento(el.id, { visible: oculto ? true : false })}
+                            className="shrink-0 rounded p-1 text-[10px] text-muted hover:bg-surface-hover"
+                          >
+                            {oculto ? "○" : "●"}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <label className="mt-4 block">
+                  <span className="mb-1 block text-[10px] uppercase tracking-wide text-muted">Fondo</span>
+                  <input
+                    type="color"
+                    value={doc.fondo.startsWith("#") ? doc.fondo : "#ffffff"}
+                    onChange={(e) => onChange({ ...doc, fondo: e.target.value })}
+                    className="h-8 w-full cursor-pointer rounded border border-border"
+                  />
+                </label>
+              </>
+            ) : (
+              <>
+                {seleccionIds.length > 1 ? (
+                  <div className="space-y-3 text-sm">
+                    <p className="text-xs text-muted">
+                      {seleccionIds.length} elementos · Shift+clic para ampliar selección
+                    </p>
+                    <div className="flex flex-wrap gap-0.5">{alineacionBtns}</div>
+                    <div className="flex flex-wrap gap-1">
+                      <button type="button" onClick={duplicarSeleccion} className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover">Duplicar</button>
+                      <button type="button" onClick={agruparSeleccion} className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover">Agrupar</button>
+                      {seleccionTieneGrupo(doc.elementos, seleccionIds) && (
+                        <button type="button" onClick={desagruparSeleccion} className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover">Desagrupar</button>
+                      )}
+                      <button type="button" onClick={eliminarSeleccion} className="rounded border border-red-200 px-2 py-1 text-[10px] text-red-600 hover:bg-red-50">Eliminar</button>
+                    </div>
+                  </div>
+                ) : !seleccionado ? (
+                  <p className="py-8 text-center text-xs text-muted">
+                    Selecciona un elemento en el lienzo o en Capas.
+                  </p>
+                ) : (
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold capitalize text-ink">{labelCapa(seleccionado)}</p>
+                      <div className="flex shrink-0 gap-0.5">
+                        <button type="button" onClick={duplicarSeleccion} className="rounded px-1.5 py-0.5 text-[10px] text-muted hover:bg-surface-hover" title="Duplicar">⧉</button>
+                        <button type="button" onClick={traerAdelante} className="rounded px-1.5 py-0.5 text-[10px] text-muted hover:bg-surface-hover" title="Adelante">↑</button>
+                        <button type="button" onClick={eliminarSeleccion} className="rounded px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50" title="Eliminar">✕</button>
+                      </div>
+                    </div>
 
-        {seleccionIds.length > 1 ? (
-          <div className="space-y-2 text-sm text-muted">
-            <p>
-              {seleccionIds.length} elementos seleccionados. Arrastra para moverlos juntos; alinea
-              con los botones de la barra lateral.
-            </p>
-            <div className="flex flex-wrap gap-1">
-              <button
-                type="button"
-                onClick={agruparSeleccion}
-                className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover"
-              >
-                ⊞ Agrupar
-              </button>
-              {seleccionTieneGrupo(doc.elementos, seleccionIds) && (
-                <button
-                  type="button"
-                  onClick={desagruparSeleccion}
-                  className="rounded border border-border px-2 py-1 text-[10px] hover:bg-surface-hover"
-                >
-                  ⊟ Desagrupar
-                </button>
-              )}
-            </div>
-            <p className="text-[10px]">Ctrl+G agrupar · Ctrl+Shift+G desagrupar</p>
-          </div>
-        ) : !seleccionado ? (
-          <p className="text-sm text-muted">
-            {capasOrdenadas.length > 0
-              ? "Selecciona una capa de la lista o un elemento en el lienzo."
-              : "Agrega un elemento y edítalo desde aquí."}
-          </p>
-        ) : (
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-semibold capitalize text-ink">{seleccionado.type}</p>
-              <div className="flex shrink-0 gap-1">
-                <button
-                  type="button"
-                  onClick={duplicarSeleccion}
-                  className="rounded border border-border px-2 py-0.5 text-[10px] hover:bg-surface-hover"
-                  title="Duplicar"
-                >
-                  ⧉
-                </button>
-                <button
-                  type="button"
-                  onClick={traerAdelante}
-                  className="rounded border border-border px-2 py-0.5 text-[10px] hover:bg-surface-hover"
-                  title="Traer adelante"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  onClick={eliminarSeleccion}
-                  className="rounded border border-red-200 px-2 py-0.5 text-[10px] text-red-600 hover:bg-red-50"
-                  title="Eliminar"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
+                    <div className="flex flex-wrap gap-0.5 border-b border-border pb-2">{alineacionBtns}</div>
 
             {seleccionado.groupId && (
               <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
@@ -1529,9 +1772,13 @@ export default function VisualCanvasEditor({
                 </select>
               </label>
             )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        )}
-      </aside>
+        </aside>
+      </div>
     </div>
   );
 }

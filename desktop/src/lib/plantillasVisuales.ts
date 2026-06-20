@@ -30,6 +30,8 @@ export interface ElementoBase {
   rotation: number;
   zIndex: number;
   locked?: boolean;
+  /** undefined / true = visible en el lienzo; false = oculto (no se exporta). */
+  visible?: boolean;
   /** Agrupa elementos para seleccionarlos y moverlos juntos. */
   groupId?: string;
 }
@@ -467,6 +469,53 @@ export function labelFormato(f: FormatoCanvas): string {
     return `${f.tipo_etiqueta} · ${dims}`;
   }
   return `${f.nombre} · ${dims}`;
+}
+
+/** Preset de escala para exportar PNG/JPG sin deformar el diseño. */
+export interface PresetResolucionExport {
+  id: string;
+  label: string;
+  escala: number;
+  hint: string;
+}
+
+export function dimensionesExportPx(
+  formato: FormatoCanvas,
+  escala: number,
+): { ancho: number; alto: number } {
+  const s = Math.max(0.25, Math.min(8, escala));
+  return {
+    ancho: Math.max(1, Math.round(formato.ancho_px * s)),
+    alto: Math.max(1, Math.round(formato.alto_px * s)),
+  };
+}
+
+export function presetsResolucionExport(formato: FormatoCanvas): PresetResolucionExport[] {
+  const seen = new Set<number>();
+  const out: PresetResolucionExport[] = [];
+  const dpiBase = formato.dpi || CANVAS_DPI;
+
+  const push = (id: string, label: string, escala: number) => {
+    const s = Math.round(escala * 1000) / 1000;
+    if (seen.has(s) || s < 0.25 || s > 8) return;
+    seen.add(s);
+    const dim = dimensionesExportPx(formato, s);
+    let hint = `${dim.ancho}×${dim.alto} px`;
+    if (formato.ancho_mm != null && formato.alto_mm != null && formato.ancho_mm > 0) {
+      const dpi = Math.round((dim.ancho / formato.ancho_mm) * 25.4);
+      hint = `${hint} · ~${dpi} DPI`;
+    }
+    out.push({ id, label, escala: s, hint });
+  };
+
+  push("1x", "1× Lienzo", 1);
+  push("2x", "2× Alta", 2);
+  push("3x", "3× Impresión", 3);
+  for (const target of [150, 200, 300]) {
+    if (target !== dpiBase) push(`dpi-${target}`, `${target} DPI`, target / dpiBase);
+  }
+  push("4x", "4× Máxima", 4);
+  return out;
 }
 
 export type AlineacionObjetos =
