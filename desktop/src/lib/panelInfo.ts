@@ -236,10 +236,10 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   },
   "plantillas-visuales": {
     emoji: "🎨",
-    label: "Plantillas visuales",
-    description: "Editor tipo Canva para crear etiquetas, fichas técnicas, imágenes de Mercado Libre, banners y piezas gráficas reutilizables.",
+    label: "Studio Etiquetas",
+    description: "Crea y edita plantillas visuales de etiquetas. Compara la etiqueta original con la alternativa en construcción.",
     tips: [
-      "Elige primero el formato de lienzo según el uso (etiqueta, MeLi, banner, etc.).",
+      "Usa el comparador para ver la etiqueta original y la alternativa una al lado de la otra.",
       "Las plantillas se guardan como JSON editable y puedes exportarlas a PDF, PNG o JPG.",
     ],
     tier: "standard",

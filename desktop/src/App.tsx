@@ -13,6 +13,7 @@ import StockPanel from "./components/StockPanel";
 import FichasTecnicasPanel from "./components/FichasTecnicasPanel";
 import PedidosWebPanel from "./components/PedidosWebPanel";
 import FacturasCompraPanel from "./components/FacturasCompraPanel";
+import CostosProductosPanel from "./components/CostosProductosPanel";
 import CentroCostosPanel from "./components/CentroCostosPanel";
 import RentabilidadPanel from "./components/RentabilidadPanel";
 import TicketsPanel from "./components/TicketsPanel";
@@ -70,6 +71,8 @@ function PanelRouter() {
       return <PedidosWebPanel />;
     case "facturas":
       return <FacturasCompraPanel />;
+    case "costos-productos":
+      return <CostosProductosPanel />;
     case "centros-costo":
       return <CentroCostosPanel />;
     case "rentabilidad":
@@ -185,7 +188,7 @@ function AppLoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser,
 
 const NAV_ORDER: Panel[] = [
   "hugo", "dashboard", "chat", "voz", "webchat", "whatsapp", "supervisor", "preventa", "postventa",
-  "facturas", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config", "plantillas-visuales",
+  "facturas", "costos-productos", "centros-costo", "rentabilidad", "sync", "stock", "fichas", "pedidos", "publicaciones", "etiquetas", "etiquetas-config", "plantillas-visuales",
   ...LOGISTICA_PANELS,
   "settings",
 ];

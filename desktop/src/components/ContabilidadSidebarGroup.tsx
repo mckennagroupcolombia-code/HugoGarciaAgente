@@ -5,6 +5,7 @@ import { Icon, IllustrationIcon } from "../icons";
 
 export const CONTABILIDAD_NAV: { id: Panel; label: string }[] = [
   { id: "facturas", label: "Facturas de compra" },
+  { id: "costos-productos", label: "Costos de productos" },
   { id: "centros-costo", label: "Centro de costos" },
   { id: "rentabilidad", label: "Rentabilidad" },
   { id: "sync", label: "Sincronización" },

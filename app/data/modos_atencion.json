@@ -34,7 +34,9 @@
     "573143343325@c.us",
     "183562741534973@lid",
     "573114620203@c.us",
-    "182905510850731@lid"
+    "182905510850731@lid",
+    "573207640451@c.us",
+    "145371858772137@lid"
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
@@ -71,183 +73,195 @@
     "573143343325@c.us": 1781717325.193942,
     "183562741534973@lid": 1781717325.193942,
     "573114620203@c.us": 1781742475.337185,
-    "182905510850731@lid": 1781742475.337185
+    "182905510850731@lid": 1781742475.337185,
+    "573207640451@c.us": 1781885466.1422698,
+    "145371858772137@lid": 1781885466.1422698
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1779607073.685289,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "108207892635657@lid": {
       "timestamp": 1779841391.5377421,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "120363023555909043@g.us": {
       "timestamp": 1779902999.5390468,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "web-test-handoff2": {
       "timestamp": 1779872652.346131,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573013536788@c.us": {
       "timestamp": 1779890129.7563171,
       "razon": "men\u00fa autom\u00e1tico",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "73031707820119@lid": {
       "timestamp": 1779916294.9625869,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "49976306606124@lid": {
       "timestamp": 1779917580.1837876,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "71262147764245@lid": {
       "timestamp": 1779917739.2717392,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "259502091821270@lid": {
       "timestamp": 1779923371.8995585,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "web-a76f5496-4d30-4ccc-aa10-d230bdae18b3": {
       "timestamp": 1779972323.9718435,
       "razon": "web_pago_pedido",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "130975447179480@lid": {
       "timestamp": 1780963371.9493659,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "266855042285583@lid": {
       "timestamp": 1779998033.7324655,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "110213222891737@lid": {
       "timestamp": 1779998050.9782407,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "246827609772242@lid": {
       "timestamp": 1780071470.9523313,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "112145974988807@lid": {
       "timestamp": 1780406805.1967304,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "93167101677754@lid": {
       "timestamp": 1780502711.8209083,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573214399939@c.us": {
       "timestamp": 1780752797.1591964,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "117832545226982@lid": {
       "timestamp": 1780752797.1591964,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "143842900717701@lid": {
       "timestamp": 1780752932.813542,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573015416992@c.us": {
       "timestamp": 1780752932.813542,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573174923920@c.us": {
       "timestamp": 1780963371.9493659,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "228960461930678@lid": {
       "timestamp": 1781028611.6843252,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573162484731@c.us": {
       "timestamp": 1781028611.6843252,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573114292482@c.us": {
       "timestamp": 1781030730.2819347,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "52003631849707@lid": {
       "timestamp": 1781030730.2819347,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "23588077846694@lid": {
       "timestamp": 1781295223.0876622,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573207092059@c.us": {
       "timestamp": 1781295223.0876622,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "159171555111054@lid": {
       "timestamp": 1781284043.6549928,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573232058352@c.us": {
       "timestamp": 1781284043.6549928,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "124833761378498@lid": {
       "timestamp": 1781649927.9315753,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573105081002@c.us": {
       "timestamp": 1781649927.9315753,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573143343325@c.us": {
       "timestamp": 1781717325.193942,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "183562741534973@lid": {
       "timestamp": 1781717325.193942,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "573114620203@c.us": {
       "timestamp": 1781742475.337185,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     },
     "182905510850731@lid": {
       "timestamp": 1781742475.337185,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "gracias por su amabilidad"
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
+    },
+    "573207640451@c.us": {
+      "timestamp": 1781885466.1422698,
+      "razon": "r\u00e1faga de 9 mensajes en 120s",
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
+    },
+    "145371858772137@lid": {
+      "timestamp": 1781885466.1422698,
+      "razon": "r\u00e1faga de 9 mensajes en 120s",
+      "ultimo_mensaje": "Me podr\u00edas decir el precio de cada uno?"
     }
   },
   "bot_global_activo": false,

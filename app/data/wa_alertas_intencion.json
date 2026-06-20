@@ -3,89 +3,19 @@
   "alertas": {
     "573001234567@c.us": {
       "jid": "573001234567@c.us",
-      "primer_intencion_ts": 1781613972.5130465,
+      "primer_intencion_ts": 1781923706.8136148,
       "primer_intencion_texto": "quiero hacer un pedido, ¿cuál es la cuenta para transferir?",
-      "ultima_human_ts": 1781614092.5130465,
-      "ultimo_bot_ts": 1781614032.5130465,
+      "ultima_human_ts": 1781923826.8136148,
+      "ultimo_bot_ts": 1781923766.8136148,
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
     },
-    "573176504183@c.us": {
-      "jid": "573176504183@c.us",
-      "primer_intencion_ts": 1781619133.0,
-      "primer_intencion_texto": "Cómo lo pido? Nequi?",
-      "ultima_human_ts": 1781619151.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573183967407@c.us": {
-      "jid": "573183967407@c.us",
-      "primer_intencion_ts": 1781631379.0,
-      "primer_intencion_texto": "Me mandas para consignar x nequi x la tarde x favor",
-      "ultima_human_ts": 1781631399.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573334315268@c.us": {
-      "jid": "573334315268@c.us",
-      "primer_intencion_ts": 1781636231.0,
-      "primer_intencion_texto": "Déjame revisamos que más podríamos necesitar y te avisamos para hacer pedido",
-      "ultima_human_ts": null,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": 1781648480.5897074,
-      "cancelada": false,
-      "cancelada_razon": null
-    },
-    "573227863769@c.us": {
-      "jid": "573227863769@c.us",
-      "primer_intencion_ts": 1781636578.0,
-      "primer_intencion_texto": "Hola me gustaría comprar el agua destilada 250",
-      "ultima_human_ts": 1781636585.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573175764579@c.us": {
-      "jid": "573175764579@c.us",
-      "primer_intencion_ts": 1781370723.0,
-      "primer_intencion_texto": "Si es tan amable para hacer un pedido",
-      "ultima_human_ts": 1781370725.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573154730612@c.us": {
-      "jid": "573154730612@c.us",
-      "primer_intencion_ts": 1781217166.0,
-      "primer_intencion_texto": "Hola buenas tardes. Si, voy a hacer pedido. Voy a preguntar si ya hicieron la consignación. Gracias",
-      "ultima_human_ts": 1781217249.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573105081002@c.us": {
-      "jid": "573105081002@c.us",
-      "primer_intencion_ts": 1781649902.0,
-      "primer_intencion_texto": "Que el pedido no llegó",
-      "ultima_human_ts": 1781649979.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573207092059@c.us": {
-      "jid": "573207092059@c.us",
-      "primer_intencion_ts": 1781219305.0,
-      "primer_intencion_texto": "No me deja el QR",
-      "ultima_human_ts": 1781219434.0,
+    "573207640451@c.us": {
+      "jid": "573207640451@c.us",
+      "primer_intencion_ts": 1781885791.0,
+      "primer_intencion_texto": "Si por favore indicas cuánto es todo y me puedes enviar un link de pago por favor",
+      "ultima_human_ts": 1781885946.0,
       "ultimo_bot_ts": null,
       "alerta_enviada_ts": null,
       "cancelada": true,
@@ -93,29 +23,9 @@
     },
     "573212045498@c.us": {
       "jid": "573212045498@c.us",
-      "primer_intencion_ts": 1781744602.0,
-      "primer_intencion_texto": "Quiero comprar el aceite esencial de rosa mosqueta",
-      "ultima_human_ts": 1781744762.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573163883668@c.us": {
-      "jid": "573163883668@c.us",
-      "primer_intencion_ts": 1781800938.0,
-      "primer_intencion_texto": "Hola cómo estás Buenos días mira me gustaría comprar estas dos cosas",
-      "ultima_human_ts": 1781801008.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573143343325@c.us": {
-      "jid": "573143343325@c.us",
-      "primer_intencion_ts": 1778170989.0,
-      "primer_intencion_texto": "Me gustaría comprar esos dos",
-      "ultima_human_ts": 1778171016.0,
+      "primer_intencion_ts": 1781864625.0,
+      "primer_intencion_texto": "Y de Rosa mosqueta no tienes mas grande? De 30ml?\n\nY por ultimo por favor añade al pedido el de arbol de te de 30 ml.",
+      "ultima_human_ts": 1781865474.0,
       "ultimo_bot_ts": null,
       "alerta_enviada_ts": null,
       "cancelada": true,
@@ -127,7 +37,7 @@
       "primer_intencion_texto": "Mira hice un pedido por mercado libre y uno me llego completo",
       "ultima_human_ts": 1781824079.0,
       "ultimo_bot_ts": null,
-      "alerta_enviada_ts": 1781822698.9780054,
+      "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
     }

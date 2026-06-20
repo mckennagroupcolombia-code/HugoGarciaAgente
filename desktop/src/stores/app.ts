@@ -19,6 +19,7 @@ export type Panel =
   | "pedidos"
   | "publicaciones"
   | "facturas"
+  | "costos-productos"
   | "centros-costo"
   | "rentabilidad"
   | "tickets"
@@ -34,7 +35,7 @@ export type Panel =
   | "perfil";
 
 /** Pestaña activa dentro de Impresora · Etiquetas. */
-export type EtiquetasTab = "imprimir" | "alternativas" | "inventario";
+export type EtiquetasTab = "imprimir" | "inventario";
 
 /** Datos para abrir Impresión con un producto o plantilla precargados. */
 export interface EtiquetasHandoff {

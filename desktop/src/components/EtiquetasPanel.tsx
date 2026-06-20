@@ -5614,11 +5614,7 @@ export default function EtiquetasPanel() {
   const [solicitudInicial, setSolicitudInicial] = useState<EtiquetasSolicitudActiva | null>(null);
 
   useEffect(() => {
-    if (
-      storeTab === "imprimir" ||
-      storeTab === "alternativas" ||
-      storeTab === "inventario"
-    ) {
+    if (storeTab === "imprimir" || storeTab === "inventario") {
       setTabLocal(storeTab);
       return;
     }
@@ -5648,13 +5644,10 @@ export default function EtiquetasPanel() {
     `flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t ? "bg-accent text-white shadow" : "text-ink-secondary hover:bg-surface-hover"}`;
 
   return (
-    <div className={`space-y-4 px-1 sm:px-0 ${tab === "imprimir" || tab === "alternativas" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"}`}>
+    <div className={`space-y-4 px-1 sm:px-0 ${tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"}`}>
       <div className="flex gap-2 rounded-xl border border-border bg-surface-panel p-1">
         <button type="button" onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
           🖨 Imprimir
-        </button>
-        <button type="button" onClick={() => setTab("alternativas")} className={tabCls("alternativas")}>
-          🏷 Etiquetas alternativas
         </button>
         <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
           📦 Inventario de papel y tinta
@@ -5670,7 +5663,6 @@ export default function EtiquetasPanel() {
           onIrInventarioTinta={() => setTab("inventario")}
         />
       )}
-      {tab === "alternativas" && <EtiquetasStudioPanel />}
       {tab === "inventario" && <TabInventarioPapelTinta />}
     </div>
   );

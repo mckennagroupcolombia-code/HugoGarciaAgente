@@ -1,7 +1,7 @@
 import type { Panel } from "../stores/app";
 import type { TicketsUser } from "../stores/ticketsAuth";
 
-export const CONTABILIDAD_PANELS = ["facturas", "centros-costo", "rentabilidad", "sync"] as const satisfies readonly Panel[];
+export const CONTABILIDAD_PANELS = ["facturas", "costos-productos", "centros-costo", "rentabilidad", "sync"] as const satisfies readonly Panel[];
 
 /** Algún módulo de contabilidad habilitado (no admin). */
 export function tienePermisoContabilidad(user: TicketsUser | null): boolean {
@@ -24,6 +24,9 @@ export function puedeVerModuloContabilidad(user: TicketsUser | null, seccion: st
   if ((user.rol?.nivel ?? 0) >= 3) return true;
   const p = user.permisos_secciones;
   if (!p) return false;
+  if (seccion === "costos-productos") {
+    return Boolean(p["costos-productos"] || p.facturas || p.sync);
+  }
   if (seccion === "centros-costo") {
     return Boolean(p["centros-costo"] || p.facturas || p.sync);
   }
