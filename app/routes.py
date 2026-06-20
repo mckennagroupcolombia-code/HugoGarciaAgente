@@ -4045,6 +4045,91 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 502
 
+    @app.route("/api/rentabilidad/logica-precios", methods=["GET"])
+    def api_rentabilidad_logica_precios():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.precios_canales import obtener_documentacion_precios
+        return jsonify(obtener_documentacion_precios())
+
+    @app.route("/api/rentabilidad/preview-precios", methods=["GET"])
+    def api_rentabilidad_preview_precios():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        code = (request.args.get("code") or "").strip()
+        try:
+            precio = float(request.args.get("precio") or 0)
+        except (ValueError, TypeError):
+            return jsonify({"error": "precio inválido"}), 400
+        if not code or precio <= 0:
+            return jsonify({"error": "code y precio > 0 requeridos"}), 400
+        from app.services.precios_canales import resolver_precios_multicanal
+        nombre = (request.args.get("nombre") or "").strip()
+        return jsonify(resolver_precios_multicanal(code, precio, nombre=nombre))
+
+    @app.route("/api/rentabilidad/actualizar-precio", methods=["POST"])
+    def api_rentabilidad_actualizar_precio():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        data = request.get_json(silent=True) or {}
+        code = (data.get("code") or "").strip()
+        nuevo_precio = data.get("nuevo_precio")
+        plataformas = data.get("plataformas", ["siigo", "meli"])
+        nombre = (data.get("nombre") or "").strip()
+
+        if not code or nuevo_precio is None:
+            return jsonify({"error": "code y nuevo_precio son requeridos"}), 400
+        try:
+            nuevo_precio = float(nuevo_precio)
+        except (ValueError, TypeError):
+            return jsonify({"error": "nuevo_precio debe ser un número"}), 400
+        if nuevo_precio <= 0:
+            return jsonify({"error": "El precio debe ser mayor que 0"}), 400
+
+        from app.services.precios_canales import resolver_precios_multicanal
+
+        try:
+            precios = resolver_precios_multicanal(code, nuevo_precio, nombre=nombre)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+        resultados = {"precios": precios}
+
+        if "siigo" in plataformas:
+            try:
+                from app.services.siigo import actualizar_precio_combo_siigo
+                resultados["siigo"] = actualizar_precio_combo_siigo(code, precios["lista"])
+            except Exception as e:
+                resultados["siigo"] = {"ok": False, "msg": str(e)}
+
+        if "meli" in plataformas:
+            try:
+                from app.services.meli import actualizar_precio_meli_por_sku
+                resultados["meli"] = actualizar_precio_meli_por_sku(code, precios["meli"])
+            except Exception as e:
+                resultados["meli"] = {"ok": False, "msg": str(e)}
+
+        if "web" in plataformas:
+            try:
+                from app.tools.sincronizar_productos_pagina_web import sincronizar_productos_pagina_web
+
+                siigo_ok = resultados.get("siigo", {}).get("ok") if "siigo" in plataformas else True
+                if "siigo" in plataformas and not siigo_ok:
+                    resultados["web"] = {
+                        "ok": False,
+                        "msg": "Web no actualizada: primero debe actualizarse Siigo (catálogo web lee lista Siigo).",
+                    }
+                else:
+                    msg = sincronizar_productos_pagina_web([{"sku": code, "precio": precios["lista"]}])
+                    ok = "❌" not in msg and "Error" not in msg
+                    resultados["web"] = {"ok": ok, "msg": msg}
+            except Exception as e:
+                resultados["web"] = {"ok": False, "msg": str(e)}
+
+        canales = [k for k in ("siigo", "meli", "web") if k in plataformas]
+        resultados["ok"] = all(resultados.get(k, {}).get("ok") for k in canales)
+        return jsonify(resultados)
+
     # ── Nómina ────────────────────────────────────────────────────────────────
 
     @app.route("/api/nomina/usuarios-app", methods=["GET"])
@@ -4183,6 +4268,99 @@ def register_routes(app):
             return jsonify({"error": "No autorizado"}), 401
         from app.services.rentabilidad import enviar_recordatorios_pagos
         return jsonify(enviar_recordatorios_pagos())
+
+    @app.route("/api/facturas/costos-productos", methods=["GET"])
+    def api_costos_productos():
+        """Historial de costos por producto construido desde Excel de facturas procesadas."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import os
+        from datetime import datetime as _dt
+        try:
+            import openpyxl as _opxl
+        except ImportError:
+            return jsonify({"error": "openpyxl no instalado"}), 500
+
+        CARPETA = os.path.join(os.path.dirname(__file__), '..', 'importaciones_productos')
+        if not os.path.isdir(CARPETA):
+            return jsonify({"productos": [], "total": 0, "ultima_actualizacion": _dt.now().isoformat()})
+
+        q = (request.args.get("q") or "").strip().lower()
+
+        productos: dict = {}
+        errores = []
+
+        excel_files = sorted(f for f in os.listdir(CARPETA) if f.endswith('.xlsx'))
+        for fname in excel_files:
+            numero_factura = fname.replace(' registro productos.xlsx', '')
+            path = os.path.join(CARPETA, fname)
+            try:
+                mtime = os.path.getmtime(path)
+                fecha = _dt.fromtimestamp(mtime).strftime('%Y-%m-%d')
+                wb = _opxl.load_workbook(path, read_only=True, data_only=True)
+                ws = wb.active
+                for row in ws.iter_rows(min_row=2, values_only=True):
+                    if not row or not row[2]:
+                        continue
+                    codigo = str(row[2]).strip()
+                    nombre = str(row[3]).strip() if row[3] else ''
+                    unidad = str(row[5]).strip() if row[5] else ''
+                    try:
+                        precio = float(row[6]) if row[6] else 0.0
+                    except (ValueError, TypeError):
+                        precio = 0.0
+                    if not codigo:
+                        continue
+                    if codigo not in productos:
+                        productos[codigo] = {
+                            "codigo": codigo,
+                            "nombre": nombre,
+                            "unidad": unidad,
+                            "historial": [],
+                            "n_compras": 0,
+                            "precio_min": None,
+                            "precio_max": None,
+                            "precio_reciente": 0.0,
+                            "fecha_reciente": "",
+                        }
+                    entrada = {
+                        "factura": numero_factura,
+                        "precio_unitario": round(precio, 4),
+                        "fecha": fecha,
+                    }
+                    productos[codigo]["historial"].append(entrada)
+                    productos[codigo]["n_compras"] += 1
+                    if precio > 0:
+                        if productos[codigo]["precio_min"] is None or precio < productos[codigo]["precio_min"]:
+                            productos[codigo]["precio_min"] = round(precio, 4)
+                        if productos[codigo]["precio_max"] is None or precio > productos[codigo]["precio_max"]:
+                            productos[codigo]["precio_max"] = round(precio, 4)
+                wb.close()
+            except Exception as ex:
+                errores.append(f"{fname}: {ex}")
+
+        # Ordenar historial por fecha dentro de cada producto y actualizar precio_reciente
+        result = []
+        for p in productos.values():
+            p["historial"].sort(key=lambda h: h["fecha"])
+            if p["historial"]:
+                last = p["historial"][-1]
+                p["precio_reciente"] = last["precio_unitario"]
+                p["fecha_reciente"] = last["fecha"]
+            result.append(p)
+
+        if q:
+            result = [p for p in result if q in p["nombre"].lower() or q in p["codigo"].lower()]
+
+        result.sort(key=lambda p: p["nombre"])
+
+        return jsonify({
+            "productos": result,
+            "total": len(result),
+            "facturas_leidas": len(excel_files),
+            "errores": errores[:5],
+            "ultima_actualizacion": _dt.now().isoformat(),
+        })
 
     @app.route("/api/facturas/escanear", methods=["POST"])
     def api_facturas_escanear():

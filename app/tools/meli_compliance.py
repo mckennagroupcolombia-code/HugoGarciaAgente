@@ -1155,9 +1155,9 @@ def crear_publicacion_meli(
     if not headers:
         return {"ok": False, "error": "Sin token MeLi"}
 
-    precio = float(precio or 0)
+    precio = int(round(float(precio or 0)))
     if precio <= 0:
-        precio = _precio_desde_item(item_referencia)
+        precio = int(round(_precio_desde_item(item_referencia)))
     if precio <= 0:
         return {"ok": False, "error": "Precio inválido (debe ser > 0 COP)"}
 

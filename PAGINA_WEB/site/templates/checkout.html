@@ -52,6 +52,10 @@
           <span>Envío Interrapidísimo</span>
           <span id="label-envio" style="color:var(--green-dark);font-weight:700;"></span>
         </div>
+        <div class="checkout-total-row" id="row-envio-gratis" style="display:none;">
+          <span>Envío</span>
+          <span style="color:var(--green-dark);font-weight:700;">GRATIS — bono compra directa</span>
+        </div>
         <div class="checkout-total-row checkout-total-final">
           <span>Total</span>
           <span id="label-total">${{ "{:,.0f}".format(total).replace(",", ".") }} COP</span>
@@ -353,6 +357,7 @@ const DIAS_DEPTO = {
 };
 
 const subtotal = {{ total }};
+const envioGratisDirecto = {{ 'true' if envio_gratis_directo else 'false' }};
 let shippingCost = 0;
 let selectedDepto = "";
 
@@ -420,14 +425,28 @@ window.onCiudadChange = function(val, label){
 function updateShipping(ciudad, depto){
   const info       = document.getElementById('envio-info');
   const rowEnvio   = document.getElementById('row-envio');
+  const rowGratis  = document.getElementById('row-envio-gratis');
   const labelEnvio = document.getElementById('label-envio');
   const labelTotal = document.getElementById('label-total');
   const btnTotal   = document.getElementById('btn-total');
   const inputShip  = document.getElementById('input-shipping');
 
+  if (envioGratisDirecto) {
+    shippingCost = 0;
+    inputShip.value = 0;
+    rowEnvio.style.display = 'none';
+    if (rowGratis) rowGratis.style.display = '';
+    labelTotal.textContent = fmtCOP(subtotal) + ' COP';
+    btnTotal.textContent   = fmtCOP(subtotal);
+    info.innerHTML = 'Compra directa McKenna: <strong style="color:var(--green-dark)">envío gratis</strong> '
+      + '(bono incluido — mismo precio de referencia que MeLi, sin sumar envío aparte).';
+    return;
+  }
+
   if(!depto){
     info.textContent = 'Selecciona tu departamento y ciudad para estimar el envío.';
     rowEnvio.style.display = 'none';
+    if (rowGratis) rowGratis.style.display = 'none';
     shippingCost = 0; inputShip.value = 0;
     labelTotal.textContent = fmtCOP(subtotal) + ' COP';
     btnTotal.textContent   = fmtCOP(subtotal);
@@ -437,6 +456,7 @@ function updateShipping(ciudad, depto){
   shippingCost = rate.base;
   inputShip.value = shippingCost;
   const total = subtotal + shippingCost;
+  if (rowGratis) rowGratis.style.display = 'none';
   rowEnvio.style.display = '';
   labelEnvio.textContent = fmtCOP(shippingCost);
   labelTotal.textContent = fmtCOP(total) + ' COP';
@@ -458,6 +478,9 @@ window.toggleBilling = function(cb){
     if(el) el.required = !cb.checked;
   });
 };
+
+// Call on load for bono envío
+if (envioGratisDirecto) updateShipping('', '');
 
 // ── Init: cargar Colombia desde servidor ─────────────────
 let COLOMBIA = {};

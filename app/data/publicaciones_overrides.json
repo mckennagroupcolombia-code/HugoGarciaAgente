@@ -232,9 +232,11 @@
   "C-CITMAG500g": {
     "imagenes_web": [
       "C-CITMAG500g.png",
-      "C-CITMAG500g_2.png"
+      "C-CITMAG500g_2.png",
+      "C-CITMAG500g_3.png",
+      "C-CITMAG500g_4.png"
     ],
-    "updated_at": "2026-06-17T04:34:33.072279",
+    "updated_at": "2026-06-19T13:56:55.723162",
     "meli_item_id": "MCO4074246724"
   }
 }

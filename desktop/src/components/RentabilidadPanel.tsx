@@ -1451,15 +1451,483 @@ function TabPeriodo() {
   );
 }
 
+// ─── Tab: Actualizar precios ──────────────────────────────────────────────────
+
+interface ResultadoPlataforma {
+  ok: boolean;
+  msg: string;
+  items?: Array<{ item_id: string; ok: boolean; status: number }>;
+}
+
+interface CanalPrecioPreview {
+  prioridad?: number;
+  precio?: number;
+  precio_producto?: number;
+  rol?: string;
+  regla?: string;
+  nota?: string;
+  envio_gratis?: boolean;
+  envio_apartado?: boolean;
+  envio_estimado_referencia?: number;
+  ahorro_vs_meli_producto?: number;
+  descuento_pct?: number;
+}
+
+interface PreciosMulticanal {
+  precio_meli_referencia?: number;
+  precio_publico?: number;
+  lista: number;
+  meli: number;
+  web: number;
+  envio_referencia?: number;
+  envio_web_apartado?: boolean;
+  ahorro_web_vs_meli?: number;
+  desglose: string;
+  documentacion?: {
+    titulo: string;
+    resumen: string;
+    prioridad: Array<{
+      orden: number;
+      canal: string;
+      clave: string;
+      rol: string;
+      descripcion: string;
+    }>;
+    entrada_panel: string;
+    comision_meli_pct: number;
+  };
+  canales?: {
+    meli?: CanalPrecioPreview;
+    siigo?: CanalPrecioPreview;
+    web?: CanalPrecioPreview;
+  };
+  reglas?: Record<string, string>;
+}
+
+interface ResultadoActualizacion {
+  precios?: PreciosMulticanal;
+  siigo?: ResultadoPlataforma;
+  meli?: ResultadoPlataforma;
+  web?: ResultadoPlataforma;
+}
+
+function LogicaPreciosPanel() {
+  const [doc, setDoc] = useState<PreciosMulticanal["documentacion"] | null>(null);
+
+  useEffect(() => {
+    void api
+      .get<PreciosMulticanal["documentacion"]>("/api/rentabilidad/logica-precios")
+      .then(setDoc)
+      .catch(() => setDoc(null));
+  }, []);
+
+  if (!doc) return null;
+
+  const pct = Math.round((doc.comision_meli_pct ?? 0.165) * 100);
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-panel px-4 py-4 space-y-4">
+      <div>
+        <h3 className="text-sm font-bold text-ink">{doc.titulo}</h3>
+        <p className="mt-1 text-sm text-muted leading-relaxed">{doc.resumen}</p>
+      </div>
+      <ol className="space-y-3">
+        {doc.prioridad.map((p) => (
+          <li key={p.clave} className="flex gap-3 text-sm">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent">
+              {p.orden}°
+            </span>
+            <div>
+              <p className="font-semibold text-ink">
+                {p.canal}
+                <span className="ml-2 text-xs font-normal text-muted">— {p.rol}</span>
+              </p>
+              <p className="mt-0.5 text-muted leading-relaxed">{p.descripcion}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p className="text-xs text-muted border-t border-border/60 pt-3 leading-relaxed">
+        {doc.entrada_panel} Descuento web automático: ~{pct}% (comisión MeLi que el cliente no paga al comprar directo).
+      </p>
+    </div>
+  );
+}
+
+function TabPrecios() {
+  const [busqueda, setBusqueda] = useState("");
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [editando, setEditando] = useState<string | null>(null);
+  const [nuevoPrecio, setNuevoPrecio] = useState("");
+  const [plataformas, setPlataformas] = useState<Record<string, boolean>>({
+    siigo: true,
+    meli: true,
+    web: true,
+  });
+  const [previewPrecios, setPreviewPrecios] = useState<PreciosMulticanal | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const [resultados, setResultados] = useState<Record<string, ResultadoActualizacion>>({});
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.get<{ productos: Producto[] }>("/api/rentabilidad/productos");
+      setProductos(data.productos ?? []);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void cargar(); }, [cargar]);
+
+  useEffect(() => {
+    if (!editando) {
+      setPreviewPrecios(null);
+      return;
+    }
+    const precio = parseFloat(nuevoPrecio);
+    if (isNaN(precio) || precio <= 0) {
+      setPreviewPrecios(null);
+      return;
+    }
+    const prod = productos.find((p) => p.code === editando);
+    const t = window.setTimeout(() => {
+      void api
+        .get<PreciosMulticanal>(
+          `/api/rentabilidad/preview-precios?code=${encodeURIComponent(editando)}&precio=${precio}${prod?.name ? `&nombre=${encodeURIComponent(prod.name)}` : ""}`
+        )
+        .then(setPreviewPrecios)
+        .catch(() => setPreviewPrecios(null));
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [editando, nuevoPrecio, productos]);
+
+  const productosFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return productos;
+    return productos.filter((p) =>
+      p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)
+    );
+  }, [productos, busqueda]);
+
+  const abrirEditor = (p: Producto) => {
+    setEditando(p.code);
+    setNuevoPrecio(String(p.precio_lista));
+    setResultados((prev) => { const n = { ...prev }; delete n[p.code]; return n; });
+  };
+
+  const cerrarEditor = () => {
+    setEditando(null);
+    setNuevoPrecio("");
+  };
+
+  const togglePlataforma = (key: string) =>
+    setPlataformas((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const aplicarCambio = async (code: string) => {
+    const precio = parseFloat(nuevoPrecio);
+    if (isNaN(precio) || precio <= 0) return;
+    const plats = Object.entries(plataformas).filter(([, v]) => v).map(([k]) => k);
+    if (plats.length === 0) return;
+    const prod = productos.find((p) => p.code === code);
+
+    setGuardando(true);
+    try {
+      const data = await api.post<ResultadoActualizacion>("/api/rentabilidad/actualizar-precio", {
+        code,
+        nuevo_precio: precio,
+        plataformas: plats,
+        nombre: prod?.name ?? "",
+      });
+      setResultados((prev) => ({ ...prev, [code]: data }));
+      setProductos((prev) =>
+        prev.map((p) => (p.code === code ? { ...p, precio_lista: precio } : p))
+      );
+      setEditando(null);
+    } catch (e) {
+      setResultados((prev) => ({
+        ...prev,
+        [code]: { siigo: { ok: false, msg: (e as Error).message } },
+      }));
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const PLAT_LABELS: Record<string, string> = {
+    siigo: "Siigo",
+    meli: "MercadoLibre",
+    web: "Página web",
+  };
+
+  return (
+    <div className="space-y-4">
+      <LogicaPreciosPanel />
+
+      <div>
+        <input
+          type="text"
+          placeholder="Buscar por nombre o código…"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="w-full rounded-paper border-2 border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent transition"
+        />
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          Cargando productos Siigo…
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+          {error}
+        </div>
+      )}
+
+      {!loading && productosFiltrados.length === 0 && !error && (
+        <p className="py-10 text-center text-sm text-muted">
+          {busqueda ? "Sin resultados para esa búsqueda." : "No hay productos combo en Siigo."}
+        </p>
+      )}
+
+      {!loading && productosFiltrados.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-border bg-surface-panel">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border bg-surface-hover">
+              <tr>
+                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Código</th>
+                <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Producto</th>
+                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio Siigo (≈ MeLi)</th>
+                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {productosFiltrados.map((p) => {
+                const isEditing = editando === p.code;
+                const resultado = resultados[p.code];
+
+                return (
+                  <Fragment key={p.code}>
+                    <tr className={`border-b border-border/50 transition-colors ${isEditing ? "bg-surface-hover/60" : "hover:bg-surface-hover/30"}`}>
+                      <td className="px-4 py-3 font-mono text-xs text-muted">{p.code}</td>
+                      <td className="px-4 py-3 font-medium text-ink">
+                        <div className="max-w-[260px] truncate">{p.name}</div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-ink">{cop(p.precio_lista)}</td>
+                      <td className="px-4 py-3 text-right">
+                        {resultado && !isEditing && (
+                          <div className="mb-1 space-y-1 text-right">
+                            <div className="flex flex-wrap gap-1 justify-end">
+                              {Object.entries(resultado)
+                                .filter(([plat]) => plat !== "precios" && ["siigo", "meli", "web"].includes(plat))
+                                .map(([plat, res]) => (
+                                <span
+                                  key={plat}
+                                  title={"msg" in res ? res.msg : ""}
+                                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold cursor-default ${
+                                    "ok" in res && res.ok
+                                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                      : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
+                                  }`}
+                                >
+                                  {"ok" in res && res.ok ? "✓" : "✗"} {PLAT_LABELS[plat] ?? plat}
+                                </span>
+                              ))}
+                            </div>
+                            {Object.entries(resultado)
+                              .filter(([plat, res]) => ["siigo", "meli", "web"].includes(plat) && "ok" in res && !res.ok && res.msg)
+                              .map(([plat, res]) => (
+                                <p key={plat} className="text-[10px] text-red-600 dark:text-red-400 leading-snug max-w-[220px] ml-auto">
+                                  {PLAT_LABELS[plat]}: {res.msg}
+                                </p>
+                              ))}
+                          </div>
+                        )}
+                        {isEditing ? (
+                          <button
+                            type="button"
+                            onClick={cerrarEditor}
+                            className="text-xs text-muted hover:text-ink"
+                          >
+                            Cancelar
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => abrirEditor(p)}
+                            className="rounded-lg border border-accent/60 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent hover:border-accent transition"
+                          >
+                            Cambiar precio
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+
+                    {isEditing && (
+                      <tr className="border-b border-border/50">
+                        <td colSpan={4} className="px-4 pb-4 pt-2">
+                          <div className="rounded-xl border-2 border-accent/30 bg-surface p-4 space-y-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                              <div className="space-y-1">
+                                <label className="block text-xs font-semibold text-ink-secondary">
+                                  Precio actual
+                                </label>
+                                <div className="rounded-paper border-2 border-border bg-surface-hover px-3 py-2 font-mono text-sm text-ink">
+                                  {cop(p.precio_lista)}
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="block text-xs font-semibold text-ink-secondary">
+                                  Precio publicado en MeLi (referencia maestra) *
+                                </label>
+                                <p className="text-[11px] text-muted leading-snug">
+                                  Cada producto con su valor. Siigo tomará el mismo monto; la web mostrará descuento + envío aparte.
+                                </p>
+                                <div className="flex items-center rounded-paper border-2 border-accent bg-surface focus-within:border-accent transition">
+                                  <span className="px-2 text-xs text-muted">$</span>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    step="1000"
+                                    value={nuevoPrecio}
+                                    onChange={(e) => setNuevoPrecio(e.target.value)}
+                                    placeholder="0"
+                                    autoFocus
+                                    className="flex-1 bg-transparent py-2 pr-2 text-sm text-ink outline-none"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {previewPrecios && (
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold text-ink-secondary">
+                                  Vista previa por canal (según prioridad)
+                                </p>
+                                <div className="grid gap-2 sm:grid-cols-3 text-xs">
+                                  {(
+                                    [
+                                      { key: "meli" as const, titulo: "1° MercadoLibre" },
+                                      { key: "siigo" as const, titulo: "2° Siigo" },
+                                      { key: "web" as const, titulo: "3° Página web" },
+                                    ] as const
+                                  ).map(({ key, titulo }) => {
+                                    const c = previewPrecios.canales?.[key];
+                                    if (!c) return null;
+                                    const precio =
+                                      key === "web"
+                                        ? c.precio_producto ?? c.precio ?? 0
+                                        : c.precio ?? 0;
+                                    return (
+                                      <div
+                                        key={key}
+                                        className="rounded-lg border border-border/70 bg-surface-hover/50 px-3 py-2 space-y-1.5"
+                                      >
+                                        <p className="font-bold text-ink">{titulo}</p>
+                                        {c.rol && (
+                                          <p className="text-[10px] uppercase tracking-wide text-accent font-semibold">
+                                            {c.rol}
+                                          </p>
+                                        )}
+                                        <p className="font-mono text-sm text-ink">
+                                          {cop(precio)}
+                                          {key === "web" && (
+                                            <span className="text-muted font-sans text-[11px]"> + envío apartado</span>
+                                          )}
+                                        </p>
+                                        <p className="text-muted leading-snug">{c.nota}</p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {previewPrecios?.desglose && (
+                              <p className="text-xs text-muted">{previewPrecios.desglose}</p>
+                            )}
+
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold text-ink-secondary">Actualizar en:</p>
+                              <div className="flex flex-wrap gap-3">
+                                {(["siigo", "meli", "web"] as const).map((key) => (
+                                  <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={plataformas[key]}
+                                      onChange={() => togglePlataforma(key)}
+                                      className="h-4 w-4 rounded accent-accent"
+                                    />
+                                    <span className="text-sm text-ink">{PLAT_LABELS[key]}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 border-t border-border/50 pt-3">
+                              <button
+                                type="button"
+                                onClick={() => void aplicarCambio(p.code)}
+                                disabled={
+                                  guardando ||
+                                  !nuevoPrecio ||
+                                  parseFloat(nuevoPrecio) <= 0 ||
+                                  !Object.values(plataformas).some(Boolean)
+                                }
+                                className="rounded-paper border-2 border-accent bg-accent px-5 py-2 text-sm font-bold text-white disabled:opacity-40 transition"
+                              >
+                                {guardando ? "Actualizando…" : "Aplicar cambio"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cerrarEditor}
+                                className="rounded-paper border-2 border-border px-4 py-2 text-sm font-semibold text-ink hover:border-accent hover:text-accent transition"
+                              >
+                                Cancelar
+                              </button>
+                              {nuevoPrecio && parseFloat(nuevoPrecio) > 0 && parseFloat(nuevoPrecio) !== p.precio_lista && (
+                                <span className="text-xs text-muted">
+                                  Cambio:{" "}
+                                  <span className={parseFloat(nuevoPrecio) > p.precio_lista ? "text-green-600 dark:text-green-400 font-semibold" : "text-red-500 font-semibold"}>
+                                    {parseFloat(nuevoPrecio) > p.precio_lista ? "+" : ""}
+                                    {cop(parseFloat(nuevoPrecio) - p.precio_lista)}
+                                  </span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Panel principal ──────────────────────────────────────────────────────────
 
-type Tab = "combos" | "nomina" | "servicios" | "periodo";
+type Tab = "combos" | "nomina" | "servicios" | "periodo" | "precios";
 
 export default function RentabilidadPanel() {
   const [tab, setTab] = useState<Tab>("combos");
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "combos", label: "Combos Siigo" },
+    { id: "precios", label: "Cambiar precios" },
     { id: "nomina", label: "Nómina" },
     { id: "servicios", label: "Servicios" },
     { id: "periodo", label: "Análisis de período" },
@@ -1490,6 +1958,7 @@ export default function RentabilidadPanel() {
       </div>
 
       {tab === "combos" && <TabCombos />}
+      {tab === "precios" && <TabPrecios />}
       {tab === "nomina" && <TabNomina />}
       {tab === "servicios" && <TabServicios />}
       {tab === "periodo" && <TabPeriodo />}
