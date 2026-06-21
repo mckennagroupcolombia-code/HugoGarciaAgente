@@ -87,12 +87,51 @@ def normalizar_meli_item_id(item_id: str) -> str:
     return raw
 
 
+def _meli_lookup_por_sku(sku: str) -> str:
+    """Busca publicación MeLi por seller_sku (activa o pausada)."""
+    token = _meli_token()
+    if not token or not (sku or "").strip():
+        return ""
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        me = _req.get("https://api.mercadolibre.com/users/me", headers=headers, timeout=8)
+        if me.status_code != 200:
+            return ""
+        seller_id = me.json().get("id")
+    except Exception:
+        return ""
+
+    variants: list[str] = []
+    for v in (sku, sku.upper(), sku.lower()):
+        if v and v not in variants:
+            variants.append(v)
+
+    for variant in variants:
+        for status in ("active", "paused"):
+            try:
+                r = _req.get(
+                    f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+                    params={"seller_sku": variant, "status": status},
+                    headers=headers,
+                    timeout=10,
+                )
+                if r.status_code == 200:
+                    ids = r.json().get("results") or []
+                    if ids:
+                        return normalizar_meli_item_id(str(ids[0]))
+            except Exception:
+                pass
+    return ""
+
+
 def _meli_id_efectivo_sku(
     sku: str,
     overrides: Optional[dict] = None,
     cache: Optional[dict] = None,
+    *,
+    live_lookup: bool = False,
 ) -> str:
-    """ID MeLi efectivo: override manual tiene prioridad; si no, meli_id del cache.json."""
+    """ID MeLi efectivo: override manual → cache.json → (opcional) API MeLi por SKU."""
     ov = (overrides if overrides is not None else _load_overrides()).get(sku, {})
     if ov.get("meli_item_id"):
         return normalizar_meli_item_id(str(ov["meli_item_id"]))
@@ -102,7 +141,10 @@ def _meli_id_efectivo_sku(
         (p for p in _products_flat(cache) if (p.get("ref") or p.get("rep_sku", "")) == sku),
         None,
     )
-    return normalizar_meli_item_id((raw or {}).get("meli_id") or "")
+    mid = normalizar_meli_item_id((raw or {}).get("meli_id") or "")
+    if not mid and live_lookup:
+        mid = _meli_lookup_por_sku(sku)
+    return mid
 
 
 def _meli_fetch_item(item_id: str) -> Optional[dict]:
@@ -250,12 +292,16 @@ def obtener_publicacion(sku: str, live_meli: bool = False) -> Optional[dict]:
 
     ep = _enrich(raw, overrides)
     ov = ep.get("_ov", {})
+    sku_val = ep.get("ref") or ep.get("rep_sku", "")
+    if not ep.get("meli_id_efectivo"):
+        ep["meli_id_efectivo"] = _meli_id_efectivo_sku(
+            sku_val, overrides, cache, live_lookup=True,
+        )
 
     meli_live = None
     if live_meli and ep.get("meli_id_efectivo"):
         meli_live = _meli_fetch_item(ep["meli_id_efectivo"])
 
-    sku_val = ep.get("ref") or ep.get("rep_sku", "")
     reemplazo = None
     meli_url = ""
     try:

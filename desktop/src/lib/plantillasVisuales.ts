@@ -291,6 +291,35 @@ export function clonarElementoIndependiente(
   return copia;
 }
 
+/** Copia completa de plantilla: nuevo id, elementos independientes, misma geometría. */
+export function duplicarPlantillaVisual(
+  doc: PlantillaVisualDoc,
+  nombre?: string,
+): PlantillaVisualDoc {
+  const copia = structuredClone(doc) as PlantillaVisualDoc;
+  copia.id = nuevoId();
+  const baseNombre = (doc.nombre || "Plantilla").trim() || "Plantilla";
+  copia.nombre = (nombre?.trim() || `Copia de ${baseNombre}`).slice(0, 120);
+  delete copia.created_at;
+  delete copia.updated_at;
+
+  const groupMap = new Map<string, string>();
+  copia.elementos = doc.elementos.map((el) => {
+    const clon = structuredClone(el) as ElementoVisual;
+    clon.id = nuevoId();
+    if (clon.groupId) {
+      let gid = groupMap.get(clon.groupId);
+      if (!gid) {
+        gid = nuevoGroupId();
+        groupMap.set(el.groupId!, gid);
+      }
+      clon.groupId = gid;
+    }
+    return clon;
+  });
+  return copia;
+}
+
 export const FUENTE_MONTSERRAT_FAMILY = '"Montserrat", system-ui, sans-serif';
 
 export type MontserratVariant =
@@ -737,4 +766,18 @@ export function seleccionTieneGrupo(
   ids: string[],
 ): boolean {
   return ids.some((id) => elementos.find((e) => e.id === id)?.groupId);
+}
+
+/** Tras guardar: solo metadatos del servidor; geometría y capas quedan como en el lienzo. */
+export function fusionarMetadatosPlantillaTrasGuardar(
+  local: PlantillaVisualDoc,
+  servidor: PlantillaVisualDoc,
+): PlantillaVisualDoc {
+  return {
+    ...local,
+    id: servidor.id || local.id,
+    nombre: servidor.nombre ?? local.nombre,
+    created_at: servidor.created_at ?? local.created_at,
+    updated_at: servidor.updated_at ?? local.updated_at,
+  };
 }

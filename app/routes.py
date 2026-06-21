@@ -3224,8 +3224,93 @@ def register_routes(app):
         lines, count = get_lines_with_count(limit)
         return jsonify({"lines": lines, "count": count})
 
-    # ── Fichas técnicas (generación DOCX/PDF + Drive) ─────────────────────────
+    def _titulo_documento_datos(datos: dict | None) -> str:
+        if not isinstance(datos, dict):
+            return ""
+        return (
+            (datos.get("titulo") or "")
+            or (datos.get("nombre_producto") or "")
+        ).strip()
 
+    # ── Fichas técnicas (generación DOCX/PDF + Drive) ─────────────────────────
+    # Duplicar bajo /app/api/…: /app/<path> del SPA solo acepta GET/HEAD (evita HTTP 405).
+
+    @app.route("/app/api/fichas/opciones", methods=["GET"])
+    @app.route("/api/fichas/opciones", methods=["GET"])
+    def api_fichas_opciones():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import opciones_generacion_ficha
+
+        return jsonify(opciones_generacion_ficha())
+
+    @app.route("/app/api/fichas/cabezotes/<cabezote_id>/imagen", methods=["GET"])
+    @app.route("/api/fichas/cabezotes/<cabezote_id>/imagen", methods=["GET"])
+    def api_fichas_cabezote_imagen(cabezote_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from flask import send_file
+        from app.services.ficha_tecnica import ruta_cabezote_segura
+
+        path = ruta_cabezote_segura(cabezote_id)
+        if not path:
+            return jsonify({"error": "Cabezote no encontrado"}), 404
+        mime = {
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+            ".webp": "image/webp",
+        }.get(path.suffix.lower(), "application/octet-stream")
+        return send_file(path, mimetype=mime, as_attachment=False, download_name=path.name)
+
+    @app.route("/app/api/fichas/cabezotes/subir", methods=["POST"])
+    @app.route("/api/fichas/cabezotes/subir", methods=["POST"])
+    def api_fichas_cabezote_subir():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        archivo = request.files.get("archivo") or request.files.get("file")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe una imagen en el campo multipart «archivo»"}), 400
+        nombre = (request.form.get("nombre") or "").strip() or None
+        try:
+            from app.services.ficha_tecnica import guardar_cabezote_subido
+
+            item = guardar_cabezote_subido(archivo, nombre=nombre)
+            return jsonify({"ok": True, "cabezote": item})
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/app/api/fichas/cabezotes/<cabezote_id>/eliminar", methods=["DELETE"])
+    @app.route("/api/fichas/cabezotes/<cabezote_id>/eliminar", methods=["DELETE"])
+    def api_fichas_cabezote_eliminar(cabezote_id: str):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.services.ficha_tecnica import (
+                CABEZOTES_DIR, _slug_seguro, _CABEZOTE_EXTS, CABEZOTE_DEFAULT_ID
+            )
+            slug = _slug_seguro(cabezote_id)
+            if not slug or slug == CABEZOTE_DEFAULT_ID:
+                return jsonify({"error": "No se puede eliminar el cabezote por defecto"}), 400
+            eliminado = False
+            for ext in _CABEZOTE_EXTS:
+                p = (CABEZOTES_DIR / f"{slug}{ext}").resolve()
+                try:
+                    p.relative_to(CABEZOTES_DIR.resolve())
+                except ValueError:
+                    continue
+                if p.is_file():
+                    p.unlink()
+                    eliminado = True
+            if not eliminado:
+                return jsonify({"error": "Cabezote no encontrado"}), 404
+            return jsonify({"ok": True})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/app/api/fichas/config", methods=["GET"])
     @app.route("/api/fichas/config", methods=["GET"])
     def api_fichas_config():
         if not _api_token_valido():
@@ -3237,6 +3322,7 @@ def register_routes(app):
         cfg["plantilla"] = str(PLANTILLA_DEFAULT)
         return jsonify(cfg)
 
+    @app.route("/app/api/fichas/datos", methods=["GET"])
     @app.route("/api/fichas/datos", methods=["GET"])
     def api_fichas_datos_list():
         if not _api_token_valido():
@@ -3245,6 +3331,7 @@ def register_routes(app):
 
         return jsonify({"items": listar_yaml_datos()})
 
+    @app.route("/app/api/fichas/datos/<slug>", methods=["GET"])
     @app.route("/api/fichas/datos/<slug>", methods=["GET"])
     def api_fichas_datos_get(slug: str):
         if not _api_token_valido():
@@ -3265,6 +3352,7 @@ def register_routes(app):
                 })
         return jsonify({"error": "No encontrado"}), 404
 
+    @app.route("/app/api/fichas/plantilla", methods=["GET"])
     @app.route("/api/fichas/plantilla", methods=["GET"])
     def api_fichas_plantilla():
         if not _api_token_valido():
@@ -3278,73 +3366,145 @@ def register_routes(app):
             "yaml": yaml.dump(datos, allow_unicode=True, sort_keys=False),
         })
 
+    @app.route("/app/api/fichas/generar", methods=["POST"])
     @app.route("/api/fichas/generar", methods=["POST"])
     def api_fichas_generar():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        import yaml as _yaml
-
         body = request.get_json(silent=True) or {}
         datos = body.get("datos")
-        yaml_raw = body.get("yaml")
-        if yaml_raw and isinstance(yaml_raw, str):
-            try:
-                datos = _yaml.safe_load(yaml_raw) or {}
-            except Exception as exc:
-                return jsonify({"error": f"YAML inválido: {exc}"}), 400
-        if not isinstance(datos, dict) or not (datos.get("titulo") or "").strip():
-            return jsonify({"error": "Se requiere 'datos' o 'yaml' con al menos 'titulo'"}), 400
-        generar_pdf = bool(body.get("generar_pdf", True))
-        subir_drive = bool(body.get("subir_drive", False))
-        guardar_yaml = body.get("guardar_yaml")
-        slug_yaml = body.get("slug_yaml")
+        if not isinstance(datos, dict) or not _titulo_documento_datos(datos):
+            return jsonify({"error": "Se requiere 'datos' con al menos 'titulo' o 'nombre_producto'"}), 400
         try:
             from app.panel_activity import log_line
-            from app.services.ficha_tecnica import generar_desde_datos
+            from app.services.ficha_tecnica import generar_pdf_html
 
-            titulo = (datos.get("titulo") or "").strip()
-            log_line(f"HTTP fichas/generar: {titulo[:80]!r} pdf={generar_pdf} drive={subir_drive}")
-            resultado = generar_desde_datos(
-                datos,
-                generar_pdf=generar_pdf,
-                subir_drive=subir_drive,
-                guardar_yaml=slug_yaml if guardar_yaml else None,
-            )
-            log_line(f"✔ ficha generada: {resultado.get('docx_nombre')}")
-            ref = (
-                (datos.get("referencia") or "")
-                or body.get("producto_ref")
-                or ""
-            ).strip()
-            if subir_drive and ref:
-                from app.services.documentos_catalogo import registrar_documento_generado
-
-                for up in resultado.get("drive_uploads") or []:
-                    if up.get("webViewLink") and up.get("tipo") == "pdf":
-                        registrar_documento_generado(
-                            ref,
-                            "ft",
-                            up,
-                            nombre_producto=titulo,
-                        )
+            titulo = _titulo_documento_datos(datos)
+            log_line(f"HTTP fichas/generar: {titulo[:80]!r}")
+            resultado = generar_pdf_html(datos, cabezote_id=body.get("cabezote_id"))
+            log_line(f"✔ ficha PDF: {resultado.get('pdf_nombre')}")
             return jsonify(resultado)
         except Exception as e:
             from app.panel_activity import log_line
-
             log_line(f"✖ fichas/generar: {e!r}")
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/fichas/preview", methods=["POST"])
     @app.route("/api/fichas/preview", methods=["POST"])
     def api_fichas_preview():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
         body = request.get_json(silent=True) or {}
-        datos, err = _api_doc_body_datos(body)
-        if err:
-            return err
-        return _api_doc_preview("fichas", datos)
+        datos = body.get("datos")
+        if not isinstance(datos, dict) or not _titulo_documento_datos(datos):
+            return jsonify({"error": "Se requiere 'datos' con al menos 'titulo' o 'nombre_producto'"}), 400
+        try:
+            from app.panel_activity import log_line
+            from app.services.ficha_tecnica import generar_pdf_html
 
-    @app.route("/api/fichas/descargar")
+            titulo = _titulo_documento_datos(datos)
+            log_line(f"HTTP fichas/preview: {titulo[:80]!r}")
+            resultado = generar_pdf_html(datos, cabezote_id=body.get("cabezote_id"))
+            if resultado.get("pdf_nombre"):
+                resultado["preview_pdf"] = f"/api/fichas/descargar?archivo={resultado['pdf_nombre']}&inline=1"
+            return jsonify(resultado)
+        except Exception as e:
+            from app.panel_activity import log_line
+            log_line(f"✖ fichas/preview: {e!r}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/biblioteca", methods=["GET"])
+    @app.route("/api/fichas/biblioteca", methods=["GET"])
+    def api_fichas_biblioteca():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import listar_archivos_generados
+        return jsonify({"archivos": listar_archivos_generados()})
+
+    @app.route("/app/api/fichas/biblioteca/descargar", methods=["GET"])
+    @app.route("/api/fichas/biblioteca/descargar", methods=["GET"])
+    def api_fichas_biblioteca_descargar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import ruta_archivo_biblioteca_segura
+        nombre = request.args.get("archivo", "").strip()
+        inline = request.args.get("inline", "").lower() in ("1", "true", "yes")
+        path = ruta_archivo_biblioteca_segura(nombre)
+        if not path:
+            return jsonify({"error": "Archivo no encontrado"}), 404
+        return _send_archivo_doc(path, inline=inline)
+
+    @app.route("/app/api/fichas/biblioteca/eliminar", methods=["DELETE"])
+    @app.route("/api/fichas/biblioteca/eliminar", methods=["DELETE"])
+    def api_fichas_biblioteca_eliminar():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.ficha_tecnica import ruta_archivo_biblioteca_segura
+        nombre = request.args.get("archivo", "").strip()
+        path = ruta_archivo_biblioteca_segura(nombre)
+        if not path:
+            return jsonify({"error": "Archivo no encontrado o no permitido"}), 404
+        try:
+            path.unlink()
+            return jsonify({"ok": True})
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/app/api/fichas/biblioteca/datos", methods=["GET"])
+    @app.route("/api/fichas/biblioteca/datos", methods=["GET"])
+    def api_fichas_biblioteca_datos():
+        """Devuelve los datos YAML guardados para un archivo de la biblioteca."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        import unicodedata as _ud
+        import yaml as _yaml
+        from app.services.ficha_tecnica import (
+            ruta_archivo_biblioteca_segura, DATOS_DIR, cargar_datos_desde_archivo, _normalizar
+        )
+        nombre = request.args.get("archivo", "").strip()
+        path = ruta_archivo_biblioteca_segura(nombre)
+        if not path:
+            return jsonify({"error": "Archivo no encontrado"}), 404
+
+        base = path.stem  # ej. "FT ACEITE DE ARGAN" o "COA-ALOE-VERA"
+        if re.match(r"^FT\s+", base, re.I):
+            tipo = "ft"
+            titulo = re.sub(r"^FT\s+", "", base, flags=re.I).strip()
+        elif re.match(r"^COA[-\s]", base, re.I):
+            tipo = "coa"
+            titulo = re.sub(r"^COA[-\s]", "", base, flags=re.I).replace("-", " ").strip()
+        elif re.match(r"^SDS[-\s]", base, re.I):
+            tipo = "sds"
+            titulo = re.sub(r"^SDS[-\s]", "", base, flags=re.I).replace("-", " ").strip()
+        else:
+            tipo = "ft"
+            titulo = base
+
+        slug = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo)).strip("_") or "producto"
+        datos = None
+        prefixes = [slug] if tipo == "ft" else [f"{tipo}_{slug}", slug]
+        for prefix in prefixes:
+            for ext in (".yaml", ".yml"):
+                yaml_path = DATOS_DIR / f"{prefix}{ext}"
+                if yaml_path.is_file():
+                    datos = cargar_datos_desde_archivo(yaml_path)
+                    break
+            if datos:
+                break
+
+        if not datos:
+            datos = {"titulo": titulo}
+
+        return jsonify({
+            "tipo": tipo,
+            "titulo": titulo,
+            "datos": datos,
+            "yaml": _yaml.dump(datos, allow_unicode=True, sort_keys=False),
+            "tiene_datos": len(datos) > 1,
+        })
+
+    @app.route("/app/api/fichas/descargar", methods=["GET"])
+    @app.route("/api/fichas/descargar", methods=["GET"])
     def api_fichas_descargar():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -3370,7 +3530,7 @@ def register_routes(app):
             )
         return send_file(path, as_attachment=True, download_name=path.name)
 
-    def _api_doc_preview(modulo: str, datos: dict) -> tuple:
+    def _api_doc_preview(modulo: str, datos: dict, **ficha_kwargs) -> tuple:
         try:
             from app.panel_activity import log_line
 
@@ -3383,12 +3543,11 @@ def register_routes(app):
 
             titulo = (datos.get("titulo") or "").strip()
             log_line(f"HTTP {modulo}/preview: {titulo[:80]!r}")
-            resultado = generar(
-                datos,
-                generar_pdf=True,
-                subir_drive=False,
-                guardar_yaml=None,
-            )
+            kwargs = {"generar_pdf": True, "subir_drive": False, "guardar_yaml": None}
+            if modulo == "fichas":
+                kwargs["plantilla_id"] = ficha_kwargs.get("plantilla_id")
+                kwargs["cabezote_id"] = ficha_kwargs.get("cabezote_id")
+            resultado = generar(datos, **kwargs)
             pdf = resultado.get("pdf_nombre")
             docx = resultado.get("docx_nombre")
             if pdf:
@@ -3412,8 +3571,8 @@ def register_routes(app):
                 datos = _yaml.safe_load(yaml_raw) or {}
             except Exception as exc:
                 return None, (jsonify({"error": f"YAML inválido: {exc}"}), 400)
-        if not isinstance(datos, dict) or not (datos.get("titulo") or "").strip():
-            return None, (jsonify({"error": "Se requiere 'datos' o 'yaml' con al menos 'titulo'"}), 400)
+        if not isinstance(datos, dict) or not _titulo_documento_datos(datos):
+            return None, (jsonify({"error": "Se requiere 'datos' o 'yaml' con al menos 'titulo' o 'nombre_producto'"}), 400)
         return datos, None
 
     # ── Catálogo documentación por producto (combos SIIGO) ────────────────────
@@ -3753,6 +3912,26 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/app/api/fichas/sugerir-campo", methods=["POST"])
+    @app.route("/api/fichas/sugerir-campo", methods=["POST"])
+    def api_fichas_sugerir_campo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        campo = (body.get("campo") or "").strip()
+        nombre = (body.get("nombre") or body.get("nombre_producto") or body.get("titulo") or "").strip()
+        if not campo or not nombre:
+            return jsonify({"error": "Se requiere 'campo' y 'nombre' del producto"}), 400
+        try:
+            from app.services.documento_cientifico import sugerir_campo_ficha
+
+            return jsonify(sugerir_campo_ficha(campo, nombre))
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/app/api/fichas/completar", methods=["POST"])
     @app.route("/api/fichas/completar", methods=["POST"])
     def api_fichas_completar():
         if not _api_token_valido():
@@ -4363,6 +4542,7 @@ def register_routes(app):
         })
 
     @app.route("/api/facturas/escanear", methods=["POST"])
+    @app.route("/app/api/facturas/escanear", methods=["POST"])
     def api_facturas_escanear():
         """Escanea Gmail y encola facturas para revisión humana en el panel."""
         if not _api_token_valido():
@@ -4407,7 +4587,37 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/facturas/historial", methods=["GET"])
+    @app.route("/app/api/facturas/historial", methods=["GET"])
+    def api_facturas_historial():
+        """Facturas de compra ya procesadas (inventario, gasto u omitidas)."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import listar_historial_facturas
+            limit = int(request.args.get("limit", 100) or 100)
+            accion = (request.args.get("accion") or "").strip()
+            q = (request.args.get("q") or "").strip()
+            return jsonify(listar_historial_facturas(limit=limit, accion=accion or None, q=q or None))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/facturas/historial/<registro_id>", methods=["GET"])
+    @app.route("/app/api/facturas/historial/<registro_id>", methods=["GET"])
+    def api_factura_historial_detalle(registro_id):
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import obtener_registro_historial
+            registro = obtener_registro_historial(registro_id)
+            if not registro:
+                return jsonify({"error": "Registro no encontrado"}), 404
+            return jsonify(registro)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/facturas/clasificar", methods=["POST"])
+    @app.route("/app/api/facturas/clasificar", methods=["POST"])
     def api_facturas_clasificar():
         """Acción rápida: solo gasto o skip (sin revisión de ítems)."""
         if not _api_token_valido():
@@ -4423,7 +4633,7 @@ def register_routes(app):
             if cmd not in ("skip", "gasto"):
                 return jsonify({"error": "cmd debe ser: gasto | skip  (inventario usa /procesar)"}), 400
             log_line(f"▶ clasificar_factura {sufijo} → {cmd}")
-            resultado = procesar_respuesta_factura_compra(cmd, sufijo)
+            resultado = procesar_respuesta_factura_compra(cmd, sufijo, origen='panel')
             icon = "✔" if any(c in resultado for c in ("✅", "⏭️")) else "⚠️"
             log_line(f"{icon} {resultado[:300]}")
             return jsonify({"ok": True, "mensaje": resultado})
@@ -4448,6 +4658,7 @@ def register_routes(app):
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/facturas/codigo/check", methods=["POST"])
+    @app.route("/app/api/facturas/codigo/check", methods=["POST"])
     def api_factura_codigo_check():
         """Valida un código SIIGO manual y retorna si ya existe."""
         if not _api_token_valido():
@@ -4464,7 +4675,44 @@ def register_routes(app):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/facturas/<sufijo>/crear-productos", methods=["POST"])
+    @app.route("/app/api/facturas/<sufijo>/crear-productos", methods=["POST"])
+    def api_factura_crear_productos(sufijo):
+        """Crea en SIIGO uno o más productos nuevos de una factura pendiente."""
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        try:
+            from app.tools.importar_productos_siigo import crear_productos_factura_en_siigo
+            from app.panel_activity import log_line
+            body = request.get_json(silent=True) or {}
+            indices = body.get("indices", [])
+            codigos_manual = body.get("codigos_manual", {})
+            if not isinstance(indices, list) or not indices:
+                return jsonify({"error": "'indices' debe ser una lista no vacía"}), 400
+            if not isinstance(codigos_manual, dict):
+                return jsonify({"error": "'codigos_manual' debe ser un objeto"}), 400
+            log_line(f"▶ crear_productos_siigo {sufijo.upper()} — ítems {indices}")
+            resultado = crear_productos_factura_en_siigo(
+                sufijo.upper(), indices, codigos_manual
+            )
+            if resultado.get('creados'):
+                log_line(
+                    f"✔ crear_productos_siigo {sufijo.upper()} — "
+                    f"{len(resultado.get('creados', []))} creado(s)"
+                )
+            elif resultado.get('errores'):
+                log_line(
+                    f"✖ crear_productos_siigo {sufijo.upper()} — "
+                    f"{resultado['errores'][0].get('error', '')}"
+                )
+            return jsonify(resultado)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/facturas/<sufijo>/procesar", methods=["POST"])
+    @app.route("/app/api/facturas/<sufijo>/procesar", methods=["POST"])
     def api_factura_procesar(sufijo):
         """Procesa ítems seleccionados como inventario: genera Excel + XML, envía reporte WA."""
         if not _api_token_valido():

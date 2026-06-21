@@ -66,17 +66,24 @@ def obtener_plantilla(pid: str) -> dict | None:
     return None
 
 
+def _copia_fiel_json(val: Any) -> Any:
+    """Copia profunda sin alterar números ni orden de capas."""
+    return json.loads(json.dumps(val, ensure_ascii=False))
+
+
 def guardar_plantilla(body: dict) -> dict:
     pid = (body.get("id") or "").strip() or uuid.uuid4().hex[:12]
     nombre = (body.get("nombre") or "").strip() or "Sin título"
     now = _now()
+    formato = body.get("formato")
+    elementos = body.get("elementos")
     entry = {
         "id": pid,
         "nombre": nombre,
         "categoria": (body.get("categoria") or "general").strip(),
-        "formato": body.get("formato") or {},
+        "formato": _copia_fiel_json(formato) if isinstance(formato, dict) else {},
         "fondo": body.get("fondo") or "#ffffff",
-        "elementos": body.get("elementos") or [],
+        "elementos": _copia_fiel_json(elementos) if isinstance(elementos, list) else [],
         "created_at": body.get("created_at") or now,
         "updated_at": now,
     }

@@ -514,6 +514,55 @@ def _fetch_meli_active_items_for_photos(token: str) -> list[dict]:
     return items
 
 
+def _meli_ids_por_skus(token: str, skus: list[str]) -> dict[str, str]:
+    """Mapa SKU SIIGO → item_id MeLi (activa o pausada), solo coincidencia exacta por seller_sku."""
+    if not token or not skus:
+        return {}
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        me = requests.get("https://api.mercadolibre.com/users/me", headers=headers, timeout=12)
+        if me.status_code != 200:
+            return {}
+        seller_id = me.json().get("id")
+    except Exception as e:
+        log.warning("MeLi IDs por SKU: no se pudo consultar seller: %s", e)
+        return {}
+
+    out: dict[str, str] = {}
+    for sku in skus:
+        code_u = (sku or "").strip().upper()
+        if not code_u:
+            continue
+        if code_u in out:
+            continue
+        variants: list[str] = []
+        for v in (sku, code_u, (sku or "").lower()):
+            if v and v not in variants:
+                variants.append(v)
+        for variant in variants:
+            for status in ("active", "paused"):
+                try:
+                    res = requests.get(
+                        f"https://api.mercadolibre.com/users/{seller_id}/items/search",
+                        params={"seller_sku": variant, "status": status},
+                        headers=headers,
+                        timeout=12,
+                    )
+                    if res.status_code != 200:
+                        continue
+                    ids = res.json().get("results") or []
+                    if ids:
+                        out[code_u] = str(ids[0])
+                        if (sku or "").strip() and sku not in out:
+                            out[(sku or "").strip()] = str(ids[0])
+                        break
+                except Exception:
+                    pass
+            if code_u in out:
+                break
+    return out
+
+
 def fetch_meli_combo_photo_map(token: str, combos: list[dict]) -> dict[str, dict]:
     """
     Retorna {SKU combo SIIGO: {photo, meli_id, match_type, score}}.
@@ -1637,6 +1686,11 @@ def leer_catalogo() -> tuple[list, list]:
     token = get_meli_token()
     photo_map = fetch_meli_combo_photo_map(token, combo_flat)
     siigo_photo_overrides = _load_siigo_photo_overrides()
+    skus_siigo_foto = [
+        c["ref"] for c in combo_flat
+        if (c.get("ref") or "").upper() in siigo_photo_overrides
+    ]
+    meli_id_by_sku = _meli_ids_por_skus(token, skus_siigo_foto)
 
     families_by_cat: dict[str, list] = defaultdict(list)
     used_slugs: set[str] = set()
@@ -1645,9 +1699,15 @@ def leer_catalogo() -> tuple[list, list]:
         siigo_photo = siigo_photo_overrides.get(code_u, "")
         if siigo_photo:
             combo["photo"] = siigo_photo
-            combo["meli_id"] = ""
             combo["photo_match_type"] = "siigo"
             combo["photo_match_score"] = 100.0
+            photo = photo_map.get(code_u) or {}
+            if photo.get("match_type") in ("sku", "sku_alias"):
+                combo["meli_id"] = photo.get("meli_id", "")
+            else:
+                combo["meli_id"] = meli_id_by_sku.get(code_u, "") or meli_id_by_sku.get(
+                    combo["ref"], "",
+                )
         elif code_u in SIIGO_PHOTO_REQUIRED_SKUS:
             combo["photo"] = ""
             combo["meli_id"] = ""

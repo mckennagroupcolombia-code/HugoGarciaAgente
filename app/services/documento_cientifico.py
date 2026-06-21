@@ -311,3 +311,284 @@ def completar_datos_documento(
             "referencias": list(dict.fromkeys((fuentes.get("referencias") or []) + refs_ia))[:20],
         },
     }
+
+
+def _sintetizar_texto(prompt: str) -> str:
+    api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("GOOGLE_API_KEY no configurada (requerida para sugerencias IA)")
+    try:
+        from google import genai
+
+        client = genai.Client(api_key=api_key)
+        resp = client.models.generate_content(model="gemini-2.5-pro", contents=prompt)
+        text = (resp.text or "").strip()
+        text = re.sub(r"^```[\w]*\n?", "", text)
+        text = re.sub(r"\n?```$", "", text)
+        return text.strip()
+    except Exception as exc:
+        raise RuntimeError(f"Gemini no generó sugerencia: {exc}") from exc
+
+
+def _get_pubchem_cid(nombre: str) -> str | None:
+    """CID de PubChem para un nombre de compuesto."""
+    url = (
+        "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/"
+        f"{requests.utils.quote(nombre)}/cids/JSON"
+    )
+    try:
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            cids = r.json().get("IdentifierList", {}).get("CID", [])
+            return str(cids[0]) if cids else None
+    except Exception:
+        pass
+    return None
+
+
+def _extraer_textos_pug(nodo, buf: list | None = None, limite: int = 8) -> list[str]:
+    """Extrae cadenas de texto de la respuesta jerárquica PUG View."""
+    if buf is None:
+        buf = []
+    if len(buf) >= limite:
+        return buf
+    if isinstance(nodo, dict):
+        if "StringWithMarkup" in nodo:
+            for swm in nodo["StringWithMarkup"]:
+                s = (swm.get("String") or "").strip()
+                if s and s not in buf:
+                    buf.append(s)
+                if len(buf) >= limite:
+                    break
+        elif "Number" in nodo:
+            unit = nodo.get("Unit", "")
+            for num in nodo.get("Number", []):
+                t = f"{num} {unit}".strip()
+                if t and t not in buf:
+                    buf.append(t)
+                if len(buf) >= limite:
+                    break
+        else:
+            for v in nodo.values():
+                _extraer_textos_pug(v, buf, limite)
+    elif isinstance(nodo, list):
+        for item in nodo:
+            _extraer_textos_pug(item, buf, limite)
+    return buf
+
+
+def _pug_view(cid: str, heading: str) -> list[str]:
+    """Valores de una sección específica del PUG View para un CID."""
+    url = (
+        f"https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/{cid}/JSON"
+        f"?heading={requests.utils.quote(heading)}"
+    )
+    try:
+        r = requests.get(url, timeout=14)
+        if r.status_code == 200:
+            return _extraer_textos_pug(r.json())[:5]
+    except Exception:
+        pass
+    return []
+
+
+def _sinonimos_pubchem(nombre: str, cid: str | None = None) -> list[str]:
+    """Lista de sinónimos de PubChem."""
+    if not cid:
+        cid = _get_pubchem_cid(nombre)
+    if not cid:
+        return []
+    url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/{cid}/synonyms/JSON"
+    try:
+        r = requests.get(url, timeout=12)
+        if r.status_code == 200:
+            info = r.json().get("InformationList", {}).get("Information", [])
+            return list(info[0].get("Synonym", []))[:5] if info else []
+    except Exception:
+        pass
+    return []
+
+
+_CAMPOS_PERMITIDOS = {
+    "sinonimos", "cas", "descripcion",
+    "apariencia", "punto_fusion", "indice_saponificacion", "ph", "olor",
+    "formula_quimica", "solubilidad", "humedad", "inercia_quimica",
+    "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
+    "recomendaciones",
+}
+
+_PROMPT_BASE = (
+    'Eres especialista en materias primas farmacéuticas y cosméticas de McKenna Group S.A.S. (Bogotá, Colombia). '
+    'Responde en español técnico, sin saludos, sin markdown, sin títulos.'
+)
+
+
+def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
+    """Sugerencia IA para cualquier campo del formulario de ficha técnica.
+    Usa PubChem PUG REST/View como fuente primaria; Gemini como síntesis."""
+    nombre = (nombre or "").strip()
+    if not nombre:
+        raise ValueError("Se requiere nombre del producto")
+
+    campo = (campo or "").strip().lower()
+    if campo not in _CAMPOS_PERMITIDOS:
+        raise ValueError(f"Campo no soportado: {campo}")
+
+    # ── 1. PubChem: CID + propiedades básicas ────────────────────────────────
+    pc = buscar_pubchem(nombre)
+    cid = _get_pubchem_cid(nombre)
+
+    # ── 2. Respuestas directas desde PubChem (sin Gemini) ───────────────────
+    if campo == "cas":
+        if pc.get("cas"):
+            return {"ok": True, "campo": campo, "valor": pc["cas"], "origen": "pubchem"}
+        # fallback Gemini
+        valor = _sintetizar_texto(
+            f'{_PROMPT_BASE}\nIndica el número CAS principal del compuesto "{nombre}".\n'
+            "Responde SOLO con el número CAS (formato 0000-00-0) o \"No aplica\"."
+        )
+        m = re.search(r"\d{2,7}-\d{2}-\d", valor)
+        return {"ok": True, "campo": campo, "valor": m.group(0) if m else valor.strip(), "origen": "gemini"}
+
+    if campo == "formula_quimica":
+        if pc.get("formula_molecular"):
+            return {"ok": True, "campo": campo, "valor": pc["formula_molecular"], "origen": "pubchem"}
+        if cid:
+            vals = _pug_view(cid, "Molecular Formula")
+            if vals:
+                return {"ok": True, "campo": campo, "valor": vals[0], "origen": "pubchem"}
+        valor = _sintetizar_texto(
+            f'{_PROMPT_BASE}\nIndica la fórmula química molecular de "{nombre}".\n'
+            "Responde SOLO con la fórmula (ej. C6H12O6) o \"No aplica\"."
+        )
+        return {"ok": True, "campo": campo, "valor": valor.split("\n")[0].strip(), "origen": "gemini"}
+
+    if campo == "sinonimos":
+        sinon = _sinonimos_pubchem(nombre, cid) if cid else []
+        if sinon:
+            valor = "; ".join(sinon[:5])
+            return {"ok": True, "campo": campo, "valor": valor, "origen": "pubchem"}
+        # Fallback Gemini
+        ctx = (recopilar_fuentes(nombre).get("contexto") or "")[:2500]
+        valor = _sintetizar_texto(
+            f'{_PROMPT_BASE}\nLista sinónimos, nombres INCI, nombres químicos y comerciales de "{nombre}".\n'
+            f'EVIDENCIA:\n{ctx or "(sin fuentes)"}\n'
+            "Una línea por sinónimo o separados por punto y coma."
+        )
+        return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
+
+    # ── 3. Campos físico-químicos vía PUG View ───────────────────────────────
+    _PUG_MAP: dict[str, list[str]] = {
+        "apariencia":   ["Physical Description", "Color/Form", "Color Form"],
+        "olor":         ["Odor"],
+        "punto_fusion": ["Melting Point"],
+        "solubilidad":  ["Solubility"],
+        "ph":           ["pH"],
+    }
+    if campo in _PUG_MAP and cid:
+        for heading in _PUG_MAP[campo]:
+            vals = _pug_view(cid, heading)
+            if vals:
+                valor = "; ".join(vals[:3])
+                return {"ok": True, "campo": campo, "valor": valor, "origen": "pubchem"}
+
+    # ── 4. Contexto enriquecido para Gemini ──────────────────────────────────
+    fuentes = recopilar_fuentes(nombre)
+    ctx = (fuentes.get("contexto") or "")[:3500]
+    pc_info = ", ".join(f"{k}={v}" for k, v in pc.items() if v and k != "fuente_pubchem") if pc else ""
+
+    _PROMPTS: dict[str, str] = {
+        "descripcion": (
+            f'Redacta una descripción técnica (80-130 palabras) de "{nombre}" para ficha técnica McKenna Group.\n'
+            "Énfasis obligatorio: origen, modo de obtención, proceso de extracción/síntesis y estado físico.\n"
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Tono técnico. Sin saludo, sin markdown."
+        ),
+        "apariencia": (
+            f'Describe brevemente la apariencia física de "{nombre}" (color, forma, estado).\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Responde en UNA línea concisa. Sin markdown."
+        ),
+        "punto_fusion": (
+            f'Indica el punto de fusión o rango de fusión de "{nombre}" con sus unidades (°C o °F).\n'
+            f"PubChem: {pc_info or 'sin datos'}\n"
+            "Responde en UNA línea (ej. 58-62 °C). Sin markdown."
+        ),
+        "indice_saponificacion": (
+            f'Indica el índice de saponificación de "{nombre}" (mg KOH/g).\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Responde en UNA línea con el valor y unidad. Si no aplica escribe \"No aplica\"."
+        ),
+        "ph": (
+            f'Indica el pH o rango de pH de "{nombre}" en solución acuosa.\n'
+            f"PubChem: {pc_info or 'sin datos'}\n"
+            "Responde en UNA línea (ej. 4.5-6.0 en sol. 10%). Sin markdown."
+        ),
+        "olor": (
+            f'Describe el olor característico de "{nombre}".\n'
+            f"PubChem: {pc_info or 'sin datos'}\n"
+            "Responde en UNA línea concisa. Sin markdown."
+        ),
+        "solubilidad": (
+            f'Describe la solubilidad de "{nombre}" en agua y solventes orgánicos.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Responde en UNA o dos líneas concisas. Sin markdown."
+        ),
+        "humedad": (
+            f'Indica el contenido máximo de humedad permitido para "{nombre}" según especificaciones típicas.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Responde en UNA línea (ej. ≤ 5.0%). Sin markdown."
+        ),
+        "inercia_quimica": (
+            f'Describe la inercia química o estabilidad química de "{nombre}": incompatibilidades, reactividad, condiciones a evitar.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Responde en 1-2 líneas técnicas. Sin markdown."
+        ),
+        "modo_uso": (
+            f'Redacta el modo de uso recomendado de "{nombre}" en formulaciones farmacéuticas o cosméticas.\n'
+            f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Incluye: concentración típica, forma de incorporación, temperatura, orden de adición. "
+            "2-4 oraciones técnicas. Sin markdown."
+        ),
+        "propiedades_lista": (
+            f'Lista los principales beneficios de "{nombre}" como materia prima para formulaciones farmacéuticas y cosméticas.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Formato ESTRICTO: un beneficio por línea como \"Nombre del beneficio|Descripción breve\".\n"
+            "Ejemplo:\nEmoliente|Suaviza y acondiciona la piel\nAntioxidante|Protege frente al estrés oxidativo\n"
+            "Sin markdown, sin numeración."
+        ),
+        "aplicaciones": (
+            f'Lista las principales aplicaciones de "{nombre}" en la industria farmacéutica y cosmética.\n'
+            f"EVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Una aplicación por línea, frases cortas y directas. Sin numeración, sin guiones, sin markdown."
+        ),
+        "recomendaciones": (
+            f'Genera recomendaciones de manejo seguro para "{nombre}" siguiendo el Sistema Globalmente Armonizado (GHS/SGA).\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Formato ESTRICTO: una línea por categoría, empezando con el nombre de la categoría en mayúsculas seguido de dos puntos.\n"
+            "Categorías requeridas (solo las que apliquen):\n"
+            "SEÑAL DE PELIGRO: Peligro / Advertencia / Sin peligro\n"
+            "INDICACIONES H: [códigos H y descripción]\n"
+            "PREVENCIÓN: [medidas P de prevención]\n"
+            "RESPUESTA: [medidas P de respuesta ante emergencia]\n"
+            "ALMACENAMIENTO: [condiciones seguras de almacenamiento; referirse siempre a EMPAQUE, nunca a envase]\n"
+            "ELIMINACIÓN: [disposición de residuos; referirse siempre a EMPAQUE, nunca a envase]\n"
+            "PRIMEROS AUXILIOS: [inhalación / contacto piel / contacto ocular / ingestión]\n"
+            "EPP REQUERIDO: [equipos de protección personal]\n"
+            "Sin markdown, sin viñetas, sin saludo."
+        ),
+        "composicion": (
+            f'Indica la composición típica de "{nombre}" con sus componentes y porcentajes o concentraciones.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Formato ESTRICTO: una fila por línea como \"Componente|Porcentaje\".\n"
+            "Ejemplo:\nIllita|75% ± 5\nCaolinita|15% ± 3\nCuarzo|Trazas\n"
+            "Sin markdown, sin encabezados."
+        ),
+    }
+
+    prompt_texto = _PROMPTS.get(campo)
+    if not prompt_texto:
+        raise ValueError(f"Campo no tiene prompt configurado: {campo}")
+
+    valor = _sintetizar_texto(f"{_PROMPT_BASE}\n{prompt_texto}")
+    return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}

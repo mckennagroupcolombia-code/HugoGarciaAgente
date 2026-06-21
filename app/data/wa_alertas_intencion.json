@@ -40,6 +40,26 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573174923920@c.us": {
+      "jid": "573174923920@c.us",
+      "primer_intencion_ts": 1781979205.0,
+      "primer_intencion_texto": "Para confirmar el pedido porfa y q me puedas enviar a las dos",
+      "ultima_human_ts": 1781980198.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573016213015@c.us": {
+      "jid": "573016213015@c.us",
+      "primer_intencion_ts": 1781987840.0,
+      "primer_intencion_texto": "Hola muy buenas tardes  El seguimiento de mi pedido con guia 700196831701 indica que fue entregado, pero no he recibido el paquete. Por favor, necesito verificar la evidencia de entrega, el nombre de la persona que lo recibió y una solución al inconveniente.",
+      "ultima_human_ts": 1781987841.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }

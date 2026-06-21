@@ -2,8 +2,9 @@ import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
+  duplicarPlantillaVisual,
+  fusionarMetadatosPlantillaTrasGuardar,
   labelFormato,
-  miniaturaLienzoPx,
   plantillaVacia,
   type FormatoCanvas,
   type PlantillaVisualDoc,
@@ -16,9 +17,9 @@ import {
 } from "../../lib/plantillasVisualesExport";
 import { type EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
 import { EtiquetaMckennaPreview } from "../etiquetas/EtiquetaMckennaPreview";
+import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import VisualCanvasEditor from "./VisualCanvasEditor";
-import GenerarRenderIA from "./GenerarRenderIA";
 
 interface ComboSku {
   code: string;
@@ -201,8 +202,6 @@ export default function PlantillasVisualesPanel() {
   const [buscar, setBuscar] = useState("");
   const [mostrarComparar, setMostrarComparar] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [modoIA, setModoIA] = useState(false);
-  const [iaCtx, setIaCtx] = useState<{ formato: FormatoCanvas; categoriaId: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["plantillas-visuales", buscar],
@@ -219,7 +218,11 @@ export default function PlantillasVisualesPanel() {
     mutationFn: (payload: PlantillaVisualDoc) =>
       api.post<{ plantilla: PlantillaVisualDoc }>("/api/plantillas-visuales", payload),
     onSuccess: (res) => {
-      setDoc(res.plantilla);
+      setDoc((prev) =>
+        prev && res.plantilla
+          ? fusionarMetadatosPlantillaTrasGuardar(prev, res.plantilla)
+          : res.plantilla,
+      );
       void qc.invalidateQueries({ queryKey: ["plantillas-visuales"] });
       setMsg("Plantilla guardada ✓");
       setTimeout(() => setMsg(null), 2500);
@@ -234,25 +237,53 @@ export default function PlantillasVisualesPanel() {
 
   const [exportando, setExportando] = useState(false);
   const [guardandoGaleria, setGuardandoGaleria] = useState<"jpeg" | "pdf" | null>(null);
+  const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
+
+  const abrirCopiaGuardada = useCallback(
+    (local: PlantillaVisualDoc, servidor: PlantillaVisualDoc) => {
+      setDoc(fusionarMetadatosPlantillaTrasGuardar(local, servidor));
+      setVista("editor");
+      setMsg("Plantilla duplicada ✓");
+      setTimeout(() => setMsg(null), 2500);
+    },
+    [],
+  );
+
+  const duplicarPlantillaPorId = useCallback(
+    async (id: string) => {
+      setDuplicandoId(id);
+      setMsg(null);
+      try {
+        const res = await api.get<{ plantilla: PlantillaVisualDoc }>(
+          `/api/plantillas-visuales/${id}`,
+        );
+        const copia = duplicarPlantillaVisual(res.plantilla);
+        const saved = await guardarMut.mutateAsync(copia);
+        abrirCopiaGuardada(copia, saved.plantilla);
+      } catch (e) {
+        setMsg(e instanceof Error ? e.message : "No se pudo duplicar la plantilla");
+      } finally {
+        setDuplicandoId(null);
+      }
+    },
+    [abrirCopiaGuardada, guardarMut],
+  );
+
+  const duplicarPlantillaActual = useCallback(() => {
+    if (!doc) return;
+    const copia = duplicarPlantillaVisual(doc);
+    guardarMut.mutate(copia, {
+      onSuccess: (res) => abrirCopiaGuardada(copia, res.plantilla),
+      onError: (e: Error) => setMsg(e.message || "No se pudo duplicar la plantilla"),
+    });
+  }, [abrirCopiaGuardada, doc, guardarMut]);
 
   const abrirNuevo = () => {
-    setModoIA(false);
-    setDoc(null);
-    setVista("formato");
-  };
-
-  const abrirGenerarIA = () => {
-    setModoIA(true);
     setDoc(null);
     setVista("formato");
   };
 
   const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
-    if (modoIA) {
-      setIaCtx({ formato, categoriaId });
-      // Stay in "formato" view but modal will appear
-      return;
-    }
     setDoc(plantillaVacia(formato, categoriaId));
     setVista("editor");
   };
@@ -326,21 +357,8 @@ export default function PlantillasVisualesPanel() {
       <div className="mx-auto max-w-4xl">
         <SelectorFormatoCanvas
           onElegir={elegirFormato}
-          onCancelar={() => { setVista("lista"); setModoIA(false); setIaCtx(null); }}
+          onCancelar={() => setVista("lista")}
         />
-        {iaCtx && (
-          <GenerarRenderIA
-            formato={iaCtx.formato}
-            categoriaId={iaCtx.categoriaId}
-            onGenerar={(doc) => {
-              setDoc(doc);
-              setIaCtx(null);
-              setModoIA(false);
-              setVista("editor");
-            }}
-            onCerrar={() => { setIaCtx(null); setModoIA(false); }}
-          />
-        )}
       </div>
     );
   }
@@ -357,6 +375,7 @@ export default function PlantillasVisualesPanel() {
           doc={doc}
           onChange={setDoc}
           onGuardar={() => guardarMut.mutate(doc)}
+          onDuplicar={duplicarPlantillaActual}
           onVolver={() => {
             setVista("lista");
             setDoc(null);
@@ -364,6 +383,7 @@ export default function PlantillasVisualesPanel() {
           onExportar={exportar}
           onGuardarEnGaleria={guardarEnGaleria}
           guardando={guardarMut.isPending}
+          duplicando={guardarMut.isPending}
           guardandoGaleria={guardandoGaleria}
           exportando={exportando}
         />
@@ -393,13 +413,6 @@ export default function PlantillasVisualesPanel() {
           }`}
         >
           Comparar
-        </button>
-        <button
-          type="button"
-          onClick={abrirGenerarIA}
-          className="rounded-lg border border-accent/50 bg-accent/10 px-4 py-2 text-sm font-semibold text-accent hover:bg-accent/20 dark:border-accent/30"
-        >
-          ✨ Generar con IA
         </button>
         <button
           type="button"
@@ -443,7 +456,6 @@ export default function PlantillasVisualesPanel() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {plantillas.map((p) => {
-            const thumb = miniaturaLienzoPx(p.formato.ancho_px, p.formato.alto_px, 140, 100);
             return (
               <article
                 key={p.id}
@@ -455,30 +467,38 @@ export default function PlantillasVisualesPanel() {
                   className="flex w-full flex-col text-left"
                 >
                   <div className="flex min-h-[120px] items-center justify-center bg-[#525659] p-4">
-                    <div
-                      className="rounded-sm shadow-lg ring-1 ring-black/20 transition group-hover:ring-accent/40"
-                      style={{
-                        width: thumb.width,
-                        height: thumb.height,
-                        background: p.fondo || "#fff",
-                      }}
-                    />
+                    <PlantillaVisualMiniatura doc={p} maxAncho={140} maxAlto={100} />
                   </div>
                   <div className="px-3 py-2.5">
                     <h3 className="truncate text-sm font-semibold text-ink">{p.nombre}</h3>
                     <p className="mt-0.5 text-[11px] text-muted">{labelFormato(p.formato)}</p>
                   </div>
                 </button>
-                <button
-                  type="button"
-                  title="Eliminar"
-                  onClick={() => {
-                    if (confirm(`¿Eliminar "${p.nombre}"?`)) eliminarMut.mutate(p.id);
-                  }}
-                  className="absolute right-2 top-2 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white opacity-0 transition hover:bg-red-600 group-hover:opacity-100"
-                >
-                  Eliminar
-                </button>
+                <div className="absolute right-2 top-2 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                  <button
+                    type="button"
+                    title="Duplicar"
+                    disabled={duplicandoId === p.id || guardarMut.isPending}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void duplicarPlantillaPorId(p.id);
+                    }}
+                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-accent disabled:opacity-50"
+                  >
+                    {duplicandoId === p.id ? "…" : "Duplicar"}
+                  </button>
+                  <button
+                    type="button"
+                    title="Eliminar"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`¿Eliminar "${p.nombre}"?`)) eliminarMut.mutate(p.id);
+                    }}
+                    className="rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] font-medium text-white hover:bg-red-600"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </article>
             );
           })}

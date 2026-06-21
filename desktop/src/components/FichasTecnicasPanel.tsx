@@ -1,4 +1,6 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../api/client";
 import DocumentoGeneradorTab, {
   Field,
   filasDesdeTexto,
@@ -7,110 +9,364 @@ import DocumentoGeneradorTab, {
   textoDesdeFilas,
   textoDesdeFilasTres,
 } from "./documentos/DocumentoGeneradorTab";
+import FichaTecnicaForm from "./documentos/FichaTecnicaForm";
 import DocumentosCatalogoTab, {
   type ProductoDocumentacion,
 } from "./documentos/DocumentosCatalogoTab";
 
-type TabDoc = "catalogo" | "ft" | "coa" | "sds";
+type TabDoc = "catalogo" | "ft" | "coa" | "sds" | "biblioteca";
 
 const TABS: { id: TabDoc; label: string }[] = [
   { id: "catalogo", label: "Catálogo productos" },
   { id: "ft", label: "Ficha técnica (TDS)" },
   { id: "coa", label: "COA" },
   { id: "sds", label: "SDS" },
+  { id: "biblioteca", label: "📁 Biblioteca" },
 ];
+
+interface ArchivoGenerado {
+  nombre: string;
+  tipo: "pdf" | "docx";
+  tamano: number;
+  fecha: number;
+}
+
+function fmt_bytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function fmt_fecha(ts: number): string {
+  return new Date(ts * 1000).toLocaleDateString("es-CO", {
+    day: "2-digit", month: "short", year: "numeric",
+  });
+}
+
+interface BibliotecaDatosResult {
+  tipo: "ft" | "coa" | "sds";
+  titulo: string;
+  datos: Record<string, unknown>;
+  yaml: string;
+  tiene_datos: boolean;
+}
+
+function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => void }) {
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<"todos" | "pdf" | "docx">("todos");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewNombre, setPreviewNombre] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [editandoNombre, setEditandoNombre] = useState<string | null>(null);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["fichas-biblioteca"],
+    queryFn: () => api.get<{ archivos: ArchivoGenerado[] }>("/api/fichas/biblioteca"),
+  });
+
+  const getToken = async () => {
+    const { useTicketsAuth } = await import("../stores/ticketsAuth");
+    const { useAuthStore } = await import("../stores/auth");
+    const t = useTicketsAuth.getState();
+    return t.apiToken || t.token || useAuthStore.getState().token || "";
+  };
+
+  const getUrl = async (path: string, method = "GET") => {
+    const { resolvePanelApiUrl } = await import("../api/client");
+    return resolvePanelApiUrl(path, method);
+  };
+
+  const descargar = async (nombre: string, inline = false) => {
+    const token = await getToken();
+    const url = await getUrl(`/api/fichas/biblioteca/descargar?archivo=${encodeURIComponent(nombre)}${inline ? "&inline=1" : ""}`);
+    const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    if (inline) {
+      setPreviewNombre(nombre);
+      setPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
+    } else {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = nombre;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  };
+
+  const eliminar = async (nombre: string) => {
+    setDeleting(nombre);
+    setDeleteError(null);
+    try {
+      const token = await getToken();
+      const url = await getUrl(`/api/fichas/biblioteca/eliminar?archivo=${encodeURIComponent(nombre)}`, "DELETE");
+      let res = await fetch(url, { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (res.status === 405) {
+        const alt = url.includes("/app/api/") ? url.replace("/app/api/", "/api/") : url.replace("/api/", "/app/api/");
+        res = await fetch(alt, { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+        throw new Error(String(body.error || `HTTP ${res.status}`));
+      }
+      void refetch();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDeleting(null);
+      setConfirmDelete(null);
+    }
+  };
+
+  const editar = async (nombre: string) => {
+    setEditandoNombre(nombre);
+    try {
+      const r = await api.get<BibliotecaDatosResult>(`/api/fichas/biblioteca/datos?archivo=${encodeURIComponent(nombre)}`);
+      onEditar(r);
+    } catch (err) {
+      console.error("Error cargando datos para editar:", err);
+    } finally {
+      setEditandoNombre(null);
+    }
+  };
+
+  const archivos = (data?.archivos ?? []).filter((a) => {
+    const q = busqueda.toLowerCase();
+    if (q && !a.nombre.toLowerCase().includes(q)) return false;
+    if (filtroTipo !== "todos" && a.tipo !== filtroTipo) return false;
+    return true;
+  });
+
+  return (
+    <div className="space-y-4">
+      {deleteError && (
+        <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">Error al eliminar: {deleteError}</p>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar documento…"
+          className="flex-1 min-w-[180px] rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
+        />
+        <div className="flex rounded-lg border border-border overflow-hidden text-xs font-medium">
+          {(["todos", "pdf", "docx"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setFiltroTipo(t)}
+              className={`px-3 py-2 transition-colors ${filtroTipo === t ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
+            >
+              {t === "todos" ? "Todos" : t.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => void refetch()}
+          className="rounded-lg border border-border px-3 py-2 text-xs text-muted hover:text-ink"
+        >
+          ↻ Actualizar
+        </button>
+        <span className="text-xs text-muted">{archivos.length} documento{archivos.length !== 1 ? "s" : ""}</span>
+      </div>
+
+      {isLoading && <p className="text-sm text-muted">Cargando biblioteca…</p>}
+      {error && <p className="text-sm text-danger">Error al cargar: {(error as Error).message}</p>}
+
+      {!isLoading && archivos.length === 0 && (
+        <p className="text-sm text-muted">No hay documentos que coincidan.</p>
+      )}
+
+      <div className="overflow-hidden rounded-xl border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-surface-panel">
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted uppercase tracking-wide">Documento</th>
+              <th className="px-3 py-2.5 text-center text-xs font-semibold text-muted uppercase tracking-wide w-16">Tipo</th>
+              <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted uppercase tracking-wide w-20">Tamaño</th>
+              <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted uppercase tracking-wide w-28">Fecha</th>
+              <th className="px-3 py-2.5 text-right text-xs font-semibold text-muted uppercase tracking-wide w-28">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {archivos.map((a, i) => {
+              const isDeleting = deleting === a.nombre;
+              const isConfirm = confirmDelete === a.nombre;
+              const isEditing = editandoNombre === a.nombre;
+              return (
+                <tr key={a.nombre} className={`border-b border-border/50 transition-colors hover:bg-surface-panel ${i % 2 === 0 ? "" : "bg-surface/30"}`}>
+                  <td className="px-4 py-2.5">
+                    <span className="font-medium text-ink">{a.nombre.replace(/\.(pdf|docx)$/i, "")}</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-center">
+                    <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${a.tipo === "pdf" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                      {a.tipo}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-xs text-muted">{fmt_bytes(a.tamano)}</td>
+                  <td className="px-3 py-2.5 text-right text-xs text-muted">{fmt_fecha(a.fecha)}</td>
+                  <td className="px-3 py-2.5 text-right">
+                    {isConfirm ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <span className="text-[10px] text-muted mr-1">¿Eliminar?</span>
+                        <button
+                          type="button"
+                          disabled={isDeleting}
+                          onClick={() => void eliminar(a.nombre)}
+                          className="rounded bg-danger px-2 py-1 text-[10px] font-bold text-white hover:opacity-80 disabled:opacity-40"
+                        >
+                          {isDeleting ? "…" : "Sí"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDelete(null)}
+                          className="rounded border border-border px-2 py-1 text-[10px] text-muted hover:text-ink"
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1.5">
+                        {a.tipo === "pdf" && (
+                          <button
+                            type="button"
+                            onClick={() => void descargar(a.nombre, true)}
+                            className="rounded border border-border px-2 py-1 text-[10px] text-muted hover:border-accent hover:text-accent"
+                          >
+                            Ver
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void descargar(a.nombre)}
+                          className="rounded border border-border px-2 py-1 text-[10px] text-muted hover:border-accent hover:text-accent"
+                          title="Descargar"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isEditing}
+                          onClick={() => void editar(a.nombre)}
+                          className="rounded border border-accent/40 bg-accent/10 px-2 py-1 text-[10px] font-medium text-accent hover:bg-accent/20 disabled:opacity-40"
+                          title="Abrir en editor para modificar"
+                        >
+                          {isEditing ? "…" : "Editar"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setConfirmDelete(a.nombre); setDeleteError(null); }}
+                          className="rounded border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger"
+                          title="Eliminar archivo"
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal visor PDF */}
+      {previewUrl && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/80">
+          <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-panel px-4 py-2.5 shadow">
+            <h4 className="max-w-xs truncate text-sm font-semibold text-ink">{previewNombre}</h4>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void descargar(previewNombre)}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-ink hover:border-accent"
+              >
+                ↓ Descargar
+              </button>
+              <button
+                type="button"
+                onClick={() => { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-ink hover:border-danger hover:text-danger"
+              >
+                ✕ Cerrar
+              </button>
+            </div>
+          </div>
+          <iframe
+            title="Vista previa PDF"
+            src={`${previewUrl}#toolbar=1&navpanes=0`}
+            className="flex-1 w-full border-0 bg-white"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 function FichaTecnicaTabContent({
   producto,
+  preload,
 }: {
   producto: ProductoDocumentacion | null;
+  preload: Record<string, unknown> | null;
 }) {
-  const [titulo, setTitulo] = useState("");
-  const [referencia, setReferencia] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-  const [aplicaciones, setAplicaciones] = useState("");
-  const [identidad, setIdentidad] = useState("");
-  const [propiedades, setPropiedades] = useState("");
-  const [microbiologia, setMicrobiologia] = useState("");
-  const [notaMicro, setNotaMicro] = useState("");
-  const [estabilidad, setEstabilidad] = useState("");
-
-  useEffect(() => {
-    if (!producto) return;
-    setTitulo(producto.nombre_base.toUpperCase());
-    setReferencia(producto.ref);
-  }, [producto?.ref, producto?.nombre_base]);
+  const buildRef = useRef<() => Record<string, unknown>>(() => ({}));
+  const loadRef = useRef<(datos: Record<string, unknown>) => void>(() => {});
 
   const loadDatos = useCallback((datos: Record<string, unknown>) => {
-    setTitulo(String(datos.titulo || ""));
-    setDescripcion(String(datos.descripcion || ""));
-    setAplicaciones(
-      Array.isArray(datos.aplicaciones)
-        ? (datos.aplicaciones as string[]).join("\n\n")
-        : String(datos.aplicaciones || ""),
-    );
-    setIdentidad(textoDesdeFilas(datos.identidad));
-    setPropiedades(textoDesdeFilas(datos.propiedades));
-    setMicrobiologia(textoDesdeFilas(datos.microbiologia));
-    setNotaMicro(String(datos.nota_micro || ""));
-    setEstabilidad(
-      Array.isArray(datos.estabilidad)
-        ? (datos.estabilidad as string[]).join("\n\n")
-        : String(datos.estabilidad || ""),
-    );
+    loadRef.current(datos);
   }, []);
 
-  const buildDatos = useCallback(
-    () => ({
-      titulo,
-      referencia,
-      descripcion,
-      aplicaciones: listaDesdeTexto(aplicaciones),
-      identidad: filasDesdeTexto(identidad),
-      propiedades: filasDesdeTexto(propiedades),
-      microbiologia: filasDesdeTexto(microbiologia),
-      nota_micro: notaMicro,
-      estabilidad: listaDesdeTexto(estabilidad),
-    }),
-    [titulo, referencia, descripcion, aplicaciones, identidad, propiedades, microbiologia, notaMicro, estabilidad],
-  );
+  const buildDatos = useCallback(() => buildRef.current(), []);
+
+  // Carga datos de preload cuando llegan desde la biblioteca
+  useEffect(() => {
+    if (preload) loadDatos(preload);
+  }, [preload, loadDatos]);
 
   return (
     <DocumentoGeneradorTab
       apiPrefix="/api/fichas"
       queryKey="fichas"
       tituloSeccion="Ficha técnica (TDS)"
-      descripcion="Genera DOCX y PDF con el formato McKenna y súbelos a Drive (carpetas TDS WORD y TDS PDF)."
-      botonGenerar="Generar ficha técnica"
+      descripcion="Complete los campos y genere el PDF."
+      botonGenerar="Generar PDF"
       carpetaDriveLabel="TDS"
       loadDatos={loadDatos}
       buildDatos={buildDatos}
-      showWordPdfFolders
+      showWordPdfFolders={false}
+      showFichaLayout
+      showDrive={false}
+      showYamlMode={false}
+      showGuardarYaml={false}
+      showProductoGuardado={false}
+      permiteCompletar={false}
       productoRef={producto?.ref ?? ""}
     >
-      <div className="space-y-3">
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Field value={titulo} onChange={setTitulo} placeholder="Título (ej. ARCILLA ROJA)" />
-          <Field label="Referencia SIIGO" value={referencia} onChange={setReferencia} placeholder="C-…" />
-        </div>
-        <Field value={descripcion} onChange={setDescripcion} rows={4} placeholder="Descripción" />
-        <Field value={aplicaciones} onChange={setAplicaciones} rows={4} placeholder="Aplicaciones (un párrafo por línea)" />
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="Identidad (campo|valor)" value={identidad} onChange={setIdentidad} rows={6} mono />
-          <Field label="Propiedades" value={propiedades} onChange={setPropiedades} rows={6} mono />
-          <Field label="Microbiología" value={microbiologia} onChange={setMicrobiologia} rows={6} mono />
-        </div>
-        <Field value={notaMicro} onChange={setNotaMicro} placeholder="Nota microbiológica" />
-        <Field value={estabilidad} onChange={setEstabilidad} rows={2} placeholder="Estabilidad y almacenamiento" />
-      </div>
+      <FichaTecnicaForm
+        productoRef={producto?.ref}
+        productoNombre={producto?.nombre_base}
+        onBuildDatos={(fn) => {
+          buildRef.current = fn;
+        }}
+        onLoadDatos={(fn) => {
+          loadRef.current = fn;
+        }}
+      />
     </DocumentoGeneradorTab>
   );
 }
 
 function CoaTabContent({
   producto,
+  preload,
 }: {
   producto: ProductoDocumentacion | null;
+  preload: Record<string, unknown> | null;
 }) {
   const [titulo, setTitulo] = useState("");
   const [nombreComercial, setNombreComercial] = useState("");
@@ -175,6 +431,10 @@ function CoaTabContent({
     setObservaciones(String(emp.observaciones || ""));
     setCodigoVerif(String(datos.codigo_verificacion || ""));
   }, []);
+
+  useEffect(() => {
+    if (preload) loadDatos(preload);
+  }, [preload, loadDatos]);
 
   const buildDatos = useCallback(
     () => ({
@@ -275,8 +535,10 @@ function CoaTabContent({
 
 function SdsTabContent({
   producto,
+  preload,
 }: {
   producto: ProductoDocumentacion | null;
+  preload: Record<string, unknown> | null;
 }) {
   const [titulo, setTitulo] = useState("");
   const [nombreComercial, setNombreComercial] = useState("");
@@ -326,6 +588,10 @@ function SdsTabContent({
     setNormativa(String(reg.normativa || ""));
     setObservaciones(String(reg.observaciones || ""));
   }, []);
+
+  useEffect(() => {
+    if (preload) loadDatos(preload);
+  }, [preload, loadDatos]);
 
   const buildDatos = useCallback(
     () => ({
@@ -395,10 +661,20 @@ function SdsTabContent({
 export default function FichasTecnicasPanel() {
   const [tab, setTab] = useState<TabDoc>("catalogo");
   const [producto, setProducto] = useState<ProductoDocumentacion | null>(null);
+  const [ftPreload, setFtPreload] = useState<Record<string, unknown> | null>(null);
+  const [coaPreload, setCoaPreload] = useState<Record<string, unknown> | null>(null);
+  const [sdsPreload, setSdsPreload] = useState<Record<string, unknown> | null>(null);
 
   const abrirGenerador = (tipo: "ft" | "coa" | "sds", p: ProductoDocumentacion) => {
     setProducto(p);
     setTab(tipo);
+  };
+
+  const handleEditar = (r: BibliotecaDatosResult) => {
+    setTab(r.tipo as TabDoc);
+    if (r.tipo === "ft") setFtPreload(r.datos);
+    else if (r.tipo === "coa") setCoaPreload(r.datos);
+    else if (r.tipo === "sds") setSdsPreload(r.datos);
   };
 
   return (
@@ -428,9 +704,10 @@ export default function FichasTecnicasPanel() {
       </div>
 
       {tab === "catalogo" && <DocumentosCatalogoTab onGenerar={abrirGenerador} />}
-      {tab === "ft" && <FichaTecnicaTabContent producto={producto} />}
-      {tab === "coa" && <CoaTabContent producto={producto} />}
-      {tab === "sds" && <SdsTabContent producto={producto} />}
+      {tab === "ft" && <FichaTecnicaTabContent producto={producto} preload={ftPreload} />}
+      {tab === "coa" && <CoaTabContent producto={producto} preload={coaPreload} />}
+      {tab === "sds" && <SdsTabContent producto={producto} preload={sdsPreload} />}
+      {tab === "biblioteca" && <BibliotecaTab onEditar={handleEditar} />}
     </div>
   );
 }
