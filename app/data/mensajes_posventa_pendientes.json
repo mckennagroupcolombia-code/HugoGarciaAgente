@@ -1,26 +1,5 @@
 {
-  "pendientes": {
-    "2000013169057967": {
-      "pack_id": "2000013169057967",
-      "codigo": "967",
-      "comprador": "Comprador 261226125",
-      "from_id": "261226125",
-      "texto": "Ya vi pero solo hay 3 😥",
-      "msg_id": "019ee6621cb672d48834289ce5b2636e",
-      "productos": "",
-      "timestamp": "2026-06-20T13:54:18"
-    },
-    "967": {
-      "pack_id": "2000013169057967",
-      "codigo": "967",
-      "comprador": "Comprador 261226125",
-      "from_id": "261226125",
-      "texto": "Ya vi pero solo hay 3 😥",
-      "msg_id": "019ee6621cb672d48834289ce5b2636e",
-      "productos": "",
-      "timestamp": "2026-06-20T13:54:18"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "0197f014c366762f80ba17f99a3692e7",
     "019e6097f07374ac919fee35b1ee3544",
