@@ -12432,6 +12432,7 @@ function SolicitudListaChecklist({
   const [estadoLocal, setEstadoLocal] = useState(ticket.estado);
   const [faseLogro, setFaseLogro] = useState(false);
   const resolviendoRef = useRef(false);
+  const comprasPasteRef = useRef<HTMLDivElement>(null);
   const esAsignado = uidEq(ticket.asignado_a, user.id);
   const puedeOperar = esAsignado && !supervision;
   const resuelta = estadoLocal === "resuelto" || estadoLocal === "rechazado";
@@ -12482,6 +12483,17 @@ function SolicitudListaChecklist({
   }
 
   useEffect(() => { void cargar(); }, [ticket.id, token]);
+
+  usePegarCapturaEnZona(
+    !esEtiqueta && puedeOperar && !resuelta,
+    comprasPasteRef,
+    setFacturaFile,
+  );
+
+  function handlePasteFactura(e: React.ClipboardEvent) {
+    const file = clipboardPastedImageFile(e);
+    if (file) setFacturaFile(file);
+  }
 
   async function toggleItem(item: ItemCompra) {
     if (!puedeOperar || resuelta) return;
@@ -12573,9 +12585,10 @@ function SolicitudListaChecklist({
   }
 
   useEffect(() => {
+    if (!esEtiqueta) return;
     if (loading || busy || resuelta || !puedeOperar || !todosMarcados) return;
     void resolverLista();
-  }, [items, loading, busy, resuelta, puedeOperar, todosMarcados]);
+  }, [items, loading, busy, resuelta, puedeOperar, todosMarcados, esEtiqueta]);
 
   function fmtItem(it: ItemCompra) {
     if (esEtiqueta) {
@@ -12612,7 +12625,11 @@ function SolicitudListaChecklist({
   }
 
   return (
-    <div className={wrapClass}>
+    <div
+      ref={comprasPasteRef}
+      className={wrapClass}
+      onPasteCapture={!esEtiqueta && puedeOperar && !resuelta ? handlePasteFactura : undefined}
+    >
       {pantallaCompleta && (
         <p className="text-xs font-bold uppercase tracking-widest text-accent">
           {esEtiqueta ? "Pedido de etiquetas" : "Ir de compras"}
@@ -12705,13 +12722,23 @@ function SolicitudListaChecklist({
           <p className="text-[10px] text-center text-muted">
             {esEtiqueta
               ? "Espacio o Enter agrega el ítem · indica cuántas etiquetas imprimir"
-              : "Espacio o Enter agrega un ítem · al marcar todos se cierra la solicitud"}
+              : "Espacio o Enter agrega un ítem · marca todo y confirma con el botón de abajo"}
           </p>
           {!esEtiqueta && tieneProductos && (
-            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-3">
+            <label className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-3 transition
+              ${facturaFile ? "border-accent bg-accent/8" : "border-border hover:border-accent/60"}`}>
               <span className="text-xs font-bold text-accent">
-                {facturaFile ? facturaFile.name : "📷 Factura de caja (opcional)"}
+                {facturaFile ? facturaFile.name : "📷 Factura de caja (opcional) — Ctrl+V"}
               </span>
+              {facturaFile && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setFacturaFile(null); }}
+                  className="text-[10px] text-danger hover:underline"
+                >
+                  Quitar
+                </button>
+              )}
               <input
                 type="file"
                 accept="image/*,.pdf,application/pdf"
@@ -12719,6 +12746,16 @@ function SolicitudListaChecklist({
                 onChange={(e) => setFacturaFile(e.target.files?.[0] ?? null)}
               />
             </label>
+          )}
+          {!esEtiqueta && tieneProductos && (
+            <button
+              type="button"
+              disabled={busy || !todosMarcados}
+              onClick={() => void resolverLista()}
+              className="w-full rounded-2xl bg-accent py-3.5 text-base font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
+            >
+              {busy ? "Cerrando solicitud…" : "✅ Todo listo — cerrar solicitud"}
+            </button>
           )}
           {esEtiqueta && puedeVerSeccionPanel(user, "etiquetas") && (
             <button
@@ -12740,7 +12777,7 @@ function SolicitudListaChecklist({
       {!resuelta && esAsignado && supervision && tieneProductos && (
         <p className="text-[10px] text-center text-muted">Vista de supervisión</p>
       )}
-      {busy && todosMarcados && !resuelta && (
+      {busy && todosMarcados && !resuelta && esEtiqueta && (
         <p className="text-xs text-center text-accent font-semibold">Cerrando solicitud…</p>
       )}
       {msg && !busy && <p className="text-xs text-accent font-semibold">{msg}</p>}
@@ -12807,7 +12844,7 @@ function PanelIrDeCompras({
         />
       </div>
       <p className="text-center text-xs text-muted">
-        Al terminar, tu tarea queda cerrada. Quien delegó la lista podrá seguir con la acción.
+        Marca todos los ítems y pulsa «Todo listo» para cerrar la solicitud.
       </p>
     </div>
   );
@@ -17197,6 +17234,7 @@ function NuevaSolicitudWizard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [adjuntoFile, setAdjuntoFile] = useState<File | null>(null);
+  const comprasZoneRef = useRef<HTMLDivElement>(null);
 
   const otrosUsuarios = usuarios.filter((u) => u.id !== user.id && u.activo);
   const protDisp = protocolos.filter((p) => p.alcance === "global" || !p.alcance || p.alcance === "seleccionado");
@@ -17274,6 +17312,12 @@ function NuevaSolicitudWizard({
     const file = clipboardPastedImageFile(e);
     if (file) setAdjuntoFile(file);
   }
+
+  usePegarCapturaEnZona(
+    fase === "compras" && variante === "compra",
+    comprasZoneRef,
+    setAdjuntoFile,
+  );
 
   async function crear() {
     const desc = descripcion.trim();
@@ -17544,7 +17588,12 @@ function NuevaSolicitudWizard({
 
       {/* Paso 2B: Lista de ítems (compras / etiquetas) */}
       {fase === "compras" && (
-        <div key="sol-p2c" className={`space-y-6 ${slide}`}>
+        <div
+          key="sol-p2c"
+          ref={comprasZoneRef}
+          className={`space-y-6 ${slide}`}
+          onPasteCapture={variante === "compra" ? handlePasteAdjunto : undefined}
+        >
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-accent mb-1">
               Paso 2 de {totalPasos}
@@ -17655,6 +17704,30 @@ function NuevaSolicitudWizard({
               <p className="text-[10px] text-center text-muted">Espacio o Enter agrega el ítem con las unidades indicadas</p>
             )}
           </div>
+          {variante === "compra" && (
+            <label className={`flex items-center gap-3 rounded-2xl border-2 cursor-pointer px-4 py-3 transition
+              ${adjuntoFile ? "border-accent bg-accent/8" : "border-dashed border-border hover:border-accent/60"}`}>
+              <span className="text-xl">{adjuntoFile ? "📎" : "📷"}</span>
+              <span className="text-sm font-semibold text-muted truncate">
+                {adjuntoFile ? adjuntoFile.name : "Adjuntar captura o referencia (opcional) — Ctrl+V"}
+              </span>
+              {adjuntoFile && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setAdjuntoFile(null); }}
+                  className="ml-auto text-xs text-danger hover:underline shrink-0"
+                >
+                  Quitar
+                </button>
+              )}
+              <input
+                type="file"
+                accept="image/*,.pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => setAdjuntoFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          )}
           <button
             type="button"
             disabled={listaComprasDraft.length === 0}

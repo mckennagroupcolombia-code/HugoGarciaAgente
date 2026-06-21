@@ -2,8 +2,8 @@ import { useTicketsAuth } from "../stores/ticketsAuth";
 import { useAuthStore } from "../stores/auth";
 
 /**
- * Bajo `/app/…`, algunos proxies solo enrutan POST/PUT/DELETE bajo `/app/*`; GET a `/app/api/…`
- * a veces cae en `try_files` → HTML del SPA y `JSON.parse` falla. Por eso solo mutadores usan `/app/api`.
+ * Bajo `/app/…`, algunos proxies enrutan distinto `/api` vs `/app/api`.
+ * Los mutadores prefieren `/app/api`; los GET empiezan en `/api` y reintentan si llega HTML.
  */
 export function resolvePanelApiUrl(
   path: string,
@@ -28,6 +28,20 @@ export function resolvePanelApiUrl(
     return `${origin}/app${path}`;
   }
   return `${origin}${path}`;
+}
+
+/** URL alterna cuando el proxy devuelve HTML o 404 en el primer intento. */
+export function alternatePanelApiUrl(
+  attemptedUrl: string,
+  apiPath: string,
+  origin: string,
+): string | null {
+  if (!apiPath.startsWith("/api/")) return null;
+  const withApp = `${origin}/app${apiPath}`;
+  const plain = `${origin}${apiPath}`;
+  if (attemptedUrl === withApp) return plain;
+  if (attemptedUrl === plain) return withApp;
+  return null;
 }
 
 /** Si nginx bloquea POST en `/api` o en `/app/api`, reintentar con el otro prefijo (solo mutadores). */
@@ -93,6 +107,23 @@ async function request<T>(
     if (alt) {
       url = alt;
       res = await fetch(url, fetchOpts);
+    }
+  }
+
+  const ctFirst = (res.headers.get("content-type") ?? "").toLowerCase();
+  if (
+    !ctFirst.includes("application/json") &&
+    typeof window !== "undefined" &&
+    origin &&
+    path.startsWith("/api/")
+  ) {
+    const alt = alternatePanelApiUrl(url, path, origin);
+    if (alt) {
+      const retry = await fetch(alt, fetchOpts);
+      const ctRetry = (retry.headers.get("content-type") ?? "").toLowerCase();
+      if (ctRetry.includes("application/json") || retry.status !== res.status) {
+        res = retry;
+      }
     }
   }
 

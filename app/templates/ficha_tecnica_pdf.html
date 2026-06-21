@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+:root { --accent: {{ color_acento|default('var(--accent)') }}; }
+
+@font-face {
+  font-family: 'Montserrat';
+  font-weight: 400;
+  font-style: normal;
+  src: url('file:///usr/share/fonts/truetype/montserrat/Montserrat-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-weight: 400;
+  font-style: italic;
+  src: url('file:///usr/share/fonts/truetype/montserrat/Montserrat-Italic.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-weight: 600;
+  font-style: normal;
+  src: url('file:///usr/share/fonts/truetype/montserrat/Montserrat-SemiBold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-weight: 700;
+  font-style: normal;
+  src: url('file:///usr/share/fonts/truetype/montserrat/Montserrat-Bold.ttf') format('truetype');
+}
+
+@page {
+  size: A4;
+  margin: 1.8cm 1.8cm 2cm 2cm;
+  @bottom-center {
+    content: "McKenna Group S.A.S.  ·  Ficha Técnica  ·  {{ titulo }}{% if fecha_revision %}  ·  Rev. {{ fecha_revision }}{% endif %}  ·  Pág. " counter(page) " / " counter(pages);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12pt;
+    color: #888;
+    border-top: 0.5pt solid #ccc;
+    padding-top: 4px;
+  }
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12pt;
+  color: #212121;
+  line-height: 1.45;
+}
+
+/* ── Encabezado ─────────────────────────────────────── */
+.hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1cm;
+  padding-bottom: 0.35cm;
+  border-bottom: 0.75pt solid var(--accent);
+  margin-bottom: 0.45cm;
+}
+
+.hdr-left { flex: 1; }
+
+.hdr-ref {
+  font-size: 12pt;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+.hdr-pretitulo {
+  font-size: 9pt;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.hdr-titulo {
+  font-size: 18pt;
+  font-weight: bold;
+  color: var(--accent);
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.hdr-sinonimos {
+  font-size: 8pt;
+  color: #666;
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.hdr-logo {
+  max-width: 4.5cm;
+  max-height: 1.8cm;
+  object-fit: contain;
+  flex-shrink: 0;
+  image-rendering: auto;
+}
+
+/* ── Secciones ──────────────────────────────────────── */
+.sec { margin-top: 0.35cm; break-inside: avoid; }
+
+.sec-title {
+  background: none;
+  color: var(--accent);
+  font-weight: bold;
+  font-size: 12pt;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 2px 0;
+  border-top: 0.75pt solid var(--accent);
+  border-bottom: 0.75pt solid var(--accent);
+  margin-bottom: 0;
+}
+
+.sec-body {
+  padding: 5px 0 2px 0;
+  font-size: 12pt;
+}
+
+.desc-text {
+  text-align: justify;
+  padding: 5px 2px;
+  font-size: 12pt;
+  line-height: 1.5;
+}
+
+/* ── Tablas ─────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12pt;
+}
+
+td {
+  border: 0.75pt solid var(--accent);
+  padding: 3px 7px;
+  vertical-align: top;
+  background: none;
+}
+
+.td-key {
+  background: none;
+  font-weight: 600;
+  color: var(--accent);
+  width: 36%;
+  white-space: nowrap;
+}
+
+.td-key-dark {
+  background: none;
+  color: var(--accent);
+  font-weight: bold;
+  font-size: 12pt;
+  border: 0.75pt solid var(--accent);
+}
+
+/* ── Listas (Aplicaciones y Beneficios) ─────────────── */
+ul.apps, ul.beneficios {
+  margin: 4px 0 2px 16px;
+  padding: 0;
+}
+
+ul.apps li, ul.beneficios li {
+  margin-bottom: 3px;
+  font-size: 12pt;
+}
+
+.beneficio-label {
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* ── Meta info pequeña ──────────────────────────────── */
+.meta-strip {
+  display: flex;
+  gap: 1.5cm;
+  font-size: 12pt;
+  color: #555;
+  margin-bottom: 0.3cm;
+}
+
+.meta-strip span b { color: var(--accent); }
+
+/* ── Lote ───────────────────────────────────────────── */
+.lote-box {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 0.5cm;
+  padding: 6px 10px;
+  border: 0.75pt solid var(--accent);
+  width: 8cm;
+}
+
+.lote-label {
+  font-weight: 600;
+  font-size: 12pt;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.lote-valor {
+  font-size: 12pt;
+  border-bottom: 0.75pt solid var(--accent);
+  min-width: 5cm;
+  display: inline-block;
+}
+
+/* ── Sección GHS ─────────────────────────────────────── */
+.ghs-sec { margin-top: 0.5cm; }
+
+.ghs-title { margin-bottom: 4px; }
+
+.ghs-body {
+  border: 0.75pt solid var(--accent);
+  padding: 6px 8px;
+}
+
+.ghs-fila {
+  display: flex;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 0.4pt solid #c8d6e5;
+  font-size: 12pt;
+  line-height: 1.4;
+}
+
+.ghs-fila:last-child { border-bottom: none; }
+
+.ghs-cat {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 5cm;
+  flex-shrink: 0;
+}
+
+.ghs-val { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- ── Encabezado ── -->
+<div class="hdr">
+  <div class="hdr-left">
+    {% if referencia %}<div class="hdr-ref">Ref. {{ referencia }}</div>{% endif %}
+    <div class="hdr-pretitulo">Ficha Técnica</div>
+    <div class="hdr-titulo">{{ titulo }}</div>
+    {% if sinonimos %}<div class="hdr-sinonimos">{{ sinonimos }}</div>{% endif %}
+  </div>
+  {% if cabezote_src %}
+  <img class="hdr-logo" src="{{ cabezote_src }}" alt="McKenna Group">
+  {% endif %}
+</div>
+
+<!-- Meta: CAS / fecha -->
+{% if cas or fecha_revision %}
+<div class="meta-strip">
+  {% if cas %}<span><b>CAS:</b> {{ cas }}</span>{% endif %}
+  {% if fecha_revision %}<span><b>Revisión:</b> {{ fecha_revision }}</span>{% endif %}
+</div>
+{% endif %}
+
+<!-- ── Descripción ── -->
+{% if descripcion %}
+<div class="sec">
+  <div class="sec-title">Descripción</div>
+  <div class="desc-text">{{ descripcion }}</div>
+</div>
+{% endif %}
+
+<!-- ── Características físico-químicas ── -->
+{% if propiedades %}
+<div class="sec">
+  <div class="sec-title">Características físico-químicas</div>
+  <table>
+    {% for label, value in propiedades %}
+    <tr><td class="td-key">{{ label }}</td><td>{{ value }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<!-- ── Beneficios ── -->
+{% if propiedades_extra %}
+<div class="sec">
+  <div class="sec-title">Beneficios</div>
+  <ul class="beneficios">
+    {% for label, value in propiedades_extra %}
+    <li>{% if value %}<span class="beneficio-label">{{ label }}:</span> {{ value }}{% else %}{{ label }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- ── Aplicaciones ── -->
+{% if aplicaciones %}
+<div class="sec">
+  <div class="sec-title">Aplicaciones</div>
+  <ul class="apps">
+    {% for app in aplicaciones %}
+    <li>{{ app }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- ── Modo de uso ── -->
+{% if modo_uso %}
+<div class="sec">
+  <div class="sec-title">Modo de uso</div>
+  <div class="desc-text">{{ modo_uso }}</div>
+</div>
+{% endif %}
+
+<!-- ── Composición ── -->
+{% if composicion %}
+<div class="sec">
+  <div class="sec-title">Composición</div>
+  <table>
+    <tr>
+      <td class="td-key-dark" style="width:55%">Componente</td>
+      <td class="td-key-dark">% / Concentración</td>
+    </tr>
+    {% for componente, valor in composicion %}
+    <tr><td>{{ componente }}</td><td>{{ valor }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<!-- ── Recomendaciones GHS ── -->
+{% if recomendaciones %}
+<div class="sec ghs-sec">
+  <div class="sec-title ghs-title">&#9888; Recomendaciones para manejo seguro — Sistema GHS/SGA</div>
+  <div class="ghs-body">
+    {% for linea in recomendaciones %}
+    {% set partes = linea.split(':', 1) %}
+    {% if partes|length == 2 %}
+    <div class="ghs-fila">
+      <span class="ghs-cat">{{ partes[0].strip() }}:</span>
+      <span class="ghs-val">{{ partes[1].strip() }}</span>
+    </div>
+    {% else %}
+    <div class="ghs-fila"><span class="ghs-val">{{ linea }}</span></div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Lote ── -->
+<div class="lote-box">
+  <span class="lote-label">Lote:</span>
+  <span class="lote-valor">{% if lote %}{{ lote }}{% else %}&nbsp;{% endif %}</span>
+</div>
+
+</body>
+</html>

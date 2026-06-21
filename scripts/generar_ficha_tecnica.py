@@ -10,17 +10,17 @@ sys.path.insert(0, str(REPO))
 
 from app.services.ficha_tecnica import (  # noqa: E402
     DATOS_DIR,
-    PLANTILLA_DEFAULT,
     configuracion_drive,
     generar_desde_archivo,
-    generar_desde_datos,
 )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Genera ficha técnica McKenna (DOCX + PDF)")
     parser.add_argument("--datos", type=Path, help="YAML/JSON con datos del producto")
-    parser.add_argument("--plantilla", type=Path, default=None)
+    parser.add_argument("--plantilla", type=Path, default=None, help="Ruta DOCX plantilla")
+    parser.add_argument("--plantilla-id", dest="plantilla_id", default=None, help="ID plantilla (default o nombre en plantillas/)")
+    parser.add_argument("--cabezote-id", dest="cabezote_id", default=None, help="ID cabezote (default o nombre en cabezotes/)")
     parser.add_argument("--salida", type=Path, default=None)
     parser.add_argument("--solo-docx", action="store_true")
     parser.add_argument("--subir-drive", action="store_true")
@@ -49,13 +49,17 @@ def main() -> int:
         return 1
 
     try:
-        res = generar_desde_archivo(
-            datos_path,
-            plantilla=args.plantilla or PLANTILLA_DEFAULT,
-            salida=args.salida,
-            generar_pdf=not args.solo_docx,
-            subir_drive=args.subir_drive,
-        )
+        kwargs: dict = {
+            "salida": args.salida,
+            "generar_pdf": not args.solo_docx,
+            "subir_drive": args.subir_drive,
+            "cabezote_id": args.cabezote_id,
+        }
+        if args.plantilla:
+            kwargs["plantilla"] = args.plantilla
+        elif args.plantilla_id:
+            kwargs["plantilla_id"] = args.plantilla_id
+        res = generar_desde_archivo(datos_path, **kwargs)
     except Exception as e:
         print(f"❌ {e}", file=sys.stderr)
         return 1

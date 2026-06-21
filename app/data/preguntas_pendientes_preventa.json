@@ -886,6 +886,15 @@
       "pregunta": "Qué contiene y donde lo producen gracias",
       "timestamp": "2026-06-19T21:30:37.012010",
       "respondida": true
+    },
+    {
+      "question_id": "13607554746",
+      "titulo_producto": "Glicerina Natural Vegetal Usp 500 Ml ",
+      "pregunta": "Buenas tardes, tiene registro INVIMA?",
+      "timestamp": "2026-06-20T17:58:55.270284",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro.\n\nLe confirmo que nuestra Glicerina Natural Vegetal cumple con el estándar de calidad USP (United States Pharmacopeia), lo que garantiza un alto nivel de pureza y calidad para sus diferentes usos.\n\nEste estándar asegura que el producto es ideal para sus aplicaciones en el cuidado de la piel y el cabello, gracias a sus propiedades humectantes y suavizantes.\n\n¡Quedo atento si tiene alguna otra duda",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-06-20"
     }
   ]
 }

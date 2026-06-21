@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-19T17:02:35",
+  "updated_at": "2026-06-20T11:58:53",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -30,9 +30,84 @@
     "2026-06-14": 3,
     "2026-06-16": 3,
     "2026-06-17": 5,
-    "2026-06-19": 10
+    "2026-06-19": 10,
+    "2026-06-20": 5
   },
   "sessions": [
+    {
+      "session_id": "web-de777f4e-aeb8-4c3f-8edd-bc0d99ba00cf",
+      "started_at": "2026-06-20T11:58:13",
+      "last_at": "2026-06-20T11:58:53",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "asesor",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-20T11:58:13",
+          "user_message": "hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-20T11:58:26",
+          "user_message": "colageno hidrolizado",
+          "agent_reply": "Claro, veci. Tenemos *COLAGENO HIDROLIZADO 30mL* como materia prima. Presentación: $19,372 COP — Ref. C-COLHID30mL.\nComprar: https://articulo.mercadolibre.com.co/MCO-835404031 ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-20T11:58:53",
+          "user_message": "asesor",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-577bfd91-757b-4c62-8a6c-823bb33bacd9",
+      "started_at": "2026-06-20T07:36:43",
+      "last_at": "2026-06-20T07:37:03",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/?cat=Sales+Minerales",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Es que quiero comprar un citrato de magnesio",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-20T07:36:43",
+          "user_message": "Buen día",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-20T07:37:03",
+          "user_message": "Es que quiero comprar un citrato de magnesio",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-7d2a44b7-5dfc-4e5c-b6bb-4b949b24ab4e",
       "started_at": "2026-06-19T17:01:57",

@@ -66,10 +66,12 @@ interface Props {
   doc: PlantillaVisualDoc;
   onChange: (doc: PlantillaVisualDoc) => void;
   onGuardar: () => void;
+  onDuplicar?: () => void;
   onVolver: () => void;
   onExportar: (formato: "png" | "jpeg" | "pdf", escala: number) => void;
   onGuardarEnGaleria?: (formato: "jpeg" | "pdf", escala: number) => void;
   guardando?: boolean;
+  duplicando?: boolean;
   guardandoGaleria?: "jpeg" | "pdf" | null;
   exportando?: boolean;
 }
@@ -152,10 +154,12 @@ export default function VisualCanvasEditor({
   doc,
   onChange,
   onGuardar,
+  onDuplicar,
   onVolver,
   onExportar,
   onGuardarEnGaleria,
   guardando,
+  duplicando,
   guardandoGaleria,
   exportando,
 }: Props) {
@@ -734,6 +738,17 @@ export default function VisualCanvasEditor({
           >
             {guardando ? "…" : "Guardar"}
           </button>
+          {onDuplicar && (
+            <button
+              type="button"
+              onClick={onDuplicar}
+              disabled={duplicando}
+              title="Crear una copia independiente de esta plantilla"
+              className="rounded-md border border-white/15 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-white/10 disabled:opacity-50"
+            >
+              {duplicando ? "…" : "Duplicar"}
+            </button>
+          )}
           {onGuardarEnGaleria && (
             <div className="relative group/galeria">
               <button
@@ -1436,11 +1451,14 @@ export default function VisualCanvasEditor({
                   <span className="text-xs text-muted">{k}</span>
                   <input
                     type="number"
+                    step="any"
                     disabled={seleccionado.locked && (k === "x" || k === "y")}
-                    value={Math.round(seleccionado[k] as number)}
-                    onChange={(e) =>
-                      patchElemento(seleccionado.id, { [k]: Number(e.target.value) })
-                    }
+                    value={seleccionado[k] as number}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      if (!Number.isFinite(v)) return;
+                      patchElemento(seleccionado.id, { [k]: v });
+                    }}
                     className="w-full rounded border border-border bg-surface px-2 py-1 text-xs disabled:opacity-50"
                   />
                 </label>

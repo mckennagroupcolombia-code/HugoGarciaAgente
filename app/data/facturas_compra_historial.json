@@ -1,0 +1,1632 @@
+{
+  "historial": [
+    {
+      "id": "imp-FA269967-20260620",
+      "sufijo": "9967",
+      "numero_factura": "FA269967",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 6593885.2,
+      "fecha_factura": "2026-06-12",
+      "items_count": 12,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 12,
+      "items_resumen": [
+        {
+          "nombre": "LANOLINA ANHIDRA USP",
+          "codigo": "LANg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CAOLIN USP",
+          "codigo": "CAOUSPg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "COLAGENO HIDRO POR KILOS",
+          "codigo": "COLHIDg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "VASELINA BLANCA USP INDIA X 17",
+          "codigo": "VASg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "DIOXIDO DE TITANIO ANATASE CHI",
+          "codigo": "DIOTITg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ACIDO GLICOLICO",
+          "codigo": "ACIGLIg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ALOE VERA",
+          "codigo": "EXTALOVERg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "INULINA/LINULINA",
+          "codigo": "INU90Pg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "MANTECA DE CACAO",
+          "codigo": "MANCACREFg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CERA CARNAUBA AMARILLA ESCAMAS",
+          "codigo": "CERCARg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO DE SEDA",
+          "codigo": "GUSSEDmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GLICERINA USP GR X 25KG",
+          "codigo": "GLIVEGg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": null,
+      "ruta_xml": "FA269967 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-06-20T12:00:00"
+    },
+    {
+      "id": "imp-FA270012-20260620",
+      "sufijo": "0012",
+      "numero_factura": "FA270012",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 830000.0,
+      "fecha_factura": "2026-06-16",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "LECHE EN POLVO ENTERA",
+          "codigo": "LECPOLENTg",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FA270012 registro productos.xlsx",
+      "ruta_xml": "FA270012 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-06-20T12:00:00"
+    },
+    {
+      "id": "imp-FEE97643-20260620",
+      "sufijo": "7643",
+      "numero_factura": "FEE97643",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 3197305.0,
+      "fecha_factura": "2026-06-11",
+      "items_count": 8,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 8,
+      "items_resumen": [
+        {
+          "nombre": "VITAMINA C CRISTALES/VITAMIN C CRYSTAL",
+          "codigo": "VITCACIASCg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CAFEINA ANHIDRA (CHINA)",
+          "codigo": "CAFANHCHIg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CELULOSA MICROCRISTALINA 101",
+          "codigo": "CELMICg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "MALTODEXTRINA M100 GPC",
+          "codigo": "MALM15MALg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "VITAMINA E ATFA 99% USP",
+          "codigo": "VITETOC99Pg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "PROTEINA DE SOYA AISLADA / ISOLATED SOY PROTEIN (SOYPRO 900 EMULSION",
+          "codigo": "PROAISSOYg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO L - PROLINA CAS: 147-85-3",
+          "codigo": "L-AMIPROg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO L - GLUTAMINA",
+          "codigo": "AMILGLUg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": null,
+      "ruta_xml": "FEE97643 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-06-20T12:00:00"
+    },
+    {
+      "id": "imp-FA268937-20260619",
+      "sufijo": "8937",
+      "numero_factura": "FA268937",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 200812.5,
+      "fecha_factura": "2026-05-11",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "POTASA CAUSTICA-HIDROXIDO DE P",
+          "codigo": "POTCAUHIDg",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FA268937 registro productos.xlsx",
+      "ruta_xml": "FA268937 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-06-19T12:00:00"
+    },
+    {
+      "id": "imp-FA268949-20260611",
+      "sufijo": "8949",
+      "numero_factura": "FA268949",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 233240.0,
+      "fecha_factura": "2026-05-11",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 1,
+      "items_resumen": [
+        {
+          "nombre": "CAOLIN USP",
+          "codigo": "CAOUSPg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FA268949 registro productos.xlsx",
+      "ruta_xml": "FA268949 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-06-11T12:00:00"
+    },
+    {
+      "id": "imp-FA268042-20260510",
+      "sufijo": "8042",
+      "numero_factura": "FA268042",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 6600718.1,
+      "fecha_factura": "2026-04-15",
+      "items_count": 11,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 11,
+      "items_resumen": [
+        {
+          "nombre": "LANOLINA ANHIDRA USP",
+          "codigo": "LANg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "BTMS-50",
+          "codigo": "BTM50g",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ACEITE ESENCIAL DE MANZANILLA",
+          "codigo": "ACEESEMANZg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "D-PANTENOL",
+          "codigo": "DPANg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ACEITE DE JOJOBA GOLDEN",
+          "codigo": "ACEJOJGOLg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CERA DE ABEJAS BLANCA NACION",
+          "codigo": "CERABEREFBLAg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CERA DE ABEJAS AMARILLA NACION",
+          "codigo": "CERABEREFAMAg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ELASTINA HIDROLIZADA",
+          "codigo": "ELAHIDg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CAOLIN USP",
+          "codigo": "CAOUSPg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "SODIUM COCOYL ISETHIONATE",
+          "codigo": "TENSCIg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "COLAGENO HIDRO POR KILOS",
+          "codigo": "COLHIDg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FA268042 registro productos.xlsx",
+      "ruta_xml": "FA268042 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-10T12:00:00"
+    },
+    {
+      "id": "imp-FA268227-20260510",
+      "sufijo": "8227",
+      "numero_factura": "FA268227",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 4982708.5,
+      "fecha_factura": "2026-04-21",
+      "items_count": 13,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 5,
+      "en_siigo": 8,
+      "items_resumen": [
+        {
+          "nombre": "SORBITOL POLVO",
+          "codigo": "SORPOLg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ALCOHOL ETILICO 96% IND.GRX20L",
+          "codigo": "ALCETI96PmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TWEEN 20 MONOLAUREATO G X 20KG",
+          "codigo": "POLTWE20Pg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TEGOBETAINA-BETAINA GRX20 KG",
+          "codigo": "TEGBETg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GLICERINA USP GR X 25KG",
+          "codigo": "GLIVEGg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "HIPOCLORITO DE SODIO GR = 5 GL",
+          "codigo": "HIPSODGLg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ALOE VERA",
+          "codigo": "EXTALOVERg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ACEITE ESENCIAL DE EUCALIPTO",
+          "codigo": "ACEESEEUCg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "INULINA/LINULINA",
+          "codigo": "INU90Pg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "LECITINA DE SOYA EN POLVO",
+          "codigo": "LECSOYPOLg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "MANTECA DE CACAO",
+          "codigo": "MANCACg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "GOMA XANTHAN FOOD MALLA 200",
+          "codigo": "GOMXANFOOg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACEITE DE RICINO GRF X 20 KG",
+          "codigo": "ACERICGRFg",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FA268227 registro productos.xlsx",
+      "ruta_xml": "FA268227 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-10T12:00:00"
+    },
+    {
+      "id": "imp-FE59114303-20260510",
+      "sufijo": "4303",
+      "numero_factura": "FE59114303",
+      "proveedor": "INTER RAPIDISIMO S.A",
+      "nit": "800251569",
+      "total": 37800.0,
+      "fecha_factura": "2026-01-31",
+      "items_count": 3,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 3,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "MENSAJERÍA 700182906654",
+          "codigo": "MENUn",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "MENSAJERÍA 700182907143",
+          "codigo": "MENUn2",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "MENSAJERÍA 700182906085",
+          "codigo": "MENUn3",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FE59114303 registro productos.xlsx",
+      "ruta_xml": "FE59114303 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-10T12:00:00"
+    },
+    {
+      "id": "imp-FEE90326-20260510",
+      "sufijo": "0326",
+      "numero_factura": "FEE90326",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 192000.0,
+      "fecha_factura": "2026-03-04",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "VITAMINA E ATFA 99% USP",
+          "codigo": "VITATOC99Pg",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FEE90326 registro productos.xlsx",
+      "ruta_xml": "FEE90326 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-10T12:00:00"
+    },
+    {
+      "id": "imp-FEV69945-20260510",
+      "sufijo": "9945",
+      "numero_factura": "FEV69945",
+      "proveedor": "ENVASAR S A S",
+      "nit": "830062441",
+      "total": 32915.4,
+      "fecha_factura": "2026-01-16",
+      "items_count": 2,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 2,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "ENV. 1/4 PRESION BLANCO S/T",
+          "codigo": "ENVPREBLAUn",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "TAPA  PRESION  BLANCA PARA ENV. 1/4",
+          "codigo": "TAPPREBLAUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FEV69945 registro productos.xlsx",
+      "ruta_xml": "FEV69945 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-10T12:00:00"
+    },
+    {
+      "id": "imp-FV21553-20260510",
+      "sufijo": "1553",
+      "numero_factura": "FV21553",
+      "proveedor": "QUIMIESENCIAS S.A.S",
+      "nit": "900729391",
+      "total": 1084700.0,
+      "fecha_factura": "2026-02-19",
+      "items_count": 6,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 6,
+      "items_resumen": [
+        {
+          "nombre": "FRAGANCIA SANDALO GALON",
+          "codigo": "FRASANmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA OCEANFRESH X 500 ML",
+          "codigo": "FRAOCEmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA LIMON X  500ML",
+          "codigo": "FRALIMmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA KIWI 500 ML",
+          "codigo": "FRAKIWmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA PIÑA 500 ML",
+          "codigo": "FRAPINmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA COCO X 500 ML",
+          "codigo": "FRACOCmL",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FV21553 registro productos.xlsx",
+      "ruta_xml": "FV21553 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-10T12:00:00"
+    },
+    {
+      "id": "imp-ME607409-20260510",
+      "sufijo": "7409",
+      "numero_factura": "ME607409",
+      "proveedor": "TRONEX S.A.S",
+      "nit": "811025446",
+      "total": 89303.55,
+      "fecha_factura": "2026-01-07",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 1,
+      "items_resumen": [
+        {
+          "nombre": "PILA RECARGABLE GP NIMH AA 1.2V 2700 MAH BLISTER X2 CARTON",
+          "codigo": "PILAAA",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "ME607409 registro productos.xlsx",
+      "ruta_xml": "ME607409 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-10T12:00:00"
+    },
+    {
+      "id": "imp-FEB1518-20260509",
+      "sufijo": "1518",
+      "numero_factura": "FEB1518",
+      "proveedor": "CHEMIANDES",
+      "nit": "800041075",
+      "total": 65999.0,
+      "fecha_factura": "2026-04-13",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 1,
+      "items_resumen": [
+        {
+          "nombre": "CEBO CORDERO KG",
+          "codigo": "CEBCORg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FEB1518 registro productos.xlsx",
+      "ruta_xml": "FEB1518 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-09T12:00:00"
+    },
+    {
+      "id": "imp-FEE87198-20260509",
+      "sufijo": "7198",
+      "numero_factura": "FEE87198",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 2268875.0,
+      "fecha_factura": "2026-01-21",
+      "items_count": 6,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 6,
+      "items_resumen": [
+        {
+          "nombre": "AMINOACIDO BCAA INSTANT POWDER",
+          "codigo": "AMIBCAg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "MALTODEXTRINA M150 / MALTRIN M150",
+          "codigo": "MALM15MALg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "VITAMINA B-3 (NICOTINAMIDA USP)",
+          "codigo": "NIAg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE",
+          "codigo": "CITMAGFCCg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "SOYPRO 900 EMULSION",
+          "codigo": "SOYEMUg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "COLAGENO EN POLVO HIDROLIZADO",
+          "codigo": "COLHIDg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FEE87198 registro productos.xlsx",
+      "ruta_xml": "FEE87198 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-09T12:00:00"
+    },
+    {
+      "id": "imp-FEE92977-20260509",
+      "sufijo": "2977",
+      "numero_factura": "FEE92977",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 5329215.0,
+      "fecha_factura": "2026-04-11",
+      "items_count": 11,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 10,
+      "items_resumen": [
+        {
+          "nombre": "PROTEINA CONCENTRADA DE SUERO 80% WPC (LW)",
+          "codigo": "PROCONSUEg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRUCTOSA EN POLVO/CRYSTAL FRUCTOSE",
+          "codigo": "FRUg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "COLAGENO EN POLVO HIDROLIZADO",
+          "codigo": "COLPOLHIDg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "EXTRACTO DE MALTA / DRY MEDIUM",
+          "codigo": "EXTMALg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "VITAMINA C CRISTALES/VITAMIN C CRYSTAL",
+          "codigo": "VITCACIASCg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO L - GLUTAMINA",
+          "codigo": "AMILGLUg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "VITAMINA E ATFA 99% USP",
+          "codigo": "VITETOC99Pg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CITRATO DE MAGNESIO FCC/MAGNESIUM CITRATE",
+          "codigo": "CITMAGFCCg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO L - ARGININA BASE",
+          "codigo": "AMILARGBASg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO L - CARNITINA FUMARATO",
+          "codigo": "AMILCARFUMg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "VITAMINA B-3 (NICOTINAMIDA USP)",
+          "codigo": "NIAg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FEE92977 registro productos.xlsx",
+      "ruta_xml": "FEE92977 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-09T12:00:00"
+    },
+    {
+      "id": "imp-FEE95010-20260509",
+      "sufijo": "5010",
+      "numero_factura": "FEE95010",
+      "proveedor": "FACTORES Y MERCADEO S.A.",
+      "nit": "800077828",
+      "total": 3684240.0,
+      "fecha_factura": "2026-05-07",
+      "items_count": 8,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 8,
+      "items_resumen": [
+        {
+          "nombre": "CITRATO DE POTASIO/POTASSIUM CITRATE",
+          "codigo": "CITPOTPOTg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TAURINA",
+          "codigo": "TAUg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CLORURO DE MAGNESIO HEXAHIDRATADO/ MAGNESIUM CHLORIDE HEXAHYDRATE",
+          "codigo": "CLOMAGHEXg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO L - TRIPTOFANO",
+          "codigo": "AMILTRIg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO L - PROLINA CAS: 147-85-3",
+          "codigo": "L-AMIPROg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "MENTOL CRYSTAL NATURAL 99% USP/NF / MENTHOL CRYSTALS 99% NATURAL USP",
+          "codigo": "MENCRIg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "PROTEINA CONCENTRADA DE SUERO 80% WPC (LW)",
+          "codigo": "PROCONSUEg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "AMINOACIDO BCAA INSTANT POWDER",
+          "codigo": "AMIBCAg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FEE95010 registro productos.xlsx",
+      "ruta_xml": "FEE95010 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-09T12:00:00"
+    },
+    {
+      "id": "imp-HAP11350-20260509",
+      "sufijo": "1350",
+      "numero_factura": "HAP11350",
+      "proveedor": "HAPLAZ.COM S.A.S",
+      "nit": "901775946",
+      "total": 44202.0,
+      "fecha_factura": "2026-03-24",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "Bolsa de Seguridad Blanca con Portaguia 12x20cm - 100 Unidades",
+          "codigo": "SEGBLAPORUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "HAP11350 registro productos.xlsx",
+      "ruta_xml": "HAP11350 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-05-09T12:00:00"
+    },
+    {
+      "id": "imp-1009100274879-20260407",
+      "sufijo": "4879",
+      "numero_factura": "1009100274879",
+      "proveedor": "SODIMAC COLOMBIA S.A.",
+      "nit": "800242106",
+      "total": 7300.0,
+      "fecha_factura": "2026-03-01",
+      "items_count": 3,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 3,
+      "items_resumen": [
+        {
+          "nombre": "TAPON 1/2 M.POLIMEX",
+          "codigo": "TAPPOLUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TAPON SOLDAR 1/2 HOT",
+          "codigo": "TAPSOLHOTUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "UNION 1/2 HOTPRO PAV",
+          "codigo": "UNIHOTPAVUn",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "1009100274879 registro productos.xlsx",
+      "ruta_xml": "1009100274879 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-A1295-20260407",
+      "sufijo": "1295",
+      "numero_factura": "A1295",
+      "proveedor": "DDPACK SAS",
+      "nit": "901069098",
+      "total": 400673.0,
+      "fecha_factura": "2026-03-09",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "DOYPACK ZIPPER 19*25 METALIZADA",
+          "codigo": "DOYZIP19*Un",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "A1295 registro productos.xlsx",
+      "ruta_xml": "A1295 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-BOG22971-20260407",
+      "sufijo": "2971",
+      "numero_factura": "BOG22971",
+      "proveedor": "QUIMICOS EL ALQUIMISTA S.A.S.",
+      "nit": "901315981",
+      "total": 114000.0,
+      "fecha_factura": "2026-01-30",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "POTASA CAUSTICA * KILO",
+          "codigo": "POTCAUKILUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "BOG22971 registro productos.xlsx",
+      "ruta_xml": "BOG22971 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-CIV805-20260407",
+      "sufijo": "V805",
+      "numero_factura": "CIV805",
+      "proveedor": "COMERCIALIZADORA INTERNACIONAL C.I. S.A.S.",
+      "nit": "811000608",
+      "total": 297500.0,
+      "fecha_factura": "2026-02-18",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "BANDA PVC 35 MICRAS",
+          "codigo": "BANPVCMICUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "CIV805 registro productos.xlsx",
+      "ruta_xml": "CIV805 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-DIVV30997-20260407",
+      "sufijo": "0997",
+      "numero_factura": "DIVV30997",
+      "proveedor": "DISOLVENTES Y SOLUCIONES QUIMICAS S.A.S",
+      "nit": "901018160",
+      "total": 120000.0,
+      "fecha_factura": "2026-03-06",
+      "items_count": 2,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 2,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "METABISULFITO DE SODIO FOOD GRADE * KILOGRAMO",
+          "codigo": "METSODFOOUn",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "CLORURO DE CALCIO * KILOGRAMO",
+          "codigo": "CLOCALKILUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "DIVV30997 registro productos.xlsx",
+      "ruta_xml": "DIVV30997 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-DL9457-20260407",
+      "sufijo": "9457",
+      "numero_factura": "DL9457",
+      "proveedor": "DISTRIBUCIONES LADAM S A S",
+      "nit": "900251971",
+      "total": 193999.01,
+      "fecha_factura": "2026-02-18",
+      "items_count": 2,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 2,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "VERMICULITA",
+          "codigo": "VERUn",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "DOMICILIO",
+          "codigo": "DOMUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "DL9457 registro productos.xlsx",
+      "ruta_xml": "DL9457 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-FA265489-20260407",
+      "sufijo": "5489",
+      "numero_factura": "FA265489",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 6797506.1,
+      "fecha_factura": "2026-01-23",
+      "items_count": 13,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 13,
+      "items_resumen": [
+        {
+          "nombre": "ALCOHOL CETILICO",
+          "codigo": "ALCCETg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "LAURIL ETER SULFATO NA28% GX20",
+          "codigo": "LAUETESULg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "PROPILEN GLICOL GR X20 KG",
+          "codigo": "PROGLIX20g",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GLICERINA USP GR X 25KG",
+          "codigo": "GLIUSPg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CAOLIN USP",
+          "codigo": "CAOUSPg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ACIDO SALICILICO CHINO USP",
+          "codigo": "ACISALCHIg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ALCOHOL CETO ESTEARILICO=LANET",
+          "codigo": "ALCCETESTg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "DEXTROSA MONOHIDRATADA",
+          "codigo": "DEXMONg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CERA DE ABEJAS BLANCA NACION",
+          "codigo": "CERABEBLAg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CERA DE ABEJAS AMARILLA NACION",
+          "codigo": "CERABEAMAg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "INULINA/LINULINA",
+          "codigo": "INULINg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "ACEITE DE RICINO GRF X 20 KG",
+          "codigo": "ACERICGRFg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "COCOAMIDA DEA GR X 20 KG",
+          "codigo": "COCDEAg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FA265489 registro productos.xlsx",
+      "ruta_xml": "FA265489 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-FE30232-20260407",
+      "sufijo": "0232",
+      "numero_factura": "FE30232",
+      "proveedor": "ALEXANDRA KATHERINE BENAVIDES SALAMANCA",
+      "nit": "1026262496",
+      "total": 3039658.02,
+      "fecha_factura": "2026-01-27",
+      "items_count": 16,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 7,
+      "en_siigo": 9,
+      "items_resumen": [
+        {
+          "nombre": "FARMA 5ML AMBAR",
+          "codigo": "FARAMBmL",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FARMA 10ML AZUL",
+          "codigo": "FARAZUmL",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FARMA 30ML AMBAR",
+          "codigo": "FARAMBmL2",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FARMA 50ML AMBAR",
+          "codigo": "FARAMBmL3",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "PASTILLERO 180ML BLANCO",
+          "codigo": "PASBLAmL",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FARMA 30ML CRISTAL",
+          "codigo": "FARCRImL",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FARMA 30ML AZUL",
+          "codigo": "FARAZUmL2",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "TAPA 18MM SEGURIDAD ECO BLANCA",
+          "codigo": "TAP18MSEGUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TAPON 18MM AIREADOR BLANCO ECO",
+          "codigo": "TAP18MAIRUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 55MM NEGRA",
+          "codigo": "GOTPIP55MUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 77MM NEGRO",
+          "codigo": "GOTPIP77MUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 90MM NEGRO",
+          "codigo": "GOTPIP90MUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TAPA 38MM SENCILLA BLANCA",
+          "codigo": "TAP38MSENUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 77MM NEGRO",
+          "codigo": "GOTPIP77MNEGUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 77MM NEGRO",
+          "codigo": "GOTPIP77MNEGUn2",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 77MM BLANCO",
+          "codigo": "GOTPIP77MBLAUn",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FE30232 registro productos.xlsx",
+      "ruta_xml": "FE30232 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-FEB1467-20260407",
+      "sufijo": "1467",
+      "numero_factura": "FEB1467",
+      "proveedor": "CHEMIANDES",
+      "nit": "800041075",
+      "total": 65999.0,
+      "fecha_factura": "2026-02-11",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "CEBO CORDERO KG",
+          "codigo": "CEBCORKGUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FEB1467 registro productos.xlsx",
+      "ruta_xml": "FEB1467 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-FEV10-20260407",
+      "sufijo": "EV10",
+      "numero_factura": "FEV10",
+      "proveedor": "FERRETERIA Y CACHARRERIA VALHU SAS",
+      "nit": "902024439",
+      "total": 89250.0,
+      "fecha_factura": "2026-03-07",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "PILA AAA ECO",
+          "codigo": "PILAAAECOUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FEV10 registro productos.xlsx",
+      "ruta_xml": "FEV10 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-FV21362-20260407",
+      "sufijo": "1362",
+      "numero_factura": "FV21362",
+      "proveedor": "QUIMIESENCIAS S.A.S",
+      "nit": "900729391",
+      "total": 1084700.0,
+      "fecha_factura": "2026-01-28",
+      "items_count": 6,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 6,
+      "items_resumen": [
+        {
+          "nombre": "FRAGANCIA SANDALO GALON",
+          "codigo": "FRASANmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA OCEANFRESH X500ML",
+          "codigo": "FRAOCEmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA LIMON X  500ML",
+          "codigo": "FRALIMmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA KIWI X  500ML",
+          "codigo": "FRAKIWmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA PIÑA  X 500 ML",
+          "codigo": "FRAPINmL",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FRAGANCIA COCO X 500ML",
+          "codigo": "FRACOCmL",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FV21362 registro productos.xlsx",
+      "ruta_xml": "FV21362 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-FV21554-20260407",
+      "sufijo": "1554",
+      "numero_factura": "FV21554",
+      "proveedor": "QUIMIESENCIAS S.A.S",
+      "nit": "900729391",
+      "total": 22400.0,
+      "fecha_factura": "2026-02-19",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "FRAGANCIA SANDALO",
+          "codigo": "FRASANUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FV21554 registro productos.xlsx",
+      "ruta_xml": "FV21554 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-GMB21245-20260407",
+      "sufijo": "1245",
+      "numero_factura": "GMB21245",
+      "proveedor": "MOTORES Y REDUCTORES GM COLOMBIA SAS",
+      "nit": "900804963",
+      "total": 1900000.0,
+      "fecha_factura": "2026-02-17",
+      "items_count": 1,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 1,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "M.REDUCTOR SINFIN CORONA 1 HP 110/220V TECHTOP TAM 90 REL 100/1 GM MOTOR",
+          "codigo": "REDSINCORUn",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "GMB21245 registro productos.xlsx",
+      "ruta_xml": "GMB21245 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-07T12:00:00"
+    },
+    {
+      "id": "imp-FA265488-20260405",
+      "sufijo": "5488",
+      "numero_factura": "FA265488",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 4050879.0,
+      "fecha_factura": "2026-01-23",
+      "items_count": 11,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 8,
+      "en_siigo": 3,
+      "items_resumen": [
+        {
+          "nombre": "SORBITOL POLVO",
+          "codigo": "SORPOLg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "BTMS-50",
+          "codigo": "BTM50g",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACEITE DE CEDRO TEXAS",
+          "codigo": "ACECEDTEXg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "CARBONATO DE CALCIO PREC.LIV",
+          "codigo": "CARCALPREg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ALOE VERA",
+          "codigo": "ALOVERg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FRAGANCIA KIWI",
+          "codigo": "FRAKIWg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FRAGANCIA VAINILLA CARAMELO PN",
+          "codigo": "FRAVAICARg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACEITE DE ARBOL DE TE",
+          "codigo": "ACEARBTEg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACIDO GLICOLICO",
+          "codigo": "ACIGLIg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "CITRATO DE CALCIO",
+          "codigo": "CITCALg",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GLICERINA USP GR X 25KG",
+          "codigo": "GLIUSPGRg",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FA265488 registro productos.xlsx",
+      "ruta_xml": "FA265488 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-05T12:00:00"
+    },
+    {
+      "id": "imp-FA266863-20260405",
+      "sufijo": "6863",
+      "numero_factura": "FA266863",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 5797754.5,
+      "fecha_factura": "2026-03-09",
+      "items_count": 12,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 12,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "OXIDO DE ZINC",
+          "codigo": "OXIZINg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACEITE DE RICINO GRF X 20 KG",
+          "codigo": "ACERICGRFg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "DIPROPILENGLICOL GRX20 KG",
+          "codigo": "DIPGRXKGg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "GLICERINA USP GR X 25KG",
+          "codigo": "GLIUSPGRg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "BICARBONATO DE SODIO CHINO",
+          "codigo": "BICSODCHIg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "D-PANTENOL",
+          "codigo": "PANg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "GOMA GUAR",
+          "codigo": "GOMGUAg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACIDO GLICOLICO",
+          "codigo": "ACIGLIg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACEITE DE JOJOBA GOLDEN",
+          "codigo": "ACEJOJGOLg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACEITE DE GIRASOL",
+          "codigo": "ACEGIRg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "ACEITE ESENCIAL DE ROMERO",
+          "codigo": "ACEESEROMg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "MANTECA DE CACAO",
+          "codigo": "MANCACg",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FA266863 registro productos.xlsx",
+      "ruta_xml": "FA266863 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-05T12:00:00"
+    },
+    {
+      "id": "imp-FA266947-20260405",
+      "sufijo": "6947",
+      "numero_factura": "FA266947",
+      "proveedor": "QUIMICA INTERKROL LIMITADA",
+      "nit": "800137224",
+      "total": 1206660.0,
+      "fecha_factura": "2026-03-10",
+      "items_count": 6,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 6,
+      "en_siigo": 0,
+      "items_resumen": [
+        {
+          "nombre": "ALANTOINA",
+          "codigo": "ALAg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "DEXTROSA MONOHIDRATADA",
+          "codigo": "DEXMONg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FRAGANCIA LAVANDA",
+          "codigo": "FRALAVg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "FRAGANCIA HERBAL",
+          "codigo": "FRAHERg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "CITRATO DE CALCIO",
+          "codigo": "CITCALg",
+          "existe_en_siigo": false
+        },
+        {
+          "nombre": "GLUTAMATO MONOSODICO MALLA 100",
+          "codigo": "GLUMONMALg",
+          "existe_en_siigo": false
+        }
+      ],
+      "ruta_excel": "FA266947 registro productos.xlsx",
+      "ruta_xml": "FA266947 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-05T12:00:00"
+    },
+    {
+      "id": "imp-FE32480-20260405",
+      "sufijo": "2480",
+      "numero_factura": "FE32480",
+      "proveedor": "ALEXANDRA KATHERINE BENAVIDES SALAMANCA",
+      "nit": "1026262496",
+      "total": 2258810.0,
+      "fecha_factura": "2026-03-20",
+      "items_count": 11,
+      "accion": "inventario",
+      "estado": "ok",
+      "origen": "reconstruido",
+      "nuevos": 0,
+      "en_siigo": 11,
+      "items_resumen": [
+        {
+          "nombre": "FARMA 5ML AMBAR",
+          "codigo": "FAR5MLAMBUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TAPA 18MM SEGURIDAD ECO BLANCA",
+          "codigo": "TAP18MSEGUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TAPON 18MM AIREADOR BLANCO ECO",
+          "codigo": "TAP18MAIRUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FARMA 30ML AZUL",
+          "codigo": "FAR30MAZUUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 77MM NEGRO",
+          "codigo": "GOTPIP77MUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FARMA 30ML AMBAR",
+          "codigo": "FAR30MAMBUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 77MM BLANCO",
+          "codigo": "GOTPIP77MBLAUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "FARMA 50ML AMBAR",
+          "codigo": "FAR50MAMBUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "GOTERO PIPETA 90MM NEGRO",
+          "codigo": "GOTPIP90MUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TAPA 18MM PERFORADA SEGURIDAD NEGRA",
+          "codigo": "TAP18MPERUn",
+          "existe_en_siigo": true
+        },
+        {
+          "nombre": "TAPA 18MM PERFORADA SEGURIDAD BLANCA",
+          "codigo": "TAP18MPERSEGUn",
+          "existe_en_siigo": true
+        }
+      ],
+      "ruta_excel": "FE32480 registro productos.xlsx",
+      "ruta_xml": "FE32480 codigos siigo.xml",
+      "siigo_id": null,
+      "mensaje": "Reconstruido desde importaciones_productos/",
+      "timestamp": "2026-04-05T12:00:00"
+    }
+  ]
+}

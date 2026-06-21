@@ -65,12 +65,13 @@ def _rebuild_catalogo_web_cache() -> str:
     site_dir = root / "PAGINA_WEB" / "site"
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
+    if str(site_dir) not in sys.path:
+        sys.path.insert(0, str(site_dir))
 
     try:
-        os.chdir(site_dir)
-        from website import get_catalog  # noqa: WPS433 — módulo Flask del sitio
+        from PAGINA_WEB.site import website
 
-        get_catalog(force=True)
+        website.get_catalog(force=True)
         cache = site_dir / "data" / "cache.json"
         return f"✅ Catálogo web regenerado desde Siigo ({cache})"
     except Exception as e:

@@ -228,6 +228,16 @@ def _normalizar(texto: str) -> str:
     )
 
 
+def _fragmento_palabra_codigo(palabra: str) -> str:
+    """Solo letras y dígitos — descarta %, comas y otros símbolos del nombre del proveedor."""
+    return re.sub(r'[^A-Za-z0-9]', '', palabra)
+
+
+def _sanitizar_codigo_siigo(codigo: str) -> str:
+    """Normaliza un código para la API SIIGO (sin %, espacios ni símbolos raros)."""
+    return re.sub(r'[^A-Za-z0-9._-]', '', (codigo or '').strip())
+
+
 def generar_codigo_producto(nombre: str, unidad_minima: str,
                             codigos_usados: set = None) -> str:
     """
@@ -247,6 +257,7 @@ def generar_codigo_producto(nombre: str, unidad_minima: str,
     palabras_raw = re.split(r'[\s\-_/,.()+]+', nombre_norm)
     palabras_clave = []
     for p in palabras_raw:
+        p = _fragmento_palabra_codigo(p)
         if not p:
             continue
         es_medida_compacta = re.match(
@@ -277,6 +288,7 @@ def generar_codigo_producto(nombre: str, unidad_minima: str,
     for n in range(n_inicio, len(palabras_clave) + 1):
         fragmentos = [p[:3] for p in palabras_clave[:n]]
         codigo = ''.join(fragmentos) + unidad_minima
+        codigo = _sanitizar_codigo_siigo(codigo)
         if codigos_usados is None or codigo not in codigos_usados:
             return codigo
 
@@ -287,7 +299,7 @@ def generar_codigo_producto(nombre: str, unidad_minima: str,
     while codigos_usados and codigo in codigos_usados:
         codigo = base + str(i)
         i += 1
-    return codigo
+    return _sanitizar_codigo_siigo(codigo)
 
 
 # ─────────────────────────────────────────────
@@ -358,6 +370,74 @@ def _extraer_unit_code_de_xml(xml_content: str, descripcion_item: str) -> str:
     # Default: NAR (unidad). No inferir por nombre — "5ML" en un frasco es el volumen,
     # no la unidad de venta.
     return 'NAR'
+
+
+def _extraer_referencia_proveedor_de_xml(xml_content: str, descripcion_item: str) -> str:
+    """
+    Extrae SellersItemIdentification/ID de la InvoiceLine que corresponde a la descripción.
+    Retorna cadena vacía si no hay referencia del proveedor.
+    """
+    def _tag(e):
+        return e.tag.split('}')[-1]
+
+    def _buscar_invoice_node(root):
+        for elem in root.iter():
+            if _tag(elem) == 'Invoice':
+                return elem
+        for elem in root.iter():
+            if _tag(elem) == 'Description':
+                txt = (elem.text or '').strip()
+                if '<Invoice' in txt or '<inv:Invoice' in txt:
+                    try:
+                        return ET.fromstring(txt)
+                    except ET.ParseError:
+                        clean = re.sub(r'(</?)[a-zA-Z0-9]+:', r'\1', txt)
+                        clean = re.sub(r' [a-zA-Z0-9]+:([a-zA-Z0-9]+)=', r' \1=', clean)
+                        try:
+                            return ET.fromstring(clean)
+                        except Exception:
+                            pass
+        return None
+
+    referencias = {}
+    try:
+        root = ET.fromstring(xml_content)
+        invoice = _buscar_invoice_node(root)
+        nodo = invoice if invoice is not None else root
+        for elem in nodo.iter():
+            if _tag(elem) == 'InvoiceLine':
+                desc = referencia = ''
+                for sub in elem.iter():
+                    if _tag(sub) == 'Description' and sub.text and not desc:
+                        desc = sub.text.strip()
+                    if _tag(sub) == 'SellersItemIdentification':
+                        for s2 in sub.iter():
+                            if _tag(s2) == 'ID' and s2.text:
+                                referencia = s2.text.strip()
+                if desc and referencia:
+                    referencias[_normalizar(desc)] = referencia
+    except Exception:
+        pass
+
+    desc_norm = _normalizar(descripcion_item)
+    if desc_norm in referencias:
+        return referencias[desc_norm]
+    for k, v in referencias.items():
+        if desc_norm[:25] in k or k[:25] in desc_norm:
+            return v
+    return ''
+
+
+def _codigo_siigo_desde_referencia(referencia: str) -> str | None:
+    """Si la referencia del proveedor coincide con un producto SIIGO, retorna ese código."""
+    referencia = (referencia or '').strip()
+    if not referencia:
+        return None
+    try:
+        codigo = _codigo_manual_valido(referencia)
+    except ValueError:
+        return None
+    return codigo if buscar_producto_en_siigo_por_codigo(codigo) else None
 
 
 def convertir_a_unidad_minima(cantidad: float, unit_code: str) -> tuple[float, str, str]:
@@ -579,11 +659,14 @@ HEADERS_SIIGO = [
 ]
 
 
-def generar_excel_importacion(productos: list, numero_factura: str) -> str:
+def generar_excel_importacion(productos: list, numero_factura: str) -> str | None:
     """
-    Genera el archivo Excel para importación de productos en SIIGO.
-    Retorna la ruta del archivo generado.
+    Genera el archivo Excel para importación de productos nuevos en SIIGO.
+    Retorna la ruta del archivo generado, o None si no hay productos nuevos.
     """
+    productos_nuevos = [p for p in productos if not p.get('existe_en_siigo', p.get('duplicado'))]
+    if not productos_nuevos:
+        return None
     nombre_archivo = f"{numero_factura} registro productos.xlsx"
     ruta = os.path.join(CARPETA_IMPORTACIONES, nombre_archivo)
 
@@ -604,7 +687,7 @@ def generar_excel_importacion(productos: list, numero_factura: str) -> str:
 
     # — Datos
     alt_fill = PatternFill("solid", fgColor=COLOR_ALT_ROW)
-    for row_idx, p in enumerate(productos, 2):
+    for row_idx, p in enumerate(productos_nuevos, 2):
         fill = alt_fill if row_idx % 2 == 0 else None
         valores = [
             "P-Producto",
@@ -640,8 +723,8 @@ def generar_excel_importacion(productos: list, numero_factura: str) -> str:
         "4. En el Paso 2, selecciona este archivo Excel.",
         "5. Verifica la vista previa y confirma la importación.",
         "",
-        "NOTA: Los productos marcados como DUPLICADO en la hoja",
-        "      'Productos' ya existen en SIIGO — revisa antes de importar.",
+        "NOTA: Solo incluye productos NUEVOS. Los que ya existen en SIIGO",
+        "      se registran únicamente en el XML de compra (suman inventario).",
     ]
     for i, linea in enumerate(instrucciones, 2):
         ws_instr[f'A{i}'] = linea
@@ -746,16 +829,17 @@ def generar_xml_compra_siigo(datos: dict, productos: list, numero_factura: str) 
         total_item = p['subtotal'] + p['iva']
         ET.SubElement(precios, 'Total').text            = f"{total_item:.2f}"
         ET.SubElement(precios, 'PrecioUnitarioMin').text = f"{p['precio_unitario']:.4f}"
+        ET.SubElement(precios, 'PrecioNetoMin').text = f"{p.get('precio_neto', 0):.6f}"
         pu_desc = ET.SubElement(precios, 'PrecioUnitarioMinDesc')
         pu_desc.text = (
             f"Precio por 1 {p['unidad_min']} "
             f"(total {total_item:.2f} COP / {round(p['cantidad_min'], 2)} {p['unidad_min']})"
         )
 
-        if p.get('duplicado'):
-            ET.SubElement(item, 'EstadoSiigo').text = 'DUPLICADO - Ya existe en SIIGO, revisar antes de importar'
+        if p.get('existe_en_siigo', p.get('duplicado')):
+            ET.SubElement(item, 'EstadoSiigo').text = 'EXISTENTE - Compra suma inventario del producto en SIIGO'
         else:
-            ET.SubElement(item, 'EstadoSiigo').text = 'NUEVO'
+            ET.SubElement(item, 'EstadoSiigo').text = 'NUEVO - Registrar primero en Excel de productos'
 
         subtotal_global += p['subtotal']
         iva_global      += p['iva']
@@ -830,6 +914,9 @@ import base64
 _RUTA_PENDIENTES = os.path.join(
     os.path.dirname(__file__), '..', 'data', 'facturas_compra_pendientes.json'
 )
+_RUTA_HISTORIAL = os.path.join(
+    os.path.dirname(__file__), '..', 'data', 'facturas_compra_historial.json'
+)
 
 
 def _sufijo_factura(numero_factura: str) -> str:
@@ -903,6 +990,373 @@ def _quitar_pendiente(sufijo: str):
     _guardar_pendientes(state)
 
 
+def _cargar_historial() -> dict:
+    try:
+        if os.path.exists(_RUTA_HISTORIAL):
+            with open(_RUTA_HISTORIAL, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {'historial': []}
+
+
+def _guardar_historial(data: dict):
+    os.makedirs(os.path.dirname(_RUTA_HISTORIAL), exist_ok=True)
+    with open(_RUTA_HISTORIAL, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+def _float_safe(valor, default=None):
+    try:
+        if valor is None:
+            return default
+        if isinstance(valor, str):
+            valor = valor.replace(',', '').strip()
+        return float(valor)
+    except (TypeError, ValueError):
+        return default
+
+
+def _precio_referencia_item(item: dict) -> float | None:
+    """Precio unitario mínimo de compra (neto sin IVA) para comparar tendencias."""
+    for campo in ('precio_neto', 'precio_unitario'):
+        val = _float_safe(item.get(campo))
+        if val is not None and val > 0:
+            return val
+    return None
+
+
+def _tendencia_precio(actual: float, anterior: float) -> str:
+    if anterior <= 0:
+        return 'nuevo'
+    diff_pct = abs(actual - anterior) / anterior
+    if diff_pct < 0.005:
+        return 'igual'
+    return 'subio' if actual > anterior else 'bajo'
+
+
+def _resumen_items_historial(items: list | None) -> list:
+    resumen = []
+    for p in items or []:
+        if not isinstance(p, dict):
+            continue
+        precio_neto = _float_safe(p.get('precio_neto'))
+        precio_unitario = _float_safe(p.get('precio_unitario'))
+        precio_proveedor = _float_safe(p.get('precio_proveedor'))
+        resumen.append({
+            'nombre': str(p.get('nombre', ''))[:120],
+            'codigo': str(p.get('codigo', '')),
+            'cantidad_min': p.get('cantidad_min'),
+            'unidad_min': p.get('unidad_min', ''),
+            'precio_neto': precio_neto,
+            'precio_unitario': precio_unitario,
+            'precio_proveedor': precio_proveedor,
+            'existe_en_siigo': bool(p.get('existe_en_siigo', p.get('duplicado'))),
+        })
+    return resumen
+
+
+def registrar_factura_historial(
+    entrada: dict,
+    accion: str,
+    *,
+    sufijo: str = '',
+    origen: str = 'panel',
+    estado: str = 'ok',
+    datos: dict | None = None,
+    items_resumen: list | None = None,
+    nuevos: int = 0,
+    en_siigo: int = 0,
+    ruta_excel: str | None = None,
+    ruta_xml: str | None = None,
+    siigo_id: str | None = None,
+    mensaje: str = '',
+) -> dict:
+    """Guarda una factura procesada en el historial local del panel."""
+    datos = datos or json.loads(entrada.get('datos_json') or '{}')
+    sufijo_limpio = (sufijo or '').strip().upper()
+    numero = str(entrada.get('numero_factura') or datos.get('number') or '')
+    registro = {
+        'id': f"{datetime.now().strftime('%Y%m%d%H%M%S%f')[:17]}-{sufijo_limpio or _sufijo_factura(numero)}",
+        'sufijo': sufijo_limpio,
+        'numero_factura': numero,
+        'proveedor': entrada.get('proveedor') or datos.get('proveedor', ''),
+        'nit': entrada.get('nit') or datos.get('nit_proveedor') or datos.get('nit', ''),
+        'total': entrada.get('total') or datos.get('total_neto') or 0,
+        'fecha_factura': datos.get('fecha', ''),
+        'items_count': entrada.get('items_count') or len(datos.get('items') or []),
+        'accion': accion,
+        'estado': estado,
+        'origen': origen,
+        'nuevos': int(nuevos or 0),
+        'en_siigo': int(en_siigo or 0),
+        'items_resumen': items_resumen or [],
+        'ruta_excel': os.path.basename(ruta_excel) if ruta_excel else None,
+        'ruta_xml': os.path.basename(ruta_xml) if ruta_xml else None,
+        'siigo_id': siigo_id,
+        'mensaje': (mensaje or '')[:500],
+        'timestamp': datetime.now().isoformat(),
+    }
+    state = _cargar_historial()
+    historial = state.setdefault('historial', [])
+    historial.insert(0, registro)
+    state['historial'] = historial[:500]
+    _guardar_historial(state)
+    return registro
+
+
+def _parsear_xml_historial_importacion(ruta_xml: str) -> dict | None:
+    """Extrae metadatos de un XML McKenna en importaciones_productos/."""
+    try:
+        root = ET.parse(ruta_xml).getroot()
+        cab = root.find("Cabecera")
+        if cab is None:
+            return None
+        numero = (cab.findtext("NumeroFacturaProveedor") or "").strip()
+        if not numero:
+            return None
+        proveedor_el = cab.find("Proveedor") or cab
+        totales = root.find("Totales")
+        items_resumen = []
+        detalle = root.find("Detalle")
+        nuevos = 0
+        en_siigo = 0
+        if detalle is not None:
+            for item in detalle.findall("Item"):
+                estado = (item.findtext("EstadoSiigo") or "").strip().upper()
+                es_nuevo = estado == "NUEVO"
+                if es_nuevo:
+                    nuevos += 1
+                else:
+                    en_siigo += 1
+                unidad_el = item.find("Unidad")
+                cant_min_el = unidad_el.find("CantidadConvertida") if unidad_el is not None else None
+                cantidad_min = _float_safe(cant_min_el.text if cant_min_el is not None else None)
+                unidad_min = (cant_min_el.get("simbolo") or "") if cant_min_el is not None else ""
+                precios_el = item.find("Precios")
+                subtotal = _float_safe(precios_el.findtext("Subtotal") if precios_el is not None else None, 0)
+                iva = _float_safe(precios_el.findtext("IVA") if precios_el is not None else None, 0)
+                precio_unitario = _float_safe(
+                    precios_el.findtext("PrecioUnitarioMin") if precios_el is not None else None
+                )
+                precio_neto = _float_safe(
+                    precios_el.findtext("PrecioNetoMin") if precios_el is not None else None
+                )
+                if precio_neto is None and cantidad_min and cantidad_min > 0:
+                    precio_neto = round(subtotal / cantidad_min, 6)
+                items_resumen.append({
+                    "nombre": str(item.findtext("DescripcionOriginalProveedor") or "")[:120],
+                    "codigo": str(item.findtext("CodigoSiigo") or ""),
+                    "cantidad_min": cantidad_min,
+                    "unidad_min": unidad_min,
+                    "precio_neto": precio_neto,
+                    "precio_unitario": precio_unitario,
+                    "precio_proveedor": None,
+                    "existe_en_siigo": not es_nuevo,
+                })
+        total_txt = totales.findtext("TotalGeneral") if totales is not None else None
+        try:
+            total = float(str(total_txt).replace(",", "")) if total_txt else 0.0
+        except (TypeError, ValueError):
+            total = 0.0
+        return {
+            "numero_factura": numero,
+            "fecha_factura": (cab.findtext("FechaFactura") or "")[:10],
+            "proveedor": (proveedor_el.findtext("Nombre") or "").strip(),
+            "nit": (proveedor_el.findtext("NIT") or "").strip(),
+            "total": total,
+            "items_count": len(items_resumen),
+            "items_resumen": items_resumen,
+            "nuevos": nuevos,
+            "en_siigo": en_siigo,
+            "fecha_generacion": (root.attrib.get("fecha_generacion") or "")[:19],
+        }
+    except Exception:
+        return None
+
+
+def sincronizar_historial_desde_importaciones() -> int:
+    """
+    Rellena el historial con XMLs ya generados en importaciones_productos/.
+    Cubre facturas procesadas antes de existir el registro en JSON.
+    """
+    if not os.path.isdir(CARPETA_IMPORTACIONES):
+        return 0
+
+    state = _cargar_historial()
+    historial = list(state.get("historial") or [])
+    vistos = {
+        str(r.get("numero_factura") or "").strip().upper()
+        for r in historial
+        if r.get("numero_factura")
+    }
+    agregados = 0
+
+    for fname in sorted(os.listdir(CARPETA_IMPORTACIONES)):
+        if not fname.endswith(" codigos siigo.xml"):
+            continue
+        base = fname[: -len(" codigos siigo.xml")].strip()
+        ruta_xml = os.path.join(CARPETA_IMPORTACIONES, fname)
+        parsed = _parsear_xml_historial_importacion(ruta_xml)
+        if not parsed:
+            continue
+        numero = parsed["numero_factura"]
+        clave = numero.strip().upper()
+        if clave in vistos:
+            continue
+
+        ruta_excel = os.path.join(CARPETA_IMPORTACIONES, f"{base} registro productos.xlsx")
+        sufijo = _sufijo_factura(numero)
+        ts = parsed.get("fecha_generacion") or parsed.get("fecha_factura") or datetime.now().isoformat()
+        slug_ts = re.sub(r"\W", "", str(ts))[:14] or str(agregados)
+        registro = {
+            "id": f"imp-{clave}-{slug_ts}",
+            "sufijo": sufijo,
+            "numero_factura": numero,
+            "proveedor": parsed.get("proveedor") or "",
+            "nit": parsed.get("nit") or "",
+            "total": parsed.get("total") or 0,
+            "fecha_factura": parsed.get("fecha_factura") or "",
+            "items_count": parsed.get("items_count") or 0,
+            "accion": "inventario",
+            "estado": "ok",
+            "origen": "reconstruido",
+            "nuevos": parsed.get("nuevos") or 0,
+            "en_siigo": parsed.get("en_siigo") or 0,
+            "items_resumen": parsed.get("items_resumen") or [],
+            "ruta_excel": os.path.basename(ruta_excel) if os.path.isfile(ruta_excel) else None,
+            "ruta_xml": fname,
+            "siigo_id": None,
+            "mensaje": "Reconstruido desde importaciones_productos/",
+            "timestamp": ts if "T" in str(ts) else f"{ts}T12:00:00",
+        }
+        historial.append(registro)
+        vistos.add(clave)
+        agregados += 1
+
+    if agregados:
+        historial.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
+        state["historial"] = historial[:500]
+        _guardar_historial(state)
+    return agregados
+
+
+def _reparar_items_resumen_desde_xml(registro: dict) -> list:
+    """Completa precios/cantidades desde el XML guardado si faltan en el historial."""
+    items = list(registro.get('items_resumen') or [])
+    if items and all(_precio_referencia_item(it) for it in items if it.get('codigo')):
+        return items
+    ruta_xml = registro.get('ruta_xml')
+    if not ruta_xml:
+        return items
+    path = ruta_xml if os.path.isabs(ruta_xml) else os.path.join(CARPETA_IMPORTACIONES, ruta_xml)
+    if not os.path.isfile(path):
+        return items
+    parsed = _parsear_xml_historial_importacion(path)
+    if not parsed:
+        return items
+    return parsed.get('items_resumen') or items
+
+
+def _calcular_tendencias_precio_historial(historial: list) -> dict:
+    """
+    Recorre el historial cronológico y calcula tendencia de precio por (registro_id, codigo).
+    Compara precio neto unitario contra la compra anterior del mismo código SIIGO.
+    """
+    ordenados = sorted(historial, key=lambda r: r.get('timestamp') or '')
+    ultimo_precio: dict[str, float] = {}
+    tendencias: dict[tuple, dict] = {}
+
+    for reg in ordenados:
+        if str(reg.get('accion', '')).lower() != 'inventario':
+            continue
+        rid = reg.get('id')
+        items = _reparar_items_resumen_desde_xml(reg)
+        for item in items:
+            codigo = str(item.get('codigo') or '').strip().upper()
+            if not codigo:
+                continue
+            precio = _precio_referencia_item(item)
+            if precio is None:
+                continue
+            clave = (rid, codigo)
+            if codigo in ultimo_precio:
+                anterior = ultimo_precio[codigo]
+                tend = _tendencia_precio(precio, anterior)
+                variacion = round((precio - anterior) / anterior * 100, 2) if anterior else None
+                tendencias[clave] = {
+                    'precio_anterior': anterior,
+                    'tendencia_precio': tend,
+                    'variacion_pct': variacion if tend != 'igual' else 0.0,
+                }
+            else:
+                tendencias[clave] = {
+                    'precio_anterior': None,
+                    'tendencia_precio': 'nuevo',
+                    'variacion_pct': None,
+                }
+            ultimo_precio[codigo] = precio
+    return tendencias
+
+
+def _enriquecer_registro_historial(registro: dict, tendencias: dict) -> dict:
+    """Copia el registro con ítems completos y tendencias de precio."""
+    reg = dict(registro)
+    rid = reg.get('id')
+    items = []
+    for item in _reparar_items_resumen_desde_xml(reg):
+        it = dict(item)
+        codigo = str(it.get('codigo') or '').strip().upper()
+        extra = tendencias.get((rid, codigo), {})
+        it.update(extra)
+        items.append(it)
+    reg['items_resumen'] = items
+    return reg
+
+
+def listar_historial_facturas(
+    limit: int = 100,
+    accion: str | None = None,
+    q: str | None = None,
+) -> dict:
+    """Lista facturas ya procesadas (más recientes primero)."""
+    sincronizar_historial_desde_importaciones()
+    historial = _cargar_historial().get('historial', [])
+    tendencias = _calcular_tendencias_precio_historial(historial)
+    accion_f = (accion or '').strip().lower()
+    q_norm = _normalizar(q or '').strip()
+    filtradas = []
+    for row in historial:
+        if accion_f and str(row.get('accion', '')).lower() != accion_f:
+            continue
+        if q_norm:
+            blob = _normalizar(
+                f"{row.get('numero_factura', '')} {row.get('proveedor', '')} {row.get('nit', '')}"
+            )
+            if q_norm not in blob:
+                continue
+        filtradas.append(_enriquecer_registro_historial(row, tendencias))
+    total = len(filtradas)
+    limit = max(1, min(int(limit or 100), 500))
+    return {
+        'historial': filtradas[:limit],
+        'total': total,
+        'mostrando': min(total, limit),
+    }
+
+
+def obtener_registro_historial(registro_id: str) -> dict | None:
+    rid = (registro_id or '').strip()
+    if not rid:
+        return None
+    historial = _cargar_historial().get('historial', [])
+    tendencias = _calcular_tendencias_precio_historial(historial)
+    for row in historial:
+        if row.get('id') == rid:
+            return _enriquecer_registro_historial(row, tendencias)
+    return None
+
+
 # ─────────────────────────────────────────────
 #  Motor de procesamiento (interno)
 # ─────────────────────────────────────────────
@@ -966,9 +1420,15 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
         precio_neto = round(subtotal / cantidad_min, 6) if cantidad_min > 0 else 0.0
 
         # Genera código único dentro de esta factura (evita GOTPIP77MUn × 2 en misma factura)
-        codigo      = generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
+        referencia_proveedor = _extraer_referencia_proveedor_de_xml(xml_content, nombre)
+        codigo_ref = _codigo_siigo_desde_referencia(referencia_proveedor)
+        if codigo_ref:
+            codigo = codigo_ref
+            print(f"  🔗 Referencia SIIGO: {codigo} — {nombre[:40]}")
+        else:
+            codigo = generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
         codigos_en_factura.add(codigo)
-        es_duplicado = verificar_producto_en_siigo(codigo)
+        existe_en_siigo = verificar_producto_en_siigo(codigo)
 
         producto = {
             'nombre':            nombre,
@@ -983,11 +1443,12 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
             'iva':               iva_linea,
             'precio_unitario':   precio_unitario,  # con IVA — para Excel/precio venta
             'precio_neto':       precio_neto,       # sin IVA — para ítems de compra SIIGO
-            'duplicado':         es_duplicado,
+            'existe_en_siigo':   existe_en_siigo,
+            'duplicado':         existe_en_siigo,
         }
-        if es_duplicado:
+        if existe_en_siigo:
             productos_duplicados.append(producto)
-            print(f"  ⚠️ DUPLICADO: {codigo} — {nombre[:40]}")
+            print(f"  📦 En SIIGO: {codigo} — {nombre[:40]} (suma inventario)")
         else:
             productos_nuevos.append(producto)
             print(f"  ✅ Nuevo: {codigo} — {nombre[:40]} → ${precio_unitario:.2f}/{unidad_min}")
@@ -1012,11 +1473,12 @@ def _ejecutar_procesamiento(numero_factura: str, datos: dict, xml_content: str, 
 
     if not silent:
         enviar_whatsapp_reporte(_construir_resumen_whatsapp(arch), numero_destino=GRUPO_COMPRAS)
-        enviar_whatsapp_archivo(
-            arch['ruta'],
-            f"📊 *Excel productos SIIGO* — Factura {numero_factura}",
-            numero_destino=GRUPO_COMPRAS,
-        )
+        if arch['ruta']:
+            enviar_whatsapp_archivo(
+                arch['ruta'],
+                f"📊 *Excel productos SIIGO* — Factura {numero_factura}",
+                numero_destino=GRUPO_COMPRAS,
+            )
         if ruta_xml and os.path.exists(ruta_xml):
             enviar_whatsapp_archivo(
                 ruta_xml,
@@ -1080,7 +1542,7 @@ def _notificar_siguiente_factura_pendiente():
 # ─────────────────────────────────────────────
 
 def _codigo_manual_valido(codigo: str) -> str:
-    codigo = (codigo or '').strip()
+    codigo = _sanitizar_codigo_siigo(codigo)
     if not codigo:
         return ''
     if not re.match(r'^[A-Za-z0-9._-]{2,40}$', codigo):
@@ -1129,17 +1591,31 @@ def _computar_items_factura(datos: dict, xml_content: str, codigos_manual: dict 
                     codigo_dian_min = 'GRM'
         precio_unitario = calcular_precio_unitario_min(subtotal, iva_linea, cantidad_min)
         precio_neto     = round(subtotal / cantidad_min, 6) if cantidad_min > 0 else 0.0
-        codigo_manual = _codigo_manual_valido(str(codigos_manual.get(str(idx)) or codigos_manual.get(idx) or ''))
-        codigo          = codigo_manual or generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
+        referencia_proveedor = _extraer_referencia_proveedor_de_xml(xml_content, nombre)
+        codigo_manual = _codigo_manual_valido(
+            str(codigos_manual.get(str(idx)) or codigos_manual.get(idx) or '')
+        )
+        codigo_por_referencia = False
+        if codigo_manual:
+            codigo = codigo_manual
+        else:
+            codigo_ref = _codigo_siigo_desde_referencia(referencia_proveedor)
+            if codigo_ref:
+                codigo = codigo_ref
+                codigo_por_referencia = True
+            else:
+                codigo = generar_codigo_producto(nombre, unidad_min, codigos_en_factura)
         codigos_en_factura.add(codigo)
         producto_siigo  = buscar_producto_en_siigo_por_codigo(codigo)
-        es_duplicado    = producto_siigo is not None
+        existe_en_siigo = producto_siigo is not None
         items_out.append({
             'indice':            idx,
             'nombre':            nombre,
             'codigo':            codigo,
             'codigo_sugerido':   generar_codigo_producto(nombre, unidad_min, set()),
             'codigo_manual':     bool(codigo_manual),
+            'codigo_por_referencia': codigo_por_referencia,
+            'referencia_proveedor': referencia_proveedor,
             'cantidad_original': cantidad_original,
             'unidad_original':   unit_code,
             'multiplicador':     multiplicador,
@@ -1150,7 +1626,8 @@ def _computar_items_factura(datos: dict, xml_content: str, codigos_manual: dict 
             'iva':               iva_linea,
             'precio_unitario':   precio_unitario,
             'precio_neto':       precio_neto,
-            'duplicado':         es_duplicado,
+            'existe_en_siigo':   existe_en_siigo,
+            'duplicado':         existe_en_siigo,
             'siigo_producto':    _resumen_producto_siigo(producto_siigo),
             'impuestos':         item.get('impuestos', []),
             'precio_proveedor':  item.get('price', 0),
@@ -1192,10 +1669,148 @@ def revisar_codigo_producto_siigo(codigo: str) -> dict:
     """Valida un código manual y consulta si ya existe en SIIGO."""
     codigo_limpio = _codigo_manual_valido(codigo)
     producto = buscar_producto_en_siigo_por_codigo(codigo_limpio)
+    existe = producto is not None
     return {
         'codigo': codigo_limpio,
-        'duplicado': producto is not None,
+        'existe_en_siigo': existe,
+        'duplicado': existe,
         'siigo_producto': _resumen_producto_siigo(producto),
+    }
+
+
+_SIIGO_UNIT_API = {'Un': '94', 'mL': '79', 'g': '62'}
+
+
+def crear_producto_en_siigo(producto: dict) -> dict:
+    """
+    Crea un producto inventariable en SIIGO vía POST /v1/products.
+    Retorna {ok, mensaje|error, siigo_producto?}.
+    """
+    codigo = _codigo_manual_valido(str(producto.get('codigo', '')).strip())
+    existente = buscar_producto_en_siigo_por_codigo(codigo)
+    if existente:
+        return {
+            'ok': False,
+            'error': f'El código {codigo} ya existe en SIIGO',
+            'siigo_producto': _resumen_producto_siigo(existente),
+        }
+
+    token = autenticar_siigo()
+    if not token:
+        return {'ok': False, 'error': 'No se pudo autenticar con SIIGO'}
+
+    has_iva = producto.get('iva', 0) > 0
+    taxes = [{'id': 3118}] if has_iva else []
+    precio_vu = producto.get('precio_unitario', 0)
+    precio_neto = producto.get('precio_neto', precio_vu)
+    siigo_unit_code = _SIIGO_UNIT_API.get(producto.get('unidad_min', 'Un'), '94')
+
+    payload = {
+        'code': codigo,
+        'name': str(producto.get('nombre', ''))[:120],
+        'account_group': 297,
+        'type': 'Product',
+        'stock_control': True,
+        'unit': {'code': siigo_unit_code},
+        'warehouses': [{'id': 41, 'quantity': 0, 'unit_cost': precio_neto}],
+        'prices': [{
+            'currency_code': 'COP',
+            'price_list': [{'position': 1, 'value': round(precio_vu * 1.3, 0)}],
+        }],
+        'taxes': taxes,
+    }
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Partner-Id': PARTNER_ID,
+        'Content-Type': 'application/json',
+    }
+    try:
+        r = requests.post(
+            'https://api.siigo.com/v1/products',
+            json=payload,
+            headers=headers,
+            timeout=20,
+        )
+        if r.status_code in (200, 201):
+            data = r.json()
+            resumen = _resumen_producto_siigo(data) or {
+                'codigo': data.get('code', codigo),
+                'nombre': data.get('name', producto.get('nombre', '')),
+                'unidad': producto.get('unidad_min', ''),
+                'activo': True,
+            }
+            return {
+                'ok': True,
+                'mensaje': f"Producto {codigo} creado en SIIGO",
+                'siigo_id': data.get('id'),
+                'siigo_producto': resumen,
+            }
+        return {'ok': False, 'error': f'SIIGO HTTP {r.status_code}: {(r.text or "")[:250]}'}
+    except Exception as e:
+        return {'ok': False, 'error': str(e)}
+
+
+def crear_productos_factura_en_siigo(
+    sufijo: str,
+    indices: list,
+    codigos_manual: dict | None = None,
+) -> dict:
+    """Crea en SIIGO los ítems nuevos indicados de una factura pendiente."""
+    key, entrada = _buscar_pendiente(sufijo)
+    if not entrada:
+        return {'ok': False, 'error': f'Factura {sufijo} no encontrada'}
+
+    xml_content = base64.b64decode(entrada['xml_b64']).decode('utf-8')
+    datos = json.loads(entrada['datos_json'])
+    items = _computar_items_factura(datos, xml_content, codigos_manual)
+    indices_norm = sorted({int(i) for i in indices if str(i).isdigit() or isinstance(i, int)})
+    if not indices_norm:
+        return {'ok': False, 'error': 'Ningún ítem indicado'}
+
+    creados = []
+    omitidos = []
+    errores = []
+    for indice in indices_norm:
+        item = next((p for p in items if p.get('indice') == indice), None)
+        if not item:
+            errores.append({'indice': indice, 'error': 'Ítem no encontrado'})
+            continue
+        if item.get('existe_en_siigo', item.get('duplicado')):
+            omitidos.append({
+                'indice': indice,
+                'codigo': item.get('codigo'),
+                'motivo': 'Ya existe en SIIGO',
+                'siigo_producto': item.get('siigo_producto'),
+            })
+            continue
+        resultado = crear_producto_en_siigo(item)
+        if resultado.get('ok'):
+            creados.append({
+                'indice': indice,
+                'codigo': item.get('codigo'),
+                'nombre': item.get('nombre'),
+                'siigo_producto': resultado.get('siigo_producto'),
+            })
+        else:
+            errores.append({
+                'indice': indice,
+                'codigo': item.get('codigo'),
+                'error': resultado.get('error', 'Error desconocido'),
+            })
+
+    ok = bool(creados) and not errores
+    parcial = bool(creados) and bool(errores)
+    return {
+        'ok': ok or parcial,
+        'parcial': parcial,
+        'creados': creados,
+        'omitidos': omitidos,
+        'errores': errores,
+        'mensaje': (
+            f"{len(creados)} producto(s) creado(s) en SIIGO"
+            + (f", {len(errores)} error(es)" if errores else '')
+            + (f", {len(omitidos)} ya existían" if omitidos else '')
+        ),
     }
 
 
@@ -1228,24 +1843,42 @@ def procesar_items_inventario(sufijo: str, indices: list, codigos_manual: dict |
 
     ruta_excel = generar_excel_importacion(items_sel, entrada['numero_factura'])
     ruta_xml   = generar_xml_compra_siigo(datos, items_sel, entrada['numero_factura'])
-    nuevos = sum(1 for p in items_sel if not p.get('duplicado'))
-    duplicados = sum(1 for p in items_sel if p.get('duplicado'))
+    nuevos = sum(1 for p in items_sel if not p.get('existe_en_siigo', p.get('duplicado')))
+    en_siigo = sum(1 for p in items_sel if p.get('existe_en_siigo', p.get('duplicado')))
+    excel_linea = (
+        f"   • {os.path.basename(ruta_excel)}\n" if ruta_excel else
+        "   • _(sin Excel — todos los ítems ya existen en SIIGO)_\n"
+    )
     msg = (
         f"✅ *Factura procesada desde el panel*\n\n"
         f"🔢 {entrada['numero_factura']}\n"
         f"🏢 {entrada['proveedor']}\n"
-        f"📦 {nuevos} producto(s) nuevo(s)  ·  {duplicados} duplicado(s)\n"
+        f"📦 {nuevos} producto(s) nuevo(s)  ·  {en_siigo} en SIIGO (suman inventario)\n"
         f"📎 Archivos generados en el servidor:\n"
-        f"   • {os.path.basename(ruta_excel)}\n"
+        f"{excel_linea}"
         f"   • {os.path.basename(ruta_xml or '—')}"
     )
     enviar_whatsapp_reporte(msg, numero_destino=GRUPO_COMPRAS)
+    registrar_factura_historial(
+        entrada,
+        'inventario',
+        sufijo=key,
+        origen='panel',
+        datos=datos,
+        items_resumen=_resumen_items_historial(items_sel),
+        nuevos=nuevos,
+        en_siigo=en_siigo,
+        ruta_excel=ruta_excel,
+        ruta_xml=ruta_xml,
+        mensaje=msg.replace('*', ''),
+    )
     _quitar_pendiente(key)
     return {
         'ok':      True,
         'nuevos':  nuevos,
-        'duplicados': duplicados,
-        'ruta_excel': os.path.basename(ruta_excel),
+        'en_siigo': en_siigo,
+        'duplicados': en_siigo,
+        'ruta_excel': os.path.basename(ruta_excel) if ruta_excel else None,
         'ruta_xml':   os.path.basename(ruta_xml or ''),
         'mensaje': msg,
     }
@@ -1613,7 +2246,7 @@ def procesar_facturas_para_importar_productos(dias: int = 30) -> str:
 #  Orquestador principal — fase 2: respuesta
 # ─────────────────────────────────────────────
 
-def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
+def procesar_respuesta_factura_compra(comando: str, sufijo: str, origen: str = 'whatsapp') -> str:
     """
     Fase 2: Procesa la respuesta del operador a una factura pendiente.
 
@@ -1631,16 +2264,24 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
     numero_factura = entrada['numero_factura']
     proveedor      = entrada['proveedor']
     nit            = entrada['nit']
+    datos          = json.loads(entrada['datos_json'])
     cmd = comando.strip().lower()
 
     # ── Omitir / Gasto ───────────────────────────────────────────
     if cmd == 'skip':
+        registrar_factura_historial(
+            entrada,
+            'omitida',
+            sufijo=key,
+            origen=origen,
+            datos=datos,
+            mensaje=f'Factura {numero_factura} omitida',
+        )
         _quitar_pendiente(key)
         threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
         return f"⏭️ Factura *{numero_factura}* omitida. No se registró nada en SIIGO."
 
     if cmd == 'gasto':
-        datos = json.loads(entrada['datos_json'])
         total = entrada.get('total', 0)
         n_items = entrada.get('items_count', 0)
 
@@ -1668,6 +2309,30 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
         }
 
         resultado = crear_factura_compra_siigo(payload_siigo)
+
+        if resultado.get("status") == "success":
+            siigo_id = resultado.get("data", {}).get("id", "—")
+            registrar_factura_historial(
+                entrada,
+                'gasto',
+                sufijo=key,
+                origen=origen,
+                datos=datos,
+                estado='ok',
+                siigo_id=str(siigo_id),
+                mensaje=f'Gasto registrado en SIIGO ({siigo_id})',
+            )
+        else:
+            error = resultado.get("message", str(resultado))
+            registrar_factura_historial(
+                entrada,
+                'gasto',
+                sufijo=key,
+                origen=origen,
+                datos=datos,
+                estado='error',
+                mensaje=str(error)[:500],
+            )
 
         _quitar_pendiente(key)
         threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
@@ -1713,7 +2378,6 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
     # ── Procesar (ok o inventario) ───────────────────────────────
     if cmd in ('ok', 'inventario'):
         xml_content = base64.b64decode(entrada['xml_b64']).decode('utf-8')
-        datos       = json.loads(entrada['datos_json'])
 
         _quitar_pendiente(key)
 
@@ -1731,9 +2395,31 @@ def procesar_respuesta_factura_compra(comando: str, sufijo: str) -> str:
 
         arch = _ejecutar_procesamiento(numero_factura, datos, xml_content)
         if not arch:
+            registrar_factura_historial(
+                entrada,
+                'inventario',
+                sufijo=key,
+                origen=origen,
+                datos=datos,
+                estado='error',
+                mensaje='Sin ítems procesables',
+            )
             threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
             return f"⚠️ Factura *{numero_factura}*: no se encontraron ítems procesables."
 
+        registrar_factura_historial(
+            entrada,
+            'inventario',
+            sufijo=key,
+            origen=origen,
+            datos=datos,
+            items_resumen=_resumen_items_historial(arch.get('productos')),
+            nuevos=arch.get('nuevos', 0),
+            en_siigo=arch.get('duplicados', 0),
+            ruta_excel=arch.get('ruta'),
+            ruta_xml=arch.get('ruta_xml'),
+            mensaje=f"Excel + XML generados ({arch.get('nuevos', 0)} nuevos)",
+        )
         # Notificar la siguiente factura en cola (si existe) con pausa
         threading.Timer(4, _notificar_siguiente_factura_pendiente).start()
 
@@ -1772,25 +2458,25 @@ def _construir_resumen_whatsapp(arch: dict) -> str:
         f"🔢 *Factura proveedor:* {arch['numero_factura']}\n"
         f"🏢 *Proveedor:* {arch['proveedor']}\n\n"
         f"✅ *Productos nuevos:* {arch['nuevos']}\n"
-        f"⚠️ *Ya en SIIGO (duplicados):* {arch['duplicados']}\n\n"
+        f"📦 *Ya en SIIGO (suman inventario):* {arch['duplicados']}\n\n"
         f"📎 *Archivos generados:*\n"
         f"   • Excel: `{excel_nombre}`\n"
         f"   • XML:   `{xml_nombre}`\n\n"
         f"📋 *Protocolo de carga en SIIGO:*\n"
         f"\n"
-        f"   *— Paso A: Registrar los productos (Excel) —*\n"
+        f"   *— Paso A: Registrar los productos nuevos (Excel) —*\n"
         f"   1. SIIGO → Inventario → Productos\n"
         f"   2. Clic en ▶ *Importación*\n"
         f"   3. Selecciona el Excel adjunto\n"
         f"   4. Verifica la vista previa y confirma\n"
-        f"   _(Omitir si todos son duplicados)_\n\n"
+        f"   _(Omitir si no hay productos nuevos)_\n\n"
         f"   *— Paso B: Registrar la compra (XML) —*\n"
         f"   1. SIIGO → Compras\n"
         f"   2. Clic en ▶ *Crear compra o gasto desde un XML o ZIP*\n"
         f"   3. Carga el archivo XML adjunto\n"
         f"   4. Verifica que el total coincide con la factura del proveedor\n"
-        f"   5. Asienta el documento\n\n"
-        f"⚠️ *Nota:* Si hay duplicados, revísalos antes de importar el Excel."
+        f"   5. Asienta el documento — los ítems en SIIGO suman inventario\n\n"
+        f"ℹ️ *Nota:* Los productos que ya existen en SIIGO solo van en el XML de compra."
     )
 
 

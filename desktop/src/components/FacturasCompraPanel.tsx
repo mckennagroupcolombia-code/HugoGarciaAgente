@@ -28,6 +28,8 @@ interface ItemFactura {
   codigo: string;
   codigo_sugerido?: string;
   codigo_manual?: boolean;
+  codigo_por_referencia?: boolean;
+  referencia_proveedor?: string;
   cantidad_original: number;
   unidad_original: string;
   multiplicador: number;
@@ -38,6 +40,7 @@ interface ItemFactura {
   precio_unitario: number;
   precio_neto: number;
   precio_proveedor: number;
+  existe_en_siigo?: boolean;
   duplicado: boolean;
   siigo_producto?: SiigoProducto | null;
   impuestos: Impuesto[];
@@ -48,6 +51,22 @@ interface SiigoProducto {
   nombre: string;
   unidad: string;
   activo: boolean;
+}
+
+interface CrearProductosResp {
+  ok: boolean;
+  parcial?: boolean;
+  creados?: Array<{ indice: number; codigo?: string; siigo_producto: SiigoProducto }>;
+  errores?: Array<{ indice?: number; codigo?: string; error: string }>;
+  mensaje?: string;
+  error?: string;
+}
+
+function lanzarSiCrearProductosFallo(res: CrearProductosResp): CrearProductosResp {
+  if (res.creados?.length) return res;
+  throw new Error(
+    res.errores?.[0]?.error || res.error || res.mensaje || "No se pudo crear el producto en SIIGO",
+  );
 }
 
 interface CompraRegistradaSiigo {
@@ -94,6 +113,44 @@ interface EscanearResultado {
   errores: Array<{ asunto: string; archivo?: string; motivo: string }>;
 }
 
+interface HistorialItemResumen {
+  nombre: string;
+  codigo: string;
+  cantidad_min?: number;
+  unidad_min?: string;
+  precio_neto?: number | null;
+  precio_unitario?: number | null;
+  precio_proveedor?: number | null;
+  precio_anterior?: number | null;
+  tendencia_precio?: "nuevo" | "igual" | "subio" | "bajo" | string;
+  variacion_pct?: number | null;
+  existe_en_siigo?: boolean;
+}
+
+interface FacturaHistorial {
+  id: string;
+  sufijo?: string;
+  numero_factura: string;
+  proveedor: string;
+  nit?: string;
+  total: number;
+  fecha_factura?: string;
+  items_count?: number;
+  accion: "inventario" | "gasto" | "omitida" | string;
+  estado: "ok" | "error" | string;
+  origen?: string;
+  nuevos?: number;
+  en_siigo?: number;
+  items_resumen?: HistorialItemResumen[];
+  ruta_excel?: string | null;
+  ruta_xml?: string | null;
+  siigo_id?: string | null;
+  mensaje?: string;
+  timestamp: string;
+}
+
+type VistaFacturas = "pendientes" | "historial";
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
@@ -113,6 +170,44 @@ const STEPS = [
   { n: 2, label: "Revisar factura", hint: "Contrastar datos proveedor vs McKenna" },
   { n: 3, label: "Confirmar", hint: "Inventario, gasto u omitir" },
 ];
+
+const ACCION_HISTORIAL: Record<string, { label: string; cls: string }> = {
+  inventario: { label: "Inventario", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200" },
+  gasto: { label: "Gasto SIIGO", cls: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200" },
+  omitida: { label: "Omitida", cls: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
+};
+
+function fmtFecha(iso?: string) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  return d.toLocaleString("es-CO", { dateStyle: "short", timeStyle: "short" });
+}
+
+function copUnit(n: number, unidad?: string) {
+  const u = unidad ? ` / ${unidad}` : "";
+  return `$ ${n.toLocaleString("es-CO", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}${u}`;
+}
+
+const TENDENCIA_PRECIO: Record<string, { label: string; cls: string }> = {
+  nuevo: { label: "Primera compra", cls: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-200" },
+  igual: { label: "Sin cambio", cls: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
+  subio: { label: "Subió", cls: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200" },
+  bajo: { label: "Bajó", cls: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200" },
+};
+
+function BadgeTendenciaPrecio({ tendencia, variacion }: { tendencia?: string; variacion?: number | null }) {
+  const cfg = TENDENCIA_PRECIO[tendencia || ""] || { label: tendencia || "—", cls: "bg-surface-hover text-muted" };
+  const extra =
+    variacion != null && tendencia && tendencia !== "nuevo" && tendencia !== "igual"
+      ? ` ${variacion > 0 ? "+" : ""}${variacion.toFixed(1)}%`
+      : "";
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${cfg.cls}`}>
+      {cfg.label}{extra}
+    </span>
+  );
+}
 
 // ── Summary card ─────────────────────────────────────────────────────────────
 
@@ -178,6 +273,7 @@ function DetalleFactura({
   const [codigosManual, setCodigosManual] = useState<Record<string, string>>({});
   const [checksCodigo, setChecksCodigo] = useState<Record<string, {
     codigo: string;
+    existe_en_siigo: boolean;
     duplicado: boolean;
     siigo_producto: SiigoProducto | null;
   }>>({});
@@ -200,7 +296,7 @@ function DetalleFactura({
     setSelected(
       detalle.compra_registrada_siigo
         ? new Set()
-        : new Set(detalle.items.filter((i) => !i.duplicado).map((i) => i.indice)),
+        : new Set(detalle.items.map((i) => i.indice)),
     );
     setDefaulted(true);
   }, [detalle, defaulted]);
@@ -220,6 +316,23 @@ function DetalleFactura({
       api.post("/api/facturas/clasificar", { cmd, sufijo }),
     onSuccess: () => onDone(sufijo),
   });
+
+  const crearProductos = useMutation({
+    mutationFn: async (indices: number[]) =>
+      lanzarSiCrearProductosFallo(
+        await api.post<CrearProductosResp>(`/api/facturas/${sufijo}/crear-productos`, {
+          indices,
+          codigos_manual: codigosManual,
+        }),
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["factura-detalle", sufijo] });
+    },
+  });
+
+  const itemsNuevos = detalle?.items.filter(
+    (i) => !(i.existe_en_siigo ?? i.duplicado),
+  ) ?? [];
 
   const toggleItem = (idx: number) => {
     setSelected((prev) => {
@@ -249,17 +362,11 @@ function DetalleFactura({
 
   const handleCodeCheck = (idx: number, result: {
     codigo: string;
+    existe_en_siigo: boolean;
     duplicado: boolean;
     siigo_producto: SiigoProducto | null;
   }) => {
     setChecksCodigo((prev) => ({ ...prev, [String(idx)]: result }));
-    if (result.duplicado) {
-      setSelected((prev) => {
-        const next = new Set(prev);
-        next.delete(idx);
-        return next;
-      });
-    }
   };
 
   if (isLoading) {
@@ -285,6 +392,7 @@ function DetalleFactura({
   const selCount = selected.size;
   const facturaYaRegistrada = detalle.compra_registrada_siigo;
   const bloqueado = Boolean(facturaYaRegistrada);
+  const nuevosCount = itemsNuevos.length;
 
   return (
     <div className="space-y-4">
@@ -378,14 +486,17 @@ function DetalleFactura({
           {detalle.items.map((item) => (
             <ItemContrasteRow
               key={item.indice}
+              sufijo={sufijo}
               item={item}
               codigo={codigosManual[String(item.indice)] ?? item.codigo}
+              codigosManual={codigosManual}
               check={checksCodigo[String(item.indice)]}
               checked={selected.has(item.indice)}
               disabled={bloqueado}
               onToggle={() => toggleItem(item.indice)}
               onCodeChange={(c) => handleCodeChange(item.indice, c)}
               onCodeCheck={(r) => handleCodeCheck(item.indice, r)}
+              onProductoCreado={() => qc.invalidateQueries({ queryKey: ["factura-detalle", sufijo] })}
             />
           ))}
         </div>
@@ -394,10 +505,34 @@ function DetalleFactura({
       {/* Acciones humanas */}
       <div className="sticky bottom-0 z-10 rounded-xl border-2 border-border bg-surface-panel/95 backdrop-blur p-4 shadow-lg">
         <p className="mb-3 text-xs text-muted">
-          Revisa línea a línea antes de confirmar. <strong className="text-ink">Inventario</strong> genera Excel + XML para SIIGO.
+          Revisa línea a línea antes de confirmar. Los <strong className="text-ink">productos nuevos</strong> puedes crearlos en SIIGO desde cada línea o en lote.
+          <strong className="text-ink"> Inventario</strong> genera XML de compra (y Excel solo si quedan productos sin crear).
           <strong className="text-ink"> Gasto</strong> registra la factura completa como costo. <strong className="text-ink">Omitir</strong> descarta sin registrar.
         </p>
+        {(crearProductos.error || crearProductos.data?.errores?.length) && (
+          <p className="mb-2 text-xs text-red-400">
+            {(crearProductos.error as Error)?.message
+              || crearProductos.data?.errores?.map((e) => e.error).join(" · ")}
+          </p>
+        )}
+        {crearProductos.data?.mensaje && crearProductos.isSuccess && (
+          <p className="mb-2 text-xs text-emerald-600 dark:text-emerald-300">
+            {crearProductos.data.mensaje}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
+          {nuevosCount > 0 && (
+            <button
+              type="button"
+              disabled={bloqueado || crearProductos.isPending}
+              onClick={() => crearProductos.mutate(itemsNuevos.map((i) => i.indice))}
+              className="rounded-xl border-2 border-sky-500/50 bg-sky-500/10 px-4 py-3 text-sm font-bold text-sky-800 dark:text-sky-300 hover:bg-sky-500/20 disabled:opacity-40"
+            >
+              {crearProductos.isPending
+                ? "Creando en SIIGO…"
+                : `Crear ${nuevosCount} producto${nuevosCount !== 1 ? "s" : ""} nuevo${nuevosCount !== 1 ? "s" : ""} en SIIGO`}
+            </button>
+          )}
           <button
             type="button"
             disabled={bloqueado || selCount === 0 || procesar.isPending}
@@ -436,38 +571,65 @@ function DetalleFactura({
 // ── Item contrast row ─────────────────────────────────────────────────────────
 
 function ItemContrasteRow({
+  sufijo,
   item,
   codigo,
+  codigosManual,
   check,
   checked,
   disabled,
   onToggle,
   onCodeChange,
   onCodeCheck,
+  onProductoCreado,
 }: {
+  sufijo: string;
   item: ItemFactura;
   codigo: string;
-  check?: { codigo: string; duplicado: boolean; siigo_producto: SiigoProducto | null };
+  codigosManual: Record<string, string>;
+  check?: { codigo: string; existe_en_siigo: boolean; duplicado: boolean; siigo_producto: SiigoProducto | null };
   checked: boolean;
   disabled: boolean;
   onToggle: () => void;
   onCodeChange: (codigo: string) => void;
-  onCodeCheck: (result: { codigo: string; duplicado: boolean; siigo_producto: SiigoProducto | null }) => void;
+  onCodeCheck: (result: { codigo: string; existe_en_siigo: boolean; duplicado: boolean; siigo_producto: SiigoProducto | null }) => void;
+  onProductoCreado: () => void;
 }) {
   const checkCodigo = useMutation({
     mutationFn: (codigoActual: string) =>
-      api.post<{ codigo: string; duplicado: boolean; siigo_producto: SiigoProducto | null }>(
+      api.post<{ codigo: string; existe_en_siigo: boolean; duplicado: boolean; siigo_producto: SiigoProducto | null }>(
         "/api/facturas/codigo/check",
         { codigo: codigoActual },
       ),
     onSuccess: onCodeCheck,
   });
+  const crearEnSiigo = useMutation({
+    mutationFn: async () =>
+      lanzarSiCrearProductosFallo(
+        await api.post<CrearProductosResp>(`/api/facturas/${sufijo}/crear-productos`, {
+          indices: [item.indice],
+          codigos_manual: codigosManual,
+        }),
+      ),
+    onSuccess: (res) => {
+      if (res.creados?.[0]) {
+        onProductoCreado();
+        onCodeCheck({
+          codigo,
+          existe_en_siigo: true,
+          duplicado: true,
+          siigo_producto: res.creados[0].siigo_producto,
+        });
+      }
+    },
+  });
   const siigoProducto = check?.siigo_producto || item.siigo_producto || null;
-  const duplicado = check?.duplicado ?? item.duplicado;
+  const existeEnSiigo = check?.existe_en_siigo ?? check?.duplicado ?? item.existe_en_siigo ?? item.duplicado;
+  const crearError = crearEnSiigo.error as Error | undefined;
 
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-2 gap-0 ${
-      duplicado ? "bg-amber-50/50 dark:bg-amber-900/10" : checked ? "bg-accent/5" : ""
+      existeEnSiigo ? "bg-emerald-50/40 dark:bg-emerald-900/10" : checked ? "bg-accent/5" : ""
     }`}>
       {/* Columna proveedor */}
       <div className="flex gap-3 border-b lg:border-b-0 lg:border-r border-border/60 p-4">
@@ -475,7 +637,7 @@ function ItemContrasteRow({
           type="checkbox"
           checked={checked}
           onChange={onToggle}
-          disabled={disabled || duplicado}
+          disabled={disabled}
           className="mt-1 shrink-0 accent-accent"
         />
         <div className="min-w-0 flex-1 space-y-1">
@@ -484,6 +646,9 @@ function ItemContrasteRow({
             <span>Cant: <span className="text-ink">{item.cantidad_original} {item.unidad_original}</span></span>
             <span>Subtotal: <span className="text-ink">{cop(item.subtotal)}</span></span>
             <span>P. proveedor: <span className="text-ink">{cop(item.precio_proveedor)}</span></span>
+            {item.referencia_proveedor && (
+              <span className="col-span-2">Ref. proveedor: <span className="text-ink">{item.referencia_proveedor}</span></span>
+            )}
             {item.iva > 0 && <span>IVA: <span className="text-ink">{cop(item.iva)}</span></span>}
             {item.multiplicador > 1 && (
               <span className="col-span-2 text-violet-600 dark:text-violet-400">× {item.multiplicador} por empaque</span>
@@ -495,15 +660,20 @@ function ItemContrasteRow({
       {/* Columna McKenna */}
       <div className="p-4 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          {duplicado ? (
-            <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-900 dark:bg-amber-800 dark:text-amber-100">
-              Ya en SIIGO
-            </span>
-          ) : check && !check.duplicado ? (
+          {existeEnSiigo ? (
             <span className="rounded-full bg-emerald-200 px-2 py-0.5 text-[10px] font-bold text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100">
-              Código libre
+              En SIIGO — suma inventario
             </span>
-          ) : null}
+          ) : (
+            <span className="rounded-full bg-sky-200 px-2 py-0.5 text-[10px] font-bold text-sky-900 dark:bg-sky-800 dark:text-sky-100">
+              Producto nuevo
+            </span>
+          )}
+          {item.codigo_por_referencia && (
+            <span className="rounded-full bg-violet-200 px-2 py-0.5 text-[10px] font-bold text-violet-900 dark:bg-violet-800 dark:text-violet-100">
+              Código por referencia
+            </span>
+          )}
         </div>
         <div className="flex gap-2">
           <input
@@ -531,9 +701,27 @@ function ItemContrasteRow({
           <span>P. venta: <span className="text-ink">{cop(item.precio_unitario)}</span></span>
         </div>
         {siigoProducto && (
-          <p className="text-[11px] text-amber-700 dark:text-amber-300 font-mono truncate">
+          <p className="text-[11px] text-emerald-700 dark:text-emerald-300 font-mono truncate">
             SIIGO: {siigoProducto.codigo} · {siigoProducto.nombre}
           </p>
+        )}
+        {!existeEnSiigo && !disabled && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              type="button"
+              disabled={crearEnSiigo.isPending || !codigo.trim()}
+              onClick={() => crearEnSiigo.mutate()}
+              className="rounded-lg bg-sky-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-sky-500 disabled:opacity-40"
+            >
+              {crearEnSiigo.isPending ? "Creando…" : "Crear en SIIGO"}
+            </button>
+            <span className="text-[10px] text-muted">
+              Precio venta estimado: {cop(Math.round(item.precio_unitario * 1.3))}
+            </span>
+          </div>
+        )}
+        {crearError && (
+          <p className="text-[11px] text-red-400">{crearError.message}</p>
         )}
       </div>
     </div>
@@ -545,6 +733,10 @@ function ItemContrasteRow({
 export default function FacturasCompraPanel() {
   const [detalleAbierto, setDetalleAbierto] = useState<string | null>(null);
   const [scanResult, setScanResult] = useState<EscanearResultado | null>(null);
+  const [vista, setVista] = useState<VistaFacturas>("pendientes");
+  const [filtroHistorial, setFiltroHistorial] = useState("");
+  const [accionHistorial, setAccionHistorial] = useState("");
+  const [historialAbierto, setHistorialAbierto] = useState<string | null>(null);
   const qc = useQueryClient();
 
   const { data, isLoading, refetch } = useQuery({
@@ -557,6 +749,7 @@ export default function FacturasCompraPanel() {
     mutationFn: () => api.post<EscanearResultado>("/api/facturas/escanear", {}),
     onSuccess: (res) => {
       setScanResult(res);
+      setVista("pendientes");
       qc.invalidateQueries({ queryKey: ["facturas-pendientes"] });
       if (res.encoladas?.length === 1) {
         setDetalleAbierto(res.encoladas[0].sufijo);
@@ -564,13 +757,29 @@ export default function FacturasCompraPanel() {
     },
   });
 
+  const historialQuery = useQuery({
+    queryKey: ["facturas-historial", accionHistorial, filtroHistorial],
+    queryFn: () => {
+      const params = new URLSearchParams({ limit: "100" });
+      if (accionHistorial) params.set("accion", accionHistorial);
+      if (filtroHistorial.trim()) params.set("q", filtroHistorial.trim());
+      return api.get<{ historial: FacturaHistorial[]; total: number; mostrando: number }>(
+        `/api/facturas/historial?${params.toString()}`,
+      );
+    },
+    enabled: vista === "historial",
+    staleTime: 30_000,
+  });
+
   const pendientes = data?.pendientes ?? [];
   const total = data?.total ?? 0;
+  const historial = historialQuery.data?.historial ?? [];
   const pasoActual = detalleAbierto ? 2 : total > 0 ? 2 : 1;
 
   const handleDone = useCallback(async (sufijoActual: string) => {
     setDetalleAbierto(null);
     await qc.invalidateQueries({ queryKey: ["facturas-pendientes"] });
+    await qc.invalidateQueries({ queryKey: ["facturas-historial"] });
     const fresh = qc.getQueryData<{ pendientes: FacturaSummary[] }>(["facturas-pendientes"]);
     const restantes = (fresh?.pendientes ?? pendientes).filter((p) => p.sufijo !== sufijoActual);
     if (restantes.length > 0) {
@@ -593,6 +802,47 @@ export default function FacturasCompraPanel() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setVista("pendientes")}
+          className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+            vista === "pendientes"
+              ? "bg-accent text-white"
+              : "border border-border bg-surface-panel text-muted hover:text-ink"
+          }`}
+        >
+          Pendientes{total > 0 ? ` (${total})` : ""}
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista("historial")}
+          className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+            vista === "historial"
+              ? "bg-accent text-white"
+              : "border border-border bg-surface-panel text-muted hover:text-ink"
+          }`}
+        >
+          Historial
+        </button>
+      </div>
+
+      {vista === "historial" ? (
+        <HistorialFacturas
+          items={historial}
+          total={historialQuery.data?.total ?? 0}
+          loading={historialQuery.isLoading}
+          error={historialQuery.error instanceof Error ? historialQuery.error.message : null}
+          filtro={filtroHistorial}
+          accion={accionHistorial}
+          abierto={historialAbierto}
+          onFiltroChange={setFiltroHistorial}
+          onAccionChange={setAccionHistorial}
+          onToggle={(id) => setHistorialAbierto((prev) => (prev === id ? null : id))}
+          onRefresh={() => historialQuery.refetch()}
+        />
+      ) : (
+        <>
       <Stepper paso={pasoActual} />
 
       <div className="rounded-xl border-2 border-border bg-surface-panel p-5">
@@ -678,6 +928,200 @@ export default function FacturasCompraPanel() {
           />
         ))}
       </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function HistorialFacturas({
+  items,
+  total,
+  loading,
+  error,
+  filtro,
+  accion,
+  abierto,
+  onFiltroChange,
+  onAccionChange,
+  onToggle,
+  onRefresh,
+}: {
+  items: FacturaHistorial[];
+  total: number;
+  loading: boolean;
+  error: string | null;
+  filtro: string;
+  accion: string;
+  abierto: string | null;
+  onFiltroChange: (v: string) => void;
+  onAccionChange: (v: string) => void;
+  onToggle: (id: string) => void;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border-2 border-border bg-surface-panel p-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-ink">Historial de facturas</h2>
+            <p className="mt-1 text-sm text-muted">
+              Facturas procesadas desde el panel o WhatsApp: inventario, gasto u omitidas.
+            </p>
+          </div>
+          <button type="button" onClick={onRefresh} className="text-xs text-muted hover:text-accent">
+            Actualizar
+          </button>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <input
+            type="search"
+            value={filtro}
+            onChange={(e) => onFiltroChange(e.target.value)}
+            placeholder="Buscar factura o proveedor…"
+            className="min-w-[200px] flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          />
+          <select
+            value={accion}
+            onChange={(e) => onAccionChange(e.target.value)}
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent"
+          >
+            <option value="">Todas las acciones</option>
+            <option value="inventario">Inventario</option>
+            <option value="gasto">Gasto SIIGO</option>
+            <option value="omitida">Omitidas</option>
+          </select>
+        </div>
+      </div>
+
+      {loading && <p className="text-sm text-muted text-center py-10">Cargando historial…</p>}
+
+      {error && (
+        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
+          No se pudo cargar el historial: {error}
+        </div>
+      )}
+
+      {!loading && !error && items.length === 0 && (
+        <div className="rounded-xl border-2 border-dashed border-border p-12 text-center">
+          <p className="text-base font-semibold text-ink">Sin registros en el historial</p>
+          <p className="text-sm text-muted mt-2">
+            Las facturas aparecerán aquí al confirmar inventario, registrar gasto u omitir.
+          </p>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {items.map((row) => {
+          const acc = ACCION_HISTORIAL[row.accion] || { label: row.accion, cls: "bg-surface-hover text-muted" };
+          const expandido = abierto === row.id;
+          return (
+            <div key={row.id} className="rounded-xl border border-border bg-surface-panel overflow-hidden">
+              <button
+                type="button"
+                onClick={() => onToggle(row.id)}
+                className="w-full px-4 py-3 text-left hover:bg-surface-hover/60 transition"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-ink">{row.numero_factura}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${acc.cls}`}>
+                        {acc.label}
+                      </span>
+                      {row.estado === "error" && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800 dark:bg-red-900/40 dark:text-red-200">
+                          Error
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-ink-secondary truncate">{row.proveedor}</p>
+                    <p className="text-[11px] text-muted font-mono mt-0.5">
+                      {fmtFecha(row.timestamp)}
+                      {row.fecha_factura ? ` · Factura ${row.fecha_factura}` : ""}
+                      {row.origen ? ` · ${row.origen}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-ink">{cop(row.total)}</p>
+                    <p className="text-[10px] text-muted">{row.items_count ?? 0} ítems</p>
+                  </div>
+                </div>
+              </button>
+              {expandido && (
+                <div className="border-t border-border px-4 py-3 space-y-3 bg-surface/40">
+                  {(row.nuevos ?? 0) > 0 || (row.en_siigo ?? 0) > 0 ? (
+                    <p className="text-xs text-muted">
+                      {row.nuevos ?? 0} producto(s) nuevo(s) · {row.en_siigo ?? 0} ya en SIIGO
+                    </p>
+                  ) : null}
+                  {row.siigo_id && (
+                    <p className="text-xs font-mono text-muted">ID SIIGO: {row.siigo_id}</p>
+                  )}
+                  {(row.ruta_excel || row.ruta_xml) && (
+                    <div className="text-xs font-mono text-muted space-y-0.5">
+                      {row.ruta_excel && <p>Excel: {row.ruta_excel}</p>}
+                      {row.ruta_xml && <p>XML: {row.ruta_xml}</p>}
+                    </div>
+                  )}
+                  {row.mensaje && <p className="text-xs text-muted">{row.mensaje}</p>}
+                  {(row.items_resumen?.length ?? 0) > 0 && (
+                    <div className="rounded-lg border border-border overflow-hidden">
+                      <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-muted bg-surface-hover">
+                        Ítems procesados · precio unitario vs compra anterior
+                      </div>
+                      <div className="divide-y divide-border/60 max-h-72 overflow-y-auto">
+                        {row.items_resumen!.map((it, i) => (
+                          <div key={i} className="px-3 py-2.5 space-y-1.5">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-semibold text-ink leading-snug">{it.nombre}</p>
+                                <p className="text-[10px] font-mono text-muted">{it.codigo}</p>
+                              </div>
+                              <BadgeTendenciaPrecio
+                                tendencia={it.tendencia_precio}
+                                variacion={it.variacion_pct}
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-1 text-[10px] font-mono">
+                              {it.cantidad_min != null && (
+                                <span className="text-muted">
+                                  Cant: <span className="text-ink">{fmtDec(it.cantidad_min)} {it.unidad_min}</span>
+                                </span>
+                              )}
+                              {it.precio_neto != null && it.precio_neto > 0 && (
+                                <span className="text-muted">
+                                  Neto: <span className="text-ink font-semibold">{copUnit(it.precio_neto, it.unidad_min)}</span>
+                                </span>
+                              )}
+                              {it.precio_unitario != null && it.precio_unitario > 0 && (
+                                <span className="text-muted">
+                                  c/IVA: <span className="text-ink">{copUnit(it.precio_unitario, it.unidad_min)}</span>
+                                </span>
+                              )}
+                              {it.precio_anterior != null && it.precio_anterior > 0 && (
+                                <span className="text-muted">
+                                  Ant.: <span className="text-ink">{copUnit(it.precio_anterior, it.unidad_min)}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {total > items.length && (
+        <p className="text-center text-xs text-muted">
+          Mostrando {items.length} de {total} registros
+        </p>
+      )}
     </div>
   );
 }

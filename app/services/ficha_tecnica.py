@@ -4,24 +4,34 @@ Generación de fichas técnicas McKenna (DOCX + PDF) y subida a Google Drive.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
 import shutil
 import subprocess
+import tempfile
 import unicodedata
+import zipfile
 from pathlib import Path
 from typing import Any
 
 import yaml
 from docx import Document
 from docx.table import Table
+from PIL import Image
 
 REPO = Path(__file__).resolve().parents[2]
 FICHAS_DIR = REPO / "fichas_word"
 DATOS_DIR = FICHAS_DIR / "datos"
+PLANTILLAS_DIR = FICHAS_DIR / "plantillas"
+CABEZOTES_DIR = FICHAS_DIR / "cabezotes"
+DISENO_DIR = REPO / "DISENO CORPORATIVO "
 PLANTILLA_DEFAULT = FICHAS_DIR / "FT CAOLIN COLOIDAL.docx"
+PLANTILLA_DEFAULT_ID = "default"
+CABEZOTE_DEFAULT_ID = "default"
 PLANTILLA_YAML = DATOS_DIR / "plantilla_ejemplo.yaml"
+_CABEZOTE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 
 TDS_PARENT_DEFAULT = os.getenv("TDS_DRIVE_PARENT_ID", "1BTXM8bKCnWVYWTTEmKYxcpaQv1TOoZVs")
 TDS_FOLDER_PDF = os.getenv("TDS_DRIVE_FOLDER_PDF", "").strip()
@@ -85,6 +95,373 @@ def plantilla_datos_ejemplo() -> dict:
         "propiedades": [["Apariencia", "Polvo fino"]],
         "microbiologia": [["E. Coli", "Negativo"]],
         "estabilidad": ["Almacenar en lugar seco…"],
+    }
+
+
+def _slug_seguro(valor: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_-]", "", (valor or "").strip())
+
+
+def _titulo_desde_archivo(path: Path) -> str:
+    stem = path.stem.replace("_", " ").replace("-", " ")
+    return stem.strip().title() or path.name
+
+
+def _asegurar_cabezotes_iniciales() -> None:
+    """Crea carpeta cabezotes/ y copia assets por defecto si faltan."""
+    CABEZOTES_DIR.mkdir(parents=True, exist_ok=True)
+    PLANTILLAS_DIR.mkdir(parents=True, exist_ok=True)
+
+    estandar = CABEZOTES_DIR / "mckenna_estandar.jpg"
+    if not estandar.is_file() and PLANTILLA_DEFAULT.is_file():
+        media = _media_cabezote_en_docx(PLANTILLA_DEFAULT)
+        if media:
+            with zipfile.ZipFile(PLANTILLA_DEFAULT) as z:
+                if media in z.namelist():
+                    estandar.write_bytes(z.read(media))
+
+    logo_src = DISENO_DIR / "LOGO MCKENNA.jpg"
+    logo_dst = CABEZOTES_DIR / "logo_mckenna.jpg"
+    if logo_src.is_file() and not logo_dst.is_file():
+        shutil.copy2(logo_src, logo_dst)
+
+    isotipo_src = DISENO_DIR / "isotipo_final.png"
+    isotipo_dst = CABEZOTES_DIR / "isotipo_mckenna.png"
+    if isotipo_src.is_file() and not isotipo_dst.is_file():
+        shutil.copy2(isotipo_src, isotipo_dst)
+
+
+def _media_cabezote_en_docx(docx_path: Path) -> str | None:
+    """Primera imagen embebida en word/document.xml (cabezote del cuerpo)."""
+    if not docx_path.is_file():
+        return None
+    try:
+        with zipfile.ZipFile(docx_path) as z:
+            if "word/document.xml" not in z.namelist():
+                return None
+            doc = z.read("word/document.xml").decode("utf-8", errors="ignore")
+            m = re.search(r'r:embed="(rId\d+)"', doc)
+            if not m:
+                return None
+            rid = m.group(1)
+            rels_name = "word/_rels/document.xml.rels"
+            if rels_name not in z.namelist():
+                return None
+            rels = z.read(rels_name).decode("utf-8", errors="ignore")
+            m2 = re.search(rf'Id="{rid}"[^>]+Target="([^"]+)"', rels)
+            if not m2:
+                return None
+            target = m2.group(1).lstrip("/")
+            if target.startswith("media/"):
+                return "word/" + target
+            if target.startswith("../media/"):
+                return "word/" + target.replace("../", "")
+            return target if target.startswith("word/") else f"word/{target}"
+    except Exception:
+        return None
+
+
+def _imagen_a_jpeg_bytes(path: Path) -> bytes:
+    with Image.open(path) as img:
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=92, optimize=True)
+        return buf.getvalue()
+
+
+def _imagen_bytes_rgb(data: bytes) -> tuple[bytes, int, int]:
+    """Devuelve (jpeg_rgb_bytes, ancho_px, alto_px). Convierte CMYK→RGB si hace falta."""
+    with Image.open(io.BytesIO(data)) as img:
+        w, h = img.size
+        if img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=92, optimize=True)
+        return buf.getvalue(), w, h
+
+
+def _ajustar_cabezote_en_docx(docx_path: Path) -> None:
+    """Convierte la imagen del cabezote a RGB y la reposiciona en la esquina superior derecha."""
+    # ── 1. Leer el DOCX ──────────────────────────────────────────────────────
+    with zipfile.ZipFile(docx_path) as z:
+        names = z.namelist()
+        files = {n: z.read(n) for n in names}
+
+    body = files.get("word/document.xml", b"").decode("utf-8", errors="ignore")
+    rels_raw = files.get("word/_rels/document.xml.rels", b"").decode("utf-8", errors="ignore")
+
+    # ── 2. Localizar el primer rId de imagen en el body ──────────────────────
+    rid_m = re.search(r'r:embed="(rId\d+)"', body)
+    if not rid_m:
+        return
+    rid = rid_m.group(1)
+
+    target_m = re.search(rf'Id="{rid}"[^>]+Target="([^"]+)"', rels_raw)
+    if not target_m:
+        return
+    raw_target = target_m.group(1).lstrip("/")
+    if raw_target.startswith("media/"):
+        media_key = "word/" + raw_target
+    elif raw_target.startswith("../media/"):
+        media_key = "word/" + raw_target.replace("../", "")
+    else:
+        media_key = raw_target if raw_target.startswith("word/") else f"word/{raw_target}"
+
+    if media_key not in files:
+        return
+
+    # ── 3. Convertir imagen a RGB ─────────────────────────────────────────────
+    jpeg_rgb, img_w, img_h = _imagen_bytes_rgb(files[media_key])
+    files[media_key] = jpeg_rgb
+
+    # ── 4. Calcular tamaño EMU (máx 5 cm ancho × 2 cm alto) ──────────────────
+    # 1 cm = 360 000 EMU
+    max_cx = 1_800_000   # 5 cm
+    max_cy =   720_000   # 2 cm
+    ratio = img_h / img_w if img_w > 0 else 0.5
+    cx = max_cx
+    cy = int(cx * ratio)
+    if cy > max_cy:
+        cy = max_cy
+        cx = int(cy / ratio) if ratio > 0 else max_cx
+
+    # ── 5. Parchear el anchor XML ─────────────────────────────────────────────
+    # 5a. Posición H → derecha del margen de texto
+    body = re.sub(
+        r"<wp:positionH[^>]*>.*?</wp:positionH>",
+        '<wp:positionH relativeFrom="margin"><wp:align>right</wp:align></wp:positionH>',
+        body, count=1, flags=re.DOTALL,
+    )
+    # 5b. Posición V → borde superior del margen
+    body = re.sub(
+        r"<wp:positionV[^>]*>.*?</wp:positionV>",
+        '<wp:positionV relativeFrom="margin"><wp:posOffset>0</wp:posOffset></wp:positionV>',
+        body, count=1, flags=re.DOTALL,
+    )
+    # 5c. Tamaño wp:extent
+    body = re.sub(
+        r'<wp:extent\s+cx="[^"]*"\s+cy="[^"]*"/>',
+        f'<wp:extent cx="{cx}" cy="{cy}"/>',
+        body, count=1,
+    )
+    # 5d. Tamaño en spPr (a:ext dentro de pic:spPr)
+    body = re.sub(
+        r'(<a:ext\s+cx=")[^"]+("\s+cy=")[^"]+"',
+        rf'\g<1>{cx}\g<2>{cy}"',
+        body, count=1,
+    )
+    # 5e. Sacar de "detrás del documento" para que sea visible
+    body = body.replace('behindDoc="1"', 'behindDoc="0"', 1)
+
+    files["word/document.xml"] = body.encode("utf-8")
+
+    # ── 6. Reescribir el DOCX ────────────────────────────────────────────────
+    fd, tmp = tempfile.mkstemp(suffix=".docx")
+    os.close(fd)
+    try:
+        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+            for name in names:
+                zout.writestr(name, files[name])
+        shutil.move(tmp, docx_path)
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+
+
+def _reemplazar_media_docx(docx_path: Path, media_interno: str, imagen: Path) -> None:
+    """Sustituye un archivo word/media/* dentro del DOCX."""
+    jpeg = _imagen_a_jpeg_bytes(imagen)
+    fd, tmp = tempfile.mkstemp(suffix=".docx")
+    os.close(fd)
+    try:
+        with zipfile.ZipFile(docx_path, "r") as zin, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = jpeg if item.filename == media_interno else zin.read(item.filename)
+                zout.writestr(item, data)
+        shutil.move(tmp, docx_path)
+    finally:
+        if os.path.exists(tmp):
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+
+
+def aplicar_cabezote_a_docx(docx_path: Path, cabezote: Path, *, plantilla_ref: Path | None = None) -> None:
+    ref = plantilla_ref or docx_path
+    media = _media_cabezote_en_docx(ref)
+    if not media:
+        raise RuntimeError("La plantilla no tiene imagen de cabezote en el cuerpo del documento")
+    _reemplazar_media_docx(docx_path, media, cabezote)
+
+
+def resolver_plantilla_path(plantilla_id: str | None) -> Path:
+    pid = (plantilla_id or PLANTILLA_DEFAULT_ID).strip() or PLANTILLA_DEFAULT_ID
+    if pid == PLANTILLA_DEFAULT_ID:
+        tpl = PLANTILLA_DEFAULT
+    else:
+        slug = _slug_seguro(pid)
+        if not slug:
+            raise ValueError("plantilla_id inválido")
+        candidatos = list(PLANTILLAS_DIR.glob(f"{slug}.docx")) + list(PLANTILLAS_DIR.glob(f"{slug}.DOCX"))
+        tpl = candidatos[0] if candidatos else PLANTILLAS_DIR / f"{slug}.docx"
+    if not tpl.is_file():
+        raise FileNotFoundError(f"Plantilla no encontrada: {pid}")
+    return tpl
+
+
+def resolver_cabezote_path(cabezote_id: str | None) -> Path | None:
+    cid = (cabezote_id or CABEZOTE_DEFAULT_ID).strip() or CABEZOTE_DEFAULT_ID
+    if cid == CABEZOTE_DEFAULT_ID:
+        return None
+    slug = _slug_seguro(cid)
+    if not slug:
+        raise ValueError("cabezote_id inválido")
+    _asegurar_cabezotes_iniciales()
+    for ext in _CABEZOTE_EXTS:
+        p = CABEZOTES_DIR / f"{slug}{ext}"
+        if p.is_file():
+            return p
+    raise FileNotFoundError(f"Cabezote no encontrado: {cid}")
+
+
+def listar_plantillas_docx() -> list[dict[str, str]]:
+    _asegurar_cabezotes_iniciales()
+    items = [{
+        "id": PLANTILLA_DEFAULT_ID,
+        "nombre": "McKenna estándar",
+        "archivo": PLANTILLA_DEFAULT.name,
+        "descripcion": "Formato base (FT Caolín coloidal)",
+    }]
+    if PLANTILLAS_DIR.is_dir():
+        for p in sorted(PLANTILLAS_DIR.glob("*.docx")):
+            if p.name.startswith("~$"):
+                continue
+            upper = p.name.upper()
+            if upper.startswith("COA ") or upper.startswith("SDS "):
+                continue
+            sid = p.stem
+            items.append({
+                "id": sid,
+                "nombre": _titulo_desde_archivo(p),
+                "archivo": p.name,
+                "descripcion": f"Plantilla personalizada ({p.name})",
+            })
+    return items
+
+
+def listar_cabezotes() -> list[dict[str, str]]:
+    _asegurar_cabezotes_iniciales()
+    items = [{
+        "id": CABEZOTE_DEFAULT_ID,
+        "nombre": "Cabezote de la plantilla",
+        "archivo": "",
+        "descripcion": "Usa la imagen incluida en la plantilla Word seleccionada",
+    }]
+    if CABEZOTES_DIR.is_dir():
+        vistos: set[str] = set()
+        for ext in sorted(_CABEZOTE_EXTS):
+            for p in sorted(CABEZOTES_DIR.glob(f"*{ext}")):
+                sid = p.stem
+                if sid in vistos:
+                    continue
+                vistos.add(sid)
+                items.append({
+                    "id": sid,
+                    "nombre": _titulo_desde_archivo(p),
+                    "archivo": p.name,
+                    "descripcion": p.name,
+                })
+    return items
+
+
+def opciones_generacion_ficha() -> dict[str, Any]:
+    return {
+        "plantillas": listar_plantillas_docx(),
+        "cabezotes": listar_cabezotes(),
+        "plantillas_dir": str(PLANTILLAS_DIR),
+        "cabezotes_dir": str(CABEZOTES_DIR),
+        "plantilla_default_id": PLANTILLA_DEFAULT_ID,
+        "cabezote_default_id": CABEZOTE_DEFAULT_ID,
+    }
+
+
+def ruta_cabezote_segura(cabezote_id: str) -> Path | None:
+    slug = _slug_seguro(cabezote_id)
+    if not slug or slug == CABEZOTE_DEFAULT_ID:
+        return None
+    _asegurar_cabezotes_iniciales()
+    for ext in _CABEZOTE_EXTS:
+        p = (CABEZOTES_DIR / f"{slug}{ext}").resolve()
+        try:
+            p.relative_to(CABEZOTES_DIR.resolve())
+        except ValueError:
+            return None
+        if p.is_file():
+            return p
+    return None
+
+
+def _slug_cabezote_desde_nombre(nombre: str) -> str:
+    slug = re.sub(r"[^a-z0-9_]+", "_", _normalizar(nombre)).strip("_")
+    return (slug[:60] or "cabezote")
+
+
+def guardar_cabezote_subido(file_storage, *, nombre: str | None = None) -> dict[str, str]:
+    """Guarda imagen subida en fichas_word/cabezotes/ y devuelve metadatos para el selector."""
+    _asegurar_cabezotes_iniciales()
+    if file_storage is None or not getattr(file_storage, "filename", None):
+        raise ValueError("No se recibió archivo de imagen")
+
+    orig = Path(file_storage.filename)
+    ext = orig.suffix.lower()
+    if ext not in _CABEZOTE_EXTS:
+        permitidos = ", ".join(sorted(_CABEZOTE_EXTS))
+        raise ValueError(f"Formato no permitido ({ext or 'sin extensión'}). Use: {permitidos}")
+
+    raw = file_storage.read()
+    if not raw:
+        raise ValueError("El archivo está vacío")
+    if len(raw) > 10 * 1024 * 1024:
+        raise ValueError("La imagen supera 10 MB")
+
+    try:
+        with Image.open(io.BytesIO(raw)) as probe:
+            probe.verify()
+        img = Image.open(io.BytesIO(raw))
+    except Exception as exc:
+        raise ValueError("El archivo no es una imagen válida") from exc
+
+    slug_base = _slug_cabezote_desde_nombre(nombre or orig.stem)
+    slug = slug_base
+    n = 2
+    dest = CABEZOTES_DIR / f"{slug}{ext}"
+    while dest.exists():
+        slug = f"{slug_base}_{n}"
+        dest = CABEZOTES_DIR / f"{slug}{ext}"
+        n += 1
+
+    try:
+        if ext in (".jpg", ".jpeg"):
+            if img.mode not in ("RGB", "L"):
+                img = img.convert("RGB")
+            img.save(dest, format="JPEG", quality=92, optimize=True)
+        elif ext == ".webp":
+            img.save(dest, format="WEBP", quality=90, method=4)
+        else:
+            img.save(dest, format="PNG", optimize=True)
+    finally:
+        img.close()
+
+    return {
+        "id": slug,
+        "nombre": _titulo_desde_archivo(dest),
+        "archivo": dest.name,
+        "descripcion": dest.name,
     }
 
 
@@ -153,7 +530,146 @@ def _insertar_despues(doc: Document, idx: int, textos: list[str], estilo: str = 
         pos += 1
 
 
+def _formatear_fecha_revision(fecha: str) -> str:
+    """Normaliza a DD MM YYYY (formato habitual en fichas McKenna)."""
+    t = (fecha or "").strip()
+    if not t:
+        return t
+    m = re.match(r"^(\d{4})-(\d{2})-(\d{2})$", t)
+    if m:
+        return f"{m.group(3)} {m.group(2)} {m.group(1)}"
+    m = re.match(r"^(\d{2})[-/.](\d{2})[-/.](\d{4})$", t)
+    if m:
+        return f"{m.group(1)} {m.group(2)} {m.group(3)}"
+    return t
+
+
+def _valor_en_filas(filas: list[list[str]], *claves: str) -> str:
+    claves_n = {_normalizar(c) for c in claves}
+    for label, val in filas:
+        if _normalizar(label) in claves_n and str(val).strip():
+            return str(val).strip()
+    return ""
+
+
+def normalizar_datos_ficha(datos: dict) -> dict:
+    """Convierte campos estructurados del panel a identidad/propiedades para el DOCX."""
+    d = dict(datos or {})
+    filas_id_legacy = _filas_tabla(d.get("identidad"))
+    filas_prop_legacy = _filas_tabla(d.get("propiedades"))
+
+    nombre = (d.get("nombre_producto") or d.get("titulo") or "").strip()
+    if not nombre:
+        nombre = _valor_en_filas(filas_id_legacy, "nombre del producto")
+    if nombre:
+        d["titulo"] = nombre.upper()
+        d["nombre_producto"] = nombre
+
+    ref = (d.get("referencia") or "").strip() or _valor_en_filas(
+        filas_id_legacy, "referencia siigo", "referencia interna", "referencia"
+    )
+    sinonimos = (d.get("sinonimos") or "").strip() or _valor_en_filas(filas_id_legacy, "sinonimos", "sinonimo")
+    cas = (d.get("cas") or "").strip() or _valor_en_filas(filas_id_legacy, "cas", "cas #")
+    fecha = (d.get("fecha_revision") or "").strip() or _valor_en_filas(
+        filas_id_legacy, "fecha de revision", "fecha revision"
+    )
+
+    identidad_out: list[list[str]] = []
+    if nombre:
+        identidad_out.append(["NOMBRE DEL PRODUCTO", nombre])
+    if ref:
+        identidad_out.append(["REFERENCIA SIIGO", ref])
+    if sinonimos:
+        identidad_out.append(["SINÓNIMOS", sinonimos])
+    if cas:
+        cas_val = re.sub(r"^(CAS\s*#?\s*)", "", cas, flags=re.I).strip() or cas
+        identidad_out.append(["CAS #", cas_val])
+    if fecha:
+        identidad_out.append(["FECHA DE REVISIÓN", _formatear_fecha_revision(fecha)])
+
+    comp_rows = _filas_tabla(d.get("composicion"))
+    comp_labels = {_normalizar(r[0]) for r in comp_rows if r}
+    for row in comp_rows:
+        if row[0] or row[1]:
+            identidad_out.append(row)
+
+    skip_labels = {
+        "nombre del producto",
+        "referencia siigo",
+        "referencia interna",
+        "referencia",
+        "sinonimos",
+        "sinonimo",
+        "cas",
+        "cas #",
+        "fecha de revision",
+        "fecha revision",
+    }
+    skip_labels |= comp_labels
+    for row in filas_id_legacy:
+        if _normalizar(row[0]) not in skip_labels:
+            identidad_out.append(row)
+
+    cf = d.get("caracteristicas_fisicas") if isinstance(d.get("caracteristicas_fisicas"), dict) else {}
+    propiedades: list[list[str]] = []
+    for key, label in (
+        ("apariencia", "Apariencia"),
+        ("punto_fusion", "Punto de fusión"),
+        ("indice_saponificacion", "Índice de saponificación"),
+        ("ph", "pH"),
+        ("olor", "Olor"),
+        ("formula_quimica", "Fórmula química"),
+        ("solubilidad", "Solubilidad"),
+        ("humedad", "Humedad"),
+        ("inercia_quimica", "Inercia química"),
+    ):
+        val = (cf.get(key) or "").strip() if cf else ""
+        if not val:
+            val = _valor_en_filas(filas_prop_legacy, label.lower(), _normalizar(label))
+        if val:
+            propiedades.append([label, val])
+
+    extra = d.get("propiedades_extra") or d.get("propiedades_lista") or []
+    if isinstance(extra, str):
+        extra = [ln.strip() for ln in extra.split("\n") if ln.strip()]
+    for item in extra:
+        if isinstance(item, str):
+            if "|" in item:
+                a, b = item.split("|", 1)
+                propiedades.append([a.strip(), b.strip()])
+            elif item.strip():
+                propiedades.append([item.strip(), ""])
+        elif isinstance(item, (list, tuple)) and len(item) >= 2:
+            propiedades.append([str(item[0]).strip(), str(item[1]).strip()])
+
+    fisicas_labels = {
+        "apariencia",
+        "punto de fusion",
+        "indice de saponificacion",
+        "ph",
+        "olor",
+    }
+    existentes = {_normalizar(p[0]) for p in propiedades}
+    for row in filas_prop_legacy:
+        ln = _normalizar(row[0])
+        if ln not in existentes and ln not in fisicas_labels:
+            propiedades.append(row)
+
+    apps = d.get("aplicaciones") or []
+    if isinstance(apps, str):
+        apps = [ln.strip() for ln in apps.split("\n") if ln.strip()]
+    d["referencia"] = ref
+    d["sinonimos"] = sinonimos
+    d["cas"] = cas
+    d["fecha_revision"] = fecha
+    d["identidad"] = identidad_out
+    d["propiedades"] = propiedades
+    d["aplicaciones"] = apps
+    return d
+
+
 def aplicar_datos_a_docx(doc_path: Path, datos: dict) -> None:
+    datos = normalizar_datos_ficha(datos)
     doc = Document(str(doc_path))
     titulo = (datos.get("titulo") or "PRODUCTO").strip().upper()
 
@@ -411,35 +927,217 @@ def guardar_yaml_datos(datos: dict, slug: str | None = None) -> Path:
     return path
 
 
+FICHAS_PDF_DIR = FICHAS_DIR / "pdf"
+
+
+def _cabezote_src_html(cabezote_id: str | None) -> str | None:
+    """Devuelve data URL base64 del cabezote para el template HTML.
+    Sirve los bytes originales sin re-encodear para preservar calidad;
+    solo convierte si el modo es CMYK o similar."""
+    import base64
+
+    path = resolver_cabezote_path(cabezote_id)
+    if not path:
+        for nombre in ("logo_mckenna.jpg", "mckenna_estandar.jpg", "isotipo_mckenna.png"):
+            candidato = CABEZOTES_DIR / nombre
+            if candidato.is_file():
+                path = candidato
+                break
+    if not path or not path.is_file():
+        return None
+    try:
+        raw = path.read_bytes()
+        ext = path.suffix.lower()
+
+        # Detectar si necesita conversión de modo (CMYK → RGB)
+        with Image.open(io.BytesIO(raw)) as probe:
+            modo = probe.mode
+
+        if modo in ("RGB", "L", "RGBA", "P"):
+            # Servir bytes originales sin pérdida adicional
+            mime = "image/png" if ext == ".png" else "image/jpeg"
+            b64 = base64.b64encode(raw).decode()
+        else:
+            # CMYK u otro modo: convertir a PNG lossless
+            with Image.open(io.BytesIO(raw)) as img:
+                img = img.convert("RGBA" if ext == ".png" else "RGB")
+                buf = io.BytesIO()
+                fmt = "PNG" if ext == ".png" else "JPEG"
+                kw = {} if fmt == "PNG" else {"quality": 98, "subsampling": 0}
+                img.save(buf, format=fmt, **kw)
+            mime = "image/png" if ext == ".png" else "image/jpeg"
+            b64 = base64.b64encode(buf.getvalue()).decode()
+
+        return f"data:{mime};base64,{b64}"
+    except Exception:
+        return None
+
+
+def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
+    """Transforma datos normalizados en variables para el template Jinja2."""
+    d = normalizar_datos_ficha(datos)
+
+    titulo = (d.get("titulo") or d.get("nombre_producto") or "PRODUCTO").strip().upper()
+    referencia = (d.get("referencia") or "").strip()
+    sinonimos = (d.get("sinonimos") or "").strip()
+    cas = (d.get("cas") or "").strip()
+    fecha = _formatear_fecha_revision(d.get("fecha_revision") or "")
+    descripcion = (d.get("descripcion") or "").strip()
+
+    # Características físico-químicas (campos fijos del formulario)
+    fisicas_keys = {
+        "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor",
+        "formula quimica", "solubilidad", "humedad", "inercia quimica",
+    }
+    cf = d.get("caracteristicas_fisicas") or {}
+    propiedades_fijas: list[tuple[str, str]] = []
+    etiquetas = [
+        ("apariencia", "Apariencia"),
+        ("punto_fusion", "Punto de fusión"),
+        ("indice_saponificacion", "Índice de saponificación"),
+        ("ph", "pH"),
+        ("olor", "Olor"),
+        ("formula_quimica", "Fórmula química"),
+        ("solubilidad", "Solubilidad"),
+        ("humedad", "Humedad"),
+        ("inercia_quimica", "Inercia química"),
+    ]
+    for key, label in etiquetas:
+        val = (cf.get(key) or "").strip()
+        if not val:
+            val = _valor_en_filas(_filas_tabla(d.get("propiedades")), label.lower(), _normalizar(label))
+        if val:
+            propiedades_fijas.append((label, val))
+
+    # Propiedades extra (del campo propiedades_lista)
+    propiedades_extra: list[tuple[str, str]] = []
+    extra_raw = d.get("propiedades") or []
+    for label, val in _filas_tabla(extra_raw):
+        ln = _normalizar(label)
+        if ln not in fisicas_keys and val:
+            propiedades_extra.append((label, val))
+
+    # Aplicaciones
+    apps = d.get("aplicaciones") or []
+    if isinstance(apps, str):
+        apps = [a.strip() for a in apps.split("\n") if a.strip()]
+
+    # Composición
+    composicion = [(r[0], r[1]) for r in _filas_tabla(d.get("composicion")) if r[0] or r[1]]
+
+    # Modo de uso (sección propia después de Aplicaciones)
+    modo_uso = (d.get("modo_uso") or "").strip()
+
+    # Recomendaciones GHS
+    recomendaciones_raw = (d.get("recomendaciones") or "").strip()
+    recomendaciones = [l.strip() for l in recomendaciones_raw.split("\n") if l.strip()]
+
+    # Lote
+    lote = (d.get("lote") or "").strip()
+
+    # Color de acento (tema)
+    _hex_re = re.compile(r'^#[0-9A-Fa-f]{6}$')
+    color_raw = (d.get("color_acento") or "").strip()
+    color_acento = color_raw if _hex_re.match(color_raw) else "#069DC2"
+
+    return {
+        "titulo": titulo,
+        "referencia": referencia,
+        "sinonimos": sinonimos,
+        "cas": cas,
+        "fecha_revision": fecha,
+        "descripcion": descripcion,
+        "propiedades": propiedades_fijas,
+        "propiedades_extra": propiedades_extra,
+        "aplicaciones": apps,
+        "modo_uso": modo_uso,
+        "recomendaciones": recomendaciones,
+        "lote": lote,
+        "color_acento": color_acento,
+        "composicion": composicion,
+        "cabezote_src": _cabezote_src_html(cabezote_id),
+    }
+
+
+def generar_pdf_html(
+    datos: dict,
+    *,
+    cabezote_id: str | None = None,
+    salida: Path | None = None,
+) -> dict:
+    """Genera PDF directo desde datos del formulario usando WeasyPrint (sin Word)."""
+    from jinja2 import Environment, FileSystemLoader
+    from weasyprint import HTML, CSS
+
+    FICHAS_PDF_DIR.mkdir(parents=True, exist_ok=True)
+
+    ctx = _contexto_html(datos, cabezote_id)
+    titulo = ctx["titulo"]
+    nombre_pdf = nombre_archivo_desde_titulo(titulo).replace(".docx", ".pdf")
+    destino = salida or (FICHAS_PDF_DIR / nombre_pdf)
+
+    tpl_dir = Path(__file__).resolve().parents[1] / "templates"
+    env = Environment(loader=FileSystemLoader(str(tpl_dir)), autoescape=True)
+    tpl = env.get_template("ficha_tecnica_pdf.html")
+    html_str = tpl.render(**ctx)
+
+    HTML(string=html_str, base_url=str(tpl_dir)).write_pdf(str(destino))
+
+    return {
+        "ok": True,
+        "titulo": titulo,
+        "pdf": str(destino),
+        "pdf_nombre": destino.name,
+        "docx": "",
+        "docx_nombre": "",
+    }
+
+
 def generar_desde_datos(
     datos: dict,
     *,
     plantilla: Path | None = None,
+    plantilla_id: str | None = None,
+    cabezote_id: str | None = None,
     salida: Path | None = None,
     generar_pdf: bool = True,
     subir_drive: bool = False,
     guardar_yaml: str | None = None,
 ) -> dict[str, Any]:
     if guardar_yaml is not None:
-        guardar_yaml_datos(datos, slug=guardar_yaml or None)
+        guardar_yaml_datos(normalizar_datos_ficha(datos), slug=guardar_yaml or None)
 
     titulo = (datos.get("titulo") or "PRODUCTO").strip()
     nombre = nombre_archivo_desde_titulo(titulo)
     destino_docx = salida or (FICHAS_DIR / nombre)
 
-    tpl = plantilla or PLANTILLA_DEFAULT
+    if plantilla is not None:
+        tpl = plantilla
+    else:
+        tpl = resolver_plantilla_path(plantilla_id)
     if not tpl.exists():
         raise FileNotFoundError(f"Plantilla no encontrada: {tpl}")
 
     destino_docx.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(tpl, destino_docx)
-    aplicar_datos_a_docx(destino_docx, datos)
+
+    cabezote_path = resolver_cabezote_path(cabezote_id)
+    if cabezote_path:
+        aplicar_cabezote_a_docx(destino_docx, cabezote_path, plantilla_ref=tpl)
+
+    # Convierte cabezote a RGB (elimina CMYK) y lo reposiciona top-right
+    _ajustar_cabezote_en_docx(destino_docx)
+
+    datos_norm = normalizar_datos_ficha(datos)
+    aplicar_datos_a_docx(destino_docx, datos_norm)
 
     resultado: dict[str, Any] = {
         "ok": True,
         "titulo": titulo,
         "docx": str(destino_docx),
         "docx_nombre": destino_docx.name,
+        "plantilla_id": plantilla_id or PLANTILLA_DEFAULT_ID,
+        "cabezote_id": cabezote_id or CABEZOTE_DEFAULT_ID,
     }
 
     pdf_path: Path | None = None
@@ -482,15 +1180,60 @@ def generar_desde_archivo(
 
 
 def ruta_descarga_segura(nombre: str) -> Path | None:
-    """Solo archivos FT *.docx|pdf bajo fichas_word/."""
+    """Archivos FT *.pdf bajo fichas_word/ o fichas_word/pdf/."""
     nombre = os.path.basename(nombre or "")
-    if not re.match(r"^FT .+\.(docx|pdf)$", nombre, re.I):
+    if not re.match(r"^FT .+\.pdf$", nombre, re.I):
         return None
-    path = (FICHAS_DIR / nombre).resolve()
-    try:
-        path.relative_to(FICHAS_DIR.resolve())
-    except ValueError:
+    for directorio in (FICHAS_PDF_DIR, FICHAS_DIR):
+        path = (directorio / nombre).resolve()
+        try:
+            path.relative_to(directorio.resolve())
+        except ValueError:
+            continue
+        if path.is_file():
+            return path
+    return None
+
+
+_PREFIJOS_BIBLIOTECA = re.compile(r"^(FT|SDS|COA|TDS)[\s\-].+\.(pdf|docx)$", re.I)
+
+
+def listar_archivos_generados() -> list[dict]:
+    """Lista PDF y DOCX generados en fichas_word/ y fichas_word/pdf/ (sin temporales ~$)."""
+    resultado: list[dict] = []
+    vistos: set[str] = set()
+    for directorio in (FICHAS_PDF_DIR, FICHAS_DIR):
+        if not directorio.exists():
+            continue
+        for p in sorted(directorio.iterdir()):
+            if p.name.startswith("~") or p.name in vistos:
+                continue
+            if p.suffix.lower() not in (".pdf", ".docx"):
+                continue
+            if not _PREFIJOS_BIBLIOTECA.match(p.name):
+                continue
+            vistos.add(p.name)
+            stat = p.stat()
+            resultado.append({
+                "nombre": p.name,
+                "tipo": p.suffix.lstrip(".").lower(),
+                "tamano": stat.st_size,
+                "fecha": int(stat.st_mtime),
+            })
+    return sorted(resultado, key=lambda x: x["nombre"].lower())
+
+
+def ruta_archivo_biblioteca_segura(nombre: str) -> Path | None:
+    """Ruta segura para cualquier FT/SDS/COA/TDS *.pdf o *.docx de la biblioteca."""
+    nombre = os.path.basename(nombre or "")
+    if not nombre or nombre.startswith("~") or not _PREFIJOS_BIBLIOTECA.match(nombre):
         return None
-    if path.is_file():
-        return path
+    for directorio in (FICHAS_PDF_DIR, FICHAS_DIR):
+        path = (directorio / nombre).resolve()
+        try:
+            path.relative_to(directorio.resolve())
+        except ValueError:
+            continue
+        if path.is_file():
+            return path
     return None

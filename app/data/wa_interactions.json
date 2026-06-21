@@ -1,168 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1781628746.57529,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Pero lo traerán?"
-    },
-    {
-      "ts": 1781628756.50252,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Entregan hoy o mañana?"
-    },
-    {
-      "ts": 1781629025.248369,
-      "tipo": "bot_pausado_global",
-      "sender": "573105081002@c.us",
-      "detalle": "Buenos días"
-    },
-    {
-      "ts": 1781629039.7871192,
-      "tipo": "bot_pausado_global",
-      "sender": "573105081002@c.us",
-      "detalle": "Me pueden informar"
-    },
-    {
-      "ts": 1781629081.3197904,
-      "tipo": "bot_pausado_global",
-      "sender": "573105081002@c.us",
-      "detalle": "Qué costo tiene cada producto"
-    },
-    {
-      "ts": 1781629084.9060497,
-      "tipo": "bot_pausado_global",
-      "sender": "573105081002@c.us",
-      "detalle": "Que coloque"
-    },
-    {
-      "ts": 1781629098.580203,
-      "tipo": "bot_pausado_global",
-      "sender": "573105081002@c.us",
-      "detalle": "Cada frasco ?"
-    },
-    {
-      "ts": 1781629113.0195565,
-      "tipo": "bot_pausado_auto",
-      "sender": "573105081002@c.us",
-      "detalle": "ráfaga de 6 mensajes en 120s"
-    },
-    {
-      "ts": 1781629229.0250645,
-      "tipo": "modo_humano",
-      "sender": "573105081002@c.us",
-      "detalle": "Qué datos necesita Ud"
-    },
-    {
-      "ts": 1781629412.503855,
-      "tipo": "modo_humano",
-      "sender": "573105081002@c.us",
-      "detalle": "Carlos Godoy 79652167 Calle 9 c bis 68g 29 Etapa dos Torre 1 Apto 703 Barrio Marsella 3105081002"
-    },
-    {
-      "ts": 1781629519.8646047,
-      "tipo": "modo_humano",
-      "sender": "573105081002@c.us",
-      "detalle": "Me puede copiar la llave"
-    },
-    {
-      "ts": 1781629528.4384496,
-      "tipo": "modo_humano",
-      "sender": "573105081002@c.us",
-      "detalle": "Pago por otro banco"
-    },
-    {
-      "ts": 1781629697.6102006,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Hoy estamos hasta las 3 pm, será posible o mañana?"
-    },
-    {
-      "ts": 1781630057.9394717,
-      "tipo": "bot_pausado_global",
-      "sender": "573154730612@c.us",
-      "detalle": "Mañana es desde las 9:30 hasta las 5 pm"
-    },
-    {
-      "ts": 1781630061.639666,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Hola buenas tardes"
-    },
-    {
-      "ts": 1781630110.3827586,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Una L carnitina y 3 magnesios"
-    },
-    {
-      "ts": 1781630165.1777856,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Bisiglato de magnesio 2 potasio Hola estoy solicitando estos productos"
-    },
-    {
-      "ts": 1781630528.3605466,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Me cotiza lo demás me hace el favor"
-    },
-    {
-      "ts": 1781630538.719703,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Estoy en Riohacha"
-    },
-    {
-      "ts": 1781631053.1648393,
-      "tipo": "modo_humano",
-      "sender": "573105081002@c.us",
-      "detalle": "Comprobante20260616.pdf"
-    },
-    {
-      "ts": 1781631107.4070477,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Total por favor"
-    },
-    {
-      "ts": 1781631153.9171188,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "No tiene potaciode 250"
-    },
-    {
-      "ts": 1781631204.1114247,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Magnesio de 250 por favor"
-    },
-    {
-      "ts": 1781631222.7701452,
-      "tipo": "modo_humano",
-      "sender": "573105081002@c.us",
-      "detalle": "Si Barrio Marsella Localidad de kenedy"
-    },
-    {
-      "ts": 1781631243.6984987,
-      "tipo": "modo_humano",
-      "sender": "573105081002@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1781631283.4060307,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Si sra"
-    },
-    {
-      "ts": 1781631379.3699546,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Me mandas para consignar x nequi x la tarde x favor"
-    },
-    {
       "ts": 1781631515.9106565,
       "tipo": "bot_pausado_global",
       "sender": "573166761622@c.us",
@@ -1799,6 +1637,168 @@
       "tipo": "bot_pausado_global",
       "sender": "573132200866@c.us",
       "detalle": "Q otra arcilla tienes?"
+    },
+    {
+      "ts": 1781974697.1361825,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Buenos días"
+    },
+    {
+      "ts": 1781974700.1908698,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Buenos días"
+    },
+    {
+      "ts": 1781974739.3250592,
+      "tipo": "bot_pausado_global",
+      "sender": "573233210052@c.us",
+      "detalle": "Hola, quiero información sobre sus productos"
+    },
+    {
+      "ts": 1781974747.3766363,
+      "tipo": "bot_pausado_global",
+      "sender": "573233210052@c.us",
+      "detalle": "https://www.mckennagroup.co/producto/c-colhid500g"
+    },
+    {
+      "ts": 1781974748.539947,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Tienes celulosa"
+    },
+    {
+      "ts": 1781974754.8776348,
+      "tipo": "bot_pausado_global",
+      "sender": "573233210052@c.us",
+      "detalle": "Hola, buenas! Estoy interesado en el Colágeno Hidrolizado 500g (Ref: C-COLHID500g). ¿Me podrían compartir el certificado de análisis del lote actual? También vi en la ficha técnica el peso molecular y"
+    },
+    {
+      "ts": 1781974829.2356846,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Pero 101"
+    },
+    {
+      "ts": 1781974840.643786,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Cuánto es la libra"
+    },
+    {
+      "ts": 1781974843.301388,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "500 ge"
+    },
+    {
+      "ts": 1781979188.8596265,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Holaaa"
+    },
+    {
+      "ts": 1781979191.0527227,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Como estas"
+    },
+    {
+      "ts": 1781979205.503338,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Para confirmar el pedido porfa y q me puedas enviar a las dos"
+    },
+    {
+      "ts": 1781979220.0193675,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1781979236.2237072,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1781980252.5976276,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Me confirmas si el valor es $81 porfa"
+    },
+    {
+      "ts": 1781982106.3122108,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1781982191.440437,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1781982200.8428397,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1781982219.6610994,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1781982228.0333655,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Porfa enviame hoy"
+    },
+    {
+      "ts": 1781982230.9234462,
+      "tipo": "modo_humano",
+      "sender": "573174923920@c.us",
+      "detalle": "Es urgente"
+    },
+    {
+      "ts": 1781982327.9805415,
+      "tipo": "bot_pausado_global",
+      "sender": "573144823055@c.us",
+      "detalle": "Ok"
+    },
+    {
+      "ts": 1781987841.3155322,
+      "tipo": "handoff_humano",
+      "sender": "573016213015@c.us",
+      "detalle": "cliente solicitó humano"
+    },
+    {
+      "ts": 1781987950.5767813,
+      "tipo": "modo_humano",
+      "sender": "573016213015@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1781988030.513493,
+      "tipo": "modo_humano",
+      "sender": "573016213015@c.us",
+      "detalle": "Andrés Payán Cédula 94506322"
+    },
+    {
+      "ts": 1781988329.6168628,
+      "tipo": "modo_humano",
+      "sender": "573016213015@c.us",
+      "detalle": "Quedo atento Gracias"
+    },
+    {
+      "ts": 1782011812.2527418,
+      "tipo": "bot_pausado_global",
+      "sender": "573186012789@c.us",
+      "detalle": "Hola, quiero una cotización de la resina epoxica"
     }
   ]
 }
