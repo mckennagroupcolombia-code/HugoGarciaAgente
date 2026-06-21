@@ -60,6 +60,7 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editandoNombre, setEditandoNombre] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["fichas-biblioteca"],
@@ -122,11 +123,14 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
 
   const editar = async (nombre: string) => {
     setEditandoNombre(nombre);
+    setEditError(null);
     try {
       const r = await api.get<BibliotecaDatosResult>(`/api/fichas/biblioteca/datos?archivo=${encodeURIComponent(nombre)}`);
       onEditar(r);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error("Error cargando datos para editar:", err);
+      setEditError(msg);
     } finally {
       setEditandoNombre(null);
     }
@@ -143,6 +147,9 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
     <div className="space-y-4">
       {deleteError && (
         <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">Error al eliminar: {deleteError}</p>
+      )}
+      {editError && (
+        <p className="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">Error al cargar para editar: {editError}</p>
       )}
       <div className="flex flex-wrap items-center gap-3">
         <input

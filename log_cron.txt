@@ -2475,3 +2475,34 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
+[cursor/wa-metricas-panel dd9dd20] Auto-commit: actualizacion diaria 2026-06-20 23:00
+ 60 files changed, 8085 insertions(+), 924 deletions(-)
+ create mode 100644 DISENO CORPORATIVO /LOGO AMARILLO.png
+ create mode 100644 DISENO CORPORATIVO /LOGO AZUL.png
+ create mode 100644 DISENO CORPORATIVO /LOGO GRIS.png
+ delete mode 100755 DISENO CORPORATIVO /LOGO MCKENNA.jpg
+ create mode 100644 DISENO CORPORATIVO /LOGO MORADO.png
+ create mode 100644 DISENO CORPORATIVO /LOGO MORADO.svg
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CREMON500g.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CREMON500g_2.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CREMON500g_3.png
+ create mode 100644 IMAGENES_PRODUCTOS_CATALOGO/C-CREMON500g_4.png
+ create mode 100644 app/data/facturas_compra_historial.json
+ delete mode 100644 app/data/wa_chats.db-shm
+ delete mode 100644 app/data/wa_chats.db-wal
+ create mode 100644 app/templates/ficha_tecnica_pdf.html
+ create mode 100644 desktop/src/components/documentos/FichaTecnicaForm.tsx
+ delete mode 100644 desktop/src/components/plantillas-visuales/GenerarRenderIA.tsx
+ create mode 100644 desktop/src/components/plantillas-visuales/PlantillaVisualMiniatura.tsx
+ create mode 100644 importaciones_productos/FA269967 codigos siigo.xml
+ create mode 100644 importaciones_productos/FA270012 codigos siigo.xml
+ create mode 100644 importaciones_productos/FA270012 registro productos.xlsx
+ create mode 100644 importaciones_productos/FEE97643 codigos siigo.xml
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-06-20 23:00:03] ERROR en el push. Revisar credenciales o conflictos.

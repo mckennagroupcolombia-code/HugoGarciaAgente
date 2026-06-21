@@ -3379,9 +3379,11 @@ def register_routes(app):
             from app.panel_activity import log_line
             from app.services.ficha_tecnica import generar_pdf_html
 
+            from app.services.ficha_tecnica import _normalizar
             titulo = _titulo_documento_datos(datos)
+            slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
             log_line(f"HTTP fichas/generar: {titulo[:80]!r}")
-            resultado = generar_pdf_html(datos, cabezote_id=body.get("cabezote_id"))
+            resultado = generar_pdf_html(datos, cabezote_id=body.get("cabezote_id"), guardar_yaml=slug_auto)
             log_line(f"✔ ficha PDF: {resultado.get('pdf_nombre')}")
             return jsonify(resultado)
         except Exception as e:
@@ -3648,6 +3650,7 @@ def register_routes(app):
         slug_yaml = body.get("slug_yaml")
         try:
             from app.panel_activity import log_line
+            from app.services.ficha_tecnica import _normalizar
 
             if modulo == "coa":
                 from app.services.coa import generar_desde_datos as generar
@@ -3658,11 +3661,14 @@ def register_routes(app):
             log_line(
                 f"HTTP {modulo}/generar: {titulo[:80]!r} pdf={generar_pdf} drive={subir_drive}"
             )
+            # Siempre auto-guarda YAML para poder recuperar datos desde la biblioteca
+            slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or modulo
+            slug_final = slug_yaml if guardar_yaml and slug_yaml else slug_auto
             resultado = generar(
                 datos,
                 generar_pdf=generar_pdf,
                 subir_drive=subir_drive,
-                guardar_yaml=slug_yaml if guardar_yaml else None,
+                guardar_yaml=slug_final,
             )
             log_line(f"✔ {modulo} generado: {resultado.get('docx_nombre')}")
             ref = (
