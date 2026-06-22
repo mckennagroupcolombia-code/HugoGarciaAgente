@@ -895,6 +895,38 @@
       "respondida": true,
       "borrador_ia": "Hola veci, con gusto le colaboro.\n\nLe confirmo que nuestra Glicerina Natural Vegetal cumple con el estándar de calidad USP (United States Pharmacopeia), lo que garantiza un alto nivel de pureza y calidad para sus diferentes usos.\n\nEste estándar asegura que el producto es ideal para sus aplicaciones en el cuidado de la piel y el cabello, gracias a sus propiedades humectantes y suavizantes.\n\n¡Quedo atento si tiene alguna otra duda",
       "nota": "Respondida automáticamente por monitor (reintento) 2026-06-20"
+    },
+    {
+      "question_id": "13607714646",
+      "titulo_producto": "Ácido Salicílico 100gr Todo Tipo De Piel",
+      "pregunta": "Quisiera saber si el producto tiene algun riesgo de quemaduras en la piel, y con que se disuelve ?",
+      "timestamp": "2026-06-21T03:06:05.723970",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro.\n\nRespecto al riesgo en la piel, es importante saber que un uso excesivo del producto puede causar irritación, resequedad, enrojecimiento o picazón. Si llega a experimentar alguna de estas reacciones, debe suspender su uso. También es clave no aplicarlo sobre áreas de la piel que ya se encuentren irritadas, inflamadas o dañadas.\n\nEn cuanto a su preparación, esta depende del tratamiento que necesite. Para el cuidado de la piel, la dosificación recomendada es una concentración del 0,5% al 2%. Para el tratamiento de verrugas, la concentración es mucho mayor, del 17% al 40%. De esta preparación, se aplica una pequeña cantidad directamente sobre la zona a tratar.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-06-21"
+    },
+    {
+      "question_id": "13607911246",
+      "titulo_producto": "Aceite Esencial Bergamota 5 Ml Mckenna Group Aromaterapia Y Masajes",
+      "pregunta": "Buenas es comestible? Sirve para infusiones?",
+      "timestamp": "2026-06-21T16:06:44.557622",
+      "respondida": true,
+      "borrador_ia": "Hola veci, con gusto le colaboro con su inquietud.\n\nLe confirmo que nuestro Aceite Esencial de Bergamota se considera seguro para la ingestión. Puede ser útil para estimular el sistema digestivo y ayudar a aliviar la indigestión.\n\nPara su consumo, siempre se recomienda diluirlo primero. La proporción sugerida es muy baja: solo una gota o menos del aceite esencial en una cucharadita de un aceite portador comestible, como el de coco o el de oliva.\n\nQuedamos atentos a cualquier otra consulta que tenga sobre nuestro Aceite Esencial de Bergamota. ¡Que tenga un excelente día",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-06-21"
+    },
+    {
+      "question_id": "13607255377",
+      "titulo_producto": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
+      "pregunta": "Buenas tardes, sirve para cosmetologia?",
+      "timestamp": "2026-06-21T22:37:24.892703",
+      "respondida": false
+    },
+    {
+      "question_id": "13607273403",
+      "titulo_producto": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
+      "pregunta": "A qué precio me dejan cinco kilogramos?",
+      "timestamp": "2026-06-21T19:08:26.534959",
+      "respondida": true
     }
   ]
 }
