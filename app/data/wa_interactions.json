@@ -1,216 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1781631515.9106565,
-      "tipo": "bot_pausado_global",
-      "sender": "573166761622@c.us",
-      "detalle": "Buen día"
-    },
-    {
-      "ts": 1781631528.3488414,
-      "tipo": "bot_pausado_global",
-      "sender": "573166761622@c.us",
-      "detalle": "Buenas, ¿manejan PVP K-90 o PVP K-30 para formulación cosmética?”"
-    },
-    {
-      "ts": 1781631833.6703846,
-      "tipo": "bot_pausado_global",
-      "sender": "573166761622@c.us",
-      "detalle": "Y no sabes de pronto donde lo puedo conseguir"
-    },
-    {
-      "ts": 1781631852.533324,
-      "tipo": "bot_pausado_global",
-      "sender": "573166761622@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1781631865.8858202,
-      "tipo": "bot_pausado_global",
-      "sender": "573166761622@c.us",
-      "detalle": "Cera de abeja"
-    },
-    {
-      "ts": 1781632125.768117,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "En la tarde le.mando el capture"
-    },
-    {
-      "ts": 1781632157.8596296,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1781635991.0565171,
-      "tipo": "bot_pausado_global",
-      "sender": "573334315268@c.us",
-      "detalle": "Listo"
-    },
-    {
-      "ts": 1781636006.254971,
-      "tipo": "bot_pausado_global",
-      "sender": "573334315268@c.us",
-      "detalle": "Entonces mira estamos mirando que más necesitamos para hacerte un solo pedido"
-    },
-    {
-      "ts": 1781636014.8658,
-      "tipo": "bot_pausado_global",
-      "sender": "573334315268@c.us",
-      "detalle": "De casualidad peptona también manejas ?"
-    },
-    {
-      "ts": 1781636109.1000497,
-      "tipo": "bot_pausado_global",
-      "sender": "573227863769@c.us",
-      "detalle": "Hola, quiero ordenar: AGUA DESTILADA 250mL (Ref: C-AGUDES250mL) — $5.678 COP"
-    },
-    {
-      "ts": 1781636218.7325408,
-      "tipo": "bot_pausado_global",
-      "sender": "573334315268@c.us",
-      "detalle": "Ok listo"
-    },
-    {
-      "ts": 1781636231.252854,
-      "tipo": "bot_pausado_global",
-      "sender": "573334315268@c.us",
-      "detalle": "Déjame revisamos que más podríamos necesitar y te avisamos para hacer pedido"
-    },
-    {
-      "ts": 1781636512.312939,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Hola buenas tardes"
-    },
-    {
-      "ts": 1781636548.7117255,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1781636570.3404684,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Hola Jennifer buenas tardes"
-    },
-    {
-      "ts": 1781636578.1788993,
-      "tipo": "bot_pausado_global",
-      "sender": "573227863769@c.us",
-      "detalle": "Hola me gustaría comprar el agua destilada 250"
-    },
-    {
-      "ts": 1781636594.3199666,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Necesito citrato de magnesio y vitamina C para tomar"
-    },
-    {
-      "ts": 1781636601.4635644,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Que me puedes ofrecer"
-    },
-    {
-      "ts": 1781636624.5371792,
-      "tipo": "bot_pausado_global",
-      "sender": "573227863769@c.us",
-      "detalle": "Si es para bogota"
-    },
-    {
-      "ts": 1781636647.0966828,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": "Hola, quiero ordenar: ACIDO SALICILICO 30 % 30mL (Ref: C-ACDSAL20P30m) — $24.966 COP"
-    },
-    {
-      "ts": 1781636696.0635855,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Como es el pago"
-    },
-    {
-      "ts": 1781636747.4810169,
-      "tipo": "bot_pausado_global",
-      "sender": "573227863769@c.us",
-      "detalle": "Y cuando llegaría?"
-    },
-    {
-      "ts": 1781636770.6191897,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Primero es el pago o contra entrega?"
-    },
-    {
-      "ts": 1781636833.5341816,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": "Buenas tardes"
-    },
-    {
-      "ts": 1781636843.6940033,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": "necesito estos acidos"
-    },
-    {
-      "ts": 1781636856.423629,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": ". Acido salicilico 30% - 30ml . Acido Tricloroacetico (TCA)50% - 30ml . Mascarilla choco terapia corporal - 650gr"
-    },
-    {
-      "ts": 1781636868.4026284,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": ". Acido salicilico 30% - 30ml . Acido Tricloroacetico (TCA)50% - 30ml . Mascarilla choco terapia corporal - 650gr"
-    },
-    {
-      "ts": 1781636888.9273143,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Ok"
-    },
-    {
-      "ts": 1781636889.8703856,
-      "tipo": "bot_pausado_global",
-      "sender": "573227863769@c.us",
-      "detalle": "Ah caray no se podría hoy? Es que la necesito para un práctica mañana"
-    },
-    {
-      "ts": 1781636893.0774107,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Muchas gracias"
-    },
-    {
-      "ts": 1781636965.96677,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": "Solo el acido salicílico pero de 30%"
-    },
-    {
-      "ts": 1781637521.7418754,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": "Hola"
-    },
-    {
-      "ts": 1781637578.4904776,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": "Del 30%"
-    },
-    {
-      "ts": 1781637808.0935342,
-      "tipo": "bot_pausado_global",
-      "sender": "573115713815@c.us",
-      "detalle": "Acido Azelaico 20% – 30mg Acido Glicolico o hidroxiacetico 70% - 30ml Acido Mandelico 15% - 30ml"
-    },
-    {
       "ts": 1781637815.5824704,
       "tipo": "bot_pausado_global",
       "sender": "573115713815@c.us",
@@ -1799,6 +1589,216 @@
       "tipo": "bot_pausado_global",
       "sender": "573186012789@c.us",
       "detalle": "Hola, quiero una cotización de la resina epoxica"
+    },
+    {
+      "ts": 1782053863.6796465,
+      "tipo": "bot_pausado_global",
+      "sender": "573028200001@c.us",
+      "detalle": "🆓 PRIMER MES GRATIS 💸 4 meses por $32.994 🗣️ Datos, llamadas y SMS ILIMITADOS 📡 Tienes 20 GB para compartir con otros dispositivos 💎 Compatible con eSim 📱 Estrena celular financiado o de contado ✨ ¿Qu"
+    },
+    {
+      "ts": 1782065728.207297,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Para pedir"
+    },
+    {
+      "ts": 1782065733.637109,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "2 bolsas"
+    },
+    {
+      "ts": 1782073245.740309,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Sii"
+    },
+    {
+      "ts": 1782073254.4322011,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Pereira"
+    },
+    {
+      "ts": 1782073261.9151008,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Entonces saldría mañana"
+    },
+    {
+      "ts": 1782073265.1106393,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Llegaría el martes !"
+    },
+    {
+      "ts": 1782073266.6900635,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "!?"
+    },
+    {
+      "ts": 1782073529.4663618,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Dale"
+    },
+    {
+      "ts": 1782073536.1493504,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Me envías el neki"
+    },
+    {
+      "ts": 1782073631.7190597,
+      "tipo": "bot_pausado_global",
+      "sender": "573207209541@c.us",
+      "detalle": "Ok"
+    },
+    {
+      "ts": 1782089633.4803972,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Hola, quiero información sobre sus productos"
+    },
+    {
+      "ts": 1782089656.2655146,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Buen día o noche Quiero saber si hay disponibilidad de papaina 100gm"
+    },
+    {
+      "ts": 1782089666.9638247,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Y EDTA DISODICO"
+    },
+    {
+      "ts": 1782089781.20035,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "También hidróxido de potasio KOH"
+    },
+    {
+      "ts": 1782089822.2686093,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Perame tengo una lista y en MercadoLibre seleccioné algo más de esta marca"
+    },
+    {
+      "ts": 1782089894.8152275,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1782089902.6684773,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Ácido SALICILICO 100gm"
+    },
+    {
+      "ts": 1782089950.0815659,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Urea cosmetica"
+    },
+    {
+      "ts": 1782090022.9503715,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Glicerina vegetal"
+    },
+    {
+      "ts": 1782090095.9641387,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Propilenglicol uso cosmética"
+    },
+    {
+      "ts": 1782090099.4013786,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Tienen"
+    },
+    {
+      "ts": 1782090159.9169981,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Conservante SHAROMIX o COSGARD"
+    },
+    {
+      "ts": 1782090222.0871258,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Bien"
+    },
+    {
+      "ts": 1782090250.8412066,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Carbopol 940"
+    },
+    {
+      "ts": 1782090294.5421042,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Ejemplo 100 gramos o la presentación pequeña"
+    },
+    {
+      "ts": 1782090563.5950668,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Papaina 100grm 38.000 Ácido SALICILICO 100grm 10.200 Urea 250grm. 15.000 GLISERINA VEGETAL 500mll. 21.500 Sharomix 705. 50 ML. 15.000"
+    },
+    {
+      "ts": 1782090608.6100612,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Me confirma si estámos de acuerdo y si hay el carbopol y el valor del flete o contra entrega a piedecuesta Santander"
+    },
+    {
+      "ts": 1782090810.0345619,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "De una vez"
+    },
+    {
+      "ts": 1782090917.3967845,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Listo ya va con flete"
+    },
+    {
+      "ts": 1782090950.6493888,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Ya le envío pantallazo"
+    },
+    {
+      "ts": 1782091005.3011713,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1782091087.361119,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Datos Danilo Sandoval Villalobos Cédula 1102366397 Dirección Carrera 7C #18-76 bosques de piedecuesta Ciudad piedecuesta/Santander Cel 3017799292"
+    },
+    {
+      "ts": 1782091122.1305172,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Vale le agradezco me despache mañana"
+    },
+    {
+      "ts": 1782091134.1133683,
+      "tipo": "bot_pausado_global",
+      "sender": "573017799292@c.us",
+      "detalle": "Buena noche disculpe la hora apenas encontré la página"
     }
   ]
 }

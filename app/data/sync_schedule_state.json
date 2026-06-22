@@ -1,7 +1,7 @@
 {
-  "last_daily_run": "2026-06-20T05:00:20",
+  "last_daily_run": "2026-06-21T05:00:03",
   "last_deep_run": "2026-05-31T05:00:30",
-  "last_daily_date": "2026-06-20",
+  "last_daily_date": "2026-06-21",
   "last_deep_date": "2026-05-31",
   "history": [
     {
@@ -135,7 +135,13 @@
       "at": "2026-06-20T05:04:13",
       "ok": true,
       "detail": ""
+    },
+    {
+      "kind": "daily_batch",
+      "at": "2026-06-21T05:04:24",
+      "ok": true,
+      "detail": ""
     }
   ],
-  "last_tick_date": "2026-06-20"
+  "last_tick_date": "2026-06-21"
 }
