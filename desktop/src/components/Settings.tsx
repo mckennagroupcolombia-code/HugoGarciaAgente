@@ -1068,6 +1068,86 @@ const DIAS_ISO = [
   { iso: 7, label: "Dom" },
 ];
 
+/** Convierte "14:30" → "2:30 PM" */
+function to12h(hhmm: string): string {
+  const [hStr, mStr] = (hhmm || "00:00").split(":");
+  const h = parseInt(hStr, 10) || 0;
+  const m = mStr || "00";
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${m} ${period}`;
+}
+
+/** Convierte "2:30 PM" → "14:30" para guardar en backend */
+function from12h(h12: string, min: string, period: string): string {
+  let h = parseInt(h12, 10) || 12;
+  if (period === "AM" && h === 12) h = 0;
+  if (period === "PM" && h !== 12) h += 12;
+  return `${String(h).padStart(2, "0")}:${min.padStart(2, "0")}`;
+}
+
+/** Selector de hora en formato 12h */
+function TimePicker({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  label: string;
+}) {
+  const [hStr, mStr] = (value || "08:00").split(":");
+  const hNum = parseInt(hStr, 10) || 0;
+  const period = hNum >= 12 ? "PM" : "AM";
+  const h12 = String(hNum % 12 || 12);
+  const min = mStr || "00";
+
+  const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
+  const mins = ["00", "15", "30", "45"];
+
+  function update(newH12: string, newMin: string, newPeriod: string) {
+    onChange(from12h(newH12, newMin, newPeriod));
+  }
+
+  const selectCls =
+    "rounded-lg border border-border bg-surface-hover px-2 py-1.5 text-sm text-ink focus:outline-none focus:border-accent";
+
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-[11px] text-muted font-medium">{label}</label>
+      <div className="flex items-center gap-1">
+        <select
+          value={h12}
+          onChange={(e) => update(e.target.value, min, period)}
+          className={selectCls}
+        >
+          {hours.map((h) => (
+            <option key={h} value={h}>{h}</option>
+          ))}
+        </select>
+        <span className="text-muted text-sm">:</span>
+        <select
+          value={min}
+          onChange={(e) => update(h12, e.target.value, period)}
+          className={selectCls}
+        >
+          {mins.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        <select
+          value={period}
+          onChange={(e) => update(h12, min, e.target.value)}
+          className={selectCls}
+        >
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
 function AgentScheduleSection() {
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1147,13 +1227,15 @@ function AgentScheduleSection() {
 
   return (
     <section className="rounded-xl border border-border bg-surface-panel p-5 space-y-5">
+
+      {/* Encabezado con estado actual */}
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <span>🤖</span> Agente WhatsApp
+            <span>🤖</span> Agente Hugo — WhatsApp
           </h3>
           <p className="text-xs text-muted mt-0.5">
-            Controla cuándo Hugo García responde automáticamente en WhatsApp
+            Controla cuándo Hugo responde automáticamente a los clientes
           </p>
         </div>
         <span
@@ -1163,26 +1245,26 @@ function AgentScheduleSection() {
               : "bg-red-500/10 text-red-400 border-red-500/20"
           }`}
         >
-          {activoAhora ? "● Activo ahora" : "○ Pausado ahora"}
+          {activoAhora ? "● Respondiendo ahora" : "○ En silencio ahora"}
         </span>
       </div>
 
       {/* Toggle global */}
       <div className="flex items-center justify-between gap-4 rounded-lg border border-border bg-surface px-4 py-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-ink">Agente habilitado</p>
+          <p className="text-sm font-semibold text-ink">Bot activado</p>
           <p className="text-xs text-muted mt-0.5">
             {globalActivo
-              ? "Hugo responde automáticamente 24/7 (salvo pausa manual)"
-              : "El agente está pausado — ningún chat recibirá respuesta automática"}
+              ? "Hugo puede responder clientes (sujeto al horario de abajo)"
+              : "Bot apagado — Hugo no responde a nadie, sin importar el horario"}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {saved && <span className="text-xs text-emerald-400">✓</span>}
+          {saved && <span className="text-xs text-emerald-400">✓ Guardado</span>}
           <button
             onClick={toggleGlobal}
             disabled={saving}
-            aria-label="Habilitar o pausar el agente globalmente"
+            aria-label="Activar o apagar el bot"
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-40 focus:outline-none ${
               globalActivo ? "bg-accent" : "bg-surface-hover border border-border"
             }`}
@@ -1196,7 +1278,7 @@ function AgentScheduleSection() {
         </div>
       </div>
 
-      {/* Horario */}
+      {/* Horario laboral */}
       <div className="rounded-lg border border-border bg-surface overflow-hidden">
         <button
           type="button"
@@ -1205,11 +1287,11 @@ function AgentScheduleSection() {
           className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left transition hover:bg-surface-hover disabled:opacity-40"
         >
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-ink">Horario de atención</p>
+            <p className="text-sm font-semibold text-ink">Horario del equipo</p>
             <p className="text-xs text-muted mt-0.5">
               {scheduleHabilitado
-                ? `Referencia ${draft.horario_bot.hora_inicio}–${draft.horario_bot.hora_fin} (no pausa al bot)`
-                : "Sin horario — Hugo responde siempre que el bot esté habilitado"}
+                ? `De ${to12h(draft.horario_bot.hora_inicio)} a ${to12h(draft.horario_bot.hora_fin)} → atiende el equipo. Fuera de ese horario → Hugo responde solo.`
+                : "Sin horario definido — Hugo responde siempre que el bot esté activado"}
             </p>
           </div>
           <span
@@ -1227,46 +1309,52 @@ function AgentScheduleSection() {
 
         {scheduleHabilitado && (
           <div className="border-t border-border px-4 pb-4 pt-3 space-y-4">
-            {/* Horas */}
+
+            {/* Explicación visual del flujo */}
+            <div className="rounded-lg bg-surface-hover border border-border px-4 py-3 text-xs text-muted space-y-1.5">
+              <p className="font-semibold text-ink text-[12px]">¿Cómo funciona?</p>
+              <div className="flex items-start gap-2">
+                <span className="text-emerald-400 mt-0.5">👤</span>
+                <span><strong className="text-ink">Dentro del horario</strong> → el equipo atiende. Hugo queda en silencio para no interrumpir.</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-accent mt-0.5">🤖</span>
+                <span><strong className="text-ink">Fuera del horario</strong> (noches, fines de semana, festivos) → Hugo responde automáticamente para no perder clientes.</span>
+              </div>
+            </div>
+
+            {/* Horas con selectores 12h */}
             <div className="flex flex-wrap items-end gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-muted font-medium">Hora inicio</label>
-                <input
-                  type="time"
-                  value={draft.horario_bot.hora_inicio}
-                  onChange={(e) =>
-                    setDraft((p) =>
-                      p ? { ...p, horario_bot: { ...p.horario_bot, hora_inicio: e.target.value } } : p
-                    )
-                  }
-                  className="rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-sm text-ink font-mono w-32 focus:outline-none focus:border-accent"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[11px] text-muted font-medium">Hora fin</label>
-                <input
-                  type="time"
-                  value={draft.horario_bot.hora_fin}
-                  onChange={(e) =>
-                    setDraft((p) =>
-                      p ? { ...p, horario_bot: { ...p.horario_bot, hora_fin: e.target.value } } : p
-                    )
-                  }
-                  className="rounded-lg border border-border bg-surface-hover px-3 py-1.5 text-sm text-ink font-mono w-32 focus:outline-none focus:border-accent"
-                />
-              </div>
+              <TimePicker
+                label="El equipo llega a"
+                value={draft.horario_bot.hora_inicio}
+                onChange={(v) =>
+                  setDraft((p) =>
+                    p ? { ...p, horario_bot: { ...p.horario_bot, hora_inicio: v } } : p
+                  )
+                }
+              />
+              <TimePicker
+                label="El equipo sale a"
+                value={draft.horario_bot.hora_fin}
+                onChange={(v) =>
+                  setDraft((p) =>
+                    p ? { ...p, horario_bot: { ...p.horario_bot, hora_fin: v } } : p
+                  )
+                }
+              />
               <button
                 onClick={saveScheduleFields}
                 disabled={saving}
                 className="rounded-lg bg-accent/15 px-3 py-1.5 text-xs font-semibold text-accent transition hover:bg-accent/25 disabled:opacity-40"
               >
-                {saving ? "Guardando…" : "Guardar horas"}
+                {saving ? "Guardando…" : "Guardar"}
               </button>
             </div>
 
             {/* Días */}
             <div className="space-y-2">
-              <p className="text-[11px] text-muted font-medium uppercase tracking-wide">Días activos</p>
+              <p className="text-[11px] text-muted font-medium">¿Qué días trabaja el equipo?</p>
               <div className="flex flex-wrap gap-2">
                 {DIAS_ISO.map(({ iso, label }) => {
                   const on = draft.horario_bot.dias.includes(iso);
@@ -1286,6 +1374,9 @@ function AgentScheduleSection() {
                   );
                 })}
               </div>
+              <p className="text-[11px] text-muted">
+                Los días marcados son cuando el equipo trabaja. Los días <strong>no</strong> marcados, Hugo responde solo.
+              </p>
               <button
                 onClick={saveScheduleFields}
                 disabled={saving}
@@ -1295,8 +1386,8 @@ function AgentScheduleSection() {
               </button>
             </div>
 
-            <p className="text-[11px] text-muted">
-              Zona horaria: Colombia (UTC−5). El horario es referencia en panel; Hugo responde 24/7 salvo pausa manual.
+            <p className="text-[11px] text-muted border-t border-border pt-3">
+              Hora Colombia (UTC−5). El bot usa este horario en tiempo real para decidir si responde o no.
             </p>
           </div>
         )}
