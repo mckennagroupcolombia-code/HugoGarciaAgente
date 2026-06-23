@@ -23,6 +23,48 @@ _FALLBACK_GEMINI = (
     or "gemini-2.5-flash"
 )
 
+# Prompt específico para Gemini en WhatsApp de clientes.
+# NO menciona herramientas ni APIs internas — Gemini no las puede ejecutar.
+SYSTEM_PROMPT_WHATSAPP_GEMINI = """Eres Hugo García, asesor ejecutivo de ventas de McKenna Group S.A.S., empresa colombiana de materias primas farmacéuticas y cosméticas con sede en Bogotá. Atiendes clientes por WhatsApp.
+
+IDENTIDAD Y TONO:
+- Habla en español colombiano bogotano. Usa "veci", "con mucho gusto", "claro que sí", "de una".
+- Sé directo y breve. Responde SOLO lo que el cliente pregunta. No ofrezcas extras no solicitados.
+- Primera vez que el cliente escribe: "Hola veci, soy Hugo García de McKenna Group. ¿En qué le puedo colaborar?"
+- Si ya hay historial en la conversación, NO repitas el saludo inicial.
+
+PRECIOS Y PRODUCTOS — REGLA CRÍTICA:
+- SOLO usa precios y datos que aparezcan en el [Catálogo McKenna] o [✅ Producto encontrado] inyectados en el mensaje.
+- Si no tienes el precio en el contexto, di exactamente: "Veci, déjame verificar ese dato y le confirmo en un momento." NUNCA inventes ni supongas un precio.
+- NUNCA escribas "$[Prec", "[precio]", "[consultar]" ni ningún placeholder — si no tienes el dato real, di que lo verificas.
+- Si el contexto muestra el precio, cítalo directamente: "La glicerina vegetal 500 g vale $22.500."
+- No repitas el precio si ya lo diste en el historial de esta conversación.
+
+HISTORIAL — REGLA CRÍTICA:
+- Lee el historial completo de la conversación ANTES de responder.
+- Si el cliente ya dio su nombre, correo o dirección en el historial, NO los vuelvas a pedir.
+- Si ya discutiste un producto, recuerda cuál era sin pedirle que lo repita.
+- Si el cliente dice "sí", "dale", "de acuerdo", "ok" o similar, asume que confirma lo último discutido. No pidas clarificación innecesaria.
+- Mantén hilo: si se habló de glicerina, "eso" y "ese" se refieren a glicerina.
+
+ENVÍOS:
+- Bogotá: $8.800 hasta 1 kg, entrega el mismo día lunes a viernes con mensajero.
+- Resto del país: $18.000 hasta 1 kg por Interrapidísimo, 2-4 días hábiles. Por cada kg adicional suman $2.000.
+- McKenna es tienda virtual; no hay punto físico ni recogida en bodega.
+
+COTIZACIONES:
+- Para hacer una cotización necesitas: nombre completo o razón social, cédula/NIT, correo electrónico, dirección de entrega, lista de productos con cantidad.
+- Confirma totales solo con precios del catálogo inyectado. Si falta el precio de algún producto, indícalo explícitamente.
+
+IMÁGENES:
+- Si el cliente envía una imagen sin contexto, pregunta brevemente: "¿Es comprobante de pago, consulta de producto o soporte técnico?"
+
+FORMATO:
+- Respuestas cortas. Máximo 3-4 líneas salvo cotizaciones formales.
+- Evita listas largas de bullets. Usa negritas solo para precios y nombres de producto.
+- Sin markdown excesivo: no uses **, ##, --- salvo para precios y nombres.
+"""
+
 
 def es_canal_cliente(canal_id: str) -> bool:
     return (canal_id or "").strip() in CANALES_CLIENTE
@@ -121,7 +163,15 @@ def _completar_gemini(
         "Responde solo con el texto final para el cliente (tono Hugo García, veci)."
     )
     try:
-        resp = cliente_gemini.models.generate_content(model=modelo, contents=prompt)
+        # Temperatura baja (0.3) para respuestas factuales; reduce alucinación de precios.
+        # Gemini 2.5 Pro es un modelo "thinking": no limitar max_output_tokens < 2000
+        # o el modelo falla al parsear la respuesta (NoneType subscriptable).
+        try:
+            from google.genai import types as _gtypes
+            cfg = _gtypes.GenerateContentConfig(temperature=0.3)
+            resp = cliente_gemini.models.generate_content(model=modelo, contents=prompt, config=cfg)
+        except Exception:
+            resp = cliente_gemini.models.generate_content(model=modelo, contents=prompt)
         txt = (getattr(resp, "text", "") or "").strip()
         return txt or None
     except Exception as e:
@@ -129,14 +179,17 @@ def _completar_gemini(
         return None
 
 
-def _historial_plano(historial: list, extraer_texto: Callable) -> str:
+def _historial_plano(historial: list, extraer_texto: Callable, max_turnos: int = 25) -> str:
+    """Genera historial en texto plano para el prompt de Gemini/Ollama."""
     partes: list[str] = []
-    for m in (historial or [])[-12:]:
+    for m in (historial or [])[-max_turnos:]:
         role = m.get("role", "")
         txt = extraer_texto(m.get("content"))
         if txt:
-            pref = "Cliente" if role == "user" else "Asistente"
-            partes.append(f"{pref}: {txt[:500]}")
+            pref = "Cliente" if role == "user" else "Asesor"
+            # Limpiar prefijo "Usuario_XXX: " que agrega el sistema
+            txt = re.sub(r"^Usuario_[^:]+:\s*", "", txt).strip()
+            partes.append(f"{pref}: {txt[:800]}")
     return "\n".join(partes)
 
 
@@ -182,17 +235,25 @@ def responder_canal_cliente(
     extra_web = ""
     if es_web:
         extra_web = (
-            " CANAL WEB: Responda productos y precios con el contexto; COA/ficha con enlaces del contexto "
-            "o pida correo si faltan. No redirija a WhatsApp salvo pago, pedido o cotización formal a cerrar."
+            "\nCANAL WEB: Responda con el contexto de catálogo. "
+            "Si incluye Link MercadoLibre, inclúyalo siempre. "
+            "No redirija a WhatsApp salvo para cotización formal o pago."
         )
-    sys = (
-        f"{system_prompt}\n\n"
-        "MODO CLIENTE: Responde en español colombiano (veci). "
-        "Use SOLO datos del contexto inyectado para precios, stock y uso. "
-        "No invente presentaciones ni precios. "
-        "No mencione SIIGO, combo, ERP ni herramientas internas."
-        f"{extra_web}"
-    )
+
+    # Para Gemini en WhatsApp: usar prompt limpio (sin refs a tools de Claude).
+    # Para web y Ollama: usar el prompt heredado con el sufijo MODO CLIENTE.
+    es_gemini = modelo_id.startswith("gemini-") or _FALLBACK_GEMINI.startswith("gemini-")
+    if es_gemini and not es_web:
+        sys = SYSTEM_PROMPT_WHATSAPP_GEMINI
+    else:
+        sys = (
+            f"{system_prompt}\n\n"
+            "MODO CLIENTE: Responde en español colombiano (veci). "
+            "Use SOLO datos del contexto inyectado para precios, stock y uso. "
+            "No invente presentaciones ni precios. "
+            "No mencione SIIGO, combo, ERP ni herramientas internas."
+            f"{extra_web}"
+        )
 
     texto: str | None = None
     proveedor = ""

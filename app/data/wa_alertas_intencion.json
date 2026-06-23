@@ -3,63 +3,53 @@
   "alertas": {
     "573001234567@c.us": {
       "jid": "573001234567@c.us",
-      "primer_intencion_ts": 1781923706.8136148,
+      "primer_intencion_ts": 1782146754.3427453,
       "primer_intencion_texto": "quiero hacer un pedido, ¿cuál es la cuenta para transferir?",
-      "ultima_human_ts": 1781923826.8136148,
-      "ultimo_bot_ts": 1781923766.8136148,
+      "ultima_human_ts": 1782146874.3427453,
+      "ultimo_bot_ts": 1782146814.3427453,
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
     },
-    "573207640451@c.us": {
-      "jid": "573207640451@c.us",
-      "primer_intencion_ts": 1781885791.0,
-      "primer_intencion_texto": "Si por favore indicas cuánto es todo y me puedes enviar un link de pago por favor",
-      "ultima_human_ts": 1781885946.0,
+    "573182974834@c.us": {
+      "jid": "573182974834@c.us",
+      "primer_intencion_ts": 1781218954.0,
+      "primer_intencion_texto": "Si señor la creatina cual es ? Y el valor total para consignar ?",
+      "ultima_human_ts": 1781219006.0,
       "ultimo_bot_ts": null,
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
     },
-    "573212045498@c.us": {
-      "jid": "573212045498@c.us",
-      "primer_intencion_ts": 1781864625.0,
-      "primer_intencion_texto": "Y de Rosa mosqueta no tienes mas grande? De 30ml?\n\nY por ultimo por favor añade al pedido el de arbol de te de 30 ml.",
-      "ultima_human_ts": 1781865474.0,
+    "573114620203@c.us": {
+      "jid": "573114620203@c.us",
+      "primer_intencion_ts": 1782161253.0,
+      "primer_intencion_texto": "Sumercé la entrega de mi pedido lo hacen por interrapidisimo ???",
+      "ultima_human_ts": 1782161412.0,
       "ultimo_bot_ts": null,
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
     },
-    "573124105826@c.us": {
-      "jid": "573124105826@c.us",
-      "primer_intencion_ts": 1781821767.0,
-      "primer_intencion_texto": "Mira hice un pedido por mercado libre y uno me llego completo",
-      "ultima_human_ts": 1781824079.0,
+    "573007164729@c.us": {
+      "jid": "573007164729@c.us",
+      "primer_intencion_ts": 1782164021.0,
+      "primer_intencion_texto": "Ok..le estarán haciendo el pedido para riohacha",
+      "ultima_human_ts": 1782164032.0,
       "ultimo_bot_ts": null,
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
     },
-    "573174923920@c.us": {
-      "jid": "573174923920@c.us",
-      "primer_intencion_ts": 1781979205.0,
-      "primer_intencion_texto": "Para confirmar el pedido porfa y q me puedas enviar a las dos",
-      "ultima_human_ts": 1781980198.0,
+    "573173102627@c.us": {
+      "jid": "573173102627@c.us",
+      "primer_intencion_ts": 1782167758.0,
+      "primer_intencion_texto": "Buenas tardes.\nAun no ha llegado mi pedido",
+      "ultima_human_ts": null,
       "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
-    },
-    "573016213015@c.us": {
-      "jid": "573016213015@c.us",
-      "primer_intencion_ts": 1781987840.0,
-      "primer_intencion_texto": "Hola muy buenas tardes  El seguimiento de mi pedido con guia 700196831701 indica que fue entregado, pero no he recibido el paquete. Por favor, necesito verificar la evidencia de entrega, el nombre de la persona que lo recibió y una solución al inconveniente.",
-      "ultima_human_ts": 1781987841.0,
-      "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
-      "cancelada": true,
-      "cancelada_razon": "humano_respondio"
+      "alerta_enviada_ts": 1782168665.2623684,
+      "cancelada": false,
+      "cancelada_razon": null
     }
   }
 }

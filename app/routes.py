@@ -736,10 +736,17 @@ def _bot_en_horario_servicio(modos=None) -> bool:
 
 
 def _bot_debe_responder_global(modos=None) -> bool:
-    """False solo si el operador pausó el bot global desde el panel."""
+    """False si el bot está pausado o si estamos dentro del horario laboral del equipo."""
     if modos is None:
         modos = cargar_modos_atencion()
-    return bool(modos.get("bot_global_activo", True))
+    if not modos.get("bot_global_activo", True):
+        return False
+    # Si hay horario laboral activo, el bot responde SOLO fuera de ese horario.
+    # Dentro del horario laboral → el equipo humano atiende → bot en silencio.
+    horario = modos.get("horario_bot", {})
+    if horario.get("habilitado", False) and _bot_en_horario_servicio(modos):
+        return False
+    return True
 
 
 def _normalizar_numero_wa(numero: str) -> str | None:
@@ -2563,6 +2570,25 @@ def register_routes(app):
         respuesta_ia, _ = obtener_respuesta_ia(
             message_text, sender_id, canal="whatsapp"
         )
+
+        # Re-verificar modo humano: puede haberse activado desde el panel
+        # mientras la IA procesaba (race condition). Si ya está en humano,
+        # no enviamos la respuesta generada y reenviamos al grupo.
+        _modos_post_ia = cargar_modos_atencion()
+        if _wa_en_modo_humano(_modos_post_ia, sender_id) or (
+            sender_lid and _wa_en_modo_humano(_modos_post_ia, sender_lid)
+        ):
+            from app.services.wa_jid import formato_display
+            from app.services.wa_logs import registrar as _wa_log
+
+            _wa_log("modo_humano_interceptado", sender_id, (message_text or "")[:200])
+            etiqueta = formato_display(sender_id)
+            spawn_thread(
+                enviar_whatsapp_reporte,
+                args=(f"💬 CLIENTE {etiqueta} ({sender_id}): {message_text}", grupo_compras),
+            )
+            return jsonify({"status": "human_mode_intercepted", "respuesta": None})
+
         respuesta_ia = _normalizar_respuesta_cliente(respuesta_ia)
 
         incertidumbre_ia = ["no tengo información", "no puedo", "no estoy seguro"]

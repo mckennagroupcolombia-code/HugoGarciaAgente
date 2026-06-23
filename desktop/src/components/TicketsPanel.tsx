@@ -14520,6 +14520,12 @@ function SolicitudCard({
                 }`}
                 onMouseEnter={() => setPasoPasteId(p.id)}
                 onFocusCapture={() => setPasoPasteId(p.id)}
+                onPaste={(e) => {
+                  if (!esAsignado || supervision || resuelta) return;
+                  if (manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(p.id, file))) {
+                    e.stopPropagation();
+                  }
+                }}
               >
                 {editandoPasoId === p.id ? (
                   /* Modo edición inline */
@@ -14655,6 +14661,40 @@ function SolicitudCard({
                         </div>
                       );
                     })()}
+                    {/* Zona de pegado explícita por paso — click o foco + Ctrl+V */}
+                    {esAsignado && !supervision && !pasoEstaCompletado(p) && !resuelta && (
+                      <label
+                        tabIndex={0}
+                        onFocus={() => setPasoPasteId(p.id)}
+                        onPaste={(e) => {
+                          if (manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(p.id, file))) {
+                            e.stopPropagation();
+                          }
+                        }}
+                        className={`ml-6 mt-1 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-semibold cursor-pointer select-none outline-none transition-colors
+                          ${subiendoAdjPaso === p.id
+                            ? "border-accent/50 text-accent"
+                            : "border-dashed border-border/50 text-muted/60 hover:border-accent/50 hover:text-accent/80 focus:border-accent focus:bg-accent/5 focus:text-accent"
+                          }`}
+                        title="Haz click aquí y presiona Ctrl+V para pegar un pantallazo en este paso"
+                      >
+                        {subiendoAdjPaso === p.id ? (
+                          <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
+                        ) : (
+                          <><span>📷</span> Ctrl+V — pegar pantallazo</>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) void subirAdjuntoPaso(p.id, f);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
                 )}
               </div>
@@ -21061,13 +21101,18 @@ function NuevoProcedimientoForm({
   abrirFormInicial?: boolean;
   abrirFormSignal?: number;
 }) {
+  type PasoNuevo = { descripcion: string; fotos: { nombre_archivo: string; mime: string }[] };
+
   const puedeCrear = puedeCrearProtocolos(user);
   const [showForm, setShowForm] = useState(abrirFormInicial && puedeCrear);
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [pasos, setPasos] = useState<string[]>([""]);
+  const [pasos, setPasos] = useState<PasoNuevo[]>([{ descripcion: "", fotos: [] }]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [subiendoFoto, setSubiendoFoto] = useState<number | null>(null);
+  const [pasoActivo, setPasoActivo] = useState<number | null>(null);
+  const [lbUrl, setLbUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (abrirFormInicial && puedeCrear) setShowForm(true);
@@ -21080,8 +21125,31 @@ function NuevoProcedimientoForm({
   function resetForm() {
     setTitulo("");
     setDescripcion("");
-    setPasos([""]);
+    setPasos([{ descripcion: "", fotos: [] }]);
     setError("");
+    setPasoActivo(null);
+  }
+
+  async function subirFotoPaso(pasoIdx: number, file: File) {
+    setSubiendoFoto(pasoIdx);
+    try {
+      const fd = new FormData();
+      fd.append("archivo", file);
+      const res = await fetch("/api/tickets/protocolos/upload-foto", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const { nombre_archivo, mime } = await res.json() as { nombre_archivo: string; mime: string };
+      setPasos((prev) =>
+        prev.map((x, i) =>
+          i === pasoIdx ? { ...x, fotos: [...x.fotos, { nombre_archivo, mime }] } : x
+        )
+      );
+    } catch { /* no crítico */ } finally {
+      setSubiendoFoto(null);
+    }
   }
 
   async function crear() {
@@ -21095,9 +21163,11 @@ function NuevoProcedimientoForm({
           titulo: titulo.trim(),
           descripcion: descripcion.trim() || undefined,
           pasos: pasos
-            .map((p) => p.trim())
-            .filter(Boolean)
-            .map((descripcion) => ({ descripcion })),
+            .filter((p) => p.descripcion.trim())
+            .map((p) => ({
+              descripcion: p.descripcion.trim(),
+              adjuntos_ref: p.fotos.length ? p.fotos : undefined,
+            })),
         }),
       });
       resetForm();
@@ -21135,6 +21205,7 @@ function NuevoProcedimientoForm({
 
       {showForm && (
         <div className="space-y-3 rounded-2xl border-2 border-accent/30 bg-accent/5 p-4">
+          {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
           <p className="text-xs font-bold uppercase tracking-widest text-accent">Nuevo procedimiento</p>
           <ProseInput
             autoFocus
@@ -21152,29 +21223,102 @@ function NuevoProcedimientoForm({
             onChange={(e) => setDescripcion(e.target.value)}
           />
           <div className="space-y-2">
-            <p className="text-xs font-bold text-muted">Pasos (opcional)</p>
+            <p className="text-xs font-bold text-muted">
+              Pasos (opcional)
+              <span className="ml-2 normal-case font-normal text-muted/70">· Ctrl+V en cada paso para pegar pantallazo</span>
+            </p>
             {pasos.map((paso, i) => (
-              <div key={i} className="flex gap-2">
-                <ProseInput
-                  className="flex-1 rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
-                  placeholder={`Paso ${i + 1}`}
-                  value={paso}
-                  onChange={(e) => setPasos((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))}
-                />
-                {pasos.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setPasos((prev) => prev.filter((_, j) => j !== i))}
-                    className="rounded-xl border-2 border-border px-3 text-muted hover:border-danger hover:text-danger"
-                  >
-                    ✕
-                  </button>
+              <div
+                key={i}
+                className={`rounded-xl border-2 p-2.5 space-y-2 transition-colors ${
+                  pasoActivo === i ? "border-accent/60 bg-accent/5" : "border-border"
+                }`}
+                onMouseEnter={() => setPasoActivo(i)}
+                onPaste={(e) => {
+                  if (manejarPasteCaptura(e, (file) => void subirFotoPaso(i, file))) {
+                    e.stopPropagation();
+                  }
+                }}
+              >
+                <div className="flex gap-2">
+                  <ProseInput
+                    className="flex-1 rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-sm text-ink outline-none focus:border-accent"
+                    placeholder={`Paso ${i + 1}`}
+                    value={paso.descripcion}
+                    onFocus={() => setPasoActivo(i)}
+                    onChange={(e) => setPasos((prev) => prev.map((x, j) => j === i ? { ...x, descripcion: e.target.value } : x))}
+                  />
+                  {pasos.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setPasos((prev) => prev.filter((_, j) => j !== i))}
+                      className="rounded-xl border-2 border-border px-3 text-muted hover:border-danger hover:text-danger"
+                    >✕</button>
+                  )}
+                </div>
+
+                {/* Miniaturas de fotos adjuntas al paso */}
+                {paso.fotos.length > 0 && (
+                  <div className="flex flex-wrap gap-2 ml-1">
+                    {paso.fotos.map((f, fi) => {
+                      const esImg = f.mime.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/i.test(f.nombre_archivo);
+                      const url = ticketsUploadUrl(f.nombre_archivo, token);
+                      return (
+                        <div key={fi} className="relative group">
+                          {esImg
+                            ? <button type="button" onClick={() => setLbUrl(url)}>
+                                <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
+                                <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs font-bold pointer-events-none">🔍</span>
+                              </button>
+                            : <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface text-xl">📄</div>
+                          }
+                          <button
+                            type="button"
+                            onClick={() => setPasos((prev) => prev.map((x, j) => j === i ? { ...x, fotos: x.fotos.filter((_, k) => k !== fi) } : x))}
+                            className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold shadow"
+                          >✕</button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
+
+                {/* Zona de pegado / subida por paso */}
+                <label
+                  tabIndex={0}
+                  onFocus={() => setPasoActivo(i)}
+                  onPaste={(e) => {
+                    if (manejarPasteCaptura(e, (file) => void subirFotoPaso(i, file))) {
+                      e.stopPropagation();
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-semibold cursor-pointer select-none outline-none transition-colors
+                    ${subiendoFoto === i
+                      ? "border-accent/50 text-accent"
+                      : "border-dashed border-border/50 text-muted/60 hover:border-accent/50 hover:text-accent/80 focus:border-accent focus:bg-accent/5 focus:text-accent"
+                    }`}
+                  title="Click aquí y presiona Ctrl+V para adjuntar un pantallazo — o click para abrir archivos"
+                >
+                  {subiendoFoto === i
+                    ? <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
+                    : <><span>📷</span> Ctrl+V — adjuntar pantallazo</>
+                  }
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void subirFotoPaso(i, f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
               </div>
             ))}
             <button
               type="button"
-              onClick={() => setPasos((prev) => [...prev, ""])}
+              onClick={() => setPasos((prev) => [...prev, { descripcion: "", fotos: [] }])}
               className="text-xs font-bold text-accent hover:underline"
             >
               + Agregar paso

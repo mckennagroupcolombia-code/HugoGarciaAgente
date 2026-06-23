@@ -1144,13 +1144,35 @@ def _extraer_items_lista_productos_web(texto: str) -> list[str]:
 
 
 def _termino_busqueda_limpio_web(texto: str) -> str:
-    t = re.sub(r"\b(necesito|requiero|quiero)\b", " ", texto or "", flags=re.I)
+    t = texto or ""
+    # Quitar saludos iniciales antes de extraer el producto
+    t = re.sub(
+        r"^(buenos?\s+d[ií]as?|buenas?\s+tardes?|buenas?\s+noches?|buen\s+d[ií]a|hola|buenas?)[,.\s]+",
+        "",
+        t,
+        flags=re.I,
+    )
+    # Quitar preguntas de precio y verbos de intención de compra/búsqueda
+    t = re.sub(
+        r"\b(cu[aá]nto\s+vale|cu[aá]nto\s+cuesta|cu[aá]l\s+es\s+el\s+precio\s+de|precio\s+de|valor\s+de)\b",
+        " ",
+        t,
+        flags=re.I,
+    )
+    t = re.sub(
+        r"\b(necesito|requiero|quiero|busco|buscando|estoy\s+buscando|solicito|me\s+interesa|interesado\s+en|interesada\s+en|conseguir|comprar|pedir|tienen|hay|venden|manejan)\b",
+        " ",
+        t,
+        flags=re.I,
+    )
     t = re.sub(
         r"\b\d+\s*(g|gr|ml|kg|l|litros?|gramos?|mililitros?)\b",
         " ",
         t,
         flags=re.I,
     )
+    # Quitar partículas sueltas al inicio
+    t = re.sub(r"^\s*(un|una|el|la|los|las|de|para|con|en|al)\s+", "", t, flags=re.I)
     return re.sub(r"\s+", " ", t).strip()
 
 
@@ -1374,7 +1396,7 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
         return False
     if low in _SALUDOS_WEB:
         return False
-    if re.match(r"^(ok|gracias|si|no|vale|listo)\b", low):
+    if re.match(r"^(ok|gracias|si|sí|no|vale|listo|perfecto|entendido|de\s+acuerdo|claro|muchas\s+gracias)\b", low):
         return False
     if re.search(r"\b(cuanto|cuánto)\s+(cuesta|vale|es|sale|cobra|est[aá])\b", low):
         return True
@@ -1393,7 +1415,15 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
         "cotiz",
         "comprar",
         "pedir",
-        "necesito precio",
+        "necesito",
+        "busco",
+        "buscando",
+        "quiero",
+        "solicito",
+        "interesado",
+        "interesada",
+        "interesa",
+        "conseguir",
         "aminoacido",
         "aminoácido",
         "proteina",
@@ -1432,7 +1462,7 @@ def _mensaje_parece_consulta_catalogo_web(texto: str) -> bool:
     tokens = re.findall(r"[a-záéíóúüñ0-9\-]{2,}", low)
     if re.fullmatch(r"[\w\-]{2,30}", low.strip()):
         return True
-    if 1 <= len(tokens) <= 4 and len(low) <= 48:
+    if 1 <= len(tokens) <= 6 and len(low) <= 65:
         return True
     return False
 

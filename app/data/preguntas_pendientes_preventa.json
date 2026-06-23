@@ -918,8 +918,8 @@
       "question_id": "13607255377",
       "titulo_producto": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
       "pregunta": "Buenas tardes, sirve para cosmetologia?",
-      "timestamp": "2026-06-22T01:37:41.974218",
-      "respondida": false
+      "timestamp": "2026-06-22T02:07:44.671470",
+      "respondida": true
     },
     {
       "question_id": "13607273403",
@@ -927,6 +927,15 @@
       "pregunta": "A qué precio me dejan cinco kilogramos?",
       "timestamp": "2026-06-21T19:08:26.534959",
       "respondida": true
+    },
+    {
+      "question_id": "13607410195",
+      "titulo_producto": "Ácido Azelaico Polvo 10 G Todo Tipo De Piel",
+      "pregunta": "Hola, cómo se usaría para ponérmelo en la cara?",
+      "timestamp": "2026-06-22T07:07:54.584297",
+      "respondida": true,
+      "borrador_ia": "¡Hola veci! Con gusto le colaboro.\n\nPara usar nuestro ácido azelaico en polvo en su rostro, primero debe incorporarlo en un vehículo de base neutra, como una crema hidratante sencilla o un suero que no tenga otros activos fuertes. Esto le permite crear una mezcla personalizada, ajustando la cantidad de polvo según la concentración que necesite para su piel, ya sea para mejorar la textura o tratar condiciones como acné leve, rosácea y manchas.\n\nUna vez tenga su mezcla, el paso más importante es la aplicación. Lave su rostro y espere de 5 a 10 minutos hasta que esté completamente seco. Aplicarlo sobre la piel húmeda puede causar un picor intenso. Use una cantidad del tamaño de un guisante para toda la cara, evitando siempre el contorno de los ojos, las aletas de la nariz y las comisuras de los labios.\n\nLe recomiendo comenzar usándolo en noches alternas (un día sí, un día no) durante las primeras dos semanas para que su piel se adapte. Es normal sentir un ligero hormigueo o picor los primeros minutos; esta sensación suele desaparecer a medida que su piel se acostumbra al producto.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-06-22"
     }
   ]
 }
