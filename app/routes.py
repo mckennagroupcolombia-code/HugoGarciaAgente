@@ -3409,8 +3409,12 @@ def register_routes(app):
             titulo = _titulo_documento_datos(datos)
             slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
             log_line(f"HTTP fichas/generar: {titulo[:80]!r}")
-            guardar_yaml_datos(normalizar_datos_ficha(datos), slug=slug_auto)
-            resultado = generar_pdf_html(datos, cabezote_id=body.get("cabezote_id"))
+            datos_ft_guardar = normalizar_datos_ficha(datos)
+            cabezote_id_ft = body.get("cabezote_id")
+            if cabezote_id_ft:
+                datos_ft_guardar["_cabezote_id"] = cabezote_id_ft
+            guardar_yaml_datos(datos_ft_guardar, slug=slug_auto)
+            resultado = generar_pdf_html(datos, cabezote_id=cabezote_id_ft)
             log_line(f"✔ ficha PDF: {resultado.get('pdf_nombre')}")
             return jsonify(resultado)
         except Exception as e:
@@ -3436,6 +3440,8 @@ def register_routes(app):
             )
             titulo = _titulo_documento_datos(datos_ft)
             slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
+            # Slug que coincide con el nombre del PDF: "FT COA SDS {titulo}" → "ft_coa_sds_{slug}"
+            slug_completo = f"ft_coa_sds_{slug_auto}"
             log_line(f"HTTP fichas/generar-completo: {titulo[:80]!r}")
             datos_para_guardar = normalizar_datos_ficha(datos_ft)
             datos_para_guardar["_tipo"] = "completo"
@@ -3443,7 +3449,11 @@ def register_routes(app):
                 datos_para_guardar["_coa"] = datos_coa
             if datos_sds:
                 datos_para_guardar["_sds"] = datos_sds
-            guardar_yaml_datos(datos_para_guardar, slug=slug_auto)
+            cabezote_id_val = body.get("cabezote_id")
+            if cabezote_id_val:
+                datos_para_guardar["_cabezote_id"] = cabezote_id_val
+            # Guardar con slug del archivo PDF para que el lookup lo encuentre exactamente
+            guardar_yaml_datos(datos_para_guardar, slug=slug_completo)
             resultado = generar_pdf_completo(
                 datos_ft,
                 datos_coa=datos_coa,
@@ -3713,8 +3723,17 @@ def register_routes(app):
         if not path:
             return jsonify({"error": "Archivo no encontrado"}), 404
 
-        base = path.stem  # ej. "FT ACEITE DE ARGAN" o "COA-ALOE-VERA"
-        if re.match(r"^FT\s+", base, re.I):
+        base = path.stem  # ej. "FT ACEITE DE ARGAN" o "FT COA TDS INULINA"
+        if re.match(r"^FT\s+COA\s+SDS\s+", base, re.I):
+            # "FT COA SDS INULINA" → product title = "INULINA"
+            titulo = re.sub(r"^FT\s+COA\s+SDS\s+", "", base, flags=re.I).strip()
+            tipo = "completo"
+        elif re.match(r"^COMPLETO\s+", base, re.I):
+            # Compatibilidad hacia atrás: "COMPLETO FT INULINA"
+            inner = re.sub(r"^COMPLETO\s+", "", base, flags=re.I).strip()
+            titulo = re.sub(r"^FT\s+", "", inner, flags=re.I).strip()
+            tipo = "completo"
+        elif re.match(r"^FT\s+", base, re.I):
             tipo = "ft"
             titulo = re.sub(r"^FT\s+", "", base, flags=re.I).strip()
         elif re.match(r"^COA[-\s]", base, re.I):
@@ -3729,7 +3748,15 @@ def register_routes(app):
 
         slug = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo)).strip("_") or "producto"
         datos = None
-        prefixes = [slug] if tipo == "ft" else [f"{tipo}_{slug}", slug]
+        if tipo == "completo":
+            # Para archivos completos: buscar por slug del archivo (ej. "ft_coa_tds_inulina")
+            # y también por slug del producto (ej. "inulina") como fallback
+            slug_archivo = re.sub(r"[^a-z0-9_]+", "_", _normalizar(base)).strip("_") or "completo"
+            prefixes = [slug_archivo, slug]
+        elif tipo == "ft":
+            prefixes = [slug]
+        else:
+            prefixes = [f"{tipo}_{slug}", slug]
         for prefix in prefixes:
             for ext in (".yaml", ".yml"):
                 yaml_path = DATOS_DIR / f"{prefix}{ext}"
@@ -3739,7 +3766,7 @@ def register_routes(app):
             if datos:
                 break
 
-        # Fallback: extraer del PDF cuando no existe YAML guardado
+        # Fallback: extraer del PDF cuando no existe YAML guardado (solo para FT simples)
         if not datos and tipo == "ft" and path.suffix.lower() == ".pdf":
             extraidos = extraer_datos_desde_pdf_ft(path)
             if extraidos and extraidos.get("nombre_producto"):

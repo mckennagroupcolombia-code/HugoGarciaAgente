@@ -11,6 +11,8 @@ export interface FichaTecnicaFormState {
   referencia: string;
   sinonimos: string;
   cas: string;
+  paisOrigen: string;
+  fabricante: string;
   fechaRevision: string;
   descripcion: string;
   apariencia: string;
@@ -215,6 +217,8 @@ export function datosDesdeFormulario(state: FichaTecnicaFormState): Record<strin
     referencia: state.referencia,
     sinonimos: state.sinonimos,
     cas: state.cas,
+    pais_origen: state.paisOrigen,
+    fabricante: state.fabricante,
     fecha_revision: state.fechaRevision,
     descripcion: state.descripcion,
     caracteristicas_fisicas: {
@@ -270,6 +274,8 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
     referencia: String(datos.referencia || "") || valorEnFilas(identidad, "referencia siigo", "referencia"),
     sinonimos: String(datos.sinonimos || "") || valorEnFilas(identidad, "sinonimos", "sinonimo"),
     cas: String(datos.cas || "") || valorEnFilas(identidad, "cas", "cas #"),
+    paisOrigen: String(datos.pais_origen || "") || valorEnFilas(identidad, "pais de origen", "pais origen", "origen"),
+    fabricante: String(datos.fabricante || "") || valorEnFilas(identidad, "fabricante", "fabricante proveedor"),
     fechaRevision:
       fechaParaInput(String(datos.fecha_revision || "")) ||
       fechaParaInput(valorEnFilas(identidad, "fecha de revision")) ||
@@ -349,6 +355,8 @@ export default function FichaTecnicaForm({
       switch (campo) {
         case "sinonimos":             updates.sinonimos = v; break;
         case "cas":                   updates.cas = v; break;
+        case "pais_origen":           updates.paisOrigen = v; break;
+        case "fabricante":            updates.fabricante = v; break;
         case "descripcion":           updates.descripcion = v; break;
         case "apariencia":            updates.apariencia = v; break;
         case "punto_fusion":          updates.puntoFusion = v; break;
@@ -529,6 +537,27 @@ export default function FichaTecnicaForm({
               onChange={(e) => patch({ lote: e.target.value })}
               placeholder="Ej. LT-2025-001"
               className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-mono"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="text-xs text-muted">País de origen</label>
+            <input
+              value={state.paisOrigen}
+              onChange={(e) => patch({ paisOrigen: e.target.value })}
+              placeholder="Ej. Colombia, China, India…"
+              className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted">Fabricante</label>
+            <input
+              value={state.fabricante}
+              onChange={(e) => patch({ fabricante: e.target.value })}
+              placeholder="Nombre del fabricante o proveedor"
+              className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
             />
           </div>
         </div>

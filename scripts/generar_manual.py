@@ -344,7 +344,7 @@ def portada(s: dict) -> list:
     # Descripción
     elems.append(Paragraph(
         'Guía completa de operación, comandos, arquitectura técnica y flujos de trabajo<br/>'
-        f'del sistema de automatización empresarial de McKenna Group · v3.1 · {fecha_gen}',
+        f'del sistema de automatización empresarial de McKenna Group · v3.5 · {fecha_gen}',
         s['portada_desc']
     ))
     elems.append(sp(1.2))
@@ -442,6 +442,13 @@ def tabla_contenidos(s: dict) -> list:
             'CheckpointStore — checkpoints SQLite por iteración',
             'Tricap Memory — Working + Episodic + Semantic + Compressor',
             'Integración con core.py y validación (96/96 tests)']),
+        ('17', 'Módulo de Documentos Técnicos (Fichas Técnicas)', [
+            'Tipos de documento: FT, COA, SDS y Completo (FT COA SDS)',
+            'Formulario FT con campos País de origen y Fabricante',
+            'Biblioteca: listado, descarga, edición y re-generación de PDFs',
+            'Almacenamiento YAML por slug para preservar datos del formulario',
+            'Nomenclatura de archivos: FT COA SDS {NOMBRE}.pdf',
+            'Control de acceso por operador vía permisos_secciones']),
     ]
 
     for num, titulo, subs in toc:
@@ -689,6 +696,13 @@ def sec03_modulos(s: dict) -> list:
          'Cada noche a las 2 AM comprime bases de datos SQLite, archivos JSON de estado, '
          'embeddings ChromaDB y datos de training en un .tar.gz. Lo sube a Google Drive '
          'y guarda copia local. Limpia backups de más de 7 días. Notifica al grupo WhatsApp.'),
+        ('📄', 'MOD-11', 'Documentos Técnicos (Fichas Técnicas)', C_BLUE2,
+         'Panel web para crear, previsualizar y gestionar documentos técnicos: '
+         'Ficha Técnica (FT), Certificado de Análisis (COA), Hoja de Seguridad (SDS) y el documento '
+         'Completo (FT COA SDS) que integra los tres en un solo PDF. Generación con WeasyPrint/Jinja2. '
+         'Biblioteca con descarga, vista previa y edición. Almacenamiento de datos de formulario '
+         'en YAML por slug para re-editar sin reescribir. Los archivos completos se nombran '
+         '"FT COA SDS {NOMBRE}.pdf". Control de acceso por operador vía permisos_secciones.'),
     ]
 
     for emoji, cod, titulo, color, desc in modulos:
@@ -1340,7 +1354,7 @@ def sec11_glosario_faq(s: dict) -> list:
     cierre_t = Table(
         [[Paragraph(
             'McKenna Group S.A.S. · Bogotá, Colombia · mckennagroup.co\n'
-            f'Manual de Usuario Hugo García v3.1 · Generado el {fecha_gen}\n'
+            f'Manual de Usuario Hugo García v3.5 · Generado el {fecha_gen}\n'
             'Este documento es confidencial y de uso interno.',
             ParagraphStyle('__c', fontName='Helvetica', fontSize=8.5,
                            textColor=C_GRAY, alignment=TA_CENTER, leading=14)
@@ -1999,6 +2013,210 @@ def sec16_orquestador_agentico(s: dict) -> list:
 
 
 # ══════════════════════════════════════════════
+# SEC 17 — DOCUMENTOS TÉCNICOS (FICHAS TÉCNICAS)
+# ══════════════════════════════════════════════
+
+def sec17_fichas_tecnicas(s: dict) -> list:
+    elems = []
+    elems += section_header(
+        'Sección 17',
+        'Módulo de Documentos Técnicos (Fichas Técnicas)',
+        s,
+        C_BLUE2,
+    )
+
+    elems.append(body(
+        'El módulo de <b>Documentos Técnicos</b> es el panel del agente para crear, previsualizar y '
+        'administrar los documentos de calidad de los productos: Fichas Técnicas (FT), '
+        'Certificados de Análisis (COA), Hojas de Datos de Seguridad (SDS) y el documento '
+        '<b>Completo (FT COA SDS)</b> que integra los tres en un solo PDF profesional. '
+        'Los documentos se generan con <b>WeasyPrint + Jinja2</b> y se almacenan en '
+        '<b>fichas_word/</b> para su distribución a clientes.', s))
+    elems.append(sp(0.3))
+
+    # ── 17.1 Tipos de documento
+    elems.append(subsection('17.1 Tipos de Documento', s, C_BLUE2))
+
+    tipos = [
+        ['Tipo', 'Prefijo del archivo', 'Carpeta de destino', 'Descripción'],
+        ['FT — Ficha Técnica', 'FT {NOMBRE}.pdf', 'fichas_word/pdf/', 'Propiedades físico-químicas, identificación, composición, usos y restricciones del producto'],
+        ['COA — Certificado de Análisis', 'COA-{NOMBRE}.pdf', 'fichas_word/pdf/', 'Resultados de análisis de calidad por lote: parámetros, métodos, especificaciones y resultados reales'],
+        ['SDS — Hoja de Seguridad', 'SDS-{NOMBRE}.pdf', 'fichas_word/pdf/', 'Identificación de peligros, manipulación segura, EPPs requeridos y disposición de residuos (16 secciones GHS)'],
+        ['Completo (FT COA SDS)', 'FT COA SDS {NOMBRE}.pdf', 'fichas_word/completo/', 'Documento unificado que combina FT + COA + SDS en un solo PDF con portada McKenna Group'],
+    ]
+    elems.append(tabla_comandos(tipos, s,
+        col_widths=[3.8*cm, 4.2*cm, 3.8*cm, PAGE_W - 2*MARGEN - 12.0*cm]))
+    elems.append(sp(0.3))
+
+    elems.append(nota('💡',
+        '<b>Nomenclatura de archivos:</b> El documento Completo siempre lleva el prefijo '
+        '<b>FT COA SDS</b> seguido del nombre del producto en mayúsculas, sin la palabra "COMPLETO". '
+        'Ejemplo: <b>FT COA SDS INULINA.pdf</b>. Los documentos individuales FT, COA y SDS '
+        'mantienen su propio prefijo respectivo.',
+        s, bg=colors.HexColor('#eff6ff'), border=colors.HexColor('#bfdbfe')))
+    elems.append(sp(0.3))
+
+    # ── 17.2 Estructura del panel
+    elems.append(subsection('17.2 Pestañas del Panel', s, C_BLUE2))
+    elems.append(body(
+        'El panel de Documentos Técnicos está organizado en cuatro pestañas de generación '
+        'y una pestaña de biblioteca:', s))
+
+    pestanas = [
+        ['Pestaña', 'Función'],
+        ['Ficha Técnica', 'Formulario FT con todos los campos de identificación, propiedades y especificaciones. Genera FT {NOMBRE}.pdf'],
+        ['COA', 'Tabla de parámetros analíticos (nombre, especificación, resultado, método). Genera COA-{NOMBRE}.pdf'],
+        ['SDS', 'Formulario de 16 secciones GHS: identificación de peligros, primeros auxilios, EPPs, etc. Genera SDS-{NOMBRE}.pdf'],
+        ['FT COA SDS (Completo)', 'Combina los tres formularios anteriores en un flujo de una sola generación. Genera FT COA SDS {NOMBRE}.pdf con los datos de las tres secciones'],
+        ['Biblioteca', 'Lista todos los PDFs generados con nombre, tipo, acciones de descarga y edición. Botón "Actualizar" para refrescar la lista'],
+    ]
+    elems.append(tabla_comandos(pestanas, s,
+        col_widths=[4.0*cm, PAGE_W - 2*MARGEN - 4.2*cm]))
+    elems.append(sp(0.3))
+
+    # ── 17.3 Campos del formulario FT
+    elems.append(subsection('17.3 Campos del Formulario — Ficha Técnica (FT)', s, C_BLUE2))
+    elems.append(body(
+        'El formulario de Ficha Técnica está organizado en tres secciones principales. '
+        'Los campos marcados con * son necesarios para la generación:', s))
+
+    campos_ft = [
+        ['Sección', 'Campo', 'Descripción'],
+        ['Identificación', 'Nombre del producto *', 'Nombre oficial del producto (se convierte a MAYÚSCULAS en el PDF)'],
+        ['Identificación', 'Referencia / SKU', 'Código interno o referencia de inventario'],
+        ['Identificación', 'Sinónimos', 'Nombres alternativos o nombres INCI'],
+        ['Identificación', 'N.° CAS', 'Número de registro Chemical Abstracts Service'],
+        ['Identificación', 'País de origen', 'País donde se produce el ingrediente (ej. Colombia, China, India)'],
+        ['Identificación', 'Fabricante', 'Nombre del fabricante o proveedor del ingrediente'],
+        ['Identificación', 'Fecha de revisión', 'Fecha de última actualización del documento'],
+        ['Propiedades', 'Descripción / Apariencia', 'Aspecto físico, color y olor del producto'],
+        ['Propiedades', 'Solubilidad', 'Solventes en los que es soluble (agua, aceites, etc.)'],
+        ['Propiedades', 'pH, Punto de fusión, Densidad…', 'Parámetros fisicoquímicos relevantes'],
+        ['Usos', 'Aplicaciones / Concentraciones', 'Sectores de uso (cosmético, farmacéutico) y rangos típicos'],
+        ['Usos', 'Restricciones / Normativa', 'Limitaciones regulatorias INVIMA, REACH, etc.'],
+    ]
+    elems.append(tabla_comandos(campos_ft, s,
+        col_widths=[3.2*cm, 4.0*cm, PAGE_W - 2*MARGEN - 7.4*cm]))
+    elems.append(sp(0.2))
+
+    elems.append(nota('✨',
+        '<b>Campos nuevos (jun-2026):</b> Se agregaron <b>País de origen</b> y <b>Fabricante</b> '
+        'a la sección de Identificación para incluir la trazabilidad del ingrediente directamente '
+        'en el documento técnico. Estos campos se guardan en el YAML del producto y aparecen '
+        'en el encabezado del PDF.',
+        s, bg=colors.HexColor('#f0fdf4'), border=colors.HexColor('#d1fae5')))
+    elems.append(sp(0.3))
+
+    # ── 17.4 Biblioteca
+    elems.append(subsection('17.4 Biblioteca de Documentos', s, C_BLUE2))
+    elems.append(body(
+        'La <b>Biblioteca</b> lista todos los PDFs almacenados en <b>fichas_word/pdf/</b> y '
+        '<b>fichas_word/completo/</b>. Desde esta vista el operador puede:', s))
+
+    acciones_bib = [
+        ['Acción', 'Descripción'],
+        ['Descargar', 'Descarga el PDF directamente al equipo del usuario'],
+        ['Vista previa', 'Abre el PDF en una nueva pestaña del navegador'],
+        ['Editar', 'Carga los datos guardados (YAML) de vuelta en el formulario correspondiente para modificarlos y re-generar'],
+        ['Actualizar', 'Refresca la lista de documentos (consulta al servidor los archivos actuales)'],
+    ]
+    elems.append(tabla_comandos(acciones_bib, s,
+        col_widths=[3.0*cm, PAGE_W - 2*MARGEN - 3.2*cm]))
+    elems.append(sp(0.2))
+
+    elems.append(nota('⚠️',
+        '<b>Editar desde la Biblioteca:</b> Al hacer clic en "Editar", el sistema carga el archivo YAML '
+        'guardado en <b>fichas_word/datos/</b>. Si el documento fue generado antes de la versión actual, '
+        'puede que los campos COA y SDS aparezcan vacíos; en ese caso se recomienda regenerar el documento '
+        'completo para que los datos queden almacenados correctamente.',
+        s, bg=colors.HexColor('#fffbeb'), border=colors.HexColor('#fde68a')))
+    elems.append(sp(0.3))
+
+    # ── 17.5 Almacenamiento YAML
+    elems.append(subsection('17.5 Almacenamiento YAML por Slug', s, C_BLUE2))
+    elems.append(body(
+        'Cada vez que se genera un documento, el sistema guarda los datos del formulario '
+        'en un archivo <b>.yaml</b> dentro de <b>fichas_word/datos/</b>. El nombre del archivo '
+        '(slug) se deriva del nombre del producto normalizado:', s))
+
+    yaml_info = [
+        ['Tipo de doc.', 'Slug del archivo YAML', 'Ejemplo'],
+        ['FT individual', '{slug_producto}.yaml', 'inulina.yaml'],
+        ['COA individual', 'coa_{slug_producto}.yaml', 'coa_inulina.yaml'],
+        ['SDS individual', 'sds_{slug_producto}.yaml', 'sds_inulina.yaml'],
+        ['Completo (FT COA SDS)', 'ft_coa_sds_{slug_producto}.yaml', 'ft_coa_sds_inulina.yaml'],
+    ]
+    elems.append(tabla_comandos(yaml_info, s,
+        col_widths=[3.5*cm, 6.0*cm, PAGE_W - 2*MARGEN - 9.7*cm]))
+    elems.append(sp(0.2))
+
+    elems.append(nota('📁',
+        'El YAML de un documento Completo guarda las tres secciones con claves '
+        '<b>_coa</b> y <b>_sds</b> para COA y SDS respectivamente, además de los campos raíz de FT. '
+        'El campo <b>_tipo: completo</b> indica al panel que debe abrir la pestaña de FT COA SDS al editar.',
+        s, bg=colors.HexColor('#f0fdf4'), border=colors.HexColor('#d1fae5')))
+    elems.append(sp(0.3))
+
+    # ── 17.6 Cabezotes (logos/headers)
+    elems.append(subsection('17.6 Cabezotes en los PDFs', s, C_BLUE2))
+    elems.append(body(
+        'Cada PDF puede incluir un <b>cabezote</b> (header con logo corporativo). '
+        'El sistema permite seleccionar entre los cabezotes disponibles en el panel. '
+        'Si no se selecciona ninguno, el PDF se genera con el encabezado estándar de McKenna Group.', s))
+    elems.append(sp(0.3))
+
+    # ── 17.7 Control de acceso
+    elems.append(subsection('17.7 Control de Acceso por Operador', s, C_BLUE2))
+    elems.append(body(
+        'El acceso al módulo de Fichas Técnicas se controla mediante el campo '
+        '<b>permisos_secciones</b> de cada usuario operador en la base de datos. '
+        'Solo los usuarios con <b>fichas: true</b> en ese campo pueden ver y usar el panel.', s))
+
+    permisos = [
+        ['Nivel de usuario', 'Acceso al módulo', 'Configuración'],
+        ['Administrador (nivel 3+)', 'Acceso completo siempre', 'No requiere configuración adicional'],
+        ['Operador (nivel < 3)', 'Solo si tiene permiso explícito', 'Requiere fichas: true en permisos_secciones en la DB de usuarios'],
+    ]
+    elems.append(tabla_comandos(permisos, s,
+        col_widths=[4.5*cm, 4.0*cm, PAGE_W - 2*MARGEN - 8.7*cm]))
+    elems.append(sp(0.2))
+
+    elems.append(nota('🔧',
+        '<b>Para habilitar acceso a un operador:</b> Desde la consola del servidor, '
+        'usar la función <b>actualizar_permisos_secciones(user_id, permisos, admin_id)</b> '
+        'en <b>app/services/tickets_db.py</b>, agregando <b>"fichas": True</b> al diccionario '
+        'de permisos del operador.',
+        s, bg=colors.HexColor('#eff6ff'), border=colors.HexColor('#bfdbfe')))
+    elems.append(sp(0.3))
+
+    # ── 17.8 Flujo de generación
+    elems.append(subsection('17.8 Flujo de Generación de Documento Completo', s, C_BLUE2))
+
+    flujo_gen = [
+        ['Paso', 'Descripción'],
+        ['1. Llenar formulario', 'El operador completa los campos FT, COA y SDS en la pestaña "FT COA SDS"'],
+        ['2. Hacer clic en "Generar"', 'El frontend envía POST /api/fichas/generar-completo con los datos de las tres secciones'],
+        ['3. Backend procesa', 'Flask normaliza los datos, genera el PDF con WeasyPrint y guarda los datos en ft_coa_sds_{slug}.yaml'],
+        ['4. PDF disponible', 'El archivo FT COA SDS {NOMBRE}.pdf se guarda en fichas_word/completo/'],
+        ['5. Resultado en pantalla', 'El panel muestra el nombre del PDF generado con botón de descarga/previsualización'],
+        ['6. Disponible en Biblioteca', 'Ir a la pestaña Biblioteca y hacer clic en "Actualizar" para ver el nuevo documento'],
+    ]
+    elems.append(tabla_comandos(flujo_gen, s,
+        col_widths=[3.2*cm, PAGE_W - 2*MARGEN - 3.4*cm]))
+    elems.append(sp(0.2))
+
+    elems.append(nota('⚠️',
+        '<b>Nota para operadores:</b> Después de generar un documento completo, ir a la pestaña '
+        '<b>Biblioteca</b> y hacer clic en el botón <b>"Actualizar"</b> para que el nuevo archivo '
+        'aparezca en la lista. La biblioteca no se refresca automáticamente tras una generación '
+        'desde la pestaña FT COA SDS.',
+        s, bg=colors.HexColor('#fff1f2'), border=colors.HexColor('#fecaca')))
+
+    elems.append(PageBreak())
+    return elems
+
+
+# ══════════════════════════════════════════════
 # GENERADOR PRINCIPAL
 # ══════════════════════════════════════════════
 
@@ -2016,7 +2234,7 @@ def generar_pdf() -> str:
     )
 
     s   = estilos()
-    dec = PaginaDecoracion('v3.4')
+    dec = PaginaDecoracion('v3.5')
 
     elems = []
     elems += portada(s)
@@ -2037,6 +2255,7 @@ def generar_pdf() -> str:
     elems += sec14_operabilidad(s)
     elems += sec15_metodologia_agentica(s)
     elems += sec16_orquestador_agentico(s)
+    elems += sec17_fichas_tecnicas(s)
 
     doc.build(elems, onFirstPage=dec, onLaterPages=dec)
     print(f'✅ PDF generado: {OUT_PDF}  ({os.path.getsize(OUT_PDF)//1024} KB)')
@@ -2064,7 +2283,7 @@ def enviar_por_correo(pdf_path: str):
     msg = MIMEMultipart()
     msg['From']    = remitente
     msg['To']      = dest
-    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.4 · McKenna Group · {hoy}'
+    msg['Subject'] = f'Manual de Usuario · Agente Hugo García v3.5 · McKenna Group · {hoy}'
 
     cuerpo = f"""Hola,
 
@@ -2089,8 +2308,12 @@ El manual incluye:
   • Ecosistema Gentleman: gentle-ai, Engram, Agent Teams Lite, Gentleman-Skills, Guardian Angel y Gentleman.Dots
   • [NUEVO] AgentRun + Tricap Memory (2026-05-24): orquestador determinista, LLMRouter multi-proveedor,
     ToolDispatcher con registro episódico, CheckpointStore SQLite y memoria Working/Episodic/Semantic/Compressor
+  • [NUEVO] Módulo de Documentos Técnicos (jun-2026): Fichas Técnicas (FT), Certificados de Análisis (COA),
+    Hojas de Seguridad (SDS) y documento Completo "FT COA SDS {{nombre}}.pdf" con WeasyPrint/Jinja2,
+    biblioteca de documentos, almacenamiento YAML por slug, campos País de origen y Fabricante,
+    y control de acceso por operador vía permisos_secciones
 
-Versión: v3.4 · Generado el {hoy}
+Versión: v3.5 · Generado el {hoy}
 
 ---
 McKenna Group S.A.S. · Bogotá, Colombia
