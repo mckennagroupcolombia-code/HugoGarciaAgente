@@ -503,7 +503,7 @@ export default function FichaTecnicaForm({
           />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={`grid gap-3 ${hideIdentificacion ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
           {!hideIdentificacion && (
             <div>
               <div className="mb-1 flex items-center justify-between gap-2">
@@ -525,6 +525,15 @@ export default function FichaTecnicaForm({
               value={state.fechaRevision}
               onChange={(e) => patch({ fechaRevision: e.target.value })}
               className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted">Lote <span className="text-[10px] opacity-60">(dejar vacío = línea en blanco)</span></label>
+            <input
+              value={state.lote}
+              onChange={(e) => patch({ lote: e.target.value })}
+              placeholder="Ej. LT-2025-001"
+              className="mt-1 w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-mono"
             />
           </div>
         </div>
@@ -694,18 +703,6 @@ export default function FichaTecnicaForm({
         </section>
       )}
 
-      <section className="space-y-2 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <SectionTitle>Lote</SectionTitle>
-          <span className="text-[10px] text-muted">(aparece al final del PDF)</span>
-        </div>
-        <input
-          value={state.lote}
-          onChange={(e) => patch({ lote: e.target.value })}
-          placeholder="Ej. LT-2025-001  — dejar vacío para línea en blanco"
-          className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-mono"
-        />
-      </section>
     </div>
   );
 }
