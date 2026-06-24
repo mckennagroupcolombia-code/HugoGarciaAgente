@@ -918,7 +918,15 @@ function CoaSection({
             <span className="text-xs text-muted">Grado</span>
             <IaBtn {...ia("coa_grado")} />
           </div>
-          <Field value={coaGrado} onChange={setCoaGrado} />
+          <div className="flex flex-wrap gap-1.5 mb-1.5">
+            {["Cosmético", "Alimentos", "Industrial", "Grasas y Ceras", "Agro"].map((g) => (
+              <button key={g} type="button"
+                onClick={() => setCoaGrado(coaGrado === g ? "" : g)}
+                className={`rounded-full px-3 py-0.5 text-[11px] font-medium border transition-colors ${coaGrado === g ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/60 hover:text-accent"}`}
+              >{g}</button>
+            ))}
+          </div>
+          <Field value={coaGrado} onChange={setCoaGrado} placeholder="O escribe un grado personalizado…" />
         </div>
       </div>
 
