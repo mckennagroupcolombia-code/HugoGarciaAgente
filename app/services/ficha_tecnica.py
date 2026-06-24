@@ -1221,7 +1221,9 @@ def generar_pdf_completo(
     titulo = ft_ctx["titulo"]
 
     nombre_pdf = nombre_archivo_desde_titulo(titulo).replace(".docx", ".pdf")
-    nombre_pdf = f"COMPLETO {nombre_pdf}"
+    # "FT INULINA.pdf" → quitar prefijo "FT " y agregar "FT COA SDS "
+    nombre_pdf = re.sub(r"^FT\s+", "", nombre_pdf, flags=re.I)
+    nombre_pdf = f"FT COA SDS {nombre_pdf}"
     destino = salida or (COMPLETO_PDF_DIR / nombre_pdf)
 
     coa_ctx = _contexto_coa(datos_coa) if datos_coa else None

@@ -1219,6 +1219,12 @@ function DocumentoCompletoTabContent({
     const casVal = String(preload.cas || coaIdent.cas || sdsIdent.cas || "");
     if (casVal) setCas(casVal);
 
+    // Cabezote guardado
+    if (preload._cabezote_id) setCabezoteId(String(preload._cabezote_id));
+
+    // Color de acento (se controla desde el padre, no desde FichaTecnicaForm)
+    if (preload.color_acento) setColorAcento(String(preload.color_acento));
+
     // Cargar formulario FT (solo aplica si hay datos FT al nivel raíz)
     loadFtRef.current(preload);
 
