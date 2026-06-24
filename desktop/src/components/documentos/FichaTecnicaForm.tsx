@@ -22,8 +22,6 @@ export interface FichaTecnicaFormState {
   modoUso: string;
   formulaQuimica: string;
   solubilidad: string;
-  humedad: string;
-  inerciaQuimica: string;
   propiedadesLista: string;
   aplicaciones: string;
   composicion: ComposicionFila[];
@@ -228,8 +226,6 @@ export function datosDesdeFormulario(state: FichaTecnicaFormState): Record<strin
       sabor: state.sabor,
       formula_quimica: state.formulaQuimica,
       solubilidad: state.solubilidad,
-      humedad: state.humedad,
-      inercia_quimica: state.inerciaQuimica,
     },
     modo_uso: state.modoUso,
     propiedades_lista: listaDesdeTexto(state.propiedadesLista),
@@ -289,8 +285,6 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
     modoUso: String(datos.modo_uso || "") || valorEnFilas(props, "modo de uso", "modo uso"),
     formulaQuimica: cf.formula_quimica || valorEnFilas(props, "formula quimica", "formula"),
     solubilidad: cf.solubilidad || valorEnFilas(props, "solubilidad"),
-    humedad: cf.humedad || valorEnFilas(props, "humedad"),
-    inerciaQuimica: cf.inercia_quimica || valorEnFilas(props, "inercia quimica", "inercia"),
     propiedadesLista: propiedadesLista,
     aplicaciones: Array.isArray(datos.aplicaciones)
       ? (datos.aplicaciones as string[]).join("\n\n")
@@ -364,8 +358,6 @@ export default function FichaTecnicaForm({
         case "sabor":                 updates.sabor = v; break;
         case "formula_quimica":       updates.formulaQuimica = v; break;
         case "solubilidad":           updates.solubilidad = v; break;
-        case "humedad":               updates.humedad = v; break;
-        case "inercia_quimica":       updates.inerciaQuimica = v; break;
         case "modo_uso":              updates.modoUso = v; break;
         case "propiedades_lista":     updates.propiedadesLista = v; break;
         case "aplicaciones":          updates.aplicaciones = v; break;
@@ -429,8 +421,6 @@ export default function FichaTecnicaForm({
         case "sabor":                patch({ sabor: v }); break;
         case "formula_quimica":      patch({ formulaQuimica: v }); break;
         case "solubilidad":          patch({ solubilidad: v }); break;
-        case "humedad":              patch({ humedad: v }); break;
-        case "inercia_quimica":      patch({ inerciaQuimica: v }); break;
         case "modo_uso":             patch({ modoUso: v }); break;
         case "propiedades_lista":    patch({ propiedadesLista: v }); break;
         case "aplicaciones":         patch({ aplicaciones: v }); break;
@@ -609,8 +599,6 @@ export default function FichaTecnicaForm({
             { label: "pH",                        campo: "ph",                    val: state.ph,                    set: (v: string) => patch({ ph: v }),                    ph: "Ej. 4.5-6.0" },
             { label: "Fórmula química",           campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆" },
             { label: "Solubilidad",               campo: "solubilidad",           val: state.solubilidad,           set: (v: string) => patch({ solubilidad: v }),           ph: "Ej. Soluble en agua fría" },
-            { label: "Humedad",                   campo: "humedad",               val: state.humedad,               set: (v: string) => patch({ humedad: v }),               ph: "Ej. ≤ 5%" },
-            { label: "Inercia química",           campo: "inercia_quimica",       val: state.inerciaQuimica,        set: (v: string) => patch({ inerciaQuimica: v }),        ph: "Ej. No reactivo en condiciones normales" },
           ].map(({ label, campo, val, set, ph: placeholder }) => (
             <div key={campo}>
               <div className="mb-1 flex items-center justify-between gap-2">

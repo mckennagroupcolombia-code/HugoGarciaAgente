@@ -428,7 +428,7 @@ def _sinonimos_pubchem(nombre: str, cid: str | None = None) -> list[str]:
 _CAMPOS_PERMITIDOS = {
     "sinonimos", "cas", "inci", "descripcion",
     "apariencia", "punto_fusion", "indice_saponificacion", "ph", "olor", "sabor",
-    "formula_quimica", "solubilidad", "humedad", "inercia_quimica",
+    "formula_quimica", "solubilidad",
     "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
     "recomendaciones", "nombre_comercial",
     "sds_clasificacion_ghs", "sds_pictogramas", "sds_primeros_auxilios", "sds_manipulacion",
