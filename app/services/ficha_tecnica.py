@@ -605,6 +605,7 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         ("indice_saponificacion", "Índice de saponificación"),
         ("ph", "pH"),
         ("olor", "Olor"),
+        ("sabor", "Sabor"),
         ("formula_quimica", "Fórmula química"),
         ("solubilidad", "Solubilidad"),
         ("humedad", "Humedad"),
@@ -635,6 +636,7 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         "indice de saponificacion",
         "ph",
         "olor",
+        "sabor",
     }
     existentes = {_normalizar(p[0]) for p in propiedades}
     for row in filas_prop_legacy:
@@ -973,7 +975,7 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
 
     # Características físico-químicas (campos fijos del formulario)
     fisicas_keys = {
-        "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor",
+        "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "sabor",
         "formula quimica", "solubilidad", "humedad", "inercia quimica",
     }
     cf = d.get("caracteristicas_fisicas") or {}
@@ -984,6 +986,7 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
         ("indice_saponificacion", "Índice de saponificación"),
         ("ph", "pH"),
         ("olor", "Olor"),
+        ("sabor", "Sabor"),
         ("formula_quimica", "Fórmula química"),
         ("solubilidad", "Solubilidad"),
         ("humedad", "Humedad"),
