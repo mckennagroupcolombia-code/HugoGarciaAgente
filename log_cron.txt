@@ -2580,3 +2580,32 @@ ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
 ✅ Token de Mercado Libre refrescado exitosamente.
+[cursor/wa-metricas-panel 0b268d0] Auto-commit: actualizacion diaria 2026-06-23 23:00
+ 41 files changed, 3678 insertions(+), 1256 deletions(-)
+ create mode 100644 app/templates/documento_completo_pdf.html
+ create mode 100644 uploads/tickets/046b2a435e044acea0375637fd3630b9.png
+ create mode 100644 uploads/tickets/063bc81b0b044ad38881dba212d8c249.png
+ create mode 100644 uploads/tickets/189c336f9dfb410bb5fa2c8cbe9da1b1.png
+ create mode 100644 uploads/tickets/1b33991695cc406f8e8cb4e028808235.png
+ create mode 100644 uploads/tickets/283a9319ed1546b2a9ea40a1a36c250e.png
+ create mode 100644 uploads/tickets/383897dd96b34c73a03041545c4445d9.png
+ create mode 100644 uploads/tickets/38cfcf7389194663855316be9228efff.png
+ create mode 100644 uploads/tickets/4d9471ed4fcc49f49954cecf15085556.png
+ create mode 100644 uploads/tickets/5bcc2ac861b947b78ffcd17ae10196f4.png
+ create mode 100644 uploads/tickets/83ffe55ca2dd43428c49390c6009fcce.jpg
+ create mode 100644 uploads/tickets/8dbb85353de84e1cafc4f26281ef6862.png
+ create mode 100644 uploads/tickets/9384a626ff9649ddbf6010be2cd89297.png
+ create mode 100644 uploads/tickets/b182c10929da4cb2a3080eb05629040a.png
+ create mode 100644 uploads/tickets/be1a8569dfd7457ba81bf442622787ae.png
+ create mode 100644 uploads/tickets/cf686f0ee22a4ded80bea8bbd55db4f2.png
+ create mode 100644 uploads/tickets/e3e0bbbb4fb7475a846ef4adba3c231e.png
+ create mode 100644 uploads/tickets/e99f9748205b492a9409d6fa2e34a06f.png
+ create mode 100644 uploads/tickets/fe8fb2bb79ca4ab58190e274fa761fc3.png
+To github.com:mckennagroupcolombia-code/HugoGarciaAgente.git
+ ! [rejected]        master -> main (non-fast-forward)
+error: falló el empuje de algunas referencias a 'github.com:mckennagroupcolombia-code/HugoGarciaAgente.git'
+ayuda: Updates were rejected because a pushed branch tip is behind its remote
+ayuda: counterpart. If you want to integrate the remote changes, use 'git pull'
+ayuda: before pushing again.
+ayuda: See the 'Note about fast-forwards' in 'git push --help' for details.
+[2026-06-23 23:00:03] ERROR en el push. Revisar credenciales o conflictos.

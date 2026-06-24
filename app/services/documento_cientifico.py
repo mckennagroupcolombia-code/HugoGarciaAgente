@@ -60,12 +60,14 @@ def buscar_pubchem(nombre: str) -> dict[str, Any]:
             cas = p.get("CAS")
             if isinstance(cas, list):
                 cas = cas[0] if cas else ""
+            _cid = str(p.get("CID") or "").strip()
             return {
                 "cas": str(cas or "").strip(),
                 "formula_molecular": str(p.get("MolecularFormula") or "").strip(),
                 "nombre_iupac": str(p.get("IUPACName") or "").strip(),
                 "masa_molecular": str(p.get("MolecularWeight") or "").strip(),
-                "fuente_pubchem": f"https://pubchem.ncbi.nlm.nih.gov/compound/{p.get('CID', '')}",
+                "cid": _cid,
+                "fuente_pubchem": f"https://pubchem.ncbi.nlm.nih.gov/compound/{_cid}",
             }
         except Exception:
             continue
@@ -149,7 +151,7 @@ def _sintetizar_json(prompt: str) -> dict | None:
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
         client = genai.Client(api_key=api_key)
         with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(client.models.generate_content, "gemini-2.0-flash", prompt)
+            fut = ex.submit(lambda: client.models.generate_content(model="gemini-2.5-pro", contents=prompt))
             try:
                 resp = fut.result(timeout=75)
             except FutureTimeout:
@@ -331,11 +333,11 @@ def _sintetizar_texto(prompt: str) -> str:
         from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
         client = genai.Client(api_key=api_key)
         with ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(client.models.generate_content, "gemini-2.0-flash", prompt)
+            fut = ex.submit(lambda: client.models.generate_content(model="gemini-2.5-flash", contents=prompt))
             try:
-                resp = fut.result(timeout=75)
+                resp = fut.result(timeout=30)
             except FutureTimeout:
-                raise RuntimeError("Gemini tardó demasiado — intente de nuevo")
+                raise RuntimeError("Gemini tardó demasiado — intente de nuevo en unos segundos")
         text = (resp.text or "").strip()
         text = re.sub(r"^```[\w]*\n?", "", text)
         text = re.sub(r"\n?```$", "", text)
@@ -450,15 +452,31 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     if campo not in _CAMPOS_PERMITIDOS:
         raise ValueError(f"Campo no soportado: {campo}")
 
-    # ── 1. PubChem: CID + propiedades básicas ────────────────────────────────
+    # ── Sinónimos: Gemini Flash directo, sin PubChem (evita timeouts de red) ────
+    if campo == "sinonimos":
+        valor = _sintetizar_texto(
+            f'{_PROMPT_BASE}\n'
+            f'Genera exactamente 5 sinónimos en español para "{nombre}".\n'
+            'Reglas obligatorias:\n'
+            f'- NO incluir el nombre "{nombre}" ni ninguna variación del mismo.\n'
+            '- NO incluir nombres en inglés.\n'
+            '- SÍ incluir el número de aditivo alimentario (E-XXX o INS XXX) si aplica, como uno de los 5.\n'
+            '- SÍ incluir nombre INCI y nombre químico sistemático en español.\n'
+            '- Exactamente 5 sinónimos, únicos, sin repetir información.\n'
+            '- Responde SOLO los 5 separados por punto y coma, sin títulos, sin numeración, sin explicaciones.'
+        )
+        return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
+
+    # ── 1. PubChem: CID + propiedades básicas (una sola llamada HTTP) ──────────
     pc = buscar_pubchem(nombre)
-    cid = _get_pubchem_cid(nombre)
+    cid: str | None = pc.get("cid") or None
+    if not cid:
+        cid = _get_pubchem_cid(nombre)
 
     # ── 2. Respuestas directas desde PubChem (sin Gemini) ───────────────────
     if campo == "cas":
         if pc.get("cas"):
             return {"ok": True, "campo": campo, "valor": pc["cas"], "origen": "pubchem"}
-        # fallback Gemini
         valor = _sintetizar_texto(
             f'{_PROMPT_BASE}\nIndica el número CAS principal del compuesto "{nombre}".\n'
             "Responde SOLO con el número CAS (formato 0000-00-0) o \"No aplica\"."
@@ -478,23 +496,6 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Responde SOLO con la fórmula (ej. C6H12O6) o \"No aplica\"."
         )
         return {"ok": True, "campo": campo, "valor": valor.split("\n")[0].strip(), "origen": "gemini"}
-
-    if campo == "sinonimos":
-        sinon = _sinonimos_pubchem(nombre, cid) if cid else []
-        candidatos = "; ".join(sinon[:15]) if sinon else ""
-        valor = _sintetizar_texto(
-            f'{_PROMPT_BASE}\n'
-            f'Genera exactamente 5 sinónimos en español para "{nombre}".\n'
-            + (f'Candidatos de PubChem (referencia): {candidatos}\n' if candidatos else '')
-            + f'Reglas obligatorias:\n'
-            f'- NO incluir el nombre "{nombre}" ni ninguna variación del mismo.\n'
-            f'- NO incluir nombres en inglés.\n'
-            f'- SÍ incluir el número de aditivo alimentario (E-XXX o INS XXX) si aplica, como uno de los 5.\n'
-            f'- SÍ incluir nombre INCI y nombre químico sistemático en español.\n'
-            f'- Exactamente 5 sinónimos, únicos, sin repetir información.\n'
-            f'- Responde SOLO los 5 separados por punto y coma, sin títulos, sin numeración, sin explicaciones.'
-        )
-        return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
     # ── 3. Campos físico-químicos vía PUG View ───────────────────────────────
     _PUG_MAP: dict[str, list[str]] = {
@@ -663,3 +664,34 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
 
     valor = _sintetizar_texto(f"{_PROMPT_BASE}\n{prompt_texto}")
     return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
+
+
+def sugerir_multiples_campos(nombre: str, campos: list[str]) -> dict[str, str | None]:
+    """Sugiere varios campos en paralelo (PubChem + Gemini).
+
+    Retorna {campo: valor_sugerido | None si falló}.
+    Los campos no reconocidos se omiten.
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    validos = [c for c in campos if c in _CAMPOS_PERMITIDOS]
+    if not validos:
+        return {}
+
+    resultados: dict[str, str | None] = {}
+
+    def _sugerir(campo: str) -> tuple[str, str | None]:
+        try:
+            r = sugerir_campo_ficha(campo, nombre)
+            return (campo, r.get("valor") or None)
+        except Exception:
+            return (campo, None)
+
+    workers = min(len(validos), 3)
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        futures = {ex.submit(_sugerir, c): c for c in validos}
+        for fut in as_completed(futures, timeout=90):
+            campo_key, valor = fut.result()
+            resultados[campo_key] = valor
+
+    return resultados

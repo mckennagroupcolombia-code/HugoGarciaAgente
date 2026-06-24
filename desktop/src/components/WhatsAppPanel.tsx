@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import { ProseTextarea } from "./ProseTextarea";
 import { useTicketsAuth } from "../stores/ticketsAuth";
+import ImageLightbox from "./ImageLightbox";
 import WhatsAppMetricas from "./WhatsAppMetricas";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
@@ -1150,6 +1151,7 @@ function ChatBubble({ msg }: { msg: Mensaje }) {
   const hora = new Date(msg.ts * 1000).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaErr, setMediaErr] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
   const mpath = (msg.media_path || "").trim();
   const mmime = (msg.media_mime || "").toLowerCase();
   const esImagen = !!mpath && (mmime.startsWith("image/") || /\.(jpe?g|png|gif|webp)$/i.test(mpath));
@@ -1210,9 +1212,16 @@ function ChatBubble({ msg }: { msg: Mensaje }) {
         </p>
         <div className={`rounded-2xl px-3.5 py-2 text-sm leading-snug ${bubbleClass}`}>
         {esImagen && mediaUrl && (
-          <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className="block mb-1.5">
-            <img src={mediaUrl} alt={msg.nombre_arch || "Adjunto"} className="max-h-56 rounded-lg object-contain" />
-          </a>
+          <>
+            <img
+              src={mediaUrl}
+              alt={msg.nombre_arch || "Adjunto"}
+              title="Clic para ampliar"
+              onClick={() => setLightbox(true)}
+              className="max-h-56 rounded-lg object-contain cursor-zoom-in hover:opacity-90 transition-opacity mb-1.5"
+            />
+            {lightbox && <ImageLightbox url={mediaUrl} onClose={() => setLightbox(false)} />}
+          </>
         )}
         {esPdf && mediaUrl && (
           <a
