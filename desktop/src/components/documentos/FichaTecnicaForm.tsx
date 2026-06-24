@@ -18,6 +18,7 @@ export interface FichaTecnicaFormState {
   indiceSaponificacion: string;
   ph: string;
   olor: string;
+  sabor: string;
   modoUso: string;
   formulaQuimica: string;
   solubilidad: string;
@@ -224,6 +225,7 @@ export function datosDesdeFormulario(state: FichaTecnicaFormState): Record<strin
       indice_saponificacion: state.indiceSaponificacion,
       ph: state.ph,
       olor: state.olor,
+      sabor: state.sabor,
       formula_quimica: state.formulaQuimica,
       solubilidad: state.solubilidad,
       humedad: state.humedad,
@@ -283,6 +285,7 @@ export function formularioDesdeDatos(datos: Record<string, unknown>): FichaTecni
       cf.indice_saponificacion || valorEnFilas(props, "indice de saponificacion", "indice saponificacion"),
     ph: cf.ph || valorEnFilas(props, "ph"),
     olor: cf.olor || valorEnFilas(props, "olor"),
+    sabor: cf.sabor || valorEnFilas(props, "sabor"),
     modoUso: String(datos.modo_uso || "") || valorEnFilas(props, "modo de uso", "modo uso"),
     formulaQuimica: cf.formula_quimica || valorEnFilas(props, "formula quimica", "formula"),
     solubilidad: cf.solubilidad || valorEnFilas(props, "solubilidad"),
@@ -358,6 +361,7 @@ export default function FichaTecnicaForm({
         case "indice_saponificacion": updates.indiceSaponificacion = v; break;
         case "ph":                    updates.ph = v; break;
         case "olor":                  updates.olor = v; break;
+        case "sabor":                 updates.sabor = v; break;
         case "formula_quimica":       updates.formulaQuimica = v; break;
         case "solubilidad":           updates.solubilidad = v; break;
         case "humedad":               updates.humedad = v; break;
@@ -422,6 +426,7 @@ export default function FichaTecnicaForm({
         case "indice_saponificacion":patch({ indiceSaponificacion: v }); break;
         case "ph":                   patch({ ph: v }); break;
         case "olor":                 patch({ olor: v }); break;
+        case "sabor":                patch({ sabor: v }); break;
         case "formula_quimica":      patch({ formulaQuimica: v }); break;
         case "solubilidad":          patch({ solubilidad: v }); break;
         case "humedad":              patch({ humedad: v }); break;
@@ -569,18 +574,32 @@ export default function FichaTecnicaForm({
           />
         </div>
 
-        {/* Olor — IA rellena directamente el campo */}
-        <div>
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <label className="text-xs text-muted">Olor</label>
-            <IaBtn label="IA" {...ia("olor")} />
+        {/* Olor y Sabor — fila compartida */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="text-xs text-muted">Olor</label>
+              <IaBtn label="IA" {...ia("olor")} />
+            </div>
+            <input
+              value={state.olor}
+              onChange={(e) => patch({ olor: e.target.value })}
+              placeholder="Ej. Inodoro o ligero aroma"
+              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
+            />
           </div>
-          <input
-            value={state.olor}
-            onChange={(e) => patch({ olor: e.target.value })}
-            placeholder="Ej. Inodoro o ligero aroma característico"
-            className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
-          />
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="text-xs text-muted">Sabor</label>
+              <IaBtn label="IA" {...ia("sabor")} />
+            </div>
+            <input
+              value={state.sabor}
+              onChange={(e) => patch({ sabor: e.target.value })}
+              placeholder="Ej. Insípido, dulce, amargo…"
+              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
+            />
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">

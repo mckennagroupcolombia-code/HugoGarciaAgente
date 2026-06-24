@@ -427,7 +427,7 @@ def _sinonimos_pubchem(nombre: str, cid: str | None = None) -> list[str]:
 
 _CAMPOS_PERMITIDOS = {
     "sinonimos", "cas", "inci", "descripcion",
-    "apariencia", "punto_fusion", "indice_saponificacion", "ph", "olor",
+    "apariencia", "punto_fusion", "indice_saponificacion", "ph", "olor", "sabor",
     "formula_quimica", "solubilidad", "humedad", "inercia_quimica",
     "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
     "recomendaciones", "nombre_comercial",
@@ -553,6 +553,12 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
         "olor": (
             f'Describe en una línea concisa el olor característico de "{nombre}".\n'
             f"PubChem: {pc_info or 'sin datos'}\n"
+            "Responde en UNA sola línea. Sin markdown."
+        ),
+        "sabor": (
+            f'Describe en una línea concisa el sabor característico de "{nombre}" para uso farmacéutico/cosmético.\n'
+            f"PubChem: {pc_info or 'sin datos'}\n"
+            "Ejemplos: Insípido, Ligeramente amargo, Dulce, Salino, Astringente, Sin sabor apreciable.\n"
             "Responde en UNA sola línea. Sin markdown."
         ),
         "solubilidad": (
