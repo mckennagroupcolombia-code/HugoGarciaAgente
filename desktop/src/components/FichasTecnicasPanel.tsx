@@ -19,9 +19,9 @@ import DocumentosCatalogoTab, {
 type TabDoc = "catalogo" | "ft" | "coa" | "sds" | "completo" | "biblioteca";
 
 const TABS: { id: TabDoc; label: string }[] = [
-  { id: "catalogo", label: "Catálogo productos" },
-  { id: "completo", label: "Ficha Técnica COA SDS" },
   { id: "biblioteca", label: "Biblioteca" },
+  { id: "completo", label: "Ficha Técnica COA SDS" },
+  { id: "catalogo", label: "Catálogo productos" },
 ];
 
 interface ArchivoGenerado {
@@ -1689,7 +1689,7 @@ function DocumentoCompletoTabContent({
 }
 
 export default function FichasTecnicasPanel() {
-  const [tab, setTab] = useState<TabDoc>("catalogo");
+  const [tab, setTab] = useState<TabDoc>("biblioteca");
   const [producto, setProducto] = useState<ProductoDocumentacion | null>(null);
   const [ftPreload, setFtPreload] = useState<Record<string, unknown> | null>(null);
   const [coaPreload, setCoaPreload] = useState<Record<string, unknown> | null>(null);
