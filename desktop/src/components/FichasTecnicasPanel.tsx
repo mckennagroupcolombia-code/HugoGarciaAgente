@@ -44,7 +44,7 @@ function fmt_fecha(ts: number): string {
 }
 
 interface BibliotecaDatosResult {
-  tipo: "ft" | "coa" | "sds";
+  tipo: "ft" | "coa" | "sds" | "completo";
   titulo: string;
   datos: Record<string, unknown>;
   yaml: string;
@@ -507,9 +507,20 @@ function CoaTabContent({
           <Field label="Fórmula molecular" value={formula} onChange={setFormula} />
           <Field label="EINECS" value={einces} onChange={setEinces} />
           <Field label="Concentración" value={concentracion} onChange={setConcentracion} />
-          <Field label="Grado" value={grado} onChange={setGrado} />
           <Field label="Presentación" value={presentacion} onChange={setPresentacion} />
           <Field label="Incluye" value={incluye} onChange={setIncluye} />
+        </div>
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted">Grado</p>
+          <div className="flex flex-wrap gap-1.5">
+            {["Cosmético", "Alimentos", "Industrial", "Grasas y Ceras", "Agro"].map((g) => (
+              <button key={g} type="button"
+                onClick={() => setGrado(grado === g ? "" : g)}
+                className={`rounded-full px-3 py-0.5 text-[11px] font-medium border transition-colors ${grado === g ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/60 hover:text-accent"}`}
+              >{g}</button>
+            ))}
+          </div>
+          <Field value={grado} onChange={setGrado} placeholder="O escribe un grado personalizado…" />
         </div>
         <p className="text-xs font-medium text-muted">Lote</p>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -1178,14 +1189,37 @@ function DocumentoCompletoTabContent({
     setReferencia(producto.ref);
   }, [producto?.ref]);
 
-  /* Preload desde biblioteca (FT) */
+  /* Preload desde biblioteca (FT individual o documento completo) */
   useEffect(() => {
     if (!preload) return;
+
+    // Campos compartidos
     loadFtRef.current(preload);
     if (preload.nombre_producto || preload.titulo)
       setNombre(String(preload.nombre_producto || preload.titulo || "").toUpperCase());
     if (preload.referencia) setReferencia(String(preload.referencia));
     if (preload.cas) setCas(String(preload.cas));
+
+    // Sección COA (guardada en _coa cuando es documento completo)
+    const coaData = (preload._coa as Record<string, unknown>) || null;
+    if (coaData) {
+      const ident = (coaData.identificacion as Record<string, unknown>) || {};
+      if (ident.einces) setCoaEinces(String(ident.einces));
+      if (ident.grado) setCoaGrado(String(ident.grado));
+      if (coaData.parametros) setCoaParametros(textoDesdeFilasTres(coaData.parametros));
+    }
+
+    // Sección SDS (guardada en _sds cuando es documento completo)
+    const sdsData = (preload._sds as Record<string, unknown>) || null;
+    if (sdsData) {
+      const peligros = (sdsData.peligros as Record<string, unknown>) || {};
+      const manip = (sdsData.manipulacion as Record<string, unknown>) || {};
+      if (peligros.clasificacion) setSdsClasificacion(String(peligros.clasificacion));
+      if (peligros.pictogramas) setSdsPictogramas(String(peligros.pictogramas));
+      if (sdsData.composicion) setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
+      if (sdsData.primeros_auxilios) setSdsPrimeros(textoDesdeFilas(sdsData.primeros_auxilios));
+      if (manip.manipulacion) setSdsManipulacion(String(manip.manipulacion));
+    }
   }, [preload]);
 
   const buildCoaDatos = useCallback(() => ({
@@ -1702,10 +1736,15 @@ export default function FichasTecnicasPanel() {
   };
 
   const handleEditar = (r: BibliotecaDatosResult) => {
-    setTab(r.tipo as TabDoc);
-    if (r.tipo === "ft") setFtPreload(r.datos);
-    else if (r.tipo === "coa") setCoaPreload(r.datos);
-    else if (r.tipo === "sds") setSdsPreload(r.datos);
+    if (r.tipo === "completo") {
+      setCompletoPreload(r.datos);
+      setTab("completo");
+    } else {
+      setTab(r.tipo as TabDoc);
+      if (r.tipo === "ft") setFtPreload(r.datos);
+      else if (r.tipo === "coa") setCoaPreload(r.datos);
+      else if (r.tipo === "sds") setSdsPreload(r.datos);
+    }
   };
 
   return (
