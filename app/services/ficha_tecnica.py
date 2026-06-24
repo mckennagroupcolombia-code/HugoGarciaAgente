@@ -608,8 +608,6 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         ("sabor", "Sabor"),
         ("formula_quimica", "Fórmula química"),
         ("solubilidad", "Solubilidad"),
-        ("humedad", "Humedad"),
-        ("inercia_quimica", "Inercia química"),
     ):
         val = (cf.get(key) or "").strip() if cf else ""
         if not val:
@@ -637,6 +635,8 @@ def normalizar_datos_ficha(datos: dict) -> dict:
         "ph",
         "olor",
         "sabor",
+        "formula quimica",
+        "solubilidad",
     }
     existentes = {_normalizar(p[0]) for p in propiedades}
     for row in filas_prop_legacy:
@@ -976,7 +976,7 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
     # Características físico-químicas (campos fijos del formulario)
     fisicas_keys = {
         "apariencia", "punto de fusion", "indice de saponificacion", "ph", "olor", "sabor",
-        "formula quimica", "solubilidad", "humedad", "inercia quimica",
+        "formula quimica", "solubilidad",
     }
     cf = d.get("caracteristicas_fisicas") or {}
     propiedades_fijas: list[tuple[str, str]] = []
@@ -989,8 +989,6 @@ def _contexto_html(datos: dict, cabezote_id: str | None = None) -> dict:
         ("sabor", "Sabor"),
         ("formula_quimica", "Fórmula química"),
         ("solubilidad", "Solubilidad"),
-        ("humedad", "Humedad"),
-        ("inercia_quimica", "Inercia química"),
     ]
     for key, label in etiquetas:
         val = (cf.get(key) or "").strip()
