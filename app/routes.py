@@ -3437,7 +3437,13 @@ def register_routes(app):
             titulo = _titulo_documento_datos(datos_ft)
             slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
             log_line(f"HTTP fichas/generar-completo: {titulo[:80]!r}")
-            guardar_yaml_datos(normalizar_datos_ficha(datos_ft), slug=slug_auto)
+            datos_para_guardar = normalizar_datos_ficha(datos_ft)
+            datos_para_guardar["_tipo"] = "completo"
+            if datos_coa:
+                datos_para_guardar["_coa"] = datos_coa
+            if datos_sds:
+                datos_para_guardar["_sds"] = datos_sds
+            guardar_yaml_datos(datos_para_guardar, slug=slug_auto)
             resultado = generar_pdf_completo(
                 datos_ft,
                 datos_coa=datos_coa,
@@ -3742,6 +3748,9 @@ def register_routes(app):
 
         if not datos:
             datos = {"titulo": titulo}
+
+        if datos.get("_tipo") == "completo":
+            tipo = "completo"
 
         return jsonify({
             "tipo": tipo,
