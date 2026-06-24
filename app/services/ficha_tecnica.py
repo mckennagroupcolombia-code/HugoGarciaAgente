@@ -112,23 +112,10 @@ def _asegurar_cabezotes_iniciales() -> None:
     CABEZOTES_DIR.mkdir(parents=True, exist_ok=True)
     PLANTILLAS_DIR.mkdir(parents=True, exist_ok=True)
 
-    estandar = CABEZOTES_DIR / "mckenna_estandar.jpg"
-    if not estandar.is_file() and PLANTILLA_DEFAULT.is_file():
-        media = _media_cabezote_en_docx(PLANTILLA_DEFAULT)
-        if media:
-            with zipfile.ZipFile(PLANTILLA_DEFAULT) as z:
-                if media in z.namelist():
-                    estandar.write_bytes(z.read(media))
-
     logo_src = DISENO_DIR / "LOGO MCKENNA.jpg"
     logo_dst = CABEZOTES_DIR / "logo_mckenna.jpg"
     if logo_src.is_file() and not logo_dst.is_file():
         shutil.copy2(logo_src, logo_dst)
-
-    isotipo_src = DISENO_DIR / "isotipo_final.png"
-    isotipo_dst = CABEZOTES_DIR / "isotipo_mckenna.png"
-    if isotipo_src.is_file() and not isotipo_dst.is_file():
-        shutil.copy2(isotipo_src, isotipo_dst)
 
 
 def _media_cabezote_en_docx(docx_path: Path) -> str | None:
