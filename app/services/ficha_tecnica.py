@@ -1093,6 +1093,181 @@ def generar_pdf_html(
     }
 
 
+COMPLETO_PDF_DIR = FICHAS_DIR / "completo"
+
+
+def _contexto_coa(datos_coa: dict) -> dict:
+    """Aplana los datos del formulario COA para el template HTML combinado."""
+    ident = (datos_coa.get("identificacion") or {})
+    lote = (datos_coa.get("lote") or {})
+    emp = (datos_coa.get("empaque") or {})
+    parametros_raw = datos_coa.get("parametros") or []
+    filas: list[list[str]] = []
+    if isinstance(parametros_raw, list):
+        for item in parametros_raw:
+            if isinstance(item, dict):
+                filas.append([str(item.get("parametro", "") or item.get(list(item.keys())[0], "")),
+                               str(item.get("especificacion", "") or (list(item.values())[1] if len(item) > 1 else "")),
+                               str(item.get("resultado", "") or (list(item.values())[2] if len(item) > 2 else ""))])
+            elif isinstance(item, (list, tuple)):
+                filas.append([str(c) for c in item] + [""] * max(0, 3 - len(item)))
+            elif isinstance(item, str):
+                partes = item.split("|")
+                filas.append([str(p.strip()) for p in partes] + [""] * max(0, 3 - len(partes)))
+    return {
+        "titulo": (datos_coa.get("titulo") or "").strip().upper() or None,
+        "referencia": (ident.get("referencia_interna") or datos_coa.get("referencia") or "").strip(),
+        "nombre_comercial": (ident.get("nombre_comercial") or "").strip(),
+        "inci": (ident.get("nombre_inci") or "").strip(),
+        "cas": (ident.get("cas") or "").strip(),
+        "formula": (ident.get("formula_molecular") or "").strip(),
+        "einces": (ident.get("einces") or "").strip(),
+        "concentracion": (ident.get("concentracion") or "").strip(),
+        "grado": (ident.get("grado") or "").strip(),
+        "presentacion": (ident.get("presentacion") or "").strip(),
+        "incluye": (ident.get("incluye") or "").strip(),
+        "lote_numero": (lote.get("numero") or "").strip(),
+        "lote_fab": (lote.get("fecha_fabricacion") or "").strip(),
+        "lote_venc": (lote.get("fecha_vencimiento") or "").strip(),
+        "vida_util": (lote.get("vida_util") or "").strip(),
+        "tamano_lote": (lote.get("tamano_lote") or "").strip(),
+        "pais_origen": (lote.get("pais_origen") or "").strip(),
+        "fecha_analisis": (lote.get("fecha_analisis") or "").strip(),
+        "fecha_emision": (lote.get("fecha_emision") or "").strip(),
+        "parametros": filas,
+        "empaque": (emp.get("empaque_original") or "").strip(),
+        "almacenamiento": (emp.get("almacenamiento") or "").strip(),
+        "precauciones": (emp.get("precauciones") or "").strip(),
+        "observaciones": (emp.get("observaciones") or "").strip(),
+        "codigo_verificacion": (datos_coa.get("codigo_verificacion") or "").strip(),
+    }
+
+
+def _contexto_sds(datos_sds: dict) -> dict:
+    """Aplana los datos del formulario SDS para el template HTML combinado."""
+    ident = (datos_sds.get("identificacion") or {})
+    pel = (datos_sds.get("peligros") or {})
+    man = (datos_sds.get("manipulacion") or {})
+    reg = (datos_sds.get("regulatorio") or {})
+
+    def _filas3(raw) -> list[list[str]]:
+        filas: list[list[str]] = []
+        if not raw:
+            return filas
+        if isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, dict):
+                    vals = [str(v) for v in item.values()]
+                    filas.append((vals + ["", "", ""])[:3])
+                elif isinstance(item, (list, tuple)):
+                    filas.append([str(c) for c in item] + [""] * max(0, 3 - len(item)))
+                elif isinstance(item, str):
+                    partes = item.split("|")
+                    filas.append([p.strip() for p in partes] + [""] * max(0, 3 - len(partes)))
+        elif isinstance(raw, str):
+            for linea in raw.split("\n"):
+                linea = linea.strip()
+                if linea:
+                    partes = linea.split("|")
+                    filas.append([p.strip() for p in partes] + [""] * max(0, 3 - len(partes)))
+        return filas
+
+    def _filas2(raw) -> list[tuple[str, str]]:
+        filas: list[tuple[str, str]] = []
+        if not raw:
+            return filas
+        if isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, dict):
+                    vals = list(item.values())
+                    filas.append((str(vals[0]) if vals else "", str(vals[1]) if len(vals) > 1 else ""))
+                elif isinstance(item, (list, tuple)):
+                    filas.append((str(item[0]) if item else "", str(item[1]) if len(item) > 1 else ""))
+                elif isinstance(item, str):
+                    partes = item.split("|", 1)
+                    filas.append((partes[0].strip(), partes[1].strip() if len(partes) > 1 else ""))
+        elif isinstance(raw, str):
+            for linea in raw.split("\n"):
+                linea = linea.strip()
+                if linea:
+                    partes = linea.split("|", 1)
+                    filas.append((partes[0].strip(), partes[1].strip() if len(partes) > 1 else ""))
+        return filas
+
+    return {
+        "titulo": (datos_sds.get("titulo") or "").strip().upper() or None,
+        "referencia": (ident.get("referencia_interna") or datos_sds.get("referencia") or "").strip(),
+        "nombre_comercial": (ident.get("nombre_comercial") or "").strip(),
+        "inci": (ident.get("nombre_inci") or "").strip(),
+        "cas": (ident.get("cas") or "").strip(),
+        "formula": (ident.get("formula_molecular") or "").strip(),
+        "usos": (ident.get("usos") or "").strip(),
+        "telefono": (ident.get("telefono_emergencia") or "").strip(),
+        "clasificacion": (pel.get("clasificacion") or "").strip(),
+        "pictogramas": (pel.get("pictogramas") or "").strip(),
+        "composicion": _filas3(datos_sds.get("composicion")),
+        "primeros_auxilios": _filas2(datos_sds.get("primeros_auxilios")),
+        "manipulacion": (man.get("manipulacion") or "").strip(),
+        "almacenamiento": (man.get("almacenamiento") or "").strip(),
+        "propiedades": _filas2(datos_sds.get("propiedades")),
+        "normativa": (reg.get("normativa") or "").strip(),
+        "observaciones": (reg.get("observaciones") or "").strip(),
+    }
+
+
+def generar_pdf_completo(
+    datos_ft: dict,
+    datos_coa: dict | None = None,
+    datos_sds: dict | None = None,
+    *,
+    cabezote_id: str | None = None,
+    salida: Path | None = None,
+) -> dict:
+    """Genera un PDF unificado FT + COA + SDS desde datos de formulario."""
+    from jinja2 import Environment, FileSystemLoader
+    from weasyprint import HTML
+
+    COMPLETO_PDF_DIR.mkdir(parents=True, exist_ok=True)
+
+    ft_ctx = _contexto_html(datos_ft, cabezote_id)
+    titulo = ft_ctx["titulo"]
+
+    nombre_pdf = nombre_archivo_desde_titulo(titulo).replace(".docx", ".pdf")
+    nombre_pdf = f"COMPLETO {nombre_pdf}"
+    destino = salida or (COMPLETO_PDF_DIR / nombre_pdf)
+
+    coa_ctx = _contexto_coa(datos_coa) if datos_coa else None
+    sds_ctx = _contexto_sds(datos_sds) if datos_sds else None
+
+    import re as _re
+    def _formula_sub(val: str) -> str:
+        return _re.sub(r"(\d+)", r"<sub>\1</sub>", str(val or ""))
+
+    tpl_dir = Path(__file__).resolve().parents[1] / "templates"
+    env = Environment(loader=FileSystemLoader(str(tpl_dir)), autoescape=True)
+    env.filters["formula_sub"] = _formula_sub
+    tpl = env.get_template("documento_completo_pdf.html")
+    html_str = tpl.render(
+        titulo=titulo,
+        color_acento=ft_ctx["color_acento"],
+        cabezote_src=ft_ctx["cabezote_src"],
+        ft=ft_ctx,
+        coa=coa_ctx,
+        sds=sds_ctx,
+    )
+
+    HTML(string=html_str, base_url=str(tpl_dir)).write_pdf(str(destino))
+
+    return {
+        "ok": True,
+        "titulo": titulo,
+        "pdf": str(destino),
+        "pdf_nombre": destino.name,
+        "docx": "",
+        "docx_nombre": "",
+    }
+
+
 def generar_desde_datos(
     datos: dict,
     *,
@@ -1195,14 +1370,14 @@ def ruta_descarga_segura(nombre: str) -> Path | None:
     return None
 
 
-_PREFIJOS_BIBLIOTECA = re.compile(r"^(FT|SDS|COA|TDS)[\s\-].+\.(pdf|docx)$", re.I)
+_PREFIJOS_BIBLIOTECA = re.compile(r"^(FT|SDS|COA|TDS|COMPLETO)[\s\-].+\.(pdf|docx)$", re.I)
 
 
 def listar_archivos_generados() -> list[dict]:
-    """Lista PDF y DOCX generados en fichas_word/ y fichas_word/pdf/ (sin temporales ~$)."""
+    """Lista PDF y DOCX generados en fichas_word/, fichas_word/pdf/ y fichas_word/completo/ (sin temporales ~$)."""
     resultado: list[dict] = []
     vistos: set[str] = set()
-    for directorio in (FICHAS_PDF_DIR, FICHAS_DIR):
+    for directorio in (FICHAS_PDF_DIR, COMPLETO_PDF_DIR, FICHAS_DIR):
         if not directorio.exists():
             continue
         for p in sorted(directorio.iterdir()):
@@ -1223,12 +1398,227 @@ def listar_archivos_generados() -> list[dict]:
     return sorted(resultado, key=lambda x: x["nombre"].lower())
 
 
+def extraer_datos_desde_pdf_ft(path: Path) -> dict:
+    """Extrae los campos de una FT generada con WeasyPrint usando PyMuPDF como fallback."""
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        return {}
+    try:
+        doc = fitz.open(str(path))
+        all_text = "\n".join(page.get_text() for page in doc)
+    except Exception:
+        return {}
+
+    _footer_re = re.compile(r"^\d{4}\s*[·•]\s*P[aá]g\.", re.I)
+    lines = [l.strip() for l in all_text.split("\n")]
+    lines = [
+        l for l in lines
+        if l and l != "•" and not l.startswith("McKenna Group S.A.S.") and not _footer_re.match(l)
+    ]
+
+    def _n(s: str) -> str:
+        return unicodedata.normalize("NFD", s.lower()).encode("ascii", "ignore").decode().strip()
+
+    SEC_KEYS: dict[str, list[str]] = {
+        "descripcion":    ["descripcion", "descripción"],
+        "caracteristicas": ["caracteristicas fisico-quimicas", "caracteristicas fisico quimicas"],
+        "beneficios":     ["beneficios"],
+        "aplicaciones":   ["aplicaciones"],
+        "modo_uso":       ["modo de uso"],
+        "composicion":    ["composicion", "composicion"],
+        "ghs":            ["recomendaciones para manejo seguro", "recomendaciones ghs"],
+    }
+    sec_pos: dict[str, int] = {}
+    for i, line in enumerate(lines):
+        ln = _n(line)
+        for sec, keywords in SEC_KEYS.items():
+            if sec not in sec_pos and any(kw in ln for kw in keywords):
+                sec_pos[sec] = i
+
+    def _sec_lines(name: str) -> list[str]:
+        if name not in sec_pos:
+            return []
+        start = sec_pos[name] + 1
+        nexts = [v for k, v in sec_pos.items() if v > sec_pos[name]]
+        end = min(nexts) if nexts else len(lines)
+        return [l for l in lines[start:end] if l]
+
+    # --- Encabezado ---
+    first = min(sec_pos.values()) if sec_pos else len(lines)
+    hdr = lines[:first]
+    titulo = ""
+    sinonimos_parts: list[str] = []
+    cas = ""
+    fecha_revision = ""
+    referencia = ""
+    for line in hdr:
+        ln = _n(line)
+        if ln.startswith("ficha t") or ln == "ficha tecnica":
+            continue
+        if ln.startswith("ref."):
+            referencia = line[4:].strip()
+            continue
+        if line.startswith("CAS:"):
+            cas = line[4:].strip()
+            continue
+        if line.startswith("Revisión:"):
+            fecha_revision = line[9:].strip()
+            continue
+        if not titulo:
+            titulo = line
+        else:
+            sinonimos_parts.append(line)
+    sinonimos = " ".join(sinonimos_parts)
+
+    # "21 06 2026" -> "2026-06-21"
+    m_f = re.match(r'^(\d{1,2})\s+(\d{1,2})\s+(\d{4})$', fecha_revision.strip())
+    if m_f:
+        fecha_revision = f"{m_f.group(3)}-{m_f.group(2).zfill(2)}-{m_f.group(1).zfill(2)}"
+
+    # --- Descripción ---
+    descripcion = " ".join(_sec_lines("descripcion"))
+
+    # --- Características físico-químicas ---
+    PROP_MAP: dict[str, str] = {
+        "apariencia": "apariencia",
+        "punto de fusion": "punto_fusion",
+        "punto de fusión": "punto_fusion",
+        "indice de saponificacion": "indice_saponificacion",
+        "índice de saponificación": "indice_saponificacion",
+        "ph": "ph",
+        "olor": "olor",
+        "formula quimica": "formula_quimica",
+        "fórmula química": "formula_quimica",
+        "solubilidad": "solubilidad",
+        "humedad": "humedad",
+        "inercia quimica": "inercia_quimica",
+        "inercia química": "inercia_quimica",
+    }
+    cf: dict[str, str] = {}
+    cur_key: str | None = None
+    cur_val: list[str] = []
+
+    def _flush_cf() -> None:
+        if cur_key and cur_val:
+            cf[cur_key] = " ".join(cur_val)
+
+    for line in _sec_lines("caracteristicas"):
+        ln = _n(line)
+        if ln in PROP_MAP:
+            _flush_cf()
+            cur_key = PROP_MAP[ln]
+            cur_val = []
+        elif cur_key:
+            cur_val.append(line)
+    _flush_cf()
+
+    # --- Beneficios ---
+    beneficio_items: list[str] = []
+    cur_bl = ""
+    cur_bv: list[str] = []
+
+    def _flush_b() -> None:
+        if cur_bl:
+            joined = " ".join(cur_bv)
+            beneficio_items.append(f"{cur_bl}|{joined}" if joined else cur_bl)
+
+    for line in _sec_lines("beneficios"):
+        if ":" in line:
+            idx = line.index(":")
+            possible_lbl = line[:idx].strip()
+            possible_val = line[idx + 1:].strip()
+            if len(possible_lbl) < 60 and possible_lbl and possible_lbl[0].isupper():
+                _flush_b()
+                cur_bl = possible_lbl
+                cur_bv = [possible_val] if possible_val else []
+                continue
+        if cur_bl:
+            cur_bv.append(line)
+        else:
+            beneficio_items.append(line)
+    _flush_b()
+    propiedades_lista = "\n".join(beneficio_items)
+
+    # --- Aplicaciones ---
+    aplicaciones = "\n".join(l for l in _sec_lines("aplicaciones") if l != "•")
+
+    # --- Modo de uso ---
+    modo_uso = " ".join(l for l in _sec_lines("modo_uso") if l != "•")
+
+    # --- Composición ---
+    composicion: list[list[str]] = []
+    for line in _sec_lines("composicion"):
+        if _n(line).startswith("componente") or ("%" in line and _n(line).find("concentrac") != -1):
+            continue
+        parts = [p.strip() for p in line.split("|", 1)]
+        if parts[0]:
+            composicion.append([parts[0], parts[1] if len(parts) > 1 else ""])
+
+    # --- Recomendaciones GHS ---
+    GHS_CATS = {
+        _n(k) for k in (
+            "señal de peligro", "indicaciones h", "prevención", "prevención:",
+            "respuesta", "almacenamiento", "eliminación", "eliminación:",
+            "primeros auxilios", "epp requerido",
+        )
+    }
+    ghs_items: list[str] = []
+    cur_gc = ""
+    cur_gv: list[str] = []
+
+    def _flush_ghs() -> None:
+        if cur_gc and cur_gv:
+            ghs_items.append(f"{cur_gc}: {' '.join(cur_gv)}")
+
+    for line in _sec_lines("ghs"):
+        if line.startswith("Lote:"):
+            break
+        if ":" in line:
+            idx = line.index(":")
+            cat = line[:idx].strip()
+            val = line[idx + 1:].strip()
+            if _n(cat) in GHS_CATS:
+                _flush_ghs()
+                cur_gc = cat
+                cur_gv = [val] if val else []
+                continue
+        if cur_gc:
+            cur_gv.append(line)
+    _flush_ghs()
+    recomendaciones = "\n".join(ghs_items)
+
+    # --- Lote ---
+    lote = ""
+    for line in lines:
+        if line.startswith("Lote:"):
+            lote = line[5:].strip()
+            break
+
+    return {
+        "titulo": titulo,
+        "nombre_producto": titulo.title() if titulo else "",
+        "referencia": referencia,
+        "sinonimos": sinonimos,
+        "cas": cas,
+        "fecha_revision": fecha_revision,
+        "descripcion": descripcion,
+        "caracteristicas_fisicas": cf,
+        "propiedades_lista": propiedades_lista,
+        "aplicaciones": aplicaciones,
+        "modo_uso": modo_uso,
+        "composicion": composicion,
+        "recomendaciones": recomendaciones,
+        "lote": lote,
+    }
+
+
 def ruta_archivo_biblioteca_segura(nombre: str) -> Path | None:
-    """Ruta segura para cualquier FT/SDS/COA/TDS *.pdf o *.docx de la biblioteca."""
+    """Ruta segura para cualquier FT/SDS/COA/TDS/COMPLETO *.pdf o *.docx de la biblioteca."""
     nombre = os.path.basename(nombre or "")
     if not nombre or nombre.startswith("~") or not _PREFIJOS_BIBLIOTECA.match(nombre):
         return None
-    for directorio in (FICHAS_PDF_DIR, FICHAS_DIR):
+    for directorio in (FICHAS_PDF_DIR, COMPLETO_PDF_DIR, FICHAS_DIR):
         path = (directorio / nombre).resolve()
         try:
             path.relative_to(directorio.resolve())

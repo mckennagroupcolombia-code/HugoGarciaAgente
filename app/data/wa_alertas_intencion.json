@@ -43,13 +43,23 @@
     },
     "573173102627@c.us": {
       "jid": "573173102627@c.us",
-      "primer_intencion_ts": 1782167758.0,
-      "primer_intencion_texto": "Buenas tardes.\nAun no ha llegado mi pedido",
-      "ultima_human_ts": null,
+      "primer_intencion_ts": 1782241420.0,
+      "primer_intencion_texto": "Ya llegó mi pedido.\nMuchas gracias",
+      "ultima_human_ts": 1782242870.0,
       "ultimo_bot_ts": null,
-      "alerta_enviada_ts": 1782168665.2623684,
-      "cancelada": false,
-      "cancelada_razon": null
+      "alerta_enviada_ts": 1782242345.472061,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573152432496@c.us": {
+      "jid": "573152432496@c.us",
+      "primer_intencion_ts": 1782238585.0,
+      "primer_intencion_texto": "Envío consignación Bancolombia por $32.800 por favor me confirman cuando hacen el envío",
+      "ultima_human_ts": 1782238595.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }
