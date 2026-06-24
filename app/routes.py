@@ -3403,18 +3403,200 @@ def register_routes(app):
             return jsonify({"error": "Se requiere 'datos' con al menos 'titulo' o 'nombre_producto'"}), 400
         try:
             from app.panel_activity import log_line
-            from app.services.ficha_tecnica import generar_pdf_html
-
-            from app.services.ficha_tecnica import _normalizar
+            from app.services.ficha_tecnica import (
+                generar_pdf_html, guardar_yaml_datos, normalizar_datos_ficha, _normalizar,
+            )
             titulo = _titulo_documento_datos(datos)
             slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
             log_line(f"HTTP fichas/generar: {titulo[:80]!r}")
-            resultado = generar_pdf_html(datos, cabezote_id=body.get("cabezote_id"), guardar_yaml=slug_auto)
+            guardar_yaml_datos(normalizar_datos_ficha(datos), slug=slug_auto)
+            resultado = generar_pdf_html(datos, cabezote_id=body.get("cabezote_id"))
             log_line(f"✔ ficha PDF: {resultado.get('pdf_nombre')}")
             return jsonify(resultado)
         except Exception as e:
             from app.panel_activity import log_line
             log_line(f"✖ fichas/generar: {e!r}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/generar-completo", methods=["POST"])
+    @app.route("/api/fichas/generar-completo", methods=["POST"])
+    def api_fichas_generar_completo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        datos_ft = body.get("ft") or {}
+        datos_coa = body.get("coa") or None
+        datos_sds = body.get("sds") or None
+        if not isinstance(datos_ft, dict) or not _titulo_documento_datos(datos_ft):
+            return jsonify({"error": "Se requiere 'ft' con al menos 'titulo' o 'nombre_producto'"}), 400
+        try:
+            from app.panel_activity import log_line
+            from app.services.ficha_tecnica import (
+                generar_pdf_completo, guardar_yaml_datos, normalizar_datos_ficha, _normalizar,
+            )
+            titulo = _titulo_documento_datos(datos_ft)
+            slug_auto = re.sub(r"[^a-z0-9_]+", "_", _normalizar(titulo).lower()).strip("_") or "ft"
+            log_line(f"HTTP fichas/generar-completo: {titulo[:80]!r}")
+            guardar_yaml_datos(normalizar_datos_ficha(datos_ft), slug=slug_auto)
+            resultado = generar_pdf_completo(
+                datos_ft,
+                datos_coa=datos_coa,
+                datos_sds=datos_sds,
+                cabezote_id=body.get("cabezote_id"),
+            )
+            log_line(f"✔ documento completo: {resultado.get('pdf_nombre')}")
+            return jsonify(resultado)
+        except Exception as e:
+            from app.panel_activity import log_line
+            log_line(f"✖ fichas/generar-completo: {e!r}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/coa/escanear-parametros", methods=["POST"])
+    @app.route("/api/fichas/coa/escanear-parametros", methods=["POST"])
+    def api_fichas_coa_escanear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        archivo = request.files.get("imagen") or request.files.get("archivo")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe la imagen en el campo multipart «imagen»"}), 400
+        try:
+            from google import genai
+            from google.genai import types as gtypes
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
+            api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+            if not api_key:
+                return jsonify({"error": "GOOGLE_API_KEY no configurada"}), 500
+
+            data = archivo.read()
+            if data[:4] == b"%PDF":
+                mime_type = "application/pdf"
+            elif data[:4] == b"\x89PNG":
+                mime_type = "image/png"
+            elif data[:4] in (b"RIFF", b"WEBP") or data[8:12] == b"WEBP":
+                mime_type = "image/webp"
+            elif data[:3] == b"GIF":
+                mime_type = "image/gif"
+            else:
+                mime_type = "image/jpeg"
+
+            prompt = (
+                "Eres un especialista en control de calidad de materias primas farmacéuticas y cosméticas.\n"
+                "Analiza esta imagen de un Certificado de Análisis (COA) y extrae la tabla de parámetros analíticos.\n\n"
+                "Formato de salida ESTRICTO: una línea por parámetro, separado por pipes:\n"
+                "Parámetro|Especificación|Resultado\n\n"
+                "Ejemplo:\n"
+                "Aspecto|Polvo blanco cristalino|Cumple\n"
+                "pH (sol. 10%)|4.5 - 6.5|5.2\n"
+                "Humedad|≤ 5.0%|3.8%\n"
+                "Pureza|≥ 99.0%|99.4%\n\n"
+                "Reglas:\n"
+                "- Extrae TODOS los parámetros visibles en la imagen.\n"
+                "- Si una celda está vacía o ilegible escribe «-» en ese campo.\n"
+                "- NO incluyas encabezados, numeración ni texto adicional.\n"
+                "- Responde SOLO las líneas en formato Parámetro|Especificación|Resultado."
+            )
+
+            def _llamar_gemini():
+                client = genai.Client(api_key=api_key)
+                return client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=[gtypes.Part.from_bytes(data=data, mime_type=mime_type), prompt],
+                )
+
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                fut = ex.submit(_llamar_gemini)
+                try:
+                    response = fut.result(timeout=75)
+                except FutureTimeout:
+                    return jsonify({"error": "Gemini tardó demasiado — intente con una imagen más pequeña"}), 504
+
+            texto = (response.text or "").strip()
+            if not texto:
+                return jsonify({"error": "Gemini no pudo extraer parámetros de la imagen"}), 500
+            return jsonify({"ok": True, "parametros": texto})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/app/api/fichas/ft/escanear-imagen", methods=["POST"])
+    @app.route("/api/fichas/ft/escanear-imagen", methods=["POST"])
+    def api_fichas_ft_escanear():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        archivo = request.files.get("imagen") or request.files.get("archivo")
+        if not archivo or not archivo.filename:
+            return jsonify({"error": "Envíe la imagen en el campo multipart «imagen»"}), 400
+        try:
+            from google import genai
+            from google.genai import types as gtypes
+            from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+            import json as _json
+
+            api_key = os.environ.get("GOOGLE_API_KEY", "").strip()
+            if not api_key:
+                return jsonify({"error": "GOOGLE_API_KEY no configurada"}), 500
+
+            data = archivo.read()
+            if data[:4] == b"%PDF":
+                mime_type = "application/pdf"
+            elif data[:4] == b"\x89PNG":
+                mime_type = "image/png"
+            elif data[8:12] == b"WEBP":
+                mime_type = "image/webp"
+            elif data[:3] == b"GIF":
+                mime_type = "image/gif"
+            else:
+                mime_type = "image/jpeg"
+
+            prompt = (
+                "Eres especialista en materias primas farmacéuticas y cosméticas de McKenna Group S.A.S. (Bogotá).\n"
+                "Analiza este documento (puede ser una ficha técnica, etiqueta, hoja de datos, empaque, PDF o foto del producto).\n"
+                "Extrae toda la información técnica visible y devuelve un JSON con los campos que puedas identificar.\n\n"
+                "Campos posibles (usa solo los que aparecen en la imagen):\n"
+                "{\n"
+                '  "nombre_producto": "nombre del ingrediente o producto",\n'
+                '  "cas": "número CAS",\n'
+                '  "descripcion": "descripción técnica del producto",\n'
+                '  "apariencia": "aspecto físico (color, estado, textura)",\n'
+                '  "olor": "olor característico",\n'
+                '  "punto_fusion": "punto de fusión con unidades",\n'
+                '  "ph": "pH o rango de pH",\n'
+                '  "solubilidad": "solubilidad en agua/solventes",\n'
+                '  "humedad": "contenido de humedad",\n'
+                '  "formula_quimica": "fórmula molecular",\n'
+                '  "modo_uso": "instrucciones de uso o incorporación",\n'
+                '  "propiedades_lista": "beneficios o propiedades (uno por línea como Nombre|Descripción)",\n'
+                '  "aplicaciones": "aplicaciones industriales (una por línea)"\n'
+                "}\n\n"
+                "Responde SOLO JSON válido. Omite campos que no estén visibles en la imagen. Sin markdown."
+            )
+
+            def _llamar_gemini():
+                client = genai.Client(api_key=api_key)
+                return client.models.generate_content(
+                    model="gemini-2.0-flash",
+                    contents=[gtypes.Part.from_bytes(data=data, mime_type=mime_type), prompt],
+                )
+
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                fut = ex.submit(_llamar_gemini)
+                try:
+                    response = fut.result(timeout=75)
+                except FutureTimeout:
+                    return jsonify({"error": "Gemini tardó demasiado — intente con un archivo más pequeño"}), 504
+
+            texto = (response.text or "").strip()
+            texto = texto.strip("`")
+            if texto.startswith("json"):
+                texto = texto[4:].strip()
+            try:
+                campos = _json.loads(texto)
+            except Exception:
+                import re as _re
+                m = _re.search(r"\{.*\}", texto, _re.DOTALL)
+                campos = _json.loads(m.group(0)) if m else {}
+            return jsonify({"ok": True, "campos": campos})
+        except Exception as e:
             return jsonify({"error": str(e)}), 500
 
     @app.route("/app/api/fichas/preview", methods=["POST"])
@@ -3484,10 +3666,10 @@ def register_routes(app):
         """Devuelve los datos YAML guardados para un archivo de la biblioteca."""
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
-        import unicodedata as _ud
         import yaml as _yaml
         from app.services.ficha_tecnica import (
-            ruta_archivo_biblioteca_segura, DATOS_DIR, cargar_datos_desde_archivo, _normalizar
+            ruta_archivo_biblioteca_segura, DATOS_DIR, cargar_datos_desde_archivo,
+            guardar_yaml_datos, extraer_datos_desde_pdf_ft, _normalizar,
         )
         nombre = request.args.get("archivo", "").strip()
         path = ruta_archivo_biblioteca_segura(nombre)
@@ -3519,6 +3701,13 @@ def register_routes(app):
                     break
             if datos:
                 break
+
+        # Fallback: extraer del PDF cuando no existe YAML guardado
+        if not datos and tipo == "ft" and path.suffix.lower() == ".pdf":
+            extraidos = extraer_datos_desde_pdf_ft(path)
+            if extraidos and extraidos.get("nombre_producto"):
+                guardar_yaml_datos(extraidos, slug=slug)  # guardar para futuras ediciones
+                datos = extraidos
 
         if not datos:
             datos = {"titulo": titulo}

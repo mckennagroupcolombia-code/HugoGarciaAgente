@@ -40,7 +40,9 @@
     "93656073662560@lid",
     "573016213015@c.us",
     "156315888394321@lid",
-    "573028200001@c.us"
+    "573028200001@c.us",
+    "573208321691@c.us",
+    "16445933117688@lid"
   ],
   "timestamps": {
     "573009990001@c.us": 1779607073.6852884,
@@ -83,213 +85,225 @@
     "93656073662560@lid": 1782133253.3541255,
     "573016213015@c.us": 1782133253.3541255,
     "156315888394321@lid": 1782158373.4165123,
-    "573028200001@c.us": 1782158373.4165123
+    "573028200001@c.us": 1782158373.4165123,
+    "573208321691@c.us": 1782224284.3031623,
+    "16445933117688@lid": 1782224284.3031623
   },
   "bot_auto_pausados": {
     "573009990001@c.us": {
       "timestamp": 1779607073.685289,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "108207892635657@lid": {
       "timestamp": 1779841391.5377421,
       "razon": "mensaje repetido por posible bot",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "120363023555909043@g.us": {
       "timestamp": 1779902999.5390468,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "web-test-handoff2": {
       "timestamp": 1779872652.346131,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573013536788@c.us": {
       "timestamp": 1779890129.7563171,
       "razon": "men\u00fa autom\u00e1tico",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "73031707820119@lid": {
       "timestamp": 1779916294.9625869,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "49976306606124@lid": {
       "timestamp": 1779917580.1837876,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "71262147764245@lid": {
       "timestamp": 1779917739.2717392,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "259502091821270@lid": {
       "timestamp": 1779923371.8995585,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "web-a76f5496-4d30-4ccc-aa10-d230bdae18b3": {
       "timestamp": 1779972323.9718435,
       "razon": "web_pago_pedido",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "130975447179480@lid": {
       "timestamp": 1780963371.9493659,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "266855042285583@lid": {
       "timestamp": 1779998033.7324655,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "110213222891737@lid": {
       "timestamp": 1779998050.9782407,
       "razon": "operador desde panel de chats",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "246827609772242@lid": {
       "timestamp": 1780071470.9523313,
       "razon": "r\u00e1faga de 8 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "112145974988807@lid": {
       "timestamp": 1780406805.1967304,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "93167101677754@lid": {
       "timestamp": 1780502711.8209083,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573214399939@c.us": {
       "timestamp": 1780752797.1591964,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "117832545226982@lid": {
       "timestamp": 1780752797.1591964,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "143842900717701@lid": {
       "timestamp": 1780752932.813542,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573015416992@c.us": {
       "timestamp": 1780752932.813542,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573174923920@c.us": {
       "timestamp": 1780963371.9493659,
       "razon": "r\u00e1faga de 10 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "228960461930678@lid": {
       "timestamp": 1781028611.6843252,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573162484731@c.us": {
       "timestamp": 1781028611.6843252,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573114292482@c.us": {
       "timestamp": 1781030730.2819347,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "52003631849707@lid": {
       "timestamp": 1781030730.2819347,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "23588077846694@lid": {
       "timestamp": 1781295223.0876622,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573207092059@c.us": {
       "timestamp": 1781295223.0876622,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "159171555111054@lid": {
       "timestamp": 1781284043.6549928,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573232058352@c.us": {
       "timestamp": 1781284043.6549928,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "124833761378498@lid": {
       "timestamp": 1781649927.9315753,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573105081002@c.us": {
       "timestamp": 1781649927.9315753,
       "razon": "r\u00e1faga de 7 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573143343325@c.us": {
       "timestamp": 1781717325.193942,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "183562741534973@lid": {
       "timestamp": 1781717325.193942,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573114620203@c.us": {
       "timestamp": 1781742475.337185,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "182905510850731@lid": {
       "timestamp": 1781742475.337185,
       "razon": "r\u00e1faga de 6 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573207640451@c.us": {
       "timestamp": 1781885466.1422698,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "145371858772137@lid": {
       "timestamp": 1781885466.1422698,
       "razon": "r\u00e1faga de 9 mensajes en 120s",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "93656073662560@lid": {
       "timestamp": 1782133253.3541255,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573016213015@c.us": {
       "timestamp": 1782133253.3541255,
       "razon": "cliente solicit\u00f3 humano",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "156315888394321@lid": {
       "timestamp": 1782158373.4165123,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
     },
     "573028200001@c.us": {
       "timestamp": 1782158373.4165123,
       "razon": "saludo autom\u00e1tico",
-      "ultimo_mensaje": "Gracias por contactarnos. Queremos convertir esos \"NO\" en Millones de S\u00cd \ud83d\udc9c. Mi nombre es Gregoria Andrade y soy tu asesor especializado en ventas. \ud83d\udcf1 Estoy listo para hacer que tu proceso de compra sea f\u00e1cil y sin complicaciones, adem\u00e1s de resolver todas tus dudas. \u00a1Comencemos! \ud83e\udd13. Hola, Hoy Feliz Dia Te Agradecemos por ser parte de Wom\ud83d\udc4c! . . \ud83d\udcddHoy Te venimos a dar Una Super Propuesta \ud83d\udd14, Para Una Linea Adicional Ya sea Cuyo Familiar oh Entre Amigos\ud83d\ude48 \ud83d\udccc PLAN (INTERNET ILIMITADO) \ud83d\udccc20 GB PARA COMPARTIR"
+      "ultimo_mensaje": "Y manejas persona?"
+    },
+    "573208321691@c.us": {
+      "timestamp": 1782224284.3031623,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "Y manejas persona?"
+    },
+    "16445933117688@lid": {
+      "timestamp": 1782224284.3031623,
+      "razon": "cliente solicit\u00f3 humano",
+      "ultimo_mensaje": "Y manejas persona?"
     }
   },
   "bot_global_activo": false,

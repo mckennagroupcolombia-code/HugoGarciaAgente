@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-22T16:10:19",
+  "updated_at": "2026-06-23T21:16:50",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -32,21 +32,129 @@
     "2026-06-17": 5,
     "2026-06-19": 10,
     "2026-06-20": 5,
-    "2026-06-22": 10
+    "2026-06-22": 10,
+    "2026-06-23": 8
   },
   "sessions": [
     {
+      "session_id": "web-0e824252-0e0c-4df7-a383-be1e14db5d23",
+      "started_at": "2026-06-23T21:16:50",
+      "last_at": "2026-06-23T21:16:50",
+      "messages_count": 1,
+      "attachments_count": 1,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Hola en qué consentracion viene hay que aplicar otro tensoactivos al shampo o con este es suficiente gracias",
+      "last_agent_reply": "Veci, recibí su archivo. Un asesor lo revisará en breve. Si es comprobante de pago, quedamos atentos ✅",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-23T21:16:50",
+          "user_message": "Hola en qué consentracion viene hay que aplicar otro tensoactivos al shampo o con este es suficiente gracias",
+          "agent_reply": "Veci, recibí su archivo. Un asesor lo revisará en breve. Si es comprobante de pago, quedamos atentos ✅",
+          "attachments_count": 1,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-dd02be83-7694-4632-931f-83ce16fadae1",
+      "started_at": "2026-06-23T17:13:47",
+      "last_at": "2026-06-23T17:16:53",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/producto/c-aceesemanz5ml",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "erasofigueroa@outlook.es referencia C-ACEESEMANZ5mL",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-23T17:13:47",
+          "user_message": "C-ACEESEMANZ5mL",
+          "agent_reply": "Claro, veci. Tenemos *ACEITE ESENCIAL MANZANILLA 5mL* como materia prima. Presentación: $14,195 COP — Ref. C-ACEESEMANZ5mL. ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-23T17:14:21",
+          "user_message": "Me pueden proporcional certificado de análisis y ficha de seguridad?",
+          "agent_reply": "Veci, revisé nuestro archivo para Me pueden proporcional de y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía ficha técnica, COA y ficha de seguridad cuando aplique. Si necesita COA, ficha técnica o el dato de lote específico, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-23T17:16:05",
+          "user_message": "Mi correo es erasofigueroa@outlook.es y la referencia de los certificados que solicito es C-ACEESEMANZ5mL",
+          "agent_reply": "Veci, revisé nuestro archivo para Mi correo es erasofigueroa@outlook.es, referencia de los que solicito es C-ACEESEMANZ5mL y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía ficha técnica, COA y ficha de seguridad cuando aplique. Si necesita COA, ficha técnica o el dato de lote específico, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-23T17:16:53",
+          "user_message": "erasofigueroa@outlook.es referencia C-ACEESEMANZ5mL",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-91b981ae-1c89-442c-b010-e55add2e5708",
+      "started_at": "2026-06-23T07:16:04",
+      "last_at": "2026-06-23T07:16:26",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/pago/respuesta?estado=rechazado&collection_id=null&collection_status=null&payment_id=null&status=null&external_reference=MCKG-F9E83847EC&payment_type=null&merchant_order_id=null&preference_id=432439187-81eb2bfe-9caf-4d3c-8629-3703d89090d2&site_id=MCO&processing_mode=aggregator&merchant_account_id=null",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Ficha técnica Citrato de calcio",
+      "last_agent_reply": "Veci, somos McKenna Group. Compartimos la documentación que tenemos disponible: *Citrato de calcio*\n📄 Ficha técnica: https://drive.google.com/file/d/1pspjjFp275uydEuY3CP1c2Bz6pLdFw2Z/view?usp=drivesdk También puede consultar guías en https://mckennagroup.co/guias. Si necesita documentación adicional o datos de lote, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-23T07:16:04",
+          "user_message": "Hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-23T07:16:26",
+          "user_message": "Ficha técnica Citrato de calcio",
+          "agent_reply": "Veci, somos McKenna Group. Compartimos la documentación que tenemos disponible: *Citrato de calcio*\n📄 Ficha técnica: https://drive.google.com/file/d/1pspjjFp275uydEuY3CP1c2Bz6pLdFw2Z/view?usp=drivesdk También puede consultar guías en https://mckennagroup.co/guias. Si necesita documentación adicional o datos de lote, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
       "session_id": "web-ff39fe7f-c570-43b2-8b1b-3c493f36fa87",
       "started_at": "2026-06-22T16:03:31",
-      "last_at": "2026-06-22T16:10:19",
-      "messages_count": 4,
+      "last_at": "2026-06-23T08:08:55",
+      "messages_count": 5,
       "attachments_count": 0,
       "reviewed": false,
       "reviewed_at": null,
       "page_url": "https://www.mckennagroup.co/producto/c-acisal100g",
       "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-      "last_user_message": "no ha llegado nada",
-      "last_agent_reply": "Veci, qué pena la demora. Porfa revise en la carpeta de Spam o Correo no deseado, a veces los correos con adjuntos se van para allá. Si definitivamente no le aparece, para ir a la fija, escríbanos a nuestro WhatsApp +57 319 518 3596 y un asesor le envía los documentos de una. Allá la comunicación es más directa.",
+      "last_user_message": "CoA de C-ACISAL100g",
+      "last_agent_reply": "Veci, revisé nuestro archivo para C-ACISAL100g, C-ACISAL100g PEDIR, correo es labconquimsas@gmail.com, C-ACISAL100g no ha llegado nada y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía ficha técnica, COA y ficha de seguridad cuando aplique. Si necesita COA, ficha técnica o el dato de lote específico, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
       "last_source": "agent",
       "last_upstream_error": "",
       "recent_turns": [
@@ -78,6 +186,14 @@
           "at": "2026-06-22T16:10:19",
           "user_message": "no ha llegado nada",
           "agent_reply": "Veci, qué pena la demora. Porfa revise en la carpeta de Spam o Correo no deseado, a veces los correos con adjuntos se van para allá. Si definitivamente no le aparece, para ir a la fija, escríbanos a nuestro WhatsApp +57 319 518 3596 y un asesor le envía los documentos de una. Allá la comunicación es más directa.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-23T08:08:55",
+          "user_message": "CoA de C-ACISAL100g",
+          "agent_reply": "Veci, revisé nuestro archivo para C-ACISAL100g, C-ACISAL100g PEDIR, correo es labconquimsas@gmail.com, C-ACISAL100g no ha llegado nada y no localicé el PDF en este momento. Puede revisar guías en https://mckennagroup.co/guias o la ficha del producto en https://mckennagroup.co/tienda. Si me deja su **correo electrónico** y la referencia exacta, el equipo le envía ficha técnica, COA y ficha de seguridad cuando aplique. Si necesita COA, ficha técnica o el dato de lote específico, use el **botón de WhatsApp** en la página o escríbanos al **+57 319 518 3596**: https://wa.me/573195183596\nUn **asesor humano** le brinda la información y allí **sí queda el hilo** de la conversación. **Este chat web no guarda el historial** si cierra la pestaña, cambia de dispositivo o borra datos del navegador.",
           "attachments_count": 0,
           "source": "agent",
           "upstream_error": ""

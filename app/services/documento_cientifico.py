@@ -146,9 +146,17 @@ def _sintetizar_json(prompt: str) -> dict | None:
     try:
         from google import genai
 
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
         client = genai.Client(api_key=api_key)
-        resp = client.models.generate_content(model="gemini-2.5-pro", contents=prompt)
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            fut = ex.submit(client.models.generate_content, "gemini-2.0-flash", prompt)
+            try:
+                resp = fut.result(timeout=75)
+            except FutureTimeout:
+                raise RuntimeError("Gemini tardó demasiado — intente de nuevo")
         return _extraer_json(resp.text or "")
+    except RuntimeError:
+        raise
     except Exception as exc:
         raise RuntimeError(f"Gemini no completó datos: {exc}") from exc
 
@@ -320,8 +328,14 @@ def _sintetizar_texto(prompt: str) -> str:
     try:
         from google import genai
 
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
         client = genai.Client(api_key=api_key)
-        resp = client.models.generate_content(model="gemini-2.5-pro", contents=prompt)
+        with ThreadPoolExecutor(max_workers=1) as ex:
+            fut = ex.submit(client.models.generate_content, "gemini-2.0-flash", prompt)
+            try:
+                resp = fut.result(timeout=75)
+            except FutureTimeout:
+                raise RuntimeError("Gemini tardó demasiado — intente de nuevo")
         text = (resp.text or "").strip()
         text = re.sub(r"^```[\w]*\n?", "", text)
         text = re.sub(r"\n?```$", "", text)
@@ -410,11 +424,13 @@ def _sinonimos_pubchem(nombre: str, cid: str | None = None) -> list[str]:
 
 
 _CAMPOS_PERMITIDOS = {
-    "sinonimos", "cas", "descripcion",
+    "sinonimos", "cas", "inci", "descripcion",
     "apariencia", "punto_fusion", "indice_saponificacion", "ph", "olor",
     "formula_quimica", "solubilidad", "humedad", "inercia_quimica",
     "modo_uso", "propiedades_lista", "aplicaciones", "composicion",
-    "recomendaciones",
+    "recomendaciones", "nombre_comercial",
+    "sds_clasificacion_ghs", "sds_pictogramas", "sds_primeros_auxilios", "sds_manipulacion",
+    "coa_einecs", "coa_grado",
 }
 
 _PROMPT_BASE = (
@@ -465,15 +481,18 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
 
     if campo == "sinonimos":
         sinon = _sinonimos_pubchem(nombre, cid) if cid else []
-        if sinon:
-            valor = "; ".join(sinon[:5])
-            return {"ok": True, "campo": campo, "valor": valor, "origen": "pubchem"}
-        # Fallback Gemini
-        ctx = (recopilar_fuentes(nombre).get("contexto") or "")[:2500]
+        candidatos = "; ".join(sinon[:15]) if sinon else ""
         valor = _sintetizar_texto(
-            f'{_PROMPT_BASE}\nLista sinónimos, nombres INCI, nombres químicos y comerciales de "{nombre}".\n'
-            f'EVIDENCIA:\n{ctx or "(sin fuentes)"}\n'
-            "Una línea por sinónimo o separados por punto y coma."
+            f'{_PROMPT_BASE}\n'
+            f'Genera exactamente 5 sinónimos en español para "{nombre}".\n'
+            + (f'Candidatos de PubChem (referencia): {candidatos}\n' if candidatos else '')
+            + f'Reglas obligatorias:\n'
+            f'- NO incluir el nombre "{nombre}" ni ninguna variación del mismo.\n'
+            f'- NO incluir nombres en inglés.\n'
+            f'- SÍ incluir el número de aditivo alimentario (E-XXX o INS XXX) si aplica, como uno de los 5.\n'
+            f'- SÍ incluir nombre INCI y nombre químico sistemático en español.\n'
+            f'- Exactamente 5 sinónimos, únicos, sin repetir información.\n'
+            f'- Responde SOLO los 5 separados por punto y coma, sin títulos, sin numeración, sin explicaciones.'
         )
         return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
@@ -498,16 +517,22 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     pc_info = ", ".join(f"{k}={v}" for k, v in pc.items() if v and k != "fuente_pubchem") if pc else ""
 
     _PROMPTS: dict[str, str] = {
+        "inci": (
+            f'Indica el nombre INCI (International Nomenclature of Cosmetic Ingredients) o nombre químico IUPAC de "{nombre}".\n'
+            f"PubChem: {pc_info or 'sin datos'}\n"
+            "Responde en UNA sola línea con el nombre exacto. Sin markdown."
+        ),
         "descripcion": (
             f'Redacta una descripción técnica (80-130 palabras) de "{nombre}" para ficha técnica McKenna Group.\n'
-            "Énfasis obligatorio: origen, modo de obtención, proceso de extracción/síntesis y estado físico.\n"
+            "Énfasis obligatorio: origen, modo de obtención y proceso de extracción/síntesis.\n"
+            "NO mencionar apariencia física, color, textura ni estado físico (eso va en otro campo).\n"
             f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
             "Tono técnico. Sin saludo, sin markdown."
         ),
         "apariencia": (
-            f'Describe brevemente la apariencia física de "{nombre}" (color, forma, estado).\n'
+            f'Describe en una línea concisa la apariencia física de "{nombre}" (estado, color, textura, forma).\n'
             f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
-            "Responde en UNA línea concisa. Sin markdown."
+            "Responde en UNA sola línea. Sin markdown."
         ),
         "punto_fusion": (
             f'Indica el punto de fusión o rango de fusión de "{nombre}" con sus unidades (°C o °F).\n'
@@ -525,9 +550,9 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Responde en UNA línea (ej. 4.5-6.0 en sol. 10%). Sin markdown."
         ),
         "olor": (
-            f'Describe el olor característico de "{nombre}".\n'
+            f'Describe en una línea concisa el olor característico de "{nombre}".\n'
             f"PubChem: {pc_info or 'sin datos'}\n"
-            "Responde en UNA línea concisa. Sin markdown."
+            "Responde en UNA sola línea. Sin markdown."
         ),
         "solubilidad": (
             f'Describe la solubilidad de "{nombre}" en agua y solventes orgánicos.\n'
@@ -583,6 +608,52 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             "Formato ESTRICTO: una fila por línea como \"Componente|Porcentaje\".\n"
             "Ejemplo:\nIllita|75% ± 5\nCaolinita|15% ± 3\nCuarzo|Trazas\n"
             "Sin markdown, sin encabezados."
+        ),
+        "nombre_comercial": (
+            f'Indica el nombre comercial o de marca más reconocido de "{nombre}" en la industria farmacéutica y cosmética latinoamericana.\n'
+            f"PubChem: {pc_info or 'sin datos'}\n"
+            "Responde en UNA sola línea con el nombre comercial. Sin markdown."
+        ),
+        "sds_clasificacion_ghs": (
+            f'Genera la clasificación GHS/CLP de "{nombre}" según el Sistema Globalmente Armonizado (SGA/GHS).\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Incluye: categoría de peligro, clase de peligro, palabra de advertencia (Peligro/Advertencia) y frases H relevantes.\n"
+            "Si la sustancia no presenta peligros significativos, indícalo claramente.\n"
+            "2-4 líneas técnicas. Sin markdown."
+        ),
+        "sds_pictogramas": (
+            f'Lista los pictogramas GHS aplicables a "{nombre}" y las frases H y P más relevantes.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Formato: una línea por elemento.\n"
+            "Ejemplo:\nGHS07 - Nocivo\nH302: Nocivo en caso de ingestión\nP260: No respirar los vapores\n"
+            "Sin markdown. Si no aplica pictograma, indicarlo."
+        ),
+        "sds_primeros_auxilios": (
+            f'Redacta las instrucciones de primeros auxilios para "{nombre}" en caso de exposición accidental.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Formato ESTRICTO: una línea por vía de exposición como \"Caso|Instrucción\".\n"
+            "Ejemplo:\nInhalación|Llevar al afectado a lugar ventilado; consultar médico si persiste\n"
+            "Contacto piel|Lavar con agua y jabón abundante durante 15 minutos\n"
+            "Contacto ojos|Enjuagar con agua limpia durante 15 minutos; consultar oftalmólogo\n"
+            "Ingestión|No inducir vómito; consultar médico inmediatamente\n"
+            "Sin markdown, sin encabezados."
+        ),
+        "sds_manipulacion": (
+            f'Redacta las instrucciones de manipulación segura de "{nombre}" para uso industrial/cosmético/farmacéutico.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Incluye: EPP recomendado, ventilación, precauciones generales, incompatibilidades a evitar.\n"
+            "2-4 oraciones técnicas en español. Sin markdown, sin listas."
+        ),
+        "coa_einecs": (
+            f'Indica el número EINECS (European Inventory of Existing Commercial Chemical Substances) de "{nombre}".\n'
+            f"PubChem: {pc_info or 'sin datos'}\n"
+            "Responde SOLO con el número EINECS (formato 000-000-0) o \"No aplica\". Sin markdown."
+        ),
+        "coa_grado": (
+            f'Indica el grado de calidad estándar de "{nombre}" para uso en industria farmacéutica y cosmética.\n'
+            f"PubChem: {pc_info or 'sin datos'}\nEVIDENCIA:\n{ctx or '(sin fuentes)'}\n"
+            "Ejemplos: Grado Farmacéutico USP/NF, Grado Cosmético, Grado Alimentario FCC, Grado Reactivo ACS.\n"
+            "Responde en UNA línea concisa. Sin markdown."
         ),
     }
 

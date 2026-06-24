@@ -127,6 +127,88 @@ function SectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
+function IaChips({
+  chips,
+  value,
+  onChange,
+  onClear,
+}: {
+  chips: string[];
+  value: string;
+  onChange: (v: string) => void;
+  onClear: () => void;
+}) {
+  const [seleccionadas, setSeleccionadas] = useState<Set<string>>(new Set());
+
+  if (!chips.length) return null;
+
+  const toggle = (chip: string) =>
+    setSeleccionadas((prev) => {
+      const next = new Set(prev);
+      next.has(chip) ? next.delete(chip) : next.add(chip);
+      return next;
+    });
+
+  const insertar = (lista: string[]) => {
+    const cur = value.trim();
+    const nuevo = lista.join(", ");
+    onChange(cur ? `${cur}, ${nuevo}` : nuevo);
+    onClear();
+  };
+
+  const haySeleccion = seleccionadas.size > 0;
+
+  return (
+    <div className="mt-1.5 rounded-lg border border-accent/30 bg-accent/5 px-2.5 py-2">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-medium text-accent">
+          Selecciona las que apliquen y presiona insertar
+        </span>
+        <div className="flex items-center gap-2">
+          {haySeleccion && (
+            <button
+              type="button"
+              onClick={() => insertar([...seleccionadas])}
+              className="rounded bg-accent px-2 py-0.5 text-[10px] font-semibold text-white hover:opacity-80"
+            >
+              Insertar ({seleccionadas.size})
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => insertar(chips)}
+            className="text-[10px] font-semibold text-accent hover:underline"
+          >
+            Todas
+          </button>
+          <button type="button" onClick={onClear} className="text-[10px] text-muted hover:text-danger">
+            ✕
+          </button>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {chips.map((chip) => {
+          const activa = seleccionadas.has(chip);
+          return (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => toggle(chip)}
+              className={`rounded border px-2 py-0.5 text-[11px] transition-colors ${
+                activa
+                  ? "border-accent bg-accent text-white"
+                  : "border-accent/40 bg-white/50 text-ink hover:border-accent hover:bg-accent/10"
+              }`}
+            >
+              {chip}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function datosDesdeFormulario(state: FichaTecnicaFormState): Record<string, unknown> {
   return {
     titulo: state.nombreProducto.toUpperCase(),
@@ -222,11 +304,25 @@ export default function FichaTecnicaForm({
   productoNombre,
   onBuildDatos,
   onLoadDatos,
+  hideIdentificacion,
+  externalNombreProducto,
+  externalCas,
+  externalReferencia,
+  hideColorAcento,
+  externalColorAcento,
+  hideRecomendaciones,
 }: {
   productoRef?: string;
   productoNombre?: string;
   onBuildDatos: (build: () => Record<string, unknown>) => void;
   onLoadDatos: (load: (datos: Record<string, unknown>) => void) => void;
+  hideIdentificacion?: boolean;
+  externalNombreProducto?: string;
+  externalCas?: string;
+  externalReferencia?: string;
+  hideColorAcento?: boolean;
+  externalColorAcento?: string;
+  hideRecomendaciones?: boolean;
 }) {
   const [state, setState] = useState<FichaTecnicaFormState>(() => ({
     ...formularioDesdeDatos({}),
@@ -255,6 +351,26 @@ export default function FichaTecnicaForm({
     if (productoNombre) patch({ nombreProducto: productoNombre });
   }, [productoNombre, patch]);
 
+  useEffect(() => {
+    if (hideIdentificacion && externalNombreProducto !== undefined)
+      patch({ nombreProducto: externalNombreProducto });
+  }, [hideIdentificacion, externalNombreProducto, patch]);
+
+  useEffect(() => {
+    if (hideIdentificacion && externalCas !== undefined)
+      patch({ cas: externalCas });
+  }, [hideIdentificacion, externalCas, patch]);
+
+  useEffect(() => {
+    if (hideIdentificacion && externalReferencia !== undefined)
+      patch({ referencia: externalReferencia });
+  }, [hideIdentificacion, externalReferencia, patch]);
+
+  useEffect(() => {
+    if (hideColorAcento && externalColorAcento)
+      patch({ colorAcento: externalColorAcento });
+  }, [hideColorAcento, externalColorAcento, patch]);
+
   const sugerirMut = useMutation({
     mutationFn: (campo: string) => {
       const nombre = state.nombreProducto.trim();
@@ -263,6 +379,8 @@ export default function FichaTecnicaForm({
     },
     onSuccess: (r, campo) => {
       const v = r.valor || "";
+      const parseChips = (raw: string) =>
+        raw.split(",").map((s) => s.trim()).filter(Boolean);
       switch (campo) {
         case "sinonimos":            patch({ sinonimos: v }); break;
         case "cas":                  patch({ cas: v }); break;
@@ -279,7 +397,7 @@ export default function FichaTecnicaForm({
         case "modo_uso":             patch({ modoUso: v }); break;
         case "propiedades_lista":    patch({ propiedadesLista: v }); break;
         case "aplicaciones":         patch({ aplicaciones: v }); break;
-        case "recomendaciones":  patch({ recomendaciones: v }); break;
+        case "recomendaciones":      patch({ recomendaciones: v }); break;
         case "composicion": {
           const rows = v.split("\n").filter(Boolean).map((line) => {
             const [comp, val] = line.split("|");
@@ -315,19 +433,23 @@ export default function FichaTecnicaForm({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
-        <h3 className="text-sm font-bold tracking-widest text-ink">FICHA TÉCNICA</h3>
-      </div>
+      {!hideIdentificacion && (
+        <div className="rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
+          <h3 className="text-sm font-bold tracking-widest text-ink">FICHA TÉCNICA</h3>
+        </div>
+      )}
 
       <section className="space-y-3">
-        <SectionTitle>Identificación</SectionTitle>
+        {!hideIdentificacion && <SectionTitle>Identificación</SectionTitle>}
 
-        <Field
-          label="Nombre del producto"
-          value={state.nombreProducto}
-          onChange={(v) => patch({ nombreProducto: v })}
-          placeholder="Ej. Arcilla roja"
-        />
+        {!hideIdentificacion && (
+          <Field
+            label="Nombre del producto"
+            value={state.nombreProducto}
+            onChange={(v) => patch({ nombreProducto: v })}
+            placeholder="Ej. Arcilla roja"
+          />
+        )}
 
         <div>
           <div className="mb-1 flex items-center justify-between gap-2">
@@ -344,18 +466,20 @@ export default function FichaTecnicaForm({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <label className="text-xs text-muted">Número CAS</label>
-              <IaBtn label="IA" {...ia("cas")} />
+          {!hideIdentificacion && (
+            <div>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="text-xs text-muted">Número CAS</label>
+                <IaBtn label="IA" {...ia("cas")} />
+              </div>
+              <input
+                value={state.cas}
+                onChange={(e) => patch({ cas: e.target.value })}
+                placeholder="0000-00-0"
+                className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-mono"
+              />
             </div>
-            <input
-              value={state.cas}
-              onChange={(e) => patch({ cas: e.target.value })}
-              placeholder="0000-00-0"
-              className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-mono"
-            />
-          </div>
+          )}
           <div>
             <label className="text-xs text-muted">Fecha de revisión</label>
             <input
@@ -386,13 +510,40 @@ export default function FichaTecnicaForm({
 
       <section className="space-y-3">
         <SectionTitle>Características físicas</SectionTitle>
+
+        {/* Apariencia — IA rellena directamente el campo */}
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label className="text-xs text-muted">Apariencia</label>
+            <IaBtn label="IA" {...ia("apariencia")} />
+          </div>
+          <input
+            value={state.apariencia}
+            onChange={(e) => patch({ apariencia: e.target.value })}
+            placeholder="Ej. Polvo blanco fino cristalino"
+            className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
+          />
+        </div>
+
+        {/* Olor — IA rellena directamente el campo */}
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <label className="text-xs text-muted">Olor</label>
+            <IaBtn label="IA" {...ia("olor")} />
+          </div>
+          <input
+            value={state.olor}
+            onChange={(e) => patch({ olor: e.target.value })}
+            placeholder="Ej. Inodoro o ligero aroma característico"
+            className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
+          />
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           {[
-            { label: "Apariencia",               campo: "apariencia",            val: state.apariencia,            set: (v: string) => patch({ apariencia: v }),            ph: "Ej. Polvo blanco fino" },
             { label: "Punto de fusión",           campo: "punto_fusion",          val: state.puntoFusion,           set: (v: string) => patch({ puntoFusion: v }),           ph: "Ej. 58-62 °C" },
             { label: "Índice de saponificación",  campo: "indice_saponificacion", val: state.indiceSaponificacion,  set: (v: string) => patch({ indiceSaponificacion: v }),  ph: "Ej. 190-200 mg KOH/g" },
             { label: "pH",                        campo: "ph",                    val: state.ph,                    set: (v: string) => patch({ ph: v }),                    ph: "Ej. 4.5-6.0" },
-            { label: "Olor",                      campo: "olor",                  val: state.olor,                  set: (v: string) => patch({ olor: v }),                  ph: "Ej. Inodoro" },
             { label: "Fórmula química",           campo: "formula_quimica",       val: state.formulaQuimica,        set: (v: string) => patch({ formulaQuimica: v }),        ph: "Ej. C₆H₁₂O₆" },
             { label: "Solubilidad",               campo: "solubilidad",           val: state.solubilidad,           set: (v: string) => patch({ solubilidad: v }),           ph: "Ej. Soluble en agua fría" },
             { label: "Humedad",                   campo: "humedad",               val: state.humedad,               set: (v: string) => patch({ humedad: v }),               ph: "Ej. ≤ 5%" },
@@ -455,112 +606,58 @@ export default function FichaTecnicaForm({
         </div>
       </section>
 
-      <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <SectionTitle>Composición</SectionTitle>
-          <div className="flex gap-2">
-            <IaBtn label="IA" {...ia("composicion")} />
-            <button
-              type="button"
-              onClick={addComp}
-              className="rounded border border-border px-2 py-1 text-[10px] font-medium text-ink hover:border-accent"
-            >
-              + Fila
-            </button>
+      {!hideRecomendaciones && (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <SectionTitle>Recomendaciones GHS</SectionTitle>
+            <IaBtn label="IA" {...ia("recomendaciones")} />
           </div>
-        </div>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full min-w-[320px] text-sm">
-            <thead>
-              <tr className="border-b border-border bg-surface text-left text-xs text-muted">
-                <th className="px-3 py-2 font-medium">Componente</th>
-                <th className="px-3 py-2 font-medium">% / Concentración</th>
-                <th className="w-10 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {state.composicion.map((row, idx) => (
-                <tr key={idx} className="border-b border-border/60 last:border-0">
-                  <td className="px-2 py-1">
-                    <input
-                      value={row.componente}
-                      onChange={(e) => updateComp(idx, "componente", e.target.value)}
-                      placeholder="Ej. Illita"
-                      className="w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs"
-                    />
-                  </td>
-                  <td className="px-2 py-1">
-                    <input
-                      value={row.valor}
-                      onChange={(e) => updateComp(idx, "valor", e.target.value)}
-                      placeholder="Ej. 75% ± 5"
-                      className="w-full rounded border border-border bg-surface-input px-2 py-1.5 text-xs"
-                    />
-                  </td>
-                  <td className="px-2 py-1 text-center">
-                    <button
-                      type="button"
-                      onClick={() => removeComp(idx)}
-                      className="text-muted hover:text-danger text-xs"
-                      title="Quitar fila"
-                    >
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <section className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <SectionTitle>Recomendaciones GHS</SectionTitle>
-          <IaBtn label="IA" {...ia("recomendaciones")} />
-        </div>
-        <Field
-          value={state.recomendaciones}
-          onChange={(v) => patch({ recomendaciones: v })}
-          rows={6}
-          placeholder={"Una recomendación por línea. Ej:\nPREVENCIÓN: Evitar inhalar polvo. Usar EPP adecuado.\nRESPUESTA: En caso de contacto ocular, lavar con agua abundante.\nALMACENAMIENTO: Mantener en lugar seco y bien ventilado."}
-        />
-      </section>
-      <section className="space-y-3">
-        <SectionTitle>Color del formato</SectionTitle>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { hex: "#069DC2", nombre: "Azul McKenna" },
-            { hex: "#003DA5", nombre: "Azul marino" },
-            { hex: "#5CB85C", nombre: "Verde claro" },
-            { hex: "#37474F", nombre: "Gris antracita" },
-            { hex: "#6A1B9A", nombre: "Morado" },
-            { hex: "#B71C1C", nombre: "Rojo" },
-            { hex: "#FFA040", nombre: "Naranja claro" },
-            { hex: "#000000", nombre: "Negro" },
-          ].map(({ hex, nombre }) => (
-            <button
-              key={hex}
-              type="button"
-              title={nombre}
-              onClick={() => patch({ colorAcento: hex })}
-              className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
-              style={{
-                backgroundColor: hex,
-                borderColor: state.colorAcento === hex ? "#fff" : hex,
-                outline: state.colorAcento === hex ? `2px solid ${hex}` : "none",
-              }}
-            />
-          ))}
-          <input
-            type="color"
-            value={state.colorAcento}
-            onChange={(e) => patch({ colorAcento: e.target.value })}
-            title="Color personalizado"
-            className="h-7 w-7 cursor-pointer rounded-full border border-border bg-transparent p-0"
+          <Field
+            value={state.recomendaciones}
+            onChange={(v) => patch({ recomendaciones: v })}
+            rows={6}
+            placeholder={"Una recomendación por línea. Ej:\nPREVENCIÓN: Evitar inhalar polvo. Usar EPP adecuado.\nRESPUESTA: En caso de contacto ocular, lavar con agua abundante.\nALMACENAMIENTO: Mantener en lugar seco y bien ventilado."}
           />
-        </div>
-        <p className="text-[10px] text-muted">Selecciona una paleta o usa el selector para un color personalizado.</p>
-      </section>
+        </section>
+      )}
+      {!hideColorAcento && (
+        <section className="space-y-3">
+          <SectionTitle>Color del formato</SectionTitle>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { hex: "#069DC2", nombre: "Azul McKenna" },
+              { hex: "#003DA5", nombre: "Azul marino" },
+              { hex: "#5CB85C", nombre: "Verde claro" },
+              { hex: "#37474F", nombre: "Gris antracita" },
+              { hex: "#6A1B9A", nombre: "Morado" },
+              { hex: "#B71C1C", nombre: "Rojo" },
+              { hex: "#FFA040", nombre: "Naranja claro" },
+              { hex: "#000000", nombre: "Negro" },
+            ].map(({ hex, nombre }) => (
+              <button
+                key={hex}
+                type="button"
+                title={nombre}
+                onClick={() => patch({ colorAcento: hex })}
+                className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
+                style={{
+                  backgroundColor: hex,
+                  borderColor: state.colorAcento === hex ? "#fff" : hex,
+                  outline: state.colorAcento === hex ? `2px solid ${hex}` : "none",
+                }}
+              />
+            ))}
+            <input
+              type="color"
+              value={state.colorAcento}
+              onChange={(e) => patch({ colorAcento: e.target.value })}
+              title="Color personalizado"
+              className="h-7 w-7 cursor-pointer rounded-full border border-border bg-transparent p-0"
+            />
+          </div>
+          <p className="text-[10px] text-muted">Selecciona una paleta o usa el selector para un color personalizado.</p>
+        </section>
+      )}
 
       <section className="space-y-2 rounded-lg border border-accent/40 bg-accent/5 px-4 py-3">
         <div className="flex items-center gap-2">
