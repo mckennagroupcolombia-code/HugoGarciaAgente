@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
+import ImageLightbox from "./ImageLightbox";
 import DocumentoGeneradorTab, {
   type DocLayoutOpciones,
   Field,
@@ -677,6 +678,7 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState(false);
   const [ok, setOk] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -775,8 +777,15 @@ function FtImageScanner({ onCamposExtraidos }: { onCamposExtraidos: (c: Record<s
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && esValido(f)) fromFile(f); }} />
       </div>
       {preview && (
-        <img src={preview} alt="Vista previa" className="max-h-36 rounded border border-border object-contain" />
+        <img
+          src={preview}
+          alt="Vista previa"
+          title="Clic para ampliar"
+          onClick={() => setLightbox(true)}
+          className="max-h-36 rounded border border-border object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
+        />
       )}
+      {lightbox && preview && <ImageLightbox url={preview} onClose={() => setLightbox(false)} />}
       {!preview && fileName && (
         <div className="flex items-center gap-2 rounded border border-border bg-surface-input px-3 py-2">
           <span className="text-[10px] text-muted">📄</span>
@@ -824,6 +833,7 @@ function CoaSection({
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanPreview, setScanPreview] = useState<string | null>(null);
+  const [scanLightbox, setScanLightbox] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
   /* ── Tabla de parámetros ── */
@@ -932,9 +942,16 @@ function CoaSection({
         <p className="text-[10px] text-muted">
           Arrastra una imagen o PDF, o usa el botón. La IA extraerá y completará la tabla de parámetros automáticamente.
         </p>
+        {scanLightbox && scanPreview && <ImageLightbox url={scanPreview} onClose={() => setScanLightbox(false)} />}
         {scanPreview && (
           <div className="relative inline-block">
-            <img src={scanPreview} alt="Vista previa COA" className="max-h-40 rounded border border-border object-contain" />
+            <img
+              src={scanPreview}
+              alt="Vista previa COA"
+              title="Clic para ampliar"
+              onClick={() => setScanLightbox(true)}
+              className="max-h-40 rounded border border-border object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
+            />
             <button
               type="button"
               onClick={() => { URL.revokeObjectURL(scanPreview); setScanPreview(null); setScanError(null); }}
@@ -1038,6 +1055,14 @@ function DocumentoCompletoTabContent({
   /* FT — delegado a FichaTecnicaForm mediante refs */
   const buildFtRef = useRef<() => Record<string, unknown>>(() => ({}));
   const loadFtRef = useRef<(d: Record<string, unknown>) => void>(() => {});
+  const autoCompletarFtRef = useRef<(r: Record<string, string>) => void>(() => {});
+
+  /* Campos vacíos detectados tras escanear el documento FT */
+  const [camposVaciosEscan, setCamposVaciosEscan] = useState<string[]>([]);
+  const [sugiriendoVacios, setSugiriendoVacios] = useState(false);
+  const [sugerirVaciosError, setSugerirVaciosError] = useState<string | null>(null);
+
+  const FT_CAMPOS_AUTOSUGERIR = ["descripcion", "apariencia", "olor", "ph", "solubilidad", "propiedades_lista", "aplicaciones", "modo_uso", "sinonimos"] as const;
 
   /* ── Campos compartidos (una sola vez en el formulario) ── */
   const [nombre, setNombre] = useState("");
@@ -1307,13 +1332,6 @@ function DocumentoCompletoTabContent({
             <Field value={cas} onChange={setCas} placeholder="0000-00-0" />
           </div>
 
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs text-muted">INCI / Nombre químico</span>
-              <IaBtn {...ia("inci")} />
-            </div>
-            <Field value={inci} onChange={setInci} />
-          </div>
         </div>
         {sugerirMut.isError && (
           <p className="text-xs text-danger">{(sugerirMut.error as Error).message}</p>
@@ -1326,8 +1344,57 @@ function DocumentoCompletoTabContent({
             if (campos.nombre_comercial) setNombreComercial(String(campos.nombre_comercial));
             if (campos.inci) setInci(String(campos.inci));
             loadFtRef.current(campos);
+            const vacios = FT_CAMPOS_AUTOSUGERIR.filter(c => !campos[c] || String(campos[c]).trim() === "");
+            setCamposVaciosEscan(vacios);
+            setSugerirVaciosError(null);
           }}
         />
+
+        {camposVaciosEscan.length > 0 && (
+          <div className="rounded-lg border border-accent/30 bg-accent/5 p-3 space-y-2">
+            <p className="text-xs text-muted">
+              <span className="font-medium text-ink">{camposVaciosEscan.length} campos</span> no encontrados en el documento —
+              la IA puede sugerirlos con PubChem.
+            </p>
+            {sugerirVaciosError && (
+              <p className="text-xs text-danger">{sugerirVaciosError}</p>
+            )}
+            <button
+              type="button"
+              disabled={sugiriendoVacios || !nombre.trim()}
+              onClick={async () => {
+                if (!nombre.trim()) return;
+                setSugiriendoVacios(true);
+                setSugerirVaciosError(null);
+                try {
+                  const { resolvePanelApiUrl } = await import("../api/client");
+                  const { useTicketsAuth } = await import("../stores/ticketsAuth");
+                  const { useAuthStore } = await import("../stores/auth");
+                  const t = useTicketsAuth.getState();
+                  const token = t.apiToken || t.token || useAuthStore.getState().token || "";
+                  const url = await resolvePanelApiUrl("/api/fichas/sugerir-multiples", "POST");
+                  const res = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                    body: JSON.stringify({ nombre: nombre.trim(), campos: camposVaciosEscan }),
+                    signal: AbortSignal.timeout(120000),
+                  });
+                  const json = await res.json();
+                  if (!res.ok || json.error) throw new Error(json.error || `Error ${res.status}`);
+                  autoCompletarFtRef.current(json.resultados || {});
+                  setCamposVaciosEscan([]);
+                } catch (e: unknown) {
+                  setSugerirVaciosError(e instanceof Error ? e.message : String(e));
+                } finally {
+                  setSugiriendoVacios(false);
+                }
+              }}
+              className="rounded border border-accent/50 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/20 disabled:opacity-40"
+            >
+              {sugiriendoVacios ? "Sugiriendo con IA…" : `Completar ${camposVaciosEscan.length} campos vacíos con IA`}
+            </button>
+          </div>
+        )}
 
         {/* Color del formato */}
         <div className="space-y-2">
@@ -1480,6 +1547,7 @@ function DocumentoCompletoTabContent({
         productoNombre={producto?.nombre_base}
         onBuildDatos={(fn) => { buildFtRef.current = fn; }}
         onLoadDatos={(fn) => { loadFtRef.current = fn; }}
+        onAutoCompletarRef={(fn) => { autoCompletarFtRef.current = fn; }}
         hideIdentificacion
         externalNombreProducto={nombre}
         externalCas={cas}

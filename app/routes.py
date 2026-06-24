@@ -3493,6 +3493,11 @@ def register_routes(app):
                 "Reglas:\n"
                 "- Extrae TODOS los parámetros visibles en la imagen.\n"
                 "- Si una celda está vacía o ilegible escribe «-» en ese campo.\n"
+                "- IMPORTANTE: Si el COA está en inglés, traduce los nombres de parámetros y descripciones al español. "
+                "Mantén los valores numéricos, unidades y símbolos exactamente como aparecen (%, ppm, mg/g, etc.). "
+                "Ejemplos de traducción: Appearance→Aspecto, Assay→Valoración, Loss on Drying→Pérdida por Secado, "
+                "Heavy Metals→Metales Pesados, Microbial Count→Recuento Microbiano, Conforms→Cumple, Passes→Cumple, "
+                "Fails→No cumple, White powder→Polvo blanco, Colorless liquid→Líquido incoloro.\n"
                 "- NO incluyas encabezados, numeración ni texto adicional.\n"
                 "- Responde SOLO las líneas en formato Parámetro|Especificación|Resultado."
             )
@@ -3500,14 +3505,14 @@ def register_routes(app):
             def _llamar_gemini():
                 client = genai.Client(api_key=api_key)
                 return client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash",
                     contents=[gtypes.Part.from_bytes(data=data, mime_type=mime_type), prompt],
                 )
 
             with ThreadPoolExecutor(max_workers=1) as ex:
                 fut = ex.submit(_llamar_gemini)
                 try:
-                    response = fut.result(timeout=75)
+                    response = fut.result(timeout=50)
                 except FutureTimeout:
                     return jsonify({"error": "Gemini tardó demasiado — intente con una imagen más pequeña"}), 504
 
@@ -3574,14 +3579,14 @@ def register_routes(app):
             def _llamar_gemini():
                 client = genai.Client(api_key=api_key)
                 return client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash",
                     contents=[gtypes.Part.from_bytes(data=data, mime_type=mime_type), prompt],
                 )
 
             with ThreadPoolExecutor(max_workers=1) as ex:
                 fut = ex.submit(_llamar_gemini)
                 try:
-                    response = fut.result(timeout=75)
+                    response = fut.result(timeout=50)
                 except FutureTimeout:
                     return jsonify({"error": "Gemini tardó demasiado — intente con un archivo más pequeño"}), 504
 
@@ -3595,6 +3600,32 @@ def register_routes(app):
                 import re as _re
                 m = _re.search(r"\{.*\}", texto, _re.DOTALL)
                 campos = _json.loads(m.group(0)) if m else {}
+
+            # Enriquecer campos vacíos con PubChem si tenemos nombre del producto
+            nombre_prod = str(campos.get("nombre_producto") or "").strip()
+            campos_vacios = [
+                k for k in ("cas", "formula_quimica")
+                if not str(campos.get(k) or "").strip()
+            ]
+            if nombre_prod and campos_vacios:
+                try:
+                    from app.services.documento_cientifico import buscar_pubchem as _bp
+                    from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _FT2
+                    with _TPE(max_workers=1) as ex2:
+                        fut2 = ex2.submit(lambda: _bp(nombre_prod))
+                        try:
+                            pc = fut2.result(timeout=8)
+                        except _FT2:
+                            pc = {}
+                    if not campos.get("cas") and pc.get("cas"):
+                        campos["cas"] = pc["cas"]
+                        campos["_cas_fuente"] = "pubchem"
+                    if not campos.get("formula_quimica") and pc.get("formula_molecular"):
+                        campos["formula_quimica"] = pc["formula_molecular"]
+                        campos["_formula_fuente"] = "pubchem"
+                except Exception:
+                    pass
+
             return jsonify({"ok": True, "campos": campos})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -4149,6 +4180,26 @@ def register_routes(app):
             return jsonify(sugerir_campo_ficha(campo, nombre))
         except ValueError as exc:
             return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
+
+    @app.route("/app/api/fichas/sugerir-multiples", methods=["POST"])
+    @app.route("/api/fichas/sugerir-multiples", methods=["POST"])
+    def api_fichas_sugerir_multiples():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        nombre = (body.get("nombre") or body.get("nombre_producto") or "").strip()
+        campos = body.get("campos") or []
+        if not nombre:
+            return jsonify({"error": "Se requiere 'nombre' del producto"}), 400
+        if not isinstance(campos, list) or not campos:
+            return jsonify({"error": "Se requiere 'campos' como lista no vacía"}), 400
+        try:
+            from app.services.documento_cientifico import sugerir_multiples_campos
+
+            resultados = sugerir_multiples_campos(nombre, campos)
+            return jsonify({"ok": True, "resultados": resultados})
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
 

@@ -311,6 +311,7 @@ export default function FichaTecnicaForm({
   hideColorAcento,
   externalColorAcento,
   hideRecomendaciones,
+  onAutoCompletarRef,
 }: {
   productoRef?: string;
   productoNombre?: string;
@@ -323,6 +324,7 @@ export default function FichaTecnicaForm({
   hideColorAcento?: boolean;
   externalColorAcento?: string;
   hideRecomendaciones?: boolean;
+  onAutoCompletarRef?: (fn: (resultados: Record<string, string>) => void) => void;
 }) {
   const [state, setState] = useState<FichaTecnicaFormState>(() => ({
     ...formularioDesdeDatos({}),
@@ -342,6 +344,36 @@ export default function FichaTecnicaForm({
   useEffect(() => {
     onLoadDatos((datos) => setState(formularioDesdeDatos(datos)));
   }, [onLoadDatos]);
+
+  const autoCompletar = useCallback((resultados: Record<string, string>) => {
+    const updates: Partial<FichaTecnicaFormState> = {};
+    for (const [campo, v] of Object.entries(resultados)) {
+      if (!v) continue;
+      switch (campo) {
+        case "sinonimos":             updates.sinonimos = v; break;
+        case "cas":                   updates.cas = v; break;
+        case "descripcion":           updates.descripcion = v; break;
+        case "apariencia":            updates.apariencia = v; break;
+        case "punto_fusion":          updates.puntoFusion = v; break;
+        case "indice_saponificacion": updates.indiceSaponificacion = v; break;
+        case "ph":                    updates.ph = v; break;
+        case "olor":                  updates.olor = v; break;
+        case "formula_quimica":       updates.formulaQuimica = v; break;
+        case "solubilidad":           updates.solubilidad = v; break;
+        case "humedad":               updates.humedad = v; break;
+        case "inercia_quimica":       updates.inerciaQuimica = v; break;
+        case "modo_uso":              updates.modoUso = v; break;
+        case "propiedades_lista":     updates.propiedadesLista = v; break;
+        case "aplicaciones":          updates.aplicaciones = v; break;
+        case "recomendaciones":       updates.recomendaciones = v; break;
+      }
+    }
+    if (Object.keys(updates).length) patch(updates);
+  }, [patch]);
+
+  useEffect(() => {
+    onAutoCompletarRef?.(autoCompletar);
+  }, [autoCompletar, onAutoCompletarRef]);
 
   useEffect(() => {
     if (productoRef) patch({ referencia: productoRef });
@@ -442,6 +474,12 @@ export default function FichaTecnicaForm({
       <section className="space-y-3">
         {!hideIdentificacion && <SectionTitle>Identificación</SectionTitle>}
 
+        {sugerirMut.isError && (
+          <p className="rounded border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs text-danger">
+            IA: {(sugerirMut.error as Error).message}
+          </p>
+        )}
+
         {!hideIdentificacion && (
           <Field
             label="Nombre del producto"
@@ -503,9 +541,6 @@ export default function FichaTecnicaForm({
           rows={5}
           placeholder="Origen, modo de obtención, proceso, usos generales…"
         />
-        {sugerirMut.isError && (
-          <p className="text-xs text-danger">{sugerirMut.error.message}</p>
-        )}
       </section>
 
       <section className="space-y-3">
