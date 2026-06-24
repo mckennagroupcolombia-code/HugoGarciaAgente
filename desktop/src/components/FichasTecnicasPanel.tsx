@@ -1197,36 +1197,47 @@ function DocumentoCompletoTabContent({
     setReferencia(producto.ref);
   }, [producto?.ref]);
 
-  /* Preload desde biblioteca (FT individual o documento completo) */
+  /* Preload desde biblioteca — FT individual, COA, SDS o documento completo */
   useEffect(() => {
     if (!preload) return;
 
-    // Campos compartidos
-    loadFtRef.current(preload);
-    if (preload.nombre_producto || preload.titulo)
-      setNombre(String(preload.nombre_producto || preload.titulo || "").toUpperCase());
-    if (preload.referencia) setReferencia(String(preload.referencia));
-    if (preload.cas) setCas(String(preload.cas));
-
-    // Sección COA (guardada en _coa cuando es documento completo)
     const coaData = (preload._coa as Record<string, unknown>) || null;
+    const sdsData = (preload._sds as Record<string, unknown>) || null;
+    const coaIdent = (coaData?.identificacion as Record<string, unknown>) || {};
+    const sdsIdent = (sdsData?.identificacion as Record<string, unknown>) || {};
+
+    // Nombre del producto: raíz FT > _coa.titulo > _sds.titulo
+    const nombreRaw = String(
+      preload.nombre_producto || preload.titulo ||
+      coaData?.titulo || sdsData?.titulo || ""
+    );
+    if (nombreRaw) setNombre(nombreRaw.toUpperCase());
+
+    // Referencia y CAS: raíz FT > identificación COA > identificación SDS
+    const ref = String(preload.referencia || coaIdent.referencia_interna || sdsIdent.referencia_interna || "");
+    if (ref) setReferencia(ref);
+    const casVal = String(preload.cas || coaIdent.cas || sdsIdent.cas || "");
+    if (casVal) setCas(casVal);
+
+    // Cargar formulario FT (solo aplica si hay datos FT al nivel raíz)
+    loadFtRef.current(preload);
+
+    // Sección COA
     if (coaData) {
-      const ident = (coaData.identificacion as Record<string, unknown>) || {};
-      if (ident.einces) setCoaEinces(String(ident.einces));
-      if (ident.grado) setCoaGrado(String(ident.grado));
+      if (coaIdent.einces) setCoaEinces(String(coaIdent.einces));
+      if (coaIdent.grado)  setCoaGrado(String(coaIdent.grado));
       if (coaData.parametros) setCoaParametros(textoDesdeFilasTres(coaData.parametros));
     }
 
-    // Sección SDS (guardada en _sds cuando es documento completo)
-    const sdsData = (preload._sds as Record<string, unknown>) || null;
+    // Sección SDS
     if (sdsData) {
       const peligros = (sdsData.peligros as Record<string, unknown>) || {};
-      const manip = (sdsData.manipulacion as Record<string, unknown>) || {};
+      const manip    = (sdsData.manipulacion as Record<string, unknown>) || {};
       if (peligros.clasificacion) setSdsClasificacion(String(peligros.clasificacion));
-      if (peligros.pictogramas) setSdsPictogramas(String(peligros.pictogramas));
-      if (sdsData.composicion) setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
+      if (peligros.pictogramas)   setSdsPictogramas(String(peligros.pictogramas));
+      if (sdsData.composicion)    setSdsComposicion(textoDesdeFilasTres(sdsData.composicion));
       if (sdsData.primeros_auxilios) setSdsPrimeros(textoDesdeFilas(sdsData.primeros_auxilios));
-      if (manip.manipulacion) setSdsManipulacion(String(manip.manipulacion));
+      if (manip.manipulacion)     setSdsManipulacion(String(manip.manipulacion));
     }
   }, [preload]);
 
@@ -1744,15 +1755,18 @@ export default function FichasTecnicasPanel() {
   };
 
   const handleEditar = (r: BibliotecaDatosResult) => {
+    let payload: Record<string, unknown>;
     if (r.tipo === "completo") {
-      setCompletoPreload(r.datos);
-      setTab("completo");
+      payload = r.datos;
+    } else if (r.tipo === "coa") {
+      payload = { titulo: r.titulo, nombre_producto: r.titulo, _coa: r.datos };
+    } else if (r.tipo === "sds") {
+      payload = { titulo: r.titulo, nombre_producto: r.titulo, _sds: r.datos };
     } else {
-      setTab(r.tipo as TabDoc);
-      if (r.tipo === "ft") setFtPreload(r.datos);
-      else if (r.tipo === "coa") setCoaPreload(r.datos);
-      else if (r.tipo === "sds") setSdsPreload(r.datos);
+      payload = r.datos; // ft — FT data al nivel raíz
     }
+    setCompletoPreload(payload);
+    setTab("completo");
   };
 
   return (
