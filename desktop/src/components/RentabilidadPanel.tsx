@@ -13,10 +13,11 @@ interface ComponenteDesglose {
   nombre: string;
   cantidad: number;
   categoria: string;
+  code_siigo?: string | null;
   costo_unit: number;
   costo_total: number;
   costo_conocido: boolean;
-  fuente?: "siigo" | "manual" | null;
+  fuente?: "siigo" | "excel" | "manual" | null;
   fecha_compra?: string | null;
 }
 
@@ -172,6 +173,8 @@ function TabCombos() {
   const [loadingDesgloses, setLoadingDesgloses] = useState<Set<string>>(new Set());
   const [editandoCostos, setEditandoCostos] = useState<Record<string, string>>({});
   const [guardandoCostos, setGuardandoCostos] = useState<Record<string, boolean>>({});
+  const [ivaIncluidoKeys, setIvaIncluidoKeys] = useState<Set<string>>(new Set());
+  const [siigoCostoResult, setSiigoCostoResult] = useState<Record<string, { ok: boolean; msg: string }>>({});
   const [catalogoEstado, setCatalogoEstado] = useState<CatalogoEstado | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
   const [autofillPreview, setAutofillPreview] = useState<{
@@ -229,19 +232,36 @@ function TabCombos() {
     }
   };
 
-  const guardarCostoComponente = async (nombre: string, categoria: string, costoStr: string, parentCode: string) => {
+  const guardarCostoComponente = async (
+    nombre: string,
+    categoria: string,
+    costoStr: string,
+    parentCode: string,
+    ivaIncluido: boolean,
+  ) => {
     const costo = parseFloat(costoStr);
-    if (isNaN(costo)) return;
+    if (isNaN(costo) || costo <= 0) return;
     const key = `${parentCode}::${nombre}`;
     setGuardandoCostos((prev) => ({ ...prev, [key]: true }));
     try {
-      await api.post("/api/rentabilidad/componentes", { nombre, costo_unitario: costo, categoria });
+      const res = await api.post<{ siigo?: { ok: boolean; msg: string } }>(
+        "/api/rentabilidad/componentes",
+        { nombre, costo_unitario: costo, categoria, iva_incluido: ivaIncluido },
+      );
+      if (res.siigo) {
+        setSiigoCostoResult((prev) => ({ ...prev, [key]: res.siigo! }));
+        setTimeout(
+          () => setSiigoCostoResult((prev) => { const n = { ...prev }; delete n[key]; return n; }),
+          6000,
+        );
+      }
       const d = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${parentCode}`);
       setDesgloses((prev) => ({ ...prev, [parentCode]: d }));
     } catch { /* ignore */ }
     finally {
       setGuardandoCostos((prev) => ({ ...prev, [key]: false }));
       setEditandoCostos((prev) => { const n = { ...prev }; delete n[key]; return n; });
+      setIvaIncluidoKeys((prev) => { const s = new Set(prev); s.delete(key); return s; });
     }
   };
 
@@ -498,7 +518,8 @@ function TabCombos() {
                 const sinCosto = desglose?.totales.componentes_sin_costo ?? null;
                 const costoTotal = desglose
                   ? desglose.totales.costo_materiales + desglose.totales.costo_envase +
-                    desglose.totales.costo_etiqueta + desglose.totales.otros_costos
+                    desglose.totales.costo_etiqueta + desglose.totales.otros_costos +
+                    desglose.totales.costo_nomina
                   : null;
 
                 return (
@@ -509,7 +530,7 @@ function TabCombos() {
                     >
                       <td className="px-4 py-3 font-mono text-xs text-muted">{p.code}</td>
                       <td className="px-4 py-3 font-medium text-ink">
-                        <div className="max-w-[260px] truncate">{p.name}</div>
+                        <div className="truncate">{p.name}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-ink">{cop(p.precio_lista)}</td>
                       <td className="px-4 py-3 text-center">
@@ -559,6 +580,7 @@ function TabCombos() {
                               <thead className="border-b border-border bg-surface-hover text-[10px] font-bold uppercase tracking-wide text-muted">
                                 <tr>
                                   <th className="px-3 py-2 text-left">Componente</th>
+                                  <th className="px-3 py-2 text-left">Código</th>
                                   <th className="px-3 py-2 text-center">Categoría</th>
                                   <th className="px-3 py-2 text-right">Cant.</th>
                                   <th className="px-3 py-2 text-right">Costo unit.</th>
@@ -574,15 +596,42 @@ function TabCombos() {
                                   const isEditing = editVal !== undefined;
                                   return (
                                     <tr key={c.nombre} className={`border-b border-border/40 last:border-0 ${!c.costo_conocido ? "bg-orange-50/40 dark:bg-orange-900/10" : ""}`}>
-                                      <td className="px-3 py-1.5 max-w-[200px] truncate text-ink-secondary" title={c.nombre}>{c.nombre}</td>
+                                      <td className="px-3 py-1.5 truncate text-ink-secondary" title={c.nombre}>{c.nombre}</td>
+                                      <td className="px-3 py-1.5">
+                                        {c.code_siigo
+                                          ? <span className="font-mono text-[10px] text-muted">{c.code_siigo}</span>
+                                          : <span className="text-[10px] text-border">—</span>}
+                                      </td>
                                       <td className="px-3 py-1.5 text-center text-muted">{CATEGORIA_LABELS[c.categoria] ?? c.categoria}</td>
                                       <td className="px-3 py-1.5 text-right font-mono text-muted">×{c.cantidad}</td>
                                       <td className="px-3 py-1.5 text-right">
                                         {isEditing ? (
-                                          <input type="number" min="0" step="50" value={editVal}
-                                            onChange={(e) => setEditandoCostos((prev) => ({ ...prev, [key]: e.target.value }))}
-                                            className="w-20 rounded border border-accent bg-surface px-1 py-0.5 text-right text-ink outline-none"
-                                            autoFocus />
+                                          <div className="flex flex-col items-end gap-1">
+                                            <input
+                                              type="number" min="0" step="50" value={editVal}
+                                              onChange={(e) => setEditandoCostos((prev) => ({ ...prev, [key]: e.target.value }))}
+                                              className="w-24 rounded border border-accent bg-surface px-1 py-0.5 text-right text-ink outline-none"
+                                              autoFocus
+                                            />
+                                            <label className="flex cursor-pointer select-none items-center gap-1">
+                                              <input
+                                                type="checkbox"
+                                                checked={ivaIncluidoKeys.has(key)}
+                                                onChange={(e) => setIvaIncluidoKeys((prev) => {
+                                                  const s = new Set(prev);
+                                                  if (e.target.checked) s.add(key); else s.delete(key);
+                                                  return s;
+                                                })}
+                                                className="h-3 w-3 accent-accent"
+                                              />
+                                              <span className="text-[10px] text-muted">IVA 19%</span>
+                                            </label>
+                                            {ivaIncluidoKeys.has(key) && parseFloat(editVal) > 0 && (
+                                              <span className="text-[10px] text-muted">
+                                                Neto: {cop(parseFloat(editVal) / 1.19)}
+                                              </span>
+                                            )}
+                                          </div>
                                         ) : (
                                           <span className={c.costo_conocido ? "font-mono text-ink" : "text-orange-500"}>
                                             {c.costo_conocido ? cop(c.costo_unit) : "—"}
@@ -598,6 +647,11 @@ function TabCombos() {
                                             className="rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-default">
                                             Siigo
                                           </span>
+                                        ) : c.fuente === "excel" ? (
+                                          <span title="Precio desde Excel de importaciones"
+                                            className="rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-bold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 cursor-default">
+                                            Excel
+                                          </span>
                                         ) : c.fuente === "manual" ? (
                                           <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 cursor-default">
                                             Manual
@@ -612,23 +666,51 @@ function TabCombos() {
                                       </td>
                                       <td className="px-3 py-1.5 text-right">
                                         {isEditing ? (
-                                          <div className="flex justify-end gap-1">
-                                            <button type="button"
-                                              onClick={() => void guardarCostoComponente(c.nombre, c.categoria, editVal, p.code)}
-                                              disabled={guardandoCostos[key]}
-                                              className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-50">
-                                              {guardandoCostos[key] ? "…" : "OK"}
-                                            </button>
-                                            <button type="button"
-                                              onClick={() => setEditandoCostos((prev) => { const n = { ...prev }; delete n[key]; return n; })}
-                                              className="rounded border border-border px-2 py-0.5 text-[10px] text-muted">×</button>
+                                          <div className="flex flex-col items-end gap-1">
+                                            <div className="flex gap-1">
+                                              <button
+                                                type="button"
+                                                onClick={() => void guardarCostoComponente(
+                                                  c.nombre, c.categoria, editVal, p.code,
+                                                  ivaIncluidoKeys.has(key),
+                                                )}
+                                                disabled={guardandoCostos[key]}
+                                                className="rounded bg-accent px-2 py-0.5 text-[10px] font-bold text-white disabled:opacity-50"
+                                              >
+                                                {guardandoCostos[key] ? "Sincronizando…" : "Sincronizar con Siigo"}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setEditandoCostos((prev) => { const n = { ...prev }; delete n[key]; return n; });
+                                                  setIvaIncluidoKeys((prev) => { const s = new Set(prev); s.delete(key); return s; });
+                                                }}
+                                                className="rounded border border-border px-2 py-0.5 text-[10px] text-muted"
+                                              >×</button>
+                                            </div>
                                           </div>
                                         ) : (
-                                          <button type="button"
-                                            onClick={() => setEditandoCostos((prev) => ({ ...prev, [key]: String(c.costo_unit) }))}
-                                            className="text-[10px] text-accent hover:underline">
-                                            {c.costo_conocido ? "Editar" : "Ingresar"}
-                                          </button>
+                                          <div className="flex flex-col items-end gap-1">
+                                            {siigoCostoResult[key] && (
+                                              <span
+                                                title={siigoCostoResult[key].msg}
+                                                className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                                                  siigoCostoResult[key].ok
+                                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                                }`}
+                                              >
+                                                Siigo {siigoCostoResult[key].ok ? "✓" : "✗"}
+                                              </span>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() => setEditandoCostos((prev) => ({ ...prev, [key]: String(c.costo_unit) }))}
+                                              className="text-[10px] text-accent hover:underline"
+                                            >
+                                              {c.costo_conocido ? "Editar" : "Ingresar"}
+                                            </button>
+                                          </div>
                                         )}
                                       </td>
                                     </tr>
@@ -642,6 +724,9 @@ function TabCombos() {
                                 { label: "Envase", val: desglose.totales.costo_envase },
                                 { label: "Etiqueta", val: desglose.totales.costo_etiqueta },
                                 { label: "Otros", val: desglose.totales.otros_costos },
+                                ...(desglose.totales.costo_nomina > 0
+                                  ? [{ label: "Nómina", val: desglose.totales.costo_nomina }]
+                                  : []),
                               ].map((item) => (
                                 <span key={item.label} className="text-muted">
                                   {item.label}: <span className="font-semibold text-ink">{cop(item.val)}</span>
@@ -650,7 +735,8 @@ function TabCombos() {
                               <span className="ml-auto font-bold text-ink">
                                 Total: {cop(
                                   desglose.totales.costo_materiales + desglose.totales.costo_envase +
-                                  desglose.totales.costo_etiqueta + desglose.totales.otros_costos
+                                  desglose.totales.costo_etiqueta + desglose.totales.otros_costos +
+                                  desglose.totales.costo_nomina
                                 )}
                               </span>
                             </div>
@@ -1422,7 +1508,7 @@ function TabPeriodo() {
                       <tr key={p.code} className="border-b border-border/50 last:border-0">
                         <td className="px-4 py-2.5 text-xs text-muted">{i + 1}</td>
                         <td className="px-4 py-2.5">
-                          <div className="max-w-xs truncate font-medium text-ink">{p.name}</div>
+                          <div className="truncate font-medium text-ink">{p.name}</div>
                           <div className="font-mono text-[11px] text-muted">{p.code}</div>
                         </td>
                         <td className="px-4 py-2.5 text-right font-mono text-xs text-ink">
@@ -1719,7 +1805,7 @@ function TabPrecios() {
                     <tr className={`border-b border-border/50 transition-colors ${isEditing ? "bg-surface-hover/60" : "hover:bg-surface-hover/30"}`}>
                       <td className="px-4 py-3 font-mono text-xs text-muted">{p.code}</td>
                       <td className="px-4 py-3 font-medium text-ink">
-                        <div className="max-w-[260px] truncate">{p.name}</div>
+                        <div className="truncate">{p.name}</div>
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-ink">{cop(p.precio_lista)}</td>
                       <td className="px-4 py-3 text-right">
@@ -1934,7 +2020,7 @@ export default function RentabilidadPanel() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold text-ink">Rentabilidad</h2>
         <p className="mt-1 text-sm text-muted">

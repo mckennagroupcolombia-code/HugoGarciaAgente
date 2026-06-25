@@ -19,8 +19,77 @@ _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "rentabilid
 _CACHE_PATH  = os.path.join(os.path.dirname(__file__), "..", "data", "siigo_costos_cache.json")
 _CACHE_TTL   = 24 * 3600  # 24 horas
 
+_EXCEL_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..", "importaciones_productos")
+_excel_cache: dict = {}          # {code: {precio, nombre, archivo}}
+_excel_cache_ts: float = 0.0
+_EXCEL_TTL = 3600  # 1 hora
+
 COMISION_MELI_DEFAULT = 0.165
 IVA_DEFAULT = 0.19
+
+
+# ─── Excel importaciones → índice de costos ──────────────────────────────────
+
+def _cargar_costos_excel() -> dict:
+    """
+    Lee todos los .xlsx de importaciones_productos/ y devuelve un dict
+    {code_siigo: {precio, nombre, archivo}} con el precio más reciente
+    por código (ordenado por mtime del archivo).
+    Resultado cacheado en memoria 1 hora.
+    """
+    global _excel_cache, _excel_cache_ts
+    if time.time() - _excel_cache_ts < _EXCEL_TTL and _excel_cache:
+        return _excel_cache
+
+    if not os.path.isdir(_EXCEL_FOLDER):
+        return {}
+
+    try:
+        import openpyxl
+    except ImportError:
+        return {}
+
+    index: dict = {}
+    archivos = sorted(
+        (f for f in os.listdir(_EXCEL_FOLDER) if f.endswith(".xlsx")),
+        key=lambda f: os.path.getmtime(os.path.join(_EXCEL_FOLDER, f)),
+    )
+    for fname in archivos:
+        path = os.path.join(_EXCEL_FOLDER, fname)
+        mtime = os.path.getmtime(path)
+        try:
+            wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+            ws = wb.active
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if not row or not row[2]:
+                    continue
+                code = str(row[2]).strip()
+                nombre = str(row[3]).strip() if row[3] else ""
+                try:
+                    precio = float(row[6]) if row[6] else 0.0
+                except (ValueError, TypeError):
+                    precio = 0.0
+                if not code or precio <= 0:
+                    continue
+                # El archivo más reciente (mayor mtime) sobreescribe
+                index[code] = {
+                    "precio": precio,
+                    "nombre": nombre,
+                    "archivo": fname,
+                    "mtime": mtime,
+                }
+            wb.close()
+        except Exception:
+            pass
+
+    _excel_cache = index
+    _excel_cache_ts = time.time()
+    return index
+
+
+def invalidar_cache_excel() -> None:
+    global _excel_cache_ts
+    _excel_cache_ts = 0.0
 
 
 # ─── Normalización de nombres ─────────────────────────────────────────────────
@@ -448,18 +517,33 @@ def combo_costos_desglose(code: str) -> dict:
         cantidad = float(comp.get("quantity") or 1)
         cat = _categorizar(nombre)
 
-        # Fuente 1: facturas de compra Siigo
-        siigo_entry = _buscar_precio_componente(nombre, catalogo) if catalogo else None
-        costo_unit = float(siigo_entry["precio_compra"]) if siigo_entry else 0.0
-        fuente = "siigo" if siigo_entry else None
-        fecha_compra = siigo_entry.get("fecha_compra") if siigo_entry else None
+        # Código Siigo del componente (desde catálogo de productos)
+        code_siigo = catalogo.get("nombre_a_codigo", {}).get(_norm(nombre)) if catalogo else None
 
-        # Fuente 2: registro manual (fallback)
+        fuente: str | None = None
+        fecha_compra: str | None = None
+
+        # Fuente 1: override manual — prioridad absoluta si el usuario lo ingresó
+        stored = buscar_componente(nombre)
+        costo_unit = float(stored["costo_unitario"]) if stored and float(stored.get("costo_unitario") or 0) > 0 else 0.0
+        if costo_unit > 0:
+            fuente = "manual"
+
+        # Fuente 2: Excel de importaciones (código exacto de Siigo)
+        if costo_unit == 0 and code_siigo:
+            excel_idx = _cargar_costos_excel()
+            excel_entry = excel_idx.get(code_siigo)
+            if excel_entry and float(excel_entry.get("precio") or 0) > 0:
+                costo_unit = float(excel_entry["precio"])
+                fuente = "excel"
+
+        # Fuente 3: facturas de compra Siigo (API, caché 24 h)
         if costo_unit == 0:
-            stored = buscar_componente(nombre)
-            if stored:
-                costo_unit = float(stored["costo_unitario"])
-                fuente = "manual"
+            siigo_entry = _buscar_precio_componente(nombre, catalogo) if catalogo else None
+            if siigo_entry:
+                costo_unit = float(siigo_entry["precio_compra"])
+                fuente = "siigo"
+                fecha_compra = siigo_entry.get("fecha_compra")
 
         costo_total = costo_unit * cantidad
         conocido = costo_unit > 0
@@ -482,6 +566,7 @@ def combo_costos_desglose(code: str) -> dict:
             "nombre": nombre,
             "cantidad": cantidad,
             "categoria": cat,
+            "code_siigo": code_siigo,
             "costo_unit": round(costo_unit, 4),
             "costo_total": round(costo_total, 2),
             "costo_conocido": conocido,
