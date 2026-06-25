@@ -4475,9 +4475,21 @@ def register_routes(app):
         nombre = (data.get("nombre") or "").strip()
         if not nombre:
             return jsonify({"error": "Se requiere nombre"}), 400
+
+        costo_bruto = float(data.get("costo_unitario") or 0)
+        iva_incluido = bool(data.get("iva_incluido", False))
+        categoria = data.get("categoria", "material")
+
+        _IVA = 0.19
+        costo_neto = round(costo_bruto / (1 + _IVA), 4) if iva_incluido else costo_bruto
+
         from app.services.contabilidad_db import upsert_componente
-        row = upsert_componente(nombre, float(data.get("costo_unitario") or 0), data.get("categoria", "material"))
-        return jsonify(row)
+        row = upsert_componente(nombre, costo_neto, categoria, iva_incluido)
+
+        from app.services.siigo import actualizar_costo_componente_siigo
+        siigo_result = actualizar_costo_componente_siigo(nombre, costo_neto)
+
+        return jsonify({**row, "siigo": siigo_result})
 
     @app.route("/api/rentabilidad/combo-costos/<code>", methods=["GET"])
     def api_combo_costos(code):

@@ -83,6 +83,7 @@ def init_db() -> None:
         "ALTER TABLE empleados ADD COLUMN usuario_id INTEGER DEFAULT NULL",
         "ALTER TABLE empleados ADD COLUMN dia_pago INTEGER DEFAULT NULL",
         "ALTER TABLE empleados ADD COLUMN telefono_wa TEXT DEFAULT ''",
+        "ALTER TABLE componente_costos ADD COLUMN iva_incluido INTEGER DEFAULT 0",
     ]
     with _conn() as con:
         for sql in _migraciones:
@@ -113,19 +114,26 @@ def listar_componentes() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def upsert_componente(nombre: str, costo_unitario: float, categoria: str) -> dict:
+def upsert_componente(
+    nombre: str,
+    costo_unitario: float,
+    categoria: str,
+    iva_incluido: bool = False,
+) -> dict:
     _ensure()
     norm = _normalizar(nombre)
     now = datetime.now().isoformat()
     with _conn() as con:
         con.execute(
-            """INSERT INTO componente_costos (nombre_normalizado, nombre_original, costo_unitario, categoria, updated_at)
-               VALUES (?, ?, ?, ?, ?)
+            """INSERT INTO componente_costos
+                 (nombre_normalizado, nombre_original, costo_unitario, categoria, iva_incluido, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?)
                ON CONFLICT(nombre_normalizado) DO UPDATE SET
                  costo_unitario = excluded.costo_unitario,
-                 categoria = excluded.categoria,
-                 updated_at = excluded.updated_at""",
-            (norm, nombre.strip(), costo_unitario, categoria, now),
+                 categoria     = excluded.categoria,
+                 iva_incluido  = excluded.iva_incluido,
+                 updated_at    = excluded.updated_at""",
+            (norm, nombre.strip(), costo_unitario, categoria, int(iva_incluido), now),
         )
         row = con.execute(
             "SELECT * FROM componente_costos WHERE nombre_normalizado = ?", (norm,)
