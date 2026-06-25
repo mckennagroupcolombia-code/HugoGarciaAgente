@@ -60,6 +60,36 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573015465396@c.us": {
+      "jid": "573015465396@c.us",
+      "primer_intencion_ts": 1782307902.0,
+      "primer_intencion_texto": "Quería preguntar sobre el pedido",
+      "ultima_human_ts": 1782308598.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573508294562@c.us": {
+      "jid": "573508294562@c.us",
+      "primer_intencion_ts": 1782332172.0,
+      "primer_intencion_texto": "Para cancelar por Nequi",
+      "ultima_human_ts": 1782332380.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573017944737@c.us": {
+      "jid": "573017944737@c.us",
+      "primer_intencion_ts": 1782333641.0,
+      "primer_intencion_texto": "Bueno \nEs que yo te compre por mercado libre un paquete de esos, pero aun no llega.\nNecesito probar tu componente en una mezcla que voy a preparar.\nEsperaré a que llegue el paquete por Mercado Libre y si sale todo bien, me contacto nuevamente para hacerte el pedido",
+      "ultima_human_ts": null,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1782336214.127675,
+      "cancelada": false,
+      "cancelada_razon": null
     }
   }
 }

@@ -15598,7 +15598,10 @@ async function cargarEstadoReanudacion(ticketId: number, token: string): Promise
     fase = "compras_tienda";
     subCompras = "editando";
   } else if (pasosEnServidor) {
-    fase = "cierre";
+    // Los pasos pueden haberse guardado incrementalmente (desde "Guardar · agregar otro").
+    // Regresar siempre a "pasos" para que el usuario pueda continuar añadiendo o avanzar.
+    // Si ya habían llegado a cierre, un clic en "Continuar →" los lleva allá de nuevo.
+    fase = "pasos";
   } else if (conCompras && pasoComprasHecho) {
     fase = "pasos";
     subCompras = "editando";
@@ -16048,13 +16051,14 @@ function NuevaAccionWizard({
     setEditandoPasoIdx(null);
   }
 
-  function guardarPasoEnLista(soloGuardar: boolean) {
+  async function guardarPasoEnLista(soloGuardar: boolean) {
     if (!pasoNombre.trim()) {
       setError("Escribe o dicta qué harás en este paso");
       return;
     }
     setError("");
     const p: PasoAccionDraft = { nombre: pasoNombre.trim(), desc: pasoDesc.trim(), foto: pasoFoto };
+    const fotoASubir = pasoFoto;
     if (editandoPasoIdx !== null) {
       setPasosGuardados((ps) => ps.map((x, i) => (i === editandoPasoIdx ? p : x)));
       cancelarEdicionPaso();
@@ -16064,9 +16068,43 @@ function NuevaAccionWizard({
       setPasoDesc("");
       setPasoFoto(null);
     }
-    if (!soloGuardar) void finalizarConPasos(editandoPasoIdx !== null
-      ? pasosGuardados.map((x, i) => (i === editandoPasoIdx ? p : x))
-      : [...pasosGuardados, p]);
+    if (!soloGuardar) {
+      void finalizarConPasos(editandoPasoIdx !== null
+        ? pasosGuardados.map((x, i) => (i === editandoPasoIdx ? p : x))
+        : [...pasosGuardados, p]);
+      return;
+    }
+    // Persistir paso en servidor inmediatamente para no perderlo si el móvil mata la app
+    const tid = ticketId;
+    if (!tid) return;
+    try {
+      setLoading(true);
+      const nombre = p.nombre.trim();
+      const res = await tapi(`/${tid}/pasos`, token, {
+        method: "POST",
+        body: JSON.stringify({
+          descripcion: nombre,
+          notas: p.desc.trim() || undefined,
+        }),
+      }) as { id?: number } | Paso[];
+      const creado = Array.isArray(res) ? res.find((x) => x.descripcion?.trim() === nombre) : res;
+      const pasoId: number | null = (creado as any)?.id ?? null;
+      if (fotoASubir && pasoId) {
+        const fd = new FormData();
+        fd.append("archivo", fotoASubir);
+        await fetch(`/api/tickets/${tid}/pasos/${pasoId}/adjuntos`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        }).catch(() => {});
+        // Limpiar foto local ya que está subida al servidor
+        setPasosGuardados((ps) =>
+          ps.map((x) => x.nombre === nombre && x.foto === fotoASubir ? { ...x, foto: null } : x),
+        );
+      }
+    } catch { /* no crítico: el paso queda en estado local */ } finally {
+      setLoading(false);
+    }
   }
 
   async function finalizarConPasos(pasosEjec?: PasoAccionDraft[]) {

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-23T21:16:50",
+  "updated_at": "2026-06-24T20:08:53",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -33,9 +33,60 @@
     "2026-06-19": 10,
     "2026-06-20": 5,
     "2026-06-22": 10,
-    "2026-06-23": 8
+    "2026-06-23": 8,
+    "2026-06-24": 2
   },
   "sessions": [
+    {
+      "session_id": "web-d20f29e2-71e7-47bc-bb60-f818a7c2ba4d",
+      "started_at": "2026-06-24T20:08:53",
+      "last_at": "2026-06-24T20:08:53",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/?cat=Suplementarios",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/149.0.7827.137 Mobile/15E148 Safari/604.1",
+      "last_user_message": "L Teanina",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-24T20:08:53",
+          "user_message": "L Teanina",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-44af57c1-22c8-4e4a-aaf3-e45b3c244de1",
+      "started_at": "2026-06-24T17:04:25",
+      "last_at": "2026-06-24T17:04:25",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "hola",
+      "last_agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-24T17:04:25",
+          "user_message": "hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-0e824252-0e0c-4df7-a383-be1e14db5d23",
       "started_at": "2026-06-23T21:16:50",

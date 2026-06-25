@@ -1905,6 +1905,90 @@ def actualizar_precio_combo_siigo(code: str, nuevo_precio: float) -> dict:
     return {"ok": False, "msg": f"Siigo PUT {res_put.status_code}: {res_put.text[:300]}"}
 
 
+def actualizar_costo_componente_siigo(
+    nombre: str,
+    precio_sin_iva: float,
+    catalogo: dict | None = None,
+) -> dict:
+    """
+    Actualiza el precio de lista de un componente (insumo) en Siigo.
+    Busca el producto por nombre normalizado en el catálogo y hace GET → PUT.
+    Retorna {"ok": bool, "msg": str}.
+    """
+    from app.services.rentabilidad import _norm, construir_catalogo_costos
+
+    if catalogo is None:
+        try:
+            catalogo = construir_catalogo_costos()
+        except Exception as e:
+            return {"ok": False, "msg": f"Error cargando catálogo: {e}"}
+
+    codigo = catalogo.get("nombre_a_codigo", {}).get(_norm(nombre))
+    if not codigo:
+        return {"ok": False, "msg": f"'{nombre}' no encontrado en catálogo Siigo"}
+
+    token = autenticar_siigo()
+    if not token:
+        return {"ok": False, "msg": "No se pudo autenticar en Siigo"}
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Partner-Id": PARTNER_ID,
+        "Content-Type": "application/json",
+    }
+
+    try:
+        res = requests.get(
+            "https://api.siigo.com/v1/products",
+            params={"code": codigo},
+            headers=headers,
+            timeout=15,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "msg": f"Error de red: {e}"}
+
+    if res.status_code != 200:
+        return {"ok": False, "msg": f"Siigo GET {res.status_code}: {res.text[:200]}"}
+
+    products = res.json().get("results", [])
+    if not products:
+        return {"ok": False, "msg": f"Producto code='{codigo}' no encontrado en Siigo"}
+
+    product = copy.deepcopy(products[0])
+    product_id = product.get("id")
+    if not product_id:
+        return {"ok": False, "msg": "Producto sin ID en Siigo"}
+
+    # Siigo PUT exige account_group numérico; GET devuelve objeto
+    ag = product.get("account_group")
+    if isinstance(ag, dict) and ag.get("id"):
+        product["account_group"] = ag["id"]
+    elif not isinstance(ag, int):
+        return {"ok": False, "msg": "Producto sin account_group válido en Siigo"}
+
+    prices = product.get("prices") or []
+    if not prices:
+        return {"ok": False, "msg": "Producto sin estructura de precios en Siigo"}
+    for price_group in prices:
+        for pl in (price_group.get("price_list") or []):
+            pl["value"] = round(precio_sin_iva, 2)
+    product["prices"] = prices
+
+    try:
+        res_put = requests.put(
+            f"https://api.siigo.com/v1/products/{product_id}",
+            json=product,
+            headers=headers,
+            timeout=20,
+        )
+    except requests.RequestException as e:
+        return {"ok": False, "msg": f"Error de red al actualizar: {e}"}
+
+    if res_put.status_code in (200, 201):
+        return {"ok": True, "msg": f"Actualizado en Siigo (code={codigo})"}
+    return {"ok": False, "msg": f"Siigo PUT {res_put.status_code}: {res_put.text[:300]}"}
+
+
 _MELI_COMMISSION_WEB = 0.165
 
 
