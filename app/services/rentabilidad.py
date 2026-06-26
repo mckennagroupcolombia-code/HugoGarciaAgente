@@ -590,6 +590,128 @@ def combo_costos_desglose(code: str) -> dict:
     }
 
 
+def costos_todos_resumen() -> dict:
+    """
+    Devuelve {code: {costo_total, sin_costo}} para todos los combos en una sola pasada.
+    Construye el catálogo y carga los combos una sola vez.
+    """
+    from app.services.siigo import listar_productos_combo_siigo
+    from app.services.contabilidad_db import buscar_componente
+
+    try:
+        catalogo = construir_catalogo_costos()
+    except Exception:
+        catalogo = {}
+
+    try:
+        combos = listar_productos_combo_siigo()
+    except Exception:
+        return {}
+
+    resultado: dict[str, dict] = {}
+
+    for combo in combos:
+        code = (combo.get("code") or "").strip()
+        if not code:
+            continue
+
+        costo_total = 0.0
+        sin_costo = 0
+
+        for comp in (combo.get("components") or []):
+            nombre = (comp.get("name") or "").strip()
+            cantidad = float(comp.get("quantity") or 1)
+
+            stored = buscar_componente(nombre)
+            costo_unit = float(stored["costo_unitario"]) if stored and float(stored.get("costo_unitario") or 0) > 0 else 0.0
+
+            if costo_unit == 0:
+                code_siigo = catalogo.get("nombre_a_codigo", {}).get(_norm(nombre)) if catalogo else None
+                if code_siigo:
+                    excel_idx = _cargar_costos_excel()
+                    excel_entry = excel_idx.get(code_siigo)
+                    if excel_entry and float(excel_entry.get("precio") or 0) > 0:
+                        costo_unit = float(excel_entry["precio"])
+
+            if costo_unit == 0:
+                siigo_entry = _buscar_precio_componente(nombre, catalogo) if catalogo else None
+                if siigo_entry:
+                    costo_unit = float(siigo_entry["precio_compra"])
+
+            if costo_unit > 0:
+                costo_total += costo_unit * cantidad
+            else:
+                sin_costo += 1
+
+        resultado[code.upper()] = {
+            "costo_total": round(costo_total, 2),
+            "sin_costo": sin_costo,
+        }
+
+    return resultado
+
+
+def precios_reales_meli() -> dict:
+    """
+    Devuelve {sku: precio_meli} con los precios publicados actualmente en MercadoLibre.
+    Lee los meli_id del cache.json y hace batch fetches a la API de MeLi (20 por llamada).
+    """
+    import json as _json
+    import os as _os
+    import requests as _req
+
+    _CACHE = _os.path.join(_os.path.dirname(__file__), "..", "..", "PAGINA_WEB", "site", "data", "cache.json")
+    try:
+        cache = _json.load(open(_CACHE))
+    except Exception:
+        return {}
+
+    combos = cache.get("combos", [])
+
+    # Construir mapa meli_id → sku
+    id_to_sku: dict[str, str] = {}
+    for p in combos:
+        mid = (p.get("meli_id") or "").strip()
+        sku = (p.get("ref") or p.get("rep_sku") or "").strip()
+        if mid and sku:
+            id_to_sku[mid] = sku
+
+    if not id_to_sku:
+        return {}
+
+    from app.utils import refrescar_token_meli
+    token = refrescar_token_meli()
+    if not token:
+        return {}
+
+    headers = {"Authorization": f"Bearer {token}"}
+    resultado: dict[str, float] = {}
+
+    ids = list(id_to_sku.keys())
+    for i in range(0, len(ids), 20):
+        batch = ids[i:i + 20]
+        try:
+            res = _req.get(
+                "https://api.mercadolibre.com/items",
+                params={"ids": ",".join(batch), "attributes": "id,price"},
+                headers=headers,
+                timeout=15,
+            )
+            if res.status_code != 200:
+                continue
+            for entry in res.json():
+                item = entry.get("body") or {}
+                mid = str(item.get("id") or "").strip()
+                price = item.get("price")
+                if mid and price is not None and mid in id_to_sku:
+                    sku = id_to_sku[mid]
+                    resultado[sku.upper()] = float(price)
+        except Exception:
+            continue
+
+    return resultado
+
+
 # ─── Recordatorios de pagos por WhatsApp ─────────────────────────────────────
 
 def enviar_recordatorios_pagos() -> dict:

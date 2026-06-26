@@ -4504,6 +4504,26 @@ def register_routes(app):
             return jsonify(result), 404
         return jsonify(result)
 
+    @app.route("/api/rentabilidad/costos-todos", methods=["GET"])
+    def api_costos_todos():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import costos_todos_resumen
+        try:
+            return jsonify(costos_todos_resumen())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
+    @app.route("/api/rentabilidad/precios-meli", methods=["GET"])
+    def api_precios_meli():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.services.rentabilidad import precios_reales_meli
+        try:
+            return jsonify(precios_reales_meli())
+        except Exception as e:
+            return jsonify({"error": str(e)}), 502
+
     @app.route("/api/rentabilidad/catalogo-estado", methods=["GET"])
     def api_catalogo_estado():
         if not _api_token_valido():
@@ -4594,13 +4614,7 @@ def register_routes(app):
 
         resultados = {"precios": precios}
 
-        if "siigo" in plataformas:
-            try:
-                from app.services.siigo import actualizar_precio_combo_siigo
-                resultados["siigo"] = actualizar_precio_combo_siigo(code, precios["lista"])
-            except Exception as e:
-                resultados["siigo"] = {"ok": False, "msg": str(e)}
-
+        # 1° MercadoLibre — canal principal de ventas
         if "meli" in plataformas:
             try:
                 from app.services.meli import actualizar_precio_meli_por_sku
@@ -4608,24 +4622,25 @@ def register_routes(app):
             except Exception as e:
                 resultados["meli"] = {"ok": False, "msg": str(e)}
 
+        # 2° Siigo — facturación (precio lista = mismo que MeLi)
+        if "siigo" in plataformas:
+            try:
+                from app.services.siigo import actualizar_precio_combo_siigo
+                resultados["siigo"] = actualizar_precio_combo_siigo(code, precios["lista"])
+            except Exception as e:
+                resultados["siigo"] = {"ok": False, "msg": str(e)}
+
+        # 3° Página web — usa el precio de MeLi directamente, independiente de Siigo
         if "web" in plataformas:
             try:
                 from app.tools.sincronizar_productos_pagina_web import sincronizar_productos_pagina_web
-
-                siigo_ok = resultados.get("siigo", {}).get("ok") if "siigo" in plataformas else True
-                if "siigo" in plataformas and not siigo_ok:
-                    resultados["web"] = {
-                        "ok": False,
-                        "msg": "Web no actualizada: primero debe actualizarse Siigo (catálogo web lee lista Siigo).",
-                    }
-                else:
-                    msg = sincronizar_productos_pagina_web([{"sku": code, "precio": precios["lista"]}])
-                    ok = "❌" not in msg and "Error" not in msg
-                    resultados["web"] = {"ok": ok, "msg": msg}
+                msg = sincronizar_productos_pagina_web([{"sku": code, "precio": precios["lista"]}])
+                ok = "❌" not in msg and "Error" not in msg
+                resultados["web"] = {"ok": ok, "msg": msg}
             except Exception as e:
                 resultados["web"] = {"ok": False, "msg": str(e)}
 
-        canales = [k for k in ("siigo", "meli", "web") if k in plataformas]
+        canales = [k for k in ("meli", "siigo", "web") if k in plataformas]
         resultados["ok"] = all(resultados.get(k, {}).get("ok") for k in canales)
         return jsonify(resultados)
 

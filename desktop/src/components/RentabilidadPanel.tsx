@@ -59,6 +59,11 @@ interface Producto {
   components: Componente[];
 }
 
+interface ResumenCosto {
+  costo_total: number;
+  sin_costo: number;
+}
+
 interface TopProducto {
   code: string;
   name: string;
@@ -168,6 +173,7 @@ function TabCombos() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [costosTodos, setCostosTodos] = useState<Record<string, ResumenCosto>>({});
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [desgloses, setDesgloses] = useState<Record<string, ComboDesglose>>({});
   const [loadingDesgloses, setLoadingDesgloses] = useState<Set<string>>(new Set());
@@ -202,6 +208,9 @@ function TabCombos() {
     } finally {
       setLoading(false);
     }
+    api.get<Record<string, ResumenCosto>>("/api/rentabilidad/costos-todos")
+      .then(setCostosTodos)
+      .catch(() => {});
   }, []);
 
   const cargarCatalogoEstado = useCallback(async () => {
@@ -255,8 +264,12 @@ function TabCombos() {
           6000,
         );
       }
-      const d = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${parentCode}`);
+      const [d, nuevosCostos] = await Promise.all([
+        api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${parentCode}`),
+        api.get<Record<string, ResumenCosto>>("/api/rentabilidad/costos-todos").catch(() => null),
+      ]);
       setDesgloses((prev) => ({ ...prev, [parentCode]: d }));
+      if (nuevosCostos) setCostosTodos(nuevosCostos);
     } catch { /* ignore */ }
     finally {
       setGuardandoCostos((prev) => ({ ...prev, [key]: false }));
@@ -292,12 +305,15 @@ function TabCombos() {
         (d.sin_propuesta > 0 ? ` · ${d.sin_propuesta} sin precio en Siigo` : "")
       );
       setAutofillPreview(null);
-      for (const code of Array.from(expandidos)) {
-        try {
-          const desg = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${code}`);
-          setDesgloses((prev) => ({ ...prev, [code]: desg }));
-        } catch { /* ignore */ }
-      }
+      const [nuevosCostos] = await Promise.allSettled([
+        api.get<Record<string, ResumenCosto>>("/api/rentabilidad/costos-todos"),
+        ...Array.from(expandidos).map((code) =>
+          api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${code}`)
+            .then((desg) => setDesgloses((prev) => ({ ...prev, [code]: desg })))
+            .catch(() => {})
+        ),
+      ]);
+      if (nuevosCostos.status === "fulfilled") setCostosTodos(nuevosCostos.value);
     } catch (e) {
       setAutofillResult((e as Error).message);
     } finally {
@@ -314,12 +330,15 @@ function TabCombos() {
         const d = await api.get<CatalogoEstado>("/api/rentabilidad/catalogo-estado");
         setCatalogoEstado(d);
         if (d.existe && d.vigente) {
-          for (const code of Array.from(expandidos)) {
-            try {
-              const desg = await api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${code}`);
-              setDesgloses((prev) => ({ ...prev, [code]: desg }));
-            } catch { /* ignore */ }
-          }
+          const [nuevosCostos] = await Promise.allSettled([
+            api.get<Record<string, ResumenCosto>>("/api/rentabilidad/costos-todos"),
+            ...Array.from(expandidos).map((code) =>
+              api.get<ComboDesglose>(`/api/rentabilidad/combo-costos/${code}`)
+                .then((desg) => setDesgloses((prev) => ({ ...prev, [code]: desg })))
+                .catch(() => {})
+            ),
+          ]);
+          if (nuevosCostos.status === "fulfilled") setCostosTodos(nuevosCostos.value);
           break;
         }
       }
@@ -336,8 +355,12 @@ function TabCombos() {
   }, [productos, busqueda]);
 
   const combosConCostoCompleto = useMemo(
-    () => Object.values(desgloses).filter((d) => d.totales.componentes_sin_costo === 0).length,
-    [desgloses]
+    () => Object.values(costosTodos).filter((c) => c.sin_costo === 0).length,
+    [costosTodos]
+  );
+  const totalCostosConocidos = useMemo(
+    () => Object.keys(costosTodos).length,
+    [costosTodos]
   );
 
   return (
@@ -470,10 +493,16 @@ function TabCombos() {
               <span className="font-bold text-ink">{productosFiltrados.length}</span> resultados
             </span>
           )}
-          {Object.keys(desgloses).length > 0 && (
-            <span className="rounded-full border border-border bg-surface-panel px-3 py-1 text-ink-secondary">
-              <span className="font-bold text-green-600 dark:text-green-400">{combosConCostoCompleto}</span>
-              /{Object.keys(desgloses).length} con costo completo
+          {totalCostosConocidos > 0 && (
+            <span className={`rounded-full border px-3 py-1 text-ink-secondary ${
+              combosConCostoCompleto === totalCostosConocidos
+                ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                : "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
+            }`}>
+              <span className={`font-bold ${combosConCostoCompleto === totalCostosConocidos ? "text-green-700 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}`}>
+                {combosConCostoCompleto}
+              </span>
+              <span className="text-muted">/{totalCostosConocidos} con costo completo</span>
             </span>
           )}
         </div>
@@ -515,12 +544,14 @@ function TabCombos() {
                 const isExpanded = expandidos.has(p.code);
                 const isLoadingThis = loadingDesgloses.has(p.code);
                 const desglose = desgloses[p.code];
-                const sinCosto = desglose?.totales.componentes_sin_costo ?? null;
+                const resumenCosto = costosTodos[p.code.toUpperCase()];
+                const sinCosto = desglose?.totales.componentes_sin_costo ?? resumenCosto?.sin_costo ?? null;
                 const costoTotal = desglose
                   ? desglose.totales.costo_materiales + desglose.totales.costo_envase +
                     desglose.totales.costo_etiqueta + desglose.totales.otros_costos +
                     desglose.totales.costo_nomina
-                  : null;
+                  : resumenCosto?.costo_total ?? null;
+                const completo = sinCosto === 0;
 
                 return (
                   <Fragment key={p.code}>
@@ -544,13 +575,18 @@ function TabCombos() {
                             <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
                           </div>
                         ) : costoTotal != null ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span className="font-mono text-ink">{cop(costoTotal)}</span>
-                            {sinCosto != null && sinCosto > 0 && (
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="font-mono text-sm text-ink">{cop(costoTotal)}</span>
+                            {completo ? (
+                              <span
+                                title="Todos los componentes tienen costo"
+                                className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              >✓</span>
+                            ) : sinCosto != null && sinCosto > 0 ? (
                               <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                                 {sinCosto} sin costo
                               </span>
-                            )}
+                            ) : null}
                           </div>
                         ) : (
                           <span className="text-xs text-muted">—</span>
@@ -1645,6 +1681,8 @@ function TabPrecios() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [costos, setCostos] = useState<Record<string, ResumenCosto>>({});
+  const [preciosMeli, setPreciosMeli] = useState<Record<string, number>>({});
 
   const [editando, setEditando] = useState<string | null>(null);
   const [nuevoPrecio, setNuevoPrecio] = useState("");
@@ -1668,6 +1706,12 @@ function TabPrecios() {
     } finally {
       setLoading(false);
     }
+    api.get<Record<string, ResumenCosto>>("/api/rentabilidad/costos-todos")
+      .then(setCostos)
+      .catch(() => {});
+    api.get<Record<string, number>>("/api/rentabilidad/precios-meli")
+      .then(setPreciosMeli)
+      .catch(() => {});
   }, []);
 
   useEffect(() => { void cargar(); }, [cargar]);
@@ -1791,7 +1835,8 @@ function TabPrecios() {
               <tr>
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Código</th>
                 <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-muted">Producto</th>
-                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio Siigo (≈ MeLi)</th>
+                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Costo total</th>
+                <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted">Precio MercadoLibre</th>
                 <th className="px-4 py-3 text-right text-[11px] font-bold uppercase tracking-wide text-muted"></th>
               </tr>
             </thead>
@@ -1799,6 +1844,9 @@ function TabPrecios() {
               {productosFiltrados.map((p) => {
                 const isEditing = editando === p.code;
                 const resultado = resultados[p.code];
+                const costoInfo = costos[p.code.toUpperCase()];
+                const precioMeliReal = preciosMeli[p.code.toUpperCase()];
+                const diffMeli = precioMeliReal != null && precioMeliReal !== p.precio_lista;
 
                 return (
                   <Fragment key={p.code}>
@@ -1807,14 +1855,37 @@ function TabPrecios() {
                       <td className="px-4 py-3 font-medium text-ink">
                         <div className="truncate">{p.name}</div>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-ink">{cop(p.precio_lista)}</td>
+                      <td className="px-4 py-3 text-right">
+                        {costoInfo == null ? (
+                          <span className="text-xs text-muted">—</span>
+                        ) : costoInfo.sin_costo > 0 ? (
+                          <span className="inline-flex flex-col items-end gap-0.5">
+                            <span className="font-mono text-xs text-ink">{cop(costoInfo.costo_total)}</span>
+                            <span className="text-[10px] text-orange-500">{costoInfo.sin_costo} sin costo</span>
+                          </span>
+                        ) : (
+                          <span className="font-mono text-xs text-ink">{cop(costoInfo.costo_total)}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {precioMeliReal != null ? (
+                          <span className="inline-flex flex-col items-end gap-0.5">
+                            <span className="font-mono text-xs text-ink">{cop(precioMeliReal)}</span>
+                            {diffMeli && (
+                              <span className="text-[10px] text-muted" title="Precio Siigo (lista)">Siigo: {cop(p.precio_lista)}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="font-mono text-xs text-ink">{cop(p.precio_lista)}</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         {resultado && !isEditing && (
                           <div className="mb-1 space-y-1 text-right">
                             <div className="flex flex-wrap gap-1 justify-end">
-                              {Object.entries(resultado)
-                                .filter(([plat]) => plat !== "precios" && ["siigo", "meli", "web"].includes(plat))
-                                .map(([plat, res]) => (
+                              {(["meli", "siigo", "web"] as const)
+                                .filter((plat) => plat in resultado)
+                                .map((plat) => { const res = resultado[plat]!; return (
                                 <span
                                   key={plat}
                                   title={"msg" in res ? res.msg : ""}
@@ -1824,15 +1895,15 @@ function TabPrecios() {
                                       : "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400"
                                   }`}
                                 >
-                                  {"ok" in res && res.ok ? "✓" : "✗"} {PLAT_LABELS[plat] ?? plat}
+                                  {"ok" in res && res.ok ? "✓" : "✗"} {PLAT_LABELS[plat]}
                                 </span>
-                              ))}
+                              ); })}
                             </div>
-                            {Object.entries(resultado)
-                              .filter(([plat, res]) => ["siigo", "meli", "web"].includes(plat) && "ok" in res && !res.ok && res.msg)
-                              .map(([plat, res]) => (
+                            {(["meli", "siigo", "web"] as const)
+                              .filter((plat) => plat in resultado && "ok" in resultado[plat]! && !resultado[plat]!.ok && resultado[plat]!.msg)
+                              .map((plat) => (
                                 <p key={plat} className="text-[10px] text-red-600 dark:text-red-400 leading-snug max-w-[220px] ml-auto">
-                                  {PLAT_LABELS[plat]}: {res.msg}
+                                  {PLAT_LABELS[plat]}: {resultado[plat]!.msg}
                                 </p>
                               ))}
                           </div>
@@ -1859,12 +1930,12 @@ function TabPrecios() {
 
                     {isEditing && (
                       <tr className="border-b border-border/50">
-                        <td colSpan={4} className="px-4 pb-4 pt-2">
+                        <td colSpan={5} className="px-4 pb-4 pt-2">
                           <div className="rounded-xl border-2 border-accent/30 bg-surface p-4 space-y-4">
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                               <div className="space-y-1">
                                 <label className="block text-xs font-semibold text-ink-secondary">
-                                  Precio actual
+                                  Precio actual en MercadoLibre
                                 </label>
                                 <div className="rounded-paper border-2 border-border bg-surface-hover px-3 py-2 font-mono text-sm text-ink">
                                   {cop(p.precio_lista)}
@@ -1872,10 +1943,10 @@ function TabPrecios() {
                               </div>
                               <div className="space-y-1">
                                 <label className="block text-xs font-semibold text-ink-secondary">
-                                  Precio publicado en MeLi (referencia maestra) *
+                                  Nuevo precio MercadoLibre
                                 </label>
                                 <p className="text-[11px] text-muted leading-snug">
-                                  Cada producto con su valor. Siigo tomará el mismo monto; la web mostrará descuento + envío aparte.
+                                  Canal principal de ventas. Siigo y la página web se actualizan automáticamente con este precio.
                                 </p>
                                 <div className="flex items-center rounded-paper border-2 border-accent bg-surface focus-within:border-accent transition">
                                   <span className="px-2 text-xs text-muted">$</span>
@@ -1944,7 +2015,7 @@ function TabPrecios() {
                             <div className="space-y-2">
                               <p className="text-xs font-semibold text-ink-secondary">Actualizar en:</p>
                               <div className="flex flex-wrap gap-3">
-                                {(["siigo", "meli", "web"] as const).map((key) => (
+                                {(["meli", "siigo", "web"] as const).map((key) => (
                                   <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
                                     <input
                                       type="checkbox"
@@ -1952,7 +2023,10 @@ function TabPrecios() {
                                       onChange={() => togglePlataforma(key)}
                                       className="h-4 w-4 rounded accent-accent"
                                     />
-                                    <span className="text-sm text-ink">{PLAT_LABELS[key]}</span>
+                                    <span className="text-sm text-ink">
+                                      {PLAT_LABELS[key]}
+                                      {key === "meli" && <span className="ml-1 text-[10px] font-bold text-accent">★ principal</span>}
+                                    </span>
                                   </label>
                                 ))}
                               </div>

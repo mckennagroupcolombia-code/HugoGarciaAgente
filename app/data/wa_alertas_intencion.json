@@ -117,7 +117,27 @@
       "primer_intencion_texto": "Quedo atento para proceder a comprar",
       "ultima_human_ts": 1782416856.0,
       "ultimo_bot_ts": null,
-      "alerta_enviada_ts": 1782416608.6004457,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573104578432@c.us": {
+      "jid": "573104578432@c.us",
+      "primer_intencion_ts": 1773342214.0,
+      "primer_intencion_texto": "El Qr no funciona",
+      "ultima_human_ts": 1773342490.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573196529076@c.us": {
+      "jid": "573196529076@c.us",
+      "primer_intencion_ts": 1774384077.0,
+      "primer_intencion_texto": "Si linda, ese era el error. Lo que pasa es que lo que toca cambiar es en lugar de facturar en SIIGO POS , hay quefacturar de ahora en adelante en SIIGO NUBE. porque en SIIGO NUBE es donde deja adjuntar el recibo de pago y como no se esta reciiendo plata en efectivo, sino mediante transferencia electrónica, lo ideal es usar SIIGO NUBE.",
+      "ultima_human_ts": 1774384940.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
     }
