@@ -1721,11 +1721,20 @@ def _precio_lista_siigo_producto(p: dict) -> float:
         return 0.0
 
 
+_combos_cache: list = []
+_combos_cache_ts: float = 0.0
+_COMBOS_TTL = 300  # 5 minutos
+
+
 def listar_productos_combo_siigo() -> list:
     """
     Devuelve los items crudos de la API SIIGO con type Combo (activos).
     Si el filtro type=Combo no devuelve datos, pagina todos los productos y filtra.
     """
+    global _combos_cache, _combos_cache_ts
+    if _combos_cache and time.time() - _combos_cache_ts < _COMBOS_TTL:
+        return _combos_cache
+
     token = autenticar_siigo()
     if not token:
         return []
@@ -1772,6 +1781,8 @@ def listar_productos_combo_siigo() -> list:
             break
 
     if out:
+        _combos_cache = out
+        _combos_cache_ts = time.time()
         return out
 
     for page in range(1, 2000):
@@ -1794,6 +1805,9 @@ def listar_productos_combo_siigo() -> list:
         if len(results) < 100:
             break
 
+    if out:
+        _combos_cache = out
+        _combos_cache_ts = time.time()
     return out
 
 
@@ -1881,14 +1895,11 @@ def actualizar_precio_combo_siigo(code: str, nuevo_precio: float) -> dict:
                 timeout=12,
             )
             if rc.status_code == 200:
-                comp["code"] = rc.json().get("code") or ""
+                fetched_code = rc.json().get("code") or ""
+                if fetched_code:
+                    comp["code"] = fetched_code
         except requests.RequestException:
             pass
-        if not comp.get("code"):
-            return {
-                "ok": False,
-                "msg": f"Componente Siigo id={comp_id} sin code — no se puede actualizar el combo",
-            }
 
     try:
         res_put = requests.put(
