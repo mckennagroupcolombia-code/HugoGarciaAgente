@@ -4073,6 +4073,7 @@ function TabImprimir({
   const [offsetV, setOffsetV] = useState(0.0);
   const [offsetH, setOffsetH] = useState(0.0);
   const [vistaImpresion, setVistaImpresion] = useState<"catalogo" | "documento">("catalogo");
+  const [versionPreview, setVersionPreview] = useState<"original" | "alternativa">("alternativa");
   const [skuActivoImpresion, setSkuActivoImpresion] = useState("");
   const [filaActiva, setFilaActiva] = useState<CatalogoStudioFila | null>(null);
   const [studioDatos, setStudioDatos] = useState<EtiquetaStudioDatos>({ ...ETIQUETA_STUDIO_DEFAULT });
@@ -4132,7 +4133,7 @@ function TabImprimir({
     const pres = presentacionDesdeTipoEtiqueta(formato.nombre);
     return {
       ...studioDatos,
-      modo_etiqueta: studioDatos.modo_etiqueta ?? "alternativa",
+      modo_etiqueta: versionPreview,
       descripcion_etiqueta: studioDatos.descripcion_etiqueta ?? "",
       tipo_etiqueta: formato.nombre,
       ancho_mm: formato.anchoMm,
@@ -4142,7 +4143,7 @@ function TabImprimir({
       lote: loteParaEtiqueta(lote) || studioDatos.lote,
       vencimiento: expParaEtiqueta(vencimiento) || studioDatos.vencimiento,
     };
-  }, [studioDatos, formato, lote, vencimiento]);
+  }, [studioDatos, formato, lote, vencimiento, versionPreview]);
 
   useEffect(() => {
     if (vistaImpresion !== "documento" || !studioDatosImpresion.sku.trim()) return;
@@ -4258,6 +4259,7 @@ function TabImprimir({
     const base = studioDatosDesdeCatalogo(fila, guardado);
     if (datos.lote_defecto) base.lote = datos.lote_defecto;
     if (datos.vencimiento_defecto) base.vencimiento = datos.vencimiento_defecto;
+    setVersionPreview("alternativa");
     setStudioDatos(base);
 
     const tipo = datos.tipo_etiqueta || fila.tipo_etiqueta || base.tipo_etiqueta;
@@ -4597,17 +4599,38 @@ function TabImprimir({
         <div className="flex min-h-[min(55vh,520px)] flex-col bg-surface-hover/20">
           <div className="flex flex-shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-surface-panel/80 px-4 py-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">Vista previa</span>
-            {filaActiva?.archivo_ai && (
-              <span className="truncate font-mono text-[10px] text-muted" title={filaActiva.archivo_ai}>
-                {filaActiva.archivo_ai}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {filaActiva?.archivo_ai && (
+                <span className="truncate font-mono text-[10px] text-muted" title={filaActiva.archivo_ai}>
+                  {filaActiva.archivo_ai}
+                </span>
+              )}
+              {productoListo && (
+                <div className="flex rounded border border-border bg-surface p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setVersionPreview("alternativa")}
+                    className={`rounded px-2 py-0.5 text-[10px] font-semibold ${versionPreview === "alternativa" ? "bg-accent text-white" : "text-muted hover:bg-surface-hover"}`}
+                  >
+                    Alternativa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVersionPreview("original")}
+                    className={`rounded px-2 py-0.5 text-[10px] font-semibold ${versionPreview === "original" ? "bg-accent text-white" : "text-muted hover:bg-surface-hover"}`}
+                  >
+                    Original
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="relative flex flex-1 items-center justify-center overflow-auto p-3">
             {productoListo ? (
               <EtiquetaMckennaPreview
                 datos={studioDatosImpresion}
                 marcoFormato
+                raw={versionPreview === "original"}
                 className="w-full max-w-[420px]"
               />
             ) : (

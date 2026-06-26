@@ -1,5 +1,46 @@
 {
-  "pendientes": {},
+  "pendientes": {
+    "2000016970034342": {
+      "pack_id": "2000016970034342",
+      "codigo": "342",
+      "comprador": "Comprador 152015919",
+      "from_id": "152015919",
+      "texto": "Buenos días, como estás, una pregunta.\nEl medidor ya está calibrado para partículas y para conductividad electrica?",
+      "msg_id": "019eff4b077d753ebdfc86261f948547",
+      "productos": "  • Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+      "timestamp": "2026-06-25T09:59:30"
+    },
+    "342": {
+      "pack_id": "2000016970034342",
+      "codigo": "342",
+      "comprador": "Comprador 152015919",
+      "from_id": "152015919",
+      "texto": "Buenos días, como estás, una pregunta.\nEl medidor ya está calibrado para partículas y para conductividad electrica?",
+      "msg_id": "019eff4b077d753ebdfc86261f948547",
+      "productos": "  • Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+      "timestamp": "2026-06-25T09:59:30"
+    },
+    "2000013637206593": {
+      "pack_id": "2000013637206593",
+      "codigo": "593",
+      "comprador": "Comprador 2597927391",
+      "from_id": "2597927391",
+      "texto": "[Solo adjunto(s) en MeLi: IMG_20260625_173630.jpeg] — revisar conversación en Mercado Libre (p. ej. RUT / factura en PDF).",
+      "msg_id": "019f00edc7287e53afb34805544e2895",
+      "productos": "",
+      "timestamp": "2026-06-25T17:36:56"
+    },
+    "593": {
+      "pack_id": "2000013637206593",
+      "codigo": "593",
+      "comprador": "Comprador 2597927391",
+      "from_id": "2597927391",
+      "texto": "[Solo adjunto(s) en MeLi: IMG_20260625_173630.jpeg] — revisar conversación en Mercado Libre (p. ej. RUT / factura en PDF).",
+      "msg_id": "019f00edc7287e53afb34805544e2895",
+      "productos": "",
+      "timestamp": "2026-06-25T17:36:56"
+    }
+  },
   "procesados": [
     "0197f014c366762f80ba17f99a3692e7",
     "019e6097f07374ac919fee35b1ee3544",
@@ -69,11 +110,13 @@
     "019ef106b39575a7a558e554df5a85d1",
     "019e1db0f009761196a3eb9e8b173065",
     "019ef63d8cdc7d65b422d0d329f108b3",
+    "019f00e9b28476b2baf0a97d86d32a9b",
     "019ed61597997069a16ae0adf263bed5",
     "019eb2b8d95670e490452581772fa198",
     "019e065582d871eca1d99ff774479830",
     "019d6efc83d3721981a55e46885bca77",
     "019e9e1280cf7558bf16cc8e4d5b7159",
+    "019eff4b077d753ebdfc86261f948547",
     "019ebc887d047018a26ed91fee19d9a3",
     "019efacff6947c159790167a4c50267d",
     "019eb313679979a5a85daf28b0fbc61c",
@@ -105,6 +148,7 @@
     "019e1838d74574318693d3ce516ce384",
     "019d887f306174afa64ca12801501b9c",
     "019e3b908e227bc1818da5f5e0e88747",
+    "019f00edc7287e53afb34805544e2895",
     "019de416a2ab7bd5a1456f8d6c43d09a",
     "019e84662fa7772099d265f22f5200d3",
     "019ec87e94997e6e9bffebe8ab8b43f2",
@@ -185,6 +229,7 @@
     "019dd9d50c437ce2a8c5bdc6b09d5d54",
     "019ddbd944d272238246a785202fbe77",
     "019e19eefe1a7131bc1e74f5b29e34e5",
+    "019efece18a67b94ab876c500e43b50d",
     "019db08c46a979eca054bceaa9c6e709",
     "019ee598fc237b0195fcf99f380b8abf",
     "019ddbc557577ecf957dd1d70c873e1f",

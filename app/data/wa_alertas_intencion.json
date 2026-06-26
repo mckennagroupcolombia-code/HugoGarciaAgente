@@ -90,6 +90,36 @@
       "alerta_enviada_ts": 1782336214.127675,
       "cancelada": false,
       "cancelada_razon": null
+    },
+    "573115889050@c.us": {
+      "jid": "573115889050@c.us",
+      "primer_intencion_ts": 1782405183.0,
+      "primer_intencion_texto": "Me gustaría saber si manejan la siguiente materia prima\n\nEn caso de tenerla disponible, ¿me podrían colaborar con la siguiente información?\n\nPrecio por kilo.\nCantidad mínima que venden.\nTiempo aproximado de entrega a Bucaramanga.\nSi la manejan de forma constante o es bajo pedido.\nValor con IVA y sin IVA.\nSi es posible solicitar una muestra para realizar pruebas",
+      "ultima_human_ts": 1782405471.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573187462545@c.us": {
+      "jid": "573187462545@c.us",
+      "primer_intencion_ts": 1782411491.0,
+      "primer_intencion_texto": "Había pedido un btms, ácido salicílico y árbol de te",
+      "ultima_human_ts": 1782411606.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573168486722@c.us": {
+      "jid": "573168486722@c.us",
+      "primer_intencion_ts": 1782415676.0,
+      "primer_intencion_texto": "Quedo atento para proceder a comprar",
+      "ultima_human_ts": 1782416856.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1782416608.6004457,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }
