@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-24T20:08:53",
+  "updated_at": "2026-06-25T21:31:42",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -34,9 +34,181 @@
     "2026-06-20": 5,
     "2026-06-22": 10,
     "2026-06-23": 8,
-    "2026-06-24": 2
+    "2026-06-24": 2,
+    "2026-06-25": 15
   },
   "sessions": [
+    {
+      "session_id": "web-de8ff4ed-a7ae-4ac2-91e9-f770381658d5",
+      "started_at": "2026-06-25T21:27:23",
+      "last_at": "2026-06-25T21:31:42",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "trietil citrato para perfumería",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-25T21:27:23",
+          "user_message": "hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T21:30:15",
+          "user_message": "estoy buscando dpg",
+          "agent_reply": "Claro, veci. Tenemos *DIPROPILENGLICOL500mL* como materia prima. Presentación: $25,050 COP — Ref. C-DPG500mL.\nComprar: https://articulo.mercadolibre.com.co/MCO-581504092 ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T21:31:11",
+          "user_message": "y el tec",
+          "agent_reply": "Claro, veci. Tenemos *DIPROPILENGLICOL500mL* como materia prima. Presentación: $25,050 COP — Ref. C-DPG500mL.\nComprar: https://articulo.mercadolibre.com.co/MCO-581504092 ¿Cuántas unidades necesita?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T21:31:42",
+          "user_message": "trietil citrato para perfumería",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-56226bb2-01cd-40e9-a4ad-3ac7eee64c44",
+      "started_at": "2026-06-25T13:02:43",
+      "last_at": "2026-06-25T13:20:14",
+      "messages_count": 5,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "last_user_message": "romero, avena y una que funcione con carbón activado",
+      "last_agent_reply": "Claro veci. Le confirmo lo que tenemos en catálogo web: *romero* → *ACETE ESENCIAL ROMERO 5mL* — $14,195 COP — Ref. C-ACEIESENROM5mL *avena y una que funcione con carbón activado*: no aparece en catálogo web. ¿Cuáles presentaciones le sirven para armar el pedido?",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-25T13:02:43",
+          "user_message": "Buenas tardes",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T13:02:48",
+          "user_message": "Saludos",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T13:03:21",
+          "user_message": "Tienen aceite de coco?",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T13:19:45",
+          "user_message": "ok y fragancias?",
+          "agent_reply": "Claro que sí, veci. Manejamos varias fragancias para cosmética. ¿Cuál anda buscando?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T13:20:14",
+          "user_message": "romero, avena y una que funcione con carbón activado",
+          "agent_reply": "Claro veci. Le confirmo lo que tenemos en catálogo web: *romero* → *ACETE ESENCIAL ROMERO 5mL* — $14,195 COP — Ref. C-ACEIESENROM5mL *avena y una que funcione con carbón activado*: no aparece en catálogo web. ¿Cuáles presentaciones le sirven para armar el pedido?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-a37128d6-6167-478d-877e-9cdef8c660d9",
+      "started_at": "2026-06-25T06:58:20",
+      "last_at": "2026-06-25T07:02:36",
+      "messages_count": 6,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Muchas gracias",
+      "last_agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-25T06:58:20",
+          "user_message": "Alfa arbutina busco 50g",
+          "agent_reply": "Veci, la Alfa Arbutina no me aparece en el catálogo web en este momento. Puede revisar todas las materias primas que sí tenemos disponibles en nuestra tienda online: mckennagroup.co/tienda.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T06:58:57",
+          "user_message": "Metabisulfito de sodio",
+          "agent_reply": "Veci, el Metabisulfito de Sodio no me aparece en el catálogo web en este momento. Puede revisar todas las materias primas que sí tenemos disponibles en nuestra tienda online: mckennagroup.co/tienda.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T06:59:40",
+          "user_message": "Desde qué horario trabajan ustedes?",
+          "agent_reply": "Veci, nuestro horario de despachos es de lunes a viernes. Para Bogotá, las entregas se realizan el mismo día.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T07:00:31",
+          "user_message": "Y en wpp cuando responden? A partir de las 8am?",
+          "agent_reply": "Correcto, veci. La atención por WhatsApp es de lunes a viernes a partir de las 8 a.m.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T07:02:19",
+          "user_message": "Perfecto, si algún producto no lo encuentro en el catálogo es posible que se pueda conseguir?",
+          "agent_reply": "Claro que sí, veci. Lo que ve en la tienda es nuestro inventario de línea. Si necesita alguna materia prima que no encuentre ahí, nos puede escribir al WhatsApp +57 319 518 3596 y nos cuenta qué necesita. Con gusto validamos si se la podemos conseguir por encargo.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-25T07:02:36",
+          "user_message": "Muchas gracias",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-d20f29e2-71e7-47bc-bb60-f818a7c2ba4d",
       "started_at": "2026-06-24T20:08:53",
