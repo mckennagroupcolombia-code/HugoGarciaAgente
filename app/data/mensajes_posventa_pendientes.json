@@ -1,26 +1,5 @@
 {
-  "pendientes": {
-    "2000012824393407": {
-      "pack_id": "2000012824393407",
-      "codigo": "407",
-      "comprador": "Comprador 239937049",
-      "from_id": "239937049",
-      "texto": "[Solo adjunto(s) en MeLi: IMG_20260626_161544.jpeg] — revisar conversación en Mercado Libre (p. ej. RUT / factura en PDF).",
-      "msg_id": "019f05cb1dc877b2bdafe5729abc083d",
-      "productos": "",
-      "timestamp": "2026-06-26T16:17:11"
-    },
-    "407": {
-      "pack_id": "2000012824393407",
-      "codigo": "407",
-      "comprador": "Comprador 239937049",
-      "from_id": "239937049",
-      "texto": "[Solo adjunto(s) en MeLi: IMG_20260626_161544.jpeg] — revisar conversación en Mercado Libre (p. ej. RUT / factura en PDF).",
-      "msg_id": "019f05cb1dc877b2bdafe5729abc083d",
-      "productos": "",
-      "timestamp": "2026-06-26T16:17:11"
-    }
-  },
+  "pendientes": {},
   "procesados": [
     "0197f014c366762f80ba17f99a3692e7",
     "019e6097f07374ac919fee35b1ee3544",
