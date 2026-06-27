@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-06-25T21:31:42",
+  "updated_at": "2026-06-26T22:15:38",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -35,9 +35,117 @@
     "2026-06-22": 10,
     "2026-06-23": 8,
     "2026-06-24": 2,
-    "2026-06-25": 15
+    "2026-06-25": 15,
+    "2026-06-26": 7
   },
   "sessions": [
+    {
+      "session_id": "web-71d1a2ed-4618-4783-8daa-878c982fa63a",
+      "started_at": "2026-06-26T22:15:38",
+      "last_at": "2026-06-26T22:15:38",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Hola me agregas cristal de menta al carrito",
+      "last_agent_reply": "¡De una, veci! Yo no tengo cómo agregarlo a su carrito desde acá, pero le envío el link directo de la publicación para que lo pueda hacer de una. Ahí puede elegir la presentación que necesita y agregarlo sin problema. Cualquier cosa, me avisa. [Link de la publicación de Cristales de Mentol]",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-26T22:15:38",
+          "user_message": "Hola me agregas cristal de menta al carrito",
+          "agent_reply": "¡De una, veci! Yo no tengo cómo agregarlo a su carrito desde acá, pero le envío el link directo de la publicación para que lo pueda hacer de una. Ahí puede elegir la presentación que necesita y agregarlo sin problema. Cualquier cosa, me avisa. [Link de la publicación de Cristales de Mentol]",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-445d881d-8f5e-4977-b7e8-6cac3c5467c0",
+      "started_at": "2026-06-26T22:09:44",
+      "last_at": "2026-06-26T22:11:06",
+      "messages_count": 4,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "En qué presentación hay",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-26T22:09:44",
+          "user_message": "Hola, manejan DMSO, y en qué porcentajes de pureza",
+          "agent_reply": "Hola veci, claro que sí. Manejamos el DMSO (Dimetilsulfóxido) con una pureza del 99.9%. Es importante que tenga en cuenta que nuestro producto es grado industrial, utilizado principalmente como solvente.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-26T22:10:27",
+          "user_message": "Genial, me regalas tamaños y precios por favor",
+          "agent_reply": "Claro veci. Le confirmo lo que tenemos en catálogo web: *Genial*: no aparece en catálogo web. *me regalas tamaños y precios por favor*: no aparece en catálogo web. ¿Cuáles presentaciones le sirven para armar el pedido?",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-26T22:10:48",
+          "user_message": "Presentación 500ml",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-26T22:11:06",
+          "user_message": "En qué presentación hay",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-4f914b0e-db8a-4d75-b6aa-7c55a4e1dae7",
+      "started_at": "2026-06-26T17:12:31",
+      "last_at": "2026-06-26T17:12:49",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Hablas con Karla de Quifarma",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-06-26T17:12:31",
+          "user_message": "Buenas tardes",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-06-26T17:12:49",
+          "user_message": "Hablas con Karla de Quifarma",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-de8ff4ed-a7ae-4ac2-91e9-f770381658d5",
       "started_at": "2026-06-25T21:27:23",

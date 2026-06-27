@@ -958,6 +958,20 @@
       "pregunta": "Cual de estos productos me sirve para el melasma",
       "timestamp": "2026-06-25T23:16:49.036974",
       "respondida": true
+    },
+    {
+      "question_id": "13610458609",
+      "titulo_producto": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+      "pregunta": "hola, puede diferenciar miligramos de manera exacta?",
+      "timestamp": "2026-06-26T22:40:45.244628",
+      "respondida": false
+    },
+    {
+      "question_id": "13610457825",
+      "titulo_producto": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+      "pregunta": "Lo que pasa es que manejo productos que por diferencia de 2 o 3 miligramos podré saber si es genuino o no, me sirve?",
+      "timestamp": "2026-06-26T21:40:38.821606",
+      "respondida": true
     }
   ]
 }
