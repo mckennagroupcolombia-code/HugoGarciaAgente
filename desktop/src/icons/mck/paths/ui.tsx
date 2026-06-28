@@ -453,6 +453,12 @@ export const MCK_UI_PATHS: Record<string, ReactNode> = {
     <path d="M10 8.5l6 3.5-6 3.5z" />
   </>
   ),
+  pause: (
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M10 8v8M14 8v8" />
+  </>
+  ),
   rocket: (
     <>
       <path d="M12 3c3 4 4 8 4 12a4 4 0 0 1-8 0c0-4 1-8 4-12z" />

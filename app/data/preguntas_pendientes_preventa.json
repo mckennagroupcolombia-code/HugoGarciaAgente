@@ -963,8 +963,8 @@
       "question_id": "13610458609",
       "titulo_producto": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
       "pregunta": "hola, puede diferenciar miligramos de manera exacta?",
-      "timestamp": "2026-06-27T01:41:02.499883",
-      "respondida": false
+      "timestamp": "2026-06-27T13:42:12.090424",
+      "respondida": true
     },
     {
       "question_id": "13610457825",
@@ -972,6 +972,15 @@
       "pregunta": "Lo que pasa es que manejo productos que por diferencia de 2 o 3 miligramos podré saber si es genuino o no, me sirve?",
       "timestamp": "2026-06-26T21:40:38.821606",
       "respondida": true
+    },
+    {
+      "question_id": "13610900425",
+      "titulo_producto": "Lactato De Calcio Polvo 250gr N/a",
+      "pregunta": "Buena tarde,.mira estoy interesada en el producto pero necesito el despacho mas rápido como podriamos hacer?",
+      "timestamp": "2026-06-27T18:08:59.357151",
+      "respondida": true,
+      "borrador_ia": "Hola veci, ¡buenas tardes! Con gusto le colaboro con su inquietud.\n\nLe cuento que todos nuestros despachos se realizan a través de Mercado Envíos, que es el servicio de logística oficial de la plataforma. Ellos se encargan de gestionar la entrega para que su pedido llegue de la forma más rápida y segura posible.\n\nAl momento de hacer la compra, justo antes de pagar, el sistema le mostrará la fecha estimada de llegada para su dirección. Esa es la opción de despacho más ágil que Mercado Libre puede ofrecerle. ¡Quedo atento si tiene alguna otra duda",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-06-27"
     }
   ]
 }

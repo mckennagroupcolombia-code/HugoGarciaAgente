@@ -16,6 +16,7 @@ from app.services.tickets_db import (
     listar_departamentos, crear_departamento, actualizar_departamento,
     listar_usuarios, crear_usuario, actualizar_usuario, desactivar_usuario,
     actualizar_foto_usuario, eliminar_foto_usuario, actualizar_preferencias_ui,
+    get_bolsillo_usuario, set_bolsillo_usuario,
     crear_ticket, listar_tickets, listar_compras_delegadas, get_ticket, actualizar_ticket,
     cambiar_estado, asignar_ticket, agregar_comentario,
     renovar_ticket,
@@ -590,6 +591,27 @@ def register_tickets_routes(app):
         token = request.headers.get("Authorization", "")[7:].strip()
         usuario = get_usuario_by_token(token)
         return jsonify({"ok": True, "usuario": usuario}), 200
+
+    # ── BOLSILLO SEGURO ───────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/auth/bolsillo", methods=["GET"])
+    @_auth
+    def tickets_get_bolsillo():
+        uid = request.tickets_usuario["id"]
+        blob = get_bolsillo_usuario(uid)
+        return jsonify({"blob": blob}), 200
+
+    @app.route("/api/tickets/auth/bolsillo", methods=["PUT"])
+    @_auth
+    def tickets_set_bolsillo():
+        uid = request.tickets_usuario["id"]
+        data = request.get_json(force=True) or {}
+        blob = data.get("blob") or ""
+        if not isinstance(blob, str):
+            return jsonify({"error": "blob debe ser string"}), 400
+        if not set_bolsillo_usuario(uid, blob):
+            return jsonify({"error": "Contenido demasiado grande"}), 413
+        return jsonify({"ok": True}), 200
 
     # ── ROLES ────────────────────────────────────────────────────────────────
 
