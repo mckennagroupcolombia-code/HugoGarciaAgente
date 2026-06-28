@@ -795,6 +795,48 @@ def _migrate_recordatorios():
         db.commit()
 
 
+def _migrate_recordatorios_hora():
+    """Agrega columna hora a recordatorios."""
+    with _conn() as db:
+        _add_col(db, "recordatorios", "hora", "TEXT")
+
+
+def _migrate_recordatorios_bimestral():
+    """Amplía el CHECK constraint de recordatorios para incluir 'bimestral'."""
+    with _conn() as db:
+        sql = db.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='recordatorios'"
+        ).fetchone()
+        if not sql or "bimestral" in (sql["sql"] or ""):
+            return  # ya migrado o tabla inexistente
+        db.executescript("""
+            PRAGMA foreign_keys = OFF;
+            ALTER TABLE recordatorios RENAME TO _recordatorios_old;
+            CREATE TABLE recordatorios (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id       INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                titulo           TEXT NOT NULL,
+                descripcion      TEXT,
+                tipo_rep         TEXT NOT NULL DEFAULT 'una_vez'
+                                     CHECK(tipo_rep IN
+                                       ('una_vez','diario','semanal','mensual','cada_n_dias','bimestral')),
+                proxima_fecha    TEXT NOT NULL,
+                cada_n_dias      INTEGER,
+                dias_semana      TEXT,
+                dias_mes         TEXT,
+                activo           INTEGER DEFAULT 1,
+                creado_en        TEXT DEFAULT (datetime('now')),
+                actualizado_en   TEXT DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_recordatorios_usuario
+                ON recordatorios(usuario_id, activo);
+            INSERT INTO recordatorios SELECT * FROM _recordatorios_old;
+            DROP TABLE _recordatorios_old;
+            PRAGMA foreign_keys = ON;
+        """)
+        db.commit()
+
+
 def _migrate_adjunto_paso_id():
     """Columna paso_id opcional en ticket_adjuntos para adjuntos por paso."""
     with _conn() as db:
@@ -882,6 +924,8 @@ def init_db():
     _safe_migrate(_migrate_adjunto_paso_id)
     _safe_migrate(_migrate_pendientes)
     _safe_migrate(_migrate_recordatorios)
+    _safe_migrate(_migrate_recordatorios_hora)
+    _safe_migrate(_migrate_recordatorios_bimestral)
     _safe_migrate(_migrate_protocolo_accesos)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
@@ -5899,7 +5943,16 @@ def eliminar_adjunto(adjunto_id: int, usuario_id: int) -> tuple:
 # ── Recordatorios ─────────────────────────────────────────────────────────────
 
 from datetime import date, timedelta
+import calendar as _calendar
 import json as _json
+
+
+def _add_months(d: date, meses: int) -> date:
+    m = d.month - 1 + meses
+    year = d.year + m // 12
+    month = m % 12 + 1
+    day = min(d.day, _calendar.monthrange(year, month)[1])
+    return date(year, month, day)
 
 
 def _proxima_fecha(tipo: str, desde: str, cada_n: int | None,
@@ -5945,6 +5998,12 @@ def _proxima_fecha(tipo: str, desde: str, cada_n: int | None,
             d += timedelta(days=1)
         return inicio.isoformat()
 
+    if tipo == "bimestral":
+        d = base
+        while d < inicio:
+            d = _add_months(d, 2)
+        return d.isoformat()
+
     return inicio.isoformat()
 
 
@@ -5981,17 +6040,19 @@ def crear_recordatorio(usuario_id: int, titulo: str, descripcion: str | None,
                        tipo: str, fecha_inicio: str,
                        cada_n: int | None = None,
                        dias_semana: list | None = None,
-                       dias_mes: list | None = None) -> dict:
+                       dias_mes: list | None = None,
+                       hora: str | None = None) -> dict:
     proxima = _proxima_fecha(tipo, fecha_inicio, cada_n, dias_semana, dias_mes)
+    hora_val = hora.strip()[:5] if hora and hora.strip() else None
     with _conn() as db:
         db.execute(
             """INSERT INTO recordatorios
                (usuario_id, titulo, descripcion, tipo_rep, proxima_fecha,
-                cada_n_dias, dias_semana, dias_mes)
-               VALUES (?,?,?,?,?,?,?,?)""",
+                cada_n_dias, dias_semana, dias_mes, hora)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
             (usuario_id, titulo.strip(), descripcion or None, tipo, proxima,
              cada_n, _json.dumps(dias_semana) if dias_semana else None,
-             _json.dumps(dias_mes) if dias_mes else None),
+             _json.dumps(dias_mes) if dias_mes else None, hora_val),
         )
         rid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
         db.commit()
@@ -6005,7 +6066,8 @@ def actualizar_recordatorio(rec_id: int, usuario_id: int,
                             fecha_inicio: str | None = None,
                             cada_n: int | None = None,
                             dias_semana: list | None = None,
-                            dias_mes: list | None = None) -> tuple:
+                            dias_mes: list | None = None,
+                            hora: str | None = None) -> tuple:
     with _conn() as db:
         row = db.execute(
             "SELECT * FROM recordatorios WHERE id=? AND usuario_id=? AND activo=1",
@@ -6020,16 +6082,17 @@ def actualizar_recordatorio(rec_id: int, usuario_id: int,
         nuevos_dm = dias_mes if dias_mes is not None else r["dias_mes_parsed"]
         nueva_fecha = fecha_inicio or r["proxima_fecha"]
         proxima = _proxima_fecha(nuevo_tipo, nueva_fecha, nuevo_n, nuevos_ds, nuevos_dm)
+        hora_val = hora.strip()[:5] if hora and hora.strip() else r.get("hora")
         db.execute(
             """UPDATE recordatorios SET titulo=?, descripcion=?, tipo_rep=?,
-               proxima_fecha=?, cada_n_dias=?, dias_semana=?, dias_mes=?,
+               proxima_fecha=?, cada_n_dias=?, dias_semana=?, dias_mes=?, hora=?,
                actualizado_en=datetime('now') WHERE id=?""",
             (titulo.strip() if titulo else r["titulo"],
              descripcion if descripcion is not None else r["descripcion"],
              nuevo_tipo, proxima, nuevo_n,
              _json.dumps(nuevos_ds) if nuevos_ds else None,
              _json.dumps(nuevos_dm) if nuevos_dm else None,
-             rec_id),
+             hora_val, rec_id),
         )
         db.commit()
         return _parse_rec(db.execute("SELECT * FROM recordatorios WHERE id=?", (rec_id,)).fetchone()), None

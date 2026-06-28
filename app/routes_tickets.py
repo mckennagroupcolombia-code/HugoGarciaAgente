@@ -2411,6 +2411,7 @@ def register_tickets_routes(app):
                 cada_n=d.get("cada_n_dias"),
                 dias_semana=d.get("dias_semana"),
                 dias_mes=d.get("dias_mes"),
+                hora=d.get("hora"),
             )
         except Exception as e:
             return jsonify({"error": str(e)}), 400
@@ -2427,6 +2428,7 @@ def register_tickets_routes(app):
             tipo=d.get("tipo_rep"), fecha_inicio=d.get("fecha_inicio"),
             cada_n=d.get("cada_n_dias"),
             dias_semana=d.get("dias_semana"), dias_mes=d.get("dias_mes"),
+            hora=d.get("hora"),
         )
         if err:
             return jsonify({"error": err}), 404

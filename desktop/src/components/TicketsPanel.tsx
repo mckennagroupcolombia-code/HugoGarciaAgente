@@ -20589,13 +20589,14 @@ interface RecordatorioItem {
   id: number;
   titulo: string;
   descripcion?: string | null;
-  tipo_rep: "una_vez" | "diario" | "semanal" | "mensual" | "cada_n_dias";
+  tipo_rep: "una_vez" | "diario" | "semanal" | "mensual" | "cada_n_dias" | "bimestral";
   proxima_fecha: string;
   cada_n_dias?: number | null;
   dias_semana?: number[] | null;
   dias_semana_parsed?: number[];
   dias_mes?: number[] | null;
   dias_mes_parsed?: number[];
+  hora?: string | null;
   activo: number;
   creado_en: string;
 }
@@ -20904,17 +20905,19 @@ function PendientesPanel({
 
 const DIAS_SEMANA_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const TIPO_REP_LABELS: Record<string, string> = {
-  una_vez: "Una sola vez",
-  diario: "Todos los días",
-  semanal: "Semanal",
-  mensual: "Días del mes",
+  una_vez:    "Una sola vez",
+  diario:     "Todos los días",
+  semanal:    "Semanal",
+  mensual:    "Días del mes",
+  bimestral:  "Cada 2 meses",
   cada_n_dias: "Cada N días",
 };
 
 function descRepeticion(r: RecordatorioItem): string {
   switch (r.tipo_rep) {
-    case "una_vez":   return "Una sola vez";
-    case "diario":    return "Todos los días";
+    case "una_vez":    return "Una sola vez";
+    case "diario":     return "Todos los días";
+    case "bimestral":  return "Cada 2 meses";
     case "cada_n_dias": return `Cada ${r.cada_n_dias ?? "?"} día${(r.cada_n_dias ?? 1) !== 1 ? "s" : ""}`;
     case "semanal": {
       const dias = (r.dias_semana_parsed ?? []).map((d) => DIAS_SEMANA_LABELS[d]).join(", ");
@@ -20952,6 +20955,7 @@ function RecordatoriosPanel({
   const [cadaN, setCadaN] = useState(1);
   const [diasSemana, setDiasSemana] = useState<number[]>([]);
   const [diasMes, setDiasMes] = useState<number[]>([]);
+  const [hora, setHora] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -20972,6 +20976,7 @@ function RecordatoriosPanel({
     setCadaN(1);
     setDiasSemana([]);
     setDiasMes([]);
+    setHora("");
     setError("");
   }
 
@@ -20985,8 +20990,8 @@ function RecordatoriosPanel({
   async function crear() {
     if (!titulo.trim()) return;
     if (tipoRep === "semanal" && diasSemana.length === 0) { setError("Elige al menos un día de la semana"); return; }
-    if (tipoRep === "mensual" && diasMes.length === 0) { setError("Elige al menos un día del mes"); return; }
     setGuardando(true); setError("");
+    const diaDeInicio = fechaInicio ? parseInt(fechaInicio.split("-")[2], 10) : new Date().getDate();
     try {
       await tapi("/recordatorios", token, {
         method: "POST",
@@ -20997,7 +21002,10 @@ function RecordatoriosPanel({
           fecha_inicio: fechaInicio || hoy,
           cada_n_dias: tipoRep === "cada_n_dias" ? cadaN : undefined,
           dias_semana: tipoRep === "semanal" ? diasSemana : undefined,
-          dias_mes: tipoRep === "mensual" ? diasMes : undefined,
+          dias_mes: tipoRep === "mensual"
+            ? (diasMes.length > 0 ? diasMes : [diaDeInicio])
+            : undefined,
+          hora: hora || undefined,
         }),
       });
       resetForm();
@@ -21090,19 +21098,29 @@ function RecordatoriosPanel({
           ))}
         </div>
 
-        {/* Fecha de inicio */}
-        <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
-          <span className="text-base">📅</span>
-          <span className="text-xs text-muted shrink-0">
-            {tipoRep === "una_vez" ? "Fecha:" : "Empieza el:"}
-          </span>
-          <input
-            type="date"
-            className="flex-1 bg-transparent text-sm text-ink outline-none"
-            value={fechaInicio}
-            min={hoy}
-            onChange={(e) => setFechaInicio(e.target.value)}
-          />
+        {/* Fecha y hora */}
+        <div className="flex gap-2">
+          <div className="flex flex-1 items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
+            <span className="text-base">📅</span>
+            <span className="text-xs text-muted shrink-0">
+              {tipoRep === "una_vez" ? "Fecha:" : "Empieza el:"}
+            </span>
+            <input
+              type="date"
+              className="flex-1 bg-transparent text-sm text-ink outline-none"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
+            <span className="text-base">🕐</span>
+            <input
+              type="time"
+              className="bg-transparent text-sm text-ink outline-none w-[5.5rem]"
+              value={hora}
+              onChange={(e) => setHora(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* Cada N días */}
@@ -21143,25 +21161,38 @@ function RecordatoriosPanel({
         )}
 
         {/* Días del mes */}
-        {tipoRep === "mensual" && (
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted font-semibold">Días del mes:</p>
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => toggleDiaMes(d)}
-                  className={`rounded-lg border py-1.5 text-xs font-bold transition ${
-                    diasMes.includes(d) ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/50"
-                  }`}
-                >
-                  {d}
+        {tipoRep === "mensual" && (() => {
+          const diaAuto = fechaInicio ? parseInt(fechaInicio.split("-")[2], 10) : new Date().getDate();
+          const diasActivos = diasMes.length > 0 ? diasMes : [diaAuto];
+          const [mostrarGrid, setMostrarGrid] = useState(false);
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 px-3 py-2.5">
+                <p className="text-sm text-ink">
+                  Se repetirá el <strong>día {diasActivos.join(", ")}</strong> de cada mes
+                </p>
+                <button type="button" onClick={() => setMostrarGrid((v) => !v)}
+                  className="shrink-0 text-xs text-accent hover:underline">
+                  {mostrarGrid ? "✕ Cerrar" : "Cambiar días"}
                 </button>
-              ))}
+              </div>
+              {mostrarGrid && (
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <button key={d} type="button" onClick={() => toggleDiaMes(d)}
+                      className={`rounded-lg border py-1.5 text-xs font-bold transition ${
+                        (diasMes.length > 0 ? diasMes : [diaAuto]).includes(d)
+                          ? "border-accent bg-accent text-white"
+                          : "border-border text-muted hover:border-accent/50"
+                      }`}>
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {error && <p className="text-xs text-danger">{error}</p>}
 
@@ -21199,7 +21230,10 @@ function RecordatoriosPanel({
                   className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger transition"
                 >✕</button>
               </div>
-              <p className="text-[11px] text-muted">{descRepeticion(r)}</p>
+              <p className="text-[11px] text-muted flex items-center gap-2">
+                {descRepeticion(r)}
+                {r.hora && <span className="font-semibold text-accent">🕐 {r.hora}</span>}
+              </p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -21236,8 +21270,11 @@ function RecordatoriosPanel({
                   className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger transition"
                 >✕</button>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted">{descRepeticion(r)}</span>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="text-xs text-muted flex items-center gap-2">
+                  {descRepeticion(r)}
+                  {r.hora && <span className="font-semibold text-accent">🕐 {r.hora}</span>}
+                </span>
                 <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-[11px] font-semibold text-ink">
                   📅 {fmtFecha(r.proxima_fecha)}
                 </span>
@@ -22308,141 +22345,174 @@ type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
 
 // ── BolsilloSeguro ────────────────────────────────────────────────────────────
 
-const CANARY = "McKBols:";
+const BOLSILLO_CANARY = "McKBols2:";
 
-async function derivarClave(pin: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+type BolsilloNota = { id: number; titulo: string; contenido: string; editadaEn: string };
+
+async function _bDerivKey(pin: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
     { name: "PBKDF2", salt, iterations: 200_000, hash: "SHA-256" },
-    keyMaterial,
+    km,
     { name: "AES-GCM", length: 256 },
     false,
     ["encrypt", "decrypt"],
   );
 }
 
-async function encriptarBolsillo(texto: string, pin: string): Promise<string> {
+async function bolsilloEncriptar(notas: BolsilloNota[], pin: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(32)) as Uint8Array<ArrayBuffer>;
-  const iv = crypto.getRandomValues(new Uint8Array(12)) as Uint8Array<ArrayBuffer>;
-  const clave = await derivarClave(pin, salt);
-  const enc = new TextEncoder();
-  const cifrado = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, clave, enc.encode(CANARY + texto));
-  const buf = new Uint8Array(salt.byteLength + iv.byteLength + cifrado.byteLength);
-  buf.set(salt, 0);
-  buf.set(iv, 32);
-  buf.set(new Uint8Array(cifrado), 44);
+  const iv   = crypto.getRandomValues(new Uint8Array(12)) as Uint8Array<ArrayBuffer>;
+  const key  = await _bDerivKey(pin, salt);
+  const plain = new TextEncoder().encode(BOLSILLO_CANARY + JSON.stringify(notas));
+  const ct   = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plain);
+  const buf  = new Uint8Array(32 + 12 + ct.byteLength);
+  buf.set(salt, 0); buf.set(iv, 32); buf.set(new Uint8Array(ct), 44);
   return btoa(String.fromCharCode(...buf));
 }
 
-async function desencriptarBolsillo(blob: string, pin: string): Promise<string | null> {
+async function bolsilloDesencriptar(blob: string, pin: string): Promise<BolsilloNota[] | null> {
   try {
-    const raw = Uint8Array.from(atob(blob), (c) => c.charCodeAt(0)) as Uint8Array<ArrayBuffer>;
-    const salt = raw.slice(0, 32) as Uint8Array<ArrayBuffer>;
-    const iv = raw.slice(32, 44) as Uint8Array<ArrayBuffer>;
-    const cifrado = raw.slice(44) as Uint8Array<ArrayBuffer>;
-    const clave = await derivarClave(pin, salt);
-    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, clave, cifrado);
-    const texto = new TextDecoder().decode(plain);
-    if (!texto.startsWith(CANARY)) return null;
-    return texto.slice(CANARY.length);
-  } catch {
-    return null;
-  }
+    const raw  = Uint8Array.from(atob(blob), (c) => c.charCodeAt(0)) as Uint8Array<ArrayBuffer>;
+    const salt = raw.slice(0, 32)  as Uint8Array<ArrayBuffer>;
+    const iv   = raw.slice(32, 44) as Uint8Array<ArrayBuffer>;
+    const ct   = raw.slice(44)     as Uint8Array<ArrayBuffer>;
+    const key  = await _bDerivKey(pin, salt);
+    const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct));
+    if (!plain.startsWith(BOLSILLO_CANARY)) return null;
+    return JSON.parse(plain.slice(BOLSILLO_CANARY.length)) as BolsilloNota[];
+  } catch { return null; }
 }
 
 function BolsilloSeguro({ token }: { token: string }) {
-  type Estado = "cargando" | "locked" | "pin_setup" | "pin_unlock" | "open" | "guardando";
-  const [estado, setEstado] = useState<Estado>("cargando");
-  const [blobServidor, setBlobServidor] = useState<string | null>(null);
-  const [pin, setPin] = useState("");
-  const [pinConfirm, setPinConfirm] = useState("");
-  const [pinError, setPinError] = useState("");
-  const [texto, setTexto] = useState("");
-  const [guardadoLabel, setGuardadoLabel] = useState<"" | "guardando" | "ok">("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pinInputRef = useRef<HTMLInputElement>(null);
+  type Vista = "cargando" | "locked" | "pin_setup" | "pin_unlock" | "lista" | "editar";
+  const [vista, setVista]             = useState<Vista>("cargando");
+  const [blob, setBlob]               = useState<string | null>(null);
+  const [pin, setPin]                 = useState("");
+  const [pinConfirm, setPinConfirm]   = useState("");
+  const [pinError, setPinError]       = useState("");
+  const [notas, setNotas]             = useState<BolsilloNota[]>([]);
+  const [notaActiva, setNotaActiva]   = useState<BolsilloNota | null>(null);
+  const [guardando, setGuardando]     = useState<"" | "saving" | "ok">("");
+  const pinRef    = useRef<HTMLInputElement>(null);
+  const debRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pinActivo = useRef("");
 
   useEffect(() => {
     fetch("/api/tickets/auth/bolsillo", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((d: { blob?: string | null }) => {
         const b = d.blob ?? null;
-        setBlobServidor(b);
-        setEstado(b ? "locked" : "pin_setup");
+        setBlob(b);
+        setVista(b ? "locked" : "pin_setup");
       })
-      .catch(() => setEstado("locked"));
+      .catch(() => setVista("locked"));
   }, [token]);
 
   useEffect(() => {
-    if (estado === "pin_unlock" || estado === "pin_setup") {
-      setTimeout(() => pinInputRef.current?.focus(), 80);
+    if (vista === "pin_unlock" || vista === "pin_setup") {
+      setTimeout(() => pinRef.current?.focus(), 80);
     }
-  }, [estado]);
+  }, [vista]);
+
+  async function persistir(nuevasNotas: BolsilloNota[]) {
+    if (!pinActivo.current) return;
+    setGuardando("saving");
+    try {
+      const nuevoBlob = await bolsilloEncriptar(nuevasNotas, pinActivo.current);
+      setBlob(nuevoBlob);
+      await fetch("/api/tickets/auth/bolsillo", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ blob: nuevoBlob }),
+      });
+      setGuardando("ok");
+      setTimeout(() => setGuardando(""), 2000);
+    } catch { setGuardando(""); }
+  }
+
+  function persistirDebounce(nuevasNotas: BolsilloNota[]) {
+    if (debRef.current) clearTimeout(debRef.current);
+    debRef.current = setTimeout(() => void persistir(nuevasNotas), 900);
+  }
 
   async function confirmarSetup() {
     if (pin.length < 4) { setPinError("Mínimo 4 dígitos"); return; }
     if (pin !== pinConfirm) { setPinError("Los PINes no coinciden"); return; }
     setPinError("");
-    const blob = await encriptarBolsillo("", pin);
-    setBlobServidor(blob);
-    setTexto("");
-    setEstado("open");
+    pinActivo.current = pin;
+    const vacío: BolsilloNota[] = [];
+    const nuevoBlob = await bolsilloEncriptar(vacío, pin);
+    setBlob(nuevoBlob);
+    setNotas(vacío);
+    setVista("lista");
     void fetch("/api/tickets/auth/bolsillo", {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ blob }),
+      body: JSON.stringify({ blob: nuevoBlob }),
     });
   }
 
   async function confirmarUnlock() {
-    if (!blobServidor) return;
-    const resultado = await desencriptarBolsillo(blobServidor, pin);
-    if (resultado === null) {
-      setPinError("PIN incorrecto");
-      setPin("");
-      return;
-    }
+    if (!blob) return;
+    const resultado = await bolsilloDesencriptar(blob, pin);
+    if (resultado === null) { setPinError("PIN incorrecto"); setPin(""); return; }
     setPinError("");
-    setTexto(resultado);
-    setEstado("open");
+    pinActivo.current = pin;
+    setNotas(resultado);
+    setVista("lista");
   }
 
-  function cerrar() {
-    setTexto("");
-    setPin("");
-    setPinConfirm("");
-    setPinError("");
-    setEstado("locked");
+  function bloquear() {
+    setNotas([]); setNotaActiva(null);
+    setPin(""); setPinConfirm(""); setPinError("");
+    pinActivo.current = "";
+    setVista("locked");
   }
 
-  async function guardarTexto(nuevoTexto: string) {
-    if (!blobServidor && estado !== "open") return;
-    const currentPin = pin;
-    if (!currentPin) return;
-    setGuardadoLabel("guardando");
-    try {
-      const blob = await encriptarBolsillo(nuevoTexto, currentPin);
-      setBlobServidor(blob);
-      await fetch("/api/tickets/auth/bolsillo", {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ blob }),
-      });
-      setGuardadoLabel("ok");
-      setTimeout(() => setGuardadoLabel(""), 2000);
-    } catch {
-      setGuardadoLabel("");
+  function nuevaNota() {
+    const nota: BolsilloNota = { id: Date.now(), titulo: "", contenido: "", editadaEn: new Date().toISOString() };
+    setNotaActiva(nota);
+    setVista("editar");
+  }
+
+  function abrirNota(n: BolsilloNota) { setNotaActiva({ ...n }); setVista("editar"); }
+
+  function onCambioNota(campo: "titulo" | "contenido", val: string) {
+    if (!notaActiva) return;
+    const actualizada = { ...notaActiva, [campo]: val, editadaEn: new Date().toISOString() };
+    setNotaActiva(actualizada);
+    const nuevas = notas.some((n) => n.id === actualizada.id)
+      ? notas.map((n) => n.id === actualizada.id ? actualizada : n)
+      : [...notas, actualizada];
+    setNotas(nuevas);
+    persistirDebounce(nuevas);
+  }
+
+  function guardarYVolver() {
+    if (notaActiva) {
+      const nuevas = notas.some((n) => n.id === notaActiva.id)
+        ? notas.map((n) => n.id === notaActiva.id ? notaActiva : n)
+        : [...notas, notaActiva];
+      setNotas(nuevas);
+      void persistir(nuevas);
     }
+    setNotaActiva(null);
+    setVista("lista");
   }
 
-  function onChangeTexto(val: string) {
-    setTexto(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => void guardarTexto(val), 900);
+  function eliminarNota(id: number) {
+    const nuevas = notas.filter((n) => n.id !== id);
+    setNotas(nuevas);
+    void persistir(nuevas);
+    setNotaActiva(null);
+    setVista("lista");
   }
 
-  if (estado === "cargando") return null;
+  if (vista === "cargando") return null;
+
+  const em = "border-emerald-300/60 dark:border-emerald-700/50";
+  const emBg = "bg-emerald-50/40 dark:bg-emerald-950/20";
 
   return (
     <div className="border-t border-border/50 pt-6">
@@ -22451,12 +22521,10 @@ function BolsilloSeguro({ token }: { token: string }) {
       </p>
 
       {/* Locked */}
-      {(estado === "locked") && (
-        <button
-          type="button"
-          onClick={() => { setPin(""); setPinError(""); setEstado("pin_unlock"); }}
-          className="w-full flex items-center gap-3 rounded-2xl border-2 border-border bg-surface-panel px-4 py-4 text-left transition hover:border-accent/50 active:scale-[0.98]"
-        >
+      {vista === "locked" && (
+        <button type="button"
+          onClick={() => { setPin(""); setPinError(""); setVista("pin_unlock"); }}
+          className="w-full flex items-center gap-3 rounded-2xl border-2 border-border bg-surface-panel px-4 py-4 text-left transition hover:border-accent/50 active:scale-[0.98]">
           <span className="text-2xl">🔒</span>
           <div>
             <p className="text-sm font-bold text-ink">Bolsillo cerrado</p>
@@ -22465,99 +22533,120 @@ function BolsilloSeguro({ token }: { token: string }) {
         </button>
       )}
 
-      {/* Setup PIN nuevo */}
-      {estado === "pin_setup" && (
+      {/* Setup PIN */}
+      {vista === "pin_setup" && (
         <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 px-4 py-4 space-y-3">
           <p className="text-sm font-bold text-ink">Crear PIN del bolsillo</p>
-          <p className="text-xs text-muted">El PIN nunca sale del dispositivo. Si lo olvidás, el contenido no se puede recuperar.</p>
-          <input
-            ref={pinInputRef}
-            type="password"
-            inputMode="numeric"
-            maxLength={12}
-            placeholder="PIN (mín. 4 dígitos)"
-            value={pin}
+          <p className="text-xs text-muted">El PIN nunca sale del dispositivo. Si lo perdés, el contenido no se puede recuperar.</p>
+          <input ref={pinRef} type="password" inputMode="numeric" maxLength={12}
+            placeholder="PIN (mín. 4 dígitos)" value={pin}
             onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-            onKeyDown={(e) => e.key === "Enter" && pinInputRef.current?.blur()}
-            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-ink focus:border-accent focus:outline-none"
-          />
-          <input
-            type="password"
-            inputMode="numeric"
-            maxLength={12}
-            placeholder="Confirmar PIN"
-            value={pinConfirm}
+            onKeyDown={(e) => e.key === "Enter" && pinRef.current?.blur()}
+            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-ink focus:border-accent focus:outline-none" />
+          <input type="password" inputMode="numeric" maxLength={12}
+            placeholder="Confirmar PIN" value={pinConfirm}
             onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, ""))}
             onKeyDown={(e) => e.key === "Enter" && void confirmarSetup()}
-            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-ink focus:border-accent focus:outline-none"
-          />
+            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-ink focus:border-accent focus:outline-none" />
           {pinError && <p className="text-xs text-red-500">{pinError}</p>}
-          <button
-            type="button"
-            onClick={() => void confirmarSetup()}
-            className="w-full rounded-xl bg-accent py-2 text-sm font-bold text-white hover:bg-accent/80 transition"
-          >
+          <button type="button" onClick={() => void confirmarSetup()}
+            className="w-full rounded-xl bg-accent py-2 text-sm font-bold text-white hover:bg-accent/80 transition">
             Crear bolsillo
           </button>
         </div>
       )}
 
-      {/* Unlock PIN */}
-      {estado === "pin_unlock" && (
+      {/* Unlock */}
+      {vista === "pin_unlock" && (
         <div className="rounded-2xl border-2 border-border bg-surface-panel px-4 py-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-bold text-ink">🔓 Ingresá el PIN</p>
-            <button type="button" onClick={cerrar} className="text-xs text-muted hover:text-ink">✕ Cancelar</button>
+            <button type="button" onClick={bloquear} className="text-xs text-muted hover:text-ink">✕ Cancelar</button>
           </div>
-          <input
-            ref={pinInputRef}
-            type="password"
-            inputMode="numeric"
-            maxLength={12}
-            placeholder="PIN"
-            value={pin}
+          <input ref={pinRef} type="password" inputMode="numeric" maxLength={12}
+            placeholder="PIN" value={pin}
             onChange={(e) => { setPin(e.target.value.replace(/\D/g, "")); setPinError(""); }}
             onKeyDown={(e) => e.key === "Enter" && void confirmarUnlock()}
-            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-center text-ink focus:border-accent focus:outline-none"
-          />
+            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-center text-ink focus:border-accent focus:outline-none" />
           {pinError && <p className="text-xs text-red-500 text-center">{pinError}</p>}
-          <button
-            type="button"
-            onClick={() => void confirmarUnlock()}
-            className="w-full rounded-xl bg-accent py-2 text-sm font-bold text-white hover:bg-accent/80 transition"
-          >
+          <button type="button" onClick={() => void confirmarUnlock()}
+            className="w-full rounded-xl bg-accent py-2 text-sm font-bold text-white hover:bg-accent/80 transition">
             Abrir
           </button>
         </div>
       )}
 
-      {/* Open — editor */}
-      {estado === "open" && (
-        <div className="rounded-2xl border-2 border-emerald-300/60 dark:border-emerald-700/50 bg-emerald-50/40 dark:bg-emerald-950/20 px-4 py-4 space-y-3">
+      {/* Lista de notas */}
+      {vista === "lista" && (
+        <div className={`rounded-2xl border-2 ${em} ${emBg} px-4 py-4 space-y-3`}>
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-              🔓 Bolsillo abierto
-              {guardadoLabel === "guardando" && <span className="text-muted font-normal">Guardando…</span>}
-              {guardadoLabel === "ok" && <span className="text-emerald-600 font-normal">✓ Guardado</span>}
+              🔓 Abierto
+              {guardando === "saving" && <span className="text-muted font-normal">Guardando…</span>}
+              {guardando === "ok"     && <span className="font-normal">✓</span>}
             </p>
-            <button
-              type="button"
-              onClick={cerrar}
-              title="Cerrar y bloquear"
-              className="flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition"
-            >
+            <button type="button" onClick={bloquear}
+              className="flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 transition">
               🔒 Bloquear
             </button>
           </div>
-          <textarea
+
+          {notas.length === 0 && (
+            <p className="py-4 text-center text-xs text-muted">Sin notas aún. Crea la primera.</p>
+          )}
+
+          <div className="space-y-2">
+            {notas.map((n) => (
+              <button key={n.id} type="button" onClick={() => abrirNota(n)}
+                className="w-full text-left rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-white dark:bg-gray-900/60 px-3 py-2.5 space-y-0.5 transition hover:border-emerald-400 active:scale-[0.98]">
+                <p className="text-sm font-bold text-ink truncate">{n.titulo || <span className="text-muted italic">Sin título</span>}</p>
+                {n.contenido && (
+                  <p className="text-xs text-muted line-clamp-2 font-mono">{n.contenido}</p>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <button type="button" onClick={nuevaNota}
+            className="w-full rounded-xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 py-2.5 text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition">
+            + Nueva nota
+          </button>
+          <p className="text-[10px] text-muted text-center">AES-256-GCM · el servidor solo guarda el blob cifrado</p>
+        </div>
+      )}
+
+      {/* Editor de nota */}
+      {vista === "editar" && notaActiva && (
+        <div className={`rounded-2xl border-2 ${em} ${emBg} px-4 py-4 space-y-3`}>
+          <div className="flex items-center justify-between gap-2">
+            <button type="button" onClick={guardarYVolver}
+              className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline">
+              ‹ Volver
+            </button>
+            <span className="text-xs text-muted flex items-center gap-1">
+              {guardando === "saving" && "Guardando…"}
+              {guardando === "ok"     && "✓ Guardado"}
+            </span>
+            <button type="button" onClick={() => { if (confirm("¿Eliminar esta nota?")) eliminarNota(notaActiva.id); }}
+              className="text-xs text-red-400 hover:text-red-600 transition">
+              🗑 Eliminar
+            </button>
+          </div>
+          <input
             autoFocus
-            rows={8}
-            value={texto}
-            onChange={(e) => onChangeTexto(e.target.value)}
-            placeholder="Escribe aquí tus datos confidenciales…"
+            type="text"
+            placeholder="Título de la nota"
+            value={notaActiva.titulo}
+            onChange={(e) => onCambioNota("titulo", e.target.value)}
+            className="w-full rounded-xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-white dark:bg-gray-950 px-3 py-2 text-sm font-bold text-ink focus:border-emerald-400 focus:outline-none"
+          />
+          <textarea
+            rows={10}
+            placeholder="Contenido confidencial…"
+            value={notaActiva.contenido}
+            onChange={(e) => onCambioNota("contenido", e.target.value)}
             className="w-full resize-none rounded-xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-white dark:bg-gray-950 px-3 py-2.5 text-sm text-ink focus:border-emerald-400 focus:outline-none font-mono leading-relaxed"
           />
-          <p className="text-[10px] text-muted">Cifrado AES-256 en el dispositivo. El servidor solo guarda el blob encriptado.</p>
         </div>
       )}
     </div>
