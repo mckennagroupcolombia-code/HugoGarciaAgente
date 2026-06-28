@@ -1,162 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1782161211.7750173,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": "Buenas tardes"
-    },
-    {
-      "ts": 1782161253.6724517,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": "Sumercé la entrega de mi pedido lo hacen por interrapidisimo ???"
-    },
-    {
-      "ts": 1782161263.9916713,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": "Tiene número de guía"
-    },
-    {
-      "ts": 1782161328.57215,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": "Tengo que salir al supermercado , que hago ?? Que tal salga de cada y lleguen ???"
-    },
-    {
-      "ts": 1782161336.7902787,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": "Por favor me cuenta??"
-    },
-    {
-      "ts": 1782161469.42641,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782161484.053199,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": "Ahhh ,,me habías dicho otra cosa"
-    },
-    {
-      "ts": 1782161511.8819022,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782161534.3336031,
-      "tipo": "modo_humano",
-      "sender": "573114620203@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782161909.4179301,
-      "tipo": "bot_pausado_global",
-      "sender": "573144823055@c.us",
-      "detalle": "Entregado el envío"
-    },
-    {
-      "ts": 1782161930.3711503,
-      "tipo": "modo_humano",
-      "sender": "573028200001@c.us",
-      "detalle": "¡Gracias por elegir WOM! 🫶💜 Nuestra conversación ha finalizado por ahora, pero no dejes pasar esta oportunidad 👉 escríbenos, llámanos al 3025288800 o inscríbete en el link https://app.alb.com.co/campa"
-    },
-    {
-      "ts": 1782162045.1537347,
-      "tipo": "modo_humano",
-      "sender": "573182432463@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782162045.3064618,
-      "tipo": "modo_humano",
-      "sender": "573182432463@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782162045.5442243,
-      "tipo": "modo_humano",
-      "sender": "573182432463@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782162045.7369754,
-      "tipo": "modo_humano",
-      "sender": "573182432463@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782162045.980109,
-      "tipo": "modo_humano",
-      "sender": "573182432463@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782162242.3551607,
-      "tipo": "bot_pausado_global",
-      "sender": "573017799292@c.us",
-      "detalle": "Gracias 🫱🏻🫲🏻"
-    },
-    {
-      "ts": 1782162461.2132864,
-      "tipo": "bot_pausado_global",
-      "sender": "573009563629@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1782163860.011077,
-      "tipo": "bot_pausado_global",
-      "sender": "573007164729@c.us",
-      "detalle": "Buenas tardes, tendrán Inulina"
-    },
-    {
-      "ts": 1782163920.599907,
-      "tipo": "bot_pausado_global",
-      "sender": "573007164729@c.us",
-      "detalle": "Y el costo ?"
-    },
-    {
-      "ts": 1782164021.2430701,
-      "tipo": "bot_pausado_global",
-      "sender": "573007164729@c.us",
-      "detalle": "Ok..le estarán haciendo el pedido para riohacha"
-    },
-    {
-      "ts": 1782165049.240716,
-      "tipo": "bot_pausado_global",
-      "sender": "573106952839@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1782167758.3044982,
-      "tipo": "bot_pausado_global",
-      "sender": "573173102627@c.us",
-      "detalle": "Buenas tardes. Aun no ha llegado mi pedido"
-    },
-    {
-      "ts": 1782170281.389454,
-      "tipo": "modo_humano",
-      "sender": "573182432463@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782173131.2514923,
-      "tipo": "bot_pausado_global",
-      "sender": "573157214132@c.us",
-      "detalle": "Hola, tienes Betania de coco?"
-    },
-    {
-      "ts": 1782173526.0667129,
-      "tipo": "bot_pausado_global",
-      "sender": "573187462545@c.us",
-      "detalle": "Hola 👋 cambié mi número de WhatsApp. Por favor guarda este contacto para que podamos seguir comunicándonos. Gracias."
-    },
-    {
       "ts": 1782173691.5925152,
       "tipo": "bot_pausado_global",
       "sender": "573157214132@c.us",
@@ -1799,6 +1643,162 @@
       "tipo": "bot_pausado_global",
       "sender": "275441302671599@lid",
       "detalle": "​Estimados, buenos tardes. Les escribo para solicitar una cotización por kilogramo de materias primas en Grado Alimenticio. ​🔹 Grasas y Minerales: ​MCT en polvo (Triglicéridos de Cadena Media) ​Citrat"
+    },
+    {
+      "ts": 1782568402.924423,
+      "tipo": "bot_pausado_global",
+      "sender": "573168486722@c.us",
+      "detalle": "Hola"
+    },
+    {
+      "ts": 1782568405.0047748,
+      "tipo": "bot_pausado_global",
+      "sender": "573168486722@c.us",
+      "detalle": "Buenas"
+    },
+    {
+      "ts": 1782568409.8241653,
+      "tipo": "bot_pausado_global",
+      "sender": "573168486722@c.us",
+      "detalle": "Uds despachan hoy?"
+    },
+    {
+      "ts": 1782573538.3093972,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "Hola, quiero información sobre sus productos"
+    },
+    {
+      "ts": 1782574853.0325909,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "Hola, quisiera saber si tienen un punto de venta físico en Bogotá"
+    },
+    {
+      "ts": 1782574966.1180303,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "Ok gracias, y otra pregunta, vi en Mercado libre una referencia de cera de abejas que no veo en la página oficial de ustedes"
+    },
+    {
+      "ts": 1782575576.3936505,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1782575586.8542366,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "Está"
+    },
+    {
+      "ts": 1782575597.9394343,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "Pero no la veo en la página de ustedes"
+    },
+    {
+      "ts": 1782576508.2973795,
+      "tipo": "bot_pausado_global",
+      "sender": "573163528238@c.us",
+      "detalle": "Hola buenos dias"
+    },
+    {
+      "ts": 1782576518.653015,
+      "tipo": "bot_pausado_global",
+      "sender": "573163528238@c.us",
+      "detalle": "Quisiera saber si tienen estos insumos"
+    },
+    {
+      "ts": 1782576669.5057702,
+      "tipo": "bot_pausado_global",
+      "sender": "573163528238@c.us",
+      "detalle": "Glicerina transparente 1 kg Extracto de centella asiática 30 ml Aceite esencial de toronja o algún cítrico 30ml Arcilla verde 125 g"
+    },
+    {
+      "ts": 1782576989.7148716,
+      "tipo": "bot_pausado_global",
+      "sender": "573163528238@c.us",
+      "detalle": "Y necesito también para shampoo sólido los siguientes ingredientes SCI 250 g SLSA 50g Alcohol cetilico 125 ml Manteca de cacao y manteca de karite 50g Extracto de romero y ortiga 30ml Aceite esencial "
+    },
+    {
+      "ts": 1782576998.3264651,
+      "tipo": "bot_pausado_global",
+      "sender": "573163528238@c.us",
+      "detalle": "Gracias por tu atención"
+    },
+    {
+      "ts": 1782577477.1933975,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "Ahh ok"
+    },
+    {
+      "ts": 1782577489.8935769,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "Entonces me sugieres que compre por mercado libre?"
+    },
+    {
+      "ts": 1782577493.2544281,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "O que hago?"
+    },
+    {
+      "ts": 1782577531.768854,
+      "tipo": "bot_pausado_global",
+      "sender": "573142723643@c.us",
+      "detalle": "Ok Vale muchas gracias por tu tiempo"
+    },
+    {
+      "ts": 1782582367.9276917,
+      "tipo": "modo_humano",
+      "sender": "573182432463@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1782583356.8183925,
+      "tipo": "bot_pausado_global",
+      "sender": "573184259427@c.us",
+      "detalle": "Hola, quisiera saber si me pueden facilicar la ficha tecnica de CARBONATO CALCIO 500g (Ref: C-CARCAL500g) — $11.690 COP"
+    },
+    {
+      "ts": 1782588695.29556,
+      "tipo": "bot_pausado_global",
+      "sender": "573177412245@c.us",
+      "detalle": "Disponible"
+    },
+    {
+      "ts": 1782588697.9141555,
+      "tipo": "bot_pausado_global",
+      "sender": "573177412245@c.us",
+      "detalle": "Ácido salicílico"
+    },
+    {
+      "ts": 1782588702.9278588,
+      "tipo": "bot_pausado_global",
+      "sender": "573177412245@c.us",
+      "detalle": "2 libras por favor"
+    },
+    {
+      "ts": 1782596272.0655808,
+      "tipo": "modo_humano",
+      "sender": "573187462545@c.us",
+      "detalle": "Hola buenas tardes como estas"
+    },
+    {
+      "ts": 1782596314.5753334,
+      "tipo": "modo_humano",
+      "sender": "573187462545@c.us",
+      "detalle": "Buenas tardes por favor estoy interesada en los siguientes productos Aceite de ricino. Escualano de oliva. Triglicéridos cáprico/caprílico (MCT). Ceramide NP. α-Bisabolol. Extracto oleoso de caléndula"
+    },
+    {
+      "ts": 1782600071.537756,
+      "tipo": "bot_pausado_global",
+      "sender": "573233210052@c.us",
+      "detalle": "Hola, acabo de pagar mi pedido MCKG-A432A2DBF7"
     }
   ]
 }

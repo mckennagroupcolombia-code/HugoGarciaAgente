@@ -33,7 +33,7 @@ import {
   resetSaveBaseline,
   scheduleSaveUserUiPreferences,
 } from "./lib/userThemeSync";
-import { googleAuthStartUrl, mckennaAndroidBridge } from "./lib/androidApp";
+import { googleAuthStartUrl, isMcKennaAndroidApp, mckennaAndroidBridge } from "./lib/androidApp";
 import { initAppBackNavigation, resetAppNavHistory } from "./lib/appBackNavigation";
 import { onPanelResume } from "./lib/panelRefresh";
 import { puedeVerModuloContabilidad } from "./lib/contabilidadAccess";
@@ -247,7 +247,9 @@ export default function App() {
   const lastAppliedPrefs = useRef<string | null>(null);
   const isMobile = useMobileLayout();
   const [forceDesktop, setForceDesktop] = useState(
-    () => typeof localStorage !== "undefined" && localStorage.getItem("mck-force-desktop") === "1"
+    () =>
+      (typeof localStorage !== "undefined" && localStorage.getItem("mck-force-desktop") === "1") ||
+      isMcKennaAndroidApp()
   );
   const showMobile = isMobile && !forceDesktop;
 

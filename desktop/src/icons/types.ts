@@ -83,6 +83,7 @@ export type UiIconName =
   | "sunrise"
   | "phone"
   | "play"
+  | "pause"
   | "rocket"
   | "eye"
   | "ticket"

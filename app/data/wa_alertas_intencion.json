@@ -150,6 +150,16 @@
       "alerta_enviada_ts": 1782482687.1317427,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573233210052@c.us": {
+      "jid": "573233210052@c.us",
+      "primer_intencion_ts": 1782600071.0,
+      "primer_intencion_texto": "Hola, acabo de pagar mi pedido MCKG-A432A2DBF7",
+      "ultima_human_ts": null,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1782600971.5322676,
+      "cancelada": false,
+      "cancelada_razon": null
     }
   }
 }

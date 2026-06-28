@@ -1187,6 +1187,8 @@ def init_db():
         _add_col(db, "ticket_pasos", "bloqueado_por", "INTEGER REFERENCES tickets(id)")
         _add_col(db, "tickets", "ticket_padre_id", "INTEGER REFERENCES tickets(id)")
         _add_col(db, "tickets", "paso_origen_id",  "INTEGER REFERENCES ticket_pasos(id)")
+        _add_col(db, "tickets", "notas_accion",    "TEXT")
+        _add_col(db, "usuarios", "bolsillo_enc",   "TEXT")
 
         db.executescript("""
             CREATE TABLE IF NOT EXISTS lista_compras_ticket (
@@ -1568,6 +1570,21 @@ def eliminar_foto_usuario(user_id: int) -> tuple:
     except OSError:
         pass
     return True, None
+
+
+def get_bolsillo_usuario(user_id: int) -> str | None:
+    with _conn() as db:
+        row = db.execute("SELECT bolsillo_enc FROM usuarios WHERE id=?", (user_id,)).fetchone()
+        return row["bolsillo_enc"] if row else None
+
+
+def set_bolsillo_usuario(user_id: int, blob: str) -> bool:
+    if len(blob) > 500_000:
+        return False
+    with _conn() as db:
+        db.execute("UPDATE usuarios SET bolsillo_enc=? WHERE id=?", (blob, user_id))
+        db.commit()
+    return True
 
 
 def desactivar_usuario(user_id: int, solicitante_id: int) -> tuple:
@@ -2819,6 +2836,8 @@ def actualizar_ticket(ticket_id: int, data: dict, usuario: dict) -> tuple:
             if data["prioridad"] not in ("baja", "media", "alta", "urgente"):
                 return None, "Prioridad inválida"
             campos["prioridad"] = data["prioridad"]
+        if "notas_accion" in data:
+            campos["notas_accion"] = str(data["notas_accion"]).strip() if data["notas_accion"] is not None else ""
         if "frecuencia" in data:
             freq = (data.get("frecuencia") or "").strip() or None
             if freq and freq not in _FRECUENCIA_DELTA:

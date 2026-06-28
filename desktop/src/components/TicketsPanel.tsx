@@ -243,6 +243,7 @@ interface Ticket {
   tipo?: "ticket" | "accion" | "solicitud";
   subtipo?: string | null;
   tiene_datos_sensibles?: boolean;
+  notas_accion?: string | null;
 }
 
 interface TicketCorrida {
@@ -5427,6 +5428,65 @@ function TicketPasoAPasoView({
   );
 }
 
+// ── NotaAccionInline — bloque de notas con auto-guardado para acciones ────────
+function NotaAccionInline({
+  ticketId, token, initialValue, readOnly = false,
+}: {
+  ticketId: number;
+  token: string;
+  initialValue: string;
+  readOnly?: boolean;
+}) {
+  const [text, setText] = useState(initialValue);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setText(initialValue);
+  }, [initialValue]);
+
+  function scheduleGuardar(val: string) {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      setSaving(true);
+      setSaved(false);
+      try {
+        await fetch(`/api/tickets/${ticketId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ notas_accion: val }),
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch { /* ignore */ } finally {
+        setSaving(false);
+      }
+    }, 800);
+  }
+
+  return (
+    <div className="rounded-2xl border border-amber-300/70 dark:border-amber-700/50 bg-amber-50/60 dark:bg-amber-950/20 p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-sm font-extrabold text-amber-800 dark:text-amber-300">📝 Notas</span>
+        {saving && <span className="text-[10px] text-muted animate-pulse">Guardando…</span>}
+        {saved && <span className="text-[10px] text-green-600 dark:text-green-400">✓ Guardado</span>}
+      </div>
+      <textarea
+        readOnly={readOnly}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          scheduleGuardar(e.target.value);
+        }}
+        placeholder="Anota ideas, pendientes, observaciones…"
+        rows={4}
+        className="w-full resize-none rounded-xl border border-amber-300/50 dark:border-amber-700/40 bg-white/70 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-ink placeholder-muted/50 outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors"
+      />
+    </div>
+  );
+}
+
 // Ticket detail — ejecución: cronómetro del ticket + checklist de pasos
 function TicketDetailView({
   token, user, ticketId, onBack,
@@ -5526,6 +5586,14 @@ function TicketDetailView({
       </div>
 
       <TicketCronometroSection ticket={ticket} token={token} onTicket={setTicket} />
+
+      {ticket.tipo === "accion" && (
+        <NotaAccionInline
+          ticketId={ticket.id}
+          token={token}
+          initialValue={ticket.notas_accion ?? ""}
+        />
+      )}
 
       <TicketRecurrenciaSection
         ticket={ticket}
@@ -15707,6 +15775,7 @@ function NuevaAccionWizard({
   const [segBase, setSegBase] = useState(0);
   const [segLive, setSegLive] = useState(0);
   const [cronometroActivo, setCronometroActivo] = useState(false);
+  const [corridaPausada, setCorridaPausada] = useState(false);
   const corridaIdRef = useRef<number | null>(null);
 
   const maxProgreso = conCompras ? 5 : 4;
@@ -15776,6 +15845,7 @@ function NuevaAccionWizard({
         inicioRef.current = null;
         _timerStore.delete(reanudar.ticketId);
         setCronometroActivo(false);
+        setCorridaPausada(t.corrida.estado === "pausada");
         setSegLive(0);
       }
     } else if ((t.segundos_trabajo ?? 0) > 0) {
@@ -15836,6 +15906,39 @@ function NuevaAccionWizard({
         }
       }
     } catch { /* cronómetro local sigue */ }
+  }
+
+  async function pausarCronometroWizard() {
+    if (!corridaIdRef.current || corridaPausada) return;
+    if (inicioRef.current != null) {
+      const elapsed = Math.floor((Date.now() - inicioRef.current) / 1000);
+      setSegBase((b) => b + elapsed);
+      setSegLive(0);
+      inicioRef.current = null;
+    }
+    setCronometroActivo(false);
+    setCorridaPausada(true);
+    try {
+      await tapi(`/corridas/${corridaIdRef.current}/pausar`, token, { method: "POST" });
+    } catch { /* pausa local aplicada igual */ }
+  }
+
+  async function reanudarCronometroWizard() {
+    if (!corridaIdRef.current || !corridaPausada) return;
+    const t0 = Date.now();
+    inicioRef.current = t0;
+    setCronometroActivo(true);
+    setCorridaPausada(false);
+    try {
+      const data = await tapi(`/corridas/${corridaIdRef.current}/reanudar`, token, { method: "POST" }) as Ticket;
+      if (data.corrida?.reanudada_en) {
+        const srvTs = parseUtcTs(data.corrida.reanudada_en);
+        if (srvTs <= Date.now() && Date.now() - srvTs < 30_000) {
+          inicioRef.current = srvTs;
+          setSegBase(data.corrida.segundos_acumulados ?? 0);
+        }
+      }
+    } catch { /* reanudación local aplicada igual */ }
   }
 
   async function avanzarDesdeTitulo() {
@@ -16260,7 +16363,7 @@ function NuevaAccionWizard({
 
   async function cancelarWizard() {
     if (ticketId && !confirm("¿Cancelar? La acción iniciada seguirá en tu tablero como borrador.")) return;
-    if (ticketId && corridaIdRef.current) {
+    if (ticketId && corridaIdRef.current && !corridaPausada) {
       try {
         await tapi(`/corridas/${corridaIdRef.current}/pausar`, token, { method: "POST" });
       } catch { /* ignore */ }
@@ -16322,9 +16425,39 @@ function NuevaAccionWizard({
       </div>
 
       {cronometroVisible && (
-        <div className="mb-4 flex items-center justify-center gap-3 rounded-2xl border-2 border-accent/35 bg-accent/8 px-4 py-3">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">En proceso</span>
-          <span className="font-mono text-2xl font-extrabold tabular-nums text-accent">{fmtTiempo(segDisplay)}</span>
+        <div className={`mb-4 flex items-center gap-3 rounded-2xl border-2 px-4 py-3 transition-colors ${
+          corridaPausada
+            ? "border-amber-400/50 bg-amber-50/80 dark:bg-amber-950/30"
+            : "border-accent/35 bg-accent/8"
+        }`}>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex-1">
+            {corridaPausada ? "En pausa" : "En proceso"}
+          </span>
+          <span className={`font-mono text-2xl font-extrabold tabular-nums ${
+            corridaPausada ? "text-amber-600 dark:text-amber-400" : "text-accent"
+          }`}>
+            {fmtTiempo(segDisplay)}
+          </span>
+          {cronometroActivo && !corridaPausada && (
+            <button
+              type="button"
+              onClick={() => void pausarCronometroWizard()}
+              title="Pausar"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-amber-400/70 text-amber-600 dark:text-amber-400 transition hover:bg-amber-50 dark:hover:bg-amber-950/40 active:scale-95"
+            >
+              <Icon name="pause" size={18} weight="bold" />
+            </button>
+          )}
+          {corridaPausada && (
+            <button
+              type="button"
+              onClick={() => void reanudarCronometroWizard()}
+              title="Reanudar"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white shadow-[0_2px_0_rgba(2,45,51,0.25)] transition hover:bg-accent-hover active:translate-y-0.5 active:shadow-none"
+            >
+              <Icon name="play" size={18} weight="bold" />
+            </button>
+          )}
         </div>
       )}
 
@@ -16910,6 +17043,14 @@ function NuevaAccionWizard({
               </button>
             </div>
           </div>
+
+          {ticketId && (
+            <NotaAccionInline
+              ticketId={ticketId}
+              token={token}
+              initialValue={""}
+            />
+          )}
 
           <div className="flex gap-3">
             <button
@@ -22165,6 +22306,264 @@ const ACCIONES_TAB_CFG = {
 } as const;
 type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
 
+// ── BolsilloSeguro ────────────────────────────────────────────────────────────
+
+const CANARY = "McKBols:";
+
+async function derivarClave(pin: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 200_000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+async function encriptarBolsillo(texto: string, pin: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(32)) as Uint8Array<ArrayBuffer>;
+  const iv = crypto.getRandomValues(new Uint8Array(12)) as Uint8Array<ArrayBuffer>;
+  const clave = await derivarClave(pin, salt);
+  const enc = new TextEncoder();
+  const cifrado = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, clave, enc.encode(CANARY + texto));
+  const buf = new Uint8Array(salt.byteLength + iv.byteLength + cifrado.byteLength);
+  buf.set(salt, 0);
+  buf.set(iv, 32);
+  buf.set(new Uint8Array(cifrado), 44);
+  return btoa(String.fromCharCode(...buf));
+}
+
+async function desencriptarBolsillo(blob: string, pin: string): Promise<string | null> {
+  try {
+    const raw = Uint8Array.from(atob(blob), (c) => c.charCodeAt(0)) as Uint8Array<ArrayBuffer>;
+    const salt = raw.slice(0, 32) as Uint8Array<ArrayBuffer>;
+    const iv = raw.slice(32, 44) as Uint8Array<ArrayBuffer>;
+    const cifrado = raw.slice(44) as Uint8Array<ArrayBuffer>;
+    const clave = await derivarClave(pin, salt);
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, clave, cifrado);
+    const texto = new TextDecoder().decode(plain);
+    if (!texto.startsWith(CANARY)) return null;
+    return texto.slice(CANARY.length);
+  } catch {
+    return null;
+  }
+}
+
+function BolsilloSeguro({ token }: { token: string }) {
+  type Estado = "cargando" | "locked" | "pin_setup" | "pin_unlock" | "open" | "guardando";
+  const [estado, setEstado] = useState<Estado>("cargando");
+  const [blobServidor, setBlobServidor] = useState<string | null>(null);
+  const [pin, setPin] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [texto, setTexto] = useState("");
+  const [guardadoLabel, setGuardadoLabel] = useState<"" | "guardando" | "ok">("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pinInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch("/api/tickets/auth/bolsillo", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((d: { blob?: string | null }) => {
+        const b = d.blob ?? null;
+        setBlobServidor(b);
+        setEstado(b ? "locked" : "pin_setup");
+      })
+      .catch(() => setEstado("locked"));
+  }, [token]);
+
+  useEffect(() => {
+    if (estado === "pin_unlock" || estado === "pin_setup") {
+      setTimeout(() => pinInputRef.current?.focus(), 80);
+    }
+  }, [estado]);
+
+  async function confirmarSetup() {
+    if (pin.length < 4) { setPinError("Mínimo 4 dígitos"); return; }
+    if (pin !== pinConfirm) { setPinError("Los PINes no coinciden"); return; }
+    setPinError("");
+    const blob = await encriptarBolsillo("", pin);
+    setBlobServidor(blob);
+    setTexto("");
+    setEstado("open");
+    void fetch("/api/tickets/auth/bolsillo", {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ blob }),
+    });
+  }
+
+  async function confirmarUnlock() {
+    if (!blobServidor) return;
+    const resultado = await desencriptarBolsillo(blobServidor, pin);
+    if (resultado === null) {
+      setPinError("PIN incorrecto");
+      setPin("");
+      return;
+    }
+    setPinError("");
+    setTexto(resultado);
+    setEstado("open");
+  }
+
+  function cerrar() {
+    setTexto("");
+    setPin("");
+    setPinConfirm("");
+    setPinError("");
+    setEstado("locked");
+  }
+
+  async function guardarTexto(nuevoTexto: string) {
+    if (!blobServidor && estado !== "open") return;
+    const currentPin = pin;
+    if (!currentPin) return;
+    setGuardadoLabel("guardando");
+    try {
+      const blob = await encriptarBolsillo(nuevoTexto, currentPin);
+      setBlobServidor(blob);
+      await fetch("/api/tickets/auth/bolsillo", {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ blob }),
+      });
+      setGuardadoLabel("ok");
+      setTimeout(() => setGuardadoLabel(""), 2000);
+    } catch {
+      setGuardadoLabel("");
+    }
+  }
+
+  function onChangeTexto(val: string) {
+    setTexto(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => void guardarTexto(val), 900);
+  }
+
+  if (estado === "cargando") return null;
+
+  return (
+    <div className="border-t border-border/50 pt-6">
+      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
+        🔐 Bolsillo seguro
+      </p>
+
+      {/* Locked */}
+      {(estado === "locked") && (
+        <button
+          type="button"
+          onClick={() => { setPin(""); setPinError(""); setEstado("pin_unlock"); }}
+          className="w-full flex items-center gap-3 rounded-2xl border-2 border-border bg-surface-panel px-4 py-4 text-left transition hover:border-accent/50 active:scale-[0.98]"
+        >
+          <span className="text-2xl">🔒</span>
+          <div>
+            <p className="text-sm font-bold text-ink">Bolsillo cerrado</p>
+            <p className="text-xs text-muted">Toca para ingresar el PIN</p>
+          </div>
+        </button>
+      )}
+
+      {/* Setup PIN nuevo */}
+      {estado === "pin_setup" && (
+        <div className="rounded-2xl border-2 border-accent/40 bg-accent/5 px-4 py-4 space-y-3">
+          <p className="text-sm font-bold text-ink">Crear PIN del bolsillo</p>
+          <p className="text-xs text-muted">El PIN nunca sale del dispositivo. Si lo olvidás, el contenido no se puede recuperar.</p>
+          <input
+            ref={pinInputRef}
+            type="password"
+            inputMode="numeric"
+            maxLength={12}
+            placeholder="PIN (mín. 4 dígitos)"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={(e) => e.key === "Enter" && pinInputRef.current?.blur()}
+            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-ink focus:border-accent focus:outline-none"
+          />
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={12}
+            placeholder="Confirmar PIN"
+            value={pinConfirm}
+            onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, ""))}
+            onKeyDown={(e) => e.key === "Enter" && void confirmarSetup()}
+            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-ink focus:border-accent focus:outline-none"
+          />
+          {pinError && <p className="text-xs text-red-500">{pinError}</p>}
+          <button
+            type="button"
+            onClick={() => void confirmarSetup()}
+            className="w-full rounded-xl bg-accent py-2 text-sm font-bold text-white hover:bg-accent/80 transition"
+          >
+            Crear bolsillo
+          </button>
+        </div>
+      )}
+
+      {/* Unlock PIN */}
+      {estado === "pin_unlock" && (
+        <div className="rounded-2xl border-2 border-border bg-surface-panel px-4 py-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-ink">🔓 Ingresá el PIN</p>
+            <button type="button" onClick={cerrar} className="text-xs text-muted hover:text-ink">✕ Cancelar</button>
+          </div>
+          <input
+            ref={pinInputRef}
+            type="password"
+            inputMode="numeric"
+            maxLength={12}
+            placeholder="PIN"
+            value={pin}
+            onChange={(e) => { setPin(e.target.value.replace(/\D/g, "")); setPinError(""); }}
+            onKeyDown={(e) => e.key === "Enter" && void confirmarUnlock()}
+            className="w-full rounded-xl border-2 border-border bg-surface px-3 py-2 text-sm font-mono tracking-widest text-center text-ink focus:border-accent focus:outline-none"
+          />
+          {pinError && <p className="text-xs text-red-500 text-center">{pinError}</p>}
+          <button
+            type="button"
+            onClick={() => void confirmarUnlock()}
+            className="w-full rounded-xl bg-accent py-2 text-sm font-bold text-white hover:bg-accent/80 transition"
+          >
+            Abrir
+          </button>
+        </div>
+      )}
+
+      {/* Open — editor */}
+      {estado === "open" && (
+        <div className="rounded-2xl border-2 border-emerald-300/60 dark:border-emerald-700/50 bg-emerald-50/40 dark:bg-emerald-950/20 px-4 py-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+              🔓 Bolsillo abierto
+              {guardadoLabel === "guardando" && <span className="text-muted font-normal">Guardando…</span>}
+              {guardadoLabel === "ok" && <span className="text-emerald-600 font-normal">✓ Guardado</span>}
+            </p>
+            <button
+              type="button"
+              onClick={cerrar}
+              title="Cerrar y bloquear"
+              className="flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition"
+            >
+              🔒 Bloquear
+            </button>
+          </div>
+          <textarea
+            autoFocus
+            rows={8}
+            value={texto}
+            onChange={(e) => onChangeTexto(e.target.value)}
+            placeholder="Escribe aquí tus datos confidenciales…"
+            className="w-full resize-none rounded-xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-white dark:bg-gray-950 px-3 py-2.5 text-sm text-ink focus:border-emerald-400 focus:outline-none font-mono leading-relaxed"
+          />
+          <p className="text-[10px] text-muted">Cifrado AES-256 en el dispositivo. El servidor solo guarda el blob encriptado.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── AccionesView ──────────────────────────────────────────────────────────────
 
 function AccionesView({
@@ -23251,6 +23650,41 @@ function AccionesView({
               onRecargar={() => void cargarRecordatorios()}
             />
           </div>
+
+          {/* Notas de acciones en curso */}
+          {(() => {
+            const conNotas = acciones.filter(
+              (a) => a.estado === "en_proceso" && a.notas_accion?.trim(),
+            );
+            if (conNotas.length === 0) return null;
+            return (
+              <div className="border-t border-border/50 pt-6 space-y-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
+                  📝 Notas de acciones en curso
+                  <span className="rounded-full bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                    {conNotas.length}
+                  </span>
+                </p>
+                <div className="space-y-3">
+                  {conNotas.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => onSelect(a.id)}
+                      className="w-full text-left rounded-2xl border border-amber-300/60 dark:border-amber-700/50 bg-amber-50/60 dark:bg-amber-950/20 px-4 py-3 space-y-1.5 transition-all hover:border-amber-400 active:scale-[0.98]"
+                    >
+                      <p className="text-sm font-bold text-ink leading-snug line-clamp-1">⚡ {a.titulo}</p>
+                      <p className="text-xs text-amber-800 dark:text-amber-300 whitespace-pre-wrap line-clamp-3">
+                        {a.notas_accion}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          <BolsilloSeguro token={token} />
         </div>
       )}
 
@@ -24151,7 +24585,7 @@ function EjecucionAccionChat({
 }) {
   type Nota = { id: number; texto: string; fotoUrl?: string; tipo: "texto" | "foto" | "sistema"; duracionSeg?: number; serverItemId?: number; guardando?: boolean; errorGuarda?: boolean; eliminando?: boolean };
 
-  const { segundos, activo: cronometroActivo, pausar, fmt: fmtSeg } = useTicketCronometro(accion.id, token);
+  const { segundos, activo: cronometroActivo, pausar, syncDesdeServidor, fmt: fmtSeg } = useTicketCronometro(accion.id, token);
   const [notas, setNotas] = useState<Nota[]>([]);
   const [cargandoNotas, setCargandoNotas] = useState(true);
   const [inputNota, setInputNota] = useState("");
@@ -24393,11 +24827,32 @@ function EjecucionAccionChat({
             <p className="text-xs font-extrabold uppercase tracking-widest text-muted">En ejecución</p>
             <p className="text-base font-extrabold text-ink leading-snug truncate tracking-tight">{accion.titulo}</p>
           </div>
-          {/* Cronómetro */}
-          <div className="shrink-0 flex items-center gap-1.5 bg-accent/10 rounded-full px-3 py-1">
-            <span className="text-xs">⏱</span>
-            <span className="text-sm font-black tabular-nums text-accent">{fmtSeg(segundos)}</span>
-            {cronometroActivo && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
+          {/* Cronómetro + pausa */}
+          <div className="shrink-0 flex items-center gap-2">
+            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${cronometroActivo ? "bg-accent/10" : "bg-amber-100 dark:bg-amber-900/30"}`}>
+              <span className="text-xs">⏱</span>
+              <span className={`text-sm font-black tabular-nums ${cronometroActivo ? "text-accent" : "text-amber-600 dark:text-amber-400"}`}>{fmtSeg(segundos)}</span>
+              {cronometroActivo && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
+            </div>
+            {cronometroActivo ? (
+              <button
+                type="button"
+                onClick={() => void pausar()}
+                title="Pausar cronómetro"
+                className="flex items-center justify-center h-8 w-8 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-900/60 transition shrink-0"
+              >
+                ⏸
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void syncDesdeServidor(true)}
+                title="Reanudar cronómetro"
+                className="flex items-center justify-center h-8 w-8 rounded-full bg-accent text-white hover:bg-accent/80 transition shrink-0"
+              >
+                ▶
+              </button>
+            )}
           </div>
         </div>
         <AccionAlarmaRecordatorio
