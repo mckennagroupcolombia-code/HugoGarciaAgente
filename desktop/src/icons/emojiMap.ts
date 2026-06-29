@@ -94,6 +94,8 @@ export const EMOJI_TO_ICON: Record<string, UiIconName> = {
   "👋": "wave",
   "🔁": "refresh",
   "🔓": "unlock",
+  "🖨": "printer",
+  "🖨️": "printer",
 };
 
 /** Presets para elegir ícono de categoría / reino (valor guardado = emoji). */

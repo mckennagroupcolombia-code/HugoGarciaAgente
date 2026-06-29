@@ -1986,7 +1986,9 @@ def register_tickets_routes(app):
     def tickets_acciones_historial():
         from app.services.tickets_db import listar_acciones_historial
         uid = request.tickets_usuario["id"]
-        return jsonify(listar_acciones_historial(uid)), 200
+        nivel = (request.tickets_usuario.get("rol") or {}).get("nivel", 0)
+        todos = nivel >= 3
+        return jsonify(listar_acciones_historial(uid, todos=todos)), 200
 
     @app.route("/api/tickets/acciones/repetir", methods=["POST"])
     @_auth
@@ -2412,6 +2414,7 @@ def register_tickets_routes(app):
                 dias_semana=d.get("dias_semana"),
                 dias_mes=d.get("dias_mes"),
                 hora=d.get("hora"),
+                asignado_a=d.get("asignado_a"),
             )
         except Exception as e:
             return jsonify({"error": str(e)}), 400
@@ -2429,6 +2432,7 @@ def register_tickets_routes(app):
             cada_n=d.get("cada_n_dias"),
             dias_semana=d.get("dias_semana"), dias_mes=d.get("dias_mes"),
             hora=d.get("hora"),
+            asignado_a=d.get("asignado_a", -1),
         )
         if err:
             return jsonify({"error": err}), 404

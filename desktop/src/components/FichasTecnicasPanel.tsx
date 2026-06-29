@@ -901,6 +901,26 @@ function CoaSection({
     e.target.value = "";
   };
 
+  useEffect(() => {
+    const handler = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            setScanPreview(URL.createObjectURL(file));
+            handleScanImage(file);
+            e.preventDefault();
+          }
+          break;
+        }
+      }
+    };
+    document.addEventListener("paste", handler);
+    return () => document.removeEventListener("paste", handler);
+  }, []);
+
   const cellCls = "w-full bg-transparent px-2 py-1.5 text-xs outline-none focus:bg-accent/5";
 
   return (
@@ -959,7 +979,7 @@ function CoaSection({
           <input ref={scanFileRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileChange} />
         </div>
         <p className="text-[10px] text-muted">
-          Arrastra una imagen o PDF, o usa el botón. La IA extraerá y completará la tabla de parámetros automáticamente.
+          Pega con Ctrl+V, arrastra una imagen o PDF, o usa el botón. La IA extraerá y completará la tabla de parámetros automáticamente.
         </p>
         {scanLightbox && scanPreview && <ImageLightbox url={scanPreview} onClose={() => setScanLightbox(false)} />}
         {scanPreview && (

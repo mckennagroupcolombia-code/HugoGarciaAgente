@@ -837,6 +837,13 @@ def _migrate_recordatorios_bimestral():
         db.commit()
 
 
+def _migrate_recordatorios_asignado():
+    """Columna asignado_a para recordatorios del equipo."""
+    with _conn() as db:
+        _add_col(db, "recordatorios", "asignado_a", "INTEGER")
+        _add_col(db, "recordatorios", "creado_por", "INTEGER")
+
+
 def _migrate_adjunto_paso_id():
     """Columna paso_id opcional en ticket_adjuntos para adjuntos por paso."""
     with _conn() as db:
@@ -926,6 +933,7 @@ def init_db():
     _safe_migrate(_migrate_recordatorios)
     _safe_migrate(_migrate_recordatorios_hora)
     _safe_migrate(_migrate_recordatorios_bimestral)
+    _safe_migrate(_migrate_recordatorios_asignado)
     _safe_migrate(_migrate_protocolo_accesos)
     os.makedirs(UPLOADS_DIR, exist_ok=True)
     with _conn() as db:
@@ -3235,6 +3243,9 @@ def crear_ticket(data: dict, usuario_id: int, archivo_nombre: str | None = None)
             tipo = data.get("tipo", "ticket")
             if tipo not in ("ticket", "accion", "solicitud"):
                 tipo = "ticket"
+            # Acción asignada a otro usuario → es una solicitud, no una acción personal
+            if tipo == "accion" and asignado_a and asignado_a != usuario_id:
+                tipo = "solicitud"
             frecuencia = data.get("frecuencia") or None
             fecha_inicio = data.get("fecha_inicio") or None
             ticket_padre_id = data.get("ticket_padre_id")
@@ -3323,7 +3334,7 @@ def listar_tickets(usuario: dict, filtros: dict | None = None) -> list:
         tipo_filtro = filtros.get("tipo")
         vista_equipo = bool(filtros.get("vista_equipo"))
         equipo_tipos = tipo_filtro in ("solicitud", "accion")
-        if nivel < 2 and not (vista_equipo and equipo_tipos):
+        if nivel < 3 and not (vista_equipo and equipo_tipos):
             conds.append("(t.creado_por=? OR t.asignado_a=? OR EXISTS("
                          "SELECT 1 FROM ticket_participantes tp "
                          "WHERE tp.ticket_id=t.id AND tp.usuario_id=?))")
@@ -5300,22 +5311,40 @@ def crear_accion_desde_procedimiento(
     return crear_ticket(data, usuario_id)
 
 
-def listar_acciones_historial(usuario_id: int, limit: int = 80) -> list:
-    """Acciones resueltas del usuario (plantillas reutilizables)."""
+def listar_acciones_historial(usuario_id: int, limit: int = 80, todos: bool = False) -> list:
+    """Acciones resueltas. Si todos=True devuelve las de todo el equipo (solo para admins)."""
     with _conn() as db:
-        rows = db.execute("""
-            SELECT t.*,
-                   pr.id AS procedimiento_id,
-                   pr.titulo AS procedimiento_titulo,
-                   pr.alcance AS procedimiento_alcance
-            FROM tickets t
-            LEFT JOIN protocolos pr ON pr.id = t.protocolo_id AND pr.activo = 1
-            WHERE t.tipo = 'accion'
-              AND t.estado = 'resuelto'
-              AND (t.creado_por = ? OR t.asignado_a = ?)
-            ORDER BY t.actualizado_en DESC
-            LIMIT ?
-        """, (usuario_id, usuario_id, limit)).fetchall()
+        if todos:
+            rows = db.execute("""
+                SELECT t.*,
+                       pr.id AS procedimiento_id,
+                       pr.titulo AS procedimiento_titulo,
+                       pr.alcance AS procedimiento_alcance,
+                       u.nombre AS responsable_nombre
+                FROM tickets t
+                LEFT JOIN protocolos pr ON pr.id = t.protocolo_id AND pr.activo = 1
+                LEFT JOIN usuarios u ON u.id = COALESCE(t.asignado_a, t.creado_por)
+                WHERE t.tipo = 'accion'
+                  AND t.estado = 'resuelto'
+                ORDER BY t.actualizado_en DESC
+                LIMIT ?
+            """, (limit,)).fetchall()
+        else:
+            rows = db.execute("""
+                SELECT t.*,
+                       pr.id AS procedimiento_id,
+                       pr.titulo AS procedimiento_titulo,
+                       pr.alcance AS procedimiento_alcance,
+                       u.nombre AS responsable_nombre
+                FROM tickets t
+                LEFT JOIN protocolos pr ON pr.id = t.protocolo_id AND pr.activo = 1
+                LEFT JOIN usuarios u ON u.id = COALESCE(t.asignado_a, t.creado_por)
+                WHERE t.tipo = 'accion'
+                  AND t.estado = 'resuelto'
+                  AND (t.creado_por = ? OR t.asignado_a = ?)
+                ORDER BY t.actualizado_en DESC
+                LIMIT ?
+            """, (usuario_id, usuario_id, limit)).fetchall()
     usuario_stub = {"id": usuario_id, "rol": {"nivel": 3}}
     out = []
     for r in rows:
@@ -5324,6 +5353,7 @@ def listar_acciones_historial(usuario_id: int, limit: int = 80) -> list:
             t["procedimiento_id"] = r["procedimiento_id"]
             t["procedimiento_titulo"] = r["procedimiento_titulo"]
             t["procedimiento_alcance"] = r["procedimiento_alcance"]
+            t["responsable_nombre"] = r["responsable_nombre"]
             out.append(t)
     return out
 
@@ -6029,10 +6059,15 @@ def _parse_rec(row) -> dict:
 def listar_recordatorios(usuario_id: int) -> list:
     with _conn() as db:
         rows = db.execute("""
-            SELECT * FROM recordatorios
-            WHERE usuario_id=? AND activo=1
-            ORDER BY proxima_fecha ASC, creado_en ASC
-        """, (usuario_id,)).fetchall()
+            SELECT r.*,
+                   u.nombre AS asignado_a_nombre,
+                   c.nombre AS creado_por_nombre
+            FROM recordatorios r
+            LEFT JOIN usuarios u ON u.id = r.asignado_a
+            LEFT JOIN usuarios c ON c.id = r.creado_por
+            WHERE (r.usuario_id=? OR r.asignado_a=?) AND r.activo=1
+            ORDER BY r.proxima_fecha ASC, r.creado_en ASC
+        """, (usuario_id, usuario_id)).fetchall()
         return [_parse_rec(r) for r in rows]
 
 
@@ -6041,18 +6076,21 @@ def crear_recordatorio(usuario_id: int, titulo: str, descripcion: str | None,
                        cada_n: int | None = None,
                        dias_semana: list | None = None,
                        dias_mes: list | None = None,
-                       hora: str | None = None) -> dict:
+                       hora: str | None = None,
+                       asignado_a: int | None = None) -> dict:
     proxima = _proxima_fecha(tipo, fecha_inicio, cada_n, dias_semana, dias_mes)
     hora_val = hora.strip()[:5] if hora and hora.strip() else None
+    destino = asignado_a if asignado_a and asignado_a != usuario_id else None
     with _conn() as db:
         db.execute(
             """INSERT INTO recordatorios
                (usuario_id, titulo, descripcion, tipo_rep, proxima_fecha,
-                cada_n_dias, dias_semana, dias_mes, hora)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
+                cada_n_dias, dias_semana, dias_mes, hora, asignado_a, creado_por)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
             (usuario_id, titulo.strip(), descripcion or None, tipo, proxima,
              cada_n, _json.dumps(dias_semana) if dias_semana else None,
-             _json.dumps(dias_mes) if dias_mes else None, hora_val),
+             _json.dumps(dias_mes) if dias_mes else None, hora_val,
+             destino, usuario_id if destino else None),
         )
         rid = db.execute("SELECT last_insert_rowid() AS id").fetchone()["id"]
         db.commit()
@@ -6067,11 +6105,12 @@ def actualizar_recordatorio(rec_id: int, usuario_id: int,
                             cada_n: int | None = None,
                             dias_semana: list | None = None,
                             dias_mes: list | None = None,
-                            hora: str | None = None) -> tuple:
+                            hora: str | None = None,
+                            asignado_a: int | None = -1) -> tuple:
     with _conn() as db:
         row = db.execute(
-            "SELECT * FROM recordatorios WHERE id=? AND usuario_id=? AND activo=1",
-            (rec_id, usuario_id),
+            "SELECT * FROM recordatorios WHERE id=? AND (usuario_id=? OR asignado_a=?) AND activo=1",
+            (rec_id, usuario_id, usuario_id),
         ).fetchone()
         if not row:
             return None, "Recordatorio no encontrado"
@@ -6083,16 +6122,18 @@ def actualizar_recordatorio(rec_id: int, usuario_id: int,
         nueva_fecha = fecha_inicio or r["proxima_fecha"]
         proxima = _proxima_fecha(nuevo_tipo, nueva_fecha, nuevo_n, nuevos_ds, nuevos_dm)
         hora_val = hora.strip()[:5] if hora and hora.strip() else r.get("hora")
+        # asignado_a=-1 significa "no cambiar"; None significa "quitar asignación"
+        nuevo_asignado = r.get("asignado_a") if asignado_a == -1 else (asignado_a or None)
         db.execute(
             """UPDATE recordatorios SET titulo=?, descripcion=?, tipo_rep=?,
                proxima_fecha=?, cada_n_dias=?, dias_semana=?, dias_mes=?, hora=?,
-               actualizado_en=datetime('now') WHERE id=?""",
+               asignado_a=?, actualizado_en=datetime('now') WHERE id=?""",
             (titulo.strip() if titulo else r["titulo"],
              descripcion if descripcion is not None else r["descripcion"],
              nuevo_tipo, proxima, nuevo_n,
              _json.dumps(nuevos_ds) if nuevos_ds else None,
              _json.dumps(nuevos_dm) if nuevos_dm else None,
-             hora_val, rec_id),
+             hora_val, nuevo_asignado, rec_id),
         )
         db.commit()
         return _parse_rec(db.execute("SELECT * FROM recordatorios WHERE id=?", (rec_id,)).fetchone()), None

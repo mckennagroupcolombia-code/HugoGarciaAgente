@@ -90,9 +90,11 @@ export type AccionesBootTab =
   | "subhome"
   | "activas"
   | "pendientes"
-  | "recordatorios"
   | "procedimientos"
-  | "historial";
+  | "historial"
+  | "agenda"
+  | "notas"
+  | "bolsillo";
 
 interface AppState {
   panel: Panel;

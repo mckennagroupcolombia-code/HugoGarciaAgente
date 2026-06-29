@@ -92,7 +92,8 @@ export type UiIconName =
   | "monitor"
   | "megaphone"
   | "ship"
-  | "plane";
+  | "plane"
+  | "printer";
 
 export type IconName = Panel | UiIconName;
 

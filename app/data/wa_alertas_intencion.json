@@ -160,6 +160,16 @@
       "alerta_enviada_ts": 1782600971.5322676,
       "cancelada": false,
       "cancelada_razon": null
+    },
+    "573146057489@c.us": {
+      "jid": "573146057489@c.us",
+      "primer_intencion_ts": 1782683277.0,
+      "primer_intencion_texto": "Listo, ya te comparto la transferencia",
+      "ultima_human_ts": 1782692370.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1782685390.2374246,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }
