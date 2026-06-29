@@ -4321,12 +4321,6 @@ function CentroMandoHome({
             sub="Notas cifradas con PIN" count={null} colorKey="slate" arrow
           />
         )}
-        {verImpresora && onImpresora && (
-          <NavCard
-            onClick={onImpresora} icon="🖨" titulo="Impresora"
-            sub="Etiquetas de producto" count={null} colorKey="teal" arrow
-          />
-        )}
       </div>
     </div>
   );
@@ -22461,13 +22455,18 @@ type NotaPensamiento = { id: number; contenido: string; creadaEn: string };
 const NOTAS_KEY = "mck_notas_pensamientos";
 
 function NotasPensamientos({ crearSignal = 0 }: { crearSignal?: number }) {
-  const [notas, setNotas] = useState<NotaPensamiento[]>(() => {
+  const leerStorage = (): NotaPensamiento[] => {
     try { return JSON.parse(localStorage.getItem(NOTAS_KEY) ?? "[]") as NotaPensamiento[]; }
     catch { return []; }
-  });
+  };
+
+  const [notas, setNotas] = useState<NotaPensamiento[]>(leerStorage);
   const [texto, setTexto] = useState("");
   const [expandida, setExpandida] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  /* Sincronizar desde localStorage cada vez que el componente monta */
+  useEffect(() => { setNotas(leerStorage()); }, []);
 
   useEffect(() => {
     if (crearSignal > 0) textareaRef.current?.focus();
@@ -22475,7 +22474,7 @@ function NotasPensamientos({ crearSignal = 0 }: { crearSignal?: number }) {
 
   const guardar = (nuevas: NotaPensamiento[]) => {
     setNotas(nuevas);
-    localStorage.setItem(NOTAS_KEY, JSON.stringify(nuevas));
+    try { localStorage.setItem(NOTAS_KEY, JSON.stringify(nuevas)); } catch { /* quota */ }
   };
 
   const agregar = () => {
@@ -22503,11 +22502,50 @@ function NotasPensamientos({ crearSignal = 0 }: { crearSignal?: number }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
-        💭 Notas y pensamientos
-      </p>
+      {/* Lista de notas — primero para que sean visibles sin scroll */}
+      {notas.length === 0 ? (
+        <p className="py-6 text-center text-sm text-muted">Aún no tienes notas. Escribe una abajo.</p>
+      ) : (
+        <div className="space-y-2">
+          {notas.map((n) => (
+            <div key={n.id} className="rounded-xl border border-border bg-surface-panel px-4 py-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-[10px] text-muted">{formatFecha(n.creadaEn)}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpandida(expandida === n.id ? null : n.id)}
+                    className="text-[10px] text-accent hover:underline"
+                  >
+                    {expandida === n.id ? "cerrar" : "editar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => eliminar(n.id)}
+                    className="text-[10px] text-muted hover:text-danger transition"
+                    title="Eliminar"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              {expandida === n.id ? (
+                <textarea
+                  value={n.contenido}
+                  onChange={(e) => editarContenido(n.id, e.target.value)}
+                  rows={4}
+                  className="w-full resize-none rounded-lg bg-surface-input border border-border px-3 py-2 text-sm text-ink outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition"
+                  autoFocus
+                />
+              ) : (
+                <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">{n.contenido}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
-      {/* Input nueva nota */}
+      {/* Input nueva nota — al fondo */}
       <div className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
         <textarea
           ref={textareaRef}
@@ -22530,48 +22568,6 @@ function NotasPensamientos({ crearSignal = 0 }: { crearSignal?: number }) {
             Guardar nota
           </button>
         </div>
-      </div>
-
-      {/* Lista de notas */}
-      {notas.length === 0 && (
-        <p className="py-4 text-center text-xs text-muted">Aún no tienes notas. Lo que escribas aquí es solo tuyo.</p>
-      )}
-      <div className="space-y-2">
-        {notas.map((n) => (
-          <div key={n.id} className="rounded-xl border border-border bg-surface-panel px-4 py-3 space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[10px] text-muted">{formatFecha(n.creadaEn)}</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setExpandida(expandida === n.id ? null : n.id)}
-                  className="text-[10px] text-accent hover:underline"
-                >
-                  {expandida === n.id ? "cerrar" : "editar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => eliminar(n.id)}
-                  className="text-[10px] text-muted hover:text-danger transition"
-                  title="Eliminar"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-            {expandida === n.id ? (
-              <textarea
-                value={n.contenido}
-                onChange={(e) => editarContenido(n.id, e.target.value)}
-                rows={4}
-                className="w-full resize-none rounded-lg bg-surface-input border border-border px-3 py-2 text-sm text-ink outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition"
-                autoFocus
-              />
-            ) : (
-              <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">{n.contenido}</p>
-            )}
-          </div>
-        ))}
       </div>
     </div>
   );
