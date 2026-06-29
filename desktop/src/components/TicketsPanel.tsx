@@ -1197,7 +1197,7 @@ function fmtDate(s: string) {
 
 // ── Sub-views ─────────────────────────────────────────────────────────────────
 
-/** Tabs que un usuario puede ver dentro del Centro de Mando.
+/** Tabs que un usuario puede ver dentro del Agenda.
  *  Admin (nivel >= 3) ve siempre todo.
  *  Sin permisos configurados (null) → solo acciones.
  *  Con permisos → respeta la clave tickets_<tab>. */
@@ -1627,7 +1627,7 @@ function QuestNavBar({
   onCentroMando: () => void;
   onSolicitudes: () => void;
   onWorkload: () => void;
-  /** Hugo activo en hub integrado (chat expandido sobre Centro de Mando). */
+  /** Hugo activo en hub integrado (chat expandido sobre Agenda). */
   hugoChatActive?: boolean;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
@@ -1636,7 +1636,7 @@ function QuestNavBar({
 
   // Etiqueta de la sección activa (para la cabecera móvil)
   const viewLabels: Partial<Record<View, string>> = {
-    home: "Centro de Mando", list: "Tablero", acciones: "Acciones", solicitudes: "Solicitudes",
+    home: "Agenda", list: "Tablero", acciones: "Acciones", solicitudes: "Solicitudes",
     contratos: "Contratos",
     crear_mision: "Nueva misión", inventario: "Inventario", reinos: "Reinos",
     recetas: "Recetas", workload: "Aliados",
@@ -1648,7 +1648,7 @@ function QuestNavBar({
   return (
     <nav
       className="quest-nav-bar sticky top-0 z-20 mb-4 w-full border-b-2 border-border py-2.5 backdrop-blur-md"
-      aria-label="Navegación Hugo y Centro de Mando"
+      aria-label="Navegación Hugo y Agenda"
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-sm font-extrabold text-ink sm:hidden">
@@ -2708,7 +2708,7 @@ function LoginView({ onLogin }: { onLogin: (token: string, user: TicketsUser) =>
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border-2 border-border bg-surface text-ink shadow-paper">
             <Icon name="ticket" size={28} weight="regular" />
           </div>
-          <h2 className="text-xl font-extrabold text-ink">Centro de Mando</h2>
+          <h2 className="text-xl font-extrabold text-ink">Agenda</h2>
           <p className="mt-1 text-sm text-muted">McKenna Group</p>
         </div>
 
@@ -4066,6 +4066,7 @@ function CentroMandoHome({
   token, user, nivel, permisos,
   onAcciones, onSolicitudes, onContratos, onTablero,
   onAccionesFuturas, onRecordatorios, onProcedimientos, onImpresora,
+  onNotas, onBolsillo,
 }: {
   token: string;
   user: TicketsUser;
@@ -4079,6 +4080,8 @@ function CentroMandoHome({
   onRecordatorios: () => void;
   onProcedimientos: () => void;
   onImpresora?: () => void;
+  onNotas?: () => void;
+  onBolsillo?: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
   const verImpresora = puedeVerSeccionPanel(user, "etiquetas");
@@ -4158,150 +4161,173 @@ function CentroMandoHome({
     return () => clearInterval(iv);
   }, [token, user.id]);
 
-  function Stat({ s }: { s: HomeStat }) {
-    if (s.value === null) return <span className="text-muted/40 dark:text-white/20 text-sm">—</span>;
-    return <>{s.value}</>;
-  }
-
-  // Base compartida
-  const cardBase = [
-    "group relative flex flex-col gap-5 rounded-3xl border p-6 text-left",
-    "shadow-[0_2px_14px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.11)]",
-    "transition-all duration-200 cursor-pointer active:scale-[0.97]",
-  ].join(" ");
-
-  // Paleta por sección — tonos más presentes en dark mode
-  const paleta = {
-    acciones:   { card: "bg-amber-50  dark:bg-amber-950/50  border-amber-200    dark:border-amber-700/60",  icon: "bg-amber-200/70  dark:bg-amber-800/60  text-amber-700  dark:text-amber-300" },
-    solicitudes:{ card: "bg-rose-50   dark:bg-rose-950/50   border-rose-200     dark:border-rose-700/60",   icon: "bg-rose-200/70   dark:bg-rose-800/60   text-rose-700   dark:text-rose-300"  },
-    contratos:  { card: "bg-slate-50  dark:bg-slate-950/50  border-slate-200    dark:border-slate-700/60",  icon: "bg-slate-200/70  dark:bg-slate-800/60  text-slate-700  dark:text-slate-300" },
-    futuras:    { card: "bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-700/60", icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300" },
-    recordat:   { card: "bg-violet-50 dark:bg-violet-950/50 border-violet-200   dark:border-violet-700/60", icon: "bg-violet-200/70  dark:bg-violet-800/60  text-violet-700 dark:text-violet-300" },
-    proced:     { card: "bg-sky-50    dark:bg-sky-950/50    border-sky-200      dark:border-sky-700/60",    icon: "bg-sky-200/70    dark:bg-sky-800/60    text-sky-700    dark:text-sky-300"   },
-    tablero:    { card: "bg-stone-50  dark:bg-stone-900/60  border-stone-200    dark:border-stone-600/50",  icon: "bg-stone-200/70  dark:bg-stone-700/60  text-stone-600  dark:text-stone-300" },
-    impresora:  { card: "bg-teal-50   dark:bg-teal-950/50   border-teal-200     dark:border-teal-700/60",   icon: "bg-teal-200/70   dark:bg-teal-800/60   text-teal-700   dark:text-teal-300"  },
-  };
-
-  const homeIconSlot = "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink";
-
-  function HomeCard({ onClick, p, topicIcon, titulo, stat, desc, badge }: {
+  function NavCard({ onClick, icon, titulo, sub, count, colorKey, badge, arrow }: {
     onClick: () => void;
-    p: { card: string };
-    topicIcon: string;
+    icon: string;
     titulo: string;
-    stat: React.ReactNode;
-    desc: string;
-    badge?: React.ReactNode;
+    sub: string;
+    count: number | null;
+    colorKey: "amber" | "rose" | "slate" | "emerald" | "sky" | "teal";
+    badge?: string;
+    arrow?: boolean;
   }) {
+    const COLS: Record<string, { card: string; num: string; iconC: string }> = {
+      amber:   { card: "bg-amber-50   dark:bg-amber-950/40   border-amber-200/80   dark:border-amber-700/40   hover:border-amber-300   dark:hover:border-amber-600",   num: "text-amber-600   dark:text-amber-400",   iconC: "bg-amber-100   dark:bg-amber-900/50   text-amber-700   dark:text-amber-300"   },
+      rose:    { card: "bg-rose-50    dark:bg-rose-950/40    border-rose-200/80    dark:border-rose-700/40    hover:border-rose-300    dark:hover:border-rose-600",    num: "text-rose-600    dark:text-rose-400",    iconC: "bg-rose-100    dark:bg-rose-900/50    text-rose-700    dark:text-rose-300"    },
+      slate:   { card: "bg-slate-50   dark:bg-slate-900/40   border-slate-200/80   dark:border-slate-700/40   hover:border-slate-300   dark:hover:border-slate-600",   num: "text-slate-600   dark:text-slate-300",   iconC: "bg-slate-100   dark:bg-slate-800/50   text-slate-700   dark:text-slate-300"   },
+      emerald: { card: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-700/40 hover:border-emerald-300 dark:hover:border-emerald-600", num: "text-emerald-600 dark:text-emerald-400", iconC: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300" },
+      sky:     { card: "bg-sky-50     dark:bg-sky-950/40     border-sky-200/80     dark:border-sky-700/40     hover:border-sky-300     dark:hover:border-sky-600",     num: "text-sky-600     dark:text-sky-400",     iconC: "bg-sky-100     dark:bg-sky-900/50     text-sky-700     dark:text-sky-300"     },
+      teal:    { card: "bg-teal-50    dark:bg-teal-950/40    border-teal-200/80    dark:border-teal-700/40    hover:border-teal-300    dark:hover:border-teal-600",    num: "text-teal-600    dark:text-teal-400",    iconC: "bg-teal-100    dark:bg-teal-900/50    text-teal-700    dark:text-teal-300"    },
+    };
+    const c = COLS[colorKey];
     return (
-      <button type="button" onClick={onClick} className={`${cardBase} ${p.card}`}>
-        {/* Fila superior: ícono + número */}
-        <div className="flex items-center justify-between gap-3">
-          <span className={homeIconSlot}>
-            <TopicIcon value={topicIcon} size={24} weight="regular" />
-          </span>
-          <div className="text-right space-y-1">
-            <div className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">{stat}</div>
-            {badge}
-          </div>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`group relative flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all duration-150 active:scale-[0.97] hover:shadow-sm ${c.card}`}
+      >
+        <span className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${c.iconC}`}>
+          <TopicIcon value={icon} size={18} weight="regular" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-extrabold text-ink leading-tight truncate">{titulo}</p>
+          {badge ? (
+            <span className="rounded-full bg-amber-500 px-1.5 py-px text-[9px] font-bold text-white leading-tight">
+              {badge}
+            </span>
+          ) : (
+            <p className="text-[10px] text-muted leading-none mt-0.5">{sub}</p>
+          )}
         </div>
-        {/* Título — Montserrat ExtraBold */}
-        <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">{titulo}</p>
-        {/* Descripción — Montserrat Bold, mayor tamaño y contraste */}
-        <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">{desc}</p>
+        <div className="shrink-0">
+          {count !== null ? (
+            <span className={`text-lg font-black tabular-nums leading-none ${c.num}`}>{count}</span>
+          ) : arrow ? (
+            <span className={`text-base font-black leading-none ${c.num}`}>→</span>
+          ) : null}
+        </div>
       </button>
     );
   }
 
+  const hora = new Date().getHours();
+  const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
+  const fechaHoy = new Date().toLocaleDateString("es-CO", {
+    weekday: "long", day: "numeric", month: "long",
+  });
+
   return (
-    <div className="space-y-8 pb-8">
-      {/* Saludo */}
+    <div className="space-y-6 pb-8">
+      {/* ── Header ── */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted/60 mb-1">McKenna Group</p>
-        <h2 className="text-3xl font-extrabold text-ink leading-tight">Centro de Mando</h2>
-        <p className="mt-1 text-sm text-muted inline-flex items-center gap-1.5">
-          Bienvenido, {user.nombre.split(" ")[0]}
-          <TopicIcon value="👋" size={16} className="opacity-70" />
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted/50 mb-1">
+          {fechaHoy.charAt(0).toUpperCase() + fechaHoy.slice(1)}
         </p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-2xl font-black text-ink leading-tight tracking-tight">
+              {saludo},{" "}
+              <span className="text-accent">{user.nombre.split(" ")[0]}</span>
+            </h2>
+            <p className="mt-0.5 text-xs text-muted">Agenda · McKenna Group</p>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {stats.acciones.value != null && stats.acciones.value > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700/60 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                ⚡ {stats.acciones.value} en curso
+              </span>
+            )}
+            {stats.recordatoriosHoy > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700/60 px-2.5 py-1 text-[11px] font-bold text-violet-700 dark:text-violet-300">
+                🔔 {stats.recordatoriosHoy} hoy
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Grid principal */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* ── Acciones en ejecución ── */}
+      {accionesActivas.length > 0 && (
+        <div className="rounded-2xl border border-amber-200/70 dark:border-amber-700/40 bg-gradient-to-br from-amber-50 to-orange-50/60 dark:from-amber-950/30 dark:to-orange-950/10 p-4">
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+              Ejecutando ahora
+            </p>
+            <button type="button" onClick={onAcciones} className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:underline">
+              Ver todo →
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            {accionesActivas.slice(0, 3).map((a: any) => (
+              <div key={a.id} className="flex items-center gap-2.5 rounded-xl bg-white/70 dark:bg-white/5 border border-amber-100 dark:border-amber-800/30 px-3 py-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                <p className="text-sm font-semibold text-ink truncate flex-1">{a.titulo}</p>
+              </div>
+            ))}
+            {accionesActivas.length > 3 && (
+              <p className="text-[11px] text-amber-600/70 dark:text-amber-400/60 text-right pr-1">
+                +{accionesActivas.length - 3} más
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
-        {/* Acciones — primera y más importante */}
+      {/* ── Módulos ── */}
+      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
         {pVer("acciones") && (
-          <HomeCard
-            onClick={onAcciones} p={paleta.acciones} topicIcon="⚡"
-            titulo="Acciones"
-            stat={<Stat s={stats.acciones} />}
-            desc="Lo que estás haciendo ahora mismo. Registra, ejecuta y termina acciones del día."
-            badge={stats.acciones.value != null && stats.acciones.value > 0 ? (
-              <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
-                {stats.acciones.value} en curso
-              </span>
-            ) : undefined}
+          <NavCard
+            onClick={onAcciones} icon="⚡" titulo="Acciones"
+            sub="Tareas en ejecución" count={stats.acciones.value} colorKey="amber"
           />
         )}
-
         {pVer("solicitudes") && (
-          <HomeCard
-            onClick={onSolicitudes} p={paleta.solicitudes} topicIcon="📋"
-            titulo="Solicitudes"
-            stat={<Stat s={stats.solicitudes} />}
-            desc="¿Alguien te pidió algo o tú le pediste a alguien del equipo? Acá están esas tareas."
+          <NavCard
+            onClick={onSolicitudes} icon="📋" titulo="Solicitudes"
+            sub="Del equipo" count={stats.solicitudes.value} colorKey="rose"
           />
         )}
-
         {nivel >= 3 && (
-        <HomeCard
-          onClick={onContratos} p={paleta.contratos} topicIcon="📄"
-          titulo="Contratos"
-          stat={<Stat s={stats.contratos} />}
-          desc="Envía solicitudes de contrato a los aliados del equipo. Plantilla o documento adjunto."
-        />
-        )}
-
-        {/* Agenda: futuras + recordatorios unificados */}
-        {pVer("acciones") && (
-          <HomeCard
-            onClick={onAccionesFuturas} p={paleta.futuras} topicIcon="📅"
-            titulo="Agenda"
-            stat={
-              <span>
-                {(stats.pendientes.value ?? 0) + (stats.recordatorios.value ?? 0)}
-              </span>
-            }
-            desc="Acciones futuras y recordatorios en un solo lugar."
-            badge={(stats.recordatoriosHoy) > 0 ? (
-              <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-white">
-                {stats.recordatoriosHoy} para hoy
-              </span>
-            ) : undefined}
+          <NavCard
+            onClick={onContratos} icon="📄" titulo="Contratos"
+            sub="Aliados activos" count={stats.contratos.value} colorKey="slate"
           />
         )}
-
         {pVer("acciones") && (
-          <HomeCard
-            onClick={onProcedimientos} p={paleta.proced} topicIcon="🔒"
-            titulo="Procedimientos"
-            stat={<Stat s={stats.procedimientos} />}
-            desc="Los pasos que ya guardaste pa' no explicar lo mismo dos veces. Úsalos cuando quieras."
+          <NavCard
+            onClick={onProcedimientos} icon="🔒" titulo="Procedimientos"
+            sub="Pasos guardados" count={stats.procedimientos.value} colorKey="sky"
           />
         )}
-
+        {pVer("acciones") && (
+          <NavCard
+            onClick={onRecordatorios} icon="🔔" titulo="Recordatorios"
+            sub="Alertas programadas"
+            count={stats.recordatorios.value}
+            colorKey="teal"
+            badge={stats.recordatoriosHoy > 0 ? `${stats.recordatoriosHoy} hoy` : undefined}
+          />
+        )}
+        {pVer("acciones") && onNotas && (
+          <NavCard
+            onClick={onNotas} icon="💭" titulo="Notas"
+            sub="Pensamientos personales" count={null} colorKey="emerald" arrow
+          />
+        )}
+        {pVer("acciones") && onBolsillo && (
+          <NavCard
+            onClick={onBolsillo} icon="🔑" titulo="Bolsillo"
+            sub="Notas cifradas con PIN" count={null} colorKey="slate" arrow
+          />
+        )}
         {verImpresora && onImpresora && (
-          <HomeCard
-            onClick={onImpresora}
-            p={paleta.impresora}
-            topicIcon="🖨"
-            titulo="Impresora"
-            stat="→"
-            desc="Etiquetas de producto con lote, vencimiento y vista previa antes de imprimir."
+          <NavCard
+            onClick={onImpresora} icon="🖨" titulo="Impresora"
+            sub="Etiquetas de producto" count={null} colorKey="teal" arrow
           />
         )}
-
       </div>
-
     </div>
   );
 }
@@ -6315,7 +6341,7 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                     { id: "pedidos",   label: "Pedidos Web" },
                     { id: "logistica-internacional", label: "Logística Internacional" },
                     { id: "etiquetas", label: "Impresora · Etiquetas" },
-                    { id: "tickets",   label: "Centro de Mando" },
+                    { id: "tickets",   label: "Agenda" },
                   ];
                   const SECCIONES_CONTABILIDAD: { id: string; label: string }[] = [
                     { id: "facturas",      label: "Facturas de compra" },
@@ -19412,47 +19438,40 @@ function SolicitudesView({
     <div className="space-y-4">
       {/* Header */}
       {tab === "subhome" ? (
-        <div className="rounded-3xl border border-rose-200 dark:border-rose-700/60 bg-rose-50 dark:bg-rose-950/50 p-6 shadow-[0_2px_14px_rgba(0,0,0,0.06)] space-y-4">
-          <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
-              <TopicIcon value="📋" size={24} />
+        <div className="rounded-xl border border-rose-200 dark:border-rose-700/60 bg-rose-50 dark:bg-rose-950/50 px-3 py-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-surface/80 text-ink">
+              <TopicIcon value="📋" size={15} />
             </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-2xl font-extrabold text-ink">Solicitudes</h2>
-                {onInicio && (
-                  <button
-                    type="button"
-                    onClick={onInicio}
-                    className="ml-auto flex items-center gap-1 rounded-xl border-2 border-rose-300 dark:border-rose-600/70 px-3 py-1 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition"
-                    title="Volver al inicio"
-                  >
-                    <TopicIcon value="🏠" size={14} className="shrink-0" /> Inicio
-                  </button>
-                )}
-              </div>
-              <p className="mt-1 text-base font-bold text-ink/80 dark:text-white/90 leading-snug">
-                Tareas entre miembros del equipo. Recibe lo que te piden y delega lo que necesitas.
-              </p>
+            <span className="text-sm font-bold text-ink">Solicitudes</span>
+            <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowWizard(true)}
+                className={`${CENTRO_MANDO_CTA_BTN} bg-rose-500 hover:bg-rose-600 shadow-[0_2px_0_#9f1239]`}
+              >
+                <Icon name="plus" size={13} weight="bold" />
+                Nueva solicitud
+              </button>
+              <button
+                type="button"
+                onClick={() => void load(false)}
+                disabled={loading}
+                className="rounded-lg border border-rose-300 dark:border-rose-600/70 px-2.5 py-1 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50"
+              >
+                ↻
+              </button>
+              {onInicio && (
+                <button
+                  type="button"
+                  onClick={onInicio}
+                  className="flex items-center gap-1 rounded-lg border border-border/60 px-2.5 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+                  title="Volver al inicio"
+                >
+                  <TopicIcon value="🏠" size={13} className="shrink-0" /> Inicio
+                </button>
+              )}
             </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setShowWizard(true)}
-              className={`${CENTRO_MANDO_CTA_BTN} bg-rose-500 hover:bg-rose-600 shadow-[0_2px_0_#9f1239]`}
-            >
-              <Icon name="plus" size={14} weight="bold" />
-              Nueva solicitud
-            </button>
-            <button
-              type="button"
-              onClick={() => void load(false)}
-              disabled={loading}
-              className="rounded-xl border-2 border-rose-300 dark:border-rose-600/70 px-3 py-1.5 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50"
-            >
-              ↻ Actualizar
-            </button>
           </div>
         </div>
       ) : (
@@ -20599,6 +20618,10 @@ interface RecordatorioItem {
   hora?: string | null;
   activo: number;
   creado_en: string;
+  asignado_a?: number | null;
+  asignado_a_nombre?: string | null;
+  creado_por?: number | null;
+  creado_por_nombre?: string | null;
 }
 
 // ── PendientesPanel ───────────────────────────────────────────────────────────
@@ -20725,8 +20748,13 @@ function PendientesPanel({
     <div className="space-y-3">
       {/* Encabezado con botón crear */}
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-ink">
-          {pendientes.length > 0 ? `${pendientes.length} acción${pendientes.length !== 1 ? "es" : ""} futura${pendientes.length !== 1 ? "s" : ""}` : "Acciones futuras"}
+        <p className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
+          🗓️ Acciones futuras
+          {pendientes.length > 0 && (
+            <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+              {pendientes.length}
+            </span>
+          )}
         </p>
         <button
           type="button"
@@ -20735,7 +20763,7 @@ function PendientesPanel({
             showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
           }`}
         >
-          {showForm ? "✕ Cancelar" : "+ Nueva acción futura"}
+          {showForm ? "✕ Cancelar" : "+ Agregar"}
         </button>
       </div>
 
@@ -20806,36 +20834,30 @@ function PendientesPanel({
       )}
 
       {!loading && pendientes.length > 0 && (
-        <div className="space-y-2">
+        <div className="divide-y divide-border/40 rounded-2xl border border-border overflow-hidden">
           {pendientes.map((p) => {
             const ef = estadoFecha(p.fecha_recordatorio);
             const esEditando = editandoId === p.id;
             return (
-              <div
-                key={p.id}
-                className={`rounded-2xl border-2 bg-surface-panel transition ${
-                  ef === "vencido" ? "border-danger/40" : ef === "hoy" ? "border-amber-400/50" : "border-border"
-                }`}
-              >
+              <div key={p.id} className="bg-surface-panel">
                 {esEditando ? (
-                  <div className="p-4 space-y-2">
+                  <div className="p-3 space-y-2">
                     <input
                       autoFocus
-                      className="w-full rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-accent"
+                      className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-accent"
                       value={editTitulo}
                       onChange={(e) => setEditTitulo(e.target.value)}
                       maxLength={150}
                     />
                     <ProseTextarea
-                      className="w-full rounded-xl border-2 border-border bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent resize-none"
+                      className="w-full rounded-lg border border-border bg-surface-input px-3 py-2 text-xs text-ink outline-none focus:border-accent resize-none"
                       rows={2}
                       placeholder="Detalle (opcional)"
                       value={editDesc}
                       onChange={(e) => setEditDesc(e.target.value)}
                     />
-                    <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-input px-3 py-1.5">
                       <span className="text-sm shrink-0">📅</span>
-                      <span className="text-xs text-muted shrink-0">Fecha</span>
                       <input
                         type="date"
                         className="flex-1 bg-transparent text-xs text-ink outline-none"
@@ -20851,45 +20873,40 @@ function PendientesPanel({
                         type="button"
                         disabled={guardandoEdit || !editTitulo.trim()}
                         onClick={() => void guardarEdicion(p.id)}
-                        className="flex-1 rounded-xl bg-accent py-2 text-xs font-bold text-white disabled:opacity-40"
+                        className="flex-1 rounded-lg bg-accent py-1.5 text-xs font-bold text-white disabled:opacity-40"
                       >
                         {guardandoEdit ? "Guardando…" : "✓ Guardar"}
                       </button>
                       <button
                         type="button"
                         onClick={() => setEditandoId(null)}
-                        className="rounded-xl border-2 border-border px-4 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent"
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted hover:border-accent hover:text-accent"
                       >
                         Cancelar
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 space-y-2">
-                    <div className="flex items-start gap-2">
-                      <p className="flex-1 font-semibold text-sm text-ink leading-snug">{p.titulo}</p>
-                      {ef && (
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeClases[ef]}`}>
-                          {ef === "vencido" ? "⚠ Vencido" : ef === "hoy" ? "🔔 Hoy" : `📅 ${fmtFecha(p.fecha_recordatorio!)}`}
-                        </span>
-                      )}
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-ink leading-snug truncate">{p.titulo}</p>
+                      {p.descripcion && <p className="text-[11px] text-muted truncate">{p.descripcion}</p>}
                     </div>
-                    {p.descripcion && <p className="text-xs text-muted">{p.descripcion}</p>}
-                    <div className="flex gap-1.5 pt-0.5">
-                      <button
-                        type="button"
-                        onClick={() => abrirEditar(p)}
-                        className="flex-1 rounded-xl border-2 border-border py-2 text-xs font-bold text-muted transition hover:border-accent hover:text-accent"
-                      >
-                        ✏️ Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void descartar(p.id)}
-                        className="rounded-xl border-2 border-border px-3 py-2 text-xs font-bold text-muted transition hover:border-danger hover:text-danger"
-                        title="Descartar"
-                      >✕</button>
-                    </div>
+                    {ef && (
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeClases[ef]}`}>
+                        {ef === "vencido" ? "⚠ Vencido" : ef === "hoy" ? "Hoy" : fmtFecha(p.fecha_recordatorio!)}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => abrirEditar(p)}
+                      className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] text-muted hover:border-accent hover:text-accent transition"
+                    >✏️</button>
+                    <button
+                      type="button"
+                      onClick={() => void descartar(p.id)}
+                      className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] text-muted hover:border-danger hover:text-danger transition"
+                    >✕</button>
                   </div>
                 )}
               </div>
@@ -20906,10 +20923,10 @@ function PendientesPanel({
 const DIAS_SEMANA_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const TIPO_REP_LABELS: Record<string, string> = {
   una_vez:    "Una sola vez",
-  diario:     "Todos los días",
+  diario:     "Diario",
   semanal:    "Semanal",
-  mensual:    "Días del mes",
-  bimestral:  "Cada 2 meses",
+  mensual:    "Mensual",
+  bimestral:  "Bimestral",
   cada_n_dias: "Cada N días",
 };
 
@@ -20938,6 +20955,8 @@ function RecordatoriosPanel({
   onRecargar,
   abrirFormInicial = false,
   abrirFormSignal = 0,
+  usuarios = [],
+  usuarioActualId,
 }: {
   token: string;
   recordatorios: RecordatorioItem[];
@@ -20945,6 +20964,8 @@ function RecordatoriosPanel({
   onRecargar: () => void;
   abrirFormInicial?: boolean;
   abrirFormSignal?: number;
+  usuarios?: { id: number; nombre: string }[];
+  usuarioActualId?: number;
 }) {
   const hoy = new Date().toISOString().slice(0, 10);
   const [showForm, setShowForm] = useState(abrirFormInicial);
@@ -20959,6 +20980,8 @@ function RecordatoriosPanel({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [mostrarGridMes, setMostrarGridMes] = useState(false);
+  const [asignadoA, setAsignadoA] = useState<number | null>(null);
 
   useEffect(() => {
     if (abrirFormInicial) setShowForm(true);
@@ -20978,6 +21001,7 @@ function RecordatoriosPanel({
     setDiasMes([]);
     setHora("");
     setError("");
+    setAsignadoA(null);
   }
 
   function toggleDiaSemana(d: number) {
@@ -20987,27 +21011,52 @@ function RecordatoriosPanel({
     setDiasMes((prev) => prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort((a, b) => a - b));
   }
 
+  function editarRecordatorio(r: RecordatorioItem) {
+    setTitulo(r.titulo);
+    setDescripcion(r.descripcion ?? "");
+    setTipoRep(r.tipo_rep);
+    setFechaInicio(r.proxima_fecha);
+    setCadaN(r.cada_n_dias ?? 1);
+    setDiasSemana(r.dias_semana_parsed ?? r.dias_semana ?? []);
+    setDiasMes(r.dias_mes_parsed ?? r.dias_mes ?? []);
+    setHora(r.hora ?? "");
+    setAsignadoA(r.asignado_a ?? null);
+    setError("");
+    setEditandoId(r.id);
+    setShowForm(true);
+  }
+
   async function crear() {
     if (!titulo.trim()) return;
     if (tipoRep === "semanal" && diasSemana.length === 0) { setError("Elige al menos un día de la semana"); return; }
     setGuardando(true); setError("");
     const diaDeInicio = fechaInicio ? parseInt(fechaInicio.split("-")[2], 10) : new Date().getDate();
+    const payload = {
+      titulo: titulo.trim(),
+      descripcion: descripcion.trim() || undefined,
+      tipo_rep: tipoRep,
+      fecha_inicio: fechaInicio || hoy,
+      cada_n_dias: tipoRep === "cada_n_dias" ? cadaN : undefined,
+      dias_semana: tipoRep === "semanal" ? diasSemana : undefined,
+      dias_mes: tipoRep === "mensual"
+        ? (diasMes.length > 0 ? diasMes : [diaDeInicio])
+        : undefined,
+      hora: hora || undefined,
+      asignado_a: asignadoA || undefined,
+    };
     try {
-      await tapi("/recordatorios", token, {
-        method: "POST",
-        body: JSON.stringify({
-          titulo: titulo.trim(),
-          descripcion: descripcion.trim() || undefined,
-          tipo_rep: tipoRep,
-          fecha_inicio: fechaInicio || hoy,
-          cada_n_dias: tipoRep === "cada_n_dias" ? cadaN : undefined,
-          dias_semana: tipoRep === "semanal" ? diasSemana : undefined,
-          dias_mes: tipoRep === "mensual"
-            ? (diasMes.length > 0 ? diasMes : [diaDeInicio])
-            : undefined,
-          hora: hora || undefined,
-        }),
-      });
+      if (editandoId !== null) {
+        await tapi(`/recordatorios/${editandoId}`, token, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+        setEditandoId(null);
+      } else {
+        await tapi("/recordatorios", token, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
       resetForm();
       setShowForm(false);
       onRecargar();
@@ -21052,7 +21101,7 @@ function RecordatoriosPanel({
         </p>
         <button
           type="button"
-          onClick={() => { setShowForm((v) => !v); if (showForm) resetForm(); }}
+          onClick={() => { setShowForm((v) => !v); if (showForm) { resetForm(); setEditandoId(null); } }}
           className={`flex shrink-0 items-center gap-1 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition ${
             showForm ? "border-border text-muted hover:border-danger hover:text-danger" : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
           }`}
@@ -21064,7 +21113,7 @@ function RecordatoriosPanel({
       {/* Formulario */}
       {showForm && (
       <div className="rounded-2xl border-2 border-accent/30 bg-accent/5 p-4 space-y-3">
-        <p className="text-xs font-bold uppercase tracking-widest text-accent">Nuevo recordatorio</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-accent">{editandoId !== null ? "Editar recordatorio" : "Nuevo recordatorio"}</p>
         <p className="text-xs text-muted">Tarea con alerta en la fecha que elijas — puntual o recurrente. Te avisamos por voz cuando toque.</p>
 
         <ProseInput
@@ -21163,25 +21212,45 @@ function RecordatoriosPanel({
         {/* Días del mes */}
         {tipoRep === "mensual" && (() => {
           const diaAuto = fechaInicio ? parseInt(fechaInicio.split("-")[2], 10) : new Date().getDate();
-          const diasActivos = diasMes.length > 0 ? diasMes : [diaAuto];
-          const [mostrarGrid, setMostrarGrid] = useState(false);
+          const seleccion = diasMes.length > 0 ? diasMes : [diaAuto];
+          const PRESETS = [
+            { label: "1 y 15", dias: [1, 15] },
+            { label: "Día 1", dias: [1] },
+            { label: "Día 15", dias: [15] },
+            { label: "Día 28", dias: [28] },
+          ];
           return (
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2 rounded-xl border-2 border-accent/30 bg-accent/5 px-3 py-2.5">
-                <p className="text-sm text-ink">
-                  Se repetirá el <strong>día {diasActivos.join(", ")}</strong> de cada mes
-                </p>
-                <button type="button" onClick={() => setMostrarGrid((v) => !v)}
-                  className="shrink-0 text-xs text-accent hover:underline">
-                  {mostrarGrid ? "✕ Cerrar" : "Cambiar días"}
+              {/* Presets rápidos */}
+              <div className="flex gap-1.5 flex-wrap">
+                {PRESETS.map((p) => {
+                  const activo = p.dias.length === seleccion.length && p.dias.every((d) => seleccion.includes(d));
+                  return (
+                    <button key={p.label} type="button"
+                      onClick={() => setDiasMes(p.dias)}
+                      className={`rounded-lg border px-2.5 py-1 text-xs font-bold transition ${
+                        activo ? "border-accent bg-accent text-white" : "border-border text-muted hover:border-accent/60"
+                      }`}>
+                      {p.label}
+                    </button>
+                  );
+                })}
+                <button type="button" onClick={() => setMostrarGridMes((v) => !v)}
+                  className="rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-muted hover:border-accent/60 transition">
+                  {mostrarGridMes ? "✕ Cerrar" : "Personalizar…"}
                 </button>
               </div>
-              {mostrarGrid && (
-                <div className="grid grid-cols-7 gap-1">
+              {/* Resumen */}
+              <p className="text-xs text-muted">
+                Se repetirá el <strong className="text-ink">día {seleccion.sort((a, b) => a - b).join(" y ")}</strong> de cada mes
+              </p>
+              {/* Grid completo */}
+              {mostrarGridMes && (
+                <div className="grid grid-cols-7 gap-1 pt-1">
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
                     <button key={d} type="button" onClick={() => toggleDiaMes(d)}
                       className={`rounded-lg border py-1.5 text-xs font-bold transition ${
-                        (diasMes.length > 0 ? diasMes : [diaAuto]).includes(d)
+                        seleccion.includes(d)
                           ? "border-accent bg-accent text-white"
                           : "border-border text-muted hover:border-accent/50"
                       }`}>
@@ -21194,6 +21263,26 @@ function RecordatoriosPanel({
           );
         })()}
 
+        {/* Asignar a miembro del equipo */}
+        {usuarios.length > 0 && (
+          <div className="flex items-center gap-2 rounded-xl border-2 border-border bg-surface-input px-3 py-2">
+            <span className="text-base shrink-0">👤</span>
+            <span className="text-xs text-muted shrink-0">Para:</span>
+            <select
+              className="flex-1 bg-transparent text-sm text-ink outline-none"
+              value={asignadoA ?? ""}
+              onChange={(e) => setAsignadoA(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Yo mismo</option>
+              {usuarios
+                .filter((u) => u.id !== usuarioActualId)
+                .map((u) => (
+                  <option key={u.id} value={u.id}>{u.nombre}</option>
+                ))}
+            </select>
+          </div>
+        )}
+
         {error && <p className="text-xs text-danger">{error}</p>}
 
         <button
@@ -21202,7 +21291,7 @@ function RecordatoriosPanel({
           onClick={() => void crear()}
           className="w-full rounded-xl bg-accent py-3 text-sm font-extrabold text-white transition hover:brightness-110 disabled:opacity-40"
         >
-          {guardando ? "Guardando…" : "Programar recordatorio"}
+          {guardando ? "Guardando…" : editandoId !== null ? "Guardar cambios" : "Programar recordatorio"}
         </button>
       </div>
       )}
@@ -21223,6 +21312,16 @@ function RecordatoriosPanel({
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-sm text-ink leading-snug">{r.titulo}</p>
                   {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
+                  {r.asignado_a_nombre && (
+                    <p className="text-[11px] text-violet-600 dark:text-violet-400 mt-0.5 font-semibold">
+                      👤 Para: {r.asignado_a_nombre}
+                    </p>
+                  )}
+                  {r.creado_por_nombre && (
+                    <p className="text-[11px] text-muted mt-0.5">
+                      De: {r.creado_por_nombre}
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -21237,14 +21336,14 @@ function RecordatoriosPanel({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => void marcarVisto(r.id)}
+                  onClick={() => r.tipo_rep === "una_vez" ? editarRecordatorio(r) : void marcarVisto(r.id)}
                   className="flex-1 rounded-xl bg-accent py-2 text-xs font-extrabold text-white transition hover:brightness-110"
                 >
-                  {r.tipo_rep === "una_vez" ? "✓ Listo, eliminar" : "✓ Visto · programar siguiente"}
+                  {r.tipo_rep === "una_vez" ? "✓ Listo, reprogramar" : "✓ Visto · programar siguiente"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditandoId(editandoId === r.id ? null : r.id)}
+                  onClick={() => editarRecordatorio(r)}
                   className="rounded-xl border-2 border-border px-3 py-2 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
                 >✏️</button>
               </div>
@@ -21263,12 +21362,24 @@ function RecordatoriosPanel({
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-sm text-ink leading-snug">{r.titulo}</p>
                   {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
+                  {r.asignado_a_nombre && (
+                    <p className="text-[11px] text-violet-600 dark:text-violet-400 mt-0.5 font-semibold">
+                      👤 Para: {r.asignado_a_nombre}
+                    </p>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => eliminar(r.id)}
-                  className="shrink-0 rounded-lg border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger transition"
-                >✕</button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => editarRecordatorio(r)}
+                    className="rounded-lg border border-border px-2 py-1 text-[10px] text-muted hover:border-accent hover:text-accent transition"
+                  >✏️</button>
+                  <button
+                    type="button"
+                    onClick={() => eliminar(r.id)}
+                    className="rounded-lg border border-border px-2 py-1 text-[10px] text-muted hover:border-danger hover:text-danger transition"
+                  >✕</button>
+                </div>
               </div>
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-xs text-muted flex items-center gap-2">
@@ -22328,20 +22439,143 @@ function AdminSubhomePanel({
 }
 
 // ── AccionesView — paleta por subtab (nivel módulo, no depende de estado) ─────
-/** CTA compacto del hero en Centro de Mando (solicitudes / acciones / recordatorios). */
+/** CTA compacto del hero en Agenda (solicitudes / acciones / recordatorios). */
 const CENTRO_MANDO_CTA_BTN =
   "inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-px";
 
 const ACCIONES_TAB_CFG = {
   subhome:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_2px_0_#b45309]",   ctaBase: true  },
   activas:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_2px_0_#b45309]",   ctaBase: true  },
-  agenda:         { card: "border-teal-200 dark:border-teal-700/60 bg-teal-50 dark:bg-teal-950/50",                   icon: "bg-teal-200/70 dark:bg-teal-800/60 text-teal-700 dark:text-teal-300",               emoji: "📅", titulo: "Agenda",            desc: "Tus acciones futuras y recordatorios en un solo lugar.",                                              btnCtaCls: "bg-teal-600 hover:bg-teal-700 shadow-[0_2px_0_#134e4a]",     ctaBase: false },
+  agenda:         { card: "border-teal-200 dark:border-teal-700/60 bg-teal-50 dark:bg-teal-950/50",                   icon: "bg-teal-200/70 dark:bg-teal-800/60 text-teal-700 dark:text-teal-300",               emoji: "🔔", titulo: "Recordatorios",      desc: "Alertas programadas. Te avisamos en la fecha.",                                 btnCtaCls: "bg-teal-600 hover:bg-teal-700 shadow-[0_2px_0_#134e4a]",     ctaBase: false },
   pendientes:     { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_2px_0_#065f46]", ctaBase: false },
-  recordatorios:  { card: "border-violet-200 dark:border-violet-700/60 bg-violet-50 dark:bg-violet-950/50",          icon: "bg-violet-200/70 dark:bg-violet-800/60 text-violet-700 dark:text-violet-300",         emoji: "🔔", titulo: "Recordatorios",     desc: "Tareas con alerta: te avisamos en la fecha. Crea recordatorios puntuales o recurrentes.",            btnCtaCls: "bg-violet-600 hover:bg-violet-700 shadow-[0_2px_0_#4c1d95]",  ctaBase: false },
   procedimientos: { card: "border-sky-200 dark:border-sky-700/60 bg-sky-50 dark:bg-sky-950/50",                      icon: "bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-sky-600 hover:bg-sky-700 shadow-[0_2px_0_#0c4a6e]",       ctaBase: false },
   historial:      { card: "border-stone-200 dark:border-stone-600/50 bg-stone-50 dark:bg-stone-900/60",              icon: "bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300",             emoji: "📜", titulo: "Historial",         desc: "Todo lo que ya completaste. Pa' que no se pierda nada.",                                             btnCtaCls: "bg-stone-500 hover:bg-stone-600 shadow-[0_3px_0_#292524]",   ctaBase: false },
+  notas:          { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "💭", titulo: "Notas",              desc: "Tus pensamientos e ideas personales. Solo tuyas.",                                                     btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_2px_0_#065f46]", ctaBase: false },
+  bolsillo:       { card: "border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-950/50",               icon: "bg-slate-200/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300",             emoji: "🔑", titulo: "Bolsillo",           desc: "Notas cifradas con tu PIN personal. Nadie más puede verlas.",                                          btnCtaCls: "bg-slate-600 hover:bg-slate-700 shadow-[0_2px_0_#1e293b]",   ctaBase: false },
 } as const;
 type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
+
+// ── NotasPensamientos ─────────────────────────────────────────────────────────
+
+type NotaPensamiento = { id: number; contenido: string; creadaEn: string };
+const NOTAS_KEY = "mck_notas_pensamientos";
+
+function NotasPensamientos({ crearSignal = 0 }: { crearSignal?: number }) {
+  const [notas, setNotas] = useState<NotaPensamiento[]>(() => {
+    try { return JSON.parse(localStorage.getItem(NOTAS_KEY) ?? "[]") as NotaPensamiento[]; }
+    catch { return []; }
+  });
+  const [texto, setTexto] = useState("");
+  const [expandida, setExpandida] = useState<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (crearSignal > 0) textareaRef.current?.focus();
+  }, [crearSignal]);
+
+  const guardar = (nuevas: NotaPensamiento[]) => {
+    setNotas(nuevas);
+    localStorage.setItem(NOTAS_KEY, JSON.stringify(nuevas));
+  };
+
+  const agregar = () => {
+    const t = texto.trim();
+    if (!t) return;
+    guardar([{ id: Date.now(), contenido: t, creadaEn: new Date().toISOString() }, ...notas]);
+    setTexto("");
+  };
+
+  const eliminar = (id: number) => guardar(notas.filter((n) => n.id !== id));
+
+  const editarContenido = (id: number, val: string) =>
+    guardar(notas.map((n) => n.id === id ? { ...n, contenido: val } : n));
+
+  const formatFecha = (iso: string) => {
+    try {
+      const d = new Date(iso);
+      const diff = Math.floor((Date.now() - d.getTime()) / 60000);
+      if (diff < 1) return "ahora";
+      if (diff < 60) return `hace ${diff}m`;
+      if (diff < 1440) return `hace ${Math.floor(diff / 60)}h`;
+      return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+    } catch { return ""; }
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
+        💭 Notas y pensamientos
+      </p>
+
+      {/* Input nueva nota */}
+      <div className="rounded-xl border border-border bg-surface-panel p-3 space-y-2">
+        <textarea
+          ref={textareaRef}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); agregar(); }
+          }}
+          placeholder="Escribe un pensamiento, idea o nota personal… (Ctrl+Enter para guardar)"
+          rows={3}
+          className="w-full resize-none rounded-lg bg-surface-input border border-border px-3 py-2 text-sm text-ink placeholder:text-muted outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition"
+        />
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={agregar}
+            disabled={!texto.trim()}
+            className="rounded-lg bg-accent px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-40 transition"
+          >
+            Guardar nota
+          </button>
+        </div>
+      </div>
+
+      {/* Lista de notas */}
+      {notas.length === 0 && (
+        <p className="py-4 text-center text-xs text-muted">Aún no tienes notas. Lo que escribas aquí es solo tuyo.</p>
+      )}
+      <div className="space-y-2">
+        {notas.map((n) => (
+          <div key={n.id} className="rounded-xl border border-border bg-surface-panel px-4 py-3 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-[10px] text-muted">{formatFecha(n.creadaEn)}</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setExpandida(expandida === n.id ? null : n.id)}
+                  className="text-[10px] text-accent hover:underline"
+                >
+                  {expandida === n.id ? "cerrar" : "editar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => eliminar(n.id)}
+                  className="text-[10px] text-muted hover:text-danger transition"
+                  title="Eliminar"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            {expandida === n.id ? (
+              <textarea
+                value={n.contenido}
+                onChange={(e) => editarContenido(n.id, e.target.value)}
+                rows={4}
+                className="w-full resize-none rounded-lg bg-surface-input border border-border px-3 py-2 text-sm text-ink outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition"
+                autoFocus
+              />
+            ) : (
+              <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">{n.contenido}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ── BolsilloSeguro ────────────────────────────────────────────────────────────
 
@@ -22657,16 +22891,14 @@ function BolsilloSeguro({ token }: { token: string }) {
 
 function AccionesView({
   token, user, onSelect, onIrCompras, initialTab, onInicio,
-  abrirFormRecordatorio = false,
   abrirFormPendientes = false,
   abrirFormProcedimiento = false,
 }: {
   token: string; user: TicketsUser;
   onSelect: (id: number) => void;
   onIrCompras?: () => void;
-  initialTab?: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" | "agenda";
+  initialTab?: "subhome" | "activas" | "pendientes" | "procedimientos" | "historial" | "agenda" | "notas" | "bolsillo";
   onInicio?: () => void;
-  abrirFormRecordatorio?: boolean;
   abrirFormPendientes?: boolean;
   abrirFormProcedimiento?: boolean;
 }) {
@@ -22688,7 +22920,7 @@ function AccionesView({
   const [showRepetirWizard, setShowRepetirWizard] = useState(false);
   const [plantillaRepetir, setPlantillaRepetir] = useState<PlantillaAccion | undefined>();
   const [reanudarRepetir, setReanudarRepetir] = useState<ReanudarRepetirState | undefined>();
-  const [tabAcciones, setTabAcciones] = useState<"subhome" | "activas" | "historial" | "procedimientos" | "pendientes" | "recordatorios" | "agenda">(initialTab ?? "activas");
+  const [tabAcciones, setTabAcciones] = useState<"subhome" | "activas" | "historial" | "procedimientos" | "pendientes" | "agenda" | "notas" | "bolsillo">(initialTab ?? "activas");
   const [historial, setHistorial] = useState<Ticket[]>([]);
   const [procedimientos, setProcedimientos] = useState<Protocolo[]>([]);
   const [pendientes, setPendientes] = useState<PendienteItem[]>([]);
@@ -22700,6 +22932,7 @@ function AccionesView({
   const [crearPendienteSignal, setCrearPendienteSignal] = useState(0);
   const [crearRecordatorioSignal, setCrearRecordatorioSignal] = useState(0);
   const [crearProcedimientoSignal, setCrearProcedimientoSignal] = useState(0);
+  const [crearNotaSignal, setCrearNotaSignal] = useState(0);
   const [registroExpandido, setRegistroExpandido] = useState<number | null>(null);
   const [registros, setRegistros] = useState<Record<number, { comentarios: any[]; adjuntos: any[] }>>({});
   const [histLbUrl, setHistLbUrl] = useState<string | null>(null);
@@ -23165,7 +23398,7 @@ function AccionesView({
       void cargarHistorialYProcedimientos();
     }
     if (tabAcciones === "pendientes" || tabAcciones === "subhome" || tabAcciones === "agenda") void cargarPendientes();
-    if (tabAcciones === "recordatorios" || tabAcciones === "subhome" || tabAcciones === "agenda") void cargarRecordatorios();
+    if (tabAcciones === "subhome" || tabAcciones === "agenda") void cargarRecordatorios();
   }, [tabAcciones, cargarHistorialYProcedimientos, cargarPendientes, cargarRecordatorios]);
 
   // Historial/procedimientos: refresco periódico y al volver a la app (móvil en background no recibe el poll de activas)
@@ -23344,88 +23577,75 @@ function AccionesView({
   const mostrarCta = tc.ctaBase && !isAdmin;
   const mostrarCtaCrear =
     tabAcciones === "pendientes"
-    || tabAcciones === "recordatorios"
-    || tabAcciones === "agenda"
-    || (tabAcciones === "procedimientos" && puedeCrearProtocolos(user));
+    || (tabAcciones === "procedimientos" && puedeCrearProtocolos(user))
+    || tabAcciones === "notas";
   const labelCtaCrear =
     tabAcciones === "pendientes" ? "+ Nueva acción futura"
-    : tabAcciones === "recordatorios" ? "+ Nuevo recordatorio"
-    : tabAcciones === "agenda" ? "+ Agregar"
+    : tabAcciones === "agenda" ? "+ Nuevo recordatorio"
+    : tabAcciones === "notas" ? "+ Nueva nota"
     : "+ Nuevo procedimiento";
   function abrirFormularioCrear() {
     if (tabAcciones === "pendientes") setCrearPendienteSignal((n) => n + 1);
-    else if (tabAcciones === "recordatorios") setCrearRecordatorioSignal((n) => n + 1);
-    else if (tabAcciones === "agenda") setCrearPendienteSignal((n) => n + 1);
+    else if (tabAcciones === "agenda") setCrearRecordatorioSignal((n) => n + 1);
+    else if (tabAcciones === "notas") setCrearNotaSignal((n) => n + 1);
     else if (tabAcciones === "procedimientos") setCrearProcedimientoSignal((n) => n + 1);
   }
 
   return (
     <div className="space-y-4">
-      {/* Header — hero card adaptativo al subtab activo */}
-      <div className={`rounded-3xl border ${tc.card} p-6 shadow-[0_2px_14px_rgba(0,0,0,0.06)] space-y-4`}>
-        {/* Fila: ícono + título + descripción + botones de navegación */}
-        <div className="flex items-start gap-4">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
-            <TopicIcon value={tc.emoji} size={24} weight="regular" />
+      {/* Header — barra compacta adaptativa al subtab activo */}
+      <div className={`rounded-xl border ${tc.card} px-3 py-2.5 space-y-2`}>
+        {/* Fila principal: ícono + título + badge + CTAs */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-surface/80 text-ink">
+            <TopicIcon value={tc.emoji} size={15} weight="regular" />
           </span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-2xl font-extrabold text-ink flex items-center gap-2">
-                {tc.titulo}
-                {(tabAcciones === "subhome" || tabAcciones === "activas") && sinResolver > 0 && (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{sinResolver}</span>
-                )}
-              </h2>
-              {tabAcciones === "subhome" && onInicio && (
-                <button
-                  type="button"
-                  onClick={onInicio}
-                  className="ml-auto flex items-center gap-1 rounded-xl border-2 border-border/60 px-3 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
-                  title="Volver al inicio"
-                >
-                  <TopicIcon value="🏠" size={14} className="shrink-0" /> Inicio
-                </button>
-              )}
-            </div>
-            <p className="mt-1 text-base font-bold text-ink/80 dark:text-white/90 leading-snug">
-              {isAdmin && tabAcciones === "subhome"
-                ? "Panel de supervisión: acciones del equipo."
-                : tc.desc}
-            </p>
+          <span className="text-sm font-bold text-ink flex items-center gap-1.5">
+            {tc.titulo}
+            {(tabAcciones === "subhome" || tabAcciones === "activas") && sinResolver > 0 && (
+              <span className="rounded-full bg-accent px-1.5 py-px text-[10px] font-bold text-white">{sinResolver}</span>
+            )}
+          </span>
+          <div className="ml-auto flex items-center gap-1.5 flex-wrap">
+            {mostrarCta && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setLoadingMenu(true);
+                  setShowIniciarMenu(true);
+                  try {
+                    const data = await tapi("/protocolos", token);
+                    setProtocolosMenu(Array.isArray(data) ? data : []);
+                  } catch { setProtocolosMenu([]); } finally { setLoadingMenu(false); }
+                }}
+                className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
+              >
+                <Icon name="plus" size={13} weight="bold" />
+                Iniciar acción
+              </button>
+            )}
+            {mostrarCtaCrear && (
+              <button
+                type="button"
+                onClick={abrirFormularioCrear}
+                className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
+              >
+                <Icon name="plus" size={13} weight="bold" />
+                {labelCtaCrear}
+              </button>
+            )}
+            {tabAcciones === "subhome" && onInicio && (
+              <button
+                type="button"
+                onClick={onInicio}
+                className="flex items-center gap-1 rounded-lg border border-border/60 px-2.5 py-1 text-xs font-bold text-muted hover:border-accent hover:text-accent transition"
+                title="Volver al inicio"
+              >
+                <TopicIcon value="🏠" size={13} className="shrink-0" /> Inicio
+              </button>
+            )}
           </div>
         </div>
-        {/* CTA principal — solo en subhome y activas, nunca para admin */}
-        {mostrarCta && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={async () => {
-                setLoadingMenu(true);
-                setShowIniciarMenu(true);
-                try {
-                  const data = await tapi("/protocolos", token);
-                  setProtocolosMenu(Array.isArray(data) ? data : []);
-                } catch { setProtocolosMenu([]); } finally { setLoadingMenu(false); }
-              }}
-              className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
-            >
-              <Icon name="plus" size={14} weight="bold" />
-              Iniciar acción
-            </button>
-          </div>
-        )}
-        {mostrarCtaCrear && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={abrirFormularioCrear}
-              className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
-            >
-              <Icon name="plus" size={14} weight="bold" />
-              {labelCtaCrear}
-            </button>
-          </div>
-        )}
         {/* Toolbar: alarma + filtro + STT */}
         <div className="flex gap-2 flex-wrap items-center">
           {/* Alarma: toggle + selector de intervalo + countdown + botón probar */}
@@ -23505,7 +23725,7 @@ function AccionesView({
             </div>
           )}
           {/* Botón voz (STT) — solo en acciones en curso, no en futuras ni recordatorios */}
-          {!isAdmin && tabAcciones !== "pendientes" && tabAcciones !== "recordatorios" && (
+          {!isAdmin && tabAcciones !== "pendientes" && (
             <SttInlineBtn
               stt={stt}
               label="Voz"
@@ -23575,25 +23795,6 @@ function AccionesView({
         <p className="text-sm text-accent font-semibold">{msg}</p>
       )}
 
-      {!isAdmin && comprasDelegadas.length > 0 && (
-        <div className="rounded-2xl border-2 border-blue-400/60 bg-blue-50/70 dark:bg-blue-950/30 p-4 space-y-2">
-          <p className="text-sm font-extrabold text-ink">
-            Tienes {comprasDelegadas.length} lista{comprasDelegadas.length !== 1 ? "s" : ""} de compras delegada{comprasDelegadas.length !== 1 ? "s" : ""}
-          </p>
-          <p className="text-xs text-muted">
-            No uses el asistente de acciones para eso. Abre <strong className="text-ink">Solicitudes → Ir de compras</strong>, marca los productos y pulsa Terminé las compras.
-          </p>
-          {onIrCompras && (
-            <button
-              type="button"
-              onClick={onIrCompras}
-              className="w-full rounded-xl bg-accent py-3 text-sm font-extrabold text-white"
-            >
-              Ir a Solicitudes — compras
-            </button>
-          )}
-        </div>
-      )}
 
       {/* ── Sub-home de Acciones: métricas de equipo para admin ── */}
       {isAdmin && tabAcciones === "subhome" && (
@@ -23640,15 +23841,15 @@ function AccionesView({
                 </span>
                 <div className="text-right space-y-1">
                   <span className="text-4xl font-black text-ink dark:text-white tabular-nums leading-none tracking-tight">
-                    {pendientes.length + recordatorios.length}
+                    {recordatorios.length}
                   </span>
-                  {(pendHoy + recHoy) > 0 && (
-                    <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{pendHoy + recHoy} para hoy</p>
+                  {recHoy > 0 && (
+                    <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{recHoy} para hoy</p>
                   )}
                 </div>
               </div>
               <p className="text-2xl font-extrabold text-ink dark:text-white leading-snug tracking-tight">Agenda</p>
-              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Futuras y recordatorios en un solo lugar. Anota lo que viene sin arrancarlo aún.</p>
+              <p className="text-base font-bold text-ink/80 dark:text-white/90 leading-snug">Tu espacio personal. Recordatorios, notas y pensamientos solo tuyos.</p>
             </button>
 
             <button type="button" onClick={() => setTabAcciones("historial")}
@@ -23690,90 +23891,106 @@ function AccionesView({
         />
       )}
 
-      {tabAcciones === "recordatorios" && (
-        <RecordatoriosPanel
-          token={token}
-          recordatorios={recordatorios}
-          loading={loadingRecordatorios}
-          abrirFormInicial={abrirFormRecordatorio}
-          abrirFormSignal={crearRecordatorioSignal}
-          onRecargar={() => void cargarRecordatorios()}
-        />
-      )}
-
       {tabAcciones === "agenda" && (
         <div className="space-y-6">
-          <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
-              🗓️ Acciones futuras
-              {pendientes.length > 0 && (
-                <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-                  {pendientes.length}
-                </span>
+          <RecordatoriosPanel
+            token={token}
+            recordatorios={recordatorios}
+            loading={loadingRecordatorios}
+            abrirFormInicial={false}
+            abrirFormSignal={crearRecordatorioSignal}
+            onRecargar={() => void cargarRecordatorios()}
+            usuarios={usuarios}
+            usuarioActualId={user.id}
+          />
+        </div>
+      )}
+
+      {tabAcciones === "notas" && (
+        <NotasPensamientos crearSignal={crearNotaSignal} />
+      )}
+
+      {tabAcciones === "bolsillo" && (
+        <BolsilloSeguro token={token} />
+      )}
+
+      {tabAcciones === "historial" && isAdmin && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-muted flex items-center gap-2">
+              {loadingExtra ? "Actualizando…" : (
+                <>
+                  <span className="font-semibold text-ink">{historial.length}</span>
+                  {` acción${historial.length !== 1 ? "es" : ""} resueltas — todo el equipo`}
+                </>
               )}
             </p>
-            <PendientesPanel
-              token={token}
-              pendientes={pendientes}
-              loading={loadingPendientes}
-              abrirFormInicial={abrirFormPendientes}
-              abrirFormSignal={crearPendienteSignal}
-              onRecargar={() => void cargarPendientes()}
-            />
+            <button type="button" onClick={() => void cargarHistorialYProcedimientos()}
+              disabled={loadingExtra}
+              className="text-xs text-accent hover:underline disabled:opacity-50">
+              ↻ Recargar
+            </button>
           </div>
-          <div className="border-t border-border/50 pt-6">
-            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
-              🔔 Recordatorios
-              {recordatorios.length > 0 && (
-                <span className="rounded-full bg-violet-100 dark:bg-violet-900/50 px-2 py-0.5 text-[10px] font-bold text-violet-700 dark:text-violet-400">
-                  {recordatorios.length}
-                </span>
-              )}
-            </p>
-            <RecordatoriosPanel
-              token={token}
-              recordatorios={recordatorios}
-              loading={loadingRecordatorios}
-              abrirFormInicial={false}
-              abrirFormSignal={crearRecordatorioSignal}
-              onRecargar={() => void cargarRecordatorios()}
-            />
-          </div>
-
-          {/* Notas de acciones en curso */}
-          {(() => {
-            const conNotas = acciones.filter(
-              (a) => a.estado === "en_proceso" && a.notas_accion?.trim(),
-            );
-            if (conNotas.length === 0) return null;
-            return (
-              <div className="border-t border-border/50 pt-6 space-y-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
-                  📝 Notas de acciones en curso
-                  <span className="rounded-full bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">
-                    {conNotas.length}
-                  </span>
-                </p>
-                <div className="space-y-3">
-                  {conNotas.map((a) => (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onClick={() => onSelect(a.id)}
-                      className="w-full text-left rounded-2xl border border-amber-300/60 dark:border-amber-700/50 bg-amber-50/60 dark:bg-amber-950/20 px-4 py-3 space-y-1.5 transition-all hover:border-amber-400 active:scale-[0.98]"
-                    >
-                      <p className="text-sm font-bold text-ink leading-snug line-clamp-1">⚡ {a.titulo}</p>
-                      <p className="text-xs text-amber-800 dark:text-amber-300 whitespace-pre-wrap line-clamp-3">
-                        {a.notas_accion}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
-          <BolsilloSeguro token={token} />
+          {loadingExtra && historial.length === 0 && <p className="text-sm text-muted">Cargando historial…</p>}
+          {!loadingExtra && historial.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted">No hay acciones resueltas aún.</p>
+          )}
+          {!loadingExtra && historial.length > 0 && (
+            <div className="space-y-2">
+              {historial.map((t) => {
+                const seg = t.segundos_trabajo ?? 0;
+                const total = t.pasos_total ?? 0;
+                const ok = t.pasos_completados ?? 0;
+                const tiempoStr = (() => {
+                  if (seg < 60) return seg > 0 ? `${seg}s` : null;
+                  const h = Math.floor(seg / 3600);
+                  const m = Math.floor((seg % 3600) / 60);
+                  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                })();
+                const fechaStr = (() => {
+                  const raw = t.actualizado_en ?? t.creado_en;
+                  if (!raw) return null;
+                  try {
+                    const d = new Date(raw.includes("T") || raw.includes("Z") ? raw : raw + "Z");
+                    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+                    if (diff === 0) return "hoy";
+                    if (diff === 1) return "ayer";
+                    if (diff < 30) return `hace ${diff}d`;
+                    return d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+                  } catch { return null; }
+                })();
+                const completa = total > 0 && ok === total;
+                return (
+                  <button key={t.id} type="button" onClick={() => onSelect(t.id)}
+                    className="w-full text-left rounded-xl border-2 border-border bg-surface-panel px-4 py-3 space-y-1.5 hover:border-accent/50 transition active:scale-[0.99]">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-bold text-sm text-ink leading-snug flex-1 min-w-0 truncate">{t.titulo}</p>
+                      {fechaStr && <span className="text-[10px] text-muted shrink-0">{fechaStr}</span>}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {(t as any).responsable_nombre && (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold text-ink">
+                          👤 {(t as any).responsable_nombre}
+                        </span>
+                      )}
+                      {total > 0 && (
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                          completa ? "border-green-400/40 text-green-700 dark:text-green-400" : "border-amber-400/40 text-amber-700 dark:text-amber-400"
+                        }`}>
+                          {completa ? `✓ ${total} paso${total !== 1 ? "s" : ""}` : `${ok}/${total} pasos`}
+                        </span>
+                      )}
+                      {tiempoStr && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] text-muted">
+                          ⏱ {tiempoStr}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -24125,11 +24342,10 @@ function AccionesView({
       )}
 
       {/* Secciones secundarias — visibles salvo cuando se está dentro de un subtab */}
-      {!isAdmin && tabAcciones !== "pendientes" && tabAcciones !== "recordatorios" && tabAcciones !== "historial" && tabAcciones !== "procedimientos" && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {!isAdmin && tabAcciones !== "pendientes" && tabAcciones !== "historial" && tabAcciones !== "procedimientos" && tabAcciones !== "notas" && tabAcciones !== "bolsillo" && tabAcciones !== "agenda" && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
             { tab: "pendientes" as const,    emoji: "🗓️", label: "Futuras",        count: pendientes.length,      color: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50 hover:border-emerald-400" },
-            { tab: "recordatorios" as const, emoji: "🔔", label: "Recordatorios",  count: recordatorios.length,   color: "border-violet-200  dark:border-violet-700/60  bg-violet-50  dark:bg-violet-950/50  hover:border-violet-400"  },
             { tab: "procedimientos" as const,emoji: "🔒", label: "Procedimientos", count: procedimientos.length,  color: "border-sky-200     dark:border-sky-700/60     bg-sky-50     dark:bg-sky-950/50     hover:border-sky-400"     },
             { tab: "historial" as const,     emoji: "📜", label: "Historial",      count: null,                   color: "border-stone-200   dark:border-stone-600/50   bg-stone-50   dark:bg-stone-900/60   hover:border-stone-400"   },
           ].map(({ tab, emoji, label, count, color }) => (
@@ -24149,11 +24365,11 @@ function AccionesView({
         </div>
       )}
 
-      {!["pendientes","recordatorios","historial","procedimientos"].includes(tabAcciones) && loading && (
+      {!["pendientes","historial","procedimientos","notas","bolsillo","agenda"].includes(tabAcciones) && loading && (
         <div className="py-8 text-center text-sm text-muted">Cargando acciones…</div>
       )}
 
-      {!["pendientes","recordatorios","historial","procedimientos"].includes(tabAcciones) && !loading && acciones.length === 0 && (
+      {!["pendientes","historial","procedimientos","notas","bolsillo","agenda"].includes(tabAcciones) && !loading && acciones.length === 0 && (
         <div className="py-12 text-center space-y-2">
           <TopicIcon value="⚡" size={28} className="mx-auto text-muted" />
           <p className="text-sm text-muted">No hay acciones registradas.</p>
@@ -24161,7 +24377,7 @@ function AccionesView({
       )}
 
       {/* Tarjetas agrupadas por estado */}
-      {!["pendientes","recordatorios","historial","procedimientos"].includes(tabAcciones) && !loading && (
+      {!["pendientes","historial","procedimientos","notas","bolsillo","agenda"].includes(tabAcciones) && !loading && (
         <>
           {(
             [
@@ -26116,7 +26332,7 @@ function AgenteMandoView({
   user: TicketsUser;
   /** Pantalla principal de la app: solo chat, sin panel de accesos. */
   modoInicio?: boolean;
-  /** Chat anclado al pie del Centro de Mando (no pantalla completa). */
+  /** Chat anclado al pie del Agenda (no pantalla completa). */
   embedido?: boolean;
   chatExpanded?: boolean;
   onToggleChatExpanded?: () => void;
@@ -26740,7 +26956,7 @@ function AgenteMandoView({
           agregarBurbuja("agente", `✅ Solicitud "${stitulo}" cerrada correctamente.`);
           void reiniciarTrasActividad();
         } catch {
-          agregarBurbuja("agente", "No pude cerrar la solicitud. Intentá desde Centro de Mando.");
+          agregarBurbuja("agente", "No pude cerrar la solicitud. Intentá desde Agenda.");
         } finally {
           setPensando(false);
         }
@@ -26761,7 +26977,7 @@ function AgenteMandoView({
           agregarBurbuja("agente", `↩️ Solicitud "${stitulo}" devuelta. ${datos?.asignado_a_nombre ? `Le avisaré a ${String(datos.asignado_a_nombre)} que necesita ajustes.` : "Quedó de nuevo en proceso."}`);
           void reiniciarTrasActividad();
         } catch {
-          agregarBurbuja("agente", "No pude actualizar la solicitud. Intentá desde Centro de Mando.");
+          agregarBurbuja("agente", "No pude actualizar la solicitud. Intentá desde Agenda.");
         } finally {
           setPensando(false);
         }
@@ -26901,7 +27117,7 @@ function AgenteMandoView({
             setSolicitudesPorAprobar(prev => prev.filter(s => s.id !== revisionSolicitud.id));
             void reiniciarTrasActividad();
           } catch {
-            agregarBurbuja("agente", "No pude cerrar la solicitud. Intentá desde Centro de Mando.");
+            agregarBurbuja("agente", "No pude cerrar la solicitud. Intentá desde Agenda.");
             setRevisionSolicitud(null);
           } finally { setPensando(false); }
         }}
@@ -26924,7 +27140,7 @@ function AgenteMandoView({
             setSolicitudesPorAprobar(prev => prev.filter(s => s.id !== revisionSolicitud.id));
             void reiniciarTrasActividad();
           } catch {
-            agregarBurbuja("agente", "No pude actualizar la solicitud. Intentá desde Centro de Mando.");
+            agregarBurbuja("agente", "No pude actualizar la solicitud. Intentá desde Agenda.");
             setRevisionSolicitud(null);
           } finally { setPensando(false); }
         }}
@@ -27063,7 +27279,7 @@ function AgenteMandoView({
               )}
               <button type="button" onClick={onGoTablero}
                 className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-extrabold text-ink transition hover:border-accent hover:text-accent"
-                title="Centro de Mando">
+                title="Agenda">
                 🎯 Centro
               </button>
             </>
@@ -27196,32 +27412,23 @@ function AgenteMandoView({
         )}
 
         {!embedido && (
-        <div className={`shrink-0 grid grid-cols-2 gap-2 px-4 pt-2 pb-1`}>
-          {modoInicio ? (
-            <>
-              <button type="button" onClick={onGoTablero}
-                className="rounded-2xl border-2 border-stone-200 bg-stone-50 px-3 py-2.5 text-left text-sm font-extrabold text-stone-800 transition active:scale-[0.97] dark:border-stone-600/50 dark:bg-stone-900/50 dark:text-stone-200">
-                🎯 Centro de Mando
-              </button>
-              <button type="button" onClick={onGoSolicitudes}
-                className={`rounded-2xl border-2 px-3 py-2.5 text-left text-sm font-extrabold transition active:scale-[0.97] ${
-                  solicitudesCount > 0
-                    ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/40 dark:text-rose-300"
-                    : "border-border bg-surface text-muted"
-                }`}>
-                📋 {solicitudesCount} solicitud{solicitudesCount === 1 ? "" : "es"}
-              </button>
-            </>
-          ) : (
-            <button type="button" onClick={onGoSolicitudes}
-              className={`rounded-2xl border-2 px-3 py-2.5 text-left text-sm font-extrabold transition active:scale-[0.97] ${
-                solicitudesCount > 0
-                  ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/40 dark:text-rose-300"
-                  : "border-border bg-surface text-muted"
-              }`}>
-              📋 {solicitudesCount} solicitud{solicitudesCount === 1 ? "" : "es"}
+        <div className="shrink-0 flex flex-wrap gap-1.5 px-4 pt-2 pb-1">
+          {modoInicio && (
+            <button type="button" onClick={onGoTablero}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs font-semibold text-stone-700 transition active:scale-[0.97] dark:border-stone-600/50 dark:bg-stone-900/50 dark:text-stone-300">
+              <TopicIcon value="🎯" size={12} weight="regular" />
+              Agenda
             </button>
           )}
+          <button type="button" onClick={onGoSolicitudes}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition active:scale-[0.97] ${
+              solicitudesCount > 0
+                ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/40 dark:text-rose-300"
+                : "border-border bg-surface text-muted"
+            }`}>
+            <TopicIcon value="📋" size={12} weight="regular" />
+            {solicitudesCount} solicitud{solicitudesCount === 1 ? "" : "es"}
+          </button>
         </div>
         )}
 
@@ -27296,10 +27503,9 @@ export default function TicketsPanel() {
   const questDark = useQuestTheme((s) => s.dark);
   const [view, setView] = useState<View>("home");
   const [hugoChatExpanded, setHugoChatExpanded] = useState(false);
-  const [abrirFormRecordatorio, setAbrirFormRecordatorio] = useState(false);
   const [abrirFormPendientes, setAbrirFormPendientes] = useState(false);
   const [abrirFormProcedimiento, setAbrirFormProcedimiento] = useState(false);
-  const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" | "agenda">("activas");
+  const [accionesInitialTab, setAccionesInitialTab] = useState<"subhome" | "activas" | "pendientes" | "procedimientos" | "historial" | "agenda" | "notas" | "bolsillo">("activas");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedMisionId, setSelectedMisionId] = useState<number | null>(null);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -27473,9 +27679,8 @@ export default function TicketsPanel() {
     setHugoChatExpanded(false);
   }
 
-  function goAcciones(tab: "subhome" | "activas" | "pendientes" | "recordatorios" | "procedimientos" | "historial" | "agenda" = "activas") {
+  function goAcciones(tab: "subhome" | "activas" | "pendientes" | "procedimientos" | "historial" | "agenda" | "notas" | "bolsillo" = "activas") {
     setAccionesInitialTab(tab);
-    setAbrirFormRecordatorio(tab === "recordatorios");
     setAbrirFormPendientes(tab === "pendientes");
     setAbrirFormProcedimiento(tab === "procedimientos");
     setAccionesKey((k) => k + 1);
@@ -27563,6 +27768,8 @@ export default function TicketsPanel() {
                 onRecordatorios={() => goAcciones("agenda")}
                 onProcedimientos={() => goAcciones("procedimientos")}
                 onImpresora={goImpresora}
+                onNotas={() => goAcciones("notas")}
+                onBolsillo={() => goAcciones("bolsillo")}
               />
             </div>
             <AgenteMandoView
@@ -27582,7 +27789,7 @@ export default function TicketsPanel() {
               onGoTablero={goCentroMando}
               onGoHistorialAcciones={() => goAcciones("historial")}
               onGoImpresora={goImpresora}
-              onGoRecordatorios={() => goAcciones("recordatorios")}
+              onGoRecordatorios={() => goAcciones("agenda")}
               onGoTableroLabores={() => goAcciones("activas")}
               onGoPendientes={() => goAcciones("pendientes")}
               clearSubViewKey={agenteClearKey}
@@ -27606,7 +27813,6 @@ export default function TicketsPanel() {
             onSelect={goDetail}
             onIrCompras={goSolicitudes}
             initialTab={accionesInitialTab}
-            abrirFormRecordatorio={abrirFormRecordatorio}
             abrirFormPendientes={abrirFormPendientes}
             abrirFormProcedimiento={abrirFormProcedimiento}
             onInicio={goInicio}

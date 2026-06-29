@@ -254,6 +254,12 @@ export default function App() {
   const showMobile = isMobile && !forceDesktop;
 
   useEffect(() => {
+    if (isMcKennaAndroidApp()) {
+      document.documentElement.classList.add("mck-apk");
+    }
+  }, []);
+
+  useEffect(() => {
     applyTheme();
   }, [applyTheme]);
 

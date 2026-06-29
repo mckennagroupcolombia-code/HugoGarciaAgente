@@ -519,4 +519,11 @@ export const MCK_UI_PATHS: Record<string, ReactNode> = {
       <path d="M12 8v8" />
     </>
   ),
+  printer: (
+    <>
+      <path d="M6 9V4h12v5" />
+      <path d="M4 9h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2v3H6v-3H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1z" />
+      <path d="M9 16h6M9 19h6" />
+    </>
+  ),
 };

@@ -1,90 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1782173691.5925152,
-      "tipo": "bot_pausado_global",
-      "sender": "573157214132@c.us",
-      "detalle": "Tienes la ficha técnica?"
-    },
-    {
-      "ts": 1782219989.7196913,
-      "tipo": "bot_pausado_global",
-      "sender": "573128565187@c.us",
-      "detalle": "Buenos días, hace unos días hicimos l compra de la siguiente materia prima: ACIDO SALICILICO 100g (Ref: C-ACISAL100g) y necesitamos los documentos CoA y MSDS"
-    },
-    {
-      "ts": 1782220025.1091263,
-      "tipo": "bot_pausado_global",
-      "sender": "573128565187@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782220025.3533082,
-      "tipo": "bot_pausado_global",
-      "sender": "573128565187@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782220032.8122678,
-      "tipo": "bot_pausado_global",
-      "sender": "573128565187@c.us",
-      "detalle": "Nos podrían por favor enviar los documentos"
-    },
-    {
-      "ts": 1782220053.466598,
-      "tipo": "bot_pausado_global",
-      "sender": "573128565187@c.us",
-      "detalle": "Al correo labconquimsas@gmail.com"
-    },
-    {
-      "ts": 1782221602.560819,
-      "tipo": "bot_pausado_global",
-      "sender": "573173102627@c.us",
-      "detalle": "Buenos días"
-    },
-    {
-      "ts": 1782221685.3479722,
-      "tipo": "bot_pausado_global",
-      "sender": "573173102627@c.us",
-      "detalle": "Por favor me informas acerca de mi pedido . Ayer no me llegó y no recibí ningún mensaje al respecto"
-    },
-    {
-      "ts": 1782222021.019881,
-      "tipo": "bot_pausado_global",
-      "sender": "573173102627@c.us",
-      "detalle": "Le agradezco mucho"
-    },
-    {
-      "ts": 1782223627.4060705,
-      "tipo": "bot_pausado_global",
-      "sender": "573173102627@c.us",
-      "detalle": "Estoy pendiente de la respuesta"
-    },
-    {
-      "ts": 1782223795.2026322,
-      "tipo": "bot_pausado_global",
-      "sender": "573208321691@c.us",
-      "detalle": "Hola, quiero ordenar: PAPAINA 100g (Ref: C-PAP100g) — $33.316 COP"
-    },
-    {
-      "ts": 1782224277.6549928,
-      "tipo": "bot_pausado_global",
-      "sender": "573208321691@c.us",
-      "detalle": "Buenos días"
-    },
-    {
-      "ts": 1782224279.3776302,
-      "tipo": "bot_pausado_global",
-      "sender": "573208321691@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1782224284.3039896,
-      "tipo": "handoff_humano",
-      "sender": "573208321691@c.us",
-      "detalle": "cliente solicitó humano"
-    },
-    {
       "ts": 1782224318.7451007,
       "tipo": "modo_humano",
       "sender": "573208321691@c.us",
@@ -1799,6 +1715,90 @@
       "tipo": "bot_pausado_global",
       "sender": "573233210052@c.us",
       "detalle": "Hola, acabo de pagar mi pedido MCKG-A432A2DBF7"
+    },
+    {
+      "ts": 1782651041.6460452,
+      "tipo": "bot_pausado_global",
+      "sender": "573104481430@c.us",
+      "detalle": "Holaaaa:)"
+    },
+    {
+      "ts": 1782677863.1210837,
+      "tipo": "bot_pausado_global",
+      "sender": "573112412547@c.us",
+      "detalle": "Buen día Que precio tiene la vitamina E y por casualidad vende cristales de mentol?"
+    },
+    {
+      "ts": 1782682488.003208,
+      "tipo": "bot_pausado_global",
+      "sender": "573146057489@c.us",
+      "detalle": "Me sacas la manteca de karite por fis"
+    },
+    {
+      "ts": 1782682779.056847,
+      "tipo": "bot_pausado_global",
+      "sender": "573104481430@c.us",
+      "detalle": "Hola Jennifer cómo estás"
+    },
+    {
+      "ts": 1782682805.0844626,
+      "tipo": "bot_pausado_global",
+      "sender": "573104481430@c.us",
+      "detalle": "Tengo una preguntica puntual lo que pasa es que me gustaría saber si ustedes tienen ósea ventas al por mayor ? Como son los procesos ?"
+    },
+    {
+      "ts": 1782682883.673831,
+      "tipo": "bot_pausado_global",
+      "sender": "573104481430@c.us",
+      "detalle": "Hialuronico tema una glutamina ósea varios …"
+    },
+    {
+      "ts": 1782682889.560839,
+      "tipo": "bot_pausado_global",
+      "sender": "573104481430@c.us",
+      "detalle": "Teanina"
+    },
+    {
+      "ts": 1782682919.1386127,
+      "tipo": "bot_pausado_global",
+      "sender": "573146057489@c.us",
+      "detalle": "Ahh bueno, si tienes en esa presentación mejor"
+    },
+    {
+      "ts": 1782683277.5456102,
+      "tipo": "bot_pausado_global",
+      "sender": "573146057489@c.us",
+      "detalle": "Listo, ya te comparto la transferencia"
+    },
+    {
+      "ts": 1782685330.2426214,
+      "tipo": "bot_pausado_global",
+      "sender": "573146057489@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1782692284.789824,
+      "tipo": "bot_pausado_global",
+      "sender": "573112412547@c.us",
+      "detalle": "Me puedes ayudar también con el costo de los 500 gramos de manteca de cacao. La manteca de karité. los 500 gr de cera de abeja y la esencia de mandarina y otros esencias tiene? Mil gracias."
+    },
+    {
+      "ts": 1782692316.0809128,
+      "tipo": "bot_pausado_global",
+      "sender": "573112412547@c.us",
+      "detalle": "O mejor no tienes un catálogo con el precio de los productos para no estar molestando."
+    },
+    {
+      "ts": 1782692529.1644435,
+      "tipo": "bot_pausado_global",
+      "sender": "573146057489@c.us",
+      "detalle": "Mónica Marcela Hernández Pedreros 1026558162 Calle 4 #28-141 Zipaquira 3146057489 monchi-88@hotmail.com"
+    },
+    {
+      "ts": 1782692565.3623047,
+      "tipo": "bot_pausado_global",
+      "sender": "573146057489@c.us",
+      "detalle": "Barrio las villas ,torre 11 apto 307, conjunto hacienda San José"
     }
   ]
 }
