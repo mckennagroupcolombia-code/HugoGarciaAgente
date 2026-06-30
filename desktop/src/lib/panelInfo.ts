@@ -18,7 +18,7 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   // ── Core ─────────────────────────────────────────────────────────────────────
   hugo: {
     emoji: "🏠",
-    label: "Centro",
+    label: "Agenda",
     description: "Tu base de operaciones. Aquí gestionas solicitudes, tareas pendientes y coordinas al equipo en tiempo real.",
     tips: [
       "Crea una solicitud con el botón azul '+' para pedir algo al equipo.",

@@ -2152,25 +2152,46 @@ def index():
 @app.route("/tienda")
 @app.route("/tienda/")
 def tienda():
-    return redirect(url_for("catalogo"), code=301)
+    # Preservar todos los query params (q, cat, etc.) al redirigir
+    return redirect(url_for("catalogo", **request.args), code=301)
 
 
 @app.route("/catalogo")
 @app.route("/catalogo/")
 def catalogo():
     cat_filter = request.args.get("cat", "").strip()
+    q_filter   = request.args.get("q", "").strip()
     catalog    = get_catalog()
+
+    # Filtrar por categoría
     if cat_filter:
         sections = [s for s in catalog if s["name"].lower() == cat_filter.lower()]
         if not sections:
             return redirect(url_for("catalogo"))
     else:
         sections = catalog
+
+    # Filtrar por texto de búsqueda
+    if q_filter:
+        q_lower = q_filter.lower()
+        filtered = []
+        for sec in sections:
+            prods = [
+                p for p in sec["products"]
+                if q_lower in p.get("name", "").lower()
+                or q_lower in p.get("ref", "").lower()
+                or q_lower in p.get("cat", "").lower()
+            ]
+            if prods:
+                filtered.append({**sec, "products": prods})
+        sections = filtered
+
     cats = [s["name"] for s in catalog]
     return render_template("tienda.html",
         sections=sections,
         cats=cats,
-        cat_filter=cat_filter)
+        cat_filter=cat_filter,
+        q_filter=q_filter)
 
 
 def _fotos_de_producto(p: dict) -> list[str]:

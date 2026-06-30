@@ -53,7 +53,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             {headerTitle}
           </span>
           {advanced && (
-            <span className="hidden rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 lg:inline">
+            <span className="hidden rounded-full bg-accent/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-accent dark:bg-accent/30 dark:text-accent/30 lg:inline">
               Modo avanzado
             </span>
           )}

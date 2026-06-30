@@ -1,60 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1782224318.7451007,
-      "tipo": "modo_humano",
-      "sender": "573208321691@c.us",
-      "detalle": "O más o menos sabes cuando estaría disponible?"
-    },
-    {
-      "ts": 1782225290.4023495,
-      "tipo": "modo_humano",
-      "sender": "573208321691@c.us",
-      "detalle": "Vale gracias"
-    },
-    {
-      "ts": 1782225295.6340194,
-      "tipo": "modo_humano",
-      "sender": "573208321691@c.us",
-      "detalle": "Y manejas la pepsina?"
-    },
-    {
-      "ts": 1782225484.6176157,
-      "tipo": "bot_pausado_global",
-      "sender": "573173102627@c.us",
-      "detalle": "Ok"
-    },
-    {
-      "ts": 1782225726.364098,
-      "tipo": "modo_humano",
-      "sender": "573208321691@c.us",
-      "detalle": "Vale mil gracias estaría comunicándome la otra semana"
-    },
-    {
-      "ts": 1782226938.5987682,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Buenos días envío pago para un citrato de magnesio de libra y vitamina C de libra gracias"
-    },
-    {
-      "ts": 1782226959.0272484,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Y lo del envío"
-    },
-    {
-      "ts": 1782227013.3905168,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Calle 4 # 16-01 Int 6 apt 6-42 Barrio Eduardo santos Cel 3015465396"
-    },
-    {
-      "ts": 1782227041.9249446,
-      "tipo": "bot_pausado_global",
-      "sender": "573015465396@c.us",
-      "detalle": "Unidad residencial Hans drews Arango"
-    },
-    {
       "ts": 1782227222.3592193,
       "tipo": "bot_pausado_global",
       "sender": "573212298016@c.us",
@@ -1799,6 +1745,60 @@
       "tipo": "bot_pausado_global",
       "sender": "573146057489@c.us",
       "detalle": "Barrio las villas ,torre 11 apto 307, conjunto hacienda San José"
+    },
+    {
+      "ts": 1782731192.9546692,
+      "tipo": "bot_pausado_global",
+      "sender": "573107403909@c.us",
+      "detalle": "Hola, quiero una cotización"
+    },
+    {
+      "ts": 1782748636.3548121,
+      "tipo": "bot_pausado_global",
+      "sender": "573222357398@c.us",
+      "detalle": "Hola, busco una materia prima específica peeling tranexamico"
+    },
+    {
+      "ts": 1782753344.0602908,
+      "tipo": "bot_pausado_global",
+      "sender": "275441302671599@lid",
+      "detalle": "Buenos días"
+    },
+    {
+      "ts": 1782774868.6006424,
+      "tipo": "bot_pausado_global",
+      "sender": "573107403909@c.us",
+      "detalle": "👌Tu tiempo es valioso, y nos aseguramos de aprovecharlo al máximo ,en un momento estaré contigo 💕.."
+    },
+    {
+      "ts": 1782774912.0035257,
+      "tipo": "bot_pausado_global",
+      "sender": "573107403909@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1782774939.9260857,
+      "tipo": "bot_pausado_global",
+      "sender": "275441302671599@lid",
+      "detalle": ""
+    },
+    {
+      "ts": 1782774942.81427,
+      "tipo": "bot_pausado_global",
+      "sender": "573107403909@c.us",
+      "detalle": "Para que haga el favor de compartirme el catálogo"
+    },
+    {
+      "ts": 1782774945.8450305,
+      "tipo": "bot_pausado_global",
+      "sender": "573107403909@c.us",
+      "detalle": "Gracias"
+    },
+    {
+      "ts": 1782780923.380905,
+      "tipo": "bot_pausado_global",
+      "sender": "573156814001@c.us",
+      "detalle": "Buenas noches"
     }
   ]
 }

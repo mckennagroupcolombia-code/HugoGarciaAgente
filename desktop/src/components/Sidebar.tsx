@@ -141,7 +141,7 @@ function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: (
       onClick={onToggle}
       className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-xs font-semibold transition-all ${
         advanced
-          ? "bg-amber-50 text-amber-700 dark:bg-amber-900/25 dark:text-amber-300"
+          ? "bg-accent/5 text-accent dark:bg-accent/25 dark:text-accent/30"
           : "text-muted hover:bg-surface-hover hover:text-ink"
       }`}
     >
@@ -151,7 +151,7 @@ function AdvancedToggle({ advanced, onToggle }: { advanced: boolean; onToggle: (
       <span className="flex-1">{advanced ? "Modo avanzado activo" : "Activar modo avanzado"}</span>
       <span
         className={`relative h-5 w-9 rounded-full transition-colors ${
-          advanced ? "bg-amber-400 dark:bg-amber-500" : "bg-border"
+          advanced ? "bg-accent/40 dark:bg-accent/50" : "bg-border"
         }`}
       >
         <span

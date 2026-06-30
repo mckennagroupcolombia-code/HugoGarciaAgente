@@ -77,19 +77,19 @@ interface QuickCategory {
 // ── Quick categories ───────────────────────────────────────────────────────────
 
 const QUICK_CATS: QuickCategory[] = [
-  { slug: "etiquetas",    label: "Etiquetas",   icon: "tag",       tone: "plum",   color: "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-200" },
-  { slug: "inventario",   label: "Inventario",  icon: "package",   tone: "sky",    color: "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-200" },
-  { slug: "logistica",    label: "Logística",   icon: "truck",     tone: "leaf",   color: "bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-200" },
-  { slug: "sistemas",     label: "Sistemas",    icon: "nut",       tone: "sun",    color: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200" },
-  { slug: "mantenimiento",label: "Mantenim.",   icon: "wrench",    tone: "rose",   color: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200" },
+  { slug: "etiquetas",    label: "Etiquetas",   icon: "tag",       tone: "plum",   color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "inventario",   label: "Inventario",  icon: "package",   tone: "sky",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "logistica",    label: "Logística",   icon: "truck",     tone: "leaf",   color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "sistemas",     label: "Sistemas",    icon: "nut",       tone: "sun",    color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
+  { slug: "mantenimiento",label: "Mantenim.",   icon: "wrench",    tone: "rose",   color: "bg-accent/10 text-accent dark:bg-accent/20 dark:text-accent/20" },
   { slug: "general",      label: "General",     icon: "chat",      tone: "neutral",color: "bg-gray-100 text-gray-600 dark:bg-surface-input dark:text-muted" },
 ];
 
 const ESTADO_COLOR: Record<string, string> = {
-  pendiente:            "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-200",
-  en_proceso:           "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200",
-  esperando_aprobacion: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200",
-  resuelto:             "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200",
+  pendiente:            "bg-accent/10 text-accent dark:bg-accent/40 dark:text-accent/20",
+  en_proceso:           "bg-accent/10 text-accent dark:bg-accent/40 dark:text-accent/20",
+  esperando_aprobacion: "bg-accent/10 text-accent dark:bg-accent/40 dark:text-accent/20",
+  resuelto:             "bg-accent/10 text-accent dark:bg-accent/40 dark:text-accent/20",
   rechazado:            "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-200",
 };
 
@@ -169,8 +169,8 @@ function NuevaSolicitudSheet({
         <div className="overflow-y-auto px-5 pb-8 pt-2">
           {done ? (
             <div className="flex flex-col items-center gap-3 py-10">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                <Icon name="check" size={32} weight="duotone" className="text-green-600 dark:text-green-400" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent/10 dark:bg-accent/30">
+                <Icon name="check" size={32} weight="duotone" className="text-accent dark:text-accent/40" />
               </div>
               <p className="text-center font-bold text-ink">Solicitud enviada</p>
               <p className="text-center text-sm text-muted">El equipo la recibirá pronto</p>
@@ -368,10 +368,10 @@ function HomeTab({
               <span
                 key={key}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                  ok ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300"
+                  ok ? "bg-accent/5 text-accent dark:bg-accent/30 dark:text-accent/30" : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-300"
                 }`}
               >
-                <span className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-green-500" : "bg-red-500"}`} />
+                <span className={`h-1.5 w-1.5 rounded-full ${ok ? "bg-accent/50" : "bg-red-500"}`} />
                 {key}
               </span>
             ))}
@@ -580,14 +580,14 @@ function AccionesTab({ apiToken, onNavigateTo }: { apiToken: string; onNavigateT
         <button
           type="button"
           onClick={() => onNavigateTo("preventa")}
-          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/40 px-4 py-3.5 text-left transition-all active:scale-[0.98]"
+          className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-accent/5 border border-accent/20 dark:bg-accent/20 dark:border-accent/40 px-4 py-3.5 text-left transition-all active:scale-[0.98]"
         >
           <IllustrationIcon name="question" size={28} tone="sun" />
           <div className="flex-1">
-            <p className="font-bold text-amber-800 dark:text-amber-200">{preventa} pregunta{preventa > 1 ? "s" : ""} sin responder</p>
-            <p className="text-sm text-amber-600 dark:text-amber-400">Preventa MercadoLibre · Toca para ver</p>
+            <p className="font-bold text-accent dark:text-accent/20">{preventa} pregunta{preventa > 1 ? "s" : ""} sin responder</p>
+            <p className="text-sm text-accent dark:text-accent/40">Preventa MercadoLibre · Toca para ver</p>
           </div>
-          <span className="text-amber-500">→</span>
+          <span className="text-accent/50">→</span>
         </button>
       )}
 
@@ -608,7 +608,7 @@ function AccionesTab({ apiToken, onNavigateTo }: { apiToken: string; onNavigateT
                 {res === "loading" ? (
                   <p className="mt-0.5 text-xs text-accent animate-pulse">Procesando…</p>
                 ) : res ? (
-                  <p className={`mt-0.5 text-xs font-semibold ${res.ok ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
+                  <p className={`mt-0.5 text-xs font-semibold ${res.ok ? "text-accent dark:text-accent/40" : "text-red-500"}`}>
                     {res.ok ? "✓ " : "✗ "}{res.msg}
                   </p>
                 ) : (
@@ -795,7 +795,7 @@ export default function MobileHub({ onSwitchDesktop }: { onSwitchDesktop: () => 
           <p className="text-[10px] text-muted leading-none mt-0.5">{nombre}</p>
         </div>
         <div className="flex items-center gap-1">
-          <div className="h-2 w-2 rounded-full bg-green-500" />
+          <div className="h-2 w-2 rounded-full bg-accent/50" />
           <span className="text-[10px] font-semibold text-muted">En línea</span>
         </div>
       </div>

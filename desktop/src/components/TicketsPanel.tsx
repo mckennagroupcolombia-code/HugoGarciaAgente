@@ -382,10 +382,10 @@ function coincideBusquedaPrereq(q: string, ...partes: (string | null | undefined
 }
 
 function estadoPrereqBadge(estado: string, tipo?: PrerequisitoTipo) {
-  if (estado === "completada") return "bg-green-100 text-green-700";
+  if (estado === "completada") return "bg-accent/10 text-accent";
   if (estado === "cancelada") return "bg-red-100 text-red-600";
-  if (tipo === "receta" && estado === "pendiente") return "bg-amber-100 text-amber-800";
-  return "bg-blue-100 text-blue-700";
+  if (tipo === "receta" && estado === "pendiente") return "bg-accent/10 text-accent";
+  return "bg-accent/10 text-accent";
 }
 
 function estadoPrereqLabel(estado: string, tipo?: PrerequisitoTipo) {
@@ -1060,8 +1060,8 @@ function TicketRecurrenciaSection({
   }
 
   return (
-    <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 p-4 space-y-3 dark:border-emerald-800 dark:bg-emerald-950/30">
-      <p className="text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
+    <div className="rounded-xl border-2 border-accent/20 bg-accent/50 p-4 space-y-3 dark:border-accent dark:bg-accent/30">
+      <p className="text-xs font-bold uppercase tracking-wide text-accent dark:text-accent/30">
         ♻️ Recurrencia del ticket
       </p>
       {canEdit ? (
@@ -1073,7 +1073,7 @@ function TicketRecurrenciaSection({
             type="button"
             disabled={saving || freq === (ticket.frecuencia || "")}
             onClick={saveFreq}
-            className="rounded-paper border-2 border-emerald-500 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-500 hover:text-white transition disabled:opacity-50"
+            className="rounded-paper border-2 border-accent/50 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/50 hover:text-white transition disabled:opacity-50"
           >
             {saving ? "..." : "Guardar"}
           </button>
@@ -1084,7 +1084,7 @@ function TicketRecurrenciaSection({
         </p>
       )}
       {ticket.frecuencia && ticket.proxima_renovacion && ticket.estado === "resuelto" && (
-        <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+        <p className="text-xs font-semibold text-accent dark:text-accent/40">
           ⏰ Próxima renovación automática: {fmtFecha(ticket.proxima_renovacion)}
         </p>
       )}
@@ -1093,7 +1093,7 @@ function TicketRecurrenciaSection({
           type="button"
           disabled={renewing}
           onClick={renovar}
-          className="rounded-paper border-2 border-emerald-400 px-3 py-1.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500 hover:border-emerald-500 hover:text-white transition disabled:opacity-50"
+          className="rounded-paper border-2 border-accent/40 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/50 hover:border-accent/50 hover:text-white transition disabled:opacity-50"
         >
           {renewing ? "Renovando..." : "♻️ Renovar ticket"}
         </button>
@@ -1617,7 +1617,8 @@ function QuestNavBar({
   onInicio,
   onCentroMando,
   onSolicitudes,
-  onWorkload,
+  onAcciones,
+  onProcedimientos,
   hugoChatActive = false,
 }: {
   view: View;
@@ -1626,13 +1627,12 @@ function QuestNavBar({
   onInicio: () => void;
   onCentroMando: () => void;
   onSolicitudes: () => void;
-  onWorkload: () => void;
+  onAcciones: () => void;
+  onProcedimientos: () => void;
   /** Hugo activo en hub integrado (chat expandido sobre Agenda). */
   hugoChatActive?: boolean;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const cerrar = () => setMenuOpen(false);
 
   // Etiqueta de la sección activa (para la cabecera móvil)
   const viewLabels: Partial<Record<View, string>> = {
@@ -1656,45 +1656,32 @@ function QuestNavBar({
         </span>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2 sm:order-first sm:min-w-0 sm:flex-1">
+          {/* Inicio — tamaño grande */}
           <button
             type="button"
             onClick={onCentroMando}
-            className={`${questNavBtn(view === "home")} shrink-0 whitespace-nowrap`}
+            className={`${questNavBtn(view === "home")} shrink-0 whitespace-nowrap !px-5 !py-2.5 !text-base !font-extrabold`}
             title="Panel operativo"
           >
-            <TopicIcon value="🎯" size={14} />Centro
+            <TopicIcon value="🎯" size={16} />Agenda
           </button>
-          {nivel >= 2 && pVer("workload") && (
-            <button type="button" onClick={onWorkload} className={`${questNavBtn(view === "workload")} shrink-0 whitespace-nowrap`}>
-              <TopicIcon value="🤝" size={14} weight="regular" />Aliados
+
+          {/* Secciones primarias — tamaño mediano */}
+          {pVer("acciones") && (
+            <button type="button" onClick={onAcciones}
+              className={`${questNavBtn(view === "acciones")} shrink-0 whitespace-nowrap !px-4 !py-2 !text-sm !font-bold`}>
+              <TopicIcon value="⚡" size={15} weight="regular" />Acciones
             </button>
           )}
-        </div>
+          {pVer("solicitudes") && (
+            <button type="button" onClick={onSolicitudes}
+              className={`${questNavBtn(view === "solicitudes")} shrink-0 whitespace-nowrap !px-4 !py-2 !text-sm !font-bold`}>
+              <TopicIcon value="📋" size={15} weight="regular" />Solicitudes
+            </button>
+          )}
 
-        <div className="quest-nav-bar-actions flex shrink-0 items-center sm:ml-auto">
-          {/* Hamburguesa — solo mobile */}
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-border text-base font-bold text-muted transition hover:border-accent hover:text-accent sm:hidden"
-            aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
-          >
-            {menuOpen ? "✕" : "☰"}
-          </button>
         </div>
       </div>
-
-      {/* ── Menú desplegable — solo mobile, solo cuando está abierto ────── */}
-      {menuOpen && (
-        <div className="mt-2.5 flex flex-col gap-1.5 border-t border-border pt-2.5 sm:hidden">
-          {nivel >= 2 && pVer("workload") && (
-            <button type="button" onClick={() => { onWorkload(); cerrar(); }}
-              className={`${questNavBtn(view === "workload")} w-full justify-start text-left`}>
-              <TopicIcon value="🤝" size={14} weight="regular" />Aliados
-            </button>
-          )}
-        </div>
-      )}
     </nav>
   );
 }
@@ -2308,7 +2295,7 @@ function ReinosView({
             <div>
               <label className="mb-1 block text-xs font-bold text-muted">Ubicación padre *</label>
               {!hayPadresDepartamento ? (
-                <p className="text-xs text-amber-700 dark:text-amber-300">
+                <p className="text-xs text-accent dark:text-accent/30">
                   No hay zonas en el catálogo. Crea primero una <strong>zona</strong> bajo el reino (ej. Cocina).
                 </p>
               ) : (
@@ -2343,7 +2330,7 @@ function ReinosView({
             <div>
               <label className="mb-1 block text-xs font-bold text-muted">Zona padre * (debe ser zona, no el reino)</label>
               {zonasParaSub.length === 0 ? (
-                <p className="text-xs text-amber-700 dark:text-amber-300">
+                <p className="text-xs text-accent dark:text-accent/30">
                   No hay zonas todavía. Usa <strong>+ Zona</strong> bajo un reino, o el botón <strong>+ Zona</strong> en la fila del reino.
                 </p>
               ) : (
@@ -2448,7 +2435,7 @@ function ReinosView({
       )}
 
       {actionMsg && (
-        <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${actionMsg.type === "ok" ? "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
+        <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${actionMsg.type === "ok" ? "bg-accent/10 text-accent dark:bg-accent/50 dark:text-accent/30" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
           {actionMsg.text}
         </p>
       )}
@@ -3719,7 +3706,7 @@ function MisionGroupCard({
                 </span>
               </>
             )}
-            {isComplete && <span className="font-bold text-green-700 dark:text-green-500/70">✓</span>}
+            {isComplete && <span className="font-bold text-accent dark:text-accent/70">✓</span>}
           </p>
         </button>
         {progMision.total > 0 && (
@@ -4034,7 +4021,7 @@ function ReinoBoardSectionBlock({
                   {/* Estado */}
                   <div className="flex items-center justify-between">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold
-                      ${isComplete ? "bg-emerald-100 text-emerald-700" : "bg-black/5 text-muted"}`}>
+                      ${isComplete ? "bg-accent/10 text-accent" : "bg-black/5 text-muted"}`}>
                       {isComplete ? "✓ Completada" : `${hechos}/${total} listas`}
                     </span>
                     <span className="text-[10px] font-bold text-muted/60 group-hover:text-accent transition">
@@ -4064,7 +4051,7 @@ function navScopeLabel(scope: NavScope): string {
 
 function CentroMandoHome({
   token, user, nivel, permisos,
-  onAcciones, onSolicitudes, onContratos, onTablero,
+  onAcciones, onSolicitudes, onVerSolicitud, onContratos, onTablero,
   onAccionesFuturas, onRecordatorios, onProcedimientos, onImpresora,
   onNotas, onBolsillo,
 }: {
@@ -4074,6 +4061,7 @@ function CentroMandoHome({
   permisos: Record<string, boolean> | null | undefined;
   onAcciones: () => void;
   onSolicitudes: () => void;
+  onVerSolicitud: (id: number) => void;
   onContratos: () => void;
   onTablero: () => void;
   onAccionesFuturas: () => void;
@@ -4084,242 +4072,195 @@ function CentroMandoHome({
   onBolsillo?: () => void;
 }) {
   const pVer = (tab: string) => puedeVerTab(permisos, nivel, tab);
-  const verImpresora = puedeVerSeccionPanel(user, "etiquetas");
 
-  interface HomeStat { label: string; value: number | null }
-  const [stats, setStats] = useState<{
-    acciones: HomeStat;
-    solicitudes: HomeStat;
-    contratos: HomeStat;
-    pendientes: HomeStat;
-    recordatorios: HomeStat;
-    recordatoriosHoy: number;
-    procedimientos: HomeStat;
-  }>({
-    acciones:       { label: "en curso", value: null },
-    solicitudes:    { label: "por resolver", value: null },
-    contratos:      { label: "activos", value: null },
-    pendientes:     { label: "anotadas", value: null },
-    recordatorios:  { label: "programados", value: null },
-    recordatoriosHoy: 0,
-    procedimientos: { label: "guardados", value: null },
-  });
-  const [accionesActivas, setAccionesActivas] = useState<any[]>([]);
+  const [acciones,      setAcciones]      = useState<any[]>([]);
+  const [solicitudes,   setSolicitudes]   = useState<any[]>([]);
+  const [recordatorios, setRecordatorios] = useState<any[]>([]);
+  const [procedimientos,setProcedimientos]= useState<any[]>([]);
+  const [notas,         setNotas]         = useState<any[]>([]);
+  const [cargando,      setCargando]      = useState(true);
 
-  useEffect(() => {
+  const cargar = useCallback(async () => {
     const hoy = new Date().toISOString().slice(0, 10);
-    Promise.allSettled([
+    const [acc, sol, rec, proc, not] = await Promise.allSettled([
       tapi("/?tipo=accion&activas=1", token),
       tapi("/?tipo=solicitud&activas=1", token),
-      tapi("/?categoria=contratos&activas=1", token),
-      tapi("/pendientes", token),
       tapi("/recordatorios", token),
       tapi("/protocolos?alcance=mis", token),
-    ]).then(([acc, sol, cont, pend, rec, proc]) => {
-      const accList = acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value as any[] : [];
-      setAccionesActivas(accList);
-      setStats({
-        acciones:      { label: "en curso",      value: accList.length },
-        solicitudes:   { label: "por resolver",  value: sol.status  === "fulfilled" && Array.isArray(sol.value)  ? (sol.value as any[]).filter((t: any) => t.asignado_a === user.id).length  : null },
-        contratos:     { label: "activos",       value: cont.status === "fulfilled" && Array.isArray(cont.value) ? cont.value.length : null },
-        pendientes:    { label: "anotadas",      value: pend.status === "fulfilled" && Array.isArray(pend.value) ? pend.value.length : null },
-        recordatorios: { label: "programados",   value: rec.status  === "fulfilled" && Array.isArray(rec.value)  ? rec.value.length  : null },
-        recordatoriosHoy: rec.status === "fulfilled" && Array.isArray(rec.value)
-          ? (rec.value as any[]).filter((r: any) => r.proxima_fecha <= hoy).length
-          : 0,
-        procedimientos:{ label: "guardados",     value: proc.status === "fulfilled" && Array.isArray(proc.value) ? proc.value.length : null },
-      });
-    });
+      fetch("/api/tickets/notas", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }).then(r => r.ok ? r.json() : []),
+    ]);
+    setAcciones(acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value as any[] : []);
+    setSolicitudes(sol.status === "fulfilled" && Array.isArray(sol.value)
+      ? (sol.value as any[]).filter((t: any) => t.asignado_a === user.id) : []);
+    const recList = rec.status === "fulfilled" && Array.isArray(rec.value) ? rec.value as any[] : [];
+    // Ordenar: hoy primero, luego por fecha
+    setRecordatorios(recList.sort((a: any, b: any) => {
+      const aHoy = (a.proxima_fecha ?? "") <= hoy;
+      const bHoy = (b.proxima_fecha ?? "") <= hoy;
+      if (aHoy && !bHoy) return -1;
+      if (!aHoy && bHoy) return 1;
+      return (a.proxima_fecha ?? "").localeCompare(b.proxima_fecha ?? "");
+    }));
+    setProcedimientos(proc.status === "fulfilled" && Array.isArray(proc.value) ? proc.value as any[] : []);
+    setNotas(not.status === "fulfilled" && Array.isArray(not.value) ? (not.value as any[]).slice(0, 3) : []);
+    setCargando(false);
   }, [token, user.id]);
 
+  useEffect(() => { void cargar(); }, [cargar]);
   useEffect(() => {
-    const iv = setInterval(() => {
-      const hoy = new Date().toISOString().slice(0, 10);
-      Promise.allSettled([
-        tapi("/?tipo=accion&activas=1", token),
-        tapi("/?tipo=solicitud&activas=1", token),
-        tapi("/?categoria=contratos&activas=1", token),
-        tapi("/pendientes", token),
-        tapi("/recordatorios", token),
-        tapi("/protocolos?alcance=mis", token),
-      ]).then(([acc, sol, cont, pend, rec, proc]) => {
-        const accList = acc.status === "fulfilled" && Array.isArray(acc.value) ? acc.value as any[] : [];
-        setAccionesActivas(accList);
-        setStats({
-          acciones:       { label: "en curso",     value: accList.length },
-          solicitudes:    { label: "por resolver",  value: sol.status  === "fulfilled" && Array.isArray(sol.value)  ? (sol.value as any[]).filter((t: any) => t.asignado_a === user.id).length  : null },
-          contratos:      { label: "activos",      value: cont.status === "fulfilled" && Array.isArray(cont.value) ? cont.value.length : null },
-          pendientes:     { label: "anotadas",      value: pend.status === "fulfilled" && Array.isArray(pend.value) ? pend.value.length : null },
-          recordatorios:  { label: "programados",   value: rec.status  === "fulfilled" && Array.isArray(rec.value)  ? rec.value.length  : null },
-          recordatoriosHoy: rec.status === "fulfilled" && Array.isArray(rec.value)
-            ? (rec.value as any[]).filter((r: any) => r.proxima_fecha <= hoy).length
-            : 0,
-          procedimientos: { label: "guardados",     value: proc.status === "fulfilled" && Array.isArray(proc.value) ? proc.value.length : null },
-        });
-      });
-    }, 30000);
+    const iv = setInterval(() => void cargar(), 30000);
     return () => clearInterval(iv);
-  }, [token, user.id]);
-
-  function NavCard({ onClick, icon, titulo, sub, count, colorKey, badge, arrow }: {
-    onClick: () => void;
-    icon: string;
-    titulo: string;
-    sub: string;
-    count: number | null;
-    colorKey: "amber" | "rose" | "slate" | "emerald" | "sky" | "teal";
-    badge?: string;
-    arrow?: boolean;
-  }) {
-    const COLS: Record<string, { card: string; num: string; iconC: string }> = {
-      amber:   { card: "bg-amber-50   dark:bg-amber-950/40   border-amber-200/80   dark:border-amber-700/40   hover:border-amber-300   dark:hover:border-amber-600",   num: "text-amber-600   dark:text-amber-400",   iconC: "bg-amber-100   dark:bg-amber-900/50   text-amber-700   dark:text-amber-300"   },
-      rose:    { card: "bg-rose-50    dark:bg-rose-950/40    border-rose-200/80    dark:border-rose-700/40    hover:border-rose-300    dark:hover:border-rose-600",    num: "text-rose-600    dark:text-rose-400",    iconC: "bg-rose-100    dark:bg-rose-900/50    text-rose-700    dark:text-rose-300"    },
-      slate:   { card: "bg-slate-50   dark:bg-slate-900/40   border-slate-200/80   dark:border-slate-700/40   hover:border-slate-300   dark:hover:border-slate-600",   num: "text-slate-600   dark:text-slate-300",   iconC: "bg-slate-100   dark:bg-slate-800/50   text-slate-700   dark:text-slate-300"   },
-      emerald: { card: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-700/40 hover:border-emerald-300 dark:hover:border-emerald-600", num: "text-emerald-600 dark:text-emerald-400", iconC: "bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300" },
-      sky:     { card: "bg-sky-50     dark:bg-sky-950/40     border-sky-200/80     dark:border-sky-700/40     hover:border-sky-300     dark:hover:border-sky-600",     num: "text-sky-600     dark:text-sky-400",     iconC: "bg-sky-100     dark:bg-sky-900/50     text-sky-700     dark:text-sky-300"     },
-      teal:    { card: "bg-teal-50    dark:bg-teal-950/40    border-teal-200/80    dark:border-teal-700/40    hover:border-teal-300    dark:hover:border-teal-600",    num: "text-teal-600    dark:text-teal-400",    iconC: "bg-teal-100    dark:bg-teal-900/50    text-teal-700    dark:text-teal-300"    },
-    };
-    const c = COLS[colorKey];
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`group relative flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all duration-150 active:scale-[0.97] hover:shadow-sm ${c.card}`}
-      >
-        <span className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${c.iconC}`}>
-          <TopicIcon value={icon} size={18} weight="regular" />
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-extrabold text-ink leading-tight truncate">{titulo}</p>
-          {badge ? (
-            <span className="rounded-full bg-amber-500 px-1.5 py-px text-[9px] font-bold text-white leading-tight">
-              {badge}
-            </span>
-          ) : (
-            <p className="text-[10px] text-muted leading-none mt-0.5">{sub}</p>
-          )}
-        </div>
-        <div className="shrink-0">
-          {count !== null ? (
-            <span className={`text-lg font-black tabular-nums leading-none ${c.num}`}>{count}</span>
-          ) : arrow ? (
-            <span className={`text-base font-black leading-none ${c.num}`}>→</span>
-          ) : null}
-        </div>
-      </button>
-    );
-  }
+  }, [cargar]);
 
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 18 ? "Buenas tardes" : "Buenas noches";
-  const fechaHoy = new Date().toLocaleDateString("es-CO", {
-    weekday: "long", day: "numeric", month: "long",
-  });
+  const fechaHoy = new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  function SeccionHeader({ icon, titulo, count, onVerTodo }: { icon: string; titulo: string; count?: number; onVerTodo: () => void }) {
+    return (
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-muted">
+          <TopicIcon value={icon} size={13} weight="regular" />
+          {titulo}
+          {count != null && count > 0 && (
+            <span className="ml-1 rounded-full bg-accent/10 px-1.5 py-px text-[10px] font-bold text-accent">{count}</span>
+          )}
+        </p>
+        <button type="button" onClick={onVerTodo} className="text-[11px] font-semibold text-accent hover:underline shrink-0">
+          Ver todo →
+        </button>
+      </div>
+    );
+  }
+
+  if (cargando) {
+    return (
+      <div className="flex flex-col gap-4 animate-pulse">
+        <div className="h-14 rounded-xl bg-surface-hover" />
+        <div className="h-28 rounded-xl bg-surface-hover" />
+        <div className="h-28 rounded-xl bg-surface-hover" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 pb-4">
       {/* ── Header ── */}
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted/50 mb-1">
           {fechaHoy.charAt(0).toUpperCase() + fechaHoy.slice(1)}
         </p>
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h2 className="text-2xl font-black text-ink leading-tight tracking-tight">
-              {saludo},{" "}
-              <span className="text-accent">{user.nombre.split(" ")[0]}</span>
-            </h2>
-            <p className="mt-0.5 text-xs text-muted">Agenda · McKenna Group</p>
-          </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {stats.acciones.value != null && stats.acciones.value > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-700/60 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-300">
-                ⚡ {stats.acciones.value} en curso
-              </span>
-            )}
-            {stats.recordatoriosHoy > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700/60 px-2.5 py-1 text-[11px] font-bold text-violet-700 dark:text-violet-300">
-                🔔 {stats.recordatoriosHoy} hoy
-              </span>
-            )}
-          </div>
-        </div>
+        <h2 className="text-2xl font-black text-ink leading-tight tracking-tight">
+          {saludo},{" "}
+          <span className="text-accent">{user.nombre.split(" ")[0]}</span>
+        </h2>
       </div>
 
-      {/* ── Acciones en ejecución ── */}
-      {accionesActivas.length > 0 && (
-        <div className="rounded-2xl border border-amber-200/70 dark:border-amber-700/40 bg-gradient-to-br from-amber-50 to-orange-50/60 dark:from-amber-950/30 dark:to-orange-950/10 p-4">
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
-              Ejecutando ahora
-            </p>
-            <button type="button" onClick={onAcciones} className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:underline">
-              Ver todo →
-            </button>
-          </div>
-          <div className="space-y-1.5">
-            {accionesActivas.slice(0, 3).map((a: any) => (
-              <div key={a.id} className="flex items-center gap-2.5 rounded-xl bg-white/70 dark:bg-white/5 border border-amber-100 dark:border-amber-800/30 px-3 py-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
-                <p className="text-sm font-semibold text-ink truncate flex-1">{a.titulo}</p>
-              </div>
-            ))}
-            {accionesActivas.length > 3 && (
-              <p className="text-[11px] text-amber-600/70 dark:text-amber-400/60 text-right pr-1">
-                +{accionesActivas.length - 3} más
-              </p>
-            )}
-          </div>
+      {/* ── Acciones ── */}
+      {pVer("acciones") && (
+        <div className="rounded-xl border border-accent/25 bg-accent/5 p-3">
+          <SeccionHeader icon="⚡" titulo="Acciones" count={acciones.length} onVerTodo={onAcciones} />
+          {acciones.length === 0 ? (
+            <p className="text-[12px] text-muted py-1">Sin acciones activas.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {acciones.slice(0, 4).map((a: any) => (
+                <button key={a.id} type="button" onClick={onAcciones}
+                  className="flex w-full items-center gap-2 rounded-lg border border-accent/15 bg-accent/10 px-3 py-2 text-left hover:border-accent/40 hover:bg-accent/15 transition">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent shrink-0" />
+                  <span className="text-[13px] font-semibold text-ink truncate flex-1">{a.titulo}</span>
+                  <span className="shrink-0 text-[10px] text-accent font-semibold">{a.estado === "en_proceso" ? "en curso" : "pendiente"}</span>
+                </button>
+              ))}
+              {acciones.length > 4 && (
+                <p className="text-[11px] text-accent/50 text-right pr-1">+{acciones.length - 4} más</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── Módulos ── */}
-      <div className="grid gap-2 grid-cols-2 sm:grid-cols-3">
+      {/* ── Solicitudes ── */}
+      {pVer("solicitudes") && (
+        <div className="rounded-xl border border-accent/20 bg-accent/[0.03] p-3">
+          <SeccionHeader icon="📋" titulo="Solicitudes" count={solicitudes.length} onVerTodo={onSolicitudes} />
+          {solicitudes.length === 0 ? (
+            <p className="text-[12px] text-muted py-1">Sin solicitudes asignadas.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {solicitudes.slice(0, 4).map((s: any) => (
+                <button key={s.id} type="button" onClick={() => onVerSolicitud(s.id)}
+                  className="flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
+                  <span className="text-[13px] font-semibold text-ink truncate flex-1">{s.titulo}</span>
+                  <span className="shrink-0 text-[10px] text-accent/70 font-medium truncate max-w-[80px]">{s.creado_por_nombre || ""}</span>
+                </button>
+              ))}
+              {solicitudes.length > 4 && (
+                <p className="text-[11px] text-accent/50 text-right pr-1">+{solicitudes.length - 4} más</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Recordatorios ── */}
+      {pVer("acciones") && (
+        <div className="rounded-xl border border-accent/20 bg-accent/[0.03] p-3">
+          <SeccionHeader icon="🔔" titulo="Recordatorios" count={recordatorios.filter((r: any) => (r.proxima_fecha ?? "") <= hoy).length || undefined} onVerTodo={onRecordatorios} />
+          {recordatorios.length === 0 ? (
+            <p className="text-[12px] text-muted py-1">Sin recordatorios programados.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {recordatorios.slice(0, 4).map((r: any) => {
+                const vencido = (r.proxima_fecha ?? "") <= hoy;
+                return (
+                  <button key={r.id} type="button" onClick={onRecordatorios}
+                    className="flex w-full items-center gap-2 rounded-lg border border-accent/10 bg-accent/8 px-3 py-2 text-left hover:border-accent/35 hover:bg-accent/12 transition">
+                    <span className="text-[13px] font-semibold text-ink truncate flex-1">{r.titulo}</span>
+                    <span className={`shrink-0 text-[10px] font-bold ${vencido ? "text-accent" : "text-accent/60"}`}>
+                      {vencido ? "hoy" : (r.proxima_fecha ? r.proxima_fecha.slice(5).replace("-", "/") : "")}
+                    </span>
+                  </button>
+                );
+              })}
+              {recordatorios.length > 4 && (
+                <p className="text-[11px] text-accent/50 text-right pr-1">+{recordatorios.length - 4} más</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Fila inferior: Procedimientos · Notas · Bolsillo ── */}
+      <div className="grid grid-cols-3 gap-2">
         {pVer("acciones") && (
-          <NavCard
-            onClick={onAcciones} icon="⚡" titulo="Acciones"
-            sub="Tareas en ejecución" count={stats.acciones.value} colorKey="amber"
-          />
-        )}
-        {pVer("solicitudes") && (
-          <NavCard
-            onClick={onSolicitudes} icon="📋" titulo="Solicitudes"
-            sub="Del equipo" count={stats.solicitudes.value} colorKey="rose"
-          />
-        )}
-        {nivel >= 3 && (
-          <NavCard
-            onClick={onContratos} icon="📄" titulo="Contratos"
-            sub="Aliados activos" count={stats.contratos.value} colorKey="slate"
-          />
-        )}
-        {pVer("acciones") && (
-          <NavCard
-            onClick={onProcedimientos} icon="🔒" titulo="Procedimientos"
-            sub="Pasos guardados" count={stats.procedimientos.value} colorKey="sky"
-          />
-        )}
-        {pVer("acciones") && (
-          <NavCard
-            onClick={onRecordatorios} icon="🔔" titulo="Recordatorios"
-            sub="Alertas programadas"
-            count={stats.recordatorios.value}
-            colorKey="teal"
-            badge={stats.recordatoriosHoy > 0 ? `${stats.recordatoriosHoy} hoy` : undefined}
-          />
+          <button type="button" onClick={onProcedimientos}
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/5 px-3 py-3 hover:border-accent/50 hover:bg-accent/10 transition active:scale-95">
+            <span className="text-accent"><TopicIcon value="🔒" size={20} weight="regular" /></span>
+            <span className="text-[12px] font-bold text-ink leading-none">Procedimientos</span>
+            <span className="text-[10px] text-accent/70 font-semibold">
+              {procedimientos.length > 0 ? `${procedimientos.length} guardados` : "—"}
+            </span>
+          </button>
         )}
         {pVer("acciones") && onNotas && (
-          <NavCard
-            onClick={onNotas} icon="💭" titulo="Notas"
-            sub="Pensamientos personales" count={null} colorKey="emerald" arrow
-          />
+          <button type="button" onClick={onNotas}
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/5 px-3 py-3 hover:border-accent/50 hover:bg-accent/10 transition active:scale-95">
+            <span className="text-accent"><TopicIcon value="💭" size={20} weight="regular" /></span>
+            <span className="text-[12px] font-bold text-ink leading-none">Notas</span>
+            <span className="text-[10px] text-accent/70 font-semibold line-clamp-1 text-center px-1">
+              {notas.length > 0 ? notas[0]?.contenido?.slice(0, 18) ?? "—" : "—"}
+            </span>
+          </button>
         )}
         {pVer("acciones") && onBolsillo && (
-          <NavCard
-            onClick={onBolsillo} icon="🔑" titulo="Bolsillo"
-            sub="Notas cifradas con PIN" count={null} colorKey="slate" arrow
-          />
+          <button type="button" onClick={onBolsillo}
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-accent/20 bg-accent/5 px-3 py-3 hover:border-accent/50 hover:bg-accent/10 transition active:scale-95">
+            <span className="text-accent"><TopicIcon value="🔑" size={20} weight="regular" /></span>
+            <span className="text-[12px] font-bold text-ink leading-none">Bolsillo</span>
+            <span className="text-[10px] text-accent/70 font-semibold">cifradas</span>
+          </button>
         )}
       </div>
     </div>
@@ -4892,7 +4833,7 @@ function CreateTicketView({
               </select>
             )}
             {requiereDocumento && (
-              <p className="mt-1 text-xs font-medium text-amber-700">
+              <p className="mt-1 text-xs font-medium text-accent">
                 ⚠️ Requiere soporte documental adjunto (PDF o imagen)
               </p>
             )}
@@ -5098,7 +5039,7 @@ function TicketCronometroSection({
         ⏱ Cronómetro del ticket
       </p>
       {cerrado && (
-        <p className="mb-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+        <p className="mb-2 text-xs text-accent bg-accent/5 border border-accent/20 rounded-lg px-2 py-1.5">
           Ticket cerrado — solo lectura del tiempo acumulado.
         </p>
       )}
@@ -5174,7 +5115,7 @@ function TicketBarraGuardado({
         type="button"
         onClick={() => void guardar()}
         disabled={saving}
-        className="rounded-paper border-2 border-sky-600 bg-sky-600 px-4 py-2.5 text-sm font-bold text-white shadow-[0_2px_0_#0369a1] transition hover:bg-sky-700 disabled:opacity-50"
+        className="rounded-paper border-2 border-accent bg-accent px-4 py-2.5 text-sm font-bold text-white shadow-[0_2px_0_#0369a1] transition hover:bg-accent disabled:opacity-50"
       >
         {saving ? "Guardando…" : "💾 Guardar"}
       </button>
@@ -5183,7 +5124,7 @@ function TicketBarraGuardado({
       )}
       {msg && (
         <span
-          className={`text-xs font-semibold ${msg.includes("Error") ? "text-danger" : "text-green-700"}`}
+          className={`text-xs font-semibold ${msg.includes("Error") ? "text-danger" : "text-accent"}`}
         >
           {msg}
         </span>
@@ -5354,9 +5295,9 @@ function TicketPasoAPasoView({
         <h2 className="text-4xl font-extrabold text-ink">¡Órdenes revisadas!</h2>
         <p className="text-lg text-muted">{total} orden{total !== 1 ? "es" : ""} procesada{total !== 1 ? "s" : ""}</p>
         <div className="flex justify-center pt-1">
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1">
+          <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 px-3 py-1">
             <span className="text-sm">⏱</span>
-            <span className="font-mono text-sm font-extrabold text-amber-700 tabular-nums">{fmtCronPA(seg)}</span>
+            <span className="font-mono text-sm font-extrabold text-accent tabular-nums">{fmtCronPA(seg)}</span>
           </div>
         </div>
       </div>
@@ -5399,7 +5340,7 @@ function TicketPasoAPasoView({
         </h2>
 
         {pasoEstaCompletado(actual) ? (
-          <div className="mb-6 rounded-2xl border-2 border-green-400 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+          <div className="mb-6 rounded-2xl border-2 border-accent/40 bg-accent/5 px-4 py-3 text-sm font-semibold text-accent">
             ✅ Ya verificado{actual?.notas ? ` · ${actual.notas}` : ""}
           </div>
         ) : (
@@ -5486,11 +5427,11 @@ function NotaAccionInline({
   }
 
   return (
-    <div className="rounded-2xl border border-amber-300/70 dark:border-amber-700/50 bg-amber-50/60 dark:bg-amber-950/20 p-4">
+    <div className="rounded-2xl border border-accent/70 dark:border-accent/50 bg-accent/60 dark:bg-accent/20 p-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-sm font-extrabold text-amber-800 dark:text-amber-300">📝 Notas</span>
+        <span className="text-sm font-extrabold text-accent dark:text-accent/30">📝 Notas</span>
         {saving && <span className="text-[10px] text-muted animate-pulse">Guardando…</span>}
-        {saved && <span className="text-[10px] text-green-600 dark:text-green-400">✓ Guardado</span>}
+        {saved && <span className="text-[10px] text-accent dark:text-accent/40">✓ Guardado</span>}
       </div>
       <textarea
         readOnly={readOnly}
@@ -5501,7 +5442,7 @@ function NotaAccionInline({
         }}
         placeholder="Anota ideas, pendientes, observaciones…"
         rows={4}
-        className="w-full resize-none rounded-xl border border-amber-300/50 dark:border-amber-700/40 bg-white/70 dark:bg-amber-950/30 px-3 py-2.5 text-sm text-ink placeholder-muted/50 outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors"
+        className="w-full resize-none rounded-xl border border-accent/50 dark:border-accent/40 bg-white/70 dark:bg-accent/30 px-3 py-2.5 text-sm text-ink placeholder-muted/50 outline-none focus:border-accent/50 dark:focus:border-accent/50 transition-colors"
       />
     </div>
   );
@@ -5657,12 +5598,12 @@ function TicketDetailView({
 
       {/* Pasos — checklist */}
       {completandoTicket && (
-        <div className="rounded-xl border-2 border-green-400 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+        <div className="rounded-xl border-2 border-accent/40 bg-accent/5 px-4 py-3 text-sm font-semibold text-accent">
           ✅ Todos los pasos completados — ticket marcado como resuelto
         </div>
       )}
       {ticket.estado === "resuelto" && (
-        <div className="rounded-xl border-2 border-green-400 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+        <div className="rounded-xl border-2 border-accent/40 bg-accent/5 px-4 py-3 text-sm font-semibold text-accent">
           ✅ Ticket completado — todos los pasos del procedimiento están marcados
         </div>
       )}
@@ -5728,11 +5669,11 @@ function TicketDetailView({
             <div className="border-t border-border px-5 pb-5 mt-3 space-y-2">
               {ticket.comentarios.map((c) => (
                 <div key={c.id}
-                  className={`rounded-xl border-2 p-3 ${c.es_interno ? "border-amber-200 bg-amber-50" : "border-border bg-surface"}`}>
+                  className={`rounded-xl border-2 p-3 ${c.es_interno ? "border-accent/20 bg-accent/5" : "border-border bg-surface"}`}>
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-xs font-bold text-ink">{c.autor_nombre}</span>
                     <div className="flex items-center gap-2">
-                      {Boolean(c.es_interno) && <span className="text-xs font-semibold text-amber-700">🔒 Interno</span>}
+                      {Boolean(c.es_interno) && <span className="text-xs font-semibold text-accent">🔒 Interno</span>}
                       <span className="text-xs text-muted">{fmtDate(c.creado_en)}</span>
                     </div>
                   </div>
@@ -6112,9 +6053,9 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                 <div className="mt-0.5 flex flex-wrap gap-2 text-xs text-muted">
                   <span>{u.rol?.nombre}</span>·<span style={{ color: u.departamento?.color }}>{u.departamento?.nombre}</span>
                   {u.telefono ? (
-                    <span className="font-mono text-emerald-600">📱 {u.telefono}</span>
+                    <span className="font-mono text-accent">📱 {u.telefono}</span>
                   ) : (
-                    <span className="text-amber-600">Sin teléfono WA</span>
+                    <span className="text-accent">Sin teléfono WA</span>
                   )}
                 </div>
               </div>
@@ -6211,8 +6152,8 @@ function AdminView({ token, onBack }: { token: string; onBack: () => void }) {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-xs font-bold text-muted">{t.numero}</span>
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                          t.estado === "resuelto" ? "bg-green-100 text-green-700" :
-                          t.estado === "en_proceso" ? "bg-blue-100 text-blue-700" :
+                          t.estado === "resuelto" ? "bg-accent/10 text-accent" :
+                          t.estado === "en_proceso" ? "bg-accent/10 text-accent" :
                           t.estado === "rechazado" ? "bg-red-100 text-red-700" :
                           "bg-surface-hover text-muted"
                         }`}>{t.estado?.replace("_", " ")}</span>
@@ -6633,7 +6574,7 @@ function PasoNotaPostit({
         type="button"
         onClick={onToggle}
         title={tieneNota ? "Ver nota post-it" : "Agregar nota post-it"}
-        className={`relative flex h-8 w-8 items-center justify-center rounded-sm border-2 border-amber-400/60 bg-amber-100 text-sm shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5 dark:border-amber-600/50 dark:bg-amber-950/90 dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${open ? "rotate-2 ring-2 ring-amber-500/40" : "-rotate-2"}`}
+        className={`relative flex h-8 w-8 items-center justify-center rounded-sm border-2 border-accent/60 bg-accent/10 text-sm shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5 dark:border-accent/50 dark:bg-accent/90 dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${open ? "rotate-2 ring-2 ring-accent/40" : "-rotate-2"}`}
       >
         📝
         {tieneNota && (
@@ -6642,18 +6583,18 @@ function PasoNotaPostit({
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-amber-400/70 bg-amber-50 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)] dark:border-amber-600/60 dark:bg-amber-950 dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
+          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-accent/70 bg-accent/5 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)] dark:border-accent/60 dark:bg-accent/5 dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
           role="dialog"
           aria-label={`Nota: ${titulo}`}
         >
-          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-amber-900/80 dark:text-amber-200/90">
+          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-accent/80 dark:text-accent/90">
             {titulo}
           </p>
           <ProseTextarea
             readOnly={readonly}
             rows={4}
             autoFocus={!readonly}
-            className="w-full resize-y rounded border border-amber-300/80 bg-white/80 px-2 py-1.5 text-xs text-amber-950 placeholder:text-amber-800/40 outline-none focus:border-amber-500 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-50 dark:placeholder:text-amber-200/30"
+            className="w-full resize-y rounded border border-accent/80 bg-white/80 px-2 py-1.5 text-xs text-accent/5 placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent dark:bg-accent/40 dark:text-accent/5 dark:placeholder:text-accent/30"
             placeholder="Detalle, tips o contexto del paso…"
             value={noteDraft}
             onChange={(e) => onNoteDraftChange(e.target.value)}
@@ -6663,7 +6604,7 @@ function PasoNotaPostit({
               <button
                 type="button"
                 onClick={onToggle}
-                className="text-[10px] font-bold uppercase text-amber-900/60 hover:text-amber-950 dark:text-amber-300/70"
+                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent/5 dark:text-accent/70"
               >
                 Cancelar
               </button>
@@ -6671,7 +6612,7 @@ function PasoNotaPostit({
                 type="button"
                 onClick={onSave}
                 disabled={saving}
-                className="rounded border-2 border-amber-600/80 bg-amber-200/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-amber-950 hover:bg-amber-300/80 disabled:opacity-50 dark:border-amber-500 dark:bg-amber-800 dark:text-amber-50"
+                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-accent/5 hover:bg-accent/80 disabled:opacity-50 dark:border-accent/50 dark:bg-accent dark:text-accent/5"
               >
                 {saving ? "..." : "Guardar"}
               </button>
@@ -6680,7 +6621,7 @@ function PasoNotaPostit({
             <button
               type="button"
               onClick={onToggle}
-              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-amber-900/60 dark:text-amber-300/70"
+              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-accent/60 dark:text-accent/70"
             >
               Cerrar
             </button>
@@ -6880,7 +6821,7 @@ function PasosDraftEditor({
                 </button>
               </div>
               {p.notas?.trim() && openNoteIdx !== i && (
-                <p className="mt-1.5 border-l-4 border-amber-400/80 bg-amber-100/60 px-2 py-1 text-[10px] italic text-amber-950/90 dark:border-amber-600/60 dark:bg-amber-950/50 dark:text-amber-100/90 line-clamp-2">
+                <p className="mt-1.5 border-l-4 border-accent/80 bg-accent/60 px-2 py-1 text-[10px] italic text-accent/90 dark:border-accent/60 dark:bg-accent/50 dark:text-accent/90 line-clamp-2">
                   {p.notas}
                 </p>
               )}
@@ -7269,13 +7210,13 @@ function PasosSection({
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">📋 Pasos del procedimiento</h3>
         {pasos.length > 0 && (
-          <span className={`text-xs font-bold ${pct === 100 ? "text-green-600" : "text-muted"}`}>
+          <span className={`text-xs font-bold ${pct === 100 ? "text-accent" : "text-muted"}`}>
             {completados}/{pasos.length} — {pct}%
           </span>
         )}
       </div>
       {!allowCheck && checkHint && (
-        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <p className="text-xs text-accent bg-accent/5 border border-accent/20 rounded-lg px-3 py-2">
           {checkHint}
         </p>
       )}
@@ -7295,7 +7236,7 @@ function PasosSection({
               onDragLeave={editMode ? () => setDragOver(null) : undefined}
               onDrop={editMode ? () => drop(i) : undefined}
               className={`rounded-paper border px-3 py-2.5 transition
-                ${pasoEstaCompletado(p) ? "border-green-200 bg-green-50"
+                ${pasoEstaCompletado(p) ? "border-accent/20 bg-accent/5"
                   : "border-border bg-surface"}
                 ${editMode && dragOver === i ? "opacity-50 border-dashed border-accent" : ""}`}
             >
@@ -7361,7 +7302,7 @@ function PasosSection({
                 <button
                   type="button"
                   onClick={() => togglePasoNote(p)}
-                  className="mt-2 w-full text-left rounded-sm border-l-4 border-amber-400/80 bg-amber-100/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-amber-950/90 transition hover:bg-amber-100 dark:border-amber-600/60 dark:bg-amber-950/50 dark:text-amber-100/90 dark:hover:bg-amber-950/70"
+                  className="mt-2 w-full text-left rounded-sm border-l-4 border-accent/80 bg-accent/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-accent/90 transition hover:bg-accent/10 dark:border-accent/60 dark:bg-accent/50 dark:text-accent/90 dark:hover:bg-accent/70"
                 >
                   {p.notas!.length > 180 ? `${p.notas!.slice(0, 180)}…` : p.notas}
                 </button>
@@ -7392,12 +7333,12 @@ function PasosSection({
           type="button"
           onClick={() => void guardarPasos()}
           disabled={saving}
-          className="rounded-paper border-2 border-sky-600 bg-sky-600 px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#0369a1] transition hover:bg-sky-700 disabled:opacity-50"
+          className="rounded-paper border-2 border-accent bg-accent px-4 py-2 text-sm font-bold text-white shadow-[0_2px_0_#0369a1] transition hover:bg-accent disabled:opacity-50"
         >
           {saving ? "Guardando…" : "💾 Guardar pasos"}
         </button>
         {guardarMsg && (
-          <span className={`text-xs font-semibold ${guardarMsg.includes("Error") ? "text-danger" : "text-green-700"}`}>
+          <span className={`text-xs font-semibold ${guardarMsg.includes("Error") ? "text-danger" : "text-accent"}`}>
             {guardarMsg}
           </span>
         )}
@@ -7838,7 +7779,7 @@ function MaterialesSection({
                     <p className="text-xs text-muted">
                       Requerido: <span className="font-bold">{it.cantidad_requerida} {it.unidad}</span>
                       {" · "}
-                      <span className={stockOk ? "text-green-600 dark:text-green-500/70" : "text-red-500"}>
+                      <span className={stockOk ? "text-accent dark:text-accent/70" : "text-red-500"}>
                         Stock: {it.stock_actual} {it.unidad} {stockOk ? "✓" : "⚠️ insuficiente"}
                       </span>
                     </p>
@@ -7852,7 +7793,7 @@ function MaterialesSection({
                         type="button"
                         onClick={() => toggleMaterialNote(it)}
                         title={tieneNota ? "Ver observación" : "Agregar observación"}
-                        className={`relative flex h-9 w-9 items-center justify-center rounded-sm border-2 border-amber-400/60 bg-amber-100 text-base shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5 dark:border-amber-600/50 dark:bg-amber-950/90 dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${noteOpen ? "rotate-2 ring-2 ring-amber-500/40" : "-rotate-2"}`}
+                        className={`relative flex h-9 w-9 items-center justify-center rounded-sm border-2 border-accent/60 bg-accent/10 text-base shadow-[2px_2px_0_rgba(0,0,0,0.1)] transition hover:-translate-y-0.5 dark:border-accent/50 dark:bg-accent/90 dark:shadow-[2px_2px_0_rgba(0,0,0,0.35)] ${noteOpen ? "rotate-2 ring-2 ring-accent/40" : "-rotate-2"}`}
                       >
                         📝
                         {tieneNota && (
@@ -7861,18 +7802,18 @@ function MaterialesSection({
                       </button>
                       {noteOpen && (
                         <div
-                          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-amber-400/70 bg-amber-50 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)] dark:border-amber-600/60 dark:bg-amber-950 dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
+                          className="absolute right-0 top-full z-50 mt-1.5 w-[min(16rem,calc(100vw-3rem))] rotate-1 rounded-sm border-2 border-accent/70 bg-accent/5 p-2.5 shadow-[5px_5px_0_rgba(0,0,0,0.12)] dark:border-accent/60 dark:bg-accent/5 dark:shadow-[5px_5px_0_rgba(0,0,0,0.4)]"
                           role="dialog"
                           aria-label={`Observación: ${it.nombre}`}
                         >
-                          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-amber-900/80 dark:text-amber-200/90">
+                          <p className="mb-1.5 truncate text-[10px] font-extrabold uppercase tracking-wider text-accent/80 dark:text-accent/90">
                             {it.nombre}
                           </p>
                           <ProseTextarea
                             readOnly={readonly}
                             rows={4}
                             autoFocus={!readonly}
-                            className="w-full resize-y rounded border border-amber-300/80 bg-white/80 px-2 py-1.5 text-xs text-amber-950 placeholder:text-amber-800/40 outline-none focus:border-amber-500 dark:border-amber-700 dark:bg-amber-900/40 dark:text-amber-50 dark:placeholder:text-amber-200/30"
+                            className="w-full resize-y rounded border border-accent/80 bg-white/80 px-2 py-1.5 text-xs text-accent/5 placeholder:text-accent/40 outline-none focus:border-accent/50 dark:border-accent dark:bg-accent/40 dark:text-accent/5 dark:placeholder:text-accent/30"
                             placeholder="Observación sobre este material en la etapa..."
                             value={noteDraft}
                             onChange={(e) => setNoteDraft(e.target.value)}
@@ -7882,7 +7823,7 @@ function MaterialesSection({
                               <button
                                 type="button"
                                 onClick={() => toggleMaterialNote(it)}
-                                className="text-[10px] font-bold uppercase text-amber-900/60 hover:text-amber-950 dark:text-amber-300/70"
+                                className="text-[10px] font-bold uppercase text-accent/60 hover:text-accent/5 dark:text-accent/70"
                               >
                                 Cancelar
                               </button>
@@ -7890,7 +7831,7 @@ function MaterialesSection({
                                 type="button"
                                 onClick={() => saveMaterialNote(it.id)}
                                 disabled={saving}
-                                className="rounded border-2 border-amber-600/80 bg-amber-200/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-amber-950 hover:bg-amber-300/80 disabled:opacity-50 dark:border-amber-500 dark:bg-amber-800 dark:text-amber-50"
+                                className="rounded border-2 border-accent/80 bg-accent/80 px-2.5 py-0.5 text-[10px] font-bold uppercase text-accent/5 hover:bg-accent/80 disabled:opacity-50 dark:border-accent/50 dark:bg-accent dark:text-accent/5"
                               >
                                 {saving ? "..." : "Guardar"}
                               </button>
@@ -7899,7 +7840,7 @@ function MaterialesSection({
                             <button
                               type="button"
                               onClick={() => setOpenNoteId(null)}
-                              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-amber-900/60 dark:text-amber-300/70"
+                              className="mt-2 w-full text-center text-[10px] font-bold uppercase text-accent/60 dark:text-accent/70"
                             >
                               Cerrar
                             </button>
@@ -7917,7 +7858,7 @@ function MaterialesSection({
                   <button
                     type="button"
                     onClick={() => toggleMaterialNote(it)}
-                    className="mt-2 w-full text-left rounded-sm border-l-4 border-amber-400/80 bg-amber-100/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-amber-950/90 transition hover:bg-amber-100 dark:border-amber-600/60 dark:bg-amber-950/50 dark:text-amber-100/90 dark:hover:bg-amber-950/70"
+                    className="mt-2 w-full text-left rounded-sm border-l-4 border-accent/80 bg-accent/60 px-2.5 py-1.5 text-[11px] italic leading-snug text-accent/90 transition hover:bg-accent/10 dark:border-accent/60 dark:bg-accent/50 dark:text-accent/90 dark:hover:bg-accent/70"
                   >
                     {it.notas!.length > 180 ? `${it.notas!.slice(0, 180)}…` : it.notas}
                   </button>
@@ -8561,7 +8502,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
             </div>
           </div>
           {editForm.tipo === "elaborado" && (
-            <p className="text-[10px] text-purple-600">El stock también puede actualizarse al completar la misión vinculada.</p>
+            <p className="text-[10px] text-accent">El stock también puede actualizarse al completar la misión vinculada.</p>
           )}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setEditId(null)}
@@ -8613,7 +8554,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
               {m.stock_minimo > 0 && <span>Mín: {m.stock_minimo}</span>}
               {m.proveedor && <span className="max-w-[8rem] truncate">· {m.proveedor}</span>}
               {m.precio_unitario > 0 && <span>${m.precio_unitario.toLocaleString("es-CO")}/{m.unidad}</span>}
-              {m.tipo === "elaborado" && <span className="text-purple-600">Elaborado</span>}
+              {m.tipo === "elaborado" && <span className="text-accent">Elaborado</span>}
             </div>
             {m.descripcion && <p className="text-[10px] text-muted line-clamp-1">{m.descripcion}</p>}
           </div>
@@ -8623,8 +8564,8 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
               onClick={() => agregarMaterialAlCarrito(m)}
               className={`rounded-paper border-2 px-2.5 py-1.5 text-xs font-bold transition ${
                 enCarrito(m.id)
-                  ? "border-amber-500/70 bg-amber-500/20 text-amber-900 dark:text-amber-200"
-                  : "border-border text-muted hover:border-amber-500/60 hover:text-amber-800 dark:hover:text-amber-200"
+                  ? "border-accent/70 bg-accent/20 text-accent dark:text-accent/20"
+                  : "border-border text-muted hover:border-accent/60 hover:text-accent dark:hover:text-accent/20"
               }`}
               title={enCarrito(m.id) ? "Ya en el carrito — clic suma cantidad" : "Agregar al carrito de compras"}
             >
@@ -8647,7 +8588,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
         {m.stock_minimo > 0 && (
           <>
             <div className="h-1.5 rounded-full bg-surface-hover overflow-hidden">
-              <div className={`h-full rounded-full transition-all ${m.stock_actual <= 0 ? "bg-red-600" : bajo ? "bg-orange-400" : "bg-accent"}`} style={{ width: `${pct}%` }} />
+              <div className={`h-full rounded-full transition-all ${m.stock_actual <= 0 ? "bg-red-600" : bajo ? "bg-accent/40" : "bg-accent"}`} style={{ width: `${pct}%` }} />
             </div>
             <div className="mt-1 flex justify-between text-xs text-muted">
               <span>{pct}% del mínimo</span>
@@ -8797,7 +8738,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
       </div>
 
       {cartFlash && (
-        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-900 dark:text-amber-200">
+        <p className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent dark:text-accent/20">
           🛒 <span className="font-bold">{cartFlash}</span> agregado al carrito.
           <button
             type="button"
@@ -8891,7 +8832,7 @@ function InventarioView({ token, user, navScope, onBack }: { token: string; user
             </div>
           )}
           {actionMsg && (
-            <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${actionMsg.type === "ok" ? "bg-green-100 text-green-800 dark:bg-green-950/50 dark:text-green-300" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
+            <p className={`rounded-lg px-3 py-2 text-xs font-semibold ${actionMsg.type === "ok" ? "bg-accent/10 text-accent dark:bg-accent/50 dark:text-accent/30" : "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-300"}`}>
               {actionMsg.text}
             </p>
           )}
@@ -9598,7 +9539,7 @@ function CreateMisionView({
           </span>
           <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
             form.modo_ciclo === "infinita"
-              ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+              ? "border-accent/30 bg-accent/5 text-accent dark:bg-accent/40 dark:text-accent/30"
               : "border-border bg-surface-panel text-muted"
           }`}>
             {form.modo_ciclo === "infinita" ? "♾️ Infinita" : "📌 Finita"}
@@ -9607,7 +9548,7 @@ function CreateMisionView({
             {isSecuencial ? "🔗 Secuencial" : "⚡ Paralelo"}
           </span>
           {infoMsg && (
-            <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <span className="rounded-full border border-accent/30 bg-accent/5 px-2.5 py-1 text-xs font-semibold text-accent dark:bg-accent/40 dark:text-accent/30">
               {infoMsg}
             </span>
           )}
@@ -9728,7 +9669,7 @@ function CreateMisionView({
                   }}
                 />
               ) : (
-                <div className="rounded-lg border-2 border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                <div className="rounded-lg border-2 border-accent/30 bg-accent/5 px-3 py-2 text-xs text-accent dark:border-accent dark:bg-accent/40 dark:text-accent/20">
                   Crea reinos en <strong>🏰 Reinos</strong> primero.
                 </div>
               )}
@@ -9960,9 +9901,9 @@ function MisionFocusMode({
         <p className="text-lg text-muted">{mision.titulo}</p>
         <p className="text-sm text-muted">{total} paso{total !== 1 ? "s" : ""} completado{total !== 1 ? "s" : ""}</p>
         <div className="flex justify-center pt-1">
-          <div className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1">
+          <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 px-3 py-1">
             <span className="text-sm">⏱</span>
-            <span className="font-mono text-sm font-extrabold text-amber-700 tabular-nums">{fmtCron(segMision)}</span>
+            <span className="font-mono text-sm font-extrabold text-accent tabular-nums">{fmtCron(segMision)}</span>
           </div>
         </div>
       </div>
@@ -10332,15 +10273,15 @@ function MisionDetailView({
 
   const ETAPA_COLOR: Record<string, string> = {
     pendiente: "border-gray-300 bg-gray-50 text-gray-500",
-    activa: "border-blue-400 bg-blue-50 text-blue-700",
-    completada: "border-green-400 bg-green-50 text-green-700",
+    activa: "border-accent/40 bg-accent/5 text-accent",
+    completada: "border-accent/40 bg-accent/5 text-accent",
   };
 
   const TICKET_DOT: Record<string, string> = {
-    pendiente: "bg-yellow-400",
-    en_proceso: "bg-blue-500",
-    esperando_aprobacion: "bg-orange-400",
-    resuelto: "bg-green-500",
+    pendiente: "bg-accent/40",
+    en_proceso: "bg-accent/50",
+    esperando_aprobacion: "bg-accent/40",
+    resuelto: "bg-accent/50",
     rechazado: "bg-red-500",
   };
 
@@ -10396,7 +10337,7 @@ function MisionDetailView({
         </div>
 
         <div className="mck-slide-up space-y-2" style={{ animationDelay: "0.15s" }}>
-          <p className="text-xs font-bold uppercase tracking-widest text-emerald-600">Misión completada</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-accent">Misión completada</p>
           <h1 className="text-3xl font-extrabold text-ink">{mision.titulo}</h1>
         </div>
 
@@ -10423,7 +10364,7 @@ function MisionDetailView({
             </div>
           )}
           <div className="h-2 w-full overflow-hidden rounded-full bg-border">
-            <div className="h-full w-full rounded-full bg-emerald-500" />
+            <div className="h-full w-full rounded-full bg-accent/50" />
           </div>
         </div>
 
@@ -10503,13 +10444,13 @@ function MisionDetailView({
         </span>
         <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold ${
           misionInfinita
-            ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300"
+            ? "bg-accent/10 text-accent border-accent/30 dark:bg-accent/50 dark:text-accent/30"
             : "bg-surface-hover text-muted border-border"
         }`}>
           {misionInfinita ? "♾️ Infinita" : "📌 Finita"}
         </span>
         {mision.estado === "completada" && !misionInfinita && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-800 border border-green-300 px-2.5 py-0.5 text-xs font-bold">
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 text-accent border border-accent/30 px-2.5 py-0.5 text-xs font-bold">
             ✅ Completada
           </span>
         )}
@@ -10548,7 +10489,7 @@ function MisionDetailView({
                       setRenewing(false);
                     }
                   }}
-                  className="rounded-paper border-2 border-emerald-400 px-3 py-1.5 text-sm font-bold text-emerald-600 transition hover:bg-emerald-500 hover:border-emerald-500 hover:text-white disabled:opacity-50">
+                  className="rounded-paper border-2 border-accent/40 px-3 py-1.5 text-sm font-bold text-accent transition hover:bg-accent/50 hover:border-accent/50 hover:text-white disabled:opacity-50">
                   {renewing ? "Iniciando..." : "🚀 Iniciar misión"}
                 </button>
               )}
@@ -10780,19 +10721,19 @@ function MisionDetailView({
           finally { setNuevoProdSaving(false); }
         }
         return (
-          <div className="rounded-paper border-2 border-purple-200 bg-purple-50/40 p-5 shadow-paper space-y-3 dark:border-purple-500/30 dark:bg-purple-950/30">
+          <div className="rounded-paper border-2 border-accent/20 bg-accent/40 p-5 shadow-paper space-y-3 dark:border-accent/30 dark:bg-accent/30">
             <div>
-              <h3 className="text-sm font-extrabold uppercase tracking-wide text-purple-700 dark:text-purple-300">✨ Producto resultante</h3>
-              <p className="mt-0.5 text-xs text-purple-600 dark:text-purple-300/80">
+              <h3 className="text-sm font-extrabold uppercase tracking-wide text-accent dark:text-accent/30">✨ Producto resultante</h3>
+              <p className="mt-0.5 text-xs text-accent dark:text-accent/80">
                 Al completar esta misión, el stock del producto vinculado aumenta automáticamente con la suma de todos los insumos usados.
               </p>
             </div>
 
             {prod ? (
-              <div className="flex items-center gap-3 rounded-paper border border-purple-300 bg-white px-4 py-3 dark:border-purple-500/40 dark:bg-surface-input">
+              <div className="flex items-center gap-3 rounded-paper border border-accent/30 bg-white px-4 py-3 dark:border-accent/40 dark:bg-surface-input">
                 <div className="flex-1">
                   <p className="font-bold text-sm text-ink">{prod.nombre}</p>
-                  <p className="text-xs text-muted">Stock actual: <span className="font-bold text-purple-700">{prod.stock_actual} {prod.unidad}</span></p>
+                  <p className="text-xs text-muted">Stock actual: <span className="font-bold text-accent">{prod.stock_actual} {prod.unidad}</span></p>
                 </div>
                 {!readonly && (
                   <button
@@ -10811,7 +10752,7 @@ function MisionDetailView({
                   <select
                     value={prodSelId}
                     onChange={(e) => setProdSelId(e.target.value)}
-                    className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-purple-400 dark:focus:border-purple-400">
+                    className="flex-1 rounded-paper border-2 border-border bg-surface-input px-2 py-1.5 text-sm text-ink outline-none focus:border-accent/40 dark:focus:border-accent/40">
                     <option value="">Seleccionar producto del catálogo...</option>
                     {disponiblesProd.map((m) => (
                       <option key={m.id} value={m.id}>{m.nombre} ({m.unidad})</option>
@@ -10820,25 +10761,25 @@ function MisionDetailView({
                   <button
                     disabled={!prodSelId || prodSaving}
                     onClick={() => setProd(parseInt(prodSelId))}
-                    className="rounded-paper border-2 border-purple-400 px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-500 hover:border-purple-500 hover:text-white transition disabled:opacity-50">
+                    className="rounded-paper border-2 border-accent/40 px-3 py-1.5 text-xs font-bold text-accent hover:bg-accent/50 hover:border-accent/50 hover:text-white transition disabled:opacity-50">
                     {prodSaving ? "..." : "Vincular"}
                   </button>
                 </div>
                 <button
                   onClick={() => setShowNuevoProd((v) => !v)}
-                  className="text-xs font-bold text-purple-600 hover:underline">
+                  className="text-xs font-bold text-accent hover:underline">
                   {showNuevoProd ? "▲ Cancelar" : "+ Crear nuevo producto elaborado"}
                 </button>
                 {showNuevoProd && (
-                  <div className="rounded-paper border border-purple-200 bg-surface-input p-3 space-y-2 dark:border-purple-500/30">
+                  <div className="rounded-paper border border-accent/20 bg-surface-input p-3 space-y-2 dark:border-accent/30">
                     <div className="flex gap-2">
                       <input
-                        className="flex-1 rounded border-2 border-border px-2 py-1.5 text-sm outline-none focus:border-purple-400"
+                        className="flex-1 rounded border-2 border-border px-2 py-1.5 text-sm outline-none focus:border-accent/40"
                         placeholder="Nombre del producto (ej: Masa Madre)"
                         value={nuevoProdForm.nombre}
                         onChange={(e) => setNuevoProdForm((f) => ({ ...f, nombre: e.target.value }))} />
                       <select
-                        className="rounded border-2 border-border px-2 py-1.5 text-sm outline-none focus:border-purple-400"
+                        className="rounded border-2 border-border px-2 py-1.5 text-sm outline-none focus:border-accent/40"
                         value={nuevoProdForm.unidad}
                         onChange={(e) => setNuevoProdForm((f) => ({ ...f, unidad: e.target.value }))}>
                         {["kg","g","mg","L","mL","unidad","m","cm","porción"].map((u) => (
@@ -10849,7 +10790,7 @@ function MisionDetailView({
                     <button
                       disabled={nuevoProdSaving || !nuevoProdForm.nombre.trim()}
                       onClick={crearYVincular}
-                      className="rounded border-2 border-purple-400 bg-purple-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-purple-600 transition disabled:opacity-50">
+                      className="rounded border-2 border-accent/40 bg-accent/50 px-4 py-1.5 text-xs font-bold text-white hover:bg-accent transition disabled:opacity-50">
                       {nuevoProdSaving ? "Creando..." : "✨ Crear y vincular"}
                     </button>
                   </div>
@@ -10903,7 +10844,7 @@ function MisionDetailView({
                         <p className="text-xs opacity-75 flex items-center gap-1"><span>👤</span>{et.asignado_nombre}</p>
                       )}
                       {et.ticket_frecuencia && (
-                        <p className="text-[10px] font-semibold text-emerald-700">
+                        <p className="text-[10px] font-semibold text-accent">
                           {FRECUENCIA_LABEL[et.ticket_frecuencia] ?? et.ticket_frecuencia}
                           {et.ticket_proxima_renovacion && et.ticket_estado === "resuelto" && (
                             <span className="text-muted"> · {fmtFecha(et.ticket_proxima_renovacion)}</span>
@@ -11057,7 +10998,7 @@ function MisionDetailView({
                   <p className="font-semibold text-sm">{et.titulo}</p>
                   {et.descripcion && <p className="text-xs opacity-75 mt-0.5">{et.descripcion}</p>}
                   {et.ticket_frecuencia && (
-                    <p className="text-[10px] font-semibold text-emerald-700 mt-0.5">
+                    <p className="text-[10px] font-semibold text-accent mt-0.5">
                       {FRECUENCIA_LABEL[et.ticket_frecuencia] ?? et.ticket_frecuencia}
                     </p>
                   )}
@@ -11098,7 +11039,7 @@ function MisionDetailView({
         {!isLocked && !readonly && (
           <div className="mt-4">
             {misionInfinita && (
-              <p className="mb-2 text-xs text-emerald-700 dark:text-emerald-400">
+              <p className="mb-2 text-xs text-accent dark:text-accent/40">
                 Misión recurrente: agrega tickets o usa 🚀 Iniciar misión para comenzar un nuevo ciclo.
               </p>
             )}
@@ -11586,13 +11527,13 @@ function WorkloadView({
             const lista: any[] = Array.isArray(u.tickets_lista) ? u.tickets_lista : [];
             const prioBadge: Record<string, string> = {
               urgente: "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300",
-              alta: "bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300",
-              media: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/60 dark:text-yellow-300",
+              alta: "bg-accent/10 text-accent dark:bg-accent/60 dark:text-accent/30",
+              media: "bg-accent/10 text-accent dark:bg-accent/60 dark:text-accent/30",
               baja: "bg-surface-hover text-muted",
             };
             const tipoBadge: Record<string, string> = {
-              accion: "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300",
-              solicitud: "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300",
+              accion: "bg-accent/10 text-accent dark:bg-accent/60 dark:text-accent/30",
+              solicitud: "bg-accent/10 text-accent dark:bg-accent/60 dark:text-accent/30",
               ticket: "bg-surface-hover text-muted",
             };
             return (
@@ -11618,7 +11559,7 @@ function WorkloadView({
                         <div className="text-xs font-semibold text-muted">Abiertos</div>
                       </div>
                       <div>
-                        <div className="text-xl font-black text-green-700">{u.resueltos_semana}</div>
+                        <div className="text-xl font-black text-accent">{u.resueltos_semana}</div>
                         <div className="text-xs font-semibold text-muted">Resueltos / sem.</div>
                       </div>
                       <div>
@@ -11698,8 +11639,8 @@ function WorkloadView({
 
 const PRIORIDAD_COLOR: Record<string, string> = {
   urgente: "bg-red-500 text-white",
-  alta: "bg-orange-400 text-white",
-  media: "bg-yellow-400 text-gray-900",
+  alta: "bg-accent/40 text-white",
+  media: "bg-accent/40 text-gray-900",
   baja: "bg-gray-300 text-gray-700",
 };
 
@@ -11932,7 +11873,7 @@ function esTarjetaSoloCompras(ticket: Ticket, user?: TicketsUser): boolean {
 
 function AccionCardAvisoCompras({ ticket }: { ticket: Ticket }) {
   return (
-    <div className="rounded-xl border border-blue-400/50 bg-blue-50/50 dark:bg-blue-950/20 p-3 space-y-2">
+    <div className="rounded-xl border border-accent/50 bg-accent/50 dark:bg-accent/20 p-3 space-y-2">
       <p className="text-sm font-bold text-ink">🛒 {ticket.titulo}</p>
       <p className="text-xs text-muted font-mono">{ticket.numero}</p>
       <p className="text-xs text-muted">
@@ -12198,7 +12139,7 @@ function AccionCardOperativa({
 
       {/* Resumen al completar */}
       {resolucionInfo && (
-        <div className="rounded-lg border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1.5 text-xs text-emerald-800 dark:text-emerald-300">
+        <div className="rounded-lg border border-accent/30 bg-accent/5 dark:bg-accent/30 px-2 py-1.5 text-xs text-accent dark:text-accent/30">
           ✓ Completada a las <strong>{resolucionInfo.horario}</strong> · {fmtTiempo(resolucionInfo.duracion)} de trabajo
         </div>
       )}
@@ -12222,7 +12163,7 @@ function AccionCardOperativa({
               onClick={iniciarPausar}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-bold min-h-[40px] transition-colors ${
                 enProceso
-                  ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
+                  ? "border-accent/40 bg-accent/5 text-accent hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
                   : "border-border bg-surface-panel text-muted hover:border-accent hover:text-accent"
               }`}
             >
@@ -12233,7 +12174,7 @@ function AccionCardOperativa({
               type="button"
               disabled={busy}
               onClick={resolver}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-green-500 bg-green-50 px-3 py-2.5 text-xs font-bold text-green-700 min-h-[40px] transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/5 px-3 py-2.5 text-xs font-bold text-accent min-h-[40px] transition-colors hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
             >
               <Icon name="check" size={14} weight="bold" />
               Listo
@@ -12855,7 +12796,7 @@ function SolicitudListaChecklist({
                 numero: ticket.numero,
                 creado_por_nombre: ticket.creado_por_nombre ?? undefined,
               })}
-              className="w-full rounded-xl border-2 border-teal-500 py-2.5 text-sm font-bold text-teal-700 hover:bg-teal-50 dark:text-teal-300 dark:hover:bg-teal-950/30"
+              className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent hover:bg-accent/5 dark:text-accent/30 dark:hover:bg-accent/30"
             >
               🖨 Abrir Impresora · Etiquetas
             </button>
@@ -12921,7 +12862,7 @@ function PanelIrDeCompras({
         <p className="mt-1 font-mono text-sm text-muted">{ticket.numero}</p>
         <p className="mt-2 text-sm text-ink">{ticket.titulo}</p>
       </div>
-      <div className="rounded-2xl border-2 border-blue-400/40 bg-surface p-4 shadow-sm">
+      <div className="rounded-2xl border-2 border-accent/40 bg-surface p-4 shadow-sm">
         <SolicitudCompraChecklist
           ticket={ticket}
           token={token}
@@ -12970,11 +12911,13 @@ function shortNumero(numero: string): string {
 // ── SolicitudCard ─────────────────────────────────────────────────────────────
 
 function SolicitudCard({
-  ticket, token, user, onChanged, isAdmin, supervision, protocolos = [],
+  ticket, token, user, onChanged, onCerrarDetalle, isAdmin, supervision, protocolos = [],
   onRegistrarEjecucion, detalleAmpliado = false, onIrAIntervencion,
 }: {
   ticket: Ticket; token: string; user: TicketsUser;
   onChanged: () => void;
+  /** Llamado tras resolver o aprobar exitosamente (para cerrar el panel de detalle). */
+  onCerrarDetalle?: () => void;
   isAdmin?: boolean;
   /** Vista equipo/admin: estado visible, sin botones ni aviso de "solo el asignado". */
   supervision?: boolean;
@@ -13416,7 +13359,7 @@ function SolicitudCard({
       setTimeout(() => setMsg(""), 4000);
       return;
     }
-    if (!confirm(`¿Marcar "${ticket.titulo}" como lista?\n\nEsta acción no se puede deshacer.`)) return;
+    if (!isMcKennaAndroidApp() && !confirm(`¿Marcar "${ticket.titulo}" como lista?\n\nEsta acción no se puede deshacer.`)) return;
     setBusy(true);
     try {
       if (guardarComoProcedimiento) {
@@ -13425,6 +13368,7 @@ function SolicitudCard({
       }
       await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
       onChanged();
+      onCerrarDetalle?.();
     } catch (e: any) {
       setMsg(e.message ?? "Error");
       setTimeout(() => setMsg(""), 4000);
@@ -13464,7 +13408,7 @@ function SolicitudCard({
 
   async function aprobar() {
     if (!esCreadoPorMi || busy) return;
-    if (!confirm(`¿Aprobar y cerrar la solicitud "${ticket.titulo}"?`)) return;
+    if (!isMcKennaAndroidApp() && !confirm(`¿Aprobar y cerrar la solicitud "${ticket.titulo}"?`)) return;
     setBusy(true);
     try {
       await tapi(`/${ticket.id}/estado`, token, {
@@ -13472,8 +13416,23 @@ function SolicitudCard({
         body: JSON.stringify({ estado: "resuelto" }),
       });
       onChanged();
+      onCerrarDetalle?.();
     } catch (e: any) {
       setMsg(e.message ?? "Error al aprobar");
+      setTimeout(() => setMsg(""), 4000);
+    } finally { setBusy(false); }
+  }
+
+  async function cerrarDirecto() {
+    if ((!esCreadoPorMi && !isAdmin) || busy) return;
+    if (!isMcKennaAndroidApp() && !confirm(`¿Finalizar y cerrar la solicitud "${ticket.titulo}"?\n\nEsta acción no se puede deshacer.`)) return;
+    setBusy(true);
+    try {
+      await tapi(`/${ticket.id}/estado`, token, { method: "PUT", body: JSON.stringify({ estado: "resuelto" }) });
+      onChanged();
+      onCerrarDetalle?.();
+    } catch (e: any) {
+      setMsg(e.message ?? "Error al cerrar");
       setTimeout(() => setMsg(""), 4000);
     } finally { setBusy(false); }
   }
@@ -13870,7 +13829,7 @@ function SolicitudCard({
   if (esSolicitudCompraDelegada(ticket)) {
     return (
       <div
-        className={`flex flex-col gap-2 rounded-xl border border-blue-400/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
+        className={`flex flex-col gap-2 rounded-xl border border-accent/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
       >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
@@ -13898,7 +13857,7 @@ function SolicitudCard({
   if (esSolicitudEtiqueta(ticket)) {
     return (
       <div
-        className={`flex flex-col gap-2 rounded-xl border border-teal-400/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
+        className={`flex flex-col gap-2 rounded-xl border border-accent/40 bg-surface p-3 shadow-sm transition-opacity ${resuelta ? "opacity-60" : ""}`}
       >
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
@@ -13944,7 +13903,7 @@ function SolicitudCard({
                 type="button"
                 title={ticket.tiene_datos_sensibles ? "Ver datos sensibles 🔒" : "Datos sensibles 🔓"}
                 onClick={() => { setShowSensible((v) => !v); if (!showSensible) void cargarSensible(); }}
-                className={`rounded p-1 transition-colors ${ticket.tiene_datos_sensibles ? "text-yellow-500 hover:text-yellow-400" : "text-muted hover:text-accent"}`}
+                className={`rounded p-1 transition-colors ${ticket.tiene_datos_sensibles ? "text-accent/50 hover:text-accent/40" : "text-muted hover:text-accent"}`}
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -14019,7 +13978,7 @@ function SolicitudCard({
                 setShowSensible((v) => !v);
                 if (!showSensible) void cargarSensible();
               }}
-              className={`shrink-0 rounded p-0.5 transition-colors ${ticket.tiene_datos_sensibles ? "text-yellow-500 hover:text-yellow-400" : "text-muted hover:text-accent"}`}
+              className={`shrink-0 rounded p-0.5 transition-colors ${ticket.tiene_datos_sensibles ? "text-accent/50 hover:text-accent/40" : "text-muted hover:text-accent"}`}
             >
               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -14155,18 +14114,18 @@ function SolicitudCard({
 
       {/* Banner: esta solicitud ES una intervención que otro usuario necesita */}
       {esIntervencion && (
-        <div className="rounded-lg border border-orange-400/60 bg-orange-50/60 dark:bg-orange-900/15 px-3 py-2.5 space-y-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-orange-700 dark:text-orange-400">
+        <div className="rounded-lg border border-accent/60 bg-accent/60 dark:bg-accent/15 px-3 py-2.5 space-y-1">
+          <div className="flex items-center gap-2 text-xs font-bold text-accent dark:text-accent/40">
             <span>🛑</span>
             <span>Intervención solicitada</span>
           </div>
-          <p className="text-xs text-orange-700/80 dark:text-orange-300/80 leading-snug">
+          <p className="text-xs text-accent/80 dark:text-accent/80 leading-snug">
             <strong>{ticket.creado_por_nombre ?? "Un compañero"}</strong> necesita tu ayuda
             para continuar{ticket.ticket_padre_numero ? ` el ticket ${ticket.ticket_padre_numero}` : ""}.
             {ticket.ticket_padre_titulo ? ` — ${ticket.ticket_padre_titulo}` : ""}
           </p>
           {ticket.descripcion && ticket.descripcion !== ticket.titulo && (
-            <p className="text-xs text-orange-600/70 dark:text-orange-400/70 italic">
+            <p className="text-xs text-accent/70 dark:text-accent/70 italic">
               {ticket.descripcion}
             </p>
           )}
@@ -14175,7 +14134,7 @@ function SolicitudCard({
 
       {/* Resolver intervención — arriba del chat para que sea visible de inmediato */}
       {!resuelta && esAsignado && !supervision && esIntervencion && (
-        <div ref={intervencionZoneRef} className={`space-y-2 ${detalleAmpliado ? "shrink-0 rounded-xl border-2 border-orange-400/50 bg-orange-50/40 dark:bg-orange-900/15 p-3" : "pt-1"}`}>
+        <div ref={intervencionZoneRef} className={`space-y-2 ${detalleAmpliado ? "shrink-0 rounded-xl border-2 border-accent/50 bg-accent/40 dark:bg-accent/15 p-3" : "pt-1"}`}>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
           <ProseTextarea
             className="quest-input w-full resize-none text-sm"
@@ -14185,13 +14144,13 @@ function SolicitudCard({
             onChange={(e) => setResolucionInter(e.target.value)}
             onPaste={handlePasteImagen}
           />
-          {vistaPreviaPegada("border-orange-400/40 bg-orange-50/30 dark:bg-orange-900/10")}
+          {vistaPreviaPegada("border-accent/40 bg-accent/30 dark:bg-accent/10")}
           <div className="flex gap-2">
             <button
               type="button"
               disabled={!puedeResolverIntervencion}
               onClick={() => void resolverIntervencion()}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-orange-500 bg-orange-500 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/50 px-3 py-2.5 text-sm font-bold text-white min-h-[44px] transition-colors hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Icon name="check" size={15} weight="bold" />
               {busy ? "Resolviendo…" : "Resolver intervención"}
@@ -14235,7 +14194,7 @@ function SolicitudCard({
 
       {/* Bloqueado por intervención */}
       {ticket.bloqueado_por && (
-        <div className="rounded-lg border border-yellow-400/40 bg-yellow-50/50 dark:bg-yellow-900/10 px-3 py-2.5 text-xs text-yellow-700 dark:text-yellow-400 space-y-2">
+        <div className="rounded-lg border border-accent/40 bg-accent/50 dark:bg-accent/10 px-3 py-2.5 text-xs text-accent dark:text-accent/40 space-y-2">
           <div className="flex items-center gap-2">
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -14248,12 +14207,12 @@ function SolicitudCard({
             <button
               type="button"
               onClick={() => onIrAIntervencion(ticket.bloqueado_por!)}
-              className="w-full rounded-lg border border-yellow-500/60 bg-yellow-100/80 dark:bg-yellow-900/30 px-3 py-2 text-xs font-bold text-yellow-800 dark:text-yellow-200 hover:bg-yellow-200/80 transition-colors"
+              className="w-full rounded-lg border border-accent/60 bg-accent/80 dark:bg-accent/30 px-3 py-2 text-xs font-bold text-accent dark:text-accent/20 hover:bg-accent/80 transition-colors"
             >
               Ir a resolver {ticket.bloqueado_por_numero} →
             </button>
           )}
-          <p className="text-[10px] text-yellow-700/80 dark:text-yellow-300/70">
+          <p className="text-[10px] text-accent/80 dark:text-accent/70">
             La solicitud se desbloquea cuando el asignado a esa intervención la resuelve.
           </p>
         </div>
@@ -14261,9 +14220,9 @@ function SolicitudCard({
 
       {/* Datos sensibles */}
       {showSensible && (
-        <div className="rounded-xl border border-yellow-400/50 bg-yellow-50/30 dark:bg-yellow-900/10 p-3 space-y-2">
+        <div className="rounded-xl border border-accent/50 bg-accent/30 dark:bg-accent/10 p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-yellow-700 dark:text-yellow-400 flex items-center gap-1">
+            <span className="text-xs font-bold text-accent dark:text-accent/40 flex items-center gap-1">
               🔒 Datos sensibles / Protocolo privado
               <InfoTooltip text="Visible solo para el asignado, quien creó la solicitud, participantes directos y supervisores. Aquí puedes guardar contraseñas, procedimientos internos o notas confidenciales de resolución. Solo supervisores pueden editar." />
             </span>
@@ -14662,7 +14621,7 @@ function SolicitudCard({
                           {ticket.estado === "en_proceso" && !ticket.bloqueado_por && (
                             <button type="button" title="Necesito ayuda en este paso"
                               onClick={() => abrirIntervencionDesdePaso(p)}
-                              className="text-muted hover:text-orange-500 transition-colors p-0.5 text-[10px]">
+                              className="text-muted hover:text-accent/50 transition-colors p-0.5 text-[10px]">
                               🛑
                             </button>
                           )}
@@ -14694,20 +14653,20 @@ function SolicitudCard({
                     </div>
                     {/* Intervención pendiente en este paso */}
                     {p.intervencion_pendiente_numero && (
-                      <div className="ml-6 rounded-lg border border-orange-300/60 bg-orange-50/60 dark:bg-orange-900/15 px-2.5 py-1.5 text-[11px]">
-                        <span className="font-semibold text-orange-700 dark:text-orange-400">
+                      <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60 dark:bg-accent/15 px-2.5 py-1.5 text-[11px]">
+                        <span className="font-semibold text-accent dark:text-accent/40">
                           🛑 Esperando intervención {p.intervencion_pendiente_numero}
                         </span>
                         {p.intervencion_asignado_nombre && (
-                          <span className="text-orange-600/70 dark:text-orange-400/70"> — asignada a <strong>{p.intervencion_asignado_nombre}</strong></span>
+                          <span className="text-accent/70 dark:text-accent/70"> — asignada a <strong>{p.intervencion_asignado_nombre}</strong></span>
                         )}
                       </div>
                     )}
                     {/* Respuesta de la intervención resuelta */}
                     {p.respuesta_intervencion && !p.intervencion_pendiente_numero && (
-                      <div className="ml-6 rounded-lg border border-green-300/60 bg-green-50/60 dark:bg-green-900/15 px-2.5 py-1.5 text-[11px] space-y-0.5">
-                        <p className="font-semibold text-green-700 dark:text-green-400">✅ Intervención resuelta</p>
-                        <p className="text-green-700/80 dark:text-green-300/80 whitespace-pre-wrap leading-relaxed">{p.respuesta_intervencion}</p>
+                      <div className="ml-6 rounded-lg border border-accent/60 bg-accent/60 dark:bg-accent/15 px-2.5 py-1.5 text-[11px] space-y-0.5">
+                        <p className="font-semibold text-accent dark:text-accent/40">✅ Intervención resuelta</p>
+                        <p className="text-accent/80 dark:text-accent/80 whitespace-pre-wrap leading-relaxed">{p.respuesta_intervencion}</p>
                       </div>
                     )}
                     {/* Notas del paso (si no son respuesta de intervención) */}
@@ -14820,16 +14779,16 @@ function SolicitudCard({
 
       {/* Modal: Pedir intervención */}
       {showIntervencion && (
-        <div className="rounded-xl border border-orange-400/50 bg-orange-50/30 dark:bg-orange-900/10 p-3 space-y-2">
+        <div className="rounded-xl border border-accent/50 bg-accent/30 dark:bg-accent/10 p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1">
+            <span className="text-xs font-bold text-accent dark:text-accent/40 flex items-center gap-1">
               🛑 Pedir intervención
               <InfoTooltip text="Crea una sub-solicitud para otro usuario. Esta solicitud quedará PAUSADA hasta que el otro usuario resuelva su tarea. Cuando termine, la solicitud se reactiva sola y puedes continuar donde quedaste." />
             </span>
             <button type="button" onClick={() => { setShowIntervencion(false); setInterForm({ titulo: "", descripcion: "", asignado_a: "", paso_ref: "", paso_id: 0 }); }} className="text-muted hover:text-ink text-xs">✕</button>
           </div>
           {interForm.paso_ref && (
-            <p className="text-[10px] text-orange-600/80 bg-orange-100/50 dark:bg-orange-900/20 rounded px-2 py-1">
+            <p className="text-[10px] text-accent/80 bg-accent/50 dark:bg-accent/20 rounded px-2 py-1">
               Origen: {interForm.paso_ref}
             </p>
           )}
@@ -14872,9 +14831,9 @@ function SolicitudCard({
 
       {/* Lista de compras */}
       {showCompras && (
-        <div className="rounded-xl border border-blue-400/40 bg-blue-50/20 dark:bg-blue-900/10 p-3 space-y-2">
+        <div className="rounded-xl border border-accent/40 bg-accent/20 dark:bg-accent/10 p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-blue-700 dark:text-blue-400 flex items-center gap-1">
+            <span className="text-xs font-bold text-accent dark:text-accent/40 flex items-center gap-1">
               🛒 Lista de compras
               <InfoTooltip text="Agrega los productos que se deben comprar para esta solicitud. Puedes buscarlos en el catálogo de materiales o escribir uno nuevo. Marca los que ya se compraron." />
             </span>
@@ -15031,7 +14990,7 @@ function SolicitudCard({
               <div className="flex gap-2">
                 {ticket.estado === "en_proceso" && (
                   <button type="button" disabled={busy} onClick={iniciarPausar}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-yellow-400 bg-yellow-50 px-3 py-2 text-xs font-bold text-yellow-700 transition hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 disabled:opacity-40"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-xs font-bold text-accent transition hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40 disabled:opacity-40"
                   >
                     <Icon name="clock" size={13} weight="bold" /> Pausar
                   </button>
@@ -15044,7 +15003,7 @@ function SolicitudCard({
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold transition-colors ${
                     ticket.bloqueado_por
                       ? "border-border bg-surface-hover text-muted cursor-not-allowed"
-                      : "border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+                      : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
                   }`}
                 >
                   <Icon name="check" size={13} weight="bold" />
@@ -15054,11 +15013,11 @@ function SolicitudCard({
             </div>
           ) : ticket.estado === "esperando_aprobacion" ? (
             /* En revisión — esperando al creador */
-            <div className="rounded-xl border border-orange-400/50 bg-orange-50/30 dark:bg-orange-900/10 px-3 py-2.5 space-y-2">
-              <p className="text-sm font-bold text-orange-700 dark:text-orange-400 flex items-center gap-2">
+            <div className="rounded-xl border border-accent/50 bg-accent/30 dark:bg-accent/10 px-3 py-2.5 space-y-2">
+              <p className="text-sm font-bold text-accent dark:text-accent/40 flex items-center gap-2">
                 🔔 Esperando revisión del solicitante
               </p>
-              <p className="text-xs text-orange-600/80 dark:text-orange-400/70">
+              <p className="text-xs text-accent/80 dark:text-accent/70">
                 {ticket.creado_por_nombre ?? "El solicitante"} debe aprobar para cerrar la solicitud.
               </p>
               <button type="button" disabled={busy} onClick={cancelarRevision}
@@ -15073,7 +15032,7 @@ function SolicitudCard({
                 <button type="button" disabled={busy} onClick={iniciarPausar}
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
                     ticket.estado === "en_proceso"
-                      ? "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400"
+                      ? "border-accent/40 bg-accent/5 text-accent hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
                       : "border-accent bg-accent/10 text-accent hover:bg-accent/20"
                   }`}
                 >
@@ -15092,7 +15051,7 @@ function SolicitudCard({
                       className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-bold min-h-[44px] transition-colors ${
                         noPermite
                           ? "border-border bg-surface-hover text-muted cursor-not-allowed"
-                          : "border-green-500 bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+                          : "border-accent/50 bg-accent/5 text-accent hover:bg-accent/10 dark:bg-accent/20 dark:text-accent/40"
                       }`}
                     >
                       <Icon name="check" size={15} weight="bold" />
@@ -15105,12 +15064,12 @@ function SolicitudCard({
               {!showPedirRevision ? (
                 <button type="button" disabled={busy}
                   onClick={() => setShowPedirRevision(true)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-orange-400/50 bg-orange-50/20 dark:bg-orange-900/10 px-3 py-2 text-xs font-bold text-orange-700 dark:text-orange-400 hover:bg-orange-50/50 dark:hover:bg-orange-900/20 transition-colors">
+                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-accent/50 bg-accent/20 dark:bg-accent/10 px-3 py-2 text-xs font-bold text-accent dark:text-accent/40 hover:bg-accent/50 dark:hover:bg-accent/20 transition-colors">
                   🔔 Solicitar revisión del solicitante
                 </button>
               ) : (
-                <div className="rounded-xl border border-orange-400/40 bg-orange-50/20 dark:bg-orange-900/10 p-3 space-y-2">
-                  <p className="text-xs font-bold text-orange-700 dark:text-orange-400">
+                <div className="rounded-xl border border-accent/40 bg-accent/20 dark:bg-accent/10 p-3 space-y-2">
+                  <p className="text-xs font-bold text-accent dark:text-accent/40">
                     Solicitar revisión a {ticket.creado_por_nombre ?? "el solicitante"}
                   </p>
                   <ProseTextarea
@@ -15122,7 +15081,7 @@ function SolicitudCard({
                   />
                   <div className="flex gap-2">
                     <button type="button" disabled={busy} onClick={pedirRevision}
-                      className="flex-1 rounded-xl bg-orange-500 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-orange-600 transition-colors">
+                      className="flex-1 rounded-xl bg-accent/50 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent transition-colors">
                       {busy ? "Enviando…" : "Enviar para revisión"}
                     </button>
                     <button type="button" onClick={() => { setShowPedirRevision(false); setNotaRevision(""); }}
@@ -15175,7 +15134,7 @@ function SolicitudCard({
                   )}
                   <button type="button"
                     onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
-                    className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-blue-400 text-blue-600" : "border-border text-muted hover:text-blue-500 hover:border-blue-400"}`}>
+                    className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-accent/40 text-accent" : "border-border text-muted hover:text-accent/50 hover:border-accent/40"}`}>
                     🛒 Compras{compras.length > 0 ? ` (${compras.length})` : ""}
                   </button>
                 </>
@@ -15210,7 +15169,7 @@ function SolicitudCard({
               )}
               <button type="button"
                 onClick={() => { setShowCompras((v) => !v); if (!showCompras) void cargarCompras(); }}
-                className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-blue-400 text-blue-600" : "border-border text-muted hover:text-blue-500 hover:border-blue-400"}`}>
+                className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${showCompras ? "border-accent/40 text-accent" : "border-border text-muted hover:text-accent/50 hover:border-accent/40"}`}>
                 🛒 Compras{compras.length > 0 ? ` (${compras.length})` : ""}
               </button>
               {/* Intervención solo disponible por paso — botón general eliminado */}
@@ -15221,15 +15180,15 @@ function SolicitudCard({
 
       {/* Panel de aprobación — visible al creador cuando la solicitud espera revisión */}
       {!resuelta && esCreadoPorMi && !esAsignado && ticket.estado === "esperando_aprobacion" && (
-        <div className="rounded-xl border-2 border-orange-400/50 bg-orange-50/30 dark:bg-orange-900/10 p-3 space-y-3">
-          <p className="text-sm font-extrabold text-orange-700 dark:text-orange-400 flex items-center gap-2">
+        <div className="rounded-xl border-2 border-accent/50 bg-accent/30 dark:bg-accent/10 p-3 space-y-3">
+          <p className="text-sm font-extrabold text-accent dark:text-accent/40 flex items-center gap-2">
             🔔 {ticket.asignado_a_nombre ?? "El ejecutor"} completó la solicitud y pide tu revisión
           </p>
           {msg && <p className="text-xs text-red-400">{msg}</p>}
 
           {/* Aprobar */}
           <button type="button" disabled={busy} onClick={aprobar}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-3 py-2.5 text-sm font-extrabold text-white hover:bg-green-700 transition-colors disabled:opacity-40">
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-3 py-2.5 text-sm font-extrabold text-white hover:bg-accent transition-colors disabled:opacity-40">
             <Icon name="check" size={15} weight="bold" />
             Aprobar y cerrar
           </button>
@@ -15238,7 +15197,7 @@ function SolicitudCard({
           {!showPedirAjustes ? (
             <button type="button" disabled={busy}
               onClick={() => setShowPedirAjustes(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-orange-400/50 px-3 py-2 text-xs font-bold text-orange-700 dark:text-orange-400 hover:bg-orange-50/40 dark:hover:bg-orange-900/20 transition-colors disabled:opacity-40">
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/50 px-3 py-2 text-xs font-bold text-accent dark:text-accent/40 hover:bg-accent/40 dark:hover:bg-accent/20 transition-colors disabled:opacity-40">
               🔄 Pedir ajustes
             </button>
           ) : (
@@ -15252,7 +15211,7 @@ function SolicitudCard({
                 onChange={(e) => setAjustesMensaje(e.target.value)}
               />
               {/* Adjuntar imagen */}
-              <label className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-xs transition-colors ${ajustesArchivo ? "border-orange-400 bg-orange-50/30 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400" : "border-dashed border-border text-muted hover:border-orange-400/60 hover:text-orange-600"}`}>
+              <label className={`flex items-center gap-2 cursor-pointer rounded-lg border px-3 py-2 text-xs transition-colors ${ajustesArchivo ? "border-accent/40 bg-accent/30 dark:bg-accent/10 text-accent dark:text-accent/40" : "border-dashed border-border text-muted hover:border-accent/60 hover:text-accent"}`}>
                 <span>{ajustesArchivo ? "📎" : "🖼️"}</span>
                 <span className="flex-1 truncate">{ajustesArchivo ? ajustesArchivo.name : "Adjuntar imagen (opcional) — Ctrl+V"}</span>
                 {ajustesArchivo && (
@@ -15286,7 +15245,7 @@ function SolicitudCard({
               )}
               <div className="flex gap-2">
                 <button type="button" disabled={busy || !ajustesMensaje.trim()} onClick={pedirAjustes}
-                  className="flex-1 rounded-xl bg-orange-500 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-orange-600 transition-colors">
+                  className="flex-1 rounded-xl bg-accent/50 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-accent transition-colors">
                   {busy ? "Enviando…" : "Enviar ajustes"}
                 </button>
                 <button type="button" onClick={() => { setShowPedirAjustes(false); setAjustesMensaje(""); setAjustesArchivo(null); setAjustesArchivoPreview(null); }}
@@ -15305,9 +15264,28 @@ function SolicitudCard({
         </div>
       )}
 
-      {/* Banner "solo el asignado puede resolver" — oculto cuando el creador tiene el panel de revisión */}
+      {/* Finalizar directamente: creador o admin puede cerrar sin pasar por el flujo de revisión */}
+      {!resuelta && (esCreadoPorMi || isAdmin) && !esAsignado && !supervision
+        && ticket.estado !== "esperando_aprobacion"
+        && !esIntervencion && !esSolicitudCompraDelegada(ticket) && (
+        <div className="pt-1 space-y-1">
+          {msg && <p className="text-xs text-red-400">{msg}</p>}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void cerrarDirecto()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-accent/50 bg-accent/5 px-3 py-2.5 text-sm font-bold text-accent hover:bg-accent/10 transition-colors disabled:opacity-40"
+          >
+            <Icon name="check" size={15} weight="bold" />
+            {busy ? "Cerrando…" : "Finalizar y cerrar solicitud"}
+          </button>
+        </div>
+      )}
+
+      {/* Banner "solo el asignado puede resolver" — oculto cuando el creador tiene el panel de revisión o puede cerrar directamente */}
       {!resuelta && !esAsignado && !supervision
-        && !(esCreadoPorMi && ticket.estado === "esperando_aprobacion") && (
+        && !(esCreadoPorMi && ticket.estado === "esperando_aprobacion")
+        && !(esCreadoPorMi || isAdmin) && (
         <div className="rounded-lg border border-border bg-surface-hover px-3 py-2 text-xs text-muted text-center">
           {ticket.estado === "esperando_aprobacion"
             ? <span>🔔 Esperando revisión de <strong>{ticket.creado_por_nombre ?? "el solicitante"}</strong></span>
@@ -16020,11 +15998,11 @@ function NuevaAccionWizard({
   function pantallaEsperaCompras() {
     if (!bloqueoCompras) return null;
     return (
-      <div className="rounded-2xl border-2 border-amber-400/60 bg-amber-50/80 dark:bg-amber-950/30 p-4 space-y-3">
-        <p className="text-sm font-extrabold text-amber-900 dark:text-amber-200">
+      <div className="rounded-2xl border-2 border-accent/60 bg-accent/80 dark:bg-accent/30 p-4 space-y-3">
+        <p className="text-sm font-extrabold text-accent dark:text-accent/20">
           Esperando compras delegadas
         </p>
-        <p className="text-sm text-amber-800/90 dark:text-amber-100/90">
+        <p className="text-sm text-accent/90 dark:text-accent/90">
           <strong>{bloqueoCompras.asignado_nombre ?? "Tu compañero"}</strong> está con la lista
           ({bloqueoCompras.numero}). Cuando marque <em>Terminé las compras</em>, podrás continuar.
         </p>
@@ -16033,7 +16011,7 @@ function NuevaAccionWizard({
           type="button"
           disabled={loading}
           onClick={() => void refrescarBloqueoCompras()}
-          className="w-full rounded-xl border border-amber-500/50 py-2 text-xs font-bold text-amber-800 dark:text-amber-200"
+          className="w-full rounded-xl border border-accent/50 py-2 text-xs font-bold text-accent dark:text-accent/20"
         >
           Actualizar estado
         </button>
@@ -16430,7 +16408,7 @@ function NuevaAccionWizard({
       </div>
 
       {bloqueadoIntervencion && !bloqueoCompras && (
-        <div className="mb-4 rounded-xl border border-orange-400/50 bg-orange-50/60 dark:bg-orange-950/25 px-4 py-3 text-sm text-orange-800 dark:text-orange-200">
+        <div className="mb-4 rounded-xl border border-accent/50 bg-accent/60 dark:bg-accent/25 px-4 py-3 text-sm text-accent dark:text-accent/20">
           Esperando intervención <strong>{bloqueadoIntervencion}</strong> antes de seguir.
         </div>
       )}
@@ -16447,14 +16425,14 @@ function NuevaAccionWizard({
       {cronometroVisible && (
         <div className={`mb-4 flex items-center gap-3 rounded-2xl border-2 px-4 py-3 transition-colors ${
           corridaPausada
-            ? "border-amber-400/50 bg-amber-50/80 dark:bg-amber-950/30"
+            ? "border-accent/50 bg-accent/80 dark:bg-accent/30"
             : "border-accent/35 bg-accent/8"
         }`}>
           <span className="text-[10px] font-bold uppercase tracking-widest text-muted flex-1">
             {corridaPausada ? "En pausa" : "En proceso"}
           </span>
           <span className={`font-mono text-2xl font-extrabold tabular-nums ${
-            corridaPausada ? "text-amber-600 dark:text-amber-400" : "text-accent"
+            corridaPausada ? "text-accent dark:text-accent/40" : "text-accent"
           }`}>
             {fmtTiempo(segDisplay)}
           </span>
@@ -16463,7 +16441,7 @@ function NuevaAccionWizard({
               type="button"
               onClick={() => void pausarCronometroWizard()}
               title="Pausar"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-amber-400/70 text-amber-600 dark:text-amber-400 transition hover:bg-amber-50 dark:hover:bg-amber-950/40 active:scale-95"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border-2 border-accent/70 text-accent dark:text-accent/40 transition hover:bg-accent/5 dark:hover:bg-accent/40 active:scale-95"
             >
               <Icon name="pause" size={18} weight="bold" />
             </button>
@@ -16633,7 +16611,7 @@ function NuevaAccionWizard({
                 + Agregar producto
               </button>
 
-              <div className="rounded-2xl border border-blue-400/30 bg-blue-50/30 dark:bg-blue-900/10 p-3 space-y-2">
+              <div className="rounded-2xl border border-accent/30 bg-accent/30 dark:bg-accent/10 p-3 space-y-2">
                 <p className="text-xs font-bold text-ink">¿Alguien más va de compras?</p>
                 <p className="text-[11px] text-muted">
                   Se crea una solicitud solo con este checklist para esa persona.
@@ -16654,7 +16632,7 @@ function NuevaAccionWizard({
                   type="button"
                   disabled={loading || !delegarAId || itemsCompraOk.length === 0}
                   onClick={() => void delegarListaCompras()}
-                  className="w-full rounded-xl border-2 border-blue-500 py-2.5 text-sm font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-500/10 disabled:opacity-40"
+                  className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent dark:text-accent/30 hover:bg-accent/10 disabled:opacity-40"
                 >
                   Enviar lista a compañero
                 </button>
@@ -16700,7 +16678,7 @@ function NuevaAccionWizard({
                       setLoading(false);
                     }
                   }}
-                  className="w-full rounded-2xl border-2 border-amber-500 py-3.5 text-sm font-bold text-amber-800 dark:text-amber-200"
+                  className="w-full rounded-2xl border-2 border-accent/50 py-3.5 text-sm font-bold text-accent dark:text-accent/20"
                 >
                   Compras delegadas — verificar y continuar →
                 </button>
@@ -16750,7 +16728,7 @@ function NuevaAccionWizard({
                     setLoading(false);
                   }
                 }}
-                className="w-full rounded-2xl border-2 border-amber-500 py-3 text-sm font-bold text-amber-800 dark:text-amber-200"
+                className="w-full rounded-2xl border-2 border-accent/50 py-3 text-sm font-bold text-accent dark:text-accent/20"
               >
                 Verificar si ya terminaron →
               </button>
@@ -16904,7 +16882,7 @@ function NuevaAccionWizard({
                       });
                       setShowInterPaso(true);
                     }}
-                    className="shrink-0 rounded-lg border border-orange-400/50 px-2 py-1 text-[10px] font-bold text-orange-600 transition hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                    className="shrink-0 rounded-lg border border-accent/50 px-2 py-1 text-[10px] font-bold text-accent transition hover:bg-accent/5 dark:hover:bg-accent/30"
                     title="Pedir verificación a otro usuario"
                   >
                     🛑
@@ -16925,8 +16903,8 @@ function NuevaAccionWizard({
           )}
 
           {showInterPaso && (
-            <div className="rounded-2xl border border-orange-400/50 bg-orange-50/50 dark:bg-orange-950/20 p-4 space-y-3">
-              <p className="text-sm font-bold text-orange-800 dark:text-orange-300">
+            <div className="rounded-2xl border border-accent/50 bg-accent/50 dark:bg-accent/20 p-4 space-y-3">
+              <p className="text-sm font-bold text-accent dark:text-accent/30">
                 Pedir verificación{interPasoIdx != null ? ` — paso ${interPasoIdx + 1}` : ""}
               </p>
               <ProseInput
@@ -16959,7 +16937,7 @@ function NuevaAccionWizard({
                   type="button"
                   disabled={creandoInter || !interForm.titulo.trim() || !interForm.asignado_a}
                   onClick={() => void pedirIntervencionPaso()}
-                  className="flex-1 rounded-xl bg-orange-500 py-2 text-sm font-bold text-white disabled:opacity-40"
+                  className="flex-1 rounded-xl bg-accent/50 py-2 text-sm font-bold text-white disabled:opacity-40"
                 >
                   {creandoInter ? "Enviando…" : "Solicitar intervención"}
                 </button>
@@ -17358,8 +17336,8 @@ function ProtocolosView({
                   title="Delegar a un aliado del equipo"
                   className={`rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors ${
                     delegarId === p.id
-                      ? "border-violet-500 bg-violet-500/15 text-violet-700 dark:text-violet-300"
-                      : "border-violet-400/40 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10"
+                      ? "border-accent/50 bg-accent/15 text-accent dark:text-accent/30"
+                      : "border-accent/40 text-accent dark:text-accent/40 hover:bg-accent/10"
                   }`}
                 >
                   Delegar
@@ -18453,7 +18431,7 @@ function HistorialSolicitudCard({
       className={`rounded-2xl border-2 px-4 py-3.5 transition space-y-2
         ${rechazado
           ? "border-red-400/30 bg-red-50/10 dark:bg-red-900/10"
-          : "border-green-500/30 bg-green-50/20 dark:bg-green-900/10"
+          : "border-accent/30 bg-accent/20 dark:bg-accent/10"
         }`}
     >
       <button
@@ -18471,7 +18449,7 @@ function HistorialSolicitudCard({
           <span className={`shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border
             ${rechazado
               ? "text-red-600 dark:text-red-400 bg-red-500/15 border-red-500/25"
-              : "text-green-600 dark:text-green-400 bg-green-500/15 border-green-500/25"
+              : "text-accent dark:text-accent/40 bg-accent/15 border-accent/25"
             }`}>
             {rechazado ? "✕ Rechazada" : "✓ Resuelta"}
           </span>
@@ -18652,7 +18630,7 @@ function HistorialSolicitudDetalle({
         <span className={`text-[10px] font-bold rounded-full px-2.5 py-1 border
           ${rechazado
             ? "text-red-600 dark:text-red-400 bg-red-500/15 border-red-500/25"
-            : "text-green-600 dark:text-green-400 bg-green-500/15 border-green-500/25"
+            : "text-accent dark:text-accent/40 bg-accent/15 border-accent/25"
           }`}>
           {rechazado ? "✕ Rechazada" : "✓ Resuelta"}
         </span>
@@ -18725,7 +18703,7 @@ function HistorialSolicitudDetalle({
           </div>
           <div className="h-1.5 rounded-full bg-border overflow-hidden">
             <div
-              className="h-full rounded-full bg-green-500 transition-all"
+              className="h-full rounded-full bg-accent/50 transition-all"
               style={{ width: `${pasos.length ? (pasos.filter(pasoEstaCompletado).length / pasos.length) * 100 : 0}%` }}
             />
           </div>
@@ -18737,13 +18715,13 @@ function HistorialSolicitudDetalle({
                 <div key={p.id}
                   className={`rounded-xl border px-3 py-2.5 space-y-1.5 transition-colors
                     ${hecho
-                      ? "border-green-500/30 bg-green-50/20 dark:bg-green-900/10"
+                      ? "border-accent/30 bg-accent/20 dark:bg-accent/10"
                       : "border-border/40 bg-surface opacity-55"
                     }`}>
                   <div className="flex items-start gap-2.5">
                     {/* Visual checkbox — nunca interactivo */}
                     <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2
-                      ${hecho ? "border-green-500 bg-green-500" : "border-border/60"}`}>
+                      ${hecho ? "border-accent/50 bg-accent/50" : "border-border/60"}`}>
                       {hecho && (
                         <svg className="h-2.5 w-2.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -18758,7 +18736,7 @@ function HistorialSolicitudDetalle({
                         <p className="text-[11px] text-muted mt-0.5">{p.notas}</p>
                       )}
                       {p.respuesta_intervencion && (
-                        <p className="text-[11px] text-green-600 dark:text-green-400 mt-0.5">
+                        <p className="text-[11px] text-accent dark:text-accent/40 mt-0.5">
                           ✅ {p.respuesta_intervencion}
                         </p>
                       )}
@@ -18887,7 +18865,7 @@ function HistorialSolicitudDetalle({
           )}
         </div>
         {repetirMsg && (
-          <p className={`text-xs font-semibold ${repetirMsg.startsWith("✓") ? "text-green-500" : "text-red-400"}`}>
+          <p className={`text-xs font-semibold ${repetirMsg.startsWith("✓") ? "text-accent/50" : "text-red-400"}`}>
             {repetirMsg}
           </p>
         )}
@@ -19417,6 +19395,7 @@ function SolicitudesView({
             detalleAmpliado
             onIrAIntervencion={abrirIntervencionBloqueante}
             onChanged={() => void load(true)}
+            onCerrarDetalle={() => setAsignadaDetalle(null)}
             onRegistrarEjecucion={
               esSolicitudCompraDelegada(asignadaDetalle)
                 ? undefined
@@ -19432,7 +19411,7 @@ function SolicitudesView({
     <div className="space-y-4">
       {/* Header */}
       {tab === "subhome" ? (
-        <div className="rounded-xl border border-rose-200 dark:border-rose-700/60 bg-rose-50 dark:bg-rose-950/50 px-3 py-2.5">
+        <div className="rounded-xl border border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50 px-3 py-2.5">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-surface/80 text-ink">
               <TopicIcon value="📋" size={15} />
@@ -19442,7 +19421,7 @@ function SolicitudesView({
               <button
                 type="button"
                 onClick={() => setShowWizard(true)}
-                className={`${CENTRO_MANDO_CTA_BTN} bg-rose-500 hover:bg-rose-600 shadow-[0_2px_0_#9f1239]`}
+                className={`${CENTRO_MANDO_CTA_BTN} bg-accent/50 hover:bg-accent shadow-[0_2px_0_#9f1239]`}
               >
                 <Icon name="plus" size={13} weight="bold" />
                 Nueva solicitud
@@ -19451,7 +19430,7 @@ function SolicitudesView({
                 type="button"
                 onClick={() => void load(false)}
                 disabled={loading}
-                className="rounded-lg border border-rose-300 dark:border-rose-600/70 px-2.5 py-1 text-xs font-bold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 disabled:opacity-50"
+                className="rounded-lg border border-accent/30 dark:border-accent/70 px-2.5 py-1 text-xs font-bold text-accent dark:text-accent/30 hover:bg-accent/10 dark:hover:bg-accent/40 disabled:opacity-50"
               >
                 ↻
               </button>
@@ -19527,7 +19506,7 @@ function SolicitudesView({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
             <button type="button" onClick={() => setTab("asignadas")}
-              className={`${sc} bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-700/60`}>
+              className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="📥" size={24} />
@@ -19539,7 +19518,7 @@ function SolicitudesView({
             </button>
 
             <button type="button" onClick={() => setTab("creadas")}
-              className={`${sc} bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-700/60`}>
+              className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="📤" size={24} />
@@ -19551,7 +19530,7 @@ function SolicitudesView({
             </button>
 
             <button type="button" onClick={() => setTab("equipo")}
-              className={`${sc} bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-700/60`}>
+              className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="👥" size={24} />
@@ -19574,7 +19553,7 @@ function SolicitudesView({
             </button>
 
             <button type="button" onClick={() => setTab("protocolos")}
-              className={`${sc} bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-700/60`}>
+              className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="📋" size={24} />
@@ -19592,7 +19571,7 @@ function SolicitudesView({
                   useAppStore.getState().setEtiquetasTab("imprimir");
                   useAppStore.getState().setPanel("etiquetas");
                 }}
-                className={`${sc} bg-amber-50 dark:bg-amber-950/50 border-amber-300 dark:border-amber-700/60`}
+                className={`${sc} bg-accent/5 dark:bg-accent/50 border-accent/30 dark:border-accent/60`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
@@ -19639,7 +19618,7 @@ function SolicitudesView({
               key={t.id}
               type="button"
               onClick={() => setCompraActiva(t)}
-              className="w-full rounded-xl border-2 border-blue-400/50 bg-blue-50/60 dark:bg-blue-950/30 px-4 py-3 text-left transition hover:border-accent"
+              className="w-full rounded-xl border-2 border-accent/50 bg-accent/60 dark:bg-accent/30 px-4 py-3 text-left transition hover:border-accent"
             >
               <p className="text-sm font-bold text-ink">🛒 {t.titulo}</p>
               <p className="text-xs text-muted font-mono">{t.numero}</p>
@@ -19794,11 +19773,11 @@ function SolicitudesView({
       )}
 
       {tab === "asignadas" && !asignadaDetalle && !loading && etiquetasPendientes.length > 0 && puedeVerSeccionPanel(user, "etiquetas") && (
-        <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 dark:bg-amber-950/30">
-          <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+        <div className="rounded-xl border-2 border-accent/30 bg-accent/5 px-4 py-3 dark:bg-accent/30">
+          <p className="text-sm font-bold text-accent dark:text-accent/20">
             🏷️ {etiquetasPendientes.length} pedido{etiquetasPendientes.length !== 1 ? "s" : ""} de etiquetas
           </p>
-          <p className="mt-1 text-xs text-amber-800 dark:text-amber-300/90">
+          <p className="mt-1 text-xs text-accent dark:text-accent/90">
             Estos pedidos están en Impresora · Etiquetas, no en esta lista de solicitudes.
           </p>
           <button
@@ -19807,7 +19786,7 @@ function SolicitudesView({
               useAppStore.getState().setEtiquetasTab("imprimir");
               useAppStore.getState().setPanel("etiquetas");
             }}
-            className="mt-2 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white hover:bg-amber-700"
+            className="mt-2 rounded-lg bg-accent px-4 py-2 text-xs font-bold text-white hover:bg-accent"
           >
             Abrir Impresora · Etiquetas →
           </button>
@@ -20177,9 +20156,9 @@ function RepetirAccionWizard({
             <p className="text-sm text-muted">{pasos.length} paso{pasos.length !== 1 ? "s" : ""} completado{pasos.length !== 1 ? "s" : ""}</p>
           )}
           <div className="flex justify-center pt-1">
-            <div className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 px-3 py-1">
+            <div className="flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 dark:bg-accent/30 dark:border-accent px-3 py-1">
               <span className="text-sm">⏱</span>
-              <span className="font-mono text-sm font-extrabold text-amber-700 dark:text-amber-400 tabular-nums">{cronometro.fmt(cronometro.segundos)}</span>
+              <span className="font-mono text-sm font-extrabold text-accent dark:text-accent/40 tabular-nums">{cronometro.fmt(cronometro.segundos)}</span>
             </div>
           </div>
         </div>
@@ -20307,7 +20286,7 @@ function RepetirAccionWizard({
             ))}
           </div>
 
-          <div className="rounded-2xl border border-blue-400/30 bg-blue-50/30 dark:bg-blue-900/10 p-3 space-y-2">
+          <div className="rounded-2xl border border-accent/30 bg-accent/30 dark:bg-accent/10 p-3 space-y-2">
             <p className="text-xs font-bold text-ink">¿Alguien más va de compras?</p>
             <p className="text-[11px] text-muted">Crea una solicitud con este checklist para esa persona.</p>
             <select
@@ -20326,7 +20305,7 @@ function RepetirAccionWizard({
               type="button"
               disabled={delegando || !delegarAId}
               onClick={() => void delegarListaCompras()}
-              className="w-full rounded-xl border-2 border-blue-500 py-2.5 text-sm font-bold text-blue-700 dark:text-blue-300 hover:bg-blue-500/10 disabled:opacity-40"
+              className="w-full rounded-xl border-2 border-accent/50 py-2.5 text-sm font-bold text-accent dark:text-accent/30 hover:bg-accent/10 disabled:opacity-40"
             >
               {delegando ? "Enviando…" : "Enviar lista a compañero"}
             </button>
@@ -20719,8 +20698,8 @@ function PendientesPanel({
 
   const badgeClases = {
     vencido: "bg-danger/15 text-danger border border-danger/30",
-    hoy:     "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-300/50",
-    pronto:  "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-300/40",
+    hoy:     "bg-accent/10 dark:bg-accent/40 text-accent dark:text-accent/40 border border-accent/50",
+    pronto:  "bg-accent/5 dark:bg-accent/30 text-accent dark:text-accent/40 border border-accent/40",
     futuro:  "bg-surface border border-border text-muted",
   };
 
@@ -20745,7 +20724,7 @@ function PendientesPanel({
         <p className="text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
           🗓️ Acciones futuras
           {pendientes.length > 0 && (
-            <span className="rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+            <span className="rounded-full bg-accent/10 dark:bg-accent/50 px-2 py-0.5 text-[10px] font-bold text-accent dark:text-accent/40">
               {pendientes.length}
             </span>
           )}
@@ -20820,7 +20799,7 @@ function PendientesPanel({
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-emerald-600 hover:bg-emerald-700 shadow-[0_2px_0_#065f46]`}
+            className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]`}
           >
             + Nueva acción futura
           </button>
@@ -21300,14 +21279,14 @@ function RecordatoriosPanel({
           </p>
           {activos.map((r) => (
             <div key={r.id} className={`rounded-2xl border-2 bg-surface-panel p-4 space-y-2 ${
-              r.proxima_fecha < hoy ? "border-danger/50" : "border-amber-400/60"
+              r.proxima_fecha < hoy ? "border-danger/50" : "border-accent/60"
             }`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-sm text-ink leading-snug">{r.titulo}</p>
                   {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
                   {r.asignado_a_nombre && (
-                    <p className="text-[11px] text-violet-600 dark:text-violet-400 mt-0.5 font-semibold">
+                    <p className="text-[11px] text-accent dark:text-accent/40 mt-0.5 font-semibold">
                       👤 Para: {r.asignado_a_nombre}
                     </p>
                   )}
@@ -21357,7 +21336,7 @@ function RecordatoriosPanel({
                   <p className="font-semibold text-sm text-ink leading-snug">{r.titulo}</p>
                   {r.descripcion && <p className="text-xs text-muted mt-0.5">{r.descripcion}</p>}
                   {r.asignado_a_nombre && (
-                    <p className="text-[11px] text-violet-600 dark:text-violet-400 mt-0.5 font-semibold">
+                    <p className="text-[11px] text-accent dark:text-accent/40 mt-0.5 font-semibold">
                       👤 Para: {r.asignado_a_nombre}
                     </p>
                   )}
@@ -21397,7 +21376,7 @@ function RecordatoriosPanel({
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-violet-600 hover:bg-violet-700 shadow-[0_2px_0_#4c1d95]`}
+            className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-accent hover:bg-accent shadow-[0_2px_0_#4c1d95]`}
           >
             + Crear recordatorio
           </button>
@@ -21724,7 +21703,7 @@ function DelegarProcedimientoPanel({
   }
 
   return (
-    <div className="rounded-xl border-2 border-violet-400/40 bg-violet-50/30 dark:bg-violet-950/20 p-3 space-y-3">
+    <div className="rounded-xl border-2 border-accent/40 bg-accent/30 dark:bg-accent/20 p-3 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs font-extrabold text-ink">Delegar a un aliado</p>
@@ -21750,8 +21729,8 @@ function DelegarProcedimientoPanel({
               onClick={() => toggleAsignado(u.id)}
               className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 text-xs font-semibold transition ${
                 asignados.includes(u.id)
-                  ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300"
-                  : "border-border text-muted hover:border-violet-400 hover:text-violet-600"
+                  ? "border-accent/50 bg-accent/10 text-accent dark:text-accent/30"
+                  : "border-border text-muted hover:border-accent/40 hover:text-accent"
               }`}
             >
               <span
@@ -21774,7 +21753,7 @@ function DelegarProcedimientoPanel({
         type="button"
         disabled={loading || asignados.length === 0}
         onClick={() => void enviar()}
-        className="w-full rounded-xl bg-violet-600 py-2.5 text-xs font-bold text-white hover:bg-violet-700 disabled:opacity-40 transition-colors"
+        className="w-full rounded-xl bg-accent py-2.5 text-xs font-bold text-white hover:bg-accent disabled:opacity-40 transition-colors"
       >
         {loading
           ? "Delegando…"
@@ -21985,7 +21964,7 @@ function ProcedimientoCard({
                 ${alcanceActual === "global"
                   ? "text-accent bg-accent/10 border-accent/25"
                   : alcanceActual === "seleccionado"
-                    ? "text-violet-600 dark:text-violet-400 bg-violet-500/10 border-violet-500/25"
+                    ? "text-accent dark:text-accent/40 bg-accent/10 border-accent/25"
                     : "text-muted bg-surface-hover border-border"
                 }`}>
               {alcanceActual === "global" ? "🌐 Equipo" : alcanceActual === "seleccionado" ? "👤 Específico" : "🔒 Privado"}
@@ -22229,7 +22208,7 @@ function ProcedimientoCard({
       )}
 
       {delegarMsg && !editando && (
-        <p className="text-xs font-semibold text-violet-600 dark:text-violet-400">{delegarMsg}</p>
+        <p className="text-xs font-semibold text-accent dark:text-accent/40">{delegarMsg}</p>
       )}
 
       {showDelegar && !editando && (
@@ -22257,7 +22236,7 @@ function ProcedimientoCard({
           <button
             type="button"
             onClick={() => { setShowDelegar(true); setDelegarMsg(""); }}
-            className="rounded-xl border border-violet-400/50 bg-violet-500/10 px-2.5 py-2 text-xs font-bold text-violet-700 dark:text-violet-300 hover:bg-violet-500/20 transition-colors"
+            className="rounded-xl border border-accent/50 bg-accent/10 px-2.5 py-2 text-xs font-bold text-accent dark:text-accent/30 hover:bg-accent/20 transition-colors"
             title="Asignar este procedimiento a un aliado del equipo"
           >
             👥 Delegar
@@ -22350,12 +22329,12 @@ function AdminSubhomePanel({
     <div className="space-y-4">
       {/* Resumen global */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/40 p-4 text-center">
-          <p className="text-3xl font-black text-amber-600 dark:text-amber-400 tabular-nums leading-none">{totalActivas}</p>
+        <div className="rounded-2xl border border-accent/20 dark:border-accent/40 bg-accent/5 dark:bg-accent/40 p-4 text-center">
+          <p className="text-3xl font-black text-accent dark:text-accent/40 tabular-nums leading-none">{totalActivas}</p>
           <p className="text-xs font-bold text-muted mt-1.5">En proceso</p>
         </div>
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-700/40 bg-emerald-50 dark:bg-emerald-950/40 p-4 text-center">
-          <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums leading-none">{totalPendientes}</p>
+        <div className="rounded-2xl border border-accent/20 dark:border-accent/40 bg-accent/5 dark:bg-accent/40 p-4 text-center">
+          <p className="text-3xl font-black text-accent dark:text-accent/40 tabular-nums leading-none">{totalPendientes}</p>
           <p className="text-xs font-bold text-muted mt-1.5">Pendientes</p>
         </div>
         <div className="rounded-2xl border border-border bg-surface p-4 text-center">
@@ -22397,12 +22376,12 @@ function AdminSubhomePanel({
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   {r.activas > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-400">
+                    <span className="inline-flex items-center rounded-full bg-accent/10 dark:bg-accent/60 px-2 py-0.5 text-xs font-bold text-accent dark:text-accent/40">
                       ⚡ {r.activas}
                     </span>
                   )}
                   {r.pendientes > 0 && (
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                    <span className="inline-flex items-center rounded-full bg-accent/10 dark:bg-accent/60 px-2 py-0.5 text-xs font-bold text-accent dark:text-accent/40">
                       🗓 {r.pendientes}
                     </span>
                   )}
@@ -22435,16 +22414,16 @@ function AdminSubhomePanel({
 // ── AccionesView — paleta por subtab (nivel módulo, no depende de estado) ─────
 /** CTA compacto del hero en Agenda (solicitudes / acciones / recordatorios). */
 const CENTRO_MANDO_CTA_BTN =
-  "inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-px";
+  "inline-flex items-center justify-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-extrabold text-white transition-all active:scale-[0.98] active:shadow-none active:translate-y-px";
 
 const ACCIONES_TAB_CFG = {
-  subhome:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_2px_0_#b45309]",   ctaBase: true  },
-  activas:        { card: "border-amber-200 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50",               icon: "bg-amber-200/70 dark:bg-amber-800/60 text-amber-700 dark:text-amber-300",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-amber-500 hover:bg-amber-600 shadow-[0_2px_0_#b45309]",   ctaBase: true  },
-  agenda:         { card: "border-teal-200 dark:border-teal-700/60 bg-teal-50 dark:bg-teal-950/50",                   icon: "bg-teal-200/70 dark:bg-teal-800/60 text-teal-700 dark:text-teal-300",               emoji: "🔔", titulo: "Recordatorios",      desc: "Alertas programadas. Te avisamos en la fecha.",                                 btnCtaCls: "bg-teal-600 hover:bg-teal-700 shadow-[0_2px_0_#134e4a]",     ctaBase: false },
-  pendientes:     { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_2px_0_#065f46]", ctaBase: false },
-  procedimientos: { card: "border-sky-200 dark:border-sky-700/60 bg-sky-50 dark:bg-sky-950/50",                      icon: "bg-sky-200/70 dark:bg-sky-800/60 text-sky-700 dark:text-sky-300",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-sky-600 hover:bg-sky-700 shadow-[0_2px_0_#0c4a6e]",       ctaBase: false },
+  subhome:        { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",               icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",             emoji: "⚡", titulo: "Acciones",         desc: "Registra labores y reutiliza procedimientos. Las listas de compras delegadas están en Solicitudes.", btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_#b45309]",   ctaBase: true  },
+  activas:        { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",               icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",             emoji: "⚡", titulo: "Acciones",          desc: "Registra y gestiona tus acciones — pendientes, en proceso, resueltas y canceladas.",                 btnCtaCls: "bg-accent/50 hover:bg-accent shadow-[0_2px_0_#b45309]",   ctaBase: true  },
+  agenda:         { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",                   icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",               emoji: "🔔", titulo: "Recordatorios",      desc: "Alertas programadas. Te avisamos en la fecha.",                                 btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#134e4a]",     ctaBase: false },
+  pendientes:     { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",       icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",     emoji: "🗓️", titulo: "Acciones futuras",  desc: "Ideas y tareas que aún no arrancas. Solo anótalas aquí — sin convertirlas en acción.",                btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]", ctaBase: false },
+  procedimientos: { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",                      icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",                     emoji: "🔒", titulo: "Procedimientos",    desc: "Pasos guardados listos pa' reutilizar. Sin tener que explicar todo de nuevo.",                      btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#0c4a6e]",       ctaBase: false },
   historial:      { card: "border-stone-200 dark:border-stone-600/50 bg-stone-50 dark:bg-stone-900/60",              icon: "bg-stone-200/70 dark:bg-stone-700/60 text-stone-600 dark:text-stone-300",             emoji: "📜", titulo: "Historial",         desc: "Todo lo que ya completaste. Pa' que no se pierda nada.",                                             btnCtaCls: "bg-stone-500 hover:bg-stone-600 shadow-[0_3px_0_#292524]",   ctaBase: false },
-  notas:          { card: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50",       icon: "bg-emerald-200/70 dark:bg-emerald-800/60 text-emerald-700 dark:text-emerald-300",     emoji: "💭", titulo: "Notas",              desc: "Tus pensamientos e ideas personales. Solo tuyas.",                                                     btnCtaCls: "bg-emerald-600 hover:bg-emerald-700 shadow-[0_2px_0_#065f46]", ctaBase: false },
+  notas:          { card: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50",       icon: "bg-accent/70 dark:bg-accent/60 text-accent dark:text-accent/30",     emoji: "💭", titulo: "Notas",              desc: "Tus pensamientos e ideas personales. Solo tuyas.",                                                     btnCtaCls: "bg-accent hover:bg-accent shadow-[0_2px_0_#065f46]", ctaBase: false },
   bolsillo:       { card: "border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-950/50",               icon: "bg-slate-200/70 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300",             emoji: "🔑", titulo: "Bolsillo",           desc: "Notas cifradas con tu PIN personal. Nadie más puede verlas.",                                          btnCtaCls: "bg-slate-600 hover:bg-slate-700 shadow-[0_2px_0_#1e293b]",   ctaBase: false },
 } as const;
 type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
@@ -22452,42 +22431,108 @@ type AccionesTab = keyof typeof ACCIONES_TAB_CFG;
 // ── NotasPensamientos ─────────────────────────────────────────────────────────
 
 type NotaPensamiento = { id: number; contenido: string; creadaEn: string };
-const NOTAS_KEY = "mck_notas_pensamientos";
 
 function NotasPensamientos({ crearSignal = 0 }: { crearSignal?: number }) {
-  const leerStorage = (): NotaPensamiento[] => {
-    try { return JSON.parse(localStorage.getItem(NOTAS_KEY) ?? "[]") as NotaPensamiento[]; }
-    catch { return []; }
-  };
-
-  const [notas, setNotas] = useState<NotaPensamiento[]>(leerStorage);
+  const { token } = useTicketsAuth();
+  const [notas, setNotas] = useState<NotaPensamiento[]>([]);
   const [texto, setTexto] = useState("");
   const [expandida, setExpandida] = useState<number | null>(null);
+  const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  /* Sincronizar desde localStorage cada vez que el componente monta */
-  useEffect(() => { setNotas(leerStorage()); }, []);
+  const cargar = useCallback(async () => {
+    if (!token) return;
+    setErrorCarga(false);
+    try {
+      const r = await fetch("/api/tickets/notas", {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      if (r.ok) {
+        const data = await r.json() as { id: number; contenido: string; creado_en: string }[];
+        const serverNotas = data.map((n) => ({ id: n.id, contenido: n.contenido, creadaEn: n.creado_en }));
+        // Migración única: notas guardadas en localStorage con la clave antigua
+        if (serverNotas.length === 0) {
+          try {
+            const raw = localStorage.getItem("mck_notas_pensamientos");
+            if (raw) {
+              const legacy = JSON.parse(raw) as { id: number; contenido: string; creadaEn: string }[];
+              if (Array.isArray(legacy) && legacy.length > 0) {
+                const migradas: NotaPensamiento[] = [];
+                for (const n of legacy) {
+                  const pr = await fetch("/api/tickets/notas", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({ contenido: n.contenido }),
+                  });
+                  if (pr.ok) {
+                    const created = await pr.json() as { id: number; contenido: string; creado_en: string };
+                    migradas.push({ id: created.id, contenido: created.contenido, creadaEn: created.creado_en });
+                  }
+                }
+                if (migradas.length > 0) {
+                  localStorage.removeItem("mck_notas_pensamientos");
+                  setNotas(migradas);
+                  return;
+                }
+              }
+            }
+          } catch { /* sin localStorage — ignorar */ }
+        }
+        setNotas(serverNotas);
+      } else {
+        setErrorCarga(true);
+      }
+    } catch { setErrorCarga(true); }
+    finally { setCargando(false); }
+  }, [token]);
+
+  useEffect(() => { void cargar(); }, [cargar]);
 
   useEffect(() => {
     if (crearSignal > 0) textareaRef.current?.focus();
   }, [crearSignal]);
 
-  const guardar = (nuevas: NotaPensamiento[]) => {
-    setNotas(nuevas);
-    try { localStorage.setItem(NOTAS_KEY, JSON.stringify(nuevas)); } catch { /* quota */ }
-  };
-
-  const agregar = () => {
+  const agregar = async () => {
     const t = texto.trim();
-    if (!t) return;
-    guardar([{ id: Date.now(), contenido: t, creadaEn: new Date().toISOString() }, ...notas]);
+    if (!t || !token) return;
     setTexto("");
+    try {
+      const r = await fetch("/api/tickets/notas", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ contenido: t }),
+      });
+      if (r.ok) {
+        const n = await r.json() as { id: number; contenido: string; creado_en: string };
+        setNotas((prev) => [{ id: n.id, contenido: n.contenido, creadaEn: n.creado_en }, ...prev]);
+      }
+    } catch { /* revertir texto si falló */ setTexto(t); }
   };
 
-  const eliminar = (id: number) => guardar(notas.filter((n) => n.id !== id));
+  const eliminar = async (id: number) => {
+    if (!token) return;
+    setNotas((prev) => prev.filter((n) => n.id !== id));
+    try {
+      await fetch(`/api/tickets/notas/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch { void cargar(); }
+  };
 
-  const editarContenido = (id: number, val: string) =>
-    guardar(notas.map((n) => n.id === id ? { ...n, contenido: val } : n));
+  const editarContenido = async (id: number, val: string) => {
+    if (!token) return;
+    setNotas((prev) => prev.map((n) => n.id === id ? { ...n, contenido: val } : n));
+    try {
+      await fetch(`/api/tickets/notas/${id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ contenido: val }),
+      });
+    } catch { /* ignore — actualización optimista */ }
+  };
 
   const formatFecha = (iso: string) => {
     try {
@@ -22503,7 +22548,15 @@ function NotasPensamientos({ crearSignal = 0 }: { crearSignal?: number }) {
   return (
     <div className="space-y-3">
       {/* Lista de notas — primero para que sean visibles sin scroll */}
-      {notas.length === 0 ? (
+      {cargando ? (
+        <p className="py-6 text-center text-sm text-muted">Cargando notas…</p>
+      ) : errorCarga ? (
+        <div className="py-4 text-center space-y-2">
+          <p className="text-sm text-red-500">No se pudieron cargar las notas. Verifica tu conexión.</p>
+          <button type="button" onClick={() => { setCargando(true); void cargar(); }}
+            className="text-xs text-accent hover:underline">↻ Reintentar</button>
+        </div>
+      ) : notas.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted">Aún no tienes notas. Escribe una abajo.</p>
       ) : (
         <div className="space-y-2">
@@ -22741,8 +22794,8 @@ function BolsilloSeguro({ token }: { token: string }) {
 
   if (vista === "cargando") return null;
 
-  const em = "border-emerald-300/60 dark:border-emerald-700/50";
-  const emBg = "bg-emerald-50/40 dark:bg-emerald-950/20";
+  const em = "border-accent/60 dark:border-accent/50";
+  const emBg = "bg-accent/40 dark:bg-accent/20";
 
   return (
     <div className="border-t border-border/50 pt-6">
@@ -22810,13 +22863,13 @@ function BolsilloSeguro({ token }: { token: string }) {
       {vista === "lista" && (
         <div className={`rounded-2xl border-2 ${em} ${emBg} px-4 py-4 space-y-3`}>
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+            <p className="text-xs font-bold text-accent dark:text-accent/40 flex items-center gap-1.5">
               🔓 Abierto
               {guardando === "saving" && <span className="text-muted font-normal">Guardando…</span>}
               {guardando === "ok"     && <span className="font-normal">✓</span>}
             </p>
             <button type="button" onClick={bloquear}
-              className="flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 transition">
+              className="flex items-center gap-1 rounded-full bg-accent/10 dark:bg-accent/40 px-3 py-1 text-xs font-bold text-accent dark:text-accent/40 hover:bg-accent/20 transition">
               🔒 Bloquear
             </button>
           </div>
@@ -22828,7 +22881,7 @@ function BolsilloSeguro({ token }: { token: string }) {
           <div className="space-y-2">
             {notas.map((n) => (
               <button key={n.id} type="button" onClick={() => abrirNota(n)}
-                className="w-full text-left rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-white dark:bg-gray-900/60 px-3 py-2.5 space-y-0.5 transition hover:border-emerald-400 active:scale-[0.98]">
+                className="w-full text-left rounded-xl border border-accent/20 dark:border-accent/50 bg-white dark:bg-gray-900/60 px-3 py-2.5 space-y-0.5 transition hover:border-accent/40 active:scale-[0.98]">
                 <p className="text-sm font-bold text-ink truncate">{n.titulo || <span className="text-muted italic">Sin título</span>}</p>
                 {n.contenido && (
                   <p className="text-xs text-muted line-clamp-2 font-mono">{n.contenido}</p>
@@ -22838,7 +22891,7 @@ function BolsilloSeguro({ token }: { token: string }) {
           </div>
 
           <button type="button" onClick={nuevaNota}
-            className="w-full rounded-xl border-2 border-dashed border-emerald-300 dark:border-emerald-700 py-2.5 text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition">
+            className="w-full rounded-xl border-2 border-dashed border-accent/30 dark:border-accent py-2.5 text-sm font-bold text-accent dark:text-accent/40 hover:bg-accent/5 dark:hover:bg-accent/20 transition">
             + Nueva nota
           </button>
           <p className="text-[10px] text-muted text-center">AES-256-GCM · el servidor solo guarda el blob cifrado</p>
@@ -22850,7 +22903,7 @@ function BolsilloSeguro({ token }: { token: string }) {
         <div className={`rounded-2xl border-2 ${em} ${emBg} px-4 py-4 space-y-3`}>
           <div className="flex items-center justify-between gap-2">
             <button type="button" onClick={guardarYVolver}
-              className="text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline">
+              className="text-xs font-bold text-accent dark:text-accent/40 hover:underline">
               ‹ Volver
             </button>
             <span className="text-xs text-muted flex items-center gap-1">
@@ -22868,14 +22921,14 @@ function BolsilloSeguro({ token }: { token: string }) {
             placeholder="Título de la nota"
             value={notaActiva.titulo}
             onChange={(e) => onCambioNota("titulo", e.target.value)}
-            className="w-full rounded-xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-white dark:bg-gray-950 px-3 py-2 text-sm font-bold text-ink focus:border-emerald-400 focus:outline-none"
+            className="w-full rounded-xl border-2 border-accent/20 dark:border-accent/60 bg-white dark:bg-gray-950 px-3 py-2 text-sm font-bold text-ink focus:border-accent/40 focus:outline-none"
           />
           <textarea
             rows={10}
             placeholder="Contenido confidencial…"
             value={notaActiva.contenido}
             onChange={(e) => onCambioNota("contenido", e.target.value)}
-            className="w-full resize-none rounded-xl border-2 border-emerald-200 dark:border-emerald-800/60 bg-white dark:bg-gray-950 px-3 py-2.5 text-sm text-ink focus:border-emerald-400 focus:outline-none font-mono leading-relaxed"
+            className="w-full resize-none rounded-xl border-2 border-accent/20 dark:border-accent/60 bg-white dark:bg-gray-950 px-3 py-2.5 text-sm text-ink focus:border-accent/40 focus:outline-none font-mono leading-relaxed"
           />
         </div>
       )}
@@ -23616,7 +23669,7 @@ function AccionesView({
                 }}
                 className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
               >
-                <Icon name="plus" size={13} weight="bold" />
+                <Icon name="plus" size={16} weight="bold" />
                 Iniciar acción
               </button>
             )}
@@ -23626,7 +23679,7 @@ function AccionesView({
                 onClick={abrirFormularioCrear}
                 className={`${CENTRO_MANDO_CTA_BTN} ${tc.btnCtaCls}`}
               >
-                <Icon name="plus" size={13} weight="bold" />
+                <Icon name="plus" size={16} weight="bold" />
                 {labelCtaCrear}
               </button>
             )}
@@ -23641,93 +23694,6 @@ function AccionesView({
               </button>
             )}
           </div>
-        </div>
-        {/* Toolbar: alarma + filtro + STT */}
-        <div className="flex gap-2 flex-wrap items-center">
-          {/* Alarma: toggle + selector de intervalo + countdown + botón probar */}
-          {hayEnProceso && (
-            <div className="flex items-center gap-1 flex-wrap">
-              {/* Toggle on/off */}
-              <button
-                type="button"
-                title={alarmaActiva ? "Silenciar alarma" : "Activar alarma de voz periódica"}
-                onClick={() => {
-                  const next = !alarmaActiva;
-                  setAlarmaActiva(next);
-                  sincronizarAlarmaAndroid(next && hayEnProceso, minRef.current, hayEnProceso, next && hayEnProceso);
-                  if (next && hayEnProceso) { ultimaAlarmaRef.current = Date.now(); void dispararAlarma(true); }
-                }}
-                className={`flex items-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors ${
-                  alarmaActiva
-                    ? "border-orange-400 bg-orange-500/10 text-orange-500"
-                    : "border-border text-muted hover:text-ink"
-                }`}
-              >
-                {alarmaActiva ? "🔔" : "🔕"}
-              </button>
-
-              {/* Selector de intervalo */}
-              <select
-                value={alarmaMinutos}
-                onChange={(e) => {
-                  const m = Number(e.target.value);
-                  setAlarmaMinutos(m);
-                  if (androidAlarmDebounceRef.current) clearTimeout(androidAlarmDebounceRef.current);
-                  androidAlarmDebounceRef.current = setTimeout(() => { sincronizarAlarmaAndroid(alarmaRef.current, m, hayEnProceso, false); androidAlarmDebounceRef.current = null; }, 1500);
-                  ultimaAlarmaRef.current = Date.now(); // reiniciar countdown
-                  setCountdown(m * 60);
-                }}
-                className="quest-input py-1 text-xs"
-                title="Intervalo de notificación"
-              >
-                {[1, 2, 3, 5, 10, 15, 20, 30, 45, 60].map((m) => (
-                  <option key={m} value={m}>{m} min</option>
-                ))}
-              </select>
-
-              {/* Silencio nocturno */}
-              {alarmaActiva && esHorarioSilencio() && (
-                <span
-                  className="text-[10px] text-muted font-semibold"
-                  title="Silencio nocturno activo (22:00–07:00). La alarma no sonará hasta las 7 AM."
-                >
-                  🌙 Silencio
-                </span>
-              )}
-
-              {/* Countdown hasta próxima alarma */}
-              {alarmaActiva && !esHorarioSilencio() && countdown > 0 && (
-                <span className="text-[10px] font-mono text-muted tabular-nums min-w-[36px] text-center">
-                  {String(Math.floor(countdown / 60)).padStart(2, "0")}:{String(countdown % 60).padStart(2, "0")}
-                </span>
-              )}
-
-              {/* Botón probar ahora */}
-              <button
-                type="button"
-                title="Reproducir notificación de voz ahora"
-                onClick={() => {
-                  sincronizarAlarmaAndroid(alarmaRef.current, minRef.current, true, true);
-                  ultimaAlarmaRef.current = Date.now() - minRef.current * 60 * 1000;
-                  void dispararAlarma(true);
-                }}
-                className="flex items-center gap-1 rounded-lg border border-border px-2 py-1.5 text-xs text-muted hover:border-accent hover:text-accent transition-colors"
-              >
-                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                Probar
-              </button>
-            </div>
-          )}
-          {/* Botón voz (STT) — solo en acciones en curso, no en futuras ni recordatorios */}
-          {!isAdmin && tabAcciones !== "pendientes" && (
-            <SttInlineBtn
-              stt={stt}
-              label="Voz"
-              onStart={() => void stt.iniciar((t) => abrirWizard(t))}
-            />
-          )}
         </div>
       </div>
 
@@ -23817,7 +23783,7 @@ function AccionesView({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
             <button type="button" onClick={() => setTabAcciones("activas")}
-              className={`${subCard} bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-700/60`}>
+              className={`${subCard} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="⚡" size={24} />
@@ -23830,7 +23796,7 @@ function AccionesView({
 
             {/* Agenda unificada: futuras + recordatorios en una sola card */}
             <button type="button" onClick={() => setTabAcciones("agenda")}
-              className={`${subCard} bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-700/60`}>
+              className={`${subCard} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="📅" size={24} />
@@ -23840,7 +23806,7 @@ function AccionesView({
                     {recordatorios.length}
                   </span>
                   {recHoy > 0 && (
-                    <p className="text-xs font-bold text-amber-600 dark:text-amber-300">{recHoy} para hoy</p>
+                    <p className="text-xs font-bold text-accent dark:text-accent/30">{recHoy} para hoy</p>
                   )}
                 </div>
               </div>
@@ -23860,7 +23826,7 @@ function AccionesView({
             </button>
 
             <button type="button" onClick={() => setTabAcciones("procedimientos")}
-              className={`${subCard} bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-700/60`}>
+              className={`${subCard} bg-accent/5 dark:bg-accent/50 border-accent/20 dark:border-accent/60`}>
               <div className="flex items-center justify-between gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border bg-surface text-ink">
                   <TopicIcon value="🔒" size={24} />
@@ -23971,7 +23937,7 @@ function AccionesView({
                       )}
                       {total > 0 && (
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
-                          completa ? "border-green-400/40 text-green-700 dark:text-green-400" : "border-amber-400/40 text-amber-700 dark:text-amber-400"
+                          completa ? "border-accent/40 text-accent dark:text-accent/40" : "border-accent/40 text-accent dark:text-accent/40"
                         }`}>
                           {completa ? `✓ ${total} paso${total !== 1 ? "s" : ""}` : `${ok}/${total} pasos`}
                         </span>
@@ -24023,15 +23989,15 @@ function AccionesView({
                   : "incompleta";
 
                 const borderClass =
-                  estado === "completa" ? "border-green-400/50"
-                  : estado === "incompleta" ? "border-amber-400/50"
+                  estado === "completa" ? "border-accent/50"
+                  : estado === "incompleta" ? "border-accent/50"
                   : "border-border";
 
                 const badge =
                   estado === "completa"
-                    ? <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-950/40 px-2 py-0.5 text-[10px] font-bold text-green-700 dark:text-green-400">✓ Completa</span>
+                    ? <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 dark:bg-accent/40 px-2 py-0.5 text-[10px] font-bold text-accent dark:text-accent/40">✓ Completa</span>
                   : estado === "incompleta"
-                    ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/40 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400">⚠ Incompleta</span>
+                    ? <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 dark:bg-accent/40 px-2 py-0.5 text-[10px] font-bold text-accent dark:text-accent/40">⚠ Incompleta</span>
                   : <span className="inline-flex items-center gap-1 rounded-full bg-surface border border-border px-2 py-0.5 text-[10px] font-bold text-muted">Sin pasos</span>;
 
                 const tiempoStr = (() => {
@@ -24071,8 +24037,8 @@ function AccionesView({
                       {total > 0 && (
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
                           estado === "completa"
-                            ? "bg-green-50 dark:bg-green-950/30 border-green-400/40 text-green-700 dark:text-green-400"
-                            : "bg-amber-50 dark:bg-amber-950/30 border-amber-400/40 text-amber-700 dark:text-amber-400"
+                            ? "bg-accent/5 dark:bg-accent/30 border-accent/40 text-accent dark:text-accent/40"
+                            : "bg-accent/5 dark:bg-accent/30 border-accent/40 text-accent dark:text-accent/40"
                         }`}>
                           {estado === "completa" ? "✓" : `${ok}/`}{estado !== "completa" && total} {total === 1 ? "paso" : "pasos"}
                         </span>
@@ -24240,7 +24206,7 @@ function AccionesView({
                 <button
                   type="button"
                   onClick={() => setCrearProcedimientoSignal((n) => n + 1)}
-                  className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-sky-600 hover:bg-sky-700 shadow-[0_2px_0_#0c4a6e]`}
+                  className={`mx-auto ${CENTRO_MANDO_CTA_BTN} bg-accent hover:bg-accent shadow-[0_2px_0_#0c4a6e]`}
                 >
                   + Nuevo procedimiento
                 </button>
@@ -24341,8 +24307,8 @@ function AccionesView({
       {!isAdmin && tabAcciones !== "pendientes" && tabAcciones !== "historial" && tabAcciones !== "procedimientos" && tabAcciones !== "notas" && tabAcciones !== "bolsillo" && tabAcciones !== "agenda" && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
-            { tab: "pendientes" as const,    emoji: "🗓️", label: "Futuras",        count: pendientes.length,      color: "border-emerald-200 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50 hover:border-emerald-400" },
-            { tab: "procedimientos" as const,emoji: "🔒", label: "Procedimientos", count: procedimientos.length,  color: "border-sky-200     dark:border-sky-700/60     bg-sky-50     dark:bg-sky-950/50     hover:border-sky-400"     },
+            { tab: "pendientes" as const,    emoji: "🗓️", label: "Futuras",        count: pendientes.length,      color: "border-accent/20 dark:border-accent/60 bg-accent/5 dark:bg-accent/50 hover:border-accent/40" },
+            { tab: "procedimientos" as const,emoji: "🔒", label: "Procedimientos", count: procedimientos.length,  color: "border-accent/20     dark:border-accent/60     bg-accent/5     dark:bg-accent/50     hover:border-accent/40"     },
             { tab: "historial" as const,     emoji: "📜", label: "Historial",      count: null,                   color: "border-stone-200   dark:border-stone-600/50   bg-stone-50   dark:bg-stone-900/60   hover:border-stone-400"   },
           ].map(({ tab, emoji, label, count, color }) => (
             <button
@@ -24801,8 +24767,8 @@ function PanelComprasEjecucion({
             <p className="text-base font-extrabold text-ink leading-snug truncate tracking-tight">{ticketTitulo}</p>
           </div>
           {activos.length > 0 && (
-            <div className="shrink-0 flex items-center gap-1 bg-green-500/10 rounded-full px-3 py-1">
-              <span className="text-xs font-black tabular-nums text-green-600 dark:text-green-400">{comprados}/{activos.length}</span>
+            <div className="shrink-0 flex items-center gap-1 bg-accent/10 rounded-full px-3 py-1">
+              <span className="text-xs font-black tabular-nums text-accent dark:text-accent/40">{comprados}/{activos.length}</span>
             </div>
           )}
         </div>
@@ -24818,9 +24784,9 @@ function PanelComprasEjecucion({
           </div>
         )}
         {activos.map(item => (
-          <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 bg-white dark:bg-gray-900 transition ${item.comprado ? "border-green-300/50 dark:border-green-700/30 opacity-70" : "border-gray-200 dark:border-white/10"}`}>
+          <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 bg-white dark:bg-gray-900 transition ${item.comprado ? "border-accent/50 dark:border-accent/30 opacity-70" : "border-gray-200 dark:border-white/10"}`}>
             <button type="button" onClick={() => void toggleComprado(item)}
-              className={`shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${item.comprado ? "bg-green-500 border-green-500 text-white" : "border-gray-300 dark:border-white/20"}`}>
+              className={`shrink-0 h-6 w-6 rounded-full border-2 flex items-center justify-center transition ${item.comprado ? "bg-accent/50 border-accent/50 text-white" : "border-gray-300 dark:border-white/20"}`}>
               {item.comprado && <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
             </button>
             <div className="flex-1 min-w-0">
@@ -24833,7 +24799,7 @@ function PanelComprasEjecucion({
               className="shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition text-xs">✕</button>
           </div>
         ))}
-        {msg && <p className={`text-center text-xs px-4 py-2 font-semibold ${msg.startsWith("✅") ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>{msg}</p>}
+        {msg && <p className={`text-center text-xs px-4 py-2 font-semibold ${msg.startsWith("✅") ? "text-accent dark:text-accent/40" : "text-red-500 dark:text-red-400"}`}>{msg}</p>}
       </div>
 
       {/* Formulario agregar + factura */}
@@ -24863,7 +24829,7 @@ function PanelComprasEjecucion({
         <input ref={facturaRef} type="file" accept="image/*,.pdf" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) void subirFactura(f); e.target.value = ""; }}/>
         <button type="button" onClick={() => facturaRef.current?.click()} disabled={subiendoFactura}
-          className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-bold transition disabled:opacity-50 ${facturaFile ? "border-green-400 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/10" : "border-dashed border-gray-300 dark:border-white/20 text-muted hover:border-accent hover:text-accent"}`}>
+          className={`w-full flex items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-bold transition disabled:opacity-50 ${facturaFile ? "border-accent/40 text-accent dark:text-accent/40 bg-accent/5 dark:bg-accent/10" : "border-dashed border-gray-300 dark:border-white/20 text-muted hover:border-accent hover:text-accent"}`}>
           <span>🧾</span>
           <span>{subiendoFactura ? "Subiendo…" : facturaFile ? `Factura: ${facturaFile.name}` : "Adjuntar factura de compras"}</span>
         </button>
@@ -25130,9 +25096,9 @@ function EjecucionAccionChat({
           </div>
           {/* Cronómetro + pausa */}
           <div className="shrink-0 flex items-center gap-2">
-            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${cronometroActivo ? "bg-accent/10" : "bg-amber-100 dark:bg-amber-900/30"}`}>
+            <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${cronometroActivo ? "bg-accent/10" : "bg-accent/10 dark:bg-accent/30"}`}>
               <span className="text-xs">⏱</span>
-              <span className={`text-sm font-black tabular-nums ${cronometroActivo ? "text-accent" : "text-amber-600 dark:text-amber-400"}`}>{fmtSeg(segundos)}</span>
+              <span className={`text-sm font-black tabular-nums ${cronometroActivo ? "text-accent" : "text-accent dark:text-accent/40"}`}>{fmtSeg(segundos)}</span>
               {cronometroActivo && <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
             </div>
             {cronometroActivo ? (
@@ -25140,7 +25106,7 @@ function EjecucionAccionChat({
                 type="button"
                 onClick={() => void pausar()}
                 title="Pausar cronómetro"
-                className="flex items-center justify-center h-8 w-8 rounded-full bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-900/60 transition shrink-0"
+                className="flex items-center justify-center h-8 w-8 rounded-full bg-accent/10 text-accent hover:bg-accent/20 dark:bg-accent/40 dark:text-accent/40 dark:hover:bg-accent/60 transition shrink-0"
               >
                 ⏸
               </button>
@@ -25246,7 +25212,7 @@ function EjecucionAccionChat({
       <div className="shrink-0 border-t border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 pb-safe">
       <div className="px-4 pt-3 pb-2">
         <button type="button" onClick={terminar} disabled={terminando || notas.some(n => n.guardando)}
-          className="w-full rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
+          className="w-full rounded-2xl bg-accent/50 hover:bg-accent/40 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
           {terminando ? "Cerrando…" : notas.some(n => n.guardando) ? "Guardando…" : "✅ Terminé la actividad"}
         </button>
       </div>
@@ -25392,7 +25358,7 @@ function RevisionSolicitudView({
         <button type="button" onClick={onVolver}
           className="mt-0.5 flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 transition shrink-0">‹</button>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-extrabold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-0.5">⏳ Revisar y confirmar</p>
+          <p className="text-[10px] font-extrabold uppercase tracking-widest text-accent dark:text-accent/40 mb-0.5">⏳ Revisar y confirmar</p>
           <p className="text-base font-extrabold text-ink leading-snug line-clamp-2 tracking-tight">{solicitud.titulo}</p>
           {solicitud.asignado_a_nombre && (
             <p className="text-sm font-bold text-muted mt-0.5">Resolvió: {solicitud.asignado_a_nombre}</p>
@@ -25403,18 +25369,18 @@ function RevisionSolicitudView({
       {/* Hilo */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-gray-950">
         {/* Tarjeta de contexto */}
-        <div className="rounded-2xl border-2 border-amber-300/60 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 space-y-1">
+        <div className="rounded-2xl border-2 border-accent/60 dark:border-accent/40 bg-accent/5 dark:bg-accent/20 px-4 py-3 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="h-6 w-6 shrink-0 rounded-full bg-amber-500 text-white text-[11px] font-black flex items-center justify-center">
+            <span className="h-6 w-6 shrink-0 rounded-full bg-accent/50 text-white text-[11px] font-black flex items-center justify-center">
               {solicitud.asignado_a_nombre?.charAt(0)?.toUpperCase() ?? "?"}
             </span>
-            <p className="text-[11px] font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+            <p className="text-[11px] font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide">
               {solicitud.asignado_a_nombre} · {shortNumero(solicitud.numero)}
             </p>
           </div>
-          <p className="text-sm font-bold text-amber-900 dark:text-amber-200 leading-snug">{solicitud.titulo}</p>
+          <p className="text-sm font-bold text-accent dark:text-accent/20 leading-snug">{solicitud.titulo}</p>
           {descripcion && descripcion !== solicitud.titulo && (
-            <p className="text-sm text-amber-800/80 dark:text-amber-300/70 leading-relaxed whitespace-pre-wrap">{descripcion}</p>
+            <p className="text-sm text-accent/80 dark:text-accent/70 leading-relaxed whitespace-pre-wrap">{descripcion}</p>
           )}
         </div>
 
@@ -25495,7 +25461,7 @@ function RevisionSolicitudView({
                     ))}
                   </div>
                 )}
-                <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted hover:text-amber-600 transition-colors">
+                <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted hover:text-accent transition-colors">
                   <span>📷</span>
                   <span>{item.fotos.length > 0 ? "Agregar otra imagen" : "Adjuntar imagen o PDF"}</span>
                   <input type="file" accept="image/*,.pdf,application/pdf" multiple className="sr-only"
@@ -25509,7 +25475,7 @@ function RevisionSolicitudView({
             ))}
 
             <button type="button" onClick={agregarItemAjuste}
-              className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 hover:underline font-bold">
+              className="flex items-center gap-1.5 text-xs text-accent dark:text-accent/40 hover:underline font-bold">
               + Agregar otro punto de ajuste
             </button>
 
@@ -25544,7 +25510,7 @@ function RevisionSolicitudView({
                   setItemsAjuste([{ id: 0, texto: "", fotos: [] }]);
                   setRechazando(false);
                 }}
-                className="flex-1 rounded-2xl bg-amber-500 hover:bg-amber-400 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
+                className="flex-1 rounded-2xl bg-accent/50 hover:bg-accent/40 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-50">
                 {rechazando ? "Enviando…" : "↩️ Devolver para ajustes"}
               </button>
             </div>
@@ -25553,7 +25519,7 @@ function RevisionSolicitudView({
           <div className="flex gap-2">
             <button type="button"
               onClick={() => setShowRechazo(true)}
-              className="flex-1 rounded-2xl border-2 border-amber-400 py-3 text-sm font-extrabold text-amber-600 transition hover:bg-amber-50 dark:hover:bg-amber-950/30 active:scale-[0.98]">
+              className="flex-1 rounded-2xl border-2 border-accent/40 py-3 text-sm font-extrabold text-accent transition hover:bg-accent/5 dark:hover:bg-accent/30 active:scale-[0.98]">
               ↩️ Pedir ajustes
             </button>
             <button type="button"
@@ -25563,7 +25529,7 @@ function RevisionSolicitudView({
                 await onConfirmar();
                 setConfirmando(false);
               }}
-              className="flex-2 flex-grow-[2] rounded-2xl bg-green-500 hover:bg-green-400 py-3 text-sm font-extrabold text-white transition active:scale-[0.98] shadow-lg disabled:opacity-50">
+              className="flex-2 flex-grow-[2] rounded-2xl bg-accent/50 hover:bg-accent/40 py-3 text-sm font-extrabold text-white transition active:scale-[0.98] shadow-lg disabled:opacity-50">
               {confirmando ? "Confirmando…" : "✅ Confirmar — todo listo"}
             </button>
           </div>
@@ -25950,7 +25916,7 @@ function ResolverActividadChat({
               onClick={() => setModoIntervencion("pausar")}
               className={`rounded-2xl border-2 px-4 py-3 text-left transition ${
                 modoIntervencion === "pausar"
-                  ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30"
+                  ? "border-accent/40 bg-accent/5 dark:bg-accent/30"
                   : "border-border bg-surface hover:border-accent/50"
               }`}>
               <p className="text-sm font-extrabold text-ink">🛑 Pausar y delegar</p>
@@ -25960,7 +25926,7 @@ function ResolverActividadChat({
               onClick={() => setModoIntervencion("colaborar")}
               className={`rounded-2xl border-2 px-4 py-3 text-left transition ${
                 modoIntervencion === "colaborar"
-                  ? "border-violet-400 bg-violet-50 dark:bg-violet-950/30"
+                  ? "border-accent/40 bg-accent/5 dark:bg-accent/30"
                   : "border-border bg-surface hover:border-accent/50"
               }`}>
               <p className="text-sm font-extrabold text-ink">👥 Invitar a colaborar</p>
@@ -26002,7 +25968,7 @@ function ResolverActividadChat({
           <button type="button" onClick={crearIntervencion}
             disabled={creandoInter || !canSubmit}
             className={`w-full rounded-2xl py-3.5 text-base font-extrabold text-white disabled:opacity-50 transition active:scale-[0.98] ${
-              modoIntervencion === "colaborar" ? "bg-violet-600 hover:bg-violet-500" : "bg-accent hover:bg-accent-hover"
+              modoIntervencion === "colaborar" ? "bg-accent hover:bg-accent/50" : "bg-accent hover:bg-accent-hover"
             }`}>
             {creandoInter
               ? "Enviando…"
@@ -26046,7 +26012,7 @@ function ResolverActividadChat({
             <div className="flex items-center gap-1" title={participantes.map(p => p.usuario_nombre).join(", ")}>
               {participantes.slice(0, 3).map(p => (
                 <span key={p.usuario_id}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500 text-white text-[10px] font-black shadow"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/50 text-white text-[10px] font-black shadow"
                   title={`${p.usuario_nombre} (${p.rol})`}>
                   {p.usuario_nombre.charAt(0).toUpperCase()}
                 </span>
@@ -26070,11 +26036,11 @@ function ResolverActividadChat({
 
         {/* Banner: bloqueo por intervención pendiente */}
         {bloqueadoPorNumero && (
-          <div className="rounded-2xl border-2 border-amber-300/70 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 flex items-start gap-3">
+          <div className="rounded-2xl border-2 border-accent/70 bg-accent/5 dark:bg-accent/30 px-4 py-3 flex items-start gap-3">
             <span className="text-xl shrink-0">⏳</span>
             <div>
-              <p className="text-xs font-extrabold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Esperando intervención</p>
-              <p className="text-sm text-amber-800 dark:text-amber-300 leading-snug mt-0.5">
+              <p className="text-xs font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide">Esperando intervención</p>
+              <p className="text-sm text-accent dark:text-accent/30 leading-snug mt-0.5">
                 Sub-ticket <strong>{bloqueadoPorNumero}</strong>{bloqueadoPorNombre ? ` asignado a ${bloqueadoPorNombre}` : ""} debe resolverse antes de poder marcar esta solicitud como terminada. Puedes seguir comunicándote en el hilo.
               </p>
             </div>
@@ -26083,42 +26049,42 @@ function ResolverActividadChat({
 
         {/* Hilo del ticket padre (cuando este es un sub-ticket de intervención) */}
         {padreInfo && (
-          <div className="rounded-2xl border-2 border-violet-300/60 dark:border-violet-700/40 bg-violet-50 dark:bg-violet-950/20">
+          <div className="rounded-2xl border-2 border-accent/60 dark:border-accent/40 bg-accent/5 dark:bg-accent/20">
             <button type="button"
               onClick={() => setShowPadre(v => !v)}
               className="w-full flex items-center justify-between px-4 py-2.5 text-left">
               <div className="flex items-center gap-2">
-                <span className="text-violet-600 dark:text-violet-400">👥</span>
-                <span className="text-xs font-extrabold text-violet-700 dark:text-violet-400 uppercase tracking-wide">
+                <span className="text-accent dark:text-accent/40">👥</span>
+                <span className="text-xs font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide">
                   Hilo principal · {padreInfo.numero}
                 </span>
-                <span className="text-xs text-violet-600/70 dark:text-violet-400/60 truncate max-w-[150px]">{padreInfo.titulo}</span>
+                <span className="text-xs text-accent/70 dark:text-accent/60 truncate max-w-[150px]">{padreInfo.titulo}</span>
               </div>
-              <span className="text-xs font-bold text-violet-500 shrink-0 ml-2">{showPadre ? "▲ Ocultar" : `▼ Ver (${padreInfo.notasPadre.length})`}</span>
+              <span className="text-xs font-bold text-accent/50 shrink-0 ml-2">{showPadre ? "▲ Ocultar" : `▼ Ver (${padreInfo.notasPadre.length})`}</span>
             </button>
             {showPadre && (
-              <div className="border-t border-violet-200 dark:border-violet-700/40 px-4 py-3 space-y-2 max-h-72 overflow-y-auto">
+              <div className="border-t border-accent/20 dark:border-accent/40 px-4 py-3 space-y-2 max-h-72 overflow-y-auto">
                 {padreInfo.notasPadre.map(nota => {
                   const esSol = !!nota.esSolicitante;
                   return (
                     <div key={nota.id} className={`flex ${esSol ? "justify-start" : "justify-end"}`}>
                       <div className="max-w-[88%] space-y-0.5">
                         {nota.autorNombre && (
-                          <p className="text-[10px] font-extrabold text-violet-600 dark:text-violet-400 uppercase tracking-wide px-1">{nota.autorNombre}</p>
+                          <p className="text-[10px] font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide px-1">{nota.autorNombre}</p>
                         )}
                         {nota.fotoUrl && (
                           <>
                             {lbUrl && <ImageLightbox url={lbUrl} onClose={() => setLbUrl(null)} />}
                             <button type="button" onClick={() => setLbUrl(nota.fotoUrl!)} className="group relative block w-full max-w-xs text-left" title="Ver imagen">
-                              <img src={nota.fotoUrl} alt="foto" className="rounded-xl w-full max-w-xs border border-violet-200 dark:border-violet-700/40 object-cover group-hover:opacity-80 transition-opacity" />
+                              <img src={nota.fotoUrl} alt="foto" className="rounded-xl w-full max-w-xs border border-accent/20 dark:border-accent/40 object-cover group-hover:opacity-80 transition-opacity" />
                               <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>
                             </button>
                           </>
                         )}
                         {nota.texto && (
                           <div className={`rounded-2xl px-3 py-2 text-xs leading-relaxed ${
-                            esSol ? "bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-bl-sm"
-                                  : "bg-violet-200 dark:bg-violet-800/40 text-violet-900 dark:text-violet-100 rounded-br-sm"
+                            esSol ? "bg-accent/10 dark:bg-accent/40 text-accent dark:text-accent/10 rounded-bl-sm"
+                                  : "bg-accent/20 dark:bg-accent/40 text-accent dark:text-accent/10 rounded-br-sm"
                           }`}>{nota.texto}</div>
                         )}
                       </div>
@@ -26132,18 +26098,18 @@ function ResolverActividadChat({
 
         {/* Tarjeta de contexto: descripción de la solicitud (siempre visible) */}
         {!cargandoNotas && (
-          <div className="rounded-2xl border-2 border-blue-300/60 dark:border-blue-700/40 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 space-y-1">
+          <div className="rounded-2xl border-2 border-accent/60 dark:border-accent/40 bg-accent/5 dark:bg-accent/30 px-4 py-3 space-y-1">
             <div className="flex items-center gap-2">
-              <span className="h-6 w-6 shrink-0 rounded-full bg-blue-500 text-white text-[11px] font-black flex items-center justify-center">
+              <span className="h-6 w-6 shrink-0 rounded-full bg-accent/50 text-white text-[11px] font-black flex items-center justify-center">
                 {solicitud.creado_por_nombre?.charAt(0)?.toUpperCase() ?? "?"}
               </span>
-              <p className="text-[11px] font-extrabold text-blue-700 dark:text-blue-400 uppercase tracking-wide">
+              <p className="text-[11px] font-extrabold text-accent dark:text-accent/40 uppercase tracking-wide">
                 {solicitud.creado_por_nombre} · Solicitud {solicitud.numero}
               </p>
             </div>
-            <p className="text-sm font-bold text-blue-900 dark:text-blue-200 leading-snug">{solicitud.titulo}</p>
+            <p className="text-sm font-bold text-accent dark:text-accent/20 leading-snug">{solicitud.titulo}</p>
             {descripcion && descripcion !== solicitud.titulo && (
-              <p className="text-sm text-blue-800/80 dark:text-blue-300/70 leading-relaxed whitespace-pre-wrap">{descripcion}</p>
+              <p className="text-sm text-accent/80 dark:text-accent/70 leading-relaxed whitespace-pre-wrap">{descripcion}</p>
             )}
           </div>
         )}
@@ -26184,7 +26150,7 @@ function ResolverActividadChat({
                 {/* Nombre del autor — para solicitante y colaboradores */}
                 {(esSol || esColab) && nota.autorNombre && (
                   <p className={`text-[10px] font-extrabold uppercase tracking-wide px-1 ${
-                    esColab ? "text-violet-600 dark:text-violet-400" : "text-blue-600 dark:text-blue-400"
+                    esColab ? "text-accent dark:text-accent/40" : "text-accent dark:text-accent/40"
                   }`}>
                     {nota.autorNombre}
                   </p>
@@ -26194,8 +26160,8 @@ function ResolverActividadChat({
                     <button type="button" onClick={() => !(nota.guardando || nota.eliminando) && setLbUrl(nota.fotoUrl!)} className="block w-full max-w-xs text-left" title="Ver imagen">
                       <img src={nota.fotoUrl} alt="foto"
                         className={`rounded-xl w-full max-w-xs border object-cover transition group-hover/img:opacity-80 ${nota.guardando || nota.eliminando ? "opacity-60" : ""} ${
-                          esSol ? "border-blue-200 dark:border-blue-700/40"
-                          : esColab ? "border-violet-200 dark:border-violet-700/40"
+                          esSol ? "border-accent/20 dark:border-accent/40"
+                          : esColab ? "border-accent/20 dark:border-accent/40"
                           : "border-gray-200 dark:border-white/10"
                         }`}/>
                       {!(nota.guardando || nota.eliminando) && <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/img:opacity-100 text-white text-2xl font-bold transition-opacity pointer-events-none">🔍</span>}
@@ -26214,9 +26180,9 @@ function ResolverActividadChat({
                   <div className="relative">
                     <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed transition ${nota.guardando || nota.eliminando ? "opacity-60" : ""} ${
                       esSol
-                        ? "bg-blue-100 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 rounded-bl-sm"
+                        ? "bg-accent/10 dark:bg-accent/40 text-accent dark:text-accent/10 rounded-bl-sm"
                         : esColab
-                          ? "bg-violet-100 dark:bg-violet-900/40 text-violet-900 dark:text-violet-100 rounded-bl-sm"
+                          ? "bg-accent/10 dark:bg-accent/40 text-accent dark:text-accent/10 rounded-bl-sm"
                           : "bg-accent text-white rounded-br-sm"
                     }`}>
                       {nota.texto}
@@ -26247,7 +26213,7 @@ function ResolverActividadChat({
       <div className="px-4 pt-3 pb-2">
         <button type="button" onClick={terminar}
           disabled={terminando || notas.some(n => n.guardando) || !!bloqueadoPorNumero}
-          className="w-full rounded-2xl bg-green-500 hover:bg-green-400 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
+          className="w-full rounded-2xl bg-accent/50 hover:bg-accent/40 disabled:opacity-50 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98] shadow-lg">
           {terminando ? "Enviando para revisión…"
             : notas.some(n => n.guardando) ? "Guardando…"
             : bloqueadoPorNumero ? `⏳ Esperando intervención ${bloqueadoPorNumero}`
@@ -26373,15 +26339,13 @@ function AgenteMandoView({
   const [revisionSolicitud, setRevisionSolicitud] = useState<{
     id: number; titulo: string; numero: string; asignado_a_nombre: string;
   } | null>(null);
-  const [modoEjecucion, setModoEjecucion] = useState<{ id: number; titulo: string } | null>(() => {
-    try {
-      const s = localStorage.getItem("mckenna-accion-activa");
-      return s ? JSON.parse(s) : null;
-    } catch { return null; }
-  });
+  const [modoEjecucion, setModoEjecucion] = useState<{ id: number; titulo: string } | null>(null);
   const [esperandoTituloAccion, setEsperandoTituloAccion] = useState(false);
 
-  // Limpiar sub-vistas cuando el padre incrementa clearSubViewKey (botón "Centro" en móvil)
+  // Limpiar clave legacy al montar — evita que una sesión anterior abra la acción automáticamente
+  useEffect(() => { localStorage.removeItem("mckenna-accion-activa"); }, []);
+
+  // Limpiar sub-vistas cuando el padre incrementa clearSubViewKey (botón "Agenda" en móvil)
   useEffect(() => {
     if (!clearSubViewKey) return;
     setSolicitudResolviendo(null);
@@ -26390,7 +26354,7 @@ function AgenteMandoView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearSubViewKey]);
 
-  // Descartar acción guardada en localStorage si ya no está en_proceso o no es del usuario
+  // Descartar acción guardada en localStorage si ya fue resuelta/rechazada o no es del usuario
   useEffect(() => {
     if (!modoEjecucion) return;
     let cancelled = false;
@@ -26399,15 +26363,13 @@ function AgenteMandoView({
         const det = await tapi(`/${modoEjecucion.id}`, token) as Ticket;
         if (cancelled) return;
         const norm = normalizeTicketForList(det);
-        if (norm.estado !== "en_proceso" || !uidEq(norm.asignado_a, user.id)) {
+        const estadoActivo = norm.estado === "en_proceso" || norm.estado === "pendiente";
+        if (!estadoActivo || !uidEq(norm.asignado_a, user.id)) {
           localStorage.removeItem("mckenna-accion-activa");
           setModoEjecucion(null);
         }
       } catch {
-        if (!cancelled) {
-          localStorage.removeItem("mckenna-accion-activa");
-          setModoEjecucion(null);
-        }
+        // Error de red: conservar modoEjecucion para no bloquear al usuario
       }
     })();
     return () => { cancelled = true; };
@@ -27192,7 +27154,7 @@ function AgenteMandoView({
           H
         </span>
         {hayActividad && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-surface-panel bg-rose-500 px-1 text-[10px] font-extrabold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-surface-panel bg-accent/50 px-1 text-[10px] font-extrabold text-white">
             {solicitudesCount > 0 ? solicitudesCount : "!"}
           </span>
         )}
@@ -27276,7 +27238,7 @@ function AgenteMandoView({
               <button type="button" onClick={onGoTablero}
                 className="shrink-0 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-extrabold text-ink transition hover:border-accent hover:text-accent"
                 title="Agenda">
-                🎯 Centro
+                🎯 Agenda
               </button>
             </>
           )}
@@ -27335,12 +27297,12 @@ function AgenteMandoView({
               lastChips.filter(c => !c.tipo || c.tipo === "util"),
             ).map((chip, i) => {
               const meta: Record<string, { icon: string; dot: string; bg: string; label: string }> = {
-                accion_activa:        { icon: "⚡", dot: "bg-teal-500",   bg: "bg-teal-50/70 dark:bg-teal-950/20",   label: "text-teal-700 dark:text-teal-300" },
-                solicitud_asignada:   { icon: "📋", dot: "bg-blue-400",   bg: "bg-blue-50/60 dark:bg-blue-950/20",   label: "text-blue-700 dark:text-blue-300" },
-                solicitud_aprobar:    { icon: "⏳", dot: "bg-amber-400",  bg: "bg-amber-50/60 dark:bg-amber-950/20", label: "text-amber-700 dark:text-amber-300" },
-                recordatorio:         { icon: "🔔", dot: "bg-violet-400", bg: "bg-violet-50/50 dark:bg-violet-950/20", label: "text-violet-700 dark:text-violet-300" },
-                pendiente:            { icon: "🗓️", dot: "bg-emerald-400", bg: "bg-emerald-50/50 dark:bg-emerald-950/20", label: "text-emerald-700 dark:text-emerald-300" },
-                colaboracion:         { icon: "👥", dot: "bg-violet-300", bg: "bg-violet-50/50 dark:bg-violet-950/20", label: "text-violet-700 dark:text-violet-300" },
+                accion_activa:        { icon: "⚡", dot: "bg-accent/50",   bg: "bg-accent/70 dark:bg-accent/20",   label: "text-accent dark:text-accent/30" },
+                solicitud_asignada:   { icon: "📋", dot: "bg-accent/40",   bg: "bg-accent/60 dark:bg-accent/20",   label: "text-accent dark:text-accent/30" },
+                solicitud_aprobar:    { icon: "⏳", dot: "bg-accent/40",  bg: "bg-accent/60 dark:bg-accent/20", label: "text-accent dark:text-accent/30" },
+                recordatorio:         { icon: "🔔", dot: "bg-accent/40", bg: "bg-accent/50 dark:bg-accent/20", label: "text-accent dark:text-accent/30" },
+                pendiente:            { icon: "🗓️", dot: "bg-accent/40", bg: "bg-accent/50 dark:bg-accent/20", label: "text-accent dark:text-accent/30" },
+                colaboracion:         { icon: "👥", dot: "bg-accent/30", bg: "bg-accent/50 dark:bg-accent/20", label: "text-accent dark:text-accent/30" },
                 labor_tablero:        { icon: "🎯", dot: "bg-stone-400",  bg: "bg-stone-50/60 dark:bg-stone-900/20",  label: "text-stone-700 dark:text-stone-300" },
                 solicitud_esperando:  { icon: "·",  dot: "bg-slate-300",  bg: "bg-slate-50/40 dark:bg-slate-900/10",  label: "text-slate-500 dark:text-slate-400" },
                 util:                 { icon: "→",  dot: "bg-border",     bg: "bg-surface",                            label: "text-ink" },
@@ -27419,7 +27381,7 @@ function AgenteMandoView({
           <button type="button" onClick={onGoSolicitudes}
             className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition active:scale-[0.97] ${
               solicitudesCount > 0
-                ? "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/40 dark:text-rose-300"
+                ? "border-accent/20 bg-accent/5 text-accent dark:border-accent/50 dark:bg-accent/40 dark:text-accent/30"
                 : "border-border bg-surface text-muted"
             }`}>
             <TopicIcon value="📋" size={12} weight="regular" />
@@ -27726,7 +27688,8 @@ export default function TicketsPanel() {
             onInicio={goInicio}
             onCentroMando={goCentroMando}
             onSolicitudes={goSolicitudes}
-            onWorkload={goWorkload}
+            onAcciones={() => goAcciones("activas")}
+            onProcedimientos={() => goAcciones("procedimientos")}
           />
         )}
         <InventarioCarritoModal
@@ -27748,47 +27711,23 @@ export default function TicketsPanel() {
           />
         )}
         {view === "home" && (
-          <div className="relative flex min-h-0 flex-1 flex-col">
-            {/* Dashboard — siempre visible en desktop; en móvil queda detrás de Hugo */}
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-20">
-              <CentroMandoHome
-                token={token}
-                user={user}
-                nivel={nivel}
-                permisos={permisos}
-                onAcciones={() => goAcciones("activas")}
-                onSolicitudes={goSolicitudes}
-                onContratos={goContratos}
-                onTablero={() => goAcciones("activas")}
-                onAccionesFuturas={() => goAcciones("agenda")}
-                onRecordatorios={() => goAcciones("agenda")}
-                onProcedimientos={() => goAcciones("procedimientos")}
-                onImpresora={goImpresora}
-                onNotas={() => goAcciones("notas")}
-                onBolsillo={() => goAcciones("bolsillo")}
-              />
-            </div>
-            <AgenteMandoView
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
+            <CentroMandoHome
               token={token}
               user={user}
-              modoInicio
-              embedido
-              isMobile={isMobile}
-              chatExpanded={hugoChatExpanded}
-              onToggleChatExpanded={() => setHugoChatExpanded(false)}
-              onExpandChat={() => setHugoChatExpanded(true)}
-              onSalir={salirDeAgente}
-              onAbrirMenu={toggleSidebar}
-              onIrInicio={goInicio}
-              onGoSolicitudes={goSolicitudes}
-              onGoAcciones={() => goAcciones("activas")}
-              onGoTablero={goCentroMando}
-              onGoHistorialAcciones={() => goAcciones("historial")}
-              onGoImpresora={goImpresora}
-              onGoRecordatorios={() => goAcciones("agenda")}
-              onGoTableroLabores={() => goAcciones("activas")}
-              onGoPendientes={() => goAcciones("pendientes")}
-              clearSubViewKey={agenteClearKey}
+              nivel={nivel}
+              permisos={permisos}
+              onAcciones={() => goAcciones("activas")}
+              onSolicitudes={goSolicitudes}
+              onVerSolicitud={goDetail}
+              onContratos={goContratos}
+              onTablero={() => goAcciones("activas")}
+              onAccionesFuturas={() => goAcciones("agenda")}
+              onRecordatorios={() => goAcciones("agenda")}
+              onProcedimientos={() => goAcciones("procedimientos")}
+              onImpresora={goImpresora}
+              onNotas={() => goAcciones("notas")}
+              onBolsillo={() => goAcciones("bolsillo")}
             />
           </div>
         )}

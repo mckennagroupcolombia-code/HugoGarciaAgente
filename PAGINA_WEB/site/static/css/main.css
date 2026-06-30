@@ -1421,6 +1421,51 @@ button { cursor: pointer; font-family: 'Montserrat', sans-serif; }
 .hero-scroll:hover::before { width: 64px; }
 
 /* ══════════════════════════════════════════════════════════
+   BARRA Y ESTADO DE BÚSQUEDA
+══════════════════════════════════════════════════════════ */
+.search-results-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(var(--green-light-rgb, 134,188,37), 0.08);
+  border: 1px solid rgba(var(--green-light-rgb, 134,188,37), 0.2);
+  border-radius: 10px;
+  margin: 16px 0 8px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.search-results-bar i { font-size: 1.1rem; opacity: 0.6; }
+.search-results-bar strong { color: var(--text-primary); }
+.search-clear {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: background 0.2s;
+}
+.search-clear:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+.search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 64px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.search-empty i { font-size: 3rem; opacity: 0.3; }
+.search-empty p { margin: 0; }
+
+/* ══════════════════════════════════════════════════════════
    STICKY NAV DEL CATÁLOGO
 ══════════════════════════════════════════════════════════ */
 .cat-sticky-nav {
