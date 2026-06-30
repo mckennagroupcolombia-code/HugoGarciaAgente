@@ -1281,8 +1281,64 @@ def init_db():
                 activo          INTEGER DEFAULT 1
             );
         """)
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS notas_personales (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id     INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+                contenido      TEXT NOT NULL,
+                creado_en      TEXT DEFAULT (datetime('now')),
+                actualizado_en TEXT DEFAULT (datetime('now'))
+            );
+        """)
         db.commit()
     print("✅ Centro de Mando (tickets DB) inicializado")
+
+
+# ── NOTAS PERSONALES ──────────────────────────────────────────────────────────
+
+def listar_notas(usuario_id: int) -> list[dict]:
+    with _conn() as db:
+        rows = db.execute(
+            "SELECT id, contenido, creado_en, actualizado_en FROM notas_personales "
+            "WHERE usuario_id = ? ORDER BY creado_en DESC",
+            (usuario_id,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def crear_nota(usuario_id: int, contenido: str) -> dict:
+    with _conn() as db:
+        cur = db.execute(
+            "INSERT INTO notas_personales (usuario_id, contenido) VALUES (?, ?)",
+            (usuario_id, contenido.strip()),
+        )
+        db.commit()
+        row = db.execute(
+            "SELECT id, contenido, creado_en, actualizado_en FROM notas_personales WHERE id = ?",
+            (cur.lastrowid,),
+        ).fetchone()
+    return dict(row)
+
+
+def actualizar_nota(nota_id: int, usuario_id: int, contenido: str) -> bool:
+    with _conn() as db:
+        cur = db.execute(
+            "UPDATE notas_personales SET contenido = ?, actualizado_en = datetime('now') "
+            "WHERE id = ? AND usuario_id = ?",
+            (contenido.strip(), nota_id, usuario_id),
+        )
+        db.commit()
+    return cur.rowcount > 0
+
+
+def eliminar_nota(nota_id: int, usuario_id: int) -> bool:
+    with _conn() as db:
+        cur = db.execute(
+            "DELETE FROM notas_personales WHERE id = ? AND usuario_id = ?",
+            (nota_id, usuario_id),
+        )
+        db.commit()
+    return cur.rowcount > 0
 
 
 # ── HELPERS ──────────────────────────────────────────────────────────────────

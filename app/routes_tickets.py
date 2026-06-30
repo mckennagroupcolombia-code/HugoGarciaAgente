@@ -44,6 +44,7 @@ from app.services.tickets_db import (
     get_aliados_asignaciones, set_aliado_asignacion, TAREA_RECLAMO_MELI_ANULAR_FACTURA, TAREA_SYNC_FACTURAS_FALTANTES_SIIGO,
     listar_compras_ticket, agregar_compra_ticket, actualizar_compra_ticket, eliminar_compra_ticket,
     buscar_productos_para_compra,
+    listar_notas, crear_nota, actualizar_nota, eliminar_nota,
 )
 
 _ALLOWED = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx", "txt"}
@@ -2564,6 +2565,40 @@ def register_tickets_routes(app):
                 "titulo_sugerido": sol.get("titulo_sugerido"),
             },
         }), 200
+
+    # ── Notas personales ──────────────────────────────────────────────────────
+
+    @app.route("/api/tickets/notas", methods=["GET"])
+    @_auth
+    def tickets_notas_listar():
+        uid = request.tickets_usuario["id"]
+        return jsonify(listar_notas(uid)), 200
+
+    @app.route("/api/tickets/notas", methods=["POST"])
+    @_auth
+    def tickets_notas_crear():
+        uid = request.tickets_usuario["id"]
+        contenido = (request.json or {}).get("contenido", "").strip()
+        if not contenido:
+            return jsonify({"error": "contenido requerido"}), 400
+        return jsonify(crear_nota(uid, contenido)), 201
+
+    @app.route("/api/tickets/notas/<int:nota_id>", methods=["PUT"])
+    @_auth
+    def tickets_notas_actualizar(nota_id):
+        uid = request.tickets_usuario["id"]
+        contenido = (request.json or {}).get("contenido", "").strip()
+        if not contenido:
+            return jsonify({"error": "contenido requerido"}), 400
+        ok = actualizar_nota(nota_id, uid, contenido)
+        return (jsonify({"ok": True}), 200) if ok else (jsonify({"error": "not found"}), 404)
+
+    @app.route("/api/tickets/notas/<int:nota_id>", methods=["DELETE"])
+    @_auth
+    def tickets_notas_eliminar(nota_id):
+        uid = request.tickets_usuario["id"]
+        ok = eliminar_nota(nota_id, uid)
+        return (jsonify({"ok": True}), 200) if ok else (jsonify({"error": "not found"}), 404)
 
     @app.route("/api/tickets/recordatorios/notificar-hoy", methods=["POST"])
     @_auth

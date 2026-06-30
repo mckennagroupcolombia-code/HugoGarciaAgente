@@ -27,8 +27,26 @@
 </div>
 
 <!-- ════════════════════════════════════════════════════════
-     FILTRO POR CATEGORÍA (sticky)
+     RESULTADO DE BÚSQUEDA (solo cuando hay q_filter)
 ════════════════════════════════════════════════════════ -->
+{% if q_filter %}
+<div class="search-results-bar">
+  <i class="ph ph-magnifying-glass"></i>
+  {% if sections %}
+    {% set total_q = namespace(n=0) %}
+    {% for s in sections %}{% set total_q.n = total_q.n + s.products|length %}{% endfor %}
+    <span>{{ total_q.n }} resultado{% if total_q.n != 1 %}s{% endif %} para <strong>"{{ q_filter }}"</strong></span>
+  {% else %}
+    <span>Sin resultados para <strong>"{{ q_filter }}"</strong></span>
+  {% endif %}
+  <a href="{{ url_for('catalogo') }}" class="search-clear"><i class="ph ph-x"></i> Limpiar</a>
+</div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════════════
+     FILTRO POR CATEGORÍA (sticky) — oculto durante búsqueda
+════════════════════════════════════════════════════════ -->
+{% if not q_filter %}
 <nav class="cat-sticky-nav" id="cat-nav">
   <a href="{{ url_for('catalogo') }}"
      class="nav-item {% if not cat_filter %}active{% endif %}">Todos</a>
@@ -38,6 +56,23 @@
      data-cat="{{ cat }}">{{ cat }}</a>
   {% endfor %}
 </nav>
+{% endif %}
+
+<!-- Sin resultados -->
+{% if q_filter and not sections %}
+<div class="search-empty">
+  <i class="ph ph-binoculars"></i>
+  <p>No encontramos productos que coincidan con <strong>"{{ q_filter }}"</strong>.</p>
+  <p style="font-size:0.9rem;opacity:0.7;margin-top:8px;">Intenta con otro término o consulta por WhatsApp.</p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:24px;">
+    <a href="{{ url_for('catalogo') }}" class="btn btn-ghost btn-sm">Ver todo el catálogo</a>
+    <a href="https://wa.me/{{ WA_NUMBER }}?text=Hola%2C%20busco%20{{ q_filter|urlencode }}"
+       target="_blank" rel="noopener" class="btn btn-wa btn-sm">
+      <i class="ph ph-whatsapp-logo"></i> Consultar por WhatsApp
+    </a>
+  </div>
+</div>
+{% endif %}
 
 <!-- ════════════════════════════════════════════════════════
      SECCIONES POR CATEGORÍA — GRID E-COMMERCE
