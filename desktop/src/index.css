@@ -2,14 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Modo APK: interfaz minimalista sin color ──────────────────────────────── */
-/* Aplicado en html para atrapar portales, position:fixed y cualquier elemento
-   que escape de #root */
-html.mck-apk {
-  -webkit-filter: grayscale(1) contrast(1.06);
-  filter: grayscale(1) contrast(1.06);
-}
-
 @layer base {
   :root {
     --mck-font-sans: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

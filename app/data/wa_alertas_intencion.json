@@ -170,6 +170,46 @@
       "alerta_enviada_ts": 1782685390.2374246,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573137773120@c.us": {
+      "jid": "573137773120@c.us",
+      "primer_intencion_ts": 1782845688.0,
+      "primer_intencion_texto": "quiero por favor comprar esta materia prima\nme envias cotizacion porfa\n\n5L Miristato isopropilo\n6K Manteca de karite blanca sin olor sin color\n2K Cera de abeja Beeswax transparente o blanca\n3k Alcohol cetilico \n500 g Aloe vera extracto\n2k Queratina (la mas economica)\n1k alcohol estearilico\n2L TEA\n1L Polisorbato 80\n1K Ceteareth 20\n1K Manteca de cacao\n1L Extracto de coco\n1L Phenoxyethanol + Ethylhexylglycerin.\n1L Hydroxyethyl Urea\n500 g Manteca de mango\n500 g Stearamidopropyl Dimethylamine Lactate",
+      "ultima_human_ts": 1782846218.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573222357398@c.us": {
+      "jid": "573222357398@c.us",
+      "primer_intencion_ts": 1782846582.0,
+      "primer_intencion_texto": "Para realizar un pedido",
+      "ultima_human_ts": 1782846930.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573156814001@c.us": {
+      "jid": "573156814001@c.us",
+      "primer_intencion_ts": 1782848309.0,
+      "primer_intencion_texto": "Le agradezco si me pueden envíar el pedido hoy viajamos mañana",
+      "ultima_human_ts": 1782848388.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573186194873@c.us": {
+      "jid": "573186194873@c.us",
+      "primer_intencion_ts": 1782854505.0,
+      "primer_intencion_texto": "Es que quiero comprar ambas",
+      "ultima_human_ts": null,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1782855440.0016081,
+      "cancelada": false,
+      "cancelada_razon": null
     }
   }
 }
