@@ -111,7 +111,7 @@ function ToolSep() {
 
 type DragMode = "move" | "resize-se" | "resize-line-end" | "rotate" | null;
 
-function estiloElemento(el: ElementoVisual): React.CSSProperties {
+export function estiloElemento(el: ElementoVisual): React.CSSProperties {
   const base: React.CSSProperties = {
     position: "absolute",
     left: el.x,

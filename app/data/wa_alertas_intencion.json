@@ -193,11 +193,11 @@
     },
     "573156814001@c.us": {
       "jid": "573156814001@c.us",
-      "primer_intencion_ts": 1782848309.0,
-      "primer_intencion_texto": "Le agradezco si me pueden envíar el pedido hoy viajamos mañana",
-      "ultima_human_ts": 1782848388.0,
+      "primer_intencion_ts": 1782911893.0,
+      "primer_intencion_texto": "Como le comenté nosotros estamos acá de paso estamos a la espera de los tiquetes aéreos para trasladarnos para Pereira, si por favor me colaboran para que llegue el pedido en la mañana",
+      "ultima_human_ts": 1782914367.0,
       "ultimo_bot_ts": null,
-      "alerta_enviada_ts": null,
+      "alerta_enviada_ts": 1782912800.1316667,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
     },
@@ -210,6 +210,56 @@
       "alerta_enviada_ts": 1782855440.0016081,
       "cancelada": false,
       "cancelada_razon": null
+    },
+    "573173226776@c.us": {
+      "jid": "573173226776@c.us",
+      "primer_intencion_ts": 1782913120.0,
+      "primer_intencion_texto": "Cuantos dias se demora un pedido a la ciudad de valledupar",
+      "ultima_human_ts": 1782914406.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": 1782914060.1543047,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573192247757@c.us": {
+      "jid": "573192247757@c.us",
+      "primer_intencion_ts": 1782914653.0,
+      "primer_intencion_texto": "Me imagino q sale más económico comprar el bulto de 20 kg cierto , q valdría",
+      "ultima_human_ts": 1782914998.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573134604659@c.us": {
+      "jid": "573134604659@c.us",
+      "primer_intencion_ts": 1782927478.0,
+      "primer_intencion_texto": "Te pago al qr",
+      "ultima_human_ts": 1782927489.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573183967407@c.us": {
+      "jid": "573183967407@c.us",
+      "primer_intencion_ts": 1782930474.0,
+      "primer_intencion_texto": "Voy a pagar estos para hacer este pedido",
+      "ultima_human_ts": 1782930551.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573155951959@c.us": {
+      "jid": "573155951959@c.us",
+      "primer_intencion_ts": 1782937140.0,
+      "primer_intencion_texto": "Ese sería el pedido vale linda",
+      "ultima_human_ts": 1782937222.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }

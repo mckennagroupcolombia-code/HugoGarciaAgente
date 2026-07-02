@@ -11,7 +11,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
       "categoria_catalogo": "",
       "creado_en": "2026-06-16T18:09:40",
-      "ultima_revision": "2026-06-30T08:30:02",
+      "ultima_revision": "2026-07-01T08:30:03",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -186,6 +186,16 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-01T08:30:03",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4074246724-citrato-de-magnesio-en-polvo-puro-500g-materia-prima-sin-sabor-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": [
@@ -203,7 +213,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-1000-gramos-1000-gr-1000-gr-en-polvo-puro-1-kilo-1kg-1kg/up/MCOU3415632539",
       "categoria_catalogo": "",
       "creado_en": "2026-06-19T20:57:16",
-      "ultima_revision": "2026-06-30T08:30:04",
+      "ultima_revision": "2026-07-01T08:30:04",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -322,6 +332,16 @@
           "alerta": false,
           "permalink": "https://articulo.mercadolibre.com.co/MCO-4083547534-citrato-de-magnesio-1000-gramos-polvo-puro-1-kilo-sin-s-sin-sabor-_JM",
           "señales": []
+        },
+        {
+          "fecha": "2026-07-01T08:30:04",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 0,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4083547534-citrato-de-magnesio-1000-gramos-polvo-puro-1-kilo-sin-s-sin-sabor-_JM",
+          "señales": []
         }
       ],
       "alertas_enviadas": []
@@ -337,7 +357,7 @@
       "referencia_url": "https://www.mercadolibre.com.co/citrato-de-magnesio-puro-500-g/up/MCOU3419731823",
       "categoria_catalogo": "",
       "creado_en": "2026-06-19T21:09:27",
-      "ultima_revision": "2026-06-30T08:30:05",
+      "ultima_revision": "2026-07-01T08:30:06",
       "estado_actual": "active",
       "sub_status": [],
       "nivel_riesgo": "bajo",
@@ -476,10 +496,22 @@
           "señales": [
             "suplemento dietario"
           ]
+        },
+        {
+          "fecha": "2026-07-01T08:30:06",
+          "status": "active",
+          "sub_status": [],
+          "nivel_riesgo": "bajo",
+          "score_riesgo": 2,
+          "alerta": false,
+          "permalink": "https://articulo.mercadolibre.com.co/MCO-4083548736-citrato-de-magnesio-puro-250-g-sin-sabor-_JM",
+          "señales": [
+            "suplemento dietario"
+          ]
         }
       ],
       "alertas_enviadas": []
     }
   ],
-  "ultima_revision_global": "2026-06-30T08:30:05"
+  "ultima_revision_global": "2026-07-01T08:30:06"
 }

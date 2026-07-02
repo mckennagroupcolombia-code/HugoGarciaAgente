@@ -1,3 +1,6 @@
+import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
+import { toCanvas } from "html-to-image";
 import {
   esFuenteMontserrat,
   pesoFontWeightCss,
@@ -6,6 +9,7 @@ import {
   type PlantillaVisualDoc,
 } from "./plantillasVisuales";
 import { esSrcImagenApi, resolverUrlImagenCanvas } from "./plantillasVisualesImagen";
+import PlantillaVisualEstaticoDom from "../components/plantillas-visuales/PlantillaVisualEstaticoDom";
 
 /** Misma proporción que `line-height: normal` en el lienzo del editor. */
 const LINE_HEIGHT_RATIO = 1.2;
@@ -46,7 +50,7 @@ async function asegurarFuentesLienzo(doc: PlantillaVisualDoc): Promise<void> {
   await Promise.all([...specs].map((spec) => document.fonts.load(spec).catch(() => undefined)));
 }
 
-function normalizarSrcImagen(src: string): string {
+export function normalizarSrcImagen(src: string): string {
   const raw = (src || "").trim();
   if (!raw || raw.startsWith("data:") || raw.startsWith("blob:")) return raw;
   if (esSrcImagenApi(raw)) return raw;
@@ -62,6 +66,75 @@ function normalizarSrcImagen(src: string): string {
     /* relativo */
   }
   return raw;
+}
+
+async function resolverImagenesPlantilla(
+  doc: PlantillaVisualDoc,
+): Promise<Map<string, string | null>> {
+  const mapa = new Map<string, string | null>();
+  const imagenes = doc.elementos.filter(
+    (el): el is Extract<ElementoVisual, { type: "image" }> =>
+      el.type === "image" && !!el.src && el.visible !== false,
+  );
+  await Promise.all(
+    imagenes.map(async (el) => {
+      try {
+        mapa.set(el.id, await resolverUrlImagenCanvas(normalizarSrcImagen(el.src)));
+      } catch {
+        mapa.set(el.id, null);
+      }
+    }),
+  );
+  return mapa;
+}
+
+/**
+ * Renderiza la plantilla montando el mismo DOM/CSS del editor (fuera de
+ * pantalla) y lo captura con html-to-image. A diferencia de
+ * `renderPlantillaToCanvas` (Canvas 2D con wrap/justify reimplementados a
+ * mano), este camino reutiliza el layout de texto real del navegador, por lo
+ * que el resultado coincide con lo que se ve en VisualCanvasEditor.
+ */
+export async function renderPlantillaToCanvasDom(
+  doc: PlantillaVisualDoc,
+  opts?: OpcionesExportPlantilla,
+): Promise<HTMLCanvasElement> {
+  if (typeof document === "undefined") throw new Error("Exportación no disponible en este entorno");
+  if (document.fonts) await document.fonts.ready;
+
+  const escala = clampEscalaExport(opts?.escala);
+  const { ancho_px: w, alto_px: h } = doc.formato;
+  const forzarOpaco = opts?.forzarFondoOpaco === true;
+  const imagenesResueltas = await resolverImagenesPlantilla(doc);
+
+  const contenedor = document.createElement("div");
+  contenedor.style.position = "fixed";
+  contenedor.style.left = "-99999px";
+  contenedor.style.top = "0";
+  contenedor.style.pointerEvents = "none";
+  document.body.appendChild(contenedor);
+
+  const raiz = createRoot(contenedor);
+  try {
+    flushSync(() => {
+      raiz.render(
+        <PlantillaVisualEstaticoDom doc={doc} imagenesResueltas={imagenesResueltas} />,
+      );
+    });
+    const nodo = contenedor.firstElementChild as HTMLElement | null;
+    if (!nodo) throw new Error("No se pudo preparar el lienzo para exportar");
+
+    return await toCanvas(nodo, {
+      width: w,
+      height: h,
+      pixelRatio: escala,
+      backgroundColor: forzarOpaco ? "#ffffff" : undefined,
+      cacheBust: true,
+    });
+  } finally {
+    raiz.unmount();
+    contenedor.remove();
+  }
 }
 
 async function cargarImagen(src: string): Promise<HTMLImageElement> {
@@ -241,6 +314,12 @@ function pintarFondo(
   ctx.fillRect(0, 0, w, h);
 }
 
+/**
+ * Render Canvas 2D aproximado (wrap/justify propios, sin motor de layout del
+ * navegador). Solo se usa para miniaturas de la biblioteca — rápido y
+ * suficientemente fiel a esa escala. La exportación real usa
+ * `renderPlantillaToCanvasDom`, que captura el DOM real del editor.
+ */
 export async function renderPlantillaToCanvas(
   doc: PlantillaVisualDoc,
   opts?: OpcionesExportPlantilla,
@@ -330,7 +409,7 @@ export async function exportarPlantillaBlob(
 ): Promise<Blob> {
   const forzarOpaco = formato === "jpeg";
   const escala = clampEscalaExport(opts?.escala);
-  const canvas = await renderPlantillaToCanvas(doc, {
+  const canvas = await renderPlantillaToCanvasDom(doc, {
     forzarFondoOpaco: forzarOpaco,
     escala,
   });

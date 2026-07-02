@@ -993,8 +993,32 @@
       "question_id": "13612658773",
       "titulo_producto": "Carbonato De Magnesio Alimentario 500 Gr/envío Gratis",
       "pregunta": "Es 100% puro o tiene algun aditivo?",
-      "timestamp": "2026-07-01T01:50:12.505374",
-      "respondida": false
+      "timestamp": "2026-07-01T02:50:18.227358",
+      "respondida": true
+    },
+    {
+      "question_id": "13613771896",
+      "titulo_producto": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+      "pregunta": "Venden por aparte las sales de calibración?",
+      "timestamp": "2026-07-01T12:16:09.991981",
+      "respondida": true
+    },
+    {
+      "question_id": "13613981166",
+      "titulo_producto": "Gramera Balanza Digital 0.001 G Alta Precisión Hasta 50 Gr Negro",
+      "pregunta": "Buenas tardes. La necesito para conteo de remaches, botones, puntillas en pocas contidades, me sirve esta referncia?",
+      "timestamp": "2026-07-01T17:13:31.373579",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-07-01"
+    },
+    {
+      "question_id": "13614098180",
+      "titulo_producto": "Ácido Salicílico Usp 500 Gr Todo Tipo De Piel",
+      "pregunta": "El producto como se debería de usar/preparar para aplicarlo sobre la piel",
+      "timestamp": "2026-07-01T20:50:49.506337",
+      "respondida": true,
+      "borrador_ia": "Hola veci, ¡con gusto le colaboro! Para el uso tópico en el cuidado de la piel, la concentración de ácido salicílico recomendada es del 0.5% al 2%. Se debe aplicar una pequeña cantidad directamente en las áreas afectadas, una o dos veces al día, evitando el uso excesivo para no causar irritación o sequedad.\n\nPara el tratamiento de verrugas, la dosificación es mayor, del 17% al 40%. En este caso, se aplica una pequeña cantidad directamente sobre la verruga, evitando el contacto con la piel sana de alrededor. Se recomienda aplicarlo una vez al día, preferiblemente por la noche, durante 6 a 12 semanas.\n\nEs muy importante recordar que debe evitar la exposición al sol durante su uso, ya que puede aumentar la sensibilidad de la piel. No lo utilice sobre áreas irritadas, inflamadas o dañadas, y si llega a experimentar enrojecimiento o picazón, suspenda su aplicación.",
+      "nota": "Respondida automáticamente por monitor (reintento) 2026-07-01"
     }
   ]
 }

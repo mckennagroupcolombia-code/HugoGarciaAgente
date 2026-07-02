@@ -1,8 +1,8 @@
 {
-  "last_daily_run": "2026-06-30T05:00:26",
-  "last_deep_run": "2026-05-31T05:00:30",
-  "last_daily_date": "2026-06-30",
-  "last_deep_date": "2026-05-31",
+  "last_daily_run": "2026-07-01T05:00:30",
+  "last_deep_run": "2026-07-01T05:00:30",
+  "last_daily_date": "2026-07-01",
+  "last_deep_date": "2026-07-01",
   "history": [
     {
       "kind": "daily_batch",
@@ -195,7 +195,19 @@
       "at": "2026-06-30T05:05:53",
       "ok": true,
       "detail": ""
+    },
+    {
+      "kind": "daily_batch",
+      "at": "2026-07-01T05:05:22",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "kind": "deep_sync",
+      "at": "2026-07-01T05:21:24",
+      "ok": true,
+      "detail": ""
     }
   ],
-  "last_tick_date": "2026-06-30"
+  "last_tick_date": "2026-07-01"
 }
