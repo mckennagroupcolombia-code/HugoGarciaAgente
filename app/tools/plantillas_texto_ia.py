@@ -109,6 +109,96 @@ FICHAS TÉCNICAS:
 Responde ÚNICAMENTE con JSON válido en este formato:
 {{"sugerencias": [{{"texto": "primer párrafo.\\n\\nsegundo párrafo."}}]}}"""
 
+# Variante "tono comercial" — SOLO para Studio (Plantillas Visuales, banners,
+# catálogo, redes). NO usar para el editor de Etiquetas regulatorias/MeLi
+# (EtiquetaDiagramEditor no la referencia): a diferencia de _PROMPT_CATALOGO,
+# permite voz en primera persona y lenguaje de venta. Mantiene intactas las
+# prohibiciones de claims de salud/consumo/dosis (riesgo legal y de baja de
+# publicación, no solo de "tono").
+_PROMPT_CATALOGO_COMERCIAL = """Eres redactor publicitario de McKenna Group (materias primas farmacéuticas, cosméticas y alimentarias).
+
+El usuario escribe palabras clave para identificar una materia prima (solo para buscar la ficha; NO las repitas tal cual en el texto):
+"{fragmento}"
+
+NOMBRE CANÓNICO del ingrediente (mencionar como MÁXIMO 1 vez en TODO el texto, preferiblemente al inicio del párrafo 1; si el título ya está en otra capa de la etiqueta, NO lo menciones):
+"{nombre_canonico}"
+
+Usa SOLO la información de las fichas técnicas adjuntas. No inventes datos. Si un dato no está en las fichas, indica de forma general sin especificar cifras falsas.
+
+Redacta {n_opciones} variante(s) de texto comercial atractivo para catálogo o publicación de MATERIA PRIMA.
+
+EXTENSIÓN Y FORMA (obligatorio):
+- EXACTAMENTE 2 párrafos, separados por una línea en blanco (\\n\\n en JSON).
+- Cada párrafo debe tener alrededor de {palabras_por_parrafo} palabras (rango por párrafo: {palabras_parrafo_min}–{palabras_parrafo_max}).
+- Total aproximado: {palabras_objetivo} palabras entre ambos párrafos.
+- Desarrolla cada párrafo con detalle y varias oraciones; evita párrafos breves o telegráficos.
+
+VOZ Y PERSPECTIVA (tono comercial, obligatorio):
+- Puedes usar primera persona de marca (nosotros, ofrecemos, nuestro/a) e invitar a conocer o adquirir el ingrediente.
+- Resalta beneficios y ventajas de forma persuasiva y atractiva: pureza, calidad, versatilidad, confiabilidad como insumo.
+- Construcciones válidas: "ofrecemos", "contamos con", "destaca por", "se distingue por", "ideal para", "perfecto para".
+- El texto debe leerse como copy comercial de catálogo B2B, cercano y convincente, sin dejar de ser preciso con los datos técnicos.
+
+ESTILO NATURAL (obligatorio):
+- Español fluido, como catálogo comercial B2B colombiano; oraciones directas, cercanas y persuasivas.
+- Varía el inicio de cada oración; evita plantillas vacías ("características funcionales específicas", "rol relevante").
+- Describe propiedades físicas y usos industriales concretos; NO redactes como artículo de salud ni fisiología.
+- PROHIBIDO metabolismo celular, ATP, trifosfato de adenosina, energía celular, soporte celular o efectos en el organismo.
+- Usa "concentración" o "nivel de incorporación", no "dosificación" orientada al consumidor.
+
+ANTI-REPETICIÓN (obligatorio):
+- PROHIBIDO repetir el nombre canónico, las palabras clave del usuario o frases casi iguales en oraciones consecutivas.
+- "materia prima" como MÁXIMO 1 vez en todo el texto (si el subtítulo de la etiqueta ya lo dice, NO lo uses).
+- "formulación" no más de 3 veces en todo el texto; varía con "matriz", "proceso industrial", "elaboración".
+- Cada oración debe aportar un dato distinto (físico, funcional o de aplicación).
+
+Contenido a integrar de forma natural (sin títulos ni viñetas):
+
+PÁRRAFO 1 — ORDEN OBLIGATORIO (desarrolla cada bloque con datos de la ficha; si falta un dato, omítelo sin inventar):
+A) APARIENCIA FÍSICA: estado (polvo, líquido, granulado, cristalino), color, textura u organolépticas visuales si constan. Usa redacción explícita («se presenta como…», «en apariencia…»).
+B) OLOR Y SABOR: describe olor y sabor si constan en la ficha, en prosa (no como etiqueta suelta "Olor y sabor:").
+C) MODO DE OBTENCIÓN U ORIGEN: proceso de obtención, origen o tipo de materia prima si consta en la ficha (ej. fermentación, extracción, síntesis, origen vegetal/animal/mineral).
+D) SOLUBILIDAD: medios de disolución o dispersión (agua, alcohol, aceites, etc.) con redacción explícita («es soluble en…», «se dispersa en…»). Obligatorio si la ficha lo menciona.
+E) BENEFICIOS Y VENTAJAS COMO MATERIA PRIMA: función técnica, rol en formulación, ventajas de proceso (estabilidad, textura, compatibilidad reológica, pureza) — resáltalas en tono comercial atractivo, sin claims de salud al consumidor.
+F) Comportamiento en matrices industriales según diseño de fórmula, equipo y condiciones de elaboración.
+G) Estabilidad frente al aire, humedad, luz o temperatura solo como propiedad del material, no como recomendación de guardado.
+
+NO incluir instrucciones de almacenamiento, caducidad ni conservación en el párrafo 1.
+
+PÁRRAFO 2 (aplicaciones):
+- Aplicaciones por industria (alimentaria, farmacéutica, cosmética, química/laboratorio si aplica en fichas).
+- Referencia de uso o concentración (solo si consta en fichas; si no, indicar que depende de formulación y normativa).
+- Puedes cerrar con una invitación comercial breve (p. ej. "contamos con disponibilidad inmediata", "consúltanos por volumen y presentación").
+
+- PROHIBIDO en el párrafo 1: almacenar, guardar en envase, caducidad, consumir preferentemente, recomendaciones logísticas.
+- No repitas encabezados de ficha (Apariencia:, Solubilidad:, Olor y sabor:, etc.); integra esos datos en prosa.
+- No dupliques frases del tipo "En la industria alimentaria… Para la industria alimentaria…".
+- Si no hay datos de una industria en las fichas, omítela; no uses texto genérico de relleno.
+- PROHIBIDO copiar tablas de especificaciones, valores Máx/Min, unidades (g/100g), pH numérico, índices de laboratorio o listas técnicas de control de calidad.
+- No repitas la misma idea en oraciones consecutivas.
+- Sin prometer curas, sin lenguaje medicinal directo.
+- No uses emojis, comillas envolventes, listas ni encabezados en mayúsculas.
+- Máximo {max_chars} caracteres por variante.
+
+LÍMITES LEGALES (obligatorio pese al tono comercial — riesgo de baja de publicación e incumplimiento normativo):
+- McKenna comercializa MATERIA PRIMA reempacada para formulación. NO suplemento terminado ni medicamento.
+- PROHIBIDO orientar al consumidor final: dosis, dosificación, gramos diarios, fase de carga, consumo, suplemento deportivo, atletas, culturistas, ganancia muscular, recuperación post-entrenamiento, tratamiento, cura, terapia, ELA, trastornos neuromusculares, función cerebral terapéutica, absorción por el organismo, salud ósea/muscular/cardiovascular al consumidor, ATP, trifosfato de adenosina, metabolismo energético, soporte celular, perfil energético.
+- PROHIBIDO claims de producto terminado; describe uso en FORMULACIÓN industrial, alimentaria o cosmética. La venta es de materia prima a formuladores/fabricantes, no al consumidor final.
+- PROHIBIDO repetir el nombre comercial del ingrediente como titular si ya consta en otra capa de la plantilla.
+- PROHIBIDO repetir frases del subtítulo (ej. "materia prima alimentaria", "insumo cosmético").
+- Cada párrafo debe aportar información técnica nueva (propiedad, solubilidad, aplicaciones de formulación).
+
+OTRAS CAPAS DE LA ETIQUETA (no repetir):
+{contexto_otras_capas}
+
+{instrucciones_segmento}
+
+FICHAS TÉCNICAS:
+{contexto}
+
+Responde ÚNICAMENTE con JSON válido en este formato:
+{{"sugerencias": [{{"texto": "primer párrafo.\\n\\nsegundo párrafo."}}]}}"""
+
 PALABRAS_POR_PARRAFO = 80
 PALABRAS_POR_PARRAFO_MIN = 65
 PALABRAS_POR_PARRAFO_MAX = 95
@@ -557,11 +647,13 @@ def _redaccion_deficiente(texto: str) -> bool:
     return False
 
 
-def _post_procesar_texto(texto: str) -> str:
+def _post_procesar_texto(texto: str, tono_comercial: bool = False) -> str:
     bloques = re.split(r"\n\s*\n", (texto or "").strip())
     limpios: list[str] = []
     for bloque in bloques:
-        t = _limpiar_apropiacion(bloque)
+        # En tono comercial se permite voz en primera persona ("nuestro",
+        # "ofrecemos"); _limpiar_apropiacion la reescribiría a tercera persona.
+        t = re.sub(r"\s+", " ", bloque).strip() if tono_comercial else _limpiar_apropiacion(bloque)
         t = re.sub(r"\bApariencia:\s*", "Se presenta con ", t, flags=re.I)
         t = re.sub(r"\bSolubilidad:\s*", "Presenta solubilidad: ", t, flags=re.I)
         t = re.sub(
@@ -1443,8 +1535,9 @@ def _validar_texto_catalogo(
     estricto: bool = True,
     contexto_capas: dict | None = None,
     anclas: list[str] | None = None,
+    tono_comercial: bool = False,
 ) -> str | None:
-    t = _asegurar_dos_parrafos(_post_procesar_texto(texto))
+    t = _asegurar_dos_parrafos(_post_procesar_texto(texto, tono_comercial=tono_comercial))
     if len(t) < 200:
         return None
     paras = [p for p in re.split(r"\n\s*\n", t) if p.strip()]
@@ -1467,7 +1560,7 @@ def _validar_texto_catalogo(
         re.I | re.M,
     ):
         return None
-    if _APROPIACION_RE.search(t):
+    if not tono_comercial and _APROPIACION_RE.search(t):
         return None
     if re.search(r"se emplea en Para la industria|se emplea en En la industria", t, re.I):
         return None
@@ -1510,8 +1603,9 @@ def _aceptar_texto_ia(
     max_chars: int,
     contexto_capas: dict | None = None,
     anclas: list[str] | None = None,
+    tono_comercial: bool = False,
 ) -> str | None:
-    limpio = _post_procesar_texto(texto)
+    limpio = _post_procesar_texto(texto, tono_comercial=tono_comercial)
     if anclas:
         limpio = _suavizar_repeticiones(limpio, anclas, contexto_capas)
     else:
@@ -1523,6 +1617,7 @@ def _aceptar_texto_ia(
             estricto=estricto,
             contexto_capas=contexto_capas,
             anclas=anclas,
+            tono_comercial=tono_comercial,
         )
         if ok:
             return ok
@@ -1534,6 +1629,7 @@ def _filtrar_sugerencias(
     max_chars: int,
     contexto_capas: dict | None = None,
     anclas: list[str] | None = None,
+    tono_comercial: bool = False,
 ) -> list[dict]:
     out: list[dict] = []
     for item in items:
@@ -1545,6 +1641,7 @@ def _filtrar_sugerencias(
             max_chars,
             contexto_capas=contexto_capas,
             anclas=anclas,
+            tono_comercial=tono_comercial,
         )
         if aceptado:
             out.append({**item, "texto": aceptado})
@@ -1667,6 +1764,7 @@ def _generar_con_gemini(
     max_chars: int,
     n_opciones: int = 1,
     contexto_capas: dict | None = None,
+    tono_comercial: bool = False,
 ) -> list[dict]:
     api_key = os.getenv("GOOGLE_API_KEY", "").strip()
     if not api_key:
@@ -1684,7 +1782,8 @@ def _generar_con_gemini(
         contexto += f"\n\n--- FICHA {i}: {f.get('titulo', '')} ---\n"
         contexto += _contexto_ficha_para_ia(f)[:2200]
 
-    prompt = _PROMPT_CATALOGO.format(
+    plantilla_prompt = _PROMPT_CATALOGO_COMERCIAL if tono_comercial else _PROMPT_CATALOGO
+    prompt = plantilla_prompt.format(
         fragmento=fragmento,
         nombre_canonico=nombre_canonico,
         n_opciones=n_opciones,
@@ -1720,6 +1819,7 @@ def _generar_con_gemini(
                         max_chars,
                         contexto_capas=contexto_capas,
                         anclas=anclas,
+                        tono_comercial=tono_comercial,
                     )
                     if raw_txt
                     else None
@@ -1736,6 +1836,7 @@ def _generar_con_gemini(
                 max_chars,
                 contexto_capas=contexto_capas,
                 anclas=anclas,
+                tono_comercial=tono_comercial,
             )
             if texto_raw
             else None
@@ -1752,6 +1853,7 @@ def sugerir_texto_magico(
     fragmento: str,
     max_chars: int = MAX_CHARS_CATALOGO,
     contexto_capas: dict | None = None,
+    tono_comercial: bool = False,
 ) -> dict:
     fragmento = (fragmento or "").strip()
     palabras = _palabras_clave(fragmento, min_len=3)
@@ -1781,10 +1883,12 @@ def sugerir_texto_magico(
             fichas,
             max_chars=max_chars,
             contexto_capas=contexto_capas,
+            tono_comercial=tono_comercial,
         ),
         max_chars,
         contexto_capas=contexto_capas,
         anclas=anclas,
+        tono_comercial=tono_comercial,
     )
     if not sugerencias and fichas:
         sugerencias = _filtrar_sugerencias(
@@ -1797,6 +1901,7 @@ def sugerir_texto_magico(
             max_chars,
             contexto_capas=contexto_capas,
             anclas=anclas,
+            tono_comercial=tono_comercial,
         )
     mensaje_extra = None
     if not sugerencias and fichas:
@@ -1827,6 +1932,7 @@ def iniciar_sugerencia_texto_job(
     fragmento: str,
     max_chars: int = MAX_CHARS_CATALOGO,
     contexto_capas: dict | None = None,
+    tono_comercial: bool = False,
 ) -> str:
     _limpiar_jobs_texto_magico()
     job_id = uuid.uuid4().hex[:16]
@@ -1844,6 +1950,7 @@ def iniciar_sugerencia_texto_job(
                 fragmento,
                 max_chars=max_chars,
                 contexto_capas=contexto_capas,
+                tono_comercial=tono_comercial,
             )
             with _jobs_lock:
                 _jobs_texto_magico[job_id] = {

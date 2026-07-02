@@ -235,6 +235,103 @@ export default function VisualCanvasEditor({
     [doc, onChange],
   );
 
+  // Historial (Ctrl+Z / Ctrl+Shift+Z). Los cambios seguidos en menos de
+  // HISTORIAL_DEBOUNCE_MS (arrastrar, escribir en "Contenido") se agrupan en
+  // un solo paso, para que un gesto completo se deshaga de una vez.
+  const HISTORIAL_DEBOUNCE_MS = 500;
+  const MAX_HISTORIAL = 60;
+  type SnapshotHistorial = { elementos: ElementoVisual[]; fondo: string };
+  const historialRef = useRef<{ pasado: SnapshotHistorial[]; futuro: SnapshotHistorial[] }>({
+    pasado: [],
+    futuro: [],
+  });
+  const historialDocIdRef = useRef(doc.id);
+  const historialAnteriorRef = useRef<SnapshotHistorial>({ elementos: doc.elementos, fondo: doc.fondo });
+  const historialRafagaActivaRef = useRef(false);
+  const historialAplicandoRef = useRef(false);
+  const historialDebounceRef = useRef<number | null>(null);
+  const [historialVersion, setHistorialVersion] = useState(0);
+
+  useEffect(() => {
+    // Plantilla distinta (duplicar/abrir otra sin desmontar el editor): el
+    // historial de una no debe filtrarse a la otra.
+    if (historialDocIdRef.current !== doc.id) {
+      historialDocIdRef.current = doc.id;
+      historialRef.current = { pasado: [], futuro: [] };
+      historialRafagaActivaRef.current = false;
+      historialAplicandoRef.current = false;
+      if (historialDebounceRef.current) {
+        window.clearTimeout(historialDebounceRef.current);
+        historialDebounceRef.current = null;
+      }
+      historialAnteriorRef.current = { elementos: doc.elementos, fondo: doc.fondo };
+      setHistorialVersion((v) => v + 1);
+      return;
+    }
+
+    const anterior = historialAnteriorRef.current;
+    historialAnteriorRef.current = { elementos: doc.elementos, fondo: doc.fondo };
+
+    if (historialAplicandoRef.current) {
+      historialAplicandoRef.current = false;
+      return;
+    }
+    if (anterior.elementos === doc.elementos && anterior.fondo === doc.fondo) return;
+
+    if (!historialRafagaActivaRef.current) {
+      historialRef.current.pasado.push(anterior);
+      if (historialRef.current.pasado.length > MAX_HISTORIAL) historialRef.current.pasado.shift();
+      historialRef.current.futuro = [];
+      historialRafagaActivaRef.current = true;
+      setHistorialVersion((v) => v + 1);
+    }
+    if (historialDebounceRef.current) window.clearTimeout(historialDebounceRef.current);
+    historialDebounceRef.current = window.setTimeout(() => {
+      historialRafagaActivaRef.current = false;
+      historialDebounceRef.current = null;
+    }, HISTORIAL_DEBOUNCE_MS);
+  }, [doc.id, doc.elementos, doc.fondo]);
+
+  useEffect(
+    () => () => {
+      if (historialDebounceRef.current) window.clearTimeout(historialDebounceRef.current);
+    },
+    [],
+  );
+
+  const deshacer = useCallback(() => {
+    const h = historialRef.current;
+    if (h.pasado.length === 0) return;
+    const previo = h.pasado.pop()!;
+    h.futuro.push({ elementos: doc.elementos, fondo: doc.fondo });
+    historialRafagaActivaRef.current = false;
+    historialAplicandoRef.current = true;
+    if (historialDebounceRef.current) {
+      window.clearTimeout(historialDebounceRef.current);
+      historialDebounceRef.current = null;
+    }
+    setHistorialVersion((v) => v + 1);
+    onChange({ ...doc, elementos: previo.elementos, fondo: previo.fondo });
+  }, [doc, onChange]);
+
+  const rehacer = useCallback(() => {
+    const h = historialRef.current;
+    if (h.futuro.length === 0) return;
+    const siguiente = h.futuro.pop()!;
+    h.pasado.push({ elementos: doc.elementos, fondo: doc.fondo });
+    historialRafagaActivaRef.current = false;
+    historialAplicandoRef.current = true;
+    if (historialDebounceRef.current) {
+      window.clearTimeout(historialDebounceRef.current);
+      historialDebounceRef.current = null;
+    }
+    setHistorialVersion((v) => v + 1);
+    onChange({ ...doc, elementos: siguiente.elementos, fondo: siguiente.fondo });
+  }, [doc, onChange]);
+
+  const puedeDeshacer = historialVersion >= 0 && historialRef.current.pasado.length > 0;
+  const puedeRehacer = historialVersion >= 0 && historialRef.current.futuro.length > 0;
+
   const patchElemento = useCallback(
     (id: string, patch: Partial<ElementoVisual>) => {
       patchElementos((els) =>
@@ -539,6 +636,25 @@ export default function VisualCanvasEditor({
       if (
         !editando &&
         (ev.ctrlKey || ev.metaKey) &&
+        !ev.shiftKey &&
+        ev.key.toLowerCase() === "z"
+      ) {
+        ev.preventDefault();
+        deshacer();
+        return;
+      }
+      if (
+        !editando &&
+        (ev.ctrlKey || ev.metaKey) &&
+        ((ev.shiftKey && ev.key.toLowerCase() === "z") || ev.key.toLowerCase() === "y")
+      ) {
+        ev.preventDefault();
+        rehacer();
+        return;
+      }
+      if (
+        !editando &&
+        (ev.ctrlKey || ev.metaKey) &&
         ev.key.toLowerCase() === "g" &&
         !ev.shiftKey &&
         seleccionIds.length >= 2
@@ -593,7 +709,15 @@ export default function VisualCanvasEditor({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [agruparSeleccion, desagruparSeleccion, doc.elementos, patchElementos, seleccionIds]);
+  }, [
+    agruparSeleccion,
+    deshacer,
+    desagruparSeleccion,
+    doc.elementos,
+    patchElementos,
+    rehacer,
+    seleccionIds,
+  ]);
 
   const canvasW = doc.formato.ancho_px;
   const canvasH = doc.formato.alto_px;
@@ -704,6 +828,20 @@ export default function VisualCanvasEditor({
           className="min-w-[8rem] flex-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-sm font-medium text-white outline-none focus:border-accent/50"
         />
         <span className="hidden text-[11px] text-neutral-400 sm:inline">{labelFormato(doc.formato)}</span>
+        <ToolBtn
+          title="Deshacer (Ctrl+Z)"
+          onClick={deshacer}
+          className={`!h-7 !w-7 ${!puedeDeshacer ? "pointer-events-none opacity-30" : ""}`}
+        >
+          <span className="text-sm">↺</span>
+        </ToolBtn>
+        <ToolBtn
+          title="Rehacer (Ctrl+Shift+Z)"
+          onClick={rehacer}
+          className={`!h-7 !w-7 ${!puedeRehacer ? "pointer-events-none opacity-30" : ""}`}
+        >
+          <span className="text-sm">↻</span>
+        </ToolBtn>
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
@@ -1527,22 +1665,38 @@ export default function VisualCanvasEditor({
                     }
                     className="w-full rounded border border-border bg-surface px-2 py-1 text-xs leading-relaxed"
                   />
-                  <SugerenciasTextoMagico
-                    fragmento={seleccionado.content}
-                    modoDescripcionMateriaPrima={esCapaDescripcionMateriaPrima(
+                  {(() => {
+                    const esDescripcionMP = esCapaDescripcionMateriaPrima(
                       seleccionado,
                       doc.elementos,
-                    )}
-                    contextoCapas={contextoCapasParaDescripcion(
+                    );
+                    const contextoCapas = contextoCapasParaDescripcion(
                       doc.elementos,
                       seleccionado.id,
-                    )}
-                    onElegir={(texto) =>
-                      patchElemento(seleccionado.id, {
-                        content: autoCorregirTextoContenido(texto),
-                      })
-                    }
-                  />
+                    );
+                    // La capa "descripción" identifica el producto por el
+                    // título de la etiqueta, no por lo que haya escrito en su
+                    // propio contenido — así no hay que repetir el nombre.
+                    const fragmentoTextoMagico =
+                      esDescripcionMP && contextoCapas.titulo
+                        ? [contextoCapas.titulo, seleccionado.content]
+                            .filter(Boolean)
+                            .join(" ")
+                        : seleccionado.content;
+                    return (
+                      <SugerenciasTextoMagico
+                        fragmento={fragmentoTextoMagico}
+                        modoDescripcionMateriaPrima={esDescripcionMP}
+                        contextoCapas={contextoCapas}
+                        tonoComercial
+                        onElegir={(texto) =>
+                          patchElemento(seleccionado.id, {
+                            content: autoCorregirTextoContenido(texto),
+                          })
+                        }
+                      />
+                    );
+                  })()}
                 </label>
                 <label>
                   <span className="text-xs text-muted">Tipografía</span>
