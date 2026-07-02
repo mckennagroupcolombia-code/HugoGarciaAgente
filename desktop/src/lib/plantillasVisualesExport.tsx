@@ -68,6 +68,26 @@ export function normalizarSrcImagen(src: string): string {
   return raw;
 }
 
+/** Convierte un blob:/http(s) URL ya resuelto a un data: URI leyendo el blob directamente. */
+async function urlAdataUrl(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Imagen no disponible (${res.status})`);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("No se pudo leer la imagen"));
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Resuelve cada imagen del documento a un `data:` URI ya embebido. Esto evita
+ * que html-to-image tenga que volver a hacer fetch de la URL (típicamente un
+ * blob: del propio editor) al capturar — ese segundo fetch podía fallar (p.ej.
+ * al no propagarse correctamente el tipo MIME) y dejaba la imagen reemplazada
+ * por el placeholder de fallo.
+ */
 async function resolverImagenesPlantilla(
   doc: PlantillaVisualDoc,
 ): Promise<Map<string, string | null>> {
@@ -79,13 +99,45 @@ async function resolverImagenesPlantilla(
   await Promise.all(
     imagenes.map(async (el) => {
       try {
-        mapa.set(el.id, await resolverUrlImagenCanvas(normalizarSrcImagen(el.src)));
+        const resuelto = await resolverUrlImagenCanvas(normalizarSrcImagen(el.src));
+        if (!resuelto) {
+          mapa.set(el.id, null);
+          return;
+        }
+        mapa.set(el.id, resuelto.startsWith("data:") ? resuelto : await urlAdataUrl(resuelto));
       } catch {
         mapa.set(el.id, null);
       }
     }),
   );
   return mapa;
+}
+
+/** PNG transparente de 1×1 — placeholder cuando una imagen no se puede reincrustar al exportar. */
+const IMAGEN_PLACEHOLDER_PX =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=";
+
+/**
+ * html-to-image rechaza con el Event nativo `onerror`/`onload` del <img> o del
+ * <svg> intermedio cuando algo falla (imagen que no carga, SVG demasiado
+ * grande para decodificar, etc.), no con un `Error`. Sin normalizar esto, la
+ * UI solo puede mostrar un mensaje genérico. Aquí se convierte a un Error
+ * legible para poder diagnosticar la causa real.
+ */
+function normalizarErrorExportDom(err: unknown): Error {
+  if (err instanceof Error) return err;
+  if (typeof DOMException !== "undefined" && err instanceof DOMException) {
+    return new Error(`${err.name}: ${err.message}`);
+  }
+  if (typeof Event !== "undefined" && err instanceof Event) {
+    const target = err.target as { src?: string } | null;
+    const recurso = target?.src ? ` (recurso: ${target.src.slice(0, 160)})` : "";
+    return new Error(
+      `No se pudo generar la imagen de exportación${recurso}. Revisa la consola del navegador para más detalle.`,
+    );
+  }
+  if (typeof err === "string") return new Error(err);
+  return new Error("Error al exportar por una causa no identificada. Revisa la consola del navegador.");
 }
 
 /**
@@ -118,19 +170,33 @@ export async function renderPlantillaToCanvasDom(
   try {
     flushSync(() => {
       raiz.render(
-        <PlantillaVisualEstaticoDom doc={doc} imagenesResueltas={imagenesResueltas} />,
+        <PlantillaVisualEstaticoDom
+          doc={doc}
+          imagenesResueltas={imagenesResueltas}
+          escala={escala}
+        />,
       );
     });
     const nodo = contenedor.firstElementChild as HTMLElement | null;
     if (!nodo) throw new Error("No se pudo preparar el lienzo para exportar");
 
-    return await toCanvas(nodo, {
-      width: w,
-      height: h,
-      pixelRatio: escala,
-      backgroundColor: forzarOpaco ? "#ffffff" : undefined,
-      cacheBust: true,
-    });
+    try {
+      // El nodo ya está pintado a tamaño w*escala × h*escala (ver
+      // PlantillaVisualEstaticoDom) para que el texto se rasterice nítido a
+      // esa resolución. pixelRatio se deja en 1: si se usara `escala` aquí,
+      // html-to-image tomaría el bitmap ya renderizado a 1× y lo estiraría,
+      // produciendo letras borrosas en "Alta"/"Máxima".
+      return await toCanvas(nodo, {
+        width: w * escala,
+        height: h * escala,
+        pixelRatio: 1,
+        backgroundColor: forzarOpaco ? "#ffffff" : undefined,
+        cacheBust: true,
+        imagePlaceholder: IMAGEN_PLACEHOLDER_PX,
+      });
+    } catch (err) {
+      throw normalizarErrorExportDom(err);
+    }
   } finally {
     raiz.unmount();
     contenedor.remove();

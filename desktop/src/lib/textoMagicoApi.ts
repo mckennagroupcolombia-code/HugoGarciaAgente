@@ -27,6 +27,12 @@ export async function solicitarTextoMagico(
     contexto_capas?: ContextoCapasTexto;
     /** Refuerza prompt MeLi + validación estricta (default true en plantillas). */
     modo_descripcion_mp?: boolean;
+    /**
+     * Tono comercial (primera persona, lenguaje de venta) en vez del tono
+     * impersonal/compliant por defecto. Usar SOLO en Studio (Plantillas
+     * Visuales) — nunca en el editor de Etiquetas regulatorias/MeLi.
+     */
+    tono_comercial?: boolean;
   },
   signal?: AbortSignal,
 ): Promise<TextoMagicoRespuesta> {
@@ -38,6 +44,7 @@ export async function solicitarTextoMagico(
       palabras_por_parrafo: opts.palabras_por_parrafo,
       contexto_capas: opts.contexto_capas,
       modo_descripcion_mp: opts.modo_descripcion_mp ?? true,
+      tono_comercial: opts.tono_comercial ?? false,
     },
   );
 

@@ -16,6 +16,13 @@ export interface Props {
   doc: PlantillaVisualDoc;
   /** id de elemento imagen -> URL ya resuelta (blob:/data:) o null si falló. */
   imagenesResueltas: Map<string, string | null>;
+  /**
+   * Factor de resolución de exportación (2×, 3×, "Máxima"…). Se aplica como
+   * `transform: scale()` sobre el lienzo a tamaño natural, en vez de dejar
+   * que html-to-image estire un bitmap ya rasterizado a 1× — así el texto se
+   * pinta nítido directamente a la resolución final, no borroso por upscale.
+   */
+  escala?: number;
 }
 
 function ElementoEstatico({
@@ -104,24 +111,34 @@ function ElementoEstatico({
   return null;
 }
 
-export default function PlantillaVisualEstaticoDom({ doc, imagenesResueltas }: Props) {
+export default function PlantillaVisualEstaticoDom({ doc, imagenesResueltas, escala = 1 }: Props) {
   const { ancho_px: w, alto_px: h } = doc.formato;
   return (
     <div
       style={{
         position: "relative",
         overflow: "hidden",
-        width: w,
-        height: h,
-        background: doc.fondo || "#ffffff",
+        width: w * escala,
+        height: h * escala,
       }}
     >
-      {doc.elementos
-        .filter((el) => el.visible !== false)
-        .sort((a, b) => a.zIndex - b.zIndex)
-        .map((el) => (
-          <ElementoEstatico key={el.id} el={el} imagenesResueltas={imagenesResueltas} />
-        ))}
+      <div
+        style={{
+          position: "relative",
+          width: w,
+          height: h,
+          background: doc.fondo || "#ffffff",
+          transform: escala !== 1 ? `scale(${escala})` : undefined,
+          transformOrigin: "top left",
+        }}
+      >
+        {doc.elementos
+          .filter((el) => el.visible !== false)
+          .sort((a, b) => a.zIndex - b.zIndex)
+          .map((el) => (
+            <ElementoEstatico key={el.id} el={el} imagenesResueltas={imagenesResueltas} />
+          ))}
+      </div>
     </div>
   );
 }
