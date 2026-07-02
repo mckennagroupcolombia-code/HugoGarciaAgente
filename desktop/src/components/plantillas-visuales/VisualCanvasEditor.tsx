@@ -1688,7 +1688,6 @@ export default function VisualCanvasEditor({
                         fragmento={fragmentoTextoMagico}
                         modoDescripcionMateriaPrima={esDescripcionMP}
                         contextoCapas={contextoCapas}
-                        tonoComercial
                         onElegir={(texto) =>
                           patchElemento(seleccionado.id, {
                             content: autoCorregirTextoContenido(texto),

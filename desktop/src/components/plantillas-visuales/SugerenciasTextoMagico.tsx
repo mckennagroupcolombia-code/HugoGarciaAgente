@@ -13,8 +13,6 @@ interface Props {
   /** Descripción materia prima (capa 1): tono MeLi-safe y sin repetir título/subtítulo. */
   modoDescripcionMateriaPrima?: boolean;
   contextoCapas?: ContextoCapasTexto;
-  /** Tono comercial (primera persona, lenguaje de venta) — solo Studio. */
-  tonoComercial?: boolean;
 }
 
 const MAX_CHARS_CATALOGO = 2600;
@@ -35,7 +33,6 @@ export default function SugerenciasTextoMagico({
   onElegir,
   modoDescripcionMateriaPrima,
   contextoCapas,
-  tonoComercial,
 }: Props) {
   const [activo, setActivo] = useState(false);
   const [sugerencias, setSugerencias] = useState<SugerenciaTextoMagico[]>([]);
@@ -84,7 +81,6 @@ export default function SugerenciasTextoMagico({
         palabras_por_parrafo: PALABRAS_POR_PARRAFO,
         contexto_capas: contextoCapas,
         modo_descripcion_mp: modoDescripcionMateriaPrima ?? true,
-        tono_comercial: tonoComercial ?? false,
       },
       ctrl.signal,
     )
@@ -109,7 +105,7 @@ export default function SugerenciasTextoMagico({
       .finally(() => {
         if (reqId === reqIdRef.current) setCargando(false);
       });
-  }, [cargando, contextoCapas, fragmento, modoDescripcionMateriaPrima, puedeGenerar, tonoComercial]);
+  }, [cargando, contextoCapas, fragmento, modoDescripcionMateriaPrima, puedeGenerar]);
 
   return (
     <div className="mt-2">
@@ -146,7 +142,6 @@ export default function SugerenciasTextoMagico({
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <span className="text-[10px] font-bold uppercase tracking-wide text-accent">
               Sugerencias · {modoDescripcionMateriaPrima ? "descripción MP" : "catálogo"}
-              {tonoComercial ? " · tono comercial" : ""}
             </span>
             {cargando && (
               <span className="animate-pulse text-[10px] text-muted">

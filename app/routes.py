@@ -11385,13 +11385,11 @@ def register_routes(app):
         contexto_capas = body.get("contexto_capas")
         if contexto_capas is not None and not isinstance(contexto_capas, dict):
             contexto_capas = None
-        tono_comercial = bool(body.get("tono_comercial"))
         try:
             job_id = iniciar_sugerencia_texto_job(
                 fragmento,
                 max_chars=max_chars,
                 contexto_capas=contexto_capas,
-                tono_comercial=tono_comercial,
             )
             return jsonify({"ok": True, "status": "pending", "job_id": job_id}), 202
         except Exception as exc:
