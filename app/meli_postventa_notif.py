@@ -31,6 +31,16 @@ from app.utils import (
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 _POSVENTA_STATE_PATH = os.path.join(_APP_DIR, "data", "mensajes_posventa_pendientes.json")
 
+_ESTADOS_ENVIO_ES = {
+    "pending": "Pendiente",
+    "handling": "En preparación",
+    "ready_to_ship": "Listo para enviar",
+    "shipped": "En camino",
+    "delivered": "Entregado",
+    "not_delivered": "No entregado",
+    "cancelled": "Cancelado",
+}
+
 
 def _cargar_state_posventa() -> dict:
     try:
@@ -52,6 +62,73 @@ def sufijo_pack_postventa(pack_id: str) -> str:
     """Últimos 3 dígitos del pack/orden — código corto para posventa {sufijo}: …"""
     digits = re.sub(r"\D", "", str(pack_id))
     return digits[-3:] if len(digits) >= 3 else digits
+
+
+def _detalle_venta_orden(pack_id: str, headers: dict) -> tuple[str, str, str, str]:
+    """
+    Productos, total, fecha de compra y estado de envío de una orden MeLi.
+    Un solo pack_id por llamada a procesar_postventa_meli_desde_webhook: se calcula
+    una vez y se reutiliza para todos los mensajes nuevos del mismo pack (evita
+    repetir GET /orders y /shipments por cada mensaje del lote).
+    """
+    productos_str = total_str = fecha_str = envio_str = ""
+    try:
+        r_ord = _requests_lib.get(
+            f"https://api.mercadolibre.com/orders/{pack_id}",
+            headers=headers,
+            timeout=8,
+        )
+        if r_ord.status_code == 200:
+            orden_json = r_ord.json()
+
+            lineas = []
+            for i in orden_json.get("order_items", []) or []:
+                titulo = i.get("item", {}).get("title", "")
+                if not titulo:
+                    continue
+                cantidad = i.get("quantity") or 1
+                precio_unit = i.get("unit_price")
+                linea = f"  • {titulo} x{cantidad}"
+                if precio_unit is not None:
+                    linea += f" — ${precio_unit:,.0f} c/u"
+                lineas.append(linea)
+            if lineas:
+                productos_str = "\n".join(lineas)
+
+            total_amount = orden_json.get("total_amount")
+            if total_amount is not None:
+                estado_orden = orden_json.get("status", "")
+                total_str = f"${total_amount:,.0f} COP"
+                if estado_orden:
+                    total_str += f" ({'pagado' if estado_orden == 'paid' else estado_orden})"
+
+            fecha_compra = orden_json.get("date_created")
+            if fecha_compra:
+                try:
+                    from datetime import datetime as _dt
+
+                    fecha_str = _dt.fromisoformat(fecha_compra).strftime(
+                        "%d/%m/%Y %I:%M %p"
+                    )
+                except Exception:
+                    fecha_str = str(fecha_compra)[:10]
+
+            shipping_id = (orden_json.get("shipping") or {}).get("id")
+            if shipping_id:
+                try:
+                    r_ship = _requests_lib.get(
+                        f"https://api.mercadolibre.com/shipments/{shipping_id}",
+                        headers=headers,
+                        timeout=8,
+                    )
+                    if r_ship.status_code == 200:
+                        estado_envio = r_ship.json().get("status", "")
+                        envio_str = _ESTADOS_ENVIO_ES.get(estado_envio, estado_envio)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return productos_str, total_str, fecha_str, envio_str
 
 
 def _sufijo_pack(pack_id: str) -> str:
@@ -227,6 +304,7 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
 
         mensajes = data_msg.get("messages", [])
         nuevos = 0
+        detalle_venta = None  # (productos_str, total_str, fecha_str, envio_str); lazy, 1 vez por pack
         for msg in mensajes:
             if not isinstance(msg, dict):
                 continue
@@ -331,23 +409,9 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                     except Exception as e_rec:
                         print(f"⚠️ [POSVENTA] No pude reconciliar hilo {pack_id}: {e_rec}")
 
-                productos_str = ""
-                try:
-                    r_ord = _requests_lib.get(
-                        f"https://api.mercadolibre.com/orders/{pack_id}",
-                        headers=headers,
-                        timeout=8,
-                    )
-                    if r_ord.status_code == 200:
-                        prods = [
-                            i.get("item", {}).get("title", "")
-                            for i in r_ord.json().get("order_items", [])
-                            if i.get("item", {}).get("title")
-                        ]
-                        if prods:
-                            productos_str = "\n".join(f"  • {p}" for p in prods)
-                except Exception:
-                    pass
+                if detalle_venta is None:
+                    detalle_venta = _detalle_venta_orden(pack_id, headers)
+                productos_str, total_str, fecha_str, envio_str = detalle_venta
 
                 clave_pendiente = str(pack_id)
                 state["pendientes"][clave_pendiente] = {
@@ -371,6 +435,12 @@ def procesar_postventa_meli_desde_webhook(resource: str, *, reconciliar_existent
                 )
                 if productos_str:
                     notif += f"🛍 *Productos:*\n{productos_str}\n"
+                if total_str:
+                    notif += f"💰 *Total:* {total_str}\n"
+                if fecha_str:
+                    notif += f"📅 *Fecha compra:* {fecha_str}\n"
+                if envio_str:
+                    notif += f"🚚 *Envío:* {envio_str}\n"
                 notif += (
                     f"🗣 *Mensaje:* {texto}\n\n"
                     f"Para responder escribe en el grupo:\n"

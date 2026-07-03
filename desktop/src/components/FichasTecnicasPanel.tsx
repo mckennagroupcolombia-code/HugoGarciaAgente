@@ -53,7 +53,6 @@ interface BibliotecaDatosResult {
 
 function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => void }) {
   const [busqueda, setBusqueda] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState<"todos" | "pdf" | "docx">("todos");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewNombre, setPreviewNombre] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -137,9 +136,9 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
   };
 
   const archivos = (data?.archivos ?? []).filter((a) => {
+    if (a.tipo !== "pdf") return false;
     const q = busqueda.toLowerCase();
     if (q && !a.nombre.toLowerCase().includes(q)) return false;
-    if (filtroTipo !== "todos" && a.tipo !== filtroTipo) return false;
     return true;
   });
 
@@ -158,18 +157,6 @@ function BibliotecaTab({ onEditar }: { onEditar: (r: BibliotecaDatosResult) => v
           placeholder="Buscar documento…"
           className="flex-1 min-w-[180px] rounded-lg border border-border bg-surface-input px-3 py-2 text-sm"
         />
-        <div className="flex rounded-lg border border-border overflow-hidden text-xs font-medium">
-          {(["todos", "pdf", "docx"] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setFiltroTipo(t)}
-              className={`px-3 py-2 transition-colors ${filtroTipo === t ? "bg-accent text-white" : "text-muted hover:text-ink"}`}
-            >
-              {t === "todos" ? "Todos" : t.toUpperCase()}
-            </button>
-          ))}
-        </div>
         <button
           type="button"
           onClick={() => void refetch()}
@@ -1775,9 +1762,9 @@ export default function FichasTecnicasPanel() {
   const [sdsPreload, setSdsPreload] = useState<Record<string, unknown> | null>(null);
   const [completoPreload, setCompletoPreload] = useState<Record<string, unknown> | null>(null);
 
-  const abrirGenerador = (tipo: "ft" | "coa" | "sds", p: ProductoDocumentacion) => {
+  const abrirGenerador = (p: ProductoDocumentacion) => {
     setProducto(p);
-    setTab(tipo);
+    setTab("completo");
   };
 
   const handleEditar = (r: BibliotecaDatosResult) => {

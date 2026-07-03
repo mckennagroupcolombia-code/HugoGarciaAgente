@@ -1674,15 +1674,16 @@ export default function VisualCanvasEditor({
                       doc.elementos,
                       seleccionado.id,
                     );
-                    // La capa "descripción" identifica el producto por el
+                    // Cualquier capa de texto identifica el producto por el
                     // título de la etiqueta, no por lo que haya escrito en su
-                    // propio contenido — así no hay que repetir el nombre.
-                    const fragmentoTextoMagico =
-                      esDescripcionMP && contextoCapas.titulo
-                        ? [contextoCapas.titulo, seleccionado.content]
-                            .filter(Boolean)
-                            .join(" ")
-                        : seleccionado.content;
+                    // propio contenido — así no hay que repetir el nombre, y
+                    // la búsqueda de ficha técnica no depende de que la capa
+                    // se haya clasificado (heurística o manual) como "descripción".
+                    const fragmentoTextoMagico = contextoCapas.titulo
+                      ? [contextoCapas.titulo, seleccionado.content]
+                          .filter(Boolean)
+                          .join(" ")
+                      : seleccionado.content;
                     return (
                       <SugerenciasTextoMagico
                         fragmento={fragmentoTextoMagico}
