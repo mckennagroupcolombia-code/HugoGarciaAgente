@@ -14,6 +14,7 @@ import {
   descargarBlob,
   exportarPlantillaBlob,
   guardarPlantillaEnGaleria,
+  subirImagenBlobAEtiquetas,
   subirPdfBase64AEtiquetas,
 } from "../../lib/plantillasVisualesExport";
 import { type EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
@@ -345,7 +346,14 @@ export default function PlantillasVisualesPanel() {
         const ext = formato === "jpeg" ? "jpg" : "png";
         const safe = (doc.nombre || "plantilla").replace(/[^\w\-]+/g, "_").slice(0, 60);
         const suf = escala !== 1 ? `@${escala}x` : "";
-        descargarBlob(blob, `${safe}${suf}.${ext}`);
+        const nombreArchivo = `${safe}${suf}.${ext}`;
+        descargarBlob(blob, nombreArchivo);
+        if (formato === "png") {
+          await subirImagenBlobAEtiquetas(blob, nombreArchivo);
+          void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+          void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
+          mensajeExtra = " · guardado en biblioteca de etiquetas";
+        }
       }
       const dim = `${Math.round(doc.formato.ancho_px * escala)}×${Math.round(doc.formato.alto_px * escala)}`;
       setMsg(`Exportado ${formato.toUpperCase()} (${dim} px)${mensajeExtra} ✓`);

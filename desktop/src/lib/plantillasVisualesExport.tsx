@@ -419,23 +419,28 @@ function nombreArchivoPlantilla(nombre: string, ext: string): string {
   return `${safe}.${ext}`;
 }
 
-/** Sube el lienzo renderizado como JPG a la galería compartida del Studio. */
-export async function guardarPlantillaJpgEnGaleria(
-  doc: PlantillaVisualDoc,
-  opts?: Pick<OpcionesExportPlantilla, "escala">,
+/** Sube un blob de imagen (PNG o JPG) ya renderizado a la biblioteca de etiquetas. */
+export async function subirImagenBlobAEtiquetas(
+  blob: Blob,
+  nombreSugerido: string,
 ): Promise<{ nombre: string }> {
   const { api } = await import("../api/client");
-  const blob = await exportarPlantillaBlob(doc, "jpeg", opts);
   const fd = new FormData();
-  fd.append(
-    "archivo",
-    new File([blob], nombreArchivoPlantilla(doc.nombre, "jpg"), { type: "image/jpeg" }),
-  );
+  fd.append("archivo", new File([blob], nombreSugerido, { type: blob.type || "image/png" }));
   const res = await api.upload<{ ok: boolean; nombre: string }>(
     "/api/etiquetas/recursos-png",
     fd,
   );
   return { nombre: res.nombre };
+}
+
+/** Sube el lienzo renderizado como JPG a la galería compartida del Studio. */
+export async function guardarPlantillaJpgEnGaleria(
+  doc: PlantillaVisualDoc,
+  opts?: Pick<OpcionesExportPlantilla, "escala">,
+): Promise<{ nombre: string }> {
+  const blob = await exportarPlantillaBlob(doc, "jpeg", opts);
+  return subirImagenBlobAEtiquetas(blob, nombreArchivoPlantilla(doc.nombre, "jpg"));
 }
 
 /** Sube un PDF (ya renderizado, en base64) a la biblioteca de PDFs de Etiquetas para poder imprimirlo. */

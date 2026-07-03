@@ -1,6 +1,20 @@
 {
   "archivos": [
     {
+      "nombre": "PLANTILLA_100g_AZUL_20260703_023002.pdf",
+      "ruta": "Etiquetas McKenna/PLANTILLA_100g_AZUL_20260703_023002.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_100g_AZUL_20260703_023002.pdf",
+      "subido_at": "2026-07-03T02:30:02",
+      "bytes": 3352
+    },
+    {
+      "nombre": "PLANTILLA_100g_AZUL.pdf",
+      "ruta": "Etiquetas McKenna/PLANTILLA_100g_AZUL.pdf",
+      "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_100g_AZUL.pdf",
+      "subido_at": "2026-07-03T02:20:00",
+      "bytes": 3352
+    },
+    {
       "nombre": "PLANTILLA_1000g_AZUL.pdf",
       "ruta": "Etiquetas McKenna/PLANTILLA_1000g_AZUL.pdf",
       "ruta_completa": "/home/mckg/Documentos/Etiquetas McKenna/PLANTILLA_1000g_AZUL.pdf",
