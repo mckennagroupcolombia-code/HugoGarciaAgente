@@ -68,213 +68,74 @@
     ],
     "microbiologia": []
   },
-  "aceite argan": {
-    "titulo": "ACEITE ARGAN",
-    "descripcion": "Aceite de origen vegetal extraído de las semillas del árbol *Argania spinosa*, endémico de Marruecos. Su obtención se realiza mediante un proceso mecánico de prensado en frío de las almendras contenidas en el fruto, lo que garantiza la preservación de sus componentes bioactivos. Físicamente, se presenta como un líquido oleoso, límpido, de coloración amarillo dorado y con un olor suave característico. Químicamente, se destaca por su alto contenido de ácidos grasos esenciales, principalmente ácido oleico y linoleico, además de tocoferoles (vitamina E) y otros compuestos antioxidantes. Esta materia prima, con una pureza del 99%, es valorada por sus propiedades regeneradoras e hidratantes en formulaciones cosméticas.",
-    "secciones": [
-      {
-        "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-        "items": [
-          "Nota: El producto cumple con el estándar USP."
-        ]
-      },
-      {
-        "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-        "items": [
-          "Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "ACEITE ARGAN"
-      ],
-      [
-        "SINÓNIMOS",
-        "Argania Spinosa Kernel Oil\nArgan Oil\nAceite de Marruecos\nMoroccan Oil\nHuile d'Argan\nOro líquido de Marruecos\nLipofructyl Argan\nArgassential\nArgatensyl"
-      ],
-      [
-        "CAS #",
-        "223747-87-3"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "20 06 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Polvo blanco fino crema amarillento."
-      ],
-      [
-        "Identificación",
-        "Identificación A (Aluminio USP 41) Un residuo gris (sílice impura) permanente en el filtro."
-      ],
-      [
-        "Perdida por Ignición",
-        "Max. 15%"
-      ],
-      [
-        "Hierro",
-        "Max. 0,005%"
-      ],
-      [
-        "Sustancias Insolubles en Ácido  Carbonato",
-        "Max 10 mg (2%) USP41\nSin efervescencia"
-      ],
-      [
-        "Granulometría",
-        "+53µm\t<0,1%\n+10µm\t5-1 0%\n-2µm\t40-50%"
-      ],
-      [
-        "Blancura (ISO)",
-        "78-85"
-      ],
-      [
-        "Sustancias Insolubles en Ácido",
-        "Max 10 mg (2%)"
-      ],
-      [
-        "Humedad",
-        "Max 2 %"
-      ],
-      [
-        "Solubilidad",
-        "Soluble en  alcohol, éter y agua."
-      ],
-      [
-        "pH",
-        "2.1 – 2.6"
-      ],
-      [
-        "Impurezas orgánicas volátiles",
-        "Cumple"
-      ]
-    ],
-    "microbiologia": [
-      [
-        "Mesofilos Aerobios",
-        "Max. 1.000 UFC/g"
-      ],
-      [
-        "Hongos  y levaduras",
-        "Max. 1.000 UFC/g"
-      ],
-      [
-        "E. Colí",
-        "Negativo"
-      ],
-      [
-        "Salmonella",
-        "Negativo/ 25 gr"
-      ]
-    ]
-  },
   "aceite de argan": {
-    "titulo": "ACEITE DE ARGAN",
-    "descripcion": "",
+    "titulo": "ACEITE DE ARGÁN",
+    "descripcion": "Aceite vegetal obtenido a partir de las semillas de la planta Argania Spinoza. Es conocido por su alto contenido de ácidos grasos esenciales, vitamina E y antioxidantes, lo que le confiere propiedades hidratantes, regeneradoras y rejuvenecedoras para la piel y el cabello. Su concentración del 99% garantiza una pureza y eficacia excepcionales. Se utiliza comúnmente para hidratar, suavizar y nutrir la piel, reducir las arrugas y las líneas de expresión, fortalecer el cabello y protegerlo de los daños causados ​​por el calor y los químicos.",
     "secciones": [
       {
-        "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+        "titulo": "APLICACIONES",
         "items": [
-          "Nota: El producto cumple con el estándar USP."
+          "En productos de cuidado de la piel, como cremas hidratantes, lociones, sueros y bálsamos labiales. Se aplica en la piel para hidratar, suavizar y proteger contra el envejecimiento prematuro y los daños causados por los radicales libres.",
+          "Es un ingrediente común en productos para el cuidado del cabello, como acondicionadores, mascarillas y aceites capilares. Se utiliza para mejorar la hidratación, reducir el encrespamiento, aumentar el brillo y fortalecer el cabello.",
+          "Puede aplicarse para fortalecer las uñas y suavizar las cutículas.",
+          "Ayuda a mejorar la apariencia de cicatrices y estrías en la piel.",
+          "Posee propiedades antiinflamatorias y puede ser útil para calmar la piel irritada o con problemas como el acné, la psoriasis o el eccema.",
+          "Como acondicionador para su barba, manteniéndola suave e hidratada."
         ]
       },
       {
-        "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
+        "titulo": "RECOMENDACIONES",
         "items": [
-          "Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+          "Generalmente se requiere solo una pequeña cantidad para obtener resultados. Antes de usarlo ampliamente, realiza una prueba de parche en una pequeña área de la piel para verificar que no tengas reacciones alérgicas o sensibilidades.",
+          "Materia prima para ser conservada en condiciones normales y según las recomendaciones del fabricante hasta por 24 meses después de abierto."
         ]
       }
     ],
     "identidad": [
       [
         "NOMBRE DEL PRODUCTO",
-        "aceite de argan"
+        "Aceite de argán."
+      ],
+      [
+        "NOMBRE IUPAC",
+        "(2R,3R)-2,3-seco-10-trideceno-1,7,11-triyltris(oxy)-1,3,4,7,10,14-hexamethyl-2,3,4,5,6,7,8,9,11,12,13,14,15,16-tetradecahydrocyclopenta[a]phenanthrene-2,3-diol"
       ],
       [
         "SINÓNIMOS",
-        "Argania Spinosa Kernel Oil; Aceite de la semilla de Argania Spinoza"
+        "Oro líquido."
       ],
       [
-        "CAS #",
+        "# CAS",
         "223747-87-3"
       ],
       [
         "FECHA DE REVISIÓN",
-        "20 06 2026"
+        "20 07 24"
       ]
     ],
     "propiedades": [
       [
         "Apariencia",
-        "Polvo blanco fino crema amarillento."
+        "Líquido ligero color dorado o amarillo claro."
       ],
       [
-        "Identificación",
-        "Identificación A (Aluminio USP 41) Un residuo gris (sílice impura) permanente en el filtro."
-      ],
-      [
-        "Perdida por Ignición",
-        "Max. 15%"
-      ],
-      [
-        "Hierro",
-        "Max. 0,005%"
-      ],
-      [
-        "Sustancias Insolubles en Ácido  Carbonato",
-        "Max 10 mg (2%) USP41\nSin efervescencia"
-      ],
-      [
-        "Granulometría",
-        "+53µm\t<0,1%\n+10µm\t5-1 0%\n-2µm\t40-50%"
-      ],
-      [
-        "Blancura (ISO)",
-        "78-85"
-      ],
-      [
-        "Sustancias Insolubles en Ácido",
-        "Max 10 mg (2%)"
-      ],
-      [
-        "Humedad",
-        "Max 2 %"
-      ],
-      [
-        "Solubilidad",
-        "Soluble en  alcohol, éter y agua."
+        "Olor",
+        "Característico."
       ],
       [
         "pH",
-        "2.1 – 2.6"
+        "No definido."
       ],
       [
-        "Impurezas orgánicas volátiles",
-        "Cumple"
+        "Punto de fusión",
+        "21- 23 °C."
+      ],
+      [
+        "Índice de saponificación",
+        "185 a 200 mg KOH/g."
       ]
     ],
-    "microbiologia": [
-      [
-        "Mesofilos Aerobios",
-        "Max. 1.000 UFC/g"
-      ],
-      [
-        "Hongos  y levaduras",
-        "Max. 1.000 UFC/g"
-      ],
-      [
-        "E. Colí",
-        "Negativo"
-      ],
-      [
-        "Salmonella",
-        "Negativo/ 25 gr"
-      ]
-    ]
+    "microbiologia": []
   },
   "aceite de girasol": {
     "titulo": "ACEITE DE GIRASOL",
@@ -3318,139 +3179,6 @@
       ]
     ]
   },
-  "arcilla roja": {
-    "titulo": "ARCILLA ROJA",
-    "descripcion": "La arcilla roja es un mineral natural de origen inorgánico, obtenido por tratamiento mecánico sin adición de procesos químicos: trituración, secado térmico (aprox. 350 °C durante 20 minutos) y clasificación granulométrica por aspiración. Su composición combina principalmente illita y caolín, lo que confiere un polvo fino de color rojo característico, alta capacidad absorbente y textura suave en formulaciones. Ingrediente apto para cosmética, mascarillas faciales y corporales, pastas y geles purificantes. Insoluble en agua. No tóxico ni combustible. Cumple criterio de ingrediente natural según ISO 16128-1 (índice de naturalidad = 1).",
-    "secciones": [
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Cosmética y cuidado personal: mascarillas purificantes, jabones, geles exfoliantes suaves, cremas matificantes y productos capilares. Aporta coloración natural, opacidad, absorción de exceso de sebo e impurezas y suavidad al tacto.",
-          "Excipiente y formulaciones de uso tópico: empleada como agente de carga, espesante y pigmento mineral en preparaciones dermatológicas y de higiene.",
-          "Spa y bienestar: arcillas para envolturas corporales, baños de inmersión y tratamientos reductores cuando se requiere acción osmótica y remineralizante suave.",
-          "Industria y artesanía: pigmentación en cerámicas, pinturas y productos de belleza artesanal que requieren arcilla roja de malla fina."
-        ]
-      },
-      {
-        "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-        "items": [
-          "Nota: Categoría microbiológica 2 (18 meses desde despacho). Categoría 1 (6 meses, tratamiento térmico 100% natural) disponible bajo pedido. El producto cumple criterios ISO 17516 y métodos NF EN ISO para control microbiológico."
-        ]
-      },
-      {
-        "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-        "items": [
-          "Comercializado en bolsas kraft. Almacenar en lugar seco, bien ventilado, protegido de la humedad, la luz directa y la contaminación microbiológica. Vigencia microbiológica categoría 2: 18 meses desde la fecha de despacho; categoría 1: 6 meses. Se recomienda consumir preferentemente dentro del periodo indicado en el lote."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "Arcilla Roja (Illita – Caolín)"
-      ],
-      [
-        "INCI",
-        "Illite; Kaolin"
-      ],
-      [
-        "CAS # (Illita)",
-        "12173-60-3"
-      ],
-      [
-        "CAS # (Caolín)",
-        "1332-58-7"
-      ],
-      [
-        "COMPOSICIÓN TÍPICA",
-        "Illita 75% ± 5; Caolín 25% ± 3"
-      ],
-      [
-        "ORIGEN / PROCESO",
-        "Mineral natural; tratamiento mecánico y térmico; sin irradiación"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "27 05 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Polvo rojo fino."
-      ],
-      [
-        "Olor",
-        "Ninguno."
-      ],
-      [
-        "Humedad",
-        "Máx. 8%"
-      ],
-      [
-        "pH",
-        "8 – 9 (método NF EN ISO 787-9)"
-      ],
-      [
-        "Granulometría",
-        "90% < 80 µm y 100% < 150 µm"
-      ],
-      [
-        "Solubilidad",
-        "Insoluble en agua."
-      ],
-      [
-        "Índice naturalidad ISO 16128",
-        "Natural = 1; Origen natural = 1"
-      ],
-      [
-        "REACH / Cosmética EU",
-        "Sustancia de origen natural; autorizada CE 1223/2009"
-      ],
-      [
-        "Metales pesados",
-        "Trazas dentro de límites cosméticos (Sb, As, Cd, Co, Sn, Hg, Ni, Pb)"
-      ],
-      [
-        "Nanomateriales",
-        "No producido intencionalmente a escala nanométrica."
-      ],
-      [
-        "Vegano / Halal / Kosher",
-        "Mineral sin origen animal; apto según proceso sin aditivos prohibidos"
-      ]
-    ],
-    "microbiologia": [
-      [
-        "Mesofilos Aerobios",
-        "Máx. 1.000 UFC/g (cat. 2)"
-      ],
-      [
-        "Hongos y levaduras",
-        "Máx. 1.000 UFC/g (cat. 2)"
-      ],
-      [
-        "Pseudomonas aeruginosa",
-        "Ausencia"
-      ],
-      [
-        "Staphylococcus aureus",
-        "Ausencia"
-      ],
-      [
-        "Candida albicans",
-        "Ausencia"
-      ],
-      [
-        "E. Coli",
-        "Negativo"
-      ],
-      [
-        "Salmonella",
-        "Negativo / 25 g"
-      ]
-    ]
-  },
   "azufre": {
     "titulo": "AZUFRE",
     "descripcion": "El azufre micronizado tiene un tamaño de partícula que varía típicamente en el rango de 1 a 50 micrómetros. Estas partículas son significativamente más pequeñas que las del azufre en polvo común, lo que permite una mayor dispersión y mezcla con otros materiales.",
@@ -5316,73 +5044,6 @@
       [
         "Solubilidad",
         "Soluble en solventes orgánicos no polares, tales como:\nHidrocarburos alifáticos (ej. hexano, heptano)\nÉter de petróleo\nCloroformo\nBenceno\nTolueno\nDisolventes aromáticos\nAceites minerales\nAlgunos aceites vegetales calientes"
-      ]
-    ],
-    "microbiologia": []
-  },
-  "cera lanette": {
-    "titulo": "CERA CARNAUBA",
-    "descripcion": "Cera natural en escamas que se obtiene de las hojas de la palma de carnauba (Copernicia prunifera).",
-    "secciones": [
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Industria automotriz: Se utiliza en la fabricación de productos para el cuidado de automóviles, como ceras y abrillantadores. Estos productos se aplican en la pintura del automóvil para proporcionar brillo, protección contra la intemperie, y ayudar a repeler el agua y la suciedad.",
-          "Industria alimentaria: Se utiliza como recubrimiento en ciertos alimentos, especialmente en dulces, chicles y cápsulas de medicamentos. Actúa como una barrera protectora, mejorando la apariencia, brillo y conservación de los productos.",
-          "Industria cosmética: Se encuentra en una variedad de productos cosméticos, como barras de labios, bálsamos labiales, lápices de cejas, máscaras de pestañas, cremas para el cabello y productos para el cuidado de la piel. Aporta consistencia, brillo y propiedades de fijación en estos productos.",
-          "Industria farmacéutica: Se utiliza en la fabricación de tabletas y cápsulas farmacéuticas. Actúa como un agente de recubrimiento para facilitar la deglución, proteger los ingredientes activos y mejorar la apariencia de los medicamentos.",
-          "Cuidado del cuero: Es usada en la fabricación de productos para el cuidado del cuero, como acondicionadores y cremas. Ayuda a nutrir y proteger el cuero, además de proporcionar un acabado brillante.",
-          "Industria del mueble: Se utiliza como un componente en ceras y pulidores para muebles de madera. Proporciona brillo y protección a la superficie de los muebles.",
-          "Industria de la impresión: Es usada en la fabricación de tintas y ceras para la impresión y acabado de papel. Proporciona resistencia al agua y mejoras en la calidad de impresión."
-        ]
-      },
-      {
-        "titulo": "RECOMENDACIONES",
-        "items": [
-          "Antes de aplicar la cera de carnauba en una superficie grande o en un producto completo, es aconsejable realizar una prueba preliminar en una pequeña área discreta. Esto permitirá evaluar la compatibilidad y los resultados antes de proceder con la aplicación completa.",
-          "Antes de aplicar la cera de carnauba, asegúrese de limpiar y preparar adecuadamente la superficie. Elimine cualquier suciedad, polvo o residuos para lograr una adherencia óptima y resultados más satisfactorios.",
-          "Dependiendo de la aplicación, puedes utilizar un aplicador de espuma, un paño suave o una pulidora para aplicar y extender la cera de carnauba de manera uniforme. Utilizar las herramientas adecuadas puede facilitar el proceso y mejorar los resultados.",
-          "Para mantener los beneficios de la cera de carnauba, es recomendable realizar un mantenimiento regular. Esto puede implicar aplicar una nueva capa de cera de carnauba periódicamente.",
-          "Almacene en un lugar fresco y seco, lejos de la luz solar directa y fuentes de calor. Esto ayudará a preservar su calidad y propiedades durante más tiempo."
-        ]
-      },
-      {
-        "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-        "items": [
-          "La formulación está diseñada para ser conservada en condiciones normales y según las recomendaciones del fabricante hasta por 24 meses después de abierto."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "Cera  carnauba c"
-      ],
-      [
-        "# CAS",
-        "8015-86-9"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "24 05 2023"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Escamas color amarillo pálido a  marrón."
-      ],
-      [
-        "Olor",
-        "Ligero característico."
-      ],
-      [
-        "Punto  de fusión",
-        "82-86 °C"
-      ],
-      [
-        "Solubilidad",
-        "Insoluble en agua, soluble en disolventes orgánicos como alcoholes, éteres e hidrocarburos."
       ]
     ],
     "microbiologia": []
@@ -7385,33 +7046,6 @@
       ]
     ]
   },
-  "efsf": {
-    "titulo": "EFSF",
-    "descripcion": "Dad",
-    "secciones": [
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Dafdsf"
-        ]
-      },
-      {
-        "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-        "items": [
-          "Nota: El producto cumple con el estándar USP."
-        ]
-      },
-      {
-        "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-        "items": [
-          "Fsdf"
-        ]
-      }
-    ],
-    "identidad": [],
-    "propiedades": [],
-    "microbiologia": []
-  },
   "elastina": {
     "titulo": "ELASTINA",
     "descripcion": "Suspensión líquida de base acuosa de elastina calidad USP, ideal para ser empleada como materia prima en la formulación de productos destinados al cuidado de la piel. Ejerce un efecto preventivo sobre la formación de líneas de expresión, surcos, arrugas y estrías, al tiempo que garantiza la adecuada retención de humedad en la piel. Asimismo, fortalece y da respaldo a las fibras de colágeno, pilares fundamentales para la firmeza de la piel y la prevención de la flacidez cutánea.",
@@ -8759,6 +8393,82 @@
       [
         "Punto de ebullición",
         "155 °C."
+      ],
+      [
+        "Índice de saponificación",
+        "No aplica."
+      ]
+    ],
+    "microbiologia": []
+  },
+  "esencial romero": {
+    "titulo": "ACEITE ESENCIAL ROMERO",
+    "descripcion": "Aceite esencial obtenido por método de extracción por arrastre por vapor de la planta de Rosmarinus officinalis.",
+    "secciones": [
+      {
+        "titulo": "BENEFICIOS",
+        "items": [
+          "Proporciona sabor y aroma a una amplia gama de productos, como alimentos procesados, bebidas y condimentos.",
+          "Es usado como conservante natural en productos cosméticos y de cuidado personal, así como en productos alimentarios, debido a sus propiedades antioxidantes que pueden ayudar a prolongar la vida útil de los productos.",
+          "Contiene compuestos antioxidantes que pueden ayudar a proteger contra el daño oxidativo causado por los radicales libres, lo que lo convierte en una opción popular en la formulación de productos de cuidado de la piel y suplementos.",
+          "Alivia molestias relacionadas con la inflamación.",
+          "Posee efectos estimulantes y revitalizantes. Por lo tanto, se utiliza en productos como aromaterapia, perfumería y productos para el baño.",
+          "Promueve el crecimiento del cabello y fortalecimiento capilar."
+        ]
+      },
+      {
+        "titulo": "RECOMENDACIONES",
+        "items": [
+          "Generalmente se requiere solo una pequeña cantidad para obtener resultados. Antes de usarlo ampliamente, realice una prueba de parche en una pequeña área de la piel para verificar reacciones alérgicas o sensibilidades.",
+          "Siempre diluya el aceite esencial de romero en un aceite portador (como aceite de coco, almendra dulce o jojoba) antes de su uso. Una proporción típica es de 2-3 gotas de aceite esencial por cucharada de aceite portador.",
+          "Se considera seguro ingerir aceite esencial de romero, generalmente se recomienda diluirlo en una cantidad adecuada de aceite portador comestible, como aceite de coco o aceite de oliva. La proporción suele ser muy baja, con solo una gota o menos de aceite esencial en una cucharadita de aceite portador."
+        ]
+      },
+      {
+        "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
+        "items": [
+          "Mantenga el envase bien cerrado, en un lugar fresco y seco. Su vida útil es de hasta 24 meses después de abierto, controle su calidad periódicamente."
+        ]
+      }
+    ],
+    "identidad": [
+      [
+        "NOMBRE DEL PRODUCTO",
+        "Aceite esencial de romero"
+      ],
+      [
+        "NOMBRE IUPAC",
+        "1,8-cineol 2-metil-5-(1-metiletil)ciclohexanol"
+      ],
+      [
+        "SINÓNIMOS",
+        "Aceite esencial de Rosmarinus officinalis."
+      ],
+      [
+        "# CAS",
+        "8000-25-7"
+      ],
+      [
+        "FECHA DE REVISIÓN",
+        "17 08 24"
+      ]
+    ],
+    "propiedades": [
+      [
+        "Apariencia",
+        "Líquido ligero amarillo pálido."
+      ],
+      [
+        "Olor",
+        "Herbal especiado."
+      ],
+      [
+        "pH",
+        "No definido."
+      ],
+      [
+        "Punto de ebullición",
+        "165 °C."
       ],
       [
         "Índice de saponificación",
@@ -10501,197 +10211,112 @@
     "descripcion": "Es el nombre con el que se designa a una familia de glúcidos complejos (polisacáridos), compuestos de cadenas moleculares de fructosa. Es, por lo tanto, un fructosano o fructano, que se concentra o almacena en el tejido fino de planta, generalmente raíces y rizomas contiene las concentraciones más grandes. La inulina es un ingrediente alimenticio natural obtenido de la raíz de la achicoria, que también está presente en otros vegetales como ajo, cebolla, porro, alcachofa, trigo e incluso plátano. Se extrae de la raíz de la achicoria mediante agua caliente, para ser fácilmente añadida en nuestra dieta diaria.",
     "secciones": [
       {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Efecto prebiótico: Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus.",
-          "Resistencia natural: Tiene un impacto positivo en la resistencia natural de nuestro cuerpo.",
-          "Tránsito intestinal: Contribuye a tener un tránsito intestinal regular y suave.",
-          "Absorción de nutrientes: Mejora la absorción de importantes nutrientes como calcio.",
-          "Reducción riesgo cáncer intestinal: Incluso podría reducir el riesgo de cáncer intestinal.",
-          "Salud digestiva: Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
-          "Reducción colesterol: Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos.",
-          "Sabor neutro: No modifica el sabor original de los alimentos.",
-          "Bajo valor calórico: Es amigable para diabéticos."
-        ]
-      },
-      {
         "titulo": "APLICACIONES",
         "items": [
-          "Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
+          "Tiene un sabor neutro. Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
         ]
       },
       {
-        "titulo": "MODO DE USO",
+        "titulo": "PROPIEDADES",
         "items": [
-          "La inulina se incorpora en formulaciones farmacéuticas y cosméticas en concentraciones típicas del 1% al 10% para potenciar su efecto prebiótico o mejorar la textura y estabilidad. Se recomienda su disolución gradual en la fase acuosa de la formulación, manteniendo agitación constante para asegurar una dispersión homogénea. La incorporación puede realizarse a temperaturas desde ambiente hasta 70°C, facilitando la solubilización sin afectar su integridad funcional."
+          "La inulina alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus. Esto es lo que se llama efecto prebiótico. Tiene un impacto positivo en la resistencia natural de nuestro cuerpo. La inulina también contribuye a tener un tránsito intestinal regular y suave. Mejora la absorción de importantes nutrientes como calcio e incluso podría reducir el riesgo de cáncer intestinal. Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
+          "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos. Por ser neutra no modifica el sabor original de los alimentos.",
+          "Posee un bajo valor calórico, por lo que es amigable para diabéticos."
+        ]
+      },
+      {
+        "titulo": "RECOMENDACIONES",
+        "items": [
+          "Puede causar reacción alérgica o problemas digestivos.",
+          "Puede alterar los niveles de azúcar en la sangre.",
+          "Mantenga fuera del alcance de los niños.",
+          "Una vez abierto el producto, no se acepta su devolución.",
+          "Almacene el empaque bien cerrado en un lugar fresco, seco y protegido de la luz. Superados los 24 meses de almacenamiento, se deberá controlar la calidad antes de usar."
+        ]
+      },
+      {
+        "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+        "items": [
+          "Nota: El producto cumple con el estándar USP."
         ]
       }
     ],
     "identidad": [
       [
         "NOMBRE DEL PRODUCTO",
-        "INULINA"
-      ],
-      [
-        "REFERENCIA SIIGO",
-        "INUg"
-      ],
-      [
-        "SINÓNIMOS",
-        "Fructano; Polisacárido de fructosa con enlaces β-(2→1) y unidad de glucosa terminal; E 184; Prebiótico soluble; Fibra alimentaria"
+        "Inulina"
       ],
       [
         "CAS #",
         "9005-80-5"
       ],
       [
+        "NOMBRE IUPAC",
+        "Inulina"
+      ],
+      [
+        "EINECS",
+        "232-684-3"
+      ],
+      [
         "FECHA DE REVISIÓN",
-        "24 06 2026"
+        "05 08 2024"
       ]
     ],
     "propiedades": [
       [
         "Apariencia",
-        "La ficha técnica interna proporcionada no especifica la apariencia física de la inulina (estado, color, textura, forma)."
+        "Blanco, Similar al almidón, \nSin impurezas a la vista"
       ],
       [
-        "pH",
-        "5.0-7.0 en sol. 10%"
+        "Solubilidad en agua",
+        "Forma geles"
       ],
       [
-        "Olor",
-        "Inodoro."
+        "Carbohidratos totales  (base seca), %",
+        "≥ 99.5"
       ],
       [
-        "Sabor",
-        "Ligeramente dulce."
+        "Contenido de   Inulina (base seca), %",
+        "≥ 95"
       ],
       [
-        "Solubilidad",
-        "La inulina es soluble en agua caliente, utilizada para su extracción, y prácticamente insoluble en solventes orgánicos."
+        "Azúcares totales (Sacarosa + Glucosa + Fructosa)",
+        "≤ 10"
       ],
       [
-        "Efecto prebiótico",
-        "Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus."
+        "Humedad, %",
+        "≤ 5.0"
       ],
       [
-        "Resistencia natural",
-        "Tiene un impacto positivo en la resistencia natural de nuestro cuerpo."
+        "Arsénico (As), mg/kg",
+        "≤ 0.5"
       ],
       [
-        "Tránsito intestinal",
-        "Contribuye a tener un tránsito intestinal regular y suave."
-      ],
-      [
-        "Absorción de nutrientes",
-        "Mejora la absorción de importantes nutrientes como calcio."
-      ],
-      [
-        "Reducción riesgo cáncer intestinal",
-        "Incluso podría reducir el riesgo de cáncer intestinal."
-      ],
-      [
-        "Salud digestiva",
-        "Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona."
-      ],
-      [
-        "Reducción colesterol",
-        "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos."
-      ],
-      [
-        "Sabor neutro",
-        "No modifica el sabor original de los alimentos."
-      ],
-      [
-        "Bajo valor calórico",
-        "Es amigable para diabéticos."
+        "Plomo (Pb), mg/kg",
+        "≤ 0.5"
       ]
     ],
     "microbiologia": [
       [
-        "Contenido de materia seca",
-        "95,0 - 99,0 %",
-        "97,9 %"
+        "Propiedades",
+        "Estándar"
       ],
       [
-        "pH",
-        "5,0 - 7,0",
-        "6,8"
+        "Bacterias totales, /g",
+        "≤ 1000"
       ],
       [
-        "Inulina",
-        "≥ 90 %",
-        "92 %"
+        "Coliformes, MPN/g",
+        "≤ 3.6"
       ],
       [
-        "Fructosa, glucosa, sacarosa",
-        "≤ 10 %",
-        "8 %"
+        "Hongos, cfu/g",
+        "≤ 50"
       ],
       [
-        "Longitud media de cadena",
-        "8 - 13",
-        "12"
-      ],
-      [
-        "Cenizas",
-        "≤ 0,2 %",
-        "< 0,2 %"
-      ],
-      [
-        "Recuento aerobio en placa (30°C)",
-        "≤ 1000 CFU/g",
-        "< 100 CFU/g"
-      ],
-      [
-        "Recuento aerobio en placa (55°C)",
-        "≤ 1000 CFU/g (a 55°C)",
-        "< 100 CFU/g"
-      ],
-      [
-        "Levaduras",
-        "≤ 20 CFU/g",
-        "< 10 CFU/g"
-      ],
-      [
-        "Mohos",
-        "≤ 20 CFU/g",
-        "< 10 CFU/g"
-      ],
-      [
-        "Bacillus cereus",
-        "≤ 100 CFU/g",
-        "< 100 CFU/g"
-      ],
-      [
-        "Listeria monocytogenes/25g",
-        "No detectado",
-        "No detectado"
-      ],
-      [
-        "Enterobacteriaceae/g",
-        "No detectado",
-        "No detectado"
-      ],
-      [
-        "Staphylococcus aureus/g",
-        "No detectado",
-        "No detectado"
-      ],
-      [
-        "Salmonella/400g",
-        "No detectado",
-        "No detectado"
-      ],
-      [
-        "Fecha de producción",
-        "",
-        "01/10/2025"
-      ],
-      [
-        "Fecha de caducidad",
-        "",
-        "01/10/2030"
+        "Patógenos",
+        "Negativo"
       ]
     ]
   },
@@ -12685,6 +12310,147 @@
       ]
     ],
     "microbiologia": []
+  },
+  "lactato de calcio": {
+    "titulo": "LACTATO DE CALCIO",
+    "descripcion": "Se trata de un agente utilizado como suplemento dietético del calcio, principal componente de los huesos y que juega un importante papel biológico en la actividad muscular y en la transmisión neuromuscular.",
+    "secciones": [
+      {
+        "titulo": "APLICACIONES",
+        "items": [
+          "El lactato de calcio siempre se usa en leche, bebidas (como bebidas deportivas y saludables, jugos) para enriquecimiento de calcio, y agregado a frutas recién cortadas, frutas enlatadas y verduras en conserva para mantenerlos firmes y prolongar su vida útil, sin el sabor amargo causado por el cloruro de calcio, que también se puede utilizar para este fin.",
+          "Se puede agregar a los alimentos sin azúcar (como postres instantáneos, mermeladas, jaleas, masticación (goma de mascar) para prevenir la caries dental, también se usa como polvo de hornear para la estabilidad de la masa y la espuma mejora.",
+          "Se usa más comúnmente como antiácido y también para tratar las deficiencias de calcio.",
+          "También se encuentra en algunos productos para el cuidado bucal, como la pasta de dientes y los productos de venta libre (OTC). Enjuagues bucales."
+        ]
+      },
+      {
+        "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+        "items": [
+          "Nota: El producto cumple con el estándar USP."
+        ]
+      },
+      {
+        "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
+        "items": [
+          "Se recomienda guardar en envases bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+        ]
+      }
+    ],
+    "identidad": [
+      [
+        "NOMBRE DEL PRODUCTO",
+        "Lactato de  calcio anhidro"
+      ],
+      [
+        "CAS #",
+        "814-80-2"
+      ],
+      [
+        "FÓRMULA QUÍMICA",
+        "Ca(CH3CHOHCOO)2·5H2O"
+      ],
+      [
+        "NOMBRE IUPAC",
+        "Lactato de calcio,\nCalcio-2-hidroxipropanoato,\nSal de calcio del ácido (S)-2-hidroxipropanoico"
+      ],
+      [
+        "ADITIVO ALIMENTARIO",
+        "E-327"
+      ],
+      [
+        "FECHA DE REVISIÓN",
+        "09 08 2024"
+      ]
+    ],
+    "propiedades": [
+      [
+        "Apariencia",
+        "Polvo granular  blanco"
+      ],
+      [
+        "Olor y sabor",
+        "Neutro"
+      ],
+      [
+        "Peso molecular",
+        "218.22 g/mol"
+      ],
+      [
+        "Pureza",
+        "=> 99,5 %"
+      ],
+      [
+        "pH 5% de solución",
+        "6.0 – 8.0"
+      ],
+      [
+        "Tamaño de  malla",
+        "40  (pasando  > 95%"
+      ],
+      [
+        "Ensayo",
+        "98% al 103.0%"
+      ],
+      [
+        "Perdidas por secado",
+        "22 – 27%"
+      ],
+      [
+        "Sales de Mg  y alcalinas",
+        "Max 1.0%"
+      ],
+      [
+        "Ácidez",
+        "Max 0,45% de la materia seca expresado con ácido láctico"
+      ],
+      [
+        "Cloruros",
+        "Max 200 ppm"
+      ],
+      [
+        "Sulfatos",
+        "Max 400 ppm"
+      ],
+      [
+        "Total de metales pesados",
+        "Max 10 ppm"
+      ],
+      [
+        "Plomo (Pb)",
+        "Max 2 ppm"
+      ],
+      [
+        "Arsénico (As)",
+        "Max 2 ppm"
+      ],
+      [
+        "Mercurio  (Hg)",
+        "Max 1 ppm"
+      ]
+    ],
+    "microbiologia": [
+      [
+        "Recuento total en placa UFC/g",
+        "≥ 10000"
+      ],
+      [
+        "Coliformes totales UFC/g",
+        "≥ 10"
+      ],
+      [
+        "Escherichia Coli",
+        "Ausencia en 25g"
+      ],
+      [
+        "Salmonella spp.",
+        "Ausencia en 25g"
+      ],
+      [
+        "Hongos y levaduras UFC/g",
+        "≤ 100"
+      ]
+    ]
   },
   "lanolina": {
     "titulo": "LANOLINA",
@@ -16791,2777 +16557,6 @@
       [
         "Pureza (USP/FCC)",
         "USP/FCC"
-      ]
-    ],
-    "microbiologia": []
-  },
-  "acetato de sodio anhidro": {
-    "titulo": "ACETATO DE SODIO ANHIDRO",
-    "descripcion": "Es la sal sódica del ácido acético, obtenida por síntesis química. Su modo de obtención industrial se basa en la reacción de neutralización entre ácido acético de alta pureza y una fuente de sodio, como el hidróxido de sodio o el carbonato de sodio. El proceso de síntesis culmina con la evaporación del agua de la solución resultante y una posterior etapa de secado o deshidratación térmica controlada  para  eliminar  el  agua  de  cristalización,  garantizando  su  estado anhidro. Físicamente, se presenta como un polvo cristalino granular de color blanco, inodoro y con un carácter marcadamente higroscópico, lo que exige un almacenamiento en condiciones de baja humedad.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "A",
-          "g",
-          "e",
-          "n",
-          "t",
-          "e",
-          "",
-          "R",
-          "e",
-          "g",
-          "u",
-          "l",
-          "a",
-          "d",
-          "o",
-          "r",
-          "",
-          "d",
-          "e",
-          "",
-          "p",
-          "H",
-          "",
-          "M",
-          "a",
-          "n",
-          "t",
-          "i",
-          "e",
-          "n",
-          "e",
-          "",
-          "l",
-          "a",
-          "",
-          "a",
-          "c",
-          "i",
-          "d",
-          "e",
-          "z",
-          "",
-          "d",
-          "e",
-          "l",
-          "",
-          "p",
-          "r",
-          "o",
-          "d",
-          "u",
-          "c",
-          "t",
-          "o",
-          "",
-          "d",
-          "e",
-          "n",
-          "t",
-          "r",
-          "o",
-          "",
-          "d",
-          "e",
-          "",
-          "u",
-          "n",
-          "",
-          "r",
-          "a",
-          "n",
-          "g",
-          "o",
-          "",
-          "e",
-          "s",
-          "p",
-          "e",
-          "c",
-          "í",
-          "f",
-          "i",
-          "c",
-          "o",
-          "",
-          "p",
-          "a",
-          "r",
-          "a",
-          "",
-          "a",
-          "s",
-          "e",
-          "g",
-          "u",
-          "r",
-          "a",
-          "r",
-          "",
-          "s",
-          "u",
-          "",
-          "e",
-          "s",
-          "t",
-          "a",
-          "b",
-          "i",
-          "l",
-          "i",
-          "d",
-          "a",
-          "d",
-          "",
-          "y",
-          "",
-          "c",
-          "o",
-          "m",
-          "p",
-          "a",
-          "t",
-          "i",
-          "b",
-          "i",
-          "l",
-          "i",
-          "d",
-          "a",
-          "d",
-          "",
-          "c",
-          "o",
-          "n",
-          "",
-          "l",
-          "a",
-          "",
-          "p",
-          "i",
-          "e",
-          "l",
-          ".",
-          "",
-          "A",
-          "g",
-          "e",
-          "n",
-          "t",
-          "e",
-          "",
-          "T",
-          "a",
-          "m",
-          "p",
-          "o",
-          "n",
-          "a",
-          "d",
-          "o",
-          "r",
-          "",
-          "(",
-          "B",
-          "u",
-          "f",
-          "f",
-          "e",
-          "r",
-          ")",
-          "",
-          "C",
-          "o",
-          "n",
-          "t",
-          "r",
-          "o",
-          "l",
-          "a",
-          "",
-          "y",
-          "",
-          "e",
-          "s",
-          "t",
-          "a",
-          "b",
-          "i",
-          "l",
-          "i",
-          "z",
-          "a",
-          "",
-          "e",
-          "l",
-          "",
-          "p",
-          "H",
-          "",
-          "d",
-          "e",
-          "",
-          "l",
-          "a",
-          "s",
-          "",
-          "p",
-          "r",
-          "e",
-          "p",
-          "a",
-          "r",
-          "a",
-          "c",
-          "i",
-          "o",
-          "n",
-          "e",
-          "s",
-          "",
-          "a",
-          "c",
-          "u",
-          "o",
-          "s",
-          "a",
-          "s",
-          ",",
-          "",
-          "g",
-          "a",
-          "r",
-          "a",
-          "n",
-          "t",
-          "i",
-          "z",
-          "a",
-          "n",
-          "d",
-          "o",
-          "",
-          "l",
-          "a",
-          "",
-          "e",
-          "f",
-          "i",
-          "c",
-          "a",
-          "c",
-          "i",
-          "a",
-          "",
-          "d",
-          "e",
-          "",
-          "l",
-          "o",
-          "s",
-          "",
-          "i",
-          "n",
-          "g",
-          "r",
-          "e",
-          "d",
-          "i",
-          "e",
-          "n",
-          "t",
-          "e",
-          "s",
-          "",
-          "a",
-          "c",
-          "t",
-          "i",
-          "v",
-          "o",
-          "s",
-          ".",
-          "",
-          "A",
-          "g",
-          "e",
-          "n",
-          "t",
-          "e",
-          "",
-          "C",
-          "o",
-          "n",
-          "s",
-          "e",
-          "r",
-          "v",
-          "a",
-          "n",
-          "t",
-          "e",
-          "",
-          "I",
-          "n",
-          "h",
-          "i",
-          "b",
-          "e",
-          "",
-          "e",
-          "l",
-          "",
-          "d",
-          "e",
-          "s",
-          "a",
-          "r",
-          "r",
-          "o",
-          "l",
-          "l",
-          "o",
-          "",
-          "d",
-          "e",
-          "",
-          "m",
-          "i",
-          "c",
-          "r",
-          "o",
-          "o",
-          "r",
-          "g",
-          "a",
-          "n",
-          "i",
-          "s",
-          "m",
-          "o",
-          "s",
-          ",",
-          "",
-          "p",
-          "a",
-          "r",
-          "t",
-          "i",
-          "c",
-          "u",
-          "l",
-          "a",
-          "r",
-          "m",
-          "e",
-          "n",
-          "t",
-          "e",
-          "",
-          "h",
-          "o",
-          "n",
-          "g",
-          "o",
-          "s",
-          "",
-          "y",
-          "",
-          "l",
-          "e",
-          "v",
-          "a",
-          "d",
-          "u",
-          "r",
-          "a",
-          "s",
-          ",",
-          "",
-          "p",
-          "o",
-          "t",
-          "e",
-          "n",
-          "c",
-          "i",
-          "a",
-          "n",
-          "d",
-          "o",
-          "",
-          "l",
-          "a",
-          "",
-          "v",
-          "i",
-          "d",
-          "a",
-          "",
-          "ú",
-          "t",
-          "i",
-          "l",
-          "",
-          "d",
-          "e",
-          "",
-          "l",
-          "a",
-          "",
-          "f",
-          "o",
-          "r",
-          "m",
-          "u",
-          "l",
-          "a",
-          "c",
-          "i",
-          "ó",
-          "n",
-          ".",
-          "",
-          "A",
-          "g",
-          "e",
-          "n",
-          "t",
-          "e",
-          "",
-          "E",
-          "n",
-          "m",
-          "a",
-          "s",
-          "c",
-          "a",
-          "r",
-          "a",
-          "n",
-          "t",
-          "e",
-          "",
-          "R",
-          "e",
-          "d",
-          "u",
-          "c",
-          "e",
-          "",
-          "o",
-          "",
-          "i",
-          "n",
-          "h",
-          "i",
-          "b",
-          "e",
-          "",
-          "e",
-          "l",
-          "",
-          "o",
-          "l",
-          "o",
-          "r",
-          "",
-          "o",
-          "",
-          "s",
-          "a",
-          "b",
-          "o",
-          "r",
-          "",
-          "b",
-          "á",
-          "s",
-          "i",
-          "c",
-          "o",
-          "",
-          "d",
-          "e",
-          "",
-          "u",
-          "n",
-          "",
-          "p",
-          "r",
-          "o",
-          "d",
-          "u",
-          "c",
-          "t",
-          "o",
-          ",",
-          "",
-          "m",
-          "e",
-          "j",
-          "o",
-          "r",
-          "a",
-          "n",
-          "d",
-          "o",
-          "",
-          "s",
-          "u",
-          "s",
-          "",
-          "c",
-          "a",
-          "r",
-          "a",
-          "c",
-          "t",
-          "e",
-          "r",
-          "í",
-          "s",
-          "t",
-          "i",
-          "c",
-          "a",
-          "s",
-          "",
-          "o",
-          "r",
-          "g",
-          "a",
-          "n",
-          "o",
-          "l",
-          "é",
-          "p",
-          "t",
-          "i",
-          "c",
-          "a",
-          "s",
-          ".",
-          "",
-          "F",
-          "u",
-          "e",
-          "n",
-          "t",
-          "e",
-          "",
-          "d",
-          "e",
-          "",
-          "E",
-          "l",
-          "e",
-          "c",
-          "t",
-          "r",
-          "o",
-          "l",
-          "i",
-          "t",
-          "o",
-          "s",
-          "",
-          "P",
-          "r",
-          "o",
-          "v",
-          "e",
-          "e",
-          "",
-          "i",
-          "o",
-          "n",
-          "e",
-          "s",
-          "",
-          "d",
-          "e",
-          "",
-          "s",
-          "o",
-          "d",
-          "i",
-          "o",
-          "",
-          "p",
-          "a",
-          "r",
-          "a",
-          "",
-          "l",
-          "a",
-          "",
-          "r",
-          "e",
-          "p",
-          "o",
-          "s",
-          "i",
-          "c",
-          "i",
-          "ó",
-          "n",
-          "",
-          "e",
-          "n",
-          "",
-          "f",
-          "o",
-          "r",
-          "m",
-          "u",
-          "l",
-          "a",
-          "c",
-          "i",
-          "o",
-          "n",
-          "e",
-          "s",
-          "",
-          "f",
-          "a",
-          "r",
-          "m",
-          "a",
-          "c",
-          "é",
-          "u",
-          "t",
-          "i",
-          "c",
-          "a",
-          "s",
-          "",
-          "i",
-          "n",
-          "t",
-          "r",
-          "a",
-          "v",
-          "e",
-          "n",
-          "o",
-          "s",
-          "a",
-          "s",
-          "",
-          "y",
-          "",
-          "s",
-          "o",
-          "l",
-          "u",
-          "c",
-          "i",
-          "o",
-          "n",
-          "e",
-          "s",
-          "",
-          "d",
-          "e",
-          "",
-          "d",
-          "i",
-          "á",
-          "l",
-          "i",
-          "s",
-          "i",
-          "s",
-          "."
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "A",
-          "g",
-          "e",
-          "n",
-          "t",
-          "e",
-          "t",
-          "a",
-          "m",
-          "p",
-          "o",
-          "n",
-          "a",
-          "n",
-          "t",
-          "e",
-          "p",
-          "a",
-          "r",
-          "a",
-          "e",
-          "l",
-          "c",
-          "o",
-          "n",
-          "t",
-          "r",
-          "o",
-          "l",
-          "d",
-          "e",
-          "p",
-          "H",
-          "e",
-          "n",
-          "p",
-          "r",
-          "e",
-          "p",
-          "a",
-          "r",
-          "a",
-          "c",
-          "i",
-          "o",
-          "n",
-          "e",
-          "s",
-          "f",
-          "a",
-          "r",
-          "m",
-          "a",
-          "c",
-          "é",
-          "u",
-          "t",
-          "i",
-          "c",
-          "a",
-          "s",
-          ".",
-          "R",
-          "e",
-          "g",
-          "u",
-          "l",
-          "a",
-          "d",
-          "o",
-          "r",
-          "d",
-          "e",
-          "a",
-          "c",
-          "i",
-          "d",
-          "e",
-          "z",
-          "e",
-          "n",
-          "f",
-          "o",
-          "r",
-          "m",
-          "u",
-          "l",
-          "a",
-          "c",
-          "i",
-          "o",
-          "n",
-          "e",
-          "s",
-          "c",
-          "o",
-          "s",
-          "m",
-          "é",
-          "t",
-          "i",
-          "c",
-          "a",
-          "s",
-          ".",
-          "A",
-          "l",
-          "c",
-          "a",
-          "l",
-          "i",
-          "n",
-          "i",
-          "z",
-          "a",
-          "n",
-          "t",
-          "e",
-          "s",
-          "i",
-          "s",
-          "t",
-          "é",
-          "m",
-          "i",
-          "c",
-          "o",
-          "p",
-          "a",
-          "r",
-          "a",
-          "e",
-          "l",
-          "t",
-          "r",
-          "a",
-          "t",
-          "a",
-          "m",
-          "i",
-          "e",
-          "n",
-          "t",
-          "o",
-          "d",
-          "e",
-          "l",
-          "a",
-          "a",
-          "c",
-          "i",
-          "d",
-          "o",
-          "s",
-          "i",
-          "s",
-          "m",
-          "e",
-          "t",
-          "a",
-          "b",
-          "ó",
-          "l",
-          "i",
-          "c",
-          "a",
-          ".",
-          "E",
-          "x",
-          "c",
-          "i",
-          "p",
-          "i",
-          "e",
-          "n",
-          "t",
-          "e",
-          "e",
-          "n",
-          "l",
-          "a",
-          "p",
-          "r",
-          "o",
-          "d",
-          "u",
-          "c",
-          "c",
-          "i",
-          "ó",
-          "n",
-          "d",
-          "e",
-          "s",
-          "ó",
-          "l",
-          "i",
-          "d",
-          "o",
-          "s",
-          "y",
-          "l",
-          "í",
-          "q",
-          "u",
-          "i",
-          "d",
-          "o",
-          "s",
-          "f",
-          "a",
-          "r",
-          "m",
-          "a",
-          "c",
-          "é",
-          "u",
-          "t",
-          "i",
-          "c",
-          "o",
-          "s",
-          ".",
-          "A",
-          "g",
-          "e",
-          "n",
-          "t",
-          "e",
-          "e",
-          "n",
-          "m",
-          "a",
-          "s",
-          "c",
-          "a",
-          "r",
-          "a",
-          "n",
-          "t",
-          "e",
-          "d",
-          "e",
-          "o",
-          "l",
-          "o",
-          "r",
-          "e",
-          "s",
-          "e",
-          "n",
-          "p",
-          "r",
-          "o",
-          "d",
-          "u",
-          "c",
-          "t",
-          "o",
-          "s",
-          "p",
-          "a",
-          "r",
-          "a",
-          "e",
-          "l",
-          "c",
-          "u",
-          "i",
-          "d",
-          "a",
-          "d",
-          "o",
-          "p",
-          "e",
-          "r",
-          "s",
-          "o",
-          "n",
-          "a",
-          "l",
-          ".",
-          "C",
-          "o",
-          "m",
-          "p",
-          "o",
-          "n",
-          "e",
-          "n",
-          "t",
-          "e",
-          "d",
-          "e",
-          "f",
-          "a",
-          "s",
-          "e",
-          "e",
-          "n",
-          "c",
-          "o",
-          "m",
-          "p",
-          "r",
-          "e",
-          "s",
-          "a",
-          "s",
-          "t",
-          "é",
-          "r",
-          "m",
-          "i",
-          "c",
-          "a",
-          "s",
-          "r",
-          "e",
-          "u",
-          "t",
-          "i",
-          "l",
-          "i",
-          "z",
-          "a",
-          "b",
-          "l",
-          "e",
-          "s",
-          "d",
-          "e",
-          "u",
-          "s",
-          "o",
-          "t",
-          "e",
-          "r",
-          "a",
-          "p",
-          "é",
-          "u",
-          "t",
-          "i",
-          "c",
-          "o",
-          "."
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "El Acetato de Sodio Anhidro se emplea típicamente en concentraciones que van del  0.1%  al  2.0%  p/p,  actuando  como  agente  buffer  y  ajustador  de  pH.  Se recomienda su incorporación por disolución completa en la fase acuosa de la formulación, a temperatura ambiente o durante el calentamiento de esta fase a no  más  de  80°C.  Su  adición  debe  realizarse  preferiblemente  antes  de  la incorporación de polímeros o activos cuyo rendimiento o estabilidad dependan de un pH específico, para asegurar la estabilización del sistema desde el inicio del proceso."
-        ]
-      },
-      {
-        "titulo": "RECOMENDACIONES",
-        "items": [
-          "SEÑAL DE PELIGRO: Sin peligro\nINDICACIONES H: No clasificadas.\nPREVENCIÓN: P264: Lavarse concienzudamente tras la manipulación. Evitar la generación y respiración de polvo.\nRESPUESTA: P305+P351+P338: EN CASO DE CONTACTO CON LOS OJOS: Enjuagar con agua cuidadosamente durante varios minutos. Quitar las lentes de contacto cuando estén presentes y pueda hacerse con facilidad. Proseguir con el lavado.\nALMACENAMIENTO: Mantener el EMPAQUE original herméticamente cerrado en un lugar seco, fresco y bien ventilado, protegido de la humedad.\nELIMINACIÓN: Eliminar el contenido y el EMPAQUE de acuerdo con la regulación local y nacional vigente.\nPRIMEROS AUXILIOS: Inhalación: Trasladar a la persona al aire libre y mantenerla en una posición que le facilite la respiración. / Contacto piel: Lavar con abundante agua y jabón. / Contacto ocular: Enjuagar cuidadosamente con agua durante varios minutos. / Ingestión: Enjuagar la boca. No inducir el vómito.\nEPP REQUERIDO: Gafas de seguridad con protección lateral, guantes de nitrilo, indumentaria de protección y mascarilla para polvo (tipo N95/FFP2) si las condiciones de ventilación son deficientes."
-        ]
-      }
-    ],
-    "identidad": [],
-    "propiedades": [],
-    "microbiologia": []
-  },
-  "acete esencial romero": {
-    "titulo": "ACETE ESENCIAL ROMERO",
-    "descripcion": "Aceite esencial obtenido de la especie botánica *Salvia rosmarinus* (sin. *Rosmarinus officinalis*), una planta aromática originaria de la región Mediterránea. El producto es el resultado de un proceso físico de destilación por arrastre de vapor de las sumidades floridas y hojas de la planta. Este método de extracción selectiva permite aislar y concentrar los metabolitos secundarios volátiles y termolábiles del material vegetal, preservando su integridad molecular. El aceite resultante es una mezcla fitoquímica compleja, no una sustancia sintetizada, cuyo perfil de componentes terpénicos, como 1,8-cineol, alcanfor y α-pineno, depende intrínsecamente del quimiotipo de la planta, las condiciones de cultivo y el proceso de extracción estandarizado.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Antimicrobiano: Inhibe el crecimiento de microorganismos patógenos en la piel y el cuero cabelludo.",
-          "Antioxidante: Protege las células del daño oxidativo causado por radicales libres.",
-          "Antiinflamatorio: Reduce la inflamación y el enrojecimiento en afecciones cutáneas.",
-          "Estimulante circulatorio: Mejora el flujo sanguíneo localizado, promoviendo la nutrición de folículos pilosos.",
-          "Astringente: Tonifica la piel y minimiza la apariencia de los poros.",
-          "Cicatrizante: Favorece la regeneración de los tejidos y la curación de heridas menores.",
-          "Seborregulador: Equilibra la producción de sebo en pieles y cueros cabelludos grasos.",
-          "Rubefaciente: Produce una sensación de calor local que alivia dolores musculares y reumáticos.",
-          "Tónico capilar: Fortalece el cabello desde la raíz y previene su caída.",
-          "Descongestionante venoso: Activa la circulación y alivia la sensación de piernas cansadas."
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Tónico estimulante del folículo piloso.",
-          "Coadyuvante en tratamientos para alopecia androgénica.",
-          "Agente seborregulador y anticaspa en champús.",
-          "Astringente en formulaciones para pieles grasas y acneicas.",
-          "Activo antioxidante en productos de cuidado facial antiedad.",
-          "Agente rubefaciente y analgésico tópico para dolor muscular y articular.",
-          "Antimicrobiano y antiséptico en preparaciones dérmicas.",
-          "Estimulante de la microcirculación cutánea en tratamientos anticelulíticos.",
-          "Componente fragante en perfumería y productos de higiene.",
-          "Activo en aromaterapia para la mejora de la función cognitiva.",
-          "Expectorante en bálsamos y soluciones para inhalación.",
-          "Conservante natural en sistemas de emulsión por su actividad antioxidante."
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "El Aceite Esencial de Romero se incorpora en la fase oleosa o en la fase final de la formulación en concentraciones típicas del 0.1% al 1.5%. Para preservar la integridad de sus componentes volátiles y termolábiles, debe ser adicionado durante la etapa de enfriamiento, a una temperatura inferior a 40 °C. Se recomienda su adición como uno de los últimos componentes del proceso, posterior a la formación de la emulsión, junto a otros activos o fragancias."
-        ]
-      },
-      {
-        "titulo": "RECOMENDACIONES",
-        "items": [
-          "SEÑAL DE PELIGRO: Peligro\nINDICACIONES H: H226: Líquido y vapores inflamables. H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias. H315: Provoca irritación cutánea. H317: Puede provocar una reacción alérgica en la piel. H319: Provoca irritación ocular grave. H411: Tóxico para los organismos acuáticos, con efectos nocivos duraderos.\nPREVENCIÓN: P210: Mantener alejado del calor, superficies calientes, chispas, llamas abiertas y otras fuentes de ignición. No fumar. P273: Evitar su liberación al medio ambiente. P280: Usar guantes de protección, ropa de protección y equipo de protección para los ojos/la cara.\nRESPUESTA: P301+P310+P331: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico. NO provocar el vómito. P302+P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón. P305+P351+P338: EN CASO DE CONTACTO CON LOS OJOS: Enjuagar con agua cuidadosamente durante varios minutos. Quitar las lentes de contacto cuando estén presentes y pueda hacerse con facilidad. Proseguir con el lavado. P391: Recoger el vertido.\nALMACENAMIENTO: P403+P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco. P405: Guardar bajo llave. Mantener el EMPAQUE original herméticamente cerrado.\nELIMINACIÓN: P501: Eliminar el contenido y el EMPAQUE a través de un gestor de residuos autorizado, conforme a la normativa vigente.\nPRIMEROS AUXILIOS: Inhalación: Trasladar a la persona al aire libre y mantenerla en una posición que le facilite la respiración. / Contacto piel: Quitar la ropa contaminada. Lavar la zona afectada con abundante agua y jabón. Si se produce irritación o erupción, consultar a un médico. / Contacto ocular: Enjuagar cuidadosamente con agua durante varios minutos. Consultar a un médico si persiste la irritación. / Ingestión: No inducir el vómito. Buscar atención médica inmediata.\nEPP REQUERIDO: Gafas de seguridad con protección lateral, guantes de protección de nitrilo, vestuario de protección adecuado y protección respiratoria para vapores orgánicos si la ventilación es insuficiente."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "ACETE ESENCIAL ROMERO"
-      ],
-      [
-        "REFERENCIA SIIGO",
-        "C-ACEIESENROM5mL"
-      ],
-      [
-        "SINÓNIMOS",
-        "*Rosmarinus Officinalis Leaf Oil*; Oleum Rosmarini; E 392; Destilado por arrastre con vapor de las sumidades floridas de *Salvia rosmarinus*."
-      ],
-      [
-        "CAS #",
-        "8000-25-7"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "23 06 2026"
-      ],
-      [
-        "Aceite esencial romero",
-        "99%"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Líquido oleoso, fluido y límpido, de color incoloro a amarillo pálido."
-      ],
-      [
-        "Punto de fusión",
-        "No aplica; es un líquido a temperatura ambiente."
-      ],
-      [
-        "Índice de saponificación",
-        "No aplica."
-      ],
-      [
-        "pH",
-        "No aplica (N/A) por ser una sustancia oleosa e inmiscible en agua."
-      ],
-      [
-        "Olor",
-        "Aroma penetrante, herbáceo y canforáceo con un fondo balsámico y amaderado. PubChem: sin datos"
-      ],
-      [
-        "Solubilidad",
-        "El aceite esencial de romero es inmiscible en agua, pero presenta alta solubilidad en solventes orgánicos de baja polaridad, como alcoholes (etanol), aceites fijos, ésteres y éteres."
-      ],
-      [
-        "Antimicrobiano",
-        "Inhibe el crecimiento de microorganismos patógenos en la piel y el cuero cabelludo."
-      ],
-      [
-        "Antioxidante",
-        "Protege las células del daño oxidativo causado por radicales libres."
-      ],
-      [
-        "Antiinflamatorio",
-        "Reduce la inflamación y el enrojecimiento en afecciones cutáneas."
-      ],
-      [
-        "Estimulante circulatorio",
-        "Mejora el flujo sanguíneo localizado, promoviendo la nutrición de folículos pilosos."
-      ],
-      [
-        "Astringente",
-        "Tonifica la piel y minimiza la apariencia de los poros."
-      ],
-      [
-        "Cicatrizante",
-        "Favorece la regeneración de los tejidos y la curación de heridas menores."
-      ],
-      [
-        "Seborregulador",
-        "Equilibra la producción de sebo en pieles y cueros cabelludos grasos."
-      ],
-      [
-        "Rubefaciente",
-        "Produce una sensación de calor local que alivia dolores musculares y reumáticos."
-      ],
-      [
-        "Tónico capilar",
-        "Fortalece el cabello desde la raíz y previene su caída."
-      ],
-      [
-        "Descongestionante venoso",
-        "Activa la circulación y alivia la sensación de piernas cansadas."
-      ]
-    ],
-    "microbiologia": []
-  },
-  "aminoacido bcaa instant m": {
-    "titulo": "AMINOÁCIDO BCAA INSTANT (M)",
-    "descripcion": "Componentes: L-Leucina: L-Isoleucina: L-Valina (2: 1: 1)\n\nLos BCAA (en inglés “branched-chain amino acids”) son los aminoácidos esenciales que no presentan una estructura de cadena lineal sino de cadena ramificada: leucina, isoleucina y valina. Se trata de los aminoácidos más hidrófobos y se ingieren mediante una dieta adecuada. La combinación de estos tres aminoácidos esenciales compone casi la tercera parte de los músculos esqueléticos en el cuerpo humano y desempeñan un papel muy importante en la síntesis de proteínas.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Favorecen la síntesis de proteína y previenen el catabolismo muscular",
-          "Ayudan a preservar el glucógeno, ya que los propios aminoácidos ramificados pueden usarse fácilmente como combustible",
-          "Mejoran el rendimiento en actividades aeróbicas y anaeróbicas",
-          "Reducen los síntomas de dolor muscular post-entrenamiento",
-          "Apoyan el sistema inmunológico, aumentando por ejemplo la producción endógena de glutamina, un importante aminoácido no esencial y el más abundante en el músculo",
-          "Contribuye en la Recuperación Muscular, a la quema de grasa y al equilibrio hormonal",
-          "Incrementa el Rendimiento Deportivo",
-          "Reduce las dolencias Musculares de Aparición Tardía"
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Tratamientos de pacientes que han sufrido quemaduras",
-          "Nutracéuticos",
-          "Suplementos nutricionales para pacientes con operación quirúrgica o que sufren de cáncer",
-          "Suplementos deportivos"
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "AMINOÁCIDO BCAA INSTANT (M) se incorpora en una concentración del 0.5% al 2.0% (p/p) en la fase acuosa de la formulación. Para su disolución óptima, añádase lentamente bajo agitación constante a temperaturas controladas entre 25°C y 40°C. Se recomienda su adición en las etapas finales del proceso, preferentemente una vez formada la emulsión y habiendo alcanzado la temperatura de post-enfriamiento, para preservar la integridad del activo."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "AMINOÁCIDO BCAA INSTANT (M)"
-      ],
-      [
-        "CAS #",
-        "No aplica"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "01 07 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Cristales blancos o cristalino"
-      ],
-      [
-        "Sabor",
-        "Ligeramente amargo."
-      ],
-      [
-        "Favorecen la síntesis de proteína y previenen el catabolismo muscular",
-        ""
-      ],
-      [
-        "Ayudan a preservar el glucógeno, ya que los propios aminoácidos ramificados pueden usarse fácilmente como combustible",
-        ""
-      ],
-      [
-        "Mejoran el rendimiento en actividades aeróbicas y anaeróbicas",
-        ""
-      ],
-      [
-        "Reducen los síntomas de dolor muscular post-entrenamiento",
-        ""
-      ],
-      [
-        "Apoyan el sistema inmunológico, aumentando por ejemplo la producción endógena de glutamina, un importante aminoácido no esencial y el más abundante en el músculo",
-        ""
-      ],
-      [
-        "Contribuye en la Recuperación Muscular, a la quema de grasa y al equilibrio hormonal",
-        ""
-      ],
-      [
-        "Incrementa el Rendimiento Deportivo",
-        ""
-      ],
-      [
-        "Reduce las dolencias Musculares de Aparición Tardía",
-        ""
-      ]
-    ],
-    "microbiologia": [
-      [
-        "Apariencia",
-        "Cristales blancos o cristalino",
-        "Cristales blancos"
-      ],
-      [
-        "Contenido (Titulación)(%)",
-        "≥95.0",
-        "96.7"
-      ],
-      [
-        "Contenido L-Leucina (%)",
-        "45.0 - 55.0",
-        "46.2"
-      ],
-      [
-        "Contenido L-Isoleucina (%)",
-        "22.5 - 27.5",
-        "23.3"
-      ],
-      [
-        "Contenido L-Valina (%)",
-        "22.5 - 27.5",
-        "23.2"
-      ],
-      [
-        "Lecitina de girasol (%)",
-        "0.5 - 1.0",
-        "0.8"
-      ],
-      [
-        "Contenido de agua (%)",
-        "≤ 0.8",
-        "0.21"
-      ],
-      [
-        "Cenizas (%)",
-        "≤ 1.0",
-        "0.15"
-      ],
-      [
-        "Densidad aparente (g/mL)",
-        "≥0.35",
-        "0.41"
-      ],
-      [
-        "Densidad compacta (g/mL)",
-        "≥0.50",
-        "0.60"
-      ],
-      [
-        "Tamaño de partícula (malla 80) (%)",
-        "≥90",
-        "97"
-      ],
-      [
-        "Metales pesados (mg/kg)",
-        "≤ 10.0",
-        "<10"
-      ],
-      [
-        "Arsénico (As) (mg/kg)",
-        "≤ 1.0",
-        "<1"
-      ],
-      [
-        "Plomo (Pb) (mg/kg)",
-        "≤ 3",
-        "<3"
-      ],
-      [
-        "Cadmio (Cd) (mg/kg)",
-        "≤ 1.0",
-        "<1"
-      ],
-      [
-        "Mercurio (ppm)",
-        "≤ 0.1",
-        "<0.1"
-      ],
-      [
-        "Recuento total en placa (cfu/g)",
-        "≤ 1000",
-        "<1000"
-      ],
-      [
-        "Hongos y levaduras (cfu/g)",
-        "≤ 100",
-        "<100"
-      ],
-      [
-        "E.Coli",
-        "Negativo",
-        "Negativo"
-      ],
-      [
-        "Salmonella",
-        "Negativo/25g",
-        "Negativo/25g"
-      ],
-      [
-        "E.Aureus",
-        "≤10 cfu/g",
-        "<10 cfu/g"
-      ]
-    ]
-  },
-  "caolin usp": {
-    "titulo": "CAOLIN USP",
-    "descripcion": "Es un silicato de aluminio hidratado de origen mineral natural, predominantemente caolinita, derivado de depósitos sedimentarios primarios y secundarios. Su obtención se fundamenta en la extracción de yacimientos arcillosos de alta pureza. El proceso de purificación comprende etapas hidromecánicas intensivas para garantizar la calidad farmacéutica. Inicia con la levigación y dispersión acuosa para separar la caolinita de impurezas minerales como cuarzo y feldespatos. Posteriormente, se efectúa una clasificación granulométrica mediante sedimentación controlada para ajustar el tamaño de partícula. Este material es sometido a un proceso de blanqueamiento opcional y un secado térmico, culminando en la micronización y pulverización fina para cumplir con las estrictas especificaciones de la Farmacopea de los Estados Unidos (USP) en cuanto a composición y características físico-químicas.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Absorción de Sebo: Ayuda a controlar el exceso de grasa en la piel y el cuero cabelludo",
-          "Purificante: Limpia profundamente los poros, eliminando impurezas y toxinas",
-          "Exfoliante Suave: Remueve delicadamente las células muertas de la superficie cutánea",
-          "Adsorbente Tópico: Capta humedad y exudados en preparaciones dermatológicas y cosméticas",
-          "Diluyente y Agente de Carga: Aporta volumen y cohesión en formulaciones farmacéuticas sólidas",
-          "Agente Suspensante: Mejora la estabilidad de formulaciones líquidas al mantener partículas dispersas",
-          "Opacificante y Texturizante: Confierere opacidad y mejora la sensación táctil y viscosidad de productos",
-          "Antiaglomerante: Previene la formación de grumos en polvos y granulados farmacéuticos y cosméticos",
-          "Calmante: Contribuye a aliviar irritaciones menores y suavizar la piel",
-          "Protector Cutáneo: Forma una barrera física que ayuda a proteger la piel"
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Excipiente diluyente en formulaciones orales sólidas.",
-          "Agente de suspensión en preparaciones líquidas farmacéuticas.",
-          "Adsorbente en productos antidiarreicos.",
-          "Base en polvos dérmicos con efecto protector y secante.",
-          "Agente desintegrante o aglutinante en tabletas.",
-          "Componente principal en mascarillas faciales purificantes.",
-          "Agente matificante y absorbente de sebo en cosméticos.",
-          "Base en polvos faciales y corporales.",
-          "Ingrediente en limpiadores faciales y exfoliantes suaves.",
-          "Adsorbente de humedad en desodorantes.",
-          "Abrasivo suave y pulidor en pastas dentales."
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "Debe incorporarse por dispersión gradual en la fase acuosa o pre-dispersarse en un medio compatible, bajo agitación constante y efectiva, a una concentración típica del 5% al 40% p/p, en función de la aplicación final y la funcionalidad requerida. La adición se realiza idealmente a temperatura ambiente (20-25°C) o ligeramente elevada (hasta 40°C) para optimizar la humectación del polvo y prevenir la aglomeración. Se recomienda añadirlo a la fase acuosa inicialmente y asegurar una dispersión homogénea antes de integrar otras fases o ingredientes sensibles a la cizalla o a la temperatura."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "CAOLIN USP"
-      ],
-      [
-        "SINÓNIMOS",
-        "Dihidróxido disilicato de dialuminio; E-559; Arcilla blanca; Tierra de porcelana; Silicato de aluminio hidratado"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "29 06 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Polvo blanco a casi blanco, muy fino y de tacto suave."
-      ],
-      [
-        "pH",
-        "4.0-7.5 en suspensión acuosa 20%."
-      ],
-      [
-        "Olor",
-        "Ausencia de olor característico."
-      ],
-      [
-        "Sabor",
-        "Insípido."
-      ],
-      [
-        "Solubilidad",
-        "Caolín USP es prácticamente insoluble en agua, etanol y la mayoría de los solventes orgánicos comunes."
-      ],
-      [
-        "Absorción de Sebo",
-        "Ayuda a controlar el exceso de grasa en la piel y el cuero cabelludo"
-      ],
-      [
-        "Purificante",
-        "Limpia profundamente los poros, eliminando impurezas y toxinas"
-      ],
-      [
-        "Exfoliante Suave",
-        "Remueve delicadamente las células muertas de la superficie cutánea"
-      ],
-      [
-        "Adsorbente Tópico",
-        "Capta humedad y exudados en preparaciones dermatológicas y cosméticas"
-      ],
-      [
-        "Diluyente y Agente de Carga",
-        "Aporta volumen y cohesión en formulaciones farmacéuticas sólidas"
-      ],
-      [
-        "Agente Suspensante",
-        "Mejora la estabilidad de formulaciones líquidas al mantener partículas dispersas"
-      ],
-      [
-        "Opacificante y Texturizante",
-        "Confierere opacidad y mejora la sensación táctil y viscosidad de productos"
-      ],
-      [
-        "Antiaglomerante",
-        "Previene la formación de grumos en polvos y granulados farmacéuticos y cosméticos"
-      ],
-      [
-        "Calmante",
-        "Contribuye a aliviar irritaciones menores y suavizar la piel"
-      ],
-      [
-        "Protector Cutáneo",
-        "Forma una barrera física que ayuda a proteger la piel"
-      ]
-    ],
-    "microbiologia": [
-      [
-        "",
-        "",
-        ""
-      ]
-    ]
-  },
-  "colageno hidrolizadodrolizado": {
-    "titulo": "COLAGENO HIDROLIZADODROLIZADO",
-    "descripcion": "ES un polipéptido de bajo peso molecular obtenido de fuentes animales. Su origen principal reside en tejidos conectivos, prevalentemente bovinos o marinos, ricos en colágeno nativo. El modo de obtención implica una fase inicial de pre-tratamiento de la materia prima para asegurar su pureza. Posteriormente, el proceso de extracción se basa en una hidrólisis enzimática controlada. Mediante la acción de enzimas proteolíticas específicas, las macromoléculas de colágeno son escindidas en péptidos más cortos y biodisponibles. Este hidrolizado se somete a etapas rigurosas de filtración y purificación para eliminar componentes indeseables, seguido de una concentración y secado para producir el producto final de alta pureza.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Hidratación Cutánea: Incrementa la capacidad de la piel para retener humedad, mejorando su suavidad.",
-          "Elasticidad Dérmica: Estimula la producción de colágeno endógeno, contribuyendo a la firmeza de la piel.",
-          "Reducción de Arrugas: Atenúa la aparición de líneas finas y arrugas al mejorar la estructura cutánea.",
-          "Fortalecimiento Anexos: Mejora la resistencia y salud de cabello y uñas.",
-          "Soporte Articular: Favorece la integridad del cartílago y la función de las articulaciones.",
-          "Salud Ósea: Contribuye al mantenimiento de la densidad y estructura ósea.",
-          "Regeneración Tisular: Apoya la cicatrización y reparación de tejidos dañados."
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Mejora de la elasticidad y firmeza cutánea",
-          "Reducción de arrugas y líneas de expresión",
-          "Hidratación profunda de la piel",
-          "Fortalecimiento capilar y ungueal",
-          "Soporte para la salud articular",
-          "Contribución a la densidad ósea",
-          "Favorece la regeneración del tejido conectivo",
-          "Coadyuvante en procesos de cicatrización de heridas"
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "Almacenar a temperaturas (17-28 °C) y a la sombra, después de abierto utilizarlo en el menor tiempo posible sin retornar producto al envase."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "COLAGENO HIDROLIZADODROLIZADO"
-      ],
-      [
-        "SINÓNIMOS",
-        "E441; Hydrolyzed Collagen; Mezcla de oligopéptidos y polipéptidos de origen animal, predominantemente constituidos por glicina, prolina e hidroxiprolina, obtenidos por hidrólisis controlada; Péptidos de colágeno; Proteína colágena hidrolizada"
-      ],
-      [
-        "CAS #",
-        "92113-31-0"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "26 06 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Polvo blanco a blanquecino, fino, de flujo libre y homogéneo."
-      ],
-      [
-        "pH",
-        "5.0-7.0 en sol. 10%"
-      ],
-      [
-        "Olor",
-        "Olor característico tenue a proteína hidrolizada, con un matiz ligeramente umami."
-      ],
-      [
-        "Solubilidad",
-        "El colágeno hidrolizado presenta excelente solubilidad en agua fría y caliente, formando soluciones acuosas claras o ligeramente opalescentes. Es insoluble en la mayoría de los solventes orgánicos comunes."
-      ],
-      [
-        "Hidratación Cutánea",
-        "Incrementa la capacidad de la piel para retener humedad, mejorando su suavidad."
-      ],
-      [
-        "Elasticidad Dérmica",
-        "Estimula la producción de colágeno endógeno, contribuyendo a la firmeza de la piel."
-      ],
-      [
-        "Reducción de Arrugas",
-        "Atenúa la aparición de líneas finas y arrugas al mejorar la estructura cutánea."
-      ],
-      [
-        "Fortalecimiento Anexos",
-        "Mejora la resistencia y salud de cabello y uñas."
-      ],
-      [
-        "Soporte Articular",
-        "Favorece la integridad del cartílago y la función de las articulaciones."
-      ],
-      [
-        "Salud Ósea",
-        "Contribuye al mantenimiento de la densidad y estructura ósea."
-      ],
-      [
-        "Regeneración Tisular",
-        "Apoya la cicatrización y reparación de tejidos dañados."
-      ]
-    ],
-    "microbiologia": [
-      [
-        "Aparición",
-        "Líquido fluido traslúcido",
-        "Cumple"
-      ],
-      [
-        "Color",
-        "Amarillo suave a Amarillo",
-        "Cumple"
-      ],
-      [
-        "Olor",
-        "Característico",
-        "Cumple"
-      ],
-      [
-        "PH",
-        "4.0 - 6.0",
-        "4.98"
-      ],
-      [
-        "Índice de refracción",
-        "1.3500 - 1.4400",
-        "1.3750"
-      ],
-      [
-        "Densidad",
-        "1.0300g/mL -1.2000 g/mL",
-        "1.1412"
-      ],
-      [
-        "Solubilidad (en Agua)",
-        "En Agua",
-        "Soluble"
-      ],
-      [
-        "Solubilidad (en Etanol al 96 %)",
-        "En Etanol al 96 %",
-        "Soluble"
-      ],
-      [
-        "Mesófilos y aerobios",
-        "≤ 100 ufc/ml",
-        "VER ANEXO"
-      ],
-      [
-        "Hongos y levaduras",
-        "≤ 10 ufc/ml",
-        "VER ANEXO"
-      ],
-      [
-        "e.coli, S.aureus, Albicans, S.aeruginosa",
-        "Ausencia",
-        "VER ANEXO"
-      ]
-    ]
-  },
-  "extracto de te verde": {
-    "titulo": "EXTRACTO DE TÉ VERDE",
-    "descripcion": "El extracto de té verde se obtiene a partir de las hojas de la Camellia Sinensis. Se obtiene mediante un proceso tecnológico modernizado de extracción a baja temperatura, conservación de la fragancia, condensación por membrana y secado por pulverización a baja temperatura; es de sabor fresco y fragancia fuerte. Se encuentra libre de OGM, BSE / TSE, no es tratado con ETO y no es irradiado.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Efectos medicinales: especialmente para el corazón",
-          "Potencia la actividad cognitiva",
-          "Reduce el estrés",
-          "Buen antioxidante: potente fuente de polifenoles",
-          "Estimula el sistema inmunológico",
-          "Estimula el sistema digestivo"
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Industria de alimentos y bebidas",
-          "Bebidas de té helado",
-          "Bebidas de té puro"
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "Para la incorporación de EXTRACTO DE TÉ VERDE en formulaciones farmacéuticas o cosméticas, se sugiere una concentración típica entre 0.5% y 2.0% (p/p), variando en función de la estandarización específica del extracto y el beneficio deseado. Su adición debe realizarse en la fase acuosa o durante la fase de enfriamiento de emulsiones, una vez que la temperatura de la mezcla sea inferior a 45°C, para proteger la estabilidad de sus componentes termolábiles. La inclusión se efectúa comúnmente en las etapas finales del proceso de formulación, asegurando una dispersión homogénea mediante agitación suave."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "EXTRACTO DE TÉ VERDE"
-      ],
-      [
-        "SINÓNIMOS",
-        "Extracto de Té verde instantáneo"
-      ],
-      [
-        "CAS #",
-        "No aplica"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "01 07 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Polvo amarillo a café"
-      ],
-      [
-        "pH",
-        "5 - 6.0"
-      ],
-      [
-        "Olor",
-        "Aroma fresco, herbáceo, ligeramente astringente y vegetal característico de la hoja de Camellia sinensis."
-      ],
-      [
-        "Sabor",
-        "Astringente."
-      ],
-      [
-        "Solubilidad",
-        "soluble en agua destilada"
-      ],
-      [
-        "Efectos medicinales",
-        "especialmente para el corazón"
-      ],
-      [
-        "Potencia la actividad cognitiva",
-        ""
-      ],
-      [
-        "Reduce el estrés",
-        ""
-      ],
-      [
-        "Buen antioxidante",
-        "potente fuente de polifenoles"
-      ],
-      [
-        "Estimula el sistema inmunológico",
-        ""
-      ],
-      [
-        "Estimula el sistema digestivo",
-        ""
-      ]
-    ],
-    "microbiologia": [
-      [
-        "Apariencia",
-        "Polvo verde casi fino",
-        "Conforme"
-      ],
-      [
-        "Aroma y sabor",
-        "A plantas, un poco astringente",
-        "Conforme"
-      ],
-      [
-        "Color de líquido",
-        "Verde",
-        "Conforme"
-      ],
-      [
-        "Tamaño de partícula",
-        "100% por malla 100",
-        "Conforme"
-      ],
-      [
-        "Densidad aparente",
-        "Libre flujo: 250-350g/L",
-        "305"
-      ],
-      [
-        "Humedad/pérdidas en secado (%)",
-        "Menos del 6.0%",
-        "4.89"
-      ],
-      [
-        "Cenizas/residuos en ignición (%)",
-        "Menos del 8.0%",
-        "6.2"
-      ],
-      [
-        "Extracto de agua (%)",
-        "No menos de 25.0%",
-        "35.1"
-      ],
-      [
-        "Polifenoles (%)",
-        "No menos de 8.0%",
-        "14"
-      ],
-      [
-        "Cafeína (%)",
-        "≥ 2%",
-        "3.5"
-      ],
-      [
-        "Plomo (Pb) (mg/kg)",
-        "≤ 1mg/kg",
-        "0.789"
-      ],
-      [
-        "Arsénico (As) (mg/kg)",
-        "≤ 1.0mg/kg",
-        "0.116"
-      ],
-      [
-        "Mercurio (Hg) (mg/kg)",
-        "≤ 0.03mg/kg",
-        "0"
-      ],
-      [
-        "Cadmio (Cd) (mg/kg)",
-        "≤ 0.2mg/kg",
-        "0.048"
-      ],
-      [
-        "Recuento de placa aerobia (cfu/g)",
-        "≤ 10000",
-        "<100"
-      ],
-      [
-        "Hongos y levaduras (cfu/g)",
-        "≤ 50",
-        "10"
-      ],
-      [
-        "Coliformes",
-        "Negativo",
-        "Negativo"
-      ],
-      [
-        "E. Coli",
-        "Negativo",
-        "Negativo"
-      ],
-      [
-        "Salmonella",
-        "Negativo",
-        "Negativo"
-      ],
-      [
-        "Staphylococcus aureus",
-        "Negativo",
-        "Negativo"
-      ],
-      [
-        "Aflatoxinas",
-        "Negativo",
-        "Negativo"
-      ],
-      [
-        "Solubilidad",
-        "Parcialmente soluble en agua destilada a 90°C, con partículas finas",
-        "-"
-      ],
-      [
-        "pH",
-        "5.00 - 6.50; (0.3% p/v solución agua destilada)",
-        "-"
-      ]
-    ]
-  },
-  "flores de lavanda secas": {
-    "titulo": "FLORES DE LAVANDA SECAS",
-    "descripcion": "Origen botánico de Lavandula angustifolia, o Lavandula officinalis, cultivada en regiones climáticamente idóneas, predominantemente en el Mediterráneo europeo, donde el terruño favorece el desarrollo de su perfil fitoquímico característico. La obtención se realiza mediante la cosecha de las inflorescencias en su punto óptimo de maduración, asegurando la máxima concentración de sus componentes bioactivos. Post-recolección, las flores son sometidas a un proceso de deshidratación meticulosamente controlado. Este secado se efectúa en condiciones de baja humedad y temperatura regulada, resguardándolas de la radiación directa para preservar la integridad de los metabolitos secundarios volátiles y no volátiles. Dicho proceso frena la actividad enzimática y microbiana, consolidando el material vegetal para su uso directo o como insumo para futuras extracciones.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Relajante: Promueve la calma y el bienestar general en infusiones y preparaciones alimenticias",
-          "Carminativo: Favorece la digestión y ayuda a reducir la sensación de hinchazón",
-          "Antioxidante: Ofrece protección natural contra el daño oxidativo",
-          "Agente aromatizante: Aporta un sabor y aroma floral natural a preparaciones alimenticias y bebidas",
-          "Coadyuvante digestivo: Contribuye al bienestar gastrointestinal cuando se consume en infusión"
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Componente en infusiones y tisanas de uso alimentario.",
-          "Ingrediente en mezclas herbales para bebidas relajantes.",
-          "Aditivo aromatizante natural en preparaciones de repostería y confitería.",
-          "Insumo para saborizantes naturales en la industria alimentaria.",
-          "Coadyuvante en infusiones con propiedades carminativas y digestivas.",
-          "Componente decorativo comestible en productos de panadería y pastelería."
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "Para las Flores de Lavanda Secas, se recomienda preparar una infusión acuosa al 5-15% p/p en agua purificada, calentando a 90-95°C y manteniendo la temperatura por 15-20 minutos. Posteriormente, el material debe filtrarse meticulosamente para obtener un extracto acuoso claro y estabilizarse según requerimientos de la formulación. La incorporación del extracto filtrado se realiza típicamente en la fase acuosa del producto final, preferentemente durante el enfriamiento, por debajo de 45°C, para preservar la integridad de los compuestos volátiles termolábiles."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "FLORES DE LAVANDA SECAS"
-      ],
-      [
-        "SINÓNIMOS",
-        "Lavandula Angustifolia Flower; (R)-(+)-3,7-dimetil-1,6-octadien-3-ol; Sumidad florida desecada de *Lavandula angustifolia*; Materia prima aromatizante floral desecada; Inflorescencia desecada de espliego"
-      ],
-      [
-        "CAS #",
-        "No aplica"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "03 07 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Inflorescencias secas de color morado-grisáceo a pardo-violeta, con textura rugosa y frágil, compuestas por pequeñas flores tubulares dispuestas en espigas."
-      ],
-      [
-        "Olor",
-        "Aroma herbal-floral alcanforado, con notas dulces y un fondo ligeramente amaderado."
-      ],
-      [
-        "Sabor",
-        "Ligeramente amargo con notas herbáceas."
-      ],
-      [
-        "Relajante",
-        "Promueve la calma y el bienestar general en infusiones y preparaciones alimenticias"
-      ],
-      [
-        "Carminativo",
-        "Favorece la digestión y ayuda a reducir la sensación de hinchazón"
-      ],
-      [
-        "Antioxidante",
-        "Ofrece protección natural contra el daño oxidativo"
-      ],
-      [
-        "Agente aromatizante",
-        "Aporta un sabor y aroma floral natural a preparaciones alimenticias y bebidas"
-      ],
-      [
-        "Coadyuvante digestivo",
-        "Contribuye al bienestar gastrointestinal cuando se consume en infusión"
-      ]
-    ],
-    "microbiologia": []
-  },
-  "lanolina anhidra": {
-    "titulo": "LANOLINA ANHIDRA",
-    "descripcion": "La Lanolina Anhidra es una cera natural de origen animal, secretada por las glándulas sebáceas de la oveja (Ovis aries) e impregnada en su lana. Su obtención no implica síntesis química, sino un proceso de extracción y purificación a partir de la suarda recuperada durante el lavado de la lana. La suarda cruda es sometida a un riguroso proceso físico-químico multi-etapa que involucra centrifugación para la remoción de materia insoluble, neutralización de ácidos grasos libres, blanqueo y desodorización. El refinamiento culmina con un secado de alta eficiencia para eliminar el contenido de agua, asegurando la remoción de impurezas, pesticidas y alérgenos potenciales para cumplir con estándares de grado farmacéutico.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Emoliente: Restaura la suavidad y flexibilidad de la piel al reponer los lípidos del estrato córneo.",
-          "Hidratante Oclusivo: Forma una película semipermeable que minimiza la pérdida de agua transepidérmica (TEWL).",
-          "Absorbente de Agua: Actúa como co-emulsionante W/O al absorber hasta dos veces su peso en agua, estabilizando sistemas.",
-          "Reparador de Barrera Cutánea: Promueve la restauración de la función barrera en pieles agrietadas, fisuradas o irritadas.",
-          "Excipiente Farmacéutico: Funciona como vehículo para la administración tópica de ingredientes farmacéuticos activos (APIs) en ungüentos.",
-          "Agente de Substantividad: Incrementa la adhesión y permanencia de las formulaciones sobre la piel y mucosas.",
-          "Biocompatible: Composición lipídica análoga a la del sebo humano, lo que garantiza una alta afinidad y tolerancia cutánea.",
-          "Plastificante: Aporta maleabilidad y previene la sinéresis o rotura en formulaciones en barra, como lápices labiales."
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Base para ungüentos y pomadas de uso tópico.",
-          "Emoliente y agente oclusivo en cremas para pieles secas y agrietadas.",
-          "Base de absorción para emulsiones de tipo agua en aceite (W/O).",
-          "Agente protector y humectante en bálsamos labiales.",
-          "Excipiente en formulaciones oftálmicas estériles.",
-          "Agente sobreengrasante en jabones y syndets.",
-          "Vehículo para la administración de principios activos farmacéuticos.",
-          "Plastificante y acondicionador en preparados capilares.",
-          "Componente de cremas para la dermatitis del pañal.",
-          "Aglutinante y texturizante en barras de labios y maquillaje de color.",
-          "Base protectora para el cuidado del pezón durante la lactancia."
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "La lanolina anhidra se incorpora en la fase oleosa de la formulación, en concentraciones típicas que varían del 2% al 25% según la función deseada como emoliente, sobreengrasante o co-emulsionante. Se adiciona junto al resto de componentes de la fase lipídica y se calienta el conjunto a una temperatura de 70-75 °C para asegurar su completa fusión y homogenización antes del proceso de emulsificación."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "LANOLINA ANHIDRA"
-      ],
-      [
-        "SINÓNIMOS",
-        "Cera de lana; Adeps lanae; Lanolin; E 913; Complejo de ésteres de ácidos grasos de alto peso molecular con alcoholes esteroidales."
-      ],
-      [
-        "CAS #",
-        "8006-54-0"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "24 06 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Masa semisólida amarillenta de textura cerosa, untuosa y pegajosa."
-      ],
-      [
-        "Punto de fusión",
-        "38-44 °C"
-      ],
-      [
-        "Índice de saponificación",
-        "90 - 105 mg KOH/g"
-      ],
-      [
-        "pH",
-        "5.0-7.5 en dispersión acuosa al 10%."
-      ],
-      [
-        "Olor",
-        "Débil olor característico, ligeramente céreo y lanoso."
-      ],
-      [
-        "Emoliente",
-        "Restaura la suavidad y flexibilidad de la piel al reponer los lípidos del estrato córneo."
-      ],
-      [
-        "Hidratante Oclusivo",
-        "Forma una película semipermeable que minimiza la pérdida de agua transepidérmica (TEWL)."
-      ],
-      [
-        "Absorbente de Agua",
-        "Actúa como co-emulsionante W/O al absorber hasta dos veces su peso en agua, estabilizando sistemas."
-      ],
-      [
-        "Reparador de Barrera Cutánea",
-        "Promueve la restauración de la función barrera en pieles agrietadas, fisuradas o irritadas."
-      ],
-      [
-        "Excipiente Farmacéutico",
-        "Funciona como vehículo para la administración tópica de ingredientes farmacéuticos activos (APIs) en ungüentos."
-      ],
-      [
-        "Agente de Substantividad",
-        "Incrementa la adhesión y permanencia de las formulaciones sobre la piel y mucosas."
-      ],
-      [
-        "Biocompatible",
-        "Composición lipídica análoga a la del sebo humano, lo que garantiza una alta afinidad y tolerancia cutánea."
-      ],
-      [
-        "Plastificante",
-        "Aporta maleabilidad y previene la sinéresis o rotura en formulaciones en barra, como lápices labiales."
-      ]
-    ],
-    "microbiologia": []
-  },
-  "lecitina de soya en polvo": {
-    "titulo": "LECITINA DE SOYA EN POLVO",
-    "descripcion": "Comercialmente la Lecitina de Soya se obtiene como un subproducto de la refinación del aceite de soya y es en realidad una mezcla de aceite con diversos fosfáticos. La lecitina de soya en polvo ha sido desgrasada y se caracteriza por su alto contenido de fosfolípidos.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Emulsionante: Facilita la mezcla y dispersión de fases inmiscibles en formulaciones.",
-          "Estabilizante de Emulsiones: Previene la separación de fases, manteniendo la homogeneidad y vida útil del producto.",
-          "Modificador Reológico: Mejora la textura y consistencia, aportando suavidad y estabilidad sensorial.",
-          "Potenciador de Penetración: Incrementa la absorción y biodisponibilidad de principios activos en aplicaciones tópicas u orales.",
-          "Aporte Nutricional: Suministra fosfolípidos y ácidos grasos esenciales con potenciales beneficios sistémicos."
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Suplementos alimenticios",
-          "Mezclado de polvos",
-          "Productos instantáneos",
-          "Margarinas",
-          "Caramelos",
-          "Chocolates",
-          "Alimentos en polvo",
-          "Bebidas proteicas",
-          "Panadería",
-          "Quesos",
-          "Fórmulas infantiles"
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "La Lecitina de Soya en Polvo se recomienda como agente emulsionante y estabilizante en concentraciones típicas del 1% al 3% (p/p) en formulaciones farmacéuticas y cosméticas. Para una óptima dispersión e integración, se sugiere incorporar el polvo en la fase oleosa de la formulación, calentando la mezcla a una temperatura entre 60-75°C bajo agitación constante, previo a la adición controlada de la fase acuosa para la formación de la emulsión."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "LECITINA DE SOYA EN POLVO"
-      ],
-      [
-        "CAS #",
-        "8002-43-5"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "01 07 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Polvo fino, de color beige claro a amarillento, con textura granular."
-      ],
-      [
-        "Punto de fusión",
-        "50-65 °C"
-      ],
-      [
-        "Olor",
-        "Aroma lipídico suave con sutiles notas cerealáceas."
-      ],
-      [
-        "Sabor",
-        "Graso"
-      ],
-      [
-        "Solubilidad",
-        "La lecitina de soya en polvo es dispersible en agua, actuando como emulsionante, y soluble en solventes orgánicos apolares."
-      ],
-      [
-        "Emulsionante",
-        "Facilita la mezcla y dispersión de fases inmiscibles en formulaciones."
-      ],
-      [
-        "Estabilizante de Emulsiones",
-        "Previene la separación de fases, manteniendo la homogeneidad y vida útil del producto."
-      ],
-      [
-        "Modificador Reológico",
-        "Mejora la textura y consistencia, aportando suavidad y estabilidad sensorial."
-      ],
-      [
-        "Potenciador de Penetración",
-        "Incrementa la absorción y biodisponibilidad de principios activos en aplicaciones tópicas u orales."
-      ],
-      [
-        "Aporte Nutricional",
-        "Suministra fosfolípidos y ácidos grasos esenciales con potenciales beneficios sistémicos."
-      ]
-    ],
-    "microbiologia": [
-      [
-        "Apariencia",
-        "Polvo fino",
-        "Polvo fino"
-      ],
-      [
-        "Color",
-        "Amarillo claro a amarillo pardo",
-        "Cumple"
-      ],
-      [
-        "Olor",
-        "Característico a soya",
-        "Característico a soya"
-      ],
-      [
-        "Sabor",
-        "Graso",
-        "Graso"
-      ],
-      [
-        "Humedad",
-        "3% máx.",
-        "2.59%"
-      ],
-      [
-        "Índice de acidez",
-        "36 mg KOH/g máx.",
-        "< 36.0 mg KOH/g"
-      ],
-      [
-        "Metales pesados",
-        "20 mg/kg máx.",
-        "< 20 mg/kg"
-      ],
-      [
-        "Plomo",
-        "1 mg/kg máx.",
-        "< 1 mg/kg"
-      ],
-      [
-        "Material insoluble en Acetona (Pureza)",
-        "55.0% mín.",
-        "55.60%"
-      ],
-      [
-        "Materia insoluble en Hexano",
-        "60% máx.",
-        "59.50%"
-      ],
-      [
-        "Vehículos (Carriers)",
-        "Almidones y encapsulantes",
-        "Cumple"
-      ]
-    ]
-  },
-  "maltodextrina m150": {
-    "titulo": "MALTODEXTRINA M150",
-    "descripcion": "Polvo blanco de carbohidratos blandos, mínimamente dulce, producido a partir de maíz. Es un producto con perfil de polímero de longitud variable que proporciona una amplia gama de características de viscosidad y solubilidad.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Claridad en soluciones calentadas: El 30% de los sólidos permanecen claros",
-          "Viscosidad: Contribución mínima en sólidos por debajo del 30%",
-          "Higroscopicidad: Baja",
-          "Dulzura: Baja"
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Industria alimenticia",
-          "Fuente de energía para productos nutricionales",
-          "Ayuda en los sabores de secado por pulverización u otros ingredientes",
-          "Carga y dispersante para mezclas y condimentos secos",
-          "Evita la cristalización del azúcar en confecciones, coberturas y glaseados",
-          "Contribuye al total de sólidos en postres congelados"
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "La MALTODEXTRINA M150, conforme a estándar USP, se integra en formulaciones farmacéuticas y cosméticas en concentraciones que varían según su función, típicamente del 10 al 90% p/p como diluyente-vehículo o del 5 al 20% p/p como aglutinante en sistemas de compresión directa o granulación húmeda. Se puede incorporar como polvo seco mediante mezclado homogéneo con los demás excipientes y el activo, o disuelta en agua a temperatura ambiente (20-40°C) para generar soluciones aglutinantes o de recubrimiento, donde se añade como componente de la fase acuosa."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "MALTODEXTRINA M150"
-      ],
-      [
-        "SINÓNIMOS",
-        "Polímero de D-glucosa de bajo equivalente de dextrosa; INS 1400; DEXTRIN; D-glucano parcialmente hidrolizado; Hidrolizado de almidón"
-      ],
-      [
-        "CAS #",
-        "9050-36-6"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "24 06 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Polvo blanco fino."
-      ],
-      [
-        "Punto de fusión",
-        "Maltodextrina M150 no presenta punto de fusión."
-      ],
-      [
-        "Índice de saponificación",
-        "No aplica"
-      ],
-      [
-        "pH",
-        "4.5-6.5 en sol. acuosa 10%"
-      ],
-      [
-        "Olor",
-        "Inodoro."
-      ],
-      [
-        "Sabor",
-        "Ligeramente dulce."
-      ],
-      [
-        "Solubilidad",
-        "Maltodextrina M150 es altamente soluble en agua, formando soluciones o geles acuosos, y es prácticamente insoluble en solventes orgánicos."
-      ],
-      [
-        "Claridad en soluciones calentadas",
-        "El 30% de los sólidos permanecen claros"
-      ],
-      [
-        "Viscosidad",
-        "Contribución mínima en sólidos por debajo del 30%"
-      ],
-      [
-        "Higroscopicidad",
-        "Baja"
-      ],
-      [
-        "Dulzura",
-        "Baja"
-      ]
-    ],
-    "microbiologia": [
-      [
-        "Apariencia",
-        "Polvo blanco de carbohidratos, insípido, mínimamente dulce",
-        "Conforme"
-      ],
-      [
-        "Dextrosa equivalente",
-        "9.0 – 12.0",
-        "11.2"
-      ],
-      [
-        "Humedad, %",
-        "6.0 máx.",
-        "4.7"
-      ],
-      [
-        "Cenizas, %",
-        "0.5 máx.",
-        "0.30"
-      ],
-      [
-        "pH (20% solución)",
-        "4.0 – 4.7",
-        "4.4"
-      ],
-      [
-        "Recuento aeróbico en placa (CFU/g)",
-        "100 máx.",
-        "< 10"
-      ],
-      [
-        "Hongos y levaduras (CFU/g)",
-        "100 máx.",
-        "< 10"
-      ],
-      [
-        "Enterobacteriaceae (CFU/g)",
-        "10 máx.",
-        "< 10"
-      ],
-      [
-        "E. Coli (Negativo / 10 g)",
-        "Negativo/10g",
-        "Pasa"
-      ],
-      [
-        "Salmonella (Negativo/750 g, comp. diario)",
-        "Negativo/750g",
-        "Pasa"
-      ]
-    ]
-  },
-  "vitamina d pantenol": {
-    "titulo": "VITAMINA D PANTENOL",
-    "descripcion": "El D-Pantenol es un alcohol biológicamente activo que se transforma en ácido patoténico (Vitamina B5), se usa en dermatología para la cicatrización de las heridas debido a que actúa en la reconstrucción del epitelio. También posee una propiedad hidratante en la piel debido a su capacidad para fijar agua y almacenarla. En el cabello es un humectante de larga duración, previene su deterioro, lo fortalece y mejora su brillo. Proporciona flexibilidad a las uñas. La vitamina D influye en la función de la glándula paratiroides, aumenta la absorción de sales de calcio y fósforo.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Pureza: 98.0 – 102.0%",
-          "Rotación óptica especifica: +29.0° a 31.5°",
-          "Límite de Aminopropanol: ≤ 1,0%",
-          "Residuos de ignición: ≤ 0,1%",
-          "Índice refracción (20°C): 1.495 – 1.502",
-          "Metales Pesados: ≤ 20 ppm",
-          "Cenizas Sulfatadas: ≤ 0.1%"
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Estimula la regeneración epidérmica",
-          "Promueve la cicatrización de lesiones cutáneas leves",
-          "Incrementa la hidratación y mejora la elasticidad de la piel",
-          "Mitiga irritaciones y reduce el enrojecimiento cutáneo",
-          "Refuerza la función barrera de la piel",
-          "Acondiciona y repara la fibra capilar",
-          "Alivia quemaduras solares y cutáneas menores",
-          "Coadyuvante en el manejo de dermatitis",
-          "Formulaciones para el cuidado de uñas y cutículas",
-          "Componente en productos post-depilatorios",
-          "Ingrediente en cremas y lociones para piel sensible",
-          "Soporte en la modulación de la proliferación celular cutánea"
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "VITAMINA D PANTENOL"
-      ],
-      [
-        "CAS #",
-        "81-13-0"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "01 07 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Líquido viscoso, transparente, incoloro a ligeramente amarillento, sin forma definida."
-      ],
-      [
-        "Olor",
-        "Prácticamente inodoro, con una nota muy leve y característica."
-      ],
-      [
-        "Solubilidad",
-        "fácilmente soluble en agua, en alcohol, en metanol y en propilenglicol"
-      ],
-      [
-        "Pureza",
-        "98.0 – 102.0%"
-      ],
-      [
-        "Rotación óptica especifica",
-        "+29.0° a 31.5°"
-      ],
-      [
-        "Límite de Aminopropanol",
-        "≤ 1,0%"
-      ],
-      [
-        "Residuos de ignición",
-        "≤ 0,1%"
-      ],
-      [
-        "Índice refracción (20°C)",
-        "1.495 – 1.502"
-      ],
-      [
-        "Metales Pesados",
-        "≤ 20 ppm"
-      ],
-      [
-        "Cenizas Sulfatadas",
-        "≤ 0.1%"
-      ]
-    ],
-    "microbiologia": [
-      [
-        "Apariencia",
-        "Líquido higroscópico viscoso, incoloro o ligeramente amarillento (puede cristalizar en almacenamiento)",
-        "Conforme"
-      ],
-      [
-        "Solubilidad",
-        "Fácilmente soluble en agua, en alcohol, en metanol y en propilenglicol; soluble cloroformo y en éter; ligeramente soluble en glicerina",
-        "Conforme"
-      ],
-      [
-        "Identificación A. Absorción infrarroja",
-        "Conforme al USP2021",
-        "Conforme"
-      ],
-      [
-        "Identificación B. Solución de muestra",
-        "se desarrolla un color azul profundo",
-        "Conforme"
-      ],
-      [
-        "Identificación C. Solución de muestra",
-        "se desarrolla un color rojo púrpura",
-        "Conforme"
-      ],
-      [
-        "Pureza (en base anhidra)",
-        "98.0% - 102.0%",
-        "98.4%"
-      ],
-      [
-        "Determinación de Agua",
-        "≤ 1.0%",
-        "0.14%"
-      ],
-      [
-        "Rotación específica óptica",
-        "+29.0° - +31.5°",
-        "30.7°"
-      ],
-      [
-        "Límite de Aminopropanol",
-        "≤ 1.0%",
-        "0.69%"
-      ],
-      [
-        "Residuos en ignición",
-        "≤ 0.1%",
-        "0.1%"
-      ],
-      [
-        "Índice de refracción (20 °C)",
-        "1.495 - 1.502",
-        "1.497"
-      ],
-      [
-        "Metales pesados",
-        "≤20 ppm",
-        "Conforme"
-      ]
-    ]
-  },
-  "glicerina vegetal": {
-    "titulo": "GLICERINA VEGETAL",
-    "descripcion": "La Glicerina Vegetal, o Glicerol, es un polialcohol trihídrico obtenido exclusivamente a partir de la hidrólisis de triglicéridos de origen vegetal. Su modo de obtención principal es como co-producto durante la transesterificación de aceites (palma, soja, colza) para la producción de biodiésel, o mediante el proceso de saponificación en la industria jabonera. Químicamente, el proceso consiste en la escisión de las moléculas de grasa, lo que libera el esqueleto de glicerol de las cadenas de ácidos grasos. El glicerol crudo resultante se somete a un riguroso proceso de refinamiento y purificación, principalmente por destilación fraccionada al vacío, para alcanzar la alta pureza exigida por los estándares farmacopeicos y cosméticos.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Humectante: Atrae y retiene la humedad en la piel y el cabello.",
-          "Hidratante: Incrementa el contenido de agua en las capas superficiales de la piel.",
-          "Antiinflamatorio: Reduce la inflamación y la irritación cutánea.",
-          "Emoliente: Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas.",
-          "Acondicionador capilar: Previene la sequedad y la rotura de la fibra capilar.",
-          "Edulcorante: Proporciona un sabor dulce en formulaciones de uso oral.",
-          "Grado Farmacéutico USP: Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Agente humectante para retener la humedad en la piel en cremas, lociones y jabones.",
-          "Activo con propiedades antiinflamatorias para reducir la irritación cutánea.",
-          "Ingrediente para el suavizado de líneas finas y arrugas.",
-          "Acondicionador para reducir la apariencia de la piel seca y escamosa.",
-          "Humectante en formulaciones capilares para prevenir la sequedad y la rotura.",
-          "Excipiente edulcorante y humectante en preparaciones farmacéuticas de grado USP."
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "La Glicerina Vegetal USP se incorpora en la fase acuosa de la formulación en concentraciones que oscilan entre el 2% y 10%, dependiendo del nivel de humectación deseado. Se debe disolver junto con los demás ingredientes hidrosolubles, calentando esta fase a una temperatura aproximada de 70-75 °C. Su adición se realiza antes del proceso de emulsificación para asegurar una dispersión homogénea y maximizar su eficacia como agente higroscópico en el producto terminado."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "GLICERINA VEGETAL"
-      ],
-      [
-        "SINÓNIMOS",
-        "Glicerol; Propan-1,2,3-triol; Glycerin; E422; Trihidroxipropano."
-      ],
-      [
-        "CAS #",
-        "56-81-5"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "24 06 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Líquido siroposo, límpido e incoloro."
-      ],
-      [
-        "Punto de fusión",
-        "17.9 °C"
-      ],
-      [
-        "pH",
-        "5.0-8.0 en solución acuosa al 10%."
-      ],
-      [
-        "Olor",
-        "Olor característico muy tenue y ligeramente dulce, siendo prácticamente inodoro en grados de alta pureza."
-      ],
-      [
-        "Fórmula química",
-        "C3H8O3"
-      ],
-      [
-        "Humectante",
-        "Atrae y retiene la humedad en la piel y el cabello."
-      ],
-      [
-        "Hidratante",
-        "Incrementa el contenido de agua en las capas superficiales de la piel."
-      ],
-      [
-        "Antiinflamatorio",
-        "Reduce la inflamación y la irritación cutánea."
-      ],
-      [
-        "Emoliente",
-        "Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas."
-      ],
-      [
-        "Acondicionador capilar",
-        "Previene la sequedad y la rotura de la fibra capilar."
-      ],
-      [
-        "Edulcorante",
-        "Proporciona un sabor dulce en formulaciones de uso oral."
-      ],
-      [
-        "Grado Farmacéutico USP",
-        "Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
-      ]
-    ],
-    "microbiologia": []
-  },
-  "lactato de calcio": {
-    "titulo": "LACTATO DE CALCIO",
-    "descripcion": "El lactato de calcio es la sal cálcica del ácido L(+)-láctico, obtenida a partir de un proceso de origen natural. Su modo de obtención se basa en la fermentación bacteriana controlada de sustratos de carbohidratos, como glucosa derivada del almidón de maíz o sacarosa de caña. El ácido láctico resultante de este bioproceso es subsecuentemente neutralizado mediante una reacción directa con una fuente de calcio de alta pureza, típicamente carbonato de calcio o hidróxido de calcio. La sal formada es sometida a etapas de purificación, filtración y concentración, finalizando con un proceso de cristalización o secado por aspersión para obtener el producto final que cumple con la monografía farmacopeica correspondiente.",
-    "secciones": [
-      {
-        "titulo": "BENEFICIOS",
-        "items": [
-          "Suplemento de calcio: Fuente para el tratamiento de deficiencias de calcio y el enriquecimiento de formulaciones.",
-          "Soporte óseo: Aporta el principal componente mineral de la estructura ósea.",
-          "Soporte neuromuscular: Interviene en la actividad muscular y la transmisión de impulsos nerviosos.",
-          "Agente reafirmante: Mantiene la firmeza y textura en diversas preparaciones.",
-          "Estabilizador de formulaciones: Contribuye a la estabilidad de la masa y mejora la formación de espuma.",
-          "Agente antiácido: Utilizado en formulaciones farmacéuticas para neutralizar la acidez gástrica.",
-          "Agente anticaries: Previene la caries dental en productos para el cuidado bucal como dentífricos y enjuagues.",
-          "Perfil organoléptico superior: No imparte el sabor amargo característico de otras sales de calcio como el cloruro.",
-          "Grado farmacéutico: Cumple con los estándares de calidad y pureza de la farmacopea USP.",
-          "Alta estabilidad: Presenta una larga vida útil cuando se almacena en condiciones adecuadas."
-        ]
-      },
-      {
-        "titulo": "APLICACIONES",
-        "items": [
-          "Suplemento dietético para el tratamiento de deficiencias de calcio.",
-          "Agente antiácido en formulaciones farmacéuticas.",
-          "Componente en productos para el cuidado bucal.",
-          "Ingrediente en pastas dentales.",
-          "Formulación de enjuagues bucales de venta libre (OTC)."
-        ]
-      },
-      {
-        "titulo": "MODO DE USO",
-        "items": [
-          "El Lactato de Calcio se incorpora directamente en la fase acuosa de la formulación, preferiblemente bajo agitación constante y a una temperatura entre 40°C y 60°C para facilitar su completa disolución. Se recomienda su adición antes de la incorporación de agentes viscosantes para asegurar la homogeneidad del sistema. Su concentración de uso típica varía según la aplicación, oscilando entre 0.5% y 5.0% p/p, actuando como fuente de calcio en productos de cuidado oral y suplementos farmacéuticos. Por ser un producto grado USP, su estabilidad no se ve comprometida en los rangos de pH habituales para estas formulaciones."
-        ]
-      },
-      {
-        "titulo": "RECOMENDACIONES",
-        "items": [
-          "SEÑAL DE PELIGRO: Sin peligro\nPREVENCIÓN: P261: Evitar respirar el polvo. P264: Lavarse las manos concienzudamente tras la manipulación. P270: No comer, beber ni fumar durante su utilización.\nRESPUESTA: En caso de malestar o exposición accidental significativa, consultar a un médico. Recoger el producto derramado para evitar la generación de polvo.\nALMACENAMIENTO: P403+P233: Almacenar en un lugar bien ventilado, manteniendo el empaque herméticamente cerrado. Proteger de la humedad, el calor y la luz directa.\nELIMINACIÓN: P501: Eliminar el producto y su empaque de acuerdo con la normativa local y nacional vigente para residuos no peligrosos.\nPRIMEROS AUXILIOS: Inhalación: Trasladar a la persona al aire libre y mantenerla en reposo. Contacto piel: Lavar con abundante agua; no se esperan irritaciones. Contacto ocular: Aclarar cuidadosamente con agua durante varios minutos; si la irritación persiste, consultar a un médico. Ingestión: Enjuagar la boca; no se esperan efectos adversos en las cantidades de uso habitual.\nEPP REQUERIDO: Gafas de seguridad con protección lateral. Guantes de protección (nitrilo). Mascarilla para polvo (tipo N95) en caso de ventilación deficiente o manipulación de grandes volúmenes."
-        ]
-      }
-    ],
-    "identidad": [
-      [
-        "NOMBRE DEL PRODUCTO",
-        "LACTATO DE CALCIO"
-      ],
-      [
-        "SINÓNIMOS",
-        "2-hidroxipropanoato de calcio; E327; CALCIUM LACTATE; Sal cálcica del ácido láctico; Calcii lactas."
-      ],
-      [
-        "CAS #",
-        "814-80-2"
-      ],
-      [
-        "FECHA DE REVISIÓN",
-        "23 06 2026"
-      ]
-    ],
-    "propiedades": [
-      [
-        "Apariencia",
-        "Polvo cristalino o granular de color blanco o casi blanco."
-      ],
-      [
-        "pH",
-        "6.0-8.0 en sol. 5%."
-      ],
-      [
-        "Olor",
-        "Prácticamente inodoro, a veces con una nota ligeramente dulce."
-      ],
-      [
-        "Fórmula química",
-        "C6H10CaO6"
-      ],
-      [
-        "Solubilidad",
-        "La ficha técnica interna y la evidencia proporcionada no especifican datos cuantitativos sobre la solubilidad del Lactato de Calcio en agua o solventes orgánicos."
-      ],
-      [
-        "Suplemento de calcio",
-        "Fuente para el tratamiento de deficiencias de calcio y el enriquecimiento de formulaciones."
-      ],
-      [
-        "Soporte óseo",
-        "Aporta el principal componente mineral de la estructura ósea."
-      ],
-      [
-        "Soporte neuromuscular",
-        "Interviene en la actividad muscular y la transmisión de impulsos nerviosos."
-      ],
-      [
-        "Agente reafirmante",
-        "Mantiene la firmeza y textura en diversas preparaciones."
-      ],
-      [
-        "Estabilizador de formulaciones",
-        "Contribuye a la estabilidad de la masa y mejora la formación de espuma."
-      ],
-      [
-        "Agente antiácido",
-        "Utilizado en formulaciones farmacéuticas para neutralizar la acidez gástrica."
-      ],
-      [
-        "Agente anticaries",
-        "Previene la caries dental en productos para el cuidado bucal como dentífricos y enjuagues."
-      ],
-      [
-        "Perfil organoléptico superior",
-        "No imparte el sabor amargo característico de otras sales de calcio como el cloruro."
-      ],
-      [
-        "Grado farmacéutico",
-        "Cumple con los estándares de calidad y pureza de la farmacopea USP."
-      ],
-      [
-        "Alta estabilidad",
-        "Presenta una larga vida útil cuando se almacena en condiciones adecuadas."
       ]
     ],
     "microbiologia": []

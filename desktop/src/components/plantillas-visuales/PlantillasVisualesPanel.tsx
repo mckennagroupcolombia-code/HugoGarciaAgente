@@ -14,6 +14,7 @@ import {
   descargarBlob,
   exportarPlantillaBlob,
   guardarPlantillaEnGaleria,
+  subirPdfBase64AEtiquetas,
 } from "../../lib/plantillasVisualesExport";
 import { type EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
 import { EtiquetaMckennaPreview } from "../etiquetas/EtiquetaMckennaPreview";
@@ -327,6 +328,7 @@ export default function PlantillasVisualesPanel() {
     setExportando(true);
     setMsg(null);
     try {
+      let mensajeExtra = "";
       if (formato === "pdf") {
         const res = await api.post<{
           ok: boolean;
@@ -335,6 +337,9 @@ export default function PlantillasVisualesPanel() {
           formato: string;
         }>("/api/plantillas-visuales/exportar", { plantilla: doc, formato: "pdf", escala });
         descargarBase64(res.base64, res.nombre, "application/pdf");
+        await subirPdfBase64AEtiquetas(res.base64, res.nombre);
+        void qc.invalidateQueries({ queryKey: ["etiquetas-pdfs"] });
+        mensajeExtra = " · enviado a Etiquetas para imprimir";
       } else {
         const blob = await exportarPlantillaBlob(doc, formato, { escala });
         const ext = formato === "jpeg" ? "jpg" : "png";
@@ -343,7 +348,7 @@ export default function PlantillasVisualesPanel() {
         descargarBlob(blob, `${safe}${suf}.${ext}`);
       }
       const dim = `${Math.round(doc.formato.ancho_px * escala)}×${Math.round(doc.formato.alto_px * escala)}`;
-      setMsg(`Exportado ${formato.toUpperCase()} (${dim} px) ✓`);
+      setMsg(`Exportado ${formato.toUpperCase()} (${dim} px)${mensajeExtra} ✓`);
       setTimeout(() => setMsg(null), 2500);
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Error al exportar");
