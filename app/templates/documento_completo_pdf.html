@@ -34,7 +34,7 @@
   size: A4;
   margin: 1.8cm 1.8cm 2cm 2cm;
   @bottom-center {
-    content: "McKenna Group S.A.S.  ·  Documento Técnico  ·  {{ titulo }}  ·  Pág. " counter(page) " / " counter(pages);
+    content: "Esta información está basada en la documentación expedida por el proveedor.";
     font-family: 'Montserrat', sans-serif;
     font-size: 7pt;
     color: #888;
@@ -465,12 +465,6 @@ sub { font-size: 0.72em; vertical-align: sub; }
   {% endif %}
 </div>
 {% endif %}
-
-<div style="margin-top: 1.2cm; padding: 0.4cm 0.6cm; border-top: 0.75pt solid #ccc; text-align: center;">
-  <p style="font-size: 8.5pt; font-style: italic; color: #555; margin: 0; line-height: 1.5;">
-    Esta información es basada en la documentación expedida por el proveedor. El cliente no se exime de realizar sus propios análisis para incorporar esta materia prima en su producción.
-  </p>
-</div>
 
 </body>
 </html>

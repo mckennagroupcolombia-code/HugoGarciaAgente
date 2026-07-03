@@ -23,7 +23,7 @@ _STOP = {
     "the", "and", "de", "la", "el", "en", "y", "a", "es", "se",
 }
 
-_PROMPT_CATALOGO = """Eres redactor técnico-comercial de McKenna Group (materias primas farmacéuticas, cosméticas y alimentarias).
+_PROMPT_CATALOGO = """Eres redactor técnico especializado en materias primas químicas, cosméticas, alimentarias, industriales y de laboratorio (según corresponda al ingrediente) de McKenna Group.
 
 El usuario escribe palabras clave para identificar una materia prima (solo para buscar la ficha; NO las repitas en el texto):
 "{fragmento}"
@@ -66,16 +66,20 @@ ANTI-REPETICIÓN (obligatorio):
 Contenido a integrar de forma natural (sin títulos ni viñetas):
 
 PÁRRAFO 1 — ORDEN OBLIGATORIO (desarrolla cada bloque con datos de la ficha; si falta un dato, omítelo sin inventar):
-A) APARIENCIA FÍSICA: estado (polvo, líquido, granulado, cristalino), color, textura u organolépticas visuales si constan. Usa redacción explícita («se presenta como…», «en apariencia…»).
-B) SOLUBILIDAD: medios de disolución o dispersión (agua, alcohol, aceites, etc.) con redacción explícita («es soluble en…», «se dispersa en…», «presenta solubilidad…»). Este punto es obligatorio si la ficha lo menciona.
-C) PROPIEDADES Y BENEFICIOS COMO MATERIA PRIMA: función técnica, rol en formulación, ventajas de proceso (estabilidad, textura, compatibilidad reológica, pureza) — sin claims de salud al consumidor.
-D) Comportamiento en matrices industriales según diseño de fórmula, equipo y condiciones de elaboración.
-E) Estabilidad frente al aire, humedad, luz o temperatura solo como propiedad del material, no como recomendación de guardado.
+A) QUÉ ES: identifica brevemente de qué tipo de compuesto o ingrediente se trata, sin repetir el nombre canónico más de la única vez ya permitida.
+B) APARIENCIA FÍSICA: estado (polvo, líquido, granulado, cristalino), color, textura u organolépticas visuales si constan. Usa redacción explícita («se presenta como…», «en apariencia…»).
+C) ORIGEN O FUENTE: origen natural (vegetal, animal, mineral) o de síntesis química/industrial, y presencia natural si aplica — solo si consta en la ficha.
+D) MODO DE OBTENCIÓN: proceso general de extracción, síntesis, fermentación, refinación u otro método de obtención — solo si consta en la ficha; si no hay dato, omite este punto sin inventar.
+E) SOLUBILIDAD: medios de disolución o dispersión (agua, alcohol, aceites, etc.) con redacción explícita («es soluble en…», «se dispersa en…», «presenta solubilidad…»). Este punto es obligatorio si la ficha lo menciona.
+F) PROPIEDADES Y BENEFICIOS COMO MATERIA PRIMA: función técnica, rol en formulación, ventajas de proceso (estabilidad, textura, compatibilidad reológica, pureza) — sin claims de salud al consumidor.
+G) Comportamiento en matrices industriales según diseño de fórmula, equipo y condiciones de elaboración.
+H) Estabilidad frente al aire, humedad, luz o temperatura solo como propiedad del material, no como recomendación de guardado.
 
 NO incluir instrucciones de almacenamiento, caducidad ni conservación en el párrafo 1.
 
-PÁRRAFO 2 (aplicaciones):
-- Aplicaciones por industria (alimentaria, farmacéutica, cosmética, química/laboratorio si aplica en fichas).
+PÁRRAFO 2 (características generales, propiedades y usos):
+- Características generales y propiedades adicionales relevantes para quien formula.
+- Aplicaciones por industria (química, alimentaria, farmacéutica, cosmética, industrial o de laboratorio, según lo que indiquen las fichas).
 - Referencia de uso o concentración (solo si consta en fichas; si no, indicar que depende de formulación y normativa).
 
 - PROHIBIDO en el párrafo 1: almacenar, guardar en envase, caducidad, consumir preferentemente, recomendaciones logísticas.
@@ -92,8 +96,9 @@ PÁRRAFO 2 (aplicaciones):
 
 COMPLIANCE MERCADO LIBRE (obligatorio — evita baja de publicación):
 - McKenna comercializa MATERIA PRIMA reempacada para formulación. NO suplemento terminado ni medicamento.
+- PROHIBIDO mencionar: grado farmacéutico, uso medicinal, suplemento (en cualquier forma), dosis sugerida o recomendada, instrucciones de consumo tipo "tomar" o "ingerir", afirmaciones terapéuticas o promesas de resultados médicos.
 - PROHIBIDO orientar al consumidor final: dosis, dosificación, gramos diarios, fase de carga, consumo, suplemento deportivo, atletas, culturistas, ganancia muscular, recuperación post-entrenamiento, tratamiento, cura, terapia, ELA, trastornos neuromusculares, función cerebral terapéutica, absorción por el organismo, salud ósea/muscular/cardiovascular al consumidor, ATP, trifosfato de adenosina, metabolismo energético, soporte celular, perfil energético.
-- PROHIBIDO claims de producto terminado; describe uso en FORMULACIÓN industrial, alimentaria o cosmética.
+- PROHIBIDO claims de producto terminado; describe uso en FORMULACIÓN industrial, alimentaria, cosmética, química o de laboratorio.
 - PROHIBIDO repetir el nombre comercial del ingrediente como titular si ya consta en otra capa de la plantilla.
 - PROHIBIDO repetir frases del subtítulo (ej. "materia prima alimentaria", "insumo cosmético").
 - Cada párrafo debe aportar información técnica nueva (propiedad, solubilidad, aplicaciones de formulación).
@@ -444,19 +449,28 @@ def _suavizar_repeticiones(
     out = texto
     alt_idx = 0
     for ancla in anclas:
+        ancla_norm = _norm(ancla)
+        if not ancla_norm:
+            continue
         lim = _limite_apariciones_ancla(ancla, contexto_capas)
+        # _norm() (NFD + descarte de marcas combinantes) preserva longitud e
+        # índice carácter a carácter frente al texto original — así el match
+        # se ubica sobre la versión normalizada (sin tildes) pero se corta y
+        # reemplaza sobre `out` tal cual, sin depender de que Gemini haya
+        # escrito el nombre con exactamente las mismas tildes/mayúsculas.
         pat = re.compile(
-            rf"(?:\b(?:El|La|Los|Las)\s+)?{re.escape(ancla)}",
+            rf"(?:\b(?:el|la|los|las)\s+)?{re.escape(ancla_norm)}",
             re.I,
         )
+        out_norm = _norm(out)
         count = 0
         partes: list[str] = []
         last = 0
-        for m in pat.finditer(out):
+        for m in pat.finditer(out_norm):
             partes.append(out[last : m.start()])
             count += 1
             if count <= lim:
-                partes.append(m.group(0))
+                partes.append(out[m.start() : m.end()])
             else:
                 rep = _ALTERNA_SUSTITUTO[alt_idx % len(_ALTERNA_SUSTITUTO)]
                 alt_idx += 1
@@ -577,7 +591,10 @@ def _post_procesar_texto(texto: str) -> str:
             flags=re.I,
         )
         t = _quitar_especificaciones(t)
-        t = re.sub(r"\b(?:Y\s+)?ALMACENAMIENTO\b", "", t, flags=re.I)
+        # Sensible a mayúsculas a propósito: solo limpia encabezados de ficha
+        # ("ESTABILIDAD Y ALMACENAMIENTO") sin comerse la palabra normal
+        # "almacenamiento" cuando aparece en una oración en prosa.
+        t = re.sub(r"\b(?:Y\s+)?ALMACENAMIENTO\b", "", t)
         t = re.sub(r"\bOlor y sabor:\s*", "Presenta ", t, flags=re.I)
         t = re.sub(r"\bAl[eé]rgenos:\s*", "", t, flags=re.I)
         t = re.sub(r" {2,}", " ", t).strip()
@@ -615,13 +632,6 @@ _RE_FUNCION = re.compile(
     r"solvente|activo cosm[eé]tico|fuente (?:de )?(?:prote[ií]nas?|mineral(?:es)?)|"
     r"ingrediente de formulaci[oó]n|emulsificante|estabilizante|edulcorante|"
     r"aromatizante|espesante|gelificante|nutriente)\b",
-    re.I,
-)
-
-_RE_ALMACENAMIENTO = re.compile(
-    r"\b(almacenar|almacenamiento|guardar en envase|guarde el empaque|envases? bien cerrados?|"
-    r"caduca|consumir preferentemente|fecha de fabricaci[oó]n|lugar fresco y seco|"
-    r"alejado de la luz)\b",
     re.I,
 )
 
@@ -692,6 +702,15 @@ _RIESGO_MELI_EXTRA = (
     "actividades físicas",
     "actividades fisicas",
     "alta intensidad",
+    "grado farmacéutico",
+    "uso medicinal",
+    "suplemento",
+    "tomar",
+    "ingerir",
+    "afirmación terapéutica",
+    "terapéutico",
+    "terapéutica",
+    "resultado médico",
 )
 
 
@@ -710,8 +729,17 @@ def _palabras_riesgo_meli() -> tuple[str, ...]:
 
 
 def _señales_riesgo_meli(texto: str) -> list[str]:
+    # Coincidencia por palabra/frase completa, no substring: evita falsos
+    # positivos como "cura " detectado dentro de "frescura".
     t = _norm(texto)
-    return [p for p in _palabras_riesgo_meli() if _norm(p) in t]
+    señales: list[str] = []
+    for p in _palabras_riesgo_meli():
+        pn = _norm(p).strip()
+        if not pn:
+            continue
+        if re.search(rf"\b{re.escape(pn)}\b", t):
+            señales.append(p)
+    return señales
 
 
 def _formatear_contexto_otras_capas(contexto_capas: dict | None) -> str:
@@ -850,6 +878,7 @@ def _quitar_especificaciones(texto: str) -> str:
         flags=re.I,
     )
     t = re.sub(r"ph\s*:\s*[^.]+", " ", t, flags=re.I)
+    t = re.sub(r"Peso molecular\s*\([^)]*\)\s*:?\s*[^.]+", " ", t, flags=re.I)
     t = re.sub(r"\bM[aá]x\.?\s*[\d,.]+", " ", t, flags=re.I)
     t = re.sub(r"\bMin\.?\s*[\d,.]+", " ", t, flags=re.I)
     t = re.sub(r"\s+", " ", t).strip()
@@ -893,8 +922,10 @@ def _prosa_alergenos(texto: str) -> str:
 
 def _sanitizar_campo_ficha(texto: str) -> str:
     t = _quitar_especificaciones(_limpiar_fragmento_ficha(texto))
-    t = re.sub(r"\b(?:Y\s+)?ALMACENAMIENTO\b", "", t, flags=re.I)
-    t = re.sub(r"\bPROPIEDADES ORGANOL[EÉ]PTICAS\b", "", t, flags=re.I)
+    # Sensible a mayúsculas: son encabezados de sección de ficha, no deben
+    # comerse "almacenamiento"/"propiedades organolépticas" en prosa normal.
+    t = re.sub(r"\b(?:Y\s+)?ALMACENAMIENTO\b", "", t)
+    t = re.sub(r"\bPROPIEDADES ORGANOL[EÉ]PTICAS\b", "", t)
     return re.sub(r"\s+", " ", t).strip().rstrip(".")
 
 
@@ -991,6 +1022,30 @@ def _instrucciones_segmento(segmento: str) -> str:
     return (
         "Redacta según el segmento principal que indiquen las fichas técnicas "
         "(alimentaria, cosmética o farmacéutica)."
+    )
+
+
+def _titulo_ya_en_capa(
+    titulo_ficha: str,
+    nombre_mp: str,
+    contexto_capas: dict | None,
+) -> bool:
+    """
+    True si el nombre del producto ya está impreso en la capa Título del
+    diseño (para no repetirlo en el párrafo 1). La capa Título suele traer
+    texto extra (peso, presentación: "Ácido Ascórbico 100g") que la ficha
+    técnica no tiene, así que hay que comparar en ambos sentidos de
+    contención — no solo "¿el título de la capa cabe completo en el nombre
+    de la ficha?", que casi nunca es cierto.
+    """
+    capa = _norm((contexto_capas or {}).get("titulo") or "")
+    if not capa:
+        return False
+    ficha = _norm(titulo_ficha or "")
+    nombre = _norm(nombre_mp or "")
+    return bool(
+        (ficha and (capa in ficha or ficha in capa))
+        or (nombre and len(nombre) >= 4 and nombre in capa)
     )
 
 
@@ -1189,8 +1244,8 @@ def _plantilla_respaldo_catalogo(
             "estabilidad de proceso y comportamiento reológico de la matriz final."
         )
         p2 = (
-            "En la industria alimentaria, cosmética y química, se incorpora como "
-            "componente de formulación según la aplicación prevista y la normativa "
+            "En aplicaciones industriales se incorpora como componente de "
+            "formulación según la aplicación prevista y la normativa "
             f"aplicable.{_P2_CIERRE}"
         )
     return f"{_ajustar_parrafo_longitud(p1)}\n\n{_ajustar_parrafo_longitud(p2)}"
@@ -1311,8 +1366,21 @@ def _parsear_ficha_estructurada(cuerpo: str) -> dict[str, str]:
     out["almacenamiento"] = _seccion_ficha(t, "ESTABILIDAD") or _seccion_ficha(t, "ALMACENAMIENTO")
 
     if not out.get("fisica"):
+        # Detenerse al llegar a otra sección (APLICACIONES, RECOMENDACIONES...):
+        # sin este corte, una viñeta de uso que mencione "color" o "olor" del
+        # producto FINAL (ej. "mantiene el color de alimentos congelados") se
+        # adoptaba como si describiera el aspecto físico de la materia prima.
+        header_stop = re.compile(
+            r"^(APLICACIONES|RECOMENDACIONES|PROPIEDADES|DOSIFICACI[OÓ]N|"
+            r"COMPONENTES|BENEFICIOS|ESTABILIDAD|ALMACENAMIENTO)\b",
+            re.I,
+        )
         for ln in (cuerpo or "").splitlines():
             ln = ln.strip()
+            if not ln:
+                continue
+            if header_stop.match(ln):
+                break
             if re.search(r"apariencia|solubil|polvo|líquido|color|olor", ln, re.I):
                 out["fisica"] = _limpiar_fragmento_ficha(ln)
                 break
@@ -1475,8 +1543,6 @@ def _validar_texto_catalogo(
         return None
     if _RE_ALMACENAMIENTO_P1.search(paras[0]):
         return None
-    if _RE_ALMACENAMIENTO.search(t):
-        return None
     if _contiene_riesgo_meli(t):
         return None
     if _repite_capas_etiqueta(t, contexto_capas):
@@ -1572,10 +1638,7 @@ def _fallback_catalogo(
     origen = parsed.get("origen", "")
     alim = parsed.get("alimentaria", "")
 
-    titulo_en_capa = bool(
-        (contexto_capas or {}).get("titulo")
-        and _norm((contexto_capas or {}).get("titulo") or "") in _norm(titulo)
-    )
+    titulo_en_capa = _titulo_ya_en_capa(titulo, nombre, contexto_capas)
     ap, sol = _extraer_apariencia_solubilidad_blob(blob)
     p1_partes = [_apertura_p1(segmento, titulo_en_capa, nombre)]
     or_ap = _oracion_apariencia_fisica(ap, blob)
@@ -1621,11 +1684,17 @@ def _fallback_catalogo(
                 f"Se emplea en la {alim_safe[0].lower()}{alim_safe[1:].rstrip('.')}."
             ]
         else:
-            pref = "En la industria alimentaria"
-            if segmento == "cosmetico":
+            # "alimentaria" solo cuando el segmento realmente lo es — asumirlo
+            # por defecto en el segmento "general" etiquetaba usos no
+            # alimentarios (ej. plaguicidas) como si lo fueran.
+            if segmento == "alimentario":
+                pref = "En la industria alimentaria"
+            elif segmento == "cosmetico":
                 pref = "En la industria cosmética"
             elif segmento == "farmaceutico":
                 pref = "En la industria farmacéutica"
+            else:
+                pref = "En aplicaciones industriales"
             usos = [
                 f"{pref}, {alim_safe[0].lower()}{alim_safe[1:].rstrip('.')}."
             ]
@@ -1698,54 +1767,73 @@ def _generar_con_gemini(
         contexto=contexto,
     )
 
+    titulo = fichas[0].get("titulo") if fichas else ""
+    fuente = fichas[0].get("fuente") if fichas else ""
+
     try:
         from google import genai
+        from google.genai import types as genai_types
 
-        client = genai.Client(api_key=api_key)
-        resp = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
-        raw = (resp.text or "").strip()
-        data = _extraer_json(raw)
-        titulo = fichas[0].get("titulo") if fichas else ""
-        fuente = fichas[0].get("fuente") if fichas else ""
-
-        if data and isinstance(data.get("sugerencias"), list):
-            out: list[dict] = []
-            for item in data["sugerencias"]:
-                raw_txt = item if isinstance(item, str) else (
-                    str(item.get("texto") or "") if isinstance(item, dict) else ""
-                )
-                texto = (
-                    _aceptar_texto_ia(
-                        raw_txt,
-                        max_chars,
-                        contexto_capas=contexto_capas,
-                        anclas=anclas,
-                    )
-                    if raw_txt
-                    else None
-                )
-                if texto:
-                    out.append({"texto": texto, "titulo": titulo, "fuente": fuente})
-            if out:
-                return out[:n_opciones]
-
-        texto_raw = (raw if data is None else "")
-        aceptado = (
-            _aceptar_texto_ia(
-                texto_raw,
-                max_chars,
-                contexto_capas=contexto_capas,
-                anclas=anclas,
-            )
-            if texto_raw
-            else None
+        # timeout explícito (ms): sin esto una llamada colgada bloquea todo
+        # el flujo (agravado por los reintentos de abajo).
+        client = genai.Client(
+            api_key=api_key,
+            http_options=genai_types.HttpOptions(timeout=20_000),
         )
-        if aceptado:
-            return [{"texto": aceptado, "titulo": titulo, "fuente": fuente}]
-
-        return _fallback_catalogo(fragmento, fichas, max_chars, contexto_capas=contexto_capas)
     except Exception:
         return _fallback_catalogo(fragmento, fichas, max_chars, contexto_capas=contexto_capas)
+
+    # Un solo candidato de Gemini a veces incumple una regla de validación
+    # (frase clonada prohibida, contenido de párrafo 2 colado en el 1, etc.)
+    # aunque el resto del texto sea bueno. Antes de caer a la plantilla
+    # genérica de respaldo, se reintenta un par de veces — la variación
+    # entre generaciones suele bastar para producir un candidato válido.
+    INTENTOS_GEMINI = 3
+    for intento in range(INTENTOS_GEMINI):
+        try:
+            resp = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+            raw = (resp.text or "").strip()
+            data = _extraer_json(raw)
+
+            if data and isinstance(data.get("sugerencias"), list):
+                out: list[dict] = []
+                for item in data["sugerencias"]:
+                    raw_txt = item if isinstance(item, str) else (
+                        str(item.get("texto") or "") if isinstance(item, dict) else ""
+                    )
+                    texto = (
+                        _aceptar_texto_ia(
+                            raw_txt,
+                            max_chars,
+                            contexto_capas=contexto_capas,
+                            anclas=anclas,
+                        )
+                        if raw_txt
+                        else None
+                    )
+                    if texto:
+                        out.append({"texto": texto, "titulo": titulo, "fuente": fuente})
+                if out:
+                    return out[:n_opciones]
+                continue
+
+            texto_raw = raw if data is None else ""
+            aceptado = (
+                _aceptar_texto_ia(
+                    texto_raw,
+                    max_chars,
+                    contexto_capas=contexto_capas,
+                    anclas=anclas,
+                )
+                if texto_raw
+                else None
+            )
+            if aceptado:
+                return [{"texto": aceptado, "titulo": titulo, "fuente": fuente}]
+        except Exception:
+            continue
+
+    return _fallback_catalogo(fragmento, fichas, max_chars, contexto_capas=contexto_capas)
 
 
 def sugerir_texto_magico(

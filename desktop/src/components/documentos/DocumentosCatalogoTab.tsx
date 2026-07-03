@@ -41,38 +41,39 @@ interface DriveHit {
 
 const TIPO_LABEL: Record<string, string> = { ft: "FT", coa: "COA", sds: "SDS" };
 
-function DocBadge({ doc, label }: { doc: DocEstado; label: string }) {
-  if (!doc.tiene) {
+function FichaTecnicaBadge({
+  completo,
+  faltantes,
+  onVerPdf,
+}: {
+  completo: boolean;
+  faltantes: string[];
+  onVerPdf?: () => void;
+}) {
+  const cls = completo
+    ? "bg-emerald-500/15 text-emerald-700 ring-emerald-500/30"
+    : "bg-amber-500/15 text-amber-700 ring-amber-500/30";
+  const label = completo ? "Ficha Técnica" : `Falta ${faltantes.map((t) => TIPO_LABEL[t] ?? t).join(", ")}`;
+  if (onVerPdf) {
     return (
-      <span className="inline-flex items-center rounded-full bg-surface px-2 py-0.5 text-[10px] font-medium text-muted ring-1 ring-border">
-        {label} —
-      </span>
+      <button
+        type="button"
+        onClick={onVerPdf}
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 hover:underline ${cls}`}
+      >
+        {label}
+      </button>
     );
   }
-  const origen = doc.origen || "";
-  const soloTexto = !doc.webViewLink;
-  const cls = soloTexto
-    ? "bg-amber-500/15 text-amber-700 ring-amber-500/30"
-    : "bg-emerald-500/15 text-emerald-700 ring-emerald-500/30";
-  const inner = doc.webViewLink ? (
-    <a href={doc.webViewLink} target="_blank" rel="noreferrer" className="hover:underline">
-      {label}
-    </a>
-  ) : (
-    <span title={origen}>{label}</span>
-  );
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${cls}`}>
-      {inner}
-      {origen && origen !== "manual" && origen !== "generado" && (
-        <span className="ml-1 opacity-70">({origen.replace("_", " ")})</span>
-      )}
+      {label}
     </span>
   );
 }
 
 interface Props {
-  onGenerar: (tipo: "ft" | "coa" | "sds", producto: ProductoDocumentacion) => void;
+  onGenerar: (producto: ProductoDocumentacion) => void;
 }
 
 export default function DocumentosCatalogoTab({ onGenerar }: Props) {
@@ -135,6 +136,19 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
   });
 
   const productos = data?.productos ?? [];
+
+  const verFichaPdf = async (nombreArchivo: string) => {
+    const { resolvePanelApiUrl } = await import("../../api/client");
+    const { useTicketsAuth } = await import("../../stores/ticketsAuth");
+    const { useAuthStore } = await import("../../stores/auth");
+    const t = useTicketsAuth.getState();
+    const token = t.apiToken || t.token || useAuthStore.getState().token || "";
+    const url = resolvePanelApiUrl(`/api/fichas/biblioteca/descargar?archivo=${encodeURIComponent(nombreArchivo)}&inline=1`, "GET");
+    const res = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    window.open(URL.createObjectURL(blob), "_blank");
+  };
 
   return (
     <div className="space-y-6">
@@ -231,16 +245,17 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
                   <td className="px-3 py-2 font-mono text-xs">{p.ref}</td>
                   <td className="px-3 py-2">
                     <div className="font-medium text-ink">{p.nombre}</div>
-                    {p.faltantes.length > 0 && (
-                      <div className="text-[10px] text-amber-600">Falta: {p.faltantes.join(", ").toUpperCase()}</div>
-                    )}
                   </td>
                   <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      <DocBadge doc={p.documentos.ft} label="FT" />
-                      <DocBadge doc={p.documentos.coa} label="COA" />
-                      <DocBadge doc={p.documentos.sds} label="SDS" />
-                    </div>
+                    <FichaTecnicaBadge
+                      completo={p.completo}
+                      faltantes={p.faltantes}
+                      onVerPdf={
+                        p.documentos.ft.origen === "ficha_tecnica_generada" && p.documentos.ft.nombre_archivo
+                          ? () => void verFichaPdf(p.documentos.ft.nombre_archivo!)
+                          : undefined
+                      }
+                    />
                   </td>
                   <td className="px-3 py-2">
                     <button
@@ -256,59 +271,70 @@ export default function DocumentosCatalogoTab({ onGenerar }: Props) {
                   <tr>
                     <td colSpan={4} className="bg-surface-panel/80 px-4 py-4">
                       <div className="flex flex-wrap gap-2 mb-3">
-                        {(["ft", "coa", "sds"] as const).map((t) => (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onGenerar({ ref: p.ref, nombre: p.nombre, nombre_base: p.nombre_base })
+                          }
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:border-accent"
+                        >
+                          Generar Ficha Técnica
+                        </button>
+                      </div>
+                      {p.documentos.ft.origen === "ficha_tecnica_generada" ? (
+                        <div className="rounded-lg border border-border p-3 space-y-2 text-xs sm:max-w-xs">
+                          <div className="font-medium">Ficha Técnica (FT + COA + SDS)</div>
+                          <div className="text-muted truncate">{p.documentos.ft.nombre_archivo}</div>
                           <button
-                            key={t}
                             type="button"
-                            onClick={() =>
-                              onGenerar(t, { ref: p.ref, nombre: p.nombre, nombre_base: p.nombre_base })
-                            }
-                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:border-accent"
+                            onClick={() => void verFichaPdf(p.documentos.ft.nombre_archivo!)}
+                            className="text-accent hover:underline"
                           >
-                            Generar {TIPO_LABEL[t]}
+                            Ver PDF
                           </button>
-                        ))}
-                      </div>
-                      <div className="grid gap-2 sm:grid-cols-3 text-xs">
-                        {(["ft", "coa", "sds"] as const).map((t) => {
-                          const d = p.documentos[t];
-                          return (
-                            <div key={t} className="rounded-lg border border-border p-3 space-y-2">
-                              <div className="font-medium">{TIPO_LABEL[t]}</div>
-                              {d.tiene ? (
-                                <>
-                                  {d.nombre_archivo && <div className="text-muted truncate">{d.nombre_archivo}</div>}
-                                  {d.webViewLink && (
-                                    <a
-                                      href={d.webViewLink}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-accent hover:underline"
-                                    >
-                                      Ver en Drive
-                                    </a>
-                                  )}
-                                  {!d.webViewLink && (
-                                    <span className="text-amber-600">Solo borrador/texto ({d.origen})</span>
-                                  )}
-                                </>
-                              ) : (
-                                <span className="text-muted">Sin documento</span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAsociar({ producto: p, tipo: t });
-                                  setLinkManual("");
-                                }}
-                                className="text-accent hover:underline"
-                              >
-                                Asociar archivo
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                        </div>
+                      ) : (
+                        <div className="grid gap-2 sm:grid-cols-3 text-xs">
+                          {(["ft", "coa", "sds"] as const).map((t) => {
+                            const d = p.documentos[t];
+                            return (
+                              <div key={t} className="rounded-lg border border-border p-3 space-y-2">
+                                <div className="font-medium">{TIPO_LABEL[t]}</div>
+                                {d.tiene ? (
+                                  <>
+                                    {d.nombre_archivo && <div className="text-muted truncate">{d.nombre_archivo}</div>}
+                                    {d.webViewLink && (
+                                      <a
+                                        href={d.webViewLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-accent hover:underline"
+                                      >
+                                        Ver en Drive
+                                      </a>
+                                    )}
+                                    {!d.webViewLink && (
+                                      <span className="text-amber-600">Solo borrador/texto ({d.origen})</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-muted">Sin documento</span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAsociar({ producto: p, tipo: t });
+                                    setLinkManual("");
+                                  }}
+                                  className="text-accent hover:underline"
+                                >
+                                  Asociar archivo
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 )}

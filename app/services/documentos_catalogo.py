@@ -35,6 +35,9 @@ _SHEETS_ROWS_TTL = int(os.getenv("DOCS_CATALOG_SHEETS_TTL_SEC", "600"))
 _YAML_INDEX_CACHE: dict[str, Any] = {"ts": 0.0, "data": None}
 _YAML_INDEX_TTL = 120
 
+_BIBLIOTECA_CACHE: dict[str, Any] = {"ts": 0.0, "archivos": None}
+_BIBLIOTECA_TTL = 60
+
 
 def _ahora_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -195,6 +198,41 @@ def _coincide_archivo(nombre_producto: str, ref: str, archivo: str) -> bool:
         if len(principal) >= 4 and principal in arch_norm:
             return True
     return False
+
+
+def _indice_biblioteca(*, forzar: bool = False) -> list[dict]:
+    """Documentos de ficha técnica (formato FT+COA+SDS) ya generados localmente en fichas_word/completo/."""
+    now = time.time()
+    if (
+        not forzar
+        and _BIBLIOTECA_CACHE.get("archivos") is not None
+        and now - float(_BIBLIOTECA_CACHE.get("ts") or 0) < _BIBLIOTECA_TTL
+    ):
+        return _BIBLIOTECA_CACHE["archivos"]
+
+    from app.services.ficha_tecnica import listar_archivos_generados
+
+    try:
+        archivos = [a for a in listar_archivos_generados() if a.get("tipo") == "pdf"]
+    except Exception:
+        archivos = []
+    _BIBLIOTECA_CACHE["ts"] = now
+    _BIBLIOTECA_CACHE["archivos"] = archivos
+    return archivos
+
+
+def _buscar_ficha_tecnica_biblioteca(nombre: str, ref: str, biblioteca: list[dict]) -> dict | None:
+    """Enlaza con el catálogo según el título de la ficha técnica ya elaborada (biblioteca local)."""
+    for archivo in biblioteca:
+        nombre_archivo = archivo.get("nombre") or ""
+        if _coincide_archivo(nombre, ref, nombre_archivo):
+            return {
+                "tiene": True,
+                "origen": "ficha_tecnica_generada",
+                "webViewLink": None,
+                "nombre_archivo": nombre_archivo,
+            }
+    return None
 
 
 def _buscar_en_indice(
@@ -387,6 +425,7 @@ def listar_productos_documentacion(
     filas_sheets = _filas_sheets_catalogo() if incluir_sheets else None
     yaml_idx = _indice_yaml_titulos()
     indices, drive_meta = _indices_drive_catalogo(refrescar=refrescar_drive)
+    biblioteca = _indice_biblioteca()
     prefijos = {"ft": "FT", "coa": "COA", "sds": "SDS"}
 
     buscar_n = normalizar_nombre_producto(buscar)
@@ -401,20 +440,24 @@ def listar_productos_documentacion(
             ):
                 continue
 
-        docs = {
-            t: _estado_tipo(
-                nombre,
-                ref,
-                t,
-                indices.get(t, []),
-                prefijo=prefijos.get(t, ""),
-                productos_map=productos_map,
-                filas_sheets=filas_sheets,
-                yaml_idx=yaml_idx,
-                incluir_sheets=incluir_sheets,
-            )
-            for t in TIPOS_DOC
-        }
+        match_ficha = _buscar_ficha_tecnica_biblioteca(nombre, ref, biblioteca)
+        if match_ficha:
+            docs = {t: dict(match_ficha) for t in TIPOS_DOC}
+        else:
+            docs = {
+                t: _estado_tipo(
+                    nombre,
+                    ref,
+                    t,
+                    indices.get(t, []),
+                    prefijo=prefijos.get(t, ""),
+                    productos_map=productos_map,
+                    filas_sheets=filas_sheets,
+                    yaml_idx=yaml_idx,
+                    incluir_sheets=incluir_sheets,
+                )
+                for t in TIPOS_DOC
+            }
         completo = all(docs[t]["tiene"] for t in TIPOS_DOC)
         faltantes = [t for t in TIPOS_DOC if not docs[t]["tiene"]]
 

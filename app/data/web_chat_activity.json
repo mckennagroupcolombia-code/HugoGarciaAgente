@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-01T11:13:50",
+  "updated_at": "2026-07-02T18:34:21",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -38,9 +38,76 @@
     "2026-06-25": 15,
     "2026-06-26": 7,
     "2026-06-30": 3,
-    "2026-07-01": 1
+    "2026-07-01": 1,
+    "2026-07-02": 4
   },
   "sessions": [
+    {
+      "session_id": "web-c0d589ca-fbf8-490e-a114-040fd60e4445",
+      "started_at": "2026-07-02T18:32:06",
+      "last_at": "2026-07-02T18:34:21",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-cercarkg",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Que costo tienen los 100g?",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-02T18:32:06",
+          "user_message": "Buenas tardes",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-02T18:33:54",
+          "user_message": "Quisiera validar una muestra sin valor comercial de cera carnauba para ensayos de laboratorio y posible compra si los ensayos resultan satisfactorios para el proceso que necesitamos",
+          "agent_reply": "Qué tal veci. Le cuento, por políticas de la compañía y para garantizar la trazabilidad de los lotes, no manejamos muestras sin valor comercial. Para los ensayos de laboratorio que necesita, la opción ideal es adquirir nuestra presentación más pequeña. La Cera Carnauba T1 por 100 gramos es perfecta para esas pruebas. Con esa cantidad puede validar su proceso sin problema.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-02T18:34:21",
+          "user_message": "Que costo tienen los 100g?",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-c80a7027-bd13-413b-b8f8-55883727cb2a",
+      "started_at": "2026-07-02T13:54:39",
+      "last_at": "2026-07-02T13:54:39",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Buenas. Manejan omega 3. Vitamina D con K2. Zinc",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-02T13:54:39",
+          "user_message": "Buenas. Manejan omega 3. Vitamina D con K2. Zinc",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-63971977-dd73-4fe6-ba3a-54da12167cad",
       "started_at": "2026-07-01T11:13:50",

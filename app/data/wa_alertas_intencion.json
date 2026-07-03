@@ -260,6 +260,16 @@
       "alerta_enviada_ts": null,
       "cancelada": true,
       "cancelada_razon": "humano_respondio"
+    },
+    "573158755626@c.us": {
+      "jid": "573158755626@c.us",
+      "primer_intencion_ts": 1783011224.0,
+      "primer_intencion_texto": "Buenas día.  Mi nombre es Liliana Guerrero y acabo de pagar mi pedido MCKG-581FE8B443",
+      "ultima_human_ts": 1783011249.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
     }
   }
 }

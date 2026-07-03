@@ -1131,6 +1131,25 @@ def _contexto_coa(datos_coa: dict) -> dict:
     }
 
 
+_COA_CAMPOS_EXCLUSIVOS = (
+    "einces", "concentracion", "grado", "presentacion", "incluye",
+    "lote_numero", "lote_fab", "lote_venc", "vida_util", "tamano_lote",
+    "pais_origen", "fecha_analisis", "fecha_emision",
+    "empaque", "almacenamiento", "precauciones", "observaciones",
+    "codigo_verificacion",
+)
+
+
+def _coa_diligenciado(coa_ctx: dict) -> bool:
+    """True si el COA trae contenido propio (más allá de lo que ya mirror la FT: nombre, INCI, CAS…)."""
+    if any((coa_ctx.get(campo) or "").strip() for campo in _COA_CAMPOS_EXCLUSIVOS):
+        return True
+    for fila in coa_ctx.get("parametros") or []:
+        if any((celda or "").strip() for celda in fila):
+            return True
+    return False
+
+
 def _contexto_sds(datos_sds: dict) -> dict:
     """Aplana los datos del formulario SDS para el template HTML combinado."""
     ident = (datos_sds.get("identificacion") or {})
@@ -1227,6 +1246,8 @@ def generar_pdf_completo(
     destino = salida or (COMPLETO_PDF_DIR / nombre_pdf)
 
     coa_ctx = _contexto_coa(datos_coa) if datos_coa else None
+    if coa_ctx and not _coa_diligenciado(coa_ctx):
+        coa_ctx = None
     sds_ctx = _contexto_sds(datos_sds) if datos_sds else None
 
     import re as _re
@@ -1360,14 +1381,17 @@ def ruta_descarga_segura(nombre: str) -> Path | None:
     return None
 
 
-_PREFIJOS_BIBLIOTECA = re.compile(r"^(FT|SDS|COA|TDS|COMPLETO)[\s\-].+\.(pdf|docx)$", re.I)
+_PREFIJOS_BIBLIOTECA = re.compile(r"^FT COA SDS[\s\-].+\.(pdf|docx)$", re.I)
 
 
 def listar_archivos_generados() -> list[dict]:
-    """Lista PDF y DOCX generados en fichas_word/, fichas_word/pdf/ y fichas_word/completo/ (sin temporales ~$)."""
+    """Lista los documentos generados con el formato de ficha técnica (FT+COA+SDS) en fichas_word/completo/.
+
+    Los formatos individuales (FT, COA, SDS o TDS sueltos) quedaron obsoletos y ya no se muestran.
+    """
     resultado: list[dict] = []
     vistos: set[str] = set()
-    for directorio in (FICHAS_PDF_DIR, COMPLETO_PDF_DIR, FICHAS_DIR):
+    for directorio in (COMPLETO_PDF_DIR,):
         if not directorio.exists():
             continue
         for p in sorted(directorio.iterdir()):
@@ -1604,11 +1628,11 @@ def extraer_datos_desde_pdf_ft(path: Path) -> dict:
 
 
 def ruta_archivo_biblioteca_segura(nombre: str) -> Path | None:
-    """Ruta segura para cualquier FT/SDS/COA/TDS/COMPLETO *.pdf o *.docx de la biblioteca."""
+    """Ruta segura para un documento de ficha técnica (FT+COA+SDS) *.pdf o *.docx de la biblioteca."""
     nombre = os.path.basename(nombre or "")
     if not nombre or nombre.startswith("~") or not _PREFIJOS_BIBLIOTECA.match(nombre):
         return None
-    for directorio in (FICHAS_PDF_DIR, COMPLETO_PDF_DIR, FICHAS_DIR):
+    for directorio in (COMPLETO_PDF_DIR,):
         path = (directorio / nombre).resolve()
         try:
             path.relative_to(directorio.resolve())
