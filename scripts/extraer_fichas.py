@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Extrae fichas técnicas de los archivos Word en fichas_word/ y genera
-PAGINA_WEB/site/data/fichas_tecnicas.json
+Extrae fichas técnicas de los archivos Word en fichas_word/ y de las fichas
+estructuradas en fichas_word/datos/*.yaml (formato FT/COA/SDS más reciente),
+y genera PAGINA_WEB/site/data/fichas_tecnicas.json — el caché que lee el
+"texto mágico" de Studio (app/tools/plantillas_texto_ia.py).
 
 Estructura de salida:
 {
@@ -21,8 +23,10 @@ import re
 import json
 from pathlib import Path
 from docx import Document
+import yaml
 
 FICHAS_DIR = Path("/home/mckg/mi-agente/fichas_word")
+DATOS_DIR  = FICHAS_DIR / "datos"
 OUTPUT     = Path("/home/mckg/mi-agente/PAGINA_WEB/site/data/fichas_tecnicas.json")
 
 # Cabeceras que indican inicio de tabla de identidad/propiedades
@@ -184,6 +188,49 @@ def extraer_ficha(path: Path) -> dict:
     return ficha
 
 
+def clave_desde_nombre(nombre: str) -> str:
+    return normalizar(nombre)
+
+
+def extraer_ficha_yaml(path: Path) -> dict:
+    """Lee una ficha estructurada fichas_word/datos/*.yaml y la convierte
+    al mismo esquema que produce extraer_ficha() para los .docx."""
+    with open(path, encoding="utf-8") as f:
+        datos = yaml.safe_load(f) or {}
+
+    ficha = {
+        "titulo": (datos.get("titulo") or datos.get("nombre_producto") or "").strip(),
+        "descripcion": (datos.get("descripcion") or "").strip(),
+        "secciones": [],
+        "identidad": datos.get("identidad") or [],
+        "propiedades": datos.get("propiedades") or [],
+        "microbiologia": (datos.get("_coa") or {}).get("parametros") or [],
+    }
+
+    beneficios = []
+    for linea in datos.get("propiedades_lista") or []:
+        titulo_prop, _, desc = str(linea).partition("|")
+        titulo_prop = titulo_prop.strip()
+        desc = desc.strip()
+        beneficios.append(f"{titulo_prop}: {desc}" if desc else titulo_prop)
+    if beneficios:
+        ficha["secciones"].append({"titulo": "BENEFICIOS", "items": beneficios})
+
+    aplicaciones = [str(a).strip() for a in (datos.get("aplicaciones") or []) if str(a).strip()]
+    if aplicaciones:
+        ficha["secciones"].append({"titulo": "APLICACIONES", "items": aplicaciones})
+
+    modo_uso = (datos.get("modo_uso") or "").strip()
+    if modo_uso:
+        ficha["secciones"].append({"titulo": "MODO DE USO", "items": [modo_uso]})
+
+    recomendaciones = (datos.get("recomendaciones") or "").strip()
+    if recomendaciones:
+        ficha["secciones"].append({"titulo": "RECOMENDACIONES", "items": [recomendaciones]})
+
+    return ficha
+
+
 def main():
     archivos = sorted(FICHAS_DIR.glob("FT *.docx"))
     print(f"Encontrados {len(archivos)} archivos FT *.docx")
@@ -195,6 +242,41 @@ def main():
         clave = clave_desde_archivo(archivo.name)
         try:
             ficha = extraer_ficha(archivo)
+            resultado[clave] = ficha
+            print(f"  OK  {clave[:50]:<50}  secciones={len(ficha['secciones'])}  props={len(ficha['propiedades'])}")
+        except Exception as e:
+            errores.append((archivo.name, str(e)))
+            print(f"  ERR {archivo.name}: {e}")
+
+    yamls = sorted(
+        p for p in DATOS_DIR.glob("*.yaml")
+        if "plantilla_ejemplo" not in p.stem.lower()
+    )
+    print(f"\nEncontrados {len(yamls)} archivos datos/*.yaml")
+    for archivo in yamls:
+        try:
+            ficha = extraer_ficha_yaml(archivo)
+            nombre = ficha["titulo"] or archivo.stem
+            clave = clave_desde_nombre(nombre)
+            if not clave or clave == "nombre del producto":
+                raise ValueError("sin titulo/nombre_producto real (plantilla sin completar)")
+            score_nueva = (
+                len(ficha["secciones"]) + len(ficha["propiedades"])
+                + len(ficha["identidad"]) + bool(ficha["descripcion"])
+            )
+            existente = resultado.get(clave)
+            if existente:
+                score_existente = (
+                    len(existente.get("secciones") or [])
+                    + len(existente.get("propiedades") or [])
+                    + len(existente.get("identidad") or [])
+                    + bool(existente.get("descripcion"))
+                )
+                if score_nueva < score_existente:
+                    print(f"  --  '{clave}' de {archivo.name} tiene menos datos que la ficha "
+                          f"existente; se conserva la existente")
+                    continue
+                print(f"  (sobrescribe entrada existente '{clave}' con datos de {archivo.name})")
             resultado[clave] = ficha
             print(f"  OK  {clave[:50]:<50}  secciones={len(ficha['secciones'])}  props={len(ficha['propiedades'])}")
         except Exception as e:

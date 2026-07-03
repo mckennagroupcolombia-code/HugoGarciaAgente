@@ -18693,22 +18693,28 @@
       {
         "titulo": "BENEFICIOS",
         "items": [
-          "Relajante: Promueve la calma y el bienestar general en infusiones y preparaciones alimenticias",
-          "Carminativo: Favorece la digestión y ayuda a reducir la sensación de hinchazón",
-          "Antioxidante: Ofrece protección natural contra el daño oxidativo",
-          "Agente aromatizante: Aporta un sabor y aroma floral natural a preparaciones alimenticias y bebidas",
-          "Coadyuvante digestivo: Contribuye al bienestar gastrointestinal cuando se consume en infusión"
+          "Relajante: Promueve la calma y el bienestar general en formulaciones tópicas y aromáticas",
+          "Acondicionador cutáneo: Mejora la textura y suavidad de la piel, aportando un tacto sedoso",
+          "Antiinflamatorio dérmico: Contribuye a mitigar el enrojecimiento y la irritación cutánea",
+          "Antioxidante: Ofrece protección contra el daño oxidativo y el envejecimiento prematuro",
+          "Agente aromático: Proporciona una fragancia floral natural y ayuda a enmascarar olores",
+          "Purificante suave: Ayuda a mantener la higiene y claridad de la piel y el cuero cabelludo"
         ]
       },
       {
         "titulo": "APLICACIONES",
         "items": [
-          "Componente en infusiones y tisanas de uso alimentario.",
-          "Ingrediente en mezclas herbales para bebidas relajantes.",
-          "Aditivo aromatizante natural en preparaciones de repostería y confitería.",
-          "Insumo para saborizantes naturales en la industria alimentaria.",
-          "Coadyuvante en infusiones con propiedades carminativas y digestivas.",
-          "Componente decorativo comestible en productos de panadería y pastelería."
+          "Coadyuvante en formulaciones ansiolíticas.",
+          "Ingrediente activo en productos para la inducción del sueño.",
+          "Agente antiinflamatorio tópico natural.",
+          "Aplicaciones en preparados analgésicos suaves.",
+          "Componente en infusiones con propiedades carminativas.",
+          "Aromatizante natural en perfumería y cosmética.",
+          "Activo en formulaciones relajantes para baño.",
+          "Calmante para pieles sensibles e irritadas.",
+          "Componente en productos capilares para el cuero cabelludo.",
+          "Agente antioxidante en tratamientos dérmicos.",
+          "Aditivo en productos para aromaterapia y bienestar."
         ]
       },
       {
@@ -18751,23 +18757,27 @@
       ],
       [
         "Relajante",
-        "Promueve la calma y el bienestar general en infusiones y preparaciones alimenticias"
+        "Promueve la calma y el bienestar general en formulaciones tópicas y aromáticas"
       ],
       [
-        "Carminativo",
-        "Favorece la digestión y ayuda a reducir la sensación de hinchazón"
+        "Acondicionador cutáneo",
+        "Mejora la textura y suavidad de la piel, aportando un tacto sedoso"
+      ],
+      [
+        "Antiinflamatorio dérmico",
+        "Contribuye a mitigar el enrojecimiento y la irritación cutánea"
       ],
       [
         "Antioxidante",
-        "Ofrece protección natural contra el daño oxidativo"
+        "Ofrece protección contra el daño oxidativo y el envejecimiento prematuro"
       ],
       [
-        "Agente aromatizante",
-        "Aporta un sabor y aroma floral natural a preparaciones alimenticias y bebidas"
+        "Agente aromático",
+        "Proporciona una fragancia floral natural y ayuda a enmascarar olores"
       ],
       [
-        "Coadyuvante digestivo",
-        "Contribuye al bienestar gastrointestinal cuando se consume en infusión"
+        "Purificante suave",
+        "Ayuda a mantener la higiene y claridad de la piel y el cuero cabelludo"
       ]
     ],
     "microbiologia": []

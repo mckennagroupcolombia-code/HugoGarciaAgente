@@ -320,6 +320,36 @@ export function duplicarPlantillaVisual(
   return copia;
 }
 
+/** Cambia el formato de una plantilla ya guardada, reescalando la geometría de sus elementos. */
+export function escalarPlantillaAFormato(
+  doc: PlantillaVisualDoc,
+  nuevoFormato: FormatoCanvas,
+  categoria?: string,
+): PlantillaVisualDoc {
+  const sx = nuevoFormato.ancho_px / Math.max(1, doc.formato.ancho_px);
+  const sy = nuevoFormato.alto_px / Math.max(1, doc.formato.alto_px);
+
+  const copia = structuredClone(doc) as PlantillaVisualDoc;
+  copia.formato = nuevoFormato;
+  if (categoria) copia.categoria = categoria;
+  copia.elementos = doc.elementos.map((el) => {
+    const clon = structuredClone(el) as ElementoVisual;
+    clon.x = el.x * sx;
+    clon.y = el.y * sy;
+    clon.width = el.width * sx;
+    clon.height = el.height * sy;
+    if (clon.type === "text" && el.type === "text") {
+      clon.fontSize = ajustarTamanoTexto(el.fontSize * Math.sqrt(sx * sy));
+    }
+    if (clon.type === "line" && el.type === "line") {
+      clon.x2 = el.x2 * sx;
+      clon.y2 = el.y2 * sy;
+    }
+    return clon;
+  });
+  return copia;
+}
+
 export const FUENTE_MONTSERRAT_FAMILY = '"Montserrat", system-ui, sans-serif';
 
 export type MontserratVariant =

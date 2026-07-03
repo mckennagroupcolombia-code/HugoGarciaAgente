@@ -438,6 +438,21 @@ export async function guardarPlantillaJpgEnGaleria(
   return { nombre: res.nombre };
 }
 
+/** Sube un PDF (ya renderizado, en base64) a la biblioteca de PDFs de Etiquetas para poder imprimirlo. */
+export async function subirPdfBase64AEtiquetas(
+  base64: string,
+  nombreSugerido: string,
+): Promise<{ nombre: string }> {
+  const { api } = await import("../api/client");
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const fd = new FormData();
+  fd.append("archivo", new File([bytes], nombreSugerido, { type: "application/pdf" }));
+  const up = await api.upload<{ ok: boolean; nombre: string }>("/api/etiquetas/subir-pdf", fd);
+  return { nombre: up.nombre };
+}
+
 /** Renderiza el lienzo como PDF y lo guarda en la biblioteca de PDFs de Etiquetas. */
 export async function guardarPlantillaPdfEnGaleria(
   doc: PlantillaVisualDoc,
@@ -447,16 +462,7 @@ export async function guardarPlantillaPdfEnGaleria(
     "/api/plantillas-visuales/exportar",
     { plantilla: doc, formato: "pdf" },
   );
-  const bin = atob(res.base64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const fd = new FormData();
-  fd.append(
-    "archivo",
-    new File([bytes], nombreArchivoPlantilla(doc.nombre, "pdf"), { type: "application/pdf" }),
-  );
-  const up = await api.upload<{ ok: boolean; nombre: string }>("/api/etiquetas/subir-pdf", fd);
-  return { nombre: up.nombre };
+  return subirPdfBase64AEtiquetas(res.base64, nombreArchivoPlantilla(doc.nombre, "pdf"));
 }
 
 export async function guardarPlantillaEnGaleria(

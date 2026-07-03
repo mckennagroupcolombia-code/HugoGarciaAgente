@@ -26,6 +26,7 @@ import {
   TAMANO_TEXTO_MIN,
   TAMANO_TEXTO_MAX,
   ajustarTamanoTexto,
+  escalarPlantillaAFormato,
   labelFormato,
   patchMoverElemento,
   posicionNuevoElemento,
@@ -58,6 +59,7 @@ import {
 import { GHSIconsPicker } from "../GHSIconsPicker";
 import { CodigoBarrasEAN13 } from "../CodigoBarrasEAN13";
 import GaleriaImagenesModal from "./GaleriaImagenesModal";
+import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import SugerenciasTextoMagico from "./SugerenciasTextoMagico";
 import { studio } from "./studioUi";
@@ -178,6 +180,7 @@ export default function VisualCanvasEditor({
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [galeriaAbierta, setGaleriaAbierta] = useState(false);
+  const [formatoModalAbierto, setFormatoModalAbierto] = useState(false);
   const presetsExport = useMemo(() => presetsResolucionExport(doc.formato), [doc.formato]);
   const [escalaExportId, setEscalaExportId] = useState("1x");
   const escalaExport = useMemo(
@@ -827,7 +830,23 @@ export default function VisualCanvasEditor({
           onChange={(e) => onChange({ ...doc, nombre: e.target.value })}
           className="min-w-[8rem] flex-1 rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-sm font-medium text-white outline-none focus:border-accent/50"
         />
-        <span className="hidden text-[11px] text-neutral-400 sm:inline">{labelFormato(doc.formato)}</span>
+        <button
+          type="button"
+          onClick={() => setFormatoModalAbierto(true)}
+          title="Cambiar el formato de esta plantilla"
+          className="hidden rounded px-1.5 py-0.5 text-[11px] text-neutral-400 hover:bg-white/10 hover:text-white sm:inline"
+        >
+          {labelFormato(doc.formato)} ✎
+        </button>
+        <CambiarFormatoModal
+          abierta={formatoModalAbierto}
+          formatoActual={doc.formato}
+          onCerrar={() => setFormatoModalAbierto(false)}
+          onElegir={(formato, categoriaId) => {
+            onChange(escalarPlantillaAFormato(doc, formato, categoriaId));
+            setFormatoModalAbierto(false);
+          }}
+        />
         <ToolBtn
           title="Deshacer (Ctrl+Z)"
           onClick={deshacer}
