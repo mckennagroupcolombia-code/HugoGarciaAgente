@@ -447,21 +447,24 @@ export async function guardarPlantillaJpgEnGaleria(
 export async function subirPdfBase64AEtiquetas(
   base64: string,
   nombreSugerido: string,
-): Promise<{ nombre: string }> {
+): Promise<{ nombre: string; ruta: string; ruta_completa: string }> {
   const { api } = await import("../api/client");
   const bin = atob(base64);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   const fd = new FormData();
   fd.append("archivo", new File([bytes], nombreSugerido, { type: "application/pdf" }));
-  const up = await api.upload<{ ok: boolean; nombre: string }>("/api/etiquetas/subir-pdf", fd);
-  return { nombre: up.nombre };
+  const up = await api.upload<{ ok: boolean; nombre: string; ruta: string; ruta_completa: string }>(
+    "/api/etiquetas/subir-pdf",
+    fd,
+  );
+  return { nombre: up.nombre, ruta: up.ruta, ruta_completa: up.ruta_completa };
 }
 
 /** Renderiza el lienzo como PDF y lo guarda en la biblioteca de PDFs de Etiquetas. */
 export async function guardarPlantillaPdfEnGaleria(
   doc: PlantillaVisualDoc,
-): Promise<{ nombre: string }> {
+): Promise<{ nombre: string; ruta: string; ruta_completa: string }> {
   const { api } = await import("../api/client");
   const res = await api.post<{ ok: boolean; nombre: string; base64: string }>(
     "/api/plantillas-visuales/exportar",
