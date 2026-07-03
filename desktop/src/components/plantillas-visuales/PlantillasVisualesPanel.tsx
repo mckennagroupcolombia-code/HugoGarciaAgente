@@ -18,6 +18,7 @@ import {
   subirPdfBase64AEtiquetas,
 } from "../../lib/plantillasVisualesExport";
 import { type EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
+import { useAppStore } from "../../stores/app";
 import { EtiquetaMckennaPreview } from "../etiquetas/EtiquetaMckennaPreview";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
@@ -199,11 +200,31 @@ type Vista = "lista" | "formato" | "editor";
 
 export default function PlantillasVisualesPanel() {
   const qc = useQueryClient();
+  const setPanel = useAppStore((s) => s.setPanel);
+  const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
+  const setEtiquetasHandoff = useAppStore((s) => s.setEtiquetasHandoff);
   const [vista, setVista] = useState<Vista>("lista");
   const [doc, setDoc] = useState<PlantillaVisualDoc | null>(null);
   const [buscar, setBuscar] = useState("");
   const [mostrarComparar, setMostrarComparar] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [pdfListoParaImprimir, setPdfListoParaImprimir] = useState<{
+    ruta_completa: string;
+    nombre: string;
+  } | null>(null);
+
+  const irAImprimirEnEtiquetas = useCallback(() => {
+    if (!pdfListoParaImprimir || !doc) return;
+    setEtiquetasHandoff({
+      pdf_ruta: pdfListoParaImprimir.ruta_completa,
+      pdf_nombre: pdfListoParaImprimir.nombre,
+      tipo_etiqueta: doc.formato.tipo_etiqueta,
+      ancho_mm: doc.formato.ancho_mm,
+      alto_mm: doc.formato.alto_mm,
+    });
+    setEtiquetasTab("imprimir");
+    setPanel("etiquetas");
+  }, [pdfListoParaImprimir, doc, setEtiquetasHandoff, setEtiquetasTab, setPanel]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["plantillas-visuales", buscar],
@@ -245,6 +266,7 @@ export default function PlantillasVisualesPanel() {
     (local: PlantillaVisualDoc, servidor: PlantillaVisualDoc) => {
       setDoc(fusionarMetadatosPlantillaTrasGuardar(local, servidor));
       setVista("editor");
+      setPdfListoParaImprimir(null);
       setMsg("Plantilla duplicada ✓");
       setTimeout(() => setMsg(null), 2500);
     },
@@ -282,11 +304,13 @@ export default function PlantillasVisualesPanel() {
 
   const abrirNuevo = () => {
     setDoc(null);
+    setPdfListoParaImprimir(null);
     setVista("formato");
   };
 
   const elegirFormato = (formato: FormatoCanvas, categoriaId: string) => {
     setDoc(plantillaVacia(formato, categoriaId));
+    setPdfListoParaImprimir(null);
     setVista("editor");
   };
 
@@ -296,6 +320,7 @@ export default function PlantillasVisualesPanel() {
         `/api/plantillas-visuales/${id}`,
       );
       setDoc(res.plantilla);
+      setPdfListoParaImprimir(null);
       setVista("editor");
     } catch {
       setMsg("No se pudo abrir la plantilla");
@@ -328,6 +353,7 @@ export default function PlantillasVisualesPanel() {
     if (!doc) return;
     setExportando(true);
     setMsg(null);
+    setPdfListoParaImprimir(null);
     try {
       let mensajeExtra = "";
       if (formato === "pdf") {
@@ -338,8 +364,9 @@ export default function PlantillasVisualesPanel() {
           formato: string;
         }>("/api/plantillas-visuales/exportar", { plantilla: doc, formato: "pdf", escala });
         descargarBase64(res.base64, res.nombre, "application/pdf");
-        await subirPdfBase64AEtiquetas(res.base64, res.nombre);
+        const subido = await subirPdfBase64AEtiquetas(res.base64, res.nombre);
         void qc.invalidateQueries({ queryKey: ["etiquetas-pdfs"] });
+        setPdfListoParaImprimir({ ruta_completa: subido.ruta_completa, nombre: subido.nombre });
         mensajeExtra = " · enviado a Etiquetas para imprimir";
       } else {
         const blob = await exportarPlantillaBlob(doc, formato, { escala });
@@ -382,6 +409,18 @@ export default function PlantillasVisualesPanel() {
         {msg && (
           <div className="absolute left-1/2 top-3 z-50 -translate-x-1/2 rounded-lg border border-accent/40 bg-surface-panel px-4 py-2 text-sm text-ink shadow-lg">
             {msg}
+          </div>
+        )}
+        {pdfListoParaImprimir && (
+          <div className="absolute left-1/2 top-12 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-accent/40 bg-surface-panel px-3 py-1.5 text-xs shadow-lg">
+            <span className="text-muted">📄 {pdfListoParaImprimir.nombre}</span>
+            <button
+              type="button"
+              onClick={irAImprimirEnEtiquetas}
+              className="rounded-md bg-accent px-2.5 py-1 font-bold text-white hover:bg-accent/90"
+            >
+              🖨️ Ir a imprimir en Etiquetas →
+            </button>
           </div>
         )}
         <VisualCanvasEditor
