@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-03T15:40:08",
+  "updated_at": "2026-07-03T23:44:47",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -40,9 +40,50 @@
     "2026-06-30": 3,
     "2026-07-01": 1,
     "2026-07-02": 4,
-    "2026-07-03": 7
+    "2026-07-03": 10
   },
   "sessions": [
+    {
+      "session_id": "web-3453b671-b522-48c4-ac3d-3d8ec61a256f",
+      "started_at": "2026-07-03T23:43:55",
+      "last_at": "2026-07-03T23:44:47",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/checkout",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Gracias voy a consultarlo",
+      "last_agent_reply": "Listo veci, con gusto. Quedo atento a lo que necesite.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-03T23:43:55",
+          "user_message": "Me interesa hacer un pedido pero que no llegue con ibterrapidisimo",
+          "agent_reply": "Claro que sí, veci. ¿Para qué ciudad es el envío? Si es para Bogotá, se lo enviamos con mensajero. Si es para fuera de Bogotá, podemos coordinar con la transportadora que usted prefiera.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-03T23:44:20",
+          "user_message": "Cali",
+          "agent_reply": "Listo veci, para Cali podemos despachar por la transportadora que usted prefiera, no hay lío. El envío hasta 1 kg le vale $18.000. Si su pedido pesa más, el valor sube. Dígame por cuál le sirve y coordinamos.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-03T23:44:47",
+          "user_message": "Gracias voy a consultarlo",
+          "agent_reply": "Listo veci, con gusto. Quedo atento a lo que necesite.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-abbebe63-3d69-4797-8810-cb13f9b4e335",
       "started_at": "2026-07-03T13:33:12",
