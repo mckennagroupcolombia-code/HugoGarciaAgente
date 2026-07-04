@@ -9,6 +9,10 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(_HERE, "..", "data", "tickets.db")
 UPLOADS_DIR = os.path.join(_HERE, "..", "..", "uploads", "tickets")
 
+# Cuenta de servicio creada por app/tools/sede_sur.py para registrar tickets
+# desde WhatsApp. No es una persona con sesión en el panel.
+_USERNAME_BOT_SEDE_SUR = "hugo_ia_bot"
+
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
@@ -1599,9 +1603,18 @@ def set_aliado_asignacion(
 
 # ── USUARIOS ──────────────────────────────────────────────────────────────────
 
-def listar_usuarios() -> list:
+def listar_usuarios(incluir_bots: bool = False) -> list:
+    """Lista usuarios del panel.
+
+    Por defecto excluye la cuenta de servicio "hugo_ia_bot" (creada por
+    app/tools/sede_sur.py para registrar tickets desde WhatsApp): nadie
+    inicia sesión con ella, así que si aparece en un selector de "asignar a"
+    los tickets le quedan asignados y nunca los puede marcar como resueltos.
+    """
     with _conn() as db:
-        rows = db.execute("SELECT id FROM usuarios ORDER BY nombre").fetchall()
+        rows = db.execute("SELECT id, username FROM usuarios ORDER BY nombre").fetchall()
+        if not incluir_bots:
+            rows = [r for r in rows if r["username"] != _USERNAME_BOT_SEDE_SUR]
         return [_usuario_full(db, r["id"]) for r in rows]
 
 

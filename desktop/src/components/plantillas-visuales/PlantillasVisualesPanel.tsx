@@ -18,11 +18,143 @@ import {
   subirPdfBase64AEtiquetas,
 } from "../../lib/plantillasVisualesExport";
 import { type EtiquetaStudioDatos } from "../../lib/etiquetasNormativa";
+import { resolverUrlImagenCanvas } from "../../lib/plantillasVisualesImagen";
 import { useAppStore } from "../../stores/app";
 import { EtiquetaMckennaPreview } from "../etiquetas/EtiquetaMckennaPreview";
 import PlantillaVisualMiniatura from "./PlantillaVisualMiniatura";
 import SelectorFormatoCanvas from "./SelectorFormatoCanvas";
 import VisualCanvasEditor from "./VisualCanvasEditor";
+
+interface RecursoPngBiblioteca {
+  id: string;
+  nombre: string;
+  subido_at?: string;
+  bytes?: number;
+  thumb_b64?: string | null;
+}
+
+function formatoBytes(bytes?: number): string {
+  if (!bytes) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(0)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+function BibliotecaEtiquetasSection() {
+  const qc = useQueryClient();
+  const [buscar, setBuscar] = useState("");
+  const [descargandoId, setDescargandoId] = useState<string | null>(null);
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["etiquetas-recursos-png"],
+    queryFn: () => api.get<{ recursos: RecursoPngBiblioteca[] }>("/api/etiquetas/recursos-png"),
+    staleTime: 15_000,
+  });
+
+  const recursos = data?.recursos ?? [];
+  const q = buscar.trim().toLowerCase();
+  const filtrados = q ? recursos.filter((r) => r.nombre.toLowerCase().includes(q)) : recursos;
+
+  const eliminarMut = useMutation({
+    mutationFn: (nombre: string) =>
+      api.delete<{ ok: boolean }>(`/api/etiquetas/recursos-png/${encodeURIComponent(nombre)}`),
+    onMutate: (nombre) => setEliminandoId(nombre),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] }),
+    onSettled: () => setEliminandoId(null),
+  });
+
+  async function descargar(nombre: string) {
+    setDescargandoId(nombre);
+    try {
+      const url = await resolverUrlImagenCanvas(
+        `/api/etiquetas/recursos-png/archivo/${encodeURIComponent(nombre)}`,
+      );
+      const res = await fetch(url);
+      const blob = await res.blob();
+      descargarBlob(blob, nombre);
+    } finally {
+      setDescargandoId(null);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-surface-panel p-4">
+      <div className="mb-4 flex items-center gap-3">
+        <span className="text-sm font-bold text-ink">Biblioteca de etiquetas</span>
+        <input
+          value={buscar}
+          onChange={(e) => setBuscar(e.target.value)}
+          placeholder="Buscar imagen…"
+          className="min-w-0 flex-1 max-w-sm rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
+        />
+        <span className="shrink-0 text-xs text-muted">{filtrados.length} imagen(es)</span>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        </div>
+      ) : filtrados.length === 0 ? (
+        <p className="py-12 text-center text-sm text-muted">
+          {q ? "No hay imágenes con ese nombre." : "Aún no hay imágenes guardadas en la biblioteca."}
+        </p>
+      ) : (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+          {filtrados.map((r) => (
+            <div
+              key={r.id}
+              className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-surface"
+            >
+              <div className="flex aspect-square items-center justify-center bg-zinc-100 p-1 dark:bg-zinc-800/40">
+                {r.thumb_b64 ? (
+                  <img
+                    src={`data:image/png;base64,${r.thumb_b64}`}
+                    alt={r.nombre}
+                    className="max-h-full max-w-full object-contain"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded bg-surface-hover" />
+                )}
+              </div>
+              <div className="px-1.5 py-1">
+                <p className="truncate text-[10px] text-ink" title={r.nombre}>
+                  {r.nombre}
+                </p>
+                <p className="truncate text-[9px] text-muted">{formatoBytes(r.bytes)}</p>
+              </div>
+              <div className="absolute right-1 top-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                <button
+                  type="button"
+                  title="Descargar"
+                  disabled={descargandoId === r.nombre}
+                  onClick={() => void descargar(r.nombre)}
+                  className="rounded-md border border-border bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-ink-secondary shadow-sm hover:bg-surface-hover disabled:opacity-50 dark:bg-zinc-900/95"
+                >
+                  {descargandoId === r.nombre ? "…" : "⬇"}
+                </button>
+                <button
+                  type="button"
+                  title="Eliminar"
+                  disabled={eliminandoId === r.nombre}
+                  onClick={() => {
+                    if (!window.confirm(`¿Eliminar "${r.nombre}" de la biblioteca?`)) return;
+                    eliminarMut.mutate(r.nombre);
+                  }}
+                  className="rounded-md border border-red-200 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 shadow-sm hover:bg-red-50 disabled:opacity-50 dark:border-red-900/50 dark:bg-zinc-900/95 dark:hover:bg-red-950/80"
+                >
+                  {eliminandoId === r.nombre ? "…" : "✕"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface ComboSku {
   code: string;
@@ -207,6 +339,7 @@ export default function PlantillasVisualesPanel() {
   const [doc, setDoc] = useState<PlantillaVisualDoc | null>(null);
   const [buscar, setBuscar] = useState("");
   const [mostrarComparar, setMostrarComparar] = useState(false);
+  const [mostrarBiblioteca, setMostrarBiblioteca] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [pdfListoParaImprimir, setPdfListoParaImprimir] = useState<{
     ruta_completa: string;
@@ -468,6 +601,17 @@ export default function PlantillasVisualesPanel() {
         </button>
         <button
           type="button"
+          onClick={() => setMostrarBiblioteca((v) => !v)}
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            mostrarBiblioteca
+              ? "bg-surface-hover text-ink ring-1 ring-border"
+              : "text-muted hover:bg-surface-hover hover:text-ink"
+          }`}
+        >
+          Biblioteca
+        </button>
+        <button
+          type="button"
           onClick={abrirNuevo}
           className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
         >
@@ -478,6 +622,12 @@ export default function PlantillasVisualesPanel() {
       {mostrarComparar && (
         <div className="mb-5">
           <CompararEtiquetasSection />
+        </div>
+      )}
+
+      {mostrarBiblioteca && (
+        <div className="mb-5">
+          <BibliotecaEtiquetasSection />
         </div>
       )}
 

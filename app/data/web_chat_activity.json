@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-02T18:34:21",
+  "updated_at": "2026-07-03T15:40:08",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -39,9 +39,109 @@
     "2026-06-26": 7,
     "2026-06-30": 3,
     "2026-07-01": 1,
-    "2026-07-02": 4
+    "2026-07-02": 4,
+    "2026-07-03": 7
   },
   "sessions": [
+    {
+      "session_id": "web-abbebe63-3d69-4797-8810-cb13f9b4e335",
+      "started_at": "2026-07-03T13:33:12",
+      "last_at": "2026-07-03T13:33:12",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Lecitina de soja",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-03T13:33:12",
+          "user_message": "Lecitina de soja",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-956840d1-5f88-48af-8ddd-393ab6dd0f16",
+      "started_at": "2026-07-03T12:28:55",
+      "last_at": "2026-07-03T12:29:50",
+      "messages_count": 3,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/?utm_source=chatgpt.com",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Cosgard",
+      "last_agent_reply": "COSGARD no aparece en catálogo web; puede confirmar con un asesor por WhatsApp. Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-03T12:28:55",
+          "user_message": "Hola",
+          "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-03T12:29:36",
+          "user_message": "Conservantes tienen conservantes como fenoxietanol colgar que lleguen hasta un pH de 8",
+          "agent_reply": "Claro que sí, veci. El Fenoxietanol es una excelente opción para lo que busca. Es un conservante de amplio espectro que se mantiene estable y efectivo en un rango de pH muy amplio, generalmente entre 3 y 10, así que le cubre perfectamente ese pH de 8. Para un sistema de conservación aún más robusto, a menudo se combina con otros ingredientes como el Etilhexilglicerina, que potencia su efecto sin afectar la estabilidad en pH alcalino. Ojo, estos son datos técnicos orientativos. La efectividad final siempre dependerá de la fórmula completa de su producto terminado.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-03T12:29:50",
+          "user_message": "Cosgard",
+          "agent_reply": "COSGARD no aparece en catálogo web; puede confirmar con un asesor por WhatsApp. Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
+    {
+      "session_id": "web-97f8e6be-dd95-4737-a491-0ffe7c747774",
+      "started_at": "2026-07-03T10:03:14",
+      "last_at": "2026-07-03T10:04:03",
+      "messages_count": 2,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/producto/c-aciaze10g",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+      "last_user_message": "gracias, hago la compra por mercadolibre o por aca?",
+      "last_agent_reply": "Como le quede más fácil, veci. Puede hacer la compra por el link de Mercado Libre y ellos se encargan de todo. O si prefiere, la podemos gestionar por acá directamente. Usted me dirá.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-03T10:03:14",
+          "user_message": "gracias, tienes azul de metileno?",
+          "agent_reply": "Claro que sí veci. Tenemos disponible el Azul de Metileno USP x 10 gramos. Cuesta $24.900. Le comparto el link de compra: https://articulo.mercadolibre.com.co/MCO-609829285-azul-de-metileno-usp-10-gramos-puro-laboratorio-_JM",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-03T10:04:03",
+          "user_message": "gracias, hago la compra por mercadolibre o por aca?",
+          "agent_reply": "Como le quede más fácil, veci. Puede hacer la compra por el link de Mercado Libre y ellos se encargan de todo. O si prefiere, la podemos gestionar por acá directamente. Usted me dirá.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-c0d589ca-fbf8-490e-a114-040fd60e4445",
       "started_at": "2026-07-02T18:32:06",
@@ -925,15 +1025,15 @@
     {
       "session_id": "web-d4db8662-fb7c-44ac-9dc6-6f0a083b3c6f",
       "started_at": "2026-06-19T11:08:28",
-      "last_at": "2026-06-19T11:10:14",
-      "messages_count": 4,
+      "last_at": "2026-07-03T15:40:08",
+      "messages_count": 5,
       "attachments_count": 0,
       "reviewed": true,
       "reviewed_at": "2026-06-30T10:35:01",
-      "page_url": "https://www.mckennagroup.co/catalogo/?cat=Aceites",
-      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/425.6.927981711 Mobile/15E148 Safari/604.1",
-      "last_user_message": "Gracias",
-      "last_agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+      "page_url": "https://www.mckennagroup.co/catalogo/?cat=Aceites+Esenciales",
+      "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_5_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/426.7.931869700 Mobile/15E148 Safari/604.1",
+      "last_user_message": "Hola compré el aceite de jojoba , tengo la piel mixta y aunque me dijeron que no es comedogenico , me sacó muchos granitos",
+      "last_agent_reply": "Hola veci, claro que sí, entiendo. Tiene toda la razón, el aceite de jojoba es técnicamente no comedogénico y por eso es de los más recomendados para piel mixta. Sin embargo, al ser una materia prima 100% pura, a veces pueden pasar dos cosas: 1. **El \"efecto purga\":** Cuando un producto nuevo y efectivo acelera la renovación de la piel, a veces saca a la superficie granitos que ya se estaban formando por debajo. Es una reacción temporal mientras la piel se limpia.\n2. **La cantidad:** Con los aceites puros, menos es más. Con 2 o 3 gotas para toda la cara es suficiente. Usar de más, incluso con un aceite ligero, sí puede llegar a saturar el poro. Mi recomendación es que lo suspenda un par de días hasta que la piel se calme. Después, intente de nuevo usando solo una o dos gotas, aplicándolo sobre la piel limpia y ligeramente húmeda para que se absorba mejor.",
       "last_source": "agent",
       "last_upstream_error": "",
       "recent_turns": [
@@ -965,6 +1065,14 @@
           "at": "2026-06-19T11:10:14",
           "user_message": "Gracias",
           "agent_reply": "Hola veci, soy Hugo García de McKenna Group S.A.S. ¿En qué le puedo servir? Puede consultarme precios, disponibilidad, ficha técnica o uso de materias primas.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        },
+        {
+          "at": "2026-07-03T15:40:08",
+          "user_message": "Hola compré el aceite de jojoba , tengo la piel mixta y aunque me dijeron que no es comedogenico , me sacó muchos granitos",
+          "agent_reply": "Hola veci, claro que sí, entiendo. Tiene toda la razón, el aceite de jojoba es técnicamente no comedogénico y por eso es de los más recomendados para piel mixta. Sin embargo, al ser una materia prima 100% pura, a veces pueden pasar dos cosas: 1. **El \"efecto purga\":** Cuando un producto nuevo y efectivo acelera la renovación de la piel, a veces saca a la superficie granitos que ya se estaban formando por debajo. Es una reacción temporal mientras la piel se limpia.\n2. **La cantidad:** Con los aceites puros, menos es más. Con 2 o 3 gotas para toda la cara es suficiente. Usar de más, incluso con un aceite ligero, sí puede llegar a saturar el poro. Mi recomendación es que lo suspenda un par de días hasta que la piel se calme. Después, intente de nuevo usando solo una o dos gotas, aplicándolo sobre la piel limpia y ligeramente húmeda para que se absorba mejor.",
           "attachments_count": 0,
           "source": "agent",
           "upstream_error": ""

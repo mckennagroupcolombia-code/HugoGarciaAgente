@@ -4593,8 +4593,15 @@ def register_routes(app):
         data = request.get_json(silent=True) or {}
         code = (data.get("code") or "").strip()
         nuevo_precio = data.get("nuevo_precio")
-        plataformas = data.get("plataformas", ["siigo", "meli"])
+        plataformas = list(data.get("plataformas", ["siigo", "meli"]))
         nombre = (data.get("nombre") or "").strip()
+
+        # La web arma su precio a partir del precio de lista de Siigo (ver
+        # PAGINA_WEB/site/website.py) — sincronizar "web" sin "siigo" dejaría
+        # el sitio mostrando el precio viejo. Se agrega implícito y se avisa.
+        siigo_implicito = "web" in plataformas and "siigo" not in plataformas
+        if siigo_implicito:
+            plataformas.append("siigo")
 
         if not code or nuevo_precio is None:
             return jsonify({"error": "code y nuevo_precio son requeridos"}), 400
@@ -4630,7 +4637,8 @@ def register_routes(app):
             except Exception as e:
                 resultados["siigo"] = {"ok": False, "msg": str(e)}
 
-        # 3° Página web — usa el precio de MeLi directamente, independiente de Siigo
+        # 3° Página web — reconstruye el catálogo desde Siigo (por eso siempre
+        # va después de actualizar Siigo, arriba).
         if "web" in plataformas:
             try:
                 from app.tools.sincronizar_productos_pagina_web import sincronizar_productos_pagina_web
@@ -4639,6 +4647,9 @@ def register_routes(app):
                 resultados["web"] = {"ok": ok, "msg": msg}
             except Exception as e:
                 resultados["web"] = {"ok": False, "msg": str(e)}
+
+        if siigo_implicito:
+            resultados["siigo_implicito"] = True
 
         canales = [k for k in ("meli", "siigo", "web") if k in plataformas]
         resultados["ok"] = all(resultados.get(k, {}).get("ok") for k in canales)

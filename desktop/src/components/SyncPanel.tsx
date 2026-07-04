@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../api/client";
 import TerminalLog from "./TerminalLog";
 import PanelHelp from "./PanelHelp";
+import { useAppStore } from "../stores/app";
 
 interface ActionDef {
   id: string;
@@ -456,6 +457,22 @@ export default function SyncPanel() {
               </div>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              useAppStore.getState().setRentabilidadBootTab("precios");
+              useAppStore.getState().setPanel("rentabilidad");
+            }}
+            className="rounded-xl border border-accent/40 bg-accent/5 px-3 py-2.5 text-left hover:bg-accent/10 transition"
+          >
+            <p className="text-xs font-bold uppercase tracking-wide text-accent">
+              💲 Precios multicanal
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted/90">
+              Cambiaste un precio en MeLi — sincronízalo a Siigo y a la página web desde acá.
+            </p>
+          </button>
 
           <div className="rounded-xl border border-dashed border-border/80 bg-surface-panel/50 overflow-hidden">
             <button
