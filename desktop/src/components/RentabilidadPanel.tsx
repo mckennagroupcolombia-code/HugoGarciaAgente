@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import { api } from "../api/client";
+import { useAppStore } from "../stores/app";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1631,6 +1632,8 @@ interface ResultadoActualizacion {
   siigo?: ResultadoPlataforma;
   meli?: ResultadoPlataforma;
   web?: ResultadoPlataforma;
+  /** true si "siigo" se aplicó automáticamente porque se pidió "web" (la web lee de Siigo). */
+  siigo_implicito?: boolean;
 }
 
 function LogicaPreciosPanel() {
@@ -1747,9 +1750,64 @@ function TabPrecios() {
   }, [productos, busqueda]);
 
   const abrirEditor = (p: Producto) => {
+    const precioMeliReal = preciosMeli[p.code.toUpperCase()];
+    const yaDifiere = precioMeliReal != null && precioMeliReal !== p.precio_lista;
     setEditando(p.code);
-    setNuevoPrecio(String(p.precio_lista));
+    // Si MeLi ya tiene un precio distinto, es la referencia real — se precarga
+    // para no tener que reescribirlo, y no hace falta re-enviarlo a MeLi.
+    setNuevoPrecio(String(precioMeliReal ?? p.precio_lista));
+    setPlataformas(
+      yaDifiere ? { siigo: true, web: true, meli: false } : { siigo: true, web: true, meli: true }
+    );
     setResultados((prev) => { const n = { ...prev }; delete n[p.code]; return n; });
+  };
+
+  /** Sincroniza directo con el precio real de MeLi, sin abrir el editor. */
+  const sincronizarConMeli = async (p: Producto) => {
+    const precioMeliReal = preciosMeli[p.code.toUpperCase()];
+    if (precioMeliReal == null) return;
+    setGuardando(true);
+    try {
+      const data = await api.post<ResultadoActualizacion>("/api/rentabilidad/actualizar-precio", {
+        code: p.code,
+        nuevo_precio: precioMeliReal,
+        plataformas: ["siigo", "web"],
+        nombre: p.name,
+      });
+      setResultados((prev) => ({ ...prev, [p.code]: data }));
+      setProductos((prev) =>
+        prev.map((x) => (x.code === p.code ? { ...x, precio_lista: precioMeliReal } : x))
+      );
+    } catch (e) {
+      setResultados((prev) => ({
+        ...prev,
+        [p.code]: { siigo: { ok: false, msg: (e as Error).message } },
+      }));
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const productosConDiffMeli = useMemo(
+    () =>
+      productos.filter((p) => {
+        const real = preciosMeli[p.code.toUpperCase()];
+        return real != null && real !== p.precio_lista;
+      }),
+    [productos, preciosMeli]
+  );
+
+  const [sincronizandoTodos, setSincronizandoTodos] = useState(false);
+
+  const sincronizarTodosConMeli = async () => {
+    setSincronizandoTodos(true);
+    try {
+      for (const p of productosConDiffMeli) {
+        await sincronizarConMeli(p);
+      }
+    } finally {
+      setSincronizandoTodos(false);
+    }
   };
 
   const cerrarEditor = () => {
@@ -1799,6 +1857,24 @@ function TabPrecios() {
   return (
     <div className="space-y-4">
       <LogicaPreciosPanel />
+
+      {!loading && productosConDiffMeli.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-accent/40 bg-accent/5 px-4 py-3">
+          <p className="text-sm text-ink">
+            <strong className="text-accent">{productosConDiffMeli.length}</strong>{" "}
+            producto{productosConDiffMeli.length !== 1 ? "s tienen" : " tiene"} un precio distinto
+            entre MercadoLibre y Siigo/web — probablemente cambiaste el precio en MeLi hace poco.
+          </p>
+          <button
+            type="button"
+            onClick={() => void sincronizarTodosConMeli()}
+            disabled={sincronizandoTodos || guardando}
+            className="shrink-0 rounded-paper border-2 border-accent bg-accent px-4 py-2 text-xs font-bold text-white disabled:opacity-40 transition"
+          >
+            {sincronizandoTodos ? "Sincronizando…" : `Sincronizar los ${productosConDiffMeli.length} con MeLi`}
+          </button>
+        </div>
+      )}
 
       <div>
         <input
@@ -1906,6 +1982,11 @@ function TabPrecios() {
                                   {PLAT_LABELS[plat]}: {resultado[plat]!.msg}
                                 </p>
                               ))}
+                            {resultado.siigo_implicito && (
+                              <p className="text-[10px] text-muted leading-snug max-w-[220px] ml-auto">
+                                Siigo se actualizó también porque la web depende de ese precio.
+                              </p>
+                            )}
                           </div>
                         )}
                         {isEditing ? (
@@ -1917,13 +1998,26 @@ function TabPrecios() {
                             Cancelar
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => abrirEditor(p)}
-                            className="rounded-lg border border-accent/60 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent hover:border-accent transition"
-                          >
-                            Cambiar precio
-                          </button>
+                          <div className="flex flex-wrap justify-end gap-1.5">
+                            {diffMeli && (
+                              <button
+                                type="button"
+                                disabled={guardando}
+                                onClick={() => void sincronizarConMeli(p)}
+                                title={`Aplicar ${cop(precioMeliReal!)} (precio de MeLi) a Siigo y web`}
+                                className="rounded-lg border border-accent bg-accent px-3 py-1 text-xs font-bold text-white disabled:opacity-40 transition"
+                              >
+                                Sincronizar con MeLi
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => abrirEditor(p)}
+                              className="rounded-lg border border-accent/60 bg-accent/10 px-3 py-1 text-xs font-semibold text-accent hover:border-accent transition"
+                            >
+                              Cambiar precio
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -1938,8 +2032,14 @@ function TabPrecios() {
                                   Precio actual en MercadoLibre
                                 </label>
                                 <div className="rounded-paper border-2 border-border bg-surface-hover px-3 py-2 font-mono text-sm text-ink">
-                                  {cop(p.precio_lista)}
+                                  {cop(preciosMeli[p.code.toUpperCase()] ?? p.precio_lista)}
                                 </div>
+                                {preciosMeli[p.code.toUpperCase()] != null
+                                  && preciosMeli[p.code.toUpperCase()] !== p.precio_lista && (
+                                  <p className="text-[10px] text-muted">
+                                    Siigo/web siguen en {cop(p.precio_lista)}
+                                  </p>
+                                )}
                               </div>
                               <div className="space-y-1">
                                 <label className="block text-xs font-semibold text-ink-secondary">
@@ -2084,6 +2184,15 @@ type Tab = "combos" | "nomina" | "servicios" | "periodo" | "precios";
 
 export default function RentabilidadPanel() {
   const [tab, setTab] = useState<Tab>("combos");
+  const rentabilidadBootTab = useAppStore((s) => s.rentabilidadBootTab);
+  const setRentabilidadBootTab = useAppStore((s) => s.setRentabilidadBootTab);
+
+  useEffect(() => {
+    if (rentabilidadBootTab) {
+      setTab(rentabilidadBootTab);
+      setRentabilidadBootTab(null);
+    }
+  }, [rentabilidadBootTab, setRentabilidadBootTab]);
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "combos", label: "Combos Siigo" },

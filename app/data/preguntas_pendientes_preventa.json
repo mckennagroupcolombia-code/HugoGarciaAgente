@@ -1064,6 +1064,38 @@
       "respondida": true,
       "borrador_ia": "¡Hola, veci! Con gusto le colaboro.\n\nPor políticas de Mercado Libre, no nos es permitido compartir datos de contacto como números de teléfono o direcciones a través de esta sección de preguntas.\n\nSin embargo, si tiene alguna duda sobre el producto, con mucho gusto la podemos resolver por este medio. ¡Quedamos atentos",
       "nota": "Auto-marcada respondida por monitor 2026-07-02"
+    },
+    {
+      "question_id": "13614344843",
+      "titulo_producto": "Medidor Digital De Agua  4 En 1  Ph Metro Tds Ec Temperatura",
+      "pregunta": "Hola cual es el rango de medicion de la conductividad electrica?",
+      "timestamp": "2026-07-03T15:55:51.458042",
+      "respondida": true,
+      "nota": "Marcada manualmente respondida 2026-07-03 — no se pudo responder vía MeLi porque la publicación se quedó sin stock (available_quantity 0); no se envió respuesta al comprador."
+    },
+    {
+      "question_id": "13614563361",
+      "titulo_producto": "Cera De Abejas 100% Natural  Sin Refinar Certificada 500 Gr",
+      "pregunta": "Buenas tardes Venden por kilo?",
+      "timestamp": "2026-07-03T16:22:55.658496",
+      "respondida": true,
+      "nota": "Auto-marcada respondida por supervisor 2026-07-03"
+    },
+    {
+      "question_id": "13615340428",
+      "titulo_producto": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+      "pregunta": "Sirve para consumo como desparasitante?",
+      "timestamp": "2026-07-03T17:32:07.825840",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro con su pregunta.\n\nNuestro aceite de ricino puede ser consumido para aliviar el estreñimiento. Se utiliza como un laxante suave, y la dosis recomendada para adultos es de 15 a 60 ml, mientras que para los niños suele ser de 5 a 15 ml, dependiendo del caso.\n\nEs importante recordar que su ingesta en grandes cantidades puede provocar efectos secundarios como diarrea, náuseas y vómitos. Por esta razón, siempre es aconsejable seguir las recomendaciones de un especialista.\n\n¡Quedo atento si necesita algo más"
+    },
+    {
+      "question_id": "13615345486",
+      "titulo_producto": "Aceite Ricino De Ricino Cástor Oil Puro Importado 500 Ml",
+      "pregunta": "Es prensado en frio?",
+      "timestamp": "2026-07-03T17:44:41.891730",
+      "respondida": true,
+      "borrador_ia": "¡Hola, veci! Con gusto le colaboro con su pregunta.\n\n¡Claro que sí! Nuestro aceite de ricino se obtiene mediante el proceso de prensado en frío.\n\nEsto significa que las semillas se prensan a baja temperatura, lo cual es fundamental para evitar la degradación de los nutrientes y así mantener toda la integridad y calidad del aceite.\n\n¡Quedo atento si necesita algo más"
     }
   ]
 }

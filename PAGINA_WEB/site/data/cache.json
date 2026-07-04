@@ -3128,73 +3128,108 @@
           "cat_color": "#1E5C51",
           "desc": "",
           "ficha": {
-            "titulo": "ACEITE DE ARGÁN",
-            "descripcion": "Aceite vegetal obtenido a partir de las semillas de la planta Argania Spinoza. Es conocido por su alto contenido de ácidos grasos esenciales, vitamina E y antioxidantes, lo que le confiere propiedades hidratantes, regeneradoras y rejuvenecedoras para la piel y el cabello. Su concentración del 99% garantiza una pureza y eficacia excepcionales. Se utiliza comúnmente para hidratar, suavizar y nutrir la piel, reducir las arrugas y las líneas de expresión, fortalecer el cabello y protegerlo de los daños causados ​​por el calor y los químicos.",
+            "titulo": "ACEITE DE ARGAN",
+            "descripcion": "",
             "secciones": [
               {
-                "titulo": "APLICACIONES",
+                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
                 "items": [
-                  "En productos de cuidado de la piel, como cremas hidratantes, lociones, sueros y bálsamos labiales. Se aplica en la piel para hidratar, suavizar y proteger contra el envejecimiento prematuro y los daños causados por los radicales libres.",
-                  "Es un ingrediente común en productos para el cuidado del cabello, como acondicionadores, mascarillas y aceites capilares. Se utiliza para mejorar la hidratación, reducir el encrespamiento, aumentar el brillo y fortalecer el cabello.",
-                  "Puede aplicarse para fortalecer las uñas y suavizar las cutículas.",
-                  "Ayuda a mejorar la apariencia de cicatrices y estrías en la piel.",
-                  "Posee propiedades antiinflamatorias y puede ser útil para calmar la piel irritada o con problemas como el acné, la psoriasis o el eccema.",
-                  "Como acondicionador para su barba, manteniéndola suave e hidratada."
+                  "Nota: El producto cumple con el estándar USP."
                 ]
               },
               {
-                "titulo": "RECOMENDACIONES",
+                "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
                 "items": [
-                  "Generalmente se requiere solo una pequeña cantidad para obtener resultados. Antes de usarlo ampliamente, realiza una prueba de parche en una pequeña área de la piel para verificar que no tengas reacciones alérgicas o sensibilidades.",
-                  "Materia prima para ser conservada en condiciones normales y según las recomendaciones del fabricante hasta por 24 meses después de abierto."
+                  "Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
                 ]
               }
             ],
             "identidad": [
               [
                 "NOMBRE DEL PRODUCTO",
-                "Aceite de argán."
-              ],
-              [
-                "NOMBRE IUPAC",
-                "(2R,3R)-2,3-seco-10-trideceno-1,7,11-triyltris(oxy)-1,3,4,7,10,14-hexamethyl-2,3,4,5,6,7,8,9,11,12,13,14,15,16-tetradecahydrocyclopenta[a]phenanthrene-2,3-diol"
+                "aceite de argan"
               ],
               [
                 "SINÓNIMOS",
-                "Oro líquido."
+                "Argania Spinosa Kernel Oil; Aceite de la semilla de Argania Spinoza"
               ],
               [
-                "# CAS",
+                "CAS #",
                 "223747-87-3"
               ],
               [
                 "FECHA DE REVISIÓN",
-                "20 07 24"
+                "20 06 2026"
               ]
             ],
             "propiedades": [
               [
                 "Apariencia",
-                "Líquido ligero color dorado o amarillo claro."
+                "Polvo blanco fino crema amarillento."
               ],
               [
-                "Olor",
-                "Característico."
+                "Identificación",
+                "Identificación A (Aluminio USP 41) Un residuo gris (sílice impura) permanente en el filtro."
+              ],
+              [
+                "Perdida por Ignición",
+                "Max. 15%"
+              ],
+              [
+                "Hierro",
+                "Max. 0,005%"
+              ],
+              [
+                "Sustancias Insolubles en Ácido  Carbonato",
+                "Max 10 mg (2%) USP41\nSin efervescencia"
+              ],
+              [
+                "Granulometría",
+                "+53µm\t<0,1%\n+10µm\t5-1 0%\n-2µm\t40-50%"
+              ],
+              [
+                "Blancura (ISO)",
+                "78-85"
+              ],
+              [
+                "Sustancias Insolubles en Ácido",
+                "Max 10 mg (2%)"
+              ],
+              [
+                "Humedad",
+                "Max 2 %"
+              ],
+              [
+                "Solubilidad",
+                "Soluble en  alcohol, éter y agua."
               ],
               [
                 "pH",
-                "No definido."
+                "2.1 – 2.6"
               ],
               [
-                "Punto de fusión",
-                "21- 23 °C."
-              ],
-              [
-                "Índice de saponificación",
-                "185 a 200 mg KOH/g."
+                "Impurezas orgánicas volátiles",
+                "Cumple"
               ]
             ],
-            "microbiologia": []
+            "microbiologia": [
+              [
+                "Mesofilos Aerobios",
+                "Max. 1.000 UFC/g"
+              ],
+              [
+                "Hongos  y levaduras",
+                "Max. 1.000 UFC/g"
+              ],
+              [
+                "E. Colí",
+                "Negativo"
+              ],
+              [
+                "Salmonella",
+                "Negativo/ 25 gr"
+              ]
+            ]
           },
           "solo_vitrina": false,
           "buyable": true,
@@ -4554,77 +4589,144 @@
           "cat_color": "#1E5C51",
           "desc": "",
           "ficha": {
-            "titulo": "ACEITE ESENCIAL ROMERO",
-            "descripcion": "Aceite esencial obtenido por método de extracción por arrastre por vapor de la planta de Rosmarinus officinalis.",
+            "titulo": "ACETE ESENCIAL ROMERO",
+            "descripcion": "Aceite esencial obtenido de la especie botánica *Salvia rosmarinus* (sin. *Rosmarinus officinalis*), una planta aromática originaria de la región Mediterránea. El producto es el resultado de un proceso físico de destilación por arrastre de vapor de las sumidades floridas y hojas de la planta. Este método de extracción selectiva permite aislar y concentrar los metabolitos secundarios volátiles y termolábiles del material vegetal, preservando su integridad molecular. El aceite resultante es una mezcla fitoquímica compleja, no una sustancia sintetizada, cuyo perfil de componentes terpénicos, como 1,8-cineol, alcanfor y α-pineno, depende intrínsecamente del quimiotipo de la planta, las condiciones de cultivo y el proceso de extracción estandarizado.",
             "secciones": [
               {
                 "titulo": "BENEFICIOS",
                 "items": [
-                  "Proporciona sabor y aroma a una amplia gama de productos, como alimentos procesados, bebidas y condimentos.",
-                  "Es usado como conservante natural en productos cosméticos y de cuidado personal, así como en productos alimentarios, debido a sus propiedades antioxidantes que pueden ayudar a prolongar la vida útil de los productos.",
-                  "Contiene compuestos antioxidantes que pueden ayudar a proteger contra el daño oxidativo causado por los radicales libres, lo que lo convierte en una opción popular en la formulación de productos de cuidado de la piel y suplementos.",
-                  "Alivia molestias relacionadas con la inflamación.",
-                  "Posee efectos estimulantes y revitalizantes. Por lo tanto, se utiliza en productos como aromaterapia, perfumería y productos para el baño.",
-                  "Promueve el crecimiento del cabello y fortalecimiento capilar."
+                  "Antimicrobiano: Inhibe el crecimiento de microorganismos patógenos en la piel y el cuero cabelludo.",
+                  "Antioxidante: Protege las células del daño oxidativo causado por radicales libres.",
+                  "Antiinflamatorio: Reduce la inflamación y el enrojecimiento en afecciones cutáneas.",
+                  "Estimulante circulatorio: Mejora el flujo sanguíneo localizado, promoviendo la nutrición de folículos pilosos.",
+                  "Astringente: Tonifica la piel y minimiza la apariencia de los poros.",
+                  "Cicatrizante: Favorece la regeneración de los tejidos y la curación de heridas menores.",
+                  "Seborregulador: Equilibra la producción de sebo en pieles y cueros cabelludos grasos.",
+                  "Rubefaciente: Produce una sensación de calor local que alivia dolores musculares y reumáticos.",
+                  "Tónico capilar: Fortalece el cabello desde la raíz y previene su caída.",
+                  "Descongestionante venoso: Activa la circulación y alivia la sensación de piernas cansadas."
+                ]
+              },
+              {
+                "titulo": "APLICACIONES",
+                "items": [
+                  "Tónico estimulante del folículo piloso.",
+                  "Coadyuvante en tratamientos para alopecia androgénica.",
+                  "Agente seborregulador y anticaspa en champús.",
+                  "Astringente en formulaciones para pieles grasas y acneicas.",
+                  "Activo antioxidante en productos de cuidado facial antiedad.",
+                  "Agente rubefaciente y analgésico tópico para dolor muscular y articular.",
+                  "Antimicrobiano y antiséptico en preparaciones dérmicas.",
+                  "Estimulante de la microcirculación cutánea en tratamientos anticelulíticos.",
+                  "Componente fragante en perfumería y productos de higiene.",
+                  "Activo en aromaterapia para la mejora de la función cognitiva.",
+                  "Expectorante en bálsamos y soluciones para inhalación.",
+                  "Conservante natural en sistemas de emulsión por su actividad antioxidante."
+                ]
+              },
+              {
+                "titulo": "MODO DE USO",
+                "items": [
+                  "El Aceite Esencial de Romero se incorpora en la fase oleosa o en la fase final de la formulación en concentraciones típicas del 0.1% al 1.5%. Para preservar la integridad de sus componentes volátiles y termolábiles, debe ser adicionado durante la etapa de enfriamiento, a una temperatura inferior a 40 °C. Se recomienda su adición como uno de los últimos componentes del proceso, posterior a la formación de la emulsión, junto a otros activos o fragancias."
                 ]
               },
               {
                 "titulo": "RECOMENDACIONES",
                 "items": [
-                  "Generalmente se requiere solo una pequeña cantidad para obtener resultados. Antes de usarlo ampliamente, realice una prueba de parche en una pequeña área de la piel para verificar reacciones alérgicas o sensibilidades.",
-                  "Siempre diluya el aceite esencial de romero en un aceite portador (como aceite de coco, almendra dulce o jojoba) antes de su uso. Una proporción típica es de 2-3 gotas de aceite esencial por cucharada de aceite portador.",
-                  "Se considera seguro ingerir aceite esencial de romero, generalmente se recomienda diluirlo en una cantidad adecuada de aceite portador comestible, como aceite de coco o aceite de oliva. La proporción suele ser muy baja, con solo una gota o menos de aceite esencial en una cucharadita de aceite portador."
-                ]
-              },
-              {
-                "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-                "items": [
-                  "Mantenga el envase bien cerrado, en un lugar fresco y seco. Su vida útil es de hasta 24 meses después de abierto, controle su calidad periódicamente."
+                  "SEÑAL DE PELIGRO: Peligro\nINDICACIONES H: H226: Líquido y vapores inflamables. H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias. H315: Provoca irritación cutánea. H317: Puede provocar una reacción alérgica en la piel. H319: Provoca irritación ocular grave. H411: Tóxico para los organismos acuáticos, con efectos nocivos duraderos.\nPREVENCIÓN: P210: Mantener alejado del calor, superficies calientes, chispas, llamas abiertas y otras fuentes de ignición. No fumar. P273: Evitar su liberación al medio ambiente. P280: Usar guantes de protección, ropa de protección y equipo de protección para los ojos/la cara.\nRESPUESTA: P301+P310+P331: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico. NO provocar el vómito. P302+P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón. P305+P351+P338: EN CASO DE CONTACTO CON LOS OJOS: Enjuagar con agua cuidadosamente durante varios minutos. Quitar las lentes de contacto cuando estén presentes y pueda hacerse con facilidad. Proseguir con el lavado. P391: Recoger el vertido.\nALMACENAMIENTO: P403+P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco. P405: Guardar bajo llave. Mantener el EMPAQUE original herméticamente cerrado.\nELIMINACIÓN: P501: Eliminar el contenido y el EMPAQUE a través de un gestor de residuos autorizado, conforme a la normativa vigente.\nPRIMEROS AUXILIOS: Inhalación: Trasladar a la persona al aire libre y mantenerla en una posición que le facilite la respiración. / Contacto piel: Quitar la ropa contaminada. Lavar la zona afectada con abundante agua y jabón. Si se produce irritación o erupción, consultar a un médico. / Contacto ocular: Enjuagar cuidadosamente con agua durante varios minutos. Consultar a un médico si persiste la irritación. / Ingestión: No inducir el vómito. Buscar atención médica inmediata.\nEPP REQUERIDO: Gafas de seguridad con protección lateral, guantes de protección de nitrilo, vestuario de protección adecuado y protección respiratoria para vapores orgánicos si la ventilación es insuficiente."
                 ]
               }
             ],
             "identidad": [
               [
                 "NOMBRE DEL PRODUCTO",
-                "Aceite esencial de romero"
+                "ACETE ESENCIAL ROMERO"
               ],
               [
-                "NOMBRE IUPAC",
-                "1,8-cineol 2-metil-5-(1-metiletil)ciclohexanol"
+                "REFERENCIA SIIGO",
+                "C-ACEIESENROM5mL"
               ],
               [
                 "SINÓNIMOS",
-                "Aceite esencial de Rosmarinus officinalis."
+                "*Rosmarinus Officinalis Leaf Oil*; Oleum Rosmarini; E 392; Destilado por arrastre con vapor de las sumidades floridas de *Salvia rosmarinus*."
               ],
               [
-                "# CAS",
+                "CAS #",
                 "8000-25-7"
               ],
               [
                 "FECHA DE REVISIÓN",
-                "17 08 24"
+                "23 06 2026"
+              ],
+              [
+                "Aceite esencial romero",
+                "99%"
               ]
             ],
             "propiedades": [
               [
                 "Apariencia",
-                "Líquido ligero amarillo pálido."
+                "Líquido oleoso, fluido y límpido, de color incoloro a amarillo pálido."
               ],
               [
-                "Olor",
-                "Herbal especiado."
-              ],
-              [
-                "pH",
-                "No definido."
-              ],
-              [
-                "Punto de ebullición",
-                "165 °C."
+                "Punto de fusión",
+                "No aplica; es un líquido a temperatura ambiente."
               ],
               [
                 "Índice de saponificación",
                 "No aplica."
+              ],
+              [
+                "pH",
+                "No aplica (N/A) por ser una sustancia oleosa e inmiscible en agua."
+              ],
+              [
+                "Olor",
+                "Aroma penetrante, herbáceo y canforáceo con un fondo balsámico y amaderado. PubChem: sin datos"
+              ],
+              [
+                "Solubilidad",
+                "El aceite esencial de romero es inmiscible en agua, pero presenta alta solubilidad en solventes orgánicos de baja polaridad, como alcoholes (etanol), aceites fijos, ésteres y éteres."
+              ],
+              [
+                "Antimicrobiano",
+                "Inhibe el crecimiento de microorganismos patógenos en la piel y el cuero cabelludo."
+              ],
+              [
+                "Antioxidante",
+                "Protege las células del daño oxidativo causado por radicales libres."
+              ],
+              [
+                "Antiinflamatorio",
+                "Reduce la inflamación y el enrojecimiento en afecciones cutáneas."
+              ],
+              [
+                "Estimulante circulatorio",
+                "Mejora el flujo sanguíneo localizado, promoviendo la nutrición de folículos pilosos."
+              ],
+              [
+                "Astringente",
+                "Tonifica la piel y minimiza la apariencia de los poros."
+              ],
+              [
+                "Cicatrizante",
+                "Favorece la regeneración de los tejidos y la curación de heridas menores."
+              ],
+              [
+                "Seborregulador",
+                "Equilibra la producción de sebo en pieles y cueros cabelludos grasos."
+              ],
+              [
+                "Rubefaciente",
+                "Produce una sensación de calor local que alivia dolores musculares y reumáticos."
+              ],
+              [
+                "Tónico capilar",
+                "Fortalece el cabello desde la raíz y previene su caída."
+              ],
+              [
+                "Descongestionante venoso",
+                "Activa la circulación y alivia la sensación de piernas cansadas."
               ]
             ],
             "microbiologia": []
@@ -4661,7 +4763,110 @@
           "cat": "Aceites",
           "cat_color": "#2E8B7A",
           "desc": "",
-          "ficha": null,
+          "ficha": {
+            "titulo": "ACEITE ARGAN",
+            "descripcion": "Aceite de origen vegetal extraído de las semillas del árbol *Argania spinosa*, endémico de Marruecos. Su obtención se realiza mediante un proceso mecánico de prensado en frío de las almendras contenidas en el fruto, lo que garantiza la preservación de sus componentes bioactivos. Físicamente, se presenta como un líquido oleoso, límpido, de coloración amarillo dorado y con un olor suave característico. Químicamente, se destaca por su alto contenido de ácidos grasos esenciales, principalmente ácido oleico y linoleico, además de tocoferoles (vitamina E) y otros compuestos antioxidantes. Esta materia prima, con una pureza del 99%, es valorada por sus propiedades regeneradoras e hidratantes en formulaciones cosméticas.",
+            "secciones": [
+              {
+                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+                "items": [
+                  "Nota: El producto cumple con el estándar USP."
+                ]
+              },
+              {
+                "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
+                "items": [
+                  "Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+                ]
+              }
+            ],
+            "identidad": [
+              [
+                "NOMBRE DEL PRODUCTO",
+                "ACEITE ARGAN"
+              ],
+              [
+                "SINÓNIMOS",
+                "Argania Spinosa Kernel Oil\nArgan Oil\nAceite de Marruecos\nMoroccan Oil\nHuile d'Argan\nOro líquido de Marruecos\nLipofructyl Argan\nArgassential\nArgatensyl"
+              ],
+              [
+                "CAS #",
+                "223747-87-3"
+              ],
+              [
+                "FECHA DE REVISIÓN",
+                "20 06 2026"
+              ]
+            ],
+            "propiedades": [
+              [
+                "Apariencia",
+                "Polvo blanco fino crema amarillento."
+              ],
+              [
+                "Identificación",
+                "Identificación A (Aluminio USP 41) Un residuo gris (sílice impura) permanente en el filtro."
+              ],
+              [
+                "Perdida por Ignición",
+                "Max. 15%"
+              ],
+              [
+                "Hierro",
+                "Max. 0,005%"
+              ],
+              [
+                "Sustancias Insolubles en Ácido  Carbonato",
+                "Max 10 mg (2%) USP41\nSin efervescencia"
+              ],
+              [
+                "Granulometría",
+                "+53µm\t<0,1%\n+10µm\t5-1 0%\n-2µm\t40-50%"
+              ],
+              [
+                "Blancura (ISO)",
+                "78-85"
+              ],
+              [
+                "Sustancias Insolubles en Ácido",
+                "Max 10 mg (2%)"
+              ],
+              [
+                "Humedad",
+                "Max 2 %"
+              ],
+              [
+                "Solubilidad",
+                "Soluble en  alcohol, éter y agua."
+              ],
+              [
+                "pH",
+                "2.1 – 2.6"
+              ],
+              [
+                "Impurezas orgánicas volátiles",
+                "Cumple"
+              ]
+            ],
+            "microbiologia": [
+              [
+                "Mesofilos Aerobios",
+                "Max. 1.000 UFC/g"
+              ],
+              [
+                "Hongos  y levaduras",
+                "Max. 1.000 UFC/g"
+              ],
+              [
+                "E. Colí",
+                "Negativo"
+              ],
+              [
+                "Salmonella",
+                "Negativo/ 25 gr"
+              ]
+            ]
+          },
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
@@ -6113,8 +6318,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_915191-MLA70719119779_072023-O.jpg",
-          "meli_id": "MCO576064483",
+          "photo": "https://http2.mlstatic.com/D_905398-MCO109955043942_042026-O.jpg",
+          "meli_id": "MCO572516617",
           "cat": "Ceras y Mantecas",
           "cat_color": "#3A9E8C",
           "desc": "",
@@ -6203,8 +6408,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "family",
-          "photo_match_score": 95.0,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-mankarama250g"
         },
         {
@@ -8921,154 +9126,108 @@
           "cat_color": "#4DB3A0",
           "desc": "",
           "ficha": {
-            "titulo": "GLICERINA",
-            "descripcion": "La glicerina (glicerol) se encuentra en todos los tipos de aceites, así como en grasas animales o vegetales, siempre y cuando éstas estén asociadas a otros ácidos grasos, como puede ser, el oleico o esteárico. Es considerada un edulcorante y humectante.",
+            "titulo": "GLICERINA VEGETAL",
+            "descripcion": "La Glicerina Vegetal, o Glicerol, es un polialcohol trihídrico obtenido exclusivamente a partir de la hidrólisis de triglicéridos de origen vegetal. Su modo de obtención principal es como co-producto durante la transesterificación de aceites (palma, soja, colza) para la producción de biodiésel, o mediante el proceso de saponificación en la industria jabonera. Químicamente, el proceso consiste en la escisión de las moléculas de grasa, lo que libera el esqueleto de glicerol de las cadenas de ácidos grasos. El glicerol crudo resultante se somete a un riguroso proceso de refinamiento y purificación, principalmente por destilación fraccionada al vacío, para alcanzar la alta pureza exigida por los estándares farmacopeicos y cosméticos.",
             "secciones": [
+              {
+                "titulo": "BENEFICIOS",
+                "items": [
+                  "Humectante: Atrae y retiene la humedad en la piel y el cabello.",
+                  "Hidratante: Incrementa el contenido de agua en las capas superficiales de la piel.",
+                  "Antiinflamatorio: Reduce la inflamación y la irritación cutánea.",
+                  "Emoliente: Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas.",
+                  "Acondicionador capilar: Previene la sequedad y la rotura de la fibra capilar.",
+                  "Edulcorante: Proporciona un sabor dulce en formulaciones de uso oral.",
+                  "Grado Farmacéutico USP: Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
+                ]
+              },
               {
                 "titulo": "APLICACIONES",
                 "items": [
-                  "Hidratación de la piel: Es un humectante natural que puede ayudar a retener la humedad en la piel, lo que la convierte en un ingrediente común en muchos productos para el cuidado de la piel, como cremas hidratantes, lociones y jabones.",
-                  "Propiedades antiinflamatorias: Tiene propiedades antiinflamatorias que pueden ayudar a reducir la inflamación y la irritación de la piel.",
-                  "Mejora de la apariencia de la piel:  Suaviza las líneas finas y las arrugas, así como reduce la apariencia de la piel seca y escamosa.",
-                  "Propiedades humectantes para el cabello: Ayuda a retener la humedad y prevenir la sequedad y la rotura del cabello.",
-                  "Uso en productos alimentarios: Edulcorante y humectante en algunos alimentos y productos alimenticios, como dulces, productos horneados y bebidas."
+                  "Agente humectante para retener la humedad en la piel en cremas, lociones y jabones.",
+                  "Activo con propiedades antiinflamatorias para reducir la irritación cutánea.",
+                  "Ingrediente para el suavizado de líneas finas y arrugas.",
+                  "Acondicionador para reducir la apariencia de la piel seca y escamosa.",
+                  "Humectante en formulaciones capilares para prevenir la sequedad y la rotura.",
+                  "Excipiente edulcorante y humectante en preparaciones farmacéuticas de grado USP."
                 ]
               },
               {
-                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+                "titulo": "MODO DE USO",
                 "items": [
-                  "Nota: El producto cumple con el estándar USP."
-                ]
-              },
-              {
-                "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-                "items": [
-                  "Se recomienda guardar en envases bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+                  "La Glicerina Vegetal USP se incorpora en la fase acuosa de la formulación en concentraciones que oscilan entre el 2% y 10%, dependiendo del nivel de humectación deseado. Se debe disolver junto con los demás ingredientes hidrosolubles, calentando esta fase a una temperatura aproximada de 70-75 °C. Su adición se realiza antes del proceso de emulsificación para asegurar una dispersión homogénea y maximizar su eficacia como agente higroscópico en el producto terminado."
                 ]
               }
             ],
             "identidad": [
               [
                 "NOMBRE DEL PRODUCTO",
-                "Glicerina  Vegetal USP"
+                "GLICERINA VEGETAL"
+              ],
+              [
+                "SINÓNIMOS",
+                "Glicerol; Propan-1,2,3-triol; Glycerin; E422; Trihidroxipropano."
               ],
               [
                 "CAS #",
                 "56-81-5"
               ],
               [
-                "FÓRMULA MOLECULAR",
-                "C3H8O3"
-              ],
-              [
-                "NOMBRE IUPAC",
-                "Glicerol. Alcohol glicérico. Propano-1,2,3-triol"
-              ],
-              [
-                "ADITIVO ALIMENTARIO",
-                "E-422"
-              ],
-              [
                 "FECHA DE REVISIÓN",
-                "19 07 2024"
+                "24 06 2026"
               ]
             ],
             "propiedades": [
               [
                 "Apariencia",
-                "Liquido siruposo  trasparente"
+                "Líquido siroposo, límpido e incoloro."
               ],
               [
-                "Identificación B",
-                "0.003%"
+                "Punto de fusión",
+                "17.9 °C"
               ],
               [
-                "Identificación B",
-                "0.011%"
+                "pH",
+                "5.0-8.0 en solución acuosa al 10%."
               ],
               [
-                "Identificación C \nPor  cromatografía de gases",
-                "Cumple"
+                "Olor",
+                "Olor característico muy tenue y ligeramente dulce, siendo prácticamente inodoro en grados de alta pureza."
               ],
               [
-                "Color",
-                "Cumple"
+                "Fórmula química",
+                "C3H8O3"
               ],
               [
-                "Gravedad específica",
-                "Cumple"
+                "Humectante",
+                "Atrae y retiene la humedad en la piel y el cabello."
               ],
               [
-                "Contenido de agua",
-                "0.6 %"
+                "Hidratante",
+                "Incrementa el contenido de agua en las capas superficiales de la piel."
               ],
               [
-                "Contenido de glicerol",
-                "99.72%"
+                "Antiinflamatorio",
+                "Reduce la inflamación y la irritación cutánea."
               ],
               [
-                "Contenido de metanol",
-                "< 10 mg/kg"
+                "Emoliente",
+                "Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas."
               ],
               [
-                "Contenido de sulfatos",
-                "Cumple"
+                "Acondicionador capilar",
+                "Previene la sequedad y la rotura de la fibra capilar."
               ],
               [
-                "Ácido grasos  y ésteres",
-                "0.3 mL"
+                "Edulcorante",
+                "Proporciona un sabor dulce en formulaciones de uso oral."
               ],
               [
-                "Límite de compuestos clorados",
-                "Cumple"
-              ],
-              [
-                "Residuo por  incineración",
-                "0.002%"
-              ],
-              [
-                "Metales pesados",
-                "Cumple"
-              ],
-              [
-                "Compuestos  relacionados",
-                "Cumple"
-              ],
-              [
-                "Compuestos  relacionados",
-                "Cumple"
-              ],
-              [
-                "Solubilidad",
-                "Miscible"
-              ],
-              [
-                "Solubilidad",
-                "Miscible"
-              ],
-              [
-                "Solubilidad",
-                "Insoluble"
+                "Grado Farmacéutico USP",
+                "Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
               ]
             ],
-            "microbiologia": [
-              [
-                "Mesofilos Aerobios",
-                "Max. 1.000 UFC/mL"
-              ],
-              [
-                "Hongos  y levaduras",
-                "Max. 1.000 UFC/mL"
-              ],
-              [
-                "E. Colí",
-                "Negativo"
-              ],
-              [
-                "Salmonella",
-                "Negativo/ 25 mL"
-              ]
-            ]
+            "microbiologia": []
           },
           "solo_vitrina": false,
           "buyable": true,
@@ -9098,154 +9257,108 @@
           "cat_color": "#4DB3A0",
           "desc": "",
           "ficha": {
-            "titulo": "GLICERINA",
-            "descripcion": "La glicerina (glicerol) se encuentra en todos los tipos de aceites, así como en grasas animales o vegetales, siempre y cuando éstas estén asociadas a otros ácidos grasos, como puede ser, el oleico o esteárico. Es considerada un edulcorante y humectante.",
+            "titulo": "GLICERINA VEGETAL",
+            "descripcion": "La Glicerina Vegetal, o Glicerol, es un polialcohol trihídrico obtenido exclusivamente a partir de la hidrólisis de triglicéridos de origen vegetal. Su modo de obtención principal es como co-producto durante la transesterificación de aceites (palma, soja, colza) para la producción de biodiésel, o mediante el proceso de saponificación en la industria jabonera. Químicamente, el proceso consiste en la escisión de las moléculas de grasa, lo que libera el esqueleto de glicerol de las cadenas de ácidos grasos. El glicerol crudo resultante se somete a un riguroso proceso de refinamiento y purificación, principalmente por destilación fraccionada al vacío, para alcanzar la alta pureza exigida por los estándares farmacopeicos y cosméticos.",
             "secciones": [
+              {
+                "titulo": "BENEFICIOS",
+                "items": [
+                  "Humectante: Atrae y retiene la humedad en la piel y el cabello.",
+                  "Hidratante: Incrementa el contenido de agua en las capas superficiales de la piel.",
+                  "Antiinflamatorio: Reduce la inflamación y la irritación cutánea.",
+                  "Emoliente: Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas.",
+                  "Acondicionador capilar: Previene la sequedad y la rotura de la fibra capilar.",
+                  "Edulcorante: Proporciona un sabor dulce en formulaciones de uso oral.",
+                  "Grado Farmacéutico USP: Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
+                ]
+              },
               {
                 "titulo": "APLICACIONES",
                 "items": [
-                  "Hidratación de la piel: Es un humectante natural que puede ayudar a retener la humedad en la piel, lo que la convierte en un ingrediente común en muchos productos para el cuidado de la piel, como cremas hidratantes, lociones y jabones.",
-                  "Propiedades antiinflamatorias: Tiene propiedades antiinflamatorias que pueden ayudar a reducir la inflamación y la irritación de la piel.",
-                  "Mejora de la apariencia de la piel:  Suaviza las líneas finas y las arrugas, así como reduce la apariencia de la piel seca y escamosa.",
-                  "Propiedades humectantes para el cabello: Ayuda a retener la humedad y prevenir la sequedad y la rotura del cabello.",
-                  "Uso en productos alimentarios: Edulcorante y humectante en algunos alimentos y productos alimenticios, como dulces, productos horneados y bebidas."
+                  "Agente humectante para retener la humedad en la piel en cremas, lociones y jabones.",
+                  "Activo con propiedades antiinflamatorias para reducir la irritación cutánea.",
+                  "Ingrediente para el suavizado de líneas finas y arrugas.",
+                  "Acondicionador para reducir la apariencia de la piel seca y escamosa.",
+                  "Humectante en formulaciones capilares para prevenir la sequedad y la rotura.",
+                  "Excipiente edulcorante y humectante en preparaciones farmacéuticas de grado USP."
                 ]
               },
               {
-                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+                "titulo": "MODO DE USO",
                 "items": [
-                  "Nota: El producto cumple con el estándar USP."
-                ]
-              },
-              {
-                "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-                "items": [
-                  "Se recomienda guardar en envases bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+                  "La Glicerina Vegetal USP se incorpora en la fase acuosa de la formulación en concentraciones que oscilan entre el 2% y 10%, dependiendo del nivel de humectación deseado. Se debe disolver junto con los demás ingredientes hidrosolubles, calentando esta fase a una temperatura aproximada de 70-75 °C. Su adición se realiza antes del proceso de emulsificación para asegurar una dispersión homogénea y maximizar su eficacia como agente higroscópico en el producto terminado."
                 ]
               }
             ],
             "identidad": [
               [
                 "NOMBRE DEL PRODUCTO",
-                "Glicerina  Vegetal USP"
+                "GLICERINA VEGETAL"
+              ],
+              [
+                "SINÓNIMOS",
+                "Glicerol; Propan-1,2,3-triol; Glycerin; E422; Trihidroxipropano."
               ],
               [
                 "CAS #",
                 "56-81-5"
               ],
               [
-                "FÓRMULA MOLECULAR",
-                "C3H8O3"
-              ],
-              [
-                "NOMBRE IUPAC",
-                "Glicerol. Alcohol glicérico. Propano-1,2,3-triol"
-              ],
-              [
-                "ADITIVO ALIMENTARIO",
-                "E-422"
-              ],
-              [
                 "FECHA DE REVISIÓN",
-                "19 07 2024"
+                "24 06 2026"
               ]
             ],
             "propiedades": [
               [
                 "Apariencia",
-                "Liquido siruposo  trasparente"
+                "Líquido siroposo, límpido e incoloro."
               ],
               [
-                "Identificación B",
-                "0.003%"
+                "Punto de fusión",
+                "17.9 °C"
               ],
               [
-                "Identificación B",
-                "0.011%"
+                "pH",
+                "5.0-8.0 en solución acuosa al 10%."
               ],
               [
-                "Identificación C \nPor  cromatografía de gases",
-                "Cumple"
+                "Olor",
+                "Olor característico muy tenue y ligeramente dulce, siendo prácticamente inodoro en grados de alta pureza."
               ],
               [
-                "Color",
-                "Cumple"
+                "Fórmula química",
+                "C3H8O3"
               ],
               [
-                "Gravedad específica",
-                "Cumple"
+                "Humectante",
+                "Atrae y retiene la humedad en la piel y el cabello."
               ],
               [
-                "Contenido de agua",
-                "0.6 %"
+                "Hidratante",
+                "Incrementa el contenido de agua en las capas superficiales de la piel."
               ],
               [
-                "Contenido de glicerol",
-                "99.72%"
+                "Antiinflamatorio",
+                "Reduce la inflamación y la irritación cutánea."
               ],
               [
-                "Contenido de metanol",
-                "< 10 mg/kg"
+                "Emoliente",
+                "Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas."
               ],
               [
-                "Contenido de sulfatos",
-                "Cumple"
+                "Acondicionador capilar",
+                "Previene la sequedad y la rotura de la fibra capilar."
               ],
               [
-                "Ácido grasos  y ésteres",
-                "0.3 mL"
+                "Edulcorante",
+                "Proporciona un sabor dulce en formulaciones de uso oral."
               ],
               [
-                "Límite de compuestos clorados",
-                "Cumple"
-              ],
-              [
-                "Residuo por  incineración",
-                "0.002%"
-              ],
-              [
-                "Metales pesados",
-                "Cumple"
-              ],
-              [
-                "Compuestos  relacionados",
-                "Cumple"
-              ],
-              [
-                "Compuestos  relacionados",
-                "Cumple"
-              ],
-              [
-                "Solubilidad",
-                "Miscible"
-              ],
-              [
-                "Solubilidad",
-                "Miscible"
-              ],
-              [
-                "Solubilidad",
-                "Insoluble"
+                "Grado Farmacéutico USP",
+                "Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
               ]
             ],
-            "microbiologia": [
-              [
-                "Mesofilos Aerobios",
-                "Max. 1.000 UFC/mL"
-              ],
-              [
-                "Hongos  y levaduras",
-                "Max. 1.000 UFC/mL"
-              ],
-              [
-                "E. Colí",
-                "Negativo"
-              ],
-              [
-                "Salmonella",
-                "Negativo/ 25 mL"
-              ]
-            ]
+            "microbiologia": []
           },
           "solo_vitrina": false,
           "buyable": true,
@@ -9275,154 +9388,108 @@
           "cat_color": "#4DB3A0",
           "desc": "",
           "ficha": {
-            "titulo": "GLICERINA",
-            "descripcion": "La glicerina (glicerol) se encuentra en todos los tipos de aceites, así como en grasas animales o vegetales, siempre y cuando éstas estén asociadas a otros ácidos grasos, como puede ser, el oleico o esteárico. Es considerada un edulcorante y humectante.",
+            "titulo": "GLICERINA VEGETAL",
+            "descripcion": "La Glicerina Vegetal, o Glicerol, es un polialcohol trihídrico obtenido exclusivamente a partir de la hidrólisis de triglicéridos de origen vegetal. Su modo de obtención principal es como co-producto durante la transesterificación de aceites (palma, soja, colza) para la producción de biodiésel, o mediante el proceso de saponificación en la industria jabonera. Químicamente, el proceso consiste en la escisión de las moléculas de grasa, lo que libera el esqueleto de glicerol de las cadenas de ácidos grasos. El glicerol crudo resultante se somete a un riguroso proceso de refinamiento y purificación, principalmente por destilación fraccionada al vacío, para alcanzar la alta pureza exigida por los estándares farmacopeicos y cosméticos.",
             "secciones": [
+              {
+                "titulo": "BENEFICIOS",
+                "items": [
+                  "Humectante: Atrae y retiene la humedad en la piel y el cabello.",
+                  "Hidratante: Incrementa el contenido de agua en las capas superficiales de la piel.",
+                  "Antiinflamatorio: Reduce la inflamación y la irritación cutánea.",
+                  "Emoliente: Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas.",
+                  "Acondicionador capilar: Previene la sequedad y la rotura de la fibra capilar.",
+                  "Edulcorante: Proporciona un sabor dulce en formulaciones de uso oral.",
+                  "Grado Farmacéutico USP: Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
+                ]
+              },
               {
                 "titulo": "APLICACIONES",
                 "items": [
-                  "Hidratación de la piel: Es un humectante natural que puede ayudar a retener la humedad en la piel, lo que la convierte en un ingrediente común en muchos productos para el cuidado de la piel, como cremas hidratantes, lociones y jabones.",
-                  "Propiedades antiinflamatorias: Tiene propiedades antiinflamatorias que pueden ayudar a reducir la inflamación y la irritación de la piel.",
-                  "Mejora de la apariencia de la piel:  Suaviza las líneas finas y las arrugas, así como reduce la apariencia de la piel seca y escamosa.",
-                  "Propiedades humectantes para el cabello: Ayuda a retener la humedad y prevenir la sequedad y la rotura del cabello.",
-                  "Uso en productos alimentarios: Edulcorante y humectante en algunos alimentos y productos alimenticios, como dulces, productos horneados y bebidas."
+                  "Agente humectante para retener la humedad en la piel en cremas, lociones y jabones.",
+                  "Activo con propiedades antiinflamatorias para reducir la irritación cutánea.",
+                  "Ingrediente para el suavizado de líneas finas y arrugas.",
+                  "Acondicionador para reducir la apariencia de la piel seca y escamosa.",
+                  "Humectante en formulaciones capilares para prevenir la sequedad y la rotura.",
+                  "Excipiente edulcorante y humectante en preparaciones farmacéuticas de grado USP."
                 ]
               },
               {
-                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+                "titulo": "MODO DE USO",
                 "items": [
-                  "Nota: El producto cumple con el estándar USP."
-                ]
-              },
-              {
-                "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-                "items": [
-                  "Se recomienda guardar en envases bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+                  "La Glicerina Vegetal USP se incorpora en la fase acuosa de la formulación en concentraciones que oscilan entre el 2% y 10%, dependiendo del nivel de humectación deseado. Se debe disolver junto con los demás ingredientes hidrosolubles, calentando esta fase a una temperatura aproximada de 70-75 °C. Su adición se realiza antes del proceso de emulsificación para asegurar una dispersión homogénea y maximizar su eficacia como agente higroscópico en el producto terminado."
                 ]
               }
             ],
             "identidad": [
               [
                 "NOMBRE DEL PRODUCTO",
-                "Glicerina  Vegetal USP"
+                "GLICERINA VEGETAL"
+              ],
+              [
+                "SINÓNIMOS",
+                "Glicerol; Propan-1,2,3-triol; Glycerin; E422; Trihidroxipropano."
               ],
               [
                 "CAS #",
                 "56-81-5"
               ],
               [
-                "FÓRMULA MOLECULAR",
-                "C3H8O3"
-              ],
-              [
-                "NOMBRE IUPAC",
-                "Glicerol. Alcohol glicérico. Propano-1,2,3-triol"
-              ],
-              [
-                "ADITIVO ALIMENTARIO",
-                "E-422"
-              ],
-              [
                 "FECHA DE REVISIÓN",
-                "19 07 2024"
+                "24 06 2026"
               ]
             ],
             "propiedades": [
               [
                 "Apariencia",
-                "Liquido siruposo  trasparente"
+                "Líquido siroposo, límpido e incoloro."
               ],
               [
-                "Identificación B",
-                "0.003%"
+                "Punto de fusión",
+                "17.9 °C"
               ],
               [
-                "Identificación B",
-                "0.011%"
+                "pH",
+                "5.0-8.0 en solución acuosa al 10%."
               ],
               [
-                "Identificación C \nPor  cromatografía de gases",
-                "Cumple"
+                "Olor",
+                "Olor característico muy tenue y ligeramente dulce, siendo prácticamente inodoro en grados de alta pureza."
               ],
               [
-                "Color",
-                "Cumple"
+                "Fórmula química",
+                "C3H8O3"
               ],
               [
-                "Gravedad específica",
-                "Cumple"
+                "Humectante",
+                "Atrae y retiene la humedad en la piel y el cabello."
               ],
               [
-                "Contenido de agua",
-                "0.6 %"
+                "Hidratante",
+                "Incrementa el contenido de agua en las capas superficiales de la piel."
               ],
               [
-                "Contenido de glicerol",
-                "99.72%"
+                "Antiinflamatorio",
+                "Reduce la inflamación y la irritación cutánea."
               ],
               [
-                "Contenido de metanol",
-                "< 10 mg/kg"
+                "Emoliente",
+                "Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas."
               ],
               [
-                "Contenido de sulfatos",
-                "Cumple"
+                "Acondicionador capilar",
+                "Previene la sequedad y la rotura de la fibra capilar."
               ],
               [
-                "Ácido grasos  y ésteres",
-                "0.3 mL"
+                "Edulcorante",
+                "Proporciona un sabor dulce en formulaciones de uso oral."
               ],
               [
-                "Límite de compuestos clorados",
-                "Cumple"
-              ],
-              [
-                "Residuo por  incineración",
-                "0.002%"
-              ],
-              [
-                "Metales pesados",
-                "Cumple"
-              ],
-              [
-                "Compuestos  relacionados",
-                "Cumple"
-              ],
-              [
-                "Compuestos  relacionados",
-                "Cumple"
-              ],
-              [
-                "Solubilidad",
-                "Miscible"
-              ],
-              [
-                "Solubilidad",
-                "Miscible"
-              ],
-              [
-                "Solubilidad",
-                "Insoluble"
+                "Grado Farmacéutico USP",
+                "Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
               ]
             ],
-            "microbiologia": [
-              [
-                "Mesofilos Aerobios",
-                "Max. 1.000 UFC/mL"
-              ],
-              [
-                "Hongos  y levaduras",
-                "Max. 1.000 UFC/mL"
-              ],
-              [
-                "E. Colí",
-                "Negativo"
-              ],
-              [
-                "Salmonella",
-                "Negativo/ 25 mL"
-              ]
-            ]
+            "microbiologia": []
           },
           "solo_vitrina": false,
           "buyable": true,
@@ -9799,8 +9866,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_731027-MCO82274982924_022025-O.jpg",
-          "meli_id": "MCO845634553",
+          "photo": "https://http2.mlstatic.com/D_918077-MCO89918422301_082025-O.jpg",
+          "meli_id": "MCO591316612",
           "cat": "Arcillas",
           "cat_color": "#6B8F71",
           "desc": "",
@@ -9808,8 +9875,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "name",
-          "photo_match_score": 84.2,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-caocarckg"
         },
         {
@@ -11854,8 +11921,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_964859-MCO93967351123_102025-O.jpg",
-          "meli_id": "MCO862397411",
+          "photo": "https://http2.mlstatic.com/D_820431-MCO93967590283_102025-O.jpg",
+          "meli_id": "MCO862333529",
           "cat": "Suplementarios",
           "cat_color": "#2E8B7A",
           "desc": "",
@@ -11977,8 +12044,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "sku",
-          "photo_match_score": 100.0,
+          "photo_match_type": "family",
+          "photo_match_score": 95.0,
           "family_slug": "c-cremon250g"
         },
         {
@@ -13704,112 +13771,197 @@
             "descripcion": "Es el nombre con el que se designa a una familia de glúcidos complejos (polisacáridos), compuestos de cadenas moleculares de fructosa. Es, por lo tanto, un fructosano o fructano, que se concentra o almacena en el tejido fino de planta, generalmente raíces y rizomas contiene las concentraciones más grandes. La inulina es un ingrediente alimenticio natural obtenido de la raíz de la achicoria, que también está presente en otros vegetales como ajo, cebolla, porro, alcachofa, trigo e incluso plátano. Se extrae de la raíz de la achicoria mediante agua caliente, para ser fácilmente añadida en nuestra dieta diaria.",
             "secciones": [
               {
+                "titulo": "BENEFICIOS",
+                "items": [
+                  "Efecto prebiótico: Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus.",
+                  "Resistencia natural: Tiene un impacto positivo en la resistencia natural de nuestro cuerpo.",
+                  "Tránsito intestinal: Contribuye a tener un tránsito intestinal regular y suave.",
+                  "Absorción de nutrientes: Mejora la absorción de importantes nutrientes como calcio.",
+                  "Reducción riesgo cáncer intestinal: Incluso podría reducir el riesgo de cáncer intestinal.",
+                  "Salud digestiva: Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
+                  "Reducción colesterol: Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos.",
+                  "Sabor neutro: No modifica el sabor original de los alimentos.",
+                  "Bajo valor calórico: Es amigable para diabéticos."
+                ]
+              },
+              {
                 "titulo": "APLICACIONES",
                 "items": [
-                  "Tiene un sabor neutro. Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
+                  "Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
                 ]
               },
               {
-                "titulo": "PROPIEDADES",
+                "titulo": "MODO DE USO",
                 "items": [
-                  "La inulina alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus. Esto es lo que se llama efecto prebiótico. Tiene un impacto positivo en la resistencia natural de nuestro cuerpo. La inulina también contribuye a tener un tránsito intestinal regular y suave. Mejora la absorción de importantes nutrientes como calcio e incluso podría reducir el riesgo de cáncer intestinal. Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
-                  "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos. Por ser neutra no modifica el sabor original de los alimentos.",
-                  "Posee un bajo valor calórico, por lo que es amigable para diabéticos."
-                ]
-              },
-              {
-                "titulo": "RECOMENDACIONES",
-                "items": [
-                  "Puede causar reacción alérgica o problemas digestivos.",
-                  "Puede alterar los niveles de azúcar en la sangre.",
-                  "Mantenga fuera del alcance de los niños.",
-                  "Una vez abierto el producto, no se acepta su devolución.",
-                  "Almacene el empaque bien cerrado en un lugar fresco, seco y protegido de la luz. Superados los 24 meses de almacenamiento, se deberá controlar la calidad antes de usar."
-                ]
-              },
-              {
-                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-                "items": [
-                  "Nota: El producto cumple con el estándar USP."
+                  "La inulina se incorpora en formulaciones farmacéuticas y cosméticas en concentraciones típicas del 1% al 10% para potenciar su efecto prebiótico o mejorar la textura y estabilidad. Se recomienda su disolución gradual en la fase acuosa de la formulación, manteniendo agitación constante para asegurar una dispersión homogénea. La incorporación puede realizarse a temperaturas desde ambiente hasta 70°C, facilitando la solubilización sin afectar su integridad funcional."
                 ]
               }
             ],
             "identidad": [
               [
                 "NOMBRE DEL PRODUCTO",
-                "Inulina"
+                "INULINA"
+              ],
+              [
+                "REFERENCIA SIIGO",
+                "INUg"
+              ],
+              [
+                "SINÓNIMOS",
+                "Fructano; Polisacárido de fructosa con enlaces β-(2→1) y unidad de glucosa terminal; E 184; Prebiótico soluble; Fibra alimentaria"
               ],
               [
                 "CAS #",
                 "9005-80-5"
               ],
               [
-                "NOMBRE IUPAC",
-                "Inulina"
-              ],
-              [
-                "EINECS",
-                "232-684-3"
-              ],
-              [
                 "FECHA DE REVISIÓN",
-                "05 08 2024"
+                "24 06 2026"
               ]
             ],
             "propiedades": [
               [
                 "Apariencia",
-                "Blanco, Similar al almidón, \nSin impurezas a la vista"
+                "La ficha técnica interna proporcionada no especifica la apariencia física de la inulina (estado, color, textura, forma)."
               ],
               [
-                "Solubilidad en agua",
-                "Forma geles"
+                "pH",
+                "5.0-7.0 en sol. 10%"
               ],
               [
-                "Carbohidratos totales  (base seca), %",
-                "≥ 99.5"
+                "Olor",
+                "Inodoro."
               ],
               [
-                "Contenido de   Inulina (base seca), %",
-                "≥ 95"
+                "Sabor",
+                "Ligeramente dulce."
               ],
               [
-                "Azúcares totales (Sacarosa + Glucosa + Fructosa)",
-                "≤ 10"
+                "Solubilidad",
+                "La inulina es soluble en agua caliente, utilizada para su extracción, y prácticamente insoluble en solventes orgánicos."
               ],
               [
-                "Humedad, %",
-                "≤ 5.0"
+                "Efecto prebiótico",
+                "Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus."
               ],
               [
-                "Arsénico (As), mg/kg",
-                "≤ 0.5"
+                "Resistencia natural",
+                "Tiene un impacto positivo en la resistencia natural de nuestro cuerpo."
               ],
               [
-                "Plomo (Pb), mg/kg",
-                "≤ 0.5"
+                "Tránsito intestinal",
+                "Contribuye a tener un tránsito intestinal regular y suave."
+              ],
+              [
+                "Absorción de nutrientes",
+                "Mejora la absorción de importantes nutrientes como calcio."
+              ],
+              [
+                "Reducción riesgo cáncer intestinal",
+                "Incluso podría reducir el riesgo de cáncer intestinal."
+              ],
+              [
+                "Salud digestiva",
+                "Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona."
+              ],
+              [
+                "Reducción colesterol",
+                "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos."
+              ],
+              [
+                "Sabor neutro",
+                "No modifica el sabor original de los alimentos."
+              ],
+              [
+                "Bajo valor calórico",
+                "Es amigable para diabéticos."
               ]
             ],
             "microbiologia": [
               [
-                "Propiedades",
-                "Estándar"
+                "Contenido de materia seca",
+                "95,0 - 99,0 %",
+                "97,9 %"
               ],
               [
-                "Bacterias totales, /g",
-                "≤ 1000"
+                "pH",
+                "5,0 - 7,0",
+                "6,8"
               ],
               [
-                "Coliformes, MPN/g",
-                "≤ 3.6"
+                "Inulina",
+                "≥ 90 %",
+                "92 %"
               ],
               [
-                "Hongos, cfu/g",
-                "≤ 50"
+                "Fructosa, glucosa, sacarosa",
+                "≤ 10 %",
+                "8 %"
               ],
               [
-                "Patógenos",
-                "Negativo"
+                "Longitud media de cadena",
+                "8 - 13",
+                "12"
+              ],
+              [
+                "Cenizas",
+                "≤ 0,2 %",
+                "< 0,2 %"
+              ],
+              [
+                "Recuento aerobio en placa (30°C)",
+                "≤ 1000 CFU/g",
+                "< 100 CFU/g"
+              ],
+              [
+                "Recuento aerobio en placa (55°C)",
+                "≤ 1000 CFU/g (a 55°C)",
+                "< 100 CFU/g"
+              ],
+              [
+                "Levaduras",
+                "≤ 20 CFU/g",
+                "< 10 CFU/g"
+              ],
+              [
+                "Mohos",
+                "≤ 20 CFU/g",
+                "< 10 CFU/g"
+              ],
+              [
+                "Bacillus cereus",
+                "≤ 100 CFU/g",
+                "< 100 CFU/g"
+              ],
+              [
+                "Listeria monocytogenes/25g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Enterobacteriaceae/g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Staphylococcus aureus/g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Salmonella/400g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Fecha de producción",
+                "",
+                "01/10/2025"
+              ],
+              [
+                "Fecha de caducidad",
+                "",
+                "01/10/2030"
               ]
             ]
           },
@@ -13845,112 +13997,197 @@
             "descripcion": "Es el nombre con el que se designa a una familia de glúcidos complejos (polisacáridos), compuestos de cadenas moleculares de fructosa. Es, por lo tanto, un fructosano o fructano, que se concentra o almacena en el tejido fino de planta, generalmente raíces y rizomas contiene las concentraciones más grandes. La inulina es un ingrediente alimenticio natural obtenido de la raíz de la achicoria, que también está presente en otros vegetales como ajo, cebolla, porro, alcachofa, trigo e incluso plátano. Se extrae de la raíz de la achicoria mediante agua caliente, para ser fácilmente añadida en nuestra dieta diaria.",
             "secciones": [
               {
+                "titulo": "BENEFICIOS",
+                "items": [
+                  "Efecto prebiótico: Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus.",
+                  "Resistencia natural: Tiene un impacto positivo en la resistencia natural de nuestro cuerpo.",
+                  "Tránsito intestinal: Contribuye a tener un tránsito intestinal regular y suave.",
+                  "Absorción de nutrientes: Mejora la absorción de importantes nutrientes como calcio.",
+                  "Reducción riesgo cáncer intestinal: Incluso podría reducir el riesgo de cáncer intestinal.",
+                  "Salud digestiva: Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
+                  "Reducción colesterol: Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos.",
+                  "Sabor neutro: No modifica el sabor original de los alimentos.",
+                  "Bajo valor calórico: Es amigable para diabéticos."
+                ]
+              },
+              {
                 "titulo": "APLICACIONES",
                 "items": [
-                  "Tiene un sabor neutro. Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
+                  "Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
                 ]
               },
               {
-                "titulo": "PROPIEDADES",
+                "titulo": "MODO DE USO",
                 "items": [
-                  "La inulina alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus. Esto es lo que se llama efecto prebiótico. Tiene un impacto positivo en la resistencia natural de nuestro cuerpo. La inulina también contribuye a tener un tránsito intestinal regular y suave. Mejora la absorción de importantes nutrientes como calcio e incluso podría reducir el riesgo de cáncer intestinal. Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
-                  "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos. Por ser neutra no modifica el sabor original de los alimentos.",
-                  "Posee un bajo valor calórico, por lo que es amigable para diabéticos."
-                ]
-              },
-              {
-                "titulo": "RECOMENDACIONES",
-                "items": [
-                  "Puede causar reacción alérgica o problemas digestivos.",
-                  "Puede alterar los niveles de azúcar en la sangre.",
-                  "Mantenga fuera del alcance de los niños.",
-                  "Una vez abierto el producto, no se acepta su devolución.",
-                  "Almacene el empaque bien cerrado en un lugar fresco, seco y protegido de la luz. Superados los 24 meses de almacenamiento, se deberá controlar la calidad antes de usar."
-                ]
-              },
-              {
-                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-                "items": [
-                  "Nota: El producto cumple con el estándar USP."
+                  "La inulina se incorpora en formulaciones farmacéuticas y cosméticas en concentraciones típicas del 1% al 10% para potenciar su efecto prebiótico o mejorar la textura y estabilidad. Se recomienda su disolución gradual en la fase acuosa de la formulación, manteniendo agitación constante para asegurar una dispersión homogénea. La incorporación puede realizarse a temperaturas desde ambiente hasta 70°C, facilitando la solubilización sin afectar su integridad funcional."
                 ]
               }
             ],
             "identidad": [
               [
                 "NOMBRE DEL PRODUCTO",
-                "Inulina"
+                "INULINA"
+              ],
+              [
+                "REFERENCIA SIIGO",
+                "INUg"
+              ],
+              [
+                "SINÓNIMOS",
+                "Fructano; Polisacárido de fructosa con enlaces β-(2→1) y unidad de glucosa terminal; E 184; Prebiótico soluble; Fibra alimentaria"
               ],
               [
                 "CAS #",
                 "9005-80-5"
               ],
               [
-                "NOMBRE IUPAC",
-                "Inulina"
-              ],
-              [
-                "EINECS",
-                "232-684-3"
-              ],
-              [
                 "FECHA DE REVISIÓN",
-                "05 08 2024"
+                "24 06 2026"
               ]
             ],
             "propiedades": [
               [
                 "Apariencia",
-                "Blanco, Similar al almidón, \nSin impurezas a la vista"
+                "La ficha técnica interna proporcionada no especifica la apariencia física de la inulina (estado, color, textura, forma)."
               ],
               [
-                "Solubilidad en agua",
-                "Forma geles"
+                "pH",
+                "5.0-7.0 en sol. 10%"
               ],
               [
-                "Carbohidratos totales  (base seca), %",
-                "≥ 99.5"
+                "Olor",
+                "Inodoro."
               ],
               [
-                "Contenido de   Inulina (base seca), %",
-                "≥ 95"
+                "Sabor",
+                "Ligeramente dulce."
               ],
               [
-                "Azúcares totales (Sacarosa + Glucosa + Fructosa)",
-                "≤ 10"
+                "Solubilidad",
+                "La inulina es soluble en agua caliente, utilizada para su extracción, y prácticamente insoluble en solventes orgánicos."
               ],
               [
-                "Humedad, %",
-                "≤ 5.0"
+                "Efecto prebiótico",
+                "Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus."
               ],
               [
-                "Arsénico (As), mg/kg",
-                "≤ 0.5"
+                "Resistencia natural",
+                "Tiene un impacto positivo en la resistencia natural de nuestro cuerpo."
               ],
               [
-                "Plomo (Pb), mg/kg",
-                "≤ 0.5"
+                "Tránsito intestinal",
+                "Contribuye a tener un tránsito intestinal regular y suave."
+              ],
+              [
+                "Absorción de nutrientes",
+                "Mejora la absorción de importantes nutrientes como calcio."
+              ],
+              [
+                "Reducción riesgo cáncer intestinal",
+                "Incluso podría reducir el riesgo de cáncer intestinal."
+              ],
+              [
+                "Salud digestiva",
+                "Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona."
+              ],
+              [
+                "Reducción colesterol",
+                "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos."
+              ],
+              [
+                "Sabor neutro",
+                "No modifica el sabor original de los alimentos."
+              ],
+              [
+                "Bajo valor calórico",
+                "Es amigable para diabéticos."
               ]
             ],
             "microbiologia": [
               [
-                "Propiedades",
-                "Estándar"
+                "Contenido de materia seca",
+                "95,0 - 99,0 %",
+                "97,9 %"
               ],
               [
-                "Bacterias totales, /g",
-                "≤ 1000"
+                "pH",
+                "5,0 - 7,0",
+                "6,8"
               ],
               [
-                "Coliformes, MPN/g",
-                "≤ 3.6"
+                "Inulina",
+                "≥ 90 %",
+                "92 %"
               ],
               [
-                "Hongos, cfu/g",
-                "≤ 50"
+                "Fructosa, glucosa, sacarosa",
+                "≤ 10 %",
+                "8 %"
               ],
               [
-                "Patógenos",
-                "Negativo"
+                "Longitud media de cadena",
+                "8 - 13",
+                "12"
+              ],
+              [
+                "Cenizas",
+                "≤ 0,2 %",
+                "< 0,2 %"
+              ],
+              [
+                "Recuento aerobio en placa (30°C)",
+                "≤ 1000 CFU/g",
+                "< 100 CFU/g"
+              ],
+              [
+                "Recuento aerobio en placa (55°C)",
+                "≤ 1000 CFU/g (a 55°C)",
+                "< 100 CFU/g"
+              ],
+              [
+                "Levaduras",
+                "≤ 20 CFU/g",
+                "< 10 CFU/g"
+              ],
+              [
+                "Mohos",
+                "≤ 20 CFU/g",
+                "< 10 CFU/g"
+              ],
+              [
+                "Bacillus cereus",
+                "≤ 100 CFU/g",
+                "< 100 CFU/g"
+              ],
+              [
+                "Listeria monocytogenes/25g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Enterobacteriaceae/g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Staphylococcus aureus/g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Salmonella/400g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Fecha de producción",
+                "",
+                "01/10/2025"
+              ],
+              [
+                "Fecha de caducidad",
+                "",
+                "01/10/2030"
               ]
             ]
           },
@@ -13986,112 +14223,197 @@
             "descripcion": "Es el nombre con el que se designa a una familia de glúcidos complejos (polisacáridos), compuestos de cadenas moleculares de fructosa. Es, por lo tanto, un fructosano o fructano, que se concentra o almacena en el tejido fino de planta, generalmente raíces y rizomas contiene las concentraciones más grandes. La inulina es un ingrediente alimenticio natural obtenido de la raíz de la achicoria, que también está presente en otros vegetales como ajo, cebolla, porro, alcachofa, trigo e incluso plátano. Se extrae de la raíz de la achicoria mediante agua caliente, para ser fácilmente añadida en nuestra dieta diaria.",
             "secciones": [
               {
+                "titulo": "BENEFICIOS",
+                "items": [
+                  "Efecto prebiótico: Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus.",
+                  "Resistencia natural: Tiene un impacto positivo en la resistencia natural de nuestro cuerpo.",
+                  "Tránsito intestinal: Contribuye a tener un tránsito intestinal regular y suave.",
+                  "Absorción de nutrientes: Mejora la absorción de importantes nutrientes como calcio.",
+                  "Reducción riesgo cáncer intestinal: Incluso podría reducir el riesgo de cáncer intestinal.",
+                  "Salud digestiva: Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
+                  "Reducción colesterol: Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos.",
+                  "Sabor neutro: No modifica el sabor original de los alimentos.",
+                  "Bajo valor calórico: Es amigable para diabéticos."
+                ]
+              },
+              {
                 "titulo": "APLICACIONES",
                 "items": [
-                  "Tiene un sabor neutro. Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
+                  "Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
                 ]
               },
               {
-                "titulo": "PROPIEDADES",
+                "titulo": "MODO DE USO",
                 "items": [
-                  "La inulina alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus. Esto es lo que se llama efecto prebiótico. Tiene un impacto positivo en la resistencia natural de nuestro cuerpo. La inulina también contribuye a tener un tránsito intestinal regular y suave. Mejora la absorción de importantes nutrientes como calcio e incluso podría reducir el riesgo de cáncer intestinal. Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
-                  "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos. Por ser neutra no modifica el sabor original de los alimentos.",
-                  "Posee un bajo valor calórico, por lo que es amigable para diabéticos."
-                ]
-              },
-              {
-                "titulo": "RECOMENDACIONES",
-                "items": [
-                  "Puede causar reacción alérgica o problemas digestivos.",
-                  "Puede alterar los niveles de azúcar en la sangre.",
-                  "Mantenga fuera del alcance de los niños.",
-                  "Una vez abierto el producto, no se acepta su devolución.",
-                  "Almacene el empaque bien cerrado en un lugar fresco, seco y protegido de la luz. Superados los 24 meses de almacenamiento, se deberá controlar la calidad antes de usar."
-                ]
-              },
-              {
-                "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-                "items": [
-                  "Nota: El producto cumple con el estándar USP."
+                  "La inulina se incorpora en formulaciones farmacéuticas y cosméticas en concentraciones típicas del 1% al 10% para potenciar su efecto prebiótico o mejorar la textura y estabilidad. Se recomienda su disolución gradual en la fase acuosa de la formulación, manteniendo agitación constante para asegurar una dispersión homogénea. La incorporación puede realizarse a temperaturas desde ambiente hasta 70°C, facilitando la solubilización sin afectar su integridad funcional."
                 ]
               }
             ],
             "identidad": [
               [
                 "NOMBRE DEL PRODUCTO",
-                "Inulina"
+                "INULINA"
+              ],
+              [
+                "REFERENCIA SIIGO",
+                "INUg"
+              ],
+              [
+                "SINÓNIMOS",
+                "Fructano; Polisacárido de fructosa con enlaces β-(2→1) y unidad de glucosa terminal; E 184; Prebiótico soluble; Fibra alimentaria"
               ],
               [
                 "CAS #",
                 "9005-80-5"
               ],
               [
-                "NOMBRE IUPAC",
-                "Inulina"
-              ],
-              [
-                "EINECS",
-                "232-684-3"
-              ],
-              [
                 "FECHA DE REVISIÓN",
-                "05 08 2024"
+                "24 06 2026"
               ]
             ],
             "propiedades": [
               [
                 "Apariencia",
-                "Blanco, Similar al almidón, \nSin impurezas a la vista"
+                "La ficha técnica interna proporcionada no especifica la apariencia física de la inulina (estado, color, textura, forma)."
               ],
               [
-                "Solubilidad en agua",
-                "Forma geles"
+                "pH",
+                "5.0-7.0 en sol. 10%"
               ],
               [
-                "Carbohidratos totales  (base seca), %",
-                "≥ 99.5"
+                "Olor",
+                "Inodoro."
               ],
               [
-                "Contenido de   Inulina (base seca), %",
-                "≥ 95"
+                "Sabor",
+                "Ligeramente dulce."
               ],
               [
-                "Azúcares totales (Sacarosa + Glucosa + Fructosa)",
-                "≤ 10"
+                "Solubilidad",
+                "La inulina es soluble en agua caliente, utilizada para su extracción, y prácticamente insoluble en solventes orgánicos."
               ],
               [
-                "Humedad, %",
-                "≤ 5.0"
+                "Efecto prebiótico",
+                "Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus."
               ],
               [
-                "Arsénico (As), mg/kg",
-                "≤ 0.5"
+                "Resistencia natural",
+                "Tiene un impacto positivo en la resistencia natural de nuestro cuerpo."
               ],
               [
-                "Plomo (Pb), mg/kg",
-                "≤ 0.5"
+                "Tránsito intestinal",
+                "Contribuye a tener un tránsito intestinal regular y suave."
+              ],
+              [
+                "Absorción de nutrientes",
+                "Mejora la absorción de importantes nutrientes como calcio."
+              ],
+              [
+                "Reducción riesgo cáncer intestinal",
+                "Incluso podría reducir el riesgo de cáncer intestinal."
+              ],
+              [
+                "Salud digestiva",
+                "Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona."
+              ],
+              [
+                "Reducción colesterol",
+                "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos."
+              ],
+              [
+                "Sabor neutro",
+                "No modifica el sabor original de los alimentos."
+              ],
+              [
+                "Bajo valor calórico",
+                "Es amigable para diabéticos."
               ]
             ],
             "microbiologia": [
               [
-                "Propiedades",
-                "Estándar"
+                "Contenido de materia seca",
+                "95,0 - 99,0 %",
+                "97,9 %"
               ],
               [
-                "Bacterias totales, /g",
-                "≤ 1000"
+                "pH",
+                "5,0 - 7,0",
+                "6,8"
               ],
               [
-                "Coliformes, MPN/g",
-                "≤ 3.6"
+                "Inulina",
+                "≥ 90 %",
+                "92 %"
               ],
               [
-                "Hongos, cfu/g",
-                "≤ 50"
+                "Fructosa, glucosa, sacarosa",
+                "≤ 10 %",
+                "8 %"
               ],
               [
-                "Patógenos",
-                "Negativo"
+                "Longitud media de cadena",
+                "8 - 13",
+                "12"
+              ],
+              [
+                "Cenizas",
+                "≤ 0,2 %",
+                "< 0,2 %"
+              ],
+              [
+                "Recuento aerobio en placa (30°C)",
+                "≤ 1000 CFU/g",
+                "< 100 CFU/g"
+              ],
+              [
+                "Recuento aerobio en placa (55°C)",
+                "≤ 1000 CFU/g (a 55°C)",
+                "< 100 CFU/g"
+              ],
+              [
+                "Levaduras",
+                "≤ 20 CFU/g",
+                "< 10 CFU/g"
+              ],
+              [
+                "Mohos",
+                "≤ 20 CFU/g",
+                "< 10 CFU/g"
+              ],
+              [
+                "Bacillus cereus",
+                "≤ 100 CFU/g",
+                "< 100 CFU/g"
+              ],
+              [
+                "Listeria monocytogenes/25g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Enterobacteriaceae/g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Staphylococcus aureus/g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Salmonella/400g",
+                "No detectado",
+                "No detectado"
+              ],
+              [
+                "Fecha de producción",
+                "",
+                "01/10/2025"
+              ],
+              [
+                "Fecha de caducidad",
+                "",
+                "01/10/2030"
               ]
             ]
           },
@@ -14465,8 +14787,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_627105-MCO72579221358_112023-O.jpg",
-          "meli_id": "MCO592968863",
+          "photo": "https://http2.mlstatic.com/D_619181-MCO89014936511_072025-O.jpg",
+          "meli_id": "MCO894908184",
           "cat": "Conservantes",
           "cat_color": "#143D36",
           "desc": "",
@@ -14577,8 +14899,8 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "family",
-          "photo_match_score": 95.0,
+          "photo_match_type": "sku",
+          "photo_match_score": 100.0,
           "family_slug": "c-sha705500ml"
         },
         {
@@ -16663,8 +16985,8 @@
           "envio_gratis_web": true,
           "envio_referencia": 18000,
           "precio_canal_label": "Directo web",
-          "photo": "https://http2.mlstatic.com/D_920236-MCO82399910621_022025-O.jpg",
-          "meli_id": "MCO607692469",
+          "photo": "",
+          "meli_id": "",
           "cat": "Principios Activos",
           "cat_color": "#1E5C51",
           "desc": "",
@@ -16672,8 +16994,6 @@
           "solo_vitrina": false,
           "buyable": true,
           "is_combo": true,
-          "photo_match_type": "name",
-          "photo_match_score": 100.0,
           "family_slug": "c-embpat30m"
         },
         {
@@ -22796,154 +23116,108 @@
       "cat_color": "#4DB3A0",
       "desc": "",
       "ficha": {
-        "titulo": "GLICERINA",
-        "descripcion": "La glicerina (glicerol) se encuentra en todos los tipos de aceites, así como en grasas animales o vegetales, siempre y cuando éstas estén asociadas a otros ácidos grasos, como puede ser, el oleico o esteárico. Es considerada un edulcorante y humectante.",
+        "titulo": "GLICERINA VEGETAL",
+        "descripcion": "La Glicerina Vegetal, o Glicerol, es un polialcohol trihídrico obtenido exclusivamente a partir de la hidrólisis de triglicéridos de origen vegetal. Su modo de obtención principal es como co-producto durante la transesterificación de aceites (palma, soja, colza) para la producción de biodiésel, o mediante el proceso de saponificación en la industria jabonera. Químicamente, el proceso consiste en la escisión de las moléculas de grasa, lo que libera el esqueleto de glicerol de las cadenas de ácidos grasos. El glicerol crudo resultante se somete a un riguroso proceso de refinamiento y purificación, principalmente por destilación fraccionada al vacío, para alcanzar la alta pureza exigida por los estándares farmacopeicos y cosméticos.",
         "secciones": [
+          {
+            "titulo": "BENEFICIOS",
+            "items": [
+              "Humectante: Atrae y retiene la humedad en la piel y el cabello.",
+              "Hidratante: Incrementa el contenido de agua en las capas superficiales de la piel.",
+              "Antiinflamatorio: Reduce la inflamación y la irritación cutánea.",
+              "Emoliente: Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas.",
+              "Acondicionador capilar: Previene la sequedad y la rotura de la fibra capilar.",
+              "Edulcorante: Proporciona un sabor dulce en formulaciones de uso oral.",
+              "Grado Farmacéutico USP: Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
+            ]
+          },
           {
             "titulo": "APLICACIONES",
             "items": [
-              "Hidratación de la piel: Es un humectante natural que puede ayudar a retener la humedad en la piel, lo que la convierte en un ingrediente común en muchos productos para el cuidado de la piel, como cremas hidratantes, lociones y jabones.",
-              "Propiedades antiinflamatorias: Tiene propiedades antiinflamatorias que pueden ayudar a reducir la inflamación y la irritación de la piel.",
-              "Mejora de la apariencia de la piel:  Suaviza las líneas finas y las arrugas, así como reduce la apariencia de la piel seca y escamosa.",
-              "Propiedades humectantes para el cabello: Ayuda a retener la humedad y prevenir la sequedad y la rotura del cabello.",
-              "Uso en productos alimentarios: Edulcorante y humectante en algunos alimentos y productos alimenticios, como dulces, productos horneados y bebidas."
+              "Agente humectante para retener la humedad en la piel en cremas, lociones y jabones.",
+              "Activo con propiedades antiinflamatorias para reducir la irritación cutánea.",
+              "Ingrediente para el suavizado de líneas finas y arrugas.",
+              "Acondicionador para reducir la apariencia de la piel seca y escamosa.",
+              "Humectante en formulaciones capilares para prevenir la sequedad y la rotura.",
+              "Excipiente edulcorante y humectante en preparaciones farmacéuticas de grado USP."
             ]
           },
           {
-            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+            "titulo": "MODO DE USO",
             "items": [
-              "Nota: El producto cumple con el estándar USP."
-            ]
-          },
-          {
-            "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-            "items": [
-              "Se recomienda guardar en envases bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+              "La Glicerina Vegetal USP se incorpora en la fase acuosa de la formulación en concentraciones que oscilan entre el 2% y 10%, dependiendo del nivel de humectación deseado. Se debe disolver junto con los demás ingredientes hidrosolubles, calentando esta fase a una temperatura aproximada de 70-75 °C. Su adición se realiza antes del proceso de emulsificación para asegurar una dispersión homogénea y maximizar su eficacia como agente higroscópico en el producto terminado."
             ]
           }
         ],
         "identidad": [
           [
             "NOMBRE DEL PRODUCTO",
-            "Glicerina  Vegetal USP"
+            "GLICERINA VEGETAL"
+          ],
+          [
+            "SINÓNIMOS",
+            "Glicerol; Propan-1,2,3-triol; Glycerin; E422; Trihidroxipropano."
           ],
           [
             "CAS #",
             "56-81-5"
           ],
           [
-            "FÓRMULA MOLECULAR",
-            "C3H8O3"
-          ],
-          [
-            "NOMBRE IUPAC",
-            "Glicerol. Alcohol glicérico. Propano-1,2,3-triol"
-          ],
-          [
-            "ADITIVO ALIMENTARIO",
-            "E-422"
-          ],
-          [
             "FECHA DE REVISIÓN",
-            "19 07 2024"
+            "24 06 2026"
           ]
         ],
         "propiedades": [
           [
             "Apariencia",
-            "Liquido siruposo  trasparente"
+            "Líquido siroposo, límpido e incoloro."
           ],
           [
-            "Identificación B",
-            "0.003%"
+            "Punto de fusión",
+            "17.9 °C"
           ],
           [
-            "Identificación B",
-            "0.011%"
+            "pH",
+            "5.0-8.0 en solución acuosa al 10%."
           ],
           [
-            "Identificación C \nPor  cromatografía de gases",
-            "Cumple"
+            "Olor",
+            "Olor característico muy tenue y ligeramente dulce, siendo prácticamente inodoro en grados de alta pureza."
           ],
           [
-            "Color",
-            "Cumple"
+            "Fórmula química",
+            "C3H8O3"
           ],
           [
-            "Gravedad específica",
-            "Cumple"
+            "Humectante",
+            "Atrae y retiene la humedad en la piel y el cabello."
           ],
           [
-            "Contenido de agua",
-            "0.6 %"
+            "Hidratante",
+            "Incrementa el contenido de agua en las capas superficiales de la piel."
           ],
           [
-            "Contenido de glicerol",
-            "99.72%"
+            "Antiinflamatorio",
+            "Reduce la inflamación y la irritación cutánea."
           ],
           [
-            "Contenido de metanol",
-            "< 10 mg/kg"
+            "Emoliente",
+            "Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas."
           ],
           [
-            "Contenido de sulfatos",
-            "Cumple"
+            "Acondicionador capilar",
+            "Previene la sequedad y la rotura de la fibra capilar."
           ],
           [
-            "Ácido grasos  y ésteres",
-            "0.3 mL"
+            "Edulcorante",
+            "Proporciona un sabor dulce en formulaciones de uso oral."
           ],
           [
-            "Límite de compuestos clorados",
-            "Cumple"
-          ],
-          [
-            "Residuo por  incineración",
-            "0.002%"
-          ],
-          [
-            "Metales pesados",
-            "Cumple"
-          ],
-          [
-            "Compuestos  relacionados",
-            "Cumple"
-          ],
-          [
-            "Compuestos  relacionados",
-            "Cumple"
-          ],
-          [
-            "Solubilidad",
-            "Miscible"
-          ],
-          [
-            "Solubilidad",
-            "Miscible"
-          ],
-          [
-            "Solubilidad",
-            "Insoluble"
+            "Grado Farmacéutico USP",
+            "Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
           ]
         ],
-        "microbiologia": [
-          [
-            "Mesofilos Aerobios",
-            "Max. 1.000 UFC/mL"
-          ],
-          [
-            "Hongos  y levaduras",
-            "Max. 1.000 UFC/mL"
-          ],
-          [
-            "E. Colí",
-            "Negativo"
-          ],
-          [
-            "Salmonella",
-            "Negativo/ 25 mL"
-          ]
-        ]
+        "microbiologia": []
       },
       "solo_vitrina": false,
       "buyable": true,
@@ -23098,8 +23372,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_627105-MCO72579221358_112023-O.jpg",
-      "meli_id": "MCO592968863",
+      "photo": "https://http2.mlstatic.com/D_619181-MCO89014936511_072025-O.jpg",
+      "meli_id": "MCO894908184",
       "cat": "Conservantes",
       "cat_color": "#143D36",
       "desc": "",
@@ -23210,8 +23484,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "family",
-      "photo_match_score": 95.0,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-sha705500ml"
     },
     {
@@ -27283,8 +27557,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_915191-MLA70719119779_072023-O.jpg",
-      "meli_id": "MCO576064483",
+      "photo": "https://http2.mlstatic.com/D_905398-MCO109955043942_042026-O.jpg",
+      "meli_id": "MCO572516617",
       "cat": "Ceras y Mantecas",
       "cat_color": "#3A9E8C",
       "desc": "",
@@ -27373,8 +27647,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "family",
-      "photo_match_score": 95.0,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-mankarama250g"
     },
     {
@@ -27590,8 +27864,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_920236-MCO82399910621_022025-O.jpg",
-      "meli_id": "MCO607692469",
+      "photo": "",
+      "meli_id": "",
       "cat": "Principios Activos",
       "cat_color": "#1E5C51",
       "desc": "",
@@ -27599,8 +27873,6 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "name",
-      "photo_match_score": 100.0,
       "family_slug": "c-embpat30m"
     },
     {
@@ -30643,73 +30915,108 @@
       "cat_color": "#1E5C51",
       "desc": "",
       "ficha": {
-        "titulo": "ACEITE DE ARGÁN",
-        "descripcion": "Aceite vegetal obtenido a partir de las semillas de la planta Argania Spinoza. Es conocido por su alto contenido de ácidos grasos esenciales, vitamina E y antioxidantes, lo que le confiere propiedades hidratantes, regeneradoras y rejuvenecedoras para la piel y el cabello. Su concentración del 99% garantiza una pureza y eficacia excepcionales. Se utiliza comúnmente para hidratar, suavizar y nutrir la piel, reducir las arrugas y las líneas de expresión, fortalecer el cabello y protegerlo de los daños causados ​​por el calor y los químicos.",
+        "titulo": "ACEITE DE ARGAN",
+        "descripcion": "",
         "secciones": [
           {
-            "titulo": "APLICACIONES",
+            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
             "items": [
-              "En productos de cuidado de la piel, como cremas hidratantes, lociones, sueros y bálsamos labiales. Se aplica en la piel para hidratar, suavizar y proteger contra el envejecimiento prematuro y los daños causados por los radicales libres.",
-              "Es un ingrediente común en productos para el cuidado del cabello, como acondicionadores, mascarillas y aceites capilares. Se utiliza para mejorar la hidratación, reducir el encrespamiento, aumentar el brillo y fortalecer el cabello.",
-              "Puede aplicarse para fortalecer las uñas y suavizar las cutículas.",
-              "Ayuda a mejorar la apariencia de cicatrices y estrías en la piel.",
-              "Posee propiedades antiinflamatorias y puede ser útil para calmar la piel irritada o con problemas como el acné, la psoriasis o el eccema.",
-              "Como acondicionador para su barba, manteniéndola suave e hidratada."
+              "Nota: El producto cumple con el estándar USP."
             ]
           },
           {
-            "titulo": "RECOMENDACIONES",
+            "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
             "items": [
-              "Generalmente se requiere solo una pequeña cantidad para obtener resultados. Antes de usarlo ampliamente, realiza una prueba de parche en una pequeña área de la piel para verificar que no tengas reacciones alérgicas o sensibilidades.",
-              "Materia prima para ser conservada en condiciones normales y según las recomendaciones del fabricante hasta por 24 meses después de abierto."
+              "Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
             ]
           }
         ],
         "identidad": [
           [
             "NOMBRE DEL PRODUCTO",
-            "Aceite de argán."
-          ],
-          [
-            "NOMBRE IUPAC",
-            "(2R,3R)-2,3-seco-10-trideceno-1,7,11-triyltris(oxy)-1,3,4,7,10,14-hexamethyl-2,3,4,5,6,7,8,9,11,12,13,14,15,16-tetradecahydrocyclopenta[a]phenanthrene-2,3-diol"
+            "aceite de argan"
           ],
           [
             "SINÓNIMOS",
-            "Oro líquido."
+            "Argania Spinosa Kernel Oil; Aceite de la semilla de Argania Spinoza"
           ],
           [
-            "# CAS",
+            "CAS #",
             "223747-87-3"
           ],
           [
             "FECHA DE REVISIÓN",
-            "20 07 24"
+            "20 06 2026"
           ]
         ],
         "propiedades": [
           [
             "Apariencia",
-            "Líquido ligero color dorado o amarillo claro."
+            "Polvo blanco fino crema amarillento."
           ],
           [
-            "Olor",
-            "Característico."
+            "Identificación",
+            "Identificación A (Aluminio USP 41) Un residuo gris (sílice impura) permanente en el filtro."
+          ],
+          [
+            "Perdida por Ignición",
+            "Max. 15%"
+          ],
+          [
+            "Hierro",
+            "Max. 0,005%"
+          ],
+          [
+            "Sustancias Insolubles en Ácido  Carbonato",
+            "Max 10 mg (2%) USP41\nSin efervescencia"
+          ],
+          [
+            "Granulometría",
+            "+53µm\t<0,1%\n+10µm\t5-1 0%\n-2µm\t40-50%"
+          ],
+          [
+            "Blancura (ISO)",
+            "78-85"
+          ],
+          [
+            "Sustancias Insolubles en Ácido",
+            "Max 10 mg (2%)"
+          ],
+          [
+            "Humedad",
+            "Max 2 %"
+          ],
+          [
+            "Solubilidad",
+            "Soluble en  alcohol, éter y agua."
           ],
           [
             "pH",
-            "No definido."
+            "2.1 – 2.6"
           ],
           [
-            "Punto de fusión",
-            "21- 23 °C."
-          ],
-          [
-            "Índice de saponificación",
-            "185 a 200 mg KOH/g."
+            "Impurezas orgánicas volátiles",
+            "Cumple"
           ]
         ],
-        "microbiologia": []
+        "microbiologia": [
+          [
+            "Mesofilos Aerobios",
+            "Max. 1.000 UFC/g"
+          ],
+          [
+            "Hongos  y levaduras",
+            "Max. 1.000 UFC/g"
+          ],
+          [
+            "E. Colí",
+            "Negativo"
+          ],
+          [
+            "Salmonella",
+            "Negativo/ 25 gr"
+          ]
+        ]
       },
       "solo_vitrina": false,
       "buyable": true,
@@ -30738,7 +31045,110 @@
       "cat": "Aceites",
       "cat_color": "#2E8B7A",
       "desc": "",
-      "ficha": null,
+      "ficha": {
+        "titulo": "ACEITE ARGAN",
+        "descripcion": "Aceite de origen vegetal extraído de las semillas del árbol *Argania spinosa*, endémico de Marruecos. Su obtención se realiza mediante un proceso mecánico de prensado en frío de las almendras contenidas en el fruto, lo que garantiza la preservación de sus componentes bioactivos. Físicamente, se presenta como un líquido oleoso, límpido, de coloración amarillo dorado y con un olor suave característico. Químicamente, se destaca por su alto contenido de ácidos grasos esenciales, principalmente ácido oleico y linoleico, además de tocoferoles (vitamina E) y otros compuestos antioxidantes. Esta materia prima, con una pureza del 99%, es valorada por sus propiedades regeneradoras e hidratantes en formulaciones cosméticas.",
+        "secciones": [
+          {
+            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+            "items": [
+              "Nota: El producto cumple con el estándar USP."
+            ]
+          },
+          {
+            "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
+            "items": [
+              "Se recomienda guardar en empaques bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+            ]
+          }
+        ],
+        "identidad": [
+          [
+            "NOMBRE DEL PRODUCTO",
+            "ACEITE ARGAN"
+          ],
+          [
+            "SINÓNIMOS",
+            "Argania Spinosa Kernel Oil\nArgan Oil\nAceite de Marruecos\nMoroccan Oil\nHuile d'Argan\nOro líquido de Marruecos\nLipofructyl Argan\nArgassential\nArgatensyl"
+          ],
+          [
+            "CAS #",
+            "223747-87-3"
+          ],
+          [
+            "FECHA DE REVISIÓN",
+            "20 06 2026"
+          ]
+        ],
+        "propiedades": [
+          [
+            "Apariencia",
+            "Polvo blanco fino crema amarillento."
+          ],
+          [
+            "Identificación",
+            "Identificación A (Aluminio USP 41) Un residuo gris (sílice impura) permanente en el filtro."
+          ],
+          [
+            "Perdida por Ignición",
+            "Max. 15%"
+          ],
+          [
+            "Hierro",
+            "Max. 0,005%"
+          ],
+          [
+            "Sustancias Insolubles en Ácido  Carbonato",
+            "Max 10 mg (2%) USP41\nSin efervescencia"
+          ],
+          [
+            "Granulometría",
+            "+53µm\t<0,1%\n+10µm\t5-1 0%\n-2µm\t40-50%"
+          ],
+          [
+            "Blancura (ISO)",
+            "78-85"
+          ],
+          [
+            "Sustancias Insolubles en Ácido",
+            "Max 10 mg (2%)"
+          ],
+          [
+            "Humedad",
+            "Max 2 %"
+          ],
+          [
+            "Solubilidad",
+            "Soluble en  alcohol, éter y agua."
+          ],
+          [
+            "pH",
+            "2.1 – 2.6"
+          ],
+          [
+            "Impurezas orgánicas volátiles",
+            "Cumple"
+          ]
+        ],
+        "microbiologia": [
+          [
+            "Mesofilos Aerobios",
+            "Max. 1.000 UFC/g"
+          ],
+          [
+            "Hongos  y levaduras",
+            "Max. 1.000 UFC/g"
+          ],
+          [
+            "E. Colí",
+            "Negativo"
+          ],
+          [
+            "Salmonella",
+            "Negativo/ 25 gr"
+          ]
+        ]
+      },
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
@@ -30767,77 +31177,144 @@
       "cat_color": "#1E5C51",
       "desc": "",
       "ficha": {
-        "titulo": "ACEITE ESENCIAL ROMERO",
-        "descripcion": "Aceite esencial obtenido por método de extracción por arrastre por vapor de la planta de Rosmarinus officinalis.",
+        "titulo": "ACETE ESENCIAL ROMERO",
+        "descripcion": "Aceite esencial obtenido de la especie botánica *Salvia rosmarinus* (sin. *Rosmarinus officinalis*), una planta aromática originaria de la región Mediterránea. El producto es el resultado de un proceso físico de destilación por arrastre de vapor de las sumidades floridas y hojas de la planta. Este método de extracción selectiva permite aislar y concentrar los metabolitos secundarios volátiles y termolábiles del material vegetal, preservando su integridad molecular. El aceite resultante es una mezcla fitoquímica compleja, no una sustancia sintetizada, cuyo perfil de componentes terpénicos, como 1,8-cineol, alcanfor y α-pineno, depende intrínsecamente del quimiotipo de la planta, las condiciones de cultivo y el proceso de extracción estandarizado.",
         "secciones": [
           {
             "titulo": "BENEFICIOS",
             "items": [
-              "Proporciona sabor y aroma a una amplia gama de productos, como alimentos procesados, bebidas y condimentos.",
-              "Es usado como conservante natural en productos cosméticos y de cuidado personal, así como en productos alimentarios, debido a sus propiedades antioxidantes que pueden ayudar a prolongar la vida útil de los productos.",
-              "Contiene compuestos antioxidantes que pueden ayudar a proteger contra el daño oxidativo causado por los radicales libres, lo que lo convierte en una opción popular en la formulación de productos de cuidado de la piel y suplementos.",
-              "Alivia molestias relacionadas con la inflamación.",
-              "Posee efectos estimulantes y revitalizantes. Por lo tanto, se utiliza en productos como aromaterapia, perfumería y productos para el baño.",
-              "Promueve el crecimiento del cabello y fortalecimiento capilar."
+              "Antimicrobiano: Inhibe el crecimiento de microorganismos patógenos en la piel y el cuero cabelludo.",
+              "Antioxidante: Protege las células del daño oxidativo causado por radicales libres.",
+              "Antiinflamatorio: Reduce la inflamación y el enrojecimiento en afecciones cutáneas.",
+              "Estimulante circulatorio: Mejora el flujo sanguíneo localizado, promoviendo la nutrición de folículos pilosos.",
+              "Astringente: Tonifica la piel y minimiza la apariencia de los poros.",
+              "Cicatrizante: Favorece la regeneración de los tejidos y la curación de heridas menores.",
+              "Seborregulador: Equilibra la producción de sebo en pieles y cueros cabelludos grasos.",
+              "Rubefaciente: Produce una sensación de calor local que alivia dolores musculares y reumáticos.",
+              "Tónico capilar: Fortalece el cabello desde la raíz y previene su caída.",
+              "Descongestionante venoso: Activa la circulación y alivia la sensación de piernas cansadas."
+            ]
+          },
+          {
+            "titulo": "APLICACIONES",
+            "items": [
+              "Tónico estimulante del folículo piloso.",
+              "Coadyuvante en tratamientos para alopecia androgénica.",
+              "Agente seborregulador y anticaspa en champús.",
+              "Astringente en formulaciones para pieles grasas y acneicas.",
+              "Activo antioxidante en productos de cuidado facial antiedad.",
+              "Agente rubefaciente y analgésico tópico para dolor muscular y articular.",
+              "Antimicrobiano y antiséptico en preparaciones dérmicas.",
+              "Estimulante de la microcirculación cutánea en tratamientos anticelulíticos.",
+              "Componente fragante en perfumería y productos de higiene.",
+              "Activo en aromaterapia para la mejora de la función cognitiva.",
+              "Expectorante en bálsamos y soluciones para inhalación.",
+              "Conservante natural en sistemas de emulsión por su actividad antioxidante."
+            ]
+          },
+          {
+            "titulo": "MODO DE USO",
+            "items": [
+              "El Aceite Esencial de Romero se incorpora en la fase oleosa o en la fase final de la formulación en concentraciones típicas del 0.1% al 1.5%. Para preservar la integridad de sus componentes volátiles y termolábiles, debe ser adicionado durante la etapa de enfriamiento, a una temperatura inferior a 40 °C. Se recomienda su adición como uno de los últimos componentes del proceso, posterior a la formación de la emulsión, junto a otros activos o fragancias."
             ]
           },
           {
             "titulo": "RECOMENDACIONES",
             "items": [
-              "Generalmente se requiere solo una pequeña cantidad para obtener resultados. Antes de usarlo ampliamente, realice una prueba de parche en una pequeña área de la piel para verificar reacciones alérgicas o sensibilidades.",
-              "Siempre diluya el aceite esencial de romero en un aceite portador (como aceite de coco, almendra dulce o jojoba) antes de su uso. Una proporción típica es de 2-3 gotas de aceite esencial por cucharada de aceite portador.",
-              "Se considera seguro ingerir aceite esencial de romero, generalmente se recomienda diluirlo en una cantidad adecuada de aceite portador comestible, como aceite de coco o aceite de oliva. La proporción suele ser muy baja, con solo una gota o menos de aceite esencial en una cucharadita de aceite portador."
-            ]
-          },
-          {
-            "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-            "items": [
-              "Mantenga el envase bien cerrado, en un lugar fresco y seco. Su vida útil es de hasta 24 meses después de abierto, controle su calidad periódicamente."
+              "SEÑAL DE PELIGRO: Peligro\nINDICACIONES H: H226: Líquido y vapores inflamables. H304: Puede ser mortal en caso de ingestión y penetración en las vías respiratorias. H315: Provoca irritación cutánea. H317: Puede provocar una reacción alérgica en la piel. H319: Provoca irritación ocular grave. H411: Tóxico para los organismos acuáticos, con efectos nocivos duraderos.\nPREVENCIÓN: P210: Mantener alejado del calor, superficies calientes, chispas, llamas abiertas y otras fuentes de ignición. No fumar. P273: Evitar su liberación al medio ambiente. P280: Usar guantes de protección, ropa de protección y equipo de protección para los ojos/la cara.\nRESPUESTA: P301+P310+P331: EN CASO DE INGESTIÓN: Llamar inmediatamente a un CENTRO DE TOXICOLOGÍA o a un médico. NO provocar el vómito. P302+P352: EN CASO DE CONTACTO CON LA PIEL: Lavar con abundante agua y jabón. P305+P351+P338: EN CASO DE CONTACTO CON LOS OJOS: Enjuagar con agua cuidadosamente durante varios minutos. Quitar las lentes de contacto cuando estén presentes y pueda hacerse con facilidad. Proseguir con el lavado. P391: Recoger el vertido.\nALMACENAMIENTO: P403+P235: Almacenar en un lugar bien ventilado. Mantener en lugar fresco. P405: Guardar bajo llave. Mantener el EMPAQUE original herméticamente cerrado.\nELIMINACIÓN: P501: Eliminar el contenido y el EMPAQUE a través de un gestor de residuos autorizado, conforme a la normativa vigente.\nPRIMEROS AUXILIOS: Inhalación: Trasladar a la persona al aire libre y mantenerla en una posición que le facilite la respiración. / Contacto piel: Quitar la ropa contaminada. Lavar la zona afectada con abundante agua y jabón. Si se produce irritación o erupción, consultar a un médico. / Contacto ocular: Enjuagar cuidadosamente con agua durante varios minutos. Consultar a un médico si persiste la irritación. / Ingestión: No inducir el vómito. Buscar atención médica inmediata.\nEPP REQUERIDO: Gafas de seguridad con protección lateral, guantes de protección de nitrilo, vestuario de protección adecuado y protección respiratoria para vapores orgánicos si la ventilación es insuficiente."
             ]
           }
         ],
         "identidad": [
           [
             "NOMBRE DEL PRODUCTO",
-            "Aceite esencial de romero"
+            "ACETE ESENCIAL ROMERO"
           ],
           [
-            "NOMBRE IUPAC",
-            "1,8-cineol 2-metil-5-(1-metiletil)ciclohexanol"
+            "REFERENCIA SIIGO",
+            "C-ACEIESENROM5mL"
           ],
           [
             "SINÓNIMOS",
-            "Aceite esencial de Rosmarinus officinalis."
+            "*Rosmarinus Officinalis Leaf Oil*; Oleum Rosmarini; E 392; Destilado por arrastre con vapor de las sumidades floridas de *Salvia rosmarinus*."
           ],
           [
-            "# CAS",
+            "CAS #",
             "8000-25-7"
           ],
           [
             "FECHA DE REVISIÓN",
-            "17 08 24"
+            "23 06 2026"
+          ],
+          [
+            "Aceite esencial romero",
+            "99%"
           ]
         ],
         "propiedades": [
           [
             "Apariencia",
-            "Líquido ligero amarillo pálido."
+            "Líquido oleoso, fluido y límpido, de color incoloro a amarillo pálido."
           ],
           [
-            "Olor",
-            "Herbal especiado."
-          ],
-          [
-            "pH",
-            "No definido."
-          ],
-          [
-            "Punto de ebullición",
-            "165 °C."
+            "Punto de fusión",
+            "No aplica; es un líquido a temperatura ambiente."
           ],
           [
             "Índice de saponificación",
             "No aplica."
+          ],
+          [
+            "pH",
+            "No aplica (N/A) por ser una sustancia oleosa e inmiscible en agua."
+          ],
+          [
+            "Olor",
+            "Aroma penetrante, herbáceo y canforáceo con un fondo balsámico y amaderado. PubChem: sin datos"
+          ],
+          [
+            "Solubilidad",
+            "El aceite esencial de romero es inmiscible en agua, pero presenta alta solubilidad en solventes orgánicos de baja polaridad, como alcoholes (etanol), aceites fijos, ésteres y éteres."
+          ],
+          [
+            "Antimicrobiano",
+            "Inhibe el crecimiento de microorganismos patógenos en la piel y el cuero cabelludo."
+          ],
+          [
+            "Antioxidante",
+            "Protege las células del daño oxidativo causado por radicales libres."
+          ],
+          [
+            "Antiinflamatorio",
+            "Reduce la inflamación y el enrojecimiento en afecciones cutáneas."
+          ],
+          [
+            "Estimulante circulatorio",
+            "Mejora el flujo sanguíneo localizado, promoviendo la nutrición de folículos pilosos."
+          ],
+          [
+            "Astringente",
+            "Tonifica la piel y minimiza la apariencia de los poros."
+          ],
+          [
+            "Cicatrizante",
+            "Favorece la regeneración de los tejidos y la curación de heridas menores."
+          ],
+          [
+            "Seborregulador",
+            "Equilibra la producción de sebo en pieles y cueros cabelludos grasos."
+          ],
+          [
+            "Rubefaciente",
+            "Produce una sensación de calor local que alivia dolores musculares y reumáticos."
+          ],
+          [
+            "Tónico capilar",
+            "Fortalece el cabello desde la raíz y previene su caída."
+          ],
+          [
+            "Descongestionante venoso",
+            "Activa la circulación y alivia la sensación de piernas cansadas."
           ]
         ],
         "microbiologia": []
@@ -31816,8 +32293,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_731027-MCO82274982924_022025-O.jpg",
-      "meli_id": "MCO845634553",
+      "photo": "https://http2.mlstatic.com/D_918077-MCO89918422301_082025-O.jpg",
+      "meli_id": "MCO591316612",
       "cat": "Arcillas",
       "cat_color": "#6B8F71",
       "desc": "",
@@ -31825,8 +32302,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "name",
-      "photo_match_score": 84.2,
+      "photo_match_type": "sku",
+      "photo_match_score": 100.0,
       "family_slug": "c-caocarckg"
     },
     {
@@ -33870,8 +34347,8 @@
       "envio_gratis_web": true,
       "envio_referencia": 18000,
       "precio_canal_label": "Directo web",
-      "photo": "https://http2.mlstatic.com/D_964859-MCO93967351123_102025-O.jpg",
-      "meli_id": "MCO862397411",
+      "photo": "https://http2.mlstatic.com/D_820431-MCO93967590283_102025-O.jpg",
+      "meli_id": "MCO862333529",
       "cat": "Suplementarios",
       "cat_color": "#2E8B7A",
       "desc": "",
@@ -33993,8 +34470,8 @@
       "solo_vitrina": false,
       "buyable": true,
       "is_combo": true,
-      "photo_match_type": "sku",
-      "photo_match_score": 100.0,
+      "photo_match_type": "family",
+      "photo_match_score": 95.0,
       "family_slug": "c-cremon250g"
     },
     {
@@ -34022,112 +34499,197 @@
         "descripcion": "Es el nombre con el que se designa a una familia de glúcidos complejos (polisacáridos), compuestos de cadenas moleculares de fructosa. Es, por lo tanto, un fructosano o fructano, que se concentra o almacena en el tejido fino de planta, generalmente raíces y rizomas contiene las concentraciones más grandes. La inulina es un ingrediente alimenticio natural obtenido de la raíz de la achicoria, que también está presente en otros vegetales como ajo, cebolla, porro, alcachofa, trigo e incluso plátano. Se extrae de la raíz de la achicoria mediante agua caliente, para ser fácilmente añadida en nuestra dieta diaria.",
         "secciones": [
           {
+            "titulo": "BENEFICIOS",
+            "items": [
+              "Efecto prebiótico: Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus.",
+              "Resistencia natural: Tiene un impacto positivo en la resistencia natural de nuestro cuerpo.",
+              "Tránsito intestinal: Contribuye a tener un tránsito intestinal regular y suave.",
+              "Absorción de nutrientes: Mejora la absorción de importantes nutrientes como calcio.",
+              "Reducción riesgo cáncer intestinal: Incluso podría reducir el riesgo de cáncer intestinal.",
+              "Salud digestiva: Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
+              "Reducción colesterol: Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos.",
+              "Sabor neutro: No modifica el sabor original de los alimentos.",
+              "Bajo valor calórico: Es amigable para diabéticos."
+            ]
+          },
+          {
             "titulo": "APLICACIONES",
             "items": [
-              "Tiene un sabor neutro. Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
+              "Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
             ]
           },
           {
-            "titulo": "PROPIEDADES",
+            "titulo": "MODO DE USO",
             "items": [
-              "La inulina alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus. Esto es lo que se llama efecto prebiótico. Tiene un impacto positivo en la resistencia natural de nuestro cuerpo. La inulina también contribuye a tener un tránsito intestinal regular y suave. Mejora la absorción de importantes nutrientes como calcio e incluso podría reducir el riesgo de cáncer intestinal. Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
-              "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos. Por ser neutra no modifica el sabor original de los alimentos.",
-              "Posee un bajo valor calórico, por lo que es amigable para diabéticos."
-            ]
-          },
-          {
-            "titulo": "RECOMENDACIONES",
-            "items": [
-              "Puede causar reacción alérgica o problemas digestivos.",
-              "Puede alterar los niveles de azúcar en la sangre.",
-              "Mantenga fuera del alcance de los niños.",
-              "Una vez abierto el producto, no se acepta su devolución.",
-              "Almacene el empaque bien cerrado en un lugar fresco, seco y protegido de la luz. Superados los 24 meses de almacenamiento, se deberá controlar la calidad antes de usar."
-            ]
-          },
-          {
-            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-            "items": [
-              "Nota: El producto cumple con el estándar USP."
+              "La inulina se incorpora en formulaciones farmacéuticas y cosméticas en concentraciones típicas del 1% al 10% para potenciar su efecto prebiótico o mejorar la textura y estabilidad. Se recomienda su disolución gradual en la fase acuosa de la formulación, manteniendo agitación constante para asegurar una dispersión homogénea. La incorporación puede realizarse a temperaturas desde ambiente hasta 70°C, facilitando la solubilización sin afectar su integridad funcional."
             ]
           }
         ],
         "identidad": [
           [
             "NOMBRE DEL PRODUCTO",
-            "Inulina"
+            "INULINA"
+          ],
+          [
+            "REFERENCIA SIIGO",
+            "INUg"
+          ],
+          [
+            "SINÓNIMOS",
+            "Fructano; Polisacárido de fructosa con enlaces β-(2→1) y unidad de glucosa terminal; E 184; Prebiótico soluble; Fibra alimentaria"
           ],
           [
             "CAS #",
             "9005-80-5"
           ],
           [
-            "NOMBRE IUPAC",
-            "Inulina"
-          ],
-          [
-            "EINECS",
-            "232-684-3"
-          ],
-          [
             "FECHA DE REVISIÓN",
-            "05 08 2024"
+            "24 06 2026"
           ]
         ],
         "propiedades": [
           [
             "Apariencia",
-            "Blanco, Similar al almidón, \nSin impurezas a la vista"
+            "La ficha técnica interna proporcionada no especifica la apariencia física de la inulina (estado, color, textura, forma)."
           ],
           [
-            "Solubilidad en agua",
-            "Forma geles"
+            "pH",
+            "5.0-7.0 en sol. 10%"
           ],
           [
-            "Carbohidratos totales  (base seca), %",
-            "≥ 99.5"
+            "Olor",
+            "Inodoro."
           ],
           [
-            "Contenido de   Inulina (base seca), %",
-            "≥ 95"
+            "Sabor",
+            "Ligeramente dulce."
           ],
           [
-            "Azúcares totales (Sacarosa + Glucosa + Fructosa)",
-            "≤ 10"
+            "Solubilidad",
+            "La inulina es soluble en agua caliente, utilizada para su extracción, y prácticamente insoluble en solventes orgánicos."
           ],
           [
-            "Humedad, %",
-            "≤ 5.0"
+            "Efecto prebiótico",
+            "Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus."
           ],
           [
-            "Arsénico (As), mg/kg",
-            "≤ 0.5"
+            "Resistencia natural",
+            "Tiene un impacto positivo en la resistencia natural de nuestro cuerpo."
           ],
           [
-            "Plomo (Pb), mg/kg",
-            "≤ 0.5"
+            "Tránsito intestinal",
+            "Contribuye a tener un tránsito intestinal regular y suave."
+          ],
+          [
+            "Absorción de nutrientes",
+            "Mejora la absorción de importantes nutrientes como calcio."
+          ],
+          [
+            "Reducción riesgo cáncer intestinal",
+            "Incluso podría reducir el riesgo de cáncer intestinal."
+          ],
+          [
+            "Salud digestiva",
+            "Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona."
+          ],
+          [
+            "Reducción colesterol",
+            "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos."
+          ],
+          [
+            "Sabor neutro",
+            "No modifica el sabor original de los alimentos."
+          ],
+          [
+            "Bajo valor calórico",
+            "Es amigable para diabéticos."
           ]
         ],
         "microbiologia": [
           [
-            "Propiedades",
-            "Estándar"
+            "Contenido de materia seca",
+            "95,0 - 99,0 %",
+            "97,9 %"
           ],
           [
-            "Bacterias totales, /g",
-            "≤ 1000"
+            "pH",
+            "5,0 - 7,0",
+            "6,8"
           ],
           [
-            "Coliformes, MPN/g",
-            "≤ 3.6"
+            "Inulina",
+            "≥ 90 %",
+            "92 %"
           ],
           [
-            "Hongos, cfu/g",
-            "≤ 50"
+            "Fructosa, glucosa, sacarosa",
+            "≤ 10 %",
+            "8 %"
           ],
           [
-            "Patógenos",
-            "Negativo"
+            "Longitud media de cadena",
+            "8 - 13",
+            "12"
+          ],
+          [
+            "Cenizas",
+            "≤ 0,2 %",
+            "< 0,2 %"
+          ],
+          [
+            "Recuento aerobio en placa (30°C)",
+            "≤ 1000 CFU/g",
+            "< 100 CFU/g"
+          ],
+          [
+            "Recuento aerobio en placa (55°C)",
+            "≤ 1000 CFU/g (a 55°C)",
+            "< 100 CFU/g"
+          ],
+          [
+            "Levaduras",
+            "≤ 20 CFU/g",
+            "< 10 CFU/g"
+          ],
+          [
+            "Mohos",
+            "≤ 20 CFU/g",
+            "< 10 CFU/g"
+          ],
+          [
+            "Bacillus cereus",
+            "≤ 100 CFU/g",
+            "< 100 CFU/g"
+          ],
+          [
+            "Listeria monocytogenes/25g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Enterobacteriaceae/g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Staphylococcus aureus/g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Salmonella/400g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Fecha de producción",
+            "",
+            "01/10/2025"
+          ],
+          [
+            "Fecha de caducidad",
+            "",
+            "01/10/2030"
           ]
         ]
       },
@@ -34163,112 +34725,197 @@
         "descripcion": "Es el nombre con el que se designa a una familia de glúcidos complejos (polisacáridos), compuestos de cadenas moleculares de fructosa. Es, por lo tanto, un fructosano o fructano, que se concentra o almacena en el tejido fino de planta, generalmente raíces y rizomas contiene las concentraciones más grandes. La inulina es un ingrediente alimenticio natural obtenido de la raíz de la achicoria, que también está presente en otros vegetales como ajo, cebolla, porro, alcachofa, trigo e incluso plátano. Se extrae de la raíz de la achicoria mediante agua caliente, para ser fácilmente añadida en nuestra dieta diaria.",
         "secciones": [
           {
+            "titulo": "BENEFICIOS",
+            "items": [
+              "Efecto prebiótico: Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus.",
+              "Resistencia natural: Tiene un impacto positivo en la resistencia natural de nuestro cuerpo.",
+              "Tránsito intestinal: Contribuye a tener un tránsito intestinal regular y suave.",
+              "Absorción de nutrientes: Mejora la absorción de importantes nutrientes como calcio.",
+              "Reducción riesgo cáncer intestinal: Incluso podría reducir el riesgo de cáncer intestinal.",
+              "Salud digestiva: Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
+              "Reducción colesterol: Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos.",
+              "Sabor neutro: No modifica el sabor original de los alimentos.",
+              "Bajo valor calórico: Es amigable para diabéticos."
+            ]
+          },
+          {
             "titulo": "APLICACIONES",
             "items": [
-              "Tiene un sabor neutro. Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
+              "Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
             ]
           },
           {
-            "titulo": "PROPIEDADES",
+            "titulo": "MODO DE USO",
             "items": [
-              "La inulina alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus. Esto es lo que se llama efecto prebiótico. Tiene un impacto positivo en la resistencia natural de nuestro cuerpo. La inulina también contribuye a tener un tránsito intestinal regular y suave. Mejora la absorción de importantes nutrientes como calcio e incluso podría reducir el riesgo de cáncer intestinal. Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
-              "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos. Por ser neutra no modifica el sabor original de los alimentos.",
-              "Posee un bajo valor calórico, por lo que es amigable para diabéticos."
-            ]
-          },
-          {
-            "titulo": "RECOMENDACIONES",
-            "items": [
-              "Puede causar reacción alérgica o problemas digestivos.",
-              "Puede alterar los niveles de azúcar en la sangre.",
-              "Mantenga fuera del alcance de los niños.",
-              "Una vez abierto el producto, no se acepta su devolución.",
-              "Almacene el empaque bien cerrado en un lugar fresco, seco y protegido de la luz. Superados los 24 meses de almacenamiento, se deberá controlar la calidad antes de usar."
-            ]
-          },
-          {
-            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-            "items": [
-              "Nota: El producto cumple con el estándar USP."
+              "La inulina se incorpora en formulaciones farmacéuticas y cosméticas en concentraciones típicas del 1% al 10% para potenciar su efecto prebiótico o mejorar la textura y estabilidad. Se recomienda su disolución gradual en la fase acuosa de la formulación, manteniendo agitación constante para asegurar una dispersión homogénea. La incorporación puede realizarse a temperaturas desde ambiente hasta 70°C, facilitando la solubilización sin afectar su integridad funcional."
             ]
           }
         ],
         "identidad": [
           [
             "NOMBRE DEL PRODUCTO",
-            "Inulina"
+            "INULINA"
+          ],
+          [
+            "REFERENCIA SIIGO",
+            "INUg"
+          ],
+          [
+            "SINÓNIMOS",
+            "Fructano; Polisacárido de fructosa con enlaces β-(2→1) y unidad de glucosa terminal; E 184; Prebiótico soluble; Fibra alimentaria"
           ],
           [
             "CAS #",
             "9005-80-5"
           ],
           [
-            "NOMBRE IUPAC",
-            "Inulina"
-          ],
-          [
-            "EINECS",
-            "232-684-3"
-          ],
-          [
             "FECHA DE REVISIÓN",
-            "05 08 2024"
+            "24 06 2026"
           ]
         ],
         "propiedades": [
           [
             "Apariencia",
-            "Blanco, Similar al almidón, \nSin impurezas a la vista"
+            "La ficha técnica interna proporcionada no especifica la apariencia física de la inulina (estado, color, textura, forma)."
           ],
           [
-            "Solubilidad en agua",
-            "Forma geles"
+            "pH",
+            "5.0-7.0 en sol. 10%"
           ],
           [
-            "Carbohidratos totales  (base seca), %",
-            "≥ 99.5"
+            "Olor",
+            "Inodoro."
           ],
           [
-            "Contenido de   Inulina (base seca), %",
-            "≥ 95"
+            "Sabor",
+            "Ligeramente dulce."
           ],
           [
-            "Azúcares totales (Sacarosa + Glucosa + Fructosa)",
-            "≤ 10"
+            "Solubilidad",
+            "La inulina es soluble en agua caliente, utilizada para su extracción, y prácticamente insoluble en solventes orgánicos."
           ],
           [
-            "Humedad, %",
-            "≤ 5.0"
+            "Efecto prebiótico",
+            "Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus."
           ],
           [
-            "Arsénico (As), mg/kg",
-            "≤ 0.5"
+            "Resistencia natural",
+            "Tiene un impacto positivo en la resistencia natural de nuestro cuerpo."
           ],
           [
-            "Plomo (Pb), mg/kg",
-            "≤ 0.5"
+            "Tránsito intestinal",
+            "Contribuye a tener un tránsito intestinal regular y suave."
+          ],
+          [
+            "Absorción de nutrientes",
+            "Mejora la absorción de importantes nutrientes como calcio."
+          ],
+          [
+            "Reducción riesgo cáncer intestinal",
+            "Incluso podría reducir el riesgo de cáncer intestinal."
+          ],
+          [
+            "Salud digestiva",
+            "Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona."
+          ],
+          [
+            "Reducción colesterol",
+            "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos."
+          ],
+          [
+            "Sabor neutro",
+            "No modifica el sabor original de los alimentos."
+          ],
+          [
+            "Bajo valor calórico",
+            "Es amigable para diabéticos."
           ]
         ],
         "microbiologia": [
           [
-            "Propiedades",
-            "Estándar"
+            "Contenido de materia seca",
+            "95,0 - 99,0 %",
+            "97,9 %"
           ],
           [
-            "Bacterias totales, /g",
-            "≤ 1000"
+            "pH",
+            "5,0 - 7,0",
+            "6,8"
           ],
           [
-            "Coliformes, MPN/g",
-            "≤ 3.6"
+            "Inulina",
+            "≥ 90 %",
+            "92 %"
           ],
           [
-            "Hongos, cfu/g",
-            "≤ 50"
+            "Fructosa, glucosa, sacarosa",
+            "≤ 10 %",
+            "8 %"
           ],
           [
-            "Patógenos",
-            "Negativo"
+            "Longitud media de cadena",
+            "8 - 13",
+            "12"
+          ],
+          [
+            "Cenizas",
+            "≤ 0,2 %",
+            "< 0,2 %"
+          ],
+          [
+            "Recuento aerobio en placa (30°C)",
+            "≤ 1000 CFU/g",
+            "< 100 CFU/g"
+          ],
+          [
+            "Recuento aerobio en placa (55°C)",
+            "≤ 1000 CFU/g (a 55°C)",
+            "< 100 CFU/g"
+          ],
+          [
+            "Levaduras",
+            "≤ 20 CFU/g",
+            "< 10 CFU/g"
+          ],
+          [
+            "Mohos",
+            "≤ 20 CFU/g",
+            "< 10 CFU/g"
+          ],
+          [
+            "Bacillus cereus",
+            "≤ 100 CFU/g",
+            "< 100 CFU/g"
+          ],
+          [
+            "Listeria monocytogenes/25g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Enterobacteriaceae/g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Staphylococcus aureus/g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Salmonella/400g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Fecha de producción",
+            "",
+            "01/10/2025"
+          ],
+          [
+            "Fecha de caducidad",
+            "",
+            "01/10/2030"
           ]
         ]
       },
@@ -34304,112 +34951,197 @@
         "descripcion": "Es el nombre con el que se designa a una familia de glúcidos complejos (polisacáridos), compuestos de cadenas moleculares de fructosa. Es, por lo tanto, un fructosano o fructano, que se concentra o almacena en el tejido fino de planta, generalmente raíces y rizomas contiene las concentraciones más grandes. La inulina es un ingrediente alimenticio natural obtenido de la raíz de la achicoria, que también está presente en otros vegetales como ajo, cebolla, porro, alcachofa, trigo e incluso plátano. Se extrae de la raíz de la achicoria mediante agua caliente, para ser fácilmente añadida en nuestra dieta diaria.",
         "secciones": [
           {
+            "titulo": "BENEFICIOS",
+            "items": [
+              "Efecto prebiótico: Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus.",
+              "Resistencia natural: Tiene un impacto positivo en la resistencia natural de nuestro cuerpo.",
+              "Tránsito intestinal: Contribuye a tener un tránsito intestinal regular y suave.",
+              "Absorción de nutrientes: Mejora la absorción de importantes nutrientes como calcio.",
+              "Reducción riesgo cáncer intestinal: Incluso podría reducir el riesgo de cáncer intestinal.",
+              "Salud digestiva: Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
+              "Reducción colesterol: Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos.",
+              "Sabor neutro: No modifica el sabor original de los alimentos.",
+              "Bajo valor calórico: Es amigable para diabéticos."
+            ]
+          },
+          {
             "titulo": "APLICACIONES",
             "items": [
-              "Tiene un sabor neutro. Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
+              "Mejora la textura, sensación y estabilidad de una gran variedad de alimentos, como lácteos, productos horneados, cereales, productos cárnicos, entre otros."
             ]
           },
           {
-            "titulo": "PROPIEDADES",
+            "titulo": "MODO DE USO",
             "items": [
-              "La inulina alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus. Esto es lo que se llama efecto prebiótico. Tiene un impacto positivo en la resistencia natural de nuestro cuerpo. La inulina también contribuye a tener un tránsito intestinal regular y suave. Mejora la absorción de importantes nutrientes como calcio e incluso podría reducir el riesgo de cáncer intestinal. Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona.",
-              "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos. Por ser neutra no modifica el sabor original de los alimentos.",
-              "Posee un bajo valor calórico, por lo que es amigable para diabéticos."
-            ]
-          },
-          {
-            "titulo": "RECOMENDACIONES",
-            "items": [
-              "Puede causar reacción alérgica o problemas digestivos.",
-              "Puede alterar los niveles de azúcar en la sangre.",
-              "Mantenga fuera del alcance de los niños.",
-              "Una vez abierto el producto, no se acepta su devolución.",
-              "Almacene el empaque bien cerrado en un lugar fresco, seco y protegido de la luz. Superados los 24 meses de almacenamiento, se deberá controlar la calidad antes de usar."
-            ]
-          },
-          {
-            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
-            "items": [
-              "Nota: El producto cumple con el estándar USP."
+              "La inulina se incorpora en formulaciones farmacéuticas y cosméticas en concentraciones típicas del 1% al 10% para potenciar su efecto prebiótico o mejorar la textura y estabilidad. Se recomienda su disolución gradual en la fase acuosa de la formulación, manteniendo agitación constante para asegurar una dispersión homogénea. La incorporación puede realizarse a temperaturas desde ambiente hasta 70°C, facilitando la solubilización sin afectar su integridad funcional."
             ]
           }
         ],
         "identidad": [
           [
             "NOMBRE DEL PRODUCTO",
-            "Inulina"
+            "INULINA"
+          ],
+          [
+            "REFERENCIA SIIGO",
+            "INUg"
+          ],
+          [
+            "SINÓNIMOS",
+            "Fructano; Polisacárido de fructosa con enlaces β-(2→1) y unidad de glucosa terminal; E 184; Prebiótico soluble; Fibra alimentaria"
           ],
           [
             "CAS #",
             "9005-80-5"
           ],
           [
-            "NOMBRE IUPAC",
-            "Inulina"
-          ],
-          [
-            "EINECS",
-            "232-684-3"
-          ],
-          [
             "FECHA DE REVISIÓN",
-            "05 08 2024"
+            "24 06 2026"
           ]
         ],
         "propiedades": [
           [
             "Apariencia",
-            "Blanco, Similar al almidón, \nSin impurezas a la vista"
+            "La ficha técnica interna proporcionada no especifica la apariencia física de la inulina (estado, color, textura, forma)."
           ],
           [
-            "Solubilidad en agua",
-            "Forma geles"
+            "pH",
+            "5.0-7.0 en sol. 10%"
           ],
           [
-            "Carbohidratos totales  (base seca), %",
-            "≥ 99.5"
+            "Olor",
+            "Inodoro."
           ],
           [
-            "Contenido de   Inulina (base seca), %",
-            "≥ 95"
+            "Sabor",
+            "Ligeramente dulce."
           ],
           [
-            "Azúcares totales (Sacarosa + Glucosa + Fructosa)",
-            "≤ 10"
+            "Solubilidad",
+            "La inulina es soluble en agua caliente, utilizada para su extracción, y prácticamente insoluble en solventes orgánicos."
           ],
           [
-            "Humedad, %",
-            "≤ 5.0"
+            "Efecto prebiótico",
+            "Alimenta y estimula selectivamente nuestra propia flora intestinal, por ejemplo, el bifidus."
           ],
           [
-            "Arsénico (As), mg/kg",
-            "≤ 0.5"
+            "Resistencia natural",
+            "Tiene un impacto positivo en la resistencia natural de nuestro cuerpo."
           ],
           [
-            "Plomo (Pb), mg/kg",
-            "≤ 0.5"
+            "Tránsito intestinal",
+            "Contribuye a tener un tránsito intestinal regular y suave."
+          ],
+          [
+            "Absorción de nutrientes",
+            "Mejora la absorción de importantes nutrientes como calcio."
+          ],
+          [
+            "Reducción riesgo cáncer intestinal",
+            "Incluso podría reducir el riesgo de cáncer intestinal."
+          ],
+          [
+            "Salud digestiva",
+            "Al mantener un sistema digestivo saludable, la inulina mejora también la sensación de bienestar de la persona."
+          ],
+          [
+            "Reducción colesterol",
+            "Ayuda a reducir el nivel de colesterol en la sangre, disminuyendo el riesgo de ataques cardíacos."
+          ],
+          [
+            "Sabor neutro",
+            "No modifica el sabor original de los alimentos."
+          ],
+          [
+            "Bajo valor calórico",
+            "Es amigable para diabéticos."
           ]
         ],
         "microbiologia": [
           [
-            "Propiedades",
-            "Estándar"
+            "Contenido de materia seca",
+            "95,0 - 99,0 %",
+            "97,9 %"
           ],
           [
-            "Bacterias totales, /g",
-            "≤ 1000"
+            "pH",
+            "5,0 - 7,0",
+            "6,8"
           ],
           [
-            "Coliformes, MPN/g",
-            "≤ 3.6"
+            "Inulina",
+            "≥ 90 %",
+            "92 %"
           ],
           [
-            "Hongos, cfu/g",
-            "≤ 50"
+            "Fructosa, glucosa, sacarosa",
+            "≤ 10 %",
+            "8 %"
           ],
           [
-            "Patógenos",
-            "Negativo"
+            "Longitud media de cadena",
+            "8 - 13",
+            "12"
+          ],
+          [
+            "Cenizas",
+            "≤ 0,2 %",
+            "< 0,2 %"
+          ],
+          [
+            "Recuento aerobio en placa (30°C)",
+            "≤ 1000 CFU/g",
+            "< 100 CFU/g"
+          ],
+          [
+            "Recuento aerobio en placa (55°C)",
+            "≤ 1000 CFU/g (a 55°C)",
+            "< 100 CFU/g"
+          ],
+          [
+            "Levaduras",
+            "≤ 20 CFU/g",
+            "< 10 CFU/g"
+          ],
+          [
+            "Mohos",
+            "≤ 20 CFU/g",
+            "< 10 CFU/g"
+          ],
+          [
+            "Bacillus cereus",
+            "≤ 100 CFU/g",
+            "< 100 CFU/g"
+          ],
+          [
+            "Listeria monocytogenes/25g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Enterobacteriaceae/g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Staphylococcus aureus/g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Salmonella/400g",
+            "No detectado",
+            "No detectado"
+          ],
+          [
+            "Fecha de producción",
+            "",
+            "01/10/2025"
+          ],
+          [
+            "Fecha de caducidad",
+            "",
+            "01/10/2030"
           ]
         ]
       },
@@ -35848,154 +36580,108 @@
       "cat_color": "#4DB3A0",
       "desc": "",
       "ficha": {
-        "titulo": "GLICERINA",
-        "descripcion": "La glicerina (glicerol) se encuentra en todos los tipos de aceites, así como en grasas animales o vegetales, siempre y cuando éstas estén asociadas a otros ácidos grasos, como puede ser, el oleico o esteárico. Es considerada un edulcorante y humectante.",
+        "titulo": "GLICERINA VEGETAL",
+        "descripcion": "La Glicerina Vegetal, o Glicerol, es un polialcohol trihídrico obtenido exclusivamente a partir de la hidrólisis de triglicéridos de origen vegetal. Su modo de obtención principal es como co-producto durante la transesterificación de aceites (palma, soja, colza) para la producción de biodiésel, o mediante el proceso de saponificación en la industria jabonera. Químicamente, el proceso consiste en la escisión de las moléculas de grasa, lo que libera el esqueleto de glicerol de las cadenas de ácidos grasos. El glicerol crudo resultante se somete a un riguroso proceso de refinamiento y purificación, principalmente por destilación fraccionada al vacío, para alcanzar la alta pureza exigida por los estándares farmacopeicos y cosméticos.",
         "secciones": [
+          {
+            "titulo": "BENEFICIOS",
+            "items": [
+              "Humectante: Atrae y retiene la humedad en la piel y el cabello.",
+              "Hidratante: Incrementa el contenido de agua en las capas superficiales de la piel.",
+              "Antiinflamatorio: Reduce la inflamación y la irritación cutánea.",
+              "Emoliente: Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas.",
+              "Acondicionador capilar: Previene la sequedad y la rotura de la fibra capilar.",
+              "Edulcorante: Proporciona un sabor dulce en formulaciones de uso oral.",
+              "Grado Farmacéutico USP: Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
+            ]
+          },
           {
             "titulo": "APLICACIONES",
             "items": [
-              "Hidratación de la piel: Es un humectante natural que puede ayudar a retener la humedad en la piel, lo que la convierte en un ingrediente común en muchos productos para el cuidado de la piel, como cremas hidratantes, lociones y jabones.",
-              "Propiedades antiinflamatorias: Tiene propiedades antiinflamatorias que pueden ayudar a reducir la inflamación y la irritación de la piel.",
-              "Mejora de la apariencia de la piel:  Suaviza las líneas finas y las arrugas, así como reduce la apariencia de la piel seca y escamosa.",
-              "Propiedades humectantes para el cabello: Ayuda a retener la humedad y prevenir la sequedad y la rotura del cabello.",
-              "Uso en productos alimentarios: Edulcorante y humectante en algunos alimentos y productos alimenticios, como dulces, productos horneados y bebidas."
+              "Agente humectante para retener la humedad en la piel en cremas, lociones y jabones.",
+              "Activo con propiedades antiinflamatorias para reducir la irritación cutánea.",
+              "Ingrediente para el suavizado de líneas finas y arrugas.",
+              "Acondicionador para reducir la apariencia de la piel seca y escamosa.",
+              "Humectante en formulaciones capilares para prevenir la sequedad y la rotura.",
+              "Excipiente edulcorante y humectante en preparaciones farmacéuticas de grado USP."
             ]
           },
           {
-            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+            "titulo": "MODO DE USO",
             "items": [
-              "Nota: El producto cumple con el estándar USP."
-            ]
-          },
-          {
-            "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-            "items": [
-              "Se recomienda guardar en envases bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+              "La Glicerina Vegetal USP se incorpora en la fase acuosa de la formulación en concentraciones que oscilan entre el 2% y 10%, dependiendo del nivel de humectación deseado. Se debe disolver junto con los demás ingredientes hidrosolubles, calentando esta fase a una temperatura aproximada de 70-75 °C. Su adición se realiza antes del proceso de emulsificación para asegurar una dispersión homogénea y maximizar su eficacia como agente higroscópico en el producto terminado."
             ]
           }
         ],
         "identidad": [
           [
             "NOMBRE DEL PRODUCTO",
-            "Glicerina  Vegetal USP"
+            "GLICERINA VEGETAL"
+          ],
+          [
+            "SINÓNIMOS",
+            "Glicerol; Propan-1,2,3-triol; Glycerin; E422; Trihidroxipropano."
           ],
           [
             "CAS #",
             "56-81-5"
           ],
           [
-            "FÓRMULA MOLECULAR",
-            "C3H8O3"
-          ],
-          [
-            "NOMBRE IUPAC",
-            "Glicerol. Alcohol glicérico. Propano-1,2,3-triol"
-          ],
-          [
-            "ADITIVO ALIMENTARIO",
-            "E-422"
-          ],
-          [
             "FECHA DE REVISIÓN",
-            "19 07 2024"
+            "24 06 2026"
           ]
         ],
         "propiedades": [
           [
             "Apariencia",
-            "Liquido siruposo  trasparente"
+            "Líquido siroposo, límpido e incoloro."
           ],
           [
-            "Identificación B",
-            "0.003%"
+            "Punto de fusión",
+            "17.9 °C"
           ],
           [
-            "Identificación B",
-            "0.011%"
+            "pH",
+            "5.0-8.0 en solución acuosa al 10%."
           ],
           [
-            "Identificación C \nPor  cromatografía de gases",
-            "Cumple"
+            "Olor",
+            "Olor característico muy tenue y ligeramente dulce, siendo prácticamente inodoro en grados de alta pureza."
           ],
           [
-            "Color",
-            "Cumple"
+            "Fórmula química",
+            "C3H8O3"
           ],
           [
-            "Gravedad específica",
-            "Cumple"
+            "Humectante",
+            "Atrae y retiene la humedad en la piel y el cabello."
           ],
           [
-            "Contenido de agua",
-            "0.6 %"
+            "Hidratante",
+            "Incrementa el contenido de agua en las capas superficiales de la piel."
           ],
           [
-            "Contenido de glicerol",
-            "99.72%"
+            "Antiinflamatorio",
+            "Reduce la inflamación y la irritación cutánea."
           ],
           [
-            "Contenido de metanol",
-            "< 10 mg/kg"
+            "Emoliente",
+            "Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas."
           ],
           [
-            "Contenido de sulfatos",
-            "Cumple"
+            "Acondicionador capilar",
+            "Previene la sequedad y la rotura de la fibra capilar."
           ],
           [
-            "Ácido grasos  y ésteres",
-            "0.3 mL"
+            "Edulcorante",
+            "Proporciona un sabor dulce en formulaciones de uso oral."
           ],
           [
-            "Límite de compuestos clorados",
-            "Cumple"
-          ],
-          [
-            "Residuo por  incineración",
-            "0.002%"
-          ],
-          [
-            "Metales pesados",
-            "Cumple"
-          ],
-          [
-            "Compuestos  relacionados",
-            "Cumple"
-          ],
-          [
-            "Compuestos  relacionados",
-            "Cumple"
-          ],
-          [
-            "Solubilidad",
-            "Miscible"
-          ],
-          [
-            "Solubilidad",
-            "Miscible"
-          ],
-          [
-            "Solubilidad",
-            "Insoluble"
+            "Grado Farmacéutico USP",
+            "Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
           ]
         ],
-        "microbiologia": [
-          [
-            "Mesofilos Aerobios",
-            "Max. 1.000 UFC/mL"
-          ],
-          [
-            "Hongos  y levaduras",
-            "Max. 1.000 UFC/mL"
-          ],
-          [
-            "E. Colí",
-            "Negativo"
-          ],
-          [
-            "Salmonella",
-            "Negativo/ 25 mL"
-          ]
-        ]
+        "microbiologia": []
       },
       "solo_vitrina": false,
       "buyable": true,
@@ -36025,154 +36711,108 @@
       "cat_color": "#4DB3A0",
       "desc": "",
       "ficha": {
-        "titulo": "GLICERINA",
-        "descripcion": "La glicerina (glicerol) se encuentra en todos los tipos de aceites, así como en grasas animales o vegetales, siempre y cuando éstas estén asociadas a otros ácidos grasos, como puede ser, el oleico o esteárico. Es considerada un edulcorante y humectante.",
+        "titulo": "GLICERINA VEGETAL",
+        "descripcion": "La Glicerina Vegetal, o Glicerol, es un polialcohol trihídrico obtenido exclusivamente a partir de la hidrólisis de triglicéridos de origen vegetal. Su modo de obtención principal es como co-producto durante la transesterificación de aceites (palma, soja, colza) para la producción de biodiésel, o mediante el proceso de saponificación en la industria jabonera. Químicamente, el proceso consiste en la escisión de las moléculas de grasa, lo que libera el esqueleto de glicerol de las cadenas de ácidos grasos. El glicerol crudo resultante se somete a un riguroso proceso de refinamiento y purificación, principalmente por destilación fraccionada al vacío, para alcanzar la alta pureza exigida por los estándares farmacopeicos y cosméticos.",
         "secciones": [
+          {
+            "titulo": "BENEFICIOS",
+            "items": [
+              "Humectante: Atrae y retiene la humedad en la piel y el cabello.",
+              "Hidratante: Incrementa el contenido de agua en las capas superficiales de la piel.",
+              "Antiinflamatorio: Reduce la inflamación y la irritación cutánea.",
+              "Emoliente: Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas.",
+              "Acondicionador capilar: Previene la sequedad y la rotura de la fibra capilar.",
+              "Edulcorante: Proporciona un sabor dulce en formulaciones de uso oral.",
+              "Grado Farmacéutico USP: Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
+            ]
+          },
           {
             "titulo": "APLICACIONES",
             "items": [
-              "Hidratación de la piel: Es un humectante natural que puede ayudar a retener la humedad en la piel, lo que la convierte en un ingrediente común en muchos productos para el cuidado de la piel, como cremas hidratantes, lociones y jabones.",
-              "Propiedades antiinflamatorias: Tiene propiedades antiinflamatorias que pueden ayudar a reducir la inflamación y la irritación de la piel.",
-              "Mejora de la apariencia de la piel:  Suaviza las líneas finas y las arrugas, así como reduce la apariencia de la piel seca y escamosa.",
-              "Propiedades humectantes para el cabello: Ayuda a retener la humedad y prevenir la sequedad y la rotura del cabello.",
-              "Uso en productos alimentarios: Edulcorante y humectante en algunos alimentos y productos alimenticios, como dulces, productos horneados y bebidas."
+              "Agente humectante para retener la humedad en la piel en cremas, lociones y jabones.",
+              "Activo con propiedades antiinflamatorias para reducir la irritación cutánea.",
+              "Ingrediente para el suavizado de líneas finas y arrugas.",
+              "Acondicionador para reducir la apariencia de la piel seca y escamosa.",
+              "Humectante en formulaciones capilares para prevenir la sequedad y la rotura.",
+              "Excipiente edulcorante y humectante en preparaciones farmacéuticas de grado USP."
             ]
           },
           {
-            "titulo": "PROPIEDADES MICROBIOLÓGICAS",
+            "titulo": "MODO DE USO",
             "items": [
-              "Nota: El producto cumple con el estándar USP."
-            ]
-          },
-          {
-            "titulo": "ESTABILIDAD Y ALMACENAMIENTO",
-            "items": [
-              "Se recomienda guardar en envases bien cerrados en un lugar fresco y seco, alejado de la luz, el calor y la humedad. No caduca, sin embargo, se recomienda consumir preferentemente durante los primeros 24 meses a partir de su fecha de fabricación."
+              "La Glicerina Vegetal USP se incorpora en la fase acuosa de la formulación en concentraciones que oscilan entre el 2% y 10%, dependiendo del nivel de humectación deseado. Se debe disolver junto con los demás ingredientes hidrosolubles, calentando esta fase a una temperatura aproximada de 70-75 °C. Su adición se realiza antes del proceso de emulsificación para asegurar una dispersión homogénea y maximizar su eficacia como agente higroscópico en el producto terminado."
             ]
           }
         ],
         "identidad": [
           [
             "NOMBRE DEL PRODUCTO",
-            "Glicerina  Vegetal USP"
+            "GLICERINA VEGETAL"
+          ],
+          [
+            "SINÓNIMOS",
+            "Glicerol; Propan-1,2,3-triol; Glycerin; E422; Trihidroxipropano."
           ],
           [
             "CAS #",
             "56-81-5"
           ],
           [
-            "FÓRMULA MOLECULAR",
-            "C3H8O3"
-          ],
-          [
-            "NOMBRE IUPAC",
-            "Glicerol. Alcohol glicérico. Propano-1,2,3-triol"
-          ],
-          [
-            "ADITIVO ALIMENTARIO",
-            "E-422"
-          ],
-          [
             "FECHA DE REVISIÓN",
-            "19 07 2024"
+            "24 06 2026"
           ]
         ],
         "propiedades": [
           [
             "Apariencia",
-            "Liquido siruposo  trasparente"
+            "Líquido siroposo, límpido e incoloro."
           ],
           [
-            "Identificación B",
-            "0.003%"
+            "Punto de fusión",
+            "17.9 °C"
           ],
           [
-            "Identificación B",
-            "0.011%"
+            "pH",
+            "5.0-8.0 en solución acuosa al 10%."
           ],
           [
-            "Identificación C \nPor  cromatografía de gases",
-            "Cumple"
+            "Olor",
+            "Olor característico muy tenue y ligeramente dulce, siendo prácticamente inodoro en grados de alta pureza."
           ],
           [
-            "Color",
-            "Cumple"
+            "Fórmula química",
+            "C3H8O3"
           ],
           [
-            "Gravedad específica",
-            "Cumple"
+            "Humectante",
+            "Atrae y retiene la humedad en la piel y el cabello."
           ],
           [
-            "Contenido de agua",
-            "0.6 %"
+            "Hidratante",
+            "Incrementa el contenido de agua en las capas superficiales de la piel."
           ],
           [
-            "Contenido de glicerol",
-            "99.72%"
+            "Antiinflamatorio",
+            "Reduce la inflamación y la irritación cutánea."
           ],
           [
-            "Contenido de metanol",
-            "< 10 mg/kg"
+            "Emoliente",
+            "Suaviza la superficie de la piel, disminuyendo la apariencia de resequedad y líneas finas."
           ],
           [
-            "Contenido de sulfatos",
-            "Cumple"
+            "Acondicionador capilar",
+            "Previene la sequedad y la rotura de la fibra capilar."
           ],
           [
-            "Ácido grasos  y ésteres",
-            "0.3 mL"
+            "Edulcorante",
+            "Proporciona un sabor dulce en formulaciones de uso oral."
           ],
           [
-            "Límite de compuestos clorados",
-            "Cumple"
-          ],
-          [
-            "Residuo por  incineración",
-            "0.002%"
-          ],
-          [
-            "Metales pesados",
-            "Cumple"
-          ],
-          [
-            "Compuestos  relacionados",
-            "Cumple"
-          ],
-          [
-            "Compuestos  relacionados",
-            "Cumple"
-          ],
-          [
-            "Solubilidad",
-            "Miscible"
-          ],
-          [
-            "Solubilidad",
-            "Miscible"
-          ],
-          [
-            "Solubilidad",
-            "Insoluble"
+            "Grado Farmacéutico USP",
+            "Asegura el cumplimiento de estándares de pureza para aplicaciones farmacéuticas."
           ]
         ],
-        "microbiologia": [
-          [
-            "Mesofilos Aerobios",
-            "Max. 1.000 UFC/mL"
-          ],
-          [
-            "Hongos  y levaduras",
-            "Max. 1.000 UFC/mL"
-          ],
-          [
-            "E. Colí",
-            "Negativo"
-          ],
-          [
-            "Salmonella",
-            "Negativo/ 25 mL"
-          ]
-        ]
+        "microbiologia": []
       },
       "solo_vitrina": false,
       "buyable": true,

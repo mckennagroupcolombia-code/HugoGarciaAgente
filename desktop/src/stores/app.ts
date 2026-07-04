@@ -96,6 +96,9 @@ export type AccionesBootTab =
   | "notas"
   | "bolsillo";
 
+/** Salto desde otro panel (p. ej. Sincronización) hacia una pestaña de Rentabilidad. */
+export type RentabilidadBootTab = "combos" | "nomina" | "servicios" | "periodo" | "precios";
+
 interface AppState {
   panel: Panel;
   setPanel: (p: Panel) => void;
@@ -108,6 +111,8 @@ interface AppState {
   setSolicitudBoot: (v: SolicitudBoot | null) => void;
   accionesBootTab: AccionesBootTab | null;
   setAccionesBootTab: (v: AccionesBootTab | null) => void;
+  rentabilidadBootTab: RentabilidadBootTab | null;
+  setRentabilidadBootTab: (v: RentabilidadBootTab | null) => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
@@ -137,6 +142,8 @@ export const useAppStore = create<AppState>()(
       setSolicitudBoot: (solicitudBoot) => set({ solicitudBoot }),
       accionesBootTab: null,
       setAccionesBootTab: (accionesBootTab) => set({ accionesBootTab }),
+      rentabilidadBootTab: null,
+      setRentabilidadBootTab: (rentabilidadBootTab) => set({ rentabilidadBootTab }),
       sidebarOpen: false,
       setSidebarOpen: (sidebarOpen) => {
         set({ sidebarOpen });

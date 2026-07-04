@@ -5524,6 +5524,11 @@ function TicketDetailView({
     />
   );
 
+  const esAsignadoDetalle = uidEq(ticket.asignado_a, user.id);
+  const esCreadoPorMiDetalle = uidEq(ticket.creado_por, user.id);
+  const puedeEditarPasos = ticketPermiteMarcarPasos(ticket)
+    && (esAsignadoDetalle || esCreadoPorMiDetalle || (user.rol?.nivel ?? 1) >= 2);
+
   return (
     <div className="space-y-4 pb-8">
       {/* Header */}
@@ -5621,7 +5626,7 @@ function TicketDetailView({
       <PasosSection
         ticketId={ticket.id}
         token={token}
-        editMode={false}
+        editMode={puedeEditarPasos}
         allowCheck={ticketPermiteMarcarPasos(ticket)}
         checkHint={
           !ticketPermiteMarcarPasos(ticket)
@@ -7037,6 +7042,10 @@ function PasosSection({
   const [openNoteId, setOpenNoteId] = useState<number | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
   const notePopoverRef = useRef<HTMLDivElement>(null);
+  const [adjuntos, setAdjuntos] = useState<Adjunto[]>([]);
+  const [subiendoAdjPaso, setSubiendoAdjPaso] = useState<number | null>(null);
+  const [pasoPasteId, setPasoPasteId] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const reloadPasos = useCallback(() => {
     return tapi(`/${ticketId}/pasos`, token)
@@ -7044,9 +7053,56 @@ function PasosSection({
       .catch(() => {});
   }, [ticketId, token]);
 
+  const cargarAdjuntos = useCallback(() => {
+    return tapi(`/${ticketId}/adjuntos`, token)
+      .then((data) => setAdjuntos(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, [ticketId, token]);
+
   useEffect(() => {
     void reloadPasos();
-  }, [reloadPasos]);
+    void cargarAdjuntos();
+  }, [reloadPasos, cargarAdjuntos]);
+
+  const adjuntosPorPaso = useMemo(() => {
+    const map = new Map<number, Adjunto[]>();
+    for (const a of adjuntos) {
+      if (a.paso_id) {
+        if (!map.has(a.paso_id)) map.set(a.paso_id, []);
+        map.get(a.paso_id)!.push(a);
+      }
+    }
+    return map;
+  }, [adjuntos]);
+
+  async function subirAdjuntoPaso(pasoId: number, file: File) {
+    setSubiendoAdjPaso(pasoId);
+    try {
+      const fd = new FormData();
+      fd.append("archivo", file);
+      const res = await fetch(`/api/tickets/${ticketId}/pasos/${pasoId}/adjuntos`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (res.ok) void cargarAdjuntos();
+    } catch { /* no crítico */ } finally {
+      setSubiendoAdjPaso(null);
+    }
+  }
+
+  async function eliminarAdjunto(adjId: number) {
+    if (!confirm("¿Eliminar este archivo adjunto?")) return;
+    try {
+      await tapi(`/adjuntos/${adjId}`, token, { method: "DELETE" });
+      setAdjuntos((prev) => prev.filter((a) => a.id !== adjId));
+    } catch { /* ignore */ }
+  }
+
+  usePegarCapturaEnZona(editMode, containerRef, (file) => {
+    const targetId = pasoPasteId ?? pasos.find((p) => !pasoEstaCompletado(p))?.id ?? pasos[0]?.id;
+    if (targetId) void subirAdjuntoPaso(targetId, file);
+  });
 
   useEffect(() => {
     if (openNoteId == null) return;
@@ -7206,7 +7262,7 @@ function PasosSection({
   const pct = pasos.length > 0 ? Math.round((completados / pasos.length) * 100) : 0;
 
   return (
-    <div className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
+    <div ref={containerRef} className="rounded-paper border-2 border-border bg-surface-panel p-5 shadow-paper space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-extrabold uppercase tracking-wide text-muted">📋 Pasos del procedimiento</h3>
         {pasos.length > 0 && (
@@ -7235,6 +7291,14 @@ function PasosSection({
               onDragOver={editMode ? (e) => { e.preventDefault(); setDragOver(i); } : undefined}
               onDragLeave={editMode ? () => setDragOver(null) : undefined}
               onDrop={editMode ? () => drop(i) : undefined}
+              onMouseEnter={() => setPasoPasteId(p.id)}
+              onFocusCapture={() => setPasoPasteId(p.id)}
+              onPaste={(e) => {
+                if (!editMode) return;
+                if (manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(p.id, file))) {
+                  e.stopPropagation();
+                }
+              }}
               className={`rounded-paper border px-3 py-2.5 transition
                 ${pasoEstaCompletado(p) ? "border-accent/20 bg-accent/5"
                   : "border-border bg-surface"}
@@ -7295,6 +7359,24 @@ function PasosSection({
                   <span className="text-xs text-muted shrink-0">👤 {p.completado_por_nombre}</span>
                 )}
                 {editMode && (
+                  <label title="Adjuntar archivo o Ctrl+V en este paso" className="cursor-pointer text-muted hover:text-accent transition-colors p-0.5 shrink-0">
+                    {subiendoAdjPaso === p.id
+                      ? <span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                      : <span className="text-xs">📎</span>
+                    }
+                    <input
+                      type="file"
+                      accept="image/*,.pdf,application/pdf,.doc,.docx"
+                      className="sr-only"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void subirAdjuntoPaso(p.id, f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+                {editMode && (
                   <button onClick={() => del(p.id)} className="text-xs text-muted hover:text-danger transition shrink-0 px-0.5">✕</button>
                 )}
               </div>
@@ -7306,6 +7388,71 @@ function PasosSection({
                 >
                   {p.notas!.length > 180 ? `${p.notas!.slice(0, 180)}…` : p.notas}
                 </button>
+              )}
+              {(() => {
+                const pasoAdjs = adjuntosPorPaso.get(p.id) ?? [];
+                if (pasoAdjs.length === 0) return null;
+                return (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {pasoAdjs.map((a) => {
+                      const esImagen = (a.mime?.startsWith("image/"))
+                        || /\.(jpg|jpeg|png|gif|webp)$/i.test(a.nombre_original);
+                      const url = ticketsUploadUrl(a.nombre_archivo, token);
+                      return (
+                        <div key={a.id} className="relative group">
+                          {esImagen ? (
+                            <a href={url} target="_blank" rel="noreferrer" className="block" title={a.nombre_original}>
+                              <img src={url} alt="" className="h-14 w-14 rounded-lg object-cover border border-border group-hover:opacity-80 transition-opacity" />
+                            </a>
+                          ) : (
+                            <a href={url} target="_blank" rel="noreferrer"
+                              className="flex h-14 w-14 items-center justify-center rounded-lg border border-border bg-surface text-lg"
+                              title={a.nombre_original}>📄</a>
+                          )}
+                          {editMode && (
+                            <button type="button" onClick={() => void eliminarAdjunto(a.id)}
+                              className="absolute -top-1 -right-1 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold shadow">
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              {editMode && !pasoEstaCompletado(p) && (
+                <label
+                  tabIndex={0}
+                  onFocus={() => setPasoPasteId(p.id)}
+                  onPaste={(e) => {
+                    if (manejarPasteCaptura(e, (file) => void subirAdjuntoPaso(p.id, file))) {
+                      e.stopPropagation();
+                    }
+                  }}
+                  className={`mt-1.5 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[10px] font-semibold cursor-pointer select-none outline-none transition-colors
+                    ${subiendoAdjPaso === p.id
+                      ? "border-accent/50 text-accent"
+                      : "border-dashed border-border/50 text-muted/60 hover:border-accent/50 hover:text-accent/80 focus:border-accent focus:bg-accent/5 focus:text-accent"
+                    }`}
+                  title="Haz click aquí y presiona Ctrl+V para pegar un pantallazo en este paso"
+                >
+                  {subiendoAdjPaso === p.id ? (
+                    <><span className="inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> Subiendo…</>
+                  ) : (
+                    <><span>📷</span> Ctrl+V — pegar pantallazo</>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void subirAdjuntoPaso(p.id, f);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
               )}
             </div>
           );

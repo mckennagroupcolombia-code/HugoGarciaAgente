@@ -66,7 +66,7 @@ def _bot_usuario_id() -> int:
     """Obtiene o crea el usuario bot Hugo IA para crear tickets en nombre del agente."""
     from app.services.tickets_db import listar_usuarios, crear_usuario
 
-    for u in listar_usuarios():
+    for u in listar_usuarios(incluir_bots=True):
         if u.get("username") == _BOT_USERNAME:
             return u["id"]
 
