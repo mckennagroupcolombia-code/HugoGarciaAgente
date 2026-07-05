@@ -36,15 +36,19 @@ function esImagenPngJpg(file: File): boolean {
 function MiniaturaGaleria({
   item,
   seleccionada,
+  modoSeleccion,
   eliminando,
   onElegir,
   onEliminar,
+  onAlternarSeleccion,
 }: {
   item: ImagenGaleriaItem;
   seleccionada: boolean;
+  modoSeleccion: boolean;
   eliminando: boolean;
   onElegir: () => void;
   onEliminar: () => void;
+  onAlternarSeleccion: () => void;
 }) {
   const [src, setSrc] = useState<string | null>(
     item.thumbB64 ? `data:image/png;base64,${item.thumbB64}` : null,
@@ -72,6 +76,18 @@ function MiniaturaGaleria({
         seleccionada ? "border-accent ring-2 ring-accent/30" : "border-border"
       }`}
     >
+      <label
+        className="absolute left-1 top-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 opacity-0 shadow-sm transition group-hover:opacity-100 dark:bg-zinc-900/95"
+        style={seleccionada || modoSeleccion ? { opacity: 1 } : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <input
+          type="checkbox"
+          checked={seleccionada}
+          onChange={onAlternarSeleccion}
+          className="h-3.5 w-3.5"
+        />
+      </label>
       <button
         type="button"
         onClick={onElegir}

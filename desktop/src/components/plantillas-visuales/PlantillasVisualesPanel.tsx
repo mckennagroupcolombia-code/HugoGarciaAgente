@@ -46,6 +46,9 @@ function BibliotecaEtiquetasSection() {
   const [buscar, setBuscar] = useState("");
   const [descargandoId, setDescargandoId] = useState<string | null>(null);
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [eliminandoLote, setEliminandoLote] = useState(false);
+  const [errorLote, setErrorLote] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["etiquetas-recursos-png"],
@@ -57,6 +60,31 @@ function BibliotecaEtiquetasSection() {
   const q = buscar.trim().toLowerCase();
   const filtrados = q ? recursos.filter((r) => r.nombre.toLowerCase().includes(q)) : recursos;
 
+  function alternarSeleccion(nombre: string) {
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(nombre)) next.delete(nombre);
+      else next.add(nombre);
+      return next;
+    });
+  }
+
+  const todosFiltradosSeleccionados =
+    filtrados.length > 0 && filtrados.every((r) => seleccionados.has(r.nombre));
+
+  function alternarSeleccionarTodo() {
+    setSeleccionados((prev) => {
+      if (todosFiltradosSeleccionados) {
+        const next = new Set(prev);
+        filtrados.forEach((r) => next.delete(r.nombre));
+        return next;
+      }
+      const next = new Set(prev);
+      filtrados.forEach((r) => next.add(r.nombre));
+      return next;
+    });
+  }
+
   const eliminarMut = useMutation({
     mutationFn: (nombre: string) =>
       api.delete<{ ok: boolean }>(`/api/etiquetas/recursos-png/${encodeURIComponent(nombre)}`),
@@ -64,6 +92,39 @@ function BibliotecaEtiquetasSection() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] }),
     onSettled: () => setEliminandoId(null),
   });
+
+  const eliminarLoteMut = useMutation({
+    mutationFn: (nombres: string[]) =>
+      api.post<{ ok: boolean; eliminados: string[]; errores: Record<string, string> }>(
+        "/api/etiquetas/recursos-png/eliminar-lote",
+        { nombres },
+      ),
+    onMutate: () => {
+      setEliminandoLote(true);
+      setErrorLote(null);
+    },
+    onSuccess: (res) => {
+      setSeleccionados((prev) => {
+        const next = new Set(prev);
+        res.eliminados.forEach((n) => next.delete(n));
+        return next;
+      });
+      const fallidos = Object.keys(res.errores || {});
+      if (fallidos.length > 0) {
+        setErrorLote(`No se pudieron eliminar ${fallidos.length}: ${fallidos.slice(0, 3).join(", ")}${fallidos.length > 3 ? "…" : ""}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+    },
+    onError: (e: Error) => setErrorLote(e.message || "Error al eliminar las imágenes seleccionadas"),
+    onSettled: () => setEliminandoLote(false),
+  });
+
+  function eliminarSeleccionados() {
+    const nombres = Array.from(seleccionados);
+    if (nombres.length === 0) return;
+    if (!window.confirm(`¿Eliminar ${nombres.length} imagen(es) seleccionada(s) de la biblioteca?`)) return;
+    eliminarLoteMut.mutate(nombres);
+  }
 
   async function descargar(nombre: string) {
     setDescargandoId(nombre);
@@ -81,7 +142,7 @@ function BibliotecaEtiquetasSection() {
 
   return (
     <div className="rounded-xl border border-border bg-surface-panel p-4">
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <span className="text-sm font-bold text-ink">Biblioteca de etiquetas</span>
         <input
           value={buscar}
@@ -90,7 +151,33 @@ function BibliotecaEtiquetasSection() {
           className="min-w-0 flex-1 max-w-sm rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
         />
         <span className="shrink-0 text-xs text-muted">{filtrados.length} imagen(es)</span>
+        {filtrados.length > 0 && (
+          <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-secondary">
+            <input
+              type="checkbox"
+              checked={todosFiltradosSeleccionados}
+              onChange={alternarSeleccionarTodo}
+            />
+            Seleccionar todo
+          </label>
+        )}
+        {seleccionados.size > 0 && (
+          <button
+            type="button"
+            onClick={eliminarSeleccionados}
+            disabled={eliminandoLote}
+            className="shrink-0 rounded-md border border-red-300 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+          >
+            {eliminandoLote ? "Eliminando…" : `Eliminar seleccionadas (${seleccionados.size})`}
+          </button>
+        )}
       </div>
+
+      {errorLote && (
+        <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300">
+          {errorLote}
+        </p>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center py-16">
@@ -102,11 +189,23 @@ function BibliotecaEtiquetasSection() {
         </p>
       ) : (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-          {filtrados.map((r) => (
+          {filtrados.map((r) => {
+            const activo = seleccionados.has(r.nombre);
+            return (
             <div
               key={r.id}
-              className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-surface"
+              className={`group relative flex flex-col overflow-hidden rounded-lg border bg-surface ${
+                activo ? "border-accent ring-2 ring-accent/40" : "border-border"
+              }`}
             >
+              <label className="absolute left-1 top-1 z-10 flex h-5 w-5 cursor-pointer items-center justify-center rounded border border-border bg-white/95 shadow-sm dark:bg-zinc-900/95">
+                <input
+                  type="checkbox"
+                  checked={activo}
+                  onChange={() => alternarSeleccion(r.nombre)}
+                  className="h-3.5 w-3.5"
+                />
+              </label>
               <div className="flex aspect-square items-center justify-center bg-zinc-100 p-1 dark:bg-zinc-800/40">
                 {r.thumb_b64 ? (
                   <img
@@ -149,7 +248,8 @@ function BibliotecaEtiquetasSection() {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

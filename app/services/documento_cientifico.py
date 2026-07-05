@@ -440,6 +440,24 @@ _PROMPT_BASE = (
     'Responde en español técnico, sin saludos, sin markdown, sin títulos.'
 )
 
+# Campos cuya respuesta es una oración o frase corta (no un valor/código ni una
+# lista multilínea): deben terminar siempre en punto para verse consistentes
+# en la casilla del formulario, sin importar si el valor vino de PubChem o de
+# Gemini (ninguna de las dos fuentes lo garantiza de forma confiable).
+_CAMPOS_ORACION_CORTA = {
+    "descripcion", "apariencia", "olor", "sabor", "solubilidad",
+    "modo_uso", "sds_clasificacion_ghs", "sds_manipulacion",
+}
+
+
+def _asegurar_punto_final(texto: str) -> str:
+    t = (texto or "").strip()
+    if not t or t[-1] in ".!?…:;":
+        return t
+    if not re.search(r"[\wáéíóúñ%°\)\]\"']$", t, re.I):
+        return t
+    return t + "."
+
 
 def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
     """Sugerencia IA para cualquier campo del formulario de ficha técnica.
@@ -510,6 +528,8 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
             vals = _pug_view(cid, heading)
             if vals:
                 valor = "; ".join(vals[:3])
+                if campo in _CAMPOS_ORACION_CORTA:
+                    valor = _asegurar_punto_final(valor)
                 return {"ok": True, "campo": campo, "valor": valor, "origen": "pubchem"}
 
     # ── 4. Contexto enriquecido para Gemini ──────────────────────────────────
@@ -669,6 +689,8 @@ def sugerir_campo_ficha(campo: str, nombre: str) -> dict[str, Any]:
         raise ValueError(f"Campo no tiene prompt configurado: {campo}")
 
     valor = _sintetizar_texto(f"{_PROMPT_BASE}\n{prompt_texto}")
+    if campo in _CAMPOS_ORACION_CORTA:
+        valor = _asegurar_punto_final(valor)
     return {"ok": True, "campo": campo, "valor": valor, "origen": "gemini"}
 
 
