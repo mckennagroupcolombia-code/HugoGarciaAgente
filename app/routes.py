@@ -11360,6 +11360,7 @@ def register_routes(app):
         return jsonify({"ok": True, **meta})
 
     @app.route("/api/plantillas-visuales/assets/<path:nombre>", methods=["GET", "DELETE"])
+    @app.route("/app/api/plantillas-visuales/assets/<path:nombre>", methods=["GET", "DELETE"])
     def api_plantillas_visuales_assets_get(nombre: str):
         from app.tools.plantillas_visuales import eliminar_asset, ruta_asset
 
@@ -11679,6 +11680,7 @@ REGLAS:
         return None, "Imagen no encontrada"
 
     @app.route("/api/etiquetas/recursos-png", methods=["GET", "POST"])
+    @app.route("/app/api/etiquetas/recursos-png", methods=["GET", "POST"])
     def api_etiquetas_recursos_png():
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -11717,6 +11719,7 @@ REGLAS:
         return jsonify({"ok": True, **entry})
 
     @app.route("/api/etiquetas/recursos-png/<path:nombre>", methods=["DELETE"])
+    @app.route("/app/api/etiquetas/recursos-png/<path:nombre>", methods=["DELETE"])
     def api_etiquetas_recurso_png_delete(nombre: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401
@@ -11730,6 +11733,42 @@ REGLAS:
         items = [r for r in _load_png_recursos_etiquetas() if r.get("ruta_completa") != ruta]
         _save_png_recursos_etiquetas(items)
         return jsonify({"ok": True})
+
+    @app.route("/api/etiquetas/recursos-png/eliminar-lote", methods=["POST"])
+    @app.route("/app/api/etiquetas/recursos-png/eliminar-lote", methods=["POST"])
+    def api_etiquetas_recursos_png_eliminar_lote():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        body = request.get_json(silent=True) or {}
+        nombres = body.get("nombres")
+        if not isinstance(nombres, list) or not nombres:
+            return jsonify({"error": "Falta 'nombres' (lista no vacía)"}), 400
+
+        eliminados: list[str] = []
+        errores: dict[str, str] = {}
+        rutas_a_quitar: set[str] = set()
+        for nombre in nombres:
+            nombre = str(nombre or "")
+            ruta, err = _ruta_png_recurso_ok(nombre)
+            if err:
+                errores[nombre] = err
+                continue
+            try:
+                os.unlink(ruta)
+            except Exception as e:
+                errores[nombre] = str(e)
+                continue
+            rutas_a_quitar.add(ruta)
+            eliminados.append(nombre)
+
+        if rutas_a_quitar:
+            items = [
+                r for r in _load_png_recursos_etiquetas()
+                if r.get("ruta_completa") not in rutas_a_quitar
+            ]
+            _save_png_recursos_etiquetas(items)
+
+        return jsonify({"ok": True, "eliminados": eliminados, "errores": errores})
 
     @app.route("/api/etiquetas/recursos-png/archivo/<path:nombre>", methods=["GET"])
     def api_etiquetas_recurso_png_archivo(nombre: str):
