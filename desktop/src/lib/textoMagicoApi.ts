@@ -69,3 +69,13 @@ export async function solicitarTextoMagico(
     "La generación tardó demasiado. El servidor sigue trabajando; intenta de nuevo en unos segundos.",
   );
 }
+
+/** Busca el CAS en la ficha FT/COA/SDS del Studio cuyo título conecta con `titulo`. */
+export async function buscarCasPorTitulo(titulo: string): Promise<string | null> {
+  const t = (titulo || "").trim();
+  if (!t) return null;
+  const res = await api.get<{ ok: boolean; cas?: string | null }>(
+    `/api/plantillas-visuales/cas-por-titulo?titulo=${encodeURIComponent(t)}`,
+  );
+  return res.cas ?? null;
+}

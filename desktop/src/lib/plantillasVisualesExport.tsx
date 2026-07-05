@@ -293,7 +293,7 @@ function dibujarTexto(ctx: CanvasRenderingContext2D, el: ElementoTexto) {
   ctx.fillStyle = el.color || "#000";
   ctx.font = fontCssTexto(el);
   ctx.textBaseline = "top";
-  const lh = el.fontSize * LINE_HEIGHT_RATIO;
+  const lh = el.fontSize * (el.lineHeight ?? LINE_HEIGHT_RATIO);
   const ancho = Math.max(8, el.width || 0);
   const lineas = partirLineasTexto(ctx, el.content || "", ancho);
   lineas.forEach((linea, i) => {

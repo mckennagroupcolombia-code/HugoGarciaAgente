@@ -263,9 +263,29 @@
     },
     "573158755626@c.us": {
       "jid": "573158755626@c.us",
-      "primer_intencion_ts": 1783011224.0,
-      "primer_intencion_texto": "Buenas día.  Mi nombre es Liliana Guerrero y acabo de pagar mi pedido MCKG-581FE8B443",
-      "ultima_human_ts": 1783011249.0,
+      "primer_intencion_ts": 1783192984.0,
+      "primer_intencion_texto": "El jueves hice este pedido: MCKG-581FE8B443\nY me llegó esto",
+      "ultima_human_ts": 1783195203.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573016146900@c.us": {
+      "jid": "573016146900@c.us",
+      "primer_intencion_ts": 1783179217.0,
+      "primer_intencion_texto": "Puedo pagar por este medio y pasarte el pedido a tí?",
+      "ultima_human_ts": 1783179226.0,
+      "ultimo_bot_ts": null,
+      "alerta_enviada_ts": null,
+      "cancelada": true,
+      "cancelada_razon": "humano_respondio"
+    },
+    "573202262183@c.us": {
+      "jid": "573202262183@c.us",
+      "primer_intencion_ts": 1783215635.0,
+      "primer_intencion_texto": "Si hago el pedido hoy estará llegando el lunes",
+      "ultima_human_ts": 1783215684.0,
       "ultimo_bot_ts": null,
       "alerta_enviada_ts": null,
       "cancelada": true,

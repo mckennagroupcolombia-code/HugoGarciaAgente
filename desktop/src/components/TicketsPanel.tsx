@@ -19264,8 +19264,20 @@ function SolicitudesView({
       });
       setShowWizard(true);
     }
+    if (boot.abrirTicketId != null) {
+      const id = boot.abrirTicketId;
+      setTab("asignadas");
+      const enLista = solicitudes.find((t) => t.id === id) ?? solicitudesEquipo.find((t) => t.id === id);
+      if (enLista) {
+        setAsignadaDetalle(enLista);
+      } else {
+        tapi(`/${id}`, token)
+          .then((t) => setAsignadaDetalle(normalizeTicketForList(t)))
+          .catch(() => { /* ignore */ });
+      }
+    }
     onBootConsumed?.();
-  }, [boot, onBootConsumed]);
+  }, [boot, onBootConsumed, solicitudes, solicitudesEquipo, token]);
 
   async function cargarProtocolos() {
     setLoadingProtocolos(true);
@@ -27718,10 +27730,8 @@ export default function TicketsPanel() {
 
   useEffect(() => {
     if (!solicitudBoot?.abrirTicketId) return;
-    setSelectedId(solicitudBoot.abrirTicketId);
-    setView("detail");
-    setSolicitudBoot(null);
-  }, [solicitudBoot, setSolicitudBoot]);
+    setView("solicitudes");
+  }, [solicitudBoot]);
 
   useEffect(() => {
     if (!token) return;
@@ -27792,6 +27802,10 @@ export default function TicketsPanel() {
     setView("acciones");
   }
   function goSolicitudes() { irATickets("solicitudes"); }
+  function goVerSolicitud(id: number) {
+    setSolicitudBoot({ abrirTicketId: id });
+    irATickets("solicitudes");
+  }
   function goContratos() {
     if (nivel < 3) return;
     setPanel("hugo");
@@ -27866,7 +27880,7 @@ export default function TicketsPanel() {
               permisos={permisos}
               onAcciones={() => goAcciones("activas")}
               onSolicitudes={goSolicitudes}
-              onVerSolicitud={goDetail}
+              onVerSolicitud={goVerSolicitud}
               onContratos={goContratos}
               onTablero={() => goAcciones("activas")}
               onAccionesFuturas={() => goAcciones("agenda")}

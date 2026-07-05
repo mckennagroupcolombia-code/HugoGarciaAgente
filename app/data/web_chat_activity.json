@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-03T23:44:47",
+  "updated_at": "2026-07-04T07:27:29",
   "daily_counts": {
     "2026-05-12": 18,
     "2026-05-13": 19,
@@ -40,9 +40,35 @@
     "2026-06-30": 3,
     "2026-07-01": 1,
     "2026-07-02": 4,
-    "2026-07-03": 10
+    "2026-07-03": 10,
+    "2026-07-04": 1
   },
   "sessions": [
+    {
+      "session_id": "web-bd10d764-b9f1-4120-93b1-227e52ac2691",
+      "started_at": "2026-07-04T07:27:29",
+      "last_at": "2026-07-04T07:27:29",
+      "messages_count": 1,
+      "attachments_count": 0,
+      "reviewed": false,
+      "reviewed_at": null,
+      "page_url": "https://www.mckennagroup.co/catalogo/",
+      "user_agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36",
+      "last_user_message": "Buen día, quiero saber si puedo hacer el pedido hoy? Muchas gracias!!",
+      "last_agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+      "last_source": "agent",
+      "last_upstream_error": "",
+      "recent_turns": [
+        {
+          "at": "2026-07-04T07:27:29",
+          "user_message": "Buen día, quiero saber si puedo hacer el pedido hoy? Muchas gracias!!",
+          "agent_reply": "Veci, no encontré esa presentación en nuestro catálogo web en este momento. Revise https://mckennagroup.co/tienda o cuénteme la referencia exacta y le confirmo. Si prefiere hablar con un asesor: WhatsApp +57 319 518 3596.",
+          "attachments_count": 0,
+          "source": "agent",
+          "upstream_error": ""
+        }
+      ]
+    },
     {
       "session_id": "web-3453b671-b522-48c4-ac3d-3d8ec61a256f",
       "started_at": "2026-07-03T23:43:55",

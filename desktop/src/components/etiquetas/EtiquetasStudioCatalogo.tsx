@@ -40,8 +40,10 @@ interface CatalogoStudioResponse {
     studio_guardado: number;
     plantillas_ai_total: number;
     plantillas_ai_sin_producto: number;
+    plantillas_png_total?: number;
   };
   plantillas_sin_producto: string[];
+  plantillas_png_sin_producto?: string[];
 }
 
 interface PlantillasModeloResponse {
@@ -137,6 +139,7 @@ export function EtiquetasStudioCatalogo({
     return { nombre, anchoMm, altoMm };
   });
   const [plantillaSueltasAbierto, setPlantillaSueltasAbierto] = useState(false);
+  const [plantillaPngAbierto, setPlantillaPngAbierto] = useState(false);
 
   const formatoImpresion = useMemo<FormatoImpresionEscaneo | null>(() => {
     const nombre = formatoValor.nombre.trim();
@@ -226,11 +229,26 @@ export function EtiquetasStudioCatalogo({
     return list.filter((a) => a.toLowerCase().includes(q));
   }, [data?.plantillas_sin_producto, buscar]);
 
+  // PNG generados en el Studio (transición .ai → PNG): se listan sueltos,
+  // sin exigir que el producto/SKU exista en el catálogo.
+  const plantillasPngFiltradas = useMemo(() => {
+    const list = data?.plantillas_png_sin_producto ?? [];
+    const q = buscar.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((a) => a.toLowerCase().includes(q));
+  }, [data?.plantillas_png_sin_producto, buscar]);
+
   useEffect(() => {
     if (buscar.trim() && plantillasSueltasFiltradas.length > 0) {
       setPlantillaSueltasAbierto(true);
     }
   }, [buscar, plantillasSueltasFiltradas.length]);
+
+  useEffect(() => {
+    if (buscar.trim() && plantillasPngFiltradas.length > 0) {
+      setPlantillaPngAbierto(true);
+    }
+  }, [buscar, plantillasPngFiltradas.length]);
 
   useEffect(() => {
     if (!modoEscaneo || !skuEscaneoInicial?.trim() || filasRaw.length === 0) return;
@@ -541,7 +559,7 @@ export function EtiquetasStudioCatalogo({
   /* Vista clásica (impresión / catálogo completo) */
   return (
     <div className="space-y-4">
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-lg border border-border bg-surface px-3 py-2">
           <p className="text-[10px] uppercase text-muted">Productos</p>
           <p className="text-lg font-bold text-ink">{stats?.total_productos ?? "—"}</p>
@@ -557,6 +575,10 @@ export function EtiquetasStudioCatalogo({
         <div className="rounded-lg border border-border bg-surface px-3 py-2">
           <p className="text-[10px] uppercase text-muted">Sin match</p>
           <p className="text-lg font-bold text-red-700">{stats?.sin_match ?? "—"}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-surface px-3 py-2">
+          <p className="text-[10px] uppercase text-muted">PNG (Studio)</p>
+          <p className="text-lg font-bold text-violet-700">{stats?.plantillas_png_total ?? "—"}</p>
         </div>
       </div>
 
@@ -577,11 +599,52 @@ export function EtiquetasStudioCatalogo({
           <input type="checkbox" checked={soloConMeli} onChange={(e) => setSoloConMeli(e.target.checked)} />
           Solo MeLi
         </label>
+        <label className="flex items-center gap-1.5 text-xs">
+          <input type="checkbox" checked={soloConAi} onChange={(e) => setSoloConAi(e.target.checked)} />
+          Solo con .ai
+        </label>
+        <label className="flex items-center gap-1.5 text-xs">
+          <input
+            type="checkbox"
+            checked={plantillaPngAbierto}
+            onChange={(e) => setPlantillaPngAbierto(e.target.checked)}
+          />
+          PNG (Studio)
+        </label>
         {isFetching && <span className="text-xs text-muted">Actualizando…</span>}
       </div>
 
       {error instanceof Error && (
         <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-800">{error.message}</p>
+      )}
+
+      {plantillaPngAbierto && (
+        <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-bold uppercase tracking-wide text-violet-800">
+              PNG generados en Studio ({plantillasPngFiltradas.length}
+              {buscar.trim() ? ` / ${data?.plantillas_png_sin_producto?.length ?? 0}` : ""})
+            </p>
+            <p className="text-[10px] text-violet-700">
+              En transición · aún no vinculados a un SKU del catálogo
+            </p>
+          </div>
+          {plantillasPngFiltradas.length === 0 ? (
+            <p className="px-1 py-2 text-center text-xs text-muted">Sin PNG que coincidan</p>
+          ) : (
+            <ul className="grid max-h-64 grid-cols-2 gap-1 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">
+              {plantillasPngFiltradas.map((nombre) => (
+                <li
+                  key={nombre}
+                  title={nombre}
+                  className="truncate rounded border border-violet-200 bg-white px-2 py-1.5 font-mono text-[10px] text-violet-900"
+                >
+                  {nombre}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       <div className="overflow-hidden rounded-xl border border-border">

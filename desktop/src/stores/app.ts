@@ -25,7 +25,6 @@ export type Panel =
   | "tickets"
   | "etiquetas"
   | "etiquetas-config"
-  | "plantillas-visuales"
   | "logistica-importaciones"
   | "logistica-embarques"
   | "logistica-aduanas"
@@ -35,7 +34,7 @@ export type Panel =
   | "perfil";
 
 /** Pestaña activa dentro de Impresora · Etiquetas. */
-export type EtiquetasTab = "imprimir" | "inventario";
+export type EtiquetasTab = "imprimir" | "inventario" | "studio";
 
 /** Datos para abrir Impresión con un producto o plantilla precargados. */
 export interface EtiquetasHandoff {

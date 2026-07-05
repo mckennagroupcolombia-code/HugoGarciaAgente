@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../api/client";
 import {
@@ -330,7 +330,12 @@ function CompararEtiquetasSection() {
 
 type Vista = "lista" | "formato" | "editor";
 
-export default function PlantillasVisualesPanel() {
+export default function PlantillasVisualesPanel({
+  onInmersivoChange,
+}: {
+  /** Notifica cuando el editor entra/sale de la vista de lienzo a pantalla completa. */
+  onInmersivoChange?: (inmersivo: boolean) => void;
+} = {}) {
   const qc = useQueryClient();
   const setPanel = useAppStore((s) => s.setPanel);
   const setEtiquetasTab = useAppStore((s) => s.setEtiquetasTab);
@@ -345,6 +350,11 @@ export default function PlantillasVisualesPanel() {
     ruta_completa: string;
     nombre: string;
   } | null>(null);
+
+  useEffect(() => {
+    onInmersivoChange?.(vista === "editor");
+    return () => onInmersivoChange?.(false);
+  }, [vista, onInmersivoChange]);
 
   const irAImprimirEnEtiquetas = useCallback(() => {
     if (!pdfListoParaImprimir || !doc) return;

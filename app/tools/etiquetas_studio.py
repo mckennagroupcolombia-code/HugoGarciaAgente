@@ -257,6 +257,31 @@ def mapa_sku_por_archivo_pdf() -> dict[str, dict[str, str]]:
     return out
 
 
+_PNG_RECURSOS_SUBDIR = "Recursos PNG"
+_PDF_ETIQUETAS_SUBDIR = "Etiquetas McKenna"
+
+
+def _carpeta_recursos_png() -> Path:
+    """Misma carpeta que usa /api/etiquetas/recursos-png en routes.py."""
+    base = Path.home() / "Documentos" / _PDF_ETIQUETAS_SUBDIR / _PNG_RECURSOS_SUBDIR
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def listar_recursos_png_sueltos(q: str = "") -> list[str]:
+    """PNG/JPG generados en Studio (transición .ai → PNG): no se emparejan con
+    SKU todavía, se listan tal cual existan en la biblioteca de imágenes."""
+    carpeta = _carpeta_recursos_png()
+    nombres = sorted(
+        p.name for p in carpeta.iterdir()
+        if p.is_file() and p.suffix.lower() in (".png", ".jpg", ".jpeg")
+    )
+    ql = (q or "").strip().lower()
+    if ql:
+        nombres = [n for n in nombres if ql in n.lower()]
+    return nombres
+
+
 def listar_catalogo_studio(
     *,
     q: str = "",
@@ -352,6 +377,10 @@ def listar_catalogo_studio(
     if ql:
         sin_producto = [a for a in sin_producto if ql in a.lower()]
 
+    # PNG generados en Studio: durante la transición se listan sueltos, sin
+    # intentar emparejarlos con un SKU del catálogo.
+    png_sueltos = listar_recursos_png_sueltos(ql)
+
     stats = {
         "total_productos": len(filas),
         "con_meli": sum(1 for f in filas if f.get("meli_id")),
@@ -361,6 +390,7 @@ def listar_catalogo_studio(
         "studio_guardado": sum(1 for f in filas if f.get("studio_guardado")),
         "plantillas_ai_total": len(todas_ai),
         "plantillas_ai_sin_producto": len(sin_producto),
+        "plantillas_png_total": len(png_sueltos),
     }
 
     return {
@@ -368,6 +398,7 @@ def listar_catalogo_studio(
         "total": len(filas),
         "stats": stats,
         "plantillas_sin_producto": sin_producto[:80],
+        "plantillas_png_sin_producto": png_sueltos[:80],
     }
 
 

@@ -12,6 +12,7 @@ import time
 import unicodedata
 import uuid
 from pathlib import Path
+from typing import Any
 
 from app.observability import spawn_thread
 
@@ -215,6 +216,150 @@ def _buscar_en_json(palabras: list[str], limite: int = 3) -> list[dict]:
     return out
 
 
+def _aplanar_datos_yaml(valor: Any, prefijo: str = "") -> list[str]:
+    """Convierte un dict/list de datos YAML (FT/COA/SDS) en líneas 'campo: valor'."""
+    lineas: list[str] = []
+    if isinstance(valor, dict):
+        for clave, sub in valor.items():
+            if clave == "titulo":
+                continue
+            etiqueta = str(clave).replace("_", " ").strip()
+            if isinstance(sub, (dict, list)):
+                lineas.extend(_aplanar_datos_yaml(sub, etiqueta))
+            else:
+                texto = str(sub).strip()
+                if texto:
+                    lineas.append(f"{etiqueta}: {texto}")
+    elif isinstance(valor, list):
+        for item in valor:
+            if isinstance(item, (dict, list)):
+                lineas.extend(_aplanar_datos_yaml(item, prefijo))
+            else:
+                texto = str(item).strip()
+                if texto:
+                    lineas.append(f"{prefijo}: {texto}" if prefijo else texto)
+    else:
+        texto = str(valor).strip()
+        if texto:
+            lineas.append(f"{prefijo}: {texto}" if prefijo else texto)
+    return lineas
+
+
+def _texto_desde_datos_ficha_word(datos: dict) -> str:
+    return "\n".join(_aplanar_datos_yaml(datos))[:4000]
+
+
+def _buscar_en_fichas_word(termino: str, limite: int = 3) -> list[dict]:
+    """Busca en los documentos FT/COA/SDS generados en Etiquetas Studio
+    (fichas_word/datos/*.yaml) cuyo título conecta con `termino`
+    (normalmente el título de la capa/plantilla)."""
+    termino = (termino or "").strip()
+    if not termino:
+        return []
+    try:
+        from app.services.ficha_tecnica import DATOS_DIR, cargar_datos_desde_archivo
+    except Exception:
+        return []
+    if not DATOS_DIR.is_dir():
+        return []
+
+    palabras_termino = _palabras_clave(termino, min_len=3)
+    if not palabras_termino:
+        return []
+
+    archivos = list(DATOS_DIR.glob("*.yaml")) + list(DATOS_DIR.glob("*.yml"))
+    familias = (
+        ("FT", lambda p: not p.name.startswith(("plantilla", "coa_", "sds_"))),
+        ("COA", lambda p: p.name.startswith("coa_")),
+        ("SDS", lambda p: p.name.startswith("sds_")),
+    )
+
+    encontradas: list[dict] = []
+    for etiqueta, filtro in familias:
+        mejor: tuple[int, str, dict] | None = None
+        for p in archivos:
+            if not filtro(p):
+                continue
+            try:
+                datos = cargar_datos_desde_archivo(p)
+            except Exception:
+                continue
+            if not isinstance(datos, dict):
+                continue
+            titulo = str(datos.get("titulo") or p.stem).strip()
+            if not titulo:
+                continue
+            blob = _norm(titulo)
+            hits = sum(1 for palabra in palabras_termino if palabra in blob)
+            if hits < min(2, len(palabras_termino)):
+                continue
+            score = hits * 100 + len(titulo)
+            if not mejor or score > mejor[0]:
+                mejor = (score, titulo, datos)
+        if mejor:
+            score, titulo, datos = mejor
+            texto = _texto_desde_datos_ficha_word(datos)
+            if texto:
+                # El documento combinado ("generar-completo") trae FT+COA+SDS
+                # en un solo yaml (campos _coa / _sds anidados); refleja eso en la etiqueta.
+                etiqueta_doc = "FT/COA/SDS" if datos.get("_tipo") == "completo" else etiqueta
+                encontradas.append({
+                    "titulo": f"{etiqueta_doc} {titulo}",
+                    "clave": _norm(f"{etiqueta}:{titulo}"),
+                    "fuente": f"ficha_word_{etiqueta.lower()}",
+                    "texto": texto,
+                    "score": 1000 + score,
+                })
+
+    encontradas.sort(key=lambda f: f["score"], reverse=True)
+    return encontradas[:limite]
+
+
+def buscar_cas_por_titulo(titulo: str) -> str | None:
+    """Busca el número CAS en el documento FT/COA/SDS del Studio (fichas_word/datos)
+    cuyo título conecta con `titulo` (el título de la capa/plantilla de la etiqueta).
+    Lookup determinístico (no genera texto con IA): un CAS mal generado es un
+    riesgo de cumplimiento en la etiqueta.
+    """
+    titulo = (titulo or "").strip()
+    if not titulo:
+        return None
+    try:
+        from app.services.ficha_tecnica import DATOS_DIR, cargar_datos_desde_archivo
+    except Exception:
+        return None
+    if not DATOS_DIR.is_dir():
+        return None
+
+    palabras_termino = _palabras_clave(titulo, min_len=3)
+    if not palabras_termino:
+        return None
+
+    mejor: tuple[int, str] | None = None
+    for p in list(DATOS_DIR.glob("*.yaml")) + list(DATOS_DIR.glob("*.yml")):
+        if p.name.startswith("plantilla"):
+            continue
+        try:
+            datos = cargar_datos_desde_archivo(p)
+        except Exception:
+            continue
+        if not isinstance(datos, dict):
+            continue
+        cas = str(datos.get("cas") or "").strip()
+        if not cas:
+            continue
+        titulo_doc = str(datos.get("titulo") or p.stem).strip()
+        blob = _norm(titulo_doc)
+        hits = sum(1 for palabra in palabras_termino if palabra in blob)
+        if hits < min(2, len(palabras_termino)):
+            continue
+        score = hits * 100 + len(titulo_doc)
+        if not mejor or score > mejor[0]:
+            mejor = (score, cas)
+
+    return mejor[1] if mejor else None
+
+
 def _buscar_en_sheets(termino: str) -> dict | None:
     try:
         from app.services.google_services import buscar_ficha_tecnica_producto
@@ -233,12 +378,26 @@ def _buscar_en_sheets(termino: str) -> dict | None:
         return None
 
 
-def _recolectar_fichas(fragmento: str, palabras: list[str], limite: int = 3) -> list[dict]:
+def _recolectar_fichas(
+    fragmento: str,
+    palabras: list[str],
+    limite: int = 3,
+    contexto_capas: dict | None = None,
+) -> list[dict]:
     vistos: set[str] = set()
     resultados: list[dict] = []
 
+    # Prioridad 1: documentos FT/COA/SDS del Studio, buscados por el título
+    # de la plantilla (más confiable que el fragmento parcial que se edita).
+    titulo_plantilla = ((contexto_capas or {}).get("titulo") or "").strip() or fragmento
+    for item in _buscar_en_fichas_word(titulo_plantilla, limite=limite):
+        if item["clave"] in vistos:
+            continue
+        vistos.add(item["clave"])
+        resultados.append(item)
+
     sheet = _buscar_en_sheets(fragmento)
-    if sheet:
+    if sheet and sheet["clave"] not in vistos:
         vistos.add(sheet["clave"])
         resultados.append(sheet)
 
@@ -1851,7 +2010,7 @@ def sugerir_texto_magico(
             "fichas": [],
         }
 
-    fichas = _recolectar_fichas(fragmento, palabras)
+    fichas = _recolectar_fichas(fragmento, palabras, contexto_capas=contexto_capas)
     if not fichas:
         return {
             "ok": True,
