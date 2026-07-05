@@ -1,330 +1,6 @@
 {
   "eventos": [
     {
-      "ts": 1782923200.7676606,
-      "tipo": "bot_pausado_global",
-      "sender": "573204846946@c.us",
-      "detalle": "Ya te envío el comprobante"
-    },
-    {
-      "ts": 1782923326.5353265,
-      "tipo": "bot_pausado_global",
-      "sender": "573204846946@c.us",
-      "detalle": "MCKGroSAS?"
-    },
-    {
-      "ts": 1782923422.1142812,
-      "tipo": "bot_pausado_global",
-      "sender": "573028492096@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782923459.552279,
-      "tipo": "bot_pausado_global",
-      "sender": "573135653363@c.us",
-      "detalle": "Muy amable muchas gracias ☺️"
-    },
-    {
-      "ts": 1782923511.5058923,
-      "tipo": "bot_pausado_global",
-      "sender": "573204846946@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782923671.3264263,
-      "tipo": "bot_pausado_global",
-      "sender": "573204846946@c.us",
-      "detalle": "Miguel Angel Leaño CC 79358015 Calle 101 #70B-23 Bogotá 320 4846946 malrbs@hotmail.com"
-    },
-    {
-      "ts": 1782923704.8607054,
-      "tipo": "bot_pausado_global",
-      "sender": "573204846946@c.us",
-      "detalle": "Ok gracias"
-    },
-    {
-      "ts": 1782926424.7199128,
-      "tipo": "bot_pausado_global",
-      "sender": "573134111951@c.us",
-      "detalle": "Hola veci como esta?"
-    },
-    {
-      "ts": 1782926458.3985324,
-      "tipo": "bot_pausado_global",
-      "sender": "573134111951@c.us",
-      "detalle": "Tienens hidrolato de romero?"
-    },
-    {
-      "ts": 1782926643.0668707,
-      "tipo": "bot_pausado_global",
-      "sender": "573134111951@c.us",
-      "detalle": "Sabes donde lo pueda conseguir??"
-    },
-    {
-      "ts": 1782926940.5443625,
-      "tipo": "bot_pausado_global",
-      "sender": "573134604659@c.us",
-      "detalle": "Buenos días para un pedido porfavor"
-    },
-    {
-      "ts": 1782926967.7315366,
-      "tipo": "bot_pausado_global",
-      "sender": "573134604659@c.us",
-      "detalle": "2 ácido hialuronico 1 ácido láctico 1 colageno 2 ácido kojico"
-    },
-    {
-      "ts": 1782927361.172514,
-      "tipo": "bot_pausado_global",
-      "sender": "573134604659@c.us",
-      "detalle": "Si señor"
-    },
-    {
-      "ts": 1782927369.83352,
-      "tipo": "bot_pausado_global",
-      "sender": "573134604659@c.us",
-      "detalle": "Oye y podemos cambiar datos para factura electrónica?"
-    },
-    {
-      "ts": 1782927450.8337462,
-      "tipo": "bot_pausado_global",
-      "sender": "573134604659@c.us",
-      "detalle": "Ruth Enciso Cosmetologia y estética SAS Nit 902075547 Calle 100 # 19-61 consultorio 402 Chico norte Bogota 3134604659 Ruthenciso.cosmetologiaestetica@gmail.com"
-    },
-    {
-      "ts": 1782927456.3571198,
-      "tipo": "bot_pausado_global",
-      "sender": "573134604659@c.us",
-      "detalle": "Mira son estos datos a ese Nit"
-    },
-    {
-      "ts": 1782927467.351623,
-      "tipo": "bot_pausado_global",
-      "sender": "573134604659@c.us",
-      "detalle": "Listo"
-    },
-    {
-      "ts": 1782927478.24211,
-      "tipo": "bot_pausado_auto",
-      "sender": "573134604659@c.us",
-      "detalle": "ráfaga de 6 mensajes en 120s"
-    },
-    {
-      "ts": 1782927562.331363,
-      "tipo": "modo_humano",
-      "sender": "573134604659@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782927566.2436662,
-      "tipo": "bot_pausado_auto",
-      "sender": "573134604659@c.us",
-      "detalle": "ráfaga de 6 mensajes en 120s"
-    },
-    {
-      "ts": 1782927598.7693875,
-      "tipo": "modo_humano",
-      "sender": "573134604659@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1782928538.3680608,
-      "tipo": "modo_humano",
-      "sender": "573185356832@c.us",
-      "detalle": "Buenas Tardes, disculpe me pueden por favor compartir la factura por esta compra"
-    },
-    {
-      "ts": 1782930084.89049,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "bisglicinato agotado amiga Buy ya llegó"
-    },
-    {
-      "ts": 1782930094.6285777,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Okey"
-    },
-    {
-      "ts": 1782930172.6558518,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "L carnitina x 100 gr: 49.000 + 3 magnesios 250 gr: 63.000 +2 potasio 250 gr: 32.000 + envio: 18.000"
-    },
-    {
-      "ts": 1782930401.1913497,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Buenas tardes"
-    },
-    {
-      "ts": 1782930413.410344,
-      "tipo": "modo_humano",
-      "sender": "573185356832@c.us",
-      "detalle": "Muchas gracias"
-    },
-    {
-      "ts": 1782930415.268291,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "bisglicinato agotado amiga Buy ya llegó"
-    },
-    {
-      "ts": 1782930455.3519723,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "L carnitina x 100 gr: 49.000 + 3 magnesios 250 gr: 63.000 +2 potasio 250 gr: 32.000 + envio: 18.000"
-    },
-    {
-      "ts": 1782930474.2101374,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Voy a pagar estos para hacer este pedido"
-    },
-    {
-      "ts": 1782930497.2412872,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "162.000 da esto cierto"
-    },
-    {
-      "ts": 1782930567.223714,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Okey ya le pago"
-    },
-    {
-      "ts": 1782930840.5849085,
-      "tipo": "bot_pausado_global",
-      "sender": "573184312181@c.us",
-      "detalle": "Buenas tardes"
-    },
-    {
-      "ts": 1782930854.5283833,
-      "tipo": "bot_pausado_global",
-      "sender": "573184312181@c.us",
-      "detalle": "Me envía por favor 1 libra de blanca Dos de verde por 250 2 rojas por 250"
-    },
-    {
-      "ts": 1782930862.867799,
-      "tipo": "bot_pausado_global",
-      "sender": "573184312181@c.us",
-      "detalle": "Tiene arcilla negra"
-    },
-    {
-      "ts": 1782930975.3414173,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": ""
-    },
-    {
-      "ts": 1782930986.539445,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Listos amiga"
-    },
-    {
-      "ts": 1782931013.9529426,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Melvis Reinoso Barros 40921854 Calle 27a #4a-15 Riohacha la Guajira 3183967407 melvisdoloresr@gmail.com"
-    },
-    {
-      "ts": 1782931027.1686766,
-      "tipo": "bot_pausado_global",
-      "sender": "573183967407@c.us",
-      "detalle": "Si sra"
-    },
-    {
-      "ts": 1782931121.7139935,
-      "tipo": "bot_pausado_global",
-      "sender": "573186194873@c.us",
-      "detalle": "Hola"
-    },
-    {
-      "ts": 1782931141.9226685,
-      "tipo": "bot_pausado_global",
-      "sender": "573186194873@c.us",
-      "detalle": "Quisiera saber si la cera de abejas refinada tiene aditivos ??"
-    },
-    {
-      "ts": 1782932488.323476,
-      "tipo": "bot_pausado_global",
-      "sender": "573184312181@c.us",
-      "detalle": "Roldanillo"
-    },
-    {
-      "ts": 1782932493.8638153,
-      "tipo": "bot_pausado_global",
-      "sender": "573184312181@c.us",
-      "detalle": "A bueno entonces las q tenga"
-    },
-    {
-      "ts": 1782933159.2400978,
-      "tipo": "bot_pausado_global",
-      "sender": "573152909183@c.us",
-      "detalle": "Hola, quiero una cotización personalizada"
-    },
-    {
-      "ts": 1782933188.4104445,
-      "tipo": "bot_pausado_global",
-      "sender": "573152909183@c.us",
-      "detalle": "Ok"
-    },
-    {
-      "ts": 1782933635.5191145,
-      "tipo": "bot_pausado_global",
-      "sender": "573152909183@c.us",
-      "detalle": "Hola me gustaría poder cotizar unas materias primas"
-    },
-    {
-      "ts": 1782933705.181882,
-      "tipo": "bot_pausado_global",
-      "sender": "573192247757@c.us",
-      "detalle": "Muchas gracias"
-    },
-    {
-      "ts": 1782933958.3121204,
-      "tipo": "bot_pausado_global",
-      "sender": "573152909183@c.us",
-      "detalle": "Aceite de Jojoba Goma Xantana Glicerina vegetal USP Ácido hialurónico solución 1% (en frío) Niacinamida Alantoína: Aceite de Argán Ciclometacona Vitamina E Olivem 1000 Conservante Phenoxyethanol ácido"
-    },
-    {
-      "ts": 1782933977.329077,
-      "tipo": "bot_pausado_global",
-      "sender": "573152909183@c.us",
-      "detalle": "Serían esta de casualidad manejas alguna??"
-    },
-    {
-      "ts": 1782934005.9601965,
-      "tipo": "bot_pausado_global",
-      "sender": "573163397382@c.us",
-      "detalle": "Buenas tardes"
-    },
-    {
-      "ts": 1782934070.8885756,
-      "tipo": "bot_pausado_global",
-      "sender": "573163397382@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1782934077.7552543,
-      "tipo": "bot_pausado_global",
-      "sender": "573163397382@c.us",
-      "detalle": "Quedó atento"
-    },
-    {
-      "ts": 1782934169.3336697,
-      "tipo": "bot_pausado_global",
-      "sender": "573152909183@c.us",
-      "detalle": "Gracias"
-    },
-    {
-      "ts": 1782934454.925312,
-      "tipo": "bot_pausado_global",
-      "sender": "573155951959@c.us",
-      "detalle": "Hola 👋 feliz tarde"
-    },
-    {
       "ts": 1782934470.0436435,
       "tipo": "bot_pausado_global",
       "sender": "573155951959@c.us",
@@ -1799,6 +1475,330 @@
       "tipo": "bot_pausado_global",
       "sender": "573172228023@c.us",
       "detalle": "Ok"
+    },
+    {
+      "ts": 1783168083.5772803,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Hola, quiero información sobre sus productos"
+    },
+    {
+      "ts": 1783168090.2496312,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Buen día!!"
+    },
+    {
+      "ts": 1783170381.9652777,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Buen día Jenniffer, muchas gracias, mi nombre es Jazmin, estoy interesada en encargar algunos productos!! Puedo hacer el pedido hoy y cuando llegaría?"
+    },
+    {
+      "ts": 1783170777.5214424,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Para Soacha..."
+    },
+    {
+      "ts": 1783170807.4372714,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Quiero saber si puedo hacer el pedido contigo!! Gracias!"
+    },
+    {
+      "ts": 1783176302.7232332,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "A como"
+    },
+    {
+      "ts": 1783176304.1041577,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "Tienes"
+    },
+    {
+      "ts": 1783176307.9956806,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "El cebo de cordero"
+    },
+    {
+      "ts": 1783178328.4010196,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "Me dices cómo fue la elaboración Cómo son los ingredientes está procesado filtrado ya que el cebo de res y de cordero tiene que estar bien filtrado para que no tenga agua y no tape los poros"
+    },
+    {
+      "ts": 1783178505.8647473,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "Aquí cuando te pregunté por los conservantes solo me contestaste la pregunta que te hice de los conservantes que no tiene ninguno pero no manejan ningún tipo de conservante para una pasta dental que t"
+    },
+    {
+      "ts": 1783178512.0516043,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "Y ningún hidrolato"
+    },
+    {
+      "ts": 1783178631.451778,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "Y clorofila líquida a base de glicerina"
+    },
+    {
+      "ts": 1783178876.9485703,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Aceite esencial de jazmín Manteca de karate blanca Citrato de magnesio Citrato de potasio Citrato de zinc!!!"
+    },
+    {
+      "ts": 1783178998.4673986,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Cuanto es el precio del envío?"
+    },
+    {
+      "ts": 1783179084.8210766,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1783179107.3441865,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Mire en el catálogo y anoté estos precios que dicen alli"
+    },
+    {
+      "ts": 1783179123.7489479,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "No señora, mire en la página directamente.."
+    },
+    {
+      "ts": 1783179162.3630753,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "el total es $176.018"
+    },
+    {
+      "ts": 1783179174.209134,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Muchas gracias"
+    },
+    {
+      "ts": 1783179213.1030946,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "Pasta dental 100 % natural a base de carbonato de calcio"
+    },
+    {
+      "ts": 1783179217.221682,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Puedo pagar por este medio y pasarte el pedido a tí?"
+    },
+    {
+      "ts": 1783179274.725671,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Pero así como saque los precios?"
+    },
+    {
+      "ts": 1783179282.5457275,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Y las cantidades?"
+    },
+    {
+      "ts": 1783179290.115502,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Muchas gracias!!"
+    },
+    {
+      "ts": 1783179301.0676262,
+      "tipo": "bot_pausado_global",
+      "sender": "573016146900@c.us",
+      "detalle": "Mil gracias!!"
+    },
+    {
+      "ts": 1783179337.2071054,
+      "tipo": "bot_pausado_auto",
+      "sender": "573016146900@c.us",
+      "detalle": "ráfaga de 6 mensajes en 120s"
+    },
+    {
+      "ts": 1783180309.50265,
+      "tipo": "bot_pausado_global",
+      "sender": "573124271532@c.us",
+      "detalle": "Buen día"
+    },
+    {
+      "ts": 1783180318.6647274,
+      "tipo": "bot_pausado_global",
+      "sender": "573124271532@c.us",
+      "detalle": "Ustedes venden alcohol alimentario?"
+    },
+    {
+      "ts": 1783180377.8182104,
+      "tipo": "bot_pausado_global",
+      "sender": "573124271532@c.us",
+      "detalle": "Y la creatina que venden es la misma que se usa para recuperación muscular del ejercicio?"
+    },
+    {
+      "ts": 1783180399.3298707,
+      "tipo": "bot_pausado_global",
+      "sender": "573124271532@c.us",
+      "detalle": "Que precio tiene?"
+    },
+    {
+      "ts": 1783180781.2401152,
+      "tipo": "bot_pausado_global",
+      "sender": "573124271532@c.us",
+      "detalle": "Y como es el modo de consumo?"
+    },
+    {
+      "ts": 1783180808.171603,
+      "tipo": "bot_pausado_global",
+      "sender": "573124271532@c.us",
+      "detalle": "Igual que la que venden en los gimnasios?"
+    },
+    {
+      "ts": 1783181626.0461333,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "Qué te dijeron"
+    },
+    {
+      "ts": 1783181628.7306693,
+      "tipo": "bot_pausado_global",
+      "sender": "573134870950@c.us",
+      "detalle": "Qué te dijeron"
+    },
+    {
+      "ts": 1783181856.3707716,
+      "tipo": "modo_humano",
+      "sender": "573016146900@c.us",
+      "detalle": "👍🏻"
+    },
+    {
+      "ts": 1783190099.989137,
+      "tipo": "bot_pausado_global",
+      "sender": "573137851925@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1783190133.8883722,
+      "tipo": "bot_pausado_global",
+      "sender": "573137851925@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1783192852.9779267,
+      "tipo": "bot_pausado_global",
+      "sender": "573158755626@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1783192984.1784198,
+      "tipo": "bot_pausado_global",
+      "sender": "573158755626@c.us",
+      "detalle": "El jueves hice este pedido: MCKG-581FE8B443 Y me llegó esto"
+    },
+    {
+      "ts": 1783192992.3859,
+      "tipo": "bot_pausado_global",
+      "sender": "573158755626@c.us",
+      "detalle": ""
+    },
+    {
+      "ts": 1783193024.7673662,
+      "tipo": "bot_pausado_global",
+      "sender": "573158755626@c.us",
+      "detalle": "Hace falta el óxido de zinc"
+    },
+    {
+      "ts": 1783195253.4890227,
+      "tipo": "bot_pausado_global",
+      "sender": "573158755626@c.us",
+      "detalle": "Muchas gracias"
+    },
+    {
+      "ts": 1783196204.641001,
+      "tipo": "bot_pausado_global",
+      "sender": "573127308698@c.us",
+      "detalle": "Buenas tardes"
+    },
+    {
+      "ts": 1783196217.242135,
+      "tipo": "bot_pausado_global",
+      "sender": "573127308698@c.us",
+      "detalle": "Cómo estás"
+    },
+    {
+      "ts": 1783201690.7898197,
+      "tipo": "bot_pausado_global",
+      "sender": "573127308698@c.us",
+      "detalle": "Hola cómo estás"
+    },
+    {
+      "ts": 1783201707.9027712,
+      "tipo": "bot_pausado_global",
+      "sender": "573127308698@c.us",
+      "detalle": "Puedes depacharme por favor 2 kilos de microcelulosa 102"
+    },
+    {
+      "ts": 1783204865.597278,
+      "tipo": "modo_humano",
+      "sender": "573196529076@c.us",
+      "detalle": "Cordial saludo, el sebo de cordero se procesa mediante un método natural llamado renderizado, que consiste en picar la grasa limpia y cocinarla a fuego muy lento para que se derrita despacio. Durante "
+    },
+    {
+      "ts": 1783204937.057952,
+      "tipo": "modo_humano",
+      "sender": "573196529076@c.us",
+      "detalle": "Por otro lado, debes de realizar pruebas así como filtraciones adicionales si así lo consideras, ya que es una materia prima que viene en bloques grandes."
+    },
+    {
+      "ts": 1783209569.0791235,
+      "tipo": "bot_pausado_global",
+      "sender": "573202262183@c.us",
+      "detalle": "Que costo tiene"
+    },
+    {
+      "ts": 1783209581.7524793,
+      "tipo": "bot_pausado_global",
+      "sender": "573202262183@c.us",
+      "detalle": "El citrato de magnesio"
+    },
+    {
+      "ts": 1783215528.1760166,
+      "tipo": "bot_pausado_global",
+      "sender": "573202262183@c.us",
+      "detalle": "Y el envío tiene algún costo"
+    },
+    {
+      "ts": 1783215616.0593257,
+      "tipo": "bot_pausado_global",
+      "sender": "573202262183@c.us",
+      "detalle": "Y la creatina que costó tiene"
+    },
+    {
+      "ts": 1783215635.4043336,
+      "tipo": "bot_pausado_global",
+      "sender": "573202262183@c.us",
+      "detalle": "Si hago el pedido hoy estará llegando el lunes"
+    },
+    {
+      "ts": 1783220507.8581784,
+      "tipo": "bot_pausado_global",
+      "sender": "573202262183@c.us",
+      "detalle": "Si"
     }
   ]
 }

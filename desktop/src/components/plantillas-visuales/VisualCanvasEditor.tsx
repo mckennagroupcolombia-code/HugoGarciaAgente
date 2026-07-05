@@ -62,6 +62,7 @@ import GaleriaImagenesModal from "./GaleriaImagenesModal";
 import CambiarFormatoModal from "./CambiarFormatoModal";
 import ImagenCanvasElement from "./ImagenCanvasElement";
 import SugerenciasTextoMagico from "./SugerenciasTextoMagico";
+import { buscarCasPorTitulo } from "../../lib/textoMagicoApi";
 import { studio } from "./studioUi";
 
 interface Props {
@@ -201,6 +202,9 @@ export default function VisualCanvasEditor({
   const contenidoTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const contenidoSeleccionRef = useRef<{ start: number; end: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [casAutoEstado, setCasAutoEstado] = useState<"idle" | "cargando" | "error">("idle");
+  const [capaArrastradaId, setCapaArrastradaId] = useState<string | null>(null);
+  const [capaSobreId, setCapaSobreId] = useState<string | null>(null);
   const [editandoInlineId, setEditandoInlineId] = useState<string | null>(null);
   const [editandoInlineTexto, setEditandoInlineTexto] = useState("");
   const editandoInlineRef = useRef<HTMLTextAreaElement | null>(null);
@@ -228,6 +232,11 @@ export default function VisualCanvasEditor({
 
   const maxZ = useMemo(
     () => doc.elementos.reduce((m, e) => Math.max(m, e.zIndex), 0),
+    [doc.elementos],
+  );
+
+  const minZ = useMemo(
+    () => doc.elementos.reduce((m, e) => Math.min(m, e.zIndex), 0),
     [doc.elementos],
   );
 
@@ -478,6 +487,15 @@ export default function VisualCanvasEditor({
     });
   };
 
+  const enviarAtras = () => {
+    if (!seleccionIds.length) return;
+    let z = minZ;
+    [...seleccionIds].reverse().forEach((id) => {
+      z -= 1;
+      patchElemento(id, { zIndex: z });
+    });
+  };
+
   const aplicarAlineacion = useCallback(
     (tipo: AlineacionObjetos) => {
       const ids = seleccionIds.filter((id) => doc.elementos.some((e) => e.id === id));
@@ -597,7 +615,7 @@ export default function VisualCanvasEditor({
           width: Math.max(20, o.width + dx),
           height: Math.max(12, o.height + dy),
         });
-      } else if (drag!.mode === "rotate" && o.type === "rect") {
+      } else if (drag!.mode === "rotate" && (o.type === "rect" || o.type === "image")) {
         const pt = punteroEnLienzo(ev);
         if (
           !pt ||
@@ -766,14 +784,34 @@ export default function VisualCanvasEditor({
     [doc.elementos],
   );
 
+  // Reubica la capa `origenId` justo antes (encima, en la lista) de `destinoId`
+  // reasignando zIndex a todas las capas según el nuevo orden visual.
+  const reordenarCapa = useCallback(
+    (origenId: string, destinoId: string) => {
+      if (origenId === destinoId) return;
+      const orden = [...capasOrdenadas];
+      const fromIdx = orden.findIndex((e) => e.id === origenId);
+      if (fromIdx === -1) return;
+      const [movida] = orden.splice(fromIdx, 1);
+      const toIdx = orden.findIndex((e) => e.id === destinoId);
+      orden.splice(toIdx === -1 ? orden.length : toIdx, 0, movida);
+      const total = orden.length;
+      const nuevosZ = new Map(orden.map((e, i) => [e.id, total - i]));
+      patchElementos((els) =>
+        els.map((e) => (nuevosZ.has(e.id) ? ({ ...e, zIndex: nuevosZ.get(e.id)! } as ElementoVisual) : e)),
+      );
+    },
+    [capasOrdenadas, patchElementos],
+  );
+
   function labelCapa(el: ElementoVisual): string {
     if (el.type === "text") {
+      const palabras = (el.content || "").trim().split(/\s+/).filter(Boolean);
+      if (palabras.length > 0) return palabras.slice(0, 2).join(" ");
       const rol = inferirRolTextoCapa(el, doc.elementos);
       if (rol === "descripcion") return "Descripción MP";
       if (rol && rol !== "otro") return labelRolTextoCapa(rol);
-      const palabras = (el.content || "").trim().split(/\s+/).filter(Boolean);
-      if (palabras.length === 0) return "Texto";
-      return palabras.slice(0, 2).join(" ");
+      return "Texto";
     }
     if (el.type === "image") return "Imagen";
     if (el.type === "rect") return "Rectángulo";
@@ -1138,7 +1176,7 @@ export default function VisualCanvasEditor({
                       fontFamily: el.fontFamily,
                       fontWeight: pesoFontWeightCss(el.fontWeight),
                       textAlign: el.align,
-                      lineHeight: 1.2,
+                      lineHeight: el.lineHeight ?? 1.2,
                       whiteSpace: "pre-wrap",
                       wordBreak: "break-word",
                       outline: mostrandoCaja && !editandoEste ? OUTLINE_CAJA_ARRASTRE : undefined,
@@ -1195,7 +1233,7 @@ export default function VisualCanvasEditor({
                               fontWeight: pesoFontWeightCss(el.fontWeight),
                               textAlign: el.align,
                               whiteSpace: "pre-wrap",
-                              lineHeight: 1.2,
+                              lineHeight: el.lineHeight ?? 1.2,
                               wordBreak: "break-word",
                               resize: "none",
                               background: "rgba(255,255,255,0.93)",
@@ -1380,6 +1418,10 @@ export default function VisualCanvasEditor({
                   if (el.type === "image") {
                     const mostrandoCaja = mostrandoCajaArrastre(el.id, sel, esPrincipal, drag);
                     const esHover = hoveredId === el.id && !sel && !drag;
+                    const manijasVisibles =
+                      mostrandoCaja ? "opacity-100" : "opacity-0 group-hover/elem:opacity-100";
+                    const mostrarManijas =
+                      (mostrandoCaja || (sel && esPrincipal)) && !el.locked;
                     return (
                       <div
                         key={el.id}
@@ -1403,6 +1445,21 @@ export default function VisualCanvasEditor({
                         <div className="h-full w-full overflow-hidden">
                           <ImagenCanvasElement src={el.src} objectFit={el.objectFit} />
                         </div>
+                        {mostrarManijas && (
+                          <span
+                            aria-hidden
+                            className={`pointer-events-none absolute left-1/2 z-10 w-px -translate-x-1/2 bg-accent/50 ${manijasVisibles}`}
+                            style={{ top: -22, height: 22 }}
+                          />
+                        )}
+                        {mostrarManijas && (
+                          <span
+                            title="Rotar (mantén Shift para 15°)"
+                            className={`absolute left-1/2 z-20 h-3.5 w-3.5 -translate-x-1/2 cursor-grab rounded-full border border-white/80 bg-accent shadow-sm active:cursor-grabbing ${manijasVisibles}`}
+                            style={{ top: -30 }}
+                            onPointerDown={(e) => onPointerDownEl(e, el, "rotate")}
+                          />
+                        )}
                         {(mostrandoCaja || (sel && esPrincipal)) && !el.locked && (
                           <span
                             className={`absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-accent ${
@@ -1491,8 +1548,35 @@ export default function VisualCanvasEditor({
                       const oculto = el.visible === false;
                       const icon =
                         el.type === "text" ? "T" : el.type === "rect" ? "▢" : el.type === "line" ? "─" : "▣";
+                      const arrastrando = capaArrastradaId === el.id;
+                      const sobreEsta = capaSobreId === el.id && capaArrastradaId !== null && !arrastrando;
                       return (
-                        <li key={el.id} className="flex items-center gap-0.5">
+                        <li
+                          key={el.id}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.effectAllowed = "move";
+                            setCapaArrastradaId(el.id);
+                          }}
+                          onDragEnter={(e) => {
+                            e.preventDefault();
+                            if (capaArrastradaId && capaArrastradaId !== el.id) setCapaSobreId(el.id);
+                          }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (capaArrastradaId) reordenarCapa(capaArrastradaId, el.id);
+                            setCapaArrastradaId(null);
+                            setCapaSobreId(null);
+                          }}
+                          onDragEnd={() => {
+                            setCapaArrastradaId(null);
+                            setCapaSobreId(null);
+                          }}
+                          className={`flex items-center gap-0.5 rounded ${arrastrando ? "opacity-40" : ""} ${
+                            sobreEsta ? "border-t-2 border-accent" : ""
+                          }`}
+                        >
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1504,7 +1588,7 @@ export default function VisualCanvasEditor({
                               );
                               setSeleccionIds(next);
                             }}
-                            className={`flex min-w-0 flex-1 items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition ${
+                            className={`flex min-w-0 flex-1 cursor-grab items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition active:cursor-grabbing ${
                               activa
                                 ? "bg-accent/15 text-accent font-medium"
                                 : oculto
@@ -1567,6 +1651,7 @@ export default function VisualCanvasEditor({
                       <p className="text-xs font-semibold capitalize text-ink">{labelCapa(seleccionado)}</p>
                       <div className="flex shrink-0 gap-0.5">
                         <button type="button" onClick={duplicarSeleccion} className="rounded px-1.5 py-0.5 text-[10px] text-muted hover:bg-surface-hover" title="Duplicar">⧉</button>
+                        <button type="button" onClick={enviarAtras} className="rounded px-1.5 py-0.5 text-[10px] text-muted hover:bg-surface-hover" title="Atrás">↓</button>
                         <button type="button" onClick={traerAdelante} className="rounded px-1.5 py-0.5 text-[10px] text-muted hover:bg-surface-hover" title="Adelante">↑</button>
                         <button type="button" onClick={eliminarSeleccion} className="rounded px-1.5 py-0.5 text-[10px] text-red-600 hover:bg-red-50" title="Eliminar">✕</button>
                       </div>
@@ -1693,10 +1778,49 @@ export default function VisualCanvasEditor({
                       doc.elementos,
                       seleccionado.id,
                     );
-                    // Cualquier capa de texto identifica el producto por el
-                    // título de la etiqueta, no por lo que haya escrito en su
-                    // propio contenido — así no hay que repetir el nombre, y
-                    // la búsqueda de ficha técnica no depende de que la capa
+                    // Capa "CAS: ..." → el número CAS es un dato puntual, no
+                    // prosa: se asocia por título con la ficha FT/COA/SDS del
+                    // Studio (lookup determinístico), no con sugerencias de IA.
+                    const esCapaCas = /^\s*#?\s*cas\b/i.test(seleccionado.content || "");
+                    if (esCapaCas) {
+                      return (
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={!contextoCapas.titulo || casAutoEstado === "cargando"}
+                            onClick={async () => {
+                              if (!contextoCapas.titulo) return;
+                              setCasAutoEstado("cargando");
+                              try {
+                                const cas = await buscarCasPorTitulo(contextoCapas.titulo);
+                                if (cas) {
+                                  patchElemento(seleccionado.id, { content: `CAS: ${cas}` });
+                                  setCasAutoEstado("idle");
+                                } else {
+                                  setCasAutoEstado("error");
+                                }
+                              } catch {
+                                setCasAutoEstado("error");
+                              }
+                            }}
+                            className="rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink-secondary hover:bg-surface-hover disabled:opacity-50"
+                          >
+                            {casAutoEstado === "cargando"
+                              ? "Buscando CAS…"
+                              : "🔎 Asociar CAS con el título"}
+                          </button>
+                          {casAutoEstado === "error" && (
+                            <span className="text-[10px] text-red-500">
+                              No se encontró CAS para «{contextoCapas.titulo}»
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                    // Cualquier otra capa de texto identifica el producto por
+                    // el título de la etiqueta, no por lo que haya escrito en
+                    // su propio contenido — así no hay que repetir el nombre,
+                    // y la búsqueda de ficha técnica no depende de que la capa
                     // se haya clasificado (heurística o manual) como "descripción".
                     const fragmentoTextoMagico = contextoCapas.titulo
                       ? [contextoCapas.titulo, seleccionado.content]
@@ -1811,6 +1935,22 @@ export default function VisualCanvasEditor({
                     <option value="right">Derecha</option>
                     <option value="justify">Justificado</option>
                   </select>
+                </label>
+                <label>
+                  <span className="text-xs text-muted">
+                    Interlineado ({(seleccionado.lineHeight ?? 1.2).toFixed(1)})
+                  </span>
+                  <input
+                    type="range"
+                    min={0.8}
+                    max={2.5}
+                    step={0.1}
+                    value={seleccionado.lineHeight ?? 1.2}
+                    onChange={(e) =>
+                      patchElemento(seleccionado.id, { lineHeight: Number(e.target.value) })
+                    }
+                    className="w-full accent-accent"
+                  />
                 </label>
               </>
             )}
@@ -1947,21 +2087,35 @@ export default function VisualCanvasEditor({
             )}
 
             {seleccionado.type === "image" && (
-              <label>
-                <span className="text-xs text-muted">Ajuste imagen</span>
-                <select
-                  value={seleccionado.objectFit}
-                  onChange={(e) =>
-                    patchElemento(seleccionado.id, {
-                      objectFit: e.target.value as "contain" | "cover",
-                    })
-                  }
-                  className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
-                >
-                  <option value="contain">Contener</option>
-                  <option value="cover">Cubrir</option>
-                </select>
-              </label>
+              <>
+                <label>
+                  <span className="text-xs text-muted">Ajuste imagen</span>
+                  <select
+                    value={seleccionado.objectFit}
+                    onChange={(e) =>
+                      patchElemento(seleccionado.id, {
+                        objectFit: e.target.value as "contain" | "cover",
+                      })
+                    }
+                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
+                  >
+                    <option value="contain">Contener</option>
+                    <option value="cover">Cubrir</option>
+                  </select>
+                </label>
+                <label>
+                  <span className="text-xs text-muted">Rotación (°)</span>
+                  <input
+                    type="number"
+                    step={1}
+                    value={Math.round(seleccionado.rotation || 0)}
+                    onChange={(e) =>
+                      patchElemento(seleccionado.id, { rotation: Number(e.target.value) })
+                    }
+                    className="w-full rounded border border-border bg-surface px-2 py-1 text-xs"
+                  />
+                </label>
+              </>
             )}
                   </div>
                 )}

@@ -53,6 +53,7 @@ import { Icon } from "../icons";
 import { ProseTextarea } from "./ProseTextarea";
 import { EditorPanel } from "./PublicacionesPanel";
 import { useGuardarPublicacion } from "../hooks/usePublicaciones";
+import PlantillasVisualesPanel from "./plantillas-visuales/PlantillasVisualesPanel";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -4092,6 +4093,8 @@ function TabImprimir({
   const [tabRibbon, setTabRibbon] = useState<ImprimirRibbonTab>("inicio");
   const [errorImpresion, setErrorImpresion] = useState<ErrorImpresora | null>(null);
   const [mostrarPedidoEtiquetas, setMostrarPedidoEtiquetas] = useState(false);
+  const [pdfStudioRuta, setPdfStudioRuta] = useState("");
+  const [pdfStudioNombre, setPdfStudioNombre] = useState("");
   const tokenTickets = ticketsToken || panelBearerToken();
 
   const { data: solicitudesImprimir = [], refetch: refetchSolicitudesImprimir } = useQuery({
@@ -4180,6 +4183,9 @@ function TabImprimir({
   // Precargar desde configuración de producto
   useEffect(() => {
     if (!precargar) return;
+    setPdfStudioRuta(precargar.pdf_ruta || "");
+    setPdfStudioNombre(precargar.pdf_nombre || "");
+    if (precargar.pdf_ruta) setVistaImpresion("documento");
     if (precargar.tipo_etiqueta) {
       const [anchoMm, altoMm] = mmParaTipoEtiqueta(precargar.tipo_etiqueta, TIPOS_ETIQUETA_DEFAULT);
       setFormato({
@@ -4198,12 +4204,29 @@ function TabImprimir({
     setLoteYPct(pct.y);
     setLote(conPrefijoLote(precargar.lote_defecto));
     setVencimiento(conPrefijoExp(precargar.vencimiento_defecto));
-    if (precargar.campos_texto) setCamposTexto(precargar.campos_texto);
-    if (precargar.lineas) setLineasPlantilla(precargar.lineas);
-    if (precargar.imagenes) setImagenesPlantilla(precargar.imagenes);
-    if (precargar.rectangulos) setRectangulosPlantilla(precargar.rectangulos);
+    // Siempre reasignar (no solo cuando vienen datos): si no, quedan overlays
+    // de un producto/PDF anterior "pegados" sobre el PDF nuevo (p. ej. el
+    // handoff de Studio no manda estos campos y el PDF ya trae todo su
+    // propio texto — no debe mostrarse nada superpuesto encima).
+    setCamposTexto(precargar.campos_texto ?? []);
+    setLineasPlantilla(precargar.lineas ?? []);
+    setImagenesPlantilla(precargar.imagenes ?? []);
+    setRectangulosPlantilla(precargar.rectangulos ?? []);
     onPrecargarConsumido();
   }, [precargar]);
+
+  // Render plano del PDF de Studio, sin overlays: el diseño ya viene
+  // completo (todas las capas de texto) desde el editor visual, así que la
+  // vista previa debe verse exactamente igual que en el Studio.
+  const { data: pdfStudioPreview, isFetching: pdfStudioPreviewLoading } = useQuery({
+    queryKey: ["etiquetas-pdf-studio-preview", pdfStudioRuta],
+    queryFn: () =>
+      api.post<{ imagen: string; mime: string; error?: string }>("/api/etiquetas/preview", {
+        ruta_pdf: pdfStudioRuta,
+      }),
+    enabled: !!pdfStudioRuta,
+    staleTime: 0,
+  });
 
   const { data: estadoData, refetch: refetchImpresora } = useQuery({
     queryKey: ["etiquetas-impresora"],
@@ -4305,7 +4328,8 @@ function TabImprimir({
     </div>
   );
 
-  const productoListo = !!studioDatosImpresion.sku.trim() && !!studioDatosImpresion.nombre_producto.trim();
+  const productoListo = !!pdfStudioRuta
+    || (!!studioDatosImpresion.sku.trim() && !!studioDatosImpresion.nombre_producto.trim());
 
   const estadoTxt = estadoData?.estado ?? "";
   const impConectada = impresoraConectadaDesdeEstado(estadoTxt, estadoData?.impresora_conectada);
@@ -4324,7 +4348,7 @@ function TabImprimir({
     const loteVal = loteParaEtiqueta(lote);
     const expVal = expParaEtiqueta(vencimiento);
     const loteInfo = (loteVal || expVal) ? ` · ${loteVal || "–"} / ${expVal || "–"}` : "";
-    const plantilla = filaActiva?.archivo_ai || studioDatosImpresion.archivo_ai || "SVG";
+    const plantilla = pdfStudioNombre || filaActiva?.archivo_ai || studioDatosImpresion.archivo_ai || "SVG";
     setLog((prev) => [
       ...prev,
       `[${ts}] ${cantidad} cop. · ${formato.nombre} (${formato.anchoMm}×${formato.altoMm} mm) · ${calidad}${loteInfo} · ${plantilla}...`,
@@ -4340,7 +4364,8 @@ function TabImprimir({
       cantidad,
       offset_v: offsetV,
       offset_h: offsetH,
-      studio_datos: studioDatosImpresion,
+      ruta_pdf: pdfStudioRuta || undefined,
+      studio_datos: pdfStudioRuta ? undefined : studioDatosImpresion,
       lote: loteParaEtiqueta(lote),
       vencimiento: expParaEtiqueta(vencimiento),
       lote_font: loteFont,
@@ -4626,7 +4651,47 @@ function TabImprimir({
             </div>
           </div>
           <div className="relative flex flex-1 items-center justify-center overflow-auto p-3">
-            {productoListo ? (
+            {pdfStudioRuta ? (
+              <div className="flex h-full w-full flex-col items-center gap-2">
+                <div className="flex w-full items-center justify-between gap-2 px-1">
+                  <p className="min-w-0 truncate text-xs font-semibold text-ink" title={pdfStudioNombre}>
+                    📄 {pdfStudioNombre || "PDF de Studio"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPdfStudioRuta("");
+                      setPdfStudioNombre("");
+                      setVistaImpresion("catalogo");
+                    }}
+                    className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[10px] font-semibold text-muted hover:border-accent hover:text-accent"
+                  >
+                    Quitar y elegir del catálogo
+                  </button>
+                </div>
+                {pdfStudioPreview?.error ? (
+                  <p className="px-6 text-center text-xs text-red-500">{pdfStudioPreview.error}</p>
+                ) : (
+                  <VistaPreviaConLote
+                    imagen={pdfStudioPreview?.imagen}
+                    mime={pdfStudioPreview?.mime}
+                    loading={pdfStudioPreviewLoading}
+                    loteText={loteParaEtiqueta(lote)}
+                    vencText={expParaEtiqueta(vencimiento)}
+                    loteFont={loteFont}
+                    xPct={loteXPct}
+                    yPct={loteYPct}
+                    imgClassName={PREVIEW_IMG_LARGE}
+                    containerClassName={PREVIEW_CONTAINER_LARGE}
+                    onPositionChange={(x, y) => {
+                      setLoteXPct(x);
+                      setLoteYPct(y);
+                      setLotePos("custom");
+                    }}
+                  />
+                )}
+              </div>
+            ) : productoListo ? (
               <EtiquetaMckennaPreview
                 datos={studioDatosImpresion}
                 marcoFormato
@@ -4652,7 +4717,9 @@ function TabImprimir({
         {/* Barra inferior — imprimir */}
         <div className="flex flex-shrink-0 flex-col items-center gap-2 border-t border-border bg-surface-panel px-4 py-4">
           <p className="max-w-lg truncate text-center text-[11px] text-muted">
-            {productoListo
+            {pdfStudioRuta
+              ? `📄 ${pdfStudioNombre || "PDF de Studio"}`
+              : productoListo
               ? `${skuActivoImpresion} · ${filaActiva?.archivo_ai || studioDatosImpresion.archivo_ai || "plantilla SVG"}`
               : "Selecciona un producto en el catálogo"}
             {estadoImpresoraLegible(estadoData) && ` · ${estadoImpresoraLegible(estadoData)}`}
@@ -5658,9 +5725,10 @@ export default function EtiquetasPanel() {
   const [tab, setTabLocal] = useState<EtiquetasTab>(storeTab);
   const [precargarImpresion, setPrecargarImpresion] = useState<PrecargarImpresion | null>(null);
   const [solicitudInicial, setSolicitudInicial] = useState<EtiquetasSolicitudActiva | null>(null);
+  const [studioInmersivo, setStudioInmersivo] = useState(false);
 
   useEffect(() => {
-    if (storeTab === "imprimir" || storeTab === "inventario") {
+    if (storeTab === "imprimir" || storeTab === "inventario" || storeTab === "studio") {
       setTabLocal(storeTab);
       return;
     }
@@ -5689,16 +5757,25 @@ export default function EtiquetasPanel() {
   const tabCls = (t: EtiquetasTab) =>
     `flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t ? "bg-accent text-white shadow" : "text-ink-secondary hover:bg-surface-hover"}`;
 
+  const studioFullscreen = tab === "studio" && studioInmersivo;
+
   return (
-    <div className={`space-y-4 px-1 sm:px-0 ${tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"}`}>
-      <div className="flex gap-2 rounded-xl border border-border bg-surface-panel p-1">
-        <button type="button" onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
-          🖨 Imprimir
-        </button>
-        <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
-          📦 Inventario de papel y tinta
-        </button>
-      </div>
+    <div className={`space-y-4 px-1 sm:px-0 ${
+      studioFullscreen ? "" : tab === "imprimir" ? "mx-auto max-w-[min(100%,1600px)]" : "mx-auto max-w-6xl"
+    }`}>
+      {!studioFullscreen && (
+        <div className="flex gap-2 rounded-xl border border-border bg-surface-panel p-1">
+          <button type="button" onClick={() => setTab("imprimir")} className={tabCls("imprimir")}>
+            🖨 Imprimir
+          </button>
+          <button type="button" onClick={() => setTab("studio")} className={tabCls("studio")}>
+            🎨 Studio
+          </button>
+          <button type="button" onClick={() => setTab("inventario")} className={tabCls("inventario")}>
+            📦 Inventario de papel y tinta
+          </button>
+        </div>
+      )}
 
       {tab === "imprimir" && (
         <TabImprimir
@@ -5709,6 +5786,7 @@ export default function EtiquetasPanel() {
           onIrInventarioTinta={() => setTab("inventario")}
         />
       )}
+      {tab === "studio" && <PlantillasVisualesPanel onInmersivoChange={setStudioInmersivo} />}
       {tab === "inventario" && <TabInventarioPapelTinta />}
     </div>
   );

@@ -31,7 +31,7 @@ function puedeVerSeccion(user: TicketsUser | null, seccion: string): boolean {
   if (seccion === "hugo" || seccion === "tickets") return puedeVerTickets(user);
   if ((user.rol?.nivel ?? 0) >= 3) return true;
   if (seccion === "settings") return true;
-  if (seccion === "etiquetas" || seccion === "etiquetas-config" || seccion === "plantillas-visuales") return true;
+  if (seccion === "etiquetas" || seccion === "etiquetas-config") return true;
   const p = user.permisos_secciones;
   if (!p) return new Set(["tickets", "etiquetas"]).has(seccion);
   if (seccion === "postventa" && p.preventa) return true;
@@ -371,14 +371,13 @@ export default function Sidebar() {
         )}
 
         {/* INVENTARIO */}
-        {(puedeVerSeccion(user, "stock") || puedeVerSeccion(user, "etiquetas") || puedeVerSeccion(user, "plantillas-visuales")) && (
+        {(puedeVerSeccion(user, "stock") || puedeVerSeccion(user, "etiquetas")) && (
           <>
             <SectionLabel>Inventario</SectionLabel>
             <div className="space-y-0.5">
               <NavItem id="stock"            panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
               <NavItem id="etiquetas"        panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="core" />
               <NavItem id="fichas"           panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
-              <NavItem id="plantillas-visuales" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="standard" />
               <NavItem id="etiquetas-config" panel={panel} user={user} onNavigate={navegarPanel} advanced={advanced} tier="advanced" />
             </div>
             <Divider />

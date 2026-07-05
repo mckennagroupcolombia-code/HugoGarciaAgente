@@ -46,6 +46,8 @@ export interface ElementoTexto extends ElementoBase {
   fontWeight: string;
   color: string;
   align: "left" | "center" | "right" | "justify";
+  /** Multiplicador de interlineado (1 = sencillo). undefined = 1.2 (por defecto). */
+  lineHeight?: number;
   /** Capa semántica en plantillas de etiqueta (p. ej. descripción materia prima = capa 1). */
   textRole?: RolTextoCapa;
 }

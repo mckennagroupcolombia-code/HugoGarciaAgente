@@ -11427,6 +11427,22 @@ def register_routes(app):
             return jsonify({"ok": True, "status": "done", **result})
         return jsonify({"ok": True, "status": "pending"})
 
+    @app.route("/api/plantillas-visuales/cas-por-titulo", methods=["GET"])
+    @app.route("/app/api/plantillas-visuales/cas-por-titulo", methods=["GET"])
+    def api_plantillas_visuales_cas_por_titulo():
+        if not _api_token_valido():
+            return jsonify({"error": "No autorizado"}), 401
+        from app.tools.plantillas_texto_ia import buscar_cas_por_titulo
+
+        titulo = (request.args.get("titulo") or "").strip()
+        if not titulo:
+            return jsonify({"ok": False, "error": "Falta 'titulo'"}), 400
+        try:
+            cas = buscar_cas_por_titulo(titulo)
+            return jsonify({"ok": True, "cas": cas})
+        except Exception as exc:
+            return jsonify({"ok": False, "error": str(exc), "cas": None}), 500
+
     # ── Plantillas: generación con IA ────────────────────────────────────────
 
     @app.route("/api/plantillas-visuales/generar-ia", methods=["POST"])

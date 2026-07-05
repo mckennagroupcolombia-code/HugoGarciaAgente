@@ -118,11 +118,11 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
   etiquetas: {
     emoji: "🏷️",
     label: "Etiquetas",
-    description: "Imprime etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Soporta múltiples formatos y tamaños.",
+    description: "Imprime etiquetas de producto para empaque, trazabilidad y cumplimiento normativo. Incluye Studio, el editor visual de plantillas.",
     tips: [
       "Selecciona el producto, el lote y la fecha de vencimiento antes de imprimir.",
       "El formato más usado es la etiqueta de 50×30mm para frascos pequeños.",
-      "Puedes guardar plantillas para reutilizarlas la próxima vez.",
+      "Usa la pestaña Studio para diseñar una plantilla y enviarla directo a imprimir.",
     ],
     tier: "core",
     category: "inventario",
@@ -233,17 +233,6 @@ export const PANEL_INFO: Record<string, PanelInfo> = {
     tips: ["Solo modifica esto si sabes exactamente qué cambiar — afecta todas las etiquetas."],
     tier: "advanced",
     category: "inventario",
-  },
-  "plantillas-visuales": {
-    emoji: "🎨",
-    label: "Studio",
-    description: "Editor visual de plantillas y etiquetas. Lienzo tipo Illustrator con capas e inspector.",
-    tips: [
-      "Usa el comparador para ver la etiqueta original y la alternativa una al lado de la otra.",
-      "Las plantillas se guardan como JSON editable y puedes exportarlas a PDF, PNG o JPG.",
-    ],
-    tier: "standard",
-    category: "contenido",
   },
   "logistica-importaciones": {
     emoji: "🚢",

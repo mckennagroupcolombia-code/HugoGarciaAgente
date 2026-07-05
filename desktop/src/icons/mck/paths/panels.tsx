@@ -136,13 +136,6 @@ export const MCK_PANEL_PATHS: Record<Panel, ReactNode> = {
       <rect x="7" y="14" width="10" height="5" rx="1" />
     </>
   ),
-  "plantillas-visuales": (
-    <>
-      <rect x="4" y="4" width="16" height="16" rx="2" />
-      <path d="M8 8h8M8 12h5M8 16h6" />
-      <circle cx="17" cy="7" r="2" />
-    </>
-  ),
   publicaciones: (
     <>
       <path d="M5 10v4a2 2 0 0 0 2 2h1l5 4V6L8 10H7a2 2 0 0 0-2 2z" />
