@@ -147,6 +147,8 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
   const [errorSubida, setErrorSubida] = useState<string | null>(null);
   const [eliminandoId, setEliminandoId] = useState<string | null>(null);
   const [progresoCarpeta, setProgresoCarpeta] = useState<ProgresoCarpeta | null>(null);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
+  const [eliminandoLote, setEliminandoLote] = useState(false);
 
   // webkitdirectory no está en los tipos estándar — el input solo existe cuando abierta=true
   useEffect(() => {
@@ -251,6 +253,36 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
     return items.filter((i) => i.nombre.toLowerCase().includes(q));
   }, [recursosData, editorData, buscar]);
 
+  function claveItem(item: Pick<ImagenGaleriaItem, "origen" | "nombre">): string {
+    return `${item.origen}-${item.nombre}`;
+  }
+
+  function alternarSeleccion(item: ImagenGaleriaItem) {
+    const clave = claveItem(item);
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(clave)) next.delete(clave);
+      else next.add(clave);
+      return next;
+    });
+  }
+
+  const todosSeleccionados =
+    imagenes.length > 0 && imagenes.every((i) => seleccionados.has(claveItem(i)));
+
+  function alternarSeleccionarTodo() {
+    setSeleccionados((prev) => {
+      if (todosSeleccionados) {
+        const next = new Set(prev);
+        imagenes.forEach((i) => next.delete(claveItem(i)));
+        return next;
+      }
+      const next = new Set(prev);
+      imagenes.forEach((i) => next.add(claveItem(i)));
+      return next;
+    });
+  }
+
   const eliminarMut = useMutation({
     mutationFn: async (item: ImagenGaleriaItem) => {
       const nombre = encodeURIComponent(item.nombre);
@@ -271,6 +303,61 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
     onError: (err: Error) => setErrorSubida(err.message),
     onSettled: () => setEliminandoId(null),
   });
+
+  const eliminarLoteMut = useMutation({
+    mutationFn: async (items: ImagenGaleriaItem[]) => {
+      const deRecursos = items.filter((i) => i.origen === "recursos");
+      const deEditor = items.filter((i) => i.origen === "editor");
+      const errores: string[] = [];
+
+      if (deRecursos.length > 0) {
+        const res = await api.post<{ ok: boolean; eliminados: string[]; errores: Record<string, string> }>(
+          "/api/etiquetas/recursos-png/eliminar-lote",
+          { nombres: deRecursos.map((i) => i.nombre) },
+        );
+        Object.entries(res.errores || {}).forEach(([nombre, msg]) => errores.push(`${nombre}: ${msg}`));
+        deRecursos.forEach((i) => liberarCacheImagenCanvas(i.src));
+      }
+
+      if (deEditor.length > 0) {
+        const resultados = await Promise.allSettled(
+          deEditor.map((i) =>
+            api.delete<{ ok: boolean }>(`/api/plantillas-visuales/assets/${encodeURIComponent(i.nombre)}`),
+          ),
+        );
+        resultados.forEach((r, idx) => {
+          if (r.status === "rejected") {
+            errores.push(`${deEditor[idx].nombre}: ${r.reason instanceof Error ? r.reason.message : "error"}`);
+          } else {
+            liberarCacheImagenCanvas(deEditor[idx].src);
+          }
+        });
+      }
+
+      return { errores };
+    },
+    onMutate: () => {
+      setEliminandoLote(true);
+      setErrorSubida(null);
+    },
+    onSuccess: (res) => {
+      setSeleccionados(new Set());
+      if (res.errores.length > 0) {
+        setErrorSubida(`No se pudieron eliminar ${res.errores.length}: ${res.errores.slice(0, 3).join(", ")}${res.errores.length > 3 ? "…" : ""}`);
+      }
+      void qc.invalidateQueries({ queryKey: ["etiquetas-recursos-png"] });
+      void qc.invalidateQueries({ queryKey: ["plantillas-visuales-assets"] });
+    },
+    onError: (err: Error) => setErrorSubida(err.message),
+    onSettled: () => setEliminandoLote(false),
+  });
+
+  function eliminarSeleccionados() {
+    const items = imagenes.filter((i) => seleccionados.has(claveItem(i)));
+    if (items.length === 0) return;
+    if (!window.confirm(`¿Eliminar ${items.length} imagen(es) seleccionada(s) de la galería?`)) return;
+    eliminarLoteMut.mutate(items);
+  }
 
   const subirMut = useMutation({
     mutationFn: async (files: File[]) => {
@@ -338,6 +425,27 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
             placeholder="Buscar imagen…"
             className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm"
           />
+
+          {imagenes.length > 0 && (
+            <label className="flex shrink-0 items-center gap-1.5 text-xs text-ink-secondary">
+              <input
+                type="checkbox"
+                checked={todosSeleccionados}
+                onChange={alternarSeleccionarTodo}
+              />
+              Seleccionar todo
+            </label>
+          )}
+          {seleccionados.size > 0 && (
+            <button
+              type="button"
+              onClick={eliminarSeleccionados}
+              disabled={eliminandoLote}
+              className="shrink-0 rounded-lg border border-red-300 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300"
+            >
+              {eliminandoLote ? "Eliminando…" : `Eliminar seleccionadas (${seleccionados.size})`}
+            </button>
+          )}
 
           {/* Subir una o varias imágenes */}
           <input
@@ -460,14 +568,20 @@ export default function GaleriaImagenesModal({ abierta, onCerrar, onElegir }: Pr
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
               {imagenes.map((item) => (
                 <MiniaturaGaleria
-                  key={`${item.origen}-${item.nombre}`}
+                  key={claveItem(item)}
                   item={item}
-                  seleccionada={false}
-                  eliminando={eliminandoId === `${item.origen}-${item.nombre}`}
+                  seleccionada={seleccionados.has(claveItem(item))}
+                  modoSeleccion={seleccionados.size > 0}
+                  eliminando={eliminandoId === claveItem(item)}
                   onElegir={() => {
+                    if (seleccionados.size > 0) {
+                      alternarSeleccion(item);
+                      return;
+                    }
                     onElegir(item.src);
                     onCerrar();
                   }}
+                  onAlternarSeleccion={() => alternarSeleccion(item)}
                   onEliminar={() => {
                     if (
                       !window.confirm(
