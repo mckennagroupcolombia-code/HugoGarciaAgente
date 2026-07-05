@@ -11626,7 +11626,8 @@ REGLAS:
         with open(_ETIQUETAS_PNG_INDEX_PATH, "w", encoding="utf-8") as f:
             json.dump({"recursos": items[:300]}, f, ensure_ascii=False, indent=2)
 
-    def _thumb_png_b64(ruta: str, max_px: int = 72) -> str | None:
+    def _thumb_png_b64(ruta: str, max_px: int = 72) -> tuple[str, str] | tuple[None, None]:
+        """Devuelve (base64, mimetype) de una miniatura, o (None, None) si falla."""
         import base64 as _b64png
         try:
             from PIL import Image as _PILImg
@@ -11636,21 +11637,27 @@ REGLAS:
                 import io as _iopng
                 buf = _iopng.BytesIO()
                 im.save(buf, format="PNG")
-                return _b64png.b64encode(buf.getvalue()).decode()
+                return _b64png.b64encode(buf.getvalue()).decode(), "image/png"
         except Exception:
             try:
                 if os.path.getsize(ruta) <= 400_000:
                     with open(ruta, "rb") as f:
-                        return _b64png.b64encode(f.read()).decode()
+                        raw = f.read()
+                    # Pillow falló al abrirla: se guardan los bytes originales
+                    # tal cual, así que el mimetype declarado debe coincidir con
+                    # el formato real (JPEG vs PNG) o el navegador no la renderiza.
+                    mime = "image/jpeg" if raw[:2] == b"\xff\xd8" else "image/png"
+                    return _b64png.b64encode(raw).decode(), mime
             except Exception:
                 pass
-        return None
+        return None, None
 
     def _registrar_png_recurso(nombre: str, ruta_completa: str, bytes_size: int) -> dict:
         import uuid as _uuid_png
         items = _load_png_recursos_etiquetas()
         items = [a for a in items if a.get("ruta_completa") != ruta_completa]
         rel = os.path.relpath(ruta_completa, _PDF_DIR) if ruta_completa.startswith(_PDF_DIR) else nombre
+        thumb_b64, thumb_mime = _thumb_png_b64(ruta_completa)
         entry = {
             "id": _uuid_png.uuid4().hex[:12],
             "nombre": nombre,
@@ -11658,7 +11665,8 @@ REGLAS:
             "ruta_completa": ruta_completa,
             "subido_at": _dt.now().isoformat(timespec="seconds"),
             "bytes": bytes_size,
-            "thumb_b64": _thumb_png_b64(ruta_completa),
+            "thumb_b64": thumb_b64,
+            "thumb_mime": thumb_mime or "image/png",
         }
         items.insert(0, entry)
         _save_png_recursos_etiquetas(items)
@@ -11771,6 +11779,7 @@ REGLAS:
         return jsonify({"ok": True, "eliminados": eliminados, "errores": errores})
 
     @app.route("/api/etiquetas/recursos-png/archivo/<path:nombre>", methods=["GET"])
+    @app.route("/app/api/etiquetas/recursos-png/archivo/<path:nombre>", methods=["GET"])
     def api_etiquetas_recurso_png_archivo(nombre: str):
         if not _api_token_valido():
             return jsonify({"error": "No autorizado"}), 401

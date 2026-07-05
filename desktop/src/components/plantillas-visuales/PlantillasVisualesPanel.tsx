@@ -31,6 +31,57 @@ interface RecursoPngBiblioteca {
   subido_at?: string;
   bytes?: number;
   thumb_b64?: string | null;
+  thumb_mime?: string | null;
+}
+
+function MiniaturaRecursoPng({ nombre, thumbB64, thumbMime }: {
+  nombre: string;
+  thumbB64?: string | null;
+  thumbMime?: string | null;
+}) {
+  const [src, setSrc] = useState<string | null>(
+    thumbB64 ? `data:${thumbMime || "image/png"};base64,${thumbB64}` : null,
+  );
+  const [fallo, setFallo] = useState(false);
+
+  useEffect(() => {
+    if (thumbB64) {
+      setSrc(`data:${thumbMime || "image/png"};base64,${thumbB64}`);
+      setFallo(false);
+      return;
+    }
+    // Sin miniatura embebida (falló al subir): recurre al archivo real.
+    let cancelado = false;
+    setFallo(false);
+    resolverUrlImagenCanvas(`/api/etiquetas/recursos-png/archivo/${encodeURIComponent(nombre)}`)
+      .then((url) => {
+        if (!cancelado) setSrc(url);
+      })
+      .catch(() => {
+        if (!cancelado) setFallo(true);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [nombre, thumbB64, thumbMime]);
+
+  if (fallo || !src) {
+    return (
+      <div className="flex h-10 w-10 items-center justify-center rounded bg-surface-hover text-[9px] text-muted" title="Sin previsualización">
+        ?
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={nombre}
+      className="max-h-full max-w-full object-contain"
+      draggable={false}
+      onError={() => setFallo(true)}
+    />
+  );
 }
 
 function formatoBytes(bytes?: number): string {
@@ -207,16 +258,7 @@ function BibliotecaEtiquetasSection() {
                 />
               </label>
               <div className="flex aspect-square items-center justify-center bg-zinc-100 p-1 dark:bg-zinc-800/40">
-                {r.thumb_b64 ? (
-                  <img
-                    src={`data:image/png;base64,${r.thumb_b64}`}
-                    alt={r.nombre}
-                    className="max-h-full max-w-full object-contain"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded bg-surface-hover" />
-                )}
+                <MiniaturaRecursoPng nombre={r.nombre} thumbB64={r.thumb_b64} thumbMime={r.thumb_mime} />
               </div>
               <div className="px-1.5 py-1">
                 <p className="truncate text-[10px] text-ink" title={r.nombre}>
