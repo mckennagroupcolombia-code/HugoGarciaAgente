@@ -150,65 +150,101 @@ function cargarImagenDesde(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Vuelve a pintar cada imagen directamente sobre el canvas ya capturado, a su
- * resolución nativa (con `ctx.drawImage`), en vez de confiar en el bitmap que
- * `html-to-image` generó dentro del `foreignObject`. Ese `foreignObject`
- * rasteriza el `<img>` a la resolución de layout (1×) antes de que el SVG se
- * escale al tamaño final del canvas, así que a "Alta"/"Máxima" el resultado
- * quedaba pixelado — el texto no sufre esto porque se redibuja como fuente
- * vectorial, pero una imagen ya rasterizada sí.
+ * Dibuja una imagen directamente sobre el canvas, a su resolución nativa (con
+ * `ctx.drawImage`), en vez de confiar en el bitmap que `html-to-image`
+ * generaría dentro de un `foreignObject`. Ese `foreignObject` rasteriza el
+ * `<img>` a la resolución de layout (1×) antes de escalar al tamaño final,
+ * así que a "Alta"/"Máxima" el resultado quedaba pixelado — el texto no
+ * sufre esto porque se redibuja como fuente vectorial, pero una imagen ya
+ * rasterizada sí.
  */
-async function redibujarImagenesEnCanvas(
-  canvas: HTMLCanvasElement,
-  doc: PlantillaVisualDoc,
+async function dibujarImagenEnCanvas(
+  ctx: CanvasRenderingContext2D,
+  el: Extract<ElementoVisual, { type: "image" }>,
   imagenesResueltas: Map<string, string | null>,
   escala: number,
 ): Promise<void> {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const imagenes = doc.elementos.filter(
-    (el): el is Extract<ElementoVisual, { type: "image" }> =>
-      el.type === "image" && el.visible !== false && !!imagenesResueltas.get(el.id),
-  );
-  if (imagenes.length === 0) return;
+  const dataUrl = imagenesResueltas.get(el.id);
+  if (!dataUrl) return;
+  let img: HTMLImageElement;
+  try {
+    img = await cargarImagenDesde(dataUrl);
+  } catch {
+    return;
+  }
+  if (!img.naturalWidth || !img.naturalHeight) return;
 
-  await Promise.all(
-    imagenes.map(async (el) => {
-      const dataUrl = imagenesResueltas.get(el.id);
-      if (!dataUrl) return;
-      let img: HTMLImageElement;
-      try {
-        img = await cargarImagenDesde(dataUrl);
-      } catch {
-        return;
-      }
-      if (!img.naturalWidth || !img.naturalHeight) return;
+  const cx = (el.x + el.width / 2) * escala;
+  const cy = (el.y + el.height / 2) * escala;
+  const w = el.width * escala;
+  const h = el.height * escala;
 
-      const cx = (el.x + el.width / 2) * escala;
-      const cy = (el.y + el.height / 2) * escala;
-      const w = el.width * escala;
-      const h = el.height * escala;
+  ctx.save();
+  ctx.translate(cx, cy);
+  if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180);
+  ctx.beginPath();
+  ctx.rect(-w / 2, -h / 2, w, h);
+  ctx.clip();
 
-      ctx.save();
-      ctx.translate(cx, cy);
-      if (el.rotation) ctx.rotate((el.rotation * Math.PI) / 180);
-      ctx.beginPath();
-      ctx.rect(-w / 2, -h / 2, w, h);
-      ctx.clip();
+  const escalaObjeto =
+    el.objectFit === "cover"
+      ? Math.max(w / img.naturalWidth, h / img.naturalHeight)
+      : Math.min(w / img.naturalWidth, h / img.naturalHeight);
+  const drawW = img.naturalWidth * escalaObjeto;
+  const drawH = img.naturalHeight * escalaObjeto;
 
-      const escalaObjeto =
-        el.objectFit === "cover"
-          ? Math.max(w / img.naturalWidth, h / img.naturalHeight)
-          : Math.min(w / img.naturalWidth, h / img.naturalHeight);
-      const drawW = img.naturalWidth * escalaObjeto;
-      const drawH = img.naturalHeight * escalaObjeto;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+  ctx.restore();
+}
 
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-      ctx.restore();
-    }),
-  );
+/**
+ * Dibuja una línea directamente sobre el canvas con `ctx.moveTo`/`lineTo`, en
+ * vez de confiar en el `<svg>` de una sola línea (alto/ancho de 1px en
+ * líneas horizontales o verticales) que generaría `PlantillaVisualEstaticoDom`.
+ * Ese `<svg>` diminuto, rasterizado dentro del `foreignObject` de
+ * html-to-image, puede desplazarse medio píxel al escalar a "Alta"/"Máxima"
+ * — imperceptible a 1×, pero a 4× ese medio píxel de doc-unit se vuelve 1-2
+ * px reales, y con varias líneas el corrimiento no es igual en todas, así
+ * que la distancia entre ellas se ve distinta que en el editor.
+ */
+function dibujarLineaEnCanvas(
+  ctx: CanvasRenderingContext2D,
+  el: Extract<ElementoVisual, { type: "line" }>,
+  escala: number,
+): void {
+  const x2 = el.x2 ?? el.x + el.width;
+  const y2 = el.y2 ?? el.y;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(el.x * escala, el.y * escala);
+  ctx.lineTo(x2 * escala, y2 * escala);
+  ctx.strokeStyle = el.stroke;
+  ctx.lineWidth = Math.max(1, el.strokeWidth * escala);
+  ctx.lineCap = "butt";
+  ctx.stroke();
+  ctx.restore();
+}
+
+type RunRender = { tipo: "dom" | "canvas"; elementos: ElementoVisual[] };
+
+/** Agrupa los elementos visibles (ordenados por zIndex) en tramos contiguos
+ * "dom" (texto/rect, vía html-to-image) y "canvas" (línea/imagen, dibujados
+ * a mano) — así el compositado final respeta el zIndex real entre ambos
+ * tipos, en vez de pintar siempre las líneas/imágenes por encima de todo. */
+function agruparPorTipoRender(doc: PlantillaVisualDoc): RunRender[] {
+  const ordenados = doc.elementos
+    .filter((el) => el.visible !== false)
+    .sort((a, b) => a.zIndex - b.zIndex);
+  const runs: RunRender[] = [];
+  for (const el of ordenados) {
+    const tipo: RunRender["tipo"] = el.type === "line" || el.type === "image" ? "canvas" : "dom";
+    const ultimo = runs[runs.length - 1];
+    if (ultimo && ultimo.tipo === tipo) ultimo.elementos.push(el);
+    else runs.push({ tipo, elementos: [el] });
+  }
+  return runs;
 }
 
 /**
@@ -230,46 +266,82 @@ export async function renderPlantillaToCanvasDom(
   const forzarOpaco = opts?.forzarFondoOpaco === true;
   const imagenesResueltas = await resolverImagenesPlantilla(doc);
 
+  const anchoFinal = Math.max(1, Math.round(w * escala));
+  const altoFinal = Math.max(1, Math.round(h * escala));
+  const canvas = document.createElement("canvas");
+  canvas.width = anchoFinal;
+  canvas.height = altoFinal;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No se pudo preparar el lienzo para exportar");
+
+  // El fondo se pinta una sola vez aquí; cada tramo DOM se captura con fondo
+  // transparente para poder ir componiéndolos sin taparse entre sí.
+  const fondoTransparenteDoc = !doc.fondo || doc.fondo === "transparent" || doc.fondo === "none";
+  if (forzarOpaco) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, anchoFinal, altoFinal);
+  } else if (!fondoTransparenteDoc) {
+    ctx.fillStyle = doc.fondo;
+    ctx.fillRect(0, 0, anchoFinal, altoFinal);
+  }
+
+  const runs = agruparPorTipoRender(doc);
+
   const contenedor = document.createElement("div");
   contenedor.style.position = "fixed";
   contenedor.style.left = "-99999px";
   contenedor.style.top = "0";
   contenedor.style.pointerEvents = "none";
   document.body.appendChild(contenedor);
-
   const raiz = createRoot(contenedor);
-  try {
-    flushSync(() => {
-      raiz.render(
-        <PlantillaVisualEstaticoDom
-          doc={doc}
-          imagenesResueltas={imagenesResueltas}
-          escala={escala}
-        />,
-      );
-    });
-    const nodo = contenedor.firstElementChild as HTMLElement | null;
-    if (!nodo) throw new Error("No se pudo preparar el lienzo para exportar");
 
-    try {
-      // El nodo ya está pintado a tamaño w*escala × h*escala (ver
-      // PlantillaVisualEstaticoDom) para que el texto se rasterice nítido a
-      // esa resolución. pixelRatio se deja en 1: si se usara `escala` aquí,
-      // html-to-image tomaría el bitmap ya renderizado a 1× y lo estiraría,
-      // produciendo letras borrosas en "Alta"/"Máxima".
-      const canvas = await toCanvas(nodo, {
-        width: w * escala,
-        height: h * escala,
-        pixelRatio: 1,
-        backgroundColor: forzarOpaco ? "#ffffff" : undefined,
-        cacheBust: true,
-        imagePlaceholder: IMAGEN_PLACEHOLDER_PX,
+  try {
+    for (const run of runs) {
+      if (run.tipo === "canvas") {
+        // Líneas/imágenes de este tramo, en su orden real de zIndex.
+        for (const el of run.elementos) {
+          if (el.type === "line") {
+            dibujarLineaEnCanvas(ctx, el, escala);
+          } else if (el.type === "image") {
+            await dibujarImagenEnCanvas(ctx, el, imagenesResueltas, escala);
+          }
+        }
+        continue;
+      }
+
+      // Tramo DOM (texto/rect): se captura aparte, con fondo transparente, y
+      // se compone sobre el canvas principal en su lugar dentro del zIndex.
+      flushSync(() => {
+        raiz.render(
+          <PlantillaVisualEstaticoDom
+            doc={{ ...doc, elementos: run.elementos }}
+            escala={escala}
+            fondoTransparente
+          />,
+        );
       });
-      await redibujarImagenesEnCanvas(canvas, doc, imagenesResueltas, escala);
-      return canvas;
-    } catch (err) {
-      throw normalizarErrorExportDom(err);
+      const nodo = contenedor.firstElementChild as HTMLElement | null;
+      if (!nodo) throw new Error("No se pudo preparar el lienzo para exportar");
+
+      try {
+        // pixelRatio se deja en 1: si se usara `escala` aquí, html-to-image
+        // tomaría el bitmap ya renderizado a 1× y lo estiraría, produciendo
+        // letras borrosas en "Alta"/"Máxima" (el nodo ya está pintado a
+        // tamaño w*escala × h*escala, ver PlantillaVisualEstaticoDom).
+        const subCanvas = await toCanvas(nodo, {
+          width: anchoFinal,
+          height: altoFinal,
+          pixelRatio: 1,
+          backgroundColor: undefined,
+          cacheBust: true,
+          imagePlaceholder: IMAGEN_PLACEHOLDER_PX,
+        });
+        ctx.drawImage(subCanvas, 0, 0);
+      } catch (err) {
+        throw normalizarErrorExportDom(err);
+      }
     }
+    return canvas;
   } finally {
     raiz.unmount();
     contenedor.remove();
